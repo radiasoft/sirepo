@@ -14,7 +14,7 @@ from sirepo import srunit
 def test_login():
     from pykern import pkunit
     from pykern.pkdebug import pkdp
-    from pykern.pkunit import pkeq, pkok, pkre
+    from pykern.pkunit import pkeq, pkok, pkre, pkexcept
     from sirepo import auth
     import flask
     import sirepo.auth.guest
@@ -27,9 +27,8 @@ def test_login():
     auth.process_request()
     with pkunit.pkexcept('Unauthorized'):
         auth.logged_in_user()
-    r = auth.require_user()
-    pkeq(400, r.status_code, 'status should be BAD REQUEST')
-    pkre('"routeName": "login"', r.data)
+    with pkexcept('SRException.*routeName=login'):
+        auth.require_user()
     sirepo.cookie.set_sentinel()
     # copying examples for new user takes time
     r = auth.login(sirepo.auth.guest)

@@ -52,7 +52,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
             $scope.description = viewInfo.description;
             $scope.advancedFields = viewInfo[$scope.fieldDef || 'advanced'];
             if (! $scope.advancedFields) {
-                throw $scope.modelName + ' view is missing ' + ($scope.fieldDef || 'advanced') + ' fields';
+                throw new Error($scope.modelName + ' view is missing ' + ($scope.fieldDef || 'advanced') + ' fields');
             }
             $scope.isColumnField = function(f) {
                 return typeof(f) == 'string' ? false : true;
@@ -217,7 +217,7 @@ SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
         controller: function($scope) {
             var viewInfo = appState.viewInfo($scope.viewName);
             if (! viewInfo) {
-                throw 'unknown viewName: ' + $scope.viewName;
+                throw new Error('unknown viewName: ' + $scope.viewName);
             }
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.modelKey = $scope.modelData
@@ -542,7 +542,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             // field def: [label, type]
             $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
             if (! $scope.info) {
-                throw 'invalid model field: ' + $scope.modelName + '.' + $scope.field;
+                throw new Error('invalid model field: ' + $scope.modelName + '.' + $scope.field);
             }
             $scope.fieldProps = appState.fieldProperties($scope.modelName, $scope.field);
 
@@ -1085,7 +1085,7 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
             }
             var viewInfo = appState.viewInfo($scope.viewName);
             if (! viewInfo) {
-                throw 'missing view in schema: ' + $scope.viewName;
+                throw new Error('missing view in schema: ' + $scope.viewName);
             }
             $scope.helpTopic = viewInfo.title;
             //TODO(pjm): cobbled-together to allow a view to refer to a model by name, ex. SRW simulationGrid view
@@ -1372,7 +1372,7 @@ SIREPO.app.directive('colorMapMenu', function(appState, plotting) {
             function init() {
                 var info = appState.modelInfo($scope.modelName)[$scope.field];
                 if (! info) {
-                    throw 'invalid model field: ' + $scope.modelName + '.' + $scope.field;
+                    throw new Error('invalid model field: ' + $scope.modelName + '.' + $scope.field);
                 }
                 enumName = info[SIREPO.INFO_INDEX_TYPE];
                 defaultMapName = info[SIREPO.INFO_INDEX_DEFAULT_VALUE];
@@ -2283,10 +2283,9 @@ SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, 
     };
 });
 
-SIREPO.app.directive('completeRegistration', function($window, requestSender, authState, errorService) {
+SIREPO.app.directive('completeRegistration', function($window, requestSender, errorService) {
     return {
         restrict: 'A',
-        scope: {},
         template: [
             '<div class="row text-center">',
             '<p>Please enter your full name to complete your Sirepo registration.</p>',
@@ -2295,49 +2294,15 @@ SIREPO.app.directive('completeRegistration', function($window, requestSender, au
               '<div class="row text-center">',
                 '<label class="col-sm-3 control-label">Your full name</label>',
                 '<div class="col-sm-7">',
-                  '<input name="guestName" class="form-control" data-ng-model="data.displayName" required/>',
-                  '<div class="sr-input-warning" data-ng-show="showWarning">{{ warningText }}</div>',
+                  '<input name="displayName" class="form-control" data-ng-model="loginConfirm.data.displayName" required/>',
+                  '<div class="sr-input-warning" data-ng-show="showWarning">{{ loginConfirm.warningText }}</div>',
                 '</div>',
               '</div>',
               '<div class="row text-center" style="margin-top: 10px">',
-                 '<button data-ng-click="submit()" class="btn btn-primary" data-ng-disabled="! data.displayName">Submit</button>',
+                 '<button data-ng-click="loginConfirm.submit()" class="btn btn-primary" data-ng-disabled="! loginConfirm.data.displayName">Submit</button>',
               '</div>',
             '</form>',
         ].join(''),
-        controller: function($scope) {
-            if (! authState.isLoggedIn) {
-                requestSender.localRedirect('login');
-                return;
-            }
-            if (! authState.needCompleteRegistration) {
-                requestSender.localRedirect('simulations');
-                return;
-            }
-            function handleResponse(data) {
-                if (data.state === 'ok') {
-                    $scope.showWarning = false;
-                    $window.location.href = requestSender.formatUrl(
-                        'root',
-                        {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
-                    );
-                    return;
-                }
-                $scope.showWarning = true;
-                $scope.warningText = 'Server reported an error, please contact support@radiasoft.net.';
-            }
-            $scope.data = {};
-            $scope.submit = function() {
-                //TODO(robnagler): change button to sending
-                requestSender.sendRequest(
-                    'authCompleteRegistration',
-                    handleResponse,
-                    {
-                        displayName: $scope.data.displayName,
-                        simulationType: SIREPO.APP_NAME
-                    }
-                );
-            };
-        },
     };
 });
 
@@ -2404,6 +2369,23 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
             // get the angular form from within the transcluded content
             scope.form = element.find('input').eq(0).controller('form');
         }
+    };
+});
+
+SIREPO.app.directive('emailLoginConfirm', function(requestSender, $route) {
+    return {
+        restrict: 'A',
+        template: [
+            '<div class="row text-center">',
+              '<p>Please click the button below to complete the login process.</p>',
+            '</div>',
+            '<div class="sr-input-warning" data-ng-show="showWarning">{{ loginConfirm.warningText }}</div>',
+            '<form class="form-horizontal" autocomplete="off" novalidate>',
+              '<div class="row text-center" style="margin-top: 10px">',
+                 '<button data-ng-click="loginConfirm.submit()" class="btn btn-primary">Confirm</button>',
+              '</div>',
+            '</form>',
+        ].join(''),
     };
 });
 
@@ -3062,7 +3044,7 @@ SIREPO.app.service('mathRendering', function() {
             i = text.search(/\S\$/);
             if (i == -1) {
                 // should never get here
-                throw 'invalid math expression';
+                throw new Error('invalid math expression');
             }
             parts.push(katex.renderToString(text.slice(0, i + 1), options));
             text = text.slice(i + 2);

@@ -100,7 +100,7 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
             }
         });
         if (! model) {
-            throw 'model not found: ' + name + ' id: ' + id;
+            throw new Error('model not found: ' + name + ' id: ' + id);
         }
         return model;
     }
@@ -266,7 +266,7 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
                     callback(reader, conductor, type);
                 }
             }, function (reason) {
-                throw type.file + ': Error loading data from .stl file: ' + reason;
+                throw new Error(type.file + ': Error loading data from .stl file: ' + reason);
             })
             .catch(function (e) {
                 errorService.alertText(e);
@@ -990,7 +990,7 @@ SIREPO.app.directive('cellSelector', function(appState, plotting, warpvndService
                         });
                     }
                     else {
-                        throw 'unknown cell type: ' + $scope.info[1];
+                        throw new Error('unknown cell type: ' + $scope.info[1]);
                     }
                 }
                 return cells;
@@ -1607,7 +1607,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                         lengthField: 'yLength',
                     };
                 }
-                throw 'invalid elev: ' + elev;
+                throw new Error('invalid elev: ' + elev);
             }
 
             function zPanelHeight() {

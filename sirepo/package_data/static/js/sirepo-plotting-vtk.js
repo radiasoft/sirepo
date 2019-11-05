@@ -132,7 +132,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                             self.addSTLReader(file, r);
                             setSTL(r);
                         }, function (reason) {
-                            throw file + ': Error loading data from .stl file: ' + reason;
+                            throw new Error(file + ': Error loading data from .stl file: ' + reason);
                         }
                     ).catch(function (e) {
                         errorService.alertText(e);
@@ -203,8 +203,8 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
             .then(function() {
                 return r;
         }, function (err) {
-            throw url + ': Invalid or missing .stl: ' +
-            (err.xhr ? err.xhr.status + ' (' + err.xhr.statusText + ')' : err);
+            throw new Error(url + ': Invalid or missing .stl: ' +
+            (err.xhr ? err.xhr.status + ' (' + err.xhr.statusText + ')' : err));
         })
             .catch(function (e) {
                 $rootScope.$apply(function () {
@@ -740,7 +740,7 @@ SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUplo
                         $scope.fileURL = null;
                         requestSender.localRedirectHome(simId);
                     }, function (err) {
-                        throw inputFile + ': Error during upload ' + err;
+                        throw new Error(inputFile + ': Error during upload ' + err);
                     });
             }
 
@@ -757,7 +757,7 @@ SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUplo
                         upload(inputFile, data);
                     },
                     function (err) {
-                        throw inputFile + ': Error creating simulation ' + err;
+                        throw new Error(inputFile + ': Error creating simulation ' + err);
                     }
                 );
             }

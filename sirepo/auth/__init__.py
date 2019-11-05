@@ -69,8 +69,10 @@ def api_authCompleteRegistration():
     # Needs to be explicit, because we would need a special permission
     # for just this API.
     if not _is_logged_in():
-        return http_reply.gen_sr_exception(LOGIN_ROUTE_NAME)
-    complete_registration(_parse_display_name(http_request.parse_json()))
+        raise util.SRException(LOGIN_ROUTE_NAME, None)
+    complete_registration(
+        _parse_display_name(http_request.parse_json().get('displayName')),
+    )
     return http_reply.gen_json_ok()
 
 
@@ -106,6 +108,7 @@ def api_authState():
     if pkconfig.channel_in('dev'):
         # useful for testing/debugging
         v.uid = u
+    pkdc('state={}', v)
     return http_reply.render_static(
         'auth-state',
         'js',
@@ -128,7 +131,7 @@ def api_authLogout(simulation_type=None):
     if _is_logged_in():
         cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         _set_log_user()
-    return http_reply.gen_redirect_for_root(t)
+    return http_reply.gen_redirect_for_app_root(t)
 
 
 def complete_registration(name=None):
@@ -201,7 +204,7 @@ def logged_in_user():
     return res
 
 
-def login(module, uid=None, model=None, sim_type=None, **kwargs):
+def login(module, uid=None, model=None, sim_type=None, display_name=None):
     """Login the user
 
     Args:
@@ -250,6 +253,8 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
         if model:
             model.uid = uid
             model.save()
+    if display_name:
+        complete_registration(_parse_display_name(display_name))
     if sim_type:
         if guest_uid and guest_uid != uid:
             simulation_db.move_user_simulations(guest_uid, uid)
@@ -286,7 +291,25 @@ def login_success_redirect(sim_type):
                     sim_type,
                     'completeRegistration',
                 )
-    return http_reply.gen_redirect_for_root(sim_type)
+    return http_reply.gen_redirect_for_local_route(sim_type)
+
+
+def need_complete_registration(model):
+    """Does unauthenticated user need to complete registration?
+
+    If the current method is deprecated, then we will end up asking
+    the user for a name again, but that's ok.
+
+    Does not work for guest (which don't have their own models anyway).
+
+    Args:
+        model (auth_db.UserDbBase): unauthenticated user record
+    Returns:
+        bool: True if user will be redirected to needCompleteRegistration
+    """
+    if not model.uid:
+        return True
+    return not auth_db.UserRegistration.search_by(uid=model.uid).display_name
 
 
 def process_request(unit_test=None):
@@ -342,8 +365,7 @@ def require_user():
     else:
         cookie.reset_state('state={} invalid, cannot continue'.format(s))
         e = 'invalid cookie'
-    pkdlog('user not logged in: {}', e)
-    return http_reply.gen_sr_exception(r, p)
+    raise util.SRException(r, p, 'user not logged in: {}', e)
 
 
 def reset_state():
@@ -515,10 +537,10 @@ def _method_user_model(module, uid):
     return module.UserModel.search_by(uid=uid)
 
 
-def _parse_display_name(data):
-    res = data.displayName.strip()
+def _parse_display_name(value):
+    res = value.strip()
     assert len(res), \
-        'invalid post data: displayName={}'.format(data.displayName)
+        'invalid post data: displayName={}'.format(value)
     return res
 
 
@@ -536,11 +558,6 @@ def _set_log_user():
     else:
         u = '-'
     _app.uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, u)
-
-
-def _update_session(login_state, auth_method):
-    cookie.set_value(_COOKIE_LOGIN_SESSION, login_state)
-    cookie.set_value(_COOKIE_METHOD, auth_method)
 
 
 def _validate_method(module, sim_type=None):

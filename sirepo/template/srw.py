@@ -9,7 +9,7 @@ from pykern import pkcollections
 from pykern import pkinspect
 from pykern import pkio
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdlog, pkdp
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import crystal
 from sirepo import simulation_db
 from sirepo.template import srw_common

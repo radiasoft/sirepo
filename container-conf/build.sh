@@ -50,7 +50,7 @@ build_as_run_user() {
         pip install .
     done
 
-    bash test.sh
+    SIREPO_PYTEST_SKIP=job_test bash test.sh
     cd ..
     build_run_user_home_chmod_public
 }

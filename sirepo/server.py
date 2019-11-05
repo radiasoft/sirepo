@@ -25,6 +25,7 @@ import py.path
 import re
 import sirepo.sim_data
 import sirepo.template
+import sirepo.uri
 import sirepo.util
 import time
 import urllib
@@ -210,8 +211,14 @@ def api_listFiles(simulation_type, simulation_id, file_type):
 
 @api_perm.allow_visitor
 def api_findByName(simulation_type, application_mode, simulation_name):
-    return http_reply.gen_redirect_for_anchor(
-        '/{}#/findByName/{}/{}'.format(simulation_type, application_mode, simulation_name))
+    return http_reply.gen_redirect_for_local_route(
+        simulation_type,
+        'findByName',
+        PKDict(
+            applicationMode=application_mode,
+            simulationName=simulation_name,
+        ),
+    )
 
 
 @api_perm.require_user
@@ -247,15 +254,13 @@ def api_findByNameWithAuth(simulation_type, application_mode, simulation_name):
                 simulation_name,
                 sim_type,
             )
-    # format the uri for the local route to this simulation for application_mode
-    s = simulation_db.get_schema(sim_type)
-    m = s.appModes[application_mode]
-    r = m.localRoute
-    assert r in s.localRoutes
-    u = '/{}#/{}/{}'.format(sim_type, r, rows[0].simulationId)
-    if m.includeMode:
-        u += '?application_mode={}'.format(application_mode)
-    return http_reply.gen_redirect_for_anchor(u)
+    m = simulation_db.get_schema(sim_type).appModes[application_mode]
+    return http_reply.gen_redirect_for_local_route(
+        sim_type,
+        m.localRoute,
+        PKDict(simulationId=rows[0].simulationId),
+        query=m.includeMode and PKDict(application_mode=application_mode),
+    )
 
 
 @api_perm.require_user
@@ -395,7 +400,7 @@ def api_robotsTxt():
         # We include dev so we can test
         if pkconfig.channel_in('prod', 'dev'):
             u = [
-                uri_router.uri_for_api('root', params={'simulation_type': x})
+                sirepo.uri.api('root', params={'simulation_type': x})
                 for x in sorted(feature_config.cfg.sim_types)
             ]
         else:
@@ -412,9 +417,9 @@ def api_root(simulation_type):
         sirepo.template.assert_sim_type(simulation_type)
     except AssertionError:
         if simulation_type == 'warp':
-            return http_reply.gen_redirect_for_root('warppba', code=301)
+            return http_reply.gen_redirect(sirepo.uri.app_root('warppba'))
         if simulation_type == 'fete':
-            return http_reply.gen_redirect_for_root('warpvnd', code=301)
+            return http_reply.gen_redirect(sirepo.uri.app_root('warpvnd'))
         pkdlog('{}: uri not found', simulation_type)
         sirepo.util.raise_not_found('Invalid simulation_type: {}', simulation_type)
     values = PKDict()
@@ -450,9 +455,7 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
     #TODO(robnagler) need real type transforms for inputs
     pretty = bool(int(pretty))
     try:
-        err_redirect = _verify_user_dir(simulation_type)
-        if err_redirect:
-            return err_redirect
+        _verify_user_dir(simulation_type)
         data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
         template = sirepo.template.import_module(simulation_type)
         if hasattr(template, 'prepare_for_client'):
@@ -479,12 +482,7 @@ def api_listSimulations():
     data = http_request.parse_data_input()
     sim_type = data['simulationType']
     search = data['search'] if 'search' in data else None
-    err_redirect = _verify_user_dir(sim_type)
-    if err_redirect:
-        return http_reply.gen_json({
-            'state': 'error',
-            'errorRedirect': err_redirect.headers.get('Location'),
-        })
+    _verify_user_dir(sim_type)
     simulation_db.verify_app_directory(sim_type)
     return http_reply.gen_json(
         sorted(
@@ -690,6 +688,7 @@ def _safe_attachment(resp, base, suffix):
         ).lower(),
     )
 
+
 def _save_new_and_reply(*args):
     data = simulation_db.save_new_simulation(*args)
     return api_simulationData(
@@ -697,6 +696,12 @@ def _save_new_and_reply(*args):
         data['models']['simulation']['simulationId'],
         pretty=False,
     )
+
+
+def _simulation_data(res, path, data):
+    """Iterator function to return entire simulation data
+    """
+    res.append(data)
 
 
 def _simulations_using_file(simulation_type, file_type, search_name, ignore_sim_id=None):
@@ -744,10 +749,7 @@ def _verify_user_dir(sim_type):
     from sirepo import auth
     uid = auth.logged_in_user()
     if not simulation_db.user_dir_name(uid).check():
-        pkdlog('Force log out, user has no user_dir: {}', uid)
-        #TODO(pjm): call http_reply to format route?
-        return flask.redirect('/auth-logout/' + sim_type)
-    return None
+        auth.user_dir_not_found(uid)
 
 
 def static_dir(dir_name):

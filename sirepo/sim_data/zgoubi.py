@@ -45,11 +45,11 @@ class SimData(sirepo.sim_data.SimDataBase):
         # move spntrk from simulationSettings (older) or bunch if present
         for m in 'simulationSettings', 'bunch':
             if 'spntrk' in dm:
-                data.models.SPNTRK.KSO = dm[m].spntrk
+                dm.SPNTRK.KSO = dm[m].spntrk
                 del dm[m]['spntrk']
                 for f in 'S_X', 'S_Y', 'S_Z':
                     if f in dm[m]:
-                        df.SPNTRK[f] = dm[m][f]
+                        dm.SPNTRK[f] = dm[m][f]
                         del dm[m][f]
         for e in dm.elements:
             cls.update_model_defaults(e, e.type)

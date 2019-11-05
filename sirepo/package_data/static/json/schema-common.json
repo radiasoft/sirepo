@@ -162,7 +162,6 @@
                     "bootstrap-3.3.7.min.js",
                     "bootstrap-toggle.min.js",
                     "ngDraggable.js",
-                    "stacktrace-0.6.4.js",
                     "colorbar.js",
                     "canvg-and-dependencies.js",
                     "FileSaver.js",
@@ -227,6 +226,7 @@
             "completeRegistration": {
                 "route": "/complete-registration",
                 "config": {
+                  "controller": "LoginConfirmController as loginConfirm",
                   "templateUrl": "/static/html/complete-registration.html"
                 }
             },
@@ -269,6 +269,13 @@
                 "config": {
                   "controller": "LoginWithController as loginWith",
                   "templateUrl": "/static/html/login-with.html"
+                }
+            },
+            "loginWithEmailConfirm": {
+                "route": "/login-with-email-confirm/:token/:needCompleteRegistration",
+                "config": {
+                  "controller": "LoginConfirmController as loginConfirm",
+                  "templateUrl": "/static/html/login-with-email-confirm.html"
                 }
             },
             "missingCookies": {

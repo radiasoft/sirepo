@@ -10,12 +10,6 @@ import flask
 import flask.testing
 import json
 import re
-try:
-    # py2
-    from urllib import urlencode
-except ImportError:
-    # py3
-    from urllib.parse import urlencode
 
 
 #: Default "app"
@@ -27,6 +21,8 @@ server = None
 #: app result from server.init
 app = None
 
+#: Matches javascript-redirect.html
+_JAVASCRIPT_REDIRECT_RE = re.compile(r'window.location = "([^"]+)"')
 
 def flask_client(cfg=None, sim_types=None):
     """Return FlaskClient with easy access methods.
@@ -167,37 +163,38 @@ class _TestClient(flask.testing.FlaskClient):
             )
         return s
 
-    def sr_get(self, route_name, params=None, query=None):
-        """Gets a request to route_name to server
+    def sr_get(self, route_or_uri, params=None, query=None, **kwargs):
+        """Gets a request to route_or_uri to server
 
         Args:
-            route_name (str): identifies route in schema-common.json
-            params (dict): optional params to route_name
+            route_or_uri (str): string name of route or uri if contains '/' (http:// or '/foo')
+            params (dict): optional params to route_or_uri
 
         Returns:
             flask.Response: reply object
         """
-        return _req(route_name, params, query, self.get, raw_response=True)
+        return self.__req(route_or_uri, params, query, self.get, raw_response=True, **kwargs)
 
-    def sr_get_json(self, route_name, params=None, query=None, headers=None):
-        """Gets a request to route_name to server
+    def sr_get_json(self, route_or_uri, params=None, query=None, headers=None, **kwargs):
+        """Gets a request to route_or_uri to server
 
         Args:
-            route_name (str): identifies route in schema-common.json
-            params (dict): optional params to route_name
+            route_or_uri (str): identifies route in schema-common.json
+            params (dict): optional params to route_or_uri
 
         Returns:
             object: Parsed JSON result
         """
-        return _req(
-            route_name,
+        return self.__req(
+            route_or_uri,
             params,
             query,
             lambda r: self.get(r, headers=headers),
             raw_response=False,
+            **kwargs
         )
 
-    def sr_get_root(self, sim_type=None):
+    def sr_get_root(self, sim_type=None, **kwargs):
         """Gets root app for sim_type
 
         Args:
@@ -206,12 +203,13 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             flask.Response: reply object
         """
-        return _req(
+        return self.__req(
             'root',
             {'simulation_type': sim_type or MYAPP},
             None,
             self.get,
             raw_response=True,
+            **kwargs
         )
 
     def sr_login_as_guest(self, sim_type=MYAPP):
@@ -230,35 +228,35 @@ class _TestClient(flask.testing.FlaskClient):
         return self.sr_auth_state(needCompleteRegistration=False, isLoggedIn=True).uid
 
 
-    def sr_post(self, route_name, data, params=None, raw_response=False):
-        """Posts JSON data to route_name to server
+    def sr_post(self, route_or_uri, data, params=None, raw_response=False, **kwargs):
+        """Posts JSON data to route_or_uri to server
 
         File parameters are posted as::
 
         Args:
-            route_name (str): identifies route in schema-common.json
+            route_or_uri (str): string name of route or uri if contains '/' (http:// or '/foo')
             data (object): will be formatted as form data
-            params (dict): optional params to route_name
+            params (dict): optional params to route_or_uri
 
         Returns:
             object: Parsed JSON result
         """
         op = lambda r: self.post(r, data=json.dumps(data), content_type='application/json')
-        return _req(route_name, params, {}, op, raw_response=raw_response)
+        return self.__req(route_or_uri, params, {}, op, raw_response=raw_response, **kwargs)
 
-    def sr_post_form(self, route_name, data, params=None, raw_response=False):
-        """Posts form data to route_name to server with data
+    def sr_post_form(self, route_or_uri, data, params=None, raw_response=False, **kwargs):
+        """Posts form data to route_or_uri to server with data
 
         Args:
-            route_name (str): identifies route in schema-common.json
+            route_or_uri (str): identifies route in schema-common.json
             data (dict): will be formatted as JSON
-            params (dict): optional params to route_name
+            params (dict): optional params to route_or_uri
 
         Returns:
             object: Parsed JSON result
         """
         op = lambda r: self.post(r, data=data)
-        return _req(route_name, params, {}, op, raw_response=raw_response)
+        return self.__req(route_or_uri, params, {}, op, raw_response=raw_response, **kwargs)
 
     def sr_sim_data(self, sim_type, sim_name):
         """Return simulation data by name
@@ -289,58 +287,65 @@ class _TestClient(flask.testing.FlaskClient):
         )
 
 
-def _req(route_name, params, query, op, raw_response):
-    """Make request and parse result
+    def __req(self, route_or_uri, params, query, op, raw_response, **kwargs):
+        """Make request and parse result
 
-    Args:
-        route_name (str): string name of route
-        params (dict): parameters to apply to route
-        op (func): how to request
+        Args:
+            route_or_uri (str): string name of route or uri if contains '/' (http:// or '/foo')
+            params (dict): parameters to apply to route
+            op (func): how to request
 
-    Returns:
-        object: parsed JSON result
-    """
-    from sirepo import simulation_db
+        Returns:
+            object: parsed JSON result
+        """
+        from pykern.pkcollections import PKDict
+        from pykern.pkdebug import pkdlog, pkdexc, pkdc
+        import sirepo.http_reply
+        import sirepo.uri
+        import sirepo.util
 
-    uri = None
-    resp = None
-    try:
-        uri = _uri(route_name, params, query)
-        resp = op(uri)
-        if raw_response:
-            return resp
-        return pkcollections.json_load_any(resp.data)
-    except Exception as e:
-        from pykern.pkdebug import pkdlog
-
-        pkdlog('Exception: {}: msg={} uri={} resp={}', type(e), e, uri, resp)
-        raise
-
-
-def _uri(route_name, params, query):
-    """Convert name to uri found in SCHEMA_COMMON.
-
-    Args:
-        route_name (str): string name of route
-        params (dict): parameters to apply to route
-        query (dict): query string values
-
-    Returns:
-        str: URI
-    """
-    from sirepo import simulation_db
-
-    route = simulation_db.SCHEMA_COMMON['route'][route_name]
-    if params:
-        for k, v in params.items():
-            k2 = r'\??<' + k + '>'
-            new_route = re.sub(k2, v, route)
-            assert new_route != route, \
-                '{}: not found in "{}"'.format(k2, route)
-            route = new_route
-    route = re.sub(r'\??<[^>]+>', '', route)
-    assert not '<' in route, \
-        '{}: missing params'.format(route)
-    if query:
-        route += '?' + urlencode(query)
-    return route
+        u = None
+        r = None
+        try:
+            u = sirepo.uri.server_route(route_or_uri, params, query)
+            pkdc('uri={}', u)
+            r = op(u)
+            pkdc('status={} data={}', r.status_code, r.data)
+            # Emulate code in sirepo.js to deal with redirects
+            if r.status_code == 200 and r.mimetype == 'text/html':
+                m = _JAVASCRIPT_REDIRECT_RE.search(r.data)
+                if m:
+                    if kwargs.get('redirect', True):
+                        # Execute the redirect
+                        return self.__req(m.group(1), None, None, self.get, raw_response)
+                    return flask.redirect(m.group(1))
+            if r.status_code in (301, 302, 303, 305, 307, 308):
+                if kwargs.get('redirect', True):
+                    # Execute the redirect
+                    return self.__req(r.headers['Location'], None, None, self.get, raw_response)
+                return r
+            if raw_response:
+                return r
+            # Treat SRException as a real exception (so we don't ignore them)
+            d = pkcollections.json_load_any(r.data)
+            if (
+                r.status_code == sirepo.http_reply.SR_EXCEPTION_STATUS
+                    and r.mimetype == 'application/json'
+            ):
+                raise sirepo.util.SRException(
+                    d.srException.routeName,
+                    d.srException.params,
+                )
+            return d
+        except Exception as e:
+            if not isinstance(e, sirepo.util.SRException):
+                pkdlog(
+                    'Exception: {}: msg={} uri={} status={} data={} stack={}',
+                    type(e),
+                    e,
+                    u,
+                    r and r.status_code,
+                    r and r.data,
+                    pkdexc(),
+                )
+            raise

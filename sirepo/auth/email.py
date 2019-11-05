@@ -5,6 +5,7 @@ u"""Email login
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
@@ -23,12 +24,7 @@ import flask_mail
 import hashlib
 import pyisemail
 import sirepo.template
-try:
-    # py2
-    from urllib import urlencode
-except ImportError:
-    # py3
-    from urllib.parse import urlencode
+
 
 AUTH_METHOD = 'email'
 
@@ -69,6 +65,9 @@ def api_authEmailAuthorized(simulation_type, token):
     with auth_db.thread_lock:
         u = AuthEmailUser.search_by(token=token)
         if u and u.expires >= srtime.utc_now():
+            r, n = _verify_confirm(t, token, auth.need_complete_registration(u))
+            if r:
+                return r
             u.query.filter(
                 (AuthEmailUser.user_name == u.unverified_email),
                 AuthEmailUser.unverified_email != u.unverified_email,
@@ -77,7 +76,12 @@ def api_authEmailAuthorized(simulation_type, token):
             u.token = None
             u.expires = None
             u.save()
-            return auth.login(this_module, sim_type=t, model=u)
+            return auth.login(
+                this_module,
+                sim_type=t,
+                model=u,
+                display_name=n,
+            )
         if not u:
             pkdlog('login with invalid token={}', token)
         else:
@@ -88,8 +92,12 @@ def api_authEmailAuthorized(simulation_type, token):
             )
         # if user is already logged in via email, then continue to the app
         if auth.user_if_logged_in(AUTH_METHOD):
-            pkdlog('user already logged in. ignoring invalid token: {}, user: {}', token, auth.logged_in_user())
-            return flask.redirect('/' + t)
+            pkdlog(
+                'user already logged in. ignoring invalid token: {}, user: {}',
+                token,
+                auth.logged_in_user(),
+            )
+            return http_reply.gen_redirect_for_local_route(t)
         return auth.login_fail_redirect(t, this_module, 'email-token')
 
 
@@ -209,3 +217,29 @@ This link will expire in {} hours and can only be used once.
     )
     _smtp.send(msg)
     return http_reply.gen_json_ok()
+
+
+def _verify_confirm(simulation_type, token, need_complete_registration):
+    m = flask.request.method
+    if m == 'GET':
+        return (
+            http_reply.gen_redirect_for_local_route(
+                simulation_type,
+                'loginWithEmailConfirm',
+                PKDict(
+                    token=token,
+                    needCompleteRegistration=need_complete_registration,
+                ),
+            ),
+            None,
+        )
+    assert m == 'POST', 'unexpect http method={}'.format(m)
+    d = http_request.parse_json()
+    if d.get('token') != token:
+        raise util.UserAlert(
+            'internal error',
+            'Expected token={} in data but got data={}',
+            token,
+            d,
+        )
+    return (None, d.get('displayName'))

@@ -112,7 +112,7 @@ def _do_beamline(template, data):
         if t in ('grating', 'ellipsoidMirror', 'sphericalMirror', 'toroidalMirror'):
             if 'grazingAngle' not in i:
                 angle = 0
-                if item.normalVectorX:
+                if i.normalVectorX:
                     angle = math.acos(abs(float(i.normalVectorX))) * 1000
                 elif i.normalVectorY:
                     angle = math.acos(abs(float(i.normalVectorY))) * 1000

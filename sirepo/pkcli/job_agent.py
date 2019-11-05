@@ -163,8 +163,8 @@ class _Job(PKDict):
 
     async def exit_ready(self):
         await self._exit.wait()
-        await self._stdout.stream_closed.wait()
-        await self._stderr.stream_closed.wait()
+        await self.stdout.stream_closed.wait()
+        await self.stderr.stream_closed.wait()
 
     def kill(self):
         # TODO(e-carlin): Terminate?
@@ -190,8 +190,8 @@ class _Job(PKDict):
             stderr=tornado.process.Subprocess.STREAM,
             env=env,
         )
-        self._stdout = _ReadJsonlStream(self._subprocess.stdout, self.on_stdout_read)
-        self._stderr = _ReadUntilCloseStream(self._subprocess.stderr)
+        self.stdout = _ReadJsonlStream(self._subprocess.stdout, self.on_stdout_read)
+        self.stderr = _ReadUntilCloseStream(self._subprocess.stderr)
         self._subprocess.set_exit_callback(self._subprocess_exit)
 
     def _subprocess_env(self):
