@@ -76,23 +76,15 @@ class _ComputeJob(PKDict):
             '_receive_' + req.content.api,
         )(req)
 
+    def destroy_op(self, op):
+        self._ops.remove(op)
+        op.destroy()
+
     async def _receive_api_runCancel(self, req):
         async def _reply_canceled(self, req):
             return PKDict(state=job.CANCELED)
 
         async def _cancel_pending(self, req):
-            # TODO(e-carlin): generalize import
-            # from sirepo.job_driver import local
-            # for k in self._driver_kinds.keys():
-            #     d = local.LocalDriver.get_instance(PKDict(kind=k, **req))
-            #     for o in d.ops_pending_done.copy().values():
-            #         if o.msg.computeJid == req.content.computeJid:
-            #             del d.ops_pending_done[o.opId]
-            #             o.cancel()
-            #     for o in d.ops_pending_send:
-            #         if o.msg.computeJid == req.content.computeJid:
-            #             d.ops_pending_send.remove(o)
-            #             o.cancel()
             for o in self._ops:
                 if o.msg.computeJid == req.content.computeJid:
                     o.cancel()
@@ -216,13 +208,13 @@ class _ComputeJob(PKDict):
             # TODO(e-carlin): What if this never comes?
             if 'opDone' in r:
                 break
-        o.destroy()
+        self.destroy_op(o)
 
     async def _send_with_single_reply(self, opName, req, jobProcessCmd=None):
         o = await self._send(opName, req, jobProcessCmd)
         r = await o.reply_ready()
         assert 'opDone' in r
-        o.destroy()
+        self.destroy_op(o)
         return r
 
     async def _send(self, opName, req, jobProcessCmd):
