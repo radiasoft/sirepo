@@ -170,7 +170,7 @@ def get_zcurrent_new(particle_array, momenta, mesh, particle_weight, dz):
     return current * constants.elementary_charge / dz
 
 
-def get_simulation_frame(run_dir, data, model_data):
+def get_simulation_frame(run_dir, frame_args, sim_in):
     md = pkcollections.Dict(model_data)
     frame_index = int(data['frameIndex'])
     model_name = data['modelName']

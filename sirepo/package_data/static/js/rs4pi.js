@@ -40,8 +40,9 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
         if (! analysisModel || analysisModel.indexOf('dicomAnimation') >=0) {
             return 'dicomAnimation';
         }
-        if analysisModel == 'dicomDose':
-            return 'doseCalculation'
+        if (analysisModel == 'dicomDose') {
+            return 'doseCalculation';
+        }
         return analysisModel;
     };
 

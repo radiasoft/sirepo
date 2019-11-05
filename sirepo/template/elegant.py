@@ -217,7 +217,7 @@ def _file_name_from_id(file_id, model_data, run_dir):
         _get_filename_for_element_id(file_id.split(_FILE_ID_SEP), model_data)))
 
 
-def get_simulation_frame(run_dir, frame_args, model_data):
+def get_simulation_frame(run_dir, frame_args, sim_in):
     m = frame_args.frameReport
     page_count = 0
     for info in _output_info(run_dir):
@@ -226,7 +226,7 @@ def get_simulation_frame(run_dir, frame_args, model_data):
             frame_args.fieldRange = info.fieldRange
     frame_args.y = frame_args.y1
     return _extract_report_data(
-        _file_name_from_id(frame_args.xFileId, model_data, run_dir),
+        _file_name_from_id(frame_args.xFileId, sim_in, run_dir),
         frame_args,
         page_count=page_count,
     )

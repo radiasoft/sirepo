@@ -907,7 +907,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         var f = SIREPO.APP_SCHEMA.frameIdFields;
         m = m[frameReport in m ? frameReport : c];
         v.concat(
-            m.map(function (a) {return f[a];}),
+            m.map(function (a) {return f[a];})
         );
         // POSIT: same as sirepo.sim_data._FRAME_ID_SEP
         return v.join('*');
@@ -980,7 +980,6 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             if (! (s && s.computeJobHash)
             ) {
                 // cannot request frames without computeJobHash
-                srdbg('missing', modelKey, appState.models.simulationStatus);
                 return 0;
             }
             return frameCountByModelKey[modelKey];

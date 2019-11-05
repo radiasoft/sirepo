@@ -150,25 +150,16 @@ def generate_parameters_file(data, is_parallel=False):
     return res + template_common.render_jinja(SIM_TYPE, v)
 
 
-def get_simulation_frame(run_dir, data, model_data):
-    frame_index = int(data['frameIndex'])
-    data_file = open_data_file(run_dir, frame_index)
-    args = template_common.parse_animation_args(data)
-    if data['modelName'] == 'fieldAnimation':
-        return _field_animation(args, data_file)
-    if data['modelName'] == 'particleAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {'': ['x', 'y', 'histogramBins', 'xMin', 'xMax', 'yMin', 'yMax', 'zMin', 'zMax', 'uxMin', 'uxMax', 'uyMin', 'uyMax', 'uzMin', 'uzMax']},
-        )
-        return extract_particle_report(args, 'electrons', run_dir, data_file)
-    if data['modelName'] == 'beamAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {'': ['x', 'y', 'histogramBins']},
-        )
-        return extract_particle_report(args, 'beam', run_dir, data_file)
-    raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
+def get_simulation_frame(run_dir, frame_args, sim_in):
+    f = open_data_file(run_dir, frame_args.frameIndex)
+    r = frame_args.frameReport
+    if r == 'fieldAnimation':
+        return _field_animation(frame_args, f)
+    if r == 'particleAnimation':
+        return extract_particle_report(frame_args, 'electrons', run_dir, f)
+    if r == 'beamAnimation':
+        return extract_particle_report(frame_args, 'beam', run_dir, f)
+    raise RuntimeError('unknown simulation frame model={}'.format(r))
 
 
 def get_data_file(run_dir, model, frame, **kwargs):

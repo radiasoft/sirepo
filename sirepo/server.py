@@ -91,7 +91,7 @@ def api_copySimulation():
     assert name, \
         sirepo.util.err(req, 'No name in request')
     folder = req.folder if 'folder' in req else '/'
-    data = simulation_db.read_simulation_json(sim_type, sid=im.id)
+    data = simulation_db.read_simulation_json(sim.type, sid=sim.id)
     data.models.simulation.name = name
     data.models.simulation.folder = folder
     data.models.simulation.isExample = False

@@ -567,7 +567,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
     self.simState = persistentSimulation.initSimulationState(
         $scope,
         webconService.computeModel(),
-        handleStatus,
+        handleStatus
     );
 
     return self;

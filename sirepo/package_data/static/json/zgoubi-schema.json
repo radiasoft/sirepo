@@ -383,7 +383,7 @@
             "particleSelector",
             "plotType"
         ],
-        "particleAnimation": ["isRunning", "particleSelector"],
+        "particleAnimation": ["isRunning", "particleSelector"]
     },
     "model": {
         "beamline": {

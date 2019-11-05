@@ -1974,7 +1974,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 $scope.$on($scope.model + '.changed', function() {
                     if ($scope.simState.isReadyForModelChanges && hasReportParameterChanged()) {
                         $scope.cancelPersistentSimulation();
-                        $scope.frameCount = 0
+                        $scope.frameCount = 0;
                         frameCache.setFrameCount($scope.frameCount);
                         $scope.percentComplete = 0;
                         $scope.particleNumber = 0;

@@ -193,6 +193,8 @@ class SimDataBase(object):
             str: combined frame id
         """
         assert response.frameCount > index
+        frame_args = response.copy()
+        frame_args.frameReport = model
         m = data.models[model]
         return _FRAME_ID_SEP.join(
             [
@@ -203,7 +205,7 @@ class SimDataBase(object):
                 data.simulationType,
                 response.computeJobHash,
                 str(response.computeJobStart),
-            ] + [str(m[k]) for k in cls._frame_id_fields(response)],
+            ] + [str(m[k]) for k in cls._frame_id_fields(frame_args)],
         )
 
     @classmethod
