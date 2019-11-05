@@ -37,16 +37,16 @@ class DriverBase(PKDict):
 
     def __init__(self, req):
         super().__init__(
-            agentId=job.unique_key(),
             has_slot=False,
             has_ws=False,
-            ops_pending_send=[],
             ops_pending_done=PKDict(),
-            supervisor_uri=cfg.supervisor_uri,
+            ops_pending_send=[],
             uid=req.content.uid,
+            _agentId=job.unique_key(),
+            _supervisor_uri=cfg.supervisor_uri,
             _websocket=None,
         )
-        self.agents[self.agentId] = self
+        self.agents[self._agentId] = self
 
     def cancel_op(self, op):
         for o in self.ops_pending_send:
@@ -61,7 +61,7 @@ class DriverBase(PKDict):
         # canceled ops are removed in self.cancel_op()
         if not op.canceled:
             del self.ops_pending_done[op.opId]
-        self.run_scheduler(self.kind)
+        self.run_scheduler(self._kind)
 
     @classmethod
     def receive(cls, msg):
@@ -78,7 +78,7 @@ class DriverBase(PKDict):
 #  we can cache that state in the agent(?) and have it send the response
 #  twice(?).
         self.ops_pending_send.append(op)
-        self.run_scheduler(self.kind)
+        self.run_scheduler(self._kind)
         await op.send_ready.wait()
         if op.opId in self.ops_pending_done:
             self._websocket.write_message(pkjson.dump_bytes(op.msg))
@@ -95,7 +95,7 @@ class DriverBase(PKDict):
         self._websocket_free()
 
     def _free(self):
-        del self.agents[self.agentId]
+        del self.agents[self._agentId]
         self._websocket_free()
 
     def _receive(self, msg):
@@ -118,7 +118,7 @@ class DriverBase(PKDict):
         self._websocket = msg.handler
         self._websocket.sr_driver_set(self)
         self.has_ws = True
-        self.run_scheduler(self.kind)
+        self.run_scheduler(self._kind)
 
     def _websocket_free(self):
         w = self._websocket
@@ -137,7 +137,7 @@ class DriverBase(PKDict):
             o.reply_put(
                 PKDict(state=job.ERROR, error='websocket closed', opDone=True),
             )
-        self.run_scheduler(self.kind)
+        self.run_scheduler(self._kind)
 
 
 async def get_instance(req):

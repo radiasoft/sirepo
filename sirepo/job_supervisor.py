@@ -59,11 +59,11 @@ class _ComputeJob(PKDict):
         )
         if self.isParallel:
             self.parallelStatus = PKDict(
-                frameCount=0,
-                percentComplete=0.0,
-                lastUpdateTime=0,
-                startTime=0,
                 elapsedTime=0,
+                frameCount=0,
+                lastUpdateTime=0,
+                percentComplete=0.0,
+                startTime=0,
             )
         assert self.computeJid not in self.instances
         self.instances[self.computeJid] = self
@@ -209,17 +209,9 @@ class _ComputeJob(PKDict):
                 break
         self.destroy_op(o)
 
-    async def _send_with_single_reply(self, opName, req, jobProcessCmd=None):
-        o = await self._send(opName, req, jobProcessCmd)
-        r = await o.reply_ready()
-        assert 'opDone' in r
-        self.destroy_op(o)
-        return r
-
     async def _send(self, opName, req, jobProcessCmd):
         req.kind = job.PARALLEL if self.isParallel and opName != job.OP_ANALYSIS \
             else job.SEQUENTIAL
-        # self._driver_kinds[req.kind] = True
         req.simulationType = self.simulationType
         # TODO(e-carlin): We need to be able to cancel requests waiting in this
         # state. Currently we assume that all requests get a driver and the
@@ -237,6 +229,13 @@ class _ComputeJob(PKDict):
         self._ops.append(o)
         await d.send(o)
         return o
+
+    async def _send_with_single_reply(self, opName, req, jobProcessCmd=None):
+        o = await self._send(opName, req, jobProcessCmd)
+        r = await o.reply_ready()
+        assert 'opDone' in r
+        self.destroy_op(o)
+        return r
 
 
 class _Op(PKDict):
@@ -257,11 +256,11 @@ class _Op(PKDict):
         self.send_ready.set()
         self.driver.cancel_op(self)
 
+    def destroy(self):
+        self.driver.destroy_op(self)
+
     def reply_put(self, msg):
         self._reply_q.put_nowait(msg)
 
     async def reply_ready(self):
         return await self._reply_q.get()
-
-    def destroy(self):
-        self.driver.destroy_op(self)

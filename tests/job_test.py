@@ -163,7 +163,6 @@ def _env_setup():
     # DO NOT import pykern or sirepo to avoid pkconfig init too early
 
     cfg = {
-        'PYKERN_PKDEBUG_OUTPUT': '/dev/tty',
         'PYKERN_PKDEBUG_CONTROL': 'job',
         'PYKERN_PKDEBUG_WANT_PID_TIME': '1',
         'SIREPO_FEATURE_CONFIG_JOB_SUPERVISOR': '1',

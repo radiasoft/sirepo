@@ -72,6 +72,13 @@ def default_command():
 class _Dispatcher(PKDict):
     processes = PKDict()
 
+    def format_op(self, msg, opName, **kwargs):
+        if msg:
+            kwargs['opId'] = msg.get('opId')
+        return pkjson.dump_bytes(
+            PKDict(agentId=cfg.agent_id, opName=opName, **kwargs),
+        )
+
     async def loop(self):
         while True:
             self._websocket = None
@@ -109,12 +116,6 @@ class _Dispatcher(PKDict):
             p.kill()
         self.processes.clear()
         tornado.ioloop.IOLoop.current().stop()
-    def format_op(self, msg, opName, **kwargs):
-        if msg:
-            kwargs['opId'] = msg.get('opId')
-        return pkjson.dump_bytes(
-            PKDict(agentId=cfg.agent_id, opName=opName, **kwargs),
-        )
 
     async def _op(self, msg):
         m = None
@@ -128,6 +129,10 @@ class _Dispatcher(PKDict):
             stack = pkdexc()
             return self.format_op(m, job.OP_ERROR, error=err, stack=stack)
 
+    async def _op_analysis(self, msg):
+        self._process(msg)
+        return None
+
     async def _op_cancel(self, msg):
         p = self.processes.get(msg.computeJid)
         if not p:
@@ -137,10 +142,6 @@ class _Dispatcher(PKDict):
         return self.format_op(msg, job.OP_OK, reply=PKDict(state=job.CANCELED, opDone=True))
 
     async def _op_run(self, msg):
-        self._process(msg)
-        return None
-
-    async def _op_analysis(self, msg):
         self._process(msg)
         return None
 
@@ -162,8 +163,8 @@ class _Job(PKDict):
 
     async def exit_ready(self):
         await self._exit.wait()
-        await self.stdout.stream_closed.wait()
-        await self.stderr.stream_closed.wait()
+        await self._stdout.stream_closed.wait()
+        await self._stderr.stream_closed.wait()
 
     def kill(self):
         # TODO(e-carlin): Terminate?
@@ -189,16 +190,9 @@ class _Job(PKDict):
             stderr=tornado.process.Subprocess.STREAM,
             env=env,
         )
-        self.stdout = _ReadJsonlStream(self._subprocess.stdout, self.on_stdout_read)
-        self.stderr = _ReadUntilCloseStream(self._subprocess.stderr)
+        self._stdout = _ReadJsonlStream(self._subprocess.stdout, self.on_stdout_read)
+        self._stderr = _ReadUntilCloseStream(self._subprocess.stderr)
         self._subprocess.set_exit_callback(self._subprocess_exit)
-
-    def _subprocess_exit(self, returncode):
-        if self._in_file:
-            pkio.unchecked_remove(self._in_file)
-            self._in_file = None
-        self.returncode = returncode
-        self._exit.set()
 
     def _subprocess_env(self):
         env = PKDict(os.environ)
@@ -211,6 +205,13 @@ class _Job(PKDict):
             PYENV_VERSION='py2',
             PYTHONUNBUFFERED='1', # TODO(e-carlin): discuss with rn
         )
+
+    def _subprocess_exit(self, returncode):
+        if self._in_file:
+            pkio.unchecked_remove(self._in_file)
+            self._in_file = None
+        self.returncode = returncode
+        self._exit.set()
 
 
 class _Process(PKDict):
@@ -228,42 +229,16 @@ class _Process(PKDict):
         self._terminating = True
         self._job_proc.kill()
 
+
     def start(self):
         self._job_proc = _Job(
             msg=self.msg,
-            on_stdout_read=self.on_job_process_stdout_read
+            on_stdout_read=self._on_job_process_stdout_read
         )
         self._job_proc.start()
         tornado.ioloop.IOLoop.current().add_callback(
             self._handle_job_proc_exit
         )
-
-    async def on_job_process_stdout_read(self, text):
-        if self._terminating:
-            return
-        try:
-            r = pkjson.load_any(text)
-            if 'opDone' in r:
-                del self.comm.processes[self.msg.computeJid]
-            if self.msg.jobProcessCmd == 'compute':
-                await self.comm.send(
-                    self.comm.format_op(
-                        self.msg,
-                        job.OP_RUN,
-                        reply=r,
-                    )
-                )
-            else:
-                await self.comm.send(
-                    self.comm.format_op(
-                        self.msg,
-                        job.OP_ANALYSIS,
-                        reply=r,
-                    )
-                )
-        except Exception as exc:
-            pkdlog('error=={}', exc)
-
 
     async def _handle_job_proc_exit(self):
         try:
@@ -295,15 +270,41 @@ class _Process(PKDict):
         except Exception as exc:
             pkdlog('error={} returncode={}', exc, self._job_proc.returncode)
 
+    async def _on_job_process_stdout_read(self, text):
+        if self._terminating:
+            return
+        try:
+            r = pkjson.load_any(text)
+            if 'opDone' in r:
+                del self.comm.processes[self.msg.computeJid]
+            if self.msg.jobProcessCmd == 'compute':
+                await self.comm.send(
+                    self.comm.format_op(
+                        self.msg,
+                        job.OP_RUN,
+                        reply=r,
+                    )
+                )
+            else:
+                await self.comm.send(
+                    self.comm.format_op(
+                        self.msg,
+                        job.OP_ANALYSIS,
+                        reply=r,
+                    )
+                )
+        except Exception as exc:
+            pkdlog('error=={}', exc)
+
 
 class _Stream(PKDict):
     _MAX = int(1e8)
 
     def __init__(self, stream):
         super().__init__(
-            stream=stream,
             stream_closed=tornado.locks.Event(),
             text=bytearray(),
+            _stream=stream,
         )
         tornado.ioloop.IOLoop.current().add_callback(self._begin_read_stream)
 
@@ -322,14 +323,14 @@ class _Stream(PKDict):
 
 class _ReadJsonlStream(_Stream):
     def __init__(self, stream, on_read):
-        self.on_read = on_read
+        self._on_read = on_read
         self.proceed_with_read = tornado.locks.Condition()
         self.read_occurred = tornado.locks.Condition()
         super().__init__(stream)
 
     async def _read_stream(self):
-                self.text = await self.stream.read_until(b'\n', self._MAX)
-                await self.on_read(self.text)
+                self.text = await self._stream.read_until(b'\n', self._MAX)
+                await self._on_read(self.text)
 
 
 class _ReadUntilCloseStream(_Stream):
@@ -338,11 +339,10 @@ class _ReadUntilCloseStream(_Stream):
 
     async def _read_stream(self):
             self.text.extend(
-                await self.stream.read_bytes(
+                await self._stream.read_bytes(
                     self._MAX - len(self.text),
                     partial=True,
                 )
             )
             if len(self.text) >= self._MAX:
                 raise AssertionError('_MAX bytes read')
-
