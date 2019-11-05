@@ -210,25 +210,29 @@ class _ComputeJob(PKDict):
         self.destroy_op(o)
 
     async def _send(self, opName, req, jobProcessCmd):
-        req.kind = job.PARALLEL if self.isParallel and opName != job.OP_ANALYSIS \
-            else job.SEQUENTIAL
-        req.simulationType = self.simulationType
-        # TODO(e-carlin): We need to be able to cancel requests waiting in this
-        # state. Currently we assume that all requests get a driver and the
-        # code does not block.
-        d = await job_driver.get_instance(req)
-        o = _Op(
-            driver=d,
-            msg=PKDict(
-                jobProcessCmd=jobProcessCmd,
-                simulationType=req.simulationType,
-                **req.content,
-            ),
-            opName=opName,
-        )
-        self._ops.append(o)
-        await d.send(o)
-        return o
+        # TODO(e-carlin): proper error handling
+        try:
+            req.kind = job.PARALLEL if self.isParallel and opName != job.OP_ANALYSIS \
+                else job.SEQUENTIAL
+            req.simulationType = self.simulationType
+            # TODO(e-carlin): We need to be able to cancel requests waiting in this
+            # state. Currently we assume that all requests get a driver and the
+            # code does not block.
+            d = await job_driver.get_instance(req)
+            o = _Op(
+                driver=d,
+                msg=PKDict(
+                    jobProcessCmd=jobProcessCmd,
+                    simulationType=req.simulationType,
+                    **req.content,
+                ),
+                opName=opName,
+            )
+            self._ops.append(o)
+            await d.send(o)
+            return o
+        except Exception as e:
+            pkdlog('error={} stack={}', e , pkdexc())
 
     async def _send_with_single_reply(self, opName, req, jobProcessCmd=None):
         o = await self._send(opName, req, jobProcessCmd)

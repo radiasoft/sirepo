@@ -35,7 +35,7 @@ class AgentMsg(PKDict):
 class DriverBase(PKDict):
     agents = PKDict()
 
-    def __init__(self, req):
+    def __init__(self, req, space):
         super().__init__(
             has_slot=False,
             has_ws=False,
@@ -43,6 +43,8 @@ class DriverBase(PKDict):
             ops_pending_send=[],
             uid=req.content.uid,
             _agentId=job.unique_key(),
+            _kind=space.kind,
+            _space=space,
             _supervisor_uri=cfg.supervisor_uri,
             _websocket=None,
         )
@@ -64,8 +66,85 @@ class DriverBase(PKDict):
         self.run_scheduler(self._kind)
 
     @classmethod
+    async def get_instance(cls, req):
+#TODO(robnagler) need to introduce concept of parked drivers for reallocation.
+# a driver is freed as soon as it completes all its outstanding ops. For
+# _run(), this is an outstanding op, which holds the driver until the _run()
+# is complete. Same for analysis. Once all runs and analyses are compelte,
+# free the driver, but park it. Allocation then is trying to find a parked
+# driver then a free slot. If there are no free slots, we garbage collect
+# parked drivers. We can park more drivers than are available for compute
+# so has to connect to the max slots. Parking is only needed for resources
+# we have to manage (local, docker). For NERSC, AWS, etc. parking is not
+# necessary. You would allocate as many parallel slots. We can park more
+# slots than are in_use, just can't use more slots than are actually allowed.
+
+#TODO(robnagler) drivers are not organized by uid, because there can be more
+# than one per user, rather, we can have a list here, not just self.
+# need to have an allocation per user, e.g. 2 sequential and one 1 parallel.
+# _Slot() may have to understand this, because related to parking. However,
+# we are parking a driver so maybe that's a (local) driver mechanism
+        for d in cls.instances[req.kind]:
+            if d.uid == req.content.uid:
+                return d
+        return cls(req, await Space.allocate(req.kind))
+
+    def get_ops_pending_done_types(self):
+            d = collections.defaultdict(int)
+            for v in self.ops_pending_done.values():
+                d[v.msg.opName] += 1
+            return d
+
+    def get_ops_with_send_allocation(self):
+        """Get ops that could be sent assuming outside requirements are met.
+
+        Outside requirements are an alive websocket connection and the driver
+        having a slot.
+        """
+        r = []
+        t = self.get_ops_pending_done_types()
+        for o in self.ops_pending_send:
+            if (o.msg.opName in t
+                and t[o.msg.opName] > 0
+            ):
+                continue
+            assert o.opId not in self.ops_pending_done
+            t[o.msg.opName] += 1
+            r.append(o)
+        return r
+
+    @classmethod
+    def free_slots(cls, kind):
+        for d in cls.instances[kind]:
+            if d.has_slot and not d.ops_pending_send:
+                cls.slots[kind].in_use -= 1
+    @classmethod
     def receive(cls, msg):
         cls.agents[msg.content.agentId]._receive(msg)
+
+# TODO(e-carlin): Take in a arg of driver and start the loop from the index
+# of that driver. Doing so enables fair scheduling. Otherwise user at start of
+# list always has priority
+    @classmethod
+    def run_scheduler(cls, kind):
+        cls.free_slots(kind)
+        for d in cls.instances[kind]:
+            ops_with_send_alloc = d.get_ops_with_send_allocation()
+            if not ops_with_send_alloc:
+                continue
+            if ((not d.has_slot and cls.slots[kind].in_use >= cls.slots[kind].total)
+                or not d.has_ws
+            ):
+                continue
+            if not d.has_slot:
+                # if the driver doesn't have a slot then assign the slot to it
+                d.has_slot = True
+                cls.slots[kind].in_use += 1
+            for o in ops_with_send_alloc:
+                assert o.opId not in d.ops_pending_done
+                d.ops_pending_send.remove(o)
+                d.ops_pending_done[o.opId] = o
+                o.send_ready.set()
 
     async def send(self, op):
 #TODO(robnagler) need to send a retry to the ops, which should requeue
@@ -141,6 +220,7 @@ class DriverBase(PKDict):
 
 
 async def get_instance(req):
+    # TODO(e-carlin): parse req to get class
     return await _DEFAULT_CLASS.get_instance(req)
 
 
@@ -149,7 +229,7 @@ def init():
     assert not _CLASSES
 
     cfg = pkconfig.init(
-        modules=(('local',), set, 'driver modules'),
+        modules=(('local', 'docker'), set, 'driver modules'),
         supervisor_uri=(
             'ws://{}:{}{}'.format(job.DEFAULT_IP, job.DEFAULT_PORT, job.AGENT_URI),
             str,
@@ -161,8 +241,25 @@ def init():
     for n in cfg.modules:
         m = importlib.import_module(pkinspect.module_name_join((p, n)))
         _CLASSES[n] = m.init_class()
-    assert len(_CLASSES) == 1
     _DEFAULT_CLASS = list(_CLASSES.values())[0]
+
+
+class Space(PKDict):
+    """If a driver has a space then they have an alive agent but may not be
+    actively performing an op.
+    """
+
+    in_use = PKDict()
+
+    @classmethod
+    async def allocate(cls, kind):
+        self = cls(kind=kind)
+        self.in_use[self.kind].append(self)
+        return self
+
+    @classmethod
+    def init_kind(cls, kind):
+        cls.in_use[kind] = []
 
 
 def terminate():
