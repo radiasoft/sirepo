@@ -42,7 +42,7 @@ class LocalDriver(job_driver.DriverBase):
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
 
     @classmethod
-    async def allocate(cls, req):
+    async def get_instance(cls, req):
 #TODO(robnagler) need to introduce concept of parked drivers for reallocation.
 # a driver is freed as soon as it completes all its outstanding ops. For
 # _run(), this is an outstanding op, which holds the driver until the _run()
@@ -60,17 +60,10 @@ class LocalDriver(job_driver.DriverBase):
 # need to have an allocation per user, e.g. 2 sequential and one 1 parallel.
 # _Slot() may have to understand this, because related to parking. However,
 # we are parking a driver so maybe that's a (local) driver mechanism
-        # return cls.get_instance(req) \
-        #     or cls(req, await _Slot.allocate(req.kind))
-        return cls.get_instance(req) \
-            or cls(req, await _Space.allocate(req.kind))
-
-    @classmethod
-    def get_instance(cls, req):
         for d in cls.instances[req.kind]:
             if d.uid == req.content.uid:
                 return d
-        return None
+        return cls(req, await _Space.allocate(req.kind))
 
     @classmethod
     def init_class(cls):
@@ -146,9 +139,6 @@ class LocalDriver(job_driver.DriverBase):
                 d.ops_pending_done[o.opId] = o
                 o.send_ready.set()
 
-    @classmethod
-    async def send(cls, req, kwargs):
-        return await (await cls.allocate(req))._send(req, kwargs)
 
     def terminate(self):
         if 'subprocess' in self:

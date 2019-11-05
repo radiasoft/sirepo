@@ -48,6 +48,20 @@ class DriverBase(PKDict):
         )
         self.agents[self.agentId] = self
 
+    def cancel_op(self, op):
+        for o in self.ops_pending_send:
+            if o == op:
+                self.ops_pending_send.remove(o)
+        for o in self.ops_pending_done.copy().values():
+            if o == op:
+                del self.ops_pending_done[o.opId]
+
+    def destroy_op(self, op):
+        assert op not in self.ops_pending_send
+        if not op.canceled:
+            del self.ops_pending_done[op.opId]
+        self.run_scheduler(self.kind)
+
     @classmethod
     def receive(cls, msg):
         cls.agents[msg.content.agentId]._receive(msg)
@@ -86,21 +100,16 @@ class DriverBase(PKDict):
         self.has_ws = True
         self.run_scheduler(self.kind)
 
-    async def _send(self, req, kwargs):
-        o = _Op(
-            driver=self,
-            msg=PKDict(kwargs).pkupdate(simulationType=req.simulationType),
-            opName=kwargs.opName,
-        )
-        self.ops_pending_send.append(o)
+    async def send(self, op):
+        self.ops_pending_send.append(op)
         self.run_scheduler(self.kind)
-        await o.send_ready.wait()
+        await op.send_ready.wait()
 
-        if o.opId in self.ops_pending_done:
-            self._websocket.write_message(pkjson.dump_bytes(o.msg))
+        if op.opId in self.ops_pending_done:
+            self._websocket.write_message(pkjson.dump_bytes(op.msg))
         else:
-            pkdlog('canceled op={}', o)
-        assert o not in self.ops_pending_send
+            pkdlog('canceled op={}', op)
+        assert op not in self.ops_pending_send
 #TODO(robnagler) need to send a retry to the ops, which should requeue
 #  themselves at an outer level(?).
 #  If a job is still running, but we just lost the websocket, want to
@@ -110,7 +119,6 @@ class DriverBase(PKDict):
 #  to the job. If it was already completed (and reply on the way), then
 #  we can cache that state in the agent(?) and have it send the response
 #  twice(?).
-        return o
 
     def _websocket_free(self):
         w = self._websocket
@@ -131,6 +139,8 @@ class DriverBase(PKDict):
             )
         self.run_scheduler(self.kind)
 
+async def get_instance(req):
+    return await _DEFAULT_CLASS.get_instance(req)
 
 def init():
     global _CLASSES, _DEFAULT_CLASS, cfg
@@ -153,38 +163,7 @@ def init():
     _DEFAULT_CLASS = list(_CLASSES.values())[0]
 
 
-async def send(req, kwargs):
-    return await _DEFAULT_CLASS.send(req, kwargs)
-
-
 def terminate():
     DriverBase.terminate()
 
 
-class _Op(PKDict):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.update(
-            opId=job.unique_key(),
-            send_ready=tornado.locks.Event(),
-            _canceled=False,
-            _reply_q=tornado.queues.Queue(),
-        )
-        self.msg.update(opId=self.opId, opName=self.opName)
-
-    def cancel(self):
-        self._canceled = True
-        self.reply_put(PKDict(state=job.CANCELED, opDone=True))
-        self.send_ready.set()
-
-    def reply_put(self, msg):
-        self._reply_q.put_nowait(msg)
-
-    async def reply_ready(self):
-        return await self._reply_q.get()
-
-    def done(self):
-        if not self._canceled:
-            del self.driver.ops_pending_done[self.opId]
-        self.driver.run_scheduler(self.driver.kind)

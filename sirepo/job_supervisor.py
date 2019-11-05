@@ -55,7 +55,8 @@ class _ComputeJob(PKDict):
             simulationType=c.data.simulationType,
             status=job.MISSING,
             uid=c.uid,
-            _driver_kinds=PKDict(),
+            # _driver_kinds=PKDict(), # TODO(e-carlin): del
+            _ops=[]
         )
         if self.isParallel:
             self.parallelStatus = PKDict(
@@ -81,17 +82,20 @@ class _ComputeJob(PKDict):
 
         async def _cancel_pending(self, req):
             # TODO(e-carlin): generalize import
-            from sirepo.job_driver import local
-            for k in self._driver_kinds.keys():
-                d = local.LocalDriver.get_instance(PKDict(kind=k, **req))
-                for o in d.ops_pending_done.copy().values():
-                    if o.msg.computeJid == req.content.computeJid:
-                        del d.ops_pending_done[o.opId]
-                        o.cancel()
-                for o in d.ops_pending_send:
-                    if o.msg.computeJid == req.content.computeJid:
-                        d.ops_pending_send.remove(o)
-                        o.cancel()
+            # from sirepo.job_driver import local
+            # for k in self._driver_kinds.keys():
+            #     d = local.LocalDriver.get_instance(PKDict(kind=k, **req))
+            #     for o in d.ops_pending_done.copy().values():
+            #         if o.msg.computeJid == req.content.computeJid:
+            #             del d.ops_pending_done[o.opId]
+            #             o.cancel()
+            #     for o in d.ops_pending_send:
+            #         if o.msg.computeJid == req.content.computeJid:
+            #             d.ops_pending_send.remove(o)
+            #             o.cancel()
+            for o in self._ops:
+                if o.msg.computeJid == req.content.computeJid:
+                    o.cancel()
             return PKDict(state=job.CANCELED)
 
         async def _cancel_running(self, req):
@@ -210,25 +214,58 @@ class _ComputeJob(PKDict):
             # TODO(e-carlin): What if this never comes?
             if 'opDone' in r:
                 break
-        o.done()
+        o.destroy()
 
     async def _send_with_single_reply(self, opName, req, jobProcessCmd=None):
         o = await self._send(opName, req, jobProcessCmd)
         r = await o.reply_ready()
         assert 'opDone' in r
-        o.done()
+        o.destroy()
         return r
 
     async def _send(self, opName, req, jobProcessCmd):
         req.kind = job.PARALLEL if self.isParallel and opName != job.OP_ANALYSIS \
             else job.SEQUENTIAL
-        self._driver_kinds[req.kind] = True
+        # self._driver_kinds[req.kind] = True
         req.simulationType = self.simulationType
-        return await job_driver.send(
-            req,
-            PKDict(
+        d = await job_driver.get_instance(req)
+        o = _Op(
+            driver=d,
+            msg=PKDict(
                 jobProcessCmd=jobProcessCmd,
-                opName=opName,
+                simulationType=req.simulationType,
                 **req.content,
             ),
+            opName=opName,
         )
+        self._ops.append(o)
+        await d.send(o)
+        return o
+
+
+class _Op(PKDict):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.update(
+            opId=job.unique_key(),
+            send_ready=tornado.locks.Event(),
+            canceled=False,
+            _reply_q=tornado.queues.Queue(),
+        )
+        self.msg.update(opId=self.opId, opName=self.opName)
+
+    def cancel(self):
+        self.canceled = True
+        self.reply_put(PKDict(state=job.CANCELED, opDone=True))
+        self.send_ready.set()
+        self.driver.cancel_op(self)
+
+    def reply_put(self, msg):
+        self._reply_q.put_nowait(msg)
+
+    async def reply_ready(self):
+        return await self._reply_q.get()
+
+    def destroy(self):
+        self.driver.destroy_op(self)
