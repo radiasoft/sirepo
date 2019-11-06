@@ -67,8 +67,10 @@ class DriverBase(PKDict):
     @classmethod
     def free_slots(cls, kind):
         for d in cls.instances[kind]:
-            if d.has_slot and not d.ops_pending_send:
+            if d.has_slot and not d.ops_pending_done:
                 cls.slots[kind].in_use -= 1
+                d.has_slot = False
+        assert cls.slots[kind].in_use > -1
 
     @classmethod
     async def get_instance(cls, req):
@@ -156,7 +158,7 @@ class DriverBase(PKDict):
             ):
                 continue
             if not d.has_slot:
-                # if the driver doesn't have a slot then assign the slot to it
+                assert cls.slots[kind].in_use < cls.slots[kind].total
                 d.has_slot = True
                 cls.slots[kind].in_use += 1
             for o in ops_with_send_alloc:
