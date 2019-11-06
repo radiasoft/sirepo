@@ -523,7 +523,7 @@
         "simulation": {
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""],
             "simulationMode": ["Execution", "SimulationMode", "serial"],
-            "backtracking": ["Backtracking", "Boolean", "0", "Run the particles through the lattice from back to front."]
+            "backtracking": ["Backtracking", "Boolean", "0", "Run the particles through the lattice from back to front, reversing the element length, angle and voltage parameters."]
         },
         "simulationStatus": {},
         "twissReport": {
