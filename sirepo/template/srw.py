@@ -388,10 +388,10 @@ def get_predefined_beams():
     return _SIM_DATA.srw_predefined().beams
 
 
-def get_simulation_frame(run_dir, frame_args, sim_in):
+def sim_frame(frame_args):
     r = frame_args.frameReport
     if r == 'multiElectronAnimation':
-        m = sim_in.models[r]
+        m = frame_args.sim_in.models[r]
         m.intensityPlotsWidth = frame_args.intensityPlotsWidth
         if frame_args.get('rotateAngle', 0):
             m.rotateAngle = float(frame_args.rotateAngle)
@@ -401,14 +401,19 @@ def get_simulation_frame(run_dir, frame_args, sim_in):
     for i in (1, 2, 3):
         try:
             return extract_report_data(
-                str(run_dir.join(get_filename_for_model(data['modelName']))),
-                sim_in,
+                str(frame_args.run_dir.join(
+                    get_filename_for_model(data['modelName']),
+                )),
+                frame_args.sim_in,
             )
         except Exception:
             # sleep and retry to work-around concurrent file read/write
             pkdlog('sleep and retry simulation frame read: {} {}', i, r)
             time.sleep(2)
-    return extract_report_data(str(run_dir.join(get_filename_for_model(r))), sim_in)
+    return extract_report_data(
+        str(frame_args.run_dir.join(get_filename_for_model(r))),
+        frame_args.sim_in,
+    )
 
 
 def import_file(request, lib_dir, tmp_dir):

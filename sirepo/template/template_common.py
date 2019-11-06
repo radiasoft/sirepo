@@ -238,15 +238,14 @@ def sim_frame_dispatch(frame_args):
 
     frame_args.pksetdefault(
         run_dir=lambda: simulation_db.simulation_run_dir(frame_args),
+    ).pksetdefault(
         sim_in=lambda: simulation_db.read_json(
             frame_args.run_dir.join(INPUT_BASE_NAME),
         ),
     )
     t = sirepo.template.import_module(frame_args.simulationType)
-    r = frame_args.frameReport
-    o = getattr(t, 'sim_frame', None) or getattr(t, 'sim_frame_' + r)
-    if not o:
-        raise RuntimeError('unsupported simulation_frame model={}'.format(r))
+    o = getattr(t, 'sim_frame', None) \
+        or getattr(t, 'sim_frame_' + frame_args.frameReport)
     return o(frame_args)
 
 

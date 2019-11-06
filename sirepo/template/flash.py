@@ -301,59 +301,6 @@ def remove_last_frame(run_dir):
         pkio.unchecked_remove(files[-1])
 
 
-def write_parameters(data, run_dir, is_parallel):
-    pkio.write_text(
-        #TODO: generate python instead
-        run_dir.join('flash.par'),
-        _generate_parameters_file(data),
-    )
-
-
-def _apply_to_grid(grid, values, bounds, cell_size, xdomain, ydomain):
-    xsize = len(values)
-    ysize = len(values[0])
-    xi = _rounded_int((bounds[0][0] - xdomain[0]) / cell_size[0]) * xsize
-    yi = _rounded_int((bounds[1][0] - ydomain[0]) / cell_size[1]) * ysize
-    xscale = _rounded_int((bounds[0][1] - bounds[0][0]) / cell_size[0])
-    yscale = _rounded_int((bounds[1][1] - bounds[1][0]) / cell_size[1])
-    for x in xrange(xsize):
-        for y in xrange(ysize):
-            for x1 in xrange(xscale):
-                for y1 in xrange(yscale):
-                    grid[yi + (y * yscale) + y1][xi + (x * xscale) + x1] = values[y][x]
-
-
-def _cell_size(f, refine_max):
-    refine_level = f['refine level']
-    while refine_max > 0:
-        for i in xrange(len(refine_level)):
-            if refine_level[i] == refine_max:
-                return f['block size'][i]
-        refine_max -= 1
-    assert False, 'no blocks with appropriate refine level'
-
-
-#TODO(pjm): plot columns are hard-coded for flashType
-_PLOT_COLUMNS = {
-    'RTFlame': [
-        ['mass', 1],
-        ['burned mass', 9],
-        ['burning rate', 12],
-    ],
-    'CapLaser': [
-        ['x-momentum', 2],
-        ['y-momentum', 3],
-        ['E kinetic', 6],
-    ],
-}
-
-def get_simulation_frame(run_dir, frame_args, sim_in):
-    m = frame_args.frameReport
-    if m == 'gridEvolutionAnimation':
-        return _extract_evolution_plot(run_dir, frame_args, sim_in)
-    assert False, 'invalid animation frame model={}'.format(m)
-
-
 def sim_frame_gridEvolutionAnimation(frame_args):
     dat = np.loadtxt(str(frame_args.run_dir.join(_GRID_EVOLUTION_FILE)))
     stride = 20
@@ -432,6 +379,52 @@ def sim_frame_varAnimation(frame_args):
         },
     }
 
+
+def write_parameters(data, run_dir, is_parallel):
+    pkio.write_text(
+        #TODO: generate python instead
+        run_dir.join('flash.par'),
+        _generate_parameters_file(data),
+    )
+
+
+def _apply_to_grid(grid, values, bounds, cell_size, xdomain, ydomain):
+    xsize = len(values)
+    ysize = len(values[0])
+    xi = _rounded_int((bounds[0][0] - xdomain[0]) / cell_size[0]) * xsize
+    yi = _rounded_int((bounds[1][0] - ydomain[0]) / cell_size[1]) * ysize
+    xscale = _rounded_int((bounds[0][1] - bounds[0][0]) / cell_size[0])
+    yscale = _rounded_int((bounds[1][1] - bounds[1][0]) / cell_size[1])
+    for x in xrange(xsize):
+        for y in xrange(ysize):
+            for x1 in xrange(xscale):
+                for y1 in xrange(yscale):
+                    grid[yi + (y * yscale) + y1][xi + (x * xscale) + x1] = values[y][x]
+
+
+def _cell_size(f, refine_max):
+    refine_level = f['refine level']
+    while refine_max > 0:
+        for i in xrange(len(refine_level)):
+            if refine_level[i] == refine_max:
+                return f['block size'][i]
+        refine_max -= 1
+    assert False, 'no blocks with appropriate refine level'
+
+
+#TODO(pjm): plot columns are hard-coded for flashType
+_PLOT_COLUMNS = {
+    'RTFlame': [
+        ['mass', 1],
+        ['burned mass', 9],
+        ['burning rate', 12],
+    ],
+    'CapLaser': [
+        ['x-momentum', 2],
+        ['y-momentum', 3],
+        ['E kinetic', 6],
+    ],
+}
 
 def _generate_parameters_file(data):
     res = ''

@@ -159,6 +159,69 @@ def remove_last_frame(run_dir):
     pass
 
 
+def sim_frame_beamEvolutionAnimation(frame_args):
+    filename = str(frame_args.run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))
+    x_col = sdds_util.extract_sdds_column(filename, _X_FIELD, 0)
+    if x_col['err']:
+        return x_col['err']
+    x = x_col['values']
+    plots = []
+    for f in ('y1', 'y2', 'y3'):
+        if frame_args[f] == 'none':
+            continue
+        yfield = _map_field_name(frame_args[f])
+        y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
+        if y_col['err']:
+            return y_col['err']
+        plots.append({
+            'points': y_col['values'],
+            'label': '{}{}'.format(
+                _field_label(yfield, y_col['column_def']),
+                _field_description(yfield, frame_args.sim_in),
+            ),
+        })
+    return {
+        'title': '',
+        'x_range': [min(x), max(x)],
+        'y_label': '',
+        'x_label': _field_label(_X_FIELD, x_col['column_def']),
+        'x_points': x,
+        'plots': plots,
+        'y_range': template_common.compute_plot_color_and_range(plots),
+    }
+
+
+sim_frame_coolingRatesAnimation = sim_frame_beamEvolutionAnimation
+
+def sim_frame_particleAnimation(frame_args):
+    page_index = frame_args.frameIndex
+    xfield = _map_field_name(frame_args.x)
+    yfield = _map_field_name(frame_args.y)
+    filename = _ion_files(frame_args.run_dir)[page_index]
+    data = frame_args.sim_in
+    settings = data.models.simulationSettings
+    time = settings.time / settings.step_number * settings.save_particle_interval * page_index
+    if time > settings.time:
+        time = settings.time
+    x_col = sdds_util.extract_sdds_column(filename, xfield, 0)
+    if x_col['err']:
+        return x_col['err']
+    x = x_col['values']
+    y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
+    if y_col['err']:
+        return y_col['err']
+    y = y_col['values']
+    model = data.models.particleAnimation
+    model.update(frame_args)
+    model['x'] = xfield
+    model['y'] = yfield
+    return template_common.heatmap([x, y], model, {
+        'x_label': _field_label(xfield, x_col['column_def']),
+        'y_label': _field_label(yfield, y_col['column_def']),
+        'title': 'Ions at time {:.2f} [s]'.format(time),
+    })
+
+
 def validate_file(file_type, path):
     if file_type == 'ring-elegantTwiss':
         return None
@@ -234,69 +297,6 @@ def _compute_sdds_range(res):
             res[field][1] = _safe_sdds_value(max(max(values), res[field][1]))
         else:
             res[field] = [_safe_sdds_value(min(values)), _safe_sdds_value(max(values))]
-
-
-def sim_frame_beamEvolutionAnimation(frame_args):
-    filename = str(frame_args.run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))
-    x_col = sdds_util.extract_sdds_column(filename, _X_FIELD, 0)
-    if x_col['err']:
-        return x_col['err']
-    x = x_col['values']
-    plots = []
-    for f in ('y1', 'y2', 'y3'):
-        if frame_args[f] == 'none':
-            continue
-        yfield = _map_field_name(frame_args[f])
-        y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
-        if y_col['err']:
-            return y_col['err']
-        plots.append({
-            'points': y_col['values'],
-            'label': '{}{}'.format(
-                _field_label(yfield, y_col['column_def']),
-                _field_description(yfield, frame_args.sim_in),
-            ),
-        })
-    return {
-        'title': '',
-        'x_range': [min(x), max(x)],
-        'y_label': '',
-        'x_label': _field_label(_X_FIELD, x_col['column_def']),
-        'x_points': x,
-        'plots': plots,
-        'y_range': template_common.compute_plot_color_and_range(plots),
-    }
-
-
-sim_frame_coolingRatesAnimation = sim_frame_beamEvolutionAnimation
-
-def sim_frame_particleAnimation(frame_args):
-    page_index = frame_args.frameIndex
-    xfield = _map_field_name(frame_args.x)
-    yfield = _map_field_name(frame_args.y)
-    filename = _ion_files(frame_args.run_dir)[page_index]
-    data = frame_args.sim_in
-    settings = data.models.simulationSettings
-    time = settings.time / settings.step_number * settings.save_particle_interval * page_index
-    if time > settings.time:
-        time = settings.time
-    x_col = sdds_util.extract_sdds_column(filename, xfield, 0)
-    if x_col['err']:
-        return x_col['err']
-    x = x_col['values']
-    y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
-    if y_col['err']:
-        return y_col['err']
-    y = y_col['values']
-    model = data.models.particleAnimation
-    model.update(frame_args)
-    model['x'] = xfield
-    model['y'] = yfield
-    return template_common.heatmap([x, y], model, {
-        'x_label': _field_label(xfield, x_col['column_def']),
-        'y_label': _field_label(yfield, y_col['column_def']),
-        'title': 'Ions at time {:.2f} [s]'.format(time),
-    })
 
 
 def _field_description(field, data):

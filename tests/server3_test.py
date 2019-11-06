@@ -12,14 +12,22 @@ _TYPES = 'elegant:jspec:srw:synergia:warppba:warpvnd:webcon:zgoubi'
 
 
 def test_simulation_frame():
-    _t('elegant', 'Compact Storage Ring', 'animation', 'elementAnimation20-18', title='Horizontal')
+    from pykern.pkcollections import PKDict
+
+#TODO(robnagler) add more reports
+#    _t('elegant', 'Compact Storage Ring', 'animation', 'elementAnimation20-18', title='Horizontal')
 #    _t('jspec', 'Booster Ring', 'animation', 'beamEvolutionAnimation', x_label='t .s.')
-    _t('srw', "Young's Double Slit Experiment", 'multiElectronAnimation', 'multiElectronAnimation', title='E=4240 eV')
-#    _t('synergia', 'Simple FODO', 'animation', 'bunchAnimation', title='E=4240 eV')
+#    _t('srw', "Young's Double Slit Experiment", 'multiElectronAnimation', 'multiElectronAnimation', title='E=4240 eV')
+    _t(
+        'synergia',
+        'Simple FODO',
+        'animation',
+        bunchAnimation=PKDict(title='x-y at 0.0m, turn 0'),
+    ),
 #    _t('warppba', 'Electron Beam', 'animation', 'beamAnimation', title='t = .*iteration')
 
 
-def _t(sim_type, sim_name, compute_model, analysis_model, **kwargs):
+def _t(sim_type, sim_name, compute_model, **reports):
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     from sirepo import srunit
@@ -45,20 +53,19 @@ def _t(sim_type, sim_name, compute_model, analysis_model, **kwargs):
         s = sirepo.sim_data.get_class(sim_type)
         pkunit.pkeq('pending', run.state, 'not pending, run={}', run)
         for _ in range(10):
-            if run.frameCount >= 1:
+            if run.frameCount >= 8:
                 break
             run = fc.sr_post('runStatus', run.nextRequest)
             time.sleep(1)
         else:
             pkunit.pkfail('runStatus: failed to complete: {}', run)
-        f = fc.sr_get_json(
-            'simulationFrame',
-            PKDict(
-                frame_id=s.frame_id(data, run, analysis_model, 0),
-            ),
-        )
-        for k, v in kwargs.items():
-            pkunit.pkre(v, f.get(k))
+        for r, t in reports.items():
+            f = fc.sr_get_json(
+                'simulationFrame',
+                PKDict(frame_id=s.frame_id(data, run, r, 8)),
+            )
+            for k, v in t.items():
+                pkunit.pkre(v, f.get(k))
     finally:
         try:
             if run:

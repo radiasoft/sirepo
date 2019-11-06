@@ -60,6 +60,34 @@ def background_percent_complete(report, run_dir, is_running):
     }
 
 
+def get_application_data(data):
+    if data['method'] == 'compute_particle_ranges':
+        return template_common.compute_field_range(data, _compute_range_across_files)
+    assert False, 'unknown application data method: {}'.format(data['method'])
+
+
+def python_source_for_model(data, model):
+    return '''
+from rslinac import solver
+
+{}
+
+with open('input.txt', 'w') as f:
+    f.write(input_file)
+
+with open('defaults.ini', 'w') as f:
+    f.write(ini_file)
+
+s = solver.BeamSolver('defaults.ini', 'input.txt')
+s.solve()
+s.save_output('output.txt')
+    '''.format(_generate_parameters_file(data, is_parallel=len(data.models.beamline)))
+
+
+def remove_last_frame(run_dir):
+    pass
+
+
 def sim_frame_beamAnimation(frame_args):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     model = data.models.beamAnimation
@@ -138,34 +166,6 @@ def sim_frame_particleAnimation(frame_args):
         'points': particle_info['y_values'],
         'y_range': particle_info['y_range'],
     }
-
-
-def get_application_data(data):
-    if data['method'] == 'compute_particle_ranges':
-        return template_common.compute_field_range(data, _compute_range_across_files)
-    assert False, 'unknown application data method: {}'.format(data['method'])
-
-
-def python_source_for_model(data, model):
-    return '''
-from rslinac import solver
-
-{}
-
-with open('input.txt', 'w') as f:
-    f.write(input_file)
-
-with open('defaults.ini', 'w') as f:
-    f.write(ini_file)
-
-s = solver.BeamSolver('defaults.ini', 'input.txt')
-s.solve()
-s.save_output('output.txt')
-    '''.format(_generate_parameters_file(data, is_parallel=len(data.models.beamline)))
-
-
-def remove_last_frame(run_dir):
-    pass
 
 
 def write_parameters(data, run_dir, is_parallel):
