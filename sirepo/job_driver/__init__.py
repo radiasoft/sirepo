@@ -65,6 +65,12 @@ class DriverBase(PKDict):
         self.run_scheduler(self._kind)
 
     @classmethod
+    def free_slots(cls, kind):
+        for d in cls.instances[kind]:
+            if d.has_slot and not d.ops_pending_send:
+                cls.slots[kind].in_use -= 1
+
+    @classmethod
     async def get_instance(cls, req):
 #TODO(robnagler) need to introduce concept of parked drivers for reallocation.
 # a driver is freed as soon as it completes all its outstanding ops. For
@@ -86,7 +92,7 @@ class DriverBase(PKDict):
         for d in cls.instances[req.kind]:
             if d.uid == req.content.uid:
                 return d
-        return cls(req, await Space.allocate(req.kind))
+        return cls(req, await _Space.allocate(req.kind))
 
     def get_ops_pending_done_types(self):
             d = collections.defaultdict(int)
@@ -120,14 +126,8 @@ class DriverBase(PKDict):
                 total=cfg[k + '_slots'],
             )
             cls.instances[k] = []
-            Space.init_kind(k)
+            _Space.init_kind(k)
         return cls
-
-    @classmethod
-    def free_slots(cls, kind):
-        for d in cls.instances[kind]:
-            if d.has_slot and not d.ops_pending_send:
-                cls.slots[kind].in_use -= 1
 
     @classmethod
     def receive(cls, msg):
@@ -256,6 +256,18 @@ async def get_instance(req):
     return await _DEFAULT_CLASS.get_instance(req)
 
 
+def init():
+    global cfg
+    cfg = pkconfig.init(
+        modules=(None, _cfg_parse_modules, 'driver modules'),
+        supervisor_uri=(
+            'ws://{}:{}{}'.format(job.DEFAULT_IP, job.DEFAULT_PORT, job.AGENT_URI),
+            str,
+            'uri for agent ws connection with supervisor',
+        ),
+    )
+
+
 @pkconfig.parse_none
 def _cfg_parse_modules(value):
     global _CLASSES, _DEFAULT_CLASS
@@ -282,19 +294,7 @@ def _cfg_parse_modules(value):
     return s
 
 
-def init():
-    global cfg
-    cfg = pkconfig.init(
-        modules=(None, _cfg_parse_modules, 'driver modules'),
-        supervisor_uri=(
-            'ws://{}:{}{}'.format(job.DEFAULT_IP, job.DEFAULT_PORT, job.AGENT_URI),
-            str,
-            'uri for agent ws connection with supervisor',
-        ),
-    )
-
-
-class Space(PKDict):
+class _Space(PKDict):
     """If a driver has a space then they have an alive agent but may not be
     actively performing an op.
     """
