@@ -12,22 +12,36 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 from sirepo import job
 from sirepo import job_driver
 import os
+import re
 import subprocess
 import tornado.ioloop
 
 cfg = None
 
+#: prefix all container names. Full format looks like: srj-p-uid-sid-report
+_CNAME_PREFIX = 'srj'
+
+#: separator for container names
+_CNAME_SEP = '-'
+
+#: parse cotnainer names. POSIT: matches _cname_join()
+_CNAME_RE = re.compile(_CNAME_SEP.join(('^' + _CNAME_PREFIX, r'([a-z]+)', '(.+)')))
+
 #: map of docker host names to their machine/run specs and status
 _hosts = None
+
+# default is unlimited so put some real constraint
+# TODO(e-carlin): max open files for local or nersc?
+_MAX_OPEN_FILES = 1024
 
 _RUN_PREFIX = (
     'run',
     '--log-driver=json-file',
-    # never should be large, just for output of the monitor
+    # should never be large, just for output of the monitor
     '--log-opt=max-size=1m',
     '--rm',
     '--ulimit=core=0',
-    # '--ulimit=nofile={}'.format(runner.MAX_OPEN_FILES),
+    '--ulimit=nofile={}'.format(_MAX_OPEN_FILES),
 )
 
 class DockerDriver(job_driver.DriverBase):
@@ -37,10 +51,10 @@ class DockerDriver(job_driver.DriverBase):
     slots = PKDict()
 
     def __init__(self, req, space):
-        pkdp('eeeeeeeee')
-        pkdp(type(space))
-        pkdp('eeeeeeeee')
         super().__init__(req, space)
+        self.update(
+            _cname=_cname_join(self._kind, self.uid)
+        )
         self.run_dir = pkio.py_path(req.content.runDir)
         self.instances[self._kind].append(self)
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
@@ -59,16 +73,15 @@ class DockerDriver(job_driver.DriverBase):
     async def _agent_start(self):
         try:
             self._image = 'radiasoft/sirepo:dev'
-            script = str(self.run_dir.join('runner-docker.sh'))
-            with open(str(script), 'wb') as f:
-                # f.write(b'sirepo job_agent')
-                f.write(b'sleep 600')
             cmd = _RUN_PREFIX + (
+                # '--cpus={}'.format(slot.cores), # TODO(e-carlin): impl
                 '--detach',
                 '--env=SIREPO_PKCLI_JOB_AGENT_AGENT_ID={}'.format(self._agentId),
                 '--env=SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI={}'.format(self._supervisor_uri),
+                # '--env=SIREPO_MPI_CORES={}'.format(slot.cores), # TODO(e-carlin): impl
                 '--init',
-                '--name={}'.format('evan'),
+                # '--memory={}g'.format(slot.gigabytes), # TODO(e-carlin): impl
+                '--name={}'.format(self._cname), # TODO(e-carlin): impl
                 '--network=host', # TODO(e-carlin): Was 'none'. I think we can use 'bridge' or 'host'
                 '--user={}'.format(os.getuid()),
             ) + self._volumes() + (
@@ -78,12 +91,11 @@ class DockerDriver(job_driver.DriverBase):
                 '-c',
                 'pyenv shell py3 && sirepo job_agent',
             )
-            pkdp('2222222222222222222222')
-            pkdp(cmd)
-            pkdp('2222222222222222222222')
             _cmd('localhost.localdomain', cmd)
         except Exception as e:
             pkdlog('error={} stack={}', e, pkdexc())
+
+
 
     def _volumes(self):
         res = []
@@ -98,6 +110,35 @@ class DockerDriver(job_driver.DriverBase):
         _res(self.run_dir, self.run_dir)
         return tuple(res)
 
+def init_class(*args, **kwargs):
+    global cfg, _hosts
+
+    if _hosts:
+        return
+
+    cfg = pkconfig.init(
+        hosts=(None, _cfg_hosts, 'execution hosts'),
+        image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
+        parallel_slots=(1, int, 'max parallel slots'),
+        sequential_slots=(1, int, 'max sequential slots'),
+        tls_dir=(None, _cfg_tls_dir, 'directory containing host certs'),
+    )
+    if not cfg.tls_dir or not cfg.hosts:
+        _init_dev_hosts()
+    _hosts = PKDict()
+    # _parallel_cores = mpi.cfg.cores
+    # Require at least three levels to the domain name
+    # just to make the directory parsing easier.
+    for h in cfg.hosts:
+        d = cfg.tls_dir.join(h)
+        _hosts[h] = PKDict(
+            name=h,
+            cmd_prefix=_cmd_prefix(h, d)
+        )
+    assert len(_hosts) > 0, \
+        '{}: no docker hosts found in directory'.format(cfg.tls_d)
+
+    return DockerDriver.init_class()
 
 def _cmd(host, cmd):
     c = _hosts[host].cmd_prefix + cmd
@@ -170,32 +211,13 @@ def _cmd_prefix(host, tls_d):
         args.append('--tls{}={}'.format(x, f))
     return tuple(args)
 
-def init_class(*args, **kwargs):
-    global cfg, _hosts
+def _cname_join(kind, uid):
+    """Create a cname or cname_prefix from kind and uid
 
-    if _hosts:
-        return
+    POSIT: matches _CNAME_RE
+    """
+    a = [_CNAME_PREFIX, kind[0]]
+    if uid:
+        a.append(uid)
+    return _CNAME_SEP.join(a)
 
-    cfg = pkconfig.init(
-        hosts=(None, _cfg_hosts, 'execution hosts'),
-        image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
-        parallel_slots=(1, int, 'max parallel slots'),
-        sequential_slots=(1, int, 'max sequential slots'),
-        tls_dir=(None, _cfg_tls_dir, 'directory containing host certs'),
-    )
-    if not cfg.tls_dir or not cfg.hosts:
-        _init_dev_hosts()
-    _hosts = PKDict()
-    # _parallel_cores = mpi.cfg.cores
-    # Require at least three levels to the domain name
-    # just to make the directory parsing easier.
-    for h in cfg.hosts:
-        d = cfg.tls_dir.join(h)
-        _hosts[h] = PKDict(
-            name=h,
-            cmd_prefix=_cmd_prefix(h, d)
-        )
-    assert len(_hosts) > 0, \
-        '{}: no docker hosts found in directory'.format(cfg.tls_d)
-
-    return DockerDriver.init_class()
