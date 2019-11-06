@@ -38,15 +38,14 @@ class DriverBase(PKDict):
     def __init__(self, req, space):
         super().__init__(
             has_slot=False,
-            has_ws=False,
             ops_pending_done=PKDict(),
             ops_pending_send=[],
+            space=space,
             uid=req.content.uid,
+            websocket=None,
             _agentId=job.unique_key(),
             _kind=space.kind,
-            _space=space,
             _supervisor_uri=cfg.supervisor_uri,
-            _websocket=None,
         )
         self.agents[self._agentId] = self
 
@@ -61,7 +60,7 @@ class DriverBase(PKDict):
     def destroy_op(self, op):
         assert op not in self.ops_pending_send
         # canceled ops are removed in self.cancel_op()
-        if not op.canceled:
+        if not op.canceled and not op.errored:
             del self.ops_pending_done[op.opId]
         self.run_scheduler(self._kind)
 
@@ -144,7 +143,7 @@ class DriverBase(PKDict):
             if not ops_with_send_alloc:
                 continue
             if ((not d.has_slot and cls.slots[kind].in_use >= cls.slots[kind].total)
-                or not d.has_ws
+                or not d.websocket
             ):
                 continue
             if not d.has_slot:
@@ -171,9 +170,9 @@ class DriverBase(PKDict):
         self.run_scheduler(self._kind)
         await op.send_ready.wait()
         if op.opId in self.ops_pending_done:
-            self._websocket.write_message(pkjson.dump_bytes(op.msg))
+            self.websocket.write_message(pkjson.dump_bytes(op.msg))
         else:
-            pkdlog('canceled op={}', op)
+            pkdlog('canceled op={}', job.LogFormatter(op))
         assert op not in self.ops_pending_send
 
     @classmethod
@@ -182,10 +181,9 @@ class DriverBase(PKDict):
             d.kill()
 
     def websocket_on_close(self):
-        self._websocket_free()
+       self._websocket_free()
 
     def _free(self):
-        del self.agents[self._agentId]
         self._websocket_free()
 
     def _receive(self, msg):
@@ -201,32 +199,45 @@ class DriverBase(PKDict):
 
         Save the websocket and register self with the websocket
         """
-        if self._websocket:
-            if self._websocket == msg.handler:
+        if self.websocket:
+            if self.websocket == msg.handler:
                 return
             self._websocket_free()
-        self._websocket = msg.handler
-        self._websocket.sr_driver_set(self)
-        self.has_ws = True
+        self.websocket = msg.handler
+        self.websocket.sr_driver_set(self)
         self.run_scheduler(self._kind)
 
     def _websocket_free(self):
-        w = self._websocket
-        self._websockt = None
+        del self.agents[self._agentId]
+        for d in self.instances[self._kind]:
+            if d.uid == self.uid:
+                d.space.free()
+                self.instances[self._kind].remove(d)
+                break
+        else:
+            raise AssertionError(
+                'kind={}  uid={} not in instances={}'.format(
+                    self._kind,
+                    self.uid,
+                    self.instances
+                )
+            )
+        if self.has_slot:
+            self.slots[self._kind].in_use -= 1
+            self.has_slot = False
+        w = self.websocket
+        self.websockt = None
         if w:
             # Will not call websocket_on_close()
             w.sr_close()
         t = list(
             self.ops_pending_done.values()
-            ).extend(self.ops_pending_send)
-        self.has_ws = False
+            )
+        t.extend(self.ops_pending_send)
         self.ops_pending_done.clear()
         self.ops_pending_send = []
         for o in t:
-            o.send_ready.set()
-            o.reply_put(
-                PKDict(state=job.ERROR, error='websocket closed', opDone=True),
-            )
+            o.set_errored('websocket closed')
         self.run_scheduler(self._kind)
 
 
@@ -274,6 +285,9 @@ class Space(PKDict):
         self = cls(kind=kind)
         self.in_use[self.kind].append(self)
         return self
+
+    def free(self):
+        self.in_use[self.kind].remove(self)
 
     @classmethod
     def init_kind(cls, kind):

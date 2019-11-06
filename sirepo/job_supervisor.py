@@ -86,7 +86,7 @@ class _ComputeJob(PKDict):
         async def _cancel_queued(self, req):
             for o in self._ops:
                 if o.msg.computeJid == req.content.computeJid:
-                    o.cancel()
+                    o.set_canceled()
             return await _reply_canceled(self, req)
 
         async def _cancel_running(self, req):
@@ -250,15 +250,23 @@ class _Op(PKDict):
             opId=job.unique_key(),
             send_ready=tornado.locks.Event(),
             canceled=False,
+            errored=False,
             _reply_q=tornado.queues.Queue(),
         )
         self.msg.update(opId=self.opId, opName=self.opName)
 
-    def cancel(self):
+    def set_canceled(self):
         self.canceled = True
         self.reply_put(PKDict(state=job.CANCELED, opDone=True))
         self.send_ready.set()
         self.driver.cancel_op(self)
+
+    def set_errored(self, error):
+        self.errored = True
+        self.reply_put(
+            PKDict(state=job.ERROR, error=error, opDone=True),
+        )
+        self.send_ready.set()
 
     def destroy(self):
         self.driver.destroy_op(self)
