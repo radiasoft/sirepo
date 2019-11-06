@@ -114,6 +114,17 @@ class DriverBase(PKDict):
         return r
 
     @classmethod
+    def init_class(cls, cfg):
+        for k in job.KINDS:
+            cls.slots[k] = PKDict(
+                in_use=0,
+                total=cfg[k + '_slots'],
+            )
+            cls.instances[k] = []
+            Space.init_kind(k)
+        return cls
+
+    @classmethod
     def free_slots(cls, kind):
         for d in cls.instances[kind]:
             if d.has_slot and not d.ops_pending_send:
@@ -229,19 +240,26 @@ def init():
     assert not _CLASSES
 
     cfg = pkconfig.init(
-        modules=(('local', 'docker'), set, 'driver modules'),
+        modules=(('local',), set, 'driver modules'),
         supervisor_uri=(
             'ws://{}:{}{}'.format(job.DEFAULT_IP, job.DEFAULT_PORT, job.AGENT_URI),
             str,
             'uri for agent ws connection with supervisor',
         ),
     )
+    assert not {'local', 'docker'}.issubset(cfg.modules), \
+        'modules={} can only contain one of "docker" or "local"'.format(cfg.modules)
+    assert 'local' or 'docker' in cfg.modules, \
+        'modules={} must contain only one of "docker" or "local"'.format(cfg.modules)
     p = pkinspect.this_module().__name__
     _CLASSES = PKDict()
     for n in cfg.modules:
         m = importlib.import_module(pkinspect.module_name_join((p, n)))
         _CLASSES[n] = m.init_class()
-    _DEFAULT_CLASS = list(_CLASSES.values())[0]
+    if 'docker' in cfg.modules:
+        _DEFAULT_CLASS = _CLASSES['docker']
+    else:
+        _DEFAULT_CLASS = _CLASSES['local']
 
 
 class Space(PKDict):

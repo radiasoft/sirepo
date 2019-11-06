@@ -39,18 +39,6 @@ class LocalDriver(job_driver.DriverBase):
         self.instances[self._kind].append(self)
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
 
-
-    @classmethod
-    def init_class(cls):
-        for k in job.KINDS:
-            cls.slots[k] = PKDict(
-                in_use=0,
-                total=cfg[k + '_slots'],
-            )
-            cls.instances[k] = []
-            job_driver.Space.init_kind(k)
-        return cls
-
     def kill(self):
         if 'subprocess' not in self:
             return
@@ -102,4 +90,4 @@ def init_class():
         parallel_slots=(1, int, 'max parallel slots'),
         sequential_slots=(1, int, 'max sequential slots'),
     )
-    return LocalDriver.init_class()
+    return LocalDriver.init_class(cfg)

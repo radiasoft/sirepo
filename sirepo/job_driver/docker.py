@@ -53,22 +53,11 @@ class DockerDriver(job_driver.DriverBase):
     def __init__(self, req, space):
         super().__init__(req, space)
         self.update(
-            _cname=_cname_join(self._kind, self.uid)
+            _cname=_cname_join(self._kind, self.uid),
+            _agent_dir=req.content.userDir,
         )
-        self.run_dir = pkio.py_path(req.content.runDir)
         self.instances[self._kind].append(self)
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
-
-    @classmethod
-    def init_class(cls):
-        for k in job.KINDS:
-            cls.slots[k] = PKDict(
-                in_use=0,
-                total=cfg[k + '_slots'],
-            )
-            cls.instances[k] = []
-            job_driver.Space.init_kind(k)
-        return cls
 
     async def _agent_start(self):
         try:
@@ -91,7 +80,7 @@ class DockerDriver(job_driver.DriverBase):
                 '-c',
                 'pyenv shell py3 && sirepo job_agent',
             )
-            _cmd('localhost.localdomain', cmd)
+            self._cid = _cmd('localhost.localdomain', cmd)
         except Exception as e:
             pkdlog('error={} stack={}', e, pkdexc())
 
@@ -107,7 +96,7 @@ class DockerDriver(job_driver.DriverBase):
                 v = pkio.py_path(v)
                 # pyenv and src shouldn't be writable, only rundir
                 _res(v, v + ':ro')
-        _res(self.run_dir, self.run_dir)
+        _res(self._agent_dir, self._agent_dir)
         return tuple(res)
 
 def init_class(*args, **kwargs):
@@ -138,13 +127,13 @@ def init_class(*args, **kwargs):
     assert len(_hosts) > 0, \
         '{}: no docker hosts found in directory'.format(cfg.tls_d)
 
-    return DockerDriver.init_class()
+    return DockerDriver.init_class(cfg)
 
 def _cmd(host, cmd):
     c = _hosts[host].cmd_prefix + cmd
     try:
         pkdc('Running: {}', ' '.join(c))
-        r = subprocess.check_output(
+        return subprocess.check_output(
             c,
             stdin=open(os.devnull),
             stderr=subprocess.STDOUT,
@@ -153,6 +142,7 @@ def _cmd(host, cmd):
         if cmd[0] == 'run':
             pkdlog('{}: failed: exit={} output={}', cmd, e.returncode, e.output)
         return None
+
 
 @pkconfig.parse_none
 def _cfg_hosts(value):
