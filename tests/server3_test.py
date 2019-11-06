@@ -10,7 +10,7 @@ import pytest
 _TYPES = 'elegant:warppba'
 
 
-def xtest_elegant():
+def test_elegant():
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     from sirepo import srunit
@@ -18,7 +18,7 @@ def xtest_elegant():
     import time
     import sdds
 
-    data, fc, sim_type = srunit.sim_data('elegant', 'Electron Beam', sim_types=_TYPES)
+    data, fc, sim_type = srunit.sim_data('elegant', 'Compact Storage Ring', sim_types=_TYPES)
     run = None
     try:
         run = fc.sr_post(
@@ -45,10 +45,10 @@ def xtest_elegant():
         f = fc.sr_get_json(
             'simulationFrame',
             PKDict(
-                frame_id=s.frame_id(data, run, 'beamAnimation', 0),
+                frame_id=s.frame_id(data, run, 'elementAnimation20-18', 0),
             ),
         )
-        pkunit.pkre('t = .*iteration', f.title)
+        pkunit.pkeq('Horizontal', f.title)
     finally:
         try:
             if run:

@@ -903,14 +903,14 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             s.computeJobHash,
             s.computeJobStart,
         ];
-        var m = appState.applicationState()[frameReport];
-        var f = SIREPO.APP_SCHEMA.frameIdFields;
+        var m = appState.models;
         m = m[frameReport in m ? frameReport : c];
-        v.concat(
-            m.map(function (a) {return f[a];})
-        );
+        var f = SIREPO.APP_SCHEMA.frameIdFields;
+        f = f[frameReport in f ? frameReport : c];
         // POSIT: same as sirepo.sim_data._FRAME_ID_SEP
-        return v.join('*');
+        return v.concat(
+            f.map(function (a) {return m[a];})
+        ).join('*');
     };
 
     self.getCurrentFrame = function(modelName) {
