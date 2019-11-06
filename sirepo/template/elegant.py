@@ -376,7 +376,7 @@ def sim_frame(frame_args):
     return _extract_report_data(
         _file_name_from_id(
             frame_args.xFileId,
-            frame_args.input_read(),
+            frame_args.sim_in,
             frame_args.run_dir,
         ),
         frame_args,

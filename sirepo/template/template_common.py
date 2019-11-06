@@ -238,9 +238,9 @@ def sim_frame_dispatch(frame_args):
 
     frame_args.pksetdefault(
         run_dir=lambda: simulation_db.simulation_run_dir(frame_args),
-    )
-    frame_args.input_read = lambda: simulation_db.read_json(
-        frame_args.run_dir.join(INPUT_BASE_NAME),
+        sim_in=lambda: simulation_db.read_json(
+            frame_args.run_dir.join(INPUT_BASE_NAME),
+        ),
     )
     t = sirepo.template.import_module(frame_args.simulationType)
     r = frame_args.frameReport

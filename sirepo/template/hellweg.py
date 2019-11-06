@@ -60,20 +60,7 @@ def background_percent_complete(report, run_dir, is_running):
     }
 
 
-def extract_beam_histrogram(frame_args, run_dir):
-    beam_info = hellweg_dump_reader.beam_info(_dump_file(run_dir))
-    points = hellweg_dump_reader.get_points(beam_info, frame_args.reportType)
-    hist, edges = np.histogram(points, template_common.histogram_bins(frame_args.histogramBins))
-    return {
-        'title': _report_title(frame_args.reportType, 'BeamHistogramReportType', beam_info),
-        'x_range': [edges[0], edges[-1]],
-        'y_label': 'Number of Particles',
-        'x_label': hellweg_dump_reader.get_label(frame_args.reportType),
-        'points': hist.T.tolist(),
-    }
-
-
-def extract_beam_report(frame_args, run_dir):
+def sim_frame_beamAnimation(frame_args):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     model = data.models.beamAnimation
     model.update(frame_args)
@@ -97,7 +84,20 @@ def extract_beam_report(frame_args, run_dir):
     })
 
 
-def extract_parameter_report(frame_args, run_dir):
+def sim_frame_beamHistogramAnimation(frame_args):
+    beam_info = hellweg_dump_reader.beam_info(_dump_file(run_dir))
+    points = hellweg_dump_reader.get_points(beam_info, frame_args.reportType)
+    hist, edges = np.histogram(points, template_common.histogram_bins(frame_args.histogramBins))
+    return {
+        'title': _report_title(frame_args.reportType, 'BeamHistogramReportType', beam_info),
+        'x_range': [edges[0], edges[-1]],
+        'y_label': 'Number of Particles',
+        'x_label': hellweg_dump_reader.get_label(frame_args.reportType),
+        'points': hist.T.tolist(),
+    }
+
+
+def sim_frame_parameterAnimation(frame_args):
     s = solver.BeamSolver(
         os.path.join(str(run_dir), HELLWEG_INI_FILE),
         os.path.join(str(run_dir), HELLWEG_INPUT_FILE))
@@ -125,7 +125,7 @@ def extract_parameter_report(frame_args, run_dir):
     }
 
 
-def extract_particle_report(frame_args, run_dir):
+def sim_frame_particleAnimation(frame_args):
     x_field = 'z0'
     particle_info = hellweg_dump_reader.particle_info(_dump_file(run_dir), frame_args.reportType, int(frame_args.renderCount))
     x = particle_info['z_values']
@@ -144,19 +144,6 @@ def get_application_data(data):
     if data['method'] == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_files)
     assert False, 'unknown application data method: {}'.format(data['method'])
-
-
-def get_simulation_frame(run_dir, frame_args, sim_in):
-    r = frame_args.frameReport
-    if r == 'beamAnimation':
-        return extract_beam_report(frame_args, run_dir)
-    elif r == 'beamHistogramAnimation':
-        return extract_beam_histrogram(frame_args, run_dir)
-    elif r == 'particleAnimation':
-        return extract_particle_report(frame_args, run_dir)
-    elif r == 'parameterAnimation':
-        return extract_parameter_report(frame_args, run_dir)
-    raise RuntimeError('unknown animation model={}'.format(r))
 
 
 def python_source_for_model(data, model):

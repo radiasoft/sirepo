@@ -129,15 +129,6 @@ def get_data_file(run_dir, model, frame, options=None):
         return path.basename, f.read(), 'application/octet-stream'
 
 
-def get_simulation_frame(run_dir, frame_args, sim_in):
-    r = frame_args.frameReport
-    if r in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
-        return _extract_evolution_plot(frame_args, run_dir)
-    elif r == 'particleAnimation':
-        return _extract_particle_plot(frame_args, run_dir, frame_args.frameIndex)
-    raise RuntimeError('unknown animation model={}'.format(r))
-
-
 def python_source_for_model(data, model):
     ring = data['models']['ring']
     elegant_twiss_file = None
@@ -245,24 +236,26 @@ def _compute_sdds_range(res):
             res[field] = [_safe_sdds_value(min(values)), _safe_sdds_value(max(values))]
 
 
-def _extract_evolution_plot(report, run_dir):
-    filename = str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+def sim_frame_beamEvolutionAnimation(frame_args):
+    filename = str(frame_args.run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))
     x_col = sdds_util.extract_sdds_column(filename, _X_FIELD, 0)
     if x_col['err']:
         return x_col['err']
     x = x_col['values']
     plots = []
     for f in ('y1', 'y2', 'y3'):
-        if report[f] == 'none':
+        if frame_args[f] == 'none':
             continue
-        yfield = _map_field_name(report[f])
+        yfield = _map_field_name(frame_args[f])
         y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
         if y_col['err']:
             return y_col['err']
         plots.append({
             'points': y_col['values'],
-            'label': '{}{}'.format(_field_label(yfield, y_col['column_def']), _field_description(yfield, data)),
+            'label': '{}{}'.format(
+                _field_label(yfield, y_col['column_def']),
+                _field_description(yfield, frame_args.sim_in),
+            ),
         })
     return {
         'title': '',
@@ -275,11 +268,14 @@ def _extract_evolution_plot(report, run_dir):
     }
 
 
-def _extract_particle_plot(report, run_dir, page_index):
-    xfield = _map_field_name(report['x'])
-    yfield = _map_field_name(report['y'])
-    filename = _ion_files(run_dir)[page_index]
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+sim_frame_coolingRatesAnimation = sim_frame_beamEvolutionAnimation
+
+def sim_frame_particleAnimation(frame_args):
+    page_index = frame_args.frameIndex
+    xfield = _map_field_name(frame_args.x)
+    yfield = _map_field_name(frame_args.y)
+    filename = _ion_files(frame_args.run_dir)[page_index]
+    data = frame_args.sim_in
     settings = data.models.simulationSettings
     time = settings.time / settings.step_number * settings.save_particle_interval * page_index
     if time > settings.time:
@@ -293,7 +289,7 @@ def _extract_particle_plot(report, run_dir, page_index):
         return y_col['err']
     y = y_col['values']
     model = data.models.particleAnimation
-    model.update(report)
+    model.update(frame_args)
     model['x'] = xfield
     model['y'] = yfield
     return template_common.heatmap([x, y], model, {

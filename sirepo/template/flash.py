@@ -40,15 +40,6 @@ def background_percent_complete(report, run_dir, is_running):
     }
 
 
-def get_simulation_frame(run_dir, frame_args, sim_in):
-    m = frame_args.frameReport
-    if m == 'varAnimation':
-        return _extract_meshed_plot(run_dir, sim_in)
-    if m == 'gridEvolutionAnimation':
-        return _extract_evolution_plot(run_dir, frame_args, sim_in)
-    assert False, 'invalid animation frame model={}'.format(m)
-
-
 _DEFAULT_VALUES = {
     'RTFlame': {
         'Driver': {
@@ -356,16 +347,25 @@ _PLOT_COLUMNS = {
     ],
 }
 
-def _extract_evolution_plot(run_dir, frame_args, sim_in):
-    datfile = np.loadtxt(str(run_dir.join(_GRID_EVOLUTION_FILE)))
+def get_simulation_frame(run_dir, frame_args, sim_in):
+    m = frame_args.frameReport
+    if m == 'gridEvolutionAnimation':
+        return _extract_evolution_plot(run_dir, frame_args, sim_in)
+    assert False, 'invalid animation frame model={}'.format(m)
+
+
+def sim_frame_gridEvolutionAnimation(frame_args):
+    dat = np.loadtxt(str(frame_args.run_dir.join(_GRID_EVOLUTION_FILE)))
     stride = 20
-    x = datfile[::stride, 0]
+    x = dat[::stride, 0]
     plots = []
-    for plot in _PLOT_COLUMNS[sim_in.models.simulation.get('flashType', 'RTFlame')]:
+    for plot in _PLOT_COLUMNS[
+        frame_args.sim_in.models.simulation.get('flashType', 'RTFlame')
+    ]:
         plots.append({
             'name': plot[0],
             'label': plot[0],
-            'points': datfile[::stride, plot[1]].tolist(),
+            'points': dat[::stride, plot[1]].tolist(),
         })
     return {
         'title': '',
@@ -378,9 +378,9 @@ def _extract_evolution_plot(run_dir, frame_args, sim_in):
     }
 
 
-def _extract_meshed_plot(run_dir, frame_args):
+def sim_frame_varAnimation(frame_args):
     field = frame_args['var']
-    filename = _h5_file_list(run_dir)[frame_args.frameIndex]
+    filename = _h5_file_list(frame_args.run_dir)[frame_args.frameIndex]
     with h5py.File(filename) as f:
         params = _parameters(f)
         node_type = f['node type']

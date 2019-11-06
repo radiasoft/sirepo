@@ -23,16 +23,15 @@ def run(cfg_dir):
     _run_hellweg(cfg_dir)
     sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     r = sim_in.report
-    frame_args = copy.deepcopy(data.models[r])
-    frame_args.frameReport = r
-    res = None
-    if r == 'beamReport':
-        res = template.extract_beam_report(frame_args, py.path.local(cfg_dir))
-    elif r == 'beamHistogramReport':
-        res = template.extract_beam_histrogram(frame_args, py.path.local(cfg_dir))
-    else:
-        raise RuntimeError('unknown report: {}'.format(r))
-    simulation_db.write_result(res)
+    simulation_db.write_result(
+        template_common.sim_frame_dispatch(
+            copy.deepcopy(sim_in.models[r]).pkupdat(
+                frameReport=r,
+                run_dir=pkio.py_path(cfg_dir),
+                sim_in=sim_in,
+            ),
+        ),
+    )
 
 
 def run_background(cfg_dir):
