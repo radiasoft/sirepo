@@ -49,13 +49,10 @@ def api_runStatus():
 
 @api_perm.require_user
 def api_simulationFrame(frame_id):
-    def op(frame_args):
-        return _request(
-            data=frame_args,
-            computeJobHash=frame_args.computeJobHash,
-        )
-
-    return template_common.get_simulation_frame(frame_id, op)
+    return template_common.sim_frame(
+        frame_id,
+        lambda a: _request(data=a, computeJobHash=a.computeJobHash),
+    )
 
 
 def init_apis(*args, **kwargs):

@@ -216,7 +216,7 @@ def generate_parameters_file(data):
     return render_jinja(None, v, name='common-header.py'), v
 
 
-def get_simulation_frame(frame_id, op):
+def sim_frame(frame_id, op):
     f, s = sirepo.sim_data.parse_frame_id(frame_id)
     x = op(f)
     r = sirepo.http_reply.gen_json(x)
@@ -231,6 +231,23 @@ def get_simulation_frame(frame_id, op):
     else:
         sirepo.http_reply.headers_for_no_cache(r)
     return r
+
+
+def sim_frame_dispatch(frame_args):
+    from sirepo import simulation_db
+
+    frame_args.pksetdefault(
+        run_dir=lambda: simulation_db.simulation_run_dir(frame_args),
+    )
+    frame_args.input_read = lambda: simulation_db.read_json(
+        frame_args.run_dir.join(INPUT_BASE_NAME),
+    )
+    t = sirepo.template.import_module(frame_args.simulationType)
+    r = frame_args.frameReport
+    o = getattr(t, 'sim_frame', None) or getattr(t, 'sim_frame_' + r)
+    if not o:
+        raise RuntimeError('unsupported simulation_frame model={}'.format(r))
+    return o(frame_args)
 
 
 def h5_to_dict(hf, path=None):

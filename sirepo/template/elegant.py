@@ -217,21 +217,6 @@ def _file_name_from_id(file_id, model_data, run_dir):
         _get_filename_for_element_id(file_id.split(_FILE_ID_SEP), model_data)))
 
 
-def get_simulation_frame(run_dir, frame_args, sim_in):
-    m = frame_args.frameReport
-    page_count = 0
-    for info in _output_info(run_dir):
-        if info.modelKey == m:
-            page_count = info.pageCount
-            frame_args.fieldRange = info.fieldRange
-    frame_args.y = frame_args.y1
-    return _extract_report_data(
-        _file_name_from_id(frame_args.xFileId, sim_in, run_dir),
-        frame_args,
-        page_count=page_count,
-    )
-
-
 def get_data_file(run_dir, model, frame, options=None):
     def _sdds(filename):
         path = run_dir.join(filename)
@@ -378,6 +363,26 @@ def save_report_data(data, run_dir):
         _extract_report_data(str(run_dir.join(_report_output_filename(a.frameReport))), a),
         run_dir=run_dir,
     )
+
+
+def sim_frame(frame_args):
+    r = frame_args.frameReport
+    page_count = 0
+    for info in _output_info(frame_args.run_dir):
+        if info.modelKey == r:
+            page_count = info.pageCount
+            frame_args.fieldRange = info.fieldRange
+    frame_args.y = frame_args.y1
+    return _extract_report_data(
+        _file_name_from_id(
+            frame_args.xFileId,
+            frame_args.input_read(),
+            frame_args.run_dir,
+        ),
+        frame_args,
+        page_count=page_count,
+    )
+
 
 def validate_file(file_type, path):
     err = None

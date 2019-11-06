@@ -77,16 +77,11 @@ def api_runStatus():
 
 @api_perm.require_user
 def api_simulationFrame(frame_id):
+    return template_common.sim_frame(
+        frame_id,
+        lambda a: template_common.sim_frame_dispatch(a),
+    )
 
-    def op(frame_args):
-        d = simulation_db.simulation_run_dir(frame_args)
-        return sirepo.template.import_module(frame_args.simulationType).get_simulation_frame(
-            d,
-            frame_args,
-            simulation_db.read_json(d.join(template_common.INPUT_BASE_NAME)),
-        )
-
-    return template_common.get_simulation_frame(frame_id, op)
 
 def init_apis(*args, **kwargs):
     pass

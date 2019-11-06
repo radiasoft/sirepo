@@ -164,16 +164,8 @@ def get_data_file(run_dir, model, frame, options=None):
         return path.basename, f.read(), 'application/octet-stream'
 
 
-def get_simulation_frame(run_dir, data, model_data):
-    frame_index = int(data.frameIndex)
+def get_simulation_frame(run_dir, frame_args, sim_in):
     if data.modelName == 'beamEvolutionAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {
-                '1': ['x', 'y1', 'y2', 'y3', 'startTime'],
-                '': ['y1', 'y2', 'y3', 'startTime'],
-            },
-        )
         return _extract_evolution_plot(args, run_dir)
     if data.modelName == 'bunchAnimation':
         args = template_common.parse_animation_args(

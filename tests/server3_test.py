@@ -7,13 +7,16 @@ u"""Test background processes
 from __future__ import absolute_import, division, print_function
 import pytest
 
-_TYPES = 'elegant:jspec:warppba'
+
+_TYPES = 'elegant:jspec:srw:synergia:warppba:warpvnd:webcon:zgoubi'
 
 
 def test_simulation_frame():
     _t('elegant', 'Compact Storage Ring', 'animation', 'elementAnimation20-18', title='Horizontal')
-    _t('jspec', 'Booster Ring', 'animation', 'beamEvolutionAnimation', x_label='t .s.'),
-    _t('warppba', 'Electron Beam', 'animation', 'beamAnimation', title='t = .*iteration')
+#    _t('jspec', 'Booster Ring', 'animation', 'beamEvolutionAnimation', x_label='t .s.')
+#    _t('srw', "Young's Double Slit Experiment", 'multiElectronAnimation', 'multiElectronAnimation', title='E=4240 eV')
+#    _t('synergia', 'Simple FODO', 'animation', 'bunchAnimation', title='E=4240 eV')
+#    _t('warppba', 'Electron Beam', 'animation', 'beamAnimation', title='t = .*iteration')
 
 
 def _t(sim_type, sim_name, compute_model, analysis_model, **kwargs):

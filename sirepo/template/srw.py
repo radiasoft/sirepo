@@ -392,10 +392,10 @@ def get_simulation_frame(run_dir, frame_args, sim_in):
     r = frame_args.frameReport
     if r == 'multiElectronAnimation':
         m = sim_in.models[r]
-        m.intensityPlotsWidth = args.intensityPlotsWidth
-        if args.get('rotateAngle', 0):
-            m.rotateAngle = float(args.rotateAngle)
-            m.rotateReshape = args.rotateReshape
+        m.intensityPlotsWidth = frame_args.intensityPlotsWidth
+        if frame_args.get('rotateAngle', 0):
+            m.rotateAngle = float(frame_args.rotateAngle)
+            m.rotateReshape = frame_args.rotateReshape
         else:
             m.rotateAngle = 0
     for i in (1, 2, 3):
