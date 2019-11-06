@@ -256,31 +256,42 @@ async def get_instance(req):
     return await _DEFAULT_CLASS.get_instance(req)
 
 
-def init():
-    global _CLASSES, _DEFAULT_CLASS, cfg
+@pkconfig.parse_none
+def _cfg_parse_modules(value):
+    global _CLASSES, _DEFAULT_CLASS
     assert not _CLASSES
 
+    s = pkconfig.parse_set(value)
+    if not s:
+        s = frozenset(('docker',))
+        if pkconfig.channel_in('dev'):
+            s = frozenset(('local',))
+    assert not {'local', 'docker'}.issubset(s), \
+        'modules={} can only contain one of "docker" or "local"'.format(s)
+    assert 'docker' in s or 'local' in s, \
+        'modules={} must contain  "docker" or "local"'.format(s)
+    p = pkinspect.this_module().__name__
+    _CLASSES = PKDict()
+    for n in s:
+        m = importlib.import_module(pkinspect.module_name_join((p, n)))
+        _CLASSES[n] = m.init_class()
+    if 'docker' in s:
+        _DEFAULT_CLASS = _CLASSES['docker']
+    else:
+        _DEFAULT_CLASS = _CLASSES['local']
+    return s
+
+
+def init():
+    global cfg
     cfg = pkconfig.init(
-        modules=(('local',), set, 'driver modules'),
+        modules=(None, _cfg_parse_modules, 'driver modules'),
         supervisor_uri=(
             'ws://{}:{}{}'.format(job.DEFAULT_IP, job.DEFAULT_PORT, job.AGENT_URI),
             str,
             'uri for agent ws connection with supervisor',
         ),
     )
-    assert not {'local', 'docker'}.issubset(cfg.modules), \
-        'modules={} can only contain one of "docker" or "local"'.format(cfg.modules)
-    assert 'local' or 'docker' in cfg.modules, \
-        'modules={} must contain only one of "docker" or "local"'.format(cfg.modules)
-    p = pkinspect.this_module().__name__
-    _CLASSES = PKDict()
-    for n in cfg.modules:
-        m = importlib.import_module(pkinspect.module_name_join((p, n)))
-        _CLASSES[n] = m.init_class()
-    if 'docker' in cfg.modules:
-        _DEFAULT_CLASS = _CLASSES['docker']
-    else:
-        _DEFAULT_CLASS = _CLASSES['local']
 
 
 class Space(PKDict):
