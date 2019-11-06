@@ -93,10 +93,11 @@ class _Dispatcher(PKDict):
                         break
                     m = await self._websocket.read_message()
                     if m is None:
-                        break
+                        raise ValueError('response from supervisor was None')
                     m = await self._op(m)
             except Exception as e:
                 pkdlog('error={} stack={}', e, pkdexc())
+                # TODO(e-carlin): exponential backoff?
                 await tornado.gen.sleep(_RETRY_SECS)
             finally:
                 if self._websocket:
@@ -122,7 +123,8 @@ class _Dispatcher(PKDict):
         try:
             m = pkjson.load_any(msg)
             pkdc('m={}', job.LogFormatter(m))
-            m.runDir = pkio.py_path(m.runDir)
+            if 'runDir' in m:
+                m.runDir = pkio.py_path(m.runDir)
             return await getattr(self, '_op_' + m.opName)(m)
         except Exception as e:
             err = 'exception=' + str(e)
@@ -140,6 +142,16 @@ class _Dispatcher(PKDict):
         p.kill()
         del self.processes[msg.computeJid]
         return self.format_op(msg, job.OP_OK, reply=PKDict(state=job.CANCELED, opDone=True))
+
+    async def _op_kill(self, msg):
+        try:
+            for p in self.processes.values():
+                p.kill()
+        except Exception as e:
+            pkdlog('error={} stack={}', e, pkdexc())
+        finally:
+            tornado.ioloop.IOLoop.current().stop()
+
 
     async def _op_run(self, msg):
         self._process(msg)

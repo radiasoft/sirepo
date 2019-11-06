@@ -128,9 +128,18 @@ class DriverBase(PKDict):
         for d in cls.instances[kind]:
             if d.has_slot and not d.ops_pending_send:
                 cls.slots[kind].in_use -= 1
+
     @classmethod
     def receive(cls, msg):
-        cls.agents[msg.content.agentId]._receive(msg)
+        try:
+            cls.agents[msg.content.agentId]._receive(msg)
+        except KeyError as e:
+            pkdc('unknown agent msg={}', msg)
+            try:
+                msg.handler.write_message(PKDict(opName=job.OP_KILL))
+            except Exception as e:
+                pkdlog('error={} stack={}', e, pkdexc())
+
 
 # TODO(e-carlin): Take in a arg of driver and start the loop from the index
 # of that driver. Doing so enables fair scheduling. Otherwise user at start of
@@ -208,6 +217,7 @@ class DriverBase(PKDict):
         self.run_scheduler(self._kind)
 
     def _websocket_free(self):
+        """Remove holds on all resources and remove self from data structures"""
         del self.agents[self._agentId]
         for d in self.instances[self._kind]:
             if d.uid == self.uid:
@@ -296,5 +306,3 @@ class Space(PKDict):
 
 def terminate():
     DriverBase.terminate()
-
-
