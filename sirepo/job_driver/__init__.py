@@ -297,8 +297,8 @@ def _cfg_parse_modules(value):
 
 
 class _Space(PKDict):
-    """If a driver has a space then they have an alive agent but may not be
-    actively performing an op.
+    """If a driver has a space then they have an alive agent but may not have a
+    slot and may not be actively performing an op.
     """
 
     in_use = PKDict()
