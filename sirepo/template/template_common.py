@@ -246,7 +246,10 @@ def sim_frame_dispatch(frame_args):
     t = sirepo.template.import_module(frame_args.simulationType)
     o = getattr(t, 'sim_frame', None) \
         or getattr(t, 'sim_frame_' + frame_args.frameReport)
-    return o(frame_args)
+    res = o(frame_args)
+    if res is None:
+        raise RuntimeError('unsupported simulation_frame model={}'.format(frame_args.frameReport))
+    return res
 
 
 def h5_to_dict(hf, path=None):

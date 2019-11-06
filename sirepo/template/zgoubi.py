@@ -417,16 +417,16 @@ def get_data_file(run_dir, model, frame, options=None):
         return path.basename, f.read(), 'application/octet-stream'
 
 
-def get_simulation_frame(run_dir, frame_args, sim_in):
+def sim_frame(frame_args):
     r = frame_args.frameReport
     if (
-        'bunchAnimation' == r
+        'bunchAnimation' in r
         or r in ('energyAnimation', 'elementStepAnimation')
     ):
-        return _extract_animation(run_dir, frame_args, sim_in)
+        return _extract_animation(frame_args)
     if r == 'particleAnimation':
-        return _extract_spin_3d(run_dir, frame_args, sim_in)
-    assert False, 'invalid animation frame model: {}'.format(r)
+        return _extract_spin_3d(frame_args)
+    return None
 
 
 def import_file(request, lib_dir=None, tmp_dir=None, unit_test_mode=False):
@@ -587,14 +587,14 @@ def _2d_range(rows):
     return [vmin, vmax]
 
 
-def _extract_animation(run_dir, frame_args, sim_in):
+def _extract_animation(frame_args):
     r = frame_args.frameReport
     frame_index = frame_args.frameIndex
     is_frame_0 = False
     # fieldRange is store on the bunchAnimation
-    model = sim_in.models.bunchAnimation
+    model = frame_args.sim_in.models.bunchAnimation
     if r in ('energyAnimation', 'elementStepAnimation'):
-        model.update(sim_in.models.energyAnimation)
+        model.update(frame_args.sim_in.models.energyAnimation)
         frame_index += 1
     else:
         # bunchAnimations
@@ -606,16 +606,16 @@ def _extract_animation(run_dir, frame_args, sim_in):
             frame_index = 1
     model.update(frame_args)
     if r == 'elementStepAnimation':
-        col_names, all_rows = _read_data_file(run_dir.join(_ZGOUBI_PLT_DATA_FILE))
+        col_names, all_rows = _read_data_file(frame_args.run_dir.join(_ZGOUBI_PLT_DATA_FILE))
     else:
-        col_names, all_rows = _read_data_file(run_dir.join(_ZGOUBI_FAI_DATA_FILE))
+        col_names, all_rows = _read_data_file(frame_args.run_dir.join(_ZGOUBI_FAI_DATA_FILE))
     ipasses = _ipasses_for_data(col_names, all_rows)
     ipass = int(ipasses[frame_index - 1])
     rows = []
     ipass_index = int(col_names.index('IPASS'))
     it_index = int(col_names.index('IT'))
     it_filter = None
-    if _particle_count(sim_in) <= _MAX_FILTER_PLOT_PARTICLES:
+    if _particle_count(frame_args.sim_in) <= _MAX_FILTER_PLOT_PARTICLES:
         if frame_args.particleNumber != 'all':
             it_filter = frame_args.particleNumber
 
@@ -708,8 +708,8 @@ def _extract_particle_data(report, col_names, rows, title):
     }
 
 
-def _extract_spin_3d(run_dir, frame_args, sim_in):
-    col_names, all_rows = _read_data_file(run_dir.join(_ZGOUBI_FAI_DATA_FILE))
+def _extract_spin_3d(frame_args):
+    col_names, all_rows = _read_data_file(frame_args.run_dir.join(_ZGOUBI_FAI_DATA_FILE))
     x_idx = col_names.index('SX')
     y_idx = col_names.index('SY')
     z_idx = col_names.index('SZ')

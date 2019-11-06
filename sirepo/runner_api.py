@@ -133,7 +133,13 @@ def _reqd(data):
     if not res.run_dir.check():
         return res
     res.cached_data = c = simulation_db.read_json(res.input_file)
-    res.cached_hash = res.sim_data.compute_job_hash(c)
+    # backwards compatibility for old runs that don't have computeJobCacheKey
+    res.cached_hash = c.models.pksetdefault(
+        computeJobCacheKey=lambda: PKDict(
+            computeJobHash=res.sim_data.compute_job_hash(c),
+            computeJobStart=int(res.input_file.mtime()),
+        ),
+    ).computeJobCacheKey.computeJobHash
     if res.req_hash == res.cached_hash:
         res.cache_hit = True
         return res

@@ -349,14 +349,13 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         if ('percentComplete' in data && ! data.error) {
             ['bunchAnimation', 'bunchAnimation2', 'energyAnimation', 'elementStepAnimation', 'particleAnimation'].forEach(function(m) {
                 plotRangeService.computeFieldRanges(self, m, data.percentComplete);
-                appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
             });
             if (data.frameCount) {
                 frameCache.setFrameCount(data.frameCount - 1, 'energyAnimation');
                 frameCache.setFrameCount(data.frameCount - 1, 'elementStepAnimation');
                 frameCache.setFrameCount(data.frameCount - 1, 'particleAnimation');
-                updateTunesReport(data.startTime, data.showTunesReport);
+                updateTunesReport(data.showTunesReport);
             }
             self.hasPlotFile = data.hasPlotFile;
             self.showSpin3d = data.showSpin3d;
@@ -382,17 +381,14 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
                 || (model.showAllFrames == '1' && zgoubiService.showParticleSelector()));
     }
 
-    function updateTunesReport(startTime, showTunesReport) {
+    function updateTunesReport(showTunesReport) {
         // tunesReport is tied to the current animation data
         // only show if particle count is <= 10 and number of turnes is >= 10
-        var tunesReport = appState.models.tunesReport;
-        if (tunesReport.startTime != startTime) {
-            tunesReport.showTunesReport = showTunesReport;
-            // need to wait for report to become visible so it can respond to changes
-            panelState.waitForUI(function() {
-                appState.saveChanges('tunesReport');
-            });
-        }
+        appState.models.tunesReport.showTunesReport = showTunesReport;
+        // need to wait for report to become visible so it can respond to changes
+        panelState.waitForUI(function() {
+            appState.saveChanges('tunesReport');
+        });
     }
 
     self.bunchReportHeading = function(name) {
