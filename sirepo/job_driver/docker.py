@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 """TODO(e-carlin): Doc
 
@@ -18,7 +17,7 @@ import tornado.ioloop
 
 cfg = None
 
-#: prefix all container names. Full format looks like: srj-p-uid-sid-report
+#: prefix all container names. Full format looks like: srj-p-uid
 _CNAME_PREFIX = 'srj'
 
 #: separator for container names
@@ -55,13 +54,13 @@ class DockerDriver(job_driver.DriverBase):
         self.update(
             _cname=_cname_join(self._kind, self.uid),
             _agent_dir=req.content.userDir,
+            _image = _image()
         )
         self.instances[self._kind].append(self)
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
 
     async def _agent_start(self):
         try:
-            self._image = 'radiasoft/sirepo:dev'
             cmd = _RUN_PREFIX + (
                 # '--cpus={}'.format(slot.cores), # TODO(e-carlin): impl
                 '--detach',
@@ -92,12 +91,21 @@ class DockerDriver(job_driver.DriverBase):
             res.append('--volume={}:{}'.format(src, tgt))
 
         if pkconfig.channel_in('dev'):
-            for v in '~/src', '~/.pyenv':
+            for v in '~/src', '~/.pyenv', '~/.local':
                 v = pkio.py_path(v)
                 # pyenv and src shouldn't be writable, only rundir
                 _res(v, v + ':ro')
         _res(self._agent_dir, self._agent_dir)
         return tuple(res)
+
+
+#TODO(robnagler) probably should push this to pykern also in rsconf
+def _image():
+    res = cfg.image
+    if ':' in res:
+        return res
+    return res + ':' + pkconfig.cfg.channel
+
 
 def init_class(*args, **kwargs):
     global cfg, _hosts
@@ -206,8 +214,5 @@ def _cname_join(kind, uid):
 
     POSIT: matches _CNAME_RE
     """
-    a = [_CNAME_PREFIX, kind[0]]
-    if uid:
-        a.append(uid)
-    return _CNAME_SEP.join(a)
+    return _CNAME_SEP.join([_CNAME_PREFIX, kind[0], uid])
 
