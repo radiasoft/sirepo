@@ -17,11 +17,7 @@ import tornado.ioloop
 import tornado.queues
 import tornado.process
 
-
-_KILL_TIMEOUT_SECS = 3
-
 cfg = None
-
 
 class LocalDriver(job_driver.DriverBase):
 
@@ -44,7 +40,7 @@ class LocalDriver(job_driver.DriverBase):
             return
         self.subprocess.proc.terminate()
         self.kill_timeout = tornado.ioloop.IOLoop.current().call_later(
-            _KILL_TIMEOUT_SECS,
+            job_driver.KILL_TIMEOUT_SECS,
             self.subprocess.proc.kill,
         )
 

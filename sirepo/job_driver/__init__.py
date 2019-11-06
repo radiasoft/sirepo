@@ -15,15 +15,15 @@ import tornado.gen
 import tornado.ioloop
 import tornado.locks
 
+cfg = None
+
+KILL_TIMEOUT_SECS = 3
 
 #: map of driver names to class
 _CLASSES = None
 
 #: default class when not determined by request
 _DEFAULT_CLASS = None
-
-cfg = None
-
 
 class AgentMsg(PKDict):
 

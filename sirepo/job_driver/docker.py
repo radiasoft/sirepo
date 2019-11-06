@@ -54,10 +54,25 @@ class DockerDriver(job_driver.DriverBase):
         self.update(
             _cname=_cname_join(self._kind, self.uid),
             _agent_dir=req.content.userDir,
-            _image = _image()
+            _image = _image(),
+            _host='localhost.localdomain', # TODO(e-carlin): use hosts like runner/docker.py
         )
         self.instances[self._kind].append(self)
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
+
+    def kill(self):
+        if '_cid' not in self:
+            return
+        self._kill()
+
+    def _kill(self):
+        pkdlog('{}: stop cid={}', self.uid, self._cid)
+        _cmd(
+            self._host,
+            ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), self._cid),
+        )
+        self._cid = None
+
 
     async def _agent_start(self):
         try:
@@ -79,7 +94,7 @@ class DockerDriver(job_driver.DriverBase):
                 '-c',
                 'pyenv shell py3 && sirepo job_agent',
             )
-            self._cid = _cmd('localhost.localdomain', cmd)
+            self._cid = _cmd(self._host, cmd)
         except Exception as e:
             pkdlog('error={} stack={}', e, pkdexc())
 
@@ -97,14 +112,6 @@ class DockerDriver(job_driver.DriverBase):
                 _res(v, v + ':ro')
         _res(self._agent_dir, self._agent_dir)
         return tuple(res)
-
-
-#TODO(robnagler) probably should push this to pykern also in rsconf
-def _image():
-    res = cfg.image
-    if ':' in res:
-        return res
-    return res + ':' + pkconfig.cfg.channel
 
 
 def init_class(*args, **kwargs):
@@ -137,19 +144,26 @@ def init_class(*args, **kwargs):
 
     return DockerDriver.init_class(cfg)
 
-def _cmd(host, cmd):
-    c = _hosts[host].cmd_prefix + cmd
-    try:
-        pkdc('Running: {}', ' '.join(c))
-        return subprocess.check_output(
-            c,
-            stdin=open(os.devnull),
-            stderr=subprocess.STDOUT,
-        ).rstrip()
-    except subprocess.CalledProcessError as e:
-        if cmd[0] == 'run':
-            pkdlog('{}: failed: exit={} output={}', cmd, e.returncode, e.output)
-        return None
+
+def _init_dev_hosts():
+    from sirepo import srdb
+    assert not (cfg.tls_dir or cfg.hosts), \
+        'neither cfg.tls_dir and cfg.hosts nor must be set to get auto-config'
+    # dev mode only; see _cfg_tls_dir and _cfg_hosts
+    cfg.tls_dir = srdb.root().join('docker_tls')
+    cfg.hosts = ('localhost.localdomain',)
+    d = cfg.tls_dir.join(cfg.hosts[0])
+    if d.check(dir=True):
+        return
+    pkdlog('initializing docker dev env; initial docker pull will take a few minutes...')
+    d.ensure(dir=True)
+    for f in 'key.pem', 'cert.pem':
+        o = subprocess.check_output(['sudo', 'cat', '/etc/docker/tls/' + f])
+        assert o.startswith('-----BEGIN'), \
+            'incorrect tls file={} content={}'.format(f, o)
+        d.join(f).write(o)
+    # we just reuse the same cert as the docker server since it's local host
+    d.join('cacert.pem').write(o)
 
 
 @pkconfig.parse_none
@@ -173,25 +187,28 @@ def _cfg_tls_dir(value):
         'directory does not exist; value={}'.format(value)
     return res
 
-def _init_dev_hosts():
-    from sirepo import srdb
-    assert not (cfg.tls_dir or cfg.hosts), \
-        'neither cfg.tls_dir and cfg.hosts nor must be set to get auto-config'
-    # dev mode only; see _cfg_tls_dir and _cfg_hosts
-    cfg.tls_dir = srdb.root().join('docker_tls')
-    cfg.hosts = ('localhost.localdomain',)
-    d = cfg.tls_dir.join(cfg.hosts[0])
-    if d.check(dir=True):
-        return
-    pkdlog('initializing docker dev env; initial docker pull will take a few minutes...')
-    d.ensure(dir=True)
-    for f in 'key.pem', 'cert.pem':
-        o = subprocess.check_output(['sudo', 'cat', '/etc/docker/tls/' + f])
-        assert o.startswith('-----BEGIN'), \
-            'incorrect tls file={} content={}'.format(f, o)
-        d.join(f).write(o)
-    # we just reuse the same cert as the docker server since it's local host
-    d.join('cacert.pem').write(o)
+
+def _cmd(host, cmd):
+    c = _hosts[host].cmd_prefix + cmd
+    try:
+        pkdc('Running: {}', ' '.join(c))
+        return subprocess.check_output(
+            c,
+            stdin=open(os.devnull),
+            stderr=subprocess.STDOUT,
+        ).decode("utf-8").rstrip()
+    except subprocess.CalledProcessError as e:
+        if cmd[0] == 'run':
+            pkdlog('{}: failed: exit={} output={}', cmd, e.returncode, e.output)
+        return None
+
+
+def _cname_join(kind, uid):
+    """Create a cname or cname_prefix from kind and uid
+
+    POSIT: matches _CNAME_RE
+    """
+    return _CNAME_SEP.join([_CNAME_PREFIX, kind[0], uid])
 
 
 def _cmd_prefix(host, tls_d):
@@ -209,10 +226,10 @@ def _cmd_prefix(host, tls_d):
         args.append('--tls{}={}'.format(x, f))
     return tuple(args)
 
-def _cname_join(kind, uid):
-    """Create a cname or cname_prefix from kind and uid
 
-    POSIT: matches _CNAME_RE
-    """
-    return _CNAME_SEP.join([_CNAME_PREFIX, kind[0], uid])
-
+#TODO(robnagler) probably should push this to pykern also in rsconf
+def _image():
+    res = cfg.image
+    if ':' in res:
+        return res
+    return res + ':' + pkconfig.cfg.channel
