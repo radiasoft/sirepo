@@ -820,9 +820,7 @@ SIREPO.app.controller('OptimizationController', function (appState, frameCache, 
     var self = this;
 
     function handleStatus(data) {
-        if (data.startTime && ! data.error) {
-            appState.models.optimizerAnimation.startTime = data.startTime;
-            appState.saveQuietly('optimizerAnimation');
+        if ('frameCount' in data && ! data.error) {
             frameCache.setFrameCount(data.frameCount > 1 ? data.frameCount : 0);
             self.simState.summaryData = data.summary;
         }
@@ -2097,22 +2095,11 @@ SIREPO.app.directive('fieldCalculationAnimation', function(appState, frameCache,
             var SINGLE_PLOTS = ['fieldCalcAnimation', 'fieldComparisonAnimation'];
             $scope.panelState = panelState;
 
-            function buildAnimArgs(name, version) {
-                var args = [SIREPO.ANIMATION_ARGS_VERSION + version]
-                    .concat(SIREPO.APP_SCHEMA.animationArgs[name]);
-                args.push('startTime');
-                return args;
-            }
-
             function handleStatus(data) {
                 SINGLE_PLOTS.forEach(function(name) {
                     frameCache.setFrameCount(0, name);
                 });
-                if (data.startTime && ! data.error) {
-                    SINGLE_PLOTS.forEach(function(modelName) {
-                        appState.models[modelName].startTime = data.startTime;
-                        appState.saveQuietly(modelName);
-                    });
+                if ('percentComplete' in data && ! data.error) {
                     if (data.percentComplete === 100 && ! $scope.simState.isProcessing()) {
                         SINGLE_PLOTS.forEach(function(name) {
                             frameCache.setFrameCount(1, name);
@@ -2678,11 +2665,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                 SINGLE_PLOTS.forEach(function(name) {
                     frameCache.setFrameCount(0, name);
                 });
-                if (data.startTime && ! data.error) {
-                    ['currentAnimation', 'fieldAnimation', 'particleAnimation', 'particle3d', 'egunCurrentAnimation', 'impactDensityAnimation'].forEach(function(modelName) {
-                        appState.models[modelName].startTime = data.startTime;
-                        appState.saveQuietly(modelName);
-                    });
+                if ('percentComplete' in data && ! data.error) {
                     if (data.percentComplete === 100 && ! $scope.simState.isProcessing()) {
                         SINGLE_PLOTS.forEach(function(name) {
                             frameCache.setFrameCount(1, name);

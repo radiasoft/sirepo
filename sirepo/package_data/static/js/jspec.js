@@ -125,10 +125,9 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     self.hasRates = false;
 
     function handleStatus(data) {
-        if (data.startTime && ! data.error) {
+        if ('percentComplete' in data && ! data.error) {
             plotRangeService.computeFieldRanges(self, 'particleAnimation', data.percentComplete);
             ['beamEvolutionAnimation', 'coolingRatesAnimation', 'particleAnimation'].forEach(function(m) {
-                appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
                 self.hasParticles = data.hasParticles;
                 self.hasRates = data.hasRates;

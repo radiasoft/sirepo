@@ -472,7 +472,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         self.simulationErrors = data.errors || '';
         if (data.frameCount) {
             frameCache.setFrameCount(parseInt(data.frameCount));
-            loadElementReports(data.outputInfo, data.startTime);
+            loadElementReports(data.outputInfo);
         }
         if (self.simState.isStopped()) {
             if (! data.frameCount) {
@@ -492,7 +492,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         return SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName + ' ' + (self.simulationErrors.toLowerCase().indexOf('error') >= 0 ? 'Errors:' : 'Warnings:');
     };
 
-    function loadElementReports(outputInfo, startTime) {
+    function loadElementReports(outputInfo) {
         self.outputFiles = [];
         self.outputFileMap = {};
         var similarRowCounts = {};
@@ -530,7 +530,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             var m = null;
             if (appState.models[modelKey]) {
                 m = appState.models[modelKey];
-                m.startTime = startTime;
                 m.xFileId = info.id;
                 m.xFile = info.filename;
                 m.y1File = info.filename;
@@ -547,7 +546,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                     y1File: info.filename,
                     x: info.plottableColumns[0],
                     xFileId: info.id,
-                    startTime: startTime,
                 };
                 // Only display the first outputFile
                 if (i > 0 && ! panelState.isHidden(modelKey)) {

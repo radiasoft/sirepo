@@ -145,18 +145,20 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         frameCache.setFrameCount(0, 'turnComparisonAnimation');
         turnCount = 0;
         self.errorMessage = data.error;
-        if (data.startTime && ! data.error) {
+        srdbg(data);
+        if ('percentComplete' in data && ! data.error) {
             plotRangeService.computeFieldRanges(self, 'bunchAnimation', data.percentComplete);
             turnCount = data.turnCount;
             ['beamEvolutionAnimation', 'bunchAnimation', 'turnComparisonAnimation'].forEach(function(m) {
-                appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
+                srdbg(m)
                 var key = m + '.frameCount';
                 if (!(key in data)) {
                     key = 'frameCount';
                 }
                 if (m != 'turnComparisonAnimation') {
                     frameCache.setFrameCount(data[key], m);
+                    srdbg(data[key])
                 }
             });
             if (data.percentComplete == 100) {

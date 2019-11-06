@@ -98,19 +98,21 @@ def background_percent_complete(report, run_dir, is_running):
                 size = f['emitx'].shape[0]
                 turn = int(f['repetition'][-1]) + 1
                 complete = 100 * (turn - 0.5) / data.models.simulationSettings.turn_count
-                return {
-                    'percentComplete': complete if is_running else 100,
-                    'frameCount': size,
-                    'turnCount': turn,
-                    'bunchAnimation.frameCount': particle_file_count,
-                }
+                res = PKDict(
+                    percentComplete=complete if is_running else 100,
+                    frameCount=size,
+                    turnCount=turn,
+                );
+                res['bunchAnimation.frameCount'] = particle_file_count
+                return res
+
         except Exception as e:
             # file present but not hdf formatted
             pass
-    return {
-        'percentComplete': 0,
-        'frameCount': 0,
-    }
+    return PKDict(
+        percentComplete=0,
+        frameCount=0,
+    )
 
 
 def format_float(v):

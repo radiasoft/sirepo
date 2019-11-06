@@ -156,10 +156,9 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
 
     function handleStatus(data) {
         self.errorMessage = data.error;
-        if (data.startTime && ! data.error) {
+        if ('percentComplete' in data && ! data.error) {
             ['bunchAnimation', 'plotAnimation'].forEach(function(m) {
                 plotRangeService.computeFieldRanges(self, m, data.percentComplete);
-                appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
             });
         }

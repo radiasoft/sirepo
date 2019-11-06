@@ -284,10 +284,9 @@ SIREPO.app.controller('HellwegVisualizationController', function (appState, fram
     self.panelState = panelState;
 
     function handleStatus(data) {
-        if (data.startTime && ! data.error) {
+        if ('percentComplete' in data && ! data.error) {
             plotRangeService.computeFieldRanges(self, 'beamAnimation', data.percentComplete);
             ['beamAnimation', 'beamHistogramAnimation', 'particleAnimation', 'parameterAnimation'].forEach(function(modelName) {
-                appState.models[modelName].startTime = data.startTime;
                 appState.saveQuietly(modelName);
             });
             $rootScope.$broadcast('animation.summaryData', data.summaryData);

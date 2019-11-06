@@ -10,11 +10,17 @@ SIREPO.SINGLE_FRAME_ANIMATION = ['gridEvolutionAnimation'];
 SIREPO.app.factory('flashService', function(appState) {
     var self = {};
 
+    self.computeModel = function(analysisModel) {
+        return 'animation';
+    };
+
     self.isFlashType = function(simType) {
         if (appState.isLoaded()) {
             return simType == appState.models.simulation.flashType;
         }
     };
+
+    appState.setAppService(self);
 
     return self;
 });
@@ -30,16 +36,15 @@ SIREPO.app.controller('SourceController', function (flashService) {
     self.flashService = flashService;
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, flashService, frameCache, persistentSimulation, $scope, $window) {
+SIREPO.app.controller('VisualizationController', function (appState, flashService, frameCache, persistentSimulation, flashService, $scope, $window) {
     var self = this;
     self.flashService = flashService;
     self.plotClass = 'col-md-6 col-xl-4';
 
     function handleStatus(data) {
         self.errorMessage = data.error;
-        if (data.startTime && ! data.error) {
+        if ('frameCount' in data && ! data.error) {
             ['varAnimation', 'gridEvolutionAnimation'].forEach(function(m) {
-                appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
                 frameCache.setFrameCount(data.frameCount, m);
             });
@@ -47,10 +52,11 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
         frameCache.setFrameCount(data.frameCount || 0);
     }
 
-    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        gridEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'y1', 'y2', 'y3', 'startTime'],
-        varAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'var', 'startTime'],
-    });
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        flashService.computeModel(),
+        handleStatus
+    );
 
     appState.whenModelsLoaded($scope, function() {
         $scope.$on('varAnimation.summaryData', function(e, data) {

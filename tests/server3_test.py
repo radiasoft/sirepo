@@ -53,12 +53,24 @@ def _t(sim_type, sim_name, compute_model, **reports):
         s = sirepo.sim_data.get_class(sim_type)
         pkunit.pkeq('pending', run.state, 'not pending, run={}', run)
         for _ in range(10):
+#TODO(robnagler) completed or run frameCount
+            if run.state == ('completed', 'error'):
+                break
             if run.frameCount >= 8:
                 break
             run = fc.sr_post('runStatus', run.nextRequest)
             time.sleep(1)
         else:
             pkunit.pkfail('runStatus: failed to complete: {}', run)
+        r = 'bunchAnimation'
+        for i in range(run['bunchAnimation.frameCount']):
+            f = fc.sr_get_json(
+                'simulationFrame',
+                PKDict(frame_id=s.frame_id(data, run, r, i)),
+            )
+            pkdp(f.title)
+
+        return
         for r, t in reports.items():
             f = fc.sr_get_json(
                 'simulationFrame',
