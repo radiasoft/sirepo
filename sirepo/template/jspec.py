@@ -129,23 +129,13 @@ def get_data_file(run_dir, model, frame, options=None):
         return path.basename, f.read(), 'application/octet-stream'
 
 
-def get_simulation_frame(run_dir, data, model_data):
-    frame_index = int(data['frameIndex'])
-    if data['modelName'] in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
-        args = template_common.parse_animation_args(
-            data,
-        )
-        return _extract_evolution_plot(args, run_dir)
-    elif data['modelName'] == 'particleAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {
-                '1': ['x', 'y', 'histogramBins', 'startTime'],
-                '': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
-            },
-        )
-        return _extract_particle_plot(args, run_dir, frame_index)
-    raise RuntimeError('unknown animation model: {}'.format(data['modelName']))
+def get_simulation_frame(run_dir, frame_args, sim_in):
+    r = frame_args.frameReport
+    if r in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
+        return _extract_evolution_plot(frame_args, run_dir)
+    elif r == 'particleAnimation':
+        return _extract_particle_plot(frame_args, run_dir, frame_args.frameIndex)
+    raise RuntimeError('unknown animation model={}'.format(r))
 
 
 def python_source_for_model(data, model):

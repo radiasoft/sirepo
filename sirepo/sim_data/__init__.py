@@ -196,7 +196,6 @@ class SimDataBase(object):
         frame_args = response.copy()
         frame_args.frameReport = model
         m = data.models[model]
-        pkdp(m);
         return _FRAME_ID_SEP.join(
             [
                 # POSIT: same order as _FRAME_ID_KEYS
