@@ -1008,6 +1008,7 @@ def _setup_backtracking(util):
     for el in util.data.models.elements:
         # change signs on length and angle fields
         _negative(el, ('l', 'xmax'))
+        _negative(el, ('volt', 'voltage', 'initial_v', 'static_voltage'))
         if el.type in types.bend:
             _negative(el, ('angle', 'kick', 'hkick'))
         if el.type in types.mirror:
