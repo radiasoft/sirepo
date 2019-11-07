@@ -7,10 +7,11 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
+from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc, pkdpretty
 from sirepo import job
 from sirepo import job_driver
 from sirepo import mpi
+import functools
 import os
 import re
 import socket
@@ -30,6 +31,9 @@ _CNAME_RE = re.compile(_CNAME_SEP.join(('^' + _CNAME_PREFIX, r'([a-z]+)', '(.+)'
 
 #: map of docker host names to their machine/run specs and status
 _hosts = None
+
+#: used for slot creation so that order is predictable across runs
+_hosts_ordered = None
 
 # default is unlimited so put some real constraint
 # TODO(e-carlin): max open files for local or nersc?
@@ -144,7 +148,7 @@ def init_class(*args, **kwargs):
         _init_host(h)
     assert len(_hosts) > 0, \
         '{}: no docker hosts found in directory'.format(cfg.tls_d)
-
+    _init_hosts_slots_balance()
     return DockerDriver.init_class(cfg)
 
 
@@ -266,6 +270,72 @@ def _init_host_num_slots(h):
         h.cores,
     )
 
+
+def _init_hosts_slots_balance():
+    """Balance sequential and parallel slot counts"""
+    global _hosts_ordered
+
+    def _host_cmp(a, b):
+        """This (local) host will get (first) sequential slots.
+
+        Sequential slots are "faster" and don't go over NFS (usually)
+        so the interactive jobs will be more responsive (hopefully).
+
+        We don't assign sequential slots randomly, but in fixed order.
+        This helps reproduce bugs, because you know the first host
+        is the sequential host. Slots are then randomized
+        for execution.
+        """
+        if a.remote_ip == a.local_ip:
+            return -1
+        if b.remote_ip == b.local_ip:
+            return +1
+        return cmp(a.name, b.name)
+
+    def _ratio_not_ok():
+        """Minimum sequential job slots should be 40% of total"""
+        mp = 0
+        ms = 0
+        for h in _hosts.values():
+            mp += h.num_slots.parallel
+            ms += h.num_slots.sequential
+        if mp + ms == 1:
+            # Edge case where ratio calculation can't work (only dev)
+            h = _hosts.values()[0]
+            h.num_slots.sequential = 1
+            h.num_slots.parallel = 1
+            return False
+        # Must be at least one parallel slot
+        if mp <= 1:
+            return False
+#TODO(robnagler) needs to be more complex, because could have many more
+# parallel nodes than sequential, which doesn't need to be so large. This
+# is a good guess for reasonable configurations.
+        r = float(ms) / (float(mp) + float(ms))
+        return r < 0.4
+    _hosts_ordered = sorted(_hosts.values(), key=functools.cmp_to_key(_host_cmp))
+    while _ratio_not_ok():
+        for h in _hosts_ordered:
+            # Balancing consists of making the first host have
+            # all the sequential jobs, then the next host. This
+            # is a guess at the best way to distribute sequential
+            # vs parallel jobs.
+            if h.num_slots.parallel > 0:
+                # convert a parallel slot on first available host
+                h.num_slots.sequential += _parallel_cores
+                h.num_slots.parallel -= 1
+                break
+        else:
+            raise AssertionError(
+                'should never get here: {}'.format(pkdpretty(_hosts)),
+            )
+    for h in _hosts_ordered:
+        pkdlog(
+            '{}: parallel={} sequential={}',
+            h.name,
+            h.num_slots.parallel,
+            h.num_slots.sequential,
+        )
 
 def _init_host_spec(h):
     """Extract mem, cpus, and cores from /proc"""
