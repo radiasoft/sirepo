@@ -256,7 +256,7 @@ def sim_frame_fieldAnimation(frame_args):
         frame_args.coordinate,
         m,
         f,
-    ).pkdupdate(frameCount=f.num_frames)
+    ).pkupdate(frameCount=f.num_frames)
 
 
 def sim_frame_particleAnimation(frame_args):

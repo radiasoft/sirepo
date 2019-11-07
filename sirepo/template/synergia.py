@@ -305,7 +305,6 @@ def sim_frame_beamEvolutionAnimation(frame_args):
 
 
 def sim_frame_bunchAnimation(frame_args):
-    pkdp(len(_particle_file_list(frame_args.run_dir)))
     n = _particle_file_list(frame_args.run_dir)[frame_args.frameIndex]
     with h5py.File(str(n), 'r') as f:
         x = f['particles'][:, _COORD6.index(frame_args.x)].tolist()
@@ -330,7 +329,7 @@ def sim_frame_bunchAnimation(frame_args):
 
 
 def sim_frame_turnComparisonAnimation(frame_args):
-    turn_count = frame_args.models.simulationSettings.turn_count
+    turn_count = frame_args.sim_in.models.simulationSettings.turn_count
     plots = []
     with h5py.File(str(frame_args.run_dir.join(OUTPUT_FILE.beamEvolutionAnimation)), 'r') as f:
         x = f['s'][:].tolist()
