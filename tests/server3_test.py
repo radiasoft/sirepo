@@ -95,6 +95,29 @@ def test_simulation_frame():
         ),
         expect_completed=False,
     )
+    _t(
+        'zgoubi',
+        'EMMA',
+        'animation',
+        PKDict(
+            bunchAnimation=PKDict(
+                expect_title=lambda i: 'Pass {}'.format(i) if i else 'Initial Distribution',
+                expect_y_range=lambda i: [
+                    '-0.0462.*, -0.0281.*, 200',
+                    '-0.0471.*, -0.0283.*, 200',
+                    '-0.0472.*, -0.0274.*, 200',
+                    '-0.0460.*, -0.0280.*, 200',
+                    '-0.0460.*, -0.0294.*, 200',
+                    '-0.0473.*, -0.0275.*, 200',
+                    '-0.0480.*, -0.0281.*, 200',
+                    '-0.0479.*, -0.0299.*, 200',
+                    '-0.0481.*, -0.0294.*, 200',
+                    '-0.0488.*, -0.0292.*, 200',
+                    '-0.0484.*, -0.0303.*, 200',
+                ][i],
+            ),
+        ),
+    )
 
 
 def _t(sim_type, sim_name, compute_model, reports, expect_completed=True):
@@ -126,6 +149,7 @@ def _t(sim_type, sim_name, compute_model, reports, expect_completed=True):
         cancel = run.nextRequest
         for _ in range(15):
             if run.state in ('completed', 'error'):
+                cancel = None
                 break
             run = fc.sr_post('runStatus', run.nextRequest)
             time.sleep(1)
@@ -135,13 +159,15 @@ def _t(sim_type, sim_name, compute_model, reports, expect_completed=True):
                 'did not complete: runStatus={}',
                 run,
             )
-        cancel = None
+        pkdlog(run)
+        if expect_completed:
+            pkunit.pkeq('completed', run.state)
         for r, a in reports.items():
             if 'frame_index' in a:
                 c = [a.get('frame_index')]
             else:
                 c = range(run.get(a.get('frame_count_key', 'frameCount')))
-            pkdlog('report={}', r)
+            pkdlog('frameReport={}', r)
             for i in c:
                 pkdlog('frameIndex={}', i)
                 f = fc.sr_get_json(
