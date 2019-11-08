@@ -32,7 +32,7 @@ def create_examples():
             continue;
         uid = simulation_db.uid_from_dir_name(d)
         auth.init_mock(uid)
-        for sim_type in feature_config.cfg.sim_types:
+        for sim_type in feature_config.cfg().sim_types:
             simulation_db.verify_app_directory(sim_type)
             names = map(
                 lambda x: x['name'],

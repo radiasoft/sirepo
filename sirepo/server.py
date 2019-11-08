@@ -35,7 +35,7 @@ import werkzeug.exceptions
 
 
 #TODO(pjm): this import is required to work-around template loading in listSimulations, see #1151
-if any(k in feature_config.cfg.sim_types for k in ('flash', 'rs4pi', 'synergia', 'warppba', 'warpvnd')):
+if any(k in feature_config.cfg().sim_types for k in ('flash', 'rs4pi', 'synergia', 'warppba', 'warpvnd')):
     import h5py
 
 #: class that py.path.local() returns
@@ -403,7 +403,7 @@ def api_robotsTxt():
         if pkconfig.channel_in('prod', 'dev'):
             u = [
                 sirepo.uri.api('root', params={'simulation_type': x})
-                for x in sorted(feature_config.cfg.sim_types)
+                for x in sorted(feature_config.cfg().sim_types)
             ]
         else:
             u = ['/']
@@ -631,7 +631,7 @@ def init_apis(app, *args, **kwargs):
     for e, _ in simulation_db.SCHEMA_COMMON['customErrors'].items():
         app.register_error_handler(int(e), _handle_error)
     importlib.import_module(
-        'sirepo.' + ('job' if feature_config.cfg.job_supervisor else 'runner')
+        'sirepo.' + ('job' if feature_config.cfg().job_supervisor else 'runner')
     ).init_by_server(app)
 
 

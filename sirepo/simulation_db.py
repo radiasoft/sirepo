@@ -237,7 +237,7 @@ def get_schema(sim_type):
     """Get the schema for `sim_type`
 
     If sim_type is None, it will return the schema for the first sim_type
-    in `feature_config.cfg.sim_types`
+    in `feature_config.cfg().sim_types`
 
     Args:
         sim_type (str): must be valid
@@ -246,7 +246,7 @@ def get_schema(sim_type):
 
     """
     t = sirepo.template.assert_sim_type(sim_type) if sim_type is not None \
-        else feature_config.cfg.sim_types[0]
+        else feature_config.cfg().sim_types[0]
     if t in _SCHEMA_CACHE:
         return _SCHEMA_CACHE[t]
     schema = read_json(
@@ -805,7 +805,7 @@ def user_create(login_callback):
     uid = _random_id(user_dir_name())['id']
     # Must logged in before calling simulation_dir
     login_callback(uid)
-    for simulation_type in feature_config.cfg.sim_types:
+    for simulation_type in feature_config.cfg().sim_types:
         _create_example_and_lib_files(simulation_type)
     return uid
 

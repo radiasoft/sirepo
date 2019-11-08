@@ -34,6 +34,6 @@ def assert_sim_type(sim_type):
     Returns:
         str: sim_type
     """
-    assert sim_type in feature_config.cfg.sim_types, \
+    assert sim_type in feature_config.cfg().sim_types, \
         '{}: invalid simulation type'.format(sim_type)
     return sim_type

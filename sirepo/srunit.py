@@ -20,6 +20,10 @@ app = None
 #: Matches javascript-redirect.html
 _JAVASCRIPT_REDIRECT_RE = re.compile(r'window.location = "([^"]+)"')
 
+#: set by conftest.py
+CONFTEST_ALL_CODES = None
+
+
 def flask_client(cfg=None, sim_types=None):
     """Return FlaskClient with easy access methods.
 
@@ -30,7 +34,7 @@ def flask_client(cfg=None, sim_types=None):
 
     Args:
         cfg (dict): extra configuration for reset_state_for_testing
-        sim_types (str): value for SIREPO_FEATURE_CONFIG_SIM_TYPES
+        sim_types (str): value for SIREPO_FEATURE_CONFIG_SIM_TYPES [CONFTEST_ALL_CODES]
 
     Returns:
         FlaskClient: for local requests to Flask server
@@ -40,8 +44,7 @@ def flask_client(cfg=None, sim_types=None):
     a = 'srunit_flask_client'
     if not cfg:
         cfg = {}
-    if sim_types:
-        cfg['SIREPO_FEATURE_CONFIG_SIM_TYPES'] = sim_types
+    cfg['SIREPO_FEATURE_CONFIG_SIM_TYPES'] = sim_types or CONFTEST_ALL_CODES
     if not (server and hasattr(app, a)):
         from pykern import pkconfig
 
@@ -66,8 +69,8 @@ def flask_client(cfg=None, sim_types=None):
 def init_auth_db():
     """Force a request that creates a user in db with just myapp"""
     fc = flask_client(sim_types='myapp')
-    fc.sr_login_as_guest('myapp')
-    return fc, fc.sr_post('listSimulations', {'simulationType': 'myapp'})
+    fc.sr_login_as_guest()
+    return fc, fc.sr_post('listSimulations', {'simulationType': fc.sr_sim_type})
 
 
 def file_as_stream(filename):
@@ -81,21 +84,20 @@ def file_as_stream(filename):
     return res, StringIO.StringIO(res)
 
 
-def sim_data(sim_type, sim_name, sim_types=None):
+def sim_data(sim_name, sim_type=None, sim_types=CONFTEST_ALL_CODES):
     """Get simulation data
 
     Args:
-        sim_type (str): app
         sim_name (str): full name of simulation
+        sim_type (str): app [defaults to myapp]
         sim_types (str): `SIREPO_FEATURE_CONFIG_SIM_TYPES` value
     Returns:
         PKDict: simulation data
         object: flask client
-        str: sim_type
     """
-    fc = flask_client(sim_types=sim_types or sim_type)
-    fc.sr_login_as_guest(sim_type)
-    return fc.sr_sim_data(sim_type, sim_name), fc, sim_type
+    fc = flask_client(sim_types=sim_types or sim_type or 'myapp')
+    fc.sr_login_as_guest()
+    return fc.sr_sim_data(sim_name), fc
 
 
 def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie=True, **kwargs):
@@ -213,21 +215,22 @@ class _TestClient(flask.testing.FlaskClient):
         """Gets root app for sim_type
 
         Args:
-            sim_type (str): app name ['myapp']
+            sim_type (str): app name ['myapp' or default type]
 
         Returns:
             flask.Response: reply object
         """
+        self.sr_sim_type_set(sim_type)
         return self.__req(
             'root',
-            {'simulation_type': sim_type or 'myapp'},
+            {'simulation_type': self.sr_sim_type},
             None,
             self.get,
             raw_response=True,
             **kwargs
         )
 
-    def sr_login_as_guest(self, sim_type='myapp'):
+    def sr_login_as_guest(self, sim_type=None):
         """Setups up a guest login
 
         Args:
@@ -236,10 +239,11 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             str: new user id
         """
+        self.sr_sim_type_set(sim_type)
         self.cookie_jar.clear()
         # Get a cookie
         self.sr_get('authState')
-        self.sr_get('authGuestLogin', {'simulation_type': sim_type})
+        self.sr_get('authGuestLogin', {'simulation_type': self.sr_sim_type})
         return self.sr_auth_state(needCompleteRegistration=False, isLoggedIn=True).uid
 
 
@@ -273,12 +277,12 @@ class _TestClient(flask.testing.FlaskClient):
         op = lambda r: self.post(r, data=data)
         return self.__req(route_or_uri, params, {}, op, raw_response=raw_response, **kwargs)
 
-    def sr_sim_data(self, sim_type, sim_name):
+    def sr_sim_data(self, sim_name, sim_type=None):
         """Return simulation data by name
 
         Args:
-            sim_type (str): app
             sim_name (str): case sensitive name
+            sim_type (str): app [defaults to myapp]
 
         Returns:
             dict: data
@@ -287,17 +291,18 @@ class _TestClient(flask.testing.FlaskClient):
         from pykern import pkunit
         from pykern.pkdebug import pkdpretty
 
+        self.sr_sim_type_set(sim_type)
         d = self.sr_post(
             'listSimulations',
             PKDict(
-                simulationType=sim_type,
+                simulationType=self.sr_sim_type,
                 search=PKDict({'simulation.name': sim_name}),
             )
         )[0].simulation
         res = self.sr_get_json(
             'simulationData',
             {
-                'simulation_type': sim_type,
+                'simulation_type': self.sr_sim_type,
                 'pretty': '0',
                 'simulation_id': d['simulationId'],
             },
@@ -305,6 +310,16 @@ class _TestClient(flask.testing.FlaskClient):
         pkunit.pkeq(sim_name, res.models.simulation.name)
         return res
 
+    def sr_sim_type_set(self, sim_type=None):
+        """Set `sr_sim_type
+
+        Args:
+            sim_type (str): app name
+        Returns:
+            object: self
+        """
+        self.sr_sim_type = sim_type or getattr(self, 'sr_sim_type', 'myapp')
+        return self
 
     def __req(self, route_or_uri, params, query, op, raw_response, **kwargs):
         """Make request and parse result

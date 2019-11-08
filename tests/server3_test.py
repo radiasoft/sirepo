@@ -5,17 +5,13 @@ u"""Test background processes
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
 import pytest
 
 
-_TYPES = 'elegant:jspec:srw:synergia:warppba:warpvnd:webcon:zgoubi'
-
-
-def test_simulation_frame():
-    from pykern.pkcollections import PKDict
-
-    _t(
-        'elegant',
+def test_elegant(fc):
+    _r(
+        fc,
         'Compact Storage Ring',
         'animation',
         PKDict({
@@ -33,18 +29,27 @@ def test_simulation_frame():
             ),
         })
     )
-    _t(
-        'jspec',
+
+
+def test_jspec(fc):
+    _r(
+        fc,
         'DC Cooling Example',
         'animation',
         PKDict(
             beamEvolutionAnimation=PKDict(
                 expect_y_range=r'^.2.04.*e-07, 2.15e-06',
             ),
+            coolingRatesAnimation=PKDict(
+                expect_y_range=r'-0.04.*, 0.00[65]',
+            ),
         ),
-    ),
-    _t(
-        'srw',
+    )
+
+
+def test_srw(fc):
+    _r(
+        fc,
         "Young's Double Slit Experiment",
         'multiElectronAnimation',
         PKDict(
@@ -56,8 +61,11 @@ def test_simulation_frame():
         ),
         expect_completed=False,
     )
-    _t(
-        'synergia',
+
+
+def test_synergia(fc):
+    _r(
+        fc,
         'Simple FODO',
         'animation',
         PKDict(
@@ -79,8 +87,11 @@ def test_simulation_frame():
             ),
         ),
     )
-    _t(
-        'warppba',
+
+
+def test_warppba(fc):
+    _r(
+        fc,
         'Laser Pulse',
         'animation',
         PKDict(
@@ -95,8 +106,11 @@ def test_simulation_frame():
         ),
         expect_completed=False,
     )
-    _t(
-        'zgoubi',
+
+
+def test_zgoubi(fc):
+    _r(
+        fc,
         'EMMA',
         'animation',
         PKDict(
@@ -120,16 +134,15 @@ def test_simulation_frame():
     )
 
 
-def _t(sim_type, sim_name, compute_model, reports, expect_completed=True):
+def _r(fc, sim_name, compute_model, reports, expect_completed=True):
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp, pkdlog
     from sirepo import srunit
     from pykern import pkunit
     import re
-    import sdds
     import time
 
-    data, fc, sim_type = srunit.sim_data(sim_type, sim_name, sim_types=_TYPES)
+    data = fc.sr_sim_data(sim_name)
     cancel = None
     try:
         run = fc.sr_post(
@@ -144,7 +157,7 @@ def _t(sim_type, sim_name, compute_model, reports, expect_completed=True):
         )
         import sirepo.sim_data
 
-        s = sirepo.sim_data.get_class(sim_type)
+        s = sirepo.sim_data.get_class(fc.sr_sim_type)
         pkunit.pkeq('pending', run.state, 'not pending, run={}', run)
         cancel = run.nextRequest
         for _ in range(15):

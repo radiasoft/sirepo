@@ -19,7 +19,7 @@ pytest.importorskip('sdds')
 
 _TYPES = 'elegant:jspec:myapp:srw'
 
-def test_basic():
+def test_myapp_basic():
     from sirepo import srunit
     from pykern import pkunit
     fc = srunit.flask_client(sim_types=_TYPES)
@@ -30,7 +30,7 @@ def test_basic():
     pkunit.pkre('elegant.*myapp.*srw', resp.get_data())
 
 
-def test_get_data_file():
+def test_elegant_data_file():
     from pykern import pkio
     from pykern import pkunit
     from pykern.pkcollections import PKDict
