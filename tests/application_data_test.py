@@ -6,23 +6,20 @@ u"""?
 """
 from __future__ import absolute_import, division, print_function
 import pytest
-pytest.importorskip('srwl_bl')
 
-def test_processed_image():
+
+def test_srw_processed_image(fc):
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkeq, pkfail
     from pykern import pkunit
     from sirepo import srunit
 
-    sim_type = 'srw'
-    fc = srunit.flask_client(sim_types=sim_type)
-    fc.sr_login_as_guest(sim_type)
-    r = fc.sr_sim_data(sim_type, 'Sample from Image')
+    r = fc.sr_sim_data('Sample from Image')
     r = fc.sr_post(
         'getApplicationData',
         {
             'simulationId': r.models.simulation.simulationId,
-            'simulationType': sim_type,
+            'simulationType': fc.sr_sim_type,
             'method': 'processedImage',
             'baseImage': 'sample.tif',
             'model': {

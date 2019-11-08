@@ -13,16 +13,11 @@ import csv
 import pytest
 import re
 import time
-pytest.importorskip('srwl_bl')
-pytest.importorskip('sdds')
 
 
-_TYPES = 'elegant:jspec:myapp:srw'
-
-def test_myapp_basic():
-    from sirepo import srunit
+def test_myapp_basic(fc):
     from pykern import pkunit
-    fc = srunit.flask_client(sim_types=_TYPES)
+
     resp = fc.get('/old')
     assert 'LandingPageController' in resp.get_data(), \
         'Top level document is the landing page'
@@ -30,15 +25,14 @@ def test_myapp_basic():
     pkunit.pkre('elegant.*myapp.*srw', resp.get_data())
 
 
-def test_elegant_data_file():
+def test_elegant_data_file(fc):
     from pykern import pkio
     from pykern import pkunit
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
-    from sirepo import srunit
     import sdds
 
-    data, fc, sim_type = srunit.sim_data('elegant', 'bunchComp - fourDipoleCSR', sim_types=_TYPES)
+    data = fc.sr_sim_data('bunchComp - fourDipoleCSR')
     run = fc.sr_post(
         'runSimulation',
         PKDict(
@@ -93,37 +87,30 @@ def test_elegant_data_file():
         sdds.sddsdata.Terminate(0)
 
 
-def test_jspec():
+def test_jspec(fc):
     from pykern import pkio
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdpretty
     from pykern.pkunit import pkeq, pkre
-    from sirepo import srunit
     import json
 
-    fc = srunit.flask_client(sim_types=_TYPES)
-    sim_type = 'jspec'
-    fc.sr_login_as_guest(sim_type)
     a = fc.sr_get_json(
         'listFiles',
-        PKDict(simulation_type=sim_type, simulation_id='xxxxxxxxxx', file_type='ring-lattice'),
+        PKDict(simulation_type=fc.sr_sim_type, simulation_id='xxxxxxxxxx', file_type='ring-lattice'),
     )
     pkeq(['Booster.tfs'], a)
 
 
-def test_srw():
+def test_srw(fc):
     from pykern import pkio
     from pykern.pkdebug import pkdpretty
     from pykern.pkunit import pkeq, pkre
-    from sirepo import srunit
     import json
 
-    fc = srunit.flask_client(sim_types=_TYPES)
-    sim_type = 'srw'
-    r = fc.sr_get_root(sim_type)
+    r = fc.sr_get_root()
     pkre('<!DOCTYPE html', r.data)
-    fc.sr_login_as_guest(sim_type)
-    d = fc.sr_post('listSimulations', {'simulationType': sim_type})
+    fc.sr_login_as_guest()
+    d = fc.sr_post('listSimulations', {'simulationType': fc.sr_sim_type})
     pkeq(fc.get('/find-by-name-auth/srw/default/UndulatorRadiation').status_code, 404)
     for sep in (' ', '%20', '+'):
         pkeq(fc.get('/find-by-name-auth/srw/default/Undulator{}Radiation'.format(sep)).status_code, 200)

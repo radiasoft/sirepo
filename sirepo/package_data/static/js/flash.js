@@ -36,7 +36,7 @@ SIREPO.app.controller('SourceController', function (flashService) {
     self.flashService = flashService;
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, flashService, frameCache, persistentSimulation, flashService, $scope, $window) {
+SIREPO.app.controller('VisualizationController', function (appState, flashService, frameCache, persistentSimulation, $scope, $window) {
     var self = this;
     self.flashService = flashService;
     self.plotClass = 'col-md-6 col-xl-4';
