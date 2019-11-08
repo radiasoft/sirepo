@@ -421,12 +421,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         requestSender.sendRequest(
             'listSimulations',
             function(data) {
-                if (data.errorRedirect) {
-                    $window.location.href = data.errorRedirect;
-                }
-                else {
-                    op(data);
-                }
+                op(data);
             },
             {
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
@@ -1017,6 +1012,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     $rootScope.$on('modelsUnloaded', function() {
         masterFrameCount = 0;
         frameCountByModelKey = {};
+        self.modelToCurrentFrame = {};
         self.modelsUnloaded = {};
     });
 
@@ -1430,17 +1426,20 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(cookieService, errorService, localRoutes, $http, $location, $interval, $q, $rootScope) {
+SIREPO.app.factory('requestSender', function(cookieService, errorService, localRoutes, $http, $location, $interval, $q, $rootScope, $window) {
     var self = {};
     var getApplicationDataTimeout = {};
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
+    var REDIRECT_RE = new RegExp('window.location = "([^"]+)";', 'i');
     var auxillaryData = {};
 
     function checkCookieRedirect(event, route) {
         if (! SIREPO.authState.isLoggedIn
             || SIREPO.authState.needCompleteRegistration
-            || (route.controller && route.controller.indexOf('login') >= 0)) {
+            // Any controller that has 'login' in it will stay on page
+            || (route.controller && route.controller.indexOf('login') >= 0)
+        ) {
             return;
         }
         var prevRoute = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.previousRoute);
@@ -1667,8 +1666,18 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                 msg = 'the server is unavailable';
                 status = 503;
             }
+            var m;
+            if (angular.isString(response) && IS_HTML_ERROR_RE.exec(response)) {
+                // Is this a javascript-redirect.html? If so, redirect locally.
+                m = REDIRECT_RE.exec(response);
+                if (m) {
+                    $window.location.href = m[1];
+                    $window.location.reload(true);
+                    return;
+                }
+            }
             if (angular.isString(data) && IS_HTML_ERROR_RE.exec(data)) {
-                var m = HTML_TITLE_RE.exec(data);
+                m = HTML_TITLE_RE.exec(data);
                 if (m) {
                     srlog(m[1], ': error response from server');
                     data = {error: m[1]};
@@ -2730,6 +2739,63 @@ SIREPO.app.controller('LoginWithController', function ($route, $window, errorSer
         errorService.alertText('Incorrect or invalid login method: ' + (m || '<none>'));
         requestSender.localRedirect('login');
     }
+});
+
+SIREPO.app.controller('LoginConfirmController', function ($route, $window, requestSender) {
+    var self = this;
+    var p = $route.current.params;
+    self.data = {};
+    self.showWarning = false;
+    self.warningText = '';
+
+    function handleResponse(data) {
+        if (data.state === 'ok') {
+            $window.location.href = requestSender.formatUrl(
+                'root',
+                {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
+            );
+            return;
+        }
+        self.showWarning = true;
+        self.warningText = 'Server reported an error, please contact support@radiasoft.net.';
+    }
+    if ($route.current.templateUrl.indexOf('complete-registration') >= 0) {
+        if (! SIREPO.authState.isLoggedIn) {
+            requestSender.localRedirect('login');
+            return;
+        }
+        if (! SIREPO.authState.needCompleteRegistration) {
+            requestSender.localRedirect('simulations');
+            return;
+        }
+        self.submit = function() {
+            requestSender.sendRequest(
+                'authCompleteRegistration',
+                handleResponse,
+                {
+                    displayName: self.data.displayName,
+                    simulationType: SIREPO.APP_NAME
+                }
+            );
+        };
+        return;
+    }
+    self.needCompleteRegistration = parseInt(p.needCompleteRegistration);
+    self.submit = function() {
+        requestSender.sendRequest(
+            {
+                routeName: 'authEmailAuthorized',
+                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                '<token>': p.token,
+            },
+            'authEmailAuthorizedHandler',
+            {
+                token: p.token,
+                displayName: self.data.displayName,
+            }
+        );
+    };
+    return;
 });
 
 SIREPO.app.controller('LoginFailController', function (appState, requestSender, $route, $sce) {
