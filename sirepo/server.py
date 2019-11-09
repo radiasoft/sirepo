@@ -606,7 +606,7 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
         pkio.mkdir_parent_only(p)
         f.save(str(p))
         if hasattr(sim.template, 'validate_file'):
-            e = sim.template.validate_file(file_type, p)
+            e = sim.template.validate_file(sim.file_type, p)
             if e:
                 pkio.unchecked_remove(p)
     if e:
