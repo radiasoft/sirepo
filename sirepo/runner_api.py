@@ -25,7 +25,7 @@ _RUN_STATES = ('pending', 'running')
 
 @api_perm.require_user
 def api_runCancel():
-    sim = http_request.parse_sim(id=1, model=1)
+    sim = http_request.parse_post(id=1, model=1)
     jid = sim.sim_data.parse_jid(sim.req_data)
     # TODO(robnagler) need to have a way of listing jobs
     # Don't bother with cache_hit check. We don't have any way of canceling
@@ -53,7 +53,7 @@ def api_runCancel():
 
 @api_perm.require_user
 def api_runSimulation():
-    sim = http_request.parse_sim(id=1, model=1, req_validate=True)
+    sim = http_request.parse_post(id=1, model=1, fixup_old_data=1)
     res = _simulation_run_status(sim, quiet=True)
     if (
         (

@@ -16,6 +16,7 @@ import sirepo.api_auth
 import sirepo.auth
 import sirepo.cookie
 import sirepo.http_reply
+import sirepo.http_request
 import sirepo.util
 try:
     # py3
@@ -71,25 +72,24 @@ def call_api(func_or_name, kwargs=None, data=None):
     Returns:
         flask.Response: result
     """
+    p = None
     try:
         f = func_or_name if callable(func_or_name) \
             else _api_to_route[func_or_name].func
-        resp = sirepo.api_auth.check_api_call(f)
-        if resp:
-            return resp
-        try:
-            if data:
-                #POSIT: http_request.parse_json
-#TODO(robnagler) this probably should push and pop the data
-                flask.g.sirepo_call_api_data = data
-            resp = flask.make_response(f(**kwargs) if kwargs else f())
-        finally:
-            if data:
-                flask.g.sirepo_call_api_data = None
-        sirepo.cookie.save_to_cookie(resp)
-        return resp
-    except sirepo.util.Reply as e:
-        return sirepo.http_reply.gen_exception(e)
+        r = sirepo.api_auth.check_api_call(f)
+        if not r:
+            try:
+                if data:
+                    p = flask.g.pop(http_request.CALL_API_DATA_ATTR, None)
+                    flask.g.setdefault(http_request.CALL_API_DATA_ATTR, data)
+                r = flask.make_response(f(**kwargs) if kwargs else f())
+            finally:
+                if data:
+                    flask.g.pop(http_request.CALL_API_DATA_ATTR, None)
+    except Exception as e:
+        r = sirepo.http_reply.gen_exception(e)
+    sirepo.cookie.save_to_cookie(r)
+    return r
 
 
 def init(app, simulation_db):

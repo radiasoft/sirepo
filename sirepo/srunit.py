@@ -369,6 +369,7 @@ class _TestClient(flask.testing.FlaskClient):
                 raise sirepo.util.SRException(
                     d.srException.routeName,
                     d.srException.params,
+                    d.srException.query,
                 )
             return d
         except Exception as e:

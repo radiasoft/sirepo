@@ -7,7 +7,7 @@ u"""request input parsing
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import util
+import sirepo.util
 import flask
 import sirepo.template
 import user_agents
@@ -21,6 +21,11 @@ _PARAM_MAP = PKDict(
     type='simulationType',
 )
 
+_SIM_TYPE_ATTR = 'sirepo_sim_type'
+
+CALL_API_DATA_ATTR = 'sirepo_call_api_data'
+
+
 def is_spider():
     return user_agents.parse(flask.request.headers.get('User-Agent')).is_bot
 
@@ -29,12 +34,12 @@ def parse_json():
     from sirepo import simulation_db
 
     #POSIT: uri_router.call_api
-    if hasattr(flask.g, 'sirepo_call_api_data') and flask.g.sirepo_call_api_data:
-#TODO(robnagler) this probably should clear the data
-        return flask.g.sirepo_call_api_data
+    d = flask.g.pop(CALL_API_DATA_ATTR, None)
+    if d:
+        return res
     req = flask.request
     if req.mimetype != 'application/json':
-        util.raise_bad_request(
+        sirepo.util.raise_bad_request(
             'content-type is not application/json: mimetype={}',
             req.mimetype,
         )
@@ -73,11 +78,14 @@ def parse_post(**kwargs):
     r = k.pkdel('req_data')
     if not r:
         r = http_request.parse_json()
-        if k.pkdel('req_validate'):
-            r = simulation_db.fixup_old_data(r)[0]
+    if k.pkdel('fixup_old_data'):
+        r = simulation_db.fixup_old_data(r)[0]
     res.req_data = r
     res.sim_data = sirepo.sim_data.get_class(res.type)
-    flask.g.sirepo_sim_type = r.simulationType
+    # flask.g API is very limited but do this in order to
+    # maintain explicit coupling of _SIM_TYPE_ATTR
+    flask.g.pop(_SIM_TYPE_ATTR, None)
+    flask.g.setdefault(_SIM_TYPE_ATTR, r.simulationType)
     if k.pkdel('id'):
         res.id = res.sim_data.parse_sid(r)
     if k.pkdel('filename'):
@@ -94,3 +102,16 @@ def parse_post(**kwargs):
         assert not k, \
             'unexpected kwargs={}'.format(k)
     return res
+
+
+def sim_type(value=None):
+    """Return value or request's sim_type
+
+    Args:
+        value (str): will be validated if not None
+    Returns:
+        str: sim_type or possibly None
+    """
+    if value:
+        return sirepo.template.assert_sim_type(value)
+    return flask.g.get(_SIM_TYPE_ATTR)

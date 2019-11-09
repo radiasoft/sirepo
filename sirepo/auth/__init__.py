@@ -122,16 +122,16 @@ def api_authLogout(simulation_type=None):
 
     Redirects to root simulation page.
     """
-    t = None
+    sim = None
     if simulation_type:
         try:
-            t = sirepo.template.assert_sim_type(simulation_type)
+            sim = http_request.parse_params(type=simulation_type)
         except AssertionError:
             pass
     if _is_logged_in():
         cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         _set_log_user()
-    return http_reply.gen_redirect_for_app_root(t)
+    return http_reply.gen_redirect_for_app_root(sim and sim.type)
 
 
 def complete_registration(name=None):
@@ -269,40 +269,32 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None):
 
 
 def login_fail_redirect(sim_type=None, module=None, reason=None):
-    if sim_type:
-        return http_reply.gen_redirect_for_local_route(
-            sim_type,
-            'loginFail',
-            {
-                'method': module.AUTH_METHOD,
-                'reason': reason,
-            },
-        )
     raise util.SRException(
         'loginFail',
-        {
-
-        'login failed (no sym_type): reason={} method={}',
-        reason,
-        module.AUTH_METHOD,
-        r, p, 'user not logged in: {}', e)
-    util.raise_unauthorized(
-
+        PKDict(
+            sim_type=sim_type,
+            reason=reason,
+            method=module.AUTH_METHOD,
+        ),
+        'login failed: reason={} method={}',
     )
 
 
 def login_success_redirect(sim_type):
-    if sim_type:
-        if cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION:
-            if cookie.get_value(_COOKIE_METHOD) == METHOD_GUEST:
-                complete_registration()
-            else:
-                return http_reply.gen_redirect_for_local_route(
-                    sim_type,
-                    'completeRegistration',
-                )
-    srException
-    return http_reply.gen_redirect_for_local_route(sim_type)
+    r = None
+    if cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION:
+        if cookie.get_value(_COOKIE_METHOD) == METHOD_GUEST:
+            complete_registration()
+        else:
+            r = 'completeRegistration',
+    raise new sirepo.util.SRException(
+        r,
+        None,
+        PKDict(
+            reload_js=1,
+            sim_type=sim_type,
+        ),
+    )
 
 
 def need_complete_registration(model):
@@ -376,7 +368,7 @@ def require_user():
     else:
         cookie.reset_state('state={} invalid, cannot continue'.format(s))
         e = 'invalid cookie'
-    raise util.SRException(r, p, 'user not logged in: {}', e)
+    raise util.SRException(r, p, PKDict(reload_js=1), 'user not logged in: {}', e)
 
 
 def reset_state():
@@ -403,10 +395,10 @@ def user_dir_not_found(uid):
         if u:
             u.delete()
     reset_state()
-auth state is in disagreement
     raise util.SRException(
         'login',
         None,
+        PKDict(reload_js=1),
         'simulation_db dir not found, deleted uid={}',
         uid,
     )

@@ -230,6 +230,12 @@
                   "templateUrl": "/static/html/complete-registration.html"
                 }
             },
+            "error": {
+                "route": "/error",
+                "config": {
+                  "templateUrl": "/static/html/server-error.html"
+                }
+            },
             "forbidden": {
                 "route": "/forbidden",
                 "config": {
@@ -405,11 +411,13 @@
         },
         "500": {
             "url": "server-error.html",
-            "msg": "Server Error"
+            "msg": "Server Error",
+            "route": "error"
         },
         "502": {
             "url": "server-error.html",
-            "msg": "Proxy Error"
+            "msg": "Proxy Error",
+            "route": "error"
         }
     }
 }

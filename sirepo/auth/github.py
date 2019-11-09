@@ -82,10 +82,10 @@ def api_authGithubAuthorized():
 @api_perm.require_cookie_sentinel
 def api_authGithubLogin(simulation_type):
     """Redirects to Github"""
-    t = sirepo.template.assert_sim_type(simulation_type)
+    sim = http_request.parse_params(type=simulation_type)
     s = util.random_base62()
     cookie.set_value(_COOKIE_NONCE, s)
-    cookie.set_value(_COOKIE_SIM_TYPE, t)
+    cookie.set_value(_COOKIE_SIM_TYPE, sim.type)
     if not cfg.callback_uri:
         # must be executed in an app and request context so can't
         # initialize earlier.

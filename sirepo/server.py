@@ -444,7 +444,7 @@ def api_root(simulation_type):
 
 @api_perm.require_user
 def api_saveSimulationData():
-    sim = http_request.parse_post(req_validate=True, id=1, template=1)
+    sim = http_request.parse_post(fixup_old_data=1, id=1, template=1)
     e = simulation_db.validate_serial(sim.req_data)
     if e:
         raise util.Error(PKDict(error=invalidSerial, simulationData=sim.req_data))

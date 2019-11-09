@@ -1608,12 +1608,21 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                 saveCookieRedirect(e.prevRoute);
             }
         }
-        self.localRedirect(e.routeName, e.params);
+        self.localRedirect(
+            e.routeName,
+            e.params,
+            e.query && e.query.reload_js ? 1 : 0,
+        )
         return;
     };
 
-    self.localRedirect = function(routeName, params) {
+    self.localRedirect = function(routeName, params, reload) {
         var r = self.formatUrlLocal(routeName, params);
+        if (reload) {
+            $window.location.href = r;
+            $window.location.reload(true);
+            return;
+        }
         $location.path(r.slice(1));
     };
 
@@ -1727,7 +1736,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                     thisErrorCallback(data, response.status);
                 }
             },
-            thisErrorCallback);
+            thisErrorCallback,
+        );
     };
 
     $rootScope.$on('$routeChangeStart', checkCookieRedirect);

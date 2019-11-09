@@ -77,11 +77,12 @@ class SRException(Reply):
     Args:
         route_name (str): a local route
         params (dict): parameters for route
+        query (dict): extract arguments (e.g. reload_js)
         log_fmt (str): server side log data
     """
-    def __init__(self, route_name, params, *args, **kwargs):
+    def __init__(self, route_name, params, query, *args, **kwargs):
         super(SRException, self).__init__(
-            PKDict(routeName=route_name, params=params),
+            PKDict(routeName=route_name, params=params, query=query),
             *args,
             **kwargs
         )

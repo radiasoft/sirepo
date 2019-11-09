@@ -13,6 +13,7 @@ from sirepo import api_perm
 from sirepo import auth
 from sirepo import cookie
 from sirepo import http_reply
+from sirepo import http_request
 from sirepo import srtime
 import datetime
 import sirepo.template
@@ -36,11 +37,11 @@ _ONE_DAY = datetime.timedelta(days=1)
 @api_perm.require_cookie_sentinel
 def api_authGuestLogin(simulation_type):
     """You have to be an anonymous or logged in user at this point"""
-    t = sirepo.template.assert_sim_type(simulation_type)
+    sim = http_request.parse_params(type=simulation_type)
     # if already logged in as guest, just redirect
     if auth.user_if_logged_in(AUTH_METHOD):
-        return auth.login_success_redirect(t)
-    return auth.login(this_module, sim_type=t)
+        return auth.login_success_redirect(sim.type)
+    return auth.login(this_module, sim_type=sim.type)
 
 
 def init_apis(*args, **kwargs):
@@ -96,10 +97,13 @@ def validate_login():
     if is_login_expired(r):
         raise sirepo.util.SRException(
             'loginFail',
-            {
-                ':method': 'guest',
-                ':reason': 'guest-expired',
-            },
+            PKDict().pkupdate(
+                ':method',
+                'guest',
+                ':reason',
+                'guest-expired',
+            ),
+            PKDict(reload_js=1),
             'expired uid={uid}, expiry={expiry} now={now}',
             **r
         )

@@ -44,13 +44,11 @@ _AUTH_NONCE_SEPARATOR = '-'
 
 @api_perm.allow_cookieless_set_user
 def api_authBlueskyLogin():
-    req = http_request.parse_json()
-    auth_hash(req, verify=True)
-    sid = req.simulationId
-    sim_type = req.simulationType
+    sim = http_request.parse_post(id=1)
+    auth_hash(sim.req_data, verify=True)
     path = simulation_db.find_global_simulation(
-        sim_type,
-        sid,
+        sim.type,
+        sim.id,
         checked=True,
     )
     r = auth.login(
@@ -59,10 +57,12 @@ def api_authBlueskyLogin():
     )
     if r:
         return r
-    return http_reply.gen_json_ok(dict(
-        data=simulation_db.open_json_file(req.simulationType, sid=req.simulationId),
-        schema=simulation_db.get_schema(req.simulationType),
-    ))
+    return http_reply.gen_json_ok(
+        PKDict(
+            data=simulation_db.open_json_file(sim.type, sid=sim.id),
+            schema=simulation_db.get_schema(sim.type),
+        ),
+    )
 
 
 @api_perm.allow_cookieless_set_user
