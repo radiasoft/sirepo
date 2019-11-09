@@ -18,6 +18,7 @@ import importlib
 import inspect
 import re
 import sirepo.util
+import sirepo.template
 
 
 #: root directory for template resources
@@ -57,9 +58,15 @@ def get_class(type_or_data):
     Returns:
         type: simulation data operation class
     """
-    if isinstance(type_or_data, dict):
-        type_or_data = type_or_data['simulationType']
-    return importlib.import_module('.' + type_or_data, __name__).SimData
+    return importlib.import_module(
+        '.' + sirepo.template.assert_sim_type(
+            type_or_data['simulationType'] if isinstance(
+                type_or_data,
+                dict,
+            ) else type_or_data
+        ),
+        __name__,
+    ).SimData
 
 
 def template_globals(sim_type=None):

@@ -12,23 +12,25 @@ import flask
 import sirepo.template
 import user_agents
 
+_PARAM_MAP = PKDict(
+    file_type='file_type',
+    filename='filename',
+    id='simulationId',
+    model='report',
+    template='template',
+    type='simulationType',
+)
 
 def is_spider():
     return user_agents.parse(flask.request.headers.get('User-Agent')).is_bot
 
 
-def parse_data_input(validate=False):
-    from sirepo import simulation_db
-
-    data = parse_json(assert_sim_type=False)
-    return simulation_db.fixup_old_data(data)[0] if validate else data
-
-
-def parse_json(assert_sim_type=True):
+def parse_json():
     from sirepo import simulation_db
 
     #POSIT: uri_router.call_api
     if hasattr(flask.g, 'sirepo_call_api_data') and flask.g.sirepo_call_api_data:
+#TODO(robnagler) this probably should clear the data
         return flask.g.sirepo_call_api_data
     req = flask.request
     if req.mimetype != 'application/json':
@@ -41,24 +43,54 @@ def parse_json(assert_sim_type=True):
     # certain clients have been using this in the past.  This
     # fits our general approach of being nice in what we accept
     # and strict in what we send out.
-    charset = req.mimetype_params.get('charset')
-    data = req.get_data(cache=False)
-    res = simulation_db.json_load(data, encoding=charset)
-    if assert_sim_type and 'simulationType' in res:
-        res.simulationType = sirepo.template.assert_sim_type(res.simulationType)
-    return res
+    return simulation_db.json_load(
+        req.get_data(cache=False),
+        encoding=req.mimetype_params.get('charset'),
+    )
 
 
-def parse_sim(req, **kwargs):
-    import sirepo.template
-    import sirepo.simulation_db
+def parse_params(**kwargs):
+    a = PKDict(req_data=PKDict())
+    p = PKDict(kwargs)
+    for k, v in _PARAM_MAP.items():
+        x = p.pkdel(k)
+        if x is not None:
+            if k != 'template':
+                a.req_data[v] = x
+            a[k] = True
+    assert not p, \
+        'unexpected kwargs={}'.format(p)
+    return parse_json(**a)
+
+
+def parse_post(**kwargs):
     import sirepo.sim_data
+    import sirepo.simulation_db
+    import sirepo.template
 
+    res = PKDict()
     k = PKDict(kwargs)
-    res = PKDict(type=sirepo.template.assert_sim_type(req.simulationType))
+    r = k.pkdel('req_data')
+    if not r:
+        r = http_request.parse_json()
+        if k.pkdel('req_validate'):
+            r = simulation_db.fixup_old_data(r)[0]
+    res.req_data = r
     res.sim_data = sirepo.sim_data.get_class(res.type)
+    flask.g.sirepo_sim_type = r.simulationType
     if k.pkdel('id'):
-        res.id = res.sim_data.parse_sid(req)
+        res.id = res.sim_data.parse_sid(r)
+    if k.pkdel('filename'):
+        res.filename = werkzeug.secure_filename(r.get('fileName') or r.get('filename'))
+    if k.pkdel('file_type'):
+        res.file_type = werkzeug.secure_filename(r.get('file_type') or r.get('fileType'))
     if k.pkdel('model'):
-        res.model = res.sim_data.parse_model(req)
+        res.model = res.sim_data.parse_model(r)
+    if k.pkdel('template'):
+        res.template = sirepo.template.import_module(sim.type)
+    if k:
+        # always parse type, but allow people to pass as param
+        k.pkdel('type')
+        assert not k, \
+            'unexpected kwargs={}'.format(k)
     return res

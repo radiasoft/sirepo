@@ -80,6 +80,7 @@ def call_api(func_or_name, kwargs=None, data=None):
         try:
             if data:
                 #POSIT: http_request.parse_json
+#TODO(robnagler) this probably should push and pop the data
                 flask.g.sirepo_call_api_data = data
             resp = flask.make_response(f(**kwargs) if kwargs else f())
         finally:

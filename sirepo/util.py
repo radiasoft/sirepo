@@ -7,13 +7,14 @@ u"""Support routines and classes, mostly around errors.
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp
+import inspect
 import numconv
 import random
 import werkzeug.exceptions
 
 
 class Reply(Exception):
-    """Raised when a major application error occurs
+    """Raised to end the request.
 
     Args:
         sr_args (dict): exception args that Sirepo specific
@@ -22,6 +23,7 @@ class Reply(Exception):
     def __init__(self, sr_args, *args, **kwargs):
         super(Reply, self).__init__()
         if args or kwargs:
+            kwargs['pkdebug_frame'] = inspect.currentframe().f_back.f_back
             pkdlog(*args, **kwargs)
         self.sr_args = sr_args
 
@@ -36,6 +38,22 @@ class Reply(Exception):
 
     def __str__(self):
         return self.__repr__()
+
+
+class Error(Reply):
+    """Raised to send an error response
+
+    Args:
+        values (dict): values to put in the reply
+    """
+    def __init__(self, values, *args, **kwargs):
+        assert values.get('error'), \
+            'values={} must contain "error"'.format(values)
+        super(Error, self).__init__(
+            PKDict(values),
+            *args,
+            **kwargs
+        )
 
 
 class Redirect(Reply):
@@ -117,5 +135,6 @@ def random_base62(length=32):
 
 
 def _raise(exc, fmt, *args, **kwargs):
+    kwargs['pkdebug_frame'] = inspect.currentframe().f_back.f_back
     pkdlog(fmt, *args, **kwargs)
     raise getattr(werkzeug.exceptions, exc)()

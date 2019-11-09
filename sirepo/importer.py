@@ -55,6 +55,7 @@ def read_json(text, sim_type=None):
                 data.simulationType,
                 sim_type,
             )
+    http_request.parse_params(req_data=data)
     return data
 
 

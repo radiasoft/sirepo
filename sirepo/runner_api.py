@@ -25,15 +25,14 @@ _RUN_STATES = ('pending', 'running')
 
 @api_perm.require_user
 def api_runCancel():
-    data = http_request.parse_data_input()
-    sim = http_request.parse_sim(data, id=1, model=1)
-    jid = sim.sim_data.parse_jid(data)
+    sim = http_request.parse_sim(id=1, model=1)
+    jid = sim.sim_data.parse_jid(sim.req_data)
     # TODO(robnagler) need to have a way of listing jobs
     # Don't bother with cache_hit check. We don't have any way of canceling
     # if the parameters don't match so for now, always kill.
     #TODO(robnagler) mutex required
     if runner.job_is_processing(jid):
-        run_dir = simulation_db.simulation_run_dir(data)
+        run_dir = simulation_db.simulation_run_dir(sim.req_data)
         # Write first, since results are write once, and we want to
         # indicate the cancel instead of the termination error that
         # will happen as a result of the kill.
@@ -45,7 +44,7 @@ def api_runCancel():
         runner.job_kill(jid)
         # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
         # the last frame file may not be finished, remove it
-        t = sirepo.template.import_module(data)
+        t = sirepo.template.import_module(sim.req_data)
         if hasattr(t, 'remove_last_frame'):
             t.remove_last_frame(run_dir)
     # Always true from the client's perspective
@@ -54,25 +53,29 @@ def api_runCancel():
 
 @api_perm.require_user
 def api_runSimulation():
-    data = http_request.parse_data_input(validate=True)
-    res = _simulation_run_status(data, quiet=True)
+    sim = http_request.parse_sim(id=1, model=1, req_validate=True)
+    res = _simulation_run_status(sim, quiet=True)
     if (
         (
             not res['state'] in _RUN_STATES
-            and (res['state'] != 'completed' or data.get('forceRun', False))
+            and (res['state'] != 'completed' or sim.req_data.get('forceRun', False))
         ) or res.get('parametersChanged', True)
     ):
         try:
-            _start_simulation(data)
+            _start_simulation(sim.req_data)
         except runner.Collision:
-            pkdlog('{}: runner.Collision, ignoring start', _reqd(data).jid)
-        res = _simulation_run_status(data)
+            pkdlog('{}: runner.Collision, ignoring start', _reqd(sim).jid)
+        res = _simulation_run_status(sim)
     return http_reply.gen_json(res)
 
 
 @api_perm.require_user
 def api_runStatus():
-    return http_reply.gen_json(_simulation_run_status(http_request.parse_data_input()))
+    return http_reply.gen_json(
+        _simulation_run_status(
+            http_request.parse_sim(id=1, model=1),
+        ),
+    )
 
 
 @api_perm.require_user
@@ -99,36 +102,38 @@ def _mtime_or_now(path):
     return int(path.mtime() if path.exists() else time.time())
 
 
-def _reqd(data):
+def _reqd(sim):
     """Read the run_dir and return cached_data.
 
     Only a hit if the models between data and cache match exactly. Otherwise,
     return cached data if it's there and valid.
 
     Args:
-        data (dict): parameters identifying run_dir and models or computeJobHash
+        sim (dict): parsed simulation data
 
     Returns:
         Dict: report parameters and hashes
     """
-    res = PKDict(
-        cache_hit=False,
+    res = PKDict(cache_hit=False,
         cached_data=None,
         cached_hash=None,
         parameters_changed=False,
-        run_dir=simulation_db.simulation_run_dir(data),
-        sim_data=sirepo.sim_data.get_class(data),
+        run_dir=simulation_db.simulation_run_dir(sim.req_data),
+        sim_data=sim.sim_data,
     )
     res.pkupdate(
         input_file=simulation_db.json_filename(
             template_common.INPUT_BASE_NAME,
             res.run_dir,
         ),
-        is_parallel=res.sim_data.is_parallel(data),
-        jid=res.sim_data.parse_jid(data),
+        is_parallel=res.sim_data.is_parallel(sim.req_data),
+        jid=res.sim_data.parse_jid(sim.req_data),
         job_status=simulation_db.read_status(res.run_dir),
-        model_name=res.sim_data.parse_model(data.report),
-        req_hash=data.get('computeJobHash') or res.sim_data.compute_job_hash(data),
+        model_name=res.sim_data.parse_model(sim.req_data.report),
+        req_hash=(
+            sim.req_data.get('computeJobHash')
+            or res.sim_data.compute_job_hash(sim.req_data)
+        ),
     )
     if not res.run_dir.check():
         return res
@@ -148,20 +153,20 @@ def _reqd(data):
 
 
 
-def _simulation_run_status(data, quiet=False):
+def _simulation_run_status(sim, quiet=False):
     """Look for simulation status and output
 
     Args:
-        data (dict): request
+        sim (dict): parsed simulation data
         quiet (bool): don't write errors to log
 
     Returns:
         dict: status response
     """
-    reqd = _reqd(data)
-    in_run_simulation = 'models' in data
+    reqd = _reqd(sim)
+    in_run_simulation = 'models' in sim.req_data
     if in_run_simulation:
-        data.models.computeJobCacheKey = PKDict(
+        sim.req_data.models.computeJobCacheKey = PKDict(
             computeJobHash=reqd.req_hash,
         )
     is_processing = runner.job_is_processing(reqd.jid)
@@ -179,7 +184,7 @@ def _simulation_run_status(data, quiet=False):
         runner.job_race_condition_reap(reqd.jid)
         pkdc('{}: is_processing and not is_running', reqd.jid)
         is_processing = False
-    template = sirepo.template.import_module(data)
+    template = sirepo.template.import_module(sim.type)
     if is_processing:
         if not reqd.cached_data:
             return _subprocess_error(
@@ -190,7 +195,7 @@ def _simulation_run_status(data, quiet=False):
         is_running = False
         if reqd.run_dir.exists():
             if hasattr(template, 'prepare_output_file') and in_run_simulation:
-                template.prepare_output_file(reqd.run_dir, data)
+                template.prepare_output_file(reqd.run_dir, sim.req_data)
             res2, err = simulation_db.read_result(reqd.run_dir)
             if err:
                 if reqd.is_parallel:

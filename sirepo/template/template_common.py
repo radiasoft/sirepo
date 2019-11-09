@@ -21,6 +21,7 @@ import os.path
 import py.path
 import re
 import sirepo.http_reply
+import sirepo.http_request
 import sirepo.sim_data
 import sirepo.template
 import subprocess
@@ -218,6 +219,8 @@ def generate_parameters_file(data):
 
 def sim_frame(frame_id, op):
     f, s = sirepo.sim_data.parse_frame_id(frame_id)
+    # document the request
+    http_request.parse_sim(req_data=f, id=1)
     x = op(f)
     r = sirepo.http_reply.gen_json(x)
     if 'error' not in x and s.want_browser_frame_cache():

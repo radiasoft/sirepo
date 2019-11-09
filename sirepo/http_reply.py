@@ -44,7 +44,11 @@ def gen_exception(exc):
 
     assert isinstance(exc, sirepo.util.Reply), \
         'exc={} not a sirepo.util.Reply'.format(exc)
-    if isinstance(exc, sirepo.util.SRException):
+    if isinstance(exc, sirepo.util.Error):
+        return gen_json(exc.sr_args.values.pkupdate(_STATE, _ERROR_STATE))
+    elif isinstance(exc, sirepo.util.Redirect):
+        return gen_redirect(exc.sr_args.uri)
+    elif isinstance(exc, sirepo.util.SRException):
         s = simulation_db.get_schema(sim_type=None)
         assert exc.sr_args.routeName in s.localRoutes, \
             'route={} not found in schema={}'.format(
@@ -63,8 +67,6 @@ def gen_exception(exc):
             _STATE: _ERROR_STATE,
             _ERROR_STATE: exc.sr_args.error,
         }))
-    elif isinstance(exc, sirepo.util.Redirect):
-        return gen_redirect(exc.sr_args.uri)
     else:
         raise AssertionError('unsupported exception={}'.format(type(exc)))
 

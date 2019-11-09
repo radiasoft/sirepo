@@ -2822,6 +2822,9 @@ SIREPO.app.controller('LoginFailController', function (appState, requestSender, 
             + 'You will use this email to access your work going forward. '
             + login_text('Please click here to authenticate.');
     }
+    else if (r == 'account-deleted') {
+        self.msg = 'Something went wrong with ' + t + '. ' + l;
+    }
     else {
         self.msg = 'Unexpected error. ' + l;
     }

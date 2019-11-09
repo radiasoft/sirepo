@@ -39,3 +39,13 @@ def test_login():
     pkok(u, 'user should exist')
     # guests do not require completeRegistration
     pkeq(auth.require_user(), None)
+
+
+def test_login_loop(fc):
+    from pykern import pkunit
+    from pykern.pkdebug import pkdp
+    from pykern.pkunit import pkeq, pkok, pkre, pkexcept
+    from sirepo import auth
+
+    d = fc.sim_data()
+    w = pkunit.work_dir().user

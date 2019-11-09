@@ -196,7 +196,12 @@ def logged_in_user():
     """
     res = _get_user()
     if not _is_logged_in():
-        util.raise_unauthorized('user not logged in uid={}', res)
+        raise util.SRException(
+            'login',
+            None,
+            'user not logged in uid={}',
+            res,
+        )
     assert res, 'no user in cookie: state={} method={}'.format(
         cookie.unchecked_get_value(_COOKIE_STATE),
         cookie.unchecked_get_value(_COOKIE_METHOD),
@@ -273,11 +278,16 @@ def login_fail_redirect(sim_type=None, module=None, reason=None):
                 'reason': reason,
             },
         )
+    raise util.SRException(
+        'loginFail',
+        {
+
+        'login failed (no sym_type): reason={} method={}',
+        reason,
+        module.AUTH_METHOD,
+        r, p, 'user not logged in: {}', e)
     util.raise_unauthorized(
-        'login failed (no sym_type): reason={} method={}'.format(
-            reason,
-            module.AUTH_METHOD,
-        ),
+
     )
 
 
@@ -291,6 +301,7 @@ def login_success_redirect(sim_type):
                     sim_type,
                     'completeRegistration',
                 )
+    srException
     return http_reply.gen_redirect_for_local_route(sim_type)
 
 
@@ -392,7 +403,13 @@ def user_dir_not_found(uid):
         if u:
             u.delete()
     reset_state()
-    util.raise_unauthorized('simulation_db dir not found, deleted uid={}', uid)
+auth state is in disagreement
+    raise util.SRException(
+        'login',
+        None,
+        'simulation_db dir not found, deleted uid={}',
+        uid,
+    )
 
 
 def user_if_logged_in(method):
