@@ -17,14 +17,8 @@ import sirepo.auth
 import sirepo.cookie
 import sirepo.http_reply
 import sirepo.http_request
+import sirepo.uri
 import sirepo.util
-try:
-    # py3
-    from urllib.parse import urlencode
-except ImportError:
-    # py2
-    from urllib import urlencode
-
 
 #: route for sirepo.srunit
 srunit_uri = None
@@ -80,12 +74,12 @@ def call_api(func_or_name, kwargs=None, data=None):
         if not r:
             try:
                 if data:
-                    p = flask.g.pop(http_request.CALL_API_DATA_ATTR, None)
-                    flask.g.setdefault(http_request.CALL_API_DATA_ATTR, data)
+                    p = flask.g.pop(sirepo.http_request.CALL_API_DATA_ATTR, None)
+                    flask.g.setdefault(sirepo.http_request.CALL_API_DATA_ATTR, data)
                 r = flask.make_response(f(**kwargs) if kwargs else f())
             finally:
                 if data:
-                    flask.g.pop(http_request.CALL_API_DATA_ATTR, None)
+                    flask.g.pop(sirepo.http_request.CALL_API_DATA_ATTR, None)
     except Exception as e:
         r = sirepo.http_reply.gen_exception(e)
     sirepo.cookie.save_to_cookie(r)
@@ -101,15 +95,27 @@ def init(app, simulation_db):
     Args:
         app (Flask): flask app
     """
-    from sirepo import feature_config
-
     if _uri_to_route:
         return
+
+    from sirepo import feature_config
+
     global _app
     _app = app
     for n in _REQUIRED_MODULES + tuple(sorted(feature_config.cfg().api_modules)):
         register_api_module(importlib.import_module('sirepo.' + n))
     _init_uris(app, simulation_db)
+
+    sirepo.http_request.init()
+    sirepo.http_reply.init(
+        app,
+        simulation_db=simulation_db,
+    )
+    sirepo.uri.init(
+        uri_router=pkinspect.this_module(),
+        http_request=sirepo.http_request,
+        http_reply=sirepo.http_reply,
+    )
 
 
 def register_api_module(module=None):
@@ -149,8 +155,6 @@ def uri_for_api(api_name, params=None, external=True):
     Returns:
         str: formmatted external URI
     """
-    import urllib
-
     r = _api_to_route[api_name]
     res = (flask.url_for('_dispatch_empty', _external=external) + r.base_uri).rstrip('/')
     for p in r.params:

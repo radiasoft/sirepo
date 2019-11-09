@@ -51,12 +51,11 @@ def api_authBlueskyLogin():
         sim.id,
         checked=True,
     )
-    r = auth.login(
+    auth.login(
         this_module,
         uid=simulation_db.uid_from_dir_name(path),
+        # do not supply sim_type (see auth.login)
     )
-    if r:
-        return r
     return http_reply.gen_json_ok(
         PKDict(
             data=simulation_db.open_json_file(sim.type, sid=sim.id),

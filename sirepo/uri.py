@@ -5,6 +5,7 @@ u"""uri formatting
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+import pykern.pkinspect
 import re
 
 try:
@@ -17,9 +18,7 @@ except ImportError:
 
 def api(*args, **kwargs):
     """Alias for `uri_router.uri_for_api`"""
-    import sirepo.uri_router
-
-    return sirepo.uri_router.uri_for_api(*args, **kwargs)
+    return uri_router.uri_for_api(*args, **kwargs)
 
 
 def app_root(sim_type):
@@ -31,8 +30,6 @@ def app_root(sim_type):
     Returns:
         str: formatted URI
     """
-    import sirepo.http_request
-
     t = http_request.sim_type(sim_type)
     return '/' t is None else '/' + t
 
@@ -47,6 +44,12 @@ def default_local_route_name(schema):
         )
 
 
+def init(**imports):
+    m = pykern.pkinspect.this_module()
+    for k, v in imports.items():
+        setattr(m, k, v)
+
+
 def local_route(sim_type, route_name=None, params=None, query=None):
     """Generate uri for local route with params
 
@@ -58,11 +61,8 @@ def local_route(sim_type, route_name=None, params=None, query=None):
     Returns:
         str: formatted URI
     """
-    import sirepo.http_request
-    import sirepo.simulation_db
-
     t = http_request.sim_type(sim_type)
-    s = sirepo.simulation_db.get_schema(t)
+    s = simulation_db.get_schema(t)
     if not route_name:
         route_name = default_local_route_name(s)
     parts = s.localRoutes[route_name].route.split('/:')
@@ -87,8 +87,6 @@ def server_route(route_or_uri, params, query):
     Returns:
         str: URI
     """
-    from sirepo import simulation_db
-
     if '/' in route_or_uri:
         assert not params and not query, \
             'when uri={} must not have params={} or query={}'.format(

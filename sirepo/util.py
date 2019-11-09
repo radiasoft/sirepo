@@ -50,7 +50,7 @@ class Error(Reply):
         assert values.get('error'), \
             'values={} must contain "error"'.format(values)
         super(Error, self).__init__(
-            PKDict(values),
+            values,
             *args,
             **kwargs
         )
@@ -74,15 +74,17 @@ class Redirect(Reply):
 class SRException(Reply):
     """Raised to communicate a local redirect and log info
 
+    `params` may have ``sim_type`` and ``reload_js``, which
+    will be used to control execution and uri rendering.
+
     Args:
         route_name (str): a local route
-        params (dict): parameters for route
-        query (dict): extract arguments (e.g. reload_js)
+        params (dict): parameters for route and redirect
         log_fmt (str): server side log data
     """
-    def __init__(self, route_name, params, query, *args, **kwargs):
+    def __init__(self, route_name, params, *args, **kwargs):
         super(SRException, self).__init__(
-            PKDict(routeName=route_name, params=params, query=query),
+            PKDict(routeName=route_name, params=params),
             *args,
             **kwargs
         )

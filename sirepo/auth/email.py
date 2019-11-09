@@ -12,18 +12,19 @@ from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import auth
+from sirepo import auth_db
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import srtime
 from sirepo import uri_router
-from sirepo import auth_db
-import sirepo.util
 import datetime
 import flask
 import flask_mail
 import hashlib
 import pyisemail
 import sirepo.template
+import sirepo.uri
+import sirepo.util
 
 
 AUTH_METHOD = 'email'
@@ -74,12 +75,8 @@ def api_authEmailAuthorized(simulation_type, token):
             u.token = None
             u.expires = None
             u.save()
-            return auth.login(
-                this_module,
-                sim_type=sim.type,
-                model=u,
-                display_name=n,
-            )
+            auth.login(this_module, sim_type=sim.type, model=u, display_name=n)
+            raise AssertionError('auth.login returned unexpectedly')
         if not u:
             pkdlog('login with invalid token={}', token)
         else:
@@ -95,8 +92,8 @@ def api_authEmailAuthorized(simulation_type, token):
                 token,
                 auth.logged_in_user(),
             )
-            return http_reply.gen_redirect_for_local_route(sim.type)
-        return auth.login_fail_redirect(sim.type, this_module, 'email-token')
+            raise sirepo.util.Redirect(sirepo.uri.local_route(sim.type))
+        auth.login_fail_redirect(sim.type, this_module, 'email-token')
 
 
 @api_perm.require_cookie_sentinel
@@ -233,8 +230,10 @@ def _verify_confirm(sim_type, token, need_complete_registration):
     d = http_request.parse_json()
     if d.get('token') != token:
         raise sirepo.util.Error(
-            'error',
-            params,
+            PKDict(
+                error='unable to confirm login',
+                sim_type=sim_type,
+            ),
             'Expected token={} in data but got data.token={}',
             token,
             d,

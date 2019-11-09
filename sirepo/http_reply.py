@@ -10,8 +10,10 @@ from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import flask
+import pykern.pkinspect
 import re
 import sirepo.http_request
+import sirepo.uri
 import sirepo.util
 
 
@@ -34,6 +36,9 @@ _RESPONSE_OK = PKDict({_STATE: 'ok'})
 
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\n|$)', flags=re.IGNORECASE)
+
+#: routes that will require a reload
+_RELOAD_JS_ROUTES = None
 
 
 def gen_exception(exc):
@@ -122,8 +127,6 @@ def gen_redirect_for_app_root(sim_type):
     Returns:
         flask.Response: reply object
     """
-    import sirepo.uri
-
     return gen_redirect_for_anchor(sirepo.uri.app_root(sim_type))
 
 
@@ -141,8 +144,6 @@ def gen_redirect_for_local_route(sim_type=None, route=None, params=None, query=N
     Returns:
         flask.Response: reply object
     """
-    import sirepo.uri
-
     return gen_redirect_for_anchor(
         sirepo.uri.local_route(sim_type, route, params, query),
     )
@@ -154,16 +155,20 @@ def headers_for_no_cache(resp):
     return resp
 
 
-def init_by_server(app):
-    global MIME_TYPE, simulation_db
-    if MIME_TYPE:
-        return
-    from sirepo import simulation_db
+def init(app, **imports):
+    global MIME_TYPE, _RELOAD_JS_ROUTES
+
+    m = pykern.pkinspect.this_module()
+    for k, v in imports.items():
+        setattr(m, k, v)
     MIME_TYPE = pkcollections.Dict(
         html='text/html',
         js='application/javascript',
         json=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
         py='text/x-python',
+    )
+    _RELOAD_JS_ROUTES = frozenset(
+        (k for k, v in s.localRoutes.items() if v.get('requireReload')),
     )
 
 
@@ -199,8 +204,8 @@ def _gen_exception_error(exc):
         ),
     )
 
+
 def _gen_exception_reply(exc):
-    a = exc.sr_args
     f = getattr(
         pkinspect.this_module(),
         '_gen_exception_reply_' + exc.__class__.__name__,
@@ -208,30 +213,10 @@ def _gen_exception_reply(exc):
     )
     if not f:
         return _gen_exception_error(exc)
-    return f(a)
+    return f(exc.sr_args)
 
 
 def _gen_exception_reply_Error(args):
-    if flask.request.method == 'POST':
-        return gen_json(args.values.pkupdate(_STATE, _ERROR_STATE))
-    return gen_redirect_for_local_route(
-        'error',
-        PKDict({_ERROR_STATE: a.get(_ERROR_STATE)}),
-    )
-
-def _gen_exception_reply_Redirect(args):
-    return gen_redirect(args.get('uri'))
-
-def _gen_exception_reply_UserAlert(args):
-        return gen_json(
-            PKDict({_STATE: _ERROR_STATE, _ERROR_STATE: a.error}),
-        )
-    else:
-        raise AssertionError(
-
-def _gen_exception_reply_SRException(args):
-    import sirepo.uri
-
     try:
         t = sirepo.http_request.sim_type(args.pkdel('sim_type'))
         s = simulation_db.get_schema(sim_type=t)
@@ -240,18 +225,58 @@ def _gen_exception_reply_SRException(args):
         # try to get the schema without the type
         t = None
         s = simulation_db.get_schema(sim_type=None)
+    if flask.request.method == 'POST':
+        return gen_json(args.pkupdate(_STATE, _ERROR_STATE))
+    q = PKDict()
+    for k, v in args.items():
+        try:
+            v = str(v)
+            assert len(v) < 200, 'value is too long (>=200 chars)'
+        except Exception as e:
+            pkdlog('error in "error" query {}={} exception={}', k, v, e)
+            continue
+        q[k] = v
+    return gen_redirect_for_local_route(t, route='error', query=q)
+
+
+def _gen_exception_reply_Redirect(args):
+    return gen_redirect(args.get('uri'))
+
+
+def _gen_exception_reply_SRException(args):
+    r = args.routeName
+    p = args.params or PKDict()
+    try:
+        t = sirepo.http_request.sim_type(p.pkdel('sim_type'))
+        s = simulation_db.get_schema(sim_type=t)
+    except Exception:
+        # sim_type is bad so don't cascade errors, just
+        # try to get the schema without the type
+        t = None
+        s = simulation_db.get_schema(sim_type=None)
     # If default route or always redirect/reload
-    if not (args.routeName or args.routeName in s.localRoutes):
-        if args.routeName:
-            pkdlog('route={} not found in schema for type={}', args.routeName, t)
-        args.routeName = sirepo.uri.default_local_route_name(s)
-    elif flask.request.method == 'POST' and args.routeName != 'error':
+    if not (t and r and r in s.localRoutes):
+        if r:
+            pkdlog('route={} not found in schema for type={}', r, t)
+        r = sirepo.uri.default_local_route_name(s)
+        p = None
+    elif (
+        # must be first
+        not p.pkdel('reload_js')
+        and flask.request.method == 'POST'
+        and r not in _RELOAD_JS_ROUTES
+    ):
         return gen_json(
             PKDict({
                 _STATE: SR_EXCEPTION_STATE,
                 SR_EXCEPTION_STATE: args,
             }),
-            response_kwargs=pkcollections.Dict(status=SR_EXCEPTION_STATUS),
+            response_kwargs=PKDict(status=SR_EXCEPTION_STATUS),
         )
-    args.pksetdefault(query=PKDict).query.pkupdate(reload_js=1)
-    return gen_redirect_for_local_route(t, route=args.routeName, params=args.params, query=args.query)
+    return gen_redirect_for_local_route(t, route=r, params=p)
+
+
+def _gen_exception_reply_UserAlert(args):
+    return gen_json(
+        PKDict({_STATE: _ERROR_STATE, _ERROR_STATE: a.error}),
+    )

@@ -233,7 +233,7 @@
             "error": {
                 "route": "/error",
                 "config": {
-                  "templateUrl": "/static/html/server-error.html"
+                    "templateUrl": "/static/html/server-error.html"
                 }
             },
             "forbidden": {
@@ -256,19 +256,13 @@
                   "templateUrl": "/static/html/login.html"
                 }
             },
-            "login": {
-                "route": "/login",
-                "config": {
-                  "controller": "LoginController as login",
-                  "templateUrl": "/static/html/login.html"
-                }
-            },
             "loginFail": {
                 "route": "/login-fail/:method/:reason",
                 "config": {
                   "controller": "LoginFailController as loginFail",
                   "templateUrl": "/static/html/login-fail.html"
-                }
+                },
+                "requireReload": true
             },
             "loginWith": {
                 "route": "/login-with/:method",

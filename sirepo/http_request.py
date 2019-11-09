@@ -26,6 +26,10 @@ _SIM_TYPE_ATTR = 'sirepo_sim_type'
 CALL_API_DATA_ATTR = 'sirepo_call_api_data'
 
 
+def init_by_server():
+    global
+
+
 def is_spider():
     return user_agents.parse(flask.request.headers.get('User-Agent')).is_bot
 

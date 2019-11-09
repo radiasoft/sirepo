@@ -40,8 +40,9 @@ def api_authGuestLogin(simulation_type):
     sim = http_request.parse_params(type=simulation_type)
     # if already logged in as guest, just redirect
     if auth.user_if_logged_in(AUTH_METHOD):
-        return auth.login_success_redirect(sim.type)
-    return auth.login(this_module, sim_type=sim.type)
+        auth.login_success_redirect(sim.type)
+    auth.login(this_module, sim_type=sim.type)
+    raise AssertionError('auth.login returned unexpectedly')
 
 
 def init_apis(*args, **kwargs):
@@ -93,19 +94,13 @@ def validate_login():
     Returns:
         object: if valid, None, otherwise flask.Response.
     """
-    r = pkcollections.Dict()
-    if is_login_expired(r):
+    msg = pkcollections.Dict()
+    if is_login_expired(msg):
         raise sirepo.util.SRException(
             'loginFail',
-            PKDict().pkupdate(
-                ':method',
-                'guest',
-                ':reason',
-                'guest-expired',
-            ),
-            PKDict(reload_js=1),
+            PKDict({':method': 'guest', ':reason': 'guest-expired'}),
             'expired uid={uid}, expiry={expiry} now={now}',
-            **r
+            **msg
         )
     return None
 

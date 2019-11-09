@@ -62,7 +62,8 @@ def api_authGithubAuthorized():
             expect,
             got,
         )
-        return auth.login_fail_redirect(t, this_module, 'oauth-state')
+        auth.login_fail_redirect(t, this_module, 'oauth-state', reload_js=True)
+        raise AssertionError('auth.login_fail_redirect returned unexpectedly')
     d = oc.get('user', token=(resp['access_token'], '')).data
     with auth_db.thread_lock:
         u = AuthGithubUser.search_by(oauth_id=d['id'])
@@ -72,11 +73,8 @@ def api_authGithubAuthorized():
         else:
             u = AuthGithubUser(oauth_id=d['id'], user_name=d['login'])
         u.save()
-        return auth.login(
-            this_module,
-            model=u,
-            sim_type=t,
-        )
+        auth.login(this_module, model=u, sim_type=t)
+        raise AssertionError('auth.login returned unexpectedly')
 
 
 @api_perm.require_cookie_sentinel

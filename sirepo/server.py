@@ -445,9 +445,7 @@ def api_root(simulation_type):
 @api_perm.require_user
 def api_saveSimulationData():
     sim = http_request.parse_post(fixup_old_data=1, id=1, template=1)
-    e = simulation_db.validate_serial(sim.req_data)
-    if e:
-        raise util.Error(PKDict(error=invalidSerial, simulationData=sim.req_data))
+    simulation_db.validate_serial(sim.req_data)
     d = sim.req_data
     if hasattr(sim.template, 'prepare_for_save'):
         d = template.prepare_for_save(d)
@@ -642,7 +640,6 @@ def init(uwsgi=None, use_reloader=False):
     _app.sirepo_db_dir = cfg.db_dir
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
-    http_reply.init_by_server(_app)
     simulation_db.init_by_server(_app)
     uri_router.init(_app, simulation_db)
     return _app

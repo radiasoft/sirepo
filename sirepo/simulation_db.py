@@ -829,9 +829,6 @@ def validate_serial(req_data):
 
     Args:
         req_data (dict): request with serial and possibly models
-
-    Returns:
-        object: None if all ok, or json response (bad)
     """
     with _global_lock:
         sim_type = sirepo.template.assert_sim_type(req_data.simulationType)
@@ -841,16 +838,20 @@ def validate_serial(req_data):
         curr_ser = curr.models.simulation.simulationSerial
         if not req_ser is None:
             if req_ser == curr_ser:
-                return None
+                return
             status = 'newer' if req_ser > curr_ser else 'older'
-            pkdlog(
-                '{}: incoming serial {} than stored serial={} sid={}, resetting client',
-                req_ser,
-                status,
-                curr_ser,
-                sid,
-            )
-        return curr
+        raise util.Error(
+            PKDict(
+                sim_type=sim_type,
+                error='invalidSerial',
+                simulationData=req_data,
+            ),
+            '{}: incoming serial {} than stored serial={} sid={}, resetting client',
+            req_ser,
+            status,
+            curr_ser,
+            sid,
+        )
 
 
 def verify_app_directory(simulation_type):

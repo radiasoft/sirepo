@@ -212,18 +212,16 @@ def logged_in_user():
 def login(module, uid=None, model=None, sim_type=None, display_name=None):
     """Login the user
 
+    Raises an exception if successful, except in the case of methods
+
     Args:
         module (module): method module
         uid (str): user to login
         model (auth_db.UserDbBase): user to login (overrides uid)
         sim_type (str): app to redirect to
-    Returns:
-        flask.Response: reply object or None (if no sim_type)
     """
-    r = _validate_method(module, sim_type=sim_type)
+    _validate_method(module, sim_type=sim_type)
     guest_uid = None
-    if r:
-        return r
     if model:
         uid = model.uid
         # if previously cookied as a guest, move the non-example simulations into uid below
@@ -239,7 +237,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None):
             reset_state()
         # We are logged in with a deprecated method, and now the user
         # needs to login with an allowed method.
-        return login_fail_redirect(sim_type, module, 'deprecated')
+        login_fail_redirect(sim_type, module, 'deprecated', reload_js=not uid)
     if not uid:
         # No user in the cookie and method didn't provide one so
         # the user might be switching methods (e.g. github to email or guest to email).
@@ -263,18 +261,18 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None):
     if sim_type:
         if guest_uid and guest_uid != uid:
             simulation_db.move_user_simulations(guest_uid, uid)
-        return login_success_redirect(sim_type)
-    # bluesky or basic
-    return None
+        login_success_redirect(sim_type)
+    assert not module.AUTH_METHOD_VISIBLE
 
 
-def login_fail_redirect(sim_type=None, module=None, reason=None):
+def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js):
     raise util.SRException(
         'loginFail',
         PKDict(
-            sim_type=sim_type,
-            reason=reason,
             method=module.AUTH_METHOD,
+            reason=reason,
+            reload_js=reload_js,
+            sim_type=sim_type,
         ),
         'login failed: reason={} method={}',
     )
@@ -287,14 +285,7 @@ def login_success_redirect(sim_type):
             complete_registration()
         else:
             r = 'completeRegistration',
-    raise new sirepo.util.SRException(
-        r,
-        None,
-        PKDict(
-            reload_js=1,
-            sim_type=sim_type,
-        ),
-    )
+    raise sirepo.util.SRException(r, PKDict(sim_type=sim_type, reload_js=True))
 
 
 def need_complete_registration(model):
@@ -322,9 +313,7 @@ def process_request(unit_test=None):
 
 def require_auth_basic():
     m = _METHOD_MODULES['basic']
-    r = _validate_method(m)
-    if r:
-        return r
+    _validate_method(m)
     uid = m.require_user()
     if not uid:
         return _app.response_class(
@@ -332,7 +321,8 @@ def require_auth_basic():
             headers={'WWW-Authenticate': 'Basic realm="*"'},
         )
     cookie.set_sentinel()
-    return login(m, uid=uid)
+    login(m, uid=uid)
+    return None
 
 
 def require_user():
@@ -352,13 +342,14 @@ def require_user():
         else:
             e = 'invalid'
             reset_state()
+            p = PKDict(reload_js=True)
         e = 'auth_method={} is {}, forcing login: uid='.format(m, e, u)
     elif s == _STATE_LOGGED_OUT:
         e = 'logged out uid={}'.format(_get_user())
         if m in cfg.deprecated_methods:
             # Force login to this specific method so we can migrate to valid method
             r = 'loginWith'
-            p = {':method': m}
+            p = PKDict({':method': m})
     elif s == _STATE_COMPLETE_REGISTRATION:
         if m == METHOD_GUEST:
             complete_registration()
@@ -367,8 +358,9 @@ def require_user():
         e = 'uid={} needs to complete registration'.format(_get_user())
     else:
         cookie.reset_state('state={} invalid, cannot continue'.format(s))
+        p = PKDict(reload_js=True)
         e = 'invalid cookie'
-    raise util.SRException(r, p, PKDict(reload_js=1), 'user not logged in: {}', e)
+    raise util.SRException(r, p, 'user not logged in: {}', e)
 
 
 def reset_state():
@@ -397,8 +389,7 @@ def user_dir_not_found(uid):
     reset_state()
     raise util.SRException(
         'login',
-        None,
-        PKDict(reload_js=1),
+        PKDict(reload_js=True),
         'simulation_db dir not found, deleted uid={}',
         uid,
     )
@@ -573,4 +564,4 @@ def _validate_method(module, sim_type=None):
     if module.AUTH_METHOD in valid_methods:
         return None
     pkdlog('invalid auth method={}'.format(module.AUTH_METHOD))
-    return login_fail_redirect(sim_type, module, 'invalid-method')
+    login_fail_redirect(sim_type, module, 'invalid-method', reload_js=True)
