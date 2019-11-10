@@ -64,6 +64,7 @@ def test_elegant_data_file(fc):
             suffix='csv',
         ),
     )
+    pkunit.pkre('no-cache', resp.headers['Cache-Control'])
     rows = csv.reader(StringIO.StringIO(resp.get_data()))
     pkunit.pkeq(50001, len(list(rows)), '50,000 particles plus header row')
     resp = fc.sr_get(
