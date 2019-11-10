@@ -340,6 +340,10 @@ class _TestClient(flask.testing.FlaskClient):
         import sirepo.uri
         import sirepo.util
 
+        redirects = kwargs.setdefault('__redirects', 0) + 1
+        assert redirects <= 5
+        kwargs['__redirects'] = redirects
+
         u = None
         r = None
         try:
@@ -353,12 +357,26 @@ class _TestClient(flask.testing.FlaskClient):
                 if m:
                     if kwargs.get('redirect', True):
                         # Execute the redirect
-                        return self.__req(m.group(1), None, None, self.get, raw_response)
+                        return self.__req(
+                            m.group(1),
+                            None,
+                            None,
+                            self.get,
+                            raw_response,
+                            __redirects=redirects,
+                        )
                     return flask.redirect(m.group(1))
             if r.status_code in (301, 302, 303, 305, 307, 308):
                 if kwargs.get('redirect', True):
                     # Execute the redirect
-                    return self.__req(r.headers['Location'], None, None, self.get, raw_response)
+                    return self.__req(
+                        r.headers['Location'],
+                        None,
+                        None,
+                        self.get,
+                        raw_response,
+                        __redirects=redirects,
+                    )
                 return r
             if raw_response:
                 return r

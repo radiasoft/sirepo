@@ -284,7 +284,6 @@ def api_getApplicationData(filename=''):
         response: may be a file or JSON
     """
     sim = http_request.parse_post(template=1)
-    pkdp(sim.req_data)
     res = sim.template.get_application_data(sim.req_data)
     if filename:
         assert isinstance(res, _PY_PATH_LOCAL_CLASS), \
@@ -449,7 +448,7 @@ def api_root(simulation_type):
 def api_saveSimulationData():
     sim = http_request.parse_post(fixup_old_data=1, id=1, template=1)
     d = sim.req_data
-    u = d.get('version') != simulation_db.app_version()
+    u = d.get('version') != simulation_db.SCHEMA_COMMON.version
     simulation_db.validate_serial(d)
     if hasattr(sim.template, 'prepare_for_save'):
         d = sim.template.prepare_for_save(d)
@@ -474,7 +473,6 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
     sim = http_request.parse_params(type=simulation_type, id=simulation_id, template=1)
     pretty = bool(int(pretty))
     try:
-        _verify_user_dir(sim.type)
         d = simulation_db.read_simulation_json(sim.type, sid=sim.id)
         if hasattr(sim.template, 'prepare_for_client'):
             d = sim.template.prepare_for_client(d)
@@ -498,7 +496,6 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
 @api_perm.require_user
 def api_listSimulations():
     sim = http_request.parse_post()
-    _verify_user_dir(sim.type)
     simulation_db.verify_app_directory(sim.type)
     return http_reply.gen_json(
         sorted(
@@ -758,14 +755,6 @@ def _source_cache_key():
     if cfg.enable_source_cache_key:
         return '?{}'.format(simulation_db.app_version())
     return ''
-
-
-def _verify_user_dir(sim_type):
-    # if user dir has been deleted, log out the user #1714
-    from sirepo import auth
-    uid = auth.logged_in_user()
-    if not simulation_db.user_dir_name(uid).check():
-        auth.user_dir_not_found(uid)
 
 
 def static_dir(dir_name):

@@ -77,7 +77,7 @@ def parse_post(**kwargs):
     k = PKDict(kwargs)
     r = k.pkdel('req_data')
     if not r:
-        r = pkdp(parse_json())
+        r = parse_json()
     if k.pkdel('fixup_old_data'):
         r = simulation_db.fixup_old_data(r)[0]
     res.pkupdate(

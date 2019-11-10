@@ -30,6 +30,7 @@ def test_srw_serial_stomp(fc):
     import copy
 
     data = fc.sr_sim_data("Young's Double Slit Experiment")
+    pkdp(data.version)
     prev_serial = data.models.simulation.simulationSerial
     prev_data = copy.deepcopy(data)
     pkok(

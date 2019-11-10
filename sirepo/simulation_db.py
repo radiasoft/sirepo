@@ -99,6 +99,9 @@ _global_lock = threading.RLock()
 #: configuration
 cfg = None
 
+#: version for development
+_dev_version = None
+
 
 class CopyRedirect(Exception):
     def __init__(self, resp):
@@ -1119,13 +1122,13 @@ def _user_dir():
     """User for the session
 
     Returns:
-        str: unique id for user from flask session
+        str: unique id for user
     """
     uid = sirepo.auth.logged_in_user()
     d = user_dir_name(uid)
-    if d.check():
-        return d
-    sirepo.auth.user_dir_not_found(uid)
+    if not d.check():
+        sirepo.auth.user_dir_not_found(uid)
+    return d
 
 
 _init()
