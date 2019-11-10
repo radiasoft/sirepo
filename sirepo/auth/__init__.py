@@ -285,7 +285,7 @@ def login_success_redirect(sim_type):
         if cookie.get_value(_COOKIE_METHOD) == METHOD_GUEST:
             complete_registration()
         else:
-            r = 'completeRegistration',
+            r = 'completeRegistration'
     raise sirepo.util.SRException(r, PKDict(sim_type=sim_type, reload_js=True))
 
 
@@ -337,10 +337,9 @@ def require_user():
         e = 'no user in cookie'
     elif s == _STATE_LOGGED_IN:
         if m in cfg.methods:
-            pkdp('uid={}', _get_user())
             f = getattr(_METHOD_MODULES[m], 'validate_login', None)
             if f:
-                pkdc('valid login method={}', m);
+                pkdc('validate_login method={}', m);
                 f()
             return
         u = _get_user()

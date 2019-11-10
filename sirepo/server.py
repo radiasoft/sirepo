@@ -448,7 +448,7 @@ def api_saveSimulationData():
     simulation_db.validate_serial(sim.req_data)
     d = sim.req_data
     if hasattr(sim.template, 'prepare_for_save'):
-        d = template.prepare_for_save(d)
+        d = sim.template.prepare_for_save(d)
     d = simulation_db.save_simulation_json(d)
     return api_simulationData(
         d.simulationType,

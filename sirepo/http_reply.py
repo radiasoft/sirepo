@@ -219,7 +219,7 @@ def _gen_exception_reply_Error(args):
         t = None
         s = simulation_db.get_schema(sim_type=None)
     if flask.request.method == 'POST':
-        return gen_json(args.pkupdate(_STATE, _ERROR_STATE))
+        return gen_json(args.pkupdate({_STATE: _ERROR_STATE}))
     q = PKDict()
     for k, v in args.items():
         try:

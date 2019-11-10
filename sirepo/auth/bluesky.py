@@ -5,18 +5,18 @@ u"""NSLS-II BlueSky Login
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 from sirepo import api_perm
-from sirepo import auth
-from sirepo import http_reply
-from sirepo import http_request
 from sirepo import simulation_db
 from sirepo import util
 import base64
 import hashlib
+import sirepo.auth
+import sirepo.http_reply
+import sirepo.http_request
 import time
 
 
@@ -44,19 +44,19 @@ _AUTH_NONCE_SEPARATOR = '-'
 
 @api_perm.allow_cookieless_set_user
 def api_authBlueskyLogin():
-    sim = http_request.parse_post(id=1)
+    sim = sirepo.http_request.parse_post(id=1)
     auth_hash(sim.req_data, verify=True)
     path = simulation_db.find_global_simulation(
         sim.type,
         sim.id,
         checked=True,
     )
-    auth.login(
+    sirepo.auth.login(
         this_module,
         uid=simulation_db.uid_from_dir_name(path),
         # do not supply sim_type (see auth.login)
     )
-    return http_reply.gen_json_ok(
+    return sirepo.http_reply.gen_json_ok(
         PKDict(
             data=simulation_db.open_json_file(sim.type, sid=sim.id),
             schema=simulation_db.get_schema(sim.type),

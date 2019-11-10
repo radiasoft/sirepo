@@ -1276,7 +1276,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if (reportName) {
             args['<report>'] = reportName;
         }
-        requestSender.globalRedirect('pythonSource', args, true);
+        requestSender.newWindow('pythonSource', args, true);
     };
 
     self.requestData = function(name, callback, forceRun) {
@@ -1464,8 +1464,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
             return;
         }
         if ($location.path() != p[1]) {
-            srdbg([1]);
-            srdbg($location.path());
             event.preventDefault();
             self.localRedirect(p[1]);
         }
@@ -1517,7 +1515,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         if (missing) {
             throw new Error(missing.join() + ': missing parameter(s) for route: ' + map[routeName]);
         }
-        srdbg(url);
         return url;
     }
 
@@ -1587,20 +1584,19 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         return auxillaryData[name];
     };
 
-    self.globalRedirect = function(routeNameOrUrl, params, newWindow) {
+    self.newWindow = function(routeName, params) {
+        $window.open(self.formatUrl(routeName, params), '_blank');
+    };
+
+    self.globalRedirect = function(routeNameOrUrl, params) {
         var u = routeNameOrUrl;
         if (u.indexOf('/') < 0) {
             u = self.formatUrl(u, params);
         }
-        if (newWindow) {
-            $window.open(u, '_blank');
-            return;
-        }
         $window.location.href = u;
-//        $window.location.reload(true);
     };
 
-    self.globalRedirectHome = function() {
+    self.globalRedirectRoot = function() {
         self.globalRedirect(
             'root',
             {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
@@ -1709,17 +1705,23 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                 msg = 'the server is unavailable';
                 status = 503;
             }
-            srdbg(data);
-            var m;
+            else if (status === -1) {
+                msg = 'Server unavailable';
+            }
+            else if (SIREPO.APP_SCHEMA.customErrors[status]) {
+                msg = SIREPO.APP_SCHEMA.customErrors[status].msg;
+            }
             if (angular.isString(data) && IS_HTML_ERROR_RE.exec(data)) {
-                // If javascript-redirect.html
-                m = REDIRECT_RE.exec(data);
+                // javascript-redirect.html
+                var m = REDIRECT_RE.exec(data);
                 if (m) {
                     srlog('javascriptRedirectDocument', m[1]);
                     self.globalRedirect(m[1]);
+//TODO(robnagler) Seems to be unnecessary by the error callback fix (below)
+//                    $window.location.reload(true);
                     return;
                 }
-                // If HTML document with error title
+                // HTML document with error msg in title
                 m = HTML_TITLE_RE.exec(data);
                 if (m) {
                     srlog('htmlErrorDocument', m[1]);
@@ -1738,15 +1740,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                 data.state = 'error';
             }
             if (data.state == 'srException') {
-                srdbg('srException', data.srException);
                 self.handleSRException(data);
                 return;
-            }
-            if (status == -1) {
-                msg = 'Server unavailable';
-            }
-            else if (SIREPO.APP_SCHEMA.customErrors[status]) {
-                msg = SIREPO.APP_SCHEMA.customErrors[status].msg;
             }
             if (! data.error) {
                 if (msg) {
@@ -1763,17 +1758,12 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         req.then(
             function(response) {
                 var data = response.data;
+                if (! angular.isObject(data) || data.state === 'srException') {
+                    thisErrorCallback(response);
+                    return;
+                }
                 $interval.cancel(interval);
-                if (angular.isObject(data)) {
-                    if (data.state == 'srException') {
-                        self.handleSRException(data);
-                        return;
-                    }
-                    successCallback(data, response.status);
-                }
-                else {
-                    thisErrorCallback(data, response.status);
-                }
+                successCallback(data, response.status);
             },
             thisErrorCallback
         );
@@ -2667,18 +2657,19 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
         if (! appState.isLoaded()) {
             return;
         }
-        var url = requestSender.formatUrl(
-            'findByNameWithAuth',
-            {
-                '<simulation_name>': name,
-                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                '<application_mode>': applicationMode,
-            });
         appState.deleteSimulation(
             appState.models.simulation.simulationId,
             function() {
-                requestSender.globalRedirect(url);
-            });
+                requestSender.globalRedirect(
+                    'findByNameWithAuth',
+                    {
+                        '<simulation_name>': name,
+                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                        '<application_mode>': applicationMode,
+                    }
+                );
+            }
+        );
     };
 
     self.sectionTitle = function() {
@@ -2941,7 +2932,6 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
                     return;
                 }
                 self.isWaitingForList = false;
-                srdbg(data);
                 data.sort(function(a, b) {
                     return a.last_modified.localeCompare(b.last_modified);
                 });
@@ -3113,7 +3103,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
     };
 
     self.exportArchive = function(item, extension) {
-        requestSender.globalRedirect(
+        requestSender.newWindow(
             'exportArchive',
             {
                 '<simulation_id>': item.simulationId,

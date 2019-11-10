@@ -178,7 +178,6 @@ def _init_model(db, base):
     UserModel = AuthEmailUser
 
 
-
 def _parse_email(data):
     res = data.email.strip().lower()
     assert pyisemail.is_email(res), \
@@ -234,4 +233,4 @@ def _verify_confirm(sim_type, token, need_complete_registration):
             token,
             d,
         )
-    return d.get('displayName'))
+    return d.get('displayName')

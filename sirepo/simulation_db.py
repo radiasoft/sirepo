@@ -10,8 +10,8 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkio
 from pykern import pkresource
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import auth
 from sirepo import feature_config
 from sirepo import srschema
 from sirepo import util
@@ -27,6 +27,7 @@ import os.path
 import py
 import random
 import re
+import sirepo.auth
 import sirepo.job
 import sirepo.template
 import threading
@@ -75,7 +76,7 @@ _OLDEST_VERSION = '20140101.000001'
 _RUN_LOG_CANCEL_RE = re.compile(r'^KeyboardInterrupt$', flags=re.MULTILINE)
 
 #: Cache of schemas keyed by app name
-_SCHEMA_CACHE = pkcollections.Dict()
+_SCHEMA_CACHE = PKDict()
 
 #: Special field to direct pseudo-subclassing of schema objects
 _SCHEMA_SUPERCLASS_FIELD = '_super'
@@ -226,7 +227,7 @@ def fixup_old_data(data, force=False):
             data.models.simulation.simulationSerial = 0
         import sirepo.sim_data
         sirepo.sim_data.get_class(data.simulationType).fixup_old_data(data)
-        pkcollections.unchecked_del(data, 'fixup_old_version')
+        data.pkdel('fixup_old_version')
         return data, True
     except Exception as e:
         pkdlog('exception={} data={} stack={}', e, data, pkdexc())
@@ -255,7 +256,7 @@ def get_schema(sim_type):
     pkcollections.mapping_merge(schema, SCHEMA_COMMON)
     pkcollections.mapping_merge(
         schema,
-        pkcollections.Dict(feature_config=feature_config.for_sim_type(t)),
+        PKDict(feature_config=feature_config.for_sim_type(t)),
     )
     schema.simulationType = t
     _SCHEMA_CACHE[t] = schema
@@ -266,7 +267,7 @@ def get_schema(sim_type):
 
     for item in ['appModes', 'constants', 'cookies', 'enum', 'notifications', 'localRoutes', 'model', 'view']:
         if item not in schema:
-            schema[item] = pkcollections.Dict()
+            schema[item] = PKDict()
         _merge_dicts(schema.common[item], schema[item])
         _merge_subclasses(schema, item)
     srschema.validate(schema)
@@ -424,8 +425,8 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True):
             if find_global_simulation(sim_type, sid):
                 global_sid = sid
         if global_sid:
-            raise CopyRedirect(pkcollections.Dict(
-                redirect=pkcollections.Dict(
+            raise CopyRedirect(PKDict(
+                redirect=PKDict(
                     simulationId=global_sid,
                     userCopySimulationId=user_copy_sid,
                 ),
@@ -518,7 +519,7 @@ def prepare_simulation(data, run_dir=None):
 
 def process_simulation_list(res, path, data):
     sim = data['models']['simulation']
-    res.append(pkcollections.Dict(
+    res.append(PKDict(
         simulationId=_sim_from_path(path)[0],
         name=sim['name'],
         folder=sim['folder'],
@@ -579,10 +580,10 @@ def read_result(run_dir):
     if err:
         return None, err
     if not res:
-        res = pkcollections.Dict()
+        res = PKDict()
     if 'state' not in res:
         # Old simulation or other error, just say is canceled so restarts
-        res = pkcollections.Dict(state='canceled')
+        res = PKDict(state='canceled')
     return res, None
 
 
@@ -637,7 +638,7 @@ def save_simulation_json(data, do_validate=True):
     """
     data = fixup_old_data(data)[0]
     # old implementation value
-    pkcollections.unchecked_del(data, 'computeJobHash')
+    data.pkdel('computeJobHash')
     s = data.models.simulation
     sim_type = data.simulationType
     fn = sim_data_file(sim_type, s.simulationId)
@@ -657,7 +658,7 @@ def save_simulation_json(data, do_validate=True):
                 iterate_simulation_datafiles(
                     sim_type,
                     lambda res, _, d: res.append(d),
-                    pkcollections.Dict({'simulation.folder': s.folder}),
+                    PKDict({'simulation.folder': s.folder}),
                 ),
                 SCHEMA_COMMON.common.constants.maxSimCopies
             )
@@ -924,12 +925,12 @@ def _files_in_schema(schema):
     The order matters for javascript files
 
     Args:
-        schema (pkcollections.Dict): schema (or portion thereof) to inspect
+        schema (PKDict): schema (or portion thereof) to inspect
 
     Returns:
         str: combined list of local and external file paths, mapped by type
     """
-    paths = pkcollections.Dict()
+    paths = PKDict()
     for source, path in (('externalLibs', 'ext'), ('sirepoLibs', '')):
         for file_type in schema[source]:
             if file_type not in paths:
@@ -945,7 +946,7 @@ def _find_user_simulation_copy(simulation_type, sid):
     rows = iterate_simulation_datafiles(
         simulation_type,
         process_simulation_list,
-        pkcollections.Dict({'simulation.outOfSessionSimulationId': sid}),
+        PKDict({'simulation.outOfSessionSimulationId': sid}),
     )
     if len(rows):
         return rows[0]['simulationId']
@@ -1045,7 +1046,7 @@ def _random_id(parent_dir, simulation_type=None):
         d = parent_dir.join(i)
         try:
             os.mkdir(str(d))
-            return pkcollections.Dict(id=i, path=d)
+            return PKDict(id=i, path=d)
         except OSError as e:
             if e.errno == errno.EEXIST:
                 pass
@@ -1120,11 +1121,11 @@ def _user_dir():
     Returns:
         str: unique id for user from flask session
     """
-    uid = auth.logged_in_user()
+    uid = sirepo.auth.logged_in_user()
     d = user_dir_name(uid)
     if d.check():
         return d
-    auth.user_dir_not_found(uid)
+    sirepo.auth.user_dir_not_found(uid)
 
 
 _init()
