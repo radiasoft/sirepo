@@ -834,6 +834,8 @@ def validate_serial(req_data):
     Args:
         req_data (dict): request with serial and possibly models
     """
+    if req_data.get('version') != SCHEMA_COMMON.version:
+        raise util.SRException('serverUpgraded', None)
     with _global_lock:
         sim_type = sirepo.template.assert_sim_type(req_data.simulationType)
         sid = req_data.models.simulation.simulationId

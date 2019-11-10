@@ -26,11 +26,9 @@ def test_srw_serial_stomp(fc):
     from pykern.pkdebug import pkdp, pkdpretty
     from pykern.pkunit import pkfail, pkok
     from pykern.pkcollections import PKDict
-    from sirepo import srunit
     import copy
 
     data = fc.sr_sim_data("Young's Double Slit Experiment")
-    pkdp(data.version)
     prev_serial = data.models.simulation.simulationSerial
     prev_data = copy.deepcopy(data)
     pkok(
@@ -65,3 +63,13 @@ def test_srw_serial_stomp(fc):
         new_serial,
         curr_serial,
     )
+
+def test_elegant_server_upgraded(fc):
+    from pykern.pkdebug import pkdp, pkdpretty
+    from pykern.pkunit import pkexcept
+    from pykern.pkcollections import PKDict
+
+    d = fc.sr_sim_data('Backtracking')
+    d.version = d.version[:-1] + str(int(d.version[-1]) - 1)
+    with pkexcept('serverupgraded'):
+        fc.sr_post('saveSimulationData', d)

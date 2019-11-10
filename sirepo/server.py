@@ -446,15 +446,14 @@ def api_root(simulation_type):
 
 @api_perm.require_user
 def api_saveSimulationData():
-    sim = http_request.parse_post(fixup_old_data=1, id=1, template=1)
+    # do not fixup_old_data yet
+    sim = http_request.parse_post(id=1, template=1)
     d = sim.req_data
-    u = d.get('version') != simulation_db.SCHEMA_COMMON.version
     simulation_db.validate_serial(d)
+    d = simulation_db.fixup_old_data(d)[0]
     if hasattr(sim.template, 'prepare_for_save'):
         d = sim.template.prepare_for_save(d)
     d = simulation_db.save_simulation_json(d)
-    if u:
-        raise sirepo.util.SRException('serverUpgraded', None)
     return api_simulationData(
         d.simulationType,
         d.models.simulation.simulationId,
