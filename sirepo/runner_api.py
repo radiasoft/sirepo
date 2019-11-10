@@ -73,7 +73,7 @@ def api_runSimulation():
 def api_runStatus():
     return http_reply.gen_json(
         _simulation_run_status(
-            http_request.parse_sim(id=1, model=1),
+            http_request.parse_post(id=1, model=1),
         ),
     )
 

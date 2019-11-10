@@ -7,9 +7,10 @@ u"""request input parsing
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-import sirepo.util
 import flask
+import sirepo.sim_data
 import sirepo.template
+import sirepo.util
 import user_agents
 
 _PARAM_MAP = PKDict(
@@ -26,8 +27,8 @@ _SIM_TYPE_ATTR = 'sirepo_sim_type'
 CALL_API_DATA_ATTR = 'sirepo_call_api_data'
 
 
-def init_by_server():
-    global
+def init(**imports):
+    sirepo.util.setattr_imports(imports)
 
 
 def is_spider():
@@ -35,8 +36,6 @@ def is_spider():
 
 
 def parse_json():
-    from sirepo import simulation_db
-
     #POSIT: uri_router.call_api
     d = flask.g.pop(CALL_API_DATA_ATTR, None)
     if d:
@@ -69,27 +68,26 @@ def parse_params(**kwargs):
             a[k] = True
     assert not p, \
         'unexpected kwargs={}'.format(p)
-    return parse_json(**a)
+    return parse_post(**a)
 
 
 def parse_post(**kwargs):
-    import sirepo.sim_data
-    import sirepo.simulation_db
-    import sirepo.template
-
     res = PKDict()
     k = PKDict(kwargs)
     r = k.pkdel('req_data')
     if not r:
-        r = http_request.parse_json()
+        r = parse_json()
     if k.pkdel('fixup_old_data'):
         r = simulation_db.fixup_old_data(r)[0]
-    res.req_data = r
+    res.pkupdate(
+        req_data=r,
+        type=sirepo.template.assert_sim_type(r.simulationType),
+    )
     res.sim_data = sirepo.sim_data.get_class(res.type)
     # flask.g API is very limited but do this in order to
     # maintain explicit coupling of _SIM_TYPE_ATTR
     flask.g.pop(_SIM_TYPE_ATTR, None)
-    flask.g.setdefault(_SIM_TYPE_ATTR, r.simulationType)
+    flask.g.setdefault(_SIM_TYPE_ATTR, res.type)
     if k.pkdel('id'):
         res.id = res.sim_data.parse_sid(r)
     if k.pkdel('filename'):
@@ -99,7 +97,7 @@ def parse_post(**kwargs):
     if k.pkdel('model'):
         res.model = res.sim_data.parse_model(r)
     if k.pkdel('template'):
-        res.template = sirepo.template.import_module(sim.type)
+        res.template = sirepo.template.import_module(res.type)
     if k:
         # always parse type, but allow people to pass as param
         k.pkdel('type')

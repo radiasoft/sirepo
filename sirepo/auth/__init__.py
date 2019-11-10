@@ -5,6 +5,7 @@ u"""Authentication
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from pykern import pkcollections
 from pykern import pkconfig
@@ -265,7 +266,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None):
     assert not module.AUTH_METHOD_VISIBLE
 
 
-def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js):
+def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js=False):
     raise util.SRException(
         'loginFail',
         PKDict(

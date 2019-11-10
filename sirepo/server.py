@@ -281,7 +281,7 @@ def api_getApplicationData(filename=''):
     Returns:
         response: may be a file or JSON
     """
-    sim = http_request.parse_sim(id=1, template=1)
+    sim = http_request.parse_post(id=1, template=1)
     res = sim.template.get_application_data(sim.req_data)
     if filename:
         assert isinstance(res, _PY_PATH_LOCAL_CLASS), \

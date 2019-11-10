@@ -23,7 +23,6 @@ def test_warppba(fc):
 
 
 def _r(fc, sim_name, analysis_model):
-    from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp, pkdlog
     from sirepo import srunit
     from pykern import pkunit

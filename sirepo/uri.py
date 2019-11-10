@@ -31,7 +31,7 @@ def app_root(sim_type):
         str: formatted URI
     """
     t = http_request.sim_type(sim_type)
-    return '/' t is None else '/' + t
+    return '/' if t is None else '/' + t
 
 
 def default_local_route_name(schema):
@@ -45,9 +45,9 @@ def default_local_route_name(schema):
 
 
 def init(**imports):
-    m = pykern.pkinspect.this_module()
-    for k, v in imports.items():
-        setattr(m, k, v)
+    import sirepo.util
+
+    sirepo.util.setattr_imports(imports)
 
 
 def local_route(sim_type, route_name=None, params=None, query=None):

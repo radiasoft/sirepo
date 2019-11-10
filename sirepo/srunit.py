@@ -44,7 +44,9 @@ def flask_client(cfg=None, sim_types=None):
     a = 'srunit_flask_client'
     if not cfg:
         cfg = {}
-    cfg['SIREPO_FEATURE_CONFIG_SIM_TYPES'] = sim_types or CONFTEST_ALL_CODES
+    t = sim_types or CONFTEST_ALL_CODES
+    if t:
+        cfg['SIREPO_FEATURE_CONFIG_SIM_TYPES'] = t
     if not (server and hasattr(app, a)):
         from pykern import pkconfig
 

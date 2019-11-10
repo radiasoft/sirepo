@@ -81,6 +81,7 @@ def call_api(func_or_name, kwargs=None, data=None):
                 if data:
                     flask.g.pop(sirepo.http_request.CALL_API_DATA_ATTR, None)
     except Exception as e:
+        pkdlog('exception={} stack={}', e, pkdexc())
         r = sirepo.http_reply.gen_exception(e)
     sirepo.cookie.save_to_cookie(r)
     return r
@@ -106,15 +107,18 @@ def init(app, simulation_db):
         register_api_module(importlib.import_module('sirepo.' + n))
     _init_uris(app, simulation_db)
 
-    sirepo.http_request.init()
+    sirepo.http_request.init(
+        simulation_db=simulation_db,
+    )
     sirepo.http_reply.init(
         app,
         simulation_db=simulation_db,
     )
     sirepo.uri.init(
-        uri_router=pkinspect.this_module(),
-        http_request=sirepo.http_request,
         http_reply=sirepo.http_reply,
+        http_request=sirepo.http_request,
+        simulation_db=simulation_db,
+        uri_router=pkinspect.this_module(),
     )
 
 

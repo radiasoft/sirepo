@@ -9,6 +9,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp
 import inspect
 import numconv
+import pykern.pkinspect
 import random
 import werkzeug.exceptions
 
@@ -135,6 +136,12 @@ def random_base62(length=32):
     """
     r = random.SystemRandom()
     return ''.join(r.choice(numconv.BASE62) for x in range(length))
+
+
+def setattr_imports(imports):
+    m = pykern.pkinspect.caller_module()
+    for k, v in imports.items():
+        setattr(m, k, v)
 
 
 def _raise(exc, fmt, *args, **kwargs):

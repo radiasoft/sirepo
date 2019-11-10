@@ -15,6 +15,7 @@ import re
 import sirepo.http_request
 import sirepo.uri
 import sirepo.util
+import werkzeug.exceptions
 
 
 #: HTTP status code for srException (BAD REQUEST)
@@ -52,7 +53,7 @@ def gen_exception(exc):
     if isinstance(exc, sirepo.util.Reply):
         return _gen_exception_reply(exc)
     if isinstance(exc, werkzeug.exceptions.HTTPException):
-        return _gen_exception_werzeug(exc)
+        return _gen_exception_werkzeug(exc)
     return _gen_exception_error(exc)
 
 
@@ -158,15 +159,14 @@ def headers_for_no_cache(resp):
 def init(app, **imports):
     global MIME_TYPE, _RELOAD_JS_ROUTES
 
-    m = pykern.pkinspect.this_module()
-    for k, v in imports.items():
-        setattr(m, k, v)
+    sirepo.util.setattr_imports(imports)
     MIME_TYPE = pkcollections.Dict(
         html='text/html',
         js='application/javascript',
         json=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
         py='text/x-python',
     )
+    s = simulation_db.get_schema(sim_type=None)
     _RELOAD_JS_ROUTES = frozenset(
         (k for k, v in s.localRoutes.items() if v.get('requireReload')),
     )
@@ -195,19 +195,13 @@ def render_static(base, ext, j2_ctx, cache_ok=False):
 
 
 def _gen_exception_error(exc):
-    return _gen_exception_reply_Error(
-        sirepo.util.Error(
-            PKDict({_ERROR_STATE: _SERVER_ERROR}),
-            'unsupported exception={} stack={}',
-            exc,
-            pkdexc(),
-        ),
-    )
+    pkdlog('unsupported exception={}', exc)
+    return gen_redirect_for_local_route(None, route='error')
 
 
 def _gen_exception_reply(exc):
     f = getattr(
-        pkinspect.this_module(),
+        pykern.pkinspect.this_module(),
         '_gen_exception_reply_' + exc.__class__.__name__,
         None,
     )
@@ -280,3 +274,8 @@ def _gen_exception_reply_UserAlert(args):
     return gen_json(
         PKDict({_STATE: _ERROR_STATE, _ERROR_STATE: a.error}),
     )
+
+
+def _gen_exception_werkzeug(exc):
+#TODO(robnagler) convert exceptions to our own
+    raise exc
