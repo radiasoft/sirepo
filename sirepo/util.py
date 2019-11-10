@@ -80,7 +80,7 @@ class Response(Reply):
         log_fmt (str): server side log data
     """
     def __init__(self, response, *args, **kwargs):
-        super(Redirect, self).__init__(
+        super(Response, self).__init__(
             PKDict(response=response),
             *args,
             **kwargs

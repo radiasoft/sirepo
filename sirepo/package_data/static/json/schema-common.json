@@ -400,7 +400,8 @@
         },
         "422": {
             "url": "srw-magnet-file-error.html",
-            "msg": "Invalid Magnet File"
+            "msg": "Invalid Magnet File",
+            "route": "error"
         },
         "500": {
             "url": "server-error.html",

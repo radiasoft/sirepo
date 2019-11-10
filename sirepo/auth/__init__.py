@@ -317,7 +317,7 @@ def require_auth_basic():
     _validate_method(m)
     uid = m.require_user()
     if not uid:
-        raise sirepo.util.Repsonse(
+        raise sirepo.util.Response(
             _app.response_class(
                 status=401,
                 headers={'WWW-Authenticate': 'Basic realm="*"'},

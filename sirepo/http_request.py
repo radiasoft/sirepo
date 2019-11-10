@@ -40,7 +40,7 @@ def parse_json():
     #POSIT: uri_router.call_api
     d = flask.g.pop(CALL_API_DATA_ATTR, None)
     if d:
-        return res
+        return d
     req = flask.request
     if req.mimetype != 'application/json':
         sirepo.util.raise_bad_request(
