@@ -139,7 +139,9 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         int(frame),
         options=sim.req_data.copy().update(suffix=suffix),
     )
-    return _as_attachment(flask.make_response(c), t, f)
+    return http_reply.headers_for_no_cache(
+        _as_attachment(flask.make_response(c), t, f),
+    )
 
 
 @api_perm.require_user
