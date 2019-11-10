@@ -5,20 +5,13 @@ u"""Common execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
-from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjinja
-from pykern import pkresource
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-import datetime
-import hashlib
-import json
 import math
-import numpy as np
+import numpy
 import os.path
-import py.path
 import re
 import sirepo.http_reply
 import sirepo.http_request
@@ -26,6 +19,7 @@ import sirepo.sim_data
 import sirepo.template
 import subprocess
 import types
+
 
 ANIMATION_ARGS_VERSION_RE = re.compile(r'v(\d+)$')
 
@@ -212,7 +206,7 @@ def flatten_data(d, res, prefix=''):
 
 
 def generate_parameters_file(data):
-    v = flatten_data(data['models'], pkcollections.Dict())
+    v = flatten_data(data['models'], PKDict())
     v['notes'] = _get_notes(v)
     return render_jinja(None, v, name='common-header.py'), v
 
@@ -224,13 +218,7 @@ def sim_frame(frame_id, op):
     x = op(f)
     r = sirepo.http_reply.gen_json(x)
     if 'error' not in x and s.want_browser_frame_cache():
-#TODO(robnagler) move to http_reply (set_cache)
-        n = datetime.datetime.utcnow()
-        e = n + datetime.timedelta(365)
-#rn why is this public? this is not public data.
-        r.headers['Cache-Control'] = 'public, max-age=31536000'
-        r.headers['Expires'] = e.strftime("%a, %d %b %Y %H:%M:%S GMT")
-        r.headers['Last-Modified'] = n.strftime("%a, %d %b %Y %H:%M:%S GMT")
+        r.headers['Cache-Control'] = 'private, max-age=31536000'
     else:
         sirepo.http_reply.headers_for_no_cache(r)
     return r
@@ -291,7 +279,7 @@ def heatmap(values, model, plot_fields=None):
             range = [_plot_range(model, 'horizontal'), _plot_range(model, 'vertical')]
         elif model['plotRangeType'] == 'fit' and 'fieldRange' in model:
             range = [model.fieldRange[model['x']], model.fieldRange[model['y']]]
-    hist, edges = np.histogramdd(values, histogram_bins(model['histogramBins']), range=range)
+    hist, edges = numpy.histogramdd(values, histogram_bins(model['histogramBins']), range=range)
     res = PKDict(
         x_range=[float(edges[0][0]), float(edges[0][-1]), len(hist)],
         y_range=[float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
