@@ -257,7 +257,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
                                 resp.simulationData.models.simulation.simulationId,
                                 ': update collision newSerial=',
                                 resp.simulationData.models.simulation.simulationSerial,
-                                '; refreshing',
+                                '; refreshing'
                             );
                             refreshSimulationData(resp.simulationData);
                             errorService.alertText(
@@ -1607,7 +1607,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     self.handleSRException = function(data) {
         var e = data.srException;
         var u = $location.url();
-        if (e.routeName == LOGIN_ROUTE_NAME and u != LOGIN_URI) {
+        if (e.routeName == LOGIN_ROUTE_NAME && u != LOGIN_URI) {
             saveCookieRedirect(u);
         }
         self.localRedirect(e.routeName, e.params);
@@ -1628,7 +1628,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     self.localRedirectHome = function(simulationId) {
         self.localRedirect(
             self.defaultRouteName(),
-            {':simulationId': simulationId},
+            {':simulationId': simulationId}
         );
     };
 
@@ -1766,7 +1766,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                     thisErrorCallback(data, response.status);
                 }
             },
-            thisErrorCallback,
+            thisErrorCallback
         );
     };
 
@@ -2762,6 +2762,24 @@ SIREPO.app.controller('LoginWithController', function ($route, $window, errorSer
         self.msg = '';
         errorService.alertText('Incorrect or invalid login method: ' + (m || '<none>'));
         requestSender.localRedirect('login');
+    }
+});
+
+SIREPO.app.controller('LoginController', function (authService, authState, requestSender) {
+    var self = this;
+    self.authService = authService;
+
+    if (authState.isLoggedIn && ! authState.isGuestUser && ! authState.needCompleteRegistration) {
+        requestSender.localRedirect('simulations');
+        return;
+    }
+
+    if (authState.visibleMethods.length === 1) {
+        requestSender.localRedirect(
+            'loginWith',
+            {':method': authState.visibleMethods[0]}
+        );
+        return;
     }
 });
 

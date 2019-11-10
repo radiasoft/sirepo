@@ -205,6 +205,7 @@ def _gen_exception_reply(exc):
         '_gen_exception_reply_' + exc.__class__.__name__,
         None,
     )
+    pkdc('exception={} sr_args={}', exc, exc.sr_args)
     if not f:
         return _gen_exception_error(exc)
     return f(exc.sr_args)
@@ -243,18 +244,20 @@ def _gen_exception_reply_SRException(args):
     try:
         t = sirepo.http_request.sim_type(p.pkdel('sim_type'))
         s = simulation_db.get_schema(sim_type=t)
-    except Exception:
+    except Exception as e:
+        pkdc('exception={} stack={}', e, pkdexc())
         # sim_type is bad so don't cascade errors, just
         # try to get the schema without the type
         t = None
         s = simulation_db.get_schema(sim_type=None)
     # If default route or always redirect/reload
-    if not (t and r and r in s.localRoutes):
-        if r:
-            pkdlog('route={} not found in schema for type={}', r, t)
+    if r:
+        assert r in s.localRoutes, \
+            'route={} not found in schema for type={}'.format(r, t)
+    else:
         r = sirepo.uri.default_local_route_name(s)
-        p = None
-    elif (
+        p = PKDict(reload_js=True)
+    if (
         # must be first
         not p.pkdel('reload_js')
         and flask.request.method == 'POST'
