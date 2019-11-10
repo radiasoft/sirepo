@@ -317,13 +317,14 @@ def require_auth_basic():
     _validate_method(m)
     uid = m.require_user()
     if not uid:
-        return _app.response_class(
-            status=401,
-            headers={'WWW-Authenticate': 'Basic realm="*"'},
+        raise sirepo.util.Repsonse(
+            _app.response_class(
+                status=401,
+                headers={'WWW-Authenticate': 'Basic realm="*"'},
+            ),
         )
     cookie.set_sentinel()
     login(m, uid=uid)
-    return None
 
 
 def require_user():
@@ -336,7 +337,12 @@ def require_user():
         e = 'no user in cookie'
     elif s == _STATE_LOGGED_IN:
         if m in cfg.methods:
-            return _METHOD_MODULES[m].validate_login()
+            pkdp('uid={}', _get_user())
+            f = getattr(_METHOD_MODULES[m], 'validate_login', None)
+            if f:
+                pkdc('valid login method={}', m);
+                f()
+            return
         u = _get_user()
         if m in cfg.deprecated_methods:
             e = 'deprecated'
@@ -346,21 +352,27 @@ def require_user():
             p = PKDict(reload_js=True)
         e = 'auth_method={} is {}, forcing login: uid='.format(m, e, u)
     elif s == _STATE_LOGGED_OUT:
-        e = 'logged out uid={}'.format(_get_user())
+        u = _get_user()
+        e = 'logged out uid={}'.format(u)
         if m in cfg.deprecated_methods:
             # Force login to this specific method so we can migrate to valid method
             r = 'loginWith'
             p = PKDict({':method': m})
+            e = 'forced {}={} uid={}'.format(m, r, p)
     elif s == _STATE_COMPLETE_REGISTRATION:
         if m == METHOD_GUEST:
+            pkdc('guest completeRegistration={}', _get_user())
             complete_registration()
-            return None
+            return
+        u = _get_user()
         r = 'completeRegistration'
-        e = 'uid={} needs to complete registration'.format(_get_user())
+        e = 'uid={} needs to complete registration'.format(u)
     else:
-        cookie.reset_state('state={} invalid, cannot continue'.format(s))
+        u = _get_user()
+        cookie.reset_state('uid={} state={} invalid, cannot continue'.format(s, u))
         p = PKDict(reload_js=True)
-        e = 'invalid cookie'
+        e = 'invalid cookie state={} uid={}'.format(s, u)
+    pkdc('SRException uid={} route={} params={} method={} error={}', u, r, p, m, e)
     raise util.SRException(r, p, 'user not logged in: {}', e)
 
 

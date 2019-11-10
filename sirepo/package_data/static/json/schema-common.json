@@ -261,8 +261,7 @@
                 "config": {
                   "controller": "LoginFailController as loginFail",
                   "templateUrl": "/static/html/login-fail.html"
-                },
-                "requireReload": true
+                }
             },
             "loginWith": {
                 "route": "/login-with/:method",

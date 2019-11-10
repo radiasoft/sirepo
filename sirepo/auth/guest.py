@@ -5,18 +5,16 @@ u"""Guest login
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import auth
 from sirepo import cookie
-from sirepo import http_reply
 from sirepo import http_request
 from sirepo import srtime
 import datetime
-import sirepo.template
 import sirepo.util
 
 
@@ -94,7 +92,7 @@ def validate_login():
     Returns:
         object: if valid, None, otherwise flask.Response.
     """
-    msg = pkcollections.Dict()
+    msg = PKDict()
     if is_login_expired(msg):
         raise sirepo.util.SRException(
             'loginFail',
@@ -102,7 +100,6 @@ def validate_login():
             'expired uid={uid}, expiry={expiry} now={now}',
             **msg
         )
-    return None
 
 
 def _cfg_login_days(value):

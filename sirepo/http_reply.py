@@ -18,9 +18,6 @@ import sirepo.util
 import werkzeug.exceptions
 
 
-#: HTTP status code for srException (BAD REQUEST)
-SR_EXCEPTION_STATUS = 400
-
 #: data.state for srException
 SR_EXCEPTION_STATE = 'srException'
 
@@ -157,8 +154,9 @@ def headers_for_no_cache(resp):
 
 
 def init(app, **imports):
-    global MIME_TYPE, _RELOAD_JS_ROUTES
+    global MIME_TYPE, _RELOAD_JS_ROUTES, _app
 
+    _app = app
     sirepo.util.setattr_imports(imports)
     MIME_TYPE = pkcollections.Dict(
         html='text/html',
@@ -235,7 +233,14 @@ def _gen_exception_reply_Error(args):
 
 
 def _gen_exception_reply_Redirect(args):
-    return gen_redirect(args.get('uri'))
+    return gen_redirect(args.uri)
+
+
+def _gen_exception_reply_Response(args):
+    r = args.response
+    assert isinstance(r, _app.response_class), \
+        'invalid class={} response={}'.format(type(r), r)
+    return r
 
 
 def _gen_exception_reply_SRException(args):
@@ -258,18 +263,19 @@ def _gen_exception_reply_SRException(args):
         r = sirepo.uri.default_local_route_name(s)
         p = PKDict(reload_js=True)
     if (
-        # must be first
+        # must be first, to always delete reload_js
         not p.pkdel('reload_js')
         and flask.request.method == 'POST'
         and r not in _RELOAD_JS_ROUTES
     ):
+        pkdc('POST response={} route={} params={}', SR_EXCEPTION_STATE, r, p)
         return gen_json(
             PKDict({
                 _STATE: SR_EXCEPTION_STATE,
                 SR_EXCEPTION_STATE: args,
             }),
-            response_kwargs=PKDict(status=SR_EXCEPTION_STATUS),
         )
+    pkdc('redirect to route={} params={}  type={}', r, p, t)
     return gen_redirect_for_local_route(t, route=r, params=p)
 
 

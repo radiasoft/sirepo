@@ -72,6 +72,21 @@ class Redirect(Reply):
         )
 
 
+class Response(Reply):
+    """Raise with a Response object
+
+    Args:
+        response (str): what the reply should be
+        log_fmt (str): server side log data
+    """
+    def __init__(self, response, *args, **kwargs):
+        super(Redirect, self).__init__(
+            PKDict(response=response),
+            *args,
+            **kwargs
+        )
+
+
 class SRException(Reply):
     """Raised to communicate a local redirect and log info
 

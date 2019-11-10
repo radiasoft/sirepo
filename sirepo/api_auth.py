@@ -33,15 +33,14 @@ def check_api_call(func):
         if not cookie.has_sentinel():
             raise sirepo.util.SRException('missingCookies', None)
         if expect == a.REQUIRE_USER:
-            return auth.require_user()
+            auth.require_user()
     elif expect == a.ALLOW_VISITOR:
         pass
     elif expect in (a.ALLOW_COOKIELESS_SET_USER, a.ALLOW_COOKIELESS_REQUIRE_USER):
         cookie.set_sentinel()
         if expect == a.ALLOW_COOKIELESS_REQUIRE_USER:
-            return auth.require_user()
+            auth.require_user()
     elif expect == a.REQUIRE_AUTH_BASIC:
-        return auth.require_auth_basic()
+        auth.require_auth_basic()
     else:
         raise AssertionError('unhandled api_perm={}'.format(expect))
-    return None

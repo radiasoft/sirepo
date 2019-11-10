@@ -1464,6 +1464,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
             return;
         }
         if ($location.path() != p[1]) {
+            srdbg([1]);
+            srdbg($location.path());
             event.preventDefault();
             self.localRedirect(p[1]);
         }
@@ -1515,6 +1517,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         if (missing) {
             throw new Error(missing.join() + ': missing parameter(s) for route: ' + map[routeName]);
         }
+        srdbg(url);
         return url;
     }
 
@@ -1594,7 +1597,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
             return;
         }
         $window.location.href = u;
-        $window.location.reload(true);
+//        $window.location.reload(true);
     };
 
     self.globalRedirectHome = function() {
@@ -1706,19 +1709,20 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                 msg = 'the server is unavailable';
                 status = 503;
             }
+            srdbg(data);
             var m;
-            if (angular.isString(response) && IS_HTML_ERROR_RE.exec(response)) {
-                // Is this a javascript-redirect.html? If so, redirect locally.
-                m = REDIRECT_RE.exec(response);
+            if (angular.isString(data) && IS_HTML_ERROR_RE.exec(data)) {
+                // If javascript-redirect.html
+                m = REDIRECT_RE.exec(data);
                 if (m) {
+                    srlog('javascriptRedirectDocument', m[1]);
                     self.globalRedirect(m[1]);
                     return;
                 }
-            }
-            if (angular.isString(data) && IS_HTML_ERROR_RE.exec(data)) {
+                // If HTML document with error title
                 m = HTML_TITLE_RE.exec(data);
                 if (m) {
-                    srlog(m[1], ': error response from server');
+                    srlog('htmlErrorDocument', m[1]);
                     data = {error: m[1]};
                 }
             }
@@ -1734,6 +1738,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                 data.state = 'error';
             }
             if (data.state == 'srException') {
+                srdbg('srException', data.srException);
                 self.handleSRException(data);
                 return;
             }
@@ -1760,6 +1765,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                 var data = response.data;
                 $interval.cancel(interval);
                 if (angular.isObject(data)) {
+                    if (data.state == 'srException') {
+                        self.handleSRException(data);
+                        return;
+                    }
                     successCallback(data, response.status);
                 }
                 else {
@@ -2743,6 +2752,24 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
     };
 });
 
+SIREPO.app.controller('LoginController', function (authService, authState, requestSender) {
+    var self = this;
+    self.authService = authService;
+
+    if (authState.isLoggedIn && ! authState.isGuestUser && ! authState.needCompleteRegistration) {
+        requestSender.localRedirect('simulations');
+        return;
+    }
+
+    if (authState.visibleMethods.length === 1) {
+        requestSender.localRedirect(
+            'loginWith',
+            {':method': authState.visibleMethods[0]}
+        );
+        return;
+    }
+});
+
 SIREPO.app.controller('LoginWithController', function ($route, $window, errorService, appState, requestSender) {
     var self = this;
     var m = $route.current.params.method || '';
@@ -2762,24 +2789,6 @@ SIREPO.app.controller('LoginWithController', function ($route, $window, errorSer
         self.msg = '';
         errorService.alertText('Incorrect or invalid login method: ' + (m || '<none>'));
         requestSender.localRedirect('login');
-    }
-});
-
-SIREPO.app.controller('LoginController', function (authService, authState, requestSender) {
-    var self = this;
-    self.authService = authService;
-
-    if (authState.isLoggedIn && ! authState.isGuestUser && ! authState.needCompleteRegistration) {
-        requestSender.localRedirect('simulations');
-        return;
-    }
-
-    if (authState.visibleMethods.length === 1) {
-        requestSender.localRedirect(
-            'loginWith',
-            {':method': authState.visibleMethods[0]}
-        );
-        return;
     }
 });
 
@@ -2932,6 +2941,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
                     return;
                 }
                 self.isWaitingForList = false;
+                srdbg(data);
                 data.sort(function(a, b) {
                     return a.last_modified.localeCompare(b.last_modified);
                 });

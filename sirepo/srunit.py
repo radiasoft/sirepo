@@ -279,7 +279,7 @@ class _TestClient(flask.testing.FlaskClient):
         op = lambda r: self.post(r, data=data)
         return self.__req(route_or_uri, params, {}, op, raw_response=raw_response, **kwargs)
 
-    def sr_sim_data(self, sim_name, sim_type=None):
+    def sr_sim_data(self, sim_name='Scooby Doo', sim_type=None):
         """Return simulation data by name
 
         Args:
@@ -335,7 +335,7 @@ class _TestClient(flask.testing.FlaskClient):
             object: parsed JSON result
         """
         import pykern.pkcollections
-        from pykern.pkdebug import pkdlog, pkdexc, pkdc
+        from pykern.pkdebug import pkdlog, pkdexc, pkdc, pkdp
         import sirepo.http_reply
         import sirepo.uri
         import sirepo.util
@@ -365,13 +365,12 @@ class _TestClient(flask.testing.FlaskClient):
             # Treat SRException as a real exception (so we don't ignore them)
             d = pykern.pkcollections.json_load_any(r.data)
             if (
-                r.status_code == sirepo.http_reply.SR_EXCEPTION_STATUS
-                    and r.mimetype == 'application/json'
+                isinstance(d, dict)
+                and d.get('state') == sirepo.http_reply.SR_EXCEPTION_STATE
             ):
                 raise sirepo.util.SRException(
                     d.srException.routeName,
                     d.srException.params,
-                    d.srException.query,
                 )
             return d
         except Exception as e:

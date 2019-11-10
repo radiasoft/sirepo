@@ -72,19 +72,20 @@ def call_api(func_or_name, kwargs=None, data=None):
     try:
         f = func_or_name if callable(func_or_name) \
             else _api_to_route[func_or_name].func
-        r = sirepo.api_auth.check_api_call(f)
-        if not r:
-            try:
-                if data:
-                    p = flask.g.pop(sirepo.http_request.CALL_API_DATA_ATTR, None)
-                    flask.g.setdefault(sirepo.http_request.CALL_API_DATA_ATTR, data)
-                r = flask.make_response(f(**kwargs) if kwargs else f())
-            finally:
-                if data:
-                    flask.g.pop(sirepo.http_request.CALL_API_DATA_ATTR, None)
+        sirepo.api_auth.check_api_call(f)
+        try:
+            if data:
+                p = flask.g.pop(sirepo.http_request.CALL_API_DATA_ATTR, None)
+                flask.g.setdefault(sirepo.http_request.CALL_API_DATA_ATTR, data)
+            r = flask.make_response(f(**kwargs) if kwargs else f())
+        finally:
+            if data:
+                flask.g.pop(sirepo.http_request.CALL_API_DATA_ATTR, None)
     except Exception as e:
         if not isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
-            pkdlog('exception={} stack={}', e, pkdexc())
+            pkdlog('api={} exception={} stack={}', func_or_name, e, pkdexc())
+        else:
+            pkdc('api={} exception={} stack={}', func_or_name, e, pkdexc())
         r = sirepo.http_reply.gen_exception(e)
     sirepo.cookie.save_to_cookie(r)
     return r

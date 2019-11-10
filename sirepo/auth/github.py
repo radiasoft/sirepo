@@ -115,10 +115,6 @@ def init_apis(app, *args, **kwargs):
     auth_db.init_model(app, _init_model)
 
 
-def validate_login(*args, **kwargs):
-    return None
-
-
 class _FlaskSession(dict, flask.sessions.SessionMixin):
     pass
 
