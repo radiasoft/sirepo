@@ -328,11 +328,12 @@ def require_auth_basic():
 
 
 def require_user():
-    s = cookie.unchecked_get_value(_COOKIE_STATE)
     e = None
-    r = 'login'
     m = cookie.unchecked_get_value(_COOKIE_METHOD)
     p = None
+    r = 'login'
+    s = cookie.unchecked_get_value(_COOKIE_STATE)
+    u = _get_user()
     if s is None:
         e = 'no user in cookie'
     elif s == _STATE_LOGGED_IN:
@@ -342,7 +343,6 @@ def require_user():
                 pkdc('validate_login method={}', m);
                 f()
             return
-        u = _get_user()
         if m in cfg.deprecated_methods:
             e = 'deprecated'
         else:
@@ -351,7 +351,6 @@ def require_user():
             p = PKDict(reload_js=True)
         e = 'auth_method={} is {}, forcing login: uid='.format(m, e, u)
     elif s == _STATE_LOGGED_OUT:
-        u = _get_user()
         e = 'logged out uid={}'.format(u)
         if m in cfg.deprecated_methods:
             # Force login to this specific method so we can migrate to valid method
@@ -360,14 +359,12 @@ def require_user():
             e = 'forced {}={} uid={}'.format(m, r, p)
     elif s == _STATE_COMPLETE_REGISTRATION:
         if m == METHOD_GUEST:
-            pkdc('guest completeRegistration={}', _get_user())
+            pkdc('guest completeRegistration={}', u)
             complete_registration()
             return
-        u = _get_user()
         r = 'completeRegistration'
         e = 'uid={} needs to complete registration'.format(u)
     else:
-        u = _get_user()
         cookie.reset_state('uid={} state={} invalid, cannot continue'.format(s, u))
         p = PKDict(reload_js=True)
         e = 'invalid cookie state={} uid={}'.format(s, u)

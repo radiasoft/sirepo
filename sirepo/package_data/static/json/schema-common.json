@@ -296,6 +296,13 @@
                   "templateUrl": "/static/html/copy-session.html"
                 }
             },
+            "serverUpgraded": {
+                "route": "/server-upgraded",
+                "config": {
+                  "controller": "ServerUpgradedController as serverUpgraded",
+                  "templateUrl": "/static/html/server-upgraded.html"
+                }
+            },
             "simulations": {
                 "route": "/simulations",
                 "config": {

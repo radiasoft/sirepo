@@ -41,11 +41,21 @@ def test_login():
     auth.require_user()
 
 
-def test_login_loop(fc):
+def test_myapp_user_dir_deleted(fc):
     from pykern import pkunit
+    from pykern import pkunit
+    from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
-    from pykern.pkunit import pkeq, pkok, pkre, pkexcept
-    from sirepo import auth
+    import sirepo.srdb
 
-    d = fc.sr_sim_data()
-    w = pkunit.work_dir()
+    sirepo.srdb.root().join(
+        'user',
+        fc.sr_auth_state().uid,
+    ).remove(rec=1)
+    r = fc.sr_post(
+        'listSimulations',
+        PKDict(simulationType=fc.sr_sim_type),
+        raw_response=True,
+    )
+    pkunit.pkre('^<!DOCTYPE html.*APP_NAME:', r.data)
+    fc.sr_auth_state(displayName=None, isLoggedIn=False, method=None)

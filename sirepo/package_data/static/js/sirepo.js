@@ -2869,7 +2869,7 @@ SIREPO.app.controller('LoginFailController', function (appState, requestSender, 
     }
 });
 
-SIREPO.app.controller('FindByNameController', function (appState, requestSender, $route, $window) {
+SIREPO.app.controller('FindByNameController', function (appState, requestSender, $route) {
     var self = this;
     self.simulationName = $route.current.params.simulationName;
     appState.listSimulations(
@@ -2883,6 +2883,13 @@ SIREPO.app.controller('FindByNameController', function (appState, requestSender,
                     '<application_mode>': $route.current.params.applicationMode,
                 });
         });
+});
+
+SIREPO.app.controller('ServerUpgradedController', function (errorService, requestSender) {
+    var self = this;
+
+    errorService.alertText('Sirepo has been upgraded, and your application has been restarted');
+    requestSender.globalRedirectRoot();
 });
 
 SIREPO.app.controller('SimulationsController', function (appState, cookieService, errorService, fileManager, notificationService, panelState, requestSender, $location, $rootScope, $sce, $scope, $window) {

@@ -283,7 +283,8 @@ def api_getApplicationData(filename=''):
     Returns:
         response: may be a file or JSON
     """
-    sim = http_request.parse_post(id=1, template=1)
+    sim = http_request.parse_post(template=1)
+    pkdp(sim.req_data)
     res = sim.template.get_application_data(sim.req_data)
     if filename:
         assert isinstance(res, _PY_PATH_LOCAL_CLASS), \
@@ -447,11 +448,14 @@ def api_root(simulation_type):
 @api_perm.require_user
 def api_saveSimulationData():
     sim = http_request.parse_post(fixup_old_data=1, id=1, template=1)
-    simulation_db.validate_serial(sim.req_data)
     d = sim.req_data
+    u = d.get('version') != simulation_db.app_version()
+    simulation_db.validate_serial(d)
     if hasattr(sim.template, 'prepare_for_save'):
         d = sim.template.prepare_for_save(d)
     d = simulation_db.save_simulation_json(d)
+    if u:
+        raise sirepo.util.SRException('serverUpgraded', None)
     return api_simulationData(
         d.simulationType,
         d.models.simulation.simulationId,
