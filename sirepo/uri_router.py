@@ -19,6 +19,8 @@ import sirepo.http_reply
 import sirepo.http_request
 import sirepo.uri
 import sirepo.util
+import werkzeug.exceptions
+
 
 #: route for sirepo.srunit
 srunit_uri = None
@@ -81,7 +83,8 @@ def call_api(func_or_name, kwargs=None, data=None):
                 if data:
                     flask.g.pop(sirepo.http_request.CALL_API_DATA_ATTR, None)
     except Exception as e:
-        pkdlog('exception={} stack={}', e, pkdexc())
+        if not isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
+            pkdlog('exception={} stack={}', e, pkdexc())
         r = sirepo.http_reply.gen_exception(e)
     sirepo.cookie.save_to_cookie(r)
     return r
@@ -209,7 +212,7 @@ def _dispatch(path):
             raise sirepo.util.raise_not_found('{}: unknown parameters in uri ({})', parts, path)
         return call_api(route.func, kwargs)
     except Exception as e:
-        pkdlog('{}: error: {}', path, pkdexc())
+        pkdlog('exception={} path={} stack={}', path, e, pkdexc())
         raise
 
 

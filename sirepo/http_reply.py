@@ -272,7 +272,7 @@ def _gen_exception_reply_SRException(args):
 
 def _gen_exception_reply_UserAlert(args):
     return gen_json(
-        PKDict({_STATE: _ERROR_STATE, _ERROR_STATE: a.error}),
+        PKDict({_STATE: _ERROR_STATE, _ERROR_STATE: args.error}),
     )
 
 

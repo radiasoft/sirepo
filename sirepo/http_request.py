@@ -12,6 +12,7 @@ import sirepo.sim_data
 import sirepo.template
 import sirepo.util
 import user_agents
+import werkzeug
 
 _PARAM_MAP = PKDict(
     file_type='file_type',

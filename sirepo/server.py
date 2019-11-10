@@ -135,9 +135,9 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
     )
     f, c, t = sirepo.template.import_module(sim.type).get_data_file(
         simulation_db.simulation_run_dir(sim.req_data),
-        s.compute_model(sim.model),
+        sim.sim_data.compute_model(sim.model),
         int(frame),
-        options=d.copy().update(suffix=suffix),
+        options=sim.req_data.copy().update(suffix=suffix),
     )
     return _as_attachment(flask.make_response(c), t, f)
 
@@ -212,7 +212,7 @@ def api_listFiles(simulation_type, simulation_id, file_type):
 #TODO(pjm): simulation_id is an unused argument
     sim = http_request.parse_params(type=simulation_type, file_type=file_type)
     return http_reply.gen_json(
-        sim.sim_data.lib_files_for_type(sime.file_type),
+        sim.sim_data.lib_files_for_type(sim.file_type),
     )
 
 

@@ -172,7 +172,6 @@ def _r(fc, sim_name, compute_model, reports, expect_completed=True):
                 'did not complete: runStatus={}',
                 run,
             )
-        pkdlog(run)
         if expect_completed:
             pkunit.pkeq('completed', run.state)
         for r, a in reports.items():
