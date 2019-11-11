@@ -121,10 +121,9 @@ class DockerDriver(job_driver.DriverBase):
 
 
 def init_class(*args, **kwargs):
-    global cfg, _hosts, _parallel_cores
+    global cfg, _parallel_cores
 
-    if _hosts:
-        return
+    _parallel_cores = mpi.cfg.cores
 
     cfg = pkconfig.init(
         hosts=(None, _cfg_hosts, 'execution hosts'),
@@ -135,21 +134,26 @@ def init_class(*args, **kwargs):
     )
     if not cfg.tls_dir or not cfg.hosts:
         _init_dev_hosts()
+    _init_hosts()
+    return DockerDriver.init_class(cfg)
+
+def _init_hosts():
+    global _hosts
     _hosts = PKDict()
-    _parallel_cores = mpi.cfg.cores
-    # Require at least three levels to the domain name
-    # just to make the directory parsing easier.
     for h in cfg.hosts:
         d = cfg.tls_dir.join(h)
         _hosts[h] = PKDict(
             name=h,
-            cmd_prefix=_cmd_prefix(h, d)
+            cmd_prefix=_cmd_prefix(h, d),
+            slots=PKDict(),
         )
-        _init_host(h)
+        for k in job.KINDS:
+            _hosts[h].slots[k] = PKDict(
+                in_use=0,
+                total=cfg[k + '_slots'],
+            )
     assert len(_hosts) > 0, \
         '{}: no docker hosts found in directory'.format(cfg.tls_d)
-    _init_hosts_slots_balance()
-    return DockerDriver.init_class(cfg)
 
 
 @pkconfig.parse_none
@@ -240,168 +244,3 @@ def _init_dev_hosts():
         d.join(f).write(o)
     # we just reuse the same cert as the docker server since it's local host
     d.join('cacert.pem').write(o)
-
-
-def _init_host(host):
-    """Calculate basic machine characteristics (specs) for a host"""
-    h = _hosts[host]
-    _init_host_spec(h)
-    _init_host_num_slots(h)
-
-
-def _init_host_num_slots(h):
-    """Compute how many slots available based on a fixed `_parallel_cores`"""
-    h.num_slots = PKDict()
-    j = h.cores // _parallel_cores
-    assert j > 0, \
-        '{}: host cannot run parallel jobs, min cores required={} and cores={}'.format(
-            h.name,
-            _parallel_cores,
-            h.cores,
-        )
-    h.num_slots.parallel = j
-    h.num_slots.sequential = h.cores - j * _parallel_cores
-    pkdc(
-        '{} {} {} {}gb {}c',
-        h.name,
-        h.num_slots.parallel,
-        h.num_slots.sequential,
-        h.gigabytes,
-        h.cores,
-    )
-
-
-def _init_hosts_slots_balance():
-    """Balance sequential and parallel slot counts"""
-    global _hosts_ordered
-
-    def _host_cmp(a, b):
-        """This (local) host will get (first) sequential slots.
-
-        Sequential slots are "faster" and don't go over NFS (usually)
-        so the interactive jobs will be more responsive (hopefully).
-
-        We don't assign sequential slots randomly, but in fixed order.
-        This helps reproduce bugs, because you know the first host
-        is the sequential host. Slots are then randomized
-        for execution.
-        """
-        if a.remote_ip == a.local_ip:
-            return -1
-        if b.remote_ip == b.local_ip:
-            return +1
-        return cmp(a.name, b.name)
-
-    def _ratio_not_ok():
-        """Minimum sequential job slots should be 40% of total"""
-        mp = 0
-        ms = 0
-        for h in _hosts.values():
-            mp += h.num_slots.parallel
-            ms += h.num_slots.sequential
-        if mp + ms == 1:
-            # Edge case where ratio calculation can't work (only dev)
-            h = _hosts.values()[0]
-            h.num_slots.sequential = 1
-            h.num_slots.parallel = 1
-            return False
-        # Must be at least one parallel slot
-        if mp <= 1:
-            return False
-#TODO(robnagler) needs to be more complex, because could have many more
-# parallel nodes than sequential, which doesn't need to be so large. This
-# is a good guess for reasonable configurations.
-        r = float(ms) / (float(mp) + float(ms))
-        return r < 0.4
-    _hosts_ordered = sorted(_hosts.values(), key=functools.cmp_to_key(_host_cmp))
-    while _ratio_not_ok():
-        for h in _hosts_ordered:
-            # Balancing consists of making the first host have
-            # all the sequential jobs, then the next host. This
-            # is a guess at the best way to distribute sequential
-            # vs parallel jobs.
-            if h.num_slots.parallel > 0:
-                # convert a parallel slot on first available host
-                h.num_slots.sequential += _parallel_cores
-                h.num_slots.parallel -= 1
-                break
-        else:
-            raise AssertionError(
-                'should never get here: {}'.format(pkdpretty(_hosts)),
-            )
-    for h in _hosts_ordered:
-        pkdlog(
-            '{}: parallel={} sequential={}',
-            h.name,
-            h.num_slots.parallel,
-            h.num_slots.sequential,
-        )
-
-def _init_host_spec(h):
-    """Extract mem, cpus, and cores from /proc"""
-    h.remote_ip = socket.gethostbyname(h.name)
-    h.local_ip = _local_ip(h.remote_ip)
-    # NOTE: this will pull the container the first time
-    out = _run_root(h.name, ('cat', '/proc/cpuinfo', '/proc/meminfo'))
-    pats = PKDict()
-    matches = PKDict()
-    for k, p in (
-        # MemTotal:        8167004 kB
-        # physical id	: 0
-        # cpu cores	: 4
-        ('mem', 'MemTotal'),
-        ('cpus', 'physical id'),
-        ('cores', 'cpu cores'),
-    ):
-        pats[k] = re.compile('^' + p + r'.*\s(\d+)')
-        matches[k] = []
-    for l in out.splitlines():
-        for k, p in pats.items():
-            m = p.search(l)
-            if m:
-                matches[k].append(int(m.group(1)))
-                break
-    assert len(matches.mem) == 1, \
-        '{}: expected only one match for MemTotal'.format(matches.mem)
-    h.gigabytes = matches.mem[0] // 1048576
-    assert h.gigabytes > 0, \
-        '{}: expected a 1GB or more'.format(matches.mem[0])
-    c = len(set(matches.cpus))
-    assert c > 0, \
-        'physical id: not found'
-    assert len(set(matches.cores)) == 1, \
-        '{}: expecting all "cpu cores" values to be the same'.format(matches.cores)
-    h.cores = c * matches.cores[0]
-
-
-def _local_ip(remote_ip):
-    """Determine local IPv4 for talking to hosts
-
-    Assumes all hosts on the same network. If this host
-    is talking to hosts on two different networks, sort
-    order will not put this host last in _host_cmp().
-
-    Args:
-        some_ip (str): any ip address
-    """
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect((remote_ip, 80))
-    return s.getsockname()[0]
-
-
-def _run_root(host, cmd):
-    """Run cfg.image as root to see all mem and cpus.
-
-    This also validates the docker tls configuration at startup.
-    """
-    return _cmd(
-        host,
-        _RUN_PREFIX + (
-            # allows us to interrogate the network
-            '--network=host',
-            # Ensure we are running as UID 0 (root). See
-            # comment about about /etc/passwd
-            '--user=0',
-            _image(),
-        ) + cmd,
-    )

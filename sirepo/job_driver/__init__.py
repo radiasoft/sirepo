@@ -35,16 +35,15 @@ class AgentMsg(PKDict):
 class DriverBase(PKDict):
     agents = PKDict()
 
-    def __init__(self, req, space):
+    def __init__(self, req):
         super().__init__(
             has_slot=False,
             ops_pending_done=PKDict(),
             ops_pending_send=[],
-            space=space,
             uid=req.content.uid,
             websocket=None,
             _agentId=job.unique_key(),
-            _kind=space.kind,
+            _kind=req.kind,
             _supervisor_uri=cfg.supervisor_uri,
         )
         self.agents[self._agentId] = self
@@ -71,30 +70,6 @@ class DriverBase(PKDict):
                 cls.slots[kind].in_use -= 1
                 d.has_slot = False
         assert cls.slots[kind].in_use > -1
-
-    @classmethod
-    async def get_instance(cls, req):
-#TODO(robnagler) need to introduce concept of parked drivers for reallocation.
-# a driver is freed as soon as it completes all its outstanding ops. For
-# _run(), this is an outstanding op, which holds the driver until the _run()
-# is complete. Same for analysis. Once all runs and analyses are compelte,
-# free the driver, but park it. Allocation then is trying to find a parked
-# driver then a free slot. If there are no free slots, we garbage collect
-# parked drivers. We can park more drivers than are available for compute
-# so has to connect to the max slots. Parking is only needed for resources
-# we have to manage (local, docker). For NERSC, AWS, etc. parking is not
-# necessary. You would allocate as many parallel slots. We can park more
-# slots than are in_use, just can't use more slots than are actually allowed.
-
-#TODO(robnagler) drivers are not organized by uid, because there can be more
-# than one per user, rather, we can have a list here, not just self.
-# need to have an allocation per user, e.g. 2 sequential and one 1 parallel.
-# _Slot() may have to understand this, because related to parking. However,
-# we are parking a driver so maybe that's a (local) driver mechanism
-        for d in cls.instances[req.kind]:
-            if d.uid == req.content.uid:
-                return d
-        return cls(req, await _Space.allocate(req.kind))
 
     def get_ops_pending_done_types(self):
             d = collections.defaultdict(int)
@@ -128,7 +103,6 @@ class DriverBase(PKDict):
                 total=cfg[k + '_slots'],
             )
             cls.instances[k] = []
-            _Space.init_kind(k)
         return cls
 
     @classmethod
@@ -223,7 +197,6 @@ class DriverBase(PKDict):
         del self.agents[self._agentId]
         for d in self.instances[self._kind]:
             if d.uid == self.uid:
-                d.space.free()
                 self.instances[self._kind].remove(d)
                 break
         else:
@@ -294,28 +267,6 @@ def _cfg_parse_modules(value):
     else:
         _DEFAULT_CLASS = _CLASSES['local']
     return s
-
-
-class _Space(PKDict):
-    """If a driver has a space then they have an alive agent but may not have a
-    slot and may not be actively performing an op.
-    """
-
-    in_use = PKDict()
-
-    @classmethod
-    async def allocate(cls, kind):
-        self = cls(kind=kind)
-        self.in_use[self.kind].append(self)
-        return self
-
-    def free(self):
-        self.in_use[self.kind].remove(self)
-
-    @classmethod
-    def init_kind(cls, kind):
-        cls.in_use[kind] = []
-
 
 def terminate():
     DriverBase.terminate()
