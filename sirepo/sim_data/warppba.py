@@ -5,10 +5,9 @@ u"""simulation data operations
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcollections
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-from pykern import pkcollections
-from pykern.pkdebug import pkdp
 import sirepo.sim_data
 
 
@@ -26,7 +25,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                 y='x',
                 histogramBins=100,
             ),
-            simulationStatus=PKDict(),
         )
         dm.particleAnimation.setdefault(
             histogramBins=100,
@@ -107,8 +105,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data.report
+    def _compute_job_fields(cls, data, r, compute_model):
         if r not in ('beamPreviewReport', 'laserPreviewReport'):
             return []
         return cls._non_analysis_fields(data, r) + [

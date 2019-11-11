@@ -10,12 +10,13 @@ from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import flask
+import pykern.pkinspect
 import re
+import sirepo.http_request
+import sirepo.uri
 import sirepo.util
+import werkzeug.exceptions
 
-
-#: HTTP status code for srException (BAD REQUEST)
-SR_EXCEPTION_STATUS = 400
 
 #: data.state for srException
 SR_EXCEPTION_STATE = 'srException'
@@ -34,39 +35,23 @@ _RESPONSE_OK = PKDict({_STATE: 'ok'})
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\n|$)', flags=re.IGNORECASE)
 
+#: routes that will require a reload
+_RELOAD_JS_ROUTES = None
+
 
 def gen_exception(exc):
-    """Generate from a `util.Reply` exception
+    """Generate from an Exception
 
     Args:
-        exc (util.Reply): valid reply exceptoin
+        exc (Exception): valid convert into a response
     """
-
-    assert isinstance(exc, sirepo.util.Reply), \
-        'exc={} not a sirepo.util.Reply'.format(exc)
-    if isinstance(exc, sirepo.util.SRException):
-        s = simulation_db.get_schema(sim_type=None)
-        assert exc.sr_args.routeName in s.localRoutes, \
-            'route={} not found in schema={}'.format(
-                exc.sr_args.routeName,
-                s.simulationType,
-            )
-        return gen_json(
-            PKDict({
-                _STATE: SR_EXCEPTION_STATE,
-                SR_EXCEPTION_STATE: exc.sr_args,
-            }),
-            response_kwargs=pkcollections.Dict(status=SR_EXCEPTION_STATUS),
-        )
-    elif isinstance(exc, sirepo.util.UserAlert):
-        return gen_json(PKDict({
-            _STATE: _ERROR_STATE,
-            _ERROR_STATE: exc.sr_args.error,
-        }))
-    elif isinstance(exc, sirepo.util.Redirect):
-        return gen_redirect(exc.sr_args.uri)
-    else:
-        raise AssertionError('unsupported exception={}'.format(type(exc)))
+    # If an exception occurs here, we'll fall through
+    # to flask, which will have code to handle this case.
+    if isinstance(exc, sirepo.util.Reply):
+        return _gen_exception_reply(exc)
+    if isinstance(exc, werkzeug.exceptions.HTTPException):
+        return _gen_exception_werkzeug(exc)
+    return _gen_exception_error(exc)
 
 
 def gen_json(value, pretty=False, response_kwargs=None):
@@ -136,31 +121,27 @@ def gen_redirect_for_app_root(sim_type):
     """Redirect to app root for sim_type
 
     Args:
-        sim_type (str): valid sim_type or None
+        sim_type (str): valid sim_type or None [http_request.sim_type]
     Returns:
         flask.Response: reply object
     """
-    import sirepo.uri
-
     return gen_redirect_for_anchor(sirepo.uri.app_root(sim_type))
 
 
-def gen_redirect_for_local_route(sim_type, route=None, params=None, query=None):
+def gen_redirect_for_local_route(sim_type=None, route=None, params=None, query=None):
     """Generate a javascript redirect to sim_type/route/params
 
     Default route (None) only supported for ``default``
     application_mode/appMode.
 
     Args:
-        sim_type (str): how to find the schema
+        sim_type (str): how to find the schema [http_request.sim_type]
         route (str): name in localRoutes [None: use default route]
         params (dict): parameters for route (including :Name)
 
     Returns:
         flask.Response: reply object
     """
-    import sirepo.uri
-
     return gen_redirect_for_anchor(
         sirepo.uri.local_route(sim_type, route, params, query),
     )
@@ -172,16 +153,20 @@ def headers_for_no_cache(resp):
     return resp
 
 
-def init_by_server(app):
-    global MIME_TYPE, simulation_db
-    if MIME_TYPE:
-        return
-    from sirepo import simulation_db
+def init(app, **imports):
+    global MIME_TYPE, _RELOAD_JS_ROUTES, _app
+
+    _app = app
+    sirepo.util.setattr_imports(imports)
     MIME_TYPE = pkcollections.Dict(
         html='text/html',
         js='application/javascript',
         json=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
         py='text/x-python',
+    )
+    s = simulation_db.get_schema(sim_type=None)
+    _RELOAD_JS_ROUTES = frozenset(
+        (k for k, v in s.localRoutes.items() if v.get('requireReload')),
     )
 
 
@@ -207,24 +192,99 @@ def render_static(base, ext, j2_ctx, cache_ok=False):
     return r
 
 
-def subprocess_error(err, *args, **kwargs):
-    """Something unexpected went wrong.
+def _gen_exception_error(exc):
+    pkdlog('unsupported exception={}', exc)
+    return gen_redirect_for_local_route(None, route='error')
 
-    Parses ``err`` for error
 
-    Args:
-        err (str): exception or run_log
-        quiet (bool): don't write errors to log
-    Returns:
-        dict: error response
-    """
-    if not kwargs.get('quiet'):
-        pkdlog('{}', ': '.join([str(a) for a in args] + ['error', err]))
-    m = re.search(_SUBPROCESS_ERROR_RE, str(err))
-    if m:
-        err = m.group(1)
-        if re.search(r'error exit\(-15\)', err):
-            err = 'Terminated'
-    elif not pkconfig.channel_in_internal_test():
-        err = 'unexpected error (see logs)'
-    return {'state': 'error', 'error': err}
+def _gen_exception_reply(exc):
+    f = getattr(
+        pykern.pkinspect.this_module(),
+        '_gen_exception_reply_' + exc.__class__.__name__,
+        None,
+    )
+    pkdc('exception={} sr_args={}', exc, exc.sr_args)
+    if not f:
+        return _gen_exception_error(exc)
+    return f(exc.sr_args)
+
+
+def _gen_exception_reply_Error(args):
+    try:
+        t = sirepo.http_request.sim_type(args.pkdel('sim_type'))
+        s = simulation_db.get_schema(sim_type=t)
+    except Exception:
+        # sim_type is bad so don't cascade errors, just
+        # try to get the schema without the type
+        t = None
+        s = simulation_db.get_schema(sim_type=None)
+    if flask.request.method == 'POST':
+        return gen_json(args.pkupdate({_STATE: _ERROR_STATE}))
+    q = PKDict()
+    for k, v in args.items():
+        try:
+            v = str(v)
+            assert len(v) < 200, 'value is too long (>=200 chars)'
+        except Exception as e:
+            pkdlog('error in "error" query {}={} exception={}', k, v, e)
+            continue
+        q[k] = v
+    return gen_redirect_for_local_route(t, route='error', query=q)
+
+
+def _gen_exception_reply_Redirect(args):
+    return gen_redirect(args.uri)
+
+
+def _gen_exception_reply_Response(args):
+    r = args.response
+    assert isinstance(r, _app.response_class), \
+        'invalid class={} response={}'.format(type(r), r)
+    return r
+
+
+def _gen_exception_reply_SRException(args):
+    r = args.routeName
+    p = args.params or PKDict()
+    try:
+        t = sirepo.http_request.sim_type(p.pkdel('sim_type'))
+        s = simulation_db.get_schema(sim_type=t)
+    except Exception as e:
+        pkdc('exception={} stack={}', e, pkdexc())
+        # sim_type is bad so don't cascade errors, just
+        # try to get the schema without the type
+        t = None
+        s = simulation_db.get_schema(sim_type=None)
+    # If default route or always redirect/reload
+    if r:
+        assert r in s.localRoutes, \
+            'route={} not found in schema for type={}'.format(r, t)
+    else:
+        r = sirepo.uri.default_local_route_name(s)
+        p = PKDict(reload_js=True)
+    if (
+        # must be first, to always delete reload_js
+        not p.pkdel('reload_js')
+        and flask.request.method == 'POST'
+        and r not in _RELOAD_JS_ROUTES
+    ):
+        pkdc('POST response={} route={} params={}', SR_EXCEPTION_STATE, r, p)
+        return gen_json(
+            PKDict({
+                _STATE: SR_EXCEPTION_STATE,
+                SR_EXCEPTION_STATE: args,
+            }),
+        )
+    pkdc('redirect to route={} params={}  type={}', r, p, t)
+    return gen_redirect_for_local_route(t, route=r, params=p)
+
+
+def _gen_exception_reply_UserAlert(args):
+    return gen_json(
+        PKDict({_STATE: _ERROR_STATE, _ERROR_STATE: args.error}),
+    )
+
+
+def _gen_exception_werkzeug(exc):
+#TODO(robnagler) convert exceptions to our own
+    raise exc

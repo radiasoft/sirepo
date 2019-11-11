@@ -134,6 +134,7 @@ class _State(dict):
             max_age=_MAX_AGE_SECONDS,
             httponly=True,
             secure=cfg.is_secure,
+            samesite='Strict',
         )
 
     def _crypto(self):

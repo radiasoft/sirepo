@@ -65,7 +65,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def jspec_elegant_twiss_path(cls):
-        return '{}/{}'.format(cls.animation_name(None), cls.JSPEC_ELEGANT_TWISS_FILENAME)
+        return '{}/{}'.format(cls.compute_model(None), cls.JSPEC_ELEGANT_TWISS_FILENAME)
 
     @classmethod
     def jspec_elegant_dir(cls):
@@ -76,8 +76,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return cls.resource_glob('*.tfs')
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data.report
+    def _compute_job_fields(cls, data, r, compute_model):
         if r == 'rateCalculationReport':
             return [
                 'cooler',

@@ -34,6 +34,18 @@ SIREPO.lattice = {
     },
 };
 
+SIREPO.app.factory('opalService', function(appState) {
+    var self = {};
+
+    self.computeModel = function(analysisModel) {
+        return 'animation';
+    };
+
+    appState.setAppService(self);
+
+    return self;
+});
+
 SIREPO.app.controller('CommandController', function(appState, commandService, latticeService, panelState) {
     var self = this;
     self.activeTab = 'basic';
@@ -137,32 +149,27 @@ SIREPO.app.directive('appHeader', function(appState, latticeService, panelState)
     };
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, frameCache, latticeService, panelState, persistentSimulation, plotRangeService, $scope) {
+SIREPO.app.controller('VisualizationController', function (appState, frameCache, latticeService, panelState, persistentSimulation, plotRangeService, opalService, $scope) {
     var self = this;
     self.panelState = panelState;
     self.errorMessage = '';
 
     function handleStatus(data) {
         self.errorMessage = data.error;
-        if (data.startTime && ! data.error) {
+        if ('percentComplete' in data && ! data.error) {
             ['bunchAnimation', 'plotAnimation'].forEach(function(m) {
                 plotRangeService.computeFieldRanges(self, m, data.percentComplete);
-                appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
             });
         }
         frameCache.setFrameCount(data.frameCount || 0);
     }
 
-    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        bunchAnimation: [
-            SIREPO.ANIMATION_ARGS_VERSION + '1',
-            'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset',
-            'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
-        plotAnimation: [
-            SIREPO.ANIMATION_ARGS_VERSION + '1',
-            'x', 'y1', 'y2', 'y3', 'startTime'],
-    });
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        opalService.computeModel(),
+        handleStatus
+    );
 
     self.handleModalShown = function(name) {
         if (appState.isAnimationModelName(name)) {

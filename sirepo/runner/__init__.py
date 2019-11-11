@@ -14,6 +14,7 @@ from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import simulation_db
 from sirepo.template import template_common
+import sirepo.sim_data
 import aenum
 import errno
 import importlib
@@ -100,7 +101,7 @@ def job_kill(jid):
     """Terminate job
 
     Args:
-        jid (str): see `simulation_db.job_id`
+        jid (str): job id
     """
     with _job_map_lock:
         try:
@@ -116,7 +117,7 @@ def job_race_condition_reap(jid):
 
 def job_start(data):
     with _job_map_lock:
-        jid = simulation_db.job_id(data)
+        jid = sirepo.sim_data.get_class(data).parse_jid(data)
         if jid in _job_map:
 #TODO(robnagler) assumes external check of is_processing,
 # which server._simulation_run_status does do, but this
@@ -172,7 +173,7 @@ class JobBase(object):
     def run_secs(self):
         if self.data['report'] == 'backgroundImport':
             return cfg.import_secs
-        if simulation_db.is_parallel(self.data):
+        if sirepo.sim_data.get_class(self.data).is_parallel(self.data):
             return cfg.parallel_secs
         return cfg.sequential_secs
 

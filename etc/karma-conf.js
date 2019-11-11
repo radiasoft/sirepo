@@ -36,7 +36,6 @@ module.exports = function(config) {
         'sirepo/package_data/static/js/ext/canvas-toBlob.js',
         'sirepo/package_data/static/js/ext/FileSaver.js',
         'sirepo/package_data/static/js/ext/canvg-and-dependencies.js',
-        'sirepo/package_data/static/js/ext/stacktrace-0.6.4.js',
         'sirepo/package_data/static/js/ext/bootstrap-toggle.js',
         'tests/helpers/globals.js',
         'sirepo/package_data/static/js/sirepo.js',

@@ -16,13 +16,10 @@ import sirepo.api_auth
 import sirepo.auth
 import sirepo.cookie
 import sirepo.http_reply
+import sirepo.http_request
+import sirepo.uri
 import sirepo.util
-try:
-    # py3
-    from urllib.parse import urlencode
-except ImportError:
-    # py2
-    from urllib import urlencode
+import werkzeug.exceptions
 
 
 #: route for sirepo.srunit
@@ -71,24 +68,27 @@ def call_api(func_or_name, kwargs=None, data=None):
     Returns:
         flask.Response: result
     """
+    p = None
     try:
         f = func_or_name if callable(func_or_name) \
             else _api_to_route[func_or_name].func
-        resp = sirepo.api_auth.check_api_call(f)
-        if resp:
-            return resp
+        sirepo.api_auth.check_api_call(f)
         try:
             if data:
-                #POSIT: http_request.parse_json
-                flask.g.sirepo_call_api_data = data
-            resp = flask.make_response(f(**kwargs) if kwargs else f())
+                p = flask.g.pop(sirepo.http_request.CALL_API_DATA_ATTR, None)
+                flask.g.setdefault(sirepo.http_request.CALL_API_DATA_ATTR, data)
+            r = flask.make_response(f(**kwargs) if kwargs else f())
         finally:
             if data:
-                flask.g.sirepo_call_api_data = None
-        sirepo.cookie.save_to_cookie(resp)
-        return resp
-    except sirepo.util.Reply as e:
-        return sirepo.http_reply.gen_exception(e)
+                flask.g.pop(sirepo.http_request.CALL_API_DATA_ATTR, None)
+    except Exception as e:
+        if not isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
+            pkdlog('api={} exception={} stack={}', func_or_name, e, pkdexc())
+        else:
+            pkdc('api={} exception={} stack={}', func_or_name, e, pkdexc())
+        r = sirepo.http_reply.gen_exception(e)
+    sirepo.cookie.save_to_cookie(r)
+    return r
 
 
 def init(app, simulation_db):
@@ -100,15 +100,30 @@ def init(app, simulation_db):
     Args:
         app (Flask): flask app
     """
-    from sirepo import feature_config
-
     if _uri_to_route:
         return
+
+    from sirepo import feature_config
+
     global _app
     _app = app
-    for n in _REQUIRED_MODULES + tuple(sorted(feature_config.cfg.api_modules)):
+    for n in _REQUIRED_MODULES + tuple(sorted(feature_config.cfg().api_modules)):
         register_api_module(importlib.import_module('sirepo.' + n))
     _init_uris(app, simulation_db)
+
+    sirepo.http_request.init(
+        simulation_db=simulation_db,
+    )
+    sirepo.http_reply.init(
+        app,
+        simulation_db=simulation_db,
+    )
+    sirepo.uri.init(
+        http_reply=sirepo.http_reply,
+        http_request=sirepo.http_request,
+        simulation_db=simulation_db,
+        uri_router=pkinspect.this_module(),
+    )
 
 
 def register_api_module(module=None):
@@ -148,8 +163,6 @@ def uri_for_api(api_name, params=None, external=True):
     Returns:
         str: formmatted external URI
     """
-    import urllib
-
     r = _api_to_route[api_name]
     res = (flask.url_for('_dispatch_empty', _external=external) + r.base_uri).rstrip('/')
     for p in r.params:
@@ -200,7 +213,7 @@ def _dispatch(path):
             raise sirepo.util.raise_not_found('{}: unknown parameters in uri ({})', parts, path)
         return call_api(route.func, kwargs)
     except Exception as e:
-        pkdlog('{}: error: {}', path, pkdexc())
+        pkdlog('exception={} path={} stack={}', path, e, pkdexc())
         raise
 
 

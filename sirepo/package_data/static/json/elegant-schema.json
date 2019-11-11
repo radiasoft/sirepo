@@ -1,4 +1,7 @@
 {
+    "constant": {
+        "ELEGANT_ME_EV": 0.51099906
+    },
     "dynamicFiles": {
         "externalLibs": {
             "js": [
@@ -17,38 +20,6 @@
                  "lattice.css"
             ]
        }
-    },
-    "localRoutes": {
-        "source": {
-          "config": {
-            "controller": "ElegantSourceController as source",
-            "templateUrl": "/static/html/elegant-source.html"
-          }
-        },
-        "lattice": {
-            "route": "/lattice/:simulationId",
-            "config": {
-            "controller": "LatticeController as lattice",
-            "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
-          }
-        },
-        "control": {
-            "route": "/control/:simulationId",
-            "config": {
-              "controller": "CommandController as control",
-              "template": "<div data-command-tab=\"\" data-controller=\"control\"></div>"
-            }
-        },
-        "visualization": {
-            "route": "/visualization/:simulationId",
-            "config": {
-              "controller": "VisualizationController as visualization",
-              "templateUrl": "/static/html/elegant-visualization.html"
-            }
-        }
-    },
-    "constant": {
-        "ELEGANT_ME_EV": 0.51099906
     },
     "enum": {
         "BunchInputSource": [
@@ -420,6 +391,50 @@
             ["fft welch", "fft welch"],
             ["fft uniform", "fft uniform"]
         ]
+    },
+    "frameIdFields": {
+        "animation": [
+            "x",
+            "y1",
+            "y2",
+            "y3",
+            "histogramBins",
+            "xFileId",
+            "plotRangeType",
+            "horizontalSize",
+            "horizontalOffset",
+            "verticalSize",
+            "verticalOffset"
+        ]
+    },
+    "localRoutes": {
+        "source": {
+          "config": {
+            "controller": "ElegantSourceController as source",
+            "templateUrl": "/static/html/elegant-source.html"
+          }
+        },
+        "lattice": {
+            "route": "/lattice/:simulationId",
+            "config": {
+            "controller": "LatticeController as lattice",
+            "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
+          }
+        },
+        "control": {
+            "route": "/control/:simulationId",
+            "config": {
+              "controller": "CommandController as control",
+              "template": "<div data-command-tab=\"\" data-controller=\"control\"></div>"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+              "controller": "VisualizationController as visualization",
+              "templateUrl": "/static/html/elegant-visualization.html"
+            }
+        }
     },
     "model": {
         "beamline": {

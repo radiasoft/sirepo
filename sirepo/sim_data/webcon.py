@@ -13,12 +13,6 @@ import sirepo.sim_data
 class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
-    def animation_name(data):
-        if data['modelName'] == 'correctorSettingAnimation':
-            return data['modelName']
-        return 'animation'
-
-    @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
         for m in cls.schema().model:
@@ -53,8 +47,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return data.models[data.report].get('analysisReport', 'analysisReport')
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data['report']
+    def _compute_job_fields(cls, data, r, compute_model):
         if r == 'epicsServerAnimation':
             return []
         res = [

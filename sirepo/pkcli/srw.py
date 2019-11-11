@@ -124,12 +124,13 @@ main()
 
 def _run_srw():
     #TODO(pjm): need to properly escape data values, untrusted from client
-    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
     locals()['main']()
     # special case for importing python code
-    if data['report'] == 'backgroundImport':
-        sim_id = data['models']['simulation']['simulationId']
+    r = sim_in.report
+    if r == 'backgroundImport':
+        sim_id = sim_data['models']['simulation']['simulationId']
         parsed_data['models']['simulation']['simulationId'] = sim_id
         #TODO(pjm): assumes the parent directory contains the simulation data,
         # can't call simulation_db.save_simulation_json() because user isn't set for pkcli commands
@@ -138,7 +139,12 @@ def _run_srw():
             'simulationId': sim_id,
         })
     else:
-        simulation_db.write_result(extract_report_data(get_filename_for_model(data['report']), data))
+        simulation_db.write_result(
+            extract_report_data(
+                get_filename_for_model(r),
+                sim_in,
+            ),
+        )
 
 
 def _cfg_int(lower, upper):

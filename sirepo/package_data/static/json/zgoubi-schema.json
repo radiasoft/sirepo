@@ -22,35 +22,6 @@
             ]
         }
     },
-    "localRoutes": {
-        "source": {
-            "config": {
-                "controller": "SourceController as source",
-                "templateUrl": "/static/html/zgoubi-source.html"
-            }
-        },
-        "lattice": {
-            "route": "/lattice/:simulationId",
-            "config": {
-                "controller": "LatticeController as lattice",
-                "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
-            }
-        },
-        "twiss": {
-            "route": "/twiss/:simulationId",
-            "config": {
-                "controller": "TwissController as twiss",
-                "templateUrl": "/static/html/zgoubi-twiss.html"
-            }
-        },
-        "visualization": {
-            "route": "/visualization/:simulationId",
-            "config": {
-                "controller": "VisualizationController as visualization",
-                "templateUrl": "/static/html/zgoubi-visualization.html"
-            }
-        }
-    },
     "enum": {
         "AutorefFormat": [
             ["4", "Equivalent to CHANGREF"]
@@ -367,6 +338,52 @@
             ["cartesian", "Cartesian"],
             ["cylindrical", "Cylindrical"]
         ]
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/zgoubi-source.html"
+            }
+        },
+        "lattice": {
+            "route": "/lattice/:simulationId",
+            "config": {
+                "controller": "LatticeController as lattice",
+                "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
+            }
+        },
+        "twiss": {
+            "route": "/twiss/:simulationId",
+            "config": {
+                "controller": "TwissController as twiss",
+                "templateUrl": "/static/html/zgoubi-twiss.html"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "VisualizationController as visualization",
+                "templateUrl": "/static/html/zgoubi-visualization.html"
+            }
+        }
+    },
+    "frameIdFields": {
+        "animation": [
+            "x",
+            "y",
+            "histogramBins",
+            "plotRangeType",
+            "horizontalSize",
+            "horizontalOffset",
+            "verticalSize",
+            "verticalOffset",
+            "isRunning",
+            "showAllFrames",
+            "particleSelector",
+            "plotType"
+        ],
+        "particleAnimation": ["isRunning", "particleSelector"]
     },
     "model": {
         "beamline": {

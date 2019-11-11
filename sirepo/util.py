@@ -7,13 +7,15 @@ u"""Support routines and classes, mostly around errors.
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp
+import inspect
 import numconv
+import pykern.pkinspect
 import random
 import werkzeug.exceptions
 
 
 class Reply(Exception):
-    """Raised when a major application error occurs
+    """Raised to end the request.
 
     Args:
         sr_args (dict): exception args that Sirepo specific
@@ -22,6 +24,7 @@ class Reply(Exception):
     def __init__(self, sr_args, *args, **kwargs):
         super(Reply, self).__init__()
         if args or kwargs:
+            kwargs['pkdebug_frame'] = inspect.currentframe().f_back.f_back
             pkdlog(*args, **kwargs)
         self.sr_args = sr_args
 
@@ -36,6 +39,22 @@ class Reply(Exception):
 
     def __str__(self):
         return self.__repr__()
+
+
+class Error(Reply):
+    """Raised to send an error response
+
+    Args:
+        values (dict): values to put in the reply
+    """
+    def __init__(self, values, *args, **kwargs):
+        assert values.get('error'), \
+            'values={} must contain "error"'.format(values)
+        super(Error, self).__init__(
+            values,
+            *args,
+            **kwargs
+        )
 
 
 class Redirect(Reply):
@@ -53,12 +72,30 @@ class Redirect(Reply):
         )
 
 
+class Response(Reply):
+    """Raise with a Response object
+
+    Args:
+        response (str): what the reply should be
+        log_fmt (str): server side log data
+    """
+    def __init__(self, response, *args, **kwargs):
+        super(Response, self).__init__(
+            PKDict(response=response),
+            *args,
+            **kwargs
+        )
+
+
 class SRException(Reply):
     """Raised to communicate a local redirect and log info
 
+    `params` may have ``sim_type`` and ``reload_js``, which
+    will be used to control execution and uri rendering.
+
     Args:
         route_name (str): a local route
-        params (dict): parameters for route
+        params (dict): parameters for route and redirect
         log_fmt (str): server side log data
     """
     def __init__(self, route_name, params, *args, **kwargs):
@@ -116,6 +153,13 @@ def random_base62(length=32):
     return ''.join(r.choice(numconv.BASE62) for x in range(length))
 
 
+def setattr_imports(imports):
+    m = pykern.pkinspect.caller_module()
+    for k, v in imports.items():
+        setattr(m, k, v)
+
+
 def _raise(exc, fmt, *args, **kwargs):
+    kwargs['pkdebug_frame'] = inspect.currentframe().f_back.f_back
     pkdlog(fmt, *args, **kwargs)
     raise getattr(werkzeug.exceptions, exc)()

@@ -35,6 +35,18 @@ SIREPO.lattice = {
     },
 };
 
+SIREPO.app.factory('synergiaService', function(appState) {
+    var self = {};
+
+    self.computeModel = function(analysisModel) {
+        return 'animation';
+    };
+
+    appState.setAppService(self);
+
+    return self;
+});
+
 SIREPO.app.controller('LatticeController', function(latticeService) {
     var self = this;
     self.latticeService = latticeService;
@@ -123,7 +135,7 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, latticeSer
     latticeService.initSourceController(self);
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, plotRangeService, $scope) {
+SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, plotRangeService, synergiaService, $scope) {
     var self = this;
     var turnCount = 0;
     self.panelState = panelState;
@@ -133,11 +145,10 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         frameCache.setFrameCount(0, 'turnComparisonAnimation');
         turnCount = 0;
         self.errorMessage = data.error;
-        if (data.startTime && ! data.error) {
+        if ('percentComplete' in data && ! data.error) {
             plotRangeService.computeFieldRanges(self, 'bunchAnimation', data.percentComplete);
             turnCount = data.turnCount;
             ['beamEvolutionAnimation', 'bunchAnimation', 'turnComparisonAnimation'].forEach(function(m) {
-                appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
                 var key = m + '.frameCount';
                 if (!(key in data)) {
@@ -170,11 +181,11 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         });
     });
 
-    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        beamEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'y1', 'y2', 'y3', 'startTime'],
-        bunchAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
-        turnComparisonAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'y', 'turn1', 'turn2', 'startTime'],
-    });
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        synergiaService.computeModel(),
+        handleStatus
+    );
 
     self.simState.errorMessage = function() {
         return self.errorMessage;

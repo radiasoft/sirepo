@@ -56,9 +56,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data.report
-        if r == cls.animation_name(data):
+    def _compute_job_fields(cls, data, r, compute_model):
+        if r == compute_model:
             return []
         if r == 'tunesReport':
             return [r, 'bunchAnimation.startTime']
@@ -75,6 +74,12 @@ class SimData(sirepo.sim_data.SimDataBase):
         if r == 'twissReport2' or 'opticsReport' in r or r == 'twissSummaryReport':
             res.append('simulation.visualizationBeamlineId')
         return res
+
+    @classmethod
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if 'bunchReport' in analysis_model:
+            return 'bunchReport'
+        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def _lib_files(cls, data):

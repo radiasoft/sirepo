@@ -27,6 +27,10 @@ SIREPO.app.factory('warpPBAService', function(appState, $rootScope) {
         return false;
     }
 
+    self.computeModel = function (analysisModel) {
+        return 'animation';
+    };
+
     self.isElectronBeam = function() {
         return isSourceType('electronBeam');
     };
@@ -34,6 +38,8 @@ SIREPO.app.factory('warpPBAService', function(appState, $rootScope) {
     self.isLaserPulse = function() {
         return isSourceType('laserPulse');
     };
+
+    appState.setAppService(self);
 
     appState.whenModelsLoaded($rootScope, function() {
         initGridDimensions();
@@ -49,12 +55,8 @@ SIREPO.app.controller('WarpPBADynamicsController', function(appState, frameCache
     self.panelState = panelState;
 
     function handleStatus(data) {
-        frameCache.setFrameCount(data.frameCount);
-        if (data.startTime) {
-            ['fieldAnimation', 'particleAnimation', 'beamAnimation'].forEach(function(m) {
-                appState.models[m].startTime = data.startTime;
-                appState.saveQuietly(m);
-            });
+        if (data.frameCount) {
+            frameCache.setFrameCount(parseInt(data.frameCount));
         }
     }
 
@@ -62,11 +64,11 @@ SIREPO.app.controller('WarpPBADynamicsController', function(appState, frameCache
         return warpPBAService.isElectronBeam();
     };
 
-    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        fieldAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'field', 'coordinate', 'mode', 'startTime'],
-        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'histogramBins', 'xMin', 'xMax', 'yMin', 'yMax', 'zMin', 'zMax', 'uxMin', 'uxMax', 'uyMin', 'uyMax', 'uzMin', 'uzMax', 'startTime'],
-        beamAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'histogramBins', 'startTime'],
-    });
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        warpPBAService.computeModel(),
+        handleStatus
+    );
 
     self.simState.initMessage = function() {
         return 'Initializing Laser Pulse and Plasma';

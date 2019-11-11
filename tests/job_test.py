@@ -62,13 +62,6 @@ pytestmark = pytest.mark.skipif(
     reason="SIREPO_PYTEST_SKIP",
 )
 
-def test_runStatus():
-    py3_env, fc = _env_setup()
-    from pykern import pkunit
-    from pykern.pkdebug import pkdc, pkdp, pkdlog
-    from sirepo import job
-
-
 _REPORT = 'heightWeightReport'
 
 
@@ -144,26 +137,15 @@ def test_runCancel(fc, sim_data):
     else:
         pkunit.pkfail('runStatus: failed to start running: {}', d)
 
+    x = d.nextRequest
     d = fc.sr_post(
         'runCancel',
-        dict(
-            models=sim_data.models,
-            report=_REPORT,
-            simulationId=sim_data.models.simulation.simulationId,
-            simulationType=sim_data.simulationType,
-        )
+        x,
     )
     assert d.state == 'canceled'
     d = fc.sr_post(
         'runStatus',
-        # TODO(e-carlin): What actually needs to be in this dict? I just
-        # copied from runSimulation
-        dict(
-            models=sim_data.models,
-            report=_REPORT,
-            simulationId=sim_data.models.simulation.simulationId,
-            simulationType=sim_data.simulationType,
-        ),
+        x,
     )
     assert d.state == 'canceled'
 

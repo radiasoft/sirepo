@@ -1,37 +1,4 @@
 {
-    "dynamicFiles": {
-        "externalLibs": {
-            "js": [
-                "dom-to-image.min.js",
-                "vtk.js"
-            ]
-        },
-        "sirepoLibs": {
-            "js": [
-                "srw.js",
-                "sirepo-beamline.js"
-            ],
-            "css": [
-                 "srw.css"
-            ]
-        }
-    },
-    "localRoutes": {
-        "source": {
-            "config": {
-                "controller": "SRWSourceController as source",
-                "templateUrl": "/static/html/srw-source.html"
-            }
-        },
-        "beamline": {
-            "route": "/beamline/:simulationId",
-            "config": {
-                "controller": "SRWBeamlineController as beamline",
-                "templateUrl": "/static/html/srw-beamline.html",
-                "reloadOnSearch": true
-            }
-        }
-    },
     "appModes": {
         "calculator": {
             "localRoute": "source",
@@ -338,6 +305,45 @@
             ["u_i", "Idealized"],
             ["u_t", "Tabulated"]
         ]
+    },
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "dom-to-image.min.js",
+                "vtk.js"
+            ]
+        },
+        "sirepoLibs": {
+            "js": [
+                "srw.js",
+                "sirepo-beamline.js"
+            ],
+            "css": [
+                 "srw.css"
+            ]
+        }
+    },
+    "frameIdFields": {
+        "coherenceXAnimation": ["intensityPlotsWidth", "rotateAngle", "rotateReshape"],
+        "coherenceYAnimation": ["intensityPlotsWidth", "rotateAngle", "rotateReshape"],
+        "fluxAnimation": [],
+        "multiElectronAnimation": ["intensityPlotsWidth", "rotateAngle", "rotateReshape"]
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SRWSourceController as source",
+                "templateUrl": "/static/html/srw-source.html"
+            }
+        },
+        "beamline": {
+            "route": "/beamline/:simulationId",
+            "config": {
+                "controller": "SRWBeamlineController as beamline",
+                "templateUrl": "/static/html/srw-beamline.html",
+                "reloadOnSearch": true
+            }
+        }
     },
     "model": {
         "aperture": {

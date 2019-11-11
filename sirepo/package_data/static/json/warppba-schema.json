@@ -1,26 +1,4 @@
 {
-    "dynamicFiles": {
-        "sirepoLibs": {
-            "js": [
-                "warppba.js"
-            ]
-        }
-    },
-    "localRoutes": {
-        "source": {
-            "config": {
-                "controller": "WarpPBASourceController as source",
-                "templateUrl": "/static/html/warppba-source.html"
-            }
-        },
-        "dynamics": {
-            "route": "/dynamics/:simulationId",
-            "config": {
-                "controller": "WarpPBADynamicsController as dynamics",
-                "templateUrl": "/static/html/warppba-dynamics.html"
-            }
-        }
-    },
     "enum": {
         "BeamRadiusMethod": [
             ["a", "Absolute"],
@@ -131,6 +109,53 @@
             ["uy", "uy"],
             ["uz", "uz"]
         ]
+    },
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": [
+                "warppba.js"
+            ]
+        }
+    },
+    "frameIdFields": {
+        "beamAnimation": [
+            "x",
+            "y",
+            "histogramBins"
+        ],
+        "fieldAnimation": ["field", "coordinate", "mode"],
+        "particleAnimation": [
+            "x",
+            "y",
+            "histogramBins",
+            "xMin",
+            "xMax",
+            "yMin",
+            "yMax",
+            "zMin",
+            "zMax",
+            "uxMin",
+            "uxMax",
+            "uyMin",
+            "uyMax",
+            "uzMin",
+            "uzMax"
+        ]
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "WarpPBASourceController as source",
+                "templateUrl": "/static/html/warppba-source.html"
+            }
+        },
+        "dynamics": {
+            "route": "/dynamics/:simulationId",
+            "config": {
+                "controller": "WarpPBADynamicsController as dynamics",
+                "templateUrl": "/static/html/warppba-dynamics.html"
+            }
+        }
     },
     "model": {
         "beamAnimation": {

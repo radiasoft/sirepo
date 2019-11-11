@@ -1,4 +1,15 @@
 {
+    "enum": {
+        "Gender": [
+            ["male", "Male"],
+            ["female", "Female"]
+        ],
+        "DogDisposition": [
+            ["aggressive", "Aggressive"],
+            ["friendly", "Friendly"],
+            ["submissive", "Submissive"]
+        ]
+    },
     "dynamicFiles": {
         "sirepoLibs": {
             "js": ["myapp.js"]
@@ -11,17 +22,6 @@
                 "templateUrl": "/static/html/myapp-source.html"
             }
         }
-    },
-    "enum": {
-        "Gender": [
-            ["male", "Male"],
-            ["female", "Female"]
-        ],
-        "DogDisposition": [
-            ["aggressive", "Aggressive"],
-            ["friendly", "Friendly"],
-            ["submissive", "Submissive"]
-        ]
     },
     "model": {
         "dog": {
