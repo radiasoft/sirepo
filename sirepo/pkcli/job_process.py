@@ -90,14 +90,14 @@ def _do_compute(msg, template):
             r = p.poll()
             if msg.isParallel:
                 msg.isRunning = r is None
-                print(
+                sys.stdout.write(
                     pkjson.dump_pretty(
                         PKDict(
                             state=job.RUNNING if msg.isRunning else job.COMPLETED,
                             parallelStatus=_background_percent_complete(msg, template),
                         ),
                         pretty=False,
-                    )
+                    ) + '\n',
                 )
             if r is None:
                 time.sleep(2) # TODO(e-carlin): cfg
@@ -105,7 +105,7 @@ def _do_compute(msg, template):
                 assert r == 0, 'non zero returncode={}'.format(r)
                 break
     except Exception as e:
-        pkdp(pkdexc())
+        pkdc(pkdexc())
         return PKDict(state=job.ERROR, error=str(e))
     return PKDict(state=job.COMPLETED)
 

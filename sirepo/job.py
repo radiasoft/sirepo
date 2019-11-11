@@ -32,6 +32,14 @@ AGENT_URI = '/agent'
 #: path supervisor registers to receive requests from server
 SERVER_URI = '/server'
 
+AGENT_URI = '/agent'
+
+#: how jobs request files
+JOB_FILE_URI = '/job'
+
+#: how jobs request files
+JOB_FILE_URI = '/job-file'
+
 DEFAULT_IP = '127.0.0.1'
 DEFAULT_PORT = 8001
 
