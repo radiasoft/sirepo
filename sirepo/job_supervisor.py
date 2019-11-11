@@ -38,7 +38,7 @@ def init():
     job_driver.init()
     s = sirepo.srdb.root().join(job.JOB_FILE_DIR)
     pykern.pkio.unchecked_remove(s)
-    _JOB_FILE_DIR = s.join(job.JOB_FILE_URI.lstrip('/'))
+    _JOB_FILE_DIR = s.join(job.JOB_FILE_URI)
     pykern.pkio.mkdir_parent(_JOB_FILE_DIR)
     _JOB_FILE_URI = job.cfg.supervisor_uri + job.JOB_FILE_URI + '/'
     return s
@@ -102,6 +102,10 @@ class _ComputeJob(PKDict):
     def _job_file_create(self, libDir):
         self.jobFileLink = l = _JOB_FILE_DIR.join(job.unique_key())
         os.symlink(l.dirpath().bestrelpath(libDir), l)
+        pkjson.dump_pretty(
+            [x.basename for x in pykern.pkio.sorted_glob(libDir.join('*'))],
+            filename=libDir.join(job.JOB_FILE_LIST_URI),
+        )
         return _JOB_FILE_URI + l.basename
 
     def _job_file_destroy(self):
