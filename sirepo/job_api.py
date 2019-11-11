@@ -74,7 +74,7 @@ def _request(**kwargs):
         uid=sirepo.auth.logged_in_user(),
     )
     b.setdefault(
-        userDir=lambda: simulation_db.user_dir_name(b.uid),
+        userDir=simulation_db.user_dir_name(b.uid),
     )
     r = requests.post(
         job.cfg.supervisor_uri,
