@@ -22,8 +22,6 @@ cfg = None
 
 class LocalDriver(job_driver.DriverBase):
 
-    instances = PKDict()
-
     slots = PKDict()
 
     def __init__(self, req):
@@ -59,6 +57,16 @@ class LocalDriver(job_driver.DriverBase):
                 return d
         return cls(req)
 
+    @classmethod
+    def init_class(cls, cfg):
+        for k in job.KINDS:
+            cls.slots[k] = PKDict(
+                in_use=0,
+                total=cfg[k + '_slots'],
+            )
+        super().init_class(cfg)
+        return cls
+
     def kill(self):
         if 'subprocess' not in self:
             return
@@ -72,8 +80,7 @@ class LocalDriver(job_driver.DriverBase):
     def free_slots(cls, kind):
         for d in cls.instances[kind]:
             if d.has_slot and not d.ops_pending_done:
-                cls.slots[kind].in_use -= 1
-                d.has_slot = False
+                self._slot_free()
         assert cls.slots[kind].in_use > -1
 
     @classmethod
@@ -134,6 +141,10 @@ class LocalDriver(job_driver.DriverBase):
         if k:
             tornado.ioloop.IOLoop.current().remove_timeout(k)
         super()._free()
+
+    def _slot_free(self):
+        self.slots[self.kind].in_use -= 1
+        self.has_slot = False
 
 
 def init_class():

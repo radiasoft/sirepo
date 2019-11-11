@@ -35,6 +35,8 @@ class AgentMsg(PKDict):
 class DriverBase(PKDict):
     agents = PKDict()
 
+    instances = PKDict()
+
     def __init__(self, req):
         super().__init__(
             has_slot=False,
@@ -90,10 +92,6 @@ class DriverBase(PKDict):
     @classmethod
     def init_class(cls, cfg):
         for k in job.KINDS:
-            cls.slots[k] = PKDict(
-                in_use=0,
-                total=cfg[k + '_slots'],
-            )
             cls.instances[k] = []
         return cls
 
@@ -162,21 +160,9 @@ class DriverBase(PKDict):
     def _websocket_free(self):
         """Remove holds on all resources and remove self from data structures"""
         del self.agents[self._agentId]
-        for d in self.instances[self.kind]:
-            if d.uid == self.uid:
-                self.instances[self.kind].remove(d)
-                break
-        else:
-            raise AssertionError(
-                'kind={}  uid={} not in instances={}'.format(
-                    self.kind,
-                    self.uid,
-                    self.instances
-                )
-            )
+        self.instances[self.kind].remove(self)
         if self.has_slot:
-            self.slots[self.kind].in_use -= 1
-            self.has_slot = False
+            self._slot_free()
         w = self.websocket
         self.websockt = None
         if w:
