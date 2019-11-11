@@ -5,8 +5,8 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkjson
+import pykern.pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from sirepo import job
@@ -14,16 +14,27 @@ from sirepo import job_driver
 import aenum
 import collections
 import copy
+import sirepo.srdb
 import sys
 import time
 import tornado.gen
 import tornado.ioloop
 import tornado.locks
 
+#: we job files are stored
+_JOB_FILE_ROOT = None
+
 
 def init():
+    global _JOB_FILE_ROOT
+
+    assert not _JOB_FILE_ROOT
+    _JOB_FILE_ROOT = sirepo.srdb.root() + job.JOB_FILE_URI
+    pykern.pkio.unchecked_remove(_JOB_FILE_ROOT)
+    pykern.pkio.mkdir_parent(_JOB_FILE_ROOT)
     job.init()
     job_driver.init()
+    return _JOB_FILE_ROOT
 
 
 class ServerReq(PKDict):
@@ -223,7 +234,6 @@ class _ComputeJob(PKDict):
                 driver=d,
                 msg=PKDict(
                     jobProcessCmd=jobProcessCmd,
-                    simulationType=req.simulationType,
                     **req.content,
                 ),
                 opName=opName,

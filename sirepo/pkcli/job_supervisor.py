@@ -9,11 +9,12 @@ from pykern import pkconfig
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
-from sirepo import job
-from sirepo import job_driver
-from sirepo import job_supervisor
 import asyncio
 import signal
+import sirepo.job
+import sirepo.job_driver
+import sirepo.job_supervisor
+import sirepo.srdb
 import tornado.httpserver
 import tornado.ioloop
 import tornado.web
@@ -27,27 +28,28 @@ def default_command():
 
     cfg = pkconfig.init(
         debug=(pkconfig.channel_in('dev'), bool, 'run supervisor in debug mode'),
-        ip=(job.DEFAULT_IP, str, 'ip address to listen on'),
-        port=(job.DEFAULT_PORT, int, 'what port to listen on'),
+        ip=(sirepo.job.DEFAULT_IP, str, 'ip address to listen on'),
+        port=(sirepo.job.DEFAULT_PORT, int, 'what port to listen on'),
     )
     app = tornado.web.Application(
         [
-            (job.AGENT_URI, _AgentMsg),
-            (job.SERVER_URI, _ServerReq),
+            (sirepo.job.AGENT_URI, _AgentMsg),
+            (sirepo.job.SERVER_URI, _ServerReq),
         ],
         debug=cfg.debug,
+        static_path=sirepo.job_supervisor.init(),
+        static_url_prefix=sirepo.job.JOB_FILE_URI,
     )
     server = tornado.httpserver.HTTPServer(app)
     server.listen(cfg.port, cfg.ip)
     signal.signal(signal.SIGTERM, _sigterm)
     signal.signal(signal.SIGINT, _sigterm)
     pkdlog('ip={} port={}', cfg.ip, cfg.port)
-    job_supervisor.init()
     tornado.ioloop.IOLoop.current().start()
 
 
 class _AgentMsg(tornado.websocket.WebSocketHandler):
-    sr_class = job_driver.AgentMsg
+    sr_class = sirepo.job_driver.AgentMsg
 
     def check_origin(self, origin):
         return True
@@ -86,7 +88,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
 
 class _ServerReq(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ["POST"]
-    sr_class = job_supervisor.ServerReq
+    sr_class = sirepo.job_supervisor.ServerReq
 
     def on_connection_close(self):
         # Nothing we can do with the request. Even if a user
@@ -113,7 +115,7 @@ class _ServerReq(tornado.web.RequestHandler):
 async def _incoming(content, handler):
     try:
         c = pkjson.load_any(content)
-        pkdc('class={} content={}', handler.sr_class, job.LogFormatter(c))
+        pkdc('class={} content={}', handler.sr_class, sirepo.job.LogFormatter(c))
         await handler.sr_class(handler=handler, content=c).receive()
     except Exception as e:
         pkdlog('exception={} handler={} content={}', e, content, handler)
@@ -130,7 +132,7 @@ def _sigterm(signum, frame):
 
 def _terminate():
     try:
-        job_supervisor.terminate()
+        sirepo.job_supervisor.terminate()
     except Exception as e:
         pkdlog('job_supervisor.terminate except={} stack={}', e, pkdexc())
     tornado.ioloop.IOLoop.current().stop()
