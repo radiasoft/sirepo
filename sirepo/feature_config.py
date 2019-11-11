@@ -65,6 +65,9 @@ cfg = pkconfig.init(
         mask_in_toolbar=(pkconfig.channel_in_internal_test(), bool, 'Show the mask element in toolbar'),
         beamline3d=(pkconfig.channel_in_internal_test(), bool, 'Show 3D beamline plot'),
     ),
+    jspec=dict(
+        derbenevskrinsky_force_formula=(pkconfig.channel_in_internal_test(), bool, 'Include Derbenev-Skrinsky force forumla'),
+    ),
     warpvnd=dict(
         allow_3d_mode=(True, bool, 'Include 3D features in the Warp VND UI'),
         display_test_boxes=(pkconfig.channel_in_internal_test(), bool, 'Display test boxes to visualize 3D -> 2D projections'),

@@ -89,6 +89,14 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         panelState.showField('ring', 'elegantSirepo', latticeSource == 'elegant-sirepo');
     }
 
+    self.handleModalShown = function(name) {
+        if (name == 'rateCalculationReport') {
+            if (! SIREPO.APP_SCHEMA.feature_config.derbenevskrinsky_force_formula) {
+                panelState.showEnum('electronCoolingRate', 'force_formula', 'derbenevskrinsky', false);
+            }
+        }
+    };
+
     self.showTwissEditor = function() {
         panelState.showModalEditor('twissReport');
     };
