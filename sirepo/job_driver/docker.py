@@ -12,6 +12,7 @@ from sirepo import job
 from sirepo import job_driver
 from sirepo import mpi
 import functools
+import operator
 import os
 import re
 import socket
@@ -28,12 +29,6 @@ _CNAME_SEP = '-'
 
 #: parse cotnainer names. POSIT: matches _cname_join()
 _CNAME_RE = re.compile(_CNAME_SEP.join(('^' + _CNAME_PREFIX, r'([a-z]+)', '(.+)')))
-
-#: map of docker host names to their machine/run specs and status
-_hosts = None
-
-#: used for slot creation so that order is predictable across runs
-_hosts_ordered = None
 
 # default is unlimited so put some real constraint
 # TODO(e-carlin): max open files for local or nersc?
@@ -54,20 +49,31 @@ _RUN_PREFIX = (
 
 class DockerDriver(job_driver.DriverBase):
 
+    hosts = PKDict()
+
     instances = PKDict()
 
-    slots = PKDict()
-
-    def __init__(self, req, space):
-        super().__init__(req, space)
+    def __init__(self, req, host):
+        super().__init__(req, host)
         self.update(
-            _cname=_cname_join(self._kind, self.uid),
+            _cname=_cname_join(self.kind, self.uid),
             _agent_dir=req.content.userDir,
             _image = _image(),
-            _host='localhost.localdomain', # TODO(e-carlin): use hosts like runner/docker.py
+            host=host,
         )
-        self.instances[self._kind].append(self)
+        self.instances[self.kind].append(self)
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
+
+
+    @classmethod
+    async def get_instance(cls, req):
+        for d in list(itertools.chain(*instances.values())):
+            if d.uid == req.content.uid:
+                if d.kind == req.content.kind:
+                    return d
+                return cls(req, h)
+        h = min(a, key=lambda x:len(x.agents))
+        return cls(req, h)
 
     def kill(self):
         if '_cid' not in self:
@@ -96,12 +102,12 @@ class DockerDriver(job_driver.DriverBase):
                 '-c',
                 'pyenv shell py3 && sirepo job_agent',
             )
-        self._cid = _cmd(self._host, cmd)
+        self._cid = _cmd(self.host, cmd)
 
     def _kill(self):
         pkdlog('{}: stop cid={}', self.uid, self._cid)
         _cmd(
-            self._host,
+            self.host,
             ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), self._cid),
         )
         self._cid = None
@@ -137,24 +143,6 @@ def init_class(*args, **kwargs):
     _init_hosts()
     return DockerDriver.init_class(cfg)
 
-def _init_hosts():
-    global _hosts
-    _hosts = PKDict()
-    for h in cfg.hosts:
-        d = cfg.tls_dir.join(h)
-        _hosts[h] = PKDict(
-            name=h,
-            cmd_prefix=_cmd_prefix(h, d),
-            slots=PKDict(),
-        )
-        for k in job.KINDS:
-            _hosts[h].slots[k] = PKDict(
-                in_use=0,
-                total=cfg[k + '_slots'],
-            )
-    assert len(_hosts) > 0, \
-        '{}: no docker hosts found in directory'.format(cfg.tls_d)
-
 
 @pkconfig.parse_none
 def _cfg_hosts(value):
@@ -179,7 +167,7 @@ def _cfg_tls_dir(value):
 
 
 def _cmd(host, cmd):
-    c = _hosts[host].cmd_prefix + cmd
+    c = _hosts[host.name].cmd_prefix + cmd
     try:
         pkdc('Running: {}', ' '.join(c))
         return subprocess.check_output(
@@ -244,3 +232,21 @@ def _init_dev_hosts():
         d.join(f).write(o)
     # we just reuse the same cert as the docker server since it's local host
     d.join('cacert.pem').write(o)
+
+
+def _init_hosts():
+    for h in cfg.hosts:
+        d = cfg.tls_dir.join(h)
+        DockerDriver.hosts[h] = PKDict(
+            cmd_prefix=_cmd_prefix(h, d),
+            drivers=PKDict(),
+            name=h,
+            slots=PKDict(),
+        )
+        for k in job.KINDS:
+            _hosts[h].slots[k] = PKDict(
+                in_use=0,
+                total=cfg[k + '_slots'],
+            )
+    assert len(_hosts) > 0, \
+        '{}: no docker hosts found in directory'.format(cfg.tls_d)

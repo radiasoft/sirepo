@@ -43,7 +43,7 @@ class DriverBase(PKDict):
             uid=req.content.uid,
             websocket=None,
             _agentId=job.unique_key(),
-            _kind=req.kind,
+            kind=req.kind,
             _supervisor_uri=cfg.supervisor_uri,
         )
         self.agents[self._agentId] = self
@@ -61,15 +61,7 @@ class DriverBase(PKDict):
         # canceled ops are removed in self.cancel_op()
         if not op.canceled and not op.errored:
             del self.ops_pending_done[op.opId]
-        self.run_scheduler(self._kind)
-
-    @classmethod
-    def free_slots(cls, kind):
-        for d in cls.instances[kind]:
-            if d.has_slot and not d.ops_pending_done:
-                cls.slots[kind].in_use -= 1
-                d.has_slot = False
-        assert cls.slots[kind].in_use > -1
+        self.run_scheduler(self.kind)
 
     def get_ops_pending_done_types(self):
             d = collections.defaultdict(int)
@@ -116,31 +108,6 @@ class DriverBase(PKDict):
             except Exception as e:
                 pkdlog('error={} stack={}', e, pkdexc())
 
-
-# TODO(e-carlin): Take in a arg of driver and start the loop from the index
-# of that driver. Doing so enables fair scheduling. Otherwise user at start of
-# list always has priority
-    @classmethod
-    def run_scheduler(cls, kind):
-        cls.free_slots(kind)
-        for d in cls.instances[kind]:
-            ops_with_send_alloc = d.get_ops_with_send_allocation()
-            if not ops_with_send_alloc:
-                continue
-            if ((not d.has_slot and cls.slots[kind].in_use >= cls.slots[kind].total)
-                or not d.websocket
-            ):
-                continue
-            if not d.has_slot:
-                assert cls.slots[kind].in_use < cls.slots[kind].total
-                d.has_slot = True
-                cls.slots[kind].in_use += 1
-            for o in ops_with_send_alloc:
-                assert o.opId not in d.ops_pending_done
-                d.ops_pending_send.remove(o)
-                d.ops_pending_done[o.opId] = o
-                o.send_ready.set()
-
     async def send(self, op):
 #TODO(robnagler) need to send a retry to the ops, which should requeue
 #  themselves at an outer level(?).
@@ -152,7 +119,7 @@ class DriverBase(PKDict):
 #  we can cache that state in the agent(?) and have it send the response
 #  twice(?).
         self.ops_pending_send.append(op)
-        self.run_scheduler(self._kind)
+        self.run_scheduler(self.kind)
         await op.send_ready.wait()
         if op.opId in self.ops_pending_done:
             self.websocket.write_message(pkjson.dump_bytes(op.msg))
@@ -190,25 +157,25 @@ class DriverBase(PKDict):
             self._websocket_free()
         self.websocket = msg.handler
         self.websocket.sr_driver_set(self)
-        self.run_scheduler(self._kind)
+        self.run_scheduler(self.kind)
 
     def _websocket_free(self):
         """Remove holds on all resources and remove self from data structures"""
         del self.agents[self._agentId]
-        for d in self.instances[self._kind]:
+        for d in self.instances[self.kind]:
             if d.uid == self.uid:
-                self.instances[self._kind].remove(d)
+                self.instances[self.kind].remove(d)
                 break
         else:
             raise AssertionError(
                 'kind={}  uid={} not in instances={}'.format(
-                    self._kind,
+                    self.kind,
                     self.uid,
                     self.instances
                 )
             )
         if self.has_slot:
-            self.slots[self._kind].in_use -= 1
+            self.slots[self.kind].in_use -= 1
             self.has_slot = False
         w = self.websocket
         self.websockt = None
@@ -223,7 +190,7 @@ class DriverBase(PKDict):
         self.ops_pending_send = []
         for o in t:
             o.set_errored('websocket closed')
-        self.run_scheduler(self._kind)
+        self.run_scheduler(self.kind)
 
 
 async def get_instance(req):

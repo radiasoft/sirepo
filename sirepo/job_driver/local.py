@@ -32,7 +32,7 @@ class LocalDriver(job_driver.DriverBase):
         self.update(
             _agentDir=pkio.py_path(req.content.userDir).join('agent-local', self._agentId),
         )
-        self.instances[self._kind].append(self)
+        self.instances[self.kind].append(self)
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
 
     @classmethod
@@ -67,6 +67,38 @@ class LocalDriver(job_driver.DriverBase):
             job_driver.KILL_TIMEOUT_SECS,
             self.subprocess.proc.kill,
         )
+
+    @classmethod
+    def free_slots(cls, kind):
+        for d in cls.instances[kind]:
+            if d.has_slot and not d.ops_pending_done:
+                cls.slots[kind].in_use -= 1
+                d.has_slot = False
+        assert cls.slots[kind].in_use > -1
+
+# TODO(e-carlin): Take in a arg of driver and start the loop from the index
+# of that driver. Doing so enables fair scheduling. Otherwise user at start of
+# list always has priority
+    @classmethod
+    def run_scheduler(cls, kind):
+        cls.free_slots(kind)
+        for d in cls.instances[kind]:
+            ops_with_send_alloc = d.get_ops_with_send_allocation()
+            if not ops_with_send_alloc:
+                continue
+            if ((not d.has_slot and cls.slots[kind].in_use >= cls.slots[kind].total)
+                or not d.websocket
+            ):
+                continue
+            if not d.has_slot:
+                assert cls.slots[kind].in_use < cls.slots[kind].total
+                d.has_slot = True
+                cls.slots[kind].in_use += 1
+            for o in ops_with_send_alloc:
+                assert o.opId not in d.ops_pending_done
+                d.ops_pending_send.remove(o)
+                d.ops_pending_done[o.opId] = o
+                o.send_ready.set()
 
     def terminate(self):
         if 'subprocess' in self:
