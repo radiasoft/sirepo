@@ -61,7 +61,7 @@ class DriverBase(PKDict):
         # canceled ops are removed in self.cancel_op()
         if not op.canceled and not op.errored:
             del self.ops_pending_done[op.opId]
-        self.run_scheduler(self.kind)
+        self.run_scheduler(self)
 
     def get_ops_pending_done_types(self):
             d = collections.defaultdict(int)
@@ -119,7 +119,7 @@ class DriverBase(PKDict):
 #  we can cache that state in the agent(?) and have it send the response
 #  twice(?).
         self.ops_pending_send.append(op)
-        self.run_scheduler(self.kind)
+        self.run_scheduler(self)
         await op.send_ready.wait()
         if op.opId in self.ops_pending_done:
             self.websocket.write_message(pkjson.dump_bytes(op.msg))
@@ -157,7 +157,7 @@ class DriverBase(PKDict):
             self._websocket_free()
         self.websocket = msg.handler
         self.websocket.sr_driver_set(self)
-        self.run_scheduler(self.kind)
+        self.run_scheduler(self)
 
     def _websocket_free(self):
         """Remove holds on all resources and remove self from data structures"""
@@ -190,7 +190,7 @@ class DriverBase(PKDict):
         self.ops_pending_send = []
         for o in t:
             o.set_errored('websocket closed')
-        self.run_scheduler(self.kind)
+        self.run_scheduler(self)
 
 
 async def get_instance(req):

@@ -71,9 +71,46 @@ class DockerDriver(job_driver.DriverBase):
             if d.uid == req.content.uid:
                 if d.kind == req.content.kind:
                     return d
+                # jobs of different kinds for the same user need to go to the
+                # same host. Ex. sequential analysis jobs for parallel compute
+                # jobs need to go to the same host to avoid NFS caching problems
                 return cls(req, h)
-        h = min(a, key=lambda x:len(x.agents))
+# TODO(e-carlin): This might be the only place agents is used on hosts if so
+# remove
+        h = min(cls.hosts, key=lambda h:len(h.agents))
         return cls(req, h)
+
+    @classmethod
+    def free_slots(cls, kind):
+        for d in cls.instances[kind]:
+            if d.has_slot and not d.ops_pending_done:
+                d.host.slots[kind].in_use -= 1
+                d.has_slot = False
+
+    @classmethod
+    def run_scheduler(cls, driver):
+        cls.free_slots(driver.kind)
+        i = cls.instances[driver.kind].index(driver)
+        # start iteration from index of current driver to enable fair scheduling
+        for d in cls.instances[driver.kind][i:] + cls.instances[driver.kind][:i]:
+            ops_with_send_alloc = d.get_ops_with_send_allocation()
+            if not ops_with_send_alloc:
+                continue
+            if ((not d.has_slot and
+                 cls.slots[driver.kind].in_use >= cls.slots[driver.kind].total
+                 )
+                    or not d.websocket
+                ):
+                continue
+            if not d.has_slot:
+                assert cls.slots[driver.kind].in_use < cls.slots[driver.kind].total
+                d.has_slot = True
+                cls.slots[driver.kind].in_use += 1
+            for o in ops_with_send_alloc:
+                assert o.opId not in d.ops_pending_done
+                d.ops_pending_send.remove(o)
+                d.ops_pending_done[o.opId] = o
+                o.send_ready.set()
 
     def kill(self):
         if '_cid' not in self:
