@@ -35,10 +35,10 @@ SERVER_URI = '/server'
 AGENT_URI = '/agent'
 
 #: how jobs request files
-JOB_FILE_URI = '/job'
-
-#: how jobs request files
 JOB_FILE_URI = '/job-file'
+
+#: how jobs request files (relative to srdb.root)
+JOB_FILE_DIR = 'supervisor-srv'
 
 DEFAULT_IP = '127.0.0.1'
 DEFAULT_PORT = 8001

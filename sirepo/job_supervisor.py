@@ -14,6 +14,7 @@ from sirepo import job_driver
 import aenum
 import collections
 import copy
+import os
 import sirepo.srdb
 import sys
 import time
@@ -21,20 +22,26 @@ import tornado.gen
 import tornado.ioloop
 import tornado.locks
 
+
 #: we job files are stored
-_JOB_FILE_ROOT = None
+_JOB_FILE_DIR = None
+
+#: where job_processes request files
+_JOB_FILE_URI = None
 
 
 def init():
-    global _JOB_FILE_ROOT
+    global _JOB_FILE_DIR, _JOB_FILE_URI
 
-    assert not _JOB_FILE_ROOT
-    _JOB_FILE_ROOT = sirepo.srdb.root() + job.JOB_FILE_URI
-    pykern.pkio.unchecked_remove(_JOB_FILE_ROOT)
-    pykern.pkio.mkdir_parent(_JOB_FILE_ROOT)
+    assert not _JOB_FILE_DIR
     job.init()
     job_driver.init()
-    return _JOB_FILE_ROOT
+    s = sirepo.srdb.root().join(job.JOB_FILE_DIR)
+    pykern.pkio.unchecked_remove(s)
+    _JOB_FILE_DIR = s.join(job.JOB_FILE_URI.lstrip('/'))
+    pykern.pkio.mkdir_parent(_JOB_FILE_DIR)
+    _JOB_FILE_URI = job.cfg.supervisor_uri + job.JOB_FILE_URI + '/'
+    return s
 
 
 class ServerReq(PKDict):
@@ -80,6 +87,7 @@ class _ComputeJob(PKDict):
         self.instances[self.computeJid] = self
 
     def destroy_op(self, op):
+        self._job_file_destroy()
         self._ops.remove(op)
         op.destroy()
 
@@ -89,6 +97,17 @@ class _ComputeJob(PKDict):
             cls.instances.get(req.content.computeJid) or cls(req),
             '_receive_' + req.content.api,
         )(req)
+
+
+    def _job_file_create(self, libDir):
+        self.jobFileLink = l = _JOB_FILE_DIR.join(job.unique_key())
+        os.symlink(l.dirpath().bestrelpath(libDir), l)
+        return _JOB_FILE_URI + l.basename
+
+    def _job_file_destroy(self):
+        d = self.pkdel('jobFileLink')
+        if d:
+            d.remove(rec=False, ignore_errors=True)
 
     async def _receive_api_runCancel(self, req):
         async def _reply_canceled(self, req):
@@ -195,8 +214,12 @@ class _ComputeJob(PKDict):
                 req.content.computeJobHash
             )
             return
+        req.content.jobFileUri = self._job_file_create(
+            pykern.pkio.py_path(req.content.libDir),
+        )
         o = await self._send(
-            job.OP_RUN, req,
+            job.OP_RUN,
+            req,
             jobProcessCmd='compute'
         )
         # TODO(e-carlin): XXX bug. If cancel comes in then self.status = canceled
