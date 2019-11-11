@@ -210,7 +210,7 @@ class DockerJob(runner.JobBase):
 
         if pkconfig.channel_in('dev'):
             for v in '~/src', '~/.pyenv':
-                v = pkio.py_path('~/src')
+                v = pkio.py_path(v)
                 # pyenv and src shouldn't be writable, only rundir
                 _res(v, v + ':ro')
         _res(self.run_dir, self.run_dir)

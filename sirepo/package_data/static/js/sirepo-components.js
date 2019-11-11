@@ -719,15 +719,12 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
                 if ($scope.selectionRequired && $scope.form) {
                     $scope.form.$valid = false;
                 }
-                if ($scope.fileType && $scope.model) {
-                    var f = $scope.model[$scope.fileField];
-                    var list = requestSender.getAuxiliaryData($scope.fileType);
-                    if (f && list && list.indexOf(f) >= 0) {
-                        if($scope.form) {
-                            $scope.form.$valid = true;
-                        }
-                        return true;
+                if ($scope.fileType && $scope.model && $scope.model[$scope.fileField]) {
+                    // assume the file is valid if selected
+                    if ($scope.form) {
+                        $scope.form.$valid = true;
                     }
+                    return true;
                 }
                 return false;
             };
