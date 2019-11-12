@@ -80,13 +80,18 @@ class LocalDriver(job_driver.DriverBase):
     def free_slots(cls, kind):
         for d in cls.instances[kind]:
             if d.has_slot and not d.ops_pending_done:
-                self._slot_free()
+                d.slot_free()
         assert cls.slots[kind].in_use > -1
 
     @classmethod
     def run_scheduler(cls, driver):
         cls.free_slots(driver.kind)
-        i = cls.instances[driver.kind].index(driver)
+        try:
+            i = cls.instances[driver.kind].index(driver)
+        except ValueError:
+            # In the _websocket_free() code we remove driver from list of
+            # instances.
+            i = 0
         # start iteration from index of current driver to enable fair scheduling
         for d in cls.instances[driver.kind][i:] + cls.instances[driver.kind][:i]:
             ops_with_send_alloc = d.get_ops_with_send_allocation()
@@ -142,7 +147,7 @@ class LocalDriver(job_driver.DriverBase):
             tornado.ioloop.IOLoop.current().remove_timeout(k)
         super()._free()
 
-    def _slot_free(self):
+    def slot_free(self):
         self.slots[self.kind].in_use -= 1
         self.has_slot = False
 

@@ -82,13 +82,19 @@ class DockerDriver(job_driver.DriverBase):
     def free_slots(cls, driver):
         for d in driver.host.drivers[driver.kind]:
             if d.has_slot and not d.ops_pending_done:
-                d._slot_free()
+                d.slot_free()
 
+    # TODO(e-carlin): very similar code between this and local
     @classmethod
     def run_scheduler(cls, driver):
         cls.free_slots(driver)
         h = driver.host
-        i = h.drivers[driver.kind].index(driver)
+        try:
+            i = h.drivers[driver.kind].index(driver)
+        except ValueError:
+            # In the _websocket_free() code we remove driver from list of
+            # instances.
+            i = 0
         # start iteration from index of current driver to enable fair scheduling
         for d in h.drivers[driver.kind][i:] + h.drivers[driver.kind][:i]:
             ops_with_send_alloc = d.get_ops_with_send_allocation()
@@ -147,7 +153,7 @@ class DockerDriver(job_driver.DriverBase):
         )
         self._cid = None
 
-    def _slot_free(self):
+    def slot_free(self):
         self.host.slots[self.kind].in_use -= 1
         self.has_slot = False
 

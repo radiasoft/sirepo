@@ -134,7 +134,7 @@ class DriverBase(PKDict):
        self._websocket_free()
 
     def _free(self):
-        self._websocket_free()
+            self._websocket_free()
 
     def _receive(self, msg):
         c = msg.content
@@ -159,24 +159,27 @@ class DriverBase(PKDict):
 
     def _websocket_free(self):
         """Remove holds on all resources and remove self from data structures"""
-        del self.agents[self._agentId]
-        self.instances[self.kind].remove(self)
-        if self.has_slot:
-            self._slot_free()
-        w = self.websocket
-        self.websockt = None
-        if w:
-            # Will not call websocket_on_close()
-            w.sr_close()
-        t = list(
-            self.ops_pending_done.values()
-            )
-        t.extend(self.ops_pending_send)
-        self.ops_pending_done.clear()
-        self.ops_pending_send = []
-        for o in t:
-            o.set_errored('websocket closed')
-        self.run_scheduler(self)
+        try:
+            del self.agents[self._agentId]
+            self.instances[self.kind].remove(self)
+            if self.has_slot:
+                self.slot_free()
+            w = self.websocket
+            self.websockt = None
+            if w:
+                # Will not call websocket_on_close()
+                w.sr_close()
+            t = list(
+                self.ops_pending_done.values()
+                )
+            t.extend(self.ops_pending_send)
+            self.ops_pending_done.clear()
+            self.ops_pending_send = []
+            for o in t:
+                o.set_errored('websocket closed')
+            self.run_scheduler(self)
+        except Exception as e:
+            pkdlog('error={} stack={}', e, pkdexc())
 
 
 async def get_instance(req):
