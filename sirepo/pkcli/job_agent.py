@@ -187,7 +187,8 @@ class _Job(PKDict):
         assert not self.msg.get('agentId')
         env = self._subprocess_env()
         self._in_file = self.msg.runDir.join(
-            _IN_FILE.format(job.unique_key()))
+            _IN_FILE.format(job.unique_key()),
+        )
         pkio.mkdir_parent_only(self._in_file)
         # TODO(e-carlin): Find a better solution for serial and deserialization
         self.msg.runDir = str(self.msg.runDir)
@@ -213,9 +214,10 @@ class _Job(PKDict):
             *(k for k in env if _EXEC_ENV_REMOVE.search(k)),
         )
         return env.pkupdate(
-            SIREPO_MPI_CORES=str(self.msg.mpiCores),
             PYENV_VERSION='py2',
             PYTHONUNBUFFERED='1', # TODO(e-carlin): discuss with rn
+            SIREPO_MPI_CORES=str(self.msg.mpiCores),
+            SIREPO_SIM_DATA_JOB_FILE_URI=str(self.msg.get('jobFileUri', '')),
         )
 
     def _subprocess_exit(self, returncode):

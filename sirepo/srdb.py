@@ -26,10 +26,6 @@ def root():
     return _root
 
 
-def runner_socket_path():
-    return root() / 'runner.sock'
-
-
 def server_init_root(value):
     _init_root(value)
     return root()
