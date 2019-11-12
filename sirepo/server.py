@@ -101,13 +101,14 @@ def api_copySimulation():
 @api_perm.require_user
 def api_deleteFile():
     sim = http_request.parse_post(filename=1, file_type=1)
-    e = _simulations_using_file(sim, sim.file_type, _lib_filepath(sim.type))
+    e = _simulations_using_file(sim, sim.file_type, _lib_filepath(sim))
     if len(e):
         return http_reply.gen_json({
             'error': 'File is in use in other simulations.',
             'fileList': e,
             'fileName': sim.filename,
         })
+
     pkio.unchecked_remove(_lib_filepath(sim))
     return http_reply.gen_json_ok()
 
