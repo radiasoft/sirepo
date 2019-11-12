@@ -148,11 +148,17 @@ def api_downloadFile(simulation_type, simulation_id, filename):
     if sim.type != 'srw':
         # strip file_type prefix from attachment filename
         n = re.sub(r'^.*?-.*?\.', '', n)
-    return flask.send_file(
-        str(sim.sim_data.lib_file_abspath(sim.filename)),
-        as_attachment=True,
-        attachment_filename=n,
-    )
+    p = sim.sim_data.lib_file_abspath(sim.filename)
+    try:
+        return flask.send_file(
+            str(p),
+            as_attachment=True,
+            attachment_filename=n,
+        )
+    except IOError as e:
+        if pkio.exception_is_not_found(e):
+            sirepo.util.raise_not_found('lib_file={} not found', p)
+        raise
 
 
 @api_perm.allow_visitor
