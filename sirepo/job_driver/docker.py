@@ -12,6 +12,7 @@ from sirepo import job
 from sirepo import job_driver
 from sirepo import mpi
 import functools
+import itertools
 import operator
 import os
 import re
@@ -51,29 +52,69 @@ class DockerDriver(job_driver.DriverBase):
 
     hosts = PKDict()
 
-    instances = PKDict()
-
     def __init__(self, req, host):
-        super().__init__(req, host)
+        super().__init__(req)
         self.update(
             _cname=_cname_join(self.kind, self.uid),
             _agent_dir=req.content.userDir,
             _image = _image(),
             host=host,
         )
+        self.host.drivers[self.kind].append(self)
         self.instances[self.kind].append(self)
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
 
 
     @classmethod
     async def get_instance(cls, req):
-        for d in list(itertools.chain(*instances.values())):
+        for d in list(itertools.chain(*cls.instances.values())):
             if d.uid == req.content.uid:
-                if d.kind == req.content.kind:
+                if d.kind == req.kind:
                     return d
-                return cls(req, h)
-        h = min(a, key=lambda x:len(x.agents))
+                # jobs of different kinds for the same user need to go to the
+                # same host. Ex. sequential analysis jobs for parallel compute
+                # jobs need to go to the same host to avoid NFS caching problems
+                return cls(req, d.host)
+        h = min(cls.hosts.values(), key=lambda h:len(h.drivers[req.kind]))
         return cls(req, h)
+
+    @classmethod
+    def free_slots(cls, driver):
+        for d in driver.host.drivers[driver.kind]:
+            if d.has_slot and not d.ops_pending_done:
+                d.slot_free()
+
+    # TODO(e-carlin): very similar code between this and local
+    @classmethod
+    def run_scheduler(cls, driver):
+        cls.free_slots(driver)
+        h = driver.host
+        try:
+            i = h.drivers[driver.kind].index(driver)
+        except ValueError:
+            # In the _websocket_free() code we remove driver from list of
+            # instances.
+            i = 0
+        # start iteration from index of current driver to enable fair scheduling
+        for d in h.drivers[driver.kind][i:] + h.drivers[driver.kind][:i]:
+            ops_with_send_alloc = d.get_ops_with_send_allocation()
+            if not ops_with_send_alloc:
+                continue
+            if ((not d.has_slot and
+                 h.slots[driver.kind].in_use >= h.slots[driver.kind].total
+                 )
+                    or not d.websocket
+                ):
+                continue
+            if not d.has_slot:
+                assert h.slots[driver.kind].in_use < h.slots[driver.kind].total
+                d.has_slot = True
+                h.slots[driver.kind].in_use += 1
+            for o in ops_with_send_alloc:
+                assert o.opId not in d.ops_pending_done
+                d.ops_pending_send.remove(o)
+                d.ops_pending_done[o.opId] = o
+                o.send_ready.set()
 
     def kill(self):
         if '_cid' not in self:
@@ -112,6 +153,10 @@ class DockerDriver(job_driver.DriverBase):
         )
         self._cid = None
 
+    def slot_free(self):
+        self.host.slots[self.kind].in_use -= 1
+        self.has_slot = False
+
     def _volumes(self):
         res = []
         def _res(src, tgt):
@@ -125,8 +170,12 @@ class DockerDriver(job_driver.DriverBase):
         _res(self._agent_dir, self._agent_dir)
         return tuple(res)
 
+    def _websocket_free(self):
+        self.host.drivers[self.kind].remove(self)
+        super()._websocket_free()
 
-def init_class(*args, **kwargs):
+
+def init_class():
     global cfg, _parallel_cores
 
     _parallel_cores = mpi.cfg.cores
@@ -167,7 +216,7 @@ def _cfg_tls_dir(value):
 
 
 def _cmd(host, cmd):
-    c = _hosts[host.name].cmd_prefix + cmd
+    c = DockerDriver.hosts[host.name].cmd_prefix + cmd
     try:
         pkdc('Running: {}', ' '.join(c))
         return subprocess.check_output(
@@ -244,9 +293,10 @@ def _init_hosts():
             slots=PKDict(),
         )
         for k in job.KINDS:
-            _hosts[h].slots[k] = PKDict(
+            DockerDriver.hosts[h].slots[k] = PKDict(
                 in_use=0,
                 total=cfg[k + '_slots'],
             )
-    assert len(_hosts) > 0, \
+            DockerDriver.hosts[h].drivers[k] = []
+    assert len(DockerDriver.hosts) > 0, \
         '{}: no docker hosts found in directory'.format(cfg.tls_d)

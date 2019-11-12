@@ -35,6 +35,8 @@ class AgentMsg(PKDict):
 class DriverBase(PKDict):
     agents = PKDict()
 
+    instances = PKDict()
+
     def __init__(self, req):
         super().__init__(
             has_slot=False,
@@ -61,7 +63,7 @@ class DriverBase(PKDict):
         # canceled ops are removed in self.cancel_op()
         if not op.canceled and not op.errored:
             del self.ops_pending_done[op.opId]
-        self.run_scheduler(self.kind)
+        self.run_scheduler(self)
 
     def get_ops_pending_done_types(self):
             d = collections.defaultdict(int)
@@ -90,10 +92,6 @@ class DriverBase(PKDict):
     @classmethod
     def init_class(cls, cfg):
         for k in job.KINDS:
-            cls.slots[k] = PKDict(
-                in_use=0,
-                total=cfg[k + '_slots'],
-            )
             cls.instances[k] = []
         return cls
 
@@ -119,7 +117,7 @@ class DriverBase(PKDict):
 #  we can cache that state in the agent(?) and have it send the response
 #  twice(?).
         self.ops_pending_send.append(op)
-        self.run_scheduler(self.kind)
+        self.run_scheduler(self)
         await op.send_ready.wait()
         if op.opId in self.ops_pending_done:
             self.websocket.write_message(pkjson.dump_bytes(op.msg))
@@ -136,7 +134,7 @@ class DriverBase(PKDict):
        self._websocket_free()
 
     def _free(self):
-        self._websocket_free()
+            self._websocket_free()
 
     def _receive(self, msg):
         c = msg.content
@@ -157,40 +155,31 @@ class DriverBase(PKDict):
             self._websocket_free()
         self.websocket = msg.handler
         self.websocket.sr_driver_set(self)
-        self.run_scheduler(self.kind)
+        self.run_scheduler(self)
 
     def _websocket_free(self):
         """Remove holds on all resources and remove self from data structures"""
-        del self.agents[self._agentId]
-        for d in self.instances[self.kind]:
-            if d.uid == self.uid:
-                self.instances[self.kind].remove(d)
-                break
-        else:
-            raise AssertionError(
-                'kind={}  uid={} not in instances={}'.format(
-                    self.kind,
-                    self.uid,
-                    self.instances
+        try:
+            del self.agents[self._agentId]
+            self.instances[self.kind].remove(self)
+            if self.has_slot:
+                self.slot_free()
+            w = self.websocket
+            self.websockt = None
+            if w:
+                # Will not call websocket_on_close()
+                w.sr_close()
+            t = list(
+                self.ops_pending_done.values()
                 )
-            )
-        if self.has_slot:
-            self.slots[self.kind].in_use -= 1
-            self.has_slot = False
-        w = self.websocket
-        self.websockt = None
-        if w:
-            # Will not call websocket_on_close()
-            w.sr_close()
-        t = list(
-            self.ops_pending_done.values()
-            )
-        t.extend(self.ops_pending_send)
-        self.ops_pending_done.clear()
-        self.ops_pending_send = []
-        for o in t:
-            o.set_errored('websocket closed')
-        self.run_scheduler(self.kind)
+            t.extend(self.ops_pending_send)
+            self.ops_pending_done.clear()
+            self.ops_pending_send = []
+            for o in t:
+                o.set_errored('websocket closed')
+            self.run_scheduler(self)
+        except Exception as e:
+            pkdlog('error={} stack={}', e, pkdexc())
 
 
 async def get_instance(req):
