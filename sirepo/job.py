@@ -32,7 +32,8 @@ AGENT_URI = '/agent'
 #: path supervisor registers to receive requests from server
 SERVER_URI = '/server'
 
-AGENT_URI = '/agent'
+#: path supervisor registers to receive requests from job_process for file PUTs
+FILE_URI = '/file'
 
 #: how jobs request files
 JOB_FILE_URI = '/job-file'

@@ -9,24 +9,48 @@ from pykern import pkinspect, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import api_perm
-import sirepo.http_request
-import sirepo.job
-import sirepo.mpi
 from sirepo import simulation_db
 from sirepo import srdb
 from sirepo import srtime
 from sirepo.template import template_common
 import calendar
 import datetime
+import flask
 import inspect
 import requests
 import sirepo.auth
+import sirepo.http_reply
+import sirepo.http_request
+import sirepo.job
+import sirepo.mpi
 import sirepo.sim_data
 import sirepo.template
 import time
 
 
 _YEAR = datetime.timedelta(365)
+
+
+@api_perm.require_user
+def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
+#TODO(robnagler) validate suffix and frame
+    sim = sirepo.http_request.parse_params(
+        id=simulation_id,
+        model=model,
+        type=simulation_type,
+    )
+    pkdp('22222222222222222222222')
+    pkdp(_request(data=PKDict(sim.req_data, frame=frame, computeJobHash='x')))
+    pkdp('22222222222222222222222')
+    f, c, t = sirepo.template.import_module(sim.type).get_data_file(
+        simulation_db.simulation_run_dir(sim.req_data),
+        sim.sim_data.compute_model(sim.model),
+        int(frame),
+        options=sim.req_data.copy().update(suffix=suffix),
+    )
+    return sirepo.http_reply.headers_for_no_cache(
+        sirepo.http_reply.as_attachment(flask.make_response(c), t, f),
+    )
 
 
 @api_perm.require_user
@@ -74,6 +98,8 @@ def _request_data(kwargs):
         ).req_data
     s = sirepo.sim_data.get_class(d)
     b = PKDict(data=d)
+# TODO(e-carlin): some of these fields are only used for some type of reqs
+# Ex tmpDir is only used in api_downloadDataFile
     return b.pksetdefault(
         analysisModel=d.report,
         api=inspect.currentframe().f_back.f_back.f_code.co_name,
@@ -89,4 +115,5 @@ def _request_data(kwargs):
         libDir=lambda: str(sirepo.simulation_db.simulation_lib_dir(b.simulationType)),
         mpiCores=lambda: sirepo.mpi.cfg.cores if b.isParallel else 1,
         userDir=lambda: str(sirepo.simulation_db.user_dir_name(b.uid)),
+        tmpDir=lambda: str(sirepo.simulation_db.tmp_dir())
     )

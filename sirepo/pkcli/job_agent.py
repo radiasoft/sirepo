@@ -215,7 +215,7 @@ class _Job(PKDict):
         )
         return env.pkupdate(
             PYENV_VERSION='py2',
-            PYTHONUNBUFFERED='1', # TODO(e-carlin): discuss with rn
+            PYTHONUNBUFFERED='1',
             SIREPO_MPI_CORES=str(self.msg.mpiCores),
             SIREPO_SIM_DATA_JOB_FILE_URI=str(self.msg.get('jobFileUri', '')),
         )

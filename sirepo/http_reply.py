@@ -38,6 +38,11 @@ _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\
 #: routes that will require a reload
 _RELOAD_JS_ROUTES = None
 
+def as_attachment(resp, content_type, filename):
+    resp.mimetype = content_type
+    resp.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
+    return resp
+
 
 def gen_exception(exc):
     """Generate from an Exception

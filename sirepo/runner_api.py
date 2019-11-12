@@ -15,6 +15,7 @@ from sirepo import runner
 from sirepo import simulation_db
 from sirepo.template import template_common
 import datetime
+import flask
 import hashlib
 import sirepo.sim_data
 import sirepo.template
@@ -22,6 +23,26 @@ import time
 
 #: What is_running?
 _RUN_STATES = ('pending', 'running')
+
+
+@api_perm.require_user
+def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
+#TODO(robnagler) validate suffix and frame
+    sim = http_request.parse_params(
+        id=simulation_id,
+        model=model,
+        type=simulation_type,
+    )
+    f, c, t = sirepo.template.import_module(sim.type).get_data_file(
+        simulation_db.simulation_run_dir(sim.req_data),
+        sim.sim_data.compute_model(sim.model),
+        int(frame),
+        options=sim.req_data.copy().update(suffix=suffix),
+    )
+    return http_reply.headers_for_no_cache(
+        http_reply.as_attachment(flask.make_response(c), t, f),
+    )
+
 
 @api_perm.require_user
 def api_runCancel():

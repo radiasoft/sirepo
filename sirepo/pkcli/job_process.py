@@ -18,6 +18,7 @@ from sirepo.template import template_common
 import functools
 import os
 import re
+import requests
 import sirepo
 import subprocess
 import sys
@@ -114,6 +115,27 @@ def _do_get_simulation_frame(msg, template):
     return template_common.sim_frame_dispatch(
         msg.data.copy().pkupdate(run_dir=msg.runDir),
     )
+
+
+def _do_get_data_file(msg, template):
+    try:
+        f, c, t = template.get_data_file(
+            msg.runDir,
+            msg.computeModel,
+            int(msg.data.frame),
+            options=PKDict(suffix=msg.suffix if 'suffix' in msg else None),
+        )
+        files = [
+            (msg.tmpDir, (f, c, t)),
+        ]
+        r = requests.put(
+            'http://127.0.0.1:8001/file',
+            files=files,
+        )
+        r.raise_for_status()
+        return PKDict()
+    except Exception as e:
+        return PKDict(error=e, stack=pkdexc())
 
 
 def _do_sequential_result(msg, template):

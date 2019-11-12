@@ -120,25 +120,6 @@ def api_deleteSimulation():
 
 
 @api_perm.require_user
-def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
-#TODO(robnagler) validate suffix and frame
-    sim = http_request.parse_params(
-        id=simulation_id,
-        model=model,
-        type=simulation_type,
-    )
-    f, c, t = sirepo.template.import_module(sim.type).get_data_file(
-        simulation_db.simulation_run_dir(sim.req_data),
-        sim.sim_data.compute_model(sim.model),
-        int(frame),
-        options=sim.req_data.copy().update(suffix=suffix),
-    )
-    return http_reply.headers_for_no_cache(
-        _as_attachment(flask.make_response(c), t, f),
-    )
-
-
-@api_perm.require_user
 def api_downloadFile(simulation_type, simulation_id, filename):
 #TODO(pjm): simulation_id is an unused argument
     sim = http_request.parse_params(type=simulation_type, filename=filename)
@@ -643,12 +624,6 @@ def init_apis(app, *args, **kwargs):
     importlib.import_module(
         'sirepo.' + ('job' if feature_config.cfg().job_supervisor else 'runner')
     ).init_by_server(app)
-
-
-def _as_attachment(resp, content_type, filename):
-    resp.mimetype = content_type
-    resp.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
-    return resp
 
 
 @pkconfig.parse_none
