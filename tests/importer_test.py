@@ -7,15 +7,15 @@ u"""sipepo.importer test
 from __future__ import absolute_import, division, print_function
 import pytest
 
-pytest.importorskip('srwl_bl')
 
-
-def test_import_json():
+def test_import_json(fc):
+    import six
     from sirepo import srunit
-    _do('json', srunit.file_as_stream)
+
+    _do(fc, 'json', lambda f: f.read(mode='rb'))
 
 
-def test_import_zip():
+def test_import_zip(fc):
     import zipfile
 
     def _parse(fn):
@@ -26,25 +26,23 @@ def test_import_zip():
                 json = f.read()
         except Exception:
             pass
-        return json, open(str(fn), 'rb')
+        return json
 
-    _do('zip', _parse)
+    _do(fc, 'zip', _parse)
 
 
-def _do(file_ext, parse):
+def _do(fc, file_ext, parse):
+    from pykern.pkcollections import PKDict
     from pykern import pkio
     from pykern import pkunit
     from pykern import pkcollections
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkeq, pkfail, pkok
-    from sirepo import srunit
     import re
 
-    fc = srunit.flask_client(sim_types='srw:myapp')
-    fc.sr_login_as_guest()
     for suffix in '', ' 2', ' 3':
         for f in pkio.sorted_glob(pkunit.data_dir().join('*.' + file_ext)):
-            json, stream = parse(f)
+            json = parse(f)
             sim_type = re.search(r'^([a-z]+)_', f.basename).group(1)
             fc.sr_get_root(sim_type)
             is_dev = 'deviance' in f.basename
@@ -52,11 +50,9 @@ def _do(file_ext, parse):
                 sim_name = pkcollections.json_load_any(json).models.simulation.name
             res = fc.sr_post_form(
                 'importFile',
-                {
-                    'file': (stream, f.basename),
-                    'folder': '/importer_test',
-                },
-                {'simulation_type': sim_type},
+                PKDict(folder='/importer_test'),
+                PKDict(simulation_type=sim_type),
+                file=f,
             )
             if is_dev:
                 m = re.search(r'Error: (.+)', json)

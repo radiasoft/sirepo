@@ -579,7 +579,6 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
     )
     f = flask.request.files['file']
     sim.filename = werkzeug.secure_filename(f.filename)
-#TODO(robnagler) assert file type
     p = _lib_filepath(sim)
     e = None
     in_use = None
