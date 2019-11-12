@@ -594,3 +594,10 @@ class SimDataBase(object):
     @classmethod
     def _template_fixup_set(cls, data):
         data[cls._TEMPLATE_FIXUP] = True
+
+
+def _init():
+    global cfg
+    cfg = pkconfig.init(
+        job_file_uri=(None, str, 'where to get files from'),
+    )
