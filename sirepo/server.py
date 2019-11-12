@@ -103,7 +103,7 @@ def api_deleteFile():
     sim = http_request.parse_post(filename=1, file_type=1)
     e = _simulations_using_file(
         sim.type,
-        t,
+        sim.file_type,
         _lib_filename(sim.type, sim.filename, sim.file_type),
     )
     if len(e):
@@ -113,7 +113,7 @@ def api_deleteFile():
             'fileName': sim.filename,
         })
     pkio.unchecked_remove(
-        _lib_filepath(sim.type, sime.filename, sim.file_type),
+        _lib_filepath(sim.type, sim.filename, sim.file_type),
     )
     return http_reply.gen_json_ok()
 
