@@ -265,7 +265,8 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def srw_is_valid_file_type(cls, file_type, path):
-        return path.ext[1:] in cls.SRW_FILE_TYPE_EXTENSIONS[file_type]
+#        return path.ext[1:] in cls.SRW_FILE_TYPE_EXTENSIONS[file_type]
+        return path.ext[1:] in cls.SRW_FILE_TYPE_EXTENSIONS.get(file_type, tuple())
 
     @classmethod
     def srw_predefined(cls):

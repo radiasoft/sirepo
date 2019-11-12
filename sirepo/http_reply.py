@@ -193,7 +193,7 @@ def render_static(base, ext, j2_ctx, cache_ok=False):
 
 
 def _gen_exception_error(exc):
-    pkdlog('unsupported exception={}', exc)
+    pkdlog('unsupported exception={} msg={}', type(exc), exc)
     return gen_redirect_for_local_route(None, route='error')
 
 

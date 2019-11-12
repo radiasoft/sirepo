@@ -53,7 +53,7 @@ _app = None
 
 @api_perm.require_user
 def api_copyNonSessionSimulation():
-    sim = http_request.parse_post(id=1)
+    sim = http_request.parse_post(id=1, template=1)
     src = pkio.py_path(
         simulation_db.find_global_simulation(
             sim.type,
@@ -75,9 +75,8 @@ def api_copyNonSessionSimulation():
         simulation_db.lib_dir_from_sim_dir(src),
         simulation_db.lib_dir_from_sim_dir(target),
     )
-    template = sirepo.template.import_module(data)
-    if hasattr(template, 'copy_related_files'):
-        template.copy_related_files(data, str(src), str(target))
+    if hasattr(sim.template, 'copy_related_files'):
+        sim.template.copy_related_files(data, str(src), str(target))
     return res
 
 
@@ -101,7 +100,7 @@ def api_copySimulation():
 @api_perm.require_user
 def api_deleteFile():
     sim = http_request.parse_post(filename=1, file_type=1)
-    e = _simulations_using_file(sim, sim.file_type, _lib_filepath(sim))
+    e = _simulations_using_file(sim)
     if len(e):
         return http_reply.gen_json({
             'error': 'File is in use in other simulations.',
@@ -126,9 +125,10 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
     sim = http_request.parse_params(
         id=simulation_id,
         model=model,
+        template=True,
         type=simulation_type,
     )
-    f, c, t = sirepo.template.import_module(sim.type).get_data_file(
+    f, c, t = sim.template.get_data_file(
         simulation_db.simulation_run_dir(sim.req_data),
         sim.sim_data.compute_model(sim.model),
         int(frame),
@@ -340,7 +340,8 @@ def api_importFile(simulation_type=None):
                 'simulation_type is required param for non-zip|json imports'
             assert hasattr(template, 'import_file'), \
                 ValueError('Only zip files are supported')
-            data = template.import_file(flask.request, simulation_db.tmp_dir())
+            with simulation_db.tmp_dir() as d:
+                data = template.import_file(flask.request, d)
             if 'error' in data:
                 return http_reply.gen_json(data)
             if 'version' in data:
@@ -390,14 +391,13 @@ def api_newSimulation():
 
 @api_perm.require_user
 def api_pythonSource(simulation_type, simulation_id, model=None, report=None):
-    sim = http_request.parse_params(type=simulation_type, id=simulation_id)
+    sim = http_request.parse_params(type=simulation_type, id=simulation_id, template=True)
     m = model and sim.sim_data.parse_model(model)
     r = report and sim.sim_data.parse_model(report)
     d = simulation_db.read_simulation_json(sim.type, sid=sim.id)
     return _safe_attachment(
         flask.make_response(
-            sirepo.template.import_module(d)\
-                .python_source_for_model(d, m),
+            sim.template.python_source_for_model(d, m),
         ),
         d.models.simulation.name + ('-' + r if r else ''),
         'py',
@@ -579,36 +579,30 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
     )
     f = flask.request.files['file']
     sim.filename = werkzeug.secure_filename(f.filename)
-    p = _lib_filepath(sim)
     e = None
     in_use = None
-    if p.check():
-        if not flask.request.form.get('confirm'):
-            in_use = _simulations_using_file(
-                sim.type,
-                sim.file_type,
-                _lib_filepath(sim),
-                ignore_sim_id=sim.id,
-            )
+    p = _lib_filepath(sim)
+    with simulation_db.tmp_dir() as d:
+        t = d.join(sim.filename)
+        f.save(str(t))
+        if hasattr(sim.template, 'validate_file'):
+            e = sim.template.validate_file(sim.file_type, t)
+        if not e and p.check() and not flask.request.form.get('confirm'):
+            in_use = _simulations_using_file(sim, ignore_sim_id=sim.id)
             if in_use:
                 e = 'File is in use in other simulations. Please confirm you would like to replace the file for all simulations.'
-    if not e:
+        if e:
+            return http_reply.gen_json({
+                'error': e,
+                'filename': sim.filename,
+                'fileList': in_use,
+                'fileType': sim.file_type,
+                'simulationId': sim.id,
+            })
         pkio.mkdir_parent_only(p)
-        f.save(str(p))
-        if hasattr(sim.template, 'validate_file'):
-            e = sim.template.validate_file(sim.file_type, p)
-            if e:
-                pkio.unchecked_remove(p)
-    if e:
-        return http_reply.gen_json({
-            'error': e,
-            'filename': n,
-            'fileList': in_use,
-            'fileType': sim.file_type,
-            'simulationId': sim.id,
-        })
+        t.rename(p)
     return http_reply.gen_json({
-        'filename': n,
+        'filename': sim.filename,
         'fileType': sim.file_type,
         'simulationId': sim.id,
     })
@@ -722,18 +716,21 @@ def _simulation_data(res, path, data):
     res.append(data)
 
 
-def _simulations_using_file(sim, path, ignore_sim_id=None):
+def _simulations_using_file(sim, ignore_sim_id=None):
     res = []
-    s = sirepo.sim_data.get_class(sim.type)
-    for row in simulation_db.iterate_simulation_datafiles(simulation_type, _simulation_data):
-        if s.is_file_used(row, search_name):
-            sim = row['models']['simulation']
-            if ignore_sim_id and sim['simulationId'] == ignore_sim_id:
-                continue
-            if sim['folder'] == '/':
-                res.append('/{}'.format(sim['name']))
-            else:
-                res.append('{}/{}'.format(sim['folder'], sim['name']))
+    for r in simulation_db.iterate_simulation_datafiles(sim.type, _simulation_data):
+        if not sim.sim_data.is_file_used(r, _lib_filepath(sim).basename):
+            continue
+        s = r.models.simulation
+        if s.simulationId == ignore_sim_id:
+            continue
+        res.append(
+            '{}{}{}'.format(
+                s.folder,
+                '' if s.folder == '/' else '/',
+                s.name,
+            )
+        )
     return res
 
 
