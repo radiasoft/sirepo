@@ -263,10 +263,6 @@ def sim_frame_particleAnimation(frame_args):
     return extract_particle_report(frame_args, 'electrons')
 
 
-def validate_file(file_type, path):
-    return None
-
-
 def write_parameters(data, run_dir, is_parallel):
     """Write the parameters file
 
