@@ -109,7 +109,7 @@ def api_deleteFile():
     if len(e):
         return http_reply.gen_json({
             'error': 'File is in use in other simulations.',
-            'fileList': err,
+            'fileList': e,
             'fileName': sim.filename,
         })
     pkio.unchecked_remove(
