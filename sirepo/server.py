@@ -101,20 +101,14 @@ def api_copySimulation():
 @api_perm.require_user
 def api_deleteFile():
     sim = http_request.parse_post(filename=1, file_type=1)
-    e = _simulations_using_file(
-        sim.type,
-        t,
-        _lib_filename(sim.type, sim.filename, sim.file_type),
-    )
+    e = _simulations_using_file(sim, sim.file_type, _lib_filepath(sim.type))
     if len(e):
         return http_reply.gen_json({
             'error': 'File is in use in other simulations.',
-            'fileList': err,
+            'fileList': e,
             'fileName': sim.filename,
         })
-    pkio.unchecked_remove(
-        _lib_filepath(sim.type, sime.filename, sim.file_type),
-    )
+    pkio.unchecked_remove(_lib_filepath(sim))
     return http_reply.gen_json_ok()
 
 
@@ -154,7 +148,7 @@ def api_downloadFile(simulation_type, simulation_id, filename):
         # strip file_type prefix from attachment filename
         n = re.sub(r'^.*?-.*?\.', '', n)
     return flask.send_file(
-        str(simulation_db.simulation_lib_dir(sim.type).join(sim.filename)),
+        str(sim.sim_data.lib_file_abspath(sim.filename)),
         as_attachment=True,
         attachment_filename=n,
     )
@@ -345,11 +339,7 @@ def api_importFile(simulation_type=None):
                 'simulation_type is required param for non-zip|json imports'
             assert hasattr(template, 'import_file'), \
                 ValueError('Only zip files are supported')
-            data = template.import_file(
-                flask.request,
-                simulation_db.simulation_lib_dir(simulation_type),
-                simulation_db.tmp_dir(),
-            )
+            data = template.import_file(flask.request, simulation_db.tmp_dir())
             if 'error' in data:
                 return http_reply.gen_json(data)
             if 'version' in data:
@@ -587,9 +577,9 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
         type=simulation_type,
     )
     f = flask.request.files['file']
-    n = werkzeug.secure_filename(f.filename)
+    sim.filename = werkzeug.secure_filename(f.filename)
 #TODO(robnagler) assert file type
-    p = _lib_filepath(sim.type, n, sim.file_type)
+    p = _lib_filepath(sim)
     e = None
     in_use = None
     if p.check():
@@ -597,7 +587,7 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
             in_use = _simulations_using_file(
                 sim.type,
                 sim.file_type,
-                _lib_filename(sim.type, n, sim.file_type),
+                _lib_filepath(sim),
                 ignore_sim_id=sim.id,
             )
             if in_use:
@@ -689,15 +679,12 @@ def _handle_error(error):
     return f, status_code
 
 
-def _lib_filename(simulation_type, filename, file_type):
-    if simulation_type == 'srw':
-        return filename
-    return werkzeug.secure_filename('{}.{}'.format(file_type, filename))
-
-
-def _lib_filepath(simulation_type, filename, file_type):
-    lib = simulation_db.simulation_lib_dir(simulation_type)
-    return lib.join(_lib_filename(simulation_type, filename, file_type))
+def _lib_filepath(sim):
+#TODO(robnagler) move into sim_data
+    return sim.sim_data.lib_file_abspath(
+        sim.filename if sim.type == 'srw' \
+        else '{}.{}'.format(sim.file_type, sim.filename),
+    )
 
 
 def _render_root_page(page, values):
@@ -735,9 +722,9 @@ def _simulation_data(res, path, data):
     res.append(data)
 
 
-def _simulations_using_file(simulation_type, file_type, search_name, ignore_sim_id=None):
+def _simulations_using_file(sim, path, ignore_sim_id=None):
     res = []
-    s = sirepo.sim_data.get_class(simulation_type)
+    s = sirepo.sim_data.get_class(sim.type)
     for row in simulation_db.iterate_simulation_datafiles(simulation_type, _simulation_data):
         if s.is_file_used(row, search_name):
             sim = row['models']['simulation']

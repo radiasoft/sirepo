@@ -421,7 +421,7 @@ def write_parameters(data, run_dir, is_parallel):
             is_parallel,
         ),
     )
-    for f in _SIM_DATA.lib_files(data, simulation_db.lib_dir_from_sim_dir(run_dir)):
+    for f in _SIM_DATA.lib_files(data, run_dir=run_dir):
         b = f.basename
         if re.search(r'SCRIPT-commandFile', b):
             os.chmod(str(run_dir.join(b)), stat.S_IRUSR | stat.S_IXUSR)
@@ -1016,7 +1016,7 @@ def _sdds_beam_type(column_names):
 
 def _sdds_beam_type_from_file(filename):
     res = ''
-    path = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(filename))
+    path = str(_SIM_DATA.lib_file_abspath(filename))
     if sdds.sddsdata.InitializeInput(_SDDS_INDEX, path) == 1:
         res = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
     sdds.sddsdata.Terminate(_SDDS_INDEX)

@@ -263,19 +263,23 @@ class SimDataBase(object):
         return '{}-{}.{}'.format(model_name, field, value)
 
     @classmethod
-    def lib_file_abspath(cls, files, source_lib):
+    def lib_file_abspath(cls, files_or_file, source_lib=None):
         """Returns full, unique paths of simulation files
 
         Args:
-            files (iter): lib file names
+            files_or_fil (iter): lib file names iterable or just one file
             source_lib (py.path): path to lib (simulation_lib_dir)
         Returns:
-            list: py.path.local to files (duplicates removed)
+            object: py.path.local to files (duplicates removed) OR py.path.local
         """
-        return sorted(set((source_lib.join(f, abs=1) for f in files)))
+        if not source_lib:
+            source_lib = simulation_db.simulation_lib_dir(cls.sim_type())
+        if isinstance(files_or_file, pkconfig.STRING_TYPES):
+            return source_lib.join(files_or_file, abs=1)
+        return sorted(set((source_lib.join(f, abs=1) for f in files_or_file)))
 
     @classmethod
-    def lib_files(cls, data, source_lib=None, validate_exists=True):
+    def lib_files(cls, data, source_lib=None, run_dir=None, validate_exists=True):
         """Return list of files used by the simulation
 
         Args:
@@ -286,6 +290,9 @@ class SimDataBase(object):
         """
         from sirepo import simulation_db
 
+        if run_dir:
+            assert not source_lib
+            source_lib = simulation_db.lib_dir_from_sim_dir(run_dir)
         res = []
         for f in cls.lib_file_abspath(
             cls._lib_files(data),
