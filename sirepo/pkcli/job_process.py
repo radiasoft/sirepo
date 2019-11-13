@@ -127,7 +127,7 @@ def _do_get_data_file(msg, template):
         )
         requests.put(
             # TODO(e-carlin): cfg
-            'http://127.0.0.1:8001/file',
+            msg.dataFileUri,
             files=[
                 (msg.tmpDir, (f, c, t)),
             ],

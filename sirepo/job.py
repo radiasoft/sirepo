@@ -33,7 +33,7 @@ AGENT_URI = '/agent'
 SERVER_URI = '/server'
 
 #: path supervisor registers to receive requests from job_process for file PUTs
-FILE_URI = '/file'
+DATA_FILE_URI = '/file'
 
 #: how jobs request files
 JOB_FILE_URI = '/job-file'
@@ -73,9 +73,9 @@ def init():
         return
     cfg = pkconfig.init(
         supervisor_uri=(
-            'http://{}:{}{}'.format(DEFAULT_IP, DEFAULT_PORT, SERVER_URI),
+            'http://{}:{}'.format(DEFAULT_IP, DEFAULT_PORT),
             str,
-            'for supervisor requests',
+            'supervisor base uri',
         ),
     )
     pkdc('cfg={}', cfg)

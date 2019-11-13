@@ -52,7 +52,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
             ).file
         except requests.exceptions.HTTPError as e:
             pkdlog('error={} stack={}', e, pkdexc())
-            raise sirepo.util.Error('file not found')
+            raise sirepo.util.Error(error='file not found')
         f = pykern.pkio.py_path(d.join(werkzeug.utils.secure_filename(f)))
         m, _ = mimetypes.guess_type(f.basename)
         if m is None:
@@ -86,7 +86,7 @@ def init_apis(*args, **kwargs):
 
 def _request(**kwargs):
     r = requests.post(
-        sirepo.job.cfg.supervisor_uri,
+        sirepo.job.cfg.supervisor_uri + sirepo.job.SERVER_URI,
         data=pkjson.dump_bytes(_request_data(PKDict(kwargs))),
         headers=PKDict({'Content-type': 'application/json'}),
     )

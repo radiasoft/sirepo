@@ -36,7 +36,7 @@ def default_command():
         [
             (sirepo.job.AGENT_URI, _AgentMsg),
             (sirepo.job.SERVER_URI, _ServerReq),
-            (sirepo.job.FILE_URI, _FileReq),
+            (sirepo.job.DATA_FILE_URI, _DataFileReq),
         ],
         debug=cfg.debug,
         static_path=sirepo.job_supervisor.init(),
@@ -88,7 +88,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
         self.close()
 
 
-class _FileReq(tornado.web.RequestHandler):
+class _DataFileReq(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ["PUT"]
 
     def on_connection_close(self):

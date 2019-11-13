@@ -29,9 +29,12 @@ _JOB_FILE_DIR = None
 #: where job_processes request files
 _JOB_FILE_URI = None
 
+#: where job_process will PUT data files
+_DATA_FILE_URI = None
+
 
 def init():
-    global _JOB_FILE_DIR, _JOB_FILE_URI
+    global _JOB_FILE_DIR, _JOB_FILE_URI, _DATA_FILE_URI
 
     assert not _JOB_FILE_DIR
     job.init()
@@ -41,6 +44,7 @@ def init():
     _JOB_FILE_DIR = s.join(job.JOB_FILE_URI)
     pykern.pkio.mkdir_parent(_JOB_FILE_DIR)
     _JOB_FILE_URI = job.cfg.supervisor_uri + job.JOB_FILE_URI + '/'
+    _DATA_FILE_URI = job.cfg.supervisor_uri + job.DATA_FILE_URI
     return s
 
 
@@ -114,6 +118,7 @@ class _ComputeJob(PKDict):
             d.remove(rec=False, ignore_errors=True)
 
     async def _receive_api_downloadDataFile(self, req):
+        req.content.dataFileUri = _DATA_FILE_URI
         await self._send_with_single_reply(
             job.OP_ANALYSIS,
             req,
