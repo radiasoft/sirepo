@@ -14,7 +14,8 @@ from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 import aenum
-import uuid
+import sirepo.util
+
 
 OP_ANALYSIS = 'analysis'
 OP_CANCEL = 'cancel'
@@ -91,7 +92,7 @@ def init_by_server(app):
 
 
 def unique_key():
-    return str(uuid.uuid4())
+    return sirepo.util.random_base62(32)
 
 
 #TODO(robnagler) consider moving this into pkdebug
