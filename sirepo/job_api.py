@@ -17,6 +17,8 @@ import calendar
 import datetime
 import flask
 import inspect
+import mimetypes
+import pykern.pkio
 import requests
 import sirepo.auth
 import sirepo.http_reply
@@ -25,6 +27,7 @@ import sirepo.job
 import sirepo.mpi
 import sirepo.sim_data
 import sirepo.template
+import sirepo.util
 import time
 import werkzeug.utils
 
@@ -42,12 +45,19 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
     )
     with simulation_db.tmp_dir() as d:
         # TODO(e-carlin): compueJobHash
-        r = _request(
-            data=PKDict(sim.req_data, frame=frame, computeJobHash='x'),
-            tmpDir=d
-        )
-        f = werkzeug.utils.secure_filename(r.file)
-        return sirepo.http_reply.gen_file(d.join(f))
+        try:
+            f = _request(
+                data=PKDict(sim.req_data, frame=frame, computeJobHash='x'),
+                tmpDir=d
+            ).file
+        except requests.exceptions.HTTPError as e:
+            pkdlog('error={} stack={}', e, pkdexc())
+            raise sirepo.util.Error('file not found')
+        f = pykern.pkio.py_path(d.join(werkzeug.utils.secure_filename(f)))
+        m, _ = mimetypes.guess_type(f.basename)
+        if m is None:
+            m = 'application/octet-stream'
+        return sirepo.http_reply.gen_file_as_attachment(f.read(), m, f.basename)
 
 @api_perm.require_user
 def api_runCancel():

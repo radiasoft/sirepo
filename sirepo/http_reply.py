@@ -10,9 +10,7 @@ from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import flask
-import mimetypes
 import pykern.pkinspect
-import pykern.pkio
 import re
 import sirepo.http_request
 import sirepo.uri
@@ -61,25 +59,22 @@ def gen_exception(exc):
     return _gen_exception_error(exc)
 
 
-def gen_file(filename):
+def gen_file_as_attachment(content, content_type, filename):
     """Generate a flask file attachment response
 
     Args:
-        file (str): The file
+        content (bytes): File contents
+        content_type (str): MIMETYPE of file
+        filename (str): Name of file
 
     Returns:
-
+        flask.Response: reply object
     """
-    filename = pykern.pkio.py_path(filename)
-
-    m, _ = mimetypes.guess_type(filename.basename)
-    if m is None:
-        m = 'application/octet-stream'
     return headers_for_no_cache(
         as_attachment(
-            flask.current_app.response_class(filename.read()),
-            m,
-            filename.basename
+            flask.current_app.response_class(content),
+            content_type,
+            filename
         ),
     )
 
