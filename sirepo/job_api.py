@@ -47,7 +47,12 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         # TODO(e-carlin): compueJobHash
         try:
             f = _request(
-                data=PKDict(sim.req_data, frame=frame, computeJobHash='x'),
+                data=PKDict(
+                    sim.req_data,
+                    frame=frame,
+                    computeJobHash='x',
+                    suffix=suffix,
+                ),
                 tmpDir=d
             ).file
         except requests.exceptions.HTTPError as e:

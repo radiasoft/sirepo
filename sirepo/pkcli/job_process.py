@@ -123,7 +123,7 @@ def _do_get_data_file(msg, template):
             msg.runDir,
             msg.computeModel,
             int(msg.data.frame),
-            options=PKDict(suffix=msg.suffix if 'suffix' in msg else None),
+            options=PKDict(suffix=msg.data.suffix),
         )
         requests.put(
             # TODO(e-carlin): cfg
