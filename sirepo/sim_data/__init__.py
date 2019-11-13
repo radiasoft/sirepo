@@ -337,6 +337,21 @@ class SimDataBase(object):
                 s.copy(t)
 
     @classmethod
+    def lib_files_for_extension(cls, ext):
+        """Return sorted list of files which end in `ext`
+
+        Args:
+            ext (str): does not include suffix
+        Returns:
+            list: sorted list of absolute paths to lib files
+        """
+        from sirepo import simulation_db
+
+        return pkio.sorted_glob(
+            simulation_db.simulation_lib_dir(cls.sim_type()).join('*.{}'.format(ext)),
+        )
+
+    @classmethod
     def lib_files_for_type(cls, file_type):
         """Return sorted list of files which match `file_type`
 

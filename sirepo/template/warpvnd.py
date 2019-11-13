@@ -911,10 +911,7 @@ def _prepare_conductors(data):
         if not _SIM_DATA.warpvnd_is_3d(data):
             ct.yLength = 1
         ct.permittivity = ct.permittivity if ct.isConductor == '0' else 'None'
-        ct.file = _SIM_DATA.lib_file_abspath(
-            [_stl_file(ct)],
-            simulation_db.simulation_lib_dir(data.simulationType)
-        )[0] if 'file' in ct else 'None'
+        ct.file = _SIM_DATA.lib_file_abspath(_stl_file(ct)) if 'file' in ct else 'None'
         ct.isReflector = ct.isReflector == '1' if 'isReflector' in ct else False
     for c in data.models.conductors:
         if c.conductorTypeId not in type_by_id:
@@ -1060,9 +1057,8 @@ def _stl_file(conductor_type):
 
 def _stl_polygon_file(filename):
     return _SIM_DATA.lib_file_abspath(
-        [_SIM_DATA.lib_file_name('stl', filename, _STL_POLY_FILE)],
-        simulation_db.simulation_lib_dir(SIM_TYPE)
-    )[0]
+        _SIM_DATA.lib_file_name('stl', filename, _STL_POLY_FILE),
+    )
 
 
 def _save_stl_polys(data):

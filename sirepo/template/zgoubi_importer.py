@@ -56,7 +56,9 @@ def tosca_info(tosca):
     # determine the list of available files (from zip if necessary)
     # compute the tosca length from datafile
     #TODO(pjm): keep a cache on the tosca model?
-    datafile = simulation_db.simulation_lib_dir(SIM_TYPE).join(_SIM_DATA.lib_file_name('TOSCA', 'magnetFile', tosca['magnetFile']))
+    datafile = _SIM_DATA.lib_file_abspath(
+        _SIM_DATA.lib_file_name('TOSCA', 'magnetFile', tosca['magnetFile'])
+    )
     if not datafile.exists():
         return PKDict(
             error='missing or invalid file: {}'.format(tosca['magnetFile']),
@@ -423,9 +425,9 @@ def _validate_file_names(model, file_names):
     if len(file_names) == 1:
         name = file_names[0]
         target = _SIM_DATA.lib_file_name(model['type'], 'magnetFile', name)
-        if os.path.exists(str(simulation_db.simulation_lib_dir(SIM_TYPE).join(target))):
+        if _SIM_DATA.lib_file_abspath(target).exists():
             magnet_file = name
-    for f in glob.glob(str(simulation_db.simulation_lib_dir(SIM_TYPE).join('*.zip'))):
+    for f in _SIM_DATA.lib_files_for_extension('zip'):
         zip_has_files = True
         zip_names = []
         with zipfile.ZipFile(f, 'r') as z:

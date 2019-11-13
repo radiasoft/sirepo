@@ -347,7 +347,7 @@ def api_importFile(simulation_type=None):
             assert hasattr(template, 'import_file'), \
                 ValueError('Only zip files are supported')
             with simulation_db.tmp_dir() as d:
-                data = template.import_file(flask.request, d)
+                data = template.import_file(flask.request, tmp_dir=d)
             if 'error' in data:
                 return http_reply.gen_json(data)
             if 'version' in data:

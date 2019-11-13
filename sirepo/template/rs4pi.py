@@ -181,7 +181,7 @@ def get_simulation_frame(run_dir, data, model_data):
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
-def import_file(request, lib_dir=None, tmp_dir=None):
+def import_file(request, tmp_dir=None):
     f = request.files['file']
     filename = werkzeug.secure_filename(f.filename)
     if not pkio.has_file_extension(str(filename), 'zip'):
