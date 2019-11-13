@@ -14,7 +14,6 @@ from sirepo import feature_config
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import simulation_db
-from sirepo import srdb
 from sirepo import uri_router
 from sirepo.template import adm
 from sirepo.template import template_common
@@ -23,6 +22,7 @@ import flask
 import importlib
 import re
 import sirepo.sim_data
+import sirepo.srdb
 import sirepo.template
 import sirepo.uri
 import sirepo.util
@@ -629,10 +629,9 @@ def init(uwsgi=None, use_reloader=False):
     _app.config.update(
         PROPAGATE_EXCEPTIONS=True,
     )
-    _app.sirepo_db_dir = cfg.db_dir
+    _app.sirepo_db_dir = sirepo.srdb.root()
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
-    simulation_db.init_by_server(_app)
     uri_router.init(_app, simulation_db)
     return _app
 
@@ -649,21 +648,6 @@ def _as_attachment(resp, content_type, filename):
     resp.mimetype = content_type
     resp.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
     return resp
-
-
-@pkconfig.parse_none
-def _cfg_db_dir(value):
-    """DEPRECATED"""
-    if value is not None:
-        srdb.server_init_root(value)
-    return srdb.root()
-
-
-def _cfg_time_limit(value):
-    """Sets timeout in seconds"""
-    v = int(value)
-    assert v > 0
-    return v
 
 
 def _handle_error(error):
@@ -751,7 +735,7 @@ def static_dir(dir_name):
 
 
 cfg = pkconfig.init(
-    db_dir=(None, _cfg_db_dir, 'DEPRECATED: set $SIREPO_SRDB_ROOT'),
-    job_queue=(None, str, 'DEPRECATED: set $SIREPO_RUNNER_JOB_CLASS'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
+    db_dir=pkconfig.ReplacedBy('sirepo.srdb.root'),
+    job_queue=pkconfig.ReplacedBy('sirepo.runner.job_class'),
 )
