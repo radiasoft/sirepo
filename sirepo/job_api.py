@@ -26,6 +26,7 @@ import sirepo.mpi
 import sirepo.sim_data
 import sirepo.template
 import time
+import werkzeug.utils
 
 
 _YEAR = datetime.timedelta(365)
@@ -39,12 +40,14 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         model=model,
         type=simulation_type,
     )
-    f = _request(data=PKDict(sim.req_data, frame=frame, computeJobHash='x')).file
-    c, t, n = simulation_db.read_data_file(f)
-    return sirepo.http_reply.headers_for_no_cache(
-        sirepo.http_reply.as_attachment(flask.make_response(c), t, n),
-    )
-
+    with simulation_db.tmp_dir() as d:
+        # TODO(e-carlin): compueJobHash
+        r = _request(
+            data=PKDict(sim.req_data, frame=frame, computeJobHash='x'),
+            tmpDir=d
+        )
+        f = werkzeug.utils.secure_filename(r.file)
+        return sirepo.http_reply.gen_file(d.join(f))
 
 @api_perm.require_user
 def api_runCancel():
@@ -90,7 +93,7 @@ def _request_data(kwargs):
             model=1,
         ).req_data
     s = sirepo.sim_data.get_class(d)
-    b = PKDict(data=d)
+    b = PKDict(data=d, **kwargs)
 # TODO(e-carlin): some of these fields are only used for some type of reqs
 # Ex tmpDir is only used in api_downloadDataFile
     return b.pksetdefault(
@@ -108,5 +111,4 @@ def _request_data(kwargs):
         libDir=lambda: str(sirepo.simulation_db.simulation_lib_dir(b.simulationType)),
         mpiCores=lambda: sirepo.mpi.cfg.cores if b.isParallel else 1,
         userDir=lambda: str(sirepo.simulation_db.user_dir_name(b.uid)),
-        tmpDir=lambda: str(sirepo.simulation_db.tmp_dir())
     )

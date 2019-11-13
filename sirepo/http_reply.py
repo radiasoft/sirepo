@@ -10,7 +10,9 @@ from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import flask
+import mimetypes
 import pykern.pkinspect
+import pykern.pkio
 import re
 import sirepo.http_request
 import sirepo.uri
@@ -57,6 +59,29 @@ def gen_exception(exc):
     if isinstance(exc, werkzeug.exceptions.HTTPException):
         return _gen_exception_werkzeug(exc)
     return _gen_exception_error(exc)
+
+
+def gen_file(filename):
+    """Generate a flask file attachment response
+
+    Args:
+        file (str): The file
+
+    Returns:
+
+    """
+    filename = pykern.pkio.py_path(filename)
+
+    m, _ = mimetypes.guess_type(filename.basename)
+    if m is None:
+        m = 'application/octet-stream'
+    return headers_for_no_cache(
+        as_attachment(
+            flask.current_app.response_class(filename.read()),
+            m,
+            filename.basename
+        ),
+    )
 
 
 def gen_json(value, pretty=False, response_kwargs=None):

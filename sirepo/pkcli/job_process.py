@@ -125,15 +125,13 @@ def _do_get_data_file(msg, template):
             int(msg.data.frame),
             options=PKDict(suffix=msg.suffix if 'suffix' in msg else None),
         )
-        files = [
-            (msg.tmpDir, (f, c, t)),
-        ]
-        r = requests.put(
+        requests.put(
             # TODO(e-carlin): cfg
             'http://127.0.0.1:8001/file',
-            files=files,
-        )
-        r.raise_for_status()
+            files=[
+                (msg.tmpDir, (f, c, t)),
+            ],
+        ).raise_for_status()
         return PKDict()
     except Exception as e:
         return PKDict(error=e, stack=pkdexc())

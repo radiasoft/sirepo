@@ -121,7 +121,7 @@ class _ComputeJob(PKDict):
         )
         d = pykern.pkio.py_path(req.content.tmpDir).listdir()
         assert len(d) == 1, '{}: should only be one file in dir'.format(d)
-        return PKDict(file=str(d[0]))
+        return PKDict(file=str(d[0].basename))
 
     async def _receive_api_runCancel(self, req):
         async def _reply_canceled(self, req):
