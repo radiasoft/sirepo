@@ -562,6 +562,8 @@
             "normalVectorZ": ["Longitudinal", "Float", -0.0129552166147],
             "tangentialVectorX": ["Horizontal", "Float", 0.0129552166147],
             "tangentialVectorY": ["Vertical", "Float", 0],
+            "energy": ["Average photon energy the grating should be oriented for [eV]", "Float", 9000],
+	    "cff": ["Cff parameter", "Float", 1.5],
             "diffractionOrder": ["Diffraction Order", "Float", 1],
             "grooveDensity0": ["a₀ [lines/mm]", "Float", 1800],
             "grooveDensity1": ["a₁ [lines/mm²]", "Float", 0.08997],
@@ -1294,12 +1296,17 @@
             "title": "Grating",
             "basic": [],
             "advanced": [
+		["Main", [
+		    "title",
+		    "position"
+		]],
                 ["Geometry", [
-                    "title",
-                    "position",
+		    "energy",
+                    "diffractionOrder",
+		    "cff",
                     "tangentialSize",
                     "sagittalSize",
-                    "diffractionOrder",
+                    "grazingAngle",
                     [
                         ["Horizontal", [
                             "horizontalOffset"
@@ -1307,10 +1314,7 @@
                         ["Vertical", [
                             "verticalOffset"
                         ]]
-                    ]
-                ]],
-                ["Orientation", [
-                    "grazingAngle",
+                    ],
                     "autocomputeVectors",
                     [
                         ["Coordinates of Central Normal Vector", [
@@ -1322,7 +1326,7 @@
                             "tangentialVectorX",
                             "tangentialVectorY"
                         ]]
-                    ]
+                    ]    
                 ]],
                 ["Groove Parameters", [
                     "*Groove Density Polynomial:\n$a_0 + a_1 y + a_2 y^2 + a_3 y^3 + a_4 y^4$",
