@@ -672,7 +672,7 @@ def _render_root_page(page, values):
 
 
 def _safe_attachment(resp, base, suffix):
-    return _as_attachment(
+    return http_reply.as_attachment(
         resp,
         http_reply.MIME_TYPE[suffix],
         '{}.{}'.format(
