@@ -114,25 +114,14 @@ class _ComputeJob(PKDict):
             d.remove(rec=False, ignore_errors=True)
 
     async def _receive_api_downloadDataFile(self, req):
-# TODO(e-carlin): compuejobhash?
-
-        # self.jobFileLink = l = _JOB_FILE_DIR.join(job.unique_key())
-        # os.symlink(l.dirpath().bestrelpath(libDir), l)
-        # pkjson.dump_pretty(
-        #     [x.basename for x in pykern.pkio.sorted_glob(libDir.join('*'))],
-        #     filename=libDir.join(job.JOB_FILE_LIST_URI),
-        # )
-        # return _JOB_FILE_URI + l.basename
-
-        # req.content.jobFileUri = self._job_file_create(
-        #     pykern.pkio.py_path(req.content.libDir),
-        # )
-        r = await self._send_with_single_reply(
+        await self._send_with_single_reply(
             job.OP_ANALYSIS,
             req,
             jobProcessCmd='get_data_file'
         )
-        return PKDict()
+        d = pykern.pkio.py_path(req.content.tmpDir).listdir()
+        assert len(d) == 1, '{}: should only be one file in dir'.format(d)
+        return PKDict(file=str(d[0]))
 
     async def _receive_api_runCancel(self, req):
         async def _reply_canceled(self, req):

@@ -39,17 +39,10 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         model=model,
         type=simulation_type,
     )
-    pkdp('22222222222222222222222')
-    pkdp(_request(data=PKDict(sim.req_data, frame=frame, computeJobHash='x')))
-    pkdp('22222222222222222222222')
-    f, c, t = sirepo.template.import_module(sim.type).get_data_file(
-        simulation_db.simulation_run_dir(sim.req_data),
-        sim.sim_data.compute_model(sim.model),
-        int(frame),
-        options=sim.req_data.copy().update(suffix=suffix),
-    )
+    f = _request(data=PKDict(sim.req_data, frame=frame, computeJobHash='x')).file
+    c, t, n = simulation_db.read_data_file(f)
     return sirepo.http_reply.headers_for_no_cache(
-        sirepo.http_reply.as_attachment(flask.make_response(c), t, f),
+        sirepo.http_reply.as_attachment(flask.make_response(c), t, n),
     )
 
 

@@ -95,15 +95,11 @@ class _FileReq(tornado.web.RequestHandler):
         pass
 
     async def put(self):
-        try:
-            for k, v in self.request.files.items():
-                k = pkio.py_path(k)
-                assert k.exists()
-                for f in v:
-                    k.join(f.filename).write_binary(f.body)
-        except Exception as e:
-            pkdp(e)
-            pkdp(pkdexc())
+        for k, v in self.request.files.items():
+            k = pkio.py_path(k)
+            assert k.exists()
+            for f in v:
+                k.join(f.filename).write_binary(f.body)
 
     def sr_on_exception(self):
         self.send_error()

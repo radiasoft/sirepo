@@ -534,6 +534,25 @@ def process_simulation_list(res, path, data):
     ))
 
 
+def read_data_file(filepath):
+    """Reads simulation data file
+
+    Args:
+        filepath (str): filepath
+
+    Returns:
+        tuple(file contents, mimetype):
+    """
+    filepath = pkio.py_path(filepath)
+    m = 'application/octet-stream'
+    # TODO(e-carlin): This is a hack. get_application_data() returns the mimetype
+    if filepath.ext == 'py':
+        m = 'text/plan'
+    elif filepath.ext == 'csv':
+        m = 'text/csv'
+    return filepath.read_binary(), m, filepath.basename
+
+
 def read_json(filename):
     """Read data from json file
 
