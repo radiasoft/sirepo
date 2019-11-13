@@ -5,28 +5,25 @@ u"""PyTest for :mod:`sirepo.template.srw`
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkio
-from pykern import pkunit
-from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
 import pytest
-import re
+from pykern.pkcollections import PKDict
+
 
 def test_srw_generate_all_optics(fc):
     from sirepo.template import srw
     from sirepo import srunit
 
     name = 'srw-all-optics'
-    fn = pkunit.data_dir().join('{}.json'.format(name))
-    (_, stream) = srunit.file_as_stream(fn)
-    sim = fc.sr_post_form(
-        'importFile',
-        {
-            'file': (stream, fn.basename),
-            'folder': '/generate_test',
-        },
-        {'simulation_type': srw.SIM_TYPE},
+    _generate_source(
+        fc,
+        fc.sr_post_form(
+            'importFile',
+            PKDict(folder='/generate_test'),
+            PKDict(simulation_type=srw.SIM_TYPE),
+            file='{}.json'.format(name),
+        ),
+        name,
     )
-    _generate_source(fc, sim, name)
 
 
 def test_srw_generate_python(fc):
@@ -38,18 +35,21 @@ def test_srw_generate_python(fc):
 
 
 def _generate_source(fc, sim, name):
-    from pykern.pkunit import pkeq
-    resp = fc.sr_get(
+    from pykern import pkio, pkunit, pkdebug
+    import re
+
+    pkdebug.pkdp(sim)
+    d = fc.sr_get(
         'pythonSource',
-        {
-            'simulation_id': sim['models']['simulation']['simulationId'],
-            'simulation_type': sim['simulationType'],
-        },
+        PKDict(
+            simulation_id=sim.models.simulation.simulationId,
+            simulation_type=sim.simulationType,
+        ),
+    ).data
+    n = re.sub(
+        r'[^\w\-\.]',
+        '',
+        re.sub(r'\s', '-', '{}.py'.format(name.lower())),
     )
-    filename = '{}.py'.format(name.lower())
-    filename = re.sub(r'\s', '-', filename)
-    filename = re.sub(r'[^a-z0-9\-\.]', '', filename)
-    with open(str(pkunit.work_dir().join(filename)), 'wb') as f:
-        f.write(resp.data)
-        expect = pkio.read_text(pkunit.data_dir().join(filename))
-    pkeq(expect, resp.data)
+    pkunit.work_dir().join(n).write(d, 'wb')
+    pkunit.pkeq(pkunit.data_dir().join(n).read(), d)

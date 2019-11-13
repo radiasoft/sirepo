@@ -272,6 +272,8 @@ class SimDataBase(object):
         Returns:
             object: py.path.local to files (duplicates removed) OR py.path.local
         """
+        from sirepo import simulation_db
+
         if not source_lib:
             source_lib = simulation_db.simulation_lib_dir(cls.sim_type())
         if isinstance(files_or_file, pkconfig.STRING_TYPES):

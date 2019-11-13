@@ -374,7 +374,8 @@ def simulation_dir_name(report_name):
 
 
 def validate_file(file_type, path):
-    assert file_type == 'bunch-particleFile'
+    if file_type != 'bunch-particleFile':
+        return 'invalid file type'
     try:
         with h5py.File(path, 'r') as f:
             if 'particles' in f:

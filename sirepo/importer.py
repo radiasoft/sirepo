@@ -70,34 +70,34 @@ def read_zip(stream, sim_type=None):
     from sirepo import simulation_db
     import sirepo.sim_data
 
-    tmp = simulation_db.tmp_dir()
-    data = None
-    zipped = pkcollections.Dict()
-    with zipfile.ZipFile(stream, 'r') as z:
-        for i in z.infolist():
-            b = pykern.pkio.py_path(i.filename).basename
-            c = z.read(i)
-            if b.lower() == simulation_db.SIMULATION_DATA_FILE:
-                assert not data, \
-                    'too many db files {} in archive'.format(b)
-                data = read_json(c, sim_type)
-                continue
-            if '__MACOSX' in i.filename:
-                continue
-            #TODO(robnagler) ignore identical files hash
-            assert not b in zipped, \
-                '{} duplicate file in archive'.format(i.filename)
-            zipped[b] = tmp.join(b)
-            zipped[b].write(c, 'wb')
-    assert data, \
-        'missing {} in archive'.format(simulation_db.SIMULATION_DATA_FILE)
-    needed = pkcollections.Dict()
-    for n in sirepo.sim_data.get_class(data.simulationType).lib_files(data, validate_exists=False):
-        assert n.basename in zipped or n.check(file=True, exists=True), \
-            'auxiliary file {} missing in archive'.format(n.basename)
-        needed[n.basename] = n
-    lib_d = simulation_db.simulation_lib_dir(data.simulationType)
-    for b, src in zipped.items():
-        if b in needed:
-            src.copy(needed[b])
-    return data
+    with simulation_db.tmp_dir() as tmp:
+        data = None
+        zipped = pkcollections.Dict()
+        with zipfile.ZipFile(stream, 'r') as z:
+            for i in z.infolist():
+                b = pykern.pkio.py_path(i.filename).basename
+                c = z.read(i)
+                if b.lower() == simulation_db.SIMULATION_DATA_FILE:
+                    assert not data, \
+                        'too many db files {} in archive'.format(b)
+                    data = read_json(c, sim_type)
+                    continue
+                if '__MACOSX' in i.filename:
+                    continue
+                #TODO(robnagler) ignore identical files hash
+                assert not b in zipped, \
+                    '{} duplicate file in archive'.format(i.filename)
+                zipped[b] = tmp.join(b)
+                zipped[b].write(c, 'wb')
+        assert data, \
+            'missing {} in archive'.format(simulation_db.SIMULATION_DATA_FILE)
+        needed = pkcollections.Dict()
+        for n in sirepo.sim_data.get_class(data.simulationType).lib_files(data, validate_exists=False):
+            assert n.basename in zipped or n.check(file=True, exists=True), \
+                'auxiliary file {} missing in archive'.format(n.basename)
+            needed[n.basename] = n
+        lib_d = simulation_db.simulation_lib_dir(data.simulationType)
+        for b, src in zipped.items():
+            if b in needed:
+                src.copy(needed[b])
+        return data

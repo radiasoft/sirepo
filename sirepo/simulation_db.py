@@ -16,6 +16,7 @@ from sirepo import feature_config
 from sirepo import srschema
 from sirepo import util
 from sirepo.template import template_common
+import contextlib
 import copy
 import datetime
 import errno
@@ -781,15 +782,28 @@ def static_file_path(file_dir, file_name):
     return STATIC_FOLDER.join(file_dir).join(file_name)
 
 
-def tmp_dir():
+@contextlib.contextmanager
+def tmp_dir(chdir=False):
     """Generates new, temporary directory
 
+    Args:
+        chdir (bool): if true, will save_chdir
     Returns:
         py.path: directory to use for temporary work
     """
-    d = _random_id(_user_dir().join(_TMP_DIR))['path']
-    pkio.unchecked_remove(d)
-    return pkio.mkdir_parent(d)
+    d = None
+    try:
+        d = _random_id(_user_dir().join(_TMP_DIR))['path']
+        pkio.unchecked_remove(d)
+        pkio.mkdir_parent(d)
+        if chdir:
+            with pkio.save_chdir(d):
+                yield d
+        else:
+            yield d
+    finally:
+        if d:
+            pkio.unchecked_remove(d)
 
 
 def uid_from_dir_name(dir_name):

@@ -99,7 +99,7 @@ def server_route(route_or_uri, params, query):
     if params:
         for k, v in params.items():
             k2 = r'\??<' + k + '>'
-            n = re.sub(k2, _to_uri(v), route)
+            n = re.sub(k2, _to_uri(str(v)), route)
             assert n != route, \
                 '{}: not found in "{}"'.format(k2, route)
             route = n

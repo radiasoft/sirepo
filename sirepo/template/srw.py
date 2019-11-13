@@ -1274,7 +1274,7 @@ def _process_image(data):
     # This should just be a basename, but this ensures it.
     path = str(simulation_db.simulation_lib_dir(data.simulationType).join(werkzeug.secure_filename(data.baseImage)))
     m = data['model']
-    with pkio.save_chdir(simulation_db.tmp_dir()):
+    with simulation_db.tmp_dir(chdir=True) as t:
         s = srwl_uti_smp.SRWLUtiSmp(
             file_path=path,
             area=None if not int(m['cropArea']) else (m['areaXStart'], m['areaXEnd'], m['areaYStart'], m['areaYEnd']),
