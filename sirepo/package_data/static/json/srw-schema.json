@@ -563,7 +563,7 @@
             "tangentialVectorX": ["Horizontal", "Float", 0.0129552166147],
             "tangentialVectorY": ["Vertical", "Float", 0],
             "energy": ["Average photon energy the grating should be oriented for [eV]", "Float", 9000],
-	    "cff": ["Cff parameter", "Float", 1.5],
+	    "cff": ["Cff Parameter", "Float", 1.5],
             "diffractionOrder": ["Diffraction Order", "Float", 1],
             "grooveDensity0": ["a₀ [lines/mm]", "Float", 1800],
             "grooveDensity1": ["a₁ [lines/mm²]", "Float", 0.08997],
