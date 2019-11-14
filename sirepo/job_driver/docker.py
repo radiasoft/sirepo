@@ -223,7 +223,7 @@ async def _cmd(host, cmd):
         stderr=subprocess.STDOUT,
     )
     r = await p.wait_for_exit(raise_error=False)
-    o = (await p.stdout.read_until_close()).decode("utf-8")
+    o = (await p.stdout.read_until_close()).decode("utf-8").rstrip()
     # TODO(e-carlin): more robust handling
     assert r == 0 , \
         '{}: failed: exit={} output={}'.format(c, r, o)
