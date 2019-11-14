@@ -193,7 +193,7 @@ def compute_crl_focus(model):
 def compute_undulator_length(model):
     if model['undulatorType'] == 'u_i':
         return PKDict()
-    zip_file = simulation_db.simulation_lib_dir(SIM_TYPE).join(model['magneticFile'])
+    zip_file = _SIM_DATA.lib_file_abspath(model['magneticFile'])
     if zip_file.check():
         return PKDict(
             length=_SIM_DATA.srw_format_float(
@@ -416,7 +416,7 @@ def sim_frame(frame_args):
     )
 
 
-def import_file(request, lib_dir, tmp_dir):
+def import_file(request, tmp_dir):
     f = request.files['file']
     input_path = str(tmp_dir.join('import.py'))
     f.save(input_path)
@@ -427,6 +427,7 @@ def import_file(request, lib_dir, tmp_dir):
         'inputPath': input_path,
         'arguments': arguments,
         'userFilename': f.filename,
+#TODO(robnagler) need to fix for #2044
         'libDir': str(simulation_db.simulation_lib_dir(SIM_TYPE)),
     }
     return data
@@ -1234,8 +1235,7 @@ def _height_profile_dimension(item):
     """
     dimension = 0
     if item['heightProfileFile'] and item['heightProfileFile'] != 'None':
-        dat_file = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(item['heightProfileFile']))
-        with open(dat_file, 'r') as f:
+        with _SIM_DATA.lib_file_abspath(item['heightProfileFile']).open('r') as f:
             header = f.readline().strip().split()
             dimension = 1 if len(header) == 2 else 2
     return dimension
@@ -1252,12 +1252,12 @@ def _intensity_units(is_gaussian, sim_in):
 
 
 def _load_user_model_list(model_name):
-    filepath = simulation_db.simulation_lib_dir(SIM_TYPE).join(_USER_MODEL_LIST_FILENAME[model_name])
+    f = _SIM_DATA.lib_file_abspath(_USER_MODEL_LIST_FILENAME[model_name])
     try:
-        if filepath.exists():
-            return simulation_db.read_json(filepath)
+        if f.exists():
+            return simulation_db.read_json(f)
     except Exception:
-        pkdlog('user list read failed, resetting contents: {}', filepath)
+        pkdlog('user list read failed, resetting contents: {}', f)
     _save_user_model_list(model_name, [])
     return _load_user_model_list(model_name)
 
@@ -1272,7 +1272,7 @@ def _process_image(data):
         py.path.local: file to return
     """
     # This should just be a basename, but this ensures it.
-    path = str(simulation_db.simulation_lib_dir(data.simulationType).join(werkzeug.secure_filename(data.baseImage)))
+    path = str(_SIM_DATA.lib_file_abspath(werkzeug.secure_filename(data.baseImage)))
     m = data['model']
     with simulation_db.tmp_dir(chdir=True) as t:
         s = srwl_uti_smp.SRWLUtiSmp(
@@ -1387,9 +1387,11 @@ def _safe_beamline_item_name(name, names):
 
 def _save_user_model_list(model_name, beam_list):
     pkdc('saving {} list', model_name)
-    filepath = simulation_db.simulation_lib_dir(SIM_TYPE).join(_USER_MODEL_LIST_FILENAME[model_name])
     #TODO(pjm): want atomic replace?
-    simulation_db.write_json(filepath, beam_list)
+    simulation_db.write_json(
+        _SIM_DATA.lib_file_abspath(_USER_MODEL_LIST_FILENAME[model_name]),
+        beam_list,
+    )
 
 
 def _superscript(val):

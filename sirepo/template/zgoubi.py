@@ -429,7 +429,7 @@ def sim_frame(frame_args):
     return None
 
 
-def import_file(request, lib_dir=None, tmp_dir=None, unit_test_mode=False):
+def import_file(request, tmp_dir=None, unit_test_mode=False):
     f = request.files['file']
     filename = werkzeug.secure_filename(f.filename)
     data = zgoubi_importer.import_file(f.read(), unit_test_mode=unit_test_mode)

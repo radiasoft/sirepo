@@ -30,6 +30,8 @@ import random
 import re
 import sirepo.auth
 import sirepo.job
+import sirepo.srdb
+import sirepo.srdb
 import sirepo.template
 import threading
 import time
@@ -87,9 +89,6 @@ _TMP_DIR = 'tmp'
 
 #: where users live under db_dir
 _USER_ROOT_DIR = 'user'
-
-#: Flask app (init() must be called to set this)
-_app = None
 
 #: Use to assert _serial_new result. Not perfect but good enough to avoid common problems
 _serial_prev = 0
@@ -276,16 +275,6 @@ def get_schema(sim_type):
         _merge_subclasses(schema, item)
     srschema.validate(schema)
     return schema
-
-
-def init_by_server(app):
-    """Avoid circular import by explicit call from `sirepo.server`.
-
-    Args:
-        app (Flask): flask instance
-    """
-    global _app
-    _app = app
 
 
 def generate_json(data, pretty=False):
@@ -833,7 +822,7 @@ def user_dir_name(uid=None):
     Return:
         py.path: directory name
     """
-    d = _app.sirepo_db_dir.join(_USER_ROOT_DIR)
+    d = sirepo.srdb.root().join(_USER_ROOT_DIR)
     if not uid:
         return d
     return d.join(uid)
@@ -1140,7 +1129,7 @@ def _user_dir():
     uid = sirepo.auth.logged_in_user()
     d = user_dir_name(uid)
     if not d.check():
-        sirepo.auth.user_dir_not_found(uid)
+        sirepo.auth.user_dir_not_found(d, uid)
     return d
 
 

@@ -253,7 +253,7 @@ def get_data_file(run_dir, model, frame, options=None):
     return _sdds(_report_output_filename('bunchReport'))
 
 
-def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
+def import_file(request, tmp_dir=None, test_data=None):
     # input_data is passed by test cases only
     f = request.files['file']
     filename = werkzeug.secure_filename(f.filename)

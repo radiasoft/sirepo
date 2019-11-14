@@ -127,7 +127,7 @@ def get_application_data(data):
     assert False, 'unknown application data method: {}'.format(data.method)
 
 
-def import_file(request, lib_dir=None, tmp_dir=None):
+def import_file(request, tmp_dir=None):
     f = request.files['file']
     filename = werkzeug.secure_filename(f.filename)
     if re.search(r'.madx$', filename, re.IGNORECASE):

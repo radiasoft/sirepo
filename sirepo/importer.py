@@ -5,13 +5,13 @@ u"""Import a single archive
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
-import pykern.pkio
-import StringIO
 import base64
+import pykern.pkio
 import sirepo.http_request
 import sirepo.util
+import six
 import zipfile
 
 
@@ -28,7 +28,7 @@ def do_form(form):
 
     if not 'zip' in form:
         raise sirepo.util.raise_not_found('missing zip in form')
-    data = read_zip(StringIO.StringIO(base64.decodestring(form['zip'])))
+    data = read_zip(six.StringIO(base64.decodestring(form['zip'])))
     data.models.simulation.folder = '/Import'
     data.models.simulation.isExample = False
     return simulation_db.save_new_simulation(data)
@@ -72,7 +72,7 @@ def read_zip(stream, sim_type=None):
 
     with simulation_db.tmp_dir() as tmp:
         data = None
-        zipped = pkcollections.Dict()
+        zipped = PKDict()
         with zipfile.ZipFile(stream, 'r') as z:
             for i in z.infolist():
                 b = pykern.pkio.py_path(i.filename).basename
@@ -91,12 +91,11 @@ def read_zip(stream, sim_type=None):
                 zipped[b].write(c, 'wb')
         assert data, \
             'missing {} in archive'.format(simulation_db.SIMULATION_DATA_FILE)
-        needed = pkcollections.Dict()
+        needed = PKDict()
         for n in sirepo.sim_data.get_class(data.simulationType).lib_files(data, validate_exists=False):
             assert n.basename in zipped or n.check(file=True, exists=True), \
                 'auxiliary file {} missing in archive'.format(n.basename)
             needed[n.basename] = n
-        lib_d = simulation_db.simulation_lib_dir(data.simulationType)
         for b, src in zipped.items():
             if b in needed:
                 src.copy(needed[b])
