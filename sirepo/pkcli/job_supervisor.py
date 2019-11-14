@@ -161,6 +161,7 @@ def _sigterm(signum, frame):
 
 async def _terminate():
     try:
+        sirepo.job_supervisor.persist_state()
         await sirepo.job_supervisor.terminate()
     except Exception as e:
         pkdlog('error={} stack={}', e, pkdexc())

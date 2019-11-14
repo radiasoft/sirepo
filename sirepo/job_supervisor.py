@@ -77,7 +77,6 @@ class ServerReq(PKDict):
 
 
 async def terminate():
-    persist_state()
     await job_driver.terminate()
 
 
