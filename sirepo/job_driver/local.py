@@ -29,6 +29,7 @@ class LocalDriver(job_driver.DriverBase):
         self.update(
             _agentDir=pkio.py_path(req.content.userDir).join(
                 'agent-local', self._agentId),
+            _agent_exit=tornado.locks.Event(),
         )
         self.instances[self.kind].append(self)
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
@@ -67,7 +68,7 @@ class LocalDriver(job_driver.DriverBase):
         super().init_class(cfg)
         return cls
 
-    def kill(self):
+    async def kill(self):
         if 'subprocess' not in self:
             return
         self.subprocess.proc.terminate()
@@ -75,6 +76,7 @@ class LocalDriver(job_driver.DriverBase):
             job_driver.KILL_TIMEOUT_SECS,
             self.subprocess.proc.kill,
         )
+        await self._agent_exit.wait()
 
     @classmethod
     def free_slots(cls, kind):
@@ -119,7 +121,10 @@ class LocalDriver(job_driver.DriverBase):
 
     def _agent_on_exit(self, returncode):
         self.pkdel('subprocess')
-        super()._agent_on_exit(returncode)
+        k = self.pkdel('kill_timeout')
+        if k:
+            tornado.ioloop.IOLoop.current().remove_timeout(k)
+        self._agent_exit.set()
 
     async def _agent_start(self):
         pkio.mkdir_parent(self._agentDir)

@@ -117,13 +117,15 @@ class DockerDriver(job_driver.DriverBase):
                 d.ops_pending_done[o.opId] = o
                 o.send_ready.set()
 
-    def kill(self):
+    async def kill(self):
+        pkdlog('{}: stop cid={}', self.uid, self._cid)
         if '_cid' not in self:
             return
-        # TODO(e-carlin): Kill should set an event so caller can wait on event
-        # so we know when the kill actually happens.
-        tornado.ioloop.IOLoop.current().add_callback(self._kill)
-
+        await _cmd(
+            self.host,
+            ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), self._cid),
+        )
+        self._cid = None
 
     async def _agent_start(self):
         cmd = _RUN_PREFIX + (
@@ -148,16 +150,6 @@ class DockerDriver(job_driver.DriverBase):
                 'pyenv shell py3 && sirepo job_agent',
             )
         self._cid = await _cmd(self.host, cmd)
-
-    async def _kill(self):
-        pkdlog('{}: stop cid={}', self.uid, self._cid)
-        # TODO(e-carlin): _cmd start a subprocess. Need to handle that subprocess
-        # not exiting cleanly
-        await _cmd(
-            self.host,
-            ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), self._cid),
-        )
-        self._cid = None
 
     def slot_free(self):
         self.host.slots[self.kind].in_use -= 1
@@ -230,11 +222,12 @@ async def _cmd(host, cmd):
         stdout=tornado.process.Subprocess.STREAM,
         stderr=subprocess.STDOUT,
     )
-    r = await p.wait_for_exit()
+    r = await p.wait_for_exit(raise_error=False)
+    o = (await p.stdout.read_until_close()).decode("utf-8")
     # TODO(e-carlin): more robust handling
     assert r == 0 , \
-        '{}: failed: exit={} output={}'.format(cmd, r, p.stdout)
-    return (await p.stdout.read_until_close()).decode("utf-8")
+        '{}: failed: exit={} output={}'.format(c, r, o)
+    return o
 
 def _cmd_prefix(host, tls_d):
     args = [

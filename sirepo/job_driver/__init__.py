@@ -40,12 +40,12 @@ class DriverBase(PKDict):
     def __init__(self, req):
         super().__init__(
             has_slot=False,
+            kind=req.kind,
             ops_pending_done=PKDict(),
             ops_pending_send=[],
             uid=req.content.uid,
             websocket=None,
             _agentId=job.unique_key(),
-            kind=req.kind,
             _supervisor_uri=cfg.supervisor_uri,
         )
         self.agents[self._agentId] = self
@@ -126,21 +126,16 @@ class DriverBase(PKDict):
         assert op not in self.ops_pending_send
 
     @classmethod
-    def terminate(cls):
-        for d in DriverBase.agents.values():
-            d.kill()
+    async def terminate(cls):
+        for d in DriverBase.agents.copy().values():
+            try:
+                await d.kill()
+            except Exception as e:
+                # If one kill fails still try to kill the rest
+                pkdlog('error={} stack={}', e, pkdexc())
 
     def websocket_on_close(self):
        self._websocket_free()
-
-    def _agent_on_exit(self, returncode):
-        k = self.pkdel('kill_timeout')
-        if k:
-            tornado.ioloop.IOLoop.current().remove_timeout(k)
-        self._free()
-
-    def _free(self):
-            self._websocket_free()
 
     def _receive(self, msg):
         c = msg.content
@@ -230,5 +225,5 @@ def _cfg_parse_modules(value):
         _DEFAULT_CLASS = _CLASSES['local']
     return s
 
-def terminate():
-    DriverBase.terminate()
+async def terminate():
+    await DriverBase.terminate()
