@@ -118,8 +118,8 @@ class LocalDriver(job_driver.DriverBase):
             self.subprocess.proc.kill()
 
     def _agent_on_exit(self, returncode):
-        pkcollections.unchecked_del(self, 'subprocess')
-        self._free()
+        self.pkdel('subprocess')
+        super()._agent_on_exit(returncode)
 
     async def _agent_start(self):
         pkio.mkdir_parent(self._agentDir)
@@ -143,12 +143,6 @@ class LocalDriver(job_driver.DriverBase):
             stderr=tornado.process.subprocess.STDOUT,
         )
         self.subprocess.set_exit_callback(self._agent_on_exit)
-
-    def _free(self):
-        k = self.pkdel('kill_timeout')
-        if k:
-            tornado.ioloop.IOLoop.current().remove_timeout(k)
-        super()._free()
 
     def slot_free(self):
         self.slots[self.kind].in_use -= 1

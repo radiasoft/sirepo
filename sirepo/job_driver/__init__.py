@@ -133,6 +133,12 @@ class DriverBase(PKDict):
     def websocket_on_close(self):
        self._websocket_free()
 
+    def _agent_on_exit(self, returncode):
+        k = self.pkdel('kill_timeout')
+        if k:
+            tornado.ioloop.IOLoop.current().remove_timeout(k)
+        self._free()
+
     def _free(self):
             self._websocket_free()
 
