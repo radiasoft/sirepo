@@ -75,6 +75,8 @@ def _request_data(kwargs):
     s = sirepo.sim_data.get_class(d)
     b = PKDict(data=d)
     return b.pksetdefault(
+        #TODO(robnagler) pass for NERSC
+        agentDbRoot=lambda: srdb.root(),
         analysisModel=d.report,
         api=inspect.currentframe().f_back.f_back.f_code.co_name,
         computeJid=lambda: s.parse_jid(d),

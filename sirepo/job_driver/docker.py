@@ -55,9 +55,11 @@ class DockerDriver(job_driver.DriverBase):
     def __init__(self, req, host):
         super().__init__(req)
         self.update(
+            _agentDbRoot=req.content.agentDbRoot,
             _cname=_cname_join(self.kind, self.uid),
-            _agent_dir=req.content.userDir,
             _image = _image(),
+            _uid=req.content.uid,
+            _userDir=req.content.userDir,
             host=host,
         )
         self.host.drivers[self.kind].append(self)
@@ -124,9 +126,8 @@ class DockerDriver(job_driver.DriverBase):
     async def _agent_start(self):
         cmd = _RUN_PREFIX + (
             # '--cpus={}'.format(slot.cores), # TODO(e-carlin): impl
+            '-i',
             '--detach',
-            '--env=SIREPO_PKCLI_JOB_AGENT_AGENT_ID={}'.format(self._agentId),
-            '--env=SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI={}'.format(self._supervisor_uri),
             # '--env=SIREPO_MPI_CORES={}'.format(slot.cores), # TODO(e-carlin): impl
             '--init',
             # '--memory={}g'.format(slot.gigabytes), # TODO(e-carlin): impl
@@ -139,11 +140,32 @@ class DockerDriver(job_driver.DriverBase):
             ) + self._volumes() + (
                 self._image,
                 'bash',
-                '-l',
-                '-c',
-                'pyenv shell py3 && sirepo job_agent',
             )
-        self._cid = _cmd(self.host, cmd)
+        env = PKDict(
+            PYKERN_PKCONFIG_CHANNEL=pkconfig.cfg.channel,
+            #TODO(robnagler) pykern shouldn't convert these to objects, rather leave as strings
+            PYKERN_PKDEBUG_CONTROL=os.environ.get('PYKERN_PKDEBUG_CONTROL'),
+            PYKERN_PKDEBUG_OUTPUT=os.environ.get('PYKERN_PKDEBUG_OUTPUT'),
+            SIREPO_AUTH_LOGGED_IN_USER=self._uid,
+            SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
+            SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self._supervisor_uri,
+            SIREPO_SRDB_ROOT=self._agentDbRoot,
+        )
+        self._cid = _cmd(
+            self.host,
+            cmd,
+            ';'.join(
+                [
+                    'source ~/.bashrc',
+                    'set -e',
+                ] + [
+                    f"export {k}='{v}'" for k, v in env
+                ] + [
+                    'pyenv shell py3',
+                    'exec sirepo job_agent',
+                ],
+            ),
+        )
 
     def _kill(self):
         pkdlog('{}: stop cid={}', self.uid, self._cid)
@@ -167,7 +189,9 @@ class DockerDriver(job_driver.DriverBase):
                 v = pkio.py_path(v)
                 # pyenv and src shouldn't be writable, only rundir
                 _res(v, v + ':ro')
-        _res(self._agent_dir, self._agent_dir)
+#TODO(robnagler) assumes NFS. Use agentDbRoot to generate right side(?)
+        #SECURITY: Must only mount the user's directory and not agentDbRoot
+        _res(self._userDir, self._userDir)
         return tuple(res)
 
     def _websocket_free(self):
@@ -180,12 +204,16 @@ def init_class():
 
     _parallel_cores = mpi.cfg.cores
 
+    def _r(*a):
+        pkdp(a)
+        return a if pkconfig.channel_in('alpha') else pkconfig.Required(*(a[1:]))
+
     cfg = pkconfig.init(
-        hosts=(None, _cfg_hosts, 'execution hosts'),
+        hosts=_r(tuple(), tuple, 'execution hosts'),
         image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
         parallel_slots=(1, int, 'max parallel slots'),
         sequential_slots=(1, int, 'max sequential slots'),
-        tls_dir=(None, _cfg_tls_dir, 'directory containing host certs'),
+        #tls_dir=_r(None, _cfg_tls_dir, 'directory containing host certs'),
     )
     if not cfg.tls_dir or not cfg.hosts:
         _init_dev_hosts()
@@ -193,35 +221,20 @@ def init_class():
     return DockerDriver.init_class(cfg)
 
 
-@pkconfig.parse_none
-def _cfg_hosts(value):
-    value = pkconfig.parse_tuple(value)
-    if value:
-        return value
-    assert pkconfig.channel_in('dev'), \
-        'required config'
-    return None
-
-
-@pkconfig.parse_none
 def _cfg_tls_dir(value):
-    if not value:
-        assert pkconfig.channel_in('dev'), \
-            'required config'
-        return None
     res = pkio.py_path(value)
     assert res.check(dir=True), \
         'directory does not exist; value={}'.format(value)
     return res
 
 
-def _cmd(host, cmd):
+def _cmd(host, cmd, stdin=subprocess.DEVNULL):
     c = DockerDriver.hosts[host.name].cmd_prefix + cmd
     try:
         pkdc('Running: {}', ' '.join(c))
         return subprocess.check_output(
             c,
-            stdin=open(os.devnull),
+            stdin=stdin,
             stderr=subprocess.STDOUT,
         ).decode("utf-8").rstrip()
     except subprocess.CalledProcessError as e:
@@ -263,6 +276,8 @@ def _image():
 
 
 def _init_dev_hosts():
+    assert pkconfig.channel_in('dev')
+
     from sirepo import srdb
     assert not (cfg.tls_dir or cfg.hosts), \
         'neither cfg.tls_dir and cfg.hosts nor must be set to get auto-config'

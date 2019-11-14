@@ -27,8 +27,9 @@ class LocalDriver(job_driver.DriverBase):
     def __init__(self, req):
         super().__init__(req)
         self.update(
-            _agentDir=pkio.py_path(req.content.userDir).join(
+            _agentExecDir=pkio.py_path(req.content.userDir).join(
                 'agent-local', self._agentId),
+            _agentDbRoot=req.content.agentDbRoot,
         )
         self.instances[self.kind].append(self)
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
@@ -122,7 +123,7 @@ class LocalDriver(job_driver.DriverBase):
         self._free()
 
     async def _agent_start(self):
-        pkio.mkdir_parent(self._agentDir)
+        pkio.mkdir_parent(self._agentExecDir)
 # TODO(robnagler) SECURITY strip environment
         env = PKDict(os.environ).pkupdate(
             PYENV_VERSION='py3',
@@ -133,10 +134,11 @@ class LocalDriver(job_driver.DriverBase):
             PYKERN_PKDEBUG_WANT_PID_TIME='1',
             SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
             SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self._supervisor_uri,
+            SIREPO_SRDB_ROOT=
         )
         self.subprocess = tornado.process.Subprocess(
             ['pyenv', 'exec', 'sirepo', 'job_agent'],
-            cwd=str(self._agentDir),
+            cwd=str(self._agentExecDir),
             env=env,
         )
         self.subprocess.set_exit_callback(self._agent_on_exit)
