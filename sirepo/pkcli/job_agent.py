@@ -329,6 +329,7 @@ class _Stream(PKDict):
         except tornado.iostream.StreamClosedError as e:
             assert e.real_error is None, 'real_error={}'.format(e.real_error)
         finally:
+            self._stream.close()
             self.stream_closed.set()
 
     async def _read_stream(self):

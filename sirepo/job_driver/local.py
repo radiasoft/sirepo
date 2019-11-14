@@ -138,6 +138,9 @@ class LocalDriver(job_driver.DriverBase):
             ['pyenv', 'exec', 'sirepo', 'job_agent'],
             cwd=str(self._agentDir),
             env=env,
+            stdin=open(os.devnull),
+            stdout=tornado.process.subprocess.PIPE,
+            stderr=tornado.process.subprocess.STDOUT,
         )
         self.subprocess.set_exit_callback(self._agent_on_exit)
 
