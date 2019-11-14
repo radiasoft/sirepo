@@ -19,6 +19,7 @@ import re
 import socket
 import subprocess
 import tornado.ioloop
+import tornado.process
 
 cfg = None
 
@@ -116,10 +117,15 @@ class DockerDriver(job_driver.DriverBase):
                 d.ops_pending_done[o.opId] = o
                 o.send_ready.set()
 
-    def kill(self):
+    async def kill(self):
+        pkdlog('{}: stop cid={}', self.uid, self._cid)
         if '_cid' not in self:
             return
-        self._kill()
+        await _cmd(
+            self.host,
+            ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), self._cid),
+        )
+        self._cid = None
 
     async def _agent_start(self):
         cmd = _RUN_PREFIX + (
@@ -131,7 +137,7 @@ class DockerDriver(job_driver.DriverBase):
             '--init',
             # '--memory={}g'.format(slot.gigabytes), # TODO(e-carlin): impl
             '--name={}'.format(self._cname), # TODO(e-carlin): impl
-            '--network=host', # TODO(e-carlin): Was 'none'. I think we can use 'bridge' or 'host'
+            '--network=host', # TODO(e-carlin): Understand 'bridge' vs 'host'
                 # do not use a user name, because that may not map inside the
                 # container properly. /etc/passwd on the host and guest are
                 # different.
@@ -143,15 +149,7 @@ class DockerDriver(job_driver.DriverBase):
                 '-c',
                 'pyenv shell py3 && sirepo job_agent',
             )
-        self._cid = _cmd(self.host, cmd)
-
-    def _kill(self):
-        pkdlog('{}: stop cid={}', self.uid, self._cid)
-        _cmd(
-            self.host,
-            ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), self._cid),
-        )
-        self._cid = None
+        self._cid = await _cmd(self.host, cmd)
 
     def slot_free(self):
         self.host.slots[self.kind].in_use -= 1
@@ -215,20 +213,21 @@ def _cfg_tls_dir(value):
     return res
 
 
-def _cmd(host, cmd):
+async def _cmd(host, cmd):
     c = DockerDriver.hosts[host.name].cmd_prefix + cmd
-    try:
-        pkdc('Running: {}', ' '.join(c))
-        return subprocess.check_output(
-            c,
-            stdin=open(os.devnull),
-            stderr=subprocess.STDOUT,
-        ).decode("utf-8").rstrip()
-    except subprocess.CalledProcessError as e:
-        if cmd[0] == 'run':
-            pkdlog('{}: failed: exit={} output={}', cmd, e.returncode, e.output)
-        return None
-
+    pkdc('Running: {}', ' '.join(c))
+    p = tornado.process.Subprocess(
+        c,
+        stdin=open(os.devnull),
+        stdout=tornado.process.Subprocess.STREAM,
+        stderr=subprocess.STDOUT,
+    )
+    r = await p.wait_for_exit(raise_error=False)
+    o = (await p.stdout.read_until_close()).decode("utf-8").rstrip()
+    # TODO(e-carlin): more robust handling
+    assert r == 0 , \
+        '{}: failed: exit={} output={}'.format(c, r, o)
+    return o
 
 def _cmd_prefix(host, tls_d):
     args = [
