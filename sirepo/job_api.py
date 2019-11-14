@@ -9,25 +9,60 @@ from pykern import pkinspect, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import api_perm
-import sirepo.http_request
-import sirepo.job
-import sirepo.mpi
 from sirepo import simulation_db
 from sirepo import srdb
 from sirepo import srtime
 from sirepo.template import template_common
 import calendar
 import datetime
+import flask
 import inspect
+import mimetypes
+import pykern.pkio
 import requests
 import sirepo.auth
+import sirepo.http_reply
+import sirepo.http_request
+import sirepo.job
+import sirepo.mpi
 import sirepo.sim_data
 import sirepo.template
+import sirepo.util
 import time
+import werkzeug.utils
 
 
 _YEAR = datetime.timedelta(365)
 
+
+@api_perm.require_user
+def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
+#TODO(robnagler) validate suffix and frame
+    sim = sirepo.http_request.parse_params(
+        id=simulation_id,
+        model=model,
+        type=simulation_type,
+    )
+    with simulation_db.tmp_dir() as d:
+        # TODO(e-carlin): compueJobHash
+        try:
+            f = _request(
+                data=PKDict(
+                    sim.req_data,
+                    frame=frame,
+                    computeJobHash='x',
+                    suffix=suffix,
+                ),
+                tmpDir=d
+            ).file
+        except requests.exceptions.HTTPError as e:
+            pkdlog('error={} stack={}', e, pkdexc())
+            raise sirepo.util.Error(error='file not found')
+        f = pykern.pkio.py_path(d.join(werkzeug.utils.secure_filename(f)))
+        m, _ = mimetypes.guess_type(f.basename)
+        if m is None:
+            m = 'application/octet-stream'
+        return sirepo.http_reply.gen_file_as_attachment(f.read(), m, f.basename)
 
 @api_perm.require_user
 def api_runCancel():
@@ -56,7 +91,7 @@ def init_apis(*args, **kwargs):
 
 def _request(**kwargs):
     r = requests.post(
-        sirepo.job.cfg.supervisor_uri,
+        sirepo.job.cfg.supervisor_uri + sirepo.job.SERVER_URI,
         data=pkjson.dump_bytes(_request_data(PKDict(kwargs))),
         headers=PKDict({'Content-type': 'application/json'}),
     )
@@ -73,7 +108,9 @@ def _request_data(kwargs):
             model=1,
         ).req_data
     s = sirepo.sim_data.get_class(d)
-    b = PKDict(data=d)
+    b = PKDict(data=d, **kwargs)
+# TODO(e-carlin): some of these fields are only used for some type of reqs
+# Ex tmpDir is only used in api_downloadDataFile
     return b.pksetdefault(
         analysisModel=d.report,
         api=inspect.currentframe().f_back.f_back.f_code.co_name,

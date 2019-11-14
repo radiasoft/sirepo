@@ -6,6 +6,7 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
+from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
@@ -35,6 +36,7 @@ def default_command():
         [
             (sirepo.job.AGENT_URI, _AgentMsg),
             (sirepo.job.SERVER_URI, _ServerReq),
+            (sirepo.job.DATA_FILE_URI, _DataFileReq),
         ],
         debug=cfg.debug,
         static_path=sirepo.job_supervisor.init(),
@@ -86,6 +88,24 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
         self.close()
 
 
+class _DataFileReq(tornado.web.RequestHandler):
+    SUPPORTED_METHODS = ["PUT"]
+
+    def on_connection_close(self):
+        pass
+
+    async def put(self):
+        for k, v in self.request.files.items():
+            k = pkio.py_path(k)
+            assert k.exists()
+            for f in v:
+                k.join(f.filename).write_binary(f.body)
+
+    def sr_on_exception(self):
+        self.send_error()
+        self.on_connection_close()
+
+
 class _ServerReq(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ["POST"]
     sr_class = sirepo.job_supervisor.ServerReq
@@ -114,7 +134,9 @@ class _ServerReq(tornado.web.RequestHandler):
 
 async def _incoming(content, handler):
     try:
-        c = pkjson.load_any(content)
+        c = content
+        if not isinstance(content, dict):
+            c = pkjson.load_any(content)
         pkdc('class={} content={}', handler.sr_class, sirepo.job.LogFormatter(c))
         await handler.sr_class(handler=handler, content=c).receive()
     except Exception as e:
