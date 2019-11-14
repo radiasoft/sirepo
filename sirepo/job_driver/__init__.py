@@ -72,8 +72,8 @@ class DriverBase(PKDict):
             return d
 
     def get_ops_with_send_allocation(self):
-        """Get ops that could be sent assuming outside requirements are met.
-
+        """Get ops that could be sent assuming outside requirements are met
+.
         Outside requirements are an alive websocket connection and the driver
         having a slot.
         """
@@ -132,6 +132,32 @@ class DriverBase(PKDict):
 
     def websocket_on_close(self):
        self._websocket_free()
+
+    def _agent_bash_script(self):
+        env = PKDict(
+            PYKERN_PKCONFIG_CHANNEL=pkconfig.cfg.channel,
+            #TODO(robnagler) pykern shouldn't convert these to objects, rather leave as strings
+            PYKERN_PKDEBUG_CONTROL=os.environ.get('PYKERN_PKDEBUG_CONTROL'),
+            PYKERN_PKDEBUG_OUTPUT=os.environ.get('PYKERN_PKDEBUG_OUTPUT'),
+            SIREPO_AUTH_LOGGED_IN_USER=self._uid,
+            SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
+            SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self._supervisor_uri,
+            SIREPO_SRDB_ROOT=self._agentDbRoot,
+        )
+         self._cid = _cmd(
+             self.host,
+             cmd,
+-            ';'.join(
+-                [
+-                    'source ~/.bashrc',
+-                    'set -e',
+-                ] +  + [
+-                    'pyenv shell py3',
+-                    'exec sirepo job_agent',
+-                ],
+-            ),
+
+
 
     def _free(self):
             self._websocket_free()

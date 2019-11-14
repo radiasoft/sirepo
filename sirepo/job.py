@@ -82,6 +82,31 @@ def init():
     pkdc('cfg={}', cfg)
 
 
+def subprocess_args(cmd, env, pyenv='py3'):
+#TODO(robnagler) pykern shouldn't convert these to objects, rather leave as strings
+    for k in 'CONTROL', 'OUTPUT', 'REDIRECT_LOGGING', 'WANT_PID_TIME':
+        k = 'PYKERN_PKDEBUG_' + k
+        v = os.environ.get(k)
+        if v:
+            env.pksetdefault(k, v)
+    env.pksetdefault(
+        PYKERN_PKCONFIG_CHANNEL=pkconfig.cfg.channel,
+        HOME=os.environ['HOME'],
+        LOGNAME=os.environ['LOGNAME'],
+        USER=os.environ['USER'],
+    )
+    # POSIT: we control all these values
+    e = ["export {}='{}'".format(k, v) for k, v in env]
+    c = ' '.join(("'{x}'" for x in cmd))
+    s = '''
+set -e
+pyenv shell {}
+{e}
+exec {}
+'''.format(pyenv, c)
+    write the script
+
+
 def init_by_server(app):
     """Initialize module"""
     init()

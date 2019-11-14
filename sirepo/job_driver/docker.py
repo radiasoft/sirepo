@@ -141,29 +141,13 @@ class DockerDriver(job_driver.DriverBase):
                 self._image,
                 'bash',
             )
-        env = PKDict(
-            PYKERN_PKCONFIG_CHANNEL=pkconfig.cfg.channel,
-            #TODO(robnagler) pykern shouldn't convert these to objects, rather leave as strings
-            PYKERN_PKDEBUG_CONTROL=os.environ.get('PYKERN_PKDEBUG_CONTROL'),
-            PYKERN_PKDEBUG_OUTPUT=os.environ.get('PYKERN_PKDEBUG_OUTPUT'),
-            SIREPO_AUTH_LOGGED_IN_USER=self._uid,
-            SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
-            SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self._supervisor_uri,
-            SIREPO_SRDB_ROOT=self._agentDbRoot,
-        )
         self._cid = _cmd(
             self.host,
             cmd,
-            ';'.join(
-                [
-                    'source ~/.bashrc',
-                    'set -e',
-                ] + [
-                    f"export {k}='{v}'" for k, v in env
-                ] + [
-                    'pyenv shell py3',
-                    'exec sirepo job_agent',
-                ],
+            job.bash_script(
+                ['sirepo', 'job_agent'],
+                env=PKDict(
+                ),
             ),
         )
 
@@ -228,15 +212,14 @@ def _cfg_tls_dir(value):
     return res
 
 
-def _cmd(host, cmd, stdin=subprocess.DEVNULL):
+def _cmd(host, cmd, stdin=None):
     c = DockerDriver.hosts[host.name].cmd_prefix + cmd
     try:
         pkdc('Running: {}', ' '.join(c))
         return subprocess.check_output(
             c,
             stdin=stdin,
-            stderr=subprocess.STDOUT,
-        ).decode("utf-8").rstrip()
+        ).decode('utf-8').rstrip()
     except subprocess.CalledProcessError as e:
         if cmd[0] == 'run':
             pkdlog('{}: failed: exit={} output={}', cmd, e.returncode, e.output)

@@ -124,20 +124,9 @@ class LocalDriver(job_driver.DriverBase):
 
     async def _agent_start(self):
         pkio.mkdir_parent(self._agentExecDir)
-# TODO(robnagler) SECURITY strip environment
-        env = PKDict(os.environ).pkupdate(
-            PYENV_VERSION='py3',
-            # TODO(robnagler) cascade from py test, not explicitly
-            PYKERN_PKDEBUG_CONTROL='.',
-            PYKERN_PKDEBUG_OUTPUT='/dev/tty',
-            PYKERN_PKDEBUG_REDIRECT_LOGGING='1',
-            PYKERN_PKDEBUG_WANT_PID_TIME='1',
-            SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
-            SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self._supervisor_uri,
-            SIREPO_SRDB_ROOT=
-        )
         self.subprocess = tornado.process.Subprocess(
-            ['pyenv', 'exec', 'sirepo', 'job_agent'],
+            ['bash'],
+            stdin=self._agent_bash_script(env=job.safe_subprocess_env()),
             cwd=str(self._agentExecDir),
             env=env,
         )

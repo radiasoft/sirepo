@@ -38,11 +38,6 @@ _INFO_FILE = 'job-agent.json'
 
 _INFO_FILE_COMMON = PKDict(version=1)
 
-#: Need to remove $OMPI and $PMIX to prevent PMIX ERROR:
-# See https://github.com/radiasoft/sirepo/issues/1323
-# We also remove SIREPO_ and PYKERN vars, because we shouldn't
-# need to pass any of that on, just like runner.docker, doesn't
-_EXEC_ENV_REMOVE = re.compile('^(OMPI_|PMIX_|SIREPO_|PYKERN_)')
 
 cfg = None
 
@@ -194,11 +189,11 @@ class _Job(PKDict):
         self.msg.runDir = str(self.msg.runDir)
         pkjson.dump_pretty(self.msg, filename=self._in_file, pretty=False)
         self._subprocess = tornado.process.Subprocess(
-            ('pyenv', 'exec', 'sirepo', 'job_process', str(self._in_file)),
+            'bash',
             # SECURITY: need to change cwd, because agentDir has agentId
             cwd=self.msg.runDir,
             start_new_session=True,
-            stdin=subprocess.DEVNULL,
+            stdin=job.subprocess_script(['sirepo', 'job_process', self._in_file]),
             stdout=tornado.process.Subprocess.STREAM,
             stderr=tornado.process.Subprocess.STREAM,
             env=env,
@@ -208,13 +203,7 @@ class _Job(PKDict):
         self._subprocess.set_exit_callback(self._subprocess_exit)
 
     def _subprocess_env(self):
-        env = PKDict(os.environ)
-        pkcollections.unchecked_del(
-            env,
-            *(k for k in env if _EXEC_ENV_REMOVE.search(k)),
-        )
-        return env.pkupdate(
-            PYENV_VERSION='py2',
+        return job.safe_subprocess_env().pkupdate(
             PYTHONUNBUFFERED='1',
             SIREPO_MPI_CORES=str(self.msg.mpiCores),
             SIREPO_SIM_DATA_JOB_FILE_URI=str(self.msg.get('jobFileUri', '')),
@@ -343,8 +332,8 @@ class _ReadJsonlStream(_Stream):
         super().__init__(stream)
 
     async def _read_stream(self):
-                self.text = await self._stream.read_until(b'\n', self._MAX)
-                await self._on_read(self.text)
+        self.text = await self._stream.read_until(b'\n', self._MAX)
+        await self._on_read(self.text)
 
 
 class _ReadUntilCloseStream(_Stream):
@@ -352,11 +341,11 @@ class _ReadUntilCloseStream(_Stream):
         super().__init__(stream)
 
     async def _read_stream(self):
-            self.text.extend(
-                await self._stream.read_bytes(
-                    self._MAX - len(self.text),
-                    partial=True,
-                )
+        self.text.extend(
+            await self._stream.read_bytes(
+                self._MAX - len(self.text),
+                partial=True,
             )
-            if len(self.text) >= self._MAX:
-                raise AssertionError('_MAX bytes read')
+        )
+        if len(self.text) >= self._MAX:
+            raise AssertionError('_MAX bytes read')
