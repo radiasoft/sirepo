@@ -23,6 +23,8 @@ import tornado.websocket
 
 cfg = None
 
+_PERSIST_STATE_INTERVAL = 120 * 1000 # milliseconds
+
 
 def default_command():
     global cfg
@@ -47,6 +49,11 @@ def default_command():
     signal.signal(signal.SIGTERM, _sigterm)
     signal.signal(signal.SIGINT, _sigterm)
     pkdlog('ip={} port={}', cfg.ip, cfg.port)
+    sirepo.job_supervisor.read_state()
+    tornado.ioloop.PeriodicCallback(
+        sirepo.job_supervisor.persist_state,
+        _PERSIST_STATE_INTERVAL
+    ).start()
     tornado.ioloop.IOLoop.current().start()
 
 
@@ -156,5 +163,5 @@ async def _terminate():
     try:
         await sirepo.job_supervisor.terminate()
     except Exception as e:
-        pkdlog('job_supervisor.terminate except={} stack={}', e, pkdexc())
+        pkdlog('error={} stack={}', e, pkdexc())
     tornado.ioloop.IOLoop.current().stop()

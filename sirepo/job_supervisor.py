@@ -32,6 +32,8 @@ _JOB_FILE_URI = None
 #: where job_process will PUT data files
 _DATA_FILE_URI = None
 
+#: where supervisor state is persisted to disk
+_STATE_FILE = sirepo.srdb.root() + 'supervisor-state.json'
 
 def init():
     global _JOB_FILE_DIR, _JOB_FILE_URI, _DATA_FILE_URI
@@ -48,6 +50,21 @@ def init():
     return s
 
 
+def persist_state():
+    o = PKDict()
+    for k, v in _ComputeJob.instances.items():
+        o[k] = v.to_dict()
+    pkjson.dump_pretty(o, _STATE_FILE, pretty=False)
+
+def read_state():
+    import sirepo.simulation_db
+    try:
+        s = sirepo.simulation_db.read_json(_STATE_FILE)
+        for v in s.values():
+            _ComputeJob.instance_from_dict(**v)
+    except FileNotFoundError:
+        pkdlog('{}: no supervisor state file found', _STATE_FILE)
+
 class ServerReq(PKDict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -60,11 +77,25 @@ class ServerReq(PKDict):
 
 
 async def terminate():
+    persist_state()
     await job_driver.terminate()
 
 
 class _ComputeJob(PKDict):
+
     instances = PKDict()
+
+    _FIELDS_TO_PERSIST = (
+        'computeJid',
+        'computeJobHash',
+        'isParallel',
+# TODO(e-carlin): What fields in parallel status do we care about?
+        'parallelStatus',
+        'simulationId',
+        'simulationType',
+        'status',
+        'uid',
+    )
 
     def __init__(self, req):
         c = req.content
@@ -75,9 +106,9 @@ class _ComputeJob(PKDict):
             isParallel=c.isParallel,
             simulationId=c.data.get('simulationId') or c.data.models.simulation.simulationId,
             simulationType=c.data.simulationType,
-            status=job.MISSING,
+            status=req.status if 'status' in req else job.MISSING,
             uid=c.uid,
-            _ops=[]
+            _ops=[],
         )
         if self.isParallel:
             self.parallelStatus = PKDict(
@@ -96,12 +127,30 @@ class _ComputeJob(PKDict):
         op.destroy()
 
     @classmethod
+    def instance_from_dict(cls, **kwargs):
+        return cls(
+            PKDict(
+                content=PKDict(
+                    **kwargs,
+                    data=PKDict(
+                        simulationId=kwargs['simulationId'],
+                        simulationType=kwargs['simulationType']
+                    )
+                ),
+                status=kwargs['status'],
+                parallelStatus=kwargs['parallelStatus'] if 'parallelStatus' in kwargs else None,
+            )
+        )
+
+    @classmethod
     async def receive(cls, req):
         return await getattr(
             cls.instances.get(req.content.computeJid) or cls(req),
             '_receive_' + req.content.api,
         )(req)
 
+    def to_dict(self):
+        return {k:v for k,v in self.items() if k in self._FIELDS_TO_PERSIST}
 
     def _job_file_create(self, libDir):
         self.jobFileLink = l = _JOB_FILE_DIR.join(job.unique_key())
