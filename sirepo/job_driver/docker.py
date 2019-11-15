@@ -173,8 +173,7 @@ def init_class():
     _parallel_cores = mpi.cfg.cores
 
     def _r(*a):
-        pkdp(a)
-        return a if pkconfig.channel_in('alpha') else pkconfig.Required(*(a[1:]))
+        return a if pkconfig.channel_in('dev') else pkconfig.Required(*(a[1:]))
 
     cfg = pkconfig.init(
         hosts=_r(tuple(), tuple, 'execution hosts'),
