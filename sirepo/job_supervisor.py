@@ -91,7 +91,7 @@ class _ComputeJob(PKDict):
         self.instances[self.computeJid] = self
 
     def destroy_op(self, op):
-        self._job_file_destroy()
+        self._lib_file_link_destroy()
         self._ops.remove(op)
         op.destroy()
 
@@ -103,17 +103,18 @@ class _ComputeJob(PKDict):
         )(req)
 
 
-    def _lib_uri(self, libDir):
-        self.jobFileLink = l = _LIB_FILE_DIR.join(job.unique_key())
+    def _lib_file_uri(self, libDir):
+        self.libFileLink = l = _LIB_FILE_DIR.join(job.unique_key())
         os.symlink(l.dirpath().bestrelpath(libDir), l)
         pkjson.dump_pretty(
-            [x.basename for x in pykern.pkio.sorted_glob(libDir.join('*'))],
+            [x.basename for x in libDir.listdir()],
             filename=libDir.join(job.LIB_FILE_LIST_URI),
+            pretty=False,
         )
         return _LIB_FILE_URI + l.basename
 
-    def _job_file_destroy(self):
-        d = self.pkdel('jobFileLink')
+    def _lib_file_link_destroy(self):
+        d = self.pkdel('libFileLink')
         if d:
             d.remove(rec=False, ignore_errors=True)
 
@@ -126,7 +127,7 @@ class _ComputeJob(PKDict):
         )
         d = pykern.pkio.py_path(req.content.tmpDir).listdir()
         assert len(d) == 1, '{}: should only be one file in dir'.format(d)
-        return PKDict(file=str(d[0].basename))
+        return PKDict(file=d[0].basename)
 
     async def _receive_api_runCancel(self, req):
         async def _reply_canceled(self, req):
@@ -233,7 +234,7 @@ class _ComputeJob(PKDict):
                 req.content.computeJobHash
             )
             return
-        req.content.libFileUri = self._lib_uri(
+        req.content.libFileUri = self._lib_file_uri(
             pykern.pkio.py_path(req.content.libDir),
         )
         o = await self._send(

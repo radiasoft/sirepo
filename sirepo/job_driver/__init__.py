@@ -161,10 +161,12 @@ class DriverBase(PKDict):
     def _subprocess_cmd_stdin_env(self):
         return job.subprocess_cmd_stdin_env(
             ('sirepo', 'job_agent'),
-            SIREPO_AUTH_LOGGED_IN_USER=self.uid,
-            SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
-            SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=cfg.supervisor_uri,
-            SIREPO_SRDB_ROOT=sirepo.srdb.root(),
+            PKDict(
+                SIREPO_AUTH_LOGGED_IN_USER=self.uid,
+                SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
+                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=cfg.supervisor_uri,
+                SIREPO_SRDB_ROOT=sirepo.srdb.root(),
+            ),
         )
 
     def _websocket_free(self):

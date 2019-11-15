@@ -99,7 +99,9 @@ def subprocess_cmd_stdin_env(cmd, env, pyenv='py3'):
     Returns:
         tuple: new cmd (tuple), stdin (file), env (PKDict)
     """
+    import os
     import tempfile
+
 #TODO(robnagler) pykern shouldn't convert these to objects, rather leave as strings
 #  then we'd refer to them. Perhaps that's not realistic, and pkconfig should
 #  keep a shadow which can be retrieved.

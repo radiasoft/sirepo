@@ -623,5 +623,5 @@ class SimDataBase(object):
 def _init():
     global cfg
     cfg = pkconfig.init(
-        job_file_uri=(None, str, 'where to get files from'),
+        lib_file_uri=(None, str, 'where to get files from'),
     )
