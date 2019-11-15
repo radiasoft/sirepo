@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""TODO(e-carlin): Doc
+"""Runs processes on the current host
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -127,15 +127,14 @@ class LocalDriver(job_driver.DriverBase):
         self._agent_exit.set()
 
     async def _agent_start(self):
-        pkio.mkdir_parent(self._agentExecDir)
+        cmd, stdin, env = self._subprocess_cmd_stdin_env()
         self.subprocess = tornado.process.Subprocess(
-            ['bash', '-l'],
-            stdin=self._agent_bash_script(env=job.safe_subprocess_env()),
-            cwd=str(self._agentExecDir),
+            cmd,
+            cwd=str(pkio.mkdir_parent(self._agentExecDir)),
             env=env,
-            stdin=open(os.devnull),
-            stdout=tornado.process.subprocess.PIPE,
             stderr=tornado.process.subprocess.STDOUT,
+            stdin=stdin,
+            stdout=tornado.process.subprocess.PIPE,
         )
         self.subprocess.set_exit_callback(self._agent_on_exit)
 

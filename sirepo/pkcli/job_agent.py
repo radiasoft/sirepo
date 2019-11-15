@@ -36,7 +36,6 @@ _RETRY_SECS = 1
 
 _IN_FILE = 'in-{}.json'
 
-
 cfg = None
 
 
@@ -189,14 +188,12 @@ class _Job(PKDict):
             ('sirepo', 'job_process', self._in_file),
             PKDict(
                 PYTHONUNBUFFERED='1',
+                SIREPO_AUTH_LOGGED_IN_USER=sirepo.auth.logged_in_user(),
                 SIREPO_MPI_CORES=self.msg.mpiCores,
                 SIREPO_SIM_DATA_JOB_FILE_URI=self.msg.get('jobFileUri', ''),
-                SIREPO_AUTH_LOGGED_IN_USER=sirepo.auth.logged_in_user(),
                 SIREPO_SRDB_ROOT=sirepo.srdb.root(),
-                SIREPO_PKCLI_JOB_AGENT_AGENT_ID='',
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI='',
             ),
-            pyenv=py2,
+            pyenv='py2',
         )
         self._subprocess = tornado.process.Subprocess(
             cmd,

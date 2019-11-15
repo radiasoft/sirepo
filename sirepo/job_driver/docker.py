@@ -120,10 +120,7 @@ class DockerDriver(job_driver.DriverBase):
         self._cid = None
 
     async def _agent_start(self):
-        cmd, stdin, env = job.subprocess_cmd_stdin_env(
-            ('sirepo', 'job_agent'),
-            PKDict(),
-        )
+        cmd, stdin, env = self._subprocess_cmd_stdin_env()
         p = (
             'run',
             '--log-driver=json-file',

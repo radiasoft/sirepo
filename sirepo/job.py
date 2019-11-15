@@ -11,6 +11,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkjson
+import pykern.pkcompat
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 import aenum
@@ -37,13 +38,13 @@ SERVER_URI = '/server'
 DATA_FILE_URI = '/file'
 
 #: how jobs request files
-JOB_FILE_URI = '/job-file'
+LIB_FILE_URI = '/job-file'
 
-#: how jobs request list of files (relative to `JOB_FILE_URI`)
-JOB_FILE_LIST_URI = '/files.json'
+#: how jobs request list of files (relative to `LIB_FILE_URI`)
+LIB_FILE_LIST_URI = '/list.json'
 
 #: how jobs request files (relative to `srdb.root`)
-JOB_FILE_DIR = 'supervisor-srv'
+LIB_FILE_DIR = 'supervisor-srv'
 
 DEFAULT_IP = '127.0.0.1'
 DEFAULT_PORT = 8001
@@ -110,10 +111,11 @@ def subprocess_cmd_stdin_env(cmd, env, pyenv='py3'):
     env.pksetdefault(
         PYKERN_PKCONFIG_CHANNEL=pkconfig.cfg.channel,
     )
+    t = tempfile.TemporaryFile()
     # POSIT: we control all these values
-    e =
-    c =
-    s = '''
+    t.write(
+        pykern.pkcompat.locale_str(
+            '''
 set -e
 pyenv shell {}
 {}
@@ -122,8 +124,7 @@ exec {}
         '\n'.join(("export {}='{}'".format(k, v) for k, v in env)),
         pyenv,
         ' '.join(("'{x}'" for x in cmd)),
-    )
-    t = tempfile.TemporaryFile()
+    )))
     t.seek(0)
     # it's reasonable to hardwire this path, even though we don't
     # do that with others. We want to make sure the subprocess starts

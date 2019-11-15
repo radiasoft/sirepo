@@ -24,26 +24,26 @@ import tornado.locks
 
 
 #: we job files are stored
-_JOB_FILE_DIR = None
+_LIB_FILE_DIR = None
 
 #: where job_processes request files
-_JOB_FILE_URI = None
+_LIB_FILE_URI = None
 
 #: where job_process will PUT data files
 _DATA_FILE_URI = None
 
 
 def init():
-    global _JOB_FILE_DIR, _JOB_FILE_URI, _DATA_FILE_URI
+    global _LIB_FILE_DIR, _LIB_FILE_URI, _DATA_FILE_URI
 
-    assert not _JOB_FILE_DIR
+    assert not _LIB_FILE_DIR
     job.init()
     job_driver.init()
-    s = sirepo.srdb.root().join(job.JOB_FILE_DIR)
+    s = sirepo.srdb.root().join(job.LIB_FILE_DIR)
     pykern.pkio.unchecked_remove(s)
-    _JOB_FILE_DIR = s.join(job.JOB_FILE_URI)
-    pykern.pkio.mkdir_parent(_JOB_FILE_DIR)
-    _JOB_FILE_URI = job.cfg.supervisor_uri + job.JOB_FILE_URI + '/'
+    _LIB_FILE_DIR = s.join(job.LIB_FILE_URI)
+    pykern.pkio.mkdir_parent(_LIB_FILE_DIR)
+    _LIB_FILE_URI = job.cfg.supervisor_uri + job.LIB_FILE_URI + '/'
     _DATA_FILE_URI = job.cfg.supervisor_uri + job.DATA_FILE_URI
     return s
 
@@ -103,14 +103,14 @@ class _ComputeJob(PKDict):
         )(req)
 
 
-    def _job_file_create(self, libDir):
-        self.jobFileLink = l = _JOB_FILE_DIR.join(job.unique_key())
+    def _lib_uri(self, libDir):
+        self.jobFileLink = l = _LIB_FILE_DIR.join(job.unique_key())
         os.symlink(l.dirpath().bestrelpath(libDir), l)
         pkjson.dump_pretty(
             [x.basename for x in pykern.pkio.sorted_glob(libDir.join('*'))],
-            filename=libDir.join(job.JOB_FILE_LIST_URI),
+            filename=libDir.join(job.LIB_FILE_LIST_URI),
         )
-        return _JOB_FILE_URI + l.basename
+        return _LIB_FILE_URI + l.basename
 
     def _job_file_destroy(self):
         d = self.pkdel('jobFileLink')
@@ -233,7 +233,7 @@ class _ComputeJob(PKDict):
                 req.content.computeJobHash
             )
             return
-        req.content.jobFileUri = self._job_file_create(
+        req.content.libFileUri = self._lib_uri(
             pykern.pkio.py_path(req.content.libDir),
         )
         o = await self._send(
