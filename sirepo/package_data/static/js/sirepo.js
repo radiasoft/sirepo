@@ -1717,8 +1717,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                 if (m) {
                     srlog('javascriptRedirectDocument', m[1]);
                     self.globalRedirect(m[1]);
-//TODO(robnagler) Seems to be unnecessary by the error callback fix (below)
-//                    $window.location.reload(true);
+                    $window.location.reload(true);
                     return;
                 }
                 // HTML document with error msg in title
