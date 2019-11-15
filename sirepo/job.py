@@ -11,7 +11,6 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkjson
-import pykern.pkcompat
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 import aenum
@@ -105,8 +104,12 @@ def subprocess_cmd_stdin_env(cmd, env, pyenv='py3'):
 #TODO(robnagler) pykern shouldn't convert these to objects, rather leave as strings
 #  then we'd refer to them. Perhaps that's not realistic, and pkconfig should
 #  keep a shadow which can be retrieved.
-    for k in 'CONTROL', 'OUTPUT', 'REDIRECT_LOGGING', 'WANT_PID_TIME':
-        k = 'PYKERN_PKDEBUG_' + k
+    for k in (
+        'PYKERN_PKDEBUG_CONTROL',
+        'PYKERN_PKDEBUG_OUTPUT',
+        'PYKERN_PKDEBUG_REDIRECT_LOGGING',
+        'PYKERN_PKDEBUG_WANT_PID_TIME',
+    ):
         v = os.environ.get(k)
         if v:
             env.pksetdefault(k, v)
@@ -116,22 +119,21 @@ def subprocess_cmd_stdin_env(cmd, env, pyenv='py3'):
     t = tempfile.TemporaryFile()
     # POSIT: we control all these values
     t.write(
-        pykern.pkcompat.locale_str(
-            '''
+        '''
 set -e
 pyenv shell {}
 {}
 exec {}
 '''.format(
-        '\n'.join(("export {}='{}'".format(k, v) for k, v in env)),
         pyenv,
-        ' '.join(("'{x}'" for x in cmd)),
-    )))
+        '\n'.join(("export {}='{}'".format(k, v) for k, v in env.items())),
+        ' '.join(("'{}'".format(x) for x in cmd)),
+    ).encode())
     t.seek(0)
     # it's reasonable to hardwire this path, even though we don't
     # do that with others. We want to make sure the subprocess starts
-    # with a clean environment (no $PATH).
-    return ('/bin/bash', '-l'), t, PKDict()
+    # with a clean environment (no $PATH). You have to pass HOME.
+    return ('/bin/bash', '-l'), t, PKDict(HOME=os.environ['HOME'])
 
 
 def init_by_server(app):

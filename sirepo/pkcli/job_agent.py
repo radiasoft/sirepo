@@ -205,14 +205,11 @@ class _Job(PKDict):
             stdin=stdin,
             stdout=tornado.process.Subprocess.STREAM,
             stderr=tornado.process.Subprocess.STREAM,
-            env={},
         )
         stdin.close()
         self.stdout = _ReadJsonlStream(self._subprocess.stdout, self.on_stdout_read)
         self.stderr = _ReadUntilCloseStream(self._subprocess.stderr)
         self._subprocess.set_exit_callback(self._subprocess_exit)
-
-    def _subprocess_env(self):
 
     def _subprocess_exit(self, returncode):
         if self._in_file:

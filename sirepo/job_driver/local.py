@@ -132,11 +132,8 @@ class LocalDriver(job_driver.DriverBase):
             cmd,
             cwd=str(pkio.mkdir_parent(self._agentExecDir)),
             env=env,
-            stderr=tornado.process.subprocess.STDOUT,
             stdin=stdin,
-            stdout=tornado.process.subprocess.PIPE,
         )
-        self.subprocess.set_exit_callback(self._agent_on_exit)
 
     def slot_free(self):
         self.slots[self.kind].in_use -= 1
