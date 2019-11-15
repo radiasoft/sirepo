@@ -327,4 +327,6 @@ class _Op(PKDict):
         self._reply_q.put_nowait(msg)
 
     async def reply_ready(self):
-        return await self._reply_q.get()
+        r = await self._reply_q.get()
+        self._reply_q.task_done()
+        return r
