@@ -9,6 +9,13 @@ from pykern.pkcollections import PKDict
 import pytest
 
 
+def test_elegant(fc):
+    _r(
+        fc,
+        'Compact Storage Ring',
+        'twissReport',
+    )
+
 def test_warppba(fc):
     _r(
         fc,
