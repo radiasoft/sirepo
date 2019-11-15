@@ -11,12 +11,14 @@ from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
-from sirepo import job, mpi, simulation_db
+from sirepo import job
 from sirepo.pkcli import job_process
 import json
 import os
 import re
 import signal
+import sirepo.auth
+import sirepo.srdb
 import sys
 import time
 import tornado.gen
@@ -26,16 +28,13 @@ import tornado.locks
 import tornado.process
 import tornado.websocket
 
+
 #: Long enough for job_process to write result in run_dir
 _TERMINATE_SECS = 3
 
 _RETRY_SECS = 1
 
 _IN_FILE = 'in-{}.json'
-
-_INFO_FILE = 'job-agent.json'
-
-_INFO_FILE_COMMON = PKDict(version=1)
 
 
 cfg = None
@@ -192,7 +191,7 @@ class _Job(PKDict):
                 PYTHONUNBUFFERED='1',
                 SIREPO_MPI_CORES=self.msg.mpiCores,
                 SIREPO_SIM_DATA_JOB_FILE_URI=self.msg.get('jobFileUri', ''),
-                SIREPO_AUTH_LOGGED_IN_USER=sirep.auth.logged_in_user(),
+                SIREPO_AUTH_LOGGED_IN_USER=sirepo.auth.logged_in_user(),
                 SIREPO_SRDB_ROOT=sirepo.srdb.root(),
                 SIREPO_PKCLI_JOB_AGENT_AGENT_ID='',
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI='',
@@ -210,6 +209,7 @@ class _Job(PKDict):
             stderr=tornado.process.Subprocess.STREAM,
             env={},
         )
+        stdin.close()
         self.stdout = _ReadJsonlStream(self._subprocess.stdout, self.on_stdout_read)
         self.stderr = _ReadUntilCloseStream(self._subprocess.stderr)
         self._subprocess.set_exit_callback(self._subprocess_exit)
