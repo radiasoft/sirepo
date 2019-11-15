@@ -23,7 +23,7 @@ def _setup(func):
         import signal
 
         # ensure the test exits after a reasonable time
-        signal.alarm(10)
+        signal.alarm(20)
         s = None
         try:
             env, cfg = _env_setup()

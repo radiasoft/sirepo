@@ -187,6 +187,7 @@ class _Job(PKDict):
         cmd, stdin, env = job.subprocess_cmd_stdin_env(
             ('sirepo', 'job_process', self._in_file),
             PKDict(
+                PYKERN_PKDEBUG_OUTPUT='',
                 PYTHONUNBUFFERED='1',
                 SIREPO_AUTH_LOGGED_IN_USER=sirepo.auth.logged_in_user(),
                 SIREPO_MPI_CORES=self.msg.mpiCores,
@@ -336,6 +337,7 @@ class _ReadJsonlStream(_Stream):
 
     async def _read_stream(self):
         self.text = await self._stream.read_until(b'\n', self._MAX)
+        pkdc('stdout={}', self.text)
         await self._on_read(self.text)
 
 
@@ -344,11 +346,12 @@ class _ReadUntilCloseStream(_Stream):
         super().__init__(stream)
 
     async def _read_stream(self):
-        self.text.extend(
-            await self._stream.read_bytes(
-                self._MAX - len(self.text),
-                partial=True,
-            )
+        t = await self._stream.read_bytes(
+            self._MAX - len(self.text),
+            partial=True,
         )
-        if len(self.text) >= self._MAX:
-            raise AssertionError('_MAX bytes read')
+        pkdc('stderr={}', t)
+        l = len(self.text) + len(t)
+        assert l < self._MAX, \
+            'len(bytes)={} greater than _MAX={}'.format(l, _MAX)
+        self.text.extend(t)
