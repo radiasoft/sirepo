@@ -40,12 +40,14 @@ class DriverBase(PKDict):
     def __init__(self, req):
         super().__init__(
             has_slot=False,
+            kind=req.kind,
             ops_pending_done=PKDict(),
             ops_pending_send=[],
             uid=req.content.uid,
             websocket=None,
             _agentId=job.unique_key(),
             kind=req.kind,
+            _supervisor_uri=cfg.supervisor_uri,
         )
         self.agents[self._agentId] = self
 
@@ -125,13 +127,18 @@ class DriverBase(PKDict):
         assert op not in self.ops_pending_send
 
     @classmethod
-    def terminate(cls):
-        for d in DriverBase.agents.values():
-            d.kill()
+    async def terminate(cls):
+        for d in DriverBase.agents.copy().values():
+            try:
+                await d.kill()
+            except Exception as e:
+                # If one kill fails still try to kill the rest
+                pkdlog('error={} stack={}', e, pkdexc())
 
     def websocket_on_close(self):
        self._websocket_free()
 
+<<<<<<< HEAD
     def _subprocess_env(self):
         env = PKDict(
             SIREPO_AUTH_LOGGED_IN_USER=self._uid,
@@ -143,6 +150,8 @@ class DriverBase(PKDict):
     def _free(self):
             self._websocket_free()
 
+=======
+>>>>>>> job
     def _receive(self, msg):
         c = msg.content
         i = c.get('opId')
@@ -231,5 +240,10 @@ def _cfg_parse_modules(value):
         _DEFAULT_CLASS = _CLASSES['local']
     return s
 
+<<<<<<< HEAD
 def terminate():
     DriverBase.terminate()
+=======
+async def terminate():
+    await DriverBase.terminate()
+>>>>>>> job

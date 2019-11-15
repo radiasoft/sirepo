@@ -59,8 +59,8 @@ class ServerReq(PKDict):
         self.handler.write(await _ComputeJob.receive(self))
 
 
-def terminate():
-    job_driver.terminate()
+async def terminate():
+    await job_driver.terminate()
 
 
 class _ComputeJob(PKDict):

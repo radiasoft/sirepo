@@ -55,9 +55,15 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
                 ),
                 tmpDir=d
             ).file
-        except requests.exceptions.HTTPError as e:
-            pkdlog('error={} stack={}', e, pkdexc())
-            raise sirepo.util.Error(error='file not found')
+        except requests.exceptions.HTTPError:
+            raise sirepo.util.Error(
+                        PKDict(error='file not found'),
+                        # 'dooby doo'
+                        '{}: file not found {simulationId} {simulationType}'.format(
+                            d,
+                            **sim.req_data
+                        )
+                    )
         f = pykern.pkio.py_path(d.join(werkzeug.utils.secure_filename(f)))
         m, _ = mimetypes.guess_type(f.basename)
         if m is None:

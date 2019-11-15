@@ -152,9 +152,9 @@ def _sigterm(signum, frame):
     tornado.ioloop.IOLoop.current().add_callback_from_signal(_terminate)
 
 
-def _terminate():
+async def _terminate():
     try:
-        sirepo.job_supervisor.terminate()
+        await sirepo.job_supervisor.terminate()
     except Exception as e:
         pkdlog('job_supervisor.terminate except={} stack={}', e, pkdexc())
     tornado.ioloop.IOLoop.current().stop()

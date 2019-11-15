@@ -19,6 +19,7 @@ import re
 import socket
 import subprocess
 import tornado.ioloop
+import tornado.process
 
 cfg = None
 
@@ -108,17 +109,22 @@ class DockerDriver(job_driver.DriverBase):
                 d.ops_pending_done[o.opId] = o
                 o.send_ready.set()
 
-    def kill(self):
+    async def kill(self):
+        pkdlog('{}: stop cid={}', self.uid, self._cid)
         if '_cid' not in self:
             return
-        self._kill()
+        await _cmd(
+            self.host,
+            ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), self._cid),
+        )
+        self._cid = None
 
     async def _agent_start(self):
         cmd, stdin, env = job.subprocess_cmd_stdin_env(
             ('sirepo', 'job_agent'),
             PKDict(),
         )
-        p = [
+        p = (
             'run',
             '--log-driver=json-file',
             # should never be large, just for output of the monitor
@@ -136,21 +142,8 @@ class DockerDriver(job_driver.DriverBase):
             # do not use a "name", but a uid, because /etc/password is image specific, but
             # IDs are universal.
             '--user={}'.format(os.getuid()),
-        ] + self._volumes() + [self._image]
-        self._cid = _cmd(
-            self.host,
-            p + cmd,
-            stdin=stdin,
-            env=env,
-        )
-
-    def _kill(self):
-        pkdlog('{}: stop cid={}', self.uid, self._cid)
-        _cmd(
-            self.host,
-            ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), self._cid),
-        )
-        self._cid = None
+        ) + self._volumes() + (self._image,)
+        self._cid = await _cmd(self.host, p + cmd, stdin=stdin, env=env)
 
     def slot_free(self):
         self.host.slots[self.kind].in_use -= 1
@@ -162,14 +155,15 @@ class DockerDriver(job_driver.DriverBase):
             res.append('--volume={}:{}'.format(src, tgt))
 
         if pkconfig.channel_in('dev'):
+            # POSIT: radiasoft/download/installers/rpm-code/codes.sh
+            #   these are all the local environ directories.
             for v in '~/src', '~/.pyenv', '~/.local':
                 v = pkio.py_path(v)
                 # pyenv and src shouldn't be writable, only rundir
                 _res(v, v + ':ro')
-#TODO(robnagler) assumes NFS. Use agentDbRoot to generate right side(?)
-        #SECURITY: Must only mount the user's directory and not agentDbRoot
+        # SECURITY: Must only mount the user's directory
         _res(self._userDir, self._userDir)
-        return res
+        return tuple(res)
 
     def _websocket_free(self):
         self.host.drivers[self.kind].remove(self)
@@ -205,20 +199,26 @@ def _cfg_tls_dir(value):
     return res
 
 
-def _cmd(host, cmd, stdin=None, env=None):
+async def _cmd(host, cmd, stdin=subprocess.DEVNULL, env=None):
     c = DockerDriver.hosts[host.name].cmd_prefix + cmd
+    pkdc('Running: {}', ' '.join(c))
     try:
-        pkdc('Running: {}', ' '.join(c))
-        return subprocess.check_output(
+        p = tornado.process.Subprocess(
             c,
             stdin=stdin,
+            stdout=tornado.process.Subprocess.STREAM,
+            stderr=subprocess.STDOUT,
             env=env,
-        ).decode('utf-8').rstrip()
-    except subprocess.CalledProcessError as e:
-        if cmd[0] == 'run':
-            pkdlog('{}: failed: exit={} output={}', cmd, e.returncode, e.output)
-        return None
-
+        )
+    finally:
+        if stdin:
+            stdin.close()
+    o = (await p.stdout.read_until_close()).decode('utf-8').rstrip()
+    r = await p.wait_for_exit(raise_error=False)
+    # TODO(e-carlin): more robust handling
+    assert r == 0 , \
+        '{}: failed: exit={} output={}'.format(c, r, o)
+    return o
 
 def _cmd_prefix(host, tls_d):
     args = [

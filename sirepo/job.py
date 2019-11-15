@@ -96,7 +96,7 @@ def subprocess_cmd_stdin_env(cmd, env, pyenv='py3'):
         pyenv (str): python environment (py3 default)
 
     Returns:
-        tuple: new cmd (list) and stdin (file)
+        tuple: new cmd (tuple), stdin (file), env (PKDict)
     """
     import tempfile
 #TODO(robnagler) pykern shouldn't convert these to objects, rather leave as strings
@@ -125,8 +125,10 @@ exec {}
     )
     t = tempfile.TemporaryFile()
     t.seek(0)
-    return ['/bin/bash', '-l'], t, PKDict()
-
+    # it's reasonable to hardwire this path, even though we don't
+    # do that with others. We want to make sure the subprocess starts
+    # with a clean environment (no $PATH).
+    return ('/bin/bash', '-l'), t, PKDict()
 
 
 def init_by_server(app):
