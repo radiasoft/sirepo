@@ -82,8 +82,26 @@ def init():
     pkdc('cfg={}', cfg)
 
 
-def subprocess_args(cmd, env, pyenv='py3'):
+def subprocess_cmd_stdin_env(cmd, env, pyenv='py3'):
+    """Convert `cmd` in `pyenv` with `env` to script and cmd
+
+    Uses tempfile so the file can be closed after the subprocess
+    gets the handle. You have to close `stdin` after calling
+    `tornado.process.Subprocess`, which calls `subprocess.Popen`
+    inline, since it' not ``async``.
+
+    Args:
+        cmd (iter): list of words to be quoted
+        env (PKDict): environment to pass
+        pyenv (str): python environment (py3 default)
+
+    Returns:
+        tuple: new cmd (list) and stdin (file)
+    """
+    import tempfile
 #TODO(robnagler) pykern shouldn't convert these to objects, rather leave as strings
+#  then we'd refer to them. Perhaps that's not realistic, and pkconfig should
+#  keep a shadow which can be retrieved.
     for k in 'CONTROL', 'OUTPUT', 'REDIRECT_LOGGING', 'WANT_PID_TIME':
         k = 'PYKERN_PKDEBUG_' + k
         v = os.environ.get(k)
@@ -91,20 +109,24 @@ def subprocess_args(cmd, env, pyenv='py3'):
             env.pksetdefault(k, v)
     env.pksetdefault(
         PYKERN_PKCONFIG_CHANNEL=pkconfig.cfg.channel,
-        HOME=os.environ['HOME'],
-        LOGNAME=os.environ['LOGNAME'],
-        USER=os.environ['USER'],
     )
     # POSIT: we control all these values
-    e = ["export {}='{}'".format(k, v) for k, v in env]
-    c = ' '.join(("'{x}'" for x in cmd))
+    e =
+    c =
     s = '''
 set -e
 pyenv shell {}
-{e}
+{}
 exec {}
-'''.format(pyenv, c)
-    write the script
+'''.format(
+        '\n'.join(("export {}='{}'".format(k, v) for k, v in env)),
+        pyenv,
+        ' '.join(("'{x}'" for x in cmd)),
+    )
+    t = tempfile.TemporaryFile()
+    t.seek(0)
+    return ['/bin/bash', '-l'], t, PKDict()
+
 
 
 def init_by_server(app):

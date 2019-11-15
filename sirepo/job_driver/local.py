@@ -29,7 +29,6 @@ class LocalDriver(job_driver.DriverBase):
         self.update(
             _agentExecDir=pkio.py_path(req.content.userDir).join(
                 'agent-local', self._agentId),
-            _agentDbRoot=req.content.agentDbRoot,
         )
         self.instances[self.kind].append(self)
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
@@ -125,7 +124,7 @@ class LocalDriver(job_driver.DriverBase):
     async def _agent_start(self):
         pkio.mkdir_parent(self._agentExecDir)
         self.subprocess = tornado.process.Subprocess(
-            ['bash'],
+            ['bash', '-l'],
             stdin=self._agent_bash_script(env=job.safe_subprocess_env()),
             cwd=str(self._agentExecDir),
             env=env,

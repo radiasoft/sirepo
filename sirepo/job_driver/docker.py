@@ -38,16 +38,6 @@ _MAX_OPEN_FILES = 1024
 #: Copy of sirepo.mpi.cfg.cores to avoid init inconsistencies; only used during init_class()
 _parallel_cores = None
 
-_RUN_PREFIX = (
-    'run',
-    '--log-driver=json-file',
-    # should never be large, just for output of the monitor
-    '--log-opt=max-size=1m',
-    '--rm',
-    '--ulimit=core=0',
-    '--ulimit=nofile={}'.format(_MAX_OPEN_FILES),
-)
-
 class DockerDriver(job_driver.DriverBase):
 
     hosts = PKDict()
@@ -124,31 +114,34 @@ class DockerDriver(job_driver.DriverBase):
         self._kill()
 
     async def _agent_start(self):
-        cmd = _RUN_PREFIX + (
+        cmd, stdin, env = job.subprocess_cmd_stdin_env(
+            ('sirepo', 'job_agent'),
+            PKDict(),
+        )
+        p = [
+            'run',
+            '--log-driver=json-file',
+            # should never be large, just for output of the monitor
+        '--log-opt=max-size=1m',
+            '--rm',
+            '--ulimit=core=0',
+            '--ulimit=nofile={}'.format(_MAX_OPEN_FILES),
             # '--cpus={}'.format(slot.cores), # TODO(e-carlin): impl
             '-i',
             '--detach',
-            # '--env=SIREPO_MPI_CORES={}'.format(slot.cores), # TODO(e-carlin): impl
             '--init',
             # '--memory={}g'.format(slot.gigabytes), # TODO(e-carlin): impl
             '--name={}'.format(self._cname), # TODO(e-carlin): impl
             '--network=host', # TODO(e-carlin): Was 'none'. I think we can use 'bridge' or 'host'
-                # do not use a user name, because that may not map inside the
-                # container properly. /etc/passwd on the host and guest are
-                # different.
-                '--user={}'.format(os.getuid()),
-            ) + self._volumes() + (
-                self._image,
-                'bash',
-            )
+            # do not use a "name", but a uid, because /etc/password is image specific, but
+            # IDs are universal.
+            '--user={}'.format(os.getuid()),
+        ] + self._volumes() + [self._image]
         self._cid = _cmd(
             self.host,
-            cmd,
-            job.bash_script(
-                ['sirepo', 'job_agent'],
-                env=PKDict(
-                ),
-            ),
+            p + cmd,
+            stdin=stdin,
+            env=env,
         )
 
     def _kill(self):
@@ -176,7 +169,7 @@ class DockerDriver(job_driver.DriverBase):
 #TODO(robnagler) assumes NFS. Use agentDbRoot to generate right side(?)
         #SECURITY: Must only mount the user's directory and not agentDbRoot
         _res(self._userDir, self._userDir)
-        return tuple(res)
+        return res
 
     def _websocket_free(self):
         self.host.drivers[self.kind].remove(self)
@@ -212,13 +205,14 @@ def _cfg_tls_dir(value):
     return res
 
 
-def _cmd(host, cmd, stdin=None):
+def _cmd(host, cmd, stdin=None, env=None):
     c = DockerDriver.hosts[host.name].cmd_prefix + cmd
     try:
         pkdc('Running: {}', ' '.join(c))
         return subprocess.check_output(
             c,
             stdin=stdin,
+            env=env,
         ).decode('utf-8').rstrip()
     except subprocess.CalledProcessError as e:
         if cmd[0] == 'run':

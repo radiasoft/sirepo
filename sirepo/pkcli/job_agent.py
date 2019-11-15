@@ -17,7 +17,6 @@ import json
 import os
 import re
 import signal
-import subprocess
 import sys
 import time
 import tornado.gen
@@ -180,7 +179,6 @@ class _Job(PKDict):
     def start(self):
         # SECURITY: msg must not contain agentId
         assert not self.msg.get('agentId')
-        env = self._subprocess_env()
         self._in_file = self.msg.runDir.join(
             _IN_FILE.format(job.unique_key()),
         )
@@ -188,26 +186,35 @@ class _Job(PKDict):
         # TODO(e-carlin): Find a better solution for serial and deserialization
         self.msg.runDir = str(self.msg.runDir)
         pkjson.dump_pretty(self.msg, filename=self._in_file, pretty=False)
+        cmd, stdin, env = job.subprocess_cmd_stdin_env(
+            ('sirepo', 'job_process', self._in_file),
+            PKDict(
+                PYTHONUNBUFFERED='1',
+                SIREPO_MPI_CORES=self.msg.mpiCores,
+                SIREPO_SIM_DATA_JOB_FILE_URI=self.msg.get('jobFileUri', ''),
+                SIREPO_AUTH_LOGGED_IN_USER=sirep.auth.logged_in_user(),
+                SIREPO_SRDB_ROOT=sirepo.srdb.root(),
+                SIREPO_PKCLI_JOB_AGENT_AGENT_ID='',
+                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI='',
+            ),
+            pyenv=py2,
+        )
         self._subprocess = tornado.process.Subprocess(
-            'bash',
+            cmd,
             # SECURITY: need to change cwd, because agentDir has agentId
             cwd=self.msg.runDir,
+            env=env,
             start_new_session=True,
-            stdin=job.subprocess_script(['sirepo', 'job_process', self._in_file]),
+            stdin=stdin,
             stdout=tornado.process.Subprocess.STREAM,
             stderr=tornado.process.Subprocess.STREAM,
-            env=env,
+            env={},
         )
         self.stdout = _ReadJsonlStream(self._subprocess.stdout, self.on_stdout_read)
         self.stderr = _ReadUntilCloseStream(self._subprocess.stderr)
         self._subprocess.set_exit_callback(self._subprocess_exit)
 
     def _subprocess_env(self):
-        return job.safe_subprocess_env().pkupdate(
-            PYTHONUNBUFFERED='1',
-            SIREPO_MPI_CORES=str(self.msg.mpiCores),
-            SIREPO_SIM_DATA_JOB_FILE_URI=str(self.msg.get('jobFileUri', '')),
-        )
 
     def _subprocess_exit(self, returncode):
         if self._in_file:
