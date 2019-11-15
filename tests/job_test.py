@@ -176,39 +176,22 @@ def _env_setup():
     env['PYENV_VERSION'] = 'py3'
     env.update(cfg)
 
-    try:
-        out = subprocess.check_output(
-            ['pyenv', 'which', 'sirepo'],
-            env=env,
-            stderr=subprocess.STDOUT,
-        )
-    except subprocess.CalledProcessError as e:
-        out = e.output
+    def s(cmd, expect):
+        try:
+            o = subprocess.check_output(
+                cmd,
+                env=env,
+                stderr=subprocess.STDOUT,
+            )
+        except subprocess.CalledProcessError as e:
+            o = e.output
+        o = o.decode('utf-8', errors='ignore')
+        assert expect in o, \
+            'expect={} cmd={} output={}'.format(expect, cmd, o)
 
-    assert '/py3/bin/sirepo' in out, \
-        'expecting sirepo in a py3: {}'.format(out)
-    try:
-        out = subprocess.check_output(
-            ['pyenv', 'exec', 'sirepo', 'job_supervisor', '--help'],
-            env=env,
-            stderr=subprocess.STDOUT,
-        )
-    except subprocess.CalledProcessError as e:
-        out = e.output
-    assert 'job_supervisor' in out, \
-        '"job_supervisor" not in help: {}'.format(out)
-
-    try:
-        out = subprocess.check_output(
-            ['pyenv', 'exec', 'sirepo', 'job_driver', '--help'],
-            env=env,
-            stderr=subprocess.STDOUT,
-        )
-    except subprocess.CalledProcessError as e:
-        out = e.output
-    assert 'job_driver' in out, \
-        'job_driver not in help: {}'.format(out)
-
+    s(['pyenv', 'which', 'sirepo'], '/py3/bin/sirepo')
+    s(['pyenv', 'exec', 'sirepo', 'job_supervisor', '--help'], 'job_supervisor')
+    s(['pyenv', 'exec', 'sirepo', 'job_driver', '--help'], 'job_driver')
     return (env, cfg)
 
 
