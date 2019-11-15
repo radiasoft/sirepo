@@ -115,10 +115,9 @@ class _ComputeJob(PKDict):
         return cls(req)
 
     def persist_state(self):
-        pkjson.dump_pretty(
-            self.db,
+        pykern.pkio.atomic_write(
             self.state_file(self.db.computeJid),
-            pretty=False,
+            pkjson.dump_pretty(self.db, pretty=False),
         )
 
     @classmethod
