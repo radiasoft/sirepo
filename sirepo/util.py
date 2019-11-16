@@ -124,7 +124,7 @@ class UserAlert(Reply):
 
 
 def dump_json(obj, path=None, pretty=False, **kwargs):
-    """Formats as json as string, possibly writing to to disk
+    """Formats as json as string, and writing atomically to disk
 
     Args:
         obj (object): any Python object

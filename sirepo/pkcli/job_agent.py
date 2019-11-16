@@ -187,7 +187,6 @@ class _Job(PKDict):
         cmd, stdin, env = job.subprocess_cmd_stdin_env(
             ('sirepo', 'job_process', self._in_file),
             PKDict(
-                PYKERN_PKDEBUG_OUTPUT='',
                 PYTHONUNBUFFERED='1',
                 SIREPO_AUTH_LOGGED_IN_USER=sirepo.auth.logged_in_user(),
                 SIREPO_MPI_CORES=self.msg.mpiCores,

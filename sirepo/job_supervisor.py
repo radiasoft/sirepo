@@ -5,8 +5,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkjson
-import pykern.pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from sirepo import job
@@ -15,7 +13,9 @@ import aenum
 import collections
 import copy
 import os
+import pykern.pkio
 import sirepo.srdb
+import sirepo.util
 import sys
 import time
 import tornado.gen
@@ -105,10 +105,9 @@ class _ComputeJob(PKDict):
 
     def _lib_file_uri(self, libDir):
         self.libFileLink = l = _LIB_FILE_DIR.join(job.unique_key())
-        pkjson.dump_pretty(
+        sirepo.util.dump_json(
             [x.basename for x in libDir.listdir()],
-            filename=libDir.join(job.LIB_FILE_LIST_URI),
-            pretty=False,
+            path=libDir.join(job.LIB_FILE_LIST_URI),
         )
         os.symlink(l.dirpath().bestrelpath(libDir), l)
         return _LIB_FILE_URI + l.basename

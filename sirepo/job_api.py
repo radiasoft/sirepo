@@ -44,7 +44,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         type=simulation_type,
     )
     with simulation_db.tmp_dir() as d:
-        # TODO(e-carlin): compueJobHash
+        # TODO(e-carlin): computeJobHash
         try:
             f = _request(
                 data=PKDict(
