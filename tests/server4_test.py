@@ -16,6 +16,7 @@ def test_elegant(fc):
         'twissReport',
     )
 
+
 def test_synergia(fc):
     _r(
         fc,
@@ -23,6 +24,7 @@ def test_synergia(fc):
         'bunchReport1',
         shared_model='bunchReport2',
     )
+
 
 def test_warppba(fc):
     _r(
@@ -37,7 +39,7 @@ def test_warppba(fc):
     )
 
 
-def _r(fc, sim_name, analysis_model, shared_model):
+def _r(fc, sim_name, analysis_model, shared_model=None):
     from pykern.pkdebug import pkdp, pkdlog
     from sirepo import srunit
     from pykern import pkunit
