@@ -105,12 +105,12 @@ class _ComputeJob(PKDict):
 
     def _lib_file_uri(self, libDir):
         self.libFileLink = l = _LIB_FILE_DIR.join(job.unique_key())
-        os.symlink(l.dirpath().bestrelpath(libDir), l)
         pkjson.dump_pretty(
             [x.basename for x in libDir.listdir()],
             filename=libDir.join(job.LIB_FILE_LIST_URI),
             pretty=False,
         )
+        os.symlink(l.dirpath().bestrelpath(libDir), l)
         return _LIB_FILE_URI + l.basename
 
     def _lib_file_link_destroy(self):

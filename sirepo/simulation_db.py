@@ -287,9 +287,7 @@ def generate_json(data, pretty=False):
     Returns:
         str: formatted data
     """
-    if pretty:
-        return json.dumps(data, indent=4, separators=(',', ': '), sort_keys=True, allow_nan=False)
-    return json.dumps(data, allow_nan=False)
+    return util.dump_json(data, pretty=pretty)
 
 
 def hack_nfs_write_status(status, run_dir):
@@ -303,13 +301,15 @@ def hack_nfs_write_status(status, run_dir):
         status (str): pending, running, completed, canceled
         run_dir (py.path): where to write the file
     """
+    if feature_config.cfg().job_supervisor:
+        return
     fn = run_dir.join(sirepo.job.RUNNER_STATUS_FILE)
     for i in range(cfg.nfs_tries):
         if fn.check(file=True):
             break
         time.sleep(cfg.nfs_sleep)
     # Try once always
-    pkio.write_text(fn, status)
+    write_status(status, run_dir)
 
 
 def iterate_simulation_datafiles(simulation_type, op, search=None):
@@ -480,8 +480,6 @@ def prepare_simulation(data, run_dir=None):
         #TODO(robnagler) create a lock_dir -- what node/pid/thread to use?
         #   probably can only do with celery.
         pkio.mkdir_parent(run_dir)
-        # Only done on the legacy path, because the job supervisor owns the
-        # status file.
         write_status('pending', run_dir)
     sim_type = data.simulationType
     template = sirepo.template.import_module(data)
@@ -591,21 +589,6 @@ def read_simulation_json(sim_type, *args, **kwargs):
     if changed:
         return save_simulation_json(new)
     return data
-
-
-def read_status(run_dir):
-    """Read status from simulation dir
-
-    Args:
-        run_dir (py.path): where to read
-    """
-    try:
-        return pkio.read_text(run_dir.join(sirepo.job.RUNNER_STATUS_FILE))
-    except IOError as e:
-        if pkio.exception_is_not_found(e):
-            # simulation may never have been run
-            return 'stopped'
-        return 'error'
 
 
 def save_new_example(data):
@@ -872,11 +855,12 @@ def verify_app_directory(simulation_type):
 def write_json(filename, data):
     """Write data as json to filename
 
+    pretty is true.
+
     Args:
         filename (py.path or str): will append JSON_SUFFIX if necessary
     """
-    with open(str(json_filename(filename)), 'w') as f:
-        f.write(generate_json(data, pretty=True))
+    util.dump_json(data, path=json_filename(filename), pretty=True)
 
 
 def write_result(result, run_dir=None):
@@ -910,7 +894,11 @@ def write_status(status, run_dir):
         status (str): pending, running, completed, canceled
         run_dir (py.path): where to write the file
     """
-    pkio.write_text(run_dir.join(sirepo.job.RUNNER_STATUS_FILE), status)
+    if not feature_config.cfg().job_supervisor:
+        pkio.atomic_write(
+            run_dir.join(sirepo.job.RUNNER_STATUS_FILE),
+            status.encode(),
+        )
 
 
 def _create_example_and_lib_files(simulation_type):

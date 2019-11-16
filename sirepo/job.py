@@ -100,21 +100,11 @@ def subprocess_cmd_stdin_env(cmd, env, pyenv='py3'):
     """
     import os
     import tempfile
-
-#TODO(robnagler) pykern shouldn't convert these to objects, rather leave as strings
-#  then we'd refer to them. Perhaps that's not realistic, and pkconfig should
-#  keep a shadow which can be retrieved.
-    for k in (
-        'PYKERN_PKDEBUG_CONTROL',
-        'PYKERN_PKDEBUG_OUTPUT',
-        'PYKERN_PKDEBUG_REDIRECT_LOGGING',
-        'PYKERN_PKDEBUG_WANT_PID_TIME',
-    ):
-        v = os.environ.get(k)
-        if v:
-            env.pksetdefault(k, v)
     env.pksetdefault(
-        PYKERN_PKCONFIG_CHANNEL=pkconfig.cfg.channel,
+        **pkconfig.to_environ((
+            'pykern.*',
+            'sirepo.feature_config.job_supervisor',
+        ))
     )
     t = tempfile.TemporaryFile()
     # POSIT: we control all these values
