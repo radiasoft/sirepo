@@ -91,6 +91,9 @@ def _init():
     _cfg = pkconfig.init(
         api_modules=((), set, 'optional api modules, e.g. status'),
         job_supervisor=(False, bool, 'job supervisor to manage running of jobs'),
+        jspec=dict(
+            derbenevskrinsky_force_formula=(pkconfig.channel_in_internal_test(), bool, 'Include Derbenev-Skrinsky force forumla'),
+        ),
         #TODO(robnagler) make sim_type config
         rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
         sim_types=(None, _cfg_sim_types, 'simulation types (codes) to be imported'),

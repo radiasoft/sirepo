@@ -21,9 +21,13 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if analysis_model == 'optimizerAnimation':
             return analysis_model
-        if analysis_model in ('fieldCalcAnimation', 'fieldComparisonAnimation'):
+        if analysis_model in (
+            'fieldCalcAnimation',
+            'fieldCalculationAnimation',
+            'fieldComparisonAnimation',
+        ):
             return 'fieldCalculationAnimation'
-        return super()._compute_model(analysis_model, *args, **kwargs)
+        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def fixup_old_data(cls, data):
