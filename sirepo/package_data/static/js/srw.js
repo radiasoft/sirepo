@@ -94,7 +94,10 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         return false;
     }
 
-    self.computeModel = function (analysisModel) {
+    self.computeModel = function(analysisModel) {
+        if (analysisModel === 'coherenceYAnimation' || analysisModel === 'coherenceXAnimation') {
+            return 'multiElectronAnimation';
+        }
         return analysisModel;
     };
 
