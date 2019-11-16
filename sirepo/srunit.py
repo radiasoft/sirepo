@@ -94,7 +94,7 @@ def sim_data(sim_name, sim_type=None, sim_types=CONFTEST_ALL_CODES):
     return fc.sr_sim_data(sim_name), fc
 
 
-def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie=True, **kwargs):
+def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie=True, want_user=True, **kwargs):
     fc = flask_client(cfg, **kwargs)
     try:
         from pykern import pkunit
@@ -105,7 +105,7 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
         setattr(
             server._app,
             server.SRUNIT_TEST_IN_REQUEST,
-            PKDict(op=op, want_cookie=want_cookie),
+            PKDict(op=op, want_cookie=want_cookie, want_user=want_user),
         )
         from sirepo import uri_router
         resp = fc.get(

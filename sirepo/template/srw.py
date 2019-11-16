@@ -193,11 +193,11 @@ def compute_crl_focus(model):
 def compute_undulator_length(model):
     if model['undulatorType'] == 'u_i':
         return PKDict()
-    zip_file = _SIM_DATA.lib_file_abspath(model['magneticFile'])
-    if zip_file.check():
+    if _SIM_DATA.lib_file_exists(model['magneticFile']):
+        z = _SIM_DATA.lib_file_abspath(model['magneticFile'])
         return PKDict(
             length=_SIM_DATA.srw_format_float(
-                MagnMeasZip(str(zip_file)).find_closest_gap(model['gap']),
+                MagnMeasZip(str(z)).find_closest_gap(model['gap']),
             ),
         )
     return PKDict()
@@ -427,8 +427,6 @@ def import_file(request, tmp_dir):
         'inputPath': input_path,
         'arguments': arguments,
         'userFilename': f.filename,
-#TODO(robnagler) need to fix for #2044
-        'libDir': str(simulation_db.simulation_lib_dir(SIM_TYPE)),
     }
     return data
 
@@ -1252,7 +1250,7 @@ def _intensity_units(is_gaussian, sim_in):
 
 
 def _load_user_model_list(model_name):
-    f = _SIM_DATA.lib_file_abspath(_USER_MODEL_LIST_FILENAME[model_name])
+    f = _SIM_DATA.lib_file_write_path(_USER_MODEL_LIST_FILENAME[model_name])
     try:
         if f.exists():
             return simulation_db.read_json(f)
@@ -1287,10 +1285,10 @@ def _process_image(data):
             shift_x=m['shiftX'],
             shift_y=m['shiftY'],
             is_save_images=True,
-            prefix=str(py.path.local()),
+            prefix=str(t),
             output_image_format=m['outputImageFormat'],
         )
-        return py.path.local(s.processed_image_name)
+        return t.join(s.processed_image_name)
 
 
 def _process_intensity_reports(source_type, undulator_type):
@@ -1387,9 +1385,8 @@ def _safe_beamline_item_name(name, names):
 
 def _save_user_model_list(model_name, beam_list):
     pkdc('saving {} list', model_name)
-    #TODO(pjm): want atomic replace?
     simulation_db.write_json(
-        _SIM_DATA.lib_file_abspath(_USER_MODEL_LIST_FILENAME[model_name]),
+        _SIM_DATA.lib_file_write_path(_USER_MODEL_LIST_FILENAME[model_name]),
         beam_list,
     )
 

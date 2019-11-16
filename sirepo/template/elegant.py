@@ -421,8 +421,7 @@ def write_parameters(data, run_dir, is_parallel):
             is_parallel,
         ),
     )
-    for f in _SIM_DATA.lib_files(data, run_dir=run_dir):
-        b = f.basename
+    for b in _SIM_DATA.lib_file_basenames(data):
         if re.search(r'SCRIPT-commandFile', b):
             os.chmod(str(run_dir.join(b)), stat.S_IRUSR | stat.S_IXUSR)
 

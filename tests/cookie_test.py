@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 import pytest
 from sirepo import srunit
 
-@srunit.wrap_in_request()
+@srunit.wrap_in_request(want_user=False)
 def test_set_get():
     from pykern import pkunit
     from pykern.pkunit import pkeq

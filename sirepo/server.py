@@ -69,12 +69,11 @@ def api_copyNonSessionSimulation():
     data.models.simulation.isExample = False
     data.models.simulation.outOfSessionSimulationId = sim.id
     res = _save_new_and_reply(data)
-    target = simulation_db.simulation_dir(sim.type, data.models.simulation.simulationId)
-    sirepo.sim_data.get_class(sim_type).lib_files_copy(
+    sirepo.sim_data.get_class(sim_type).lib_files_from_other_user(
         data,
         simulation_db.lib_dir_from_sim_dir(src),
-        simulation_db.lib_dir_from_sim_dir(target),
     )
+    target = simulation_db.simulation_dir(sim.type, data.models.simulation.simulationId)
     if hasattr(sim.template, 'copy_related_files'):
         sim.template.copy_related_files(data, str(src), str(target))
     return res
@@ -515,9 +514,12 @@ def api_srwLight():
 @api_perm.allow_visitor
 def api_srUnit():
     v = getattr(flask.current_app, SRUNIT_TEST_IN_REQUEST)
+    if v.want_user:
+        import sirepo.auth
+        sirepo.auth.init_mock()
     if v.want_cookie:
-        from sirepo import cookie
-        cookie.set_sentinel()
+        import sirepo.cookie
+        sirepo.cookie.set_sentinel()
     v.op()
     return ''
 

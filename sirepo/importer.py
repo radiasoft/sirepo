@@ -47,7 +47,7 @@ def read_json(text, sim_type=None):
     from sirepo import simulation_db
 
     # attempt to decode the input as json first, if invalid try python
-    # fixup data in case new structures are need for lib_files() below
+    # fixup data in case new structures are need for lib_file ops below
     data = simulation_db.fixup_old_data(simulation_db.json_load(text))[0]
     assert not sim_type or data.simulationType == sim_type, \
         'simulationType={} invalid, expecting={}'.format(
@@ -91,12 +91,18 @@ def read_zip(stream, sim_type=None):
                 zipped[b].write(c, 'wb')
         assert data, \
             'missing {} in archive'.format(simulation_db.SIMULATION_DATA_FILE)
-        needed = PKDict()
-        for n in sirepo.sim_data.get_class(data.simulationType).lib_files(data, validate_exists=False):
-            assert n.basename in zipped or n.check(file=True, exists=True), \
-                'auxiliary file {} missing in archive'.format(n.basename)
-            needed[n.basename] = n
+        needed = set
+        s = sirepo.sim_data.get_class(data.simulationType)
+        for n in s.lib_file_basenames(data):
+#TODO(robnagler) this does not allow overwrites of lib files,
+# but need to be modularlized
+            if s.lib_file_exists(n):
+                continue
+#TODO(robnagler) raise useralert
+            assert n in zipped, \
+                'auxiliary file={} missing in archive'.format(n)
+            needed.add(n)
         for b, src in zipped.items():
             if b in needed:
-                src.copy(needed[b])
+                src.copy(s.lib_file_write_path(b))
         return data

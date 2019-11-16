@@ -484,13 +484,7 @@ def prepare_simulation(data, run_dir=None):
     sim_type = data.simulationType
     template = sirepo.template.import_module(data)
     s = sirepo.sim_data.get_class(sim_type)
-    s.lib_files_copy(
-        data,
-        # needed for job_supervisor, which can't get at user
-        lib_dir_from_sim_dir(run_dir),
-        run_dir,
-        symlink=True,
-    )
+    s.lib_files_to_run_dir(data, run_dir)
     write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
     is_p = s.is_parallel(data)
@@ -793,7 +787,7 @@ def user_create(login_callback):
     # Must logged in before calling simulation_dir
     login_callback(uid)
     for simulation_type in feature_config.cfg().sim_types:
-        _create_example_and_lib_files(simulation_type)
+        _create_example(simulation_type)
     return uid
 
 
@@ -849,7 +843,7 @@ def verify_app_directory(simulation_type):
     d = simulation_dir(simulation_type)
     if d.exists():
         return
-    _create_example_and_lib_files(simulation_type)
+    _create_example(simulation_type)
 
 
 def write_json(filename, data):
@@ -901,13 +895,9 @@ def write_status(status, run_dir):
         )
 
 
-def _create_example_and_lib_files(simulation_type):
+def _create_example(simulation_type):
     import sirepo.sim_data
 
-    d = pkio.mkdir_parent(simulation_lib_dir(simulation_type))
-    for f in sirepo.sim_data.get_class(simulation_type).resource_files():
-        #TODO(pjm): symlink has problems in containers
-        f.copy(d)
     pkio.mkdir_parent(simulation_dir(simulation_type))
     for s in examples(simulation_type):
         save_new_example(s)

@@ -6,10 +6,11 @@ u"""PyTest for :mod:`sirepo.template.srw_importer`
 """
 from __future__ import absolute_import, division, print_function
 import pytest
+from sirepo import srunit
 
-pytest.importorskip('srwl_bl')
 
-def test_importer():
+@srunit.wrap_in_request()
+def test_srw_importer():
     from sirepo.template.srw_importer import import_python
     from pykern import pkio
     from pykern import pkresource
@@ -41,7 +42,6 @@ def test_importer():
         'nsls-ii-esm-beamline': ('nsls-ii-esm-beamline', None),
     }
 
-    dat_dir = py.path.local(pkresource.filename('template/srw/', import_python))
     with pkunit.save_chdir_work():
         for b in sorted(_TESTS.keys()):
             base_py = '{}.py'.format(_TESTS[b][0])
@@ -49,7 +49,6 @@ def test_importer():
             actual = import_python(
                 code,
                 tmp_dir='.',
-                lib_dir=str(dat_dir),
                 user_filename=r'c:\anything\{}.anysuffix'.format(_TESTS[b][0]),
                 arguments=_TESTS[b][1],
             )
