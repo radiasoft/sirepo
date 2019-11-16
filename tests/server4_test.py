@@ -9,6 +9,21 @@ from pykern.pkcollections import PKDict
 import pytest
 
 
+def test_elegant(fc):
+    _r(
+        fc,
+        'Compact Storage Ring',
+        'twissReport',
+    )
+
+def test_synergia(fc):
+    _r(
+        fc,
+        'Simple FODO',
+        'bunchReport1',
+        shared_model='bunchReport2',
+    )
+
 def test_warppba(fc):
     _r(
         fc,
@@ -22,7 +37,7 @@ def test_warppba(fc):
     )
 
 
-def _r(fc, sim_name, analysis_model):
+def _r(fc, sim_name, analysis_model, shared_model):
     from pykern.pkdebug import pkdp, pkdlog
     from sirepo import srunit
     from pykern import pkunit
@@ -46,7 +61,7 @@ def _r(fc, sim_name, analysis_model):
 
         s = sirepo.sim_data.get_class(fc.sr_sim_type)
         pkunit.pkeq('pending', run.state, 'not pending, run={}', run)
-        cancel = run.nextRequest
+        cancel = next_request = run.nextRequest
         for _ in range(7):
             if run.state in ('completed', 'error'):
                 cancel = None
@@ -55,9 +70,12 @@ def _r(fc, sim_name, analysis_model):
             time.sleep(1)
         else:
             pkunit.pkfail('did not complete: runStatus={}', run)
-        pkdlog(run)
         pkunit.pkeq('completed', run.state)
-        pkdlog(run)
+
+        if shared_model:
+            next_request.report = shared_model
+            run = fc.sr_post('runStatus', next_request)
+            pkunit.pkeq('completed',  run.state)
 
     finally:
         try:
