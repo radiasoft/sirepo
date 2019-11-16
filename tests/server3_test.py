@@ -108,6 +108,33 @@ def test_warppba(fc):
     )
 
 
+def test_warpvnd(fc):
+    _r(
+        fc,
+        'Two Poles',
+        'fieldCalculationAnimation',
+        PKDict(
+            fieldCalcAnimation=PKDict(
+                expect_y_range='-1e-07, 1e-07, 23',
+            ),
+        ),
+    )
+    _r(
+        fc,
+        'Two Poles',
+        'animation',
+        PKDict(
+            currentAnimation=PKDict(
+                expect_y_range='0.0, 3.*e-05',
+            ),
+            fieldAnimation=PKDict(
+                expect_y_range='-1e-07, 1e-07, 23',
+            ),
+        ),
+        expect_completed=False,
+    )
+
+
 def test_zgoubi(fc):
     _r(
         fc,
@@ -135,10 +162,11 @@ def test_zgoubi(fc):
 
 
 def _r(fc, sim_name, compute_model, reports, expect_completed=True):
+    from pykern import pkconfig
+    from pykern import pkunit
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp, pkdlog
     from sirepo import srunit
-    from pykern import pkunit
     import re
     import time
 
@@ -179,7 +207,11 @@ def _r(fc, sim_name, compute_model, reports, expect_completed=True):
                 c = [a.get('frame_index')]
             else:
                 c = range(run.get(a.get('frame_count_key', 'frameCount')))
-            pkdlog('frameReport={}', r)
+                assert c, \
+                    'frame_count_key={} or frameCount={} is zero'.format(
+                        a.get('frame_count_key'), a.get('frameCount'),
+                    )
+            pkdlog('frameReport={} count={}', r, c)
             for i in c:
                 pkdlog('frameIndex={}', i)
                 f = fc.sr_get_json(
