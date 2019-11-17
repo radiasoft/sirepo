@@ -1394,8 +1394,10 @@ def _save_user_model_list(model_name, beam_list):
 def _superscript(val):
     return re.sub(r'\^2', u'\u00B2', val)
 
+
 def _superscript_2(val):
     return re.sub(r'\^0', u'\u00B0', val)
+
 
 def _trim(v):
     res = ''
@@ -1403,6 +1405,7 @@ def _trim(v):
         res += l.rstrip() + '\n'
     x = res.rstrip('\n') + '\n'
     return x
+
 
 def _unique_name(items, field, template):
     #TODO(pjm): this is the same logic as sirepo.js uniqueName()
