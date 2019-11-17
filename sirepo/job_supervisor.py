@@ -85,7 +85,7 @@ class _ComputeJob(PKDict):
                 frameCount=0,
                 lastUpdateTime=0,
                 percentComplete=0.0,
-                startTime=0,
+                computeJobStart=0,
             )
         assert self.computeJid not in self.instances
         self.instances[self.computeJid] = self
@@ -182,7 +182,7 @@ class _ComputeJob(PKDict):
                     frameCount=0,
                     lastUpdateTime=t,
                     percentComplete=0.0,
-                    startTime=t,
+                    computeJobStart=t,
                 )
             tornado.ioloop.IOLoop.current().add_callback(self._run, req)
         # Read this first https://github.com/radiasoft/sirepo/issues/2007
@@ -195,7 +195,8 @@ class _ComputeJob(PKDict):
                 r.error = self.error
             if self.isParallel:
                 r.update(**self.parallelStatus)
-                r.elapsedTime = r.lastUpdateTime - r.startTime
+                r.elapsedTime = r.lastUpdateTime - r.computeJobStart
+                r.computeJobHash = self.computeJobHash
             if self.status in (job.RUNNING, job.PENDING):
                 c = req.content
                 r.update(

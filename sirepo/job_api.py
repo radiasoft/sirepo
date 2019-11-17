@@ -19,6 +19,7 @@ import flask
 import inspect
 import mimetypes
 import pykern.pkio
+import re
 import requests
 import sirepo.auth
 import sirepo.http_reply
@@ -33,6 +34,9 @@ import werkzeug.utils
 
 
 _YEAR = datetime.timedelta(365)
+
+#: how many call frames to search backwards to find the api_.* caller
+_MAX_FRAME_SEARCH_DEPTH = 6
 
 
 @api_perm.require_user
@@ -88,7 +92,11 @@ def api_runStatus():
 @api_perm.require_user
 def api_simulationFrame(frame_id):
     # fram_id is parsed by template_common
-    return template_common.sim_frame(frame_id, lambda a: _request(data=a))
+    return template_common.sim_frame(
+        frame_id,
+# TODO(e-carlin): remove 'report'. See comment about optional fields in _request_data()
+        lambda a: _request(data=PKDict(report='x', **a))
+    )
 
 
 def init_apis(*args, **kwargs):
@@ -106,6 +114,18 @@ def _request(**kwargs):
 
 
 def _request_data(kwargs):
+    def get_api_name():
+        f = inspect.currentframe()
+        for _ in range(_MAX_FRAME_SEARCH_DEPTH):
+            m = re.search(r'^api_.*$', f.f_code.co_name)
+            if m:
+                return m.group()
+            f = f.f_back
+        else:
+            raise AssertionError(
+                '{}: max frame search depth reached'.format(f.f_code)
+            )
+
     d = kwargs.pkdel('data')
     if not d:
         d = sirepo.http_request.parse_post(
@@ -119,7 +139,7 @@ def _request_data(kwargs):
 # Ex tmpDir is only used in api_downloadDataFile
     return b.pksetdefault(
         analysisModel=d.report,
-        api=inspect.currentframe().f_back.f_back.f_code.co_name,
+        api=get_api_name(),
         computeJid=lambda: s.parse_jid(d),
         computeJobHash=lambda: d.get('computeJobHash') or s.compute_job_hash(d),
         computeModel=lambda: s.compute_model(d),

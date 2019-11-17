@@ -10,7 +10,7 @@ from pykern import pkio
 from pykern import pkjson
 from pykern import pksubprocess
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdexc
+from pykern.pkdebug import pkdp, pkdexc, pkdc
 from sirepo import job
 from sirepo import mpi
 from sirepo import simulation_db
@@ -56,9 +56,9 @@ def _background_percent_complete(msg, template):
         msg.runDir,
         msg.isRunning,
     )
-    r.setdefault('startTime', msg.simulationStatus.startTime)
+    r.setdefault('computeJobStart', msg.simulationStatus.computeJobStart)
     r.setdefault('lastUpdateTime', _mtime_or_now(msg.runDir))
-    r.setdefault('elapsedTime', r.lastUpdateTime - r.startTime)
+    r.setdefault('elapsedTime', r.lastUpdateTime - r.computeJobStart)
     r.setdefault('frameCount', 0)
     r.setdefault('percentComplete', 0.0)
     return r
@@ -76,7 +76,7 @@ def _do_compute(msg, template):
         pkio.unchecked_remove(msg.runDir)
         pkio.mkdir_parent(msg.runDir)
     msg.simulationStatus = PKDict(
-        startTime=int(time.time()),
+        computeJobStart=int(time.time()),
         state=job.RUNNING,
     )
     cmd, _ = simulation_db.prepare_simulation(msg.data, run_dir=msg.runDir)
