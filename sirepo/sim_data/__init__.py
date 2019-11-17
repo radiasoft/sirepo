@@ -245,38 +245,29 @@ class SimDataBase(object):
         return cls.WATCHPOINT_REPORT in name
 
     @classmethod
-    def lib_file_abspath(cls, basename, validate_exists=False):
+    def lib_file_abspath(cls, basename):
         """Returns full, unique paths of simulation files
 
         Args:
             basename (str): lib file basename
-            validate_exists (bool): raise UserAlert if file doesn't exist
         Returns:
             object: py.path.local to files (duplicates removed) OR py.path.local
         """
         from sirepo import simulation_db
 
-        s = simulation_db.simulation_lib_dir(cls.sim_type())
-        r = cls.resource_dir()
-        o = isinstance(files_or_file, pkconfig.STRING_TYPES):
-        if o:
-            files_or_file = [files_or_file]
         res = []
-        for f in set(files_or_file):
-            for x in s, r:
-                p = x.join(f)
-                if x.check(file=True):
-                    res.append(p)
-                    break
-            if not r.check(file=True):
-                if validate_exists:
-                    raise sirepo.util.UserAlert(
-                        'Simulation library file "{}" does not exist'.format(f.basename),
-                        'file={} not found, and no resource={}',
-                        f,
-                        r,
-                    )
-                continue
+        for d in (
+            simulation_db.simulation_lib_dir(cls.sim_type()),
+            cls.resource_dir(),
+        ):
+            p = d.join(f)
+            if p.check(file=True):
+                return p
+        raise sirepo.util.UserAlert(
+            'Simulation library file "{}" does not exist'.format(basename),
+            'basename={} not in lib or resource directories',
+            basename,
+        )
 
     @classmethod
     def lib_file_basenames(cls, data):
@@ -549,6 +540,11 @@ class SimDataBase(object):
         if not m:
             raise RuntimeError('invalid watchpoint report name: ', report)
         return int(m.group(1))
+
+    @classmethod
+    def _assert_server_side(cls):
+        assert not cfg.lib_file_uri, \
+            'method may only be called on server'
 
     @classmethod
     def _compute_model(cls, analysis_model, resp):
