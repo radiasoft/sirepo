@@ -18,6 +18,7 @@ def test_srw_model_defaults():
     from sirepo import simulation_db
     import sirepo.sim_data
 
+    sirepo.sim_data.get_class('srw').resource_dir().join('predefined.json')
     s = sirepo.sim_data.get_class('srw')
     res = s.model_defaults('trajectoryReport')
     assert res == PKDict(
