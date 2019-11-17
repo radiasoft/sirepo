@@ -31,10 +31,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
-    def resource_files(cls):
-        return cls.resource_glob('*.txt')
-
-    @classmethod
     def shadow_simulation_files(cls, data):
         m = data.models
         if m.simulation.sourceType == 'wiggler' && m.wiggler.b_from in ('1', '2'):

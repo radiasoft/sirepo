@@ -57,7 +57,7 @@ def create_predefined():
         return sim_data.srw_files_for_type(
             file_type,
             lambda f: PKDict(fileName=f.basename),
-            dir_path=sim_data.resource_dir(),
+            want_user_lib_dir=False,
         )
 
     p = sim_data.resource_path(srw_common.PREDEFINED_JSON)

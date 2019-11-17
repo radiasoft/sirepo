@@ -556,23 +556,25 @@ def api_updateFolder():
 
 @api_perm.require_user
 def api_uploadFile(simulation_type, simulation_id, file_type):
+    f = flask.request.files['file']
     sim = http_request.parse_params(
         file_type=file_type,
+        filename=f.filename,
         id=simulation_id,
         template=1,
         type=simulation_type,
     )
-    f = flask.request.files['file']
-    sim.filename = werkzeug.secure_filename(f.filename)
     e = None
     in_use = None
-    p = _lib_file_write_path(sim)
     with simulation_db.tmp_dir() as d:
         t = d.join(sim.filename)
         f.save(str(t))
         if hasattr(sim.template, 'validate_file'):
             e = sim.template.validate_file(sim.file_type, t)
-        if not e and p.check() and not flask.request.form.get('confirm'):
+        if (
+            not e and sim.sim_data.lib_file_exists(sim.filename)
+            and not flask.request.form.get('confirm')
+        ):
             in_use = _simulations_using_file(sim, ignore_sim_id=sim.id)
             if in_use:
                 e = 'File is in use in other simulations. Please confirm you would like to replace the file for all simulations.'
@@ -584,8 +586,7 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
                 'fileType': sim.file_type,
                 'simulationId': sim.id,
             })
-        pkio.mkdir_parent_only(p)
-        t.rename(p)
+        t.rename(_lib_file_write_path(sim))
     return http_reply.gen_json({
         'filename': sim.filename,
         'fileType': sim.file_type,
@@ -680,7 +681,7 @@ def _simulation_data(res, path, data):
 def _simulations_using_file(sim, ignore_sim_id=None):
     res = []
     for r in simulation_db.iterate_simulation_datafiles(sim.type, _simulation_data):
-        if not sim.sim_data.is_file_used(r, _lib_file_write_path(sim).basename):
+        if not sim.sim_data.lib_file_in_use(r, sim.filename):
             continue
         s = r.models.simulation
         if s.simulationId == ignore_sim_id:

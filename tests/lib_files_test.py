@@ -7,6 +7,7 @@ u"""lib files interface
 from __future__ import absolute_import, division, print_function
 import pytest
 
+
 def test_srw_delete(fc):
     from pykern import pkunit
     from pykern.pkcollections import PKDict
@@ -15,13 +16,32 @@ def test_srw_delete(fc):
 
     d = fc.sr_sim_data('Tabulated Undulator Example')
     s = sirepo.sim_data.get_class(fc.sr_sim_type)
-    f = s.resource_path('magnetic_measurements.zip')
+    u = pkunit.work_dir().join('not_used_name.zip')
+    s.lib_file_resource_dir().join('magnetic_measurements.zip').copy(u)
     t = 'undulatorTable'
+    d.models.tabulatedUndulator.magneticFile = u.basename
+    r = fc.sr_post(
+        'saveSimulationData',
+        data=d,
+        file=u,
+    )
+    pkunit.pkeq(u.basename, r.models.tabulatedUndulator.magneticFile)
+    r = fc.sr_post_form(
+        'uploadFile',
+        params=PKDict(
+            simulation_type=fc.sr_sim_type,
+            simulation_id=d.models.simulation.simulationId,
+            file_type=t,
+        ),
+        data=PKDict(),
+        file=u,
+    )
+    pkunit.pkeq(u.basename, r.get('filename'), 'unexpected response={}', r)
     r = fc.sr_post(
         'deleteFile',
         PKDict(
             fileType=t,
-            filename=f.basename,
+            filename=u.basename,
             simulationType=fc.sr_sim_type,
         ),
     )
@@ -37,22 +57,36 @@ def test_srw_delete(fc):
         'deleteFile',
         PKDict(
             fileType=t,
-            filename=f.basename,
+            filename=u.basename,
             simulationType=fc.sr_sim_type,
         ),
     )
     pkunit.pkeq('ok', r.get('state'), 'unexpected response={}', r)
-    r = fc.sr_get(
+    r = fc.sr_get_json(
         'downloadFile',
         params=PKDict(
             simulation_type=fc.sr_sim_type,
             simulation_id=d.models.simulation.simulationId,
-            filename=f.basename,
+            filename=u.basename,
         ),
         data=PKDict(),
         redirect=False,
     )
-    pkunit.pkeq(404, r.status_code, 'unexpected response={}', r.data)
+    pkunit.pkre('does not exist', r.error)
+
+
+def test_jspec_list_files(fc):
+    from pykern import pkio
+    from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdpretty
+    from pykern.pkunit import pkeq, pkre
+    import json
+
+    a = fc.sr_get_json(
+        'listFiles',
+        PKDict(simulation_type=fc.sr_sim_type, simulation_id='xxxxxxxxxx', file_type='ring-lattice'),
+    )
+    pkeq(['Booster.tfs'], a)
 
 
 def test_srw_upload(fc):
@@ -63,7 +97,7 @@ def test_srw_upload(fc):
 
     d = fc.sr_sim_data('NSLS-II CHX beamline')
     s = sirepo.sim_data.get_class(fc.sr_sim_type)
-    f = s.resource_path('mirror_1d.dat')
+    f = s.lib_file_resource_dir().join('mirror_1d.dat')
     t = 'mirror'
     r = fc.sr_post_form(
         'uploadFile',

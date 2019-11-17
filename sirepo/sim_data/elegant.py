@@ -67,10 +67,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         return max_id
 
     @classmethod
-    def resource_files(cls):
-        return cls.resource_glob('*.sdds')
-
-    @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         res = []
         if compute_model in ('twissReport', 'bunchReport'):

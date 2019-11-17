@@ -91,14 +91,14 @@ def read_zip(stream, sim_type=None):
                 zipped[b].write(c, 'wb')
         assert data, \
             'missing {} in archive'.format(simulation_db.SIMULATION_DATA_FILE)
-        needed = set
+        needed = set()
         s = sirepo.sim_data.get_class(data.simulationType)
         for n in s.lib_file_basenames(data):
 #TODO(robnagler) this does not allow overwrites of lib files,
-# but need to be modularlized
+# but it needs to be modularized
             if s.lib_file_exists(n):
                 continue
-#TODO(robnagler) raise useralert
+#TODO(robnagler) raise useralert instead of an assert
             assert n in zipped, \
                 'auxiliary file={} missing in archive'.format(n)
             needed.add(n)

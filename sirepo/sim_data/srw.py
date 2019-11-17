@@ -161,7 +161,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return filename
 
     @classmethod
-    def lib_file_name_without_type(cls, filename, file_type):
+    def lib_file_name_without_type(cls, filename):
         return filename
 
     @classmethod
@@ -173,37 +173,19 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
 
     @classmethod
-    def resource_files(cls):
-        """Files to copy from resources when creating a new user
-
-        Returns:
-            list: py.path.local objects
-        """
-        res = []
-        for k, v in cls.srw_predefined().items():
-            for v2 in v:
-                try:
-                    res.append(cls.resource_path(v2['fileName']))
-                except KeyError:
-                    pass
-        return res
-
-
-    @classmethod
     def srw_compute_crystal_grazing_angle(cls, model):
         model.grazingAngle = math.acos(math.sqrt(1 - model.tvx ** 2 - model.tvy ** 2)) * 1e3
 
     @classmethod
-    def srw_files_for_type(cls, file_type, op, dir_path=None):
+    def srw_files_for_type(cls, file_type, op, want_user_lib_dir=True):
         """Search for files of type
         """
         from sirepo import simulation_db
 
         res = []
-        d = dir_path or simulation_db.simulation_lib_dir(cls.sim_type())
         for e in cls.SRW_FILE_TYPE_EXTENSIONS[file_type]:
-            for f in pkio.sorted_glob(d.join('*').new(ext=e)):
-                x = f.check(file=1) and op(f)
+            for f in cls._lib_file_list('*.{}'.format(e)):
+                x = op(f)
                 if x:
                     res.append(x)
         return res
@@ -274,7 +256,6 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def srw_is_valid_file_type(cls, file_type, path):
-#        return path.ext[1:] in cls.SRW_FILE_TYPE_EXTENSIONS[file_type]
         return path.ext[1:] in cls.SRW_FILE_TYPE_EXTENSIONS.get(file_type, tuple())
 
     @classmethod

@@ -787,7 +787,7 @@ def user_create(login_callback):
     # Must logged in before calling simulation_dir
     login_callback(uid)
     for simulation_type in feature_config.cfg().sim_types:
-        _create_example(simulation_type)
+        _create_lib_and_examples(simulation_type)
     return uid
 
 
@@ -843,7 +843,7 @@ def verify_app_directory(simulation_type):
     d = simulation_dir(simulation_type)
     if d.exists():
         return
-    _create_example(simulation_type)
+    _create_lib_and_examples(simulation_type)
 
 
 def write_json(filename, data):
@@ -895,10 +895,10 @@ def write_status(status, run_dir):
         )
 
 
-def _create_example(simulation_type):
+def _create_lib_and_examples(simulation_type):
     import sirepo.sim_data
 
-    pkio.mkdir_parent(simulation_dir(simulation_type))
+    pkio.mkdir_parent(simulation_lib_dir(simulation_type))
     for s in examples(simulation_type):
         save_new_example(s)
 
