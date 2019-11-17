@@ -66,5 +66,5 @@ class SimData(sirepo.sim_data.SimDataBase):
         return [r]
 
     @classmethod
-    def _lib_files(cls, data):
+    def _lib_file_basenames(cls, data):
         return [cls.RS4PI_BEAMLIST_FILENAME]

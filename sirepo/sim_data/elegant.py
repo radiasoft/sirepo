@@ -86,10 +86,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
-    def _lib_files(cls, data):
+    def _lib_file_basenames(cls, data):
         res = LatticeUtil(data, cls.schema()).iterate_models(lattice.InputFileIterator(cls)).result
         if data.models.bunchFile.sourceFile:
-            res.append(cls.lib_file_name('bunchFile', 'sourceFile', data.models.bunchFile.sourceFile))
+            res.append(cls.lib_file_name_with_model_field('bunchFile', 'sourceFile', data.models.bunchFile.sourceFile))
         return res
 
     @classmethod

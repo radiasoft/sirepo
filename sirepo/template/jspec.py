@@ -133,7 +133,7 @@ def python_source_for_model(data, model):
     ring = data['models']['ring']
     elegant_twiss_file = None
     if ring['latticeSource'] == 'elegant':
-        elegant_twiss_file = _SIM_DATA.lib_file_name('ring', 'elegantTwiss', ring['elegantTwiss'])
+        elegant_twiss_file = _SIM_DATA.lib_file_name_with_model_field('ring', 'elegantTwiss', ring['elegantTwiss'])
     elif  ring['latticeSource'] == 'elegant-sirepo':
         elegant_twiss_file = _SIM_DATA.JSPEC_ELEGANT_TWISS_FILENAME
     convert_twiss_to_tfs = ''
@@ -344,7 +344,7 @@ def _generate_parameters_file(data):
     v['runSimulation'] = report is None or report == _SIM_DATA.compute_model(None)
     v['runRateCalculation'] = report is None or report == 'rateCalculationReport'
     if data['models']['ring']['latticeSource'] == 'madx':
-        v['latticeFilename'] = _SIM_DATA.lib_file_name('ring', 'lattice', v['ring_lattice'])
+        v['latticeFilename'] = _SIM_DATA.lib_file_name_with_model_field('ring', 'lattice', v['ring_lattice'])
     else:
         v['latticeFilename'] = JSPEC_TWISS_FILENAME
     if v['ionBeam_beam_type'] == 'continuous':

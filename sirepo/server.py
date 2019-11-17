@@ -107,7 +107,8 @@ def api_deleteFile():
             'fileName': sim.filename,
         })
 
-    pkio.unchecked_remove(_lib_filepath(sim))
+    # Will not remove resource (standard) lib files
+    pkio.unchecked_remove(_lib_file_write_path(sim))
     return http_reply.gen_json_ok()
 
 
@@ -122,11 +123,7 @@ def api_deleteSimulation():
 def api_downloadFile(simulation_type, simulation_id, filename):
 #TODO(pjm): simulation_id is an unused argument
     sim = http_request.parse_params(type=simulation_type, filename=filename)
-    n = sim.filename
-#TODO(robnagler) need to fix this in sim_data
-    if sim.type != 'srw':
-        # strip file_type prefix from attachment filename
-        n = re.sub(r'^.*?-.*?\.', '', n)
+    n = sim.sim_data.lib_file_name_without_type(sim.filename)
     p = sim.sim_data.lib_file_abspath(sim.filename)
     try:
         return flask.send_file(
@@ -569,7 +566,7 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
     sim.filename = werkzeug.secure_filename(f.filename)
     e = None
     in_use = None
-    p = _lib_filepath(sim)
+    p = _lib_file_write_path(sim)
     with simulation_db.tmp_dir() as d:
         t = d.join(sim.filename)
         f.save(str(t))
@@ -639,11 +636,9 @@ def _handle_error(error):
     return f, status_code
 
 
-def _lib_filepath(sim):
-#TODO(robnagler) move into sim_data
-    return sim.sim_data.lib_file_abspath(
-        sim.filename if sim.type == 'srw' \
-        else '{}.{}'.format(sim.file_type, sim.filename),
+def _lib_file_write_path(sim):
+    return sim.sim_data.lib_file_write_path(
+        sim.sim_data.lib_file_name_with_type(sim.filename, sim.file_type),
     )
 
 
@@ -685,7 +680,7 @@ def _simulation_data(res, path, data):
 def _simulations_using_file(sim, ignore_sim_id=None):
     res = []
     for r in simulation_db.iterate_simulation_datafiles(sim.type, _simulation_data):
-        if not sim.sim_data.is_file_used(r, _lib_filepath(sim).basename):
+        if not sim.sim_data.is_file_used(r, _lib_file_write_path(sim).basename):
             continue
         s = r.models.simulation
         if s.simulationId == ignore_sim_id:

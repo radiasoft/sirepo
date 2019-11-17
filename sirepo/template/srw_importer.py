@@ -15,6 +15,7 @@ from pykern import pkrunpy
 from pykern.pkdebug import pkdlog, pkdexc, pkdp
 import ast
 import inspect
+import os
 import py.path
 import re
 import srwl_bl

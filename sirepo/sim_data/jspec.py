@@ -91,14 +91,14 @@ class SimData(sirepo.sim_data.SimDataBase):
         return []
 
     @classmethod
-    def _lib_files(cls, data):
+    def _lib_file_basenames(cls, data):
         res = []
         r = data.models.ring
         s = r['latticeSource']
         if s == 'madx':
-            res.append(cls.lib_file_name('ring', 'lattice', r['lattice']))
+            res.append(cls.lib_file_name_with_model_field('ring', 'lattice', r['lattice']))
         elif s == 'elegant':
-            res.append(cls.lib_file_name('ring', 'elegantTwiss', r['elegantTwiss']))
+            res.append(cls.lib_file_name_with_model_field('ring', 'elegantTwiss', r['elegantTwiss']))
         if s == 'elegant-sirepo' and 'elegantSirepo' in r:
             res.append(cls.jspec_elegant_dir().join(r['elegantSirepo'], cls.jspec_elegant_twiss_path()))
         return res

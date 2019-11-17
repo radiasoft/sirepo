@@ -157,7 +157,16 @@ class SimData(sirepo.sim_data.SimDataBase):
 
 
     @classmethod
+    def lib_file_name_with_type(cls, filename, file_type):
+        return filename
+
+    @classmethod
+    def lib_file_name_without_type(cls, filename, file_type):
+        return filename
+
+    @classmethod
     def lib_files_for_type(cls, file_type):
+        cls._assert_server_side()
         return cls.srw_files_for_type(
             file_type,
             lambda f: cls.srw_is_valid_file(file_type, f) and f.basename,
@@ -341,7 +350,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return res
 
     @classmethod
-    def _lib_files(cls, data):
+    def _lib_file_basenames(cls, data):
         res = []
         dm = data.models
         # the mirrorReport.heightProfileFile may be different than the file in the beamline
