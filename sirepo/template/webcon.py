@@ -198,14 +198,18 @@ def get_application_data(data):
 def get_beam_pos_report(run_dir, data):
     monitor_file = run_dir.join('../epicsServerAnimation/').join(MONITOR_LOGFILE)
     if not monitor_file.exists():
-        raise sirepo.util.UserAlert('Data error', 'no beam position history')
+        raise sirepo.util.UserAlert(
+            'no beam position history',
+            'monitor file={} does not exist',
+            monitor_file,
+        )
     history, num_records, start_time = _read_monitor_file(monitor_file, True)
     if len(history) <= 0:
-        raise sirepo.util.UserAlert('Data error', 'no beam position history')
+        raise sirepo.util.UserAlert('no beam position history', 'history length <= 0')
     x_label = 'z [m]'
     x, plots, colors = _beam_pos_plots(data, history, start_time)
     if not len(plots):
-        raise sirepo.util.UserAlert('Data error', 'no beam position history')
+        raise sirepo.util.UserAlert('no beam position history', 'no plots')
     return template_common.parameter_plot(
         x.tolist(),
         plots,
@@ -319,7 +323,7 @@ def get_fft(run_dir, data):
 def get_settings_report(run_dir, data):
     monitor_file = run_dir.join('../epicsServerAnimation/').join(MONITOR_LOGFILE)
     if not monitor_file.exists():
-        raise sirepo.util.UserAlert('Data error', 'no settings history')
+        raise sirepo.util.UserAlert('no settings history', 'monitor file')
     history, num_records, start_time = _read_monitor_file(monitor_file, True)
     o = data.models.correctorSettingReport.plotOrder
     plot_order = o if o is not None else 'time'
@@ -330,7 +334,7 @@ def get_settings_report(run_dir, data):
         x, plots, colors = _setting_plots_by_position(data, history, start_time)
         x_label = 'z [m]'
     if not len(plots):
-        raise sirepo.util.UserAlert('Data error', 'no settings history')
+        raise sirepo.util.UserAlert('no settings history', 'no plots')
     return template_common.parameter_plot(
         x.tolist(),
         plots,
@@ -612,12 +616,12 @@ def _compute_clusters(report, plot_data, col_info):
     cols = []
     if 'clusterFields' not in report:
         if len(cols) <= 1:
-            raise sirepo.util.UserAlert('Data error', 'At least two cluster fields must be selected')
+            raise sirepo.util.UserAlert('At least two cluster fields must be selected', 'only one cols')
     for idx in range(len(report.clusterFields)):
         if report.clusterFields[idx] and idx < len(col_info['names']):
             cols.append(idx)
     if len(cols) <= 1:
-        raise sirepo.util.UserAlert('Data error', 'At least two cluster fields must be selected')
+        raise sirepo.util.UserAlert('At least two cluster fields must be selected', 'only one cols')
     plot_data = plot_data[:, cols]
     min_max_scaler = sklearn.preprocessing.MinMaxScaler(
         feature_range=[
