@@ -156,5 +156,5 @@ async def _terminate():
     try:
         await sirepo.job_supervisor.terminate()
     except Exception as e:
-        pkdlog('job_supervisor.terminate except={} stack={}', e, pkdexc())
+        pkdlog('error={} stack={}', e, pkdexc())
     tornado.ioloop.IOLoop.current().stop()
