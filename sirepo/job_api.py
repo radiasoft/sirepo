@@ -48,7 +48,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         type=simulation_type,
     )
     with simulation_db.tmp_dir() as d:
-        # TODO(e-carlin): compueJobHash
+        # TODO(e-carlin): computeJobHash
         try:
             f = _request(
                 data=PKDict(
@@ -138,6 +138,8 @@ def _request_data(kwargs):
 # TODO(e-carlin): some of these fields are only used for some type of reqs
 # Ex tmpDir is only used in api_downloadDataFile
     return b.pksetdefault(
+        #TODO(robnagler) pass for NERSC
+        agentDbRoot=lambda: srdb.root(),
         analysisModel=d.report,
         api=get_api_name(),
         computeJid=lambda: s.parse_jid(d),

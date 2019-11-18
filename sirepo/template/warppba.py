@@ -233,15 +233,6 @@ def remove_last_frame(run_dir):
         pkio.unchecked_remove(files[-1])
 
 
-def resource_files():
-    """Library shared between simulations of this type
-
-    Returns:
-        list: py.path.local objects
-    """
-    return []
-
-
 def sim_frame_beamAnimation(frame_args):
     return extract_particle_report(frame_args, 'beam')
 

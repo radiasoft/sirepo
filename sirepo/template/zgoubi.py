@@ -537,7 +537,7 @@ def write_parameters(data, run_dir, is_parallel, python_file=template_common.PAR
     for el in data.models.elements:
         if el.type != 'TOSCA':
             continue
-        filename = str(run_dir.join(_SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el.magnetFile)))
+        filename = str(run_dir.join(_SIM_DATA.lib_file_name_with_model_field('TOSCA', 'magnetFile', el.magnetFile)))
         if zgoubi_importer.is_zip_file(filename):
             with zipfile.ZipFile(filename, 'r') as z:
                 for info in z.infolist():
@@ -888,9 +888,9 @@ def _prepare_tosca_element(el):
     file_count = zgoubi_parser.tosca_file_count(el)
     el['fileNames'] = el['fileNames'][:file_count]
 
-    filename = _SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el.magnetFile)
+    filename = _SIM_DATA.lib_file_name_with_model_field('TOSCA', 'magnetFile', el.magnetFile)
     if file_count == 1 and not zgoubi_importer.is_zip_file(filename):
-        el['fileNames'][0] = _SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el['fileNames'][0])
+        el['fileNames'][0] = _SIM_DATA.lib_file_name_with_model_field('TOSCA', 'magnetFile', el['fileNames'][0])
 
 
 def _read_data_file(path, mode='title'):

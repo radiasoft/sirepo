@@ -1078,12 +1078,12 @@ def _slope(x1, y1, x2, y2):
 
 
 def _stl_file(conductor_type):
-    return _SIM_DATA.lib_file_name('stl', 'file', conductor_type.file)
+    return _SIM_DATA.lib_file_name_with_model_field('stl', 'file', conductor_type.file)
 
 
 def _stl_polygon_file(filename):
     return _SIM_DATA.lib_file_abspath(
-        _SIM_DATA.lib_file_name('stl', filename, _STL_POLY_FILE),
+        _SIM_DATA.lib_file_name_with_model_field('stl', filename, _STL_POLY_FILE),
     )
 
 

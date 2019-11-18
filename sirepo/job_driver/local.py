@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""TODO(e-carlin): Doc
+"""Runs processes on the current host
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -27,7 +27,7 @@ class LocalDriver(job_driver.DriverBase):
     def __init__(self, req):
         super().__init__(req)
         self.update(
-            _agentDir=pkio.py_path(req.content.userDir).join(
+            _agentExecDir=pkio.py_path(req.content.userDir).join(
                 'agent-local', self._agentId),
             _agent_exit=tornado.locks.Event(),
         )
@@ -71,6 +71,7 @@ class LocalDriver(job_driver.DriverBase):
     async def kill(self):
         if 'subprocess' not in self:
             return
+        pkdlog(self.subprocess.proc.pid)
         self.subprocess.proc.terminate()
         self.kill_timeout = tornado.ioloop.IOLoop.current().call_later(
             job_driver.KILL_TIMEOUT_SECS,
@@ -120,32 +121,19 @@ class LocalDriver(job_driver.DriverBase):
             self.subprocess.proc.kill()
 
     def _agent_on_exit(self, returncode):
+        self._agent_exit.set()
         self.pkdel('subprocess')
         k = self.pkdel('kill_timeout')
         if k:
             tornado.ioloop.IOLoop.current().remove_timeout(k)
-        self._agent_exit.set()
 
     async def _agent_start(self):
-        pkio.mkdir_parent(self._agentDir)
-# TODO(robnagler) SECURITY strip environment
-        env = PKDict(os.environ).pkupdate(
-            PYENV_VERSION='py3',
-            # TODO(robnagler) cascade from py test, not explicitly
-            PYKERN_PKDEBUG_CONTROL='.',
-            PYKERN_PKDEBUG_OUTPUT='/dev/tty',
-            PYKERN_PKDEBUG_REDIRECT_LOGGING='1',
-            PYKERN_PKDEBUG_WANT_PID_TIME='1',
-            SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
-            SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self._supervisor_uri,
-        )
+        cmd, stdin, env = self._subprocess_cmd_stdin_env()
         self.subprocess = tornado.process.Subprocess(
-            ['pyenv', 'exec', 'sirepo', 'job_agent'],
-            cwd=str(self._agentDir),
+            cmd,
+            cwd=str(pkio.mkdir_parent(self._agentExecDir)),
             env=env,
-            stdin=open(os.devnull),
-            stdout=tornado.process.subprocess.PIPE,
-            stderr=tornado.process.subprocess.STDOUT,
+            stdin=stdin,
         )
         self.subprocess.set_exit_callback(self._agent_on_exit)
 

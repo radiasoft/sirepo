@@ -6,21 +6,19 @@ u"""PyTest for :mod:`sirepo.template.srw.py`
 """
 from __future__ import absolute_import, division, print_function
 import pytest
-
-pytest.importorskip('srwl_bl')
-
-from pykern import pkresource
-from pykern import pkunit
 from sirepo import srunit
 
-@srunit.wrap_in_request(sim_types='srw')
-def test_model_defaults():
+@srunit.wrap_in_request()
+def test_srw_model_defaults():
+    from pykern import pkresource
+    from pykern import pkunit
     from pykern import pkconfig
     from pykern.pkcollections import PKDict
     from sirepo.template import template_common
     from sirepo import simulation_db
     import sirepo.sim_data
 
+    sirepo.sim_data.get_class('srw').resource_dir().join('predefined.json')
     s = sirepo.sim_data.get_class('srw')
     res = s.model_defaults('trajectoryReport')
     assert res == PKDict(
@@ -42,38 +40,3 @@ def test_model_defaults():
     assert model['numberOfPoints'] == 10
     assert model['finalTimeMoment'] == 1.0
     assert model['plotAxisX'] == 'Z'
-
-
-@srunit.wrap_in_request(sim_types='srw')
-def test_prepare_aux_files():
-    from sirepo.template import template_common
-    from pykern.pkdebug import pkdp
-    from pykern import pkcollections
-    import sirepo.auth
-    import sirepo.auth.guest
-    import sirepo.sim_data
-    import sirepo.simulation_db
-
-    sirepo.auth.login(sirepo.auth.guest)
-
-    # Needed to initialize simulation_db
-    data = pkcollections.json_load_any('''{
-        "simulationType": "srw",
-        "models": {
-            "simulation": {
-                "sourceType": "t"
-            },
-            "tabulatedUndulator": {
-                "undulatorType": "u_t",
-                "magneticFile": "magnetic_measurements.zip"
-            },
-            "beamline": { }
-        },
-        "report": "intensityReport"
-    }''')
-    sirepo.sim_data.get_class(data.simulationType).lib_files_copy(
-        data,
-        sirepo.simulation_db.simulation_lib_dir(data.simulationType),
-        pkunit.work_dir(),
-        symlink=True,
-    )

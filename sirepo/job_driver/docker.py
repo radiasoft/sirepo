@@ -39,16 +39,6 @@ _MAX_OPEN_FILES = 1024
 #: Copy of sirepo.mpi.cfg.cores to avoid init inconsistencies; only used during init_class()
 _parallel_cores = None
 
-_RUN_PREFIX = (
-    'run',
-    '--log-driver=json-file',
-    # should never be large, just for output of the monitor
-    '--log-opt=max-size=1m',
-    '--rm',
-    '--ulimit=core=0',
-    '--ulimit=nofile={}'.format(_MAX_OPEN_FILES),
-)
-
 class DockerDriver(job_driver.DriverBase):
 
     hosts = PKDict()
@@ -56,9 +46,11 @@ class DockerDriver(job_driver.DriverBase):
     def __init__(self, req, host):
         super().__init__(req)
         self.update(
+            _agentDbRoot=req.content.agentDbRoot,
             _cname=_cname_join(self.kind, self.uid),
-            _agent_dir=req.content.userDir,
             _image = _image(),
+            _uid=req.content.uid,
+            _userDir=req.content.userDir,
             host=host,
         )
         self.host.drivers[self.kind].append(self)
@@ -128,28 +120,27 @@ class DockerDriver(job_driver.DriverBase):
         self._cid = None
 
     async def _agent_start(self):
-        cmd = _RUN_PREFIX + (
+        cmd, stdin, env = self._subprocess_cmd_stdin_env()
+        p = (
+            'run',
+            '--log-driver=json-file',
+            # should never be large, just for output of the monitor
+        '--log-opt=max-size=1m',
+            '--rm',
+            '--ulimit=core=0',
+            '--ulimit=nofile={}'.format(_MAX_OPEN_FILES),
             # '--cpus={}'.format(slot.cores), # TODO(e-carlin): impl
+            '-i',
             '--detach',
-            '--env=SIREPO_PKCLI_JOB_AGENT_AGENT_ID={}'.format(self._agentId),
-            '--env=SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI={}'.format(self._supervisor_uri),
-            # '--env=SIREPO_MPI_CORES={}'.format(slot.cores), # TODO(e-carlin): impl
             '--init',
             # '--memory={}g'.format(slot.gigabytes), # TODO(e-carlin): impl
             '--name={}'.format(self._cname), # TODO(e-carlin): impl
-            '--network=host', # TODO(e-carlin): Understand 'bridge' vs 'host'
-                # do not use a user name, because that may not map inside the
-                # container properly. /etc/passwd on the host and guest are
-                # different.
-                '--user={}'.format(os.getuid()),
-            ) + self._volumes() + (
-                self._image,
-                'bash',
-                '-l',
-                '-c',
-                'pyenv shell py3 && sirepo job_agent',
-            )
-        self._cid = await _cmd(self.host, cmd)
+            '--network=host', # TODO(e-carlin): Was 'none'. I think we can use 'bridge' or 'host'
+            # do not use a "name", but a uid, because /etc/password is image specific, but
+            # IDs are universal.
+            '--user={}'.format(os.getuid()),
+        ) + self._volumes() + (self._image,)
+        self._cid = await _cmd(self.host, p + cmd, stdin=stdin, env=env)
 
     def slot_free(self):
         self.host.slots[self.kind].in_use -= 1
@@ -161,11 +152,14 @@ class DockerDriver(job_driver.DriverBase):
             res.append('--volume={}:{}'.format(src, tgt))
 
         if pkconfig.channel_in('dev'):
+            # POSIT: radiasoft/download/installers/rpm-code/codes.sh
+            #   these are all the local environ directories.
             for v in '~/src', '~/.pyenv', '~/.local':
                 v = pkio.py_path(v)
                 # pyenv and src shouldn't be writable, only rundir
                 _res(v, v + ':ro')
-        _res(self._agent_dir, self._agent_dir)
+        # SECURITY: Must only mount the user's directory
+        _res(self._userDir, self._userDir)
         return tuple(res)
 
     def _websocket_free(self):
@@ -178,12 +172,15 @@ def init_class():
 
     _parallel_cores = mpi.cfg.cores
 
+    def _r(*a):
+        return a if pkconfig.channel_in('dev') else pkconfig.Required(*(a[1:]))
+
     cfg = pkconfig.init(
-        hosts=(None, _cfg_hosts, 'execution hosts'),
+        hosts=_r(tuple(), tuple, 'execution hosts'),
         image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
         parallel_slots=(1, int, 'max parallel slots'),
         sequential_slots=(1, int, 'max sequential slots'),
-        tls_dir=(None, _cfg_tls_dir, 'directory containing host certs'),
+        #tls_dir=_r(None, _cfg_tls_dir, 'directory containing host certs'),
     )
     if not cfg.tls_dir or not cfg.hosts:
         _init_dev_hosts()
@@ -191,39 +188,29 @@ def init_class():
     return DockerDriver.init_class(cfg)
 
 
-@pkconfig.parse_none
-def _cfg_hosts(value):
-    value = pkconfig.parse_tuple(value)
-    if value:
-        return value
-    assert pkconfig.channel_in('dev'), \
-        'required config'
-    return None
-
-
-@pkconfig.parse_none
 def _cfg_tls_dir(value):
-    if not value:
-        assert pkconfig.channel_in('dev'), \
-            'required config'
-        return None
     res = pkio.py_path(value)
     assert res.check(dir=True), \
         'directory does not exist; value={}'.format(value)
     return res
 
 
-async def _cmd(host, cmd):
+async def _cmd(host, cmd, stdin=subprocess.DEVNULL, env=None):
     c = DockerDriver.hosts[host.name].cmd_prefix + cmd
     pkdc('Running: {}', ' '.join(c))
-    p = tornado.process.Subprocess(
-        c,
-        stdin=open(os.devnull),
-        stdout=tornado.process.Subprocess.STREAM,
-        stderr=subprocess.STDOUT,
-    )
+    try:
+        p = tornado.process.Subprocess(
+            c,
+            stdin=stdin,
+            stdout=tornado.process.Subprocess.STREAM,
+            stderr=subprocess.STDOUT,
+            env=env,
+        )
+    finally:
+        if stdin:
+            stdin.close()
+    o = (await p.stdout.read_until_close()).decode('utf-8').rstrip()
     r = await p.wait_for_exit(raise_error=False)
-    o = (await p.stdout.read_until_close()).decode("utf-8").rstrip()
     # TODO(e-carlin): more robust handling
     assert r == 0 , \
         '{}: failed: exit={} output={}'.format(c, r, o)
@@ -262,6 +249,8 @@ def _image():
 
 
 def _init_dev_hosts():
+    assert pkconfig.channel_in('dev')
+
     from sirepo import srdb
     assert not (cfg.tls_dir or cfg.hosts), \
         'neither cfg.tls_dir and cfg.hosts nor must be set to get auto-config'

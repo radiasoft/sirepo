@@ -11,13 +11,14 @@ from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
-from sirepo import job, mpi, simulation_db
+from sirepo import job
 from sirepo.pkcli import job_process
 import json
 import os
 import re
 import signal
-import subprocess
+import sirepo.auth
+import sirepo.srdb
 import sys
 import time
 import tornado.gen
@@ -27,22 +28,13 @@ import tornado.locks
 import tornado.process
 import tornado.websocket
 
+
 #: Long enough for job_process to write result in run_dir
 _TERMINATE_SECS = 3
 
 _RETRY_SECS = 1
 
 _IN_FILE = 'in-{}.json'
-
-_INFO_FILE = 'job-agent.json'
-
-_INFO_FILE_COMMON = PKDict(version=1)
-
-#: Need to remove $OMPI and $PMIX to prevent PMIX ERROR:
-# See https://github.com/radiasoft/sirepo/issues/1323
-# We also remove SIREPO_ and PYKERN vars, because we shouldn't
-# need to pass any of that on, just like runner.docker, doesn't
-_EXEC_ENV_REMOVE = re.compile('^(OMPI_|PMIX_|SIREPO_|PYKERN_)')
 
 cfg = None
 
@@ -185,7 +177,6 @@ class _Job(PKDict):
     def start(self):
         # SECURITY: msg must not contain agentId
         assert not self.msg.get('agentId')
-        env = self._subprocess_env()
         self._in_file = self.msg.runDir.join(
             _IN_FILE.format(job.unique_key()),
         )
@@ -193,32 +184,31 @@ class _Job(PKDict):
         # TODO(e-carlin): Find a better solution for serial and deserialization
         self.msg.runDir = str(self.msg.runDir)
         pkjson.dump_pretty(self.msg, filename=self._in_file, pretty=False)
+        cmd, stdin, env = job.subprocess_cmd_stdin_env(
+            ('sirepo', 'job_process', self._in_file),
+            PKDict(
+                PYTHONUNBUFFERED='1',
+                SIREPO_AUTH_LOGGED_IN_USER=sirepo.auth.logged_in_user(),
+                SIREPO_MPI_CORES=self.msg.mpiCores,
+                SIREPO_SIM_LIB_FILE_URI=self.msg.get('libFileUri', ''),
+                SIREPO_SRDB_ROOT=sirepo.srdb.root(),
+            ),
+            pyenv='py2',
+        )
         self._subprocess = tornado.process.Subprocess(
-            ('pyenv', 'exec', 'sirepo', 'job_process', str(self._in_file)),
+            cmd,
             # SECURITY: need to change cwd, because agentDir has agentId
             cwd=self.msg.runDir,
+            env=env,
             start_new_session=True,
-            stdin=subprocess.DEVNULL,
+            stdin=stdin,
             stdout=tornado.process.Subprocess.STREAM,
             stderr=tornado.process.Subprocess.STREAM,
-            env=env,
         )
+        stdin.close()
         self.stdout = _ReadJsonlStream(self._subprocess.stdout, self.on_stdout_read)
         self.stderr = _ReadUntilCloseStream(self._subprocess.stderr)
         self._subprocess.set_exit_callback(self._subprocess_exit)
-
-    def _subprocess_env(self):
-        env = PKDict(os.environ)
-        pkcollections.unchecked_del(
-            env,
-            *(k for k in env if _EXEC_ENV_REMOVE.search(k)),
-        )
-        return env.pkupdate(
-            PYENV_VERSION='py2',
-            PYTHONUNBUFFERED='1',
-            SIREPO_MPI_CORES=str(self.msg.mpiCores),
-            SIREPO_SIM_DATA_JOB_FILE_URI=str(self.msg.get('jobFileUri', '')),
-        )
 
     def _subprocess_exit(self, returncode):
         if self._in_file:
@@ -344,8 +334,9 @@ class _ReadJsonlStream(_Stream):
         super().__init__(stream)
 
     async def _read_stream(self):
-                self.text = await self._stream.read_until(b'\n', self._MAX)
-                await self._on_read(self.text)
+        self.text = await self._stream.read_until(b'\n', self._MAX)
+        pkdc('stdout={}', self.text)
+        await self._on_read(self.text)
 
 
 class _ReadUntilCloseStream(_Stream):
@@ -353,11 +344,12 @@ class _ReadUntilCloseStream(_Stream):
         super().__init__(stream)
 
     async def _read_stream(self):
-            self.text.extend(
-                await self._stream.read_bytes(
-                    self._MAX - len(self.text),
-                    partial=True,
-                )
-            )
-            if len(self.text) >= self._MAX:
-                raise AssertionError('_MAX bytes read')
+        t = await self._stream.read_bytes(
+            self._MAX - len(self.text),
+            partial=True,
+        )
+        pkdc('stderr={}', t)
+        l = len(self.text) + len(t)
+        assert l < self._MAX, \
+            'len(bytes)={} greater than _MAX={}'.format(l, _MAX)
+        self.text.extend(t)

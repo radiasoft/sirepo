@@ -69,12 +69,11 @@ def api_copyNonSessionSimulation():
     data.models.simulation.isExample = False
     data.models.simulation.outOfSessionSimulationId = sim.id
     res = _save_new_and_reply(data)
-    target = simulation_db.simulation_dir(sim.type, data.models.simulation.simulationId)
-    sirepo.sim_data.get_class(sim_type).lib_files_copy(
+    sirepo.sim_data.get_class(sim_type).lib_files_from_other_user(
         data,
         simulation_db.lib_dir_from_sim_dir(src),
-        simulation_db.lib_dir_from_sim_dir(target),
     )
+    target = simulation_db.simulation_dir(sim.type, data.models.simulation.simulationId)
     if hasattr(sim.template, 'copy_related_files'):
         sim.template.copy_related_files(data, str(src), str(target))
     return res
@@ -108,7 +107,8 @@ def api_deleteFile():
             'fileName': sim.filename,
         })
 
-    pkio.unchecked_remove(_lib_filepath(sim))
+    # Will not remove resource (standard) lib files
+    pkio.unchecked_remove(_lib_file_write_path(sim))
     return http_reply.gen_json_ok()
 
 
@@ -123,11 +123,7 @@ def api_deleteSimulation():
 def api_downloadFile(simulation_type, simulation_id, filename):
 #TODO(pjm): simulation_id is an unused argument
     sim = http_request.parse_params(type=simulation_type, filename=filename)
-    n = sim.filename
-#TODO(robnagler) need to fix this in sim_data
-    if sim.type != 'srw':
-        # strip file_type prefix from attachment filename
-        n = re.sub(r'^.*?-.*?\.', '', n)
+    n = sim.sim_data.lib_file_name_without_type(sim.filename)
     p = sim.sim_data.lib_file_abspath(sim.filename)
     try:
         return flask.send_file(
@@ -515,9 +511,12 @@ def api_srwLight():
 @api_perm.allow_visitor
 def api_srUnit():
     v = getattr(flask.current_app, SRUNIT_TEST_IN_REQUEST)
+    if v.want_user:
+        import sirepo.auth
+        sirepo.auth.init_mock()
     if v.want_cookie:
-        from sirepo import cookie
-        cookie.set_sentinel()
+        import sirepo.cookie
+        sirepo.cookie.set_sentinel()
     v.op()
     return ''
 
@@ -557,23 +556,25 @@ def api_updateFolder():
 
 @api_perm.require_user
 def api_uploadFile(simulation_type, simulation_id, file_type):
+    f = flask.request.files['file']
     sim = http_request.parse_params(
         file_type=file_type,
+        filename=f.filename,
         id=simulation_id,
         template=1,
         type=simulation_type,
     )
-    f = flask.request.files['file']
-    sim.filename = werkzeug.secure_filename(f.filename)
     e = None
     in_use = None
-    p = _lib_filepath(sim)
     with simulation_db.tmp_dir() as d:
         t = d.join(sim.filename)
         f.save(str(t))
         if hasattr(sim.template, 'validate_file'):
             e = sim.template.validate_file(sim.file_type, t)
-        if not e and p.check() and not flask.request.form.get('confirm'):
+        if (
+            not e and sim.sim_data.lib_file_exists(sim.filename)
+            and not flask.request.form.get('confirm')
+        ):
             in_use = _simulations_using_file(sim, ignore_sim_id=sim.id)
             if in_use:
                 e = 'File is in use in other simulations. Please confirm you would like to replace the file for all simulations.'
@@ -585,8 +586,7 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
                 'fileType': sim.file_type,
                 'simulationId': sim.id,
             })
-        pkio.mkdir_parent_only(p)
-        t.rename(p)
+        t.rename(_lib_file_write_path(sim))
     return http_reply.gen_json({
         'filename': sim.filename,
         'fileType': sim.file_type,
@@ -637,11 +637,9 @@ def _handle_error(error):
     return f, status_code
 
 
-def _lib_filepath(sim):
-#TODO(robnagler) move into sim_data
-    return sim.sim_data.lib_file_abspath(
-        sim.filename if sim.type == 'srw' \
-        else '{}.{}'.format(sim.file_type, sim.filename),
+def _lib_file_write_path(sim):
+    return sim.sim_data.lib_file_write_path(
+        sim.sim_data.lib_file_name_with_type(sim.filename, sim.file_type),
     )
 
 
@@ -683,7 +681,7 @@ def _simulation_data(res, path, data):
 def _simulations_using_file(sim, ignore_sim_id=None):
     res = []
     for r in simulation_db.iterate_simulation_datafiles(sim.type, _simulation_data):
-        if not sim.sim_data.is_file_used(r, _lib_filepath(sim).basename):
+        if not sim.sim_data.lib_file_in_use(r, sim.filename):
             continue
         s = r.models.simulation
         if s.simulationId == ignore_sim_id:

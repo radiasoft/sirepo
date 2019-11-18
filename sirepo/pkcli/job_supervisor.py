@@ -40,7 +40,7 @@ def default_command():
         ],
         debug=cfg.debug,
         static_path=sirepo.job_supervisor.init(),
-        static_url_prefix=sirepo.job.JOB_FILE_URI,
+        static_url_prefix=sirepo.job.LIB_FILE_URI,
     )
     server = tornado.httpserver.HTTPServer(app)
     server.listen(cfg.port, cfg.ip)

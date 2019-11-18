@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
+import pykern.pkio
 from sirepo import api_perm
 from sirepo import http_reply
 from sirepo import http_request
@@ -121,6 +122,21 @@ def _mtime_or_now(path):
     return int(path.mtime() if path.exists() else time.time())
 
 
+def _read_status(run_dir):
+    """Read status from simulation dir
+
+    Args:
+        run_dir (py.path): where to read
+    """
+    try:
+        return pykern.pkio.read_text(run_dir.join(sirepo.job.RUNNER_STATUS_FILE))
+    except IOError as e:
+        if pykern.pkio.exception_is_not_found(e):
+            # simulation may never have been run
+            return 'stopped'
+        return 'error'
+
+
 def _reqd(sim):
     """Read the run_dir and return cached_data.
 
@@ -147,7 +163,7 @@ def _reqd(sim):
         ),
         is_parallel=res.sim_data.is_parallel(sim.req_data),
         jid=res.sim_data.parse_jid(sim.req_data),
-        job_status=simulation_db.read_status(res.run_dir),
+        job_status=_read_status(res.run_dir),
         model_name=res.sim_data.parse_model(sim.req_data.report),
         req_hash=(
             sim.req_data.get('computeJobHash')

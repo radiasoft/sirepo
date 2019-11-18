@@ -20,10 +20,6 @@ import re
 import sirepo.util
 import sirepo.template
 
-
-#: root directory for template resources
-RESOURCE_DIR = pkio.py_path(pkresource.filename('template'))
-
 #: default compute_model
 _ANIMATION_NAME = 'animation'
 
@@ -67,6 +63,11 @@ def get_class(type_or_data):
         ),
         __name__,
     ).SimData
+
+
+def resource_dir():
+    """root directory for template resources"""
+    return pkio.py_path(pkresource.filename('template'))
 
 
 def template_globals(sim_type=None):
@@ -130,6 +131,7 @@ class SimDataBase(object):
         Returns:
             bytes: hash value
         """
+        cls._assert_server_side()
         m = data['models']
         res = hashlib.md5()
         for f in sorted(
@@ -154,8 +156,13 @@ class SimDataBase(object):
                     allow_nan=False,
                 )
             )
-        # lib_files already returns sorted list
-        res.update(''.join(str(f.mtime()) for f in cls.lib_files(data)).encode())
+        res.update(
+            ''.join(
+                (str(cls.lib_file_abspath(b).mtime()) for b in sorted(
+                    cls.lib_file_basenames(data))
+                ),
+            ).encode())
+
         return res.hexdigest()
 
     @classmethod
@@ -216,18 +223,6 @@ class SimDataBase(object):
         )
 
     @classmethod
-    def is_file_used(cls, data, filename):
-        """Check if file in use by simulation
-
-        Args:
-            data (dict): simulation
-            filename (str): to check
-        Returns:
-            bool: True if `filename` in use by `data`
-        """
-        return any(f for f in cls.lib_files(data, validate_exists=False) if f.basename == filename)
-
-    @classmethod
     def is_parallel(cls, data):
         """Is this report a parallel (long) simulation?
 
@@ -245,111 +240,94 @@ class SimDataBase(object):
         return cls.WATCHPOINT_REPORT in name
 
     @classmethod
-    def lib_file_basename(cls, path, file_type):
+    def lib_file_abspath(cls, basename):
+        """Returns full, unique paths of simulation files
+
+        Args:
+            basename (str): lib file basename
+        Returns:
+            object: py.path.local to files (duplicates removed) OR py.path.local
+        """
+        p = cls._lib_file_abspath(basename)
+        if p:
+            return p
+        raise sirepo.util.UserAlert(
+            'Simulation library file "{}" does not exist'.format(basename),
+            'basename={} not in lib or resource directories',
+            basename,
+        )
+
+    @classmethod
+    def lib_file_basenames(cls, data):
+        """List files used by the simulation
+
+        Args:
+            data (dict): sim db
+        Returns:
+            list: list of str
+        """
+        return cls._lib_file_basenames(data)
+
+    @classmethod
+    def lib_file_exists(cls, basename):
+        return bool(cls._lib_file_abspath(basename))
+
+    @classmethod
+    def lib_file_in_use(cls, data, basename):
+        """Check if file in use by simulation
+
+        Args:
+            data (dict): simulation
+            basename (str): to check
+        Returns:
+            bool: True if `basename` in use by `data`
+        """
+        return any(f for f in cls.lib_file_basenames(data) if f == basename)
+
+    @classmethod
+    def lib_file_name_with_model_field(cls, model_name, field, filename):
+        return '{}-{}.{}'.format(model_name, field, filename)
+
+    @classmethod
+    def lib_file_name_with_type(cls, filename, file_type):
+        return '{}.{}'.format(filename, filetype)
+
+    @classmethod
+    def lib_file_name_without_type(cls, basename):
         """Strip the file type prefix
 
         See `lib_file_name` which prefixes with ``model-field.``
 
         Args:
-            path (py.path): path to file
-            file_type (str): type of file being searched for
+            basename: lib file name with type
         Returns:
             str: basename without type prefix
         """
-        return path.basename[len(file_type) + 1:]
+        return re.sub(r'^.*?-.*?\.', '', basename)
 
     @classmethod
-    def lib_file_name(cls, model_name, field, value):
-        return '{}-{}.{}'.format(model_name, field, value)
+    def lib_file_resource_dir(cls):
+        return cls._memoize(cls.resource_dir().join('lib'))
 
     @classmethod
-    def lib_file_abspath(cls, files_or_file, source_lib=None):
-        """Returns full, unique paths of simulation files
-
-        Args:
-            files_or_fil (iter): lib file names iterable or just one file
-            source_lib (py.path): path to lib (simulation_lib_dir)
-        Returns:
-            object: py.path.local to files (duplicates removed) OR py.path.local
-        """
+    def lib_file_write_path(cls, basename):
+        cls._assert_server_side()
         from sirepo import simulation_db
 
-        if not source_lib:
-            source_lib = simulation_db.simulation_lib_dir(cls.sim_type())
-        if isinstance(files_or_file, pkconfig.STRING_TYPES):
-            return source_lib.join(files_or_file, abs=1)
-        return sorted(set((source_lib.join(f, abs=1) for f in files_or_file)))
-
-    @classmethod
-    def lib_files(cls, data, source_lib=None, run_dir=None, validate_exists=True):
-        """Return list of files used by the simulation
-
-        Args:
-            data (dict): sim db
-
-        Returns:
-            list: py.path.local to files
-        """
-        from sirepo import simulation_db
-
-        if run_dir:
-            assert not source_lib
-            source_lib = simulation_db.lib_dir_from_sim_dir(run_dir)
-        res = []
-        for f in cls.lib_file_abspath(
-            cls._lib_files(data),
-            source_lib or simulation_db.simulation_lib_dir(cls.sim_type()),
-        ):
-            res.append(f)
-            if f.check(file=True):
-                continue
-            r = cls.resource_path(f.basename)
-            if not r.check(file=True):
-                if validate_exists:
-                    raise sirepo.util.UserAlert(
-                        'Simulation library file "{}" does not exist'.format(f.basename),
-                        'file={} not found, and no resource={}',
-                        f,
-                        r,
-                    )
-                continue
-            pkio.mkdir_parent_only(f)
-            r.copy(f)
-        return res
-
-    @classmethod
-    def lib_files_copy(cls, data, source, target, symlink=False):
-        """Copy auxiliary files to target
-
-        Args:
-            data (dict): simulation db
-            source (py.path): source directory
-            target (py.path): destination directory
-            symlink (bool): if True, symlink, don't copy
-        """
-        assert source
-        for s in cls.lib_files(data, source):
-            t = target.join(s.basename)
-            pkio.mkdir_parent_only(t)
-            if symlink:
-                t.mksymlinkto(s, absolute=False)
-            else:
-                s.copy(t)
+        return simulation_db.simulation_lib_dir(cls.sim_type()).join(basename)
 
     @classmethod
     def lib_files_for_extension(cls, ext):
         """Return sorted list of files which end in `ext`
+
+        Only works locally
 
         Args:
             ext (str): does not include suffix
         Returns:
             list: sorted list of absolute paths to lib files
         """
-        from sirepo import simulation_db
-
-        return pkio.sorted_glob(
-            simulation_db.simulation_lib_dir(cls.sim_type()).join('*.{}'.format(ext)),
-        )
+        return cls._lib_file_list('*.{}'.format(ext))
 
     @classmethod
     def lib_files_for_type(cls, file_type):
@@ -360,14 +338,53 @@ class SimDataBase(object):
         Returns:
             list: sorted list of files stripped of file_type
         """
+        return [
+            cls.lib_file_name_without_type(f) for f
+            in cls._lib_file_list('{}.*'.format(file_type))
+        ]
+
+    @classmethod
+    def lib_files_for_export(cls, data):
+        res = []
+        for b in cls.lib_file_basenames(data):
+            f = cls.lib_file_write_path(b)
+            if f.exists():
+                res.append(f)
+        return res
+
+    @classmethod
+    def lib_files_from_other_user(cls, data, other_lib_dir):
+        """Copy auxiliary files to other user
+
+        Does not copy resource files. Only works locally.
+
+        Args:
+            data (dict): simulation db
+            other_lib_dir (py.path): source directory
+        """
         from sirepo import simulation_db
 
-        res = []
-        d = simulation_db.simulation_lib_dir(cls.sim_type())
-        for f in pkio.sorted_glob(d.join('{}.*'.format(file_type))):
-            if f.check(file=1):
-                res.append(cls.lib_file_basename(f, file_type))
-        return sorted(res)
+        t = simulation_db.simulation_lib_dir(cls.sim_type())
+        for f in cls._lib_file_basenames(data):
+            s = other_lib_dir.join(f)
+            if s.exists():
+                s.copy(t.join(f))
+
+    @classmethod
+    def lib_files_to_run_dir(cls, data, run_dir):
+        """Copy auxiliary files to run_dir
+
+        Args:
+            data (dict): simulation db
+            run_dir (py.path): where to copy to
+        """
+        from sirepo import simulation_db
+
+        for b in cls.lib_file_basenames(data):
+            run_dir.join(b).mksymlinkto(
+                cls.lib_file_abspath(b),
+                absolute=False,
+            )
 
     @classmethod
     def model_defaults(cls, name):
@@ -453,25 +470,7 @@ class SimDataBase(object):
 
     @classmethod
     def resource_dir(cls):
-        return cls._memoize(RESOURCE_DIR.join(cls.sim_type()))
-
-    @classmethod
-    def resource_files(cls):
-        """Files to copy for a new user
-
-        Returns:
-            list: path of resource files
-        """
-        return []
-
-    @classmethod
-    def resource_glob(cls, pattern):
-        """Match `pattern` in `resource_dir`
-
-        Returns:
-            patter: absolute path to folder
-        """
-        return pkio.sorted_glob(cls.resource_path(pattern))
+        return cls._memoize(resource_dir().join(cls.sim_type()))
 
     @classmethod
     def resource_path(cls, filename):
@@ -520,6 +519,11 @@ class SimDataBase(object):
         return int(m.group(1))
 
     @classmethod
+    def _assert_server_side(cls):
+        assert not cfg.lib_file_uri, \
+            'method may only be called on server'
+
+    @classmethod
     def _compute_model(cls, analysis_model, resp):
         """Returns ``animation`` for models with ``Animation`` in name
 
@@ -562,6 +566,34 @@ class SimDataBase(object):
                 n,
                 dynamic=dynamic,
             )
+
+    @classmethod
+    def _lib_file_abspath(cls, basename):
+        from sirepo import simulation_db
+
+        for d in (
+            simulation_db.simulation_lib_dir(cls.sim_type()),
+            cls.lib_file_resource_dir(),
+        ):
+            p = d.join(basename)
+            if p.check(file=True):
+                return p
+        return None
+
+    @classmethod
+    def _lib_file_list(cls, pat, want_user_lib_dir=False):
+        cls._assert_server_side()
+        from sirepo import simulation_db
+
+        res = set()
+        x = [cls.lib_file_resource_dir()]
+        if want_user_lib_dir:
+            x.insert(0, simulation_db.simulation_lib_dir(cls.sim_type()))
+        for d in x:
+            res = res.union(
+                (f.basename for f in pkio.sorted_glob(d.join(pat))),
+            )
+        return sorted(res)
 
     @classmethod
     def _memoize(cls, value):
@@ -623,5 +655,7 @@ class SimDataBase(object):
 def _init():
     global cfg
     cfg = pkconfig.init(
-        job_file_uri=(None, str, 'where to get files from'),
+        lib_file_uri=(None, str, 'where to get files from'),
     )
+
+_init()

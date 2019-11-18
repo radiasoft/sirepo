@@ -37,13 +37,13 @@ SERVER_URI = '/server'
 DATA_FILE_URI = '/file'
 
 #: how jobs request files
-JOB_FILE_URI = '/job-file'
+LIB_FILE_URI = '/job-file'
 
-#: how jobs request list of files (relative to `JOB_FILE_URI`)
-JOB_FILE_LIST_URI = '/files.json'
+#: how jobs request list of files (relative to `LIB_FILE_URI`)
+LIB_FILE_LIST_URI = '/list.json'
 
 #: how jobs request files (relative to `srdb.root`)
-JOB_FILE_DIR = 'supervisor-srv'
+LIB_FILE_DIR = 'supervisor-srv'
 
 DEFAULT_IP = '127.0.0.1'
 DEFAULT_PORT = 8001
@@ -80,6 +80,50 @@ def init():
         ),
     )
     pkdc('cfg={}', cfg)
+
+
+def subprocess_cmd_stdin_env(cmd, env, pyenv='py3'):
+    """Convert `cmd` in `pyenv` with `env` to script and cmd
+
+    Uses tempfile so the file can be closed after the subprocess
+    gets the handle. You have to close `stdin` after calling
+    `tornado.process.Subprocess`, which calls `subprocess.Popen`
+    inline, since it' not ``async``.
+
+    Args:
+        cmd (iter): list of words to be quoted
+        env (PKDict): environment to pass
+        pyenv (str): python environment (py3 default)
+
+    Returns:
+        tuple: new cmd (tuple), stdin (file), env (PKDict)
+    """
+    import os
+    import tempfile
+    env.pksetdefault(
+        **pkconfig.to_environ((
+            'pykern.*',
+            'sirepo.feature_config.job_supervisor',
+        ))
+    )
+    t = tempfile.TemporaryFile()
+    # POSIT: we control all these values
+    t.write(
+        '''
+set -e
+pyenv shell {}
+{}
+exec {}
+'''.format(
+        pyenv,
+        '\n'.join(("export {}='{}'".format(k, v) for k, v in env.items())),
+        ' '.join(("'{}'".format(x) for x in cmd)),
+    ).encode())
+    t.seek(0)
+    # it's reasonable to hardwire this path, even though we don't
+    # do that with others. We want to make sure the subprocess starts
+    # with a clean environment (no $PATH). You have to pass HOME.
+    return ('/bin/bash', '-l'), t, PKDict(HOME=os.environ['HOME'])
 
 
 def init_by_server(app):

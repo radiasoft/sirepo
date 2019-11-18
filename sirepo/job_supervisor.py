@@ -5,8 +5,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkjson
-import pykern.pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from sirepo import job
@@ -15,7 +13,9 @@ import aenum
 import collections
 import copy
 import os
+import pykern.pkio
 import sirepo.srdb
+import sirepo.util
 import sys
 import time
 import tornado.gen
@@ -24,26 +24,26 @@ import tornado.locks
 
 
 #: we job files are stored
-_JOB_FILE_DIR = None
+_LIB_FILE_DIR = None
 
 #: where job_processes request files
-_JOB_FILE_URI = None
+_LIB_FILE_URI = None
 
 #: where job_process will PUT data files
 _DATA_FILE_URI = None
 
 
 def init():
-    global _JOB_FILE_DIR, _JOB_FILE_URI, _DATA_FILE_URI
+    global _LIB_FILE_DIR, _LIB_FILE_URI, _DATA_FILE_URI
 
-    assert not _JOB_FILE_DIR
+    assert not _LIB_FILE_DIR
     job.init()
     job_driver.init()
-    s = sirepo.srdb.root().join(job.JOB_FILE_DIR)
+    s = sirepo.srdb.root().join(job.LIB_FILE_DIR)
     pykern.pkio.unchecked_remove(s)
-    _JOB_FILE_DIR = s.join(job.JOB_FILE_URI)
-    pykern.pkio.mkdir_parent(_JOB_FILE_DIR)
-    _JOB_FILE_URI = job.cfg.supervisor_uri + job.JOB_FILE_URI + '/'
+    _LIB_FILE_DIR = s.join(job.LIB_FILE_URI)
+    pykern.pkio.mkdir_parent(_LIB_FILE_DIR)
+    _LIB_FILE_URI = job.cfg.supervisor_uri + job.LIB_FILE_URI + '/'
     _DATA_FILE_URI = job.cfg.supervisor_uri + job.DATA_FILE_URI
     return s
 
@@ -91,7 +91,7 @@ class _ComputeJob(PKDict):
         self.instances[self.computeJid] = self
 
     def destroy_op(self, op):
-        self._job_file_destroy()
+        self._lib_file_link_destroy()
         self._ops.remove(op)
         op.destroy()
 
@@ -103,17 +103,17 @@ class _ComputeJob(PKDict):
         )(req)
 
 
-    def _job_file_create(self, libDir):
-        self.jobFileLink = l = _JOB_FILE_DIR.join(job.unique_key())
-        os.symlink(l.dirpath().bestrelpath(libDir), l)
-        pkjson.dump_pretty(
-            [x.basename for x in pykern.pkio.sorted_glob(libDir.join('*'))],
-            filename=libDir.join(job.JOB_FILE_LIST_URI),
+    def _lib_file_uri(self, libDir):
+        self.libFileLink = l = _LIB_FILE_DIR.join(job.unique_key())
+        sirepo.util.dump_json(
+            [x.basename for x in libDir.listdir()],
+            path=libDir.join(job.LIB_FILE_LIST_URI),
         )
-        return _JOB_FILE_URI + l.basename
+        os.symlink(l.dirpath().bestrelpath(libDir), l)
+        return _LIB_FILE_URI + l.basename
 
-    def _job_file_destroy(self):
-        d = self.pkdel('jobFileLink')
+    def _lib_file_link_destroy(self):
+        d = self.pkdel('libFileLink')
         if d:
             d.remove(rec=False, ignore_errors=True)
 
@@ -126,7 +126,7 @@ class _ComputeJob(PKDict):
         )
         d = pykern.pkio.py_path(req.content.tmpDir).listdir()
         assert len(d) == 1, '{}: should only be one file in dir'.format(d)
-        return PKDict(file=str(d[0].basename))
+        return PKDict(file=d[0].basename)
 
     async def _receive_api_runCancel(self, req):
         async def _reply_canceled(self, req):
@@ -234,7 +234,7 @@ class _ComputeJob(PKDict):
                 req.content.computeJobHash
             )
             return
-        req.content.jobFileUri = self._job_file_create(
+        req.content.libFileUri = self._lib_file_uri(
             pykern.pkio.py_path(req.content.libDir),
         )
         o = await self._send(

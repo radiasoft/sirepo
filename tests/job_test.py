@@ -23,7 +23,7 @@ def _setup(func):
         import signal
 
         # ensure the test exits after a reasonable time
-        signal.alarm(10)
+        signal.alarm(20)
         s = None
         try:
             env, cfg = _env_setup()
@@ -157,11 +157,20 @@ def _env_setup():
     # DO NOT import pykern or sirepo to avoid pkconfig init too early
 
     cfg = {
-        'PYKERN_PKDEBUG_CONTROL': 'job',
+        'PYKERN_PKDEBUG_CONTROL': os.environ.get('PYKERN_PKDEBUG_CONTROL', ''),
+        'PYKERN_PKDEBUG_OUTPUT': os.environ.get('PYKERN_PKDEBUG_OUTPUT', ''),
         'PYKERN_PKDEBUG_WANT_PID_TIME': '1',
-        'SIREPO_FEATURE_CONFIG_JOB_SUPERVISOR': '1',
         'PYTHONUNBUFFERED': '1',
+        'SIREPO_FEATURE_CONFIG_JOB_SUPERVISOR': '1',
     }
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.bind(('127.0.0.1', 8001))
+    except Exception:
+        raise AssertionError('unable to bind job_supervisor port=8001, still running')
+    finally:
+        s.close()
     env = dict()
     for k, v in os.environ.items():
         if ('PYENV' in k or 'PYTHON' in k):

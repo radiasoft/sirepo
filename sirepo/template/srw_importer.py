@@ -15,16 +15,17 @@ from pykern import pkrunpy
 from pykern.pkdebug import pkdlog, pkdexc, pkdp
 import ast
 import inspect
+import os
 import py.path
 import re
 import srwl_bl
+import sirepo.sim_data
 
 _JS_DIR = py.path.local(pkresource.filename('static/js'))
-
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 class SRWParser(object):
-    def __init__(self, script, lib_dir, user_filename, arguments, optics_func_name='set_optics'):
-        self.lib_dir = py.path.local(lib_dir)
+    def __init__(self, script, user_filename, arguments, optics_func_name='set_optics'):
         m = pkrunpy.run_path_as_module(script)
         if arguments:
             import shlex
@@ -44,18 +45,18 @@ class SRWParser(object):
     def replace_mirror_files(self, mirror_file='mirror_1d.dat'):
         for key in self.var_param.__dict__.keys():
             if key == 'fdir':
-                self.var_param.__dict__[key] = str(self.lib_dir)
+                self.var_param.__dict__[key] = os.getcwd()
             if re.search(r'\_ofn$', key):
                 self.var_param.__dict__[key] = ''
             if re.search(r'\_(h|i)fn$', key):
                 if getattr(self.var_param, key) != '' and getattr(self.var_param, key) != 'None':
-                    self.var_param.__dict__[key] = str(self.lib_dir.join(mirror_file))
+                    self.var_param.__dict__[key] = str(_SIM_DATA.lib_file_abspath(mirror_file))
 
     def replace_image_files(self, image_file='sample.tif'):
         for key in self.var_param.__dict__.keys():
             if key.find('op_sample') >= 0:
                 if getattr(self.var_param, key) != '':
-                    self.var_param.__dict__[key] = str(self.lib_dir.join(image_file))
+                    self.var_param.__dict__[key] = str(_SIM_DATA.lib_file_abspath(image_file))
 
 
 class Struct(object):
@@ -63,7 +64,7 @@ class Struct(object):
         self.__dict__.update(entries)
 
 
-def import_python(code, tmp_dir, lib_dir, user_filename=None, arguments=None):
+def import_python(code, tmp_dir, user_filename=None, arguments=None):
     """Converts script_text into json and stores as new simulation.
 
     Avoids too much data back to the user in the event of an error.
@@ -82,7 +83,7 @@ def import_python(code, tmp_dir, lib_dir, user_filename=None, arguments=None):
     script = None
 
     # Patch for the mirror profile for the exported .py file from Sirepo:
-    code = _patch_mirror_profile(code, lib_dir)
+    code = _patch_mirror_profile(code)
 
     try:
         with pkio.save_chdir(tmp_dir):
@@ -90,7 +91,6 @@ def import_python(code, tmp_dir, lib_dir, user_filename=None, arguments=None):
             script = pkio.write_text('in.py', code)
             o = SRWParser(
                 script,
-                lib_dir=py.path.local(lib_dir),
                 user_filename=user_filename,
                 arguments=arguments,
             )
@@ -788,7 +788,7 @@ def _parsed_dict(v, op):
     return python_dict
 
 
-def _patch_mirror_profile(code, lib_dir, mirror_file='mirror_1d.dat'):
+def _patch_mirror_profile(code, mirror_file='mirror_1d.dat'):
     """Patch for the mirror profile for the exported .py file from Sirepo"""
     import sirepo.template.srw
     # old format mirror names
@@ -796,7 +796,7 @@ def _patch_mirror_profile(code, lib_dir, mirror_file='mirror_1d.dat'):
     code_list = code.split('\n')
     for var_name in var_names:
         if var_name in ['Mirror']:
-            final_mirror_file = '"{}/{}"'.format(lib_dir, mirror_file)
+            final_mirror_file = '"{}"'.format(_SIM_DATA.lib_file_abspath(mirror_file))
         else:
             final_mirror_file = None
         var_name = 'ifn' + var_name

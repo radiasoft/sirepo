@@ -14,6 +14,8 @@ import importlib
 import tornado.gen
 import tornado.ioloop
 import tornado.locks
+import sirepo.srdb
+
 
 cfg = None
 
@@ -39,14 +41,13 @@ class DriverBase(PKDict):
 
     def __init__(self, req):
         super().__init__(
+            _agentId=job.unique_key(),
             has_slot=False,
             kind=req.kind,
             ops_pending_done=PKDict(),
             ops_pending_send=[],
             uid=req.content.uid,
             websocket=None,
-            _agentId=job.unique_key(),
-            _supervisor_uri=cfg.supervisor_uri,
         )
         self.agents[self._agentId] = self
 
@@ -66,14 +67,13 @@ class DriverBase(PKDict):
         self.run_scheduler(self)
 
     def get_ops_pending_done_types(self):
-            d = collections.defaultdict(int)
-            for v in self.ops_pending_done.values():
-                d[v.msg.opName] += 1
-            return d
+        d = collections.defaultdict(int)
+        for v in self.ops_pending_done.values():
+            d[v.msg.opName] += 1
+        return d
 
     def get_ops_with_send_allocation(self):
         """Get ops that could be sent assuming outside requirements are met.
-
         Outside requirements are an alive websocket connection and the driver
         having a slot.
         """
@@ -158,6 +158,17 @@ class DriverBase(PKDict):
         self.websocket.sr_driver_set(self)
         self.run_scheduler(self)
 
+    def _subprocess_cmd_stdin_env(self):
+        return job.subprocess_cmd_stdin_env(
+            ('sirepo', 'job_agent'),
+            PKDict(
+                SIREPO_AUTH_LOGGED_IN_USER=self.uid,
+                SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
+                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=cfg.supervisor_uri,
+                SIREPO_SRDB_ROOT=sirepo.srdb.root(),
+            ),
+        )
+
     def _websocket_free(self):
         """Remove holds on all resources and remove self from data structures"""
         try:
@@ -200,6 +211,10 @@ def init():
     )
 
 
+async def terminate():
+    await DriverBase.terminate()
+
+
 @pkconfig.parse_none
 def _cfg_parse_modules(value):
     global _CLASSES, _DEFAULT_CLASS
@@ -224,6 +239,3 @@ def _cfg_parse_modules(value):
     else:
         _DEFAULT_CLASS = _CLASSES['local']
     return s
-
-async def terminate():
-    await DriverBase.terminate()
