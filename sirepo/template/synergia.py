@@ -190,6 +190,8 @@ def python_source_for_model(data, model):
 
 
 def parse_synergia_log(run_dir):
+    if not run_dir.join(template_common.RUN_LOG).exists():
+        return None
     text = pkio.read_text(run_dir.join(template_common.RUN_LOG))
     errors = []
     current = ''

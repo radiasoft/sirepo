@@ -69,24 +69,33 @@ def call_api(func_or_name, kwargs=None, data=None):
         flask.Response: result
     """
     p = None
+    s = None
     try:
+        # must be first so exceptions have access to sim_type
+        if kwargs:
+            # Any (GET) uri will have simulation_type in uri if it is application
+            # specific.
+            s = sirepo.http_request.set_sim_type(kwargs.get('simulation_type'))
         f = func_or_name if callable(func_or_name) \
             else _api_to_route[func_or_name].func
         sirepo.api_auth.check_api_call(f)
         try:
             if data:
-                p = flask.g.pop(sirepo.http_request.CALL_API_DATA_ATTR, None)
-                flask.g.setdefault(sirepo.http_request.CALL_API_DATA_ATTR, data)
+                p = sirepo.http_request.set_post(data)
             r = flask.make_response(f(**kwargs) if kwargs else f())
         finally:
             if data:
-                flask.g.pop(sirepo.http_request.CALL_API_DATA_ATTR, None)
+                sirepo.http_request.set_post(p)
     except Exception as e:
         if not isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
             pkdlog('api={} exception={} stack={}', func_or_name, e, pkdexc())
         else:
             pkdc('api={} exception={} stack={}', func_or_name, e, pkdexc())
         r = sirepo.http_reply.gen_exception(e)
+    finally:
+        # http_request tries to keep a valid sim_type so
+        # this is ok to call (even if s is None)
+        sirepo.http_request.set_sim_type(s)
     sirepo.cookie.save_to_cookie(r)
     return r
 
@@ -197,6 +206,7 @@ def _dispatch(path):
             route = _uri_to_route[parts[0]]
             parts.pop(0)
         except KeyError:
+            pkdlog('uri={} not found, using default route', path)
             route = _default_route
         kwargs = pkcollections.Dict()
         for p in route.params:
