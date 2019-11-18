@@ -8,14 +8,16 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import auth
-from sirepo import api_auth
-from sirepo import cookie
-from sirepo import util
 import flask
 import importlib
 import inspect
 import re
+import sirepo.api_auth
+import sirepo.auth
+import sirepo.cookie
+import sirepo.http_reply
+import sirepo.util
+
 
 #: route for sirepo.srunit
 srunit_uri = None
@@ -51,15 +53,6 @@ _api_modules = []
 _api_funcs = pkcollections.Dict()
 
 
-class NotFound(Exception):
-    """Raised to indicate page not found exception (404)"""
-    def __init__(self, log_fmt, *args, **kwargs):
-        super(NotFound, self).__init__()
-        self.log_fmt = log_fmt
-        self.args = args
-        self.kwargs = kwargs
-
-
 def call_api(func, kwargs=None, data=None):
     """Call another API with permission checks.
 
@@ -72,7 +65,7 @@ def call_api(func, kwargs=None, data=None):
     Returns:
         flask.Response: result
     """
-    resp = api_auth.check_api_call(func)
+    resp = sirepo.api_auth.check_api_call(func)
     if resp:
         return resp
     try:
@@ -83,7 +76,7 @@ def call_api(func, kwargs=None, data=None):
     finally:
         if data:
             flask.g.sirepo_call_api_data = None
-    cookie.save_to_cookie(resp)
+    sirepo.cookie.save_to_cookie(resp)
     return resp
 
 
@@ -103,7 +96,7 @@ def init(app):
         return
     global _app
     _app = app
-    for n in _REQUIRED_MODULES + feature_config.cfg.api_modules:
+    for n in _REQUIRED_MODULES + tuple(sorted(feature_config.cfg.api_modules)):
         register_api_module(importlib.import_module('sirepo.' + n))
     _init_uris(app, simulation_db)
 
@@ -171,7 +164,7 @@ def _dispatch(path):
     Returns:
         Flask.response
     """
-    auth.process_request()
+    sirepo.auth.process_request()
     try:
         if path is None:
             return call_api(_empty_route.func, {})
@@ -186,7 +179,7 @@ def _dispatch(path):
         for p in route.params:
             if not parts:
                 if not p.is_optional:
-                    raise NotFound('{}: uri missing parameter ({})', path, p.name)
+                    raise sirepo.util.raise_not_found('{}: uri missing parameter ({})', path, p.name)
                 break
             if p.is_path_info:
                 kwargs[p.name] = '/'.join(parts)
@@ -194,10 +187,10 @@ def _dispatch(path):
                 break
             kwargs[p.name] = parts.pop(0)
         if parts:
-            raise NotFound('{}: unknown parameters in uri ({})', parts, path)
+            raise sirepo.util.raise_not_found('{}: unknown parameters in uri ({})', parts, path)
         return call_api(route.func, kwargs)
-    except NotFound as e:
-        util.raise_not_found(e.log_fmt, *e.args, **e.kwargs)
+    except sirepo.util.UserAlert as e:
+        return sirepo.http_reply.gen_user_alert(e)
     except Exception as e:
         pkdlog('{}: error: {}', path, pkdexc())
         raise
@@ -222,7 +215,7 @@ def _init_uris(app, simulation_db):
         except KeyError:
             pkdc('not adding api, because module not registered: uri={}', v)
             continue
-        api_auth.assert_api_def(r.func)
+        sirepo.api_auth.assert_api_def(r.func)
         r.decl_uri = v
         r.name = k
         assert not r.base_uri in _uri_to_route, \

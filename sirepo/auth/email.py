@@ -63,6 +63,8 @@ def api_authEmailAuthorized(simulation_type, token):
 
     Token must exist in db and not be expired.
     """
+    if http_request.is_spider():
+        util.raise_forbidden('robots not allowed')
     t = sirepo.template.assert_sim_type(simulation_type)
     with auth_db.thread_lock:
         u = AuthEmailUser.search_by(token=token)
@@ -87,7 +89,7 @@ def api_authEmailAuthorized(simulation_type, token):
         # if user is already logged in via email, then continue to the app
         if auth.user_if_logged_in(AUTH_METHOD):
             pkdlog('user already logged in. ignoring invalid token: {}, user: {}', token, auth.logged_in_user())
-            return flask.redirect('/' + simulation_type)
+            return flask.redirect('/' + t)
         return auth.login_fail_redirect(t, this_module, 'email-token')
 
 
@@ -200,10 +202,10 @@ def _send_login_email(user, url):
         body=u'''
 Click the link below to {} your Sirepo account.
 
-This link will expire in {} minutes and can only be used once.
+This link will expire in {} hours and can only be used once.
 
 {}
-'''.format(login_text, _EXPIRES_MINUTES, url)
+'''.format(login_text, _EXPIRES_MINUTES / 60, url)
     )
     _smtp.send(msg)
     return http_reply.gen_json_ok()

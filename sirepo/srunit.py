@@ -66,11 +66,11 @@ def flask_client(cfg=None, sim_types=None):
     return getattr(app, a)
 
 
-def init_auth_db(*args, **kwargs):
-    """Force a request that creates a user in db"""
-    fc = flask_client(*args, **kwargs)
+def init_auth_db():
+    """Force a request that creates a user in db with just myapp"""
+    fc = flask_client(sim_types='myapp')
     fc.sr_login_as_guest('myapp')
-    fc.sr_post('listSimulations', {'simulationType': 'myapp'})
+    return fc, fc.sr_post('listSimulations', {'simulationType': 'myapp'})
 
 
 def file_as_stream(filename):
@@ -170,7 +170,7 @@ class _TestClient(flask.testing.FlaskClient):
         """
         return _req(route_name, params, query, self.get, raw_response=True)
 
-    def sr_get_json(self, route_name, params=None, query=None):
+    def sr_get_json(self, route_name, params=None, query=None, headers=None):
         """Gets a request to route_name to server
 
         Args:
@@ -180,7 +180,13 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             object: Parsed JSON result
         """
-        return _req(route_name, params, query, self.get, raw_response=False)
+        return _req(
+            route_name,
+            params,
+            query,
+            lambda r: self.get(r, headers=headers),
+            raw_response=False,
+        )
 
     def sr_get_root(self, sim_type=None):
         """Gets root app for sim_type

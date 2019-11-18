@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 u"""JSPEC execution template.
 
-:copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2017-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-
 from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
 from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
@@ -18,8 +18,9 @@ import os.path
 import py.path
 import re
 import sdds
+import sirepo.sim_data
 
-ELEGANT_TWISS_FILENAME = 'twiss_output.filename.sdds'
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 JSPEC_INPUT_FILENAME = 'jspec.in'
 
@@ -27,13 +28,9 @@ JSPEC_LOG_FILE = 'jspec.log'
 
 JSPEC_TWISS_FILENAME = 'jspec.tfs'
 
-SIM_TYPE = 'jspec'
-
 WANT_BROWSER_FRAME_CACHE = True
 
 _BEAM_EVOLUTION_OUTPUT_FILENAME = 'JSPEC.SDDS'
-
-_ELEGANT_TWISS_PATH = 'animation/{}'.format(ELEGANT_TWISS_FILENAME)
 
 _ION_FILE_PREFIX = 'ions'
 
@@ -50,13 +47,9 @@ _FIELD_MAP = {
     'rsecool': 'rs_ecool'
 }
 
-_RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
-
-_SCHEMA = simulation_db.get_schema(SIM_TYPE)
+_OPTIONAL_MADX_TWISS_COLUMNS = ['NAME', 'TYPE', 'COUNT', 'DY', 'DPY']
 
 _X_FIELD = 't'
-
-_REPORT_STYLE_FIELDS = ['notes']
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -102,62 +95,20 @@ def background_percent_complete(report, run_dir, is_running):
     }
 
 
-def fixup_old_data(data):
-    for m in ('ring', 'particleAnimation', 'twissReport'):
-        if m not in data['models']:
-            data['models'][m] = {}
-        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
-    if 'coolingRatesAnimation' not in data['models']:
-        for m in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
-            data['models'][m] = {}
-            template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
-    if 'beam_type' not in data['models']['ionBeam']:
-        ion_beam = data['models']['ionBeam']
-        ion_beam['beam_type'] = 'bunched' if ion_beam['rms_bunch_length'] > 0 else 'continuous'
-    if 'beam_type' not in data['models']['electronBeam']:
-        ebeam = data['models']['electronBeam']
-        ebeam['beam_type'] = 'continuous' if ebeam['shape'] == 'dc_uniform' else 'bunched'
-        ebeam['rh'] = ebeam['rv'] = 0.004
-    settings = data['models']['simulationSettings']
-    if settings['model'] == 'model_beam':
-        settings['model'] = 'particle'
-    if 'ibs' not in settings:
-        settings['ibs'] = '1'
-        settings['e_cool'] = '1'
-    if 'ref_bet_x' not in settings or not settings['ref_bet_x']:
-        settings['ref_bet_x'] = settings['ref_bet_y'] = 10
-        for f in ('ref_alf_x', 'ref_disp_x', 'ref_disp_dx', 'ref_alf_y', 'ref_disp_y', 'ref_disp_dy'):
-            settings[f] = 0
-    # if model field value is less than min, set to default value
-    for m in data['models']:
-        model = data['models'][m]
-        if m in _SCHEMA['model']:
-            for f in _SCHEMA['model'][m]:
-                field_def = _SCHEMA['model'][m][f]
-                if len(field_def) > 4 and model[f] < field_def[4]:
-                    model[f] = field_def[2]
-    template_common.organize_example(data)
-
-
-def get_animation_name(data):
-    return 'animation'
-
-
 def get_application_data(data):
     if data['method'] == 'get_elegant_sim_list':
+        tp = _SIM_DATA.jspec_elegant_twiss_path()
         res = []
-        for f in pkio.sorted_glob(_elegant_dir().join('*/', _ELEGANT_TWISS_PATH)):
-            m = re.match(r'.*?/elegant/(.*?)/animation', str(f))
-            if not m:
-                continue
-            id = m.group(1)
-
+        for f in pkio.sorted_glob(
+            _SIM_DATA.jspec_elegant_dir().join('*', tp),
+        ):
+            assert str(f).endswith(tp)
+            i = simulation_db.sid_from_compute_file(f)
             try:
-                name = simulation_db.read_json(_elegant_dir().join(id, '/', simulation_db.SIMULATION_DATA_FILE)).models.simulation.name
-                res.append({
-                    'simulationId': id,
-                    'name': name,
-                })
+                name = simulation_db.read_json(
+                    simulation_db.sim_data_file('elegant', i),
+                ).models.simulation.name
+                res.append(PKDict(simulationId=i, name=name))
             except IOError:
                 # ignore errors reading corrupted elegant sim files
                 pass
@@ -166,7 +117,7 @@ def get_application_data(data):
         }
     elif data['method'] == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_files)
-    assert False, 'unknown application data method: {}'.format(data['method'])
+    raise AssertionError('unknown application data method={}'.format(data.method))
 
 
 def get_data_file(run_dir, model, frame, options=None):
@@ -201,37 +152,13 @@ def get_simulation_frame(run_dir, data, model_data):
     raise RuntimeError('unknown animation model: {}'.format(data['modelName']))
 
 
-def lib_files(data, source_lib):
-    res = []
-    ring = data['models']['ring']
-    lattice_source = ring['latticeSource']
-    if lattice_source == 'madx':
-        res.append(template_common.lib_file_name('ring', 'lattice', ring['lattice']))
-    elif lattice_source == 'elegant':
-        res.append(template_common.lib_file_name('ring', 'elegantTwiss', ring['elegantTwiss']))
-    res = template_common.filename_to_path(res, source_lib)
-    if lattice_source == 'elegant-sirepo' and 'elegantSirepo' in ring:
-        f = _elegant_dir().join(ring['elegantSirepo'], _ELEGANT_TWISS_PATH)
-        if f.exists():
-            res.append(f)
-    return res
-
-
-def models_related_to_report(data):
-    if data['report'] == 'rateCalculationReport':
-        return ['cooler', 'electronBeam', 'electronCoolingRate', 'intrabeamScatteringRate', 'ionBeam', 'ring']
-    if data['report'] == 'twissReport':
-        return ['twissReport', 'ring']
-    return []
-
-
 def python_source_for_model(data, model):
     ring = data['models']['ring']
     elegant_twiss_file = None
     if ring['latticeSource'] == 'elegant':
-        elegant_twiss_file = template_common.lib_file_name('ring', 'elegantTwiss', ring['elegantTwiss'])
+        elegant_twiss_file = _SIM_DATA.lib_file_name('ring', 'elegantTwiss', ring['elegantTwiss'])
     elif  ring['latticeSource'] == 'elegant-sirepo':
-        elegant_twiss_file = ELEGANT_TWISS_FILENAME
+        elegant_twiss_file = _SIM_DATA.JSPEC_ELEGANT_TWISS_FILENAME
     convert_twiss_to_tfs = ''
     if elegant_twiss_file:
         convert_twiss_to_tfs = '''
@@ -255,15 +182,6 @@ def remove_last_frame(run_dir):
     pass
 
 
-def resource_files():
-    """Library shared between simulations of this type
-
-    Returns:
-        list: py.path.local objects
-    """
-    return pkio.sorted_glob(_RESOURCE_DIR.join('*.tfs'))
-
-
 def validate_file(file_type, path):
     if file_type == 'ring-elegantTwiss':
         return None
@@ -275,7 +193,7 @@ def validate_file(file_type, path):
             columns = re.split(r'\s+', match.group(1))
             is_ok = True
             for col in sdds_util.MADX_TWISS_COLUMS:
-                if col == 'NAME' or col == 'TYPE' or col == 'COUNT':
+                if col in _OPTIONAL_MADX_TWISS_COLUMNS:
                     continue
                 if col not in columns:
                     is_ok = False
@@ -339,10 +257,6 @@ def _compute_sdds_range(res):
             res[field][1] = _safe_sdds_value(max(max(values), res[field][1]))
         else:
             res[field] = [_safe_sdds_value(min(values)), _safe_sdds_value(max(values))]
-
-
-def _elegant_dir():
-    return simulation_db.simulation_dir(SIM_TYPE).join('../elegant')
 
 
 def _extract_evolution_plot(report, run_dir):
@@ -445,10 +359,10 @@ def _generate_parameters_file(data):
     template_common.validate_models(data, simulation_db.get_schema(SIM_TYPE))
     v = template_common.flatten_data(data['models'], {})
     v['beamEvolutionOutputFilename'] = _BEAM_EVOLUTION_OUTPUT_FILENAME
-    v['runSimulation'] = report is None or report == 'animation'
+    v['runSimulation'] = report is None or report == _SIM_DATA.animation_name(None)
     v['runRateCalculation'] = report is None or report == 'rateCalculationReport'
     if data['models']['ring']['latticeSource'] == 'madx':
-        v['latticeFilename'] = template_common.lib_file_name('ring', 'lattice', v['ring_lattice'])
+        v['latticeFilename'] = _SIM_DATA.lib_file_name('ring', 'lattice', v['ring_lattice'])
     else:
         v['latticeFilename'] = JSPEC_TWISS_FILENAME
     if v['ionBeam_beam_type'] == 'continuous':

@@ -375,17 +375,19 @@ for c_idx, c in enumerate(conductors):
 max_c_id = max([c.condid for c in conductors]) if len(conductors) > 0 else 0
 
 # Create source conductors
-source = wp.ZPlane(zcent=wp.w3d.zmmin, zsign=-1., voltage=0., condid= max_c_id + 1)
+source_condid = max_c_id + 1
+source = wp.ZPlane(zcent=wp.w3d.zmmin, zsign=-1., voltage=0., condid=source_condid)
 wp.installconductor(source, dfill=wp.largepos)
 
 # Create ground plate
-plate = wp.ZPlane(voltage=extractor_voltage, zcent=zplate, condid= max_c_id + 2)
+plate_condid = max_c_id + 2
+plate = wp.ZPlane(voltage=extractor_voltage, zcent=zplate, condid=plate_condid)
 wp.installconductor(plate, dfill=wp.largepos)
 
 scraper = wp.ParticleScraper([source, plate] + conductors, lcollectlpdata=True, lsaveintercept={{ saveIntercept }})
 
 {% if anode.isReflector %}
-reflector = particlereflector.ParticleReflector(scraper=scraper, conductor=plate, spref=Species(type=Electron, name='Electron'), srefprob={{ anode.specProb }}, drefprob={{ anode.diffProb }})
+reflector = particlereflector.ParticleReflector(scraper=scraper, conductor=plate, spref=wp.Species(type=wp.Electron, name='Electron'), srefprob={{ anode.specProb }}, drefprob={{ anode.diffProb }})
 particlereflector.installparticlereflector(reflector)
 {% endif %}
 
@@ -393,7 +395,7 @@ particlereflector.installparticlereflector(reflector)
 for r_idx, r in enumerate(reflectors):
     c = conductors[r_idx]
     if r['isReflector']:
-        reflector = particlereflector.ParticleReflector(scraper=scraper, conductor=c, spref=Species(type=Electron, name='Electron'), srefprob=0., drefprob=r['diffProb'], refscheme='uniform')
+        reflector = particlereflector.ParticleReflector(scraper=scraper, conductor=c, spref=wp.Species(type=wp.Electron, name='Electron'), srefprob=0., drefprob=r['diffProb'], refscheme='uniform')
         particlereflector.installparticlereflector(reflector)
 
 #------

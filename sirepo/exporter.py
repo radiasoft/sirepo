@@ -5,10 +5,14 @@ u"""Export simulations in a single archive
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcollections
+from pykern import pkio
+from pykern import pkjinja
 from pykern.pkdebug import pkdp
 import os.path
 import py.path
 import zipfile
+import sirepo.util
 
 
 def create_archive(sim_type, sim_id, filename):
@@ -22,12 +26,9 @@ def create_archive(sim_type, sim_id, filename):
     Returns:
         py.path.Local: zip file name
     """
-    from pykern import pkio
-    from sirepo import uri_router
-
     if not pkio.has_file_extension(filename, ('zip', 'html')):
-        raise uri_router.NotFound(
-            '{}: unknown file type; expecting html or zip',
+        raise sirepo.util.raise_not_found(
+            'unknown file type={}; expecting html or zip',
             filename,
         )
     want_zip = filename.endswith('zip')
@@ -46,8 +47,6 @@ def _create_html(zip_path, data):
     Returns:
         py.path, str: file and mime type
     """
-    from pykern import pkjinja
-    from pykern import pkcollections
     from sirepo import uri_router
     from sirepo import simulation_db
     import py.path
@@ -80,9 +79,8 @@ def _create_zip(sim_type, sim_id, want_python):
     Returns:
         py.path.Local: zip file name
     """
-    from pykern import pkio
+    from sirepo import sim_data
     from sirepo import simulation_db
-    from sirepo.template import template_common
 
     #TODO(robnagler) need a lock
     with pkio.save_chdir(simulation_db.tmp_dir()):
@@ -90,7 +88,7 @@ def _create_zip(sim_type, sim_id, want_python):
         data = simulation_db.open_json_file(sim_type, sid=sim_id)
         if 'report' in data:
             del data['report']
-        files = template_common.lib_files(data)
+        files = sim_data.get_class(data).lib_files(data)
         files.insert(0, simulation_db.sim_data_file(data.simulationType, sim_id))
         if want_python:
             files.append(_python(data))

@@ -17,10 +17,12 @@ pytest.importorskip('srwl_bl')
 pytest.importorskip('sdds')
 
 
+_TYPES = 'elegant:jspec:myapp:srw'
+
 def test_basic():
     from sirepo import srunit
     from pykern import pkunit
-    fc = srunit.flask_client(sim_types='elegant:srw:myapp')
+    fc = srunit.flask_client(sim_types=_TYPES)
     resp = fc.get('/old')
     assert 'LandingPageController' in resp.get_data(), \
         'Top level document is the landing page'
@@ -29,12 +31,13 @@ def test_basic():
 
 
 def test_get_data_file():
+    from pykern.pkdebug import pkdp
     from sirepo import srunit
     from pykern import pkunit
     from pykern import pkio
     import sdds
 
-    fc = srunit.flask_client(sim_types='elegant:srw:myapp')
+    fc = srunit.flask_client(sim_types=_TYPES)
     sim_type = 'elegant'
     fc.sr_login_as_guest(sim_type)
     data = fc.sr_post(
@@ -60,13 +63,14 @@ def test_get_data_file():
             simulationType=data.simulationType,
         ),
     )
+    pkunit.pkeq('pending', run.state, 'not pending, run={}', run)
     for _ in range(10):
+        if run.state == 'completed':
+            break
         run = fc.sr_post(
             'runStatus',
             run.nextRequest
         )
-        if run.state == 'completed':
-            break
         time.sleep(1)
     else:
         pkunit.pkfail('runStatus: failed to complete: {}', run)
@@ -103,6 +107,24 @@ def test_get_data_file():
         sdds.sddsdata.Terminate(0)
 
 
+def test_jspec():
+    from pykern import pkio
+    from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdpretty
+    from pykern.pkunit import pkeq, pkre
+    from sirepo import srunit
+    import json
+
+    fc = srunit.flask_client(sim_types=_TYPES)
+    sim_type = 'jspec'
+    fc.sr_login_as_guest(sim_type)
+    a = fc.sr_get_json(
+        'listFiles',
+        PKDict(simulation_type=sim_type, simulation_id='xxxxxxxxxx', file_type='ring-lattice'),
+    )
+    pkeq(['Booster.tfs'], a)
+
+
 def test_srw():
     from pykern import pkio
     from pykern.pkdebug import pkdpretty
@@ -110,12 +132,12 @@ def test_srw():
     from sirepo import srunit
     import json
 
-    fc = srunit.flask_client(sim_types='elegant:srw:myapp')
+    fc = srunit.flask_client(sim_types=_TYPES)
     sim_type = 'srw'
     r = fc.sr_get_root(sim_type)
     pkre('<!DOCTYPE html', r.data)
     fc.sr_login_as_guest(sim_type)
     d = fc.sr_post('listSimulations', {'simulationType': sim_type})
-    pkeq(fc.get('/find-by-name/srw/default/UndulatorRadiation').status_code, 404)
+    pkeq(fc.get('/find-by-name-auth/srw/default/UndulatorRadiation').status_code, 404)
     for sep in (' ', '%20', '+'):
-        pkeq(fc.get('/find-by-name/srw/default/Undulator{}Radiation'.format(sep)).status_code, 200)
+        pkeq(fc.get('/find-by-name-auth/srw/default/Undulator{}Radiation'.format(sep)).status_code, 200)

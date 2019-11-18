@@ -1,0 +1,6 @@
+
+{{ lattice }}
+
+SELECT, LINE={{ use_beamline }};
+TWISS1: TWISS, line={{ use_beamline }};
+LIST, table=TWISS1, file="out.twiss", all=true;

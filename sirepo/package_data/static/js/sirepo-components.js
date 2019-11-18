@@ -487,6 +487,9 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               '<div data-ng-switch-when="OptFloat" data-ng-class="fieldClass">',
                 '<div data-optimize-float="" data-model="model" data-model-name="modelName" data-field="field" data-min="info[4]" data-max="info[5]" ></div>',
               '</div>',
+               '<div data-ng-switch-when="Range" data-ng-class="fieldClass">',
+                  '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field" data-field-delegate="fieldDelegate"></div>',
+               '</div>',
               SIREPO.appFieldEditors || '',
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
@@ -1214,7 +1217,7 @@ SIREPO.app.directive('panelLayout', function(appState, utilities, $window) {
                     panelItems = $($element).find('.sr-panel-item');
                 }
                 panelItems.each(function(idx, item) {
-                    cols[count].append(item);
+                    $(cols[count]).append(item);
                     count = (count + 1) % columnCount;
                 });
             }
@@ -2041,7 +2044,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
     };
 });
 
-SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileManager, panelState, requestSender, $compile, $location, $window, $timeout) {
+SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileManager, panelState, requestSender, $compile, $window, $timeout) {
 
     return {
         restrict: 'A',
@@ -2146,23 +2149,19 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                         return $scope.relatedSimulations.length > 0;
                     }
                     currentSimulationId = appState.models.simulation.simulationId;
-                    requestSender.sendRequest(
-                        'listSimulations',
+                    appState.listSimulations(
                         function(data) {
-                            for (var i = 0; i < data.length; i++) {
-                                var item = data[i];
+                            data.some(function(item, idx) {
                                 if (item.simulationId == currentSimulationId) {
-                                    data.splice(i, 1);
-                                    break;
+                                    data.splice(idx, 1);
+                                    return true;
                                 }
-                            }
+                            });
                             $scope.relatedSimulations = data;
                         },
                         {
                             simulationType: SIREPO.APP_SCHEMA.simulationType,
-                            search: {
-                                'simulation.folder': appState.models.simulation.folder,
-                            },
+                            'simulation.folder': appState.models.simulation.folder,
                         });
                 }
                 return false;
@@ -2211,7 +2210,6 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
 
             function loadList() {
                 appState.listSimulations(
-                    $location.search(),
                     function(data) {
                         $scope.doneLoadingSimList = true;
                         fileManager.updateTreeFromFileList(data);
@@ -2285,7 +2283,7 @@ SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, 
     };
 });
 
-SIREPO.app.directive('completeRegistration', function($window, requestSender, errorService) {
+SIREPO.app.directive('completeRegistration', function($window, requestSender, authState, errorService) {
     return {
         restrict: 'A',
         scope: {},
@@ -2307,6 +2305,14 @@ SIREPO.app.directive('completeRegistration', function($window, requestSender, er
             '</form>',
         ].join(''),
         controller: function($scope) {
+            if (! authState.isLoggedIn) {
+                requestSender.localRedirect('login');
+                return;
+            }
+            if (! authState.needCompleteRegistration) {
+                requestSender.localRedirect('simulations');
+                return;
+            }
             function handleResponse(data) {
                 if (data.state === 'ok') {
                     $scope.showWarning = false;
@@ -2692,15 +2698,50 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
         restrict: 'A',
         scope: {
             field: '=',
+            fieldDelegate: '<',
             model: '=',
             modelName: '=',
-            update: '&',
         },
         template: [
-            '<input id="{{ modelName }}-{{ field }}-range" type="range" data-ng-model="model[field]" data-ng-change="update()()">',
+            '<input id="{{ modelName }}-{{ field }}-range" type="range" data-ng-model="model[field]" data-ng-change="fieldDelegate.update()">',
             '<span class="valueLabel">{{ model[field] }}{{ model.units }}</span>',
         ].join(''),
         controller: function($scope) {
+            var slider;
+
+            var delegate = $scope.fieldDelegate;
+            if (! delegate || $.isEmptyObject(delegate)) {
+                delegate = panelState.getFieldDelegate($scope.modelName, $scope.field);
+            }
+
+            function update() {
+                updateReadout();
+                updateSlider();
+            }
+
+            function updateSlider() {
+                var r = delegate.range();
+                slider.attr('min', r.min);
+                slider.attr('step', r.step);
+                slider.attr('max', r.max);
+            }
+
+            function updateReadout() {
+                panelState.setFieldLabel($scope.modelName, $scope.field, delegate.readout());
+            }
+
+            appState.watchModelFields($scope, (delegate.watchFields || []), update);
+
+            appState.whenModelsLoaded($scope, function () {
+                slider = $('#' + $scope.modelName + '-' + $scope.field + '-range');
+                update();
+                // on load, the slider will coerce model values to fit the basic input model of range 0-100,
+                // step 1.  This resets to the saved value
+                var val = delegate.storedVal;
+                if ((val || val === 0) && $scope.model[$scope.field] != val) {
+                    $scope.model[$scope.field] = val;
+                }
+            });
         },
     };
 });

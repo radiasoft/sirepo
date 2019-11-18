@@ -3,6 +3,10 @@
   cursor: move;
   border: solid 2px #777;
 }
+.sr-lattice-item.sr-item-selected {
+  background-color: blue;
+  border-color: blue;
+}
 
 .sr-lattice-item:hover, .sr-lattice-item.drag-over {
   border-color: black;
@@ -51,6 +55,7 @@
 .sr-lattice-icon {
   background-color: #222;
   border-color: #222;
+  border-radius: 0;
 }
 
 .sr-lattice-icon-disabled {
@@ -59,7 +64,7 @@
 }
 
 div.sr-lattice-icon-disabled span {
-    cursor: not-allowed;
+  cursor: not-allowed;
 }
 
 .sr-lattice-editor-panel {
@@ -67,8 +72,17 @@ div.sr-lattice-icon-disabled span {
 }
 
 .sr-editor-item-hover:hover .sr-lattice-close-icon {
-      visibility: visible;
+  visibility: visible;
 }
 .sr-editor-item-hover .sr-lattice-close-icon:hover {
-    color: #000;
+  color: #000;
+}
+.sr-selected-lattice-item {
+  fill: yellow !important;
+  stroke: black !important;
+  stroke-width: 0.01 !important;
+}
+
+.sr-lattice rect, .sr-lattice polygon, .sr-lattice line, .sr-lattice path, .sr-lattice ellipse, .sr-lattice circle {
+  cursor: pointer;
 }

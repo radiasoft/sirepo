@@ -37,7 +37,6 @@ RTDOSE_EXPORT_FILENAME = 'dose.dcm'
 PRESCRIPTION_FILENAME = 'prescription.json'
 SIM_TYPE = 'rs4pi'
 WANT_BROWSER_FRAME_CACHE = True
-RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 DOSE_CALC_SH = 'dose_calc.sh'
 DOSE_CALC_OUTPUT = 'Full_Dose.h5'
 _DICOM_CLASS = {
@@ -46,7 +45,6 @@ _DICOM_CLASS = {
     'RT_STRUCT': '1.2.840.10008.5.1.4.1.1.481.3',
     'DETATCHED_STUDY': '1.2.840.10008.3.1.2.3.1',
 }
-_BEAMLIST_FILENAME = 'beamlist_72deg.txt'
 _DICOM_DIR = 'dicom'
 _DICOM_MAX_VALUE = 1000
 _DICOM_MIN_VALUE = -1000
@@ -88,42 +86,6 @@ def copy_related_files(data, source_path, target_path):
     pkio.mkdir_parent(str(dicom_dir))
     for f in glob.glob(str(py.path.local(source_path).join(_DICOM_DIR, '*'))):
         py.path.local(f).copy(dicom_dir)
-
-
-def fixup_old_data(data):
-    if 'dicomEditorState' not in data['models']:
-        data['models']['dicomEditorState'] = {}
-    if 'doseCalculation' not in data['models']:
-        data['models']['doseCalculation'] = {
-            'selectedPTV': '',
-            'selectedOARs': [],
-        }
-    if 'dicomDose' not in data['models']:
-        data['models']['dicomDose'] = {
-            'frameCount': 0,
-        }
-    if 'dicomAnimation4' not in data['models']:
-        anim = data['models']['dicomAnimation']
-        data['models']['dicomAnimation4'] = {
-            'dicomPlane': 't',
-            'startTime': anim['startTime'] if 'startTime' in anim else 0,
-        }
-    if 'dvhReport' not in data['models']:
-        data['models']['dvhReport'] = {
-            'roiNumber': '',
-        }
-    if 'dvhType' not in data['models']['dvhReport']:
-        dvhReport = data['models']['dvhReport']
-        dvhReport['dvhType'] = 'cumulative'
-        dvhReport['dvhVolume'] = 'relative'
-    if 'roiNumbers' not in data['models']['dvhReport']:
-        dvhReport = data['models']['dvhReport']
-        if 'roiNumber' in dvhReport:
-            if dvhReport['roiNumber']:
-                dvhReport['roiNumbers'] = [dvhReport['roiNumber']]
-            del dvhReport['roiNumber']
-    if 'doseTransparency' not in data['models']['dicomAnimation4']:
-        data['models']['dicomAnimation4']['doseTransparency'] = 56
 
 
 def generate_rtdose_file(data, run_dir):
@@ -182,18 +144,6 @@ def generate_rtdose_file(data, run_dir):
         return _summarize_rt_dose(None, ds, run_dir=run_dir)
 
 
-def get_animation_name(data):
-    if data['modelName'].startswith('dicomAnimation'):
-        return 'dicomAnimation'
-    if data['modelName'] == 'dicomDose':
-        # if the doseCalculation has been run, use that directory for work
-        # otherwise, it is an imported dose file
-        if simulation_db.simulation_dir(SIM_TYPE, simulation_db.parse_sid(data)).join('doseCalculation').exists():
-            return 'doseCalculation'
-        return 'dicomAnimation'
-    return data['modelName']
-
-
 def get_application_data(data):
     if data['method'] == 'roi_points':
         return _read_roi_file(data['simulationId'])
@@ -244,18 +194,6 @@ def import_file(request, lib_dir=None, tmp_dir=None):
     return data
 
 
-def lib_files(data, source_lib):
-    return template_common.filename_to_path([_BEAMLIST_FILENAME], source_lib)
-
-
-def models_related_to_report(data):
-    if data['report'] == 'doseCalculation':
-        return []
-    if data['report'] == 'dvhReport':
-        return [data['report'], 'dicomDose']
-    return [data['report']]
-
-
 def prepare_for_client(data):
     if _TMP_INPUT_FILE_FIELD in data['models']['simulation']:
         _move_import_file(data)
@@ -264,10 +202,6 @@ def prepare_for_client(data):
 
 def remove_last_frame(run_dir):
     pass
-
-
-def resource_files():
-    return pkio.sorted_glob(RESOURCE_DIR.join('beamlist*.txt'))
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -294,16 +228,15 @@ def write_parameters(data, run_dir, is_parallel):
                     'oar': oar_names,
                 })
             pkjinja.render_file(
-                RESOURCE_DIR.join(DOSE_CALC_SH + '.jinja'),
+                _SIM_DATA.resource_path(DOSE_CALC_SH).new(ext='.jinja'),
                 {
                     'prescription': prescription,
-                    'beamlist': run_dir.join(_BEAMLIST_FILENAME),
+                    'beamlist': run_dir.join(_SIM_DATA.RS4PI_BEAMLIST_FILENAME),
                     'dicom_zip': _sim_file(data['simulationId'], _ZIP_FILE_NAME),
                 },
                 output=run_dir.join(DOSE_CALC_SH),
                 strict_undefined=True,
-            ),
-
+            )
 
 
 def _calculate_domain(frame):

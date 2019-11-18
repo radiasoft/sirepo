@@ -7,6 +7,7 @@ u"""PyTest for :mod:`sirepo.importer`
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkunit
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
 import pytest
 
@@ -29,22 +30,22 @@ def test_rpn():
     assert _rpn_value({
         'value': 'vlong',
         'variables': [
-            {
+            PKDict({
                 'name': 'pi16',
                 'value': 'pi 16 /',
-            },
-            {
+            }),
+            PKDict({
                 'name': 'vlong',
                 'value': '((pi32 + 1) * (pi16 + 1)) / 2 + vsum',
-            },
-            {
+            }),
+            PKDict({
                 'name': 'pi32',
                 'value': 'pi / 32',
-            },
-            {
+            }),
+            PKDict({
                 'name': 'vsum',
                 'value': 'pi16 + pi32',
-            },
+            }),
         ],
     })['result'] == 0.951424752459004
     # error
@@ -55,7 +56,8 @@ def test_rpn():
 
 def _rpn_value(v):
     from sirepo.template import elegant
-    v['method'] = 'rpn_value'
+    v = PKDict(v)
+    v.method = 'rpn_value'
     if 'variables' not in v:
-        v['variables'] = []
+        v.variables = []
     return elegant.get_application_data(v)
