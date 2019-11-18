@@ -675,6 +675,8 @@
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""],
+            "horizontalPosition": ["Horizontal Center Position for Degree of Coherence Cuts [mm]", "Float", 0],
+            "verticalPosition": ["Vertical Center Position for Degree of Coherence Cuts [mm]", "Float", 0],
             "watchpointId": ["Evaluate at Watchpoint", "WatchPoint", 0],
             "calcCoherence": ["Calculate Degree of Coherence in Addition to Intensity", "Boolean", "0"]
         },
@@ -1518,6 +1520,14 @@
                     "integrationMethod",
                     "photonEnergyBandWidth",
                     "calcCoherence",
+                    [
+                       ["Horizontal", [
+                           "horizontalPosition"
+                       ]],
+                       ["Vertical", [
+                           "verticalPosition"
+                       ]]
+                    ],
                     "notes"
                 ]],
                 ["Scale", [
