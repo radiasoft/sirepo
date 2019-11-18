@@ -313,6 +313,11 @@
     .sr-plot .axis text {
       font-size: 12px;
     }
+    .sr-plot .axis .tick text {
+      /* Arial Unicode MS has best support for unicode superscripts */
+      font-family: "Arial Unicode MS", Arial, sans-serif;
+      font-size: 13px;
+    }
     .sr-plot .axis path,
     .sr-plot .axis line {
       fill: none;

@@ -40,8 +40,6 @@ def run(cfg_dir):
             res = template.get_settings_report(py.path.local(cfg_dir), data)
         elif 'beamPositionReport' in data.report:
             res = template.get_beam_pos_report(py.path.local(cfg_dir), data)
-        elif 'watchpointReport' in data.report:
-            res = template.get_centroid_report(py.path.local(cfg_dir), data)
         else:
             assert False, 'unknown report: {}'.format(data.report)
         simulation_db.write_result(res)

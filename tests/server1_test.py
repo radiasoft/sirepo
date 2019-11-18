@@ -15,6 +15,7 @@ _MIN_SERIAL = 10000000
 def test_1_serial_stomp():
     from pykern.pkdebug import pkdp, pkdpretty
     from pykern.pkunit import pkfail, pkok
+    from pykern.pkcollections import PKDict
     from sirepo import srunit
     import copy
 
@@ -29,13 +30,13 @@ def test_1_serial_stomp():
         pkfail("{}: Young's not found", pkdpretty(data))
     data = fc.sr_get_json(
         'simulationData',
-        {
-            'simulation_type': sim_type,
-            'pretty': '0',
-            'simulation_id': youngs['simulationId'],
-        },
+        PKDict(
+            simulation_type=sim_type,
+            pretty='0',
+            simulation_id=youngs.simulationId,
+        ),
     )
-    prev_serial = data['models']['simulation']['simulationSerial']
+    prev_serial = data.models.simulation.simulationSerial
     prev_data = copy.deepcopy(data)
     pkok(
         prev_serial > _MIN_SERIAL,

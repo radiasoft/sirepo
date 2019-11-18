@@ -5,6 +5,7 @@ u"""HTTP Basic Auth Login
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 from pykern import pkconfig
 import flask
 
@@ -26,7 +27,8 @@ def require_user():
 
 def _cfg_uid(value):
     from sirepo import simulation_db
-
+    if value and value == 'dev-no-validate' and pkconfig.channel_in_internal_test():
+        return value
     assert simulation_db.user_dir_name(value).check(dir=True), \
         'uid={} does not exist'.format(value)
     return value
@@ -42,3 +44,7 @@ def init_apis(*args, **kwargs):
         uid=pkconfig.Required(_cfg_uid, 'single user allowed to login with basic auth'),
         password=pkconfig.Required(str, 'password for uid'),
     )
+
+
+def validate_login(*args, **kwargs):
+    return None

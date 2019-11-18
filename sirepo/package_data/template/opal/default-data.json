@@ -1,0 +1,22 @@
+{
+    "models": {
+        "beamlines": [],
+        "commands": [],
+        "elements": [],
+        "simulation": {
+            "folder": "/",
+            "name": "default",
+            "simulationId": "NE4pnakI",
+            "simulationSerial": 1542066443718959
+        },
+        "twissReport": {
+            "includeLattice": "1",
+            "notes": "",
+            "y1": "btx",
+            "y2": "bty",
+            "y3": "Dx"
+        }
+    },
+    "simulationType": "opal",
+    "version": "20181109.173737"
+}

@@ -3,7 +3,7 @@
     <div class="col-md-6 col-xl-4">
       <div data-basic-editor-panel="" data-view-name="epicsServerAnimation"></div>
     </div>
-    <div class="col-md-6 col-xl-4" data-ng-show="controls.isConnectedToEPICS()">
+    <div class="col-md-6 col-xl-4" data-ng-show="controls.isEpicsConnectionSuccessful">
       <div data-basic-editor-panel="" data-view-name="beamSteering">
         <div data-beam-steering-results=""></div>
       </div>
@@ -32,7 +32,7 @@
   <div class="row">
     <div data-ng-repeat="item in controls.watches track by $index">
       <div class="col-sm-6 col-md-3">
-        <div data-report-panel="parameter" data-model-name="watchpointReport" data-model-data="item" data-panel-title="{{ item.title }}"><div data-bpm-monitor="item"></div></div>
+        <div data-report-panel="bpmMonitor" data-model-name="watchpointReport" data-model-data="item" data-panel-title="{{ item.title }}"></div>
       </div>
     </div>
   </div>

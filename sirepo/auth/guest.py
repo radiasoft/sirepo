@@ -39,9 +39,7 @@ def api_authGuestLogin(simulation_type):
     # if already logged in as guest, just redirect
     if auth.user_if_logged_in(AUTH_METHOD):
         return auth.login_success_redirect(t)
-    auth.login(this_module, sim_type=t)
-    auth.complete_registration()
-    return auth.login_success_redirect(t)
+    return auth.login(this_module, sim_type=t)
 
 
 def init_apis(*args, **kwargs):

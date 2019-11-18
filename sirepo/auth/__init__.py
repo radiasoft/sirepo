@@ -55,13 +55,13 @@ _AVATAR_SIZE = 40
 _uwsgi = None
 
 #: methods + deprecated_methods
-valid_methods = []
+valid_methods = None
 
 #: Methods that the user is allowed to see
-visible_methods = []
+visible_methods = None
 
 #: visible_methods excluding guest
-non_guest_methods = []
+non_guest_methods = None
 
 
 @api_perm.require_cookie_sentinel
@@ -152,28 +152,28 @@ def guest_uids():
 
 
 def init_apis(app, *args, **kwargs):
-    global uri_router, simulation_db, _app, cfg
+    global uri_router, simulation_db, _app, cfg, visible_methods, valid_methods, non_guest_methods
     assert not _METHOD_MODULES
 
     cfg = pkconfig.init(
-        methods=((METHOD_GUEST,), tuple, 'for logging in'),
-        deprecated_methods=(tuple(), tuple, 'for migrating to methods'),
+        methods=((METHOD_GUEST,), set, 'for logging in'),
+        deprecated_methods=(set(), set, 'for migrating to methods'),
     )
     uri_router = importlib.import_module('sirepo.uri_router')
     simulation_db = importlib.import_module('sirepo.simulation_db')
     auth_db.init(app)
     _app = app
-    this_module = pkinspect.this_module()
-    p = this_module.__name__
-    valid_methods.extend(cfg.methods + cfg.deprecated_methods)
+    p = pkinspect.this_module().__name__
+    visible_methods = []
+    valid_methods = cfg.methods.union(cfg.deprecated_methods)
     for n in valid_methods:
         m = importlib.import_module(pkinspect.module_name_join((p, n)))
         uri_router.register_api_module(m)
         _METHOD_MODULES[n] = m
         if m.AUTH_METHOD_VISIBLE and n in cfg.methods:
             visible_methods.append(n)
-        setattr(this_module, n, m)
-    non_guest_methods.extend([m for m in visible_methods if m != METHOD_GUEST])
+    visible_methods = tuple(visible_methods)
+    non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
     cookie.auth_hook_from_header = _auth_hook_from_header
 
 
@@ -279,10 +279,13 @@ def login_fail_redirect(sim_type=None, module=None, reason=None):
 def login_success_redirect(sim_type):
     if sim_type:
         if cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION:
-            return http_reply.gen_redirect_for_local_route(
-                sim_type,
-                'completeRegistration',
-            )
+            if cookie.get_value(_COOKIE_METHOD) == METHOD_GUEST:
+                complete_registration()
+            else:
+                return http_reply.gen_redirect_for_local_route(
+                    sim_type,
+                    'completeRegistration',
+                )
     return http_reply.gen_redirect_for_root(sim_type)
 
 
@@ -302,6 +305,7 @@ def require_auth_basic():
             status=401,
             headers={'WWW-Authenticate': 'Basic realm="*"'},
         )
+    cookie.set_sentinel()
     return login(m, uid=uid)
 
 
@@ -413,6 +417,17 @@ def _auth_hook_from_header(values):
     """
     if values.get(_COOKIE_STATE):
         # normal case: we've seen a cookie at least once
+        # check for cfg.methods changes
+        m = values.get(_COOKIE_METHOD)
+        if m and m not in valid_methods:
+            # invalid method (changed config), reset state
+            pkdlog('possibly misconfigured server: invalid cookie_method={}, clearing values={}', values)
+            pkcollections.unchecked_del(
+                values,
+                _COOKIE_METHOD,
+                _COOKIE_USER,
+                _COOKIE_STATE,
+            )
         return values
     u = values.get('sru') or values.get('uid')
     if not u:

@@ -5,11 +5,10 @@ u"""Flask routes
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo.template import adm
 from sirepo import api_perm
 from sirepo import feature_config
 from sirepo import http_reply
@@ -19,17 +18,17 @@ from sirepo import runner_client
 from sirepo import simulation_db
 from sirepo import srdb
 from sirepo import uri_router
-from sirepo import util
+from sirepo.template import adm
 from sirepo.template import template_common
 import datetime
 import flask
-import glob
-import os.path
 import py.path
 import re
+import sirepo.sim_data
 import sirepo.template
-import sys
+import sirepo.util
 import time
+import urllib
 import uuid
 import werkzeug
 import werkzeug.exceptions
@@ -73,11 +72,11 @@ def api_copyNonSessionSimulation():
     )
     if 'report' in data:
         del data['report']
-    data['models']['simulation']['isExample'] = False
-    data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
+    data.models.simulation.isExample = False
+    data.models.simulation.outOfSessionSimulationId = req.simulationId
     res = _save_new_and_reply(data)
-    target = simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))
-    template_common.copy_lib_files(
+    target = simulation_db.simulation_dir(sim_type, data.models.simulation.simulationId)
+    sirepo.sim_data.get_class(sim_type).lib_files_copy(
         data,
         simulation_db.lib_dir_from_sim_dir(src),
         simulation_db.lib_dir_from_sim_dir(target),
@@ -94,7 +93,8 @@ def api_copySimulation():
     req = http_request.parse_json()
     sim_type = req.simulationType
     name = req.name
-    assert name, util.err(req, 'No name in request')
+    assert name, \
+        sirepo.util.err(req, 'No name in request')
     folder = req.folder if 'folder' in req else '/'
     data = simulation_db.read_simulation_json(sim_type, sid=req.simulationId)
     data.models.simulation.name = name
@@ -130,36 +130,33 @@ def api_deleteSimulation():
 
 @api_perm.require_user
 def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
-    data = {
-        'simulationType': sirepo.template.assert_sim_type(simulation_type),
-        'simulationId': simulation_id,
-        'modelName': model,
-    }
-    options = pkcollections.Dict(data)
-    options.suffix = suffix
-    frame = int(frame)
-    template = sirepo.template.import_module(data)
-    if frame >= 0:
-        data['report'] = template.get_animation_name(data)
-    else:
-        data['report'] = model
-    run_dir = simulation_db.simulation_run_dir(data)
-    filename, content, content_type = template.get_data_file(run_dir, model, frame, options=options)
-    return _as_attachment(flask.make_response(content), content_type, filename)
+    data = PKDict(
+        simulationType=sirepo.template.assert_sim_type(simulation_type),
+        simulationId=simulation_id,
+        modelName=model,
+    )
+    f = int(frame)
+    t = sirepo.template.import_module(data)
+    data.report = sirepo.sim_data.get_class(simulation_type).animation_name(data) \
+        if f >= 0 else model
+    f, c, t = t.get_data_file(
+        simulation_db.simulation_run_dir(data),
+        model,
+        f,
+        options=data.copy().update(suffix=suffix),
+    )
+    return _as_attachment(flask.make_response(c), t, f)
 
 
 @api_perm.require_user
 def api_downloadFile(simulation_type, simulation_id, filename):
     #TODO(pjm): simulation_id is an unused argument
-    lib = simulation_db.simulation_lib_dir(simulation_type)
-    filename = werkzeug.secure_filename(filename)
-    p = lib.join(filename)
-    if simulation_type == 'srw':
-        attachment_name = filename
-    else:
+    n = werkzeug.secure_filename(filename)
+    p = simulation_db.simulation_lib_dir(simulation_type).join(n)
+    if simulation_type != 'srw':
         # strip file_type prefix from attachment filename
-        attachment_name = re.sub(r'^.*?-.*?\.', '', filename)
-    return flask.send_file(str(p), as_attachment=True, attachment_filename=attachment_name)
+        n = re.sub(r'^.*?-.*?\.', '', n)
+    return flask.send_file(str(p), as_attachment=True, attachment_filename=n)
 
 
 @api_perm.allow_visitor
@@ -209,28 +206,25 @@ def api_favicon():
 @api_perm.require_user
 def api_listFiles(simulation_type, simulation_id, file_type):
     #TODO(pjm): simulation_id is an unused argument
-    file_type = werkzeug.secure_filename(file_type)
-    if simulation_type == 'srw':
-        #TODO(pjm): special handling for srw, file_type not included in filename
-        res = sirepo.template.import_module(simulation_type).get_file_list(file_type)
-    else:
-        res = []
-        search = ['{}.*'.format(file_type)]
-        d = simulation_db.simulation_lib_dir(simulation_type)
-        for extension in search:
-            for f in glob.glob(str(d.join(extension))):
-                if os.path.isfile(f):
-                    filename = os.path.basename(f)
-                    # strip the file_type prefix
-                    filename = filename[len(file_type) + 1:]
-                    res.append(filename)
-    res.sort()
-    return http_reply.gen_json(res)
+    return http_reply.gen_json(
+        sorted(
+            sirepo.sim_data.get_class(simulation_type).lib_files_for_type(
+                werkzeug.secure_filename(file_type),
+            ),
+        ),
+    )
 
-
-@api_perm.allow_cookieless_require_user
+@api_perm.allow_visitor
 def api_findByName(simulation_type, application_mode, simulation_name):
+    return http_reply.gen_redirect_for_anchor(
+        '/{}#/findByName/{}/{}'.format(simulation_type, application_mode, simulation_name))
+
+
+@api_perm.require_user
+def api_findByNameWithAuth(simulation_type, application_mode, simulation_name):
     sim_type = sirepo.template.assert_sim_type(simulation_type)
+    #TODO(pjm): need to unquote when redirecting from saved cookie redirect?
+    simulation_name = urllib.unquote(simulation_name)
     # use the existing named simulation, or copy it from the examples
     rows = simulation_db.iterate_simulation_datafiles(
         sim_type,
@@ -254,7 +248,7 @@ def api_findByName(simulation_type, application_mode, simulation_name):
             )
             break
         else:
-            util.raise_not_found(
+            sirepo.util.raise_not_found(
                 'simulation not found by name={} type={}',
                 simulation_name,
                 sim_type,
@@ -329,11 +323,11 @@ def api_importFile(simulation_type=None):
         assert f, \
             ValueError('must supply a file')
         if pkio.has_file_extension(f.filename, 'json'):
-            data = sirepo.importer.read_json(f.read(), template)
+            data = sirepo.importer.read_json(f.read(), simulation_type)
         #TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
         # (dicom input is normally a zip file)
         elif pkio.has_file_extension(f.filename, 'zip') and simulation_type != 'rs4pi':
-            data = sirepo.importer.read_zip(f.stream, template)
+            data = sirepo.importer.read_zip(f.stream, sim_type=simulation_type)
         else:
             assert simulation_type, \
                 'simulation_type is required param for non-zip|json imports'
@@ -368,7 +362,7 @@ def api_homePage(path_info=None):
 
 @api_perm.allow_visitor
 def api_homePageOld():
-    return _render_root_page('landing-page', pkcollections.Dict())
+    return _render_root_page('landing-page', PKDict())
 
 
 @api_perm.require_user
@@ -389,20 +383,15 @@ def api_newSimulation():
 
 @api_perm.require_user
 def api_pythonSource(simulation_type, simulation_id, model=None, report=None):
-    import string
-    data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
-    template = sirepo.template.import_module(data)
-    sim_name = data.models.simulation.name.lower()
-    report_rider = '' if report is None else '-' + report.lower()
-    py_name = sim_name + report_rider
-    py_name = re.sub(r'[\"&\'()+,/:<>?\[\]\\`{}|]', '', py_name)
-    py_name = re.sub(r'\s', '-', py_name)
-    return _as_attachment(
-        flask.make_response(template.python_source_for_model(data, model)),
-        'text/x-python',
-        '{}.py'.format(py_name),
+    d = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
+    return _safe_attachment(
+        flask.make_response(
+            sirepo.template.import_module(d)\
+                .python_source_for_model(d, model),
+        ),
+        d.models.simulation.name + ('-' + report if report else ''),
+        'py',
     )
-
 
 @api_perm.allow_visitor
 def api_robotsTxt():
@@ -433,8 +422,8 @@ def api_root(simulation_type):
         if simulation_type == 'fete':
             return http_reply.gen_redirect_for_root('warpvnd', code=301)
         pkdlog('{}: uri not found', simulation_type)
-        util.raise_not_found('Invalid simulation_type: {}', simulation_type)
-    values = pkcollections.Dict()
+        sirepo.util.raise_not_found('Invalid simulation_type: {}', simulation_type)
+    values = PKDict()
     values.app_name = simulation_type
     return _render_root_page('index', values)
 
@@ -444,7 +433,7 @@ def api_runCancel():
     data = _parse_data_input()
     jid = simulation_db.job_id(data)
     if feature_config.cfg.runner_daemon:
-        jhash = template_common.report_parameters_hash(data)
+        jhash = sirepo.sim_data.get_class(data).compute_job_hash(data)
         run_dir = simulation_db.simulation_run_dir(data)
         runner_client.cancel_report_job(run_dir, jhash)
         # Always true from the client's perspective
@@ -483,7 +472,7 @@ def api_runSimulation():
     # - if status is bad, rewrite the run dir (XX race condition, to fix later)
     # - then request it be started
     if feature_config.cfg.runner_daemon:
-        jhash = template_common.report_parameters_hash(data)
+        jhash = sirepo.sim_data.get_class(data).compute_job_hash(data)
         run_dir = simulation_db.simulation_run_dir(data)
         status = runner_client.report_job_status(run_dir, jhash)
         already_good_status = [runner_client.JobStatus.RUNNING,
@@ -564,10 +553,10 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
             pretty=pretty,
         )
         if pretty:
-            _as_attachment(
+            _safe_attachment(
                 resp,
-                http_reply.MIME_TYPE.json,
-                '{}.json'.format(data.models.simulation.name),
+                data.models.simulation.name,
+                'json',
             )
     except simulation_db.CopyRedirect as e:
         if e.sr_response['redirect'] and section:
@@ -578,11 +567,10 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
 
 @api_perm.require_user
 def api_simulationFrame(frame_id):
-    #TODO(robnagler) startTime is reportParametersHash; need version on URL and/or param names in URL
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
-    data = dict(zip(keys, frame_id.split('*')))
+    data = PKDict(dict(zip(keys, frame_id.split('*'))))
     template = sirepo.template.import_module(data)
-    data['report'] = template.get_animation_name(data)
+    data['report'] = sirepo.sim_data.get_class(data.simulationType).animation_name(data)
     run_dir = simulation_db.simulation_run_dir(data)
     model_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if feature_config.cfg.runner_daemon:
@@ -590,7 +578,7 @@ def api_simulationFrame(frame_id):
         # call. Since it doesn't, we have to read it out of the run_dir, which
         # creates a race condition -- we might return a frame from a different
         # version of the report than the one the frontend expects.
-        jhash = template_common.report_parameters_hash(model_data)
+        jhash = sirepo.sim_data.get_class(model_data).compute_job_hash(data)
         frame = runner_client.run_extract_job(
             run_dir, jhash, 'get_simulation_frame', data,
         )
@@ -633,7 +621,7 @@ def api_getServerData():
     id = input.id if 'id' in input else None
     d = adm.get_server_data(id)
     if d == None or len(d) == 0:
-        return _simulation_error('Data error')
+        raise sirepo.util.UserAlert('Data error', 'no data supplied')
     return http_reply.gen_json(d)
 
 
@@ -646,7 +634,7 @@ def api_simulationSchema():
 
 @api_perm.allow_visitor
 def api_srwLight():
-    return _render_root_page('light', pkcollections.Dict())
+    return _render_root_page('light', PKDict())
 
 
 @api_perm.allow_visitor
@@ -710,7 +698,7 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
         f.save(str(p))
         template = sirepo.template.import_module(simulation_type)
         if hasattr(template, 'validate_file'):
-            err = template.validate_file(file_type, str(p))
+            err = template.validate_file(file_type, p)
             if err:
                 pkio.unchecked_remove(p)
     if err:
@@ -821,13 +809,23 @@ def _parse_data_input(validate=False):
 
 
 def _render_root_page(page, values):
-    values.update(pkcollections.Dict(
+    values.update(PKDict(
         app_version=simulation_db.app_version(),
         source_cache_key=_source_cache_key(),
         static_files=simulation_db.static_libs(),
     ))
     return http_reply.render_static(page, 'html', values, cache_ok=True)
 
+
+def _safe_attachment(resp, base, suffix):
+    return _as_attachment(
+        resp,
+        http_reply.MIME_TYPE[suffix],
+        '{}.{}'.format(
+            re.sub(r'[^\w]+', '-', base).strip('-') or 'download',
+            suffix,
+        ).lower(),
+    )
 
 def _save_new_and_reply(*args):
     data = simulation_db.save_new_simulation(*args)
@@ -838,17 +836,20 @@ def _save_new_and_reply(*args):
     )
 
 
-def _simulation_error(err, *args, **kwargs):
+def _simulation_error(exc, err, *args, **kwargs):
     """Something unexpected went wrong.
 
     Parses ``err`` for error
 
     Args:
+        exc (exception): may be None
         err (str): exception or run_log
         quiet (bool): don't write errors to log
     Returns:
         dict: error response
     """
+    if isinstance(exc, sirepo.util.UserAlert):
+        raise exc
     if not kwargs.get('quiet'):
         pkdlog('{}', ': '.join([str(a) for a in args] + ['error', err]))
     m = re.search(_SUBPROCESS_ERROR_RE, str(err))
@@ -885,7 +886,7 @@ def _simulation_run_status_runner_daemon(data, quiet=False):
     """
     try:
         run_dir = simulation_db.simulation_run_dir(data)
-        jhash = template_common.report_parameters_hash(data)
+        jhash = sirepo.sim_data.get_class(data).compute_job_hash(data)
         status = runner_client.report_job_status(run_dir, jhash)
         is_running = status is runner_client.JobStatus.RUNNING
         rep = simulation_db.report_info(data)
@@ -924,7 +925,7 @@ def _simulation_run_status_runner_daemon(data, quiet=False):
             res['nextRequestSeconds'] = simulation_db.poll_seconds(rep.cached_data)
             res['nextRequest'] = {
                 'report': rep.model_name,
-                'reportParametersHash': rep.cached_hash,
+                'computeJobHash': rep.cached_hash,
                 'simulationId': rep.cached_data['simulationId'],
                 'simulationType': rep.cached_data['simulationType'],
             }
@@ -937,8 +938,8 @@ def _simulation_run_status_runner_daemon(data, quiet=False):
             rep.cached_hash,
             rep.req_hash,
         )
-    except Exception:
-        return _simulation_error(pkdexc(), quiet=quiet)
+    except Exception as e:
+        return _simulation_error(e, pkdexc(), quiet=quiet)
     return res
 
 
@@ -974,6 +975,7 @@ def _simulation_run_status(data, quiet=False):
         if is_processing:
             if not rep.cached_data:
                 return _simulation_error(
+                    None,
                     'input file not found, but job is running',
                     rep.input_file,
                 )
@@ -1020,7 +1022,7 @@ def _simulation_run_status(data, quiet=False):
             res['nextRequestSeconds'] = simulation_db.poll_seconds(rep.cached_data)
             res['nextRequest'] = {
                 'report': rep.model_name,
-                'reportParametersHash': rep.cached_hash,
+                'computeJobHash': rep.cached_hash,
                 'simulationId': rep.cached_data['simulationId'],
                 'simulationType': rep.cached_data['simulationType'],
             }
@@ -1033,18 +1035,16 @@ def _simulation_run_status(data, quiet=False):
             rep.cached_hash,
             rep.req_hash,
         )
-    except Exception:
-        return _simulation_error(pkdexc(), quiet=quiet)
+    except Exception as e:
+        return _simulation_error(e, pkdexc(), quiet=quiet)
     return res
 
 
 def _simulations_using_file(simulation_type, file_type, search_name, ignore_sim_id=None):
     res = []
-    template = sirepo.template.import_module(simulation_type)
-    if not hasattr(template, 'validate_delete_file'):
-        return res
+    s = sirepo.sim_data.get_class(simulation_type)
     for row in simulation_db.iterate_simulation_datafiles(simulation_type, _simulation_data):
-        if template.validate_delete_file(row, search_name, file_type):
+        if s.is_file_used(row, search_name):
             sim = row['models']['simulation']
             if ignore_sim_id and sim['simulationId'] == ignore_sim_id:
                 continue

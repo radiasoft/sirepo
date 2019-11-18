@@ -8,10 +8,12 @@
         "sirepoLibs": {
             "js": [
                 "elegant.js",
+                "sirepo-command.js",
                 "sirepo-lattice.js"
             ],
              "css": [
                  "elegant.css",
+                 "command.css",
                  "lattice.css"
             ]
        }
@@ -34,7 +36,7 @@
             "route": "/control/:simulationId",
             "config": {
               "controller": "CommandController as control",
-              "templateUrl": "/static/html/elegant-control.html"
+              "template": "<div data-command-tab=\"\" data-controller=\"control\"></div>"
             }
         },
         "visualization": {

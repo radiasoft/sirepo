@@ -5,11 +5,14 @@ u"""elegant command parser.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
+from sirepo.template.line_parser import LineParser
 import re
 
-from sirepo.template.line_parser import LineParser
 
 _SKIP_COMMANDS = ['subprocess']
+
 
 def parse_file(command_text):
     parser = LineParser(0)
@@ -82,10 +85,10 @@ def _parse_line(parser, line, commands):
     parser.set_line(line)
     parser.ignore_whitespace()
     parser.assert_char('&')
-    command = {
-        '_id': parser.next_id(),
-        '_type': parser.parse_value(r'\s+'),
-    }
+    command = PKDict(
+        _id=parser.next_id(),
+        _type=parser.parse_value(r'\s+'),
+    )
     if command['_type'] == 'stop':
         return False
     parser.ignore_whitespace()

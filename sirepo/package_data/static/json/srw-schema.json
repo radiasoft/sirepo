@@ -2,7 +2,8 @@
     "dynamicFiles": {
         "externalLibs": {
             "js": [
-                "dom-to-image.min.js"
+                "dom-to-image.min.js",
+                "vtk.js"
             ]
         },
         "sirepoLibs": {
@@ -195,7 +196,7 @@
             ["1", "Auto-Undulator"],
             ["2", "Auto-Wiggler"]
         ],
-        "IntensityPlotsScale": [
+        "PlotScale": [
             ["linear", "Linear"],
             ["log10", "Base-10 Logarithm"],
             ["log", "Natural Logarithm"],
@@ -274,6 +275,10 @@
             ["1", "Near Field"],
             ["2", "Far Field"]
         ],
+        "Projection3D": [
+            ["parallel", "Parallel"],
+            ["perspective", "Perspective"]
+        ],
         "RandomGenerationMethod": [
             ["1", "Standard Pseudo-Random Number Generator"],
             ["2", "Halton Sequences"],
@@ -348,6 +353,13 @@
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
+        "beamline3DReport": {
+            "projection": ["3D Projection", "Projection3D", "parallel"],
+            "showLabels": ["Show Labels", "Boolean", "1"],
+            "showPosition": ["Show Position in Label", "Boolean", "1"],
+            "condenseBeamline": ["Condense Beamline", "Boolean", "1", "Rescale the transverse distances to fit a smaller area"],
+            "includeSource": ["Include Beam Source", "Boolean", "1"]
+        },
         "brillianceReport": {
             "minDeflection": ["Minimum Deflecting Parameter (K)", "Float", 0.2],
             "initialHarmonic": ["Initial Harmonic", "Integer", 1],
@@ -358,17 +370,18 @@
             "brightnessComponent": ["Scan Type", "BrightnessComponent", "k-tuning"],
             "energyDelta": ["Energy Delta [eV]", "Float", 10, "", 1, 1000],
             "harmonic": ["Harmonic", "HarmonicList", "5"],
+            "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "notes": ["Notes", "Text", ""]
         },
         "coherenceXAnimation": {
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"]
         },
         "coherenceYAnimation": {
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"]
         },
@@ -396,7 +409,7 @@
         "crystal": {
             "title": ["Element Name", "String", "Crystal"],
             "position": ["Nominal Position [m]", "Float"],
-            "material": ["Material", "CrystalMaterial", "Unknown"],
+            "material": ["Material", "CrystalMaterial", "Si (SRW)"],
             "h": ["h", "MillerIndicesRange", "1"],
             "k": ["k", "MillerIndicesRange", "1"],
             "l": ["l", "MillerIndicesRange", "1"],
@@ -511,6 +524,7 @@
             "precision": ["Relative Precision", "Float", 0.01],
             "fluxType": ["Entity to Calculate", "Flux", "1"],
             "polarization": ["Polarization Component to Extract", "Polarization", "6"],
+            "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "notes": ["Notes", "Text", ""]
         },
         "fluxReport": {
@@ -532,6 +546,7 @@
             "precision": ["Relative Precision", "Float", 0.01],
             "fluxType": ["Entity to Calculate", "Flux", "1"],
             "polarization": ["Polarization Component to Extract", "Polarization", "6"],
+            "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "notes": ["Notes", "Text", ""]
         },
         "gaussianBeam": {
@@ -580,7 +595,7 @@
             "copyCharacteristic": ["Use Characteristic Across Reports", "Boolean", "0"],
             "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "rotateAngle": ["Rotate Angle [deg]", "Float", 0, "Positive values rotate the image clockwise, negative - counterclockwise"],
             "rotateReshape": ["Fit Whole Image after Rotation?", "Boolean", "1", "If set to Yes, the output image is adapted so that the input image is contained completely in the output one"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
@@ -599,6 +614,7 @@
             "precision": ["Relative Precision", "Float", 0.01],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
+            "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "notes": ["Notes", "Text", ""]
         },
         "lens": {
@@ -644,7 +660,7 @@
         },
         "mirrorReport": {
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "notes": ["Notes", "Text", ""]
         },
         "multiElectronAnimation": {
@@ -652,7 +668,7 @@
             "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", 100000, "Number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation"],
             "integrationMethod": ["Multi-electron Integration Approximation Method", "MultiElectronIntegrationMethod", "0"],
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "rotateAngle": ["Rotate Angle [deg]", "Float", 0, "Positive values rotate the image clockwise, negative - counterclockwise"],
             "rotateReshape": ["Fit Whole Image after Rotation?", "Boolean", "1", "If set to Yes, the output image is adapted so that the input image is contained completely in the output one"],
             "photonEnergyBandWidth": ["Photon Energy Band Width [eV]", "Float", 0],
@@ -660,7 +676,7 @@
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""],
             "watchpointId": ["Evaluate at Watchpoint", "WatchPoint", 0],
-            "calcCoherence": ["Calculate Degree of Coherence in addition to Intensity", "Boolean", "0"]
+            "calcCoherence": ["Calculate Degree of Coherence in Addition to Intensity", "Boolean", "0"]
         },
         "multipole": {
             "field": ["Magnetic Field [T]", "Float"],
@@ -688,7 +704,7 @@
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer", 100],
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer", 100],
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "rotateAngle": ["Rotate Angle [deg]", "Float", 0, "Positive values rotate the image clockwise, negative - counterclockwise"],
             "rotateReshape": ["Fit Whole Image after Rotation?", "Boolean", "1", "If set to Yes, the output image is adapted so that the input image is contained completely in the output one"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
@@ -764,7 +780,7 @@
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
 	    "initialPosition": ["Initial Longitudinal Position for SR Calculation (effective if smaller than final position)", "Float", 0.0],
@@ -871,7 +887,7 @@
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "rotateAngle": ["Rotate Angle [deg]", "Float", 0, "Positive values rotate the image clockwise, negative - counterclockwise"],
             "rotateReshape": ["Fit Whole Image after Rotation?", "Boolean", "1", "If set to Yes, the output image is adapted so that the input image is contained completely in the output one"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
@@ -924,6 +940,16 @@
                 ]
             ]
         },
+        "beamline3DReport": {
+            "title": "Beamline",
+            "advanced": [
+                "projection",
+                "showLabels",
+                "showPosition",
+                "condenseBeamline",
+                "includeSource"
+            ]
+        },
         "brillianceReport": {
             "title": "Brightness",
             "basic": [],
@@ -937,6 +963,7 @@
                 "energyDelta",
                 "energyPointCount",
                 "reportType",
+                "plotScale",
                 "notes"
             ]
         },
@@ -946,7 +973,7 @@
             "advanced": [
                 ["Scale", [
                     "intensityPlotsWidth",
-                    "intensityPlotsScale"
+                    "plotScale"
                 ]],
                 ["Other", [
                     "colorMap",
@@ -960,7 +987,7 @@
             "advanced": [
                 ["Scale", [
                     "intensityPlotsWidth",
-                    "intensityPlotsScale"
+                    "plotScale"
                 ]],
                 ["Other", [
                     "colorMap",
@@ -1219,6 +1246,7 @@
                     ],
                     "fluxType",
                     "polarization",
+                    "plotScale",
                     "notes"
                 ]],
                 ["Accuracy", [
@@ -1254,6 +1282,7 @@
                     ],
                     "fluxType",
                     "polarization",
+                    "plotScale",
                     "notes"
                 ]],
                 ["Accuracy", [
@@ -1353,7 +1382,7 @@
                 ]],
                 ["Scale", [
                     "intensityPlotsWidth",
-                    "intensityPlotsScale"
+                    "plotScale"
                 ]],
 		["Rotation", [
 		    "rotateAngle",
@@ -1384,6 +1413,7 @@
                             "verticalPosition"
                         ]]
                     ],
+                    "plotScale",
                     "notes"
                 ]],
                 ["Accuracy", [
@@ -1492,7 +1522,7 @@
                 ]],
                 ["Scale", [
                     "intensityPlotsWidth",
-                    "intensityPlotsScale"
+                    "plotScale"
                 ]],
 		["Rotation", [
 		    "rotateAngle",
@@ -1549,7 +1579,7 @@
                 ]],
                 ["Scale", [
                     "intensityPlotsWidth",
-                    "intensityPlotsScale"
+                    "plotScale"
                 ]],
 		["Rotation", [
 		    "rotateAngle",
@@ -1680,7 +1710,7 @@
                 ]],
                 ["Scale", [
                     "intensityPlotsWidth",
-                    "intensityPlotsScale"
+                    "plotScale"
                 ]],
 		["Rotation", [
 		    "rotateAngle",
@@ -1879,7 +1909,7 @@
                 ]],
                 ["Scale", [
                     "intensityPlotsWidth",
-                    "intensityPlotsScale"
+                    "plotScale"
                 ]],
 		["Rotation", [
 		    "rotateAngle",

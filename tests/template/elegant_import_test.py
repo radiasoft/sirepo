@@ -28,8 +28,8 @@ class FlaskRequest(object):
 
 def test_importer():
     from pykern import pkcollections
-    from pykern import pkio
     from pykern.pkunit import pkeq
+    from sirepo.template import lattice
     from sirepo.template import elegant
 
     with pkunit.save_chdir_work():
@@ -50,24 +50,18 @@ def test_importer():
                     data['models']['commands'] = []
                     actual = '{}{}'.format(
                         elegant._generate_variables(data),
-                        elegant.generate_lattice(
-                            data,
+                        elegant._generate_lattice(
                             elegant._build_filename_map(data),
-                            elegant._build_beamline_map(data),
-                            pkcollections.Dict(),
+                            lattice.LatticeUtil(data, elegant._SCHEMA),
                         ),
                     )
                 else:
                     data2 = elegant.import_file(FlaskRequest('{}.lte'.format(fn)), test_data=data)
                     actual = elegant._generate_commands(
-                        data2,
                         elegant._build_filename_map(data2),
-                        elegant._build_beamline_map(data2),
-                        pkcollections.Dict(),
+                        lattice.LatticeUtil(data2, elegant._SCHEMA),
                     )
             outfile = fn.basename + '.txt'
             pkio.write_text(outfile, actual)
             expect = pkio.read_text(pkunit.data_dir().join(outfile))
-            #TODO(pjm): this takes too long if there are a lot of diffs
-            #assert expect == actual
             pkeq(expect, actual)

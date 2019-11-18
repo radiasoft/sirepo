@@ -116,7 +116,7 @@ class _JobTracker:
             # status should be recorded on disk XOR in memory
             assert run_dir not in self.report_jobs
             disk_in_text = pkio.read_text(disk_in_path)
-            disk_jhash = pkjson.load_any(disk_in_text).reportParametersHash
+            disk_jhash = pkjson.load_any(disk_in_text).computeJobHash
             disk_status = pkio.read_text(disk_status_path)
             if disk_status == 'pending':
                 # We never write this, so it must be stale, in which case

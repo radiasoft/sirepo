@@ -1,0 +1,181 @@
+{
+    "models": {
+        "anode": {
+            "diffProb": "0.0",
+            "isReflector": "0",
+            "refScheme": "rand_angle",
+            "specProb": "0.0"
+        },
+        "beam": {
+            "anode_voltage": 0.4,
+            "anode_work_function": 0.1,
+            "beam_current": 0.0025,
+            "cathode_temperature": 1273.15,
+            "cathode_work_function": 2,
+            "currentMode": "3",
+            "species": "Electron",
+            "x_radius": 0.055
+        },
+        "conductorGridReport": {},
+        "conductorTypes": [
+            {
+                "_super": "conductor",
+                "color": "#33bb33",
+                "diffProb": "0.0",
+                "file": "lattice_gate.stl",
+                "id": 2,
+                "isConductor": "1",
+                "isReflector": "0",
+                "name": "lattice_gate",
+                "permittivity": 7,
+                "refScheme": "uniform",
+                "scale": 1,
+                "specProb": "0.0",
+                "type": "stl",
+                "voltage": 10,
+                "xLength": 7,
+                "yLength": 7,
+                "zLength": 0.1
+            }
+        ],
+        "conductors": [
+            {
+                "conductorTypeId": 2,
+                "id": 2,
+                "xCenter": 0,
+                "yCenter": 0,
+                "zCenter": 2
+            }
+        ],
+        "currentAnimation": {
+            "framesPerSecond": "2",
+            "startTime": 1570033174
+        },
+        "egunCurrentAnimation": {
+            "framesPerSecond": "2",
+            "startTime": 1570033174
+        },
+        "fieldAnimation": {
+            "axes": "xz",
+            "colorMap": "viridis",
+            "displayMode": "3d",
+            "field": "phi",
+            "framesPerSecond": "2",
+            "notes": "",
+            "slice": 0,
+            "startTime": 1570033174,
+            "units": "\u00b5m"
+        },
+        "fieldCalcAnimation": {
+            "_super": "fieldReport",
+            "axes": "xz",
+            "colorMap": "viridis",
+            "notes": "",
+            "slice": 0,
+            "startTime": 1570033107,
+            "units": "\u00b5m"
+        },
+        "fieldCalculationAnimation": {},
+        "fieldComparisonAnimation": {
+            "_super": "fieldComparisonReport",
+            "dimension": "z",
+            "notes": "",
+            "startTime": 1570033107,
+            "xCell1": 0,
+            "xCell2": 5,
+            "xCell3": 11,
+            "yCell1": 0,
+            "yCell2": 0,
+            "yCell3": 0,
+            "zCell1": 39,
+            "zCell2": 64,
+            "zCell3": 64
+        },
+        "fieldComparisonReport": {
+            "dimension": "x",
+            "notes": "",
+            "xCell1": 0,
+            "xCell2": 5,
+            "xCell3": 11,
+            "yCell1": 0,
+            "yCell2": 0,
+            "yCell3": 0,
+            "zCell1": 0,
+            "zCell2": 256,
+            "zCell3": 512
+        },
+        "fieldReport": {
+            "axes": "xz",
+            "colorMap": "viridis",
+            "notes": "",
+            "slice": 0
+        },
+        "impactDensityAnimation": {
+            "colorMap": "coolwarm",
+            "notes": "",
+            "startTime": 1570033174
+        },
+        "optimizer": {
+            "constraints": [],
+            "continuousFieldSteps": 20,
+            "enabledFields": {},
+            "fields": [],
+            "initialSteps": 500,
+            "objective": "efficiency",
+            "optimizerSteps": 250,
+            "timeLimit": 60,
+            "tolerance": 0.001
+        },
+        "optimizerAnimation": {
+            "colorMap": "viridis",
+            "notes": "",
+            "x": 0,
+            "y": 1
+        },
+        "optimizerStatus": {},
+        "panelState": {
+            "hidden": []
+        },
+        "particle3d": {
+            "colorMap": "viridis",
+            "impactColorMap": "coolwarm",
+            "renderCount": "100",
+            "startTime": 1570033174
+        },
+        "particleAnimation": {
+            "renderCount": "100",
+            "startTime": 1570033174
+        },
+        "simulation": {
+            "conductorFile": "lattice_gate.stl",
+            "documentationUrl": "",
+            "egun_mode": "0",
+            "executionMode": "serial",
+            "folder": "/Examples",
+            "isExample": true,
+            "mpiCores": "0",
+            "name": "Lattice Gate 3D",
+            "notes": "",
+            "outOfSessionSimulationId": "",
+            "simulationId": "NBdPT0jN",
+            "simulationSerial": 1570034667210327,
+            "useConductorFile": "0"
+        },
+        "simulationGrid": {
+            "channel_height": 6.9,
+            "channel_width": 6.9,
+            "num_steps": 400,
+            "num_x": 64,
+            "num_y": 64,
+            "num_z": 128,
+            "particles_per_step": 640,
+            "plate_spacing": 5,
+            "simulation_mode": "3d",
+            "trace_period": 1,
+            "z_particle_min": 0.0048828125
+        },
+        "simulationStatus": {}
+    },
+    "simulationType": "warpvnd",
+    "version": "20191001.225555"
+}
