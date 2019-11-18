@@ -158,7 +158,11 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
         if (analysisModel == 'optimizerAnimation') {
             return analysisModel;
         }
-        if (analysisModel == 'fieldCalcAnimation' || analysisModel == 'fieldComparisonAnimation') {
+        if (
+            analysisModel == 'fieldCalcAnimation'
+            || analysisModel == 'fieldComparisonAnimation'
+            || analysisModel == 'fieldCalculationAnimation'
+        ) {
             return 'fieldCalculationAnimation';
         }
         return 'animation';
