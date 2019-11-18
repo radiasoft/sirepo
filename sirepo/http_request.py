@@ -23,9 +23,9 @@ _PARAM_MAP = PKDict(
     type='simulationType',
 )
 
-_SIM_TYPE_ATTR = 'sirepo_sim_type'
+_SIM_TYPE_ATTR = 'sirepo_http_request_sim_type'
 
-CALL_API_DATA_ATTR = 'sirepo_call_api_data'
+_POST_ATTR = 'sirepo_http_request_post'
 
 
 def init(**imports):
@@ -37,8 +37,7 @@ def is_spider():
 
 
 def parse_json():
-    #POSIT: uri_router.call_api
-    d = flask.g.pop(CALL_API_DATA_ATTR, None)
+    d = set_post()
     if d:
         return d
     req = flask.request
@@ -87,8 +86,7 @@ def parse_post(**kwargs):
     res.sim_data = sirepo.sim_data.get_class(res.type)
     # flask.g API is very limited but do this in order to
     # maintain explicit coupling of _SIM_TYPE_ATTR
-    flask.g.pop(_SIM_TYPE_ATTR, None)
-    flask.g.setdefault(_SIM_TYPE_ATTR, res.type)
+    set_sim_type(res.get('type'))
     if k.pkdel('id'):
         res.id = res.sim_data.parse_sid(r)
     if k.pkdel('filename'):
@@ -104,6 +102,25 @@ def parse_post(**kwargs):
         k.pkdel('type')
         assert not k, \
             'unexpected kwargs={}'.format(k)
+    return res
+
+
+def set_post(data=None):
+    """Interface for uri_router"""
+    # Always remove data (if there)
+    res = flask.g.pop(_POST_ATTR, None)
+    if data is not None:
+        flask.g.setdefault(_POST_ATTR, data)
+    return res
+
+
+def set_sim_type(sim_type):
+    """Interface for uri_router"""
+    if not sirepo.template.is_sim_type(sim_type):
+        # Don't change sim_type unless we have a valid one
+        return None
+    res = flask.g.pop(_SIM_TYPE_ATTR, None)
+    flask.g.setdefault(_SIM_TYPE_ATTR, sim_type)
     return res
 
 

@@ -62,6 +62,12 @@ class SimData(sirepo.sim_data.SimDataBase):
             res.append([cls._force_recompute()])
         return res
 
+=======
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if analysis_model == 'epicsServerAnimation':
+            return analysis_model
+        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
+
     @classmethod
     def _lib_file_basenames(cls, data):
         res = []
