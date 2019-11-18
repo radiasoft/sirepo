@@ -72,32 +72,10 @@ class _ComputeJob(PKDict):
 
     instances = PKDict()
 
-    def __init__(self, req, db=None):
+    def __init__(self, req, **kwargs):
         c = req.content
-        super().__init__(
-            db=db if db is not None else PKDict(
-                computeJid=c.computeJid,
-                computeJobHash=c.computeJobHash,
-                error=None,
-                isParallel=c.isParallel,
-                simulationId=c.data.get('simulationId') or c.data.models.simulation.simulationId,
-                simulationType=c.data.simulationType,
-                status=req.status if 'status' in req else job.MISSING,
-                uid=c.uid,
-            ),
-            _ops=[],
-        )
-        if self.db.isParallel:
-            self.db.parallelStatus = PKDict(
-                elapsedTime=0,
-                frameCount=0,
-                lastUpdateTime=0,
-                percentComplete=0.0,
-                computeJobStart=0,
-            )
-        assert self.db.computeJid not in self.instances
-        self.instances[self.db.computeJid] = self
-        self.persist_state()
+        super().__init__(_ops=[], **kwargs)
+        self.pksetdefault(db=lambda: self.__init_db(req))
 
     def destroy_op(self, op):
         self._lib_file_link_destroy()
@@ -107,28 +85,7 @@ class _ComputeJob(PKDict):
     @classmethod
     def get_instance(cls, req):
         j = req.content.computeJid
-        i = cls.instances.get(j)
-        if i:
-            return i
-        s = cls.read_state(j)
-        if s is not None:
-            return cls(req, db=PKDict(**s))
-        return cls(req)
-
-    def persist_state(self):
-        pykern.pkio.atomic_write(
-            self.state_file(self.db.computeJid),
-            pkjson.dump_pretty(self.db, pretty=False),
-        )
-
-    @classmethod
-    def read_state(cls, computeJid):
-        import sirepo.simulation_db
-        try:
-            return sirepo.simulation_db.read_json(cls.state_file(computeJid))
-        except FileNotFoundError:
-            pkdlog('{}: no supervisor state file found', cls.state_file(computeJid))
-            return None
+        return cls.instances.pksetdefault(j, lambda: cls.__read_state(req))[j]
 
     @classmethod
     def state_file(cls, computeJid):
@@ -141,26 +98,56 @@ class _ComputeJob(PKDict):
             '_receive_' + req.content.api,
         )(req)
 
-    def _job_file_create(self, libDir):
-        self.jobFileLink = l = _JOB_FILE_DIR.join(job.unique_key())
-        os.symlink(l.dirpath().bestrelpath(libDir), l)
-        pkjson.dump_pretty(
-            [x.basename for x in pykern.pkio.sorted_glob(libDir.join('*'))],
-            filename=libDir.join(job.JOB_FILE_LIST_URI),
+    def __init_db(self, req):
+        c = req.content
+        self.db = PKDict(
+            computeJid=c.computeJid,
+            computeJobHash=c.computeJobHash,
+            error=None,
+            isParallel=c.isParallel,
+            simulationId=c.data.get('simulationId') or c.data.models.simulation.simulationId,
+            simulationType=c.data.simulationType,
+            status=req.get('status', job.MISSING),
+            uid=c.uid,
         )
-        os.symlink(l.dirpath().bestrelpath(libDir), l)
-        return _LIB_FILE_URI + l.basename
+        if self.db.isParallel:
+            self.db.parallelStatus = PKDict(
+                elapsedTime=0,
+                frameCount=0,
+                lastUpdateTime=0,
+                percentComplete=0.0,
+                computeJobStart=0,
+            )
+        return self.db
 
     def _lib_file_uri(self, libDir):
         self.libFileLink = l = _LIB_FILE_DIR.join(job.unique_key())
         sirepo.util.dump_json(
             [x.basename for x in libDir.listdir()],
             path=libDir.join(job.LIB_FILE_LIST_URI),
+        )
+        os.symlink(l.dirpath().bestrelpath(libDir), l)
+        return _LIB_FILE_URI + l.basename
 
     def _lib_file_link_destroy(self):
         d = self.pkdel('libFileLink')
         if d:
             d.remove(rec=False, ignore_errors=True)
+
+    def __persist_state(self):
+        sirepo.util.dump_json(self.db, path=self.state_file(self.db.computeJid))
+        return self
+
+    @classmethod
+    def __read_state(cls, req):
+        import sirepo.simulation_db
+
+        f = cls.state_file(req.content.computeJid)
+        try:
+            return cls(req, db=sirepo.simulation_db.read_json(f))
+        except FileNotFoundError:
+            pkdc('no state file={}', f)
+            return cls(req).__persist_state()
 
     async def _receive_api_downloadDataFile(self, req):
         req.content.dataFileUri = _DATA_FILE_URI
@@ -202,11 +189,11 @@ class _ComputeJob(PKDict):
             })
             r = d[self.db.status](self, req)
             self.db.status = job.CANCELED
-            self.persist_state()
+            self.__persist_state()
             return await r
         if self.db.computeJobHash != req.content.computeJobHash:
             self.db.status = job.CANCELED
-            self.persist_state()
+            self.__persist_state()
             return await _cancel_queued(self, req)
 
     async def _receive_api_runSimulation(self, req):
@@ -231,7 +218,7 @@ class _ComputeJob(PKDict):
                     percentComplete=0.0,
                     computeJobStart=t,
                 )
-            self.persist_state()
+            self.__persist_state()
             tornado.ioloop.IOLoop.current().add_callback(self._run, req)
         # Read this first https://github.com/radiasoft/sirepo/issues/2007
         return await self._receive_api_runStatus(req)
@@ -239,19 +226,13 @@ class _ComputeJob(PKDict):
     async def _receive_api_runStatus(self, req):
         def res(**kwargs):
             r = PKDict(**kwargs)
-
-            if self.isParallel:
-                r.update(**self.parallelStatus)
-                r.computeJobHash = self.computeJobHash
-            if self.status in (job.RUNNING, job.PENDING):
-=======
             if self.db.error:
                 r.error = self.db.error
             if self.db.isParallel:
                 r.update(**self.db.parallelStatus)
                 r.elapsedTime = r.lastUpdateTime - r.computeJobStart
+                r.computeJobHash = self.db.computeJobHash
             if self.db.status in (job.RUNNING, job.PENDING):
-
                 c = req.content
                 r.update(
                     nextRequestSeconds=2 if self.db.isParallel else 1,
@@ -303,7 +284,7 @@ class _ComputeJob(PKDict):
         # await o.reply_ready() doesn't block because there is a cancel message
         # in the q
         self.db.status = job.RUNNING
-        self.persist_state()
+        self.__persist_state()
         while True:
             r = await o.reply_ready()
             self.db.status = r.state
@@ -317,7 +298,7 @@ class _ComputeJob(PKDict):
             if 'opDone' in r:
                 break
         self.destroy_op(o)
-        self.persist_state()
+        self.__persist_state()
 
     async def _send(self, opName, req, jobProcessCmd):
         # TODO(e-carlin): proper error handling
