@@ -401,9 +401,7 @@ def sim_frame(frame_args):
     for i in (1, 2, 3):
         try:
             return extract_report_data(
-                str(frame_args.run_dir.join(
-                    get_filename_for_model(data['modelName']),
-                )),
+                str(frame_args.run_dir.join(get_filename_for_model(r))),
                 frame_args.sim_in,
             )
         except Exception:
