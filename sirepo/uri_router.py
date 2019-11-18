@@ -206,7 +206,7 @@ def _dispatch(path):
             route = _uri_to_route[parts[0]]
             parts.pop(0)
         except KeyError:
-            pkdlog('uri={} not found, using default route', path)
+            # sim_types (applications)
             route = _default_route
         kwargs = pkcollections.Dict()
         for p in route.params:
