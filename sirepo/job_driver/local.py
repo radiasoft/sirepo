@@ -22,6 +22,8 @@ cfg = None
 
 class LocalDriver(job_driver.DriverBase):
 
+    instances = PKDict()
+
     slots = PKDict()
 
     def __init__(self, req):
@@ -116,6 +118,10 @@ class LocalDriver(job_driver.DriverBase):
                 d.ops_pending_done[o.opId] = o
                 o.send_ready.set()
 
+    def slot_free(self):
+        self.slots[self.kind].in_use -= 1
+        self.has_slot = False
+
     def terminate(self):
         if 'subprocess' in self:
             self.subprocess.proc.kill()
@@ -131,15 +137,11 @@ class LocalDriver(job_driver.DriverBase):
         cmd, stdin, env = self._subprocess_cmd_stdin_env()
         self.subprocess = tornado.process.Subprocess(
             cmd,
-            cwd=str(pkio.mkdir_parent(self._agentExecDir)),
+            cwd=str(pkio.mkdir_parent(self._agentExecDir)), # TODO(e-carlin): cleanup these dirs
             env=env,
             stdin=stdin,
         )
         self.subprocess.set_exit_callback(self._agent_on_exit)
-
-    def slot_free(self):
-        self.slots[self.kind].in_use -= 1
-        self.has_slot = False
 
 
 def init_class():

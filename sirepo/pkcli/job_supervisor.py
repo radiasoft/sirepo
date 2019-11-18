@@ -29,7 +29,7 @@ def default_command():
 
     cfg = pkconfig.init(
         debug=(pkconfig.channel_in('dev'), bool, 'run supervisor in debug mode'),
-        ip=(sirepo.job.DEFAULT_IP, str, 'ip address to listen on'),
+        ip=('0.0.0.0', str, 'ip address to listen on'),
         port=(sirepo.job.DEFAULT_PORT, int, 'what port to listen on'),
     )
     app = tornado.web.Application(

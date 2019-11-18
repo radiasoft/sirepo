@@ -41,6 +41,8 @@ _parallel_cores = None
 
 class DockerDriver(job_driver.DriverBase):
 
+    instances = PKDict()
+
     hosts = PKDict()
 
     def __init__(self, req, host):

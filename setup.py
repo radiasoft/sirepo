@@ -26,6 +26,7 @@ pykern.pksetup.setup(
         'kombu==3.0.35; python_version < "3"',
         'numconv',
         'numpy',
+        'paramiko; python_version >= "3"',
         'pillow',
         'pyIsEmail',
         'pykern',
