@@ -130,7 +130,6 @@ class SimDataBase(object):
         Returns:
             bytes: hash value
         """
-        cls._assert_server_side()
         c = cls.compute_model(data)
         if cls.is_parallel(c):
             return 'na'
