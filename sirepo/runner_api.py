@@ -235,7 +235,10 @@ def _simulation_run_status(sim, quiet=False):
                     template.prepare_output_file(reqd.run_dir, sim.req_data)
                     res = simulation_db.read_result(reqd.run_dir)
             if res.state == sirepo.job.ERROR and not reqd.is_parallel:
-                return http_reply.subprocess_error(res.error, 'error in read_result', reqd.run_dir)
+                return _subprocess_error(
+                    error='read_result error: ' + res.get('error', '<no error in read_result>'),
+                    run_dir=reqd.run_dir,
+                )
     if reqd.is_parallel:
         new = template.background_percent_complete(
             reqd.model_name,
