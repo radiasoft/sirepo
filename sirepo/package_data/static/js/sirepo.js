@@ -1265,7 +1265,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return 'sr-' + name + '-editor';
     };
 
-    self.pythonSource = function(simulationId, modelName, reportName) {
+    self.pythonSource = function(simulationId, modelName, reportTitle) {
         var args = {
             '<simulation_id>': simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
@@ -1273,8 +1273,8 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if (modelName) {
             args['<model>'] = modelName;
         }
-        if (reportName) {
-            args['<report>'] = reportName;
+        if (reportTitle) {
+            args['<title>'] = reportTitle;
         }
         requestSender.newWindow('pythonSource', args, true);
     };

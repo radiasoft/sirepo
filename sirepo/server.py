@@ -135,7 +135,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
     )
     f, c, t = sirepo.template.import_module(sim.type).get_data_file(
         simulation_db.simulation_run_dir(sim.req_data),
-        sim.sim_data.compute_model(sim.model),
+        sim.model,
         int(frame),
         options=sim.req_data.copy().update(suffix=suffix),
     )
@@ -398,17 +398,16 @@ def api_newSimulation():
 
 
 @api_perm.require_user
-def api_pythonSource(simulation_type, simulation_id, model=None, report=None):
+def api_pythonSource(simulation_type, simulation_id, model=None, title=None):
     sim = http_request.parse_params(type=simulation_type, id=simulation_id)
     m = model and sim.sim_data.parse_model(model)
-    r = report and sim.sim_data.parse_model(report)
     d = simulation_db.read_simulation_json(sim.type, sid=sim.id)
     return _safe_attachment(
         flask.make_response(
             sirepo.template.import_module(d)\
                 .python_source_for_model(d, m),
         ),
-        d.models.simulation.name + ('-' + r if r else ''),
+        d.models.simulation.name + ('-' + title if title else ''),
         'py',
     )
 
