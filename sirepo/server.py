@@ -372,16 +372,15 @@ def api_newSimulation():
 
 
 @api_perm.require_user
-def api_pythonSource(simulation_type, simulation_id, model=None, report=None):
+def api_pythonSource(simulation_type, simulation_id, model=None, title=None):
     sim = http_request.parse_params(type=simulation_type, id=simulation_id, template=True)
     m = model and sim.sim_data.parse_model(model)
-    r = report and sim.sim_data.parse_model(report)
     d = simulation_db.read_simulation_json(sim.type, sid=sim.id)
     return _safe_attachment(
         flask.make_response(
             sim.template.python_source_for_model(d, m),
         ),
-        d.models.simulation.name + ('-' + r if r else ''),
+        d.models.simulation.name + ('-' + title if title else ''),
         'py',
     )
 
