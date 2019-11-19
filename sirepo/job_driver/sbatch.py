@@ -71,19 +71,13 @@ The agent will need to change to support > 1 of the same jid at once
             username='vagrant',
             password='vagrant'
         ) as c:
-            cmd, f , _ = self._subprocess_cmd_stdin_env()
-            pkdp(0)
-            async with c.create_process('setsid ' + ' '.join(cmd)) as p:
-                a = f.read().decode('utf-8')
-                p.stdin.write(a +'&') # TODO(e-carlin): docs say it accespts bytes. exceptions say otherwise?
-                p.stdin.write('disown') # TODO(e-carlin): make sure this works
-                p.stdin.write_eof()
-                # TODO(e-carlin): this blocks forever. why?
-                pkdp(1)
-                pkdp(await p.stdout.read())
-                pkdp(2)
-                pkdp(await p.stderr.read())
-                pkdp(3)
+            cmd, stdin , _ = self._subprocess_cmd_stdin_env(fork=True)
+            async with c.create_process(' '.join(cmd)) as p:
+                o, e = await p.communicate(input=stdin.read().decode('utf-8'))
+                assert o == '' and e == '', \
+                    'stdout={} stderr={}'.format(o, e)
+            stdin.close()
+
 
 def init_class():
     global cfg

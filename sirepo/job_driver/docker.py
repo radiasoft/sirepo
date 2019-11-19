@@ -12,6 +12,7 @@ from sirepo import job
 from sirepo import job_driver
 from sirepo import mpi
 import functools
+import io
 import itertools
 import operator
 import os
@@ -125,6 +126,9 @@ class DockerDriver(job_driver.DriverBase):
         cmd, stdin, env = self._subprocess_cmd_stdin_env()
         p = (
             'run',
+            '--attach=stdin', # attach to stdin for writing
+# TODO(e-carlin): Does this leave stdin open after writing to it? We want it to be closed.
+            '--interactive', # keeps stdin open so we can write to it
             '--log-driver=json-file',
             # should never be large, just for output of the monitor
         '--log-opt=max-size=1m',
@@ -132,8 +136,6 @@ class DockerDriver(job_driver.DriverBase):
             '--ulimit=core=0',
             '--ulimit=nofile={}'.format(_MAX_OPEN_FILES),
             # '--cpus={}'.format(slot.cores), # TODO(e-carlin): impl
-            '-i',
-            '--detach',
             '--init',
             # '--memory={}g'.format(slot.gigabytes), # TODO(e-carlin): impl
             '--name={}'.format(self._cname), # TODO(e-carlin): impl
@@ -182,7 +184,7 @@ def init_class():
         image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
         parallel_slots=(1, int, 'max parallel slots'),
         sequential_slots=(1, int, 'max sequential slots'),
-        #tls_dir=_r(None, _cfg_tls_dir, 'directory containing host certs'),
+        tls_dir=_r(None, _cfg_tls_dir, 'directory containing host certs'),
     )
     if not cfg.tls_dir or not cfg.hosts:
         _init_dev_hosts()
@@ -209,7 +211,9 @@ async def _cmd(host, cmd, stdin=subprocess.DEVNULL, env=None):
             env=env,
         )
     finally:
-        if stdin:
+        assert isinstance(stdin, io.BufferedRandom) or isinstance(stdin, int), \
+            'type(stdin)={} expected io.BufferedRandom or int'.format(type(stdin))
+        if isinstance(stdin, io.BufferedRandom):
             stdin.close()
     o = (await p.stdout.read_until_close()).decode('utf-8').rstrip()
     r = await p.wait_for_exit(raise_error=False)
@@ -265,7 +269,7 @@ def _init_dev_hosts():
     pkdlog('initializing docker dev env; initial docker pull will take a few minutes...')
     d.ensure(dir=True)
     for f in 'key.pem', 'cert.pem':
-        o = subprocess.check_output(['sudo', 'cat', '/etc/docker/tls/' + f])
+        o = subprocess.check_output(['sudo', 'cat', '/etc/docker/tls/' + f]).decode('utf-8')
         assert o.startswith('-----BEGIN'), \
             'incorrect tls file={} content={}'.format(f, o)
         d.join(f).write(o)

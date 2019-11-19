@@ -13,9 +13,11 @@ from sirepo import job
 from sirepo import job_driver
 import collections
 import os
+import sirepo.job_driver
+import sirepo.srdb
 import tornado.ioloop
-import tornado.queues
 import tornado.process
+import tornado.queues
 
 cfg = None
 
@@ -130,17 +132,18 @@ class LocalDriver(job_driver.DriverBase):
         self._agent_exit.set()
         self.pkdel('subprocess')
         k = self.pkdel('kill_timeout')
+        self._agentExecDir.remove(rec=True, ignore_errors=True) # TODO(e-carlin): verify
         if k:
             tornado.ioloop.IOLoop.current().remove_timeout(k)
 
     async def _agent_start(self):
-        cmd, stdin, env = self._subprocess_cmd_stdin_env()
+        cmd, stdin, env = self._subprocess_cmd_stdin_env(cwd=self._agentExecDir)
         self.subprocess = tornado.process.Subprocess(
             cmd,
-            cwd=str(pkio.mkdir_parent(self._agentExecDir)), # TODO(e-carlin): cleanup these dirs
             env=env,
             stdin=stdin,
         )
+        stdin.close()
         self.subprocess.set_exit_callback(self._agent_on_exit)
 
 

@@ -197,7 +197,6 @@ class _Job(PKDict):
         )
         self._subprocess = tornado.process.Subprocess(
             cmd,
-            # SECURITY: need to change cwd, because agentDir has agentId
             cwd=self.msg.runDir,
             env=env,
             start_new_session=True,

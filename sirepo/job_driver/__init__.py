@@ -158,7 +158,7 @@ class DriverBase(PKDict):
         self.websocket.sr_driver_set(self)
         self.run_scheduler(self)
 
-    def _subprocess_cmd_stdin_env(self):
+    def _subprocess_cmd_stdin_env(self, **kwargs):
         return job.subprocess_cmd_stdin_env(
             ('sirepo', 'job_agent'),
             PKDict(
@@ -167,6 +167,7 @@ class DriverBase(PKDict):
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=cfg.supervisor_uri,
                 SIREPO_SRDB_ROOT=sirepo.srdb.root(),
             ),
+            **kwargs,
         )
 
     def _websocket_free(self):
@@ -196,8 +197,8 @@ class DriverBase(PKDict):
 
 async def get_instance(req):
     # TODO(e-carlin): parse req to get class
-    # return await _DEFAULT_CLASS.get_instance(req)
-    return await _CLASSES['sbatch'].get_instance(req)
+    return await _DEFAULT_CLASS.get_instance(req)
+    # return await _CLASSES['sbatch'].get_instance(req)
 
 
 def init():
@@ -235,7 +236,6 @@ def _cfg_parse_modules(value):
     for n in s:
         m = importlib.import_module(pkinspect.module_name_join((p, n)))
         _CLASSES[n] = m.init_class()
-    pkdp('ccccccccccccccccccccccccccc {}', _CLASSES)
     if 'docker' in s:
         _DEFAULT_CLASS = _CLASSES['docker']
     else:

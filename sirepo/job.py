@@ -82,7 +82,7 @@ def init():
     pkdc('cfg={}', cfg)
 
 
-def subprocess_cmd_stdin_env(cmd, env, pyenv='py3'):
+def subprocess_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.', fork=False):
     """Convert `cmd` in `pyenv` with `env` to script and cmd
 
     Uses tempfile so the file can be closed after the subprocess
@@ -94,6 +94,8 @@ def subprocess_cmd_stdin_env(cmd, env, pyenv='py3'):
         cmd (iter): list of words to be quoted
         env (PKDict): environment to pass
         pyenv (str): python environment (py3 default)
+        cwd (str): directory for the agent to run in (will be created if it doesn't exist)
+        fork (bool): whether or not the subprocess should fork from the calling process
 
     Returns:
         tuple: new cmd (tuple), stdin (file), env (PKDict)
@@ -107,17 +109,26 @@ def subprocess_cmd_stdin_env(cmd, env, pyenv='py3'):
         ))
     )
     t = tempfile.TemporaryFile()
+    c = ' '.join(("'{}'".format(x) for x in cmd))
+    if fork:
+        c = 'setsid --fork ' + c + ' >& /dev/null'
+    else:
+        c = 'exec ' + c
     # POSIT: we control all these values
     t.write(
         '''
 set -e
+mkdir -p '{}'
+cd '{}'
 pyenv shell {}
 {}
-exec {}
+{}
 '''.format(
+        cwd,
+        cwd,
         pyenv,
         '\n'.join(("export {}='{}'".format(k, v) for k, v in env.items())),
-        ' '.join(("'{}'".format(x) for x in cmd)),
+        c,
     ).encode())
     t.seek(0)
     # it's reasonable to hardwire this path, even though we don't
