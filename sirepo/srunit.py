@@ -286,6 +286,37 @@ class _TestClient(flask.testing.FlaskClient):
             **kwargs
         )
 
+    def sr_run_sim(self, data, model, expect_completed=True, timeout=7, **post_args):
+        from pykern import pkunit
+        from pykern.pkcollections import PKDict
+        import time
+
+        r = self.sr_post(
+            'runSimulation',
+            PKDict(
+                forceRun=True,
+                models=data.models,
+                report=model,
+                simulationId=data.models.simulation.simulationId,
+                simulationType=data.simulationType,
+            ).pkupdate(**post_args),
+        )
+        if r.state == 'completed':
+            return r
+        pkunit.pkeq('pending', r.state, 'not pending, run={}', r)
+        c = r.nextRequest
+        for _ in range(timeout):
+            if r.state in ('completed', 'error'):
+                c = None
+                break
+            r = self.sr_post('runStatus', r.nextRequest)
+            time.sleep(1)
+        else:
+            pkunit.pkok(not expect_completed, 'did not complete: runStatus={}', r)
+        if expect_completed:
+            pkunit.pkeq('completed', r.state)
+        return r
+
     def sr_sim_data(self, sim_name='Scooby Doo', sim_type=None):
         """Return simulation data by name
 
