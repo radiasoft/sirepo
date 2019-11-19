@@ -160,7 +160,6 @@ class SimDataBase(object):
                     cls.lib_file_basenames(data))
                 ),
             ).encode())
-
         return res.hexdigest()
 
     @classmethod
