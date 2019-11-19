@@ -19,6 +19,15 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
+        if analysis_model in (
+            'currentAnimation',
+            'egunCurrentAnimation',
+            'fieldAnimation',
+            'impactDensityAnimation',
+            'particle3d',
+            'particleAnimation',
+        ):
+            return 'animation'
         if analysis_model == 'optimizerAnimation':
             return analysis_model
         if analysis_model in (

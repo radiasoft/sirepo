@@ -790,7 +790,9 @@ def _generate_parameters_file(data):
         if c.conductor_type.type == 'stl':
             # if any conductor is STL then don't save the intercept
             v['saveIntercept'] = False
-            v['polyFile'] = _stl_polygon_file(c.conductor_type.name)
+            v['polyFile'] = _SIM_DATA.lib_file_abspath(
+                _stl_polygon_file(c.conductor_type.name),
+            )
             break
         if c.conductor_type.isReflector:
             v['saveIntercept'] = True
@@ -1082,14 +1084,12 @@ def _stl_file(conductor_type):
 
 
 def _stl_polygon_file(filename):
-    return _SIM_DATA.lib_file_abspath(
-        _SIM_DATA.lib_file_name_with_model_field('stl', filename, _STL_POLY_FILE),
-    )
+    return _SIM_DATA.lib_file_name_with_model_field('stl', filename, _STL_POLY_FILE)
 
 
 def _save_stl_polys(data):
     try:
-        with h5py.File(_stl_polygon_file(data.file)) as hf:
+        with h5py.File(str(_SIM_DATA.lib_file_write_path(_stl_polygon_file(data.file)))) as hf:
             template_common.dict_to_h5(data, hf, path='/')
     except Exception as e:
         pkdlog('!save_stl_polys FAIL: {}', e)
