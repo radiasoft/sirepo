@@ -13,7 +13,6 @@ from pykern.pkdebug import pkdp
 from sirepo import job
 from sirepo import job_driver
 import asyncssh
-import paramiko
 import sirepo.srdb
 import tornado.ioloop
 
