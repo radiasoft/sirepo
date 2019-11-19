@@ -1008,12 +1008,13 @@ def _simulation_run_status(data, quiet=False):
             res.update(new)
         res['parametersChanged'] = rep.parameters_changed
         if res['parametersChanged']:
-            pkdlog(
-                '{}: parametersChanged=True req_hash={} cached_hash={}',
-                rep.job_id,
-                rep.req_hash,
-                rep.cached_hash,
-            )
+            pass
+#            pkdlog(
+#                '{}: parametersChanged=True req_hash={} cached_hash={}',
+#                rep.job_id,
+#                rep.req_hash,
+#                rep.cached_hash,
+#            )
         #TODO(robnagler) verify serial number to see what's newer
         res.setdefault('startTime', _mtime_or_now(rep.input_file))
         res.setdefault('lastUpdateTime', _mtime_or_now(rep.run_dir))

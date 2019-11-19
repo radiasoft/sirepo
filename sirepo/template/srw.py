@@ -233,7 +233,7 @@ def extract_report_data(filename, model_data):
     if re.search(r'/res_int_pr_me_dc.\.dat', filename):
         _fix_file_header(filename)
     data, _, allrange, _, _ = uti_plot_com.file_load(filename, multicolumn_data=model_data['report'] in ('brillianceReport', 'trajectoryReport'))
-    pkdc('anhe allrange in extract:{}'.format(allrange))
+    #pkdc('anhe allrange in extract:{}'.format(allrange))
     if model_data['report'] == 'brillianceReport':
         return _extract_brilliance_report(model_data['models']['brillianceReport'], data)
     if model_data['report'] == 'trajectoryReport':
@@ -907,14 +907,19 @@ def _extract_trajectory_report(model, data):
 def _fix_file_header(filename):
     # fixes file header for coherenceXAnimation and coherenceYAnimation reports
     rows = []
+    pkdc('fix header filename: {}', filename)
     with pkio.open_text(filename) as f:
         for line in f:
             rows.append(line)
             if len(rows) == 10:
-                if rows[4] == rows[7]:
+                pkdc('before header changed rows[6]{}',rows[6])
+                pkdc('before header changed rows[9]{}',rows[9])
+                #if rows[4] == rows[7]:
+                if rows[6] == rows[9] and rows[6] != 1:
                     # already fixed up
                     return
-                if re.search(r'^\#0 ', rows[4]):
+                #if re.search(r'^\#0 ', rows[4]):
+                if re.search(r'^\#1', rows[6]):
                     rows[4] = rows[7]
                     rows[5] = rows[8]
                     rows[6] = rows[9]
@@ -922,6 +927,8 @@ def _fix_file_header(filename):
                     rows[7] = rows[4]
                     rows[8] = rows[5]
                     rows[9] = rows[6]
+                pkdc('after header changed rows[6]{}',rows[6])
+                pkdc('after header changed rows[9]{}',rows[9])
     pkio.write_text(filename, ''.join(rows))
 
 
