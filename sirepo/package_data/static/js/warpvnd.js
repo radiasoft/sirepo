@@ -155,14 +155,24 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
     };
 
     self.computeModel = function(analysisModel) {
+        if ([
+            'currentAnimation',
+            'egunCurrentAnimation',
+            'fieldAnimation',
+            'impactDensityAnimation',
+            'particle3d',
+            'particleAnimation'
+        ].indexOf(analysisModel) >= 0) {
+            return 'animation';
+        }
         if (analysisModel == 'optimizerAnimation') {
             return analysisModel;
         }
-        if (
-            analysisModel == 'fieldCalcAnimation'
-            || analysisModel == 'fieldComparisonAnimation'
-            || analysisModel == 'fieldCalculationAnimation'
-        ) {
+        if ([
+            'fieldCalcAnimation',
+            'fieldComparisonAnimation',
+            'fieldCalculationAnimation'
+        ].indexOf(analysisModel) >=0) {
             return 'fieldCalculationAnimation';
         }
         return 'animation';
