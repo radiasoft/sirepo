@@ -46,12 +46,11 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if 'bunchReport' in analysis_model:
             return 'bunchReport'
+        # twissReport2 and twissReport are compute_models
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-        if r == compute_model:
-            return []
         res = ['beamlines', 'elements']
         if 'bunchReport' in r:
             res += ['bunch', 'simulation.visualizationBeamlineId']

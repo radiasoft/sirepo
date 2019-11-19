@@ -57,21 +57,19 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-        if r == compute_model:
-            return []
-        if r == 'tunesReport':
-            return [r, 'bunchAnimation.startTime']
+        if compute_model == 'tunesReport':
+            return [r]
         res = ['particle', 'bunch']
-        if 'bunchReport' in r:
+        if compute_model == 'bunchReport':
             if data.models.bunch.match_twiss_parameters == '1':
                 res.append('simulation.visualizationBeamlineId')
         res += [
             'beamlines',
             'elements',
         ]
-        if r == 'twissReport':
+        if compute_model == 'twissReport':
             res.append('simulation.activeBeamlineId')
-        if r == 'twissReport2' or 'opticsReport' in r or r == 'twissSummaryReport':
+        if compute_model == 'twissReport2':
             res.append('simulation.visualizationBeamlineId')
         return res
 
@@ -79,7 +77,11 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if 'bunchReport' in analysis_model:
             return 'bunchReport'
-        if 'twissReport' in analysis_model or analysis_model == 'twissSummaryReport':
+        if 'opticsReport' in analysis_model or analysis_model in ('twissReport2', 'twissSummaryReport'):
+            return 'twissReport2'
+        if 'tunesReport' == analysis_model:
+            return 'twissReport'
+        if 'twissReport' == analysis_model:
             return 'twissReport'
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 

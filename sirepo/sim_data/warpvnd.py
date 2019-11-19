@@ -85,8 +85,6 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-        if r == compute_model or r == 'optimizerAnimation':
-            return []
         res = ['simulationGrid']
         res.append(cls.__non_opt_fields_to_array(data.models.beam))
         for container in ('conductors', 'conductorTypes'):

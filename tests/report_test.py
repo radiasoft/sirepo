@@ -39,6 +39,19 @@ def test_warppba(fc):
     )
 
 
+def test_zgoubi(fc):
+    _r(
+        fc,
+        'Los Alamos Proton Storage Ring',
+        'beamPreviewReport',
+    )
+    _r(
+        fc,
+        'Laser Pulse',
+        'laserPreviewReport',
+    )
+
+
 def _r(fc, sim_name, analysis_model, shared_model=None):
     from pykern.pkdebug import pkdp, pkdlog
     from sirepo import srunit
