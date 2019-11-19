@@ -44,6 +44,7 @@ def test_jspec(fc):
                 expect_y_range=r'-0.04.*, 0.00[4-7]',
             ),
         ),
+        timeout=15,
     )
 
 
@@ -132,6 +133,27 @@ def test_warpvnd(fc):
             ),
         ),
         expect_completed=False,
+        timeout=10,
+    )
+
+
+def test_webcon(fc):
+    _r(
+        fc,
+        'Clustering Demo',
+        'epicsServerAnimation',
+        PKDict(
+            beamPositionReport=PKDict(
+                runSimulation=True,
+                expect_y_range='^.0.0009.*, 0.09',
+            ),
+            correctorSettingReport=PKDict(
+                runSimulation=True,
+                expect_y_range=r'^.0.0, 0.0',
+            ),
+        ),
+        expect_completed=False,
+        timeout=10,
     )
 
 
@@ -161,7 +183,7 @@ def test_zgoubi(fc):
     )
 
 
-def _r(fc, sim_name, compute_model, reports, expect_completed=True):
+def _r(fc, sim_name, compute_model, reports, **kwargs):
     from pykern import pkconfig
     from pykern import pkunit
     from pykern.pkcollections import PKDict
@@ -173,36 +195,18 @@ def _r(fc, sim_name, compute_model, reports, expect_completed=True):
     data = fc.sr_sim_data(sim_name)
     cancel = None
     try:
-        run = fc.sr_post(
-            'runSimulation',
-            PKDict(
-                forceRun=True,
-                models=data.models,
-                report=compute_model,
-                simulationId=data.models.simulation.simulationId,
-                simulationType=data.simulationType,
-            ),
-        )
-        import sirepo.sim_data
-
-        s = sirepo.sim_data.get_class(fc.sr_sim_type)
-        pkunit.pkeq('pending', run.state, 'not pending, run={}', run)
-        cancel = run.nextRequest
-        for _ in range(15):
-            if run.state in ('completed', 'error'):
-                cancel = None
-                break
-            run = fc.sr_post('runStatus', run.nextRequest)
-            time.sleep(1)
-        else:
-            pkunit.pkok(
-                not expect_completed,
-                'did not complete: runStatus={}',
-                run,
-            )
-        if expect_completed:
-            pkunit.pkeq('completed', run.state)
+        run = fc.sr_run_sim(data, compute_model, **kwargs)
         for r, a in reports.items():
+            if 'runSimulation' in a:
+                f = fc.sr_run_sim(data, r)
+                for k, v in a.items():
+                    m = re.search('^expect_(.+)', k)
+                    if m:
+                        pkunit.pkre(
+                            v(i) if callable(v) else v,
+                            str(f.get(m.group(1))),
+                        )
+                continue
             if 'frame_index' in a:
                 c = [a.get('frame_index')]
             else:
@@ -212,6 +216,9 @@ def _r(fc, sim_name, compute_model, reports, expect_completed=True):
                         a.get('frame_count_key'), a.get('frameCount'),
                     )
             pkdlog('frameReport={} count={}', r, c)
+            import sirepo.sim_data
+
+            s = sirepo.sim_data.get_class(fc.sr_sim_type)
             for i in c:
                 pkdlog('frameIndex={}', i)
                 f = fc.sr_get_json(
