@@ -130,14 +130,14 @@ class SimDataBase(object):
         Returns:
             bytes: hash value
         """
+        cls._assert_server_side()
+        c = cls.compute_model(data)
+        if cls.is_parallel(c):
+            return 'na'
         m = data['models']
         res = hashlib.md5()
         for f in sorted(
-            sirepo.sim_data.get_class(data.simulationType)._compute_job_fields(
-                data,
-                data.report,
-                cls.compute_model(data),
-            ),
+            sirepo.sim_data.get_class(data.simulationType)._compute_job_fields(data, data.report, c),
         ):
             # assert isinstance(f, pkconfig.STRING_TYPES), \
             #     'value={} not a string_type'.format(f)
@@ -228,17 +228,21 @@ class SimDataBase(object):
         return any(f for f in cls.lib_files(data, validate_exists=False) if f.basename == filename)
 
     @classmethod
-    def is_parallel(cls, data):
+    def is_parallel(cls, data_or_model):
         """Is this report a parallel (long) simulation?
 
         Args:
-            data (dict): report and models
+            data_or_model (dict): sim data or compute_model
 
         Returns:
             bool: True if parallel job
         """
-        return bool(_IS_PARALLEL_RE.search(cls.compute_model(data)))
-
+        return bool(
+            _IS_PARALLEL_RE.search(
+                cls.compute_model(data_or_model) if isinstance(data_or_model, dict) \
+                else data_or_model
+            ),
+        )
 
     @classmethod
     def is_watchpoint(cls, name):

@@ -101,6 +101,7 @@
             "zCell3"
         ],
         "impactDensityAnimation": [],
+        "optimizerAnimation": ["x", "y"],
         "particleAnimation": ["renderCount"],
         "particle3d": ["renderCount", "displayMode"]
     },
