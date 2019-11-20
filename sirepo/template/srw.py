@@ -911,24 +911,48 @@ def _fix_file_header(filename):
     with pkio.open_text(filename) as f:
         for line in f:
             rows.append(line)
-            if len(rows) == 10:
-                pkdc('before header changed rows[6]{}',rows[6])
-                pkdc('before header changed rows[9]{}',rows[9])
+            if len(rows) == 11:
+                pkdc('before header changed rows4: {}',rows[4])
+                pkdc('before header changed rows5: {}',rows[5])
+                pkdc('before header changed rows6: {}',rows[6])
+                pkdc('before header changed rows7: {}',rows[7])
+                pkdc('before header changed rows8: {}',rows[8])
+                pkdc('before header changed rows9: {}',rows[9])
                 #if rows[4] == rows[7]:
-                if rows[6] == rows[9] and rows[6] != 1:
+                if rows[6].split()[0] == rows[9].split()[0] and rows[6].split()[0] != 1:
                     # already fixed up
                     return
+                col4 = rows[4].split()
+                col5 = rows[5].split()
+                col6 = rows[6].split()
+                col7 = rows[7].split()
+                col8 = rows[8].split()
+                col9 = rows[9].split()
                 #if re.search(r'^\#0 ', rows[4]):
-                if re.search(r'^\#1', rows[6]):
-                    rows[4] = rows[7]
-                    rows[5] = rows[8]
-                    rows[6] = rows[9]
+                if re.search(r'^\#1 ', rows[6]):
+                    col4[0] = col7[0]
+                    rows[4] = ' '.join(col4)+'\n'
+                    col5[0] = col8[0]
+                    rows[5] = ' '.join(col5)+'\n'
+                    col6[0] = col9[0]
+                    rows[6] = ' '.join(col6)+'\n'
                 else:
-                    rows[7] = rows[4]
-                    rows[8] = rows[5]
-                    rows[9] = rows[6]
-                pkdc('after header changed rows[6]{}',rows[6])
-                pkdc('after header changed rows[9]{}',rows[9])
+                    col7[0] = col4[0]
+                    rows[7] = ' '.join(col7)+'\n'
+                    col8[0] = col5[0]
+                    rows[8] = ' '.join(col8)+'\n'
+                    col9[0] = col6[0]
+                    rows[9] = ' '.join(col9)+'\n'
+                Vmin = float(rows[7].split()[0][1:])
+                Vmax = float(rows[8].split()[0][1:])
+                rows[7] = '#'+str((Vmin-Vmax)/2)+' '+' '.join(rows[7].split()[1:])+'\n'
+                rows[8] = '#'+str((Vmax-Vmin)/2)+' '+' '.join(rows[8].split()[1:])+'\n'
+                pkdc('after header changed rows4:{}',rows[4])
+                pkdc('after header changed rows5:{}',rows[5])
+                pkdc('after header changed rows6:{}',rows[6])
+                pkdc('after header changed rows7:{}',rows[7])
+                pkdc('after header changed rows8:{}',rows[8])
+                pkdc('after header changed rows9:{}',rows[9])
     pkio.write_text(filename, ''.join(rows))
 
 
