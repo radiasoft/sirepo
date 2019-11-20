@@ -130,7 +130,7 @@ def _run_srw():
     # special case for importing python code
     r = sim_in.report
     if r == 'backgroundImport':
-        sim_id = sim_data['models']['simulation']['simulationId']
+        sim_id = sim_in['models']['simulation']['simulationId']
         parsed_data['models']['simulation']['simulationId'] = sim_id
         #TODO(pjm): assumes the parent directory contains the simulation data,
         # can't call simulation_db.save_simulation_json() because user isn't set for pkcli commands
