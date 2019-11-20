@@ -1,35 +1,4 @@
 {
-    "dynamicFiles": {
-        "externalLibs": {
-            "js": [
-                "dom-to-image.min.js"
-            ]
-        },
-        "sirepoLibs": {
-            "js": [
-                "shadow.js",
-                "sirepo-beamline.js"
-            ],
-            "css": [
-                 "srw.css"
-            ]
-        }
-    },
-    "localRoutes": {
-        "source": {
-            "config": {
-                "controller": "ShadowSourceController as source",
-                "templateUrl": "/static/html/shadow-source.html"
-            }
-        },
-        "beamline": {
-            "route": "/beamline/:simulationId",
-            "config": {
-                "controller": "ShadowBeamlineController as beamline",
-                "templateUrl": "/static/html/shadow-beamline.html"
-            }
-        }
-    },
     "enum": {
         "AbsoluteOrigin": [
             ["0", "Absolute"],
@@ -328,6 +297,37 @@
 	    ["2", "Upper/Inner (Convex/Concave)"],
             ["3", "Upper/Outer (Convex/Convex)"]
         ]
+    },
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "dom-to-image.min.js"
+            ]
+        },
+        "sirepoLibs": {
+            "js": [
+                "shadow.js",
+                "sirepo-beamline.js"
+            ],
+            "css": [
+                 "srw.css"
+            ]
+        }
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "ShadowSourceController as source",
+                "templateUrl": "/static/html/shadow-source.html"
+            }
+        },
+        "beamline": {
+            "route": "/beamline/:simulationId",
+            "config": {
+                "controller": "ShadowBeamlineController as beamline",
+                "templateUrl": "/static/html/shadow-beamline.html"
+            }
+        }
     },
     "model": {
         "aperture": {

@@ -10,6 +10,7 @@ from opmd_viewer.openpmd_timeseries import main
 from opmd_viewer.openpmd_timeseries.data_reader import field_reader
 from pykern import pkcollections
 from pykern import pkio
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -30,10 +31,10 @@ WANT_BROWSER_FRAME_CACHE = True
 def background_percent_complete(report, run_dir, is_running):
     files = _h5_file_list(run_dir)
     if len(files) < 2:
-        return {
-            'percentComplete': 0,
-            'frameCount': 0,
-        }
+        return PKDict(
+            percentComplete=0,
+            frameCount=0,
+        )
     file_index = len(files) - 1
     last_update_time = int(os.path.getmtime(str(files[file_index])))
     # look at 2nd to last file if running, last one may be incomplete
@@ -41,18 +42,18 @@ def background_percent_complete(report, run_dir, is_running):
         file_index -= 1
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     Fr, info = field_reader.read_field_circ(str(files[file_index]), 'E/r')
-    plasma_length = float(data['models']['electronPlasma']['length']) / 1e3
-    zmin = float(data['models']['simulationGrid']['zMin']) / 1e6
+    plasma_length = float(data.models.electronPlasma.length) / 1e3
+    zmin = float(data.models.simulationGrid.zMin) / 1e6
     percent_complete = (info.imshow_extent[1] / (plasma_length - zmin))
     if percent_complete < 0:
         percent_complete = 0
     elif percent_complete > 1.0:
         percent_complete = 1.0
-    return {
-        'lastUpdateTime': last_update_time,
-        'percentComplete': percent_complete * 100,
-        'frameCount': file_index + 1,
-    }
+    return PKDict(
+        lastUpdateTime=last_update_time,
+        percentComplete=percent_complete * 100,
+        frameCount=file_index + 1,
+    )
 
 
 def extract_field_report(field, coordinate, mode, data_file):
@@ -76,21 +77,22 @@ def extract_field_report(field, coordinate, mode, data_file):
         field_label = field
     else:
         field_label = '{} {}'.format(field, coordinate)
-    return {
-        'x_range': [extent[0], extent[1], len(F[0])],
-        'y_range': [extent[2], extent[3], len(F)],
-        'x_label': '{} [m]'.format(info.axes[1]),
-        'y_label': '{} [m]'.format(info.axes[0]),
-        'title': "{} in the mode {} at {}".format(
+    return PKDict(
+        x_range=[extent[0], extent[1], len(F[0])],
+        y_range=[extent[2], extent[3], len(F)],
+        x_label='{} [m]'.format(info.axes[1]),
+        y_label='{} [m]'.format(info.axes[0]),
+        title="{} in the mode {} at {}".format(
             field_label, mode, _iteration_title(opmd, data_file)),
-        'z_matrix': numpy.flipud(F).tolist(),
-    }
+        z_matrix=numpy.flipud(F).tolist(),
+    )
 
 
-def extract_particle_report(args, particle_type, run_dir, data_file):
-    xarg = args.x
-    yarg = args.y
-    nbins = args.histogramBins
+def extract_particle_report(frame_args, particle_type):
+    data_file = open_data_file(frame_args.run_dir, frame_args.frameIndex)
+    xarg = frame_args.x
+    yarg = frame_args.y
+    nbins = frame_args.histogramBins
     opmd = _opmd_time_series(data_file)
     data_list = opmd.get_particle(
         var_list=[xarg, yarg],
@@ -102,7 +104,7 @@ def extract_particle_report(args, particle_type, run_dir, data_file):
     )
     with h5py.File(data_file.filename) as f:
         data_list.append(main.read_species_data(f, particle_type, 'w', ()))
-    select = _particle_selection_args(args)
+    select = _particle_selection_args(frame_args)
     if select:
         with h5py.File(data_file.filename) as f:
             main.apply_selection(f, data_list, select, particle_type, ())
@@ -122,15 +124,15 @@ def extract_particle_report(args, particle_type, run_dir, data_file):
         weights=data_list[2],
         range=[_select_range(data_list[0], xarg, select), _select_range(data_list[1], yarg, select)],
     )
-    return {
-        'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
-        'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
-        'x_label': '{}{}'.format(xarg, xunits),
-        'y_label': '{}{}'.format(yarg, yunits),
-        'title': 't = {}'.format(_iteration_title(opmd, data_file)),
-        'z_matrix': hist.T.tolist(),
-        'frameCount': data_file.num_frames,
-    }
+    return PKDict(
+        x_range=[float(edges[0][0]), float(edges[0][-1]), len(hist)],
+        y_range=[float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
+        x_label='{}{}'.format(xarg, xunits),
+        y_label='{}{}'.format(yarg, yunits),
+        title='t = {}'.format(_iteration_title(opmd, data_file)),
+        z_matrix=hist.T.tolist(),
+        frameCount=data_file.num_frames,
+    )
 
 
 def generate_parameters_file(data, is_parallel=False):
@@ -148,30 +150,6 @@ def generate_parameters_file(data, is_parallel=False):
     if data['models']['electronBeam']['beamRadiusMethod'] == 'a':
         v['electronBeam_transverseEmittance'] = 0
     return res + template_common.render_jinja(SIM_TYPE, v)
-
-
-def get_simulation_frame(run_dir, data, model_data):
-    frame_index = int(data['frameIndex'])
-    data_file = open_data_file(run_dir, frame_index)
-    if data['modelName'] == 'fieldAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {'': ['field', 'coordinate', 'mode', 'startTime']},
-        )
-        return _field_animation(args, data_file)
-    if data['modelName'] == 'particleAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {'': ['x', 'y', 'histogramBins', 'xMin', 'xMax', 'yMin', 'yMax', 'zMin', 'zMax', 'uxMin', 'uxMax', 'uyMin', 'uyMax', 'uzMin', 'uzMax', 'startTime']},
-        )
-        return extract_particle_report(args, 'electrons', run_dir, data_file)
-    if data['modelName'] == 'beamAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {'': ['x', 'y', 'histogramBins', 'startTime']},
-        )
-        return extract_particle_report(args, 'beam', run_dir, data_file)
-    raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
 def get_data_file(run_dir, model, frame, **kwargs):
@@ -234,10 +212,10 @@ def open_data_file(run_dir, file_index=None):
         files (list): list of files (default: load list)
 
     Returns:
-        OrderedMapping: various parameters
+        PKDict: various parameters
     """
     files = _h5_file_list(run_dir)
-    res = pkcollections.OrderedMapping()
+    res = PKDict()
     res.num_frames = len(files)
     res.frame_index = res.num_frames - 1 if file_index is None else file_index
     res.filename = str(files[res.frame_index])
@@ -262,6 +240,27 @@ def resource_files():
         list: py.path.local objects
     """
     return []
+
+
+def sim_frame_beamAnimation(frame_args):
+    return extract_particle_report(frame_args, 'beam')
+
+
+def sim_frame_fieldAnimation(frame_args):
+    f = open_data_file(frame_args.run_dir, frame_args.frameIndex)
+    m = frame_args.mode
+    if m != 'all':
+        m = int(m)
+    return extract_field_report(
+        frame_args.field,
+        frame_args.coordinate,
+        m,
+        f,
+    ).pkupdate(frameCount=f.num_frames)
+
+
+def sim_frame_particleAnimation(frame_args):
+    return extract_particle_report(frame_args, 'electrons')
 
 
 def validate_file(file_type, path):
@@ -296,17 +295,6 @@ def _adjust_z_width(data_list, data_file):
     ]
 
 
-def _field_animation(args, data_file):
-    field = args.field
-    coordinate = args.coordinate
-    mode = args.mode
-    if mode != 'all':
-        mode = int(mode)
-    res = extract_field_report(field, coordinate, mode, data_file)
-    res['frameCount'] = data_file.num_frames
-    return res
-
-
 def _h5_file_list(run_dir):
     return pkio.walk_tree(
         run_dir.join('hdf5'),
@@ -333,9 +321,9 @@ def _opmd_time_series(data_file):
 def _particle_selection_args(args):
     if not 'uxMin' in args:
         return None
-    res = {}
-    for f in ('', 'u'):
-        for f2 in ('x', 'y', 'z'):
+    res = PKDict()
+    for f in '', 'u':
+        for f2 in 'x', 'y', 'z':
             field = '{}{}'.format(f, f2)
             min = float(args[field + 'Min'])
             max = float(args[field + 'Max'])

@@ -21,6 +21,18 @@ SIREPO.appFieldEditors = [
     '</div>',
 ].join('');
 
+SIREPO.app.factory('jspecService', function(appState) {
+    var self = {};
+
+    self.computeModel = function(analysisModel) {
+        return 'animation';
+    };
+
+    appState.setAppService(self);
+
+    return self;
+});
+
 SIREPO.app.controller('SourceController', function(appState, panelState, $scope) {
     var self = this;
     self.twissReportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
@@ -115,16 +127,15 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
     });
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, persistentSimulation, plotRangeService, $scope) {
+SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, persistentSimulation, plotRangeService, jspecService, $scope) {
     var self = this;
     self.hasParticles = false;
     self.hasRates = false;
 
     function handleStatus(data) {
-        if (data.startTime && ! data.error) {
+        if ('percentComplete' in data && ! data.error) {
             plotRangeService.computeFieldRanges(self, 'particleAnimation', data.percentComplete);
             ['beamEvolutionAnimation', 'coolingRatesAnimation', 'particleAnimation'].forEach(function(m) {
-                appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
                 self.hasParticles = data.hasParticles;
                 self.hasRates = data.hasRates;
@@ -163,11 +174,11 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         });
     });
 
-    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        beamEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'y1', 'y2', 'y3', 'startTime'],
-        coolingRatesAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'y1', 'y2', 'y3', 'startTime'],
-        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
-    });
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        jspecService.computeModel(),
+        handleStatus
+    );
 
     self.simState.notRunningMessage = function() {
         if (self.hasParticles) {

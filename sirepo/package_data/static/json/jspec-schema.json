@@ -1,24 +1,4 @@
 {
-    "dynamicFiles": {
-        "sirepoLibs": {
-            "js": ["jspec.js"]
-        }
-    },
-    "localRoutes": {
-        "source": {
-            "config": {
-                "controller": "SourceController as source",
-                "templateUrl": "/static/html/jspec-source.html"
-            }
-        },
-        "visualization": {
-            "route": "/visualization/:simulationId",
-            "config": {
-                "controller": "VisualizationController as visualization",
-                "templateUrl": "/static/html/jspec-visualization.html"
-            }
-        }
-    },
     "enum": {
         "ElectronBeamShape": [
             ["dc_uniform", "Cylindrical"],
@@ -127,6 +107,41 @@
             ["dpy", "dpy"],
             ["none", "None"]
         ]
+    },
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": ["jspec.js"]
+        }
+    },
+    "frameIdFields": {
+        "beamEvolutionAnimation": ["y1", "y2", "y3"],
+        "coolingRatesAnimation": ["y1", "y2", "y3"],
+        "particleAnimation": [
+            "x",
+            "y",
+            "histogramBins",
+            "plotRangeType",
+            "horizontalSize",
+            "horizontalOffset",
+            "verticalSize",
+            "verticalOffset",
+            "isRunning"
+        ]
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/jspec-source.html"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "VisualizationController as visualization",
+                "templateUrl": "/static/html/jspec-visualization.html"
+            }
+        }
     },
     "model": {
         "beamEvolutionAnimation": {

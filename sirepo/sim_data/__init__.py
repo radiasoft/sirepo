@@ -18,11 +18,37 @@ import importlib
 import inspect
 import re
 import sirepo.util
+import sirepo.template
 
 
 #: root directory for template resources
 RESOURCE_DIR = pkio.py_path(pkresource.filename('template'))
 
+#: default compute_model
+_ANIMATION_NAME = 'animation'
+
+#: use to separate components of job_id
+_JOB_ID_SEP = '-'
+
+_MODEL_RE = re.compile(r'^[\w-]+$')
+
+_IS_PARALLEL_RE = re.compile('animation', re.IGNORECASE)
+
+#: separates values in frame id
+_FRAME_ID_SEP = '*'
+
+#: common keys to frame id followed by code-specific values
+_FRAME_ID_KEYS = (
+    'frameIndex',
+    # computeModel when passed from persistent/parallel
+    # analysisModel when passe from transient/sequential
+    # sim_data.compute_model() is idempotent to this.
+    'frameReport',
+    'simulationId',
+    'simulationType',
+    'computeJobHash',
+    'computeJobStart',
+)
 
 def get_class(type_or_data):
     """Simulation data class
@@ -32,9 +58,15 @@ def get_class(type_or_data):
     Returns:
         type: simulation data operation class
     """
-    if isinstance(type_or_data, dict):
-        type_or_data = type_or_data['simulationType']
-    return importlib.import_module('.' + type_or_data, __name__).SimData
+    return importlib.import_module(
+        '.' + sirepo.template.assert_sim_type(
+            type_or_data['simulationType'] if isinstance(
+                type_or_data,
+                dict,
+            ) else type_or_data
+        ),
+        __name__,
+    ).SimData
 
 
 def template_globals(sim_type=None):
@@ -52,7 +84,30 @@ def template_globals(sim_type=None):
     return c, c.sim_type(), c.schema()
 
 
+def parse_frame_id(frame_id):
+    """Parse the frame_id and return it along with self
+
+    Args:
+        frame_id (str): values separated by "*"
+    Returns:
+        PKDict: frame_args
+        SimDataBase: sim_data object for this simulationType
+    """
+
+    v = frame_id.split(_FRAME_ID_SEP)
+    res = PKDict(zip(_FRAME_ID_KEYS, v[:len(_FRAME_ID_KEYS)]))
+    res.frameIndex = int(res.frameIndex)
+    res.computeJobStart = int(res.computeJobStart)
+    s = get_class(res.simulationType)
+    s.frameReport = s.parse_model(res)
+    s.simulationId = s.parse_sid(res)
+#TODO(robnagler) validate these
+    res.update(zip(s._frame_id_fields(res), v[len(_FRAME_ID_KEYS):]))
+    return res, s
+
+
 class SimDataBase(object):
+
     ANALYSIS_ONLY_FIELDS = frozenset()
 
     WATCHPOINT_REPORT = 'watchpointReport'
@@ -62,7 +117,7 @@ class SimDataBase(object):
     _TEMPLATE_FIXUP = 'sim_data_template_fixup'
 
     @classmethod
-    def compute_job_hash(cls, data, changed=None):
+    def compute_job_hash(cls, data):
         """Hash fields related to data and set computeJobHash
 
         Only needs to be unique relative to the report, not globally unique
@@ -75,45 +130,50 @@ class SimDataBase(object):
         Returns:
             bytes: hash value
         """
-        c = PKDict(changed=False)
-
-        def _op():
-            c.changed = True
-            pkcollections.unchecked_del(data, 'computeJobHash')
-            res = hashlib.md5()
-            m = data['models']
-            for f in sorted(
-                sirepo.sim_data.get_class(data.simulationType)._compute_job_fields(data),
-            ):
-                # assert isinstance(f, pkconfig.STRING_TYPES), \
-                #     'value={} not a string_type'.format(f)
-                #TODO(pjm): work-around for now
-                if isinstance(f, pkconfig.STRING_TYPES):
-                    x = f.split('.')
-                    value = m[x[0]][x[1]] if len(x) > 1 else m[x[0]]
-                else:
-                    value = f
-                res.update(
-                    pkjson.dump_bytes(
-                        value,
-                        sort_keys=True,
-                        allow_nan=False,
-                    )
+        c = cls.compute_model(data)
+        if cls.is_parallel(c):
+            return 'na'
+        m = data['models']
+        res = hashlib.md5()
+        for f in sorted(
+            sirepo.sim_data.get_class(data.simulationType)._compute_job_fields(data, data.report, c),
+        ):
+            # assert isinstance(f, pkconfig.STRING_TYPES), \
+            #     'value={} not a string_type'.format(f)
+            #TODO(pjm): work-around for now
+            if isinstance(f, pkconfig.STRING_TYPES):
+                x = f.split('.')
+                value = m[x[0]][x[1]] if len(x) > 1 else m[x[0]]
+            else:
+                value = f
+            res.update(
+                pkjson.dump_bytes(
+                    value,
+                    sort_keys=True,
+                    allow_nan=False,
                 )
-            # lib_files returns sorted list
-            res.update(''.join(str(f.mtime()) for f in cls.lib_files(data)).encode())
-            # this is good enough versioning, because "v" does not
-            # exist in hex, and we know we only need a few numbers.
-            # We don't want anything but characters, because the
-            # way animation_args and other serializations of this value
-            # are used.
-            return 'v2' + res.hexdigest()
+            )
+        # lib_files already returns sorted list
+        res.update(''.join(str(f.mtime()) for f in cls.lib_files(data)).encode())
+        return res.hexdigest()
 
-        try:
-            return data.pksetdefault(computeJobHash=_op).computeJobHash
-        finally:
-            if changed and c.changed:
-                changed()
+    @classmethod
+    def compute_model(cls, model_or_data):
+        """Compute model for this model_or_data
+
+        Args:
+            model_or_data (): analysis model
+        Returns:
+            str: name of compute model for report
+        """
+        if model_or_data is None:
+            # Only called in a few places (jspec & elegant)
+            # and this preserves old behavior.
+            return _ANIMATION_NAME
+        m = cls.parse_model(model_or_data)
+        d = model_or_data if isinstance(model_or_data, dict) else None
+        #TODO(robnagler) is this necesary since m is parsed?
+        return cls.parse_model(cls._compute_model(m, d))
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -127,15 +187,32 @@ class SimDataBase(object):
         raise NotImplemented()
 
     @classmethod
-    def animation_name(cls, data):
-        """Animation report
+    def frame_id(cls, data, response, model, index):
+        """Generate a frame_id from values (unit testing)
 
         Args:
-            data (dict): simulation
+            data (PKDict): model data
+            response (PKDict): JSON response
+            model (str): animation name
+            index (int): index of frame
         Returns:
-            str: name of report
+            str: combined frame id
         """
-        return 'animation'
+        assert response.frameCount > index
+        frame_args = response.copy()
+        frame_args.frameReport = model
+        m = data.models[model]
+        return _FRAME_ID_SEP.join(
+            [
+                # POSIT: same order as _FRAME_ID_KEYS
+                str(index),
+                model,
+                data.models.simulation.simulationId,
+                data.simulationType,
+                response.computeJobHash,
+                str(response.computeJobStart),
+            ] + [str(m.get(k)) for k in cls._frame_id_fields(frame_args)],
+        )
 
     @classmethod
     def is_file_used(cls, data, filename):
@@ -148,6 +225,23 @@ class SimDataBase(object):
             bool: True if `filename` in use by `data`
         """
         return any(f for f in cls.lib_files(data, validate_exists=False) if f.basename == filename)
+
+    @classmethod
+    def is_parallel(cls, data_or_model):
+        """Is this report a parallel (long) simulation?
+
+        Args:
+            data_or_model (dict): sim data or compute_model
+
+        Returns:
+            bool: True if parallel job
+        """
+        return bool(
+            _IS_PARALLEL_RE.search(
+                cls.compute_model(data_or_model) if isinstance(data_or_model, dict) \
+                else data_or_model
+            ),
+        )
 
     @classmethod
     def is_watchpoint(cls, name):
@@ -264,6 +358,79 @@ class SimDataBase(object):
         return res
 
     @classmethod
+    def parse_jid(cls, data):
+        """A Job is a tuple of user, sid, and compute_model.
+
+        A jid is words and dashes.
+
+        Args:
+            data (dict): extract sid and compute_model
+        Returns:
+            str: unique name (treat opaquely)
+        """
+        import sirepo.auth
+
+        return _JOB_ID_SEP.join((
+            sirepo.auth.logged_in_user(),
+            cls.parse_sid(data),
+            cls.compute_model(data),
+        ))
+
+    @classmethod
+    def parse_model(cls, obj):
+        """Find the model in the arg
+
+        Looks for `frameReport`, `report`, and `modelName`. Might be a compute or
+        analysis model.
+
+        Args:
+            obj (str or dict): simulation type or description
+        Returns:
+            str: target of the request
+        """
+        if isinstance(obj, pkconfig.STRING_TYPES):
+            res = obj
+        elif isinstance(obj, dict):
+            res = obj.get('frameReport') or obj.get('report')
+        else:
+            raise AssertionError('obj={} is unsupported type={}', obj, type(obj))
+        assert res and _MODEL_RE.search(res), \
+            'invalid model={} from obj={}'.format(res, obj)
+        return res
+
+    @classmethod
+    def parse_sid(cls, obj):
+        """Extract simulationId from obj
+
+        Args:
+            obj (object): may be data, req, resp, or string
+        Returns:
+            str: simulation id
+        """
+        from sirepo import simulation_db
+
+        if isinstance(obj, pkconfig.STRING_TYPES):
+            res = obj
+        elif isinstance(obj, dict):
+            res = obj.get('simulationId') or obj.pknested_get('models.simulation.simulationId')
+        else:
+            raise AssertionError('obj={} is unsupported type={}', obj, type(obj))
+        return simulation_db.assert_sid(res)
+
+    @classmethod
+    def poll_seconds(cls, data):
+        """Client poll period for simulation status
+
+        TODO(robnagler) needs to be encapsulated
+
+        Args:
+            data (dict): must container report name
+        Returns:
+            int: number of seconds to poll
+        """
+        return 2 if cls.is_parallel(data) else 1
+
+    @classmethod
     def resource_dir(cls):
         return cls._memoize(RESOURCE_DIR.join(cls.sim_type()))
 
@@ -321,11 +488,32 @@ class SimDataBase(object):
                 model[f] = defaults[f]
 
     @classmethod
+    def want_browser_frame_cache(cls):
+        return True
+
+    @classmethod
     def watchpoint_id(cls, report):
         m = cls.WATCHPOINT_REPORT_RE.search(report)
         if not m:
             raise RuntimeError('invalid watchpoint report name: ', report)
         return int(m.group(1))
+
+    @classmethod
+    def _compute_model(cls, analysis_model, resp):
+        """Returns ``animation`` for models with ``Animation`` in name
+
+        Subclasses should override, but call this. The mapping of
+        ``<name>Animation`` to ``animation`` should stay consistent here.
+
+        Args:
+            model (str): analysis model
+            resp (PKDict): analysis model
+        Returns:
+            str: name of compute model for analysis_model
+        """
+        if _ANIMATION_NAME in analysis_model.lower():
+            return _ANIMATION_NAME
+        return analysis_model
 
     @classmethod
     def _force_recompute(cls):
@@ -337,6 +525,13 @@ class SimDataBase(object):
             str: random value
         """
         return sirepo.util.random_base62()
+
+    @classmethod
+    def _frame_id_fields(cls, frame_args):
+        """Schema specific frame_id fields"""
+        f = cls.schema().frameIdFields
+        r = frame_args.frameReport
+        return f[r] if r in f else f[cls.compute_model(r)]
 
     @classmethod
     def _init_models(cls, models, names=None, dynamic=None):

@@ -7,10 +7,10 @@ u"""Import a single archive
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern.pkdebug import pkdp
+import pykern.pkio
 import StringIO
 import base64
-import py.path
-import re
+import sirepo.http_request
 import sirepo.util
 import zipfile
 
@@ -49,13 +49,12 @@ def read_json(text, sim_type=None):
     # attempt to decode the input as json first, if invalid try python
     # fixup data in case new structures are need for lib_files() below
     data = simulation_db.fixup_old_data(simulation_db.json_load(text))[0]
-    if sim_type:
-        assert data.simulationType == sim_type, \
-            'simulationType={} invalid, expecting={}'.format(
-                data.simulationType,
-                sim_type,
-            )
-    return data
+    assert not sim_type or data.simulationType == sim_type, \
+        'simulationType={} invalid, expecting={}'.format(
+            data.simulationType,
+            sim_type,
+        )
+    return sirepo.http_request.parse_post(req_data=data).req_data
 
 
 def read_zip(stream, sim_type=None):
@@ -76,7 +75,7 @@ def read_zip(stream, sim_type=None):
     zipped = pkcollections.Dict()
     with zipfile.ZipFile(stream, 'r') as z:
         for i in z.infolist():
-            b = py.path.local(i.filename).basename
+            b = pykern.pkio.py_path(i.filename).basename
             c = z.read(i)
             if b.lower() == simulation_db.SIMULATION_DATA_FILE:
                 assert not data, \

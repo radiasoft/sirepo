@@ -40,10 +40,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data.report
-        if r == cls.animation_name(None):
-            return []
+    def _compute_job_fields(cls, data, r, compute_model):
         return cls._non_analysis_fields(data, r) + [
             'beam',
             'ellipticalDistribution',
@@ -52,6 +49,12 @@ class SimData(sirepo.sim_data.SimDataBase):
             'sphericalDistribution',
             'twissDistribution',
         ]
+
+    @classmethod
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if 'bunchReport' in analysis_model:
+            return 'bunchReport'
+        return super()._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def _lib_files(cls, data):

@@ -50,6 +50,60 @@ def background_percent_complete(report, run_dir, is_running):
     return _simulation_percent_complete(report, run_dir, is_running)
 
 
+def sim_frame_currentAnimation(frame_args):
+    return _extract_current(
+        frame_args.sim_in,
+        open_data_file(frame_args.run_dir, frame_args.frameReport, frame_args.frameIndex),
+    )
+
+
+def sim_frame_egunCurrentAnimation(frame_args):
+    return _extract_egun_current(
+        frame_args.sim_in,
+        frame_args.run_dir.join(_EGUN_CURRENT_FILE),
+        frame_args.frameIndex,
+    )
+
+
+def sim_frame_fieldAnimation(frame_args):
+    return _extract_field(
+        frame_args.field,
+        frame_args.sim_in,
+        open_data_file(frame_args.run_dir, frame_args.frameReport, frame_args.frameIndex),
+        frame_args,
+    )
+
+
+def sim_frame_fieldCalcAnimation(frame_args):
+    return generate_field_report(frame_args.sim_in, frame_args.run_dir, args=frame_args)
+
+
+def sim_frame_fieldComparisonAnimation(frame_args):
+    return generate_field_comparison_report(
+        frame_args.sim_in,
+        frame_args.run_dir,
+        args=frame_args,
+    )
+
+def sim_frame_impactDensityAnimation(frame_args):
+    return _extract_impact_density(frame_args.run_dir, frame_args.sim_in)
+
+
+def sim_frame_optimizerAnimation(frame_args):
+    return _extract_optimization_results(frame_args.run_dir, frame_args.sim_in, frame_args)
+
+
+def sim_frame_particleAnimation(frame_args):
+    return _extract_particle(
+        frame_args.run_dir,
+        frame_args.frameReport,
+        frame_args.sim_in,
+        frame_args,
+    )
+
+sim_frame_particle3d = sim_frame_particleAnimation
+
+
 def generate_field_comparison_report(data, run_dir, args=None):
     params = args if args is not None else data['models']['fieldComparisonAnimation']
     grid = data['models']['simulationGrid']
@@ -168,34 +222,6 @@ def get_zcurrent_new(particle_array, momenta, mesh, particle_weight, dz):
         current[int(bucket)] += velocity[index]
 
     return current * constants.elementary_charge / dz
-
-
-def get_simulation_frame(run_dir, data, model_data):
-    md = pkcollections.Dict(model_data)
-    frame_index = int(data['frameIndex'])
-    model_name = data['modelName']
-    anim_args = _SCHEMA.animationArgs[model_name] if model_name in _SCHEMA.animationArgs else []
-    args = template_common.parse_animation_args(data, {'': anim_args})
-    if model_name == 'currentAnimation':
-        data_file = open_data_file(run_dir, model_name, frame_index)
-        return _extract_current(model_data, data_file)
-    if model_name == 'fieldAnimation':
-        data_file = open_data_file(run_dir, model_name, frame_index)
-        return _extract_field(args.field, model_data, data_file, args)
-    if model_name == 'particleAnimation' or model_name == 'particle3d':
-        return _extract_particle(run_dir, model_name, model_data, args)
-    if model_name == 'egunCurrentAnimation':
-        return _extract_egun_current(model_data, run_dir.join(_EGUN_CURRENT_FILE), frame_index)
-    if model_name == 'impactDensityAnimation':
-        return _extract_impact_density(run_dir, model_data)
-    if model_name == 'optimizerAnimation':
-        args = template_common.parse_animation_args(data, {'': ['x', 'y']})
-        return _extract_optimization_results(run_dir, model_data, args)
-    if model_name == 'fieldCalcAnimation':
-        return generate_field_report(md, run_dir, args=args)
-    if model_name == 'fieldComparisonAnimation':
-        return generate_field_comparison_report(md, run_dir, args=args)
-    raise RuntimeError('{}: unknown simulation frame model'.format(model_name))
 
 
 def new_simulation(data, new_simulation_data):

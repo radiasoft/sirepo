@@ -94,6 +94,13 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         return false;
     }
 
+    self.computeModel = function(analysisModel) {
+        if (analysisModel === 'coherenceYAnimation' || analysisModel === 'coherenceXAnimation') {
+            return 'multiElectronAnimation';
+        }
+        return analysisModel;
+    };
+
     self.disableReloadOnSearch = function() {
         if ($route.current && $route.current.$$route) {
             $route.current.$$route.reloadOnSearch = false;
@@ -102,6 +109,20 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
 
     self.formatFloat = function(v) {
         return +parseFloat(v).toFixed(FORMAT_DECIMALS);
+    };
+
+    self.getReportTitle = function(modelName, itemId) {
+        if (! appState.isLoaded()) {
+            return '';
+        }
+        if (modelName == 'multiElectronAnimation') {
+            // multiElectronAnimation title is cached on the simulation model
+            var title = appState.models.simulation.multiElectronAnimationTitle;
+            if (title) {
+                return title;
+            }
+        }
+        return beamlineService.getReportTitle(modelName, itemId);
     };
 
     self.isApplicationMode = function(name) {
@@ -204,6 +225,8 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         }
     });
 
+    appState.setAppService(self);
+
     appState.whenModelsLoaded($rootScope, function() {
         initCharacteristic();
         // don't show multi-electron values in certain cases
@@ -212,19 +235,6 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
             : self.originalCharacteristicEnum;
     });
 
-    self.getReportTitle = function(modelName, itemId) {
-        if (! appState.isLoaded()) {
-            return '';
-        }
-        if (modelName == 'multiElectronAnimation') {
-            // multiElectronAnimation title is cached on the simulation model
-            var title = appState.models.simulation.multiElectronAnimationTitle;
-            if (title) {
-                return title;
-            }
-        }
-        return beamlineService.getReportTitle(modelName, itemId);
-    };
     return self;
 });
 
@@ -1894,7 +1904,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             var clientFields = ['colorMap', 'aspectRatio', 'plotScale'];
             var serverFields = ['intensityPlotsWidth', 'rotateAngle', 'rotateReshape'];
             var oldModel = null;
-            $scope.frameCount = 1;
+            $scope.frameCount = 0;
 
             function copyModel() {
                 oldModel = appState.cloneModel($scope.model);
@@ -1911,19 +1921,20 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 if (data.method && data.method != appState.models.fluxAnimation.method) {
                     // the output file on the server was generated with a different flux method
                     $scope.simState.timeData = {};
-                    frameCache.setFrameCount(0);
+                    $scope.frameCount = 0;
+                    frameCache.setFrameCount($scope.frameCount);
                     return;
                 }
                 if (data.percentComplete) {
                     $scope.particleNumber = data.particleNumber;
                     $scope.particleCount = data.particleCount;
                 }
-                if (data.frameId) {
-                    if (data.frameId != $scope.frameId) {
-                        $scope.frameId = data.frameId;
-                        $scope.frameCount++;
+                if (data.frameCount) {
+                    if (data.frameCount != $scope.frameCount) {
+                        $scope.frameCount = data.frameCount;
+                        $scope.frameIndex = data.frameIndex;
                         frameCache.setFrameCount($scope.frameCount);
-                        frameCache.setCurrentFrame($scope.model, $scope.frameCount - 1);
+                        frameCache.setCurrentFrame($scope.model, $scope.frameIndex);
                     }
                     srwService.setShowCalcCoherence(data.calcCoherence);
                 }
@@ -1966,7 +1977,8 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 $scope.$on($scope.model + '.changed', function() {
                     if ($scope.simState.isReadyForModelChanges && hasReportParameterChanged()) {
                         $scope.cancelPersistentSimulation();
-                        frameCache.setFrameCount(0);
+                        $scope.frameCount = 0;
+                        frameCache.setFrameCount($scope.frameCount);
                         $scope.percentComplete = 0;
                         $scope.particleNumber = 0;
                     }
@@ -1974,13 +1986,11 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 copyModel();
             });
 
-            var coherentArgs = $.merge([SIREPO.ANIMATION_ARGS_VERSION + '3'], serverFields);
-            $scope.simState = persistentSimulation.initSimulationState($scope, $scope.model, handleStatus, {
-                multiElectronAnimation: coherentArgs,
-                fluxAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1'],
-                coherenceXAnimation: coherentArgs,
-                coherenceYAnimation: coherentArgs,
-            });
+            $scope.simState = persistentSimulation.initSimulationState(
+                $scope,
+                srwService.computeModel($scope.model),
+                handleStatus
+            );
        },
     };
 });

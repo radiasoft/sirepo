@@ -158,8 +158,8 @@ def background_percent_complete(report, run_dir, is_running):
             # let client know that degree of coherence reports are also available
             res['calcCoherence'] = run_dir.join(get_filename_for_model('coherenceXAnimation')).exists()
         res.update({
-            'frameCount': 1,
-            'frameId': t,
+            'frameCount': t + 1,
+            'frameIndex': t,
             'lastUpdateTime': t,
             'percentComplete': status['progress'],
             'particleNumber': status['particle_number'],
@@ -228,50 +228,52 @@ def clean_run_dir(run_dir):
         zip_dir.remove()
 
 
-def extract_report_data(filename, model_data):
+def extract_report_data(filename, sim_in):
+    r = sim_in.report
+    m = sim_in.models
     #TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
     if re.search(r'/res_int_pr_me_dc.\.dat', filename):
         _fix_file_header(filename)
-    data, _, allrange, _, _ = uti_plot_com.file_load(filename, multicolumn_data=model_data['report'] in ('brillianceReport', 'trajectoryReport'))
-    if model_data['report'] == 'brillianceReport':
-        return _extract_brilliance_report(model_data['models']['brillianceReport'], data)
-    if model_data['report'] == 'trajectoryReport':
-        return _extract_trajectory_report(model_data['models']['trajectoryReport'], data)
+    data, _, allrange, _, _ = uti_plot_com.file_load(filename, multicolumn_data=r in ('brillianceReport', 'trajectoryReport'))
+    if r == 'brillianceReport':
+        return _extract_brilliance_report(m['brillianceReport'], data)
+    if r == 'trajectoryReport':
+        return _extract_trajectory_report(m['trajectoryReport'], data)
     flux_type = 1
-    if 'report' in model_data and model_data['report'] in ['fluxReport', 'fluxAnimation']:
-        flux_type = int(model_data['models'][model_data['report']]['fluxType'])
+    if 'report' in sim_in and r in ['fluxReport', 'fluxAnimation']:
+        flux_type = int(m[r]['fluxType'])
     sValShort = 'Flux'; sValType = 'Flux through Finite Aperture'; sValUnit = 'ph/s/.1%bw'
     if flux_type == 2:
         sValShort = 'Intensity'
         sValUnit = 'ph/s/.1%bw/mm^2'
     is_gaussian = False
-    if 'models' in model_data and _SIM_DATA.srw_is_gaussian_source(model_data['models']['simulation']):
+    if 'models' in sim_in and _SIM_DATA.srw_is_gaussian_source(m['simulation']):
         is_gaussian = True
     #TODO(pjm): move filename and metadata to a constant, using _DATA_FILE_FOR_MODEL
-    if model_data['report'] == 'initialIntensityReport':
+    if r == 'initialIntensityReport':
         before_propagation_name = 'Before Propagation (E={photonEnergy} eV)'
-    elif model_data['report'] == 'sourceIntensityReport':
+    elif r == 'sourceIntensityReport':
         before_propagation_name = 'E={sourcePhotonEnergy} eV'
     else:
         before_propagation_name = 'E={photonEnergy} eV'
     file_info = pkcollections.Dict({
-        'res_spec_se.dat': [['Photon Energy', 'Intensity', 'On-Axis Spectrum from Filament Electron Beam'], ['eV', _intensity_units(is_gaussian, model_data)]],
+        'res_spec_se.dat': [['Photon Energy', 'Intensity', 'On-Axis Spectrum from Filament Electron Beam'], ['eV', _intensity_units(is_gaussian, sim_in)]],
         'res_spec_me.dat': [['Photon Energy', sValShort, sValType], ['eV', sValUnit]],
         'res_pow.dat': [['Horizontal Position', 'Vertical Position', 'Power Density', 'Power Density'], ['m', 'm', 'W/mm^2']],
-        'res_int_se.dat': [['Horizontal Position', 'Vertical Position', before_propagation_name, 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
+        'res_int_se.dat': [['Horizontal Position', 'Vertical Position', before_propagation_name, 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, sim_in)]],
         #TODO(pjm): improve multi-electron label
-        'res_int_pr_me.dat': [['Horizontal Position', 'Vertical Position', before_propagation_name, 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
+        'res_int_pr_me.dat': [['Horizontal Position', 'Vertical Position', before_propagation_name, 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, sim_in)]],
         'res_int_pr_me_dcx.dat': [['Horizontal Position (conj.)', 'Horizontal Position', '', 'Degree of Coherence'], ['m', 'm', '']],
         'res_int_pr_me_dcy.dat': [['Vertical Position (conj.)', 'Vertical Position', '', 'Degree of Coherence'], ['m', 'm', '']],
-        'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', 'After Propagation (E={photonEnergy} eV)', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
+        'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', 'After Propagation (E={photonEnergy} eV)', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, sim_in)]],
         _MIRROR_OUTPUT_FILE: [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Optical Path Difference'], ['m', 'm', 'm']],
     })
     filename = os.path.basename(filename)
     title = file_info[filename][0][2]
     if '{photonEnergy}' in title:
-        title = title.format(photonEnergy=model_data['models']['simulation']['photonEnergy'])
+        title = title.format(photonEnergy=m['simulation']['photonEnergy'])
     elif '{sourcePhotonEnergy}' in title:
-        title = title.format(sourcePhotonEnergy=model_data['models']['sourceIntensityReport']['photonEnergy'])
+        title = title.format(sourcePhotonEnergy=m['sourceIntensityReport']['photonEnergy'])
     y_units = file_info[filename][1][1]
     if y_units == 'm':
         y_units = '[m]'
@@ -280,17 +282,16 @@ def extract_report_data(filename, model_data):
 
     subtitle = ''
     schema_enum = []
-    model_report = model_data['report']
-    this_report = model_data['models'][model_report]
+    report_model = m[r]
     subtitle_datum = ''
     subtitle_format = '{}'
-    if model_report in ['intensityReport']:
+    if r in ('intensityReport',):
         schema_enum = _SCHEMA['enum']['Polarization']
-        subtitle_datum = this_report['polarization']
+        subtitle_datum = report_model['polarization']
         subtitle_format = '{} Polarization'
-    elif model_report in ['initialIntensityReport', 'sourceIntensityReport'] or _SIM_DATA.is_watchpoint(model_report):
+    elif r in ('initialIntensityReport', 'sourceIntensityReport') or _SIM_DATA.is_watchpoint(r):
         schema_enum = _SCHEMA['enum']['Characteristic']
-        subtitle_datum = this_report['characteristic']
+        subtitle_datum = report_model['characteristic']
     # Schema enums are indexed by strings, but model data may be numeric
     schema_values = [e for e in schema_enum if e[0] == str(subtitle_datum)]
     if len(schema_values) > 0:
@@ -305,11 +306,11 @@ def extract_report_data(filename, model_data):
         'y_units': file_info[filename][1][1],
         'points': data,
     })
-    rep_name = _SIM_DATA.WATCHPOINT_REPORT if _SIM_DATA.is_watchpoint(model_report) else model_report
+    rep_name = _SIM_DATA.WATCHPOINT_REPORT if _SIM_DATA.is_watchpoint(r) else r
     if _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
-        width_pixels = int(this_report['intensityPlotsWidth'])
-        rotate_angle = this_report.get('rotateAngle', 0)
-        rotate_reshape = this_report.get('rotateReshape', '0')
+        width_pixels = int(report_model['intensityPlotsWidth'])
+        rotate_angle = report_model.get('rotateAngle', 0)
+        rotate_reshape = report_model.get('rotateReshape', '0')
         info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], width_pixels, rotate_angle, rotate_reshape)
     return info
 
@@ -387,29 +388,30 @@ def get_predefined_beams():
     return _SIM_DATA.srw_predefined().beams
 
 
-def get_simulation_frame(run_dir, data, model_data):
-    if data['report'] == 'multiElectronAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {
-                '2': ['intensityPlotsWidth'],
-                '': ['intensityPlotsWidth', 'rotateAngle', 'rotateReshape'],
-            })
-        m = model_data.models[data['report']]
-        m.intensityPlotsWidth = args.intensityPlotsWidth
-        if args.get('rotateAngle', 0):
-            m.rotateAngle = float(args.rotateAngle)
-            m.rotateReshape = args.rotateReshape
+def sim_frame(frame_args):
+    r = frame_args.frameReport
+    if r == 'multiElectronAnimation':
+        m = frame_args.sim_in.models[r]
+        m.intensityPlotsWidth = frame_args.intensityPlotsWidth
+        if frame_args.get('rotateAngle', 0):
+            m.rotateAngle = float(frame_args.rotateAngle)
+            m.rotateReshape = frame_args.rotateReshape
         else:
             m.rotateAngle = 0
     for i in (1, 2, 3):
         try:
-            return extract_report_data(str(run_dir.join(get_filename_for_model(data['modelName']))), model_data)
+            return extract_report_data(
+                str(frame_args.run_dir.join(get_filename_for_model(r))),
+                frame_args.sim_in,
+            )
         except Exception:
             # sleep and retry to work-around concurrent file read/write
-            pkdlog('sleep and retry simulation frame read: {} {}', i, data['modelName'])
+            pkdlog('sleep and retry simulation frame read: {} {}', i, r)
             time.sleep(2)
-    return extract_report_data(str(run_dir.join(get_filename_for_model(data['modelName']))), model_data)
+    return extract_report_data(
+        str(frame_args.run_dir.join(get_filename_for_model(r))),
+        frame_args.sim_in,
+    )
 
 
 def import_file(request, lib_dir, tmp_dir):
@@ -504,16 +506,17 @@ def prepare_for_save(data):
     return data
 
 
-def prepare_output_file(run_dir, data):
-    if data['report'] in ('brillianceReport', 'mirrorReport'):
+def prepare_output_file(run_dir, sim_in):
+    m = sim_in.report
+    if m in ('brillianceReport', 'mirrorReport'):
         return
     #TODO(pjm): only need to rerun extract_report_data() if report style fields have changed
     fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
     if fn.exists():
         fn.remove()
-        output_file = run_dir.join(get_filename_for_model(data['report']))
+        output_file = run_dir.join(get_filename_for_model(m))
         if output_file.exists():
-            res = extract_report_data(str(output_file), data)
+            res = extract_report_data(str(output_file), sim_in)
             simulation_db.write_result(res, run_dir=run_dir)
 
 
@@ -1236,12 +1239,12 @@ def _height_profile_dimension(item):
     return dimension
 
 
-def _intensity_units(is_gaussian, model_data):
+def _intensity_units(is_gaussian, sim_in):
     if is_gaussian:
-        if 'report' in model_data and 'fieldUnits' in model_data['models'][model_data['report']]:
-            i = model_data['models'][model_data['report']]['fieldUnits']
+        if 'report' in sim_in and 'fieldUnits' in sim_in['models'][sim_in['report']]:
+            i = sim_in['models'][sim_in['report']]['fieldUnits']
         else:
-            i = model_data['models']['initialIntensityReport']['fieldUnits']
+            i = sim_in['models']['initialIntensityReport']['fieldUnits']
         return _SCHEMA['enum']['FieldUnits'][int(i)][1]
     return 'ph/s/.1%bw/mm^2'
 

@@ -60,122 +60,10 @@ def background_percent_complete(report, run_dir, is_running):
     }
 
 
-def extract_beam_histrogram(report, run_dir, frame):
-    beam_info = hellweg_dump_reader.beam_info(_dump_file(run_dir), frame)
-    points = hellweg_dump_reader.get_points(beam_info, report.reportType)
-    hist, edges = np.histogram(points, template_common.histogram_bins(report.histogramBins))
-    return {
-        'title': _report_title(report.reportType, 'BeamHistogramReportType', beam_info),
-        'x_range': [edges[0], edges[-1]],
-        'y_label': 'Number of Particles',
-        'x_label': hellweg_dump_reader.get_label(report.reportType),
-        'points': hist.T.tolist(),
-    }
-
-
-def extract_beam_report(report, run_dir, frame):
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    model = data.models.beamAnimation
-    model.update(report)
-    beam_info = hellweg_dump_reader.beam_info(_dump_file(run_dir), frame)
-    x, y = report.reportType.split('-')
-    values = [
-        hellweg_dump_reader.get_points(beam_info, x),
-        hellweg_dump_reader.get_points(beam_info, y),
-    ]
-    model['x'] = x
-    model['y'] = y
-    # see issue #872
-    if not np.any(values):
-        values = [[], []]
-    return template_common.heatmap(values, model, {
-        'x_label': hellweg_dump_reader.get_label(x),
-        'y_label': hellweg_dump_reader.get_label(y),
-        'title': _report_title(report.reportType, 'BeamReportType', beam_info),
-        'z_label': 'Number of Particles',
-        'summaryData': _summary_text(run_dir),
-    })
-
-
-def extract_parameter_report(report, run_dir):
-    s = solver.BeamSolver(
-        os.path.join(str(run_dir), HELLWEG_INI_FILE),
-        os.path.join(str(run_dir), HELLWEG_INPUT_FILE))
-    s.load_bin(os.path.join(str(run_dir), HELLWEG_DUMP_FILE))
-    y1_var, y2_var = report.reportType.split('-')
-    x_field = 'z'
-    x = s.get_structure_parameters(_parameter_index(x_field))
-    y1 = s.get_structure_parameters(_parameter_index(y1_var))
-    y1_extent = [np.min(y1), np.max(y1)]
-    y2 = s.get_structure_parameters(_parameter_index(y2_var))
-    y2_extent = [np.min(y2), np.max(y2)]
-    return {
-        'title': _enum_text('ParameterReportType', report.reportType),
-        'x_range': [x[0], x[-1]],
-        'y_label': hellweg_dump_reader.get_parameter_label(y1_var),
-        'x_label': hellweg_dump_reader.get_parameter_label(x_field),
-        'x_points': x,
-        'points': [
-            y1,
-            y2,
-        ],
-        'y_range': [min(y1_extent[0], y2_extent[0]), max(y1_extent[1], y2_extent[1])],
-        'y1_title': hellweg_dump_reader.get_parameter_title(y1_var),
-        'y2_title': hellweg_dump_reader.get_parameter_title(y2_var),
-    }
-
-
-def extract_particle_report(report, run_dir):
-    x_field = 'z0'
-    particle_info = hellweg_dump_reader.particle_info(_dump_file(run_dir), report.reportType, int(report.renderCount))
-    x = particle_info['z_values']
-    return {
-        'title': _enum_text('ParticleReportType', report.reportType),
-        'x_range': [np.min(x), np.max(x)],
-        'y_label': hellweg_dump_reader.get_label(report.reportType),
-        'x_label': hellweg_dump_reader.get_label(x_field),
-        'x_points': x,
-        'points': particle_info['y_values'],
-        'y_range': particle_info['y_range'],
-    }
-
-
 def get_application_data(data):
     if data['method'] == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_files)
     assert False, 'unknown application data method: {}'.format(data['method'])
-
-
-def get_simulation_frame(run_dir, data, model_data):
-    frame_index = int(data['frameIndex'])
-    if data['modelName'] == 'beamAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {
-                '1': ['reportType', 'histogramBins', 'startTime'],
-                '': ['reportType', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
-            },
-        )
-        return extract_beam_report(args, run_dir, frame_index)
-    elif data['modelName'] == 'beamHistogramAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {'': ['reportType', 'histogramBins', 'startTime']},
-        )
-        return extract_beam_histrogram(args, run_dir, frame_index)
-    elif data['modelName'] == 'particleAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {'': ['reportType', 'renderCount', 'startTime']},
-        )
-        return extract_particle_report(args, run_dir)
-    elif data['modelName'] == 'parameterAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {'': ['reportType', 'startTime']},
-        )
-        return extract_parameter_report(args, run_dir)
-    raise RuntimeError('unknown animation model: {}'.format(data['modelName']))
 
 
 def python_source_for_model(data, model):
@@ -198,6 +86,86 @@ s.save_output('output.txt')
 
 def remove_last_frame(run_dir):
     pass
+
+
+def sim_frame_beamAnimation(frame_args):
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    model = data.models.beamAnimation
+    model.update(frame_args)
+    beam_info = hellweg_dump_reader.beam_info(_dump_file(run_dir), frame_args.frameIndex)
+    x, y = frame_args.reportType.split('-')
+    values = [
+        hellweg_dump_reader.get_points(beam_info, x),
+        hellweg_dump_reader.get_points(beam_info, y),
+    ]
+    model['x'] = x
+    model['y'] = y
+    # see issue #872
+    if not np.any(values):
+        values = [[], []]
+    return template_common.heatmap(values, model, {
+        'x_label': hellweg_dump_reader.get_label(x),
+        'y_label': hellweg_dump_reader.get_label(y),
+        'title': _report_title(frame_args.reportType, 'BeamReportType', beam_info),
+        'z_label': 'Number of Particles',
+        'summaryData': _summary_text(run_dir),
+    })
+
+
+def sim_frame_beamHistogramAnimation(frame_args):
+    beam_info = hellweg_dump_reader.beam_info(_dump_file(run_dir))
+    points = hellweg_dump_reader.get_points(beam_info, frame_args.reportType)
+    hist, edges = np.histogram(points, template_common.histogram_bins(frame_args.histogramBins))
+    return {
+        'title': _report_title(frame_args.reportType, 'BeamHistogramReportType', beam_info),
+        'x_range': [edges[0], edges[-1]],
+        'y_label': 'Number of Particles',
+        'x_label': hellweg_dump_reader.get_label(frame_args.reportType),
+        'points': hist.T.tolist(),
+    }
+
+
+def sim_frame_parameterAnimation(frame_args):
+    s = solver.BeamSolver(
+        os.path.join(str(run_dir), HELLWEG_INI_FILE),
+        os.path.join(str(run_dir), HELLWEG_INPUT_FILE))
+    s.load_bin(os.path.join(str(run_dir), HELLWEG_DUMP_FILE))
+    y1_var, y2_var = frame_args.reportType.split('-')
+    x_field = 'z'
+    x = s.get_structure_parameters(_parameter_index(x_field))
+    y1 = s.get_structure_parameters(_parameter_index(y1_var))
+    y1_extent = [np.min(y1), np.max(y1)]
+    y2 = s.get_structure_parameters(_parameter_index(y2_var))
+    y2_extent = [np.min(y2), np.max(y2)]
+    return {
+        'title': _enum_text('ParameterReportType', frame_args.reportType),
+        'x_range': [x[0], x[-1]],
+        'y_label': hellweg_dump_reader.get_parameter_label(y1_var),
+        'x_label': hellweg_dump_reader.get_parameter_label(x_field),
+        'x_points': x,
+        'points': [
+            y1,
+            y2,
+        ],
+        'y_range': [min(y1_extent[0], y2_extent[0]), max(y1_extent[1], y2_extent[1])],
+        'y1_title': hellweg_dump_reader.get_parameter_title(y1_var),
+        'y2_title': hellweg_dump_reader.get_parameter_title(y2_var),
+    }
+
+
+def sim_frame_particleAnimation(frame_args):
+    x_field = 'z0'
+    particle_info = hellweg_dump_reader.particle_info(_dump_file(run_dir), frame_args.reportType, int(frame_args.renderCount))
+    x = particle_info['z_values']
+    return {
+        'title': _enum_text('ParticleReportType', frame_args.reportType),
+        'x_range': [np.min(x), np.max(x)],
+        'y_label': hellweg_dump_reader.get_label(frame_args.reportType),
+        'x_label': hellweg_dump_reader.get_label(x_field),
+        'x_points': x,
+        'points': particle_info['y_values'],
+        'y_range': particle_info['y_range'],
+    }
 
 
 def write_parameters(data, run_dir, is_parallel):

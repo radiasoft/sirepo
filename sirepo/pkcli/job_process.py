@@ -127,10 +127,8 @@ def _do_compute_status(msg, template):
 
 
 def _do_get_simulation_frame(msg, template):
-    return template.get_simulation_frame(
-        msg.runDir,
-        msg.data,
-        simulation_db.read_json(msg.runDir.join(template_common.INPUT_BASE_NAME)),
+    return template_common.sim_frame_dispatch(
+        msg.data.copy().pkupdate(run_dir=msg.runDir),
     )
 
 

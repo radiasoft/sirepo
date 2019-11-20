@@ -23,9 +23,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data.report
-        if r == 'twissReport':
+    def _compute_job_fields(cls, data, compute_model):
+        if compute_model == 'twissReport':
             return ['beamlines', 'elements', 'simulation.activeBeamlineId']
         return []
 

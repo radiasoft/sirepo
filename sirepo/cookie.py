@@ -134,6 +134,7 @@ class _State(dict):
             max_age=_MAX_AGE_SECONDS,
             httponly=True,
             secure=cfg.is_secure,
+            samesite='Strict',
         )
 
     def _crypto(self):
@@ -148,7 +149,9 @@ class _State(dict):
         return self.crypto
 
     def _decrypt(self, value):
-        return self._crypto().decrypt(base64.urlsafe_b64decode(value))
+        d = self._crypto().decrypt(base64.urlsafe_b64decode(value))
+        pkdc(d)
+        return d
 
     def _deserialize(self, value):
         v = value.split(_SERIALIZER_SEP)

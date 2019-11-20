@@ -62,11 +62,12 @@ class SimData(sirepo.sim_data.SimDataBase):
     )
 
     @classmethod
-    def animation_name(cls, data):
-        if data.modelName in ('coherenceXAnimation', 'coherenceYAnimation'):
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if analysis_model in ('coherenceXAnimation', 'coherenceYAnimation'):
             # degree of coherence reports are calculated out of the multiElectronAnimation directory
             return 'multiElectronAnimation'
-        return data.modelName
+        # SRW is different: it doesn't translate *Animation into animation
+        return analysis_model
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -125,8 +126,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                 dm.sourceIntensityReport.method = '2'
             else:
                 dm.sourceIntensityReport.method = '0'
-        if 'simulationStatus' not in dm or 'state' in dm.simulationStatus:
-            dm.simulationStatus = PKDict()
         if 'facility' in dm.simulation:
             del dm.simulation['facility']
         if 'multiElectronAnimation' not in dm:
@@ -289,10 +288,11 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data['report']
-        if 'Animation' in r:
-            return []
+    def want_browser_frame_cache(cls):
+        return False
+
+    @classmethod
+    def _compute_job_fields(cls, data, r, compute_model):
         if r == 'mirrorReport':
             return [
                 'mirrorReport.heightProfileFile',

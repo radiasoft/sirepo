@@ -100,7 +100,7 @@
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
-        "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<report>",
+        "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
         "robotsTxt": "/robots.txt",
         "root": "/<simulation_type>",
         "runCancel": "/run-cancel",
@@ -230,6 +230,12 @@
                   "templateUrl": "/static/html/complete-registration.html"
                 }
             },
+            "error": {
+                "route": "/error",
+                "config": {
+                    "templateUrl": "/static/html/server-error.html"
+                }
+            },
             "forbidden": {
                 "route": "/forbidden",
                 "config": {
@@ -241,13 +247,6 @@
                 "config": {
                     "controller": "FindByNameController as findByName",
                     "templateUrl": "/static/html/find-by-name.html"
-                }
-            },
-            "login": {
-                "route": "/login",
-                "config": {
-                  "controller": "LoginController as login",
-                  "templateUrl": "/static/html/login.html"
                 }
             },
             "login": {
@@ -295,6 +294,13 @@
                 "config": {
                   "controller": "NotFoundCopyController as notFoundCopy",
                   "templateUrl": "/static/html/copy-session.html"
+                }
+            },
+            "serverUpgraded": {
+                "route": "/server-upgraded",
+                "config": {
+                  "controller": "ServerUpgradedController as serverUpgraded",
+                  "templateUrl": "/static/html/server-upgraded.html"
                 }
             },
             "simulations": {
@@ -401,15 +407,18 @@
         },
         "422": {
             "url": "srw-magnet-file-error.html",
-            "msg": "Invalid Magnet File"
+            "msg": "Invalid Magnet File",
+            "route": "error"
         },
         "500": {
             "url": "server-error.html",
-            "msg": "Server Error"
+            "msg": "Server Error",
+            "route": "error"
         },
         "502": {
             "url": "server-error.html",
-            "msg": "Proxy Error"
+            "msg": "Proxy Error",
+            "route": "error"
         }
     }
 }

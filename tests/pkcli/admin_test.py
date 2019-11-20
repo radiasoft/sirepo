@@ -12,7 +12,7 @@ pytest.importorskip('srwl_bl')
 def _get_dirs():
     from pykern import pkio
     from sirepo import simulation_db
-    g = simulation_db.user_dir_name('*')
+    g = simulation_db.user_dir_name().join('*')
     return list(pkio.sorted_glob(g))
 
 def test_purge_users_no_guests(monkeypatch):
