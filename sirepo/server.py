@@ -282,10 +282,11 @@ def api_importArchive():
     import sirepo.importer
     # special http_request parsing here
     data = sirepo.importer.do_form(flask.request.form)
+    m = simulation_db.get_schema(data.simulationType).appModes.default
     return http_reply.gen_redirect_for_local_route(
         data.simulationType,
-        route=None,
-        params={'simulationId': data.models.simulation.simulationId},
+        m.localRoute,
+        PKDict(simulationId=data.models.simulation.simulationId),
     )
 
 
