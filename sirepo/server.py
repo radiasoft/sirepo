@@ -366,7 +366,7 @@ def api_newSimulation():
         notes=sim.req_data.get('notes', ''),
     )
     if hasattr(sim.template, 'new_simulation'):
-        sim.type.new_simulation(d, sim.req_data)
+        sim.template.new_simulation(d, sim.req_data)
     return _save_new_and_reply(d)
 
 
