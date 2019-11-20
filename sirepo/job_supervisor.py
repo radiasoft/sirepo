@@ -5,19 +5,14 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from sirepo import job
 from sirepo import job_driver
-import aenum
-import collections
-import copy
 import os
 import pykern.pkio
 import sirepo.srdb
 import sirepo.util
-import sys
 import time
 import tornado.gen
 import tornado.ioloop
@@ -36,6 +31,7 @@ _DATA_FILE_URI = None
 #: where supervisor state is persisted to disk
 _SUPERVISOR_STATE_DIR = pykern.pkio.py_path(sirepo.srdb.root() + '/supervisor-state')
 
+
 def init():
     global _LIB_FILE_DIR, _LIB_FILE_URI, _DATA_FILE_URI
 
@@ -50,7 +46,6 @@ def init():
     _DATA_FILE_URI = job.cfg.supervisor_uri + job.DATA_FILE_URI
     pykern.pkio.mkdir_parent(_SUPERVISOR_STATE_DIR)
     return s
-
 
 
 class ServerReq(PKDict):
@@ -202,9 +197,9 @@ class _ComputeJob(PKDict):
                 raise AssertionError('FIXME')
             return PKDict(state=job.RUNNING)
         if (req.content.get('forceRun')
-            or self.db.computeJobHash != req.content.computeJobHash
-            or self.db.status != job.COMPLETED
-        ):
+                or self.db.computeJobHash != req.content.computeJobHash
+                or self.db.status != job.COMPLETED
+            ):
             self.db.computeJobHash = req.content.computeJobHash
             self.isParralel = req.content.isParallel
             self.db.parallelStatus = None
@@ -322,7 +317,7 @@ class _ComputeJob(PKDict):
             await d.send(o)
             return o
         except Exception as e:
-            pkdlog('error={} stack={}', e , pkdexc())
+            pkdlog('error={} stack={}', e, pkdexc())
 
     async def _send_with_single_reply(self, opName, req, jobProcessCmd=None):
         o = await self._send(opName, req, jobProcessCmd)

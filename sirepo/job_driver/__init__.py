@@ -197,8 +197,8 @@ class DriverBase(PKDict):
 
 async def get_instance(req):
     # TODO(e-carlin): parse req to get class
-    return await _DEFAULT_CLASS.get_instance(req)
-    # return await _CLASSES['sbatch'].get_instance(req)
+    # return await _DEFAULT_CLASS.get_instance(req)
+    return await _CLASSES['sbatch'].get_instance(req)
 
 
 def init():

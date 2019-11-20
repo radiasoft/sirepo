@@ -66,11 +66,11 @@ The agent will need to change to support > 1 of the same jid at once
 
     async def _agent_start(self):
         async with asyncssh.connect(
-            'v2.radia.run',
-            username='vagrant',
-            password='vagrant'
+                cfg.nersc_uri,
+                username='vagrant',
+                password='vagrant',
         ) as c:
-            cmd, stdin , _ = self._subprocess_cmd_stdin_env(fork=True)
+            cmd, stdin, _ = self._subprocess_cmd_stdin_env(fork=True)
             async with c.create_process(' '.join(cmd)) as p:
                 o, e = await p.communicate(input=stdin.read().decode('utf-8'))
                 assert o == '' and e == '', \
@@ -82,6 +82,6 @@ def init_class():
     global cfg
 
     cfg = pkconfig.init(
-        nersc_uri=('v2.radia.run', str, 'ssh uri for nersc'),
+        nersc_uri=('v3.radia.run', str, 'ssh uri for nersc'),
     )
     return SBatchDriver
