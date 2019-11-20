@@ -404,7 +404,10 @@ def get_application_data(data):
 def get_data_file(run_dir, model, frame, options=None):
     filename = _ZGOUBI_FAI_DATA_FILE
     if options and options['suffix'] == _ZGOUBI_COMMAND_FILE:
-        filename = _ZGOUBI_COMMAND_FILE
+        if model == 'tunesReport':
+            filename = TUNES_INPUT_FILE
+        else:
+            filename = _ZGOUBI_COMMAND_FILE
     elif model == 'elementStepAnimation':
         filename = _ZGOUBI_PLT_DATA_FILE
     elif model == 'opticsReport' or 'twissReport' in model:
