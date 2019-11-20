@@ -43,12 +43,17 @@ def test_zgoubi(fc):
     _r(
         fc,
         'Los Alamos Proton Storage Ring',
-        'beamPreviewReport',
+        'twissReport',
     )
     _r(
         fc,
-        'Laser Pulse',
-        'laserPreviewReport',
+        'Los Alamos Proton Storage Ring',
+        'bunchReport1',
+    )
+    _r(
+        fc,
+        'Los Alamos Proton Storage Ring',
+        'twissReport2',
     )
 
 
