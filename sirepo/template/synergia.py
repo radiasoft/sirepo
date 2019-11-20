@@ -143,7 +143,7 @@ def import_file(request, lib_dir=None, tmp_dir=None):
         data = _import_elegant_file(f.read())
     else:
         raise IOError('invalid file extension, expecting .madx or .mad8')
-    LatticeUtil.sort_elements_and_beamlines(data)
+    LatticeUtil(data, _SCHEMA).sort_elements_and_beamlines()
     data.models.simulation.name = re.sub(r'\.(mad.|lte)$', '', filename, flags=re.IGNORECASE)
     return data
 
