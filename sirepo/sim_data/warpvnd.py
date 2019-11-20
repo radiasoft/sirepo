@@ -27,6 +27,9 @@ class SimData(sirepo.sim_data.SimDataBase):
             'fieldComparisonAnimation',
         ):
             return 'fieldCalculationAnimation'
+        #TODO(pjm): special case, should be an Animation model
+        if analysis_model == 'particle3d':
+            return 'animation'
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
