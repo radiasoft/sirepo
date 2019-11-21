@@ -38,6 +38,11 @@ _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\
 #: routes that will require a reload
 _RELOAD_JS_ROUTES = None
 
+def as_attachment(resp, content_type, filename):
+    resp.mimetype = content_type
+    resp.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
+    return resp
+
 
 def gen_exception(exc):
     """Generate from an Exception
@@ -52,6 +57,26 @@ def gen_exception(exc):
     if isinstance(exc, werkzeug.exceptions.HTTPException):
         return _gen_exception_werkzeug(exc)
     return _gen_exception_error(exc)
+
+
+def gen_file_as_attachment(content, content_type, filename):
+    """Generate a flask file attachment response
+
+    Args:
+        content (bytes): File contents
+        content_type (str): MIMETYPE of file
+        filename (str): Name of file
+
+    Returns:
+        flask.Response: reply object
+    """
+    return headers_for_no_cache(
+        as_attachment(
+            flask.current_app.response_class(content),
+            content_type,
+            filename
+        ),
+    )
 
 
 def gen_json(value, pretty=False, response_kwargs=None):
@@ -193,7 +218,7 @@ def render_static(base, ext, j2_ctx, cache_ok=False):
 
 
 def _gen_exception_error(exc):
-    pkdlog('unsupported exception={}', exc)
+    pkdlog('unsupported exception={} msg={}', type(exc), exc)
     return gen_redirect_for_local_route(None, route='error')
 
 

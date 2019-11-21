@@ -233,15 +233,6 @@ def remove_last_frame(run_dir):
         pkio.unchecked_remove(files[-1])
 
 
-def resource_files():
-    """Library shared between simulations of this type
-
-    Returns:
-        list: py.path.local objects
-    """
-    return []
-
-
 def sim_frame_beamAnimation(frame_args):
     return extract_particle_report(frame_args, 'beam')
 
@@ -261,10 +252,6 @@ def sim_frame_fieldAnimation(frame_args):
 
 def sim_frame_particleAnimation(frame_args):
     return extract_particle_report(frame_args, 'electrons')
-
-
-def validate_file(file_type, path):
-    return None
 
 
 def write_parameters(data, run_dir, is_parallel):

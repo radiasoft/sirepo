@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
+import pykern.pkio
 from sirepo import api_perm
 from sirepo import http_reply
 from sirepo import http_request
@@ -15,6 +16,7 @@ from sirepo import runner
 from sirepo import simulation_db
 from sirepo.template import template_common
 import datetime
+import flask
 import hashlib
 import sirepo.sim_data
 import sirepo.template
@@ -22,6 +24,24 @@ import time
 
 #: What is_running?
 _RUN_STATES = ('pending', 'running')
+
+
+@api_perm.require_user
+def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
+#TODO(robnagler) validate suffix and frame
+    sim = http_request.parse_params(
+        id=simulation_id,
+        model=model,
+        type=simulation_type,
+    )
+    f, c, t = sirepo.template.import_module(sim.type).get_data_file(
+        simulation_db.simulation_run_dir(sim.req_data),
+        sim.model,
+        int(frame),
+        options=sim.req_data.copy().update(suffix=suffix),
+    )
+    return http_reply.gen_file_as_attachment(c, t, f)
+
 
 @api_perm.require_user
 def api_runCancel():
@@ -102,6 +122,21 @@ def _mtime_or_now(path):
     return int(path.mtime() if path.exists() else time.time())
 
 
+def _read_status(run_dir):
+    """Read status from simulation dir
+
+    Args:
+        run_dir (py.path): where to read
+    """
+    try:
+        return pykern.pkio.read_text(run_dir.join(sirepo.job.RUNNER_STATUS_FILE))
+    except IOError as e:
+        if pykern.pkio.exception_is_not_found(e):
+            # simulation may never have been run
+            return 'stopped'
+        return 'error'
+
+
 def _reqd(sim):
     """Read the run_dir and return cached_data.
 
@@ -128,7 +163,7 @@ def _reqd(sim):
         ),
         is_parallel=res.sim_data.is_parallel(sim.req_data),
         jid=res.sim_data.parse_jid(sim.req_data),
-        job_status=simulation_db.read_status(res.run_dir),
+        job_status=_read_status(res.run_dir),
         model_name=res.sim_data.parse_model(sim.req_data.report),
         req_hash=(
             sim.req_data.get('computeJobHash')
@@ -194,21 +229,16 @@ def _simulation_run_status(sim, quiet=False):
     else:
         is_running = False
         if reqd.run_dir.exists():
-            if hasattr(template, 'prepare_output_file') and in_run_simulation:
-                template.prepare_output_file(reqd.run_dir, sim.req_data)
-            res2, err = simulation_db.read_result(reqd.run_dir)
-            if err:
-                if reqd.is_parallel:
-                    # allow parallel jobs to use template to parse errors below
-                    res['state'] = 'error'
-                else:
-                    if hasattr(template, 'parse_error_log'):
-                        res = template.parse_error_log(reqd.run_dir)
-                        if res:
-                            return res
-                    return _subprocess_error(read_result=err, run_dir=reqd.run_dir)
-            else:
-                res = res2
+            res = simulation_db.read_result(reqd.run_dir)
+            if res.state != sirepo.job.ERROR:
+                if not reqd.is_parallel and hasattr(template, 'prepare_output_file') and in_run_simulation:
+                    template.prepare_output_file(reqd.run_dir, sim.req_data)
+                    res = simulation_db.read_result(reqd.run_dir)
+            if res.state == sirepo.job.ERROR and not reqd.is_parallel:
+                return _subprocess_error(
+                    error='read_result error: ' + res.get('error', '<no error in read_result>'),
+                    run_dir=reqd.run_dir,
+                )
     if reqd.is_parallel:
         new = template.background_percent_complete(
             reqd.model_name,

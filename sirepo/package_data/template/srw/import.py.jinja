@@ -11,7 +11,6 @@ def main():
     global parsed_data
     parsed_data = srw_importer.import_python(
         pkio.read_text(input_file),
-        lib_dir='{{ backgroundImport_libDir }}',
         tmp_dir=os.path.dirname(input_file),
         user_filename='{{ backgroundImport_userFilename }}',
         arguments='{{ backgroundImport_arguments }}',

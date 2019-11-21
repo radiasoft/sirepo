@@ -344,7 +344,7 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE):
         str: source text
     """
     d = sirepo.sim_data.get_class(sim_type).resource_dir() if sim_type \
-        else sirepo.sim_data.RESOURCE_DIR
+        else sirepo.sim_data.resource_dir()
     return pkjinja.render_file(
         # append .jinja, because file may already have an extension
         d.join(name) + '.jinja',

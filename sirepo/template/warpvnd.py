@@ -790,7 +790,9 @@ def _generate_parameters_file(data):
         if c.conductor_type.type == 'stl':
             # if any conductor is STL then don't save the intercept
             v['saveIntercept'] = False
-            v['polyFile'] = _stl_polygon_file(c.conductor_type.name)
+            v['polyFile'] = _SIM_DATA.lib_file_abspath(
+                _stl_polygon_file(c.conductor_type.name),
+            )
             break
         if c.conductor_type.isReflector:
             v['saveIntercept'] = True
@@ -937,10 +939,7 @@ def _prepare_conductors(data):
         if not _SIM_DATA.warpvnd_is_3d(data):
             ct.yLength = 1
         ct.permittivity = ct.permittivity if ct.isConductor == '0' else 'None'
-        ct.file = _SIM_DATA.lib_file_abspath(
-            [_stl_file(ct)],
-            simulation_db.simulation_lib_dir(data.simulationType)
-        )[0] if 'file' in ct else 'None'
+        ct.file = _SIM_DATA.lib_file_abspath(_stl_file(ct)) if 'file' in ct else 'None'
         ct.isReflector = ct.isReflector == '1' if 'isReflector' in ct else False
     for c in data.models.conductors:
         if c.conductorTypeId not in type_by_id:
@@ -1081,19 +1080,16 @@ def _slope(x1, y1, x2, y2):
 
 
 def _stl_file(conductor_type):
-    return _SIM_DATA.lib_file_name('stl', 'file', conductor_type.file)
+    return _SIM_DATA.lib_file_name_with_model_field('stl', 'file', conductor_type.file)
 
 
 def _stl_polygon_file(filename):
-    return _SIM_DATA.lib_file_abspath(
-        [_SIM_DATA.lib_file_name('stl', filename, _STL_POLY_FILE)],
-        simulation_db.simulation_lib_dir(SIM_TYPE)
-    )[0]
+    return _SIM_DATA.lib_file_name_with_model_field('stl', filename, _STL_POLY_FILE)
 
 
 def _save_stl_polys(data):
     try:
-        with h5py.File(_stl_polygon_file(data.file)) as hf:
+        with h5py.File(str(_SIM_DATA.lib_file_write_path(_stl_polygon_file(data.file)))) as hf:
             template_common.dict_to_h5(data, hf, path='/')
     except Exception as e:
         pkdlog('!save_stl_polys FAIL: {}', e)

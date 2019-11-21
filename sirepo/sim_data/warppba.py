@@ -118,5 +118,5 @@ class SimData(sirepo.sim_data.SimDataBase):
 
 
     @classmethod
-    def _lib_files(cls, data):
+    def _lib_file_basenames(cls, data):
         return []

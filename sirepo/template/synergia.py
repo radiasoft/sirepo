@@ -127,7 +127,7 @@ def get_application_data(data):
     assert False, 'unknown application data method: {}'.format(data.method)
 
 
-def import_file(request, lib_dir=None, tmp_dir=None):
+def import_file(request, tmp_dir=None):
     f = request.files['file']
     filename = werkzeug.secure_filename(f.filename)
     if re.search(r'.madx$', filename, re.IGNORECASE):
@@ -176,7 +176,20 @@ def label(field, enum_labels=None):
     return '{} [{}]'.format(res, _UNITS[field])
 
 
-def parse_error_log(run_dir):
+def prepare_output_file(run_dir, data):
+    report = data.report
+    if 'bunchReport' in report or 'twissReport' in report:
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
+        if fn.exists():
+            fn.remove()
+            save_report_data(data, run_dir)
+
+
+def python_source_for_model(data, model):
+    return _generate_parameters_file(data)
+
+
+def parse_synergia_log(run_dir):
     if not run_dir.join(template_common.RUN_LOG).exists():
         return None
     text = pkio.read_text(run_dir.join(template_common.RUN_LOG))
@@ -209,19 +222,6 @@ def parse_error_log(run_dir):
     return None
 
 
-def prepare_output_file(run_dir, data):
-    report = data.report
-    if 'bunchReport' in report or 'twissReport' in report:
-        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
-        if fn.exists():
-            fn.remove()
-            save_report_data(data, run_dir)
-
-
-def python_source_for_model(data, model):
-    return _generate_parameters_file(data)
-
-
 def save_report_data(data, run_dir):
     if 'bunchReport' in data.report:
         import synergia.bunch
@@ -233,7 +233,7 @@ def save_report_data(data, run_dir):
         report = data.models[data.report]
         bunch = data.models.bunch
         if bunch.distribution == 'file':
-            bunch_file = _SIM_DATA.lib_file_name('bunch', 'particleFile', bunch.particleFile)
+            bunch_file = _SIM_DATA.lib_file_name_with_model_field('bunch', 'particleFile', bunch.particleFile)
         else:
             bunch_file = OUTPUT_FILE.bunchReport
         if not run_dir.join(bunch_file).exists():
@@ -376,7 +376,8 @@ def simulation_dir_name(report_name):
 
 
 def validate_file(file_type, path):
-    assert file_type == 'bunch-particleFile'
+    if file_type != 'bunch-particleFile':
+        return 'invalid file type'
     try:
         with h5py.File(path, 'r') as f:
             if 'particles' in f:
@@ -500,7 +501,7 @@ def _generate_parameters_file(data):
         'twissFileName': OUTPUT_FILE.twissReport,
     })
     if data.models.bunch.distribution == 'file':
-        v.bunchFile = _SIM_DATA.lib_file_name('bunch', 'particleFile', data.models.bunch.particleFile)
+        v.bunchFile = _SIM_DATA.lib_file_name_with_model_field('bunch', 'particleFile', data.models.bunch.particleFile)
     v.bunch = template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
     res += template_common.render_jinja(SIM_TYPE, v, 'base.py')
     report = data.report if 'report' in data else ''

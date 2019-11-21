@@ -88,20 +88,6 @@ def test_elegant_data_file(fc):
         sdds.sddsdata.Terminate(0)
 
 
-def test_jspec(fc):
-    from pykern import pkio
-    from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdpretty
-    from pykern.pkunit import pkeq, pkre
-    import json
-
-    a = fc.sr_get_json(
-        'listFiles',
-        PKDict(simulation_type=fc.sr_sim_type, simulation_id='xxxxxxxxxx', file_type='ring-lattice'),
-    )
-    pkeq(['Booster.tfs'], a)
-
-
 def test_srw(fc):
     from pykern import pkio
     from pykern.pkdebug import pkdpretty

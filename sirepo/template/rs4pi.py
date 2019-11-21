@@ -159,12 +159,11 @@ def get_data_file(run_dir, model, frame, **kwargs):
     if model == 'dicomAnimation4':
         with open(_parent_file(run_dir, _DOSE_DICOM_FILE)) as f:
             return RTDOSE_EXPORT_FILENAME, f.read(), 'application/octet-stream'
-    tmp_dir = simulation_db.tmp_dir()
-    filename, _ = _generate_rtstruct_file(_parent_dir(run_dir), tmp_dir)
-    with open (filename, 'rb') as f:
-        dicom_data = f.read()
-    pkio.unchecked_remove(tmp_dir)
-    return RTSTRUCT_EXPORT_FILENAME, dicom_data, 'application/octet-stream'
+    with simulation_db.tmp_dir() as tmp_dir:
+        filename, _ = _generate_rtstruct_file(_parent_dir(run_dir), tmp_dir)
+        with open (filename, 'rb') as f:
+            dicom_data = f.read()
+        return RTSTRUCT_EXPORT_FILENAME, dicom_data, 'application/octet-stream'
 
 
 def get_simulation_frame(run_dir, data, model_data):
@@ -182,7 +181,7 @@ def get_simulation_frame(run_dir, data, model_data):
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
-def import_file(request, lib_dir=None, tmp_dir=None):
+def import_file(request, tmp_dir=None):
     f = request.files['file']
     filename = werkzeug.secure_filename(f.filename)
     if not pkio.has_file_extension(str(filename), 'zip'):

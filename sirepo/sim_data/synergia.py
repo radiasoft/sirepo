@@ -61,9 +61,9 @@ class SimData(sirepo.sim_data.SimDataBase):
         return res
 
     @classmethod
-    def _lib_files(cls, data):
+    def _lib_file_basenames(cls, data):
         res = []
         b = data.models.bunch
         if b.distribution == 'file':
-            res.append(cls.lib_file_name('bunch', 'particleFile', b.particleFile))
+            res.append(cls.lib_file_name_with_model_field('bunch', 'particleFile', b.particleFile))
         return res

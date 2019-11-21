@@ -100,10 +100,6 @@ def remove_last_frame(run_dir):
     pass
 
 
-def validate_file(file_type, path):
-    pass
-
-
 def write_parameters(data, run_dir, is_parallel):
     """Write the parameters file
 

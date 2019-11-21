@@ -81,13 +81,12 @@ def _create_zip(sim_type, sim_id, want_python):
     from sirepo import sim_data
     from sirepo import simulation_db
 
-    #TODO(robnagler) need a lock
-    with pkio.save_chdir(simulation_db.tmp_dir()):
-        res = py.path.local(sim_id + '.zip')
+    with simulation_db.tmp_dir(chdir=True) as t:
+        res = t.join(sim_id + '.zip')
         data = simulation_db.open_json_file(sim_type, sid=sim_id)
         if 'report' in data:
             del data['report']
-        files = sim_data.get_class(data).lib_files(data)
+        files = sim_data.get_class(data).lib_files_for_export(data):
         files.insert(0, simulation_db.sim_data_file(data.simulationType, sim_id))
         if want_python:
             files.append(_python(data))

@@ -11,6 +11,9 @@ import json
 import re
 
 
+#: Default "app"
+MYAPP = 'myapp'
+
 #: import sirepo.server
 server = None
 
@@ -75,17 +78,6 @@ def init_auth_db():
     return fc, fc.sr_post('listSimulations', {'simulationType': fc.sr_sim_type})
 
 
-def file_as_stream(filename):
-    """Returns the file contents as a (text, stream) pair.
-    """
-    try:
-        import StringIO
-    except:
-        from io import StringIO
-    res = filename.read(mode='rb')
-    return res, StringIO.StringIO(res)
-
-
 def sim_data(sim_name, sim_type=None, sim_types=CONFTEST_ALL_CODES):
     """Get simulation data
 
@@ -102,7 +94,7 @@ def sim_data(sim_name, sim_type=None, sim_types=CONFTEST_ALL_CODES):
     return fc.sr_sim_data(sim_name), fc
 
 
-def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie=True, **kwargs):
+def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie=True, want_user=True, **kwargs):
     fc = flask_client(cfg, **kwargs)
     try:
         from pykern import pkunit
@@ -113,7 +105,7 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
         setattr(
             server._app,
             server.SRUNIT_TEST_IN_REQUEST,
-            PKDict(op=op, want_cookie=want_cookie),
+            PKDict(op=op, want_cookie=want_cookie, want_user=want_user),
         )
         from sirepo import uri_router
         resp = fc.get(
@@ -265,19 +257,65 @@ class _TestClient(flask.testing.FlaskClient):
         op = lambda r: self.post(r, data=json.dumps(data), content_type='application/json')
         return self.__req(route_or_uri, params, {}, op, raw_response=raw_response, **kwargs)
 
-    def sr_post_form(self, route_or_uri, data, params=None, raw_response=False, **kwargs):
+    def sr_post_form(self, route_or_uri, data, params=None, raw_response=False, file=None, **kwargs):
         """Posts form data to route_or_uri to server with data
 
         Args:
             route_or_uri (str): identifies route in schema-common.json
             data (dict): will be formatted as JSON
             params (dict): optional params to route_or_uri
+            file (object): if str, will look in data_dir, else assumed py.path
 
         Returns:
             object: Parsed JSON result
         """
-        op = lambda r: self.post(r, data=data)
-        return self.__req(route_or_uri, params, {}, op, raw_response=raw_response, **kwargs)
+        from pykern.pkcollections import PKDict
+        from pykern import pkunit, pkconfig
+
+        if file:
+            p = file
+            if isinstance(p, pkconfig.STRING_TYPES):
+                p = pkunit.data_dir().join(p)
+            data.file = (open(str(p), 'rb'), p.basename)
+        return self.__req(
+            route_or_uri,
+            params,
+            PKDict(),
+            lambda r: self.post(r, data=data),
+            raw_response=raw_response,
+            **kwargs
+        )
+
+    def sr_run_sim(self, data, model, expect_completed=True, timeout=7, **post_args):
+        from pykern import pkunit
+        from pykern.pkcollections import PKDict
+        import time
+
+        r = self.sr_post(
+            'runSimulation',
+            PKDict(
+                forceRun=True,
+                models=data.models,
+                report=model,
+                simulationId=data.models.simulation.simulationId,
+                simulationType=data.simulationType,
+            ).pkupdate(**post_args),
+        )
+        if r.state == 'completed':
+            return r
+        pkunit.pkeq('pending', r.state, 'not pending, run={}', r)
+        c = r.nextRequest
+        for _ in range(timeout):
+            if r.state in ('completed', 'error'):
+                c = None
+                break
+            r = self.sr_post('runStatus', r.nextRequest)
+            time.sleep(1)
+        else:
+            pkunit.pkok(not expect_completed, 'did not complete: runStatus={}', r)
+        if expect_completed:
+            pkunit.pkeq('completed', r.state)
+        return r
 
     def sr_sim_data(self, sim_name='Scooby Doo', sim_type=None):
         """Return simulation data by name

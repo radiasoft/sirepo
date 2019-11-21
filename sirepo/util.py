@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Support routines and classes, mostly around errors.
+u"""Support routines and classes, mostly around errors and I/O.
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -10,6 +10,8 @@ from pykern.pkdebug import pkdlog, pkdp
 import inspect
 import numconv
 import pykern.pkinspect
+import pykern.pkio
+import pykern.pkjson
 import random
 import werkzeug.exceptions
 
@@ -119,6 +121,24 @@ class UserAlert(Reply):
             *args,
             **kwargs
         )
+
+
+def dump_json(obj, path=None, pretty=False, **kwargs):
+    """Formats as json as string, and writing atomically to disk
+
+    Args:
+        obj (object): any Python object
+        path (py.path): where to write (atomic) [None]
+        pretty (bool): pretty print [False]
+        kwargs (object): other arguments to `json.dumps`
+
+    Returns:
+        str: sorted and formatted JSON
+    """
+    res = pykern.pkjson.dump_pretty(obj, pretty=pretty, allow_nan=False, **kwargs)
+    if path:
+        pykern.pkio.atomic_write(path, res)
+    return res
 
 
 def err(obj, fmt='', *args, **kwargs):

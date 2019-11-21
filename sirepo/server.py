@@ -14,7 +14,6 @@ from sirepo import feature_config
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import simulation_db
-from sirepo import srdb
 from sirepo import uri_router
 from sirepo.template import adm
 from sirepo.template import template_common
@@ -23,6 +22,7 @@ import flask
 import importlib
 import re
 import sirepo.sim_data
+import sirepo.srdb
 import sirepo.template
 import sirepo.uri
 import sirepo.util
@@ -53,7 +53,7 @@ _app = None
 
 @api_perm.require_user
 def api_copyNonSessionSimulation():
-    sim = http_request.parse_post(id=1)
+    sim = http_request.parse_post(id=1, template=1)
     src = pkio.py_path(
         simulation_db.find_global_simulation(
             sim.type,
@@ -69,15 +69,13 @@ def api_copyNonSessionSimulation():
     data.models.simulation.isExample = False
     data.models.simulation.outOfSessionSimulationId = sim.id
     res = _save_new_and_reply(data)
-    target = simulation_db.simulation_dir(sim.type, data.models.simulation.simulationId)
-    sirepo.sim_data.get_class(sim_type).lib_files_copy(
+    sirepo.sim_data.get_class(sim_type).lib_files_from_other_user(
         data,
         simulation_db.lib_dir_from_sim_dir(src),
-        simulation_db.lib_dir_from_sim_dir(target),
     )
-    template = sirepo.template.import_module(data)
-    if hasattr(template, 'copy_related_files'):
-        template.copy_related_files(data, str(src), str(target))
+    target = simulation_db.simulation_dir(sim.type, data.models.simulation.simulationId)
+    if hasattr(sim.template, 'copy_related_files'):
+        sim.template.copy_related_files(data, str(src), str(target))
     return res
 
 
@@ -101,20 +99,16 @@ def api_copySimulation():
 @api_perm.require_user
 def api_deleteFile():
     sim = http_request.parse_post(filename=1, file_type=1)
-    e = _simulations_using_file(
-        sim.type,
-        sim.file_type,
-        _lib_filename(sim.type, sim.filename, sim.file_type),
-    )
+    e = _simulations_using_file(sim)
     if len(e):
         return http_reply.gen_json({
             'error': 'File is in use in other simulations.',
             'fileList': e,
             'fileName': sim.filename,
         })
-    pkio.unchecked_remove(
-        _lib_filepath(sim.type, sim.filename, sim.file_type),
-    )
+
+    # Will not remove resource (standard) lib files
+    pkio.unchecked_remove(_lib_file_write_path(sim))
     return http_reply.gen_json_ok()
 
 
@@ -125,39 +119,21 @@ def api_deleteSimulation():
     return http_reply.gen_json_ok()
 
 
-@api_perm.require_user
-def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
-#TODO(robnagler) validate suffix and frame
-    sim = http_request.parse_params(
-        id=simulation_id,
-        model=model,
-        type=simulation_type,
-    )
-    f, c, t = sirepo.template.import_module(sim.type).get_data_file(
-        simulation_db.simulation_run_dir(sim.req_data),
-        sim.model,
-        int(frame),
-        options=sim.req_data.copy().update(suffix=suffix),
-    )
-    return http_reply.headers_for_no_cache(
-        _as_attachment(flask.make_response(c), t, f),
-    )
-
-
-@api_perm.require_user
 def api_downloadFile(simulation_type, simulation_id, filename):
 #TODO(pjm): simulation_id is an unused argument
     sim = http_request.parse_params(type=simulation_type, filename=filename)
-    n = sim.filename
-#TODO(robnagler) need to fix this in sim_data
-    if sim.type != 'srw':
-        # strip file_type prefix from attachment filename
-        n = re.sub(r'^.*?-.*?\.', '', n)
-    return flask.send_file(
-        str(simulation_db.simulation_lib_dir(sim.type).join(sim.filename)),
-        as_attachment=True,
-        attachment_filename=n,
-    )
+    n = sim.sim_data.lib_file_name_without_type(sim.filename)
+    p = sim.sim_data.lib_file_abspath(sim.filename)
+    try:
+        return flask.send_file(
+            str(p),
+            as_attachment=True,
+            attachment_filename=n,
+        )
+    except IOError as e:
+        if pkio.exception_is_not_found(e):
+            sirepo.util.raise_not_found('lib_file={} not found', p)
+        raise
 
 
 @api_perm.allow_visitor
@@ -345,11 +321,8 @@ def api_importFile(simulation_type=None):
                 'simulation_type is required param for non-zip|json imports'
             assert hasattr(template, 'import_file'), \
                 ValueError('Only zip files are supported')
-            data = template.import_file(
-                flask.request,
-                simulation_db.simulation_lib_dir(simulation_type),
-                simulation_db.tmp_dir(),
-            )
+            with simulation_db.tmp_dir() as d:
+                data = template.import_file(flask.request, tmp_dir=d)
             if 'error' in data:
                 return http_reply.gen_json(data)
             if 'version' in data:
@@ -399,13 +372,12 @@ def api_newSimulation():
 
 @api_perm.require_user
 def api_pythonSource(simulation_type, simulation_id, model=None, title=None):
-    sim = http_request.parse_params(type=simulation_type, id=simulation_id)
+    sim = http_request.parse_params(type=simulation_type, id=simulation_id, template=True)
     m = model and sim.sim_data.parse_model(model)
     d = simulation_db.read_simulation_json(sim.type, sid=sim.id)
     return _safe_attachment(
         flask.make_response(
-            sirepo.template.import_module(d)\
-                .python_source_for_model(d, m),
+            sim.template.python_source_for_model(d, m),
         ),
         d.models.simulation.name + ('-' + title if title else ''),
         'py',
@@ -537,9 +509,12 @@ def api_srwLight():
 @api_perm.allow_visitor
 def api_srUnit():
     v = getattr(flask.current_app, SRUNIT_TEST_IN_REQUEST)
+    if v.want_user:
+        import sirepo.auth
+        sirepo.auth.init_mock()
     if v.want_cookie:
-        from sirepo import cookie
-        cookie.set_sentinel()
+        import sirepo.cookie
+        sirepo.cookie.set_sentinel()
     v.op()
     return ''
 
@@ -579,45 +554,39 @@ def api_updateFolder():
 
 @api_perm.require_user
 def api_uploadFile(simulation_type, simulation_id, file_type):
+    f = flask.request.files['file']
     sim = http_request.parse_params(
         file_type=file_type,
+        filename=f.filename,
         id=simulation_id,
         template=1,
         type=simulation_type,
     )
-    f = flask.request.files['file']
-    n = werkzeug.secure_filename(f.filename)
-#TODO(robnagler) assert file type
-    p = _lib_filepath(sim.type, n, sim.file_type)
     e = None
     in_use = None
-    if p.check():
-        if not flask.request.form.get('confirm'):
-            in_use = _simulations_using_file(
-                sim.type,
-                sim.file_type,
-                _lib_filename(sim.type, n, sim.file_type),
-                ignore_sim_id=sim.id,
-            )
+    with simulation_db.tmp_dir() as d:
+        t = d.join(sim.filename)
+        f.save(str(t))
+        if hasattr(sim.template, 'validate_file'):
+            e = sim.template.validate_file(sim.file_type, t)
+        if (
+            not e and sim.sim_data.lib_file_exists(sim.filename)
+            and not flask.request.form.get('confirm')
+        ):
+            in_use = _simulations_using_file(sim, ignore_sim_id=sim.id)
             if in_use:
                 e = 'File is in use in other simulations. Please confirm you would like to replace the file for all simulations.'
-    if not e:
-        pkio.mkdir_parent_only(p)
-        f.save(str(p))
-        if hasattr(sim.template, 'validate_file'):
-            e = sim.template.validate_file(sim.file_type, p)
-            if e:
-                pkio.unchecked_remove(p)
-    if e:
-        return http_reply.gen_json({
-            'error': e,
-            'filename': n,
-            'fileList': in_use,
-            'fileType': sim.file_type,
-            'simulationId': sim.id,
-        })
+        if e:
+            return http_reply.gen_json({
+                'error': e,
+                'filename': sim.filename,
+                'fileList': in_use,
+                'fileType': sim.file_type,
+                'simulationId': sim.id,
+            })
+        t.rename(_lib_file_write_path(sim))
     return http_reply.gen_json({
-        'filename': n,
+        'filename': sim.filename,
         'fileType': sim.file_type,
         'simulationId': sim.id,
     })
@@ -638,10 +607,9 @@ def init(uwsgi=None, use_reloader=False):
     _app.config.update(
         PROPAGATE_EXCEPTIONS=True,
     )
-    _app.sirepo_db_dir = cfg.db_dir
+    _app.sirepo_db_dir = sirepo.srdb.root()
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
-    simulation_db.init_by_server(_app)
     uri_router.init(_app, simulation_db)
     return _app
 
@@ -652,27 +620,6 @@ def init_apis(app, *args, **kwargs):
     importlib.import_module(
         'sirepo.' + ('job' if feature_config.cfg().job_supervisor else 'runner')
     ).init_by_server(app)
-
-
-def _as_attachment(resp, content_type, filename):
-    resp.mimetype = content_type
-    resp.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
-    return resp
-
-
-@pkconfig.parse_none
-def _cfg_db_dir(value):
-    """DEPRECATED"""
-    if value is not None:
-        srdb.server_init_root(value)
-    return srdb.root()
-
-
-def _cfg_time_limit(value):
-    """Sets timeout in seconds"""
-    v = int(value)
-    assert v > 0
-    return v
 
 
 def _handle_error(error):
@@ -688,15 +635,10 @@ def _handle_error(error):
     return f, status_code
 
 
-def _lib_filename(simulation_type, filename, file_type):
-    if simulation_type == 'srw':
-        return filename
-    return werkzeug.secure_filename('{}.{}'.format(file_type, filename))
-
-
-def _lib_filepath(simulation_type, filename, file_type):
-    lib = simulation_db.simulation_lib_dir(simulation_type)
-    return lib.join(_lib_filename(simulation_type, filename, file_type))
+def _lib_file_write_path(sim):
+    return sim.sim_data.lib_file_write_path(
+        sim.sim_data.lib_file_name_with_type(sim.filename, sim.file_type),
+    )
 
 
 def _render_root_page(page, values):
@@ -709,7 +651,7 @@ def _render_root_page(page, values):
 
 
 def _safe_attachment(resp, base, suffix):
-    return _as_attachment(
+    return http_reply.as_attachment(
         resp,
         http_reply.MIME_TYPE[suffix],
         '{}.{}'.format(
@@ -734,18 +676,21 @@ def _simulation_data(res, path, data):
     res.append(data)
 
 
-def _simulations_using_file(simulation_type, file_type, search_name, ignore_sim_id=None):
+def _simulations_using_file(sim, ignore_sim_id=None):
     res = []
-    s = sirepo.sim_data.get_class(simulation_type)
-    for row in simulation_db.iterate_simulation_datafiles(simulation_type, _simulation_data):
-        if s.is_file_used(row, search_name):
-            sim = row['models']['simulation']
-            if ignore_sim_id and sim['simulationId'] == ignore_sim_id:
-                continue
-            if sim['folder'] == '/':
-                res.append('/{}'.format(sim['name']))
-            else:
-                res.append('{}/{}'.format(sim['folder'], sim['name']))
+    for r in simulation_db.iterate_simulation_datafiles(sim.type, _simulation_data):
+        if not sim.sim_data.lib_file_in_use(r, sim.filename):
+            continue
+        s = r.models.simulation
+        if s.simulationId == ignore_sim_id:
+            continue
+        res.append(
+            '{}{}{}'.format(
+                s.folder,
+                '' if s.folder == '/' else '/',
+                s.name,
+            )
+        )
     return res
 
 
@@ -760,7 +705,7 @@ def static_dir(dir_name):
 
 
 cfg = pkconfig.init(
-    db_dir=(None, _cfg_db_dir, 'DEPRECATED: set $SIREPO_SRDB_ROOT'),
-    job_queue=(None, str, 'DEPRECATED: set $SIREPO_RUNNER_JOB_CLASS'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
+    db_dir=pkconfig.ReplacedBy('sirepo.srdb.root'),
+    job_queue=pkconfig.ReplacedBy('sirepo.runner.job_class'),
 )
