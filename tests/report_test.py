@@ -43,7 +43,6 @@ def test_zgoubi(fc):
     _r(
         fc,
         'Los Alamos Proton Storage Ring',
-gn<<<<<<< HEAD
         'twissReport',
     )
     _r(
@@ -55,14 +54,6 @@ gn<<<<<<< HEAD
         fc,
         'Los Alamos Proton Storage Ring',
         'twissReport2',
-=======
-        'beamPreviewReport',
-    )
-    _r(
-        fc,
-        'Laser Pulse',
-        'laserPreviewReport',
->>>>>>> 0f9e7bc9... compute_job_fields is not run for parallel jobs
     )
 
 
