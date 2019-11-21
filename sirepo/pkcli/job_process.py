@@ -187,6 +187,10 @@ class _SBatchProcess(_JobProcess):
             assert s in ('running', 'pending', 'completed'), \
                 'invalid state={}'.format(s)
             if msg.isParallel:
+                # TODO(e-carlin): We could read the squeue output to give the user
+                # an idea of when a pending job will start
+                # see --start flag on squeue
+                # https://slurm.schedmd.com/squeue.html
                 msg.isRunning = s == 'running'
                 cls._write_parallel_status(msg, template)
             if s in ('running', 'pending'):
