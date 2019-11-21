@@ -19,7 +19,7 @@ import functools
 import os
 import re
 import requests
-import sirepo
+import sirepo # TODO(e-carlin): fix
 import subprocess
 import sys
 import time
