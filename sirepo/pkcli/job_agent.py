@@ -334,7 +334,7 @@ class _ReadJsonlStream(_Stream):
 
     async def _read_stream(self):
         self.text = await self._stream.read_until(b'\n', self._MAX)
-        pkdc('stdout={}', self.text)
+        pkdc('stdout={}', self.text[:1000])
         await self._on_read(self.text)
 
 

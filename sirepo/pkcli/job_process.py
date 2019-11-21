@@ -49,6 +49,7 @@ def default_command(in_file):
         pretty=False,
     )
 
+
 class _JobProcess(PKDict):
 
     @classmethod
@@ -65,13 +66,11 @@ class _JobProcess(PKDict):
         r.setdefault('percentComplete', 0.0)
         return r
 
-
     @classmethod
     def do_cancel(cls, msg, template):
         if hasattr(template, 'remove_last_frame'):
             template.remove_last_frame(msg.runDir)
         return PKDict()
-
 
     @classmethod
     def do_compute(cls, msg, template):
@@ -83,7 +82,6 @@ class _JobProcess(PKDict):
             computeJobStart=int(time.time()),
             state=job.RUNNING,
         )
-        cmd, _ = simulation_db.prepare_simulation(msg.data, run_dir=msg.runDir)
         try:
             cls._do_compute(msg, template)
         except Exception as e:
@@ -92,9 +90,13 @@ class _JobProcess(PKDict):
 
     @classmethod
     def _do_compute(cls, msg, template):
-        with open(str(msg.runDir.join(template_common.RUN_LOG)), 'w') as run_log:
+        with open(
+                str(msg.runDir.join(template_common.RUN_LOG)), 'w') as run_log:
             p = subprocess.Popen(
-                cmd,
+                simulation_db.prepare_simulation(
+                    msg.data,
+                    run_dir=msg.runDir
+                )[0],
                 stdout=run_log,
                 stderr=run_log,
             )
@@ -109,7 +111,6 @@ class _JobProcess(PKDict):
                 assert r == 0, 'non zero returncode={}'.format(r)
                 break
 
-
     @classmethod
     def _write_parallel_status(cls, msg, template):
         sys.stdout.write(
@@ -122,14 +123,11 @@ class _JobProcess(PKDict):
             ) + '\n',
         )
 
-
-
     @classmethod
     def do_get_simulation_frame(cls, msg, template):
         return template_common.sim_frame_dispatch(
             msg.data.copy().pkupdate(run_dir=msg.runDir),
         )
-
 
     @classmethod
     def do_get_data_file(cls, msg, template):
@@ -151,17 +149,17 @@ class _JobProcess(PKDict):
         except Exception as e:
             return PKDict(error=e, stack=pkdexc())
 
-
     @classmethod
     def do_sequential_result(cls, msg, template):
         r = simulation_db.read_result(msg.runDir)
         # Read this first: https://github.com/radiasoft/sirepo/issues/2007
         if (r.state != job.ERROR and hasattr(template, 'prepare_output_file')
-        and 'models' in msg.data
+            and 'models' in msg.data
         ):
             template.prepare_output_file(msg.runDir, msg.data)
             r = simulation_db.read_result(msg.runDir)
         return r
+
 
 class _SBatchProcess(_JobProcess):
 
@@ -198,8 +196,8 @@ class _SBatchProcess(_JobProcess):
 
     @classmethod
     def _get_sbatch_script(cls, cmd):
-    # TODO(e-carlin): configure the SBATCH* parameters
-            return'''#!/bin/bash
+        # TODO(e-carlin): configure the SBATCH* parameters
+        return'''#!/bin/bash
 #SBATCH --partition=compute
 #SBATCH --ntasks=1
 #SBATCH --ntasks-per-node=1
@@ -209,10 +207,10 @@ class _SBatchProcess(_JobProcess):
 #SBATCH --output="{}"
 {}
     '''.format(
-        template_common.RUN_LOG,
-        template_common.RUN_LOG,
-        ' '.join(cmd),
-    ) # TODO(e-carlin): quote?
+            template_common.RUN_LOG,
+            template_common.RUN_LOG,
+            ' '.join(cmd),
+        )  # TODO(e-carlin): quote?
 
     @classmethod
     def _get_sbatch_state(cls, job_id):
