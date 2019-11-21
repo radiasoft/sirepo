@@ -43,13 +43,6 @@ def test_zgoubi(fc):
     _r(
         fc,
         'Los Alamos Proton Storage Ring',
-        'beamPreviewReport',
-    )
-    _r(
-        fc,
-        'Laser Pulse',
-        'laserPreviewReport',
-=======
         'twissReport',
     )
     _r(
@@ -61,7 +54,6 @@ def test_zgoubi(fc):
         fc,
         'Los Alamos Proton Storage Ring',
         'twissReport2',
->>>>>>> t2
     )
 
 
