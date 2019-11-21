@@ -185,8 +185,7 @@ class _Job(PKDict):
         self.msg.runDir = str(self.msg.runDir)
         pkjson.dump_pretty(self.msg, filename=self._in_file, pretty=False)
         cmd, stdin, env = job.subprocess_cmd_stdin_env(
-            # ('sirepo', 'job_process', self._in_file),
-            ('sirepo', 'job_sbatch', self._in_file),
+            ('sirepo', 'job_process', self._in_file),
             PKDict(
                 PYTHONUNBUFFERED='1',
                 SIREPO_AUTH_LOGGED_IN_USER=sirepo.auth.logged_in_user(),
