@@ -220,6 +220,17 @@ class SimDataBase(object):
             ] + [str(m.get(k)) for k in cls._frame_id_fields(frame_args)],
         )
 
+    def is_file_used(cls, data, filename):
+        """Check if file in use by simulation
+
+        Args:
+            data (dict): simulation
+            filename (str): to check
+        Returns:
+            bool: True if `filename` in use by `data`
+        """
+        return any(f for f in cls.lib_files(data, validate_exists=False) if f.basename == filename)
+
     @classmethod
     def is_parallel(cls, data_or_model):
         """Is this report a parallel (long) simulation?

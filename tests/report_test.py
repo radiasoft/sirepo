@@ -49,6 +49,19 @@ def test_zgoubi(fc):
         fc,
         'Laser Pulse',
         'laserPreviewReport',
+=======
+        'twissReport',
+    )
+    _r(
+        fc,
+        'Los Alamos Proton Storage Ring',
+        'bunchReport1',
+    )
+    _r(
+        fc,
+        'Los Alamos Proton Storage Ring',
+        'twissReport2',
+>>>>>>> t2
     )
 
 

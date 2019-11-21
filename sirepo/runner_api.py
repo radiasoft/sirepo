@@ -36,7 +36,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
     )
     f, c, t = sirepo.template.import_module(sim.type).get_data_file(
         simulation_db.simulation_run_dir(sim.req_data),
-        sim.sim_data.compute_model(sim.model),
+        sim.model,
         int(frame),
         options=sim.req_data.copy().update(suffix=suffix),
     )
