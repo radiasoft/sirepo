@@ -158,17 +158,6 @@ class _SBatchProcess(_JobProcess):
 
     @classmethod
     def do_compute(cls, msg, template):
-        def wait_for_job_completion(job_id):
-            s = 'pending'
-            while s in ('running', 'pending'):
-                o = subprocess.check_output(
-                    ('scontrol', 'show', 'job', job_id)
-                ).decode('utf-8')
-                r = re.search(r'(?<=JobState=)(.*)(?= Reason)', o)
-                assert r, 'output={}'.format(s)
-                s = r.group().lower()
-                time.sleep(2) # TODO(e-carlin): cfg
-            assert s == 'completed', 'output={}'.format(o)
 
         msg.runDir = pkio.py_path(msg.runDir)
         with pkio.save_chdir('/'):
@@ -199,12 +188,25 @@ class _SBatchProcess(_JobProcess):
             assert e == '', 'error={}'.format(e)
             r = re.search(r'\d+$', o)
             assert r is not None, 'output={} did not cotain job id'.format(o)
-            wait_for_job_completion(r.group())
+            cls.wait_for_job_completion(r.group())
             # TODO(e-carlin): parallel status
         except Exception as e:
             pkdc(pkdexc())
             return PKDict(state=job.ERROR, error=str(e))
         return PKDict(state=job.COMPLETED)
+
+    @classmethod
+    def wait_for_job_completion(cls, job_id):
+        s = 'pending'
+        while s in ('running', 'pending'):
+            o = subprocess.check_output(
+                ('scontrol', 'show', 'job', job_id)
+            ).decode('utf-8')
+            r = re.search(r'(?<=JobState=)(.*)(?= Reason)', o)
+            assert r, 'output={}'.format(s)
+            s = r.group().lower()
+            time.sleep(2) # TODO(e-carlin): cfg
+        assert s == 'completed', 'output={}'.format(o)
 
     @classmethod
     def _get_sbatch_script(cls, cmd):
