@@ -50,6 +50,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
                 data=PKDict(
                     sim.req_data,
                     frame=frame,
+                    report=sim.model,
                     computeJobHash='x',
                     suffix=suffix,
                 ),
