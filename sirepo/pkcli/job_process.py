@@ -85,34 +85,43 @@ class _JobProcess(PKDict):
         )
         cmd, _ = simulation_db.prepare_simulation(msg.data, run_dir=msg.runDir)
         try:
-            with open(str(msg.runDir.join(template_common.RUN_LOG)), 'w') as run_log:
-                p = subprocess.Popen(
-                    cmd,
-                    stdout=run_log,
-                    stderr=run_log,
-                )
-            while True:
-                r = p.poll()
-                if msg.isParallel:
-                    msg.isRunning = r is None
-                    sys.stdout.write(
-                        pkjson.dump_pretty(
-                            PKDict(
-                                state=job.RUNNING if msg.isRunning else job.COMPLETED,
-                                parallelStatus=_background_percent_complete(msg, template),
-                            ),
-                            pretty=False,
-                        ) + '\n',
-                    )
-                if r is None:
-                    time.sleep(2) # TODO(e-carlin): cfg
-                else:
-                    assert r == 0, 'non zero returncode={}'.format(r)
-                    break
+            cls._do_compute(msg, template)
         except Exception as e:
-            pkdc(pkdexc())
-            return PKDict(state=job.ERROR, error=str(e))
+            return PKDict(state=job.ERROR, error=str(e), stack=pkdexc())
         return PKDict(state=job.COMPLETED)
+
+    @classmethod
+    def _do_compute(cls, msg, template):
+        with open(str(msg.runDir.join(template_common.RUN_LOG)), 'w') as run_log:
+            p = subprocess.Popen(
+                cmd,
+                stdout=run_log,
+                stderr=run_log,
+            )
+        while True:
+            r = p.poll()
+            if msg.isParallel:
+                msg.isRunning = r is None
+                cls._write_parallel_status(msg, template)
+            if r is None:
+                time.sleep(2) # TODO(e-carlin): cfg
+            else:
+                assert r == 0, 'non zero returncode={}'.format(r)
+                break
+
+
+    @classmethod
+    def _write_parallel_status(cls, msg, template):
+        sys.stdout.write(
+            pkjson.dump_pretty(
+                PKDict(
+                    state=job.RUNNING if msg.isRunning else job.COMPLETED,
+                    parallelStatus=cls._background_percent_complete(msg, template),
+                ),
+                pretty=False,
+            ) + '\n',
+        )
+
 
 
     @classmethod
@@ -157,56 +166,35 @@ class _JobProcess(PKDict):
 class _SBatchProcess(_JobProcess):
 
     @classmethod
-    def do_compute(cls, msg, template):
-
-        msg.runDir = pkio.py_path(msg.runDir)
-        with pkio.save_chdir('/'):
-            pkio.unchecked_remove(msg.runDir)
-            pkio.mkdir_parent(msg.runDir)
-        msg.simulationStatus = PKDict(
-            computeJobStart=int(time.time()),
-            state=job.RUNNING,
-        )
-        try:
-            a = cls._get_sbatch_script(
-                    simulation_db.prepare_simulation(
-                        msg.data,
-                        run_dir=msg.runDir
-                    )[0]
-                )
-
-            with open('slurmscript', 'w') as x:
-                x.write(a)
-            o, e = subprocess.Popen(
-                ('sbatch'),
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            ).communicate(
-                input=a
+    def _do_compute(cls, msg, template):
+        o, e = subprocess.Popen(
+            ('sbatch'),
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ).communicate(
+            input=cls._get_sbatch_script(
+                simulation_db.prepare_simulation(
+                    msg.data,
+                    run_dir=msg.runDir
+                )[0]
             )
-            assert e == '', 'error={}'.format(e)
-            r = re.search(r'\d+$', o)
-            assert r is not None, 'output={} did not cotain job id'.format(o)
-            cls.wait_for_job_completion(r.group())
-            # TODO(e-carlin): parallel status
-        except Exception as e:
-            pkdc(pkdexc())
-            return PKDict(state=job.ERROR, error=str(e))
-        return PKDict(state=job.COMPLETED)
-
-    @classmethod
-    def wait_for_job_completion(cls, job_id):
-        s = 'pending'
-        while s in ('running', 'pending'):
-            o = subprocess.check_output(
-                ('scontrol', 'show', 'job', job_id)
-            ).decode('utf-8')
-            r = re.search(r'(?<=JobState=)(.*)(?= Reason)', o)
-            assert r, 'output={}'.format(s)
-            s = r.group().lower()
-            time.sleep(2) # TODO(e-carlin): cfg
-        assert s == 'completed', 'output={}'.format(o)
+        )
+        assert e == '', 'error={}'.format(e)
+        r = re.search(r'\d+$', o)
+        assert r is not None, 'output={} did not cotain job id'.format(o)
+        job_id = r.group()
+        while True:
+            s = cls._get_sbatch_state(job_id)
+            assert s in ('running', 'pending', 'completed'), \
+                'invalid state={}'.format(s)
+            if msg.isParallel:
+                msg.isRunning = s == 'running'
+                cls._write_parallel_status(msg, template)
+            if s in ('running', 'pending'):
+                time.sleep(2)
+                continue
+            break
 
     @classmethod
     def _get_sbatch_script(cls, cmd):
@@ -225,6 +213,15 @@ class _SBatchProcess(_JobProcess):
         template_common.RUN_LOG,
         ' '.join(cmd),
     ) # TODO(e-carlin): quote?
+
+    @classmethod
+    def _get_sbatch_state(cls, job_id):
+        o = subprocess.check_output(
+            ('scontrol', 'show', 'job', job_id)
+        ).decode('utf-8')
+        r = re.search(r'(?<=JobState=)(.*)(?= Reason)', o)
+        assert r, 'output={}'.format(s)
+        return r.group().lower()
 
 
 def _mtime_or_now(path):
