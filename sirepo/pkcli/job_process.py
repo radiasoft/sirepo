@@ -175,7 +175,8 @@ class _SBatchProcess(_JobProcess):
                 simulation_db.prepare_simulation(
                     msg.data,
                     run_dir=msg.runDir
-                )[0]
+                )[0],
+                msg.runDir
             )
         )
         assert e == '', 'error={}'.format(e)
@@ -199,7 +200,7 @@ class _SBatchProcess(_JobProcess):
             break
 
     @classmethod
-    def _get_sbatch_script(cls, cmd):
+    def _get_sbatch_script(cls, cmd, run_dir):
         # TODO(e-carlin): configure the SBATCH* parameters
         return'''#!/bin/bash
 #SBATCH --partition=compute
@@ -207,14 +208,30 @@ class _SBatchProcess(_JobProcess):
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem-per-cpu=128M
-#SBATCH --error="{}"
-#SBATCH --output="{}"
+#SBATCH -e {}
+#SBATCH -o {}
+docker run \
+       --interactive \
+       --init \
+       --volume /home/vagrant/src:/home/vagrant/src:ro \
+       --volume /home/vagrant/.pyenv:/home/vagrant/.pyenv:ro \
+       --volume /home/vagrant/.local:/home/vagrant/.local:ro \
+       --volume /home/vagrant/src/radiasoft/sirepo/run/user/0SICbY8N/:/home/vagrant/src/radiasoft/sirepo/run/user/0SICbY8N/ \
+       --volume {}:{} \
+       radiasoft/sirepo:dev \
+       /bin/bash -l <<'EOF'
+pyenv shell py2
+cd {}
 {}
+EOF
     '''.format(
             template_common.RUN_LOG,
             template_common.RUN_LOG,
-            ' '.join(cmd),
-        )  # TODO(e-carlin): quote?
+            run_dir,
+            run_dir,
+            run_dir,
+            ' '.join(cmd),# TODO(e-carlin): quote?
+        )
 
     @classmethod
     def _get_sbatch_state(cls, job_id):
