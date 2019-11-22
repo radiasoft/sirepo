@@ -264,11 +264,12 @@ class SimDataBase(object):
         p = cls._lib_file_abspath(basename)
         if p:
             return p
+        import sirepo.auth
         raise sirepo.util.UserAlert(
             'Simulation library file "{}" does not exist'.format(basename),
-            'basename={} not in lib or resource directories resource_dir={}',
+            'basename={} not in lib or resource directories uid={}',
             basename,
-            cls.lib_file_resource_dir(),
+            sirepo.auth.logged_in_user(),
         )
 
     @classmethod
@@ -395,10 +396,10 @@ class SimDataBase(object):
         from sirepo import simulation_db
 
         for b in cls.lib_file_basenames(data):
-            s = cls.lib_file_abspath(b)
+            s = run_dir.join(b)
             # File might exist if directory exist (runner_api only)
             pkio.unchecked_remove(s)
-            run_dir.join(b).mksymlinkto(s, absolute=False)
+            s.mksymlinkto(cls.lib_file_abspath(b), absolute=False)
 
     @classmethod
     def model_defaults(cls, name):
