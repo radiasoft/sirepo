@@ -1717,13 +1717,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                 if (m) {
                     srlog('javascriptRedirectDocument', m[1]);
                     self.globalRedirect(m[1]);
-                    srdbg('here');
                     if (m[1].indexOf(SIREPO.APP_NAME) == 1) {
                         // need to refresh because authState needs to be set
                         // https://github.com/radiasoft/sirepo/pull/2031#issuecomment-554493331
-                        srdbg('there');
                         $window.location.reload(true);
-                        srdbg('done');
                     }
                     return;
                 }
