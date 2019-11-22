@@ -134,7 +134,8 @@ class _State(dict):
             max_age=_MAX_AGE_SECONDS,
             httponly=True,
             secure=cfg.is_secure,
-            samesite='Strict',
+            #TODO(pjm): enabling this causes self-extracting simulations to break
+            #samesite='Strict',
         )
 
     def _crypto(self):

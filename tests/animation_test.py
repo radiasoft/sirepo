@@ -78,8 +78,8 @@ def test_synergia(fc):
                 frame_count_key='bunchAnimation.frameCount',
                 expect_title=lambda i: r'turn {}\b'.format(i),
                 expect_y_range=lambda i: [
-                    '-0.0109.*, 0.011.*, 200',
-                    '-0.0108.*, 0.0109.*, 200',
+                    '-0.01.*, 0.01.*, 200',
+                    '-0.01.*, 0.01.*, 200',
                 ][i]
             ),
             turnComparisonAnimation=PKDict(

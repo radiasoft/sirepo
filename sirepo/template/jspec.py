@@ -121,7 +121,7 @@ def get_application_data(data):
 
 
 def get_data_file(run_dir, model, frame, options=None):
-    if model == 'beamEvolutionAnimation':
+    if model in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
         path = run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)
     else:
         path = py.path.local(_ion_files(run_dir)[frame])

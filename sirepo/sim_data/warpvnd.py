@@ -19,6 +19,15 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
+        if analysis_model in (
+            'currentAnimation',
+            'egunCurrentAnimation',
+            'fieldAnimation',
+            'impactDensityAnimation',
+            'particle3d',
+            'particleAnimation',
+        ):
+            return 'animation'
         if analysis_model == 'optimizerAnimation':
             return analysis_model
         if analysis_model in (
@@ -27,6 +36,9 @@ class SimData(sirepo.sim_data.SimDataBase):
             'fieldComparisonAnimation',
         ):
             return 'fieldCalculationAnimation'
+        #TODO(pjm): special case, should be an Animation model
+        if analysis_model == 'particle3d':
+            return 'animation'
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
@@ -85,8 +97,6 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-        if r == compute_model or r == 'optimizerAnimation':
-            return []
         res = ['simulationGrid']
         res.append(cls.__non_opt_fields_to_array(data.models.beam))
         for container in ('conductors', 'conductorTypes'):

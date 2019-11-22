@@ -119,7 +119,6 @@ def api_deleteSimulation():
     return http_reply.gen_json_ok()
 
 
-@api_perm.require_user
 def api_downloadFile(simulation_type, simulation_id, filename):
 #TODO(pjm): simulation_id is an unused argument
     sim = http_request.parse_params(type=simulation_type, filename=filename)
@@ -283,10 +282,11 @@ def api_importArchive():
     import sirepo.importer
     # special http_request parsing here
     data = sirepo.importer.do_form(flask.request.form)
+    m = simulation_db.get_schema(data.simulationType).appModes.default
     return http_reply.gen_redirect_for_local_route(
         data.simulationType,
-        route=None,
-        params={'simulationId': data.models.simulation.simulationId},
+        m.localRoute,
+        PKDict(simulationId=data.models.simulation.simulationId),
     )
 
 
@@ -367,21 +367,20 @@ def api_newSimulation():
         notes=sim.req_data.get('notes', ''),
     )
     if hasattr(sim.template, 'new_simulation'):
-        sim.type.new_simulation(d, sim.req_data)
+        sim.template.new_simulation(d, sim.req_data)
     return _save_new_and_reply(d)
 
 
 @api_perm.require_user
-def api_pythonSource(simulation_type, simulation_id, model=None, report=None):
+def api_pythonSource(simulation_type, simulation_id, model=None, title=None):
     sim = http_request.parse_params(type=simulation_type, id=simulation_id, template=True)
     m = model and sim.sim_data.parse_model(model)
-    r = report and sim.sim_data.parse_model(report)
     d = simulation_db.read_simulation_json(sim.type, sid=sim.id)
     return _safe_attachment(
         flask.make_response(
             sim.template.python_source_for_model(d, m),
         ),
-        d.models.simulation.name + ('-' + r if r else ''),
+        d.models.simulation.name + ('-' + title if title else ''),
         'py',
     )
 
