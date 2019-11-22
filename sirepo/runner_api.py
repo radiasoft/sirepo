@@ -18,6 +18,7 @@ from sirepo.template import template_common
 import datetime
 import flask
 import hashlib
+import inspect
 import sirepo.sim_data
 import sirepo.template
 import time
@@ -172,7 +173,13 @@ def _reqd(sim):
     )
     if not res.run_dir.check():
         return res
-    res.cached_data = c = simulation_db.read_json(res.input_file)
+    try:
+        c = simulation_db.read_json(res.input_file)
+    except IOError as e:
+        if pykern.pkio.exception_is_not_found(e):
+            return res
+        raise
+    res.cached_data = c
     # backwards compatibility for old runs that don't have computeJobCacheKey
     res.cached_hash = c.models.pksetdefault(
         computeJobCacheKey=lambda: PKDict(
@@ -313,6 +320,7 @@ def _subprocess_error(**kwargs):
     pkdlog(
         'simulation_run_status error: {}',
         ' '.join(['{}={}'.format(k, v) for k,v in kwargs.items()]),
+        pkdebug_frame=inspect.currentframe().f_back,
     )
     return {
         'state': 'error',
