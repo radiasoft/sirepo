@@ -119,6 +119,7 @@ def api_deleteSimulation():
     return http_reply.gen_json_ok()
 
 
+@api_perm.require_user
 def api_downloadFile(simulation_type, simulation_id, filename):
 #TODO(pjm): simulation_id is an unused argument
     sim = http_request.parse_params(type=simulation_type, filename=filename)
