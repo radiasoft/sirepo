@@ -279,9 +279,10 @@ class SimDataBase(object):
         Args:
             data (dict): sim db
         Returns:
-            list: list of str
+            set: list of str, sorted
         """
-        return cls._lib_file_basenames(data)
+        # _lib_file_basenames may return duplicates
+        return sorted(set(cls._lib_file_basenames(data)))
 
     @classmethod
     def lib_file_exists(cls, basename):
@@ -349,7 +350,7 @@ class SimDataBase(object):
     def lib_files_for_export(cls, data):
         res = []
         for b in cls.lib_file_basenames(data):
-            f = cls.lib_file_write_path(b)
+            f = cls.lib_file_abspath(b)
             if f.exists():
                 res.append(f)
         return res

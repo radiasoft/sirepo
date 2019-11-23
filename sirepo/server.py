@@ -164,16 +164,7 @@ def api_exportArchive(simulation_type, simulation_id, filename):
         type=simulation_type,
     )
     from sirepo import exporter
-    fn, mt = exporter.create_archive(sim.type, sim.id, sim.filename)
-    return flask.send_file(
-        str(fn),
-        as_attachment=True,
-        attachment_filename=sim.filename,
-        mimetype=mt,
-        #TODO(pjm): the browser caches HTML files, may need to add explicit times
-        # to other calls to send_file()
-        cache_timeout=1,
-    )
+    return exporter.create_archive(sim)
 
 
 @api_perm.allow_visitor
