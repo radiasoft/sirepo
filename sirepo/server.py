@@ -535,8 +535,8 @@ def api_updateFolder():
     #TODO(robnagler) Folder should have a serial, or should it be on data
     sim = http_request.parse_post()
 #TODO(robnagler) validate
-    old_name = data['oldName']
-    new_name = data['newName']
+    old_name = sim.req_data['oldName']
+    new_name = sim.req_data['newName']
     for row in simulation_db.iterate_simulation_datafiles(sim.type, _simulation_data):
         folder = row['models']['simulation']['folder']
         if folder.startswith(old_name):
