@@ -180,3 +180,35 @@ def test_srw_validate_file(fc):
     pkeq('sample.tif', r.filename)
     pkeq('sample', r.fileType)
     pkeq(d.models.simulation.simulationId, r.simulationId)
+
+
+def test_warpvnd_import(fc):
+    from pykern import pkunit
+    from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdp
+    from pykern.pkunit import pkre, pkeq
+    import sirepo.sim_data
+
+    d = PKDict(name='new1', folder='/', simulationType=fc.sr_sim_type)
+    s = sirepo.sim_data.get_class(fc.sr_sim_type)
+    d = fc.sr_post('newSimulation', d)
+    r = fc.sr_post_form(
+        'uploadFile',
+        params=PKDict(
+            simulation_type=fc.sr_sim_type,
+            simulation_id=d.models.simulation.simulationId,
+            file_type='stl-file',
+        ),
+        data=PKDict(confirm='1'),
+        file=s.lib_file_resource_dir().join('stl-file.lattice_gate.stl'),
+    )
+    pkeq('stl-file.lattice_gate.stl', r.filename)
+    pkeq('stl-file', r.fileType)
+    d2 = fc.sr_sim_data('new1')
+    pkeq(d.models.simulation.simulationId, d2.models.simulation.simulationId)
+    l = fc.sr_post(
+        'listSimulations',
+        PKDict(
+            simulationType=fc.sr_sim_type,
+        )
+    )

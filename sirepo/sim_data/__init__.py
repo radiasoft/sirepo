@@ -320,7 +320,7 @@ class SimDataBase(object):
 
     @classmethod
     def lib_file_name_with_type(cls, filename, file_type):
-        return '{}.{}'.format(filename, filetype)
+        return '{}.{}'.format(filename, file_type)
 
     @classmethod
     def lib_file_name_without_type(cls, basename):
