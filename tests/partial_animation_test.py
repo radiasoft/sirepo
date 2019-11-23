@@ -17,7 +17,7 @@ def test_synergia(fc):
 
     data = fc.sr_sim_data('IOTA 6-6 with NL Element')
     cancel = None
-    # this seems to provoke the error better
+    # this provokes an 'invalid data error'
 #    data.models.simulationSettings.space_charge = '2d-bassetti_erskine'
     s = sirepo.sim_data.get_class(fc.sr_sim_type)
     try:
@@ -56,4 +56,3 @@ def test_synergia(fc):
                 fc.sr_post('runCancel', cancel)
         except Exception:
             pass
-    assert 0
