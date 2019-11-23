@@ -300,6 +300,20 @@ class SimDataBase(object):
         return any(f for f in cls.lib_file_basenames(data) if f == basename)
 
     @classmethod
+    def lib_file_names_for_type(cls, file_type):
+        """Return sorted list of files which match `file_type`
+
+        Args:
+            file_type (str): in the format of ``model-field``
+        Returns:
+            list: sorted list of file names stripped of file_type
+        """
+        return sorted((
+            cls.lib_file_name_without_type(f.basename) for f
+            in cls._lib_file_list('{}.*'.format(file_type))
+        ))
+
+    @classmethod
     def lib_file_name_with_model_field(cls, model_name, field, filename):
         return '{}-{}.{}'.format(model_name, field, filename)
 
@@ -330,33 +344,6 @@ class SimDataBase(object):
         from sirepo import simulation_db
 
         return simulation_db.simulation_lib_dir(cls.sim_type()).join(basename)
-
-    @classmethod
-    def lib_files_for_extension(cls, ext):
-        """Return sorted list of files which end in `ext`
-
-        Only works locally
-
-        Args:
-            ext (str): does not include suffix
-        Returns:
-            list: sorted list of absolute paths to lib files
-        """
-        return cls._lib_file_list('*.{}'.format(ext))
-
-    @classmethod
-    def lib_files_for_type(cls, file_type):
-        """Return sorted list of files which match `file_type`
-
-        Args:
-            file_type (str): in the format of ``model-field``
-        Returns:
-            list: sorted list of files stripped of file_type
-        """
-        return [
-            cls.lib_file_name_without_type(f) for f
-            in cls._lib_file_list('{}.*'.format(file_type))
-        ]
 
     @classmethod
     def lib_files_for_export(cls, data):
@@ -596,19 +583,23 @@ class SimDataBase(object):
         return None
 
     @classmethod
-    def _lib_file_list(cls, pat, want_user_lib_dir=False):
+    def _lib_file_list(cls, pat, want_user_lib_dir=True):
+        """Unsorted list of absolute paths matching glob pat
+
+        Only works locally.
+        """
         cls._assert_server_side()
         from sirepo import simulation_db
 
-        res = set()
+        res = PKDict()
         x = [cls.lib_file_resource_dir()]
         if want_user_lib_dir:
-            x.insert(0, simulation_db.simulation_lib_dir(cls.sim_type()))
+            # lib_dir overwrites resource_dir
+            x.append(simulation_db.simulation_lib_dir(cls.sim_type()))
         for d in x:
-            res = res.union(
-                (f.basename for f in pkio.sorted_glob(d.join(pat))),
-            )
-        return sorted(res)
+            for f in pkio.sorted_glob(d.join(pat)):
+                res[f.basename] = f
+        return res.values()
 
     @classmethod
     def _memoize(cls, value):

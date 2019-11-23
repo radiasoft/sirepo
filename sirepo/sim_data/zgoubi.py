@@ -56,6 +56,19 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
+    def zgoubi_lib_files_with_zip():
+        """Return sorted list of zip files
+
+        Only works locally
+
+        Args:
+            ext (str): does not include suffix
+        Returns:
+            list: list of absolute paths to lib files
+        """
+        return cls._lib_file_list('*.zip')
+
+    @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         if compute_model == 'tunesReport':
             return [r]

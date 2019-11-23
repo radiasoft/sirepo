@@ -191,7 +191,7 @@ def api_listFiles(simulation_type, simulation_id, file_type):
 #TODO(pjm): simulation_id is an unused argument
     sim = http_request.parse_params(type=simulation_type, file_type=file_type)
     return http_reply.gen_json(
-        sim.sim_data.lib_files_for_type(sim.file_type),
+        sim.sim_data.lib_files_name_for_type(sim.file_type),
     )
 
 
