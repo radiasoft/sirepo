@@ -65,15 +65,7 @@ def _r(fc, sim_name, analysis_model, shared_model=None):
     import time
 
     data = fc.sr_sim_data(sim_name)
-    try:
-        r = fc.sr_run_sim(data, analysis_model)
-        if shared_model:
-            r = fc.sr_run_sim(data, analysis_model, timeout=1, forceRun=False)
-            pkunit.pkeq('completed',  r.state)
-
-    finally:
-        try:
-            if cancel:
-                fc.sr_post('runCancel', cancel)
-        except Exception:
-            pass
+    r = fc.sr_run_sim(data, analysis_model)
+    if shared_model:
+        r = fc.sr_run_sim(data, analysis_model, timeout=1, forceRun=False)
+        pkunit.pkeq('completed',  r.state)

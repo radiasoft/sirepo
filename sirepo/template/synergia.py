@@ -288,7 +288,7 @@ def sim_frame_beamEvolutionAnimation(frame_args):
             points = _plot_values(f, frame_args[yfield])
             for v in points:
                 if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
-                    return parse_error_log(run_dir) or PKDict(
+                    return parse_synergia_log(frame_args.run_dir) or PKDict(
                         error='Invalid data computed',
                     )
             plots.append(PKDict(
@@ -338,7 +338,7 @@ def sim_frame_turnComparisonAnimation(frame_args):
         points = _plot_values(f, frame_args.y)
         for v in points:
             if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
-                return parse_error_log(frame_args.run_dir) or {
+                return parse_synergia_log(frame_args.run_dir) or {
                     'error': 'Invalid data computed',
                 }
         steps = (len(points) - 1) / turn_count

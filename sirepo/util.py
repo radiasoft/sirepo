@@ -127,6 +127,20 @@ class UserAlert(Reply):
         )
 
 
+def convert_exception(exception, display_text='unexpected error'):
+    """Convert exception so can be raised
+
+    Args:
+        exception (Exception): Reply or other exception
+        display_text (str): what to send back to the client
+    Returns:
+        Exception: to raise
+    """
+    if isinstance(exception, Reply):
+        return exception
+    return UserAlert(display_text, 'exception={} str={}', type(exception), exception)
+
+
 def dump_json(obj, path=None, pretty=False, **kwargs):
     """Formats as json as string, and writing atomically to disk
 
@@ -147,6 +161,7 @@ def dump_json(obj, path=None, pretty=False, **kwargs):
 
 def err(obj, fmt='', *args, **kwargs):
     return '{}: '.format(obj) + fmt.format(*args, **kwargs)
+
 
 
 def raise_bad_request(*args, **kwargs):

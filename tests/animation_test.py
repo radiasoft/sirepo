@@ -89,7 +89,6 @@ def test_synergia(fc):
         ),
     )
 
-
 def test_warppba(fc):
     _r(
         fc,
@@ -193,48 +192,40 @@ def _r(fc, sim_name, compute_model, reports, **kwargs):
     import time
 
     data = fc.sr_sim_data(sim_name)
-    cancel = None
-    try:
-        run = fc.sr_run_sim(data, compute_model, **kwargs)
-        for r, a in reports.items():
-            if 'runSimulation' in a:
-                f = fc.sr_run_sim(data, r)
-                for k, v in a.items():
-                    m = re.search('^expect_(.+)', k)
-                    if m:
-                        pkunit.pkre(
-                            v(i) if callable(v) else v,
-                            str(f.get(m.group(1))),
-                        )
-                continue
-            if 'frame_index' in a:
-                c = [a.get('frame_index')]
-            else:
-                c = range(run.get(a.get('frame_count_key', 'frameCount')))
-                assert c, \
-                    'frame_count_key={} or frameCount={} is zero'.format(
-                        a.get('frame_count_key'), a.get('frameCount'),
+    run = fc.sr_run_sim(data, compute_model, **kwargs)
+    for r, a in reports.items():
+        if 'runSimulation' in a:
+            f = fc.sr_run_sim(data, r)
+            for k, v in a.items():
+                m = re.search('^expect_(.+)', k)
+                if m:
+                    pkunit.pkre(
+                        v(i) if callable(v) else v,
+                        str(f.get(m.group(1))),
                     )
-            pkdlog('frameReport={} count={}', r, c)
-            import sirepo.sim_data
-
-            s = sirepo.sim_data.get_class(fc.sr_sim_type)
-            for i in c:
-                pkdlog('frameIndex={}', i)
-                f = fc.sr_get_json(
-                    'simulationFrame',
-                    PKDict(frame_id=s.frame_id(data, run, r, i)),
+            continue
+        if 'frame_index' in a:
+            c = [a.get('frame_index')]
+        else:
+            c = range(run.get(a.get('frame_count_key', 'frameCount')))
+            assert c, \
+                'frame_count_key={} or frameCount={} is zero'.format(
+                    a.get('frame_count_key'), a.get('frameCount'),
                 )
-                for k, v in a.items():
-                    m = re.search('^expect_(.+)', k)
-                    if m:
-                        pkunit.pkre(
-                            v(i) if callable(v) else v,
-                            str(f.get(m.group(1))),
-                        )
-    finally:
-        try:
-            if cancel:
-                fc.sr_post('runCancel', cancel)
-        except Exception:
-            pass
+        pkdlog('frameReport={} count={}', r, c)
+        import sirepo.sim_data
+
+        s = sirepo.sim_data.get_class(fc.sr_sim_type)
+        for i in c:
+            pkdlog('frameIndex={}', i)
+            f = fc.sr_get_json(
+                'simulationFrame',
+                PKDict(frame_id=s.frame_id(data, run, r, i)),
+            )
+            for k, v in a.items():
+                m = re.search('^expect_(.+)', k)
+                if m:
+                    pkunit.pkre(
+                        v(i) if callable(v) else v,
+                        str(f.get(m.group(1))),
+                    )
