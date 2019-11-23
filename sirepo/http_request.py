@@ -11,6 +11,7 @@ import flask
 import sirepo.sim_data
 import sirepo.template
 import sirepo.util
+import sirepo.srschema
 import user_agents
 import werkzeug
 
@@ -93,6 +94,10 @@ def parse_post(**kwargs):
         res.filename = werkzeug.secure_filename(r.get('fileName') or r.get('filename'))
     if k.pkdel('file_type'):
         res.file_type = werkzeug.secure_filename(r.get('file_type') or r.get('fileType'))
+    if k.pkdel('folder'):
+        res.folder = sirepo.srschema.parse_folder(r.get('folder'))
+    if k.pkdel('name'):
+        res.name = sirepo.srschema.parse_name(r.get('name'))
     if k.pkdel('model'):
         res.model = res.sim_data.parse_model(r)
     if k.pkdel('template'):

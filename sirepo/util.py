@@ -5,6 +5,7 @@ u"""Support routines and classes, mostly around errors and I/O.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp
 import inspect
@@ -47,11 +48,14 @@ class Error(Reply):
     """Raised to send an error response
 
     Args:
-        values (dict): values to put in the reply
+        values (dict or str): values to put in the reply or just the error
     """
     def __init__(self, values, *args, **kwargs):
-        assert values.get('error'), \
-            'values={} must contain "error"'.format(values)
+        if isinstance(values, pkconfig.STRING_TYPES):
+            values = PKDict(error=values)
+        else:
+            assert values.get('error'), \
+                'values={} must contain "error"'.format(values)
         super(Error, self).__init__(
             values,
             *args,

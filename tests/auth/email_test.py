@@ -113,6 +113,7 @@ def test_guest_merge():
             simulationId=d.simulationId,
             simulationType=sim_type,
             name='guest-sim',
+            folder='/',
         ),
     )
     guest_uid = fc.sr_auth_state().uid
@@ -141,6 +142,7 @@ def test_guest_merge():
             simulationId=d.simulationId,
             simulationType=sim_type,
             name='email-sim',
+            folder='/',
         ),
     )
     fc.sr_get('authLogout', {'simulation_type': sim_type})

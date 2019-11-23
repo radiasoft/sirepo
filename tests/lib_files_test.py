@@ -144,3 +144,39 @@ def test_srw_upload(fc):
         data=PKDict(),
     )
     pkunit.pkre(r'^\s*-1.39500', r.data)
+
+
+def test_srw_validate_file(fc):
+    from pykern import pkunit
+    from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdp
+    from pykern.pkunit import pkre, pkeq
+    import sirepo.sim_data
+
+    d = fc.sr_sim_data('Sample from Image')
+    s = sirepo.sim_data.get_class(fc.sr_sim_type)
+    r = fc.sr_get(
+        'downloadFile',
+        params=PKDict(
+            simulation_type=fc.sr_sim_type,
+            simulation_id=d.models.simulation.simulationId,
+            filename='sample.tif',
+        ),
+        data=PKDict(),
+        redirect=False,
+    )
+    pkre('/tif', r.mimetype)
+    f = s.lib_file_resource_dir().join('sample.tif')
+    r = fc.sr_post_form(
+        'uploadFile',
+        params=PKDict(
+            simulation_type=fc.sr_sim_type,
+            simulation_id=d.models.simulation.simulationId,
+            file_type='sample',
+        ),
+        data=PKDict(confirm='1'),
+        file=f,
+    )
+    pkeq('sample.tif', r.filename)
+    pkeq('sample', r.fileType)
+    pkeq(d.models.simulation.simulationId, r.simulationId)

@@ -580,9 +580,12 @@ def validate_file(file_type, path):
         except AssertionError as err:
             return err.message
     elif file_type == 'sample':
-        filename = os.path.splitext(os.path.basename(str(path)))[0]
-        # Save the processed file:
-        srwl_uti_smp.SRWLUtiSmp(file_path=str(path), is_save_images=True, prefix=filename)
+        srwl_uti_smp.SRWLUtiSmp(
+            file_path=str(path),
+            # srw processes the image so we save to tmp location
+            is_save_images=True,
+            prefix=path.purebasename,
+        )
     if not _SIM_DATA.srw_is_valid_file(file_type, path):
         return 'Column count is incorrect for file type: {}'.format(file_type)
     return None
@@ -1286,7 +1289,7 @@ def _process_image(data):
             prefix=str(t),
             output_image_format=m['outputImageFormat'],
         )
-        return t.join(s.processed_image_name)
+        return pkio.py_path(s.processed_image_name)
 
 
 def _process_intensity_reports(source_type, undulator_type):

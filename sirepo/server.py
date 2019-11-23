@@ -14,6 +14,7 @@ from sirepo import feature_config
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import simulation_db
+from sirepo import srschema
 from sirepo import uri_router
 from sirepo.template import adm
 from sirepo.template import template_common
@@ -82,14 +83,11 @@ def api_copyNonSessionSimulation():
 @api_perm.require_user
 def api_copySimulation():
     """Takes the specified simulation and returns a newly named copy with the suffix ( X)"""
-    sim = http_request.parse_post(id=1)
-#TODO(robnagler) add support for name and folder validation
-    n = sim.req_data.name
-    assert n, sirepo.util.err(sim, 'No name in request')
+    sim = http_request.parse_post(id=1, folder=1, name=1)
     d = simulation_db.read_simulation_json(sim.type, sid=sim.id)
     d.models.simulation.pkupdate(
-        name=n,
-        folder=sim.req_data.get('folder', '/'),
+        name=sim.name,
+        folder=sim.folder,
         isExample=False,
         outOfSessionSimulationId='',
     )
@@ -182,7 +180,7 @@ def api_listFiles(simulation_type, simulation_id, file_type):
 #TODO(pjm): simulation_id is an unused argument
     sim = http_request.parse_params(type=simulation_type, file_type=file_type)
     return http_reply.gen_json(
-        sim.sim_data.lib_files_name_for_type(sim.file_type),
+        sim.sim_data.lib_file_names_for_type(sim.file_type),
     )
 
 
@@ -349,13 +347,12 @@ def api_homePageOld():
 
 @api_perm.require_user
 def api_newSimulation():
-    sim = http_request.parse_post(template=1)
+    sim = http_request.parse_post(template=1, folder=1, name=1)
     d = simulation_db.default_data(sim.type)
-#TODO(robnagler) assert values
 #TODO(pjm): update fields from schema values across new_simulation_data values
     d.models.simulation.pkupdate(
-        name=sim.req_data.name,
-        folder=sim.req_data.folder,
+        name=sim.name,
+        folder=sim.folder,
         notes=sim.req_data.get('notes', ''),
     )
     if hasattr(sim.template, 'new_simulation'):
@@ -534,14 +531,22 @@ def api_staticFile(path_info=None):
 def api_updateFolder():
     #TODO(robnagler) Folder should have a serial, or should it be on data
     sim = http_request.parse_post()
-#TODO(robnagler) validate
-    old_name = sim.req_data['oldName']
-    new_name = sim.req_data['newName']
-    for row in simulation_db.iterate_simulation_datafiles(sim.type, _simulation_data):
-        folder = row['models']['simulation']['folder']
-        if folder.startswith(old_name):
-            row['models']['simulation']['folder'] = re.sub(re.escape(old_name), new_name, folder, 1)
-            simulation_db.save_simulation_json(row)
+    o = srschema.parse_folder(sim.req_data['oldName'])
+    if o == '/':
+        raise util.Error('cannot rename root ("/") folder')
+    n = srschema.parse_folder(sim.req_data['newName'])
+    if n == '/':
+        raise util.Error('cannot folder to root ("/")')
+    for r in simulation_db.iterate_simulation_datafiles(sim.type, _simulation_data_iterator):
+        f = r.models.simulation.folder
+        l = o.lower()
+        if f.lower() == o.lower():
+            r.models.simulation.folder = n
+        elif f.lower().startswith(o.lower() + '/'):
+            r.models.simulation.folder = n + f[len():]
+        else:
+            continue
+        simulation_db.save_simulation_json(r)
     return http_reply.gen_json_ok()
 
 
@@ -561,6 +566,7 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
         t = d.join(sim.filename)
         f.save(str(t))
         if hasattr(sim.template, 'validate_file'):
+            # Note: validate_file may modify the file
             e = sim.template.validate_file(sim.file_type, t)
         if (
             not e and sim.sim_data.lib_file_exists(sim.filename)
@@ -663,7 +669,7 @@ def _save_new_and_reply(*args):
     )
 
 
-def _simulation_data(res, path, data):
+def _simulation_data_iterator(res, path, data):
     """Iterator function to return entire simulation data
     """
     res.append(data)
@@ -671,7 +677,7 @@ def _simulation_data(res, path, data):
 
 def _simulations_using_file(sim, ignore_sim_id=None):
     res = []
-    for r in simulation_db.iterate_simulation_datafiles(sim.type, _simulation_data):
+    for r in simulation_db.iterate_simulation_datafiles(sim.type, _simulation_data_iterator):
         if not sim.sim_data.lib_file_in_use(r, sim.filename):
             continue
         s = r.models.simulation

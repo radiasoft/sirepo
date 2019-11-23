@@ -10,6 +10,7 @@ import pytest
 
 def test_rename_folder(fc):
     from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdp
     from pykern.pkunit import pkeq
     import copy
 
@@ -18,13 +19,14 @@ def test_rename_folder(fc):
         name='new sim 1',
         folder='first folder',
     )
-    fc.sr_post('newSimulation', d)
+    r = fc.sr_post('newSimulation', d)
+    pkeq('/' + d.folder, r.models.simulation.folder)
     d2 = copy.deepcopy(d)
     d2.pkupdate(
         name='new sim 2',
         folder='first folder no-match',
     )
-    fc.sr_post('newSimulation', d2)
+    r2 = fc.sr_post('newSimulation', d2)
     n = 'new dir'
     fc.sr_post(
         'updateFolder',
@@ -35,6 +37,25 @@ def test_rename_folder(fc):
         ),
     )
     x = fc.sr_sim_data(d.name)
-    pkeq(n, x.models.simulation.folder)
+    pkeq('/' + n, x.models.simulation.folder)
     x = fc.sr_sim_data('new sim 2')
-    pkeq(d2.folder, x.models.simulation.folder)
+    pkeq(r2.models.simulation.folder, x.models.simulation.folder)
+
+
+def test_illegals(fc):
+    from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdp
+    from pykern.pkunit import pkeq, pkexcept, pkre
+    import copy
+
+    d = fc.sr_sim_data()
+    for x in (
+        (PKDict(name='new/sim'), 'illegal character'),
+        (PKDict(name='some*sim'), 'illegal character'),
+        (PKDict(folder='.foo'), 'with a dot'),
+        (PKDict(folder=''), 'blank folder'),
+        (PKDict(name=''), 'blank name'),
+    ):
+        c = d.copy().pkupdate(folder='folder', name='name')
+        r = fc.sr_post('newSimulation', c.pkupdate(x[0]))
+        pkre(x[1], r.error)
