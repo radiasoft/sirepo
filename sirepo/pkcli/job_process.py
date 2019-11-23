@@ -41,8 +41,9 @@ def default_command(in_file):
     msg = pkjson.load_any(f)
     msg.runDir = pkio.py_path(msg.runDir) # TODO(e-carlin): find common place to serialize/deserialize paths
     f.remove()
+    # TODO(e-carlin): Parse msg to determine sbatch or not
     return pkjson.dump_pretty(
-        PKDict(getattr(_SBatchProcess, 'do_' + msg.jobProcessCmd)(
+        PKDict(getattr(_JobProcess, 'do_' + msg.jobProcessCmd)(
             msg,
             sirepo.template.import_module(msg.simulationType)
         )).pkupdate(opDone=True),
@@ -165,20 +166,23 @@ class _SBatchProcess(_JobProcess):
 
     @classmethod
     def _do_compute(cls, msg, template):
+        a = cls._get_sbatch_script(
+            simulation_db.prepare_simulation(
+                msg.data,
+                run_dir=msg.runDir
+            )[0],
+            msg.runDir
+        )
+        with open('slurmscript', 'w') as f:
+            f.write(a)
+
         o, e = subprocess.Popen(
             ('sbatch'),
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         ).communicate(
-            input=cls._get_sbatch_script(
-                simulation_db.prepare_simulation(
-                    msg.data,
-                    run_dir=msg.runDir
-                )[0],
-                msg.runDir
-            )
-        )
+            input=a)
         assert e == '', 'error={}'.format(e)
         r = re.search(r'\d+$', o)
         assert r is not None, 'output={} did not cotain job id'.format(o)
@@ -201,6 +205,7 @@ class _SBatchProcess(_JobProcess):
 
     @classmethod
     def _get_sbatch_script(cls, cmd, run_dir):
+       # --volume /home/vagrant/src:/home/vagrant/src:ro \
         # TODO(e-carlin): configure the SBATCH* parameters
         return'''#!/bin/bash
 #SBATCH --partition=compute
@@ -213,16 +218,15 @@ class _SBatchProcess(_JobProcess):
 docker run \
        --interactive \
        --init \
-       --volume /home/vagrant/src:/home/vagrant/src:ro \
-       --volume /home/vagrant/.pyenv:/home/vagrant/.pyenv:ro \
-       --volume /home/vagrant/.local:/home/vagrant/.local:ro \
-       --volume /home/vagrant/src/radiasoft/sirepo/run/user/0SICbY8N/:/home/vagrant/src/radiasoft/sirepo/run/user/0SICbY8N/ \
+       --volume /home/vagrant/src/radiasoft/sirepo/sirepo:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/sirepo \
+       --volume /home/vagrant/src/radiasoft/pykern/pykern:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/pykern \
        --volume {}:{} \
        radiasoft/sirepo:dev \
        /bin/bash -l <<'EOF'
 pyenv shell py2
 cd {}
 {}
+sleep 500
 EOF
     '''.format(
             template_common.RUN_LOG,
@@ -238,7 +242,7 @@ EOF
         o = subprocess.check_output(
             ('scontrol', 'show', 'job', job_id)
         ).decode('utf-8')
-        r = re.search(r'(?<=JobState=)(.*)(?= Reason)', o)
+        r = re.search(r'(?<=JobState=)(.*)(?= Reason)', o) # TODO(e-carlin): Make middle [A-Z]+
         assert r, 'output={}'.format(s)
         return r.group().lower()
 

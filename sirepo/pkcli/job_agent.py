@@ -144,13 +144,12 @@ class _Dispatcher(PKDict):
         finally:
             tornado.ioloop.IOLoop.current().stop()
 
-
     async def _op_run(self, msg):
         self._process(msg)
         return None
 
     def _process(self, msg):
-        p = _Process(msg=msg, comm=self)
+        p = _JobProcess(msg=msg, comm=self)
 #TODO(robnagler) there should only be one computeJid per agent.
 #   background_percent_complete is not an analysis
         assert msg.computeJid not in self.processes
@@ -158,34 +157,32 @@ class _Dispatcher(PKDict):
         p.start()
 
 
-class _Job(PKDict):
+class _JobProcess(PKDict):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._subprocess = None
-        self._in_file = None
-        self._exit = tornado.locks.Event()
+        self._subprocess = _Subprocess(
+                self._subprocess_cmd_stdin_env,
+                self._on_stdout_read,
+                msg=self.msg,
+            )
+        self._terminating = False
 
-    async def exit_ready(self):
-        await self._exit.wait()
-        await self.stdout.stream_closed.wait()
-        await self.stderr.stream_closed.wait()
-
+# TODO(e-carlin): rename to cancel?
     def kill(self):
-        # TODO(e-carlin): Terminate?
-        os.killpg(self._subprocess.proc.pid, signal.SIGKILL)
+        # TODO(e-carlin): terminate?
+        self._terminating = True
+        self._subprocess.kill()
 
     def start(self):
-        # SECURITY: msg must not contain agentId
-        assert not self.msg.get('agentId')
-        self._in_file = self.msg.runDir.join(
-            _IN_FILE.format(job.unique_key()),
+        self._subprocess.start()
+        tornado.ioloop.IOLoop.current().add_callback(
+            self._on_exit
         )
-        pkio.mkdir_parent_only(self._in_file)
-        # TODO(e-carlin): Find a better solution for serial and deserialization
-        self.msg.runDir = str(self.msg.runDir)
-        pkjson.dump_pretty(self.msg, filename=self._in_file, pretty=False)
-        cmd, stdin, env = job.subprocess_cmd_stdin_env(
-            ('sirepo', 'job_process', self._in_file),
+
+    def _subprocess_cmd_stdin_env(self, in_file):
+        return job.subprocess_cmd_stdin_env(
+            ('sirepo', 'job_process', in_file),
             PKDict(
                 PYTHONUNBUFFERED='1',
                 SIREPO_AUTH_LOGGED_IN_USER=sirepo.auth.logged_in_user(),
@@ -195,85 +192,8 @@ class _Job(PKDict):
             ),
             pyenv='py2',
         )
-        self._subprocess = tornado.process.Subprocess(
-            cmd,
-            cwd=self.msg.runDir,
-            env=env,
-            start_new_session=True,
-            stdin=stdin,
-            stdout=tornado.process.Subprocess.STREAM,
-            stderr=tornado.process.Subprocess.STREAM,
-        )
-        stdin.close()
-        self.stdout = _ReadJsonlStream(self._subprocess.stdout, self.on_stdout_read)
-        self.stderr = _ReadUntilCloseStream(self._subprocess.stderr)
-        self._subprocess.set_exit_callback(self._subprocess_exit)
 
-    def _subprocess_exit(self, returncode):
-        if self._in_file:
-            pkio.unchecked_remove(self._in_file)
-            self._in_file = None
-        self.returncode = returncode
-        self._exit.set()
-
-
-class _Process(PKDict):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.pkupdate(
-            _job_proc=None,
-            _terminating=False,
-            **kwargs,
-        )
-
-    def kill(self):
-        # TODO(e-carlin): terminate?
-        self._terminating = True
-        self._job_proc.kill()
-
-
-    def start(self):
-        self._job_proc = _Job(
-            msg=self.msg,
-            on_stdout_read=self._on_job_process_stdout_read
-        )
-        self._job_proc.start()
-        tornado.ioloop.IOLoop.current().add_callback(
-            self._handle_job_proc_exit
-        )
-
-    async def _handle_job_proc_exit(self):
-        try:
-            await self._job_proc.exit_ready()
-            if self._terminating:
-                await self.comm.send(
-                    self.comm.format_op(
-                        self.msg,
-                        job.OP_OK,
-                        reply=PKDict(state=job.CANCELED, opDone=True),
-                    )
-                )
-                return
-            e = self._job_proc.stderr.text.decode('utf-8', errors='ignore')
-            if e:
-                pkdlog('error={}', e)
-            if self._job_proc.returncode != 0:
-                await self.comm.send(
-                    self.comm.format_op(
-                        self.msg,
-                        job.OP_ERROR,
-                        opDone=True,
-                        error=e,
-                        reply=PKDict(
-                            state=job.ERROR,
-                            error='returncode={}'.format(self._job_proc.returncode)),
-                    )
-                )
-        except Exception as exc:
-            pkdlog('error={} returncode={}', exc, self._job_proc.returncode)
-
-    async def _on_job_process_stdout_read(self, text):
+    async def _on_stdout_read(self, text):
         if self._terminating:
             return
         try:
@@ -299,6 +219,36 @@ class _Process(PKDict):
         except Exception as exc:
             pkdlog('error=={}', exc)
 
+    async def _on_exit(self):
+        try:
+            await self._subprocess.exit_ready()
+            if self._terminating:
+                await self.comm.send(
+                    self.comm.format_op(
+                        self.msg,
+                        job.OP_OK,
+                        reply=PKDict(state=job.CANCELED, opDone=True),
+                    )
+                )
+                return
+            e = self._subprocess.stderr.text.decode('utf-8', errors='ignore')
+            if e:
+                pkdlog('error={}', e)
+            if self._subprocess.returncode != 0:
+                await self.comm.send(
+                    self.comm.format_op(
+                        self.msg,
+                        job.OP_ERROR,
+                        opDone=True,
+                        error=e,
+                        reply=PKDict(
+                            state=job.ERROR,
+                            error='returncode={}'.format(self._subprocess.returncode)),
+                    )
+                )
+        except Exception as exc:
+            pkdlog('error={} returncode={}', exc, self._subprocess.returncode)
+
 
 class _Stream(PKDict):
     _MAX = int(1e8)
@@ -323,6 +273,61 @@ class _Stream(PKDict):
 
     async def _read_stream(self):
         raise NotImplementedError()
+
+
+class _Subprocess(PKDict):
+    def __init__(self, subprocess_cmd_stdin_env, on_stdout_read,  *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.update(
+            stderr=None,
+            stdout=None,
+            _exit=tornado.locks.Event(),
+            _in_file=None,
+            _on_stdout_read=on_stdout_read,
+            _subprocess=None,
+            _subprocess_cmd_stdin_env=subprocess_cmd_stdin_env,
+        )
+
+    async def exit_ready(self):
+        await self._exit.wait()
+        await self.stdout.stream_closed.wait()
+        await self.stderr.stream_closed.wait()
+
+    def kill(self):
+        # TODO(e-carlin): Terminate?
+        os.killpg(self._subprocess.proc.pid, signal.SIGKILL)
+
+    def start(self):
+        # SECURITY: msg must not contain agentId
+        assert not self.msg.get('agentId')
+        self._in_file = self.msg.runDir.join(
+            _IN_FILE.format(job.unique_key()),
+        )
+        pkio.mkdir_parent_only(self._in_file)
+        # TODO(e-carlin): Find a better solution for serial and deserialization
+        self.msg.runDir = str(self.msg.runDir)
+        pkjson.dump_pretty(self.msg, filename=self._in_file, pretty=False)
+        cmd, stdin, env = self._subprocess_cmd_stdin_env(self._in_file)
+        self._subprocess = tornado.process.Subprocess(
+            cmd,
+            cwd=self.msg.runDir,
+            env=env,
+            start_new_session=True, # TODO(e-carlin): generalize?
+            stdin=stdin,
+            stdout=tornado.process.Subprocess.STREAM,
+            stderr=tornado.process.Subprocess.STREAM,
+        )
+        stdin.close()
+        self.stdout = _ReadJsonlStream(self._subprocess.stdout, self._on_stdout_read)
+        self.stderr = _ReadUntilCloseStream(self._subprocess.stderr)
+        self._subprocess.set_exit_callback(self._on_exit)
+
+    def _on_exit(self, returncode):
+        if self._in_file:
+            pkio.unchecked_remove(self._in_file)
+            self._in_file = None
+        self.returncode = returncode
+        self._exit.set()
 
 
 class _ReadJsonlStream(_Stream):
