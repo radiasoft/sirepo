@@ -95,7 +95,7 @@ def background_percent_complete(report, run_dir, is_running):
     }
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'get_elegant_sim_list':
         tp = _SIM_DATA.jspec_elegant_twiss_path()
         res = []
@@ -120,7 +120,7 @@ def get_application_data(data):
     raise AssertionError('unknown application data method={}'.format(data.method))
 
 
-def get_data_file(run_dir, model, frame, options=None):
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if model in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
         path = run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)
     else:

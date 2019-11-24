@@ -44,11 +44,11 @@ _AUTH_NONCE_SEPARATOR = '-'
 
 @api_perm.allow_cookieless_set_user
 def api_authBlueskyLogin():
-    sim = sirepo.http_request.parse_post(id=1)
-    auth_hash(sim.req_data, verify=True)
+    req = sirepo.http_request.parse_post(id=True)
+    auth_hash(req.req_data, verify=True)
     path = simulation_db.find_global_simulation(
-        sim.type,
-        sim.id,
+        req.type,
+        req.id,
         checked=True,
     )
     sirepo.auth.login(
@@ -58,8 +58,8 @@ def api_authBlueskyLogin():
     )
     return sirepo.http_reply.gen_json_ok(
         PKDict(
-            data=simulation_db.open_json_file(sim.type, sid=sim.id),
-            schema=simulation_db.get_schema(sim.type),
+            data=simulation_db.open_json_file(req.type, sid=req.id),
+            schema=simulation_db.get_schema(req.type),
         ),
     )
 

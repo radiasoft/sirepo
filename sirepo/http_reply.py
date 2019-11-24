@@ -86,6 +86,9 @@ def gen_file_as_attachment(content_or_path, filename=None, content_type=None):
         content_type, _ = mimetypes.guess_type(filename)
         if content_type is None:
             content_type = 'application/octet-stream'
+        # overrule mimetypes for this case
+        elif content_type == 'text/x-python':
+            content_type = 'text/plain'
     return headers_for_no_cache(
         as_attachment(f(), content_type, filename))
 

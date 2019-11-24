@@ -119,7 +119,7 @@ def format_float(v):
     return float(format(v, '.10f'))
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data.method == 'calculate_bunch_parameters':
         return _calc_bunch_parameters(data.bunch)
     if data.method == 'compute_particle_ranges':
@@ -148,7 +148,7 @@ def import_file(request, tmp_dir=None):
     return data
 
 
-def get_data_file(run_dir, model, frame, options=None):
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if model in OUTPUT_FILE:
         path = run_dir.join(OUTPUT_FILE[model])
     elif model == 'bunchAnimation':

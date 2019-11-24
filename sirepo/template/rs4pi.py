@@ -146,7 +146,7 @@ def generate_rtdose_file(data, run_dir):
         return _summarize_rt_dose(None, ds, run_dir=run_dir)
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'roi_points':
         return _read_roi_file(data['simulationId'])
     elif data['method'] == 'update_roi_points':
@@ -159,11 +159,10 @@ def get_data_file(run_dir, model, frame, **kwargs):
     if model == 'dicomAnimation4':
         with open(_parent_file(run_dir, _DOSE_DICOM_FILE)) as f:
             return RTDOSE_EXPORT_FILENAME, f.read(), 'application/octet-stream'
-    with simulation_db.tmp_dir() as tmp_dir:
-        filename, _ = _generate_rtstruct_file(_parent_dir(run_dir), tmp_dir)
-        with open (filename, 'rb') as f:
-            dicom_data = f.read()
-        return RTSTRUCT_EXPORT_FILENAME, dicom_data, 'application/octet-stream'
+    filename, _ = _generate_rtstruct_file(_parent_dir(run_dir), kwargs['tmp_dir'])
+    with open (filename, 'rb') as f:
+        dicom_data = f.read()
+    return RTSTRUCT_EXPORT_FILENAME, dicom_data, 'application/octet-stream'
 
 
 def get_simulation_frame(run_dir, data, model_data):

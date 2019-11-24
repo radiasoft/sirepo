@@ -15,15 +15,6 @@ import sirepo.srschema
 import user_agents
 import werkzeug
 
-_PARAM_MAP = PKDict(
-    file_type='file_type',
-    filename='filename',
-    id='simulationId',
-    model='report',
-    template='template',
-    type='simulationType',
-)
-
 _SIM_TYPE_ATTR = 'sirepo_http_request_sim_type'
 
 _POST_ATTR = 'sirepo_http_request_post'
@@ -59,54 +50,78 @@ def parse_json():
 
 
 def parse_params(**kwargs):
-    a = PKDict(req_data=PKDict())
-    p = PKDict(kwargs)
-    for k, v in _PARAM_MAP.items():
-        x = p.pkdel(k)
-        if x is not None:
-            if k != 'template':
-                a.req_data[v] = x
-            a[k] = True
-    assert not p, \
-        'unexpected kwargs={}'.format(p)
-    return parse_post(**a)
+    return parse_post(req_data=PKDict(), **kwargs)
 
 
 def parse_post(**kwargs):
+    """Parse a post augmented by inline args
+
+    Arguments are either `bool` or another `object`.
+    If a bool and True, the value is parsed from `req_data`.
+    If another `object`, the value is parsed as is, setting
+    on `req_data`.
+
+    The names of the args are the keys of the return value.
+
+    Args:
+        req_data (PKDict): input values [`parse_json`]
+        type (object): `assert_sim_type`
+        file_type (object): `werkzeug.secure_filename`
+        filename (object): `werkzeug.secure_filename`
+        folder (object): `parse_folder`
+        id (object): `parse_sid`
+        model (object): `parse_model`
+        name (object): `parse_name`
+        template (object): `sirepo.template.import_module`
+    Returns:
+        PKDict: with arg names set to parsed values
+    """
     res = PKDict()
-    k = PKDict(kwargs)
-    r = k.pkdel('req_data')
-    if not r:
+    kwargs = PKDict(kwargs)
+    r = kwargs.pkdel('req_data')
+    if r is None:
         r = parse_json()
-    if k.pkdel('fixup_old_data'):
+    if kwargs.pkdel('fixup_old_data'):
         r = simulation_db.fixup_old_data(r)[0]
-    res.pkupdate(
-        req_data=r,
-        type=sirepo.template.assert_sim_type(r.simulationType),
-    )
-    res.sim_data = sirepo.sim_data.get_class(res.type)
-    # flask.g API is very limited but do this in order to
-    # maintain explicit coupling of _SIM_TYPE_ATTR
-    set_sim_type(res.get('type'))
-    if k.pkdel('id'):
-        res.id = res.sim_data.parse_sid(r)
-    if k.pkdel('filename'):
-        res.filename = werkzeug.secure_filename(r.get('fileName') or r.get('filename'))
-    if k.pkdel('file_type'):
-        res.file_type = werkzeug.secure_filename(r.get('file_type') or r.get('fileType'))
-    if k.pkdel('folder'):
-        res.folder = sirepo.srschema.parse_folder(r.get('folder'))
-    if k.pkdel('name'):
-        res.name = sirepo.srschema.parse_name(r.get('name'))
-    if k.pkdel('model'):
-        res.model = res.sim_data.parse_model(r)
-    if k.pkdel('template'):
-        res.template = sirepo.template.import_module(res.type)
-    if k:
-        # always parse type, but allow people to pass as param
-        k.pkdel('type')
-        assert not k, \
-            'unexpected kwargs={}'.format(k)
+    res.pkupdate(req_data=r)
+    kwargs.pksetdefault(type=True)
+
+    def t(v):
+        v = sirepo.template.assert_sim_type(v)
+        # flask.g API is very limited but do this in order to
+        # maintain explicit coupling of _SIM_TYPE_ATTR
+        set_sim_type(v)
+        res.sim_data = sirepo.sim_data.get_class(v)
+        return v
+
+    for x in (
+        # must be first
+        ('type', ('simulationType',), t),
+        ('file_type', ('file_type', 'fileType'), werkzeug.secure_filename),
+        ('filename', ('filename', 'fileName'), werkzeug.secure_filename),
+        ('folder', ('folder',), sirepo.srschema.parse_folder),
+        ('id', ('simulationId',), lambda a: res.sim_data.parse_sid(r)),
+        ('model', ('report',), lambda a: res.sim_data.parse_model(r)),
+        ('name', ('name',), sirepo.srschema.parse_name),
+        # will break if someone passes a template as a value
+        ('template', ('template',), lambda a: sirepo.template.import_module(res.type)),
+    ):
+        n, z, f = x
+        v = kwargs.pkdel(n)
+        if v is None:
+            continue
+        if isinstance(v, bool):
+            if not v:
+                continue
+            for k in z:
+                if k in r:
+                    v = r[k]
+                    break
+        else:
+            r[z[0]] = v
+        res[n] = f(v)
+    assert not kwargs, \
+        'unexpected kwargs={}'.format(kwargs)
     return res
 
 

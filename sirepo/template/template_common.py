@@ -214,8 +214,8 @@ def generate_parameters_file(data):
 
 def sim_frame(frame_id, op):
     f, s = sirepo.sim_data.parse_frame_id(frame_id)
-    # document the request
-    sirepo.http_request.parse_post(req_data=f, id=1)
+    # document parsing the request
+    sirepo.http_request.parse_post(req_data=f, id=True)
     try:
         x = op(f)
     except Exception as e:

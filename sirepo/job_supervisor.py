@@ -24,33 +24,20 @@ import tornado.ioloop
 import tornado.locks
 
 
-#: we job files are stored
-_LIB_FILE_DIR = None
-
-#: where job_processes request files
-_LIB_FILE_URI = None
-
-#: where job_process will PUT data files
-_DATA_FILE_URI = None
-
 #: where supervisor state is persisted to disk
-_SUPERVISOR_STATE_DIR = pykern.pkio.py_path(sirepo.srdb.root() + '/supervisor-state')
+_DB_DIR = None
+
+#: where job db is stored under srdb.root
+_DB_SUBDIR = 'supervisor-job'
 
 def init():
-    global _LIB_FILE_DIR, _LIB_FILE_URI, _DATA_FILE_URI
-
-    assert not _LIB_FILE_DIR
+    global _DB_DIR
+    if _DB_DIR:
+        return
     job.init()
     job_driver.init()
-    s = sirepo.srdb.root().join(job.LIB_FILE_DIR)
-    pykern.pkio.unchecked_remove(s)
-    _LIB_FILE_DIR = s.join(job.LIB_FILE_URI)
-    pykern.pkio.mkdir_parent(_LIB_FILE_DIR)
-    _LIB_FILE_URI = job.cfg.supervisor_uri + job.LIB_FILE_URI + '/'
-    _DATA_FILE_URI = job.cfg.supervisor_uri + job.DATA_FILE_URI
-    pykern.pkio.mkdir_parent(_SUPERVISOR_STATE_DIR)
-    return s
-
+    _DB_DIR = sirepo.srdb.root().join(_DB_SUBDIR)
+    pykern.pkio.mkdir_parent(_DB_DIR)
 
 
 class ServerReq(PKDict):
@@ -75,21 +62,16 @@ class _ComputeJob(PKDict):
     def __init__(self, req, **kwargs):
         c = req.content
         super().__init__(_ops=[], **kwargs)
-        self.pksetdefault(db=lambda: self.__init_db(req))
+        self.pksetdefault(db=lambda: self.__db_init(req))
 
     def destroy_op(self, op):
-        self._lib_file_link_destroy()
         self._ops.remove(op)
         op.destroy()
 
     @classmethod
     def get_instance(cls, req):
         j = req.content.computeJid
-        return cls.instances.pksetdefault(j, lambda: cls.__read_state(req))[j]
-
-    @classmethod
-    def state_file(cls, computeJid):
-        return _SUPERVISOR_STATE_DIR.join(computeJid + '.json')
+        return cls.instances.pksetdefault(j, lambda: cls.__create(req))[j]
 
     @classmethod
     async def receive(cls, req):
@@ -98,7 +80,22 @@ class _ComputeJob(PKDict):
             '_receive_' + req.content.api,
         )(req)
 
-    def __init_db(self, req):
+    @classmethod
+    def __create(cls, req):
+        import sirepo.simulation_db
+
+        f = cls.__db_file(req.content.computeJid)
+        try:
+            return cls(req, db=sirepo.simulation_db.read_json(f))
+        except FileNotFoundError:
+            pkdc('no db file={}', f)
+            return cls(req).__db_write()
+
+    @classmethod
+    def __db_file(cls, computeJid):
+        return _DB_DIR.join(computeJid + '.json')
+
+    def __db_init(self, req):
         c = req.content
         self.db = PKDict(
             computeJid=c.computeJid,
@@ -120,45 +117,16 @@ class _ComputeJob(PKDict):
             )
         return self.db
 
-    def _lib_file_uri(self, libDir):
-        self.libFileLink = l = _LIB_FILE_DIR.join(job.unique_key())
-        sirepo.util.dump_json(
-            [x.basename for x in libDir.listdir()],
-            path=libDir.join(job.LIB_FILE_LIST_URI),
-        )
-        os.symlink(l.dirpath().bestrelpath(libDir), l)
-        return _LIB_FILE_URI + l.basename
-
-    def _lib_file_link_destroy(self):
-        d = self.pkdel('libFileLink')
-        if d:
-            d.remove(rec=False, ignore_errors=True)
-
-    def __persist_state(self):
-        sirepo.util.dump_json(self.db, path=self.state_file(self.db.computeJid))
+    def __db_write(self):
+        sirepo.util.dump_json(self.db, path=self.__db_file(self.db.computeJid))
         return self
 
-    @classmethod
-    def __read_state(cls, req):
-        import sirepo.simulation_db
-
-        f = cls.state_file(req.content.computeJid)
-        try:
-            return cls(req, db=sirepo.simulation_db.read_json(f))
-        except FileNotFoundError:
-            pkdc('no state file={}', f)
-            return cls(req).__persist_state()
-
     async def _receive_api_downloadDataFile(self, req):
-        req.content.dataFileUri = _DATA_FILE_URI
         await self._send_with_single_reply(
             job.OP_ANALYSIS,
             req,
             jobProcessCmd='get_data_file'
         )
-        d = pykern.pkio.py_path(req.content.tmpDir).listdir()
-        assert len(d) == 1, '{}: should only be one file in dir'.format(d)
-        return PKDict(file=d[0].basename)
 
     async def _receive_api_runCancel(self, req):
         async def _reply_canceled(self, req):
@@ -189,11 +157,11 @@ class _ComputeJob(PKDict):
             })
             r = d[self.db.status](self, req)
             self.db.status = job.CANCELED
-            self.__persist_state()
+            self.__db_write()
             return await r
         if self.db.computeJobHash != req.content.computeJobHash:
             self.db.status = job.CANCELED
-            self.__persist_state()
+            self.__db_write()
             return await _cancel_queued(self, req)
 
     async def _receive_api_runSimulation(self, req):
@@ -218,7 +186,7 @@ class _ComputeJob(PKDict):
                     percentComplete=0.0,
                     computeJobStart=t,
                 )
-            self.__persist_state()
+            self.__db_write()
             tornado.ioloop.IOLoop.current().add_callback(self._run, req)
         # Read this first https://github.com/radiasoft/sirepo/issues/2007
         return await self._receive_api_runStatus(req)
@@ -269,9 +237,6 @@ class _ComputeJob(PKDict):
                 req.content.computeJobHash
             )
             return
-        req.content.libFileUri = self._lib_file_uri(
-            pykern.pkio.py_path(req.content.libDir),
-        )
         o = await self._send(
             job.OP_RUN,
             req,
@@ -284,7 +249,7 @@ class _ComputeJob(PKDict):
         # await o.reply_ready() doesn't block because there is a cancel message
         # in the q
         self.db.status = job.RUNNING
-        self.__persist_state()
+        self.__db_write()
         while True:
             r = await o.reply_ready()
             self.db.status = r.state
@@ -298,7 +263,7 @@ class _ComputeJob(PKDict):
             if 'opDone' in r:
                 break
         self.destroy_op(o)
-        self.__persist_state()
+        self.__db_write()
 
     async def _send(self, opName, req, jobProcessCmd):
         # TODO(e-carlin): proper error handling

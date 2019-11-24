@@ -15,7 +15,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 import aenum
 import sirepo.util
-
+import re
 
 OP_ANALYSIS = 'analysis'
 OP_CANCEL = 'cancel'
@@ -34,21 +34,38 @@ AGENT_URI = '/agent'
 SERVER_URI = '/server'
 
 #: path supervisor registers to receive requests from job_process for file PUTs
-DATA_FILE_URI = '/file'
+DATA_FILE_URI = '/data-file'
 
 #: how jobs request files
-LIB_FILE_URI = '/job-file'
+LIB_FILE_URI = '/lib-file'
 
 #: how jobs request list of files (relative to `LIB_FILE_URI`)
 LIB_FILE_LIST_URI = '/list.json'
 
+#: where user lib file directories are linked for static download (job_supervisor)
+LIB_FILE_ROOT = None
+
+#: where user data files come in (job_supervisor)
+DATA_FILE_ROOT = None
+
+#: where job_processes request files lib files for api_runSimulation
+LIB_FILE_ABS_URI = None
+
+#: where job_process will PUT data files for api_downloadDataFile
+DATA_FILE_ABS_URI = None
+
 #: how jobs request files (relative to `srdb.root`)
-LIB_FILE_DIR = 'supervisor-srv'
+SUPERVISOR_SRV_SUBDIR = 'supervisor-srv'
+
+#: how jobs request files (absolute)
+SUPERVISOR_SRV_ROOT = None
 
 DEFAULT_IP = '127.0.0.1'
 DEFAULT_PORT = 8001
 
 RUNNER_STATUS_FILE = 'status'
+
+UNIQUE_KEY_RE = re.compile(r'^\w$')
 
 CANCELED = 'canceled'
 COMPLETED = 'completed'
@@ -80,6 +97,14 @@ def init():
         ),
     )
     pkdc('cfg={}', cfg)
+    global SUPERVISOR_SRV_ROOT, LIB_FILE_ROOT, DATA_FILE_ROOT, LIB_FILE_ABS_URI, DATA_FILE_ABS_URI
+
+    SUPERVISOR_SRV_ROOT = sirepo.srdb.root().join(SUPERVISOR_SRV_SUBDIR)
+    LIB_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(LIB_FILE_URI[1:])
+    DATA_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(DATA_FILE_URI[1:])
+    # trailing slash necessary
+    LIB_FILE_ABS_URI = cfg.supervisor_uri + LIB_FILE_URI + '/'
+    DATA_FILE_ABS_URI = cfg.supervisor_uri + DATA_FILE_URI + '/'
 
 
 def subprocess_cmd_stdin_env(cmd, env, pyenv='py3'):

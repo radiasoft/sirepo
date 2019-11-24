@@ -186,7 +186,7 @@ def generate_parameters_file(data, is_parallel=False):
     return res + _generate_bunch_simulation(data, v)
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data.method == 'get_beam_input_type':
         if data.input_file:
             data.input_type = _sdds_beam_type_from_file(data.input_file)
@@ -217,7 +217,7 @@ def _file_name_from_id(file_id, model_data, run_dir):
         _get_filename_for_element_id(file_id.split(_FILE_ID_SEP), model_data)))
 
 
-def get_data_file(run_dir, model, frame, options=None):
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
     def _sdds(filename):
         path = run_dir.join(filename)
         assert path.check(file=True, exists=True), \

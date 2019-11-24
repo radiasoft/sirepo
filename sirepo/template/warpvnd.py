@@ -168,7 +168,7 @@ def generate_field_report(data, run_dir, args=None):
     return res
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if 'method' in data and data['method'] == 'compute_simulation_steps':
         field_file = simulation_db.simulation_dir(SIM_TYPE, data['simulationId']) \
             .join('fieldCalculationAnimation').join(_FIELD_ESTIMATE_FILE)

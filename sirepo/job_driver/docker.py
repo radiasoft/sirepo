@@ -46,7 +46,6 @@ class DockerDriver(job_driver.DriverBase):
     def __init__(self, req, host):
         super().__init__(req)
         self.update(
-            _agentDbRoot=req.content.agentDbRoot,
             _cname=_cname_join(self.kind, self.uid),
             _image = _image(),
             _uid=req.content.uid,
