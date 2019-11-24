@@ -6,39 +6,46 @@ class _SBatchComputeProcess(PKDict):
 
 
     def start(self):
-        if self.msg.jobProcessCmd == 'compute':
-            tornado.ioloop.IOLoop.current().add_callback(
-                self._start_compute
-            )
+        tornado.ioloop.IOLoop.current().add_callback(
+            self._start_compute
+            if self.msg.jobProcessCmd == 'compute'
+            else self._start_job_process
+        )
 
-    async def start_compute(self):
+    async def _start_job_process(self):
+        # start shifter container that runs the desired job process
+
+
+
+    # TODO(e-carlin): handling cancel throughout all of this is tricky
+    # currently not implemented
+    async def _start_compute(self):
         # 1. job process prepare_simulation
         #    this will setup the db and return the cmd we need
         cmd = await self._prepare_simulation()
         # 2. submit the job to sbatch
         job_id = await self._submit_compute_to_sbatch(cmd)
         # 3. wait for running in sbatch (need to be ready for a cancel)
-        await self._wait_for_job_running(self, job_id)
-        # 4. once running do background_percent_complete (also read for cancel)
-        # self._background_percent_complete()
+        # TODO(e-carlin): no fully implemented
+        await self._get_parallel_status(self, job_id)
 
-    async def _wait_for_job_running(self, job_id):
-        while True:
-            s = self._get_job_sbatch_state(job_id)
-            assert s in ('running', 'pending', 'completed'), \
-                'invalid state={}'.format(s)
-
-            # if msg.isParallel:
-            #     # TODO(e-carlin): We could read the squeue output to give the user
-            #     # an idea of when a pending job will start
-            #     # see --start flag on squeue
-            #     # https://slurm.schedmd.com/squeue.html
-            #     msg.isRunning = s == 'running'
-            #     cls._write_parallel_status(msg, template)
-            if s in ('running', 'pending'):
-                time.sleep(2)
-                continue
-            break
+    async def _get_parallel_status(self, job_id):
+        try:
+            while True:
+                s = self._get_job_sbatch_state(job_id)
+                assert s in ('running', 'pending', 'completed'), \
+                    'invalid state={}'.format(s)
+                if s in ('running', 'completed'):
+                    if self.msg.isParallel:
+                        #do parallel status
+                        # TODO(e-carlin): This isn't actually implemented. stub for when rn replies
+                        self._write_parallel_status()
+                if s == 'completed':
+                    break
+                await tornado.gen.sleep(2)
+        except Exception as e:
+            return PKDict(state=job.ERROR, error=str(e), stack=pkdexc())
+        return PKDict(state=job.COMPLETED)
 
     def _get_job_sbatch_state(self, job_id):
         o = subprocess.check_output(
@@ -97,17 +104,6 @@ EOF
             ' '.join(cmd),# TODO(e-carlin): quote?
         )
 
-    @classmethod
-    def _get_sbatch_state(cls, job_id):
-        o = subprocess.check_output(
-            ('scontrol', 'show', 'job', job_id)
-        ).decode('utf-8')
-        r = re.search(r'(?<=JobState=)(.*)(?= Reason)', o) # TODO(e-carlin): Make middle [A-Z]+
-        assert r, 'output={}'.format(s)
-        return r.group().lower()
-
-
-
     async def _prepare_simulation(self):
         _do_compute_command = None
         _on_exit = tornado.locks.Event()
@@ -133,6 +129,18 @@ EOF
         await _on_exit.wait()
         return _do_compute_command
 
+############################################################3
+
+
+
+    @classmethod
+    def _get_sbatch_state(cls, job_id):
+        o = subprocess.check_output(
+            ('scontrol', 'show', 'job', job_id)
+        ).decode('utf-8')
+        r = re.search(r'(?<=JobState=)(.*)(?= Reason)', o) # TODO(e-carlin): Make middle [A-Z]+
+        assert r, 'output={}'.format(s)
+        return r.group().lower()
 
 
     async def _start(self):
@@ -149,53 +157,6 @@ EOF
         cmd =
         stdin =
         env = {}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
