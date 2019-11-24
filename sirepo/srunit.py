@@ -289,6 +289,7 @@ class _TestClient(flask.testing.FlaskClient):
     def sr_run_sim(self, data, model, expect_completed=True, timeout=7, **post_args):
         from pykern import pkunit
         from pykern.pkcollections import PKDict
+        from pykern.pkdebug import pkdlog
         import time
 
         cancel = None
@@ -309,6 +310,7 @@ class _TestClient(flask.testing.FlaskClient):
             cancel = r.nextRequest
             for _ in range(timeout):
                 if r.state in ('completed', 'error'):
+                    pkdlog(r.state)
                     cancel = None
                     break
                 r = self.sr_post('runStatus', r.nextRequest)
@@ -321,6 +323,7 @@ class _TestClient(flask.testing.FlaskClient):
         finally:
             try:
                 if cancel:
+                    pkdlog('runCancel')
                     fc.sr_post('runCancel', cancel)
             except Exception:
                 pass
