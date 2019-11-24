@@ -41,7 +41,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         int(frame),
         options=sim.req_data.copy().update(suffix=suffix),
     )
-    return http_reply.gen_file_as_attachment(c, t, f)
+    return http_reply.gen_file_as_attachment(c, f, t)
 
 
 @api_perm.require_user

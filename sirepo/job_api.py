@@ -17,7 +17,6 @@ import calendar
 import datetime
 import flask
 import inspect
-import mimetypes
 import pykern.pkio
 import re
 import requests
@@ -53,7 +52,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
             f = _request(
                 data=PKDict(
                     sim.req_data,
-                    frame=frame,
+                    frame=int(frame),
                     report=sim.model,
                     computeJobHash='x',
                     suffix=suffix,
@@ -61,19 +60,11 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
                 tmpDir=d
             ).file
         except requests.exceptions.HTTPError:
-            raise sirepo.util.Error(
-                        PKDict(error='file not found'),
-                        # 'dooby doo'
-                        '{}: file not found {simulationId} {simulationType}'.format(
-                            d,
-                            **sim.req_data
-                        )
-                    )
-        f = pykern.pkio.py_path(d.join(werkzeug.utils.secure_filename(f)))
-        m, _ = mimetypes.guess_type(f.basename)
-        if m is None:
-            m = 'application/octet-stream'
-        return sirepo.http_reply.gen_file_as_attachment(f.read(), m, f.basename)
+#TODO(robnagler) HTTPError is too coarse a check
+            raise sirepo.util.raise_not_found(
+                'frame={} not found {id} {type}'.format(frame, **sim)
+            )
+        return sirepo.http_reply.gen_file_as_attachment(pykern.pkio.py_path(f))
 
 @api_perm.require_user
 def api_runCancel():
