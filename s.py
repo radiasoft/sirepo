@@ -16,11 +16,96 @@ class _SBatchComputeProcess(PKDict):
         #    this will setup the db and return the cmd we need
         cmd = await self._prepare_simulation()
         # 2. submit the job to sbatch
-        await self._submit_compute_to_sbatch()
+        job_id = await self._submit_compute_to_sbatch(cmd)
         # 3. wait for running in sbatch (need to be ready for a cancel)
+        await self._wait_for_job_running(self, job_id)
         # 4. once running do background_percent_complete (also read for cancel)
+        # self._background_percent_complete()
 
-    await def _submit_compute_to_sbatch(self):
+    async def _wait_for_job_running(self, job_id):
+        while True:
+            s = self._get_job_sbatch_state(job_id)
+            assert s in ('running', 'pending', 'completed'), \
+                'invalid state={}'.format(s)
+
+            # if msg.isParallel:
+            #     # TODO(e-carlin): We could read the squeue output to give the user
+            #     # an idea of when a pending job will start
+            #     # see --start flag on squeue
+            #     # https://slurm.schedmd.com/squeue.html
+            #     msg.isRunning = s == 'running'
+            #     cls._write_parallel_status(msg, template)
+            if s in ('running', 'pending'):
+                time.sleep(2)
+                continue
+            break
+
+    def _get_job_sbatch_state(self, job_id):
+        o = subprocess.check_output(
+            ('scontrol', 'show', 'job', job_id)
+        ).decode('utf-8')
+        r = re.search(r'(?<=JobState=)(.*)(?= Reason)', o) # TODO(e-carlin): Make middle [A-Z]+
+        assert r, 'output={}'.format(s)
+        return r.group().lower()
+
+    async def _submit_compute_to_sbatch(self, cmd):
+    # create sbatch script
+        s = _get_sbatch_script(cmd)
+        with open(self.msg.runDir.join('sbatch.job', 'w') as f:
+                 f.write(s)
+        o, e = subprocess.Popen(
+            ('sbatch'),
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ).communicate(
+            input=s)
+        assert e == '', 'error={}'.format(e)
+        r = re.search(r'\d+$', o)
+        assert r is not None, 'output={} did not cotain job id'.format(o)
+        return r.group()
+
+    def _get_sbatch_script(self, cmd):
+       # --volume /home/vagrant/src:/home/vagrant/src:ro \
+        # TODO(e-carlin): configure the SBATCH* parameters
+        return'''#!/bin/bash
+#SBATCH --partition=compute
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem-per-cpu=128M
+#SBATCH -e {}
+#SBATCH -o {}
+docker run \
+       --interactive \
+       --init \
+       --volume /home/vagrant/src/radiasoft/sirepo/sirepo:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/sirepo \
+       --volume /home/vagrant/src/radiasoft/pykern/pykern:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/pykern \
+       --volume {}:{} \
+       radiasoft/sirepo:dev \
+       /bin/bash -l <<'EOF'
+pyenv shell py2
+cd {}
+{}
+EOF
+    '''.format(
+            template_common.RUN_LOG,
+            template_common.RUN_LOG,
+            self.msg.runDir,
+            self.msg.runDir,
+            self.msg.runDir,
+            ' '.join(cmd),# TODO(e-carlin): quote?
+        )
+
+    @classmethod
+    def _get_sbatch_state(cls, job_id):
+        o = subprocess.check_output(
+            ('scontrol', 'show', 'job', job_id)
+        ).decode('utf-8')
+        r = re.search(r'(?<=JobState=)(.*)(?= Reason)', o) # TODO(e-carlin): Make middle [A-Z]+
+        assert r, 'output={}'.format(s)
+        return r.group().lower()
+
 
 
     async def _prepare_simulation(self):
