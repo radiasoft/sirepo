@@ -217,7 +217,7 @@ def _r(fc, sim_name, compute_model, reports, **kwargs):
 
         s = sirepo.sim_data.get_class(fc.sr_sim_type)
         for i in c:
-            pkdlog('frameIndex={}', i)
+            pkdlog('frameIndex={} frameCount={}', i, run.get('frameCount'))
             f = fc.sr_get_json(
                 'simulationFrame',
                 PKDict(frame_id=s.frame_id(data, run, r, i)),
