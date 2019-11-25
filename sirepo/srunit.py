@@ -355,11 +355,11 @@ class _TestClient(flask.testing.FlaskClient):
         d = d[0].simulation
         res = self.sr_get_json(
             'simulationData',
-            {
-                'simulation_type': self.sr_sim_type,
-                'pretty': '0',
-                'simulation_id': d['simulationId'],
-            },
+            PKDict(
+                simulation_type=self.sr_sim_type,
+                pretty='0',
+                simulation_id=d.simulationId,
+            ),
         )
         pkunit.pkeq(sim_name, res.models.simulation.name)
         return res
