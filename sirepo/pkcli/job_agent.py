@@ -150,6 +150,7 @@ class _Dispatcher(PKDict):
 
     def _process(self, msg):
         p = _JobProcess(msg=msg, comm=self)
+        # p = _DockerJobProcess(msg=msg, comm=self)
 #TODO(robnagler) there should only be one computeJid per agent.
 #   background_percent_complete is not an analysis
         assert msg.computeJid not in self.processes
@@ -248,6 +249,30 @@ class _JobProcess(PKDict):
                 )
         except Exception as exc:
             pkdlog('error={} returncode={}', exc, self._subprocess.returncode)
+
+
+class _DockerJobProcess(_JobProcess):
+
+    def _subprocess_cmd_stdin_env(self, in_file):
+        # TODO(e-carlin): this docker command could be better (ex more locked down volume and cascading env)
+        # fine for now since singulatiry doesn't have these problems
+        return job.subprocess_cmd_stdin_env(
+            (
+                # TODO(e-carlin): add env to docker
+                'docker',
+                'run',
+                '--interactive',
+                '--volume=/home/vagrant/src/radiasoft/sirepo/sirepo:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/sirepo',
+                '--volume=/home/vagrant/src/radiasoft/pykern/pykern:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/pykern',
+                '--volume={}:{}'.format(self.msg.runDir, self.msg.runDir),
+                '--workdir={}'.format(self.msg.runDir),
+                'radiasoft/sirepo:dev',
+                '/bin/bash',
+                '-l',
+                '-c',
+                'sirepo job_process {}'.format(in_file),
+            ),
+            PKDict()) # TODO(e-carlin): env
 
 
 class _Stream(PKDict):
