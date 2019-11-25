@@ -254,11 +254,11 @@ class _JobProcess(PKDict):
 class _DockerJobProcess(_JobProcess):
 
     def _subprocess_cmd_stdin_env(self, in_file):
-        # TODO(e-carlin): this docker command could be better (ex more locked down volume and cascading env)
-        # fine for now since singulatiry doesn't have these problems
+        # The volumes mounted and no cascading of env is problematic for docker. Docker is
+        # is going to be replaced with singulatiry which doesn't have these problems so
+        # it is fine for now
         return job.subprocess_cmd_stdin_env(
             (
-                # TODO(e-carlin): add env to docker
                 'docker',
                 'run',
                 '--interactive',
@@ -272,7 +272,7 @@ class _DockerJobProcess(_JobProcess):
                 '-c',
                 'sirepo job_process {}'.format(in_file),
             ),
-            PKDict()) # TODO(e-carlin): env
+            PKDict())
 
 
 class _Stream(PKDict):
