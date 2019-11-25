@@ -117,6 +117,11 @@ def _write_parallel_status(msg, template):
         ) + '\n',
     )
 
+def _do_get_sbatch_parallel_status(msg, template):
+    while True:
+       _write_parallel_status(msg, template)
+       time.sleepe(2) # TODO(e-carlin): cfg
+
 
 def _do_get_simulation_frame(msg, template):
     return template_common.sim_frame_dispatch(

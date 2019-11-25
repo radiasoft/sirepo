@@ -297,16 +297,19 @@ class _Subprocess(PKDict):
         # TODO(e-carlin): Terminate?
         os.killpg(self._subprocess.proc.pid, signal.SIGKILL)
 
-    def start(self):
-        # SECURITY: msg must not contain agentId
-        assert not self.msg.get('agentId')
+    def _create_in_file(self):
         self._in_file = self.msg.runDir.join(
             _IN_FILE.format(job.unique_key()),
         )
         pkio.mkdir_parent_only(self._in_file)
+        pkjson.dump_pretty(self.msg, filename=self._in_file, pretty=False)
+
+    def start(self):
+        # SECURITY: msg must not contain agentId
+        assert not self.msg.get('agentId')
+        self._create_in_file()
         # TODO(e-carlin): Find a better solution for serial and deserialization
         self.msg.runDir = str(self.msg.runDir)
-        pkjson.dump_pretty(self.msg, filename=self._in_file, pretty=False)
         cmd, stdin, env = self._subprocess_cmd_stdin_env(self._in_file)
         self._subprocess = tornado.process.Subprocess(
             cmd,

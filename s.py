@@ -20,32 +20,34 @@ class _SBatchComputeProcess(PKDict):
     # TODO(e-carlin): handling cancel throughout all of this is tricky
     # currently not implemented
     async def _start_compute(self):
-        # 1. job process prepare_simulation
-        #    this will setup the db and return the cmd we need
-        cmd = await self._prepare_simulation()
-        # 2. submit the job to sbatch
-        job_id = await self._submit_compute_to_sbatch(cmd)
-        # 3. wait for running in sbatch (need to be ready for a cancel)
-        # TODO(e-carlin): no fully implemented
-        await self._get_parallel_status(self, job_id)
-
-    async def _get_parallel_status(self, job_id):
         try:
-            while True:
-                s = self._get_job_sbatch_state(job_id)
-                assert s in ('running', 'pending', 'completed'), \
-                    'invalid state={}'.format(s)
-                if s in ('running', 'completed'):
-                    if self.msg.isParallel:
-                        #do parallel status
-                        # TODO(e-carlin): This isn't actually implemented. stub for when rn replies
-                        self._write_parallel_status()
-                if s == 'completed':
-                    break
-                await tornado.gen.sleep(2)
+            # 1. job process prepare_simulation
+            #    this will setup the db and return the cmd we need
+            cmd = await self._prepare_simulation()
+            # 2. submit the job to sbatch
+            job_id = await self._submit_compute_to_sbatch(cmd)
+            # 3. wait for running in sbatch (need to be ready for a cancel)
+            # TODO(e-carlin): no fully implemented
+            await self._await_job_completion(self, job_id)
         except Exception as e:
+            # TODO(e-carlin): comm send this stuff don't return it
             return PKDict(state=job.ERROR, error=str(e), stack=pkdexc())
         return PKDict(state=job.COMPLETED)
+
+    async def _await_job_completion(self, job_id):
+        while True:
+            s = self._get_job_sbatch_state(job_id)
+            assert s in ('running', 'pending', 'completed'), \
+                'invalid state={}'.format(s)
+            if s in ('running', 'completed'):
+                if self.msg.isParallel:
+                    self._get_parallel_status()
+            if s == 'completed':
+                break
+            await tornado.gen.sleep(2) # TODO(e-carlin): longer poll
+
+    def _get_parallel_status(self):
+        msg = self.msg.copy().update(jobProcessCmd='get_sbatch_parallel_status')
 
     def _get_job_sbatch_state(self, job_id):
         o = subprocess.check_output(
@@ -72,6 +74,26 @@ class _SBatchComputeProcess(PKDict):
         assert r is not None, 'output={} did not cotain job id'.format(o)
         return r.group()
 
+
+    def _get_docker_cmd(self, cmd):
+        return '''docker run \
+       --interactive \
+       --init \
+       --volume /home/vagrant/src/radiasoft/sirepo/sirepo:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/sirepo \
+       --volume /home/vagrant/src/radiasoft/pykern/pykern:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/pykern \
+       --volume {}:{} \
+       radiasoft/sirepo:dev \
+       /bin/bash -l <<'EOF'
+pyenv shell py2
+cd {}
+{}
+'''.format(
+        self.msg.runDir,
+        self.msg.runDir,
+        self.msg.runDir,
+        ' '.join(cmd),# TODO(e-carlin): quote?
+    )
+
     def _get_sbatch_script(self, cmd):
        # --volume /home/vagrant/src:/home/vagrant/src:ro \
         # TODO(e-carlin): configure the SBATCH* parameters
@@ -83,25 +105,12 @@ class _SBatchComputeProcess(PKDict):
 #SBATCH --mem-per-cpu=128M
 #SBATCH -e {}
 #SBATCH -o {}
-docker run \
-       --interactive \
-       --init \
-       --volume /home/vagrant/src/radiasoft/sirepo/sirepo:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/sirepo \
-       --volume /home/vagrant/src/radiasoft/pykern/pykern:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/pykern \
-       --volume {}:{} \
-       radiasoft/sirepo:dev \
-       /bin/bash -l <<'EOF'
-pyenv shell py2
-cd {}
 {}
 EOF
-    '''.format(
+'''.format(
             template_common.RUN_LOG,
             template_common.RUN_LOG,
-            self.msg.runDir,
-            self.msg.runDir,
-            self.msg.runDir,
-            ' '.join(cmd),# TODO(e-carlin): quote?
+            self._get_docker_cmd(cmd),
         )
 
     async def _prepare_simulation(self):
