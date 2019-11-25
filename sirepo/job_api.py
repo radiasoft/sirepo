@@ -142,6 +142,7 @@ def _request_data(kwargs):
     b = PKDict(data=d, **kwargs)
 # TODO(e-carlin): some of these fields are only used for some type of reqs
     return b.pksetdefault(
+        simulationId=s.parse_sid(d),
         analysisModel=d.report,
         api=get_api_name(),
         computeJid=lambda: s.parse_jid(d),

@@ -71,7 +71,15 @@ class _ComputeJob(PKDict):
     @classmethod
     def get_instance(cls, req):
         j = req.content.computeJid
-        return cls.instances.pksetdefault(j, lambda: cls.__create(req))[j]
+        self = cls.instances.pksetdefault(j, lambda: cls.__create(req))[j]
+        # SECURITY: must only return instances for authorized user
+        assert req.content.uid == self.db.uid, \
+            'req.content.uid={} is not same as db.uid={} for jid={}'.format(
+                req.content.uid,
+                self.db.uid,
+                j,
+            )
+        return self
 
     @classmethod
     async def receive(cls, req):
@@ -102,8 +110,9 @@ class _ComputeJob(PKDict):
             computeJobHash=c.computeJobHash,
             error=None,
             isParallel=c.isParallel,
-            simulationId=c.data.get('simulationId') or c.data.models.simulation.simulationId,
-            simulationType=c.data.simulationType,
+            simulationId=c.simulationId,
+            simulationType=c.simulationType,
+#TODO(robnagler) when would req come in with status?
             status=req.get('status', job.MISSING),
             uid=c.uid,
         )
@@ -173,18 +182,13 @@ class _ComputeJob(PKDict):
             or self.db.computeJobHash != req.content.computeJobHash
             or self.db.status != job.COMPLETED
         ):
-            self.db.computeJobHash = req.content.computeJobHash
-            self.isParallel = req.content.isParallel
-            self.db.parallelStatus = None
-            self.db.error = None
+            self.__db_init(req)
             self.db.status = job.PENDING
             if self.db.isParallel:
                 t = time.time()
-                self.db.parallelStatus = PKDict(
-                    frameCount=0,
-                    lastUpdateTime=t,
-                    percentComplete=0.0,
+                self.db.parallelStatus.pkupdate(
                     computeJobStart=t,
+                    lastUpdateTime=t,
                 )
             self.__db_write()
             tornado.ioloop.IOLoop.current().add_callback(self._run, req)

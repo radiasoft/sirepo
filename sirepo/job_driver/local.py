@@ -54,6 +54,7 @@ class LocalDriver(job_driver.DriverBase):
         # _Slot() may have to understand this, because related to parking. However,
         # we are parking a driver so maybe that's a (local) driver mechanism
         for d in cls.instances[req.kind]:
+            # SECURITY: must only return instances for authorized user
             if d.uid == req.content.uid:
                 return d
         return cls(req)

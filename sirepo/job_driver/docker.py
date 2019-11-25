@@ -60,6 +60,7 @@ class DockerDriver(job_driver.DriverBase):
     @classmethod
     async def get_instance(cls, req):
         for d in list(itertools.chain(*cls.instances.values())):
+            # SECURITY: must only return instances for authorized user
             if d.uid == req.content.uid:
                 if d.kind == req.kind:
                     return d
