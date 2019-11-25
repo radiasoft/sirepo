@@ -130,7 +130,12 @@ class _ComputeJob(PKDict):
             return PKDict()
         h = prev.history
         if prev.computeJobStart > 0:
-            h[prev.computeJobStart] = PKDict(status=prev.status, error=prev.error)
+            x = h[prev.computeJobStart] = PKDict(
+                status=prev.status,
+                error=prev.error,
+            )
+            if prev.isParallel:
+                x.lastUpdateTime = prev.parallelStatus.lastUpdateTime
         return h
 
     def __db_write(self):
