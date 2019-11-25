@@ -174,7 +174,7 @@ class _ComputeJob(PKDict):
             or self.db.status != job.COMPLETED
         ):
             self.db.computeJobHash = req.content.computeJobHash
-            self.isParralel = req.content.isParallel
+            self.isParallel = req.content.isParallel
             self.db.parallelStatus = None
             self.db.error = None
             self.db.status = job.PENDING
@@ -256,7 +256,7 @@ class _ComputeJob(PKDict):
             if self.db.status == job.ERROR:
                 self.db.error = r.get('error', '<unknown error>')
             if 'parallelStatus' in r:
-                assert self.isParralel
+                assert self.isParallel
                 self.db.parallelStatus.update(r.parallelStatus)
                 #TODO(robnagler) will need final frame count
             # TODO(e-carlin): What if this never comes?
