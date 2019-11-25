@@ -172,6 +172,7 @@ def _docker_cmd_base(msg):
             'docker',
             'run',
             '--interactive',
+            '--env=PYTHONUNBUFFERED=1',
             '--env=SIREPO_SRDB_ROOT={}'.format(msg.agentDbRoot),
             '--env=SIREPO_AUTH_LOGGED_IN_USER={}'.format(msg.uid), # TODO(e-carlin): real uid from msg
             '--volume=/home/vagrant/src/radiasoft/sirepo/sirepo:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/sirepo',
