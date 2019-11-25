@@ -83,35 +83,6 @@ def test_runStatus(fc, sim_data):
 
 
 @_setup
-def test_runSimulation(fc, sim_data):
-    from pykern import pkunit
-    from pykern.pkdebug import pkdp
-    from sirepo import job
-    import time
-
-    d = fc.sr_post(
-        'runSimulation',
-        dict(
-            forceRun=False,
-            models=sim_data.models,
-            report=_REPORT,
-            simulationId=sim_data.models.simulation.simulationId,
-            simulationType=sim_data.simulationType,
-        ),
-    )
-    for _ in range(10):
-        assert d.state != 'error'
-        if d.state == 'completed':
-            break
-        time.sleep(d.nextRequestSeconds)
-        d = fc.sr_post('runStatus', d.nextRequest)
-    else:
-        pkunit.pkfail('runStatus: failed to complete: {}', d)
-    # Just double-check it actually worked
-    assert u'plots' in d
-
-
-@_setup
 def test_runCancel(fc, sim_data):
     from pykern import pkunit
     from pykern.pkdebug import pkdc, pkdp, pkdlog
@@ -150,10 +121,41 @@ def test_runCancel(fc, sim_data):
     assert d.state == 'canceled'
 
 
+@_setup
+def test_runSimulation(fc, sim_data):
+    from pykern import pkunit
+    from pykern.pkdebug import pkdp, pkdlog
+    from sirepo import job
+    import time
+
+    d = fc.sr_post(
+        'runSimulation',
+        dict(
+            forceRun=False,
+            models=sim_data.models,
+            report=_REPORT,
+            simulationId=sim_data.models.simulation.simulationId,
+            simulationType=sim_data.simulationType,
+        ),
+    )
+    for _ in range(7):
+        pkdlog(d)
+        assert d.state != 'error'
+        if d.state == 'completed':
+            break
+        time.sleep(d.nextRequestSeconds)
+        d = fc.sr_post('runStatus', d.nextRequest)
+    else:
+        pkunit.pkfail('runStatus: failed to complete: {}', d)
+    # Just double-check it actually worked
+    assert u'plots' in d
+
+
 def _env_setup():
     """Check if the py3 environment is set up properly"""
     import os
     import subprocess
+
     # DO NOT import pykern or sirepo to avoid pkconfig init too early
 
     cfg = {
@@ -185,22 +187,13 @@ def _env_setup():
     env['PYENV_VERSION'] = 'py3'
     env.update(cfg)
 
-    def s(cmd, expect):
-        try:
-            o = subprocess.check_output(
-                cmd,
-                env=env,
-                stderr=subprocess.STDOUT,
-            )
-        except subprocess.CalledProcessError as e:
-            o = e.output
-        o = o.decode('utf-8', errors='ignore')
-        assert expect in o, \
-            'expect={} cmd={} output={}'.format(expect, cmd, o)
 
-    s(['pyenv', 'which', 'sirepo'], '/py3/bin/sirepo')
-    s(['pyenv', 'exec', 'sirepo', 'job_supervisor', '--help'], 'job_supervisor')
-    s(['pyenv', 'exec', 'sirepo', 'job_driver', '--help'], 'job_driver')
+    o = subprocess.check_output(
+        ['pyenv', 'exec', 'sirepo', 'job_supervisor', '--help'],
+        env=env,
+        stderr=subprocess.STDOUT,
+    )
+    assert 'usage: sirepo job_supervisor' in o
     return (env, cfg)
 
 
