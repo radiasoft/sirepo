@@ -158,12 +158,39 @@ class _Dispatcher(PKDict):
         p.start()
 
 
+def _create_in_file(msg):
+    f = msg.runDir.join(
+        _IN_FILE.format(job.unique_key()),
+    )
+    pkio.mkdir_parent_only(f)
+    pkjson.dump_pretty(msg, filename=f, pretty=False)
+    return f
+
+
+def _docker_cmd_base(msg):
+    return (
+            'docker',
+            'run',
+            '--interactive',
+            '--env=SIREPO_SRDB_ROOT={}'.format(msg.agentDbRoot),
+            '--env=SIREPO_AUTH_LOGGED_IN_USER={}'.format(msg.uid), # TODO(e-carlin): real uid from msg
+            '--volume=/home/vagrant/src/radiasoft/sirepo/sirepo:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/sirepo',
+            '--volume=/home/vagrant/src/radiasoft/pykern/pykern:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/pykern',
+            '--volume={}:{}'.format(msg.runDir, msg.runDir),
+            '--workdir={}'.format(msg.runDir),
+            'radiasoft/sirepo:dev',
+            '/bin/bash',
+            '-l',
+            '-c',
+        )
+
+
 class _JobProcess(PKDict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._subprocess = _Subprocess(
-                self._subprocess_cmd_stdin_env,
+                self.subprocess_cmd_stdin_env,
                 self._on_stdout_read,
                 msg=self.msg,
             )
@@ -181,7 +208,7 @@ class _JobProcess(PKDict):
             self._on_exit
         )
 
-    def _subprocess_cmd_stdin_env(self, in_file):
+    def subprocess_cmd_stdin_env(self, in_file):
         return job.subprocess_cmd_stdin_env(
             ('sirepo', 'job_process', in_file),
             PKDict(
@@ -253,26 +280,30 @@ class _JobProcess(PKDict):
 
 class _DockerJobProcess(_JobProcess):
 
-    def _subprocess_cmd_stdin_env(self, in_file):
+    def subprocess_cmd_stdin_env(self, in_file):
         # The volumes mounted and no cascading of env is problematic for docker. Docker is
         # is going to be replaced with singulatiry which doesn't have these problems so
         # it is fine for now
         return job.subprocess_cmd_stdin_env(
-            (
-                'docker',
-                'run',
-                '--interactive',
-                '--volume=/home/vagrant/src/radiasoft/sirepo/sirepo:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/sirepo',
-                '--volume=/home/vagrant/src/radiasoft/pykern/pykern:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/pykern',
-                '--volume={}:{}'.format(self.msg.runDir, self.msg.runDir),
-                '--workdir={}'.format(self.msg.runDir),
-                'radiasoft/sirepo:dev',
-                '/bin/bash',
-                '-l',
-                '-c',
-                'sirepo job_process {}'.format(in_file),
-            ),
-            PKDict())
+            _docker_cmd_base(self.msg) + ('sirepo job_process {}'.format(in_file),),
+            PKDict()
+        )
+
+
+class _GetSbatchParallelStatusDockerJobProcess(_DockerJobProcess):
+
+    async def _on_exit(self):
+        await self._subprocess.exit_ready()
+        if self._terminating:
+            e = self._subprocess.stderr.text.decode('utf-8', errors='ignore')
+            if e:
+                pkdlog('error={}', e)
+            return
+        else:
+            # TODO(e-carlin): We should restart the job if this happens
+            pkdlog(
+                'error: _GetSbatchParallelStatusDockerJobProcess exited without a termination request'
+            )
 
 
 class _Stream(PKDict):
@@ -310,7 +341,7 @@ class _Subprocess(PKDict):
             _in_file=None,
             _on_stdout_read=on_stdout_read,
             _subprocess=None,
-            _subprocess_cmd_stdin_env=subprocess_cmd_stdin_env,
+            subprocess_cmd_stdin_env=subprocess_cmd_stdin_env,
         )
 
     async def exit_ready(self):
@@ -322,20 +353,13 @@ class _Subprocess(PKDict):
         # TODO(e-carlin): Terminate?
         os.killpg(self._subprocess.proc.pid, signal.SIGKILL)
 
-    def _create_in_file(self):
-        self._in_file = self.msg.runDir.join(
-            _IN_FILE.format(job.unique_key()),
-        )
-        pkio.mkdir_parent_only(self._in_file)
-        pkjson.dump_pretty(self.msg, filename=self._in_file, pretty=False)
-
     def start(self):
         # SECURITY: msg must not contain agentId
         assert not self.msg.get('agentId')
-        self._create_in_file()
+        self._in_file = _create_in_file(self.msg)
         # TODO(e-carlin): Find a better solution for serial and deserialization
         self.msg.runDir = str(self.msg.runDir)
-        cmd, stdin, env = self._subprocess_cmd_stdin_env(self._in_file)
+        cmd, stdin, env = self.subprocess_cmd_stdin_env(self._in_file)
         self._subprocess = tornado.process.Subprocess(
             cmd,
             cwd=self.msg.runDir,

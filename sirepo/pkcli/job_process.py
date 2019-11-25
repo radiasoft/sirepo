@@ -84,10 +84,7 @@ def _do_compute(msg, template):
         with open(
                 str(msg.runDir.join(template_common.RUN_LOG)), 'w') as run_log:
             p = subprocess.Popen(
-                simulation_db.prepare_simulation(
-                    msg.data,
-                    run_dir=msg.runDir
-                )[0],
+                _do_prepare_simulation(msg, template).cmd,
                 stdout=run_log,
                 stderr=run_log,
             )
@@ -95,6 +92,8 @@ def _do_compute(msg, template):
             r = p.poll()
             if msg.isParallel:
                 msg.isRunning = r is None
+                # TODO(e-carlin): This has a potential to fail. We likely
+                # don't want the job to fail in this case
                 _write_parallel_status(msg, template)
             if r is None:
                 time.sleep(2) # TODO(e-carlin): cfg
@@ -106,18 +105,9 @@ def _do_compute(msg, template):
     return PKDict(state=job.COMPLETED)
 
 
-def _write_parallel_status(msg, template):
-    sys.stdout.write(
-        pkjson.dump_pretty(
-            PKDict(
-                state=job.RUNNING if msg.isRunning else job.COMPLETED,
-                parallelStatus=_background_percent_complete(msg, template),
-            ),
-            pretty=False,
-        ) + '\n',
-    )
-
 def _do_get_sbatch_parallel_status(msg, template):
+    # TODO(e-carlin): This has a potential to fail. We likely
+    # don't want the job to fail in this case
     while True:
        _write_parallel_status(msg, template)
        time.sleepe(2) # TODO(e-carlin): cfg
@@ -147,6 +137,14 @@ def _do_get_data_file(msg, template):
         return PKDict()
     except Exception as e:
         return PKDict(error=e, stack=pkdexc())
+
+
+def _do_prepare_simulation(msg, template):
+    return PKDict(cmd=simulation_db.prepare_simulation(
+                    msg.data,
+                    run_dir=msg.runDir
+                )[0]
+            )
 
 
 def _do_sequential_result(msg, template):
@@ -255,3 +253,15 @@ def _mtime_or_now(path):
         int: modification time
     """
     return int(path.mtime() if path.exists() else time.time())
+
+
+def _write_parallel_status(msg, template):
+    sys.stdout.write(
+        pkjson.dump_pretty(
+            PKDict(
+                state=job.RUNNING if msg.isRunning else job.COMPLETED,
+                parallelStatus=_background_percent_complete(msg, template),
+            ),
+            pretty=False,
+        ) + '\n',
+    )
