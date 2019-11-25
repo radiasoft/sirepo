@@ -6,6 +6,7 @@ u"""Flask server interface
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
+from pykern import pkconst
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
@@ -37,9 +38,6 @@ import werkzeug.exceptions
 #TODO(pjm): this import is required to work-around template loading in listSimulations, see #1151
 if any(k in feature_config.cfg().sim_types for k in ('flash', 'rs4pi', 'synergia', 'warppba', 'warpvnd')):
     import h5py
-
-#: class that py.path.local() returns
-_PY_PATH_LOCAL_CLASS = type(pkio.py_path())
 
 #: See sirepo.srunit
 SRUNIT_TEST_IN_REQUEST = 'srunit_test_in_request'
@@ -249,7 +247,7 @@ def api_getApplicationData(filename=None):
     with simulation_db.tmp_dir() as d:
         res = req.template.get_application_data(req.req_data, tmp_dir=d)
         if 'filename' in req:
-            assert isinstance(res, _PY_PATH_LOCAL_CLASS), \
+            assert isinstance(res, pkconst.PY_PATH_LOCAL_TYPE), \
                 '{}: template did not return a file'.format(res)
             return http_reply.gen_file_as_attachment(res, filename=req.filename)
         return http_reply.gen_json(res)

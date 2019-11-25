@@ -77,7 +77,7 @@ def api_runSimulation():
         d = simulation_db.simulation_lib_dir(r.simulationType)
         p = d.join(sirepo.job.LIB_FILE_LIST_URI[1:])
         pykern.pkio.unchecked_remove(p)
-        sirepo.util.dump_json(
+        sirepo.util.json_dump(
             [x.basename for x in d.listdir()],
             path=p,
         )

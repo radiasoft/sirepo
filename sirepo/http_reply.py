@@ -7,6 +7,7 @@ u"""response generation
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
+from pykern import pkconst
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
@@ -32,9 +33,6 @@ _STATE = 'state'
 
 #: Default response
 _RESPONSE_OK = PKDict({_STATE: 'ok'})
-
-#: class that py.path.local() returns
-_PY_PATH_LOCAL_CLASS = type(pkio.py_path())
 
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\n|$)', flags=re.IGNORECASE)
@@ -75,7 +73,7 @@ def gen_file_as_attachment(content_or_path, filename=None, content_type=None):
         flask.Response: reply object
     """
     def f():
-        if isinstance(content_or_path, _PY_PATH_LOCAL_CLASS):
+        if isinstance(content_or_path, pkconst.PY_PATH_LOCAL_TYPE):
             return flask.send_file(str(content_or_path))
         return flask.current_app.response_class(content_or_path)
 

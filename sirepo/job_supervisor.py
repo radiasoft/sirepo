@@ -5,21 +5,15 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkjson
+from pykern import pkcollections
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from sirepo import job
 from sirepo import job_driver
-import aenum
-import collections
-import copy
-import os
 import pykern.pkio
 import sirepo.srdb
 import sirepo.util
-import sys
 import time
-import tornado.gen
 import tornado.ioloop
 import tornado.locks
 
@@ -90,14 +84,17 @@ class _ComputeJob(PKDict):
 
     @classmethod
     def __create(cls, req):
-        import sirepo.simulation_db
-
-        f = cls.__db_file(req.content.computeJid)
         try:
-            return cls(req, db=sirepo.simulation_db.read_json(f))
-        except FileNotFoundError:
-            pkdc('no db file={}', f)
-            return cls(req).__db_write()
+            return cls(
+                req,
+                db=pkcollections.json_load_any(
+                    cls.__db_file(req.content.computeJid),
+                ),
+            )
+        except Exception as e:
+            if pykern.pkio.exception_is_not_found(e):
+                return cls(req).__db_write()
+            raise
 
     @classmethod
     def __db_file(cls, computeJid):
@@ -127,7 +124,7 @@ class _ComputeJob(PKDict):
         return self.db
 
     def __db_write(self):
-        sirepo.util.dump_json(self.db, path=self.__db_file(self.db.computeJid))
+        sirepo.util.json_dump(self.db, path=self.__db_file(self.db.computeJid))
         return self
 
     async def _receive_api_downloadDataFile(self, req):

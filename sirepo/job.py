@@ -8,14 +8,12 @@ must be py2 compatible.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkconfig
-from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
-import aenum
 import sirepo.util
 import re
+
 
 OP_ANALYSIS = 'analysis'
 OP_CANCEL = 'cancel'
