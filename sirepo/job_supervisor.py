@@ -100,12 +100,14 @@ class _ComputeJob(PKDict):
     def __db_file(cls, computeJid):
         return _DB_DIR.join(computeJid + '.json')
 
-    def __db_init(self, req):
+    def __db_init(self, req, prev=None):
         c = req.content
         self.db = PKDict(
             computeJid=c.computeJid,
             computeJobHash=c.computeJobHash,
+            computeJobStart=0,
             error=None,
+            history=self.__db_init_history(prev),
             isParallel=c.isParallel,
             simulationId=c.simulationId,
             simulationType=c.simulationType,
@@ -122,6 +124,14 @@ class _ComputeJob(PKDict):
                 computeJobStart=0,
             )
         return self.db
+
+    def __db_init_history(self, prev):
+        if prev is None:
+            return PKDict()
+        h = prev.history
+        if prev.computeJobStart > 0:
+            h[prev.computeJobStart] = PKDict(status=prev.status, error=prev.error)
+        return h
 
     def __db_write(self):
         sirepo.util.json_dump(self.db, path=self.__db_file(self.db.computeJid))
@@ -179,13 +189,15 @@ class _ComputeJob(PKDict):
             or self.db.computeJobHash != req.content.computeJobHash
             or self.db.status != job.COMPLETED
         ):
-            self.__db_init(req)
-            self.db.status = job.PENDING
+            self.__db_init(req, prev=self.db)
+            self.db.pkupdate(
+                status=job.PENDING,
+                computeJobStart=int(time.time()),
+            )
             if self.db.isParallel:
-                t = time.time()
                 self.db.parallelStatus.pkupdate(
-                    computeJobStart=t,
-                    lastUpdateTime=t,
+                    computeJobStart=self.db.computeJobStart,
+                    lastUpdateTime=self.db.computeJobStart,
                 )
             self.__db_write()
             tornado.ioloop.IOLoop.current().add_callback(self._run, req)
