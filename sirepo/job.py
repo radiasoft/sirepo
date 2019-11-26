@@ -45,7 +45,7 @@ LIB_FILE_LIST_URI = '/list.json'
 #: how jobs request files (relative to `srdb.root`)
 LIB_FILE_DIR = 'supervisor-srv'
 
-DEFAULT_IP = 'v.radia.run'
+DEFAULT_IP = 'v3.radia.run'
 DEFAULT_PORT = 8001
 
 RUNNER_STATUS_FILE = 'status'

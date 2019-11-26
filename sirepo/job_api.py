@@ -130,8 +130,6 @@ def _request_data(kwargs):
             raise AssertionError(
                 '{}: max frame search depth reached'.format(f.f_code)
             )
-
-
     d = kwargs.pkdel('data')
     if not d:
         d = sirepo.http_request.parse_post(
