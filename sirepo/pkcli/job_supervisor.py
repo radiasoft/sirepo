@@ -137,7 +137,12 @@ async def _incoming(content, handler):
         c = content
         if not isinstance(content, dict):
             c = pkjson.load_any(content)
-        pkdc('class={} content={}', handler.sr_class, sirepo.job.LogFormatter(c))
+        pkdc(
+            'class={} content={}',
+            handler.sr_class,
+            c if 'opName' in c and c.opName == sirepo.job.OP_ERROR \
+            else sirepo.job.LogFormatter(c)
+        )
         await handler.sr_class(handler=handler, content=c).receive()
     except Exception as e:
         pkdlog('exception={} handler={} content={}', e, content, handler)

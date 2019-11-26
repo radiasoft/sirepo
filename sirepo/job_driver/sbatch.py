@@ -65,6 +65,7 @@ The agent will need to change to support > 1 of the same jid at once
                 o.send_ready.set()
 
     async def _agent_start(self):
+        # TODO(e-carlin): handle cori ssh key
         async with asyncssh.connect(
                 cfg.nersc_uri,
                 username='vagrant',

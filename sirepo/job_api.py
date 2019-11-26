@@ -95,7 +95,12 @@ def api_simulationFrame(frame_id):
     return template_common.sim_frame(
         frame_id,
 # TODO(e-carlin): remove 'report'. See comment about optional fields in _request_data()
-        lambda a: _request(data=PKDict(report='x', **a))
+        lambda a: _request(
+            data=PKDict(report='x', **a),
+            # simulation frames are always sequential requests even though
+            # the report name has 'animation' in it.
+            isParallel=False,
+        )
     )
 
 
@@ -125,6 +130,7 @@ def _request_data(kwargs):
             raise AssertionError(
                 '{}: max frame search depth reached'.format(f.f_code)
             )
+
 
     d = kwargs.pkdel('data')
     if not d:

@@ -19,7 +19,7 @@ import functools
 import os
 import re
 import requests
-import sirepo # TODO(e-carlin): fix
+import sirepo.template
 import subprocess
 import sys
 import time
@@ -41,7 +41,6 @@ def default_command(in_file):
     msg = pkjson.load_any(f)
     msg.runDir = pkio.py_path(msg.runDir) # TODO(e-carlin): find common place to serialize/deserialize paths
     f.remove()
-    # TODO(e-carlin): Parse msg to determine sbatch or not
     return pkjson.dump_pretty(
         PKDict(globals()['_do_' + msg.jobProcessCmd](
             msg,
@@ -51,7 +50,7 @@ def default_command(in_file):
     )
 
 
-def _background_percent_complete( msg, template):
+def _background_percent_complete(msg, template):
     r = template.background_percent_complete(
         msg.data.report,
         msg.runDir,
@@ -105,12 +104,18 @@ def _do_compute(msg, template):
     return PKDict(state=job.COMPLETED)
 
 
-def _do_get_sbatch_parallel_status(msg, template):
+def _do_get_sbatch_parallel_status_once(msg, template):
     # TODO(e-carlin): This has a potential to fail. We likely
     # don't want the job to fail in this case
+    _write_parallel_status(msg, template)
+    return PKDict(state=msg.simulationStatus.state)
+
+
+
+def _do_get_sbatch_parallel_status(msg, template):
     while True:
-       _write_parallel_status(msg, template)
-       time.sleepe(2) # TODO(e-carlin): cfg
+        _do_get_sbatch_parallel_status_once(msg, template)
+        time.sleep(2) # TODO(e-carlin): cfg
 
 
 def _do_get_simulation_frame(msg, template):
@@ -156,91 +161,6 @@ def _do_sequential_result(msg, template):
         template.prepare_output_file(msg.runDir, msg.data)
         r = simulation_db.read_result(msg.runDir)
     return r
-
-
-# class _SBatchProcess(_JobProcess):
-
-#     @classmethod
-#     def _do_compute(cls, msg, template):
-#         a = cls._get_sbatch_script(
-#             simulation_db.prepare_simulation(
-#                 msg.data,
-#                 run_dir=msg.runDir
-#             )[0],
-#             msg.runDir
-#         )
-#         with open('slurmscript', 'w') as f:
-#             f.write(a)
-
-#         o, e = subprocess.Popen(
-#             ('sbatch'),
-#             stdin=subprocess.PIPE,
-#             stdout=subprocess.PIPE,
-#             stderr=subprocess.PIPE,
-#         ).communicate(
-#             input=a)
-#         assert e == '', 'error={}'.format(e)
-#         r = re.search(r'\d+$', o)
-#         assert r is not None, 'output={} did not cotain job id'.format(o)
-#         job_id = r.group()
-#         while True:
-#             s = cls._get_sbatch_state(job_id)
-#             assert s in ('running', 'pending', 'completed'), \
-#                 'invalid state={}'.format(s)
-#             if msg.isParallel:
-#                 # TODO(e-carlin): We could read the squeue output to give the user
-#                 # an idea of when a pending job will start
-#                 # see --start flag on squeue
-#                 # https://slurm.schedmd.com/squeue.html
-#                 msg.isRunning = s == 'running'
-#                 cls._write_parallel_status(msg, template)
-#             if s in ('running', 'pending'):
-#                 time.sleep(2)
-#                 continue
-#             break
-
-#     @classmethod
-#     def _get_sbatch_script(cls, cmd, run_dir):
-#        # --volume /home/vagrant/src:/home/vagrant/src:ro \
-#         # TODO(e-carlin): configure the SBATCH* parameters
-#         return'''#!/bin/bash
-# #SBATCH --partition=compute
-# #SBATCH --ntasks=1
-# #SBATCH --ntasks-per-node=1
-# #SBATCH --cpus-per-task=4
-# #SBATCH --mem-per-cpu=128M
-# #SBATCH -e {}
-# #SBATCH -o {}
-# docker run \
-#        --interactive \
-#        --init \
-#        --volume /home/vagrant/src/radiasoft/sirepo/sirepo:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/sirepo \
-#        --volume /home/vagrant/src/radiasoft/pykern/pykern:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/pykern \
-#        --volume {}:{} \
-#        radiasoft/sirepo:dev \
-#        /bin/bash -l <<'EOF'
-# pyenv shell py2
-# cd {}
-# {}
-# sleep 500
-# EOF
-#     '''.format(
-#             template_common.RUN_LOG,
-#             template_common.RUN_LOG,
-#             run_dir,
-#             run_dir,
-#             run_dir,
-#             ' '.join(cmd),# TODO(e-carlin): quote?
-#         )
-
-#     @classmethod
-#     def _get_sbatch_state(cls, job_id):
-#         o = subprocess.check_output(
-#             ('scontrol', 'show', 'job', job_id)
-#         ).decode('utf-8')
-#         r = re.search(r'(?<=JobState=)(.*)(?= Reason)', o) # TODO(e-carlin): Make middle [A-Z]+
-#         assert r, 'output={}'.format(s)
-#         return r.group().lower()
 
 
 def _mtime_or_now(path):

@@ -13,12 +13,14 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
 from sirepo import job
 from sirepo.pkcli import job_process
+from sirepo.template import template_common
 import json
 import os
 import re
 import signal
 import sirepo.auth
 import sirepo.srdb
+import subprocess
 import sys
 import time
 import tornado.gen
@@ -149,10 +151,12 @@ class _Dispatcher(PKDict):
         return None
 
     def _process(self, msg):
+        # TODO(e-carlin): use _JobProcess in docker and local
         # p = _JobProcess(msg=msg, comm=self)
-        # p = _DockerJobProcess(msg=msg, comm=self)
-        pkdp('aaaaaaaaaaaaaaa about to start sbatch')
-        p = _SBatchProcess(msg=msg, comm=self)
+
+        p = _DockerJobProcess(msg=msg, comm=self)
+        if msg.isParallel:
+            p = _SBatchProcess(msg=msg, comm=self)
 #TODO(robnagler) there should only be one computeJid per agent.
 #   background_percent_complete is not an analysis
         assert msg.computeJid not in self.processes
@@ -160,13 +164,6 @@ class _Dispatcher(PKDict):
         p.start()
 
 
-def _create_in_file(msg):
-    f = msg.runDir.join(
-        _IN_FILE.format(job.unique_key()),
-    )
-    pkio.mkdir_parent_only(f)
-    pkjson.dump_pretty(msg, filename=f, pretty=False)
-    return f
 
 
 def _docker_cmd_base(msg):
@@ -211,9 +208,10 @@ class _JobProcess(PKDict):
             self._on_exit
         )
 
-    def subprocess_cmd_stdin_env(self, in_file):
+    def subprocess_cmd_stdin_env(self):
+        self._in_file = self._create_in_file()
         return job.subprocess_cmd_stdin_env(
-            ('sirepo', 'job_process', in_file),
+            ('sirepo', 'job_process', self._in_file),
             PKDict(
                 PYTHONUNBUFFERED='1',
                 SIREPO_AUTH_LOGGED_IN_USER=sirepo.auth.logged_in_user(),
@@ -224,18 +222,21 @@ class _JobProcess(PKDict):
             pyenv='py2',
         )
 
+    def _create_in_file(self):
+        f = self.msg.runDir.join(
+            _IN_FILE.format(job.unique_key()),
+        )
+        pkio.mkdir_parent_only(f)
+        pkjson.dump_pretty(self.msg, filename=f, pretty=False)
+        return f
+
     async def _on_stdout_read(self, text):
         if self._terminating:
             return
         try:
-            pkdp('ooooooooooooooooooooooooooooooooooooooooooo')
             r = pkjson.load_any(text)
             if 'opDone' in r:
                 del self.comm.processes[self.msg.computeJid]
-            if self.msg.jobProcessCmd == 'get_sbatch_parallel_status':
-                pkdp('yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy')
-                pkdp(job.LogFormatter(r))
-                pkdp('yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy')
             if self.msg.jobProcessCmd == 'compute':
                 await self.comm.send(
                     self.comm.format_op(
@@ -258,6 +259,9 @@ class _JobProcess(PKDict):
     async def _on_exit(self):
         try:
             await self._subprocess.exit_ready()
+            if self._in_file:
+                pkio.unchecked_remove(self._in_file)
+                self._in_file = None
             if self._terminating:
                 await self.comm.send(
                     self.comm.format_op(
@@ -288,14 +292,18 @@ class _JobProcess(PKDict):
 
 class _DockerJobProcess(_JobProcess):
 
-    def subprocess_cmd_stdin_env(self, in_file):
+    def subprocess_cmd_stdin_env(self):
         # The volumes mounted and no cascading of env is problematic for docker. Docker is
         # is going to be replaced with singulatiry which doesn't have these problems so
         # it is fine for now
+        self._in_file = self._create_in_file()
         return job.subprocess_cmd_stdin_env(
-            _docker_cmd_base(self.msg) + ('sirepo job_process {}'.format(in_file),),
+            _docker_cmd_base(self.msg) + ('sirepo job_process {}'.format(self._in_file),),
             PKDict()
         )
+
+    async def exited(self):
+        await self._subprocess.exit_ready()
 
 
 class _GetSbatchParallelStatusDockerJobProcess(_DockerJobProcess):
@@ -318,14 +326,19 @@ class _SBatchProcess(PKDict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.msg.update(
+            # TODO(e-carlin): job_process.do_compute() has the same coed
+            isRunning=False,
+            simulationStatus=PKDict(
+                computeJobStart=None,
+                state=job.PENDING,
+            ),
+        )
         self._terminating = False
-        pkdp('yyyyyyyyyyyyyyyyyyyyyyyyyy its sbatch time')
 
     def start(self):
         tornado.ioloop.IOLoop.current().add_callback(
             self._start_compute
-            if self.msg.jobProcessCmd == 'compute' and self.msg.isParallel
-            else self._start_job_process
         )
 
     async def _await_job_completion_and_parallel_status(self, job_id):
@@ -336,19 +349,42 @@ class _SBatchProcess(PKDict):
                 'invalid state={}'.format(s)
             if s in ('running', 'completed'):
                 if self.msg.isParallel and not parallel_status_running: # TODO(e-carlin): sbatch jobs are only parallel
-                    pkdp('bbbbbbbbbbbbbbbbbbbb begining get parallel status')
+                    self._compute_job_start_time = int(time.time())
                     self._begin_get_parallel_status()
+                    parallel_status_running = True
             if s == 'completed':
                 break
             await tornado.gen.sleep(2) # TODO(e-carlin): longer poll
-            # TODO(e-carlin): need to wait for one more parallel status read
-            # to make sure we got the status at 100%
+        await self._get_completed_parallel_status()
 
-    async def _begin_get_parallel_status(self):
-        # TODO(e-carlin): this needs to be killed once the job is completed
-        self._parallel_status_process = _GetSbatchParallelStatusDockerJobProcess(
-            msg=self.msg.copy().update(jobProcessCmd='get_sbatch_parallel_status'),
+    async def  _get_completed_parallel_status(self):
+        self._parallel_status_process.kill()
+        m = self.msg.copy().update(
+            isRunning=False,
+            jobProcessCmd='get_sbatch_parallel_status_once',
+            simulationStatus=PKDict(
+                computeJobStart=self._compute_job_start_time,
+                state=job.COMPLETED,
+            ),
         )
+        p = _DockerJobProcess(msg=m, comm=self.comm)
+        p.start()
+        await p.exited()
+
+    def _begin_get_parallel_status(self):
+        m = self.msg.copy().update(
+            isRunning=True,
+            jobProcessCmd='get_sbatch_parallel_status',
+            simulationStatus=PKDict(
+                computeJobStart=self._compute_job_start_time,
+                state=job.RUNNING,
+            ),
+        )
+        self._parallel_status_process = _GetSbatchParallelStatusDockerJobProcess(
+            msg=m,
+            comm=self.comm,
+        )
+        self._parallel_status_process.start()
 
     def _get_job_sbatch_state(self, job_id):
         o = subprocess.check_output(
@@ -369,25 +405,24 @@ class _SBatchProcess(PKDict):
 #SBATCH -e {}
 #SBATCH -o {}
 {}
-EOF
 '''.format(
             template_common.RUN_LOG,
             template_common.RUN_LOG,
-            ' '.join(_docker_cmd_base(self.msg) + (cmd,)),
+            ' '.join(_docker_cmd_base(self.msg) + ('"' + ' '.join(cmd) + '"',)),
         )
 
+
     def _prepare_simulation(self):
-        c, s, _ = _JobProcess(
-            msg=self.msg.copy().update(jobProcessCmd='prepare_simulation')
+        c, s, _ = _DockerJobProcess(
+            msg=self.msg.copy().update(jobProcessCmd='prepare_simulation'),
         ).subprocess_cmd_stdin_env()
-        r = subprocess.check_output(c, s)
+        r = subprocess.check_output(c, stdin=s)
         return pkjson.load_any(r).cmd
 
     # TODO(e-carlin): handling cancel throughout all of this is tricky
     # currently not implemented
     async def _start_compute(self):
         try:
-            pkdp('ssssssssssssssss starting sbatch compute')
             await self._await_job_completion_and_parallel_status(
                 self._submit_compute_to_sbatch(
                     self._prepare_simulation()
@@ -395,7 +430,7 @@ EOF
             )
         except Exception as e:
             # TODO(e-carlin): comm send this stuff don't return it
-            self._send_op_error(
+            await self._send_op_error(
                 PKDict(
                     state=job.ERROR,
                     error=str(e),
@@ -404,7 +439,7 @@ EOF
                 )
             )
         finally:
-            self.processes.pkdel(msg.computeJid)
+            self.comm.processes.pkdel(self.msg.computeJid)
 
     async def _send_op_error(self, reply):
         # POSIT: jobProcessCmd is the only field every changed in msg
@@ -412,26 +447,28 @@ EOF
             self.comm.format_op(
                 self.msg,
                 job.OP_ERROR,
-                reply=r,
+                reply=reply,
             )
         )
 
-    async def _start_job_process(self):
-        pkdp('jjkjkjkjkjkjkj jobprocess starting from sbatch')
-        _DockerJobProcess(msg=self.msg, comm=self.comm).start()
-
     def _submit_compute_to_sbatch(self, cmd):
         s = self._get_sbatch_script(cmd)
-        with open(self.msg.runDir.join('sbatch.job'), 'w') as f:
-            f.write(s)
-            f.seek(0)
-            o = subprocess.check_output(
-                ('sbatch'),
-                stind=f,
-            )
-            r = re.search(r'\d+$', o)
-            assert r is not None, 'output={} did not cotain job id'.format(o)
-            return r.group()
+        n = str(self.msg.runDir.join('sbatch.job'))
+        try:
+            with open(n, 'w+') as f:
+                f.write(s)
+                f.seek(0)
+                o = subprocess.check_output(
+                    ('sbatch'),
+                    stdin=f,
+                    stderr=subprocess.STDOUT,
+                ).decode('UTF-8')
+                r = re.search(r'\d+$', o)
+                assert r is not None, 'output={} did not cotain job id'.format(o)
+                return r.group()
+        except subprocess.CalledProcessError as e:
+            pkdlog('error: returncode={} output={}', e.returncode, e.output)
+            raise
 
 
 class _Stream(PKDict):
@@ -484,13 +521,10 @@ class _Subprocess(PKDict):
     def start(self):
         # SECURITY: msg must not contain agentId
         assert not self.msg.get('agentId')
-        self._in_file = _create_in_file(self.msg)
-        # TODO(e-carlin): Find a better solution for serial and deserialization
-        self.msg.runDir = str(self.msg.runDir)
-        cmd, stdin, env = self.subprocess_cmd_stdin_env(self._in_file)
+        cmd, stdin, env = self.subprocess_cmd_stdin_env()
         self._subprocess = tornado.process.Subprocess(
             cmd,
-            cwd=self.msg.runDir,
+            cwd=str(self.msg.runDir),
             env=env,
             start_new_session=True, # TODO(e-carlin): generalize?
             stdin=stdin,
@@ -503,11 +537,10 @@ class _Subprocess(PKDict):
         self._subprocess.set_exit_callback(self._on_exit)
 
     def _on_exit(self, returncode):
-        if self._in_file:
-            pkio.unchecked_remove(self._in_file)
-            self._in_file = None
         self.returncode = returncode
         self._exit.set()
+
+
 
 
 class _ReadJsonlStream(_Stream):
