@@ -138,7 +138,7 @@ def test_runSimulation(fc, sim_data):
             simulationType=sim_data.simulationType,
         ),
     )
-    for _ in range(7):
+    for _ in range(10):
         pkdlog(d)
         assert d.state != 'error'
         if d.state == 'completed':
