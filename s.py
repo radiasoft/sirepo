@@ -1,9 +1,32 @@
+from pykern import pkcollections
+from pykern import pkconfig
+from pykern import pkio
+from pykern import pkjson
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
+from sirepo import job
+from sirepo.pkcli import job_process
+import json
+import os
+import re
+import signal
+import sirepo.auth
+import sirepo.srdb
+import sys
+import time
+import tornado.gen
+import tornado.ioloop
+import tornado.iostream
+import tornado.locks
+import tornado.process
+import tornado.websocket
+
+
 class _SBatchProcess(PKDict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._terminating = False
-
 
     def start(self):
         tornado.ioloop.IOLoop.current().add_callback(
@@ -11,23 +34,6 @@ class _SBatchProcess(PKDict):
             if self.msg.jobProcessCmd == 'compute'
             else self._start_job_process
         )
-
-    async def _start_job_process(self):
-        _DockerJobProcess().start()
-
-    # TODO(e-carlin): handling cancel throughout all of this is tricky
-    # currently not implemented
-    async def _start_compute(self):
-        try:
-            await self._await_job_completion_and_parallel_status(
-                self._submit_compute_to_sbatch(
-                    self._prepare_simulation()
-                )
-            )
-        except Exception as e:
-            # TODO(e-carlin): comm send this stuff don't return it
-            return PKDict(state=job.ERROR, error=str(e), stack=pkdexc())
-        return PKDict(state=job.COMPLETED)
 
     async def _await_job_completion_and_parallel_status(self, job_id):
         parallel_status_running = False
@@ -45,10 +51,10 @@ class _SBatchProcess(PKDict):
             # to make sure we got the status at 100%
 
     async def _begin_get_parallel_status(self):
+        # TODO(e-carlin): this needs to be killed once the job is completed
         self._parallel_status_process = _GetSbatchParallelStatusDockerJobProcess(
             msg=self.msg.copy().update(jobProcessCmd='get_sbatch_parallel_status'),
         )
-
 
     def _get_job_sbatch_state(self, job_id):
         o = subprocess.check_output(
@@ -57,20 +63,6 @@ class _SBatchProcess(PKDict):
         r = re.search(r'(?<=JobState=)(.*)(?= Reason)', o) # TODO(e-carlin): Make middle [A-Z]+
         assert r, 'output={}'.format(s)
         return r.group().lower()
-
-    def _submit_compute_to_sbatch(self, cmd):
-        s = self._get_sbatch_script(cmd)
-        with open(self.msg.runDir.join('sbatch.job', 'w') as f:
-            f.write(s)
-            f.seek(0)
-            o = subprocess.check_output(
-                ('sbatch'),
-                stind=f,
-            )
-            r = re.search(r'\d+$', o)
-            assert r is not None, 'output={} did not cotain job id'.format(o)
-            return r.group()
-
 
     def _get_sbatch_script(self, cmd):
         # TODO(e-carlin): configure the SBATCH* parameters
@@ -96,3 +88,51 @@ EOF
         ).subprocess_cmd_stdin_env()
         r = subprocess.check_output(c, s)
         return pkjson.load_any(r).cmd
+
+    # TODO(e-carlin): handling cancel throughout all of this is tricky
+    # currently not implemented
+    async def _start_compute(self):
+        try:
+            await self._await_job_completion_and_parallel_status(
+                self._submit_compute_to_sbatch(
+                    self._prepare_simulation()
+                )
+            )
+        except Exception as e:
+            # TODO(e-carlin): comm send this stuff don't return it
+            self._send_op_error(
+                PKDict(
+                    state=job.ERROR,
+                    error=str(e),
+                    stack=pkdexc(),
+                    opDone=True,
+                )
+            )
+        finally:
+            self.processes.pkdel(msg.computeJid)
+
+    async def _send_op_error(self, reply):
+        # POSIT: jobProcessCmd is the only field every changed in msg
+        await self.comm.send(
+            self.comm.format_op(
+                self.msg,
+                job.OP_ERROR,
+                reply=r,
+            )
+        )
+
+    async def _start_job_process(self):
+        _DockerJobProcess().start()
+
+    def _submit_compute_to_sbatch(self, cmd):
+        s = self._get_sbatch_script(cmd)
+        with open(self.msg.runDir.join('sbatch.job'), 'w') as f:
+            f.write(s)
+            f.seek(0)
+            o = subprocess.check_output(
+                ('sbatch'),
+                stind=f,
+            )
+            r = re.search(r'\d+$', o)
+            assert r is not None, 'output={} did not cotain job id'.format(o)
+            return r.group()
