@@ -319,7 +319,8 @@ def api_importFile(simulation_type=None):
         raise
     except Exception as e:
         pkdlog('{}: exception: {}', f and f.filename, pkdexc())
-        error = str(e.message) if hasattr(e, 'message') else str(e)
+        #TODO(robnagler) security issue here. Really don't want to report errors to user
+        error = str(e.args) if hasattr(e, 'args') else str(e)
     return http_reply.gen_json({
         'error': error if error else 'An unknown error occurred',
     })
