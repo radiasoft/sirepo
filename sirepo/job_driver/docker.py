@@ -127,11 +127,10 @@ class DockerDriver(job_driver.DriverBase):
         p = (
             'run',
             '--attach=stdin', # attach to stdin for writing
-# TODO(e-carlin): Does this leave stdin open after writing to it? We want it to be closed.
             '--interactive', # keeps stdin open so we can write to it
             '--log-driver=json-file',
             # should never be large, just for output of the monitor
-        '--log-opt=max-size=1m',
+            '--log-opt=max-size=1m',
             '--rm',
             '--ulimit=core=0',
             '--ulimit=nofile={}'.format(_MAX_OPEN_FILES),

@@ -149,8 +149,10 @@ class _Dispatcher(PKDict):
         return None
 
     def _process(self, msg):
-        p = _JobProcess(msg=msg, comm=self)
+        # p = _JobProcess(msg=msg, comm=self)
         # p = _DockerJobProcess(msg=msg, comm=self)
+        pkdp('aaaaaaaaaaaaaaa about to start sbatch')
+        p = _SBatchProcess(msg=msg, comm=self)
 #TODO(robnagler) there should only be one computeJid per agent.
 #   background_percent_complete is not an analysis
         assert msg.computeJid not in self.processes
@@ -226,9 +228,14 @@ class _JobProcess(PKDict):
         if self._terminating:
             return
         try:
+            pkdp('ooooooooooooooooooooooooooooooooooooooooooo')
             r = pkjson.load_any(text)
             if 'opDone' in r:
                 del self.comm.processes[self.msg.computeJid]
+            if self.msg.jobProcessCmd == 'get_sbatch_parallel_status':
+                pkdp('yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy')
+                pkdp(job.LogFormatter(r))
+                pkdp('yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy')
             if self.msg.jobProcessCmd == 'compute':
                 await self.comm.send(
                     self.comm.format_op(
@@ -303,8 +310,128 @@ class _GetSbatchParallelStatusDockerJobProcess(_DockerJobProcess):
         else:
             # TODO(e-carlin): We should restart the job if this happens
             pkdlog(
-                'error: _GetSbatchParallelStatusDockerJobProcess exited without a termination request'
+                'error: exited without a termination request'
             )
+
+
+class _SBatchProcess(PKDict):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._terminating = False
+        pkdp('yyyyyyyyyyyyyyyyyyyyyyyyyy its sbatch time')
+
+    def start(self):
+        tornado.ioloop.IOLoop.current().add_callback(
+            self._start_compute
+            if self.msg.jobProcessCmd == 'compute' and self.msg.isParallel
+            else self._start_job_process
+        )
+
+    async def _await_job_completion_and_parallel_status(self, job_id):
+        parallel_status_running = False
+        while True:
+            s = self._get_job_sbatch_state(job_id)
+            assert s in ('running', 'pending', 'completed'), \
+                'invalid state={}'.format(s)
+            if s in ('running', 'completed'):
+                if self.msg.isParallel and not parallel_status_running: # TODO(e-carlin): sbatch jobs are only parallel
+                    pkdp('bbbbbbbbbbbbbbbbbbbb begining get parallel status')
+                    self._begin_get_parallel_status()
+            if s == 'completed':
+                break
+            await tornado.gen.sleep(2) # TODO(e-carlin): longer poll
+            # TODO(e-carlin): need to wait for one more parallel status read
+            # to make sure we got the status at 100%
+
+    async def _begin_get_parallel_status(self):
+        # TODO(e-carlin): this needs to be killed once the job is completed
+        self._parallel_status_process = _GetSbatchParallelStatusDockerJobProcess(
+            msg=self.msg.copy().update(jobProcessCmd='get_sbatch_parallel_status'),
+        )
+
+    def _get_job_sbatch_state(self, job_id):
+        o = subprocess.check_output(
+            ('scontrol', 'show', 'job', job_id)
+        ).decode('utf-8')
+        r = re.search(r'(?<=JobState=)(.*)(?= Reason)', o) # TODO(e-carlin): Make middle [A-Z]+
+        assert r, 'output={}'.format(s)
+        return r.group().lower()
+
+    def _get_sbatch_script(self, cmd):
+        # TODO(e-carlin): configure the SBATCH* parameters
+        return'''#!/bin/bash
+#SBATCH --partition=compute
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem-per-cpu=128M
+#SBATCH -e {}
+#SBATCH -o {}
+{}
+EOF
+'''.format(
+            template_common.RUN_LOG,
+            template_common.RUN_LOG,
+            ' '.join(_docker_cmd_base(self.msg) + (cmd,)),
+        )
+
+    def _prepare_simulation(self):
+        c, s, _ = _JobProcess(
+            msg=self.msg.copy().update(jobProcessCmd='prepare_simulation')
+        ).subprocess_cmd_stdin_env()
+        r = subprocess.check_output(c, s)
+        return pkjson.load_any(r).cmd
+
+    # TODO(e-carlin): handling cancel throughout all of this is tricky
+    # currently not implemented
+    async def _start_compute(self):
+        try:
+            pkdp('ssssssssssssssss starting sbatch compute')
+            await self._await_job_completion_and_parallel_status(
+                self._submit_compute_to_sbatch(
+                    self._prepare_simulation()
+                )
+            )
+        except Exception as e:
+            # TODO(e-carlin): comm send this stuff don't return it
+            self._send_op_error(
+                PKDict(
+                    state=job.ERROR,
+                    error=str(e),
+                    stack=pkdexc(),
+                    opDone=True,
+                )
+            )
+        finally:
+            self.processes.pkdel(msg.computeJid)
+
+    async def _send_op_error(self, reply):
+        # POSIT: jobProcessCmd is the only field every changed in msg
+        await self.comm.send(
+            self.comm.format_op(
+                self.msg,
+                job.OP_ERROR,
+                reply=r,
+            )
+        )
+
+    async def _start_job_process(self):
+        pkdp('jjkjkjkjkjkjkj jobprocess starting from sbatch')
+        _DockerJobProcess(msg=self.msg, comm=self.comm).start()
+
+    def _submit_compute_to_sbatch(self, cmd):
+        s = self._get_sbatch_script(cmd)
+        with open(self.msg.runDir.join('sbatch.job'), 'w') as f:
+            f.write(s)
+            f.seek(0)
+            o = subprocess.check_output(
+                ('sbatch'),
+                stind=f,
+            )
+            r = re.search(r'\d+$', o)
+            assert r is not None, 'output={} did not cotain job id'.format(o)
+            return r.group()
 
 
 class _Stream(PKDict):
