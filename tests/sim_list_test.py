@@ -15,7 +15,7 @@ def test_copy_non_session(fc):
 
     o = fc.sr_sim_data()
     i = o.models.simulation.simulationId
-    fc.sr_get('authLogout', PKDict(simulation_type=fc.sr_sim_type))
+    fc.sr_logout()
     fc.sr_login_as_guest()
     r = fc.sr_get_json(
         'simulationData',
