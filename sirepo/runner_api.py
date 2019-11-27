@@ -46,29 +46,33 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
 
 @api_perm.require_user
 def api_runCancel():
-    req = http_request.parse_post(id=True, model=True)
-    jid = req.sim_data.parse_jid(req.req_data)
-    # TODO(robnagler) need to have a way of listing jobs
-    # Don't bother with cache_hit check. We don't have any way of canceling
-    # if the parameters don't match so for now, always kill.
-    #TODO(robnagler) mutex required
-    if runner.job_is_processing(jid):
-        run_dir = simulation_db.simulation_run_dir(req.req_data)
-        # Write first, since results are write once, and we want to
-        # indicate the cancel instead of the termination error that
-        # will happen as a result of the kill.
-        try:
-            simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
-        except Exception as e:
-            if not pkio.exception_is_not_found(e):
-                raise
-            # else: run_dir may have been deleted
-        runner.job_kill(jid)
-        # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
-        # the last frame file may not be finished, remove it
-        t = sirepo.template.import_module(req.req_data)
-        if hasattr(t, 'remove_last_frame'):
-            t.remove_last_frame(run_dir)
+    jid = None
+    try:
+        req = http_request.parse_post(id=True, model=True)
+        jid = req.sim_data.parse_jid(req.req_data)
+        # TODO(robnagler) need to have a way of listing jobs
+        # Don't bother with cache_hit check. We don't have any way of canceling
+        # if the parameters don't match so for now, always kill.
+        #TODO(robnagler) mutex required
+        if runner.job_is_processing(jid):
+            run_dir = simulation_db.simulation_run_dir(req.req_data)
+            # Write first, since results are write once, and we want to
+            # indicate the cancel instead of the termination error that
+            # will happen as a result of the kill.
+            try:
+                simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
+            except Exception as e:
+                if not pkio.exception_is_not_found(e):
+                    raise
+                # else: run_dir may have been deleted
+            runner.job_kill(jid)
+            # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
+            # the last frame file may not be finished, remove it
+            t = sirepo.template.import_module(req.req_data)
+            if hasattr(t, 'remove_last_frame'):
+                t.remove_last_frame(run_dir)
+    except Exception as e:
+        pkdlog('ignoring exception={} jid={} stack={}', e, jid, pkdexc())
     # Always true from the client's perspective
     return http_reply.gen_json({'state': 'canceled'})
 
