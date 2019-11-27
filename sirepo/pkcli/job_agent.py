@@ -391,6 +391,22 @@ class _SBatchProcess(PKDict):
         self._kill_parallel_status_process()
         await self._get_completed_parallel_status()
 
+    def _begin_get_parallel_status(self):
+        self._compute_job_start_time = int(time.time())
+        m = self.msg.copy().update(
+            isRunning=True,
+            jobProcessCmd='get_sbatch_parallel_status',
+            simulationStatus=PKDict(
+                computeJobStart=self._compute_job_start_time,
+                state=job.RUNNING,
+            ),
+        )
+        self._parallel_status_process = _GetSbatchParallelStatusDockerJobProcess(
+            msg=m,
+            comm=self.comm,
+        )
+        self._parallel_status_process.start()
+
     async def _get_completed_parallel_status(self):
         m = self.msg.copy().update(
             isRunning=False,
@@ -408,22 +424,6 @@ class _SBatchProcess(PKDict):
         )
         p.start()
         await p.exited()
-
-    def _begin_get_parallel_status(self):
-        self._compute_job_start_time = int(time.time())
-        m = self.msg.copy().update(
-            isRunning=True,
-            jobProcessCmd='get_sbatch_parallel_status',
-            simulationStatus=PKDict(
-                computeJobStart=self._compute_job_start_time,
-                state=job.RUNNING,
-            ),
-        )
-        self._parallel_status_process = _GetSbatchParallelStatusDockerJobProcess(
-            msg=m,
-            comm=self.comm,
-        )
-        self._parallel_status_process.start()
 
     def _get_job_sbatch_state(self, job_id):
         o = subprocess.check_output(
@@ -462,6 +462,16 @@ class _SBatchProcess(PKDict):
         r = subprocess.check_output(c, stdin=s)
         return pkjson.load_any(r).cmd
 
+    async def _send_op_error(self, reply):
+        # POSIT: jobProcessCmd is the only field every changed in msg
+        await self.comm.send(
+            self.comm.format_op(
+                self.msg,
+                job.OP_ERROR,
+                reply=reply,
+            )
+        )
+
     async def _start_compute(self):
         try:
             self._sbatch_job_id =  self._submit_compute_to_sbatch(
@@ -481,16 +491,6 @@ class _SBatchProcess(PKDict):
             )
         finally:
             self.comm.processes.pkdel(self.msg.computeJid)
-
-    async def _send_op_error(self, reply):
-        # POSIT: jobProcessCmd is the only field every changed in msg
-        await self.comm.send(
-            self.comm.format_op(
-                self.msg,
-                job.OP_ERROR,
-                reply=reply,
-            )
-        )
 
     def _submit_compute_to_sbatch(self, cmd):
         s = self._get_sbatch_script(cmd)
