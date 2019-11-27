@@ -274,6 +274,8 @@ def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js=False
             sim_type=sim_type,
         ),
         'login failed: reason={} method={}',
+        reason,
+        module.AUTH_METHOD,
     )
 
 
