@@ -41,15 +41,6 @@ class SBatchDriver(job_driver.DriverBase):
         )[u]
 
     def get_ops_with_send_allocation(self):
-        """
-# TODO(e-carlin):
-1 at a time:
-    - single core compute jobs
-unlimited at a time:
-    - everything else
-
-The agent will need to change to support > 1 of the same jid at once
-        """
         return super().get_ops_with_send_allocation()
 
     @classmethod
@@ -65,7 +56,8 @@ The agent will need to change to support > 1 of the same jid at once
                 o.send_ready.set()
 
     async def _agent_start(self):
-        # TODO(e-carlin): handle cori ssh key
+        # TODO(e-carlin): handle cori ssh key. Currently this defaults
+        # to using the keys in ~/.ssh/known_hosts
         async with asyncssh.connect(
                 cfg.nersc_uri,
                 username='vagrant',

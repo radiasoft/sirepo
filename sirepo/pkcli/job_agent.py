@@ -152,11 +152,11 @@ class _Dispatcher(PKDict):
 
     def _process(self, msg):
         # TODO(e-carlin): use _JobProcess in docker and local
-        # p = _JobProcess(msg=msg, comm=self)
-
-        p = _DockerJobProcess(msg=msg, comm=self)
-        if msg.isParallel:
-            p = _SBatchProcess(msg=msg, comm=self)
+        p = _JobProcess(msg=msg, comm=self)
+        # TODO(e-carlin): Use _DockerJobProcess and _SBatchProcess only on NERSC
+        # p = _DockerJobProcess(msg=msg, comm=self)
+        # if msg.isParallel:
+        #     p = _SBatchProcess(msg=msg, comm=self)
 #TODO(robnagler) there should only be one computeJid per agent.
 #   background_percent_complete is not an analysis
         assert msg.computeJid not in self.processes
@@ -210,7 +210,6 @@ class _JobProcess(PKDict):
             )
         self._terminating = False
 
-# TODO(e-carlin): rename to cancel?
     def kill(self):
         self._terminating = True
         self._subprocess.kill()
