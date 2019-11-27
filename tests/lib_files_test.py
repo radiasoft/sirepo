@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function
 import pytest
 
 
-
 def test_elegant_upload_sdds(fc):
     from pykern import pkio
     from pykern import pkunit
@@ -17,19 +16,6 @@ def test_elegant_upload_sdds(fc):
     import sirepo.sim_data
 
     d = fc.sr_sim_data('Compact Storage Ring')
-    d.models.bunch.n_particles_per_bunch = 50
-    fc.sr_run_sim(d, 'bunchReport1')
-    r = fc.sr_get(
-        'downloadDataFile',
-        PKDict(
-            simulation_type=d.simulationType,
-            simulation_id=d.models.simulation.simulationId,
-            model='bunchReport1',
-            frame='-1',
-        ),
-    )
-    f = pkunit.work_dir().join('somename.bun')
-    f.write_binary(r.get_data())
     r = fc.sr_post_form(
         'uploadFile',
         params=PKDict(
@@ -38,13 +24,15 @@ def test_elegant_upload_sdds(fc):
             file_type='bunchFile-sourceFile',
         ),
         data=PKDict(),
-        file=f,
+        # somename.bun was created with:
+        # d.models.bunch.n_particles_per_bunch = 50
+        file=pkunit.data_dir().join('somename.bun'),
     )
     import sirepo.srdb
+#TODO(robnagler) make easier to get at this in tests
     g = pkio.sorted_glob(sirepo.srdb.root().join('user', fc.sr_uid, 'elegant', 'lib', '*'))
     pkunit.pkeq(1, len(g))
     pkunit.pkeq('bunchFile-sourceFile.somename.bun', g[0].basename)
-
 
 
 def test_jspec_list_files(fc):
