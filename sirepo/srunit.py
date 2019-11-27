@@ -305,7 +305,7 @@ class _TestClient(flask.testing.FlaskClient):
 
     def sr_run_sim(self, data, model, expect_completed=True, timeout=7, **post_args):
         from pykern import pkunit
-        from pykern.pkdebug import pkdlog
+        from pykern.pkdebug import pkdlog, pkdexc
         import time
 
         cancel = None
@@ -337,12 +337,17 @@ class _TestClient(flask.testing.FlaskClient):
                 pkunit.pkeq('completed', r.state)
             return r
         finally:
-            try:
-                if cancel:
-                    pkdlog('runCancel')
-                    fc.sr_post('runCancel', cancel)
-            except Exception:
-                pass
+            if cancel:
+                pkdlog('runCancel')
+                self.sr_post('runCancel', cancel)
+            import subprocess
+            o = subprocess.check_output(['ps', 'axww'], stderr=subprocess.STDOUT)
+            o = filter(lambda x: 'mpiexec' in x, o.split('\n'))
+            if o:
+                pkdlog('found "mpiexec" after cancel in ps={}', '\n'.join(o))
+                # this exception won't be seen because in finally
+                raise AssertionError('cancel failed')
+
 
     def sr_sim_data(self, sim_name='Scooby Doo', sim_type=None):
         """Return simulation data by name
