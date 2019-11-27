@@ -8,6 +8,59 @@ from __future__ import absolute_import, division, print_function
 import pytest
 
 
+
+def test_elegant_upload_sdds(fc):
+    from pykern import pkio
+    from pykern import pkunit
+    from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdp
+    import sirepo.sim_data
+
+    d = fc.sr_sim_data('Compact Storage Ring')
+    d.models.bunch.n_particles_per_bunch = 50
+    fc.sr_run_sim(d, 'bunchReport1')
+    r = fc.sr_get(
+        'downloadDataFile',
+        PKDict(
+            simulation_type=d.simulationType,
+            simulation_id=d.models.simulation.simulationId,
+            model='bunchReport1',
+            frame='-1',
+        ),
+    )
+    f = pkunit.work_dir().join('somename.bun')
+    f.write_binary(r.get_data())
+    r = fc.sr_post_form(
+        'uploadFile',
+        params=PKDict(
+            simulation_type=fc.sr_sim_type,
+            simulation_id=d.models.simulation.simulationId,
+            file_type='bunchFile-sourceFile',
+        ),
+        data=PKDict(),
+        file=f,
+    )
+    import sirepo.srdb
+    g = pkio.sorted_glob(sirepo.srdb.root().join('user', fc.sr_uid, 'elegant', 'lib', '*'))
+    pkunit.pkeq(1, len(g))
+    pkunit.pkeq('bunchFile-sourceFile.somename.bun', g[0].basename)
+
+
+
+def test_jspec_list_files(fc):
+    from pykern import pkio
+    from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdpretty
+    from pykern.pkunit import pkeq, pkre
+    import json
+
+    a = fc.sr_get_json(
+        'listFiles',
+        PKDict(simulation_type=fc.sr_sim_type, simulation_id='xxxxxxxxxx', file_type='ring-lattice'),
+    )
+    pkeq(['Booster.tfs'], a)
+
+
 def test_srw_delete(fc):
     from pykern import pkunit
     from pykern.pkcollections import PKDict
@@ -73,20 +126,6 @@ def test_srw_delete(fc):
         redirect=False,
     )
     pkunit.pkre('does not exist', r.error)
-
-
-def test_jspec_list_files(fc):
-    from pykern import pkio
-    from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdpretty
-    from pykern.pkunit import pkeq, pkre
-    import json
-
-    a = fc.sr_get_json(
-        'listFiles',
-        PKDict(simulation_type=fc.sr_sim_type, simulation_id='xxxxxxxxxx', file_type='ring-lattice'),
-    )
-    pkeq(['Booster.tfs'], a)
 
 
 def test_srw_upload(fc):
