@@ -123,7 +123,7 @@ def api_downloadFile(simulation_type, simulation_id, filename):
     p = req.sim_data.lib_file_abspath(req.filename)
     try:
         return http_reply.gen_file_as_attachment(p, filename=n)
-    except IOError as e:
+    except Exception as e:
         if pkio.exception_is_not_found(e):
             sirepo.util.raise_not_found('lib_file={} not found', p)
         raise

@@ -59,9 +59,10 @@ def api_runCancel():
         # will happen as a result of the kill.
         try:
             simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
-        except IOError:
-            # run_dir may have been deleted
-            pass
+        except Exception as e:
+            if not pkio.exception_is_not_found(e):
+                raise
+            # else: run_dir may have been deleted
         runner.job_kill(jid)
         # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
         # the last frame file may not be finished, remove it
@@ -131,7 +132,7 @@ def _read_status(run_dir):
     """
     try:
         return pykern.pkio.read_text(run_dir.join(sirepo.job.RUNNER_STATUS_FILE))
-    except IOError as e:
+    except Exception as e:
         if pykern.pkio.exception_is_not_found(e):
             # simulation may never have been run
             return 'stopped'
@@ -175,7 +176,7 @@ def _reqd(req):
         return res
     try:
         c = simulation_db.read_json(res.input_file)
-    except IOError as e:
+    except Exception as e:
         if pykern.pkio.exception_is_not_found(e):
             return res
         raise
