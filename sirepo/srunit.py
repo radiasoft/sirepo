@@ -338,7 +338,10 @@ class _TestClient(flask.testing.FlaskClient):
                 simulationType=self.sr_sim_type,
                 search=PKDict({'simulation.name': sim_name}),
             )
-        )[0].simulation
+        )
+        assert 1 == len(d), \
+            'listSimulations name={} returned count={}'.format(sim_name, len(d))
+        d = d[0].simulation
         res = self.sr_get_json(
             'simulationData',
             {
@@ -372,8 +375,9 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             object: parsed JSON result
         """
-        import pykern.pkcollections
+        from pykern.pkcollections import PKDict
         from pykern.pkdebug import pkdlog, pkdexc, pkdc, pkdp
+        import pykern.pkjson
         import sirepo.http_reply
         import sirepo.uri
         import sirepo.util
@@ -393,6 +397,10 @@ class _TestClient(flask.testing.FlaskClient):
             if r.status_code == 200 and r.mimetype == 'text/html':
                 m = _JAVASCRIPT_REDIRECT_RE.search(r.data)
                 if m:
+                    if m.group(1).endswith('#/error'):
+                        raise sirepo.util.Error(
+                            PKDict(error='server error uri={}'.format(m.group(1))),
+                        )
                     if kwargs.get('redirect', True):
                         # Execute the redirect
                         return self.__req(
@@ -419,7 +427,7 @@ class _TestClient(flask.testing.FlaskClient):
             if raw_response:
                 return r
             # Treat SRException as a real exception (so we don't ignore them)
-            d = pykern.pkcollections.json_load_any(r.data)
+            d = pykern.pkjson.load_any(r.data)
             if (
                 isinstance(d, dict)
                 and d.get('state') == sirepo.http_reply.SR_EXCEPTION_STATE
@@ -430,7 +438,7 @@ class _TestClient(flask.testing.FlaskClient):
                 )
             return d
         except Exception as e:
-            if not isinstance(e, sirepo.util.SRException):
+            if not isinstance(e, (sirepo.util.Reply)):
                 pkdlog(
                     'Exception: {}: msg={} uri={} status={} data={} stack={}',
                     type(e),

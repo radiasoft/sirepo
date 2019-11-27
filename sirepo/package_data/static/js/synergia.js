@@ -127,7 +127,8 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, latticeSer
     $scope.$on('bunchReport1.summaryData', function(e, info) {
         if (appState.isLoaded() && info.bunchTwiss) {
             appState.models.bunchTwiss = info.bunchTwiss;
-            appState.saveChanges('bunchTwiss');
+            //TODO(pjm): can't save normally or bunch reports will call runCancel on refresh
+            appState.saveQuietly('bunchTwiss');
             processBunchFields();
         }
     });

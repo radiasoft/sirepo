@@ -404,7 +404,10 @@ def get_application_data(data):
 def get_data_file(run_dir, model, frame, options=None):
     filename = _ZGOUBI_FAI_DATA_FILE
     if options and options['suffix'] == _ZGOUBI_COMMAND_FILE:
-        filename = _ZGOUBI_COMMAND_FILE
+        if model == 'tunesReport':
+            filename = TUNES_INPUT_FILE
+        else:
+            filename = _ZGOUBI_COMMAND_FILE
     elif model == 'elementStepAnimation':
         filename = _ZGOUBI_PLT_DATA_FILE
     elif model == 'opticsReport' or 'twissReport' in model:
@@ -612,8 +615,8 @@ def _extract_animation(frame_args):
     it_index = int(col_names.index('IT'))
     it_filter = None
     if _particle_count(frame_args.sim_in) <= _MAX_FILTER_PLOT_PARTICLES:
-        if frame_args.particleNumber != 'all':
-            it_filter = frame_args.particleNumber
+        if frame_args.particleSelector != 'all':
+            it_filter = frame_args.particleSelector
 
     count = 0
     el_names = []
@@ -712,8 +715,8 @@ def _extract_spin_3d(frame_args):
     points = []
     it_idx = int(col_names.index('IT'))
     it_filter = None
-    if frame_args.particleNumber != 'all':
-        it_filter = frame_args.particleNumber
+    if frame_args.particleSelector != 'all':
+        it_filter = frame_args.particleSelector
     for row in all_rows:
         if it_filter and it_filter != row[it_idx]:
             continue

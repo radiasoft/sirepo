@@ -42,7 +42,7 @@ class BackgroundJob(runner.JobBase):
         return True
 
     def _kill(self):
-        if self.__pid == 0:
+        if not self.__pid:
             return
         pid = self.__pid
         for sig in (signal.SIGTERM, signal.SIGKILL):

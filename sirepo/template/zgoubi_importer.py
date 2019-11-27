@@ -426,10 +426,10 @@ def _validate_file_names(model, file_names):
         target = _SIM_DATA.lib_file_name_with_model_field(model['type'], 'magnetFile', name)
         if _SIM_DATA.lib_file_exists(target):
             magnet_file = name
-    for f in _SIM_DATA.lib_files_for_extension('zip'):
+    for f in _SIM_DATA.zgoubi_lib_files_with_zip():
         zip_has_files = True
         zip_names = []
-        with zipfile.ZipFile(f, 'r') as z:
+        with zipfile.ZipFile(str(f), 'r') as z:
             for info in z.infolist():
                 zip_names.append(info.filename)
         for name in file_names:

@@ -164,16 +164,7 @@ def api_exportArchive(simulation_type, simulation_id, filename):
         type=simulation_type,
     )
     from sirepo import exporter
-    fn, mt = exporter.create_archive(sim.type, sim.id, sim.filename)
-    return flask.send_file(
-        str(fn),
-        as_attachment=True,
-        attachment_filename=sim.filename,
-        mimetype=mt,
-        #TODO(pjm): the browser caches HTML files, may need to add explicit times
-        # to other calls to send_file()
-        cache_timeout=1,
-    )
+    return exporter.create_archive(sim)
 
 
 @api_perm.allow_visitor
@@ -191,7 +182,7 @@ def api_listFiles(simulation_type, simulation_id, file_type):
 #TODO(pjm): simulation_id is an unused argument
     sim = http_request.parse_params(type=simulation_type, file_type=file_type)
     return http_reply.gen_json(
-        sim.sim_data.lib_files_for_type(sim.file_type),
+        sim.sim_data.lib_files_name_for_type(sim.file_type),
     )
 
 
@@ -283,10 +274,11 @@ def api_importArchive():
     import sirepo.importer
     # special http_request parsing here
     data = sirepo.importer.do_form(flask.request.form)
+    m = simulation_db.get_schema(data.simulationType).appModes.default
     return http_reply.gen_redirect_for_local_route(
         data.simulationType,
-        route=None,
-        params={'simulationId': data.models.simulation.simulationId},
+        m.localRoute,
+        PKDict(simulationId=data.models.simulation.simulationId),
     )
 
 
@@ -367,21 +359,20 @@ def api_newSimulation():
         notes=sim.req_data.get('notes', ''),
     )
     if hasattr(sim.template, 'new_simulation'):
-        sim.type.new_simulation(d, sim.req_data)
+        sim.template.new_simulation(d, sim.req_data)
     return _save_new_and_reply(d)
 
 
 @api_perm.require_user
-def api_pythonSource(simulation_type, simulation_id, model=None, report=None):
+def api_pythonSource(simulation_type, simulation_id, model=None, title=None):
     sim = http_request.parse_params(type=simulation_type, id=simulation_id, template=True)
     m = model and sim.sim_data.parse_model(model)
-    r = report and sim.sim_data.parse_model(report)
     d = simulation_db.read_simulation_json(sim.type, sid=sim.id)
     return _safe_attachment(
         flask.make_response(
             sim.template.python_source_for_model(d, m),
         ),
-        d.models.simulation.name + ('-' + r if r else ''),
+        d.models.simulation.name + ('-' + title if title else ''),
         'py',
     )
 
@@ -544,8 +535,8 @@ def api_updateFolder():
     #TODO(robnagler) Folder should have a serial, or should it be on data
     sim = http_request.parse_post()
 #TODO(robnagler) validate
-    old_name = data['oldName']
-    new_name = data['newName']
+    old_name = sim.req_data['oldName']
+    new_name = sim.req_data['newName']
     for row in simulation_db.iterate_simulation_datafiles(sim.type, _simulation_data):
         folder = row['models']['simulation']['folder']
         if folder.startswith(old_name):

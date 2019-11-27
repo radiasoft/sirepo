@@ -128,7 +128,7 @@ def _do_get_data_file(msg, template):
     try:
         f, c, t = template.get_data_file(
             msg.runDir,
-            msg.computeModel,
+            msg.analysisModel,
             int(msg.data.frame),
             options=PKDict(suffix=msg.data.suffix),
         )

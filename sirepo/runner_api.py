@@ -18,6 +18,7 @@ from sirepo.template import template_common
 import datetime
 import flask
 import hashlib
+import inspect
 import sirepo.sim_data
 import sirepo.template
 import time
@@ -36,7 +37,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
     )
     f, c, t = sirepo.template.import_module(sim.type).get_data_file(
         simulation_db.simulation_run_dir(sim.req_data),
-        sim.sim_data.compute_model(sim.model),
+        sim.model,
         int(frame),
         options=sim.req_data.copy().update(suffix=suffix),
     )
@@ -172,7 +173,13 @@ def _reqd(sim):
     )
     if not res.run_dir.check():
         return res
-    res.cached_data = c = simulation_db.read_json(res.input_file)
+    try:
+        c = simulation_db.read_json(res.input_file)
+    except IOError as e:
+        if pykern.pkio.exception_is_not_found(e):
+            return res
+        raise
+    res.cached_data = c
     # backwards compatibility for old runs that don't have computeJobCacheKey
     res.cached_hash = c.models.pksetdefault(
         computeJobCacheKey=lambda: PKDict(
@@ -235,7 +242,10 @@ def _simulation_run_status(sim, quiet=False):
                     template.prepare_output_file(reqd.run_dir, sim.req_data)
                     res = simulation_db.read_result(reqd.run_dir)
             if res.state == sirepo.job.ERROR and not reqd.is_parallel:
-                return http_reply.subprocess_error(res.error, 'error in read_result', reqd.run_dir)
+                return _subprocess_error(
+                    error='read_result error: ' + res.get('error', '<no error in read_result>'),
+                    run_dir=reqd.run_dir,
+                )
     if reqd.is_parallel:
         new = template.background_percent_complete(
             reqd.model_name,
@@ -310,6 +320,7 @@ def _subprocess_error(**kwargs):
     pkdlog(
         'simulation_run_status error: {}',
         ' '.join(['{}={}'.format(k, v) for k,v in kwargs.items()]),
+        pkdebug_frame=inspect.currentframe().f_back,
     )
     return {
         'state': 'error',
