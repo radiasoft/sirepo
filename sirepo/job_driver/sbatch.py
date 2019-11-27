@@ -84,6 +84,14 @@ The agent will need to change to support > 1 of the same jid at once
                     'stdout={} stderr={}'.format(o, e)
             stdin.close()
 
+    async def kill(self):
+        if not self.websocket:
+            # if there is no websocket then we don't know about the agent
+            # so we can't do anything
+            return
+        # hopefully the agent is nice and listens to the kill
+        self.websocket.write_message(PKDict(opName=job.OP_KILL))
+
 
 def init_class():
     global cfg
