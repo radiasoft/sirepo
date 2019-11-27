@@ -73,7 +73,10 @@ The agent will need to change to support > 1 of the same jid at once
         ) as c:
             cmd, stdin, _ = self._subprocess_cmd_stdin_env(
                 fork=True,
-                env=PKDict(PYKERN_PKDEBUG_OUTPUT='/tmp/evan3.txt')
+                env=PKDict(
+                    PYKERN_PKDEBUG_OUTPUT='job_agent.log',
+                    PYTHONUNBUFFERED=1
+                )
             )
             async with c.create_process(' '.join(cmd)) as p:
                 o, e = await p.communicate(input=stdin.read().decode('utf-8'))

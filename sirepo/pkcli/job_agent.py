@@ -164,16 +164,29 @@ class _Dispatcher(PKDict):
         p.start()
 
 
+def _docker_get_container_name(msg):
+    return '{}_{}'.format(msg.computeJid, msg.jobProcessCmd)
 
 
-def _docker_cmd_base(msg):
+def _docker_rm_cmd(name):
+    return (
+        'docker',
+        'rm',
+        '-f',
+        name,
+    )
+
+
+def _docker_run_cmd_base(msg, name):
     return (
             'docker',
             'run',
+            '--rm',
+            '--name={}'.format(name),
             '--interactive',
             '--env=PYTHONUNBUFFERED=1',
             '--env=SIREPO_SRDB_ROOT={}'.format(msg.agentDbRoot),
-            '--env=SIREPO_AUTH_LOGGED_IN_USER={}'.format(msg.uid), # TODO(e-carlin): real uid from msg
+            '--env=SIREPO_AUTH_LOGGED_IN_USER={}'.format(msg.uid),
             '--volume=/home/vagrant/src/radiasoft/sirepo/sirepo:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/sirepo',
             '--volume=/home/vagrant/src/radiasoft/pykern/pykern:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/pykern',
             '--volume={}:{}'.format(msg.runDir, msg.runDir),
@@ -297,10 +310,15 @@ class _DockerJobProcess(_JobProcess):
         # is going to be replaced with singulatiry which doesn't have these problems so
         # it is fine for now
         self._in_file = self._create_in_file()
+        self._container_name = _docker_get_container_name(self.msg)
         return job.subprocess_cmd_stdin_env(
-            _docker_cmd_base(self.msg) + ('sirepo job_process {}'.format(self._in_file),),
+            _docker_run_cmd_base(self.msg, self._container_name) + ('sirepo job_process {}'.format(self._in_file),),
             PKDict()
         )
+
+    def kill(self):
+        self._terminating = True
+        subprocess.check_call(_docker_rm_cmd(self._container_name))
 
     async def exited(self):
         await self._subprocess.exit_ready()
@@ -355,10 +373,10 @@ class _SBatchProcess(PKDict):
             if s == 'completed':
                 break
             await tornado.gen.sleep(2) # TODO(e-carlin): longer poll
+        self._parallel_status_process.kill()
         await self._get_completed_parallel_status()
 
     async def  _get_completed_parallel_status(self):
-        self._parallel_status_process.kill()
         m = self.msg.copy().update(
             isRunning=False,
             jobProcessCmd='get_sbatch_parallel_status_once',
@@ -396,6 +414,7 @@ class _SBatchProcess(PKDict):
 
     def _get_sbatch_script(self, cmd):
         # TODO(e-carlin): configure the SBATCH* parameters
+        self._container_name = _docker_get_container_name(self.msg)
         return'''#!/bin/bash
 #SBATCH --partition=compute
 #SBATCH --ntasks=1
@@ -408,7 +427,7 @@ class _SBatchProcess(PKDict):
 '''.format(
             template_common.RUN_LOG,
             template_common.RUN_LOG,
-            ' '.join(_docker_cmd_base(self.msg) + ('"' + ' '.join(cmd) + '"',)),
+            ' '.join(_docker_run_cmd_base(self.msg, self._container_name) + ('"' + ' '.join(cmd) + '"',)),
         )
 
 
