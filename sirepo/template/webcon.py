@@ -175,7 +175,7 @@ def get_analysis_report(run_dir, data):
     )
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'column_info':
         data = PKDict(
             models=PKDict(
@@ -225,7 +225,7 @@ def get_beam_pos_report(run_dir, data):
     )
 
 
-def get_data_file(run_dir, model, frame, options=None):
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     report = data.models[data.report]
     path = str(run_dir.join(_analysis_data_path(data)))

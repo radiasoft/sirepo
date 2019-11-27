@@ -123,16 +123,16 @@ def api_authLogout(simulation_type=None):
 
     Redirects to root simulation page.
     """
-    sim = None
+    req = None
     if simulation_type:
         try:
-            sim = http_request.parse_params(type=simulation_type)
+            req = http_request.parse_params(type=simulation_type)
         except AssertionError:
             pass
     if _is_logged_in():
         cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         _set_log_user()
-    return http_reply.gen_redirect_for_app_root(sim and sim.type)
+    return http_reply.gen_redirect_for_app_root(req and req.type)
 
 
 def complete_registration(name=None):
@@ -274,6 +274,8 @@ def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js=False
             sim_type=sim_type,
         ),
         'login failed: reason={} method={}',
+        reason,
+        module.AUTH_METHOD,
     )
 
 

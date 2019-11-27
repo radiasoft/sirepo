@@ -32,14 +32,17 @@ def default_command():
         ip=('0.0.0.0', str, 'ip address to listen on'),
         port=(sirepo.job.DEFAULT_PORT, int, 'what port to listen on'),
     )
+    sirepo.job_supervisor.init()
+    pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
+    pkio.mkdir_parent(sirepo.job.LIB_FILE_ROOT)
     app = tornado.web.Application(
         [
             (sirepo.job.AGENT_URI, _AgentMsg),
             (sirepo.job.SERVER_URI, _ServerReq),
-            (sirepo.job.DATA_FILE_URI, _DataFileReq),
+            (sirepo.job.DATA_FILE_URI + '/(.*)', _DataFileReq),
         ],
         debug=cfg.debug,
-        static_path=sirepo.job_supervisor.init(),
+        static_path=sirepo.job.SUPERVISOR_SRV_ROOT,
         static_url_prefix=sirepo.job.LIB_FILE_URI,
     )
     server = tornado.httpserver.HTTPServer(app)
@@ -94,12 +97,16 @@ class _DataFileReq(tornado.web.RequestHandler):
     def on_connection_close(self):
         pass
 
-    async def put(self):
-        for k, v in self.request.files.items():
-            k = pkio.py_path(k)
-            assert k.exists()
-            for f in v:
-                k.join(f.filename).write_binary(f.body)
+    async def put(self, path):
+        # should be exactly two levels
+        (d, f) = path.split('/')
+        assert sirepo.job.UNIQUE_KEY_RE.search(d), \
+            'invalid directory={}'.format(d)
+        d = DATA_FILE_ROOT.join(d)
+        # (tornado ensures no '..' and '.'), but a bit of sanity doesn't hurt
+        assert not f.startswith('.'), \
+            'invalid file={}'.format(f)
+        d.join(f).write_binary(self.request.body)
 
     def sr_on_exception(self):
         self.send_error()

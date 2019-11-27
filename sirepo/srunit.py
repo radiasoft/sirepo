@@ -9,6 +9,7 @@ import flask
 import flask.testing
 import json
 import re
+from pykern.pkcollections import PKDict
 
 
 #: Default "app"
@@ -98,7 +99,6 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
     fc = flask_client(cfg, **kwargs)
     try:
         from pykern import pkunit
-        from pykern.pkcollections import PKDict
 
         if before_request:
             before_request(fc)
@@ -150,6 +150,12 @@ def wrap_in_request(*args, **kwargs):
 
 
 class _TestClient(flask.testing.FlaskClient):
+
+    def __init__(self, *args, **kwargs):
+        super(_TestClient, self).__init__(*args, **kwargs)
+        self.sr_uid = None
+        self.sr_sim_type = None
+
 
     def sr_auth_state(self, **kwargs):
         """Gets authState and prases
@@ -225,7 +231,7 @@ class _TestClient(flask.testing.FlaskClient):
         )
 
     def sr_login_as_guest(self, sim_type=None):
-        """Setups up a guest login
+        """Sets up a guest login
 
         Args:
             sim_type (str): simulation type ['myapp']
@@ -238,7 +244,19 @@ class _TestClient(flask.testing.FlaskClient):
         # Get a cookie
         self.sr_get('authState')
         self.sr_get('authGuestLogin', {'simulation_type': self.sr_sim_type})
-        return self.sr_auth_state(needCompleteRegistration=False, isLoggedIn=True).uid
+        self.sr_uid = self.sr_auth_state(needCompleteRegistration=False, isLoggedIn=True).uid
+        return self.sr_uid
+
+
+    def sr_logout(self):
+        """Logout but leave cookie in place
+
+        Returns:
+            object: self
+        """
+        self.sr_uid = None
+        self.sr_get('authLogout', PKDict(simulation_type=self.sr_sim_type))
+        return self
 
 
     def sr_post(self, route_or_uri, data, params=None, raw_response=False, **kwargs):
@@ -269,7 +287,6 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             object: Parsed JSON result
         """
-        from pykern.pkcollections import PKDict
         from pykern import pkunit, pkconfig
 
         if file:
@@ -288,34 +305,49 @@ class _TestClient(flask.testing.FlaskClient):
 
     def sr_run_sim(self, data, model, expect_completed=True, timeout=7, **post_args):
         from pykern import pkunit
-        from pykern.pkcollections import PKDict
+        from pykern.pkdebug import pkdlog, pkdexc
         import time
 
-        r = self.sr_post(
-            'runSimulation',
-            PKDict(
-                forceRun=True,
-                models=data.models,
-                report=model,
-                simulationId=data.models.simulation.simulationId,
-                simulationType=data.simulationType,
-            ).pkupdate(**post_args),
-        )
-        if r.state == 'completed':
+        cancel = None
+        try:
+            r = self.sr_post(
+                'runSimulation',
+                PKDict(
+                    forceRun=True,
+                    models=data.models,
+                    report=model,
+                    simulationId=data.models.simulation.simulationId,
+                    simulationType=data.simulationType,
+                ).pkupdate(**post_args),
+            )
+            if r.state == 'completed':
+                return r
+            pkunit.pkeq('pending', r.state, 'not pending, run={}', r)
+            cancel = r.nextRequest
+            for _ in range(timeout):
+                if r.state in ('completed', 'error'):
+                    pkdlog(r.state)
+                    cancel = None
+                    break
+                r = self.sr_post('runStatus', r.nextRequest)
+                time.sleep(1)
+            else:
+                pkunit.pkok(not expect_completed, 'did not complete: runStatus={}', r)
+            if expect_completed:
+                pkunit.pkeq('completed', r.state)
             return r
-        pkunit.pkeq('pending', r.state, 'not pending, run={}', r)
-        c = r.nextRequest
-        for _ in range(timeout):
-            if r.state in ('completed', 'error'):
-                c = None
-                break
-            r = self.sr_post('runStatus', r.nextRequest)
-            time.sleep(1)
-        else:
-            pkunit.pkok(not expect_completed, 'did not complete: runStatus={}', r)
-        if expect_completed:
-            pkunit.pkeq('completed', r.state)
-        return r
+        finally:
+            if cancel:
+                pkdlog('runCancel')
+                self.sr_post('runCancel', cancel)
+            import subprocess
+            o = subprocess.check_output(['ps', 'axww'], stderr=subprocess.STDOUT)
+            o = filter(lambda x: 'mpiexec' in x, o.split('\n'))
+            if o:
+                pkdlog('found "mpiexec" after cancel in ps={}', '\n'.join(o))
+                # this exception won't be seen because in finally
+                raise AssertionError('cancel failed')
+
 
     def sr_sim_data(self, sim_name='Scooby Doo', sim_type=None):
         """Return simulation data by name
@@ -327,7 +359,6 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             dict: data
         """
-        from pykern.pkcollections import PKDict
         from pykern import pkunit
         from pykern.pkdebug import pkdpretty
 
@@ -344,11 +375,11 @@ class _TestClient(flask.testing.FlaskClient):
         d = d[0].simulation
         res = self.sr_get_json(
             'simulationData',
-            {
-                'simulation_type': self.sr_sim_type,
-                'pretty': '0',
-                'simulation_id': d['simulationId'],
-            },
+            PKDict(
+                simulation_type=self.sr_sim_type,
+                pretty='0',
+                simulation_id=d.simulationId,
+            ),
         )
         pkunit.pkeq(sim_name, res.models.simulation.name)
         return res
@@ -361,7 +392,7 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             object: self
         """
-        self.sr_sim_type = sim_type or getattr(self, 'sr_sim_type', 'myapp')
+        self.sr_sim_type = sim_type or self.sr_sim_type or 'myapp'
         return self
 
     def __req(self, route_or_uri, params, query, op, raw_response, **kwargs):
@@ -375,7 +406,6 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             object: parsed JSON result
         """
-        from pykern.pkcollections import PKDict
         from pykern.pkdebug import pkdlog, pkdexc, pkdc, pkdp
         import pykern.pkjson
         import sirepo.http_reply

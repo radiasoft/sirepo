@@ -220,17 +220,6 @@ class SimDataBase(object):
             ] + [str(m.get(k)) for k in cls._frame_id_fields(frame_args)],
         )
 
-    def is_file_used(cls, data, filename):
-        """Check if file in use by simulation
-
-        Args:
-            data (dict): simulation
-            filename (str): to check
-        Returns:
-            bool: True if `filename` in use by `data`
-        """
-        return any(f for f in cls.lib_files(data, validate_exists=False) if f.basename == filename)
-
     @classmethod
     def is_parallel(cls, data_or_model):
         """Is this report a parallel (long) simulation?
@@ -320,7 +309,7 @@ class SimDataBase(object):
 
     @classmethod
     def lib_file_name_with_type(cls, filename, file_type):
-        return '{}.{}'.format(filename, filetype)
+        return '{}.{}'.format(file_type, filename)
 
     @classmethod
     def lib_file_name_without_type(cls, basename):
@@ -348,6 +337,7 @@ class SimDataBase(object):
 
     @classmethod
     def lib_files_for_export(cls, data):
+        cls._assert_server_side()
         res = []
         for b in cls.lib_file_basenames(data):
             f = cls.lib_file_abspath(b)
@@ -365,6 +355,7 @@ class SimDataBase(object):
             data (dict): simulation db
             other_lib_dir (py.path): source directory
         """
+        cls._assert_server_side()
         from sirepo import simulation_db
 
         t = simulation_db.simulation_lib_dir(cls.sim_type())
@@ -662,7 +653,8 @@ class SimDataBase(object):
 def _init():
     global cfg
     cfg = pkconfig.init(
-        lib_file_uri=(None, str, 'where to get files from'),
+        lib_file_uri=(None, str, 'where to get files from when remote'),
     )
+
 
 _init()

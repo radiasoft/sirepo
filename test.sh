@@ -34,7 +34,7 @@ test_main() {
     if [[ -x ./node_modules/karma/bin/karma ]]; then
        ./node_modules/karma/bin/karma start etc/karma-conf.js
     fi
-    py.test tests
+    pykern test
     if [[ -n ${PKSETUP_PYPI_PASSWORD:+hide-secret} ]]; then
         python setup.py pkdeploy
     fi

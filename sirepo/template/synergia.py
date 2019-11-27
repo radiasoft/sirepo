@@ -119,7 +119,7 @@ def format_float(v):
     return float(format(v, '.10f'))
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data.method == 'calculate_bunch_parameters':
         return _calc_bunch_parameters(data.bunch)
     if data.method == 'compute_particle_ranges':
@@ -148,7 +148,7 @@ def import_file(request, tmp_dir=None):
     return data
 
 
-def get_data_file(run_dir, model, frame, options=None):
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if model in OUTPUT_FILE:
         path = run_dir.join(OUTPUT_FILE[model])
     elif model == 'bunchAnimation':
@@ -288,7 +288,7 @@ def sim_frame_beamEvolutionAnimation(frame_args):
             points = _plot_values(f, frame_args[yfield])
             for v in points:
                 if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
-                    return parse_error_log(run_dir) or PKDict(
+                    return parse_synergia_log(frame_args.run_dir) or PKDict(
                         error='Invalid data computed',
                     )
             plots.append(PKDict(
@@ -338,7 +338,7 @@ def sim_frame_turnComparisonAnimation(frame_args):
         points = _plot_values(f, frame_args.y)
         for v in points:
             if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
-                return parse_error_log(frame_args.run_dir) or {
+                return parse_synergia_log(frame_args.run_dir) or {
                     'error': 'Invalid data computed',
                 }
         steps = (len(points) - 1) / turn_count

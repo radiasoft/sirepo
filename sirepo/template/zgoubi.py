@@ -394,14 +394,14 @@ def extract_tunes_report(run_dir, data):
     }, plot_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'])
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_frames)
     if data['method'] == 'tosca_info':
         return zgoubi_importer.tosca_info(data['tosca'])
 
 
-def get_data_file(run_dir, model, frame, options=None):
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
     filename = _ZGOUBI_FAI_DATA_FILE
     if options and options['suffix'] == _ZGOUBI_COMMAND_FILE:
         if model == 'tunesReport':

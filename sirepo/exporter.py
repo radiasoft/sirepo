@@ -31,14 +31,14 @@ def create_archive(sim):
         raise sirepo.util.NotFound(
             'unknown file type={}; expecting html or zip'.format(sim.filename),
         )
-    with simulation_db.tmp_dir(chdir=True) as d:
+    with simulation_db.tmp_dir() as d:
         want_zip = sim.filename.endswith('zip')
-        fp, data = _create_zip(sim, want_python=want_zip, out_dir=d)
+        f, c = _create_zip(sim, want_python=want_zip, out_dir=d)
         if want_zip:
-            mt = 'application/zip'
+            t = 'application/zip'
         else:
-            fp, mt = _create_html(fp, data)
-        return sirepo.http_reply.gen_file_as_attachment(fp, mt, sim.filename)
+            f, t = _create_html(f, c)
+        return sirepo.http_reply.gen_file_as_attachment(f, t, sim.filename)
 
 
 def _create_html(zip_path, data):

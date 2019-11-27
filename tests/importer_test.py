@@ -37,7 +37,7 @@ def _do(fc, file_ext, parse):
     from pykern import pkunit
     from pykern import pkcollections
     from pykern.pkdebug import pkdp
-    from pykern.pkunit import pkeq, pkfail, pkok
+    from pykern.pkunit import pkeq, pkfail, pkok, pkre
     import re
 
     for suffix in '', ' 2', ' 3':
@@ -58,6 +58,6 @@ def _do(fc, file_ext, parse):
                 m = re.search(r'Error: (.+)', json)
                 if m:
                     expect = m.group(1)
-                    pkeq(expect, res.error)
+                    pkre(expect, res.error)
                 continue
             pkeq(sim_name + suffix, res.models.simulation.name)

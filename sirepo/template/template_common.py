@@ -17,6 +17,7 @@ import sirepo.http_reply
 import sirepo.http_request
 import sirepo.sim_data
 import sirepo.template
+import sirepo.util
 import subprocess
 import types
 
@@ -213,9 +214,12 @@ def generate_parameters_file(data):
 
 def sim_frame(frame_id, op):
     f, s = sirepo.sim_data.parse_frame_id(frame_id)
-    # document the request
-    sirepo.http_request.parse_post(req_data=f, id=1)
-    x = op(f)
+    # document parsing the request
+    sirepo.http_request.parse_post(req_data=f, id=True)
+    try:
+        x = op(f)
+    except Exception as e:
+        raise sirepo.util.convert_exception(e, display_text='Report not generated')
     r = sirepo.http_reply.gen_json(x)
     if 'error' not in x and s.want_browser_frame_cache():
         r.headers['Cache-Control'] = 'private, max-age=31536000'

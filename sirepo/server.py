@@ -6,6 +6,7 @@ u"""Flask server interface
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
+from pykern import pkconst
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
@@ -14,6 +15,7 @@ from sirepo import feature_config
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import simulation_db
+from sirepo import srschema
 from sirepo import uri_router
 from sirepo.template import adm
 from sirepo.template import template_common
@@ -37,9 +39,6 @@ import werkzeug.exceptions
 if any(k in feature_config.cfg().sim_types for k in ('flash', 'rs4pi', 'synergia', 'warppba', 'warpvnd')):
     import h5py
 
-#: class that py.path.local() returns
-_PY_PATH_LOCAL_CLASS = type(pkio.py_path())
-
 #: See sirepo.srunit
 SRUNIT_TEST_IN_REQUEST = 'srunit_test_in_request'
 
@@ -53,43 +52,40 @@ _app = None
 
 @api_perm.require_user
 def api_copyNonSessionSimulation():
-    sim = http_request.parse_post(id=1, template=1)
+    req = http_request.parse_post(id=True, template=True)
     src = pkio.py_path(
         simulation_db.find_global_simulation(
-            sim.type,
-            sim.id,
+            req.type,
+            req.id,
             checked=True,
         ),
     )
     data = simulation_db.open_json_file(
-        sim.type,
+        req.type,
         src.join(simulation_db.SIMULATION_DATA_FILE),
     )
     data.pkdel('report')
     data.models.simulation.isExample = False
-    data.models.simulation.outOfSessionSimulationId = sim.id
+    data.models.simulation.outOfSessionSimulationId = req.id
     res = _save_new_and_reply(data)
-    sirepo.sim_data.get_class(sim_type).lib_files_from_other_user(
+    sirepo.sim_data.get_class(req.type).lib_files_from_other_user(
         data,
         simulation_db.lib_dir_from_sim_dir(src),
     )
-    target = simulation_db.simulation_dir(sim.type, data.models.simulation.simulationId)
-    if hasattr(sim.template, 'copy_related_files'):
-        sim.template.copy_related_files(data, str(src), str(target))
+    target = simulation_db.simulation_dir(req.type, data.models.simulation.simulationId)
+    if hasattr(req.template, 'copy_related_files'):
+        req.template.copy_related_files(data, str(src), str(target))
     return res
 
 
 @api_perm.require_user
 def api_copySimulation():
     """Takes the specified simulation and returns a newly named copy with the suffix ( X)"""
-    sim = http_request.parse_post(id=1)
-#TODO(robnagler) add support for name and folder validation
-    n = sim.req_data.name
-    assert n, sirepo.util.err(sim, 'No name in request')
-    d = simulation_db.read_simulation_json(sim.type, sid=sim.id)
+    req = http_request.parse_post(id=True, folder=True, name=True)
+    d = simulation_db.read_simulation_json(req.type, sid=req.id)
     d.models.simulation.pkupdate(
-        name=n,
-        folder=sim.req_data.get('folder', '/'),
+        name=req.name,
+        folder=req.folder,
         isExample=False,
         outOfSessionSimulationId='',
     )
@@ -98,40 +94,36 @@ def api_copySimulation():
 
 @api_perm.require_user
 def api_deleteFile():
-    sim = http_request.parse_post(filename=1, file_type=1)
-    e = _simulations_using_file(sim)
+    req = http_request.parse_post(filename=True, file_type=True)
+    e = _simulations_using_file(req)
     if len(e):
         return http_reply.gen_json({
             'error': 'File is in use in other simulations.',
             'fileList': e,
-            'fileName': sim.filename,
+            'fileName': req.filename,
         })
 
     # Will not remove resource (standard) lib files
-    pkio.unchecked_remove(_lib_file_write_path(sim))
+    pkio.unchecked_remove(_lib_file_write_path(req))
     return http_reply.gen_json_ok()
 
 
 @api_perm.require_user
 def api_deleteSimulation():
-    sim = http_request.parse_post(id=1)
-    simulation_db.delete_simulation(sim.type, sim.id)
+    req = http_request.parse_post(id=True)
+    simulation_db.delete_simulation(req.type, req.id)
     return http_reply.gen_json_ok()
 
 
 @api_perm.require_user
 def api_downloadFile(simulation_type, simulation_id, filename):
 #TODO(pjm): simulation_id is an unused argument
-    sim = http_request.parse_params(type=simulation_type, filename=filename)
-    n = sim.sim_data.lib_file_name_without_type(sim.filename)
-    p = sim.sim_data.lib_file_abspath(sim.filename)
+    req = http_request.parse_params(type=simulation_type, filename=filename)
+    n = req.sim_data.lib_file_name_without_type(req.filename)
+    p = req.sim_data.lib_file_abspath(req.filename)
     try:
-        return flask.send_file(
-            str(p),
-            as_attachment=True,
-            attachment_filename=n,
-        )
-    except IOError as e:
+        return http_reply.gen_file_as_attachment(p, filename=n)
+    except Exception as e:
         if pkio.exception_is_not_found(e):
             sirepo.util.raise_not_found('lib_file={} not found', p)
         raise
@@ -158,13 +150,13 @@ def api_errorLogging():
 
 @api_perm.require_user
 def api_exportArchive(simulation_type, simulation_id, filename):
-    sim = http_request.parse_params(
+    req = http_request.parse_params(
         filename=filename,
         id=simulation_id,
         type=simulation_type,
     )
     from sirepo import exporter
-    return exporter.create_archive(sim)
+    return exporter.create_archive(req)
 
 
 @api_perm.allow_visitor
@@ -180,17 +172,17 @@ def api_favicon():
 @api_perm.require_user
 def api_listFiles(simulation_type, simulation_id, file_type):
 #TODO(pjm): simulation_id is an unused argument
-    sim = http_request.parse_params(type=simulation_type, file_type=file_type)
+    req = http_request.parse_params(type=simulation_type, file_type=file_type)
     return http_reply.gen_json(
-        sim.sim_data.lib_files_name_for_type(sim.file_type),
+        req.sim_data.lib_file_names_for_type(req.file_type),
     )
 
 
 @api_perm.allow_visitor
 def api_findByName(simulation_type, application_mode, simulation_name):
-    sim = http_request.parse_params(type=simulation_type)
+    req = http_request.parse_params(type=simulation_type)
     return http_reply.gen_redirect_for_local_route(
-        sim.type,
+        req.type,
         'findByName',
         PKDict(
             applicationMode=application_mode,
@@ -201,12 +193,12 @@ def api_findByName(simulation_type, application_mode, simulation_name):
 
 @api_perm.require_user
 def api_findByNameWithAuth(simulation_type, application_mode, simulation_name):
-    sim = http_request.parse_params(type=simulation_type)
+    req = http_request.parse_params(type=simulation_type)
     #TODO(pjm): need to unquote when redirecting from saved cookie redirect?
     simulation_name = urllib.unquote(simulation_name)
     # use the existing named simulation, or copy it from the examples
     rows = simulation_db.iterate_simulation_datafiles(
-        sim.type,
+        req.type,
         simulation_db.process_simulation_list,
         {
             'simulation.name': simulation_name,
@@ -214,12 +206,12 @@ def api_findByNameWithAuth(simulation_type, application_mode, simulation_name):
         },
     )
     if len(rows) == 0:
-        for s in simulation_db.examples(sim.type):
+        for s in simulation_db.examples(req.type):
             if s['models']['simulation']['name'] != simulation_name:
                 continue
             simulation_db.save_new_example(s)
             rows = simulation_db.iterate_simulation_datafiles(
-                sim.type,
+                req.type,
                 simulation_db.process_simulation_list,
                 {
                     'simulation.name': simulation_name,
@@ -230,11 +222,11 @@ def api_findByNameWithAuth(simulation_type, application_mode, simulation_name):
             sirepo.util.raise_not_found(
                 'simulation not found by name={} type={}',
                 simulation_name,
-                sim.type,
+                req.type,
             )
-    m = simulation_db.get_schema(sim.type).appModes[application_mode]
+    m = simulation_db.get_schema(req.type).appModes[application_mode]
     return http_reply.gen_redirect_for_local_route(
-        sim.type,
+        req.type,
         m.localRoute,
         PKDict(simulationId=rows[0].simulationId),
         query=m.includeMode and PKDict(application_mode=application_mode),
@@ -242,7 +234,7 @@ def api_findByNameWithAuth(simulation_type, application_mode, simulation_name):
 
 
 @api_perm.require_user
-def api_getApplicationData(filename=''):
+def api_getApplicationData(filename=None):
     """Get some data from the template
 
     Args:
@@ -251,18 +243,14 @@ def api_getApplicationData(filename=''):
     Returns:
         response: may be a file or JSON
     """
-    sim = http_request.parse_post(template=1)
-    res = sim.template.get_application_data(sim.req_data)
-    if filename:
-        assert isinstance(res, _PY_PATH_LOCAL_CLASS), \
-            '{}: template did not return a file'.format(res)
-        return flask.send_file(
-            str(res),
-            mimetype='application/octet-stream',
-            as_attachment=True,
-            attachment_filename=werkzeug.secure_filename(filename),
-        )
-    return http_reply.gen_json(res)
+    req = http_request.parse_post(template=True, filename=filename or None)
+    with simulation_db.tmp_dir() as d:
+        res = req.template.get_application_data(req.req_data, tmp_dir=d)
+        if 'filename' in req:
+            assert isinstance(res, pkconst.PY_PATH_LOCAL_TYPE), \
+                '{}: template did not return a file'.format(res)
+            return http_reply.gen_file_as_attachment(res, filename=req.filename)
+        return http_reply.gen_json(res)
 
 
 @api_perm.allow_cookieless_require_user
@@ -331,7 +319,8 @@ def api_importFile(simulation_type=None):
         raise
     except Exception as e:
         pkdlog('{}: exception: {}', f and f.filename, pkdexc())
-        error = str(e.message) if hasattr(e, 'message') else str(e)
+        #TODO(robnagler) security issue here. Really don't want to report errors to user
+        error = str(e.args) if hasattr(e, 'args') else str(e)
     return http_reply.gen_json({
         'error': error if error else 'An unknown error occurred',
     })
@@ -349,28 +338,27 @@ def api_homePageOld():
 
 @api_perm.require_user
 def api_newSimulation():
-    sim = http_request.parse_post(template=1)
-    d = simulation_db.default_data(sim.type)
-#TODO(robnagler) assert values
+    req = http_request.parse_post(template=True, folder=True, name=True)
+    d = simulation_db.default_data(req.type)
 #TODO(pjm): update fields from schema values across new_simulation_data values
     d.models.simulation.pkupdate(
-        name=sim.req_data.name,
-        folder=sim.req_data.folder,
-        notes=sim.req_data.get('notes', ''),
+        name=req.name,
+        folder=req.folder,
+        notes=req.req_data.get('notes', ''),
     )
-    if hasattr(sim.template, 'new_simulation'):
-        sim.template.new_simulation(d, sim.req_data)
+    if hasattr(req.template, 'new_simulation'):
+        req.template.new_simulation(d, req.req_data)
     return _save_new_and_reply(d)
 
 
 @api_perm.require_user
 def api_pythonSource(simulation_type, simulation_id, model=None, title=None):
-    sim = http_request.parse_params(type=simulation_type, id=simulation_id, template=True)
-    m = model and sim.sim_data.parse_model(model)
-    d = simulation_db.read_simulation_json(sim.type, sid=sim.id)
+    req = http_request.parse_params(type=simulation_type, id=simulation_id, template=True)
+    m = model and req.sim_data.parse_model(model)
+    d = simulation_db.read_simulation_json(req.type, sid=req.id)
     return _safe_attachment(
         flask.make_response(
-            sim.template.python_source_for_model(d, m),
+            req.template.python_source_for_model(d, m),
         ),
         d.models.simulation.name + ('-' + title if title else ''),
         'py',
@@ -398,25 +386,25 @@ def api_robotsTxt():
 @api_perm.allow_visitor
 def api_root(simulation_type):
     try:
-        sim = http_request.parse_params(type=simulation_type)
+        req = http_request.parse_params(type=simulation_type)
     except AssertionError:
         if simulation_type == 'warp':
             return http_reply.gen_redirect(sirepo.uri.app_root('warppba'))
         if simulation_type == 'fete':
             return http_reply.gen_redirect(sirepo.uri.app_root('warpvnd'))
         sirepo.util.raise_not_found('Invalid simulation_type={}', simulation_type)
-    return _render_root_page('index', PKDict(app_name=sim.type))
+    return _render_root_page('index', PKDict(app_name=req.type))
 
 
 @api_perm.require_user
 def api_saveSimulationData():
     # do not fixup_old_data yet
-    sim = http_request.parse_post(id=1, template=1)
-    d = sim.req_data
+    req = http_request.parse_post(id=True, template=True)
+    d = req.req_data
     simulation_db.validate_serial(d)
     d = simulation_db.fixup_old_data(d)[0]
-    if hasattr(sim.template, 'prepare_for_save'):
-        d = sim.template.prepare_for_save(d)
+    if hasattr(req.template, 'prepare_for_save'):
+        d = req.template.prepare_for_save(d)
     d = simulation_db.save_simulation_json(d)
     return api_simulationData(
         d.simulationType,
@@ -433,12 +421,12 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
     We have to allow a non-user to get data.
     """
     #TODO(robnagler) need real type transforms for inputs
-    sim = http_request.parse_params(type=simulation_type, id=simulation_id, template=1)
+    req = http_request.parse_params(type=simulation_type, id=simulation_id, template=True)
     pretty = bool(int(pretty))
     try:
-        d = simulation_db.read_simulation_json(sim.type, sid=sim.id)
-        if hasattr(sim.template, 'prepare_for_client'):
-            d = sim.template.prepare_for_client(d)
+        d = simulation_db.read_simulation_json(req.type, sid=req.id)
+        if hasattr(req.template, 'prepare_for_client'):
+            d = req.template.prepare_for_client(d)
         resp = http_reply.gen_json(
             d,
             pretty=pretty,
@@ -458,14 +446,14 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
 
 @api_perm.require_user
 def api_listSimulations():
-    sim = http_request.parse_post()
-    simulation_db.verify_app_directory(sim.type)
+    req = http_request.parse_post()
+    simulation_db.verify_app_directory(req.type)
     return http_reply.gen_json(
         sorted(
             simulation_db.iterate_simulation_datafiles(
-                sim.type,
+                req.type,
                 simulation_db.process_simulation_list,
-                sim.req_data.get('search'),
+                req.req_data.get('search'),
             ),
             key=lambda row: row['name'],
         )
@@ -533,55 +521,64 @@ def api_staticFile(path_info=None):
 @api_perm.require_user
 def api_updateFolder():
     #TODO(robnagler) Folder should have a serial, or should it be on data
-    sim = http_request.parse_post()
-#TODO(robnagler) validate
-    old_name = sim.req_data['oldName']
-    new_name = sim.req_data['newName']
-    for row in simulation_db.iterate_simulation_datafiles(sim.type, _simulation_data):
-        folder = row['models']['simulation']['folder']
-        if folder.startswith(old_name):
-            row['models']['simulation']['folder'] = re.sub(re.escape(old_name), new_name, folder, 1)
-            simulation_db.save_simulation_json(row)
+    req = http_request.parse_post()
+    o = srschema.parse_folder(req.req_data['oldName'])
+    if o == '/':
+        raise util.Error('cannot rename root ("/") folder')
+    n = srschema.parse_folder(req.req_data['newName'])
+    if n == '/':
+        raise util.Error('cannot folder to root ("/")')
+    for r in simulation_db.iterate_simulation_datafiles(req.type, _simulation_data_iterator):
+        f = r.models.simulation.folder
+        l = o.lower()
+        if f.lower() == o.lower():
+            r.models.simulation.folder = n
+        elif f.lower().startswith(o.lower() + '/'):
+            r.models.simulation.folder = n + f[len():]
+        else:
+            continue
+        simulation_db.save_simulation_json(r)
     return http_reply.gen_json_ok()
 
 
 @api_perm.require_user
 def api_uploadFile(simulation_type, simulation_id, file_type):
     f = flask.request.files['file']
-    sim = http_request.parse_params(
+    req = http_request.parse_params(
         file_type=file_type,
         filename=f.filename,
         id=simulation_id,
-        template=1,
+        template=True,
         type=simulation_type,
     )
     e = None
     in_use = None
     with simulation_db.tmp_dir() as d:
-        t = d.join(sim.filename)
+        t = d.join(req.filename)
         f.save(str(t))
-        if hasattr(sim.template, 'validate_file'):
-            e = sim.template.validate_file(sim.file_type, t)
+        if hasattr(req.template, 'validate_file'):
+            # Note: validate_file may modify the file
+            e = req.template.validate_file(req.file_type, t)
         if (
-            not e and sim.sim_data.lib_file_exists(sim.filename)
+            not e and req.sim_data.lib_file_exists(req.filename)
             and not flask.request.form.get('confirm')
         ):
-            in_use = _simulations_using_file(sim, ignore_sim_id=sim.id)
+            in_use = _simulations_using_file(req, ignore_sim_id=req.id)
             if in_use:
                 e = 'File is in use in other simulations. Please confirm you would like to replace the file for all simulations.'
         if e:
             return http_reply.gen_json({
                 'error': e,
-                'filename': sim.filename,
+                'filename': req.filename,
                 'fileList': in_use,
-                'fileType': sim.file_type,
-                'simulationId': sim.id,
+                'fileType': req.file_type,
+                'simulationId': req.id,
             })
-        t.rename(_lib_file_write_path(sim))
+        t.rename(_lib_file_write_path(req))
     return http_reply.gen_json({
-        'filename': sim.filename,
-        'fileType': sim.file_type,
-        'simulationId': sim.id,
+        'filename': req.filename,
+        'fileType': req.file_type,
+        'simulationId': req.id,
     })
 
 
@@ -628,9 +625,9 @@ def _handle_error(error):
     return f, status_code
 
 
-def _lib_file_write_path(sim):
-    return sim.sim_data.lib_file_write_path(
-        sim.sim_data.lib_file_name_with_type(sim.filename, sim.file_type),
+def _lib_file_write_path(req):
+    return req.sim_data.lib_file_write_path(
+        req.sim_data.lib_file_name_with_type(req.filename, req.file_type),
     )
 
 
@@ -663,16 +660,16 @@ def _save_new_and_reply(*args):
     )
 
 
-def _simulation_data(res, path, data):
+def _simulation_data_iterator(res, path, data):
     """Iterator function to return entire simulation data
     """
     res.append(data)
 
 
-def _simulations_using_file(sim, ignore_sim_id=None):
+def _simulations_using_file(req, ignore_sim_id=None):
     res = []
-    for r in simulation_db.iterate_simulation_datafiles(sim.type, _simulation_data):
-        if not sim.sim_data.lib_file_in_use(r, sim.filename):
+    for r in simulation_db.iterate_simulation_datafiles(req.type, _simulation_data_iterator):
+        if not req.sim_data.lib_file_in_use(r, req.filename):
             continue
         s = r.models.simulation
         if s.simulationId == ignore_sim_id:

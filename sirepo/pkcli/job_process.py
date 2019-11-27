@@ -126,19 +126,13 @@ def _do_get_simulation_frame(msg, template):
 
 def _do_get_data_file(msg, template):
     try:
-        f, c, t = template.get_data_file(
+        f, c, _ = template.get_data_file(
             msg.runDir,
             msg.analysisModel,
-            int(msg.data.frame),
-            options=PKDict(suffix=msg.data.suffix),
+            msg.frame,
+            options=PKDict(suffix=msg.suffix),
         )
-        requests.put(
-            # TODO(e-carlin): cfg
-            msg.dataFileUri,
-            files=[
-                (msg.tmpDir, (f, c, t)),
-            ],
-        ).raise_for_status()
+        requests.put(msg.dataFileUri + f, data=c).raise_for_status()
         return PKDict()
     except Exception as e:
         return PKDict(error=e, stack=pkdexc())

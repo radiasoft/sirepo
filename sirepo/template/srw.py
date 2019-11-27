@@ -315,7 +315,7 @@ def extract_report_data(filename, sim_in):
     return info
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'model_list':
         res = []
         model_name = data['model_name']
@@ -367,7 +367,7 @@ def get_application_data(data):
     elif data['method'] == 'process_undulator_definition':
         return process_undulator_definition(data)
     elif data['method'] == 'processedImage':
-        return _process_image(data)
+        return _process_image(data, kwargs['tmp_dir'])
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
@@ -580,9 +580,12 @@ def validate_file(file_type, path):
         except AssertionError as err:
             return err.message
     elif file_type == 'sample':
-        filename = os.path.splitext(os.path.basename(str(path)))[0]
-        # Save the processed file:
-        srwl_uti_smp.SRWLUtiSmp(file_path=str(path), is_save_images=True, prefix=filename)
+        srwl_uti_smp.SRWLUtiSmp(
+            file_path=str(path),
+            # srw processes the image so we save to tmp location
+            is_save_images=True,
+            prefix=path.purebasename,
+        )
     if not _SIM_DATA.srw_is_valid_file(file_type, path):
         return 'Column count is incorrect for file type: {}'.format(file_type)
     return None
@@ -1258,7 +1261,7 @@ def _load_user_model_list(model_name):
     return _load_user_model_list(model_name)
 
 
-def _process_image(data):
+def _process_image(data, tmp_dir):
     """Process image and return
 
     Args:
@@ -1270,7 +1273,7 @@ def _process_image(data):
     # This should just be a basename, but this ensures it.
     path = str(_SIM_DATA.lib_file_abspath(werkzeug.secure_filename(data.baseImage)))
     m = data['model']
-    with simulation_db.tmp_dir(chdir=True) as t:
+    with pkio.save_chdir(tmp_dir):
         s = srwl_uti_smp.SRWLUtiSmp(
             file_path=path,
             area=None if not int(m['cropArea']) else (m['areaXStart'], m['areaXEnd'], m['areaYStart'], m['areaYEnd']),
@@ -1283,10 +1286,10 @@ def _process_image(data):
             shift_x=m['shiftX'],
             shift_y=m['shiftY'],
             is_save_images=True,
-            prefix=str(t),
+            prefix=str(tmp_dir),
             output_image_format=m['outputImageFormat'],
         )
-        return t.join(s.processed_image_name)
+        return pkio.py_path(s.processed_image_name)
 
 
 def _process_intensity_reports(source_type, undulator_type):

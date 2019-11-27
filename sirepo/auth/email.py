@@ -62,11 +62,11 @@ def api_authEmailAuthorized(simulation_type, token):
     """
     if http_request.is_spider():
         sirepo.util.raise_forbidden('robots not allowed')
-    sim = http_request.parse_params(type=simulation_type)
+    req = http_request.parse_params(type=simulation_type)
     with auth_db.thread_lock:
         u = AuthEmailUser.search_by(token=token)
         if u and u.expires >= srtime.utc_now():
-            n = _verify_confirm(sim.type, token, auth.need_complete_registration(u))
+            n = _verify_confirm(req.type, token, auth.need_complete_registration(u))
             u.query.filter(
                 (AuthEmailUser.user_name == u.unverified_email),
                 AuthEmailUser.unverified_email != u.unverified_email,
@@ -75,7 +75,7 @@ def api_authEmailAuthorized(simulation_type, token):
             u.token = None
             u.expires = None
             u.save()
-            auth.login(this_module, sim_type=sim.type, model=u, display_name=n)
+            auth.login(this_module, sim_type=req.type, model=u, display_name=n)
             raise AssertionError('auth.login returned unexpectedly')
         if not u:
             pkdlog('login with invalid token={}', token)
@@ -92,8 +92,8 @@ def api_authEmailAuthorized(simulation_type, token):
                 token,
                 auth.logged_in_user(),
             )
-            raise sirepo.util.Redirect(sirepo.uri.local_route(sim.type))
-        auth.login_fail_redirect(sim.type, this_module, 'email-token')
+            raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
+        auth.login_fail_redirect(req.type, this_module, 'email-token')
 
 
 @api_perm.require_cookie_sentinel
@@ -102,8 +102,8 @@ def api_authEmailLogin():
 
     User has sent an email, which needs to be verified.
     """
-    sim = http_request.parse_post()
-    email = _parse_email(sim.req_data)
+    req = http_request.parse_post()
+    email = _parse_email(req.req_data)
     with auth_db.thread_lock:
         u = AuthEmailUser.search_by(unverified_email=email)
         if not u:
@@ -114,7 +114,7 @@ def api_authEmailLogin():
         u,
         uri_router.uri_for_api(
             'authEmailAuthorized',
-            dict(simulation_type=sim.type, token=u.token),
+            dict(simulation_type=req.type, token=u.token),
         ),
     )
 

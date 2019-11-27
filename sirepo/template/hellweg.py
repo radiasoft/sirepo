@@ -60,7 +60,7 @@ def background_percent_complete(report, run_dir, is_running):
     }
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_files)
     assert False, 'unknown application data method: {}'.format(data['method'])

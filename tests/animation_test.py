@@ -9,9 +9,9 @@ from pykern.pkcollections import PKDict
 import pytest
 
 
-def test_elegant(fc):
-    _r(
-        fc,
+def test_elegant(animation_fc):
+    animation_fc.sr_animation_run(
+        animation_fc,
         'Compact Storage Ring',
         'animation',
         PKDict({
@@ -31,9 +31,9 @@ def test_elegant(fc):
     )
 
 
-def test_jspec(fc):
-    _r(
-        fc,
+def test_jspec(animation_fc):
+    animation_fc.sr_animation_run(
+        animation_fc,
         'DC Cooling Example',
         'animation',
         PKDict(
@@ -48,9 +48,9 @@ def test_jspec(fc):
     )
 
 
-def test_srw(fc):
-    _r(
-        fc,
+def test_srw(animation_fc):
+    animation_fc.sr_animation_run(
+        animation_fc,
         "Young's Double Slit Experiment",
         'multiElectronAnimation',
         PKDict(
@@ -64,9 +64,9 @@ def test_srw(fc):
     )
 
 
-def test_synergia(fc):
-    _r(
-        fc,
+def test_synergia(animation_fc):
+    animation_fc.sr_animation_run(
+        animation_fc,
         'Simple FODO',
         'animation',
         PKDict(
@@ -89,10 +89,9 @@ def test_synergia(fc):
         ),
     )
 
-
-def test_warppba(fc):
-    _r(
-        fc,
+def test_warppba(animation_fc):
+    animation_fc.sr_animation_run(
+        animation_fc,
         'Laser Pulse',
         'animation',
         PKDict(
@@ -109,9 +108,9 @@ def test_warppba(fc):
     )
 
 
-def test_warpvnd(fc):
-    _r(
-        fc,
+def test_warpvnd(animation_fc):
+    animation_fc.sr_animation_run(
+        animation_fc,
         'Two Poles',
         'fieldCalculationAnimation',
         PKDict(
@@ -120,8 +119,8 @@ def test_warpvnd(fc):
             ),
         ),
     )
-    _r(
-        fc,
+    animation_fc.sr_animation_run(
+        animation_fc,
         'Two Poles',
         'animation',
         PKDict(
@@ -137,19 +136,19 @@ def test_warpvnd(fc):
     )
 
 
-def test_webcon(fc):
-    _r(
-        fc,
+def test_webcon(animation_fc):
+    animation_fc.sr_animation_run(
+        animation_fc,
         'Clustering Demo',
         'epicsServerAnimation',
         PKDict(
             beamPositionReport=PKDict(
                 runSimulation=True,
-                expect_y_range='^.0.0009.*, 0.09',
+                expect_y_range='^.0.0.*, 0.0',
             ),
             correctorSettingReport=PKDict(
                 runSimulation=True,
-                expect_y_range=r'^.0.0, 0.0',
+                expect_y_range=r'^.0.0.*, 0.0',
             ),
         ),
         expect_completed=False,
@@ -157,9 +156,9 @@ def test_webcon(fc):
     )
 
 
-def test_zgoubi(fc):
-    _r(
-        fc,
+def test_zgoubi(animation_fc):
+    animation_fc.sr_animation_run(
+        animation_fc,
         'EMMA',
         'animation',
         PKDict(
@@ -181,60 +180,3 @@ def test_zgoubi(fc):
             ),
         ),
     )
-
-
-def _r(fc, sim_name, compute_model, reports, **kwargs):
-    from pykern import pkconfig
-    from pykern import pkunit
-    from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdp, pkdlog
-    from sirepo import srunit
-    import re
-    import time
-
-    data = fc.sr_sim_data(sim_name)
-    cancel = None
-    try:
-        run = fc.sr_run_sim(data, compute_model, **kwargs)
-        for r, a in reports.items():
-            if 'runSimulation' in a:
-                f = fc.sr_run_sim(data, r)
-                for k, v in a.items():
-                    m = re.search('^expect_(.+)', k)
-                    if m:
-                        pkunit.pkre(
-                            v(i) if callable(v) else v,
-                            str(f.get(m.group(1))),
-                        )
-                continue
-            if 'frame_index' in a:
-                c = [a.get('frame_index')]
-            else:
-                c = range(run.get(a.get('frame_count_key', 'frameCount')))
-                assert c, \
-                    'frame_count_key={} or frameCount={} is zero'.format(
-                        a.get('frame_count_key'), a.get('frameCount'),
-                    )
-            pkdlog('frameReport={} count={}', r, c)
-            import sirepo.sim_data
-
-            s = sirepo.sim_data.get_class(fc.sr_sim_type)
-            for i in c:
-                pkdlog('frameIndex={}', i)
-                f = fc.sr_get_json(
-                    'simulationFrame',
-                    PKDict(frame_id=s.frame_id(data, run, r, i)),
-                )
-                for k, v in a.items():
-                    m = re.search('^expect_(.+)', k)
-                    if m:
-                        pkunit.pkre(
-                            v(i) if callable(v) else v,
-                            str(f.get(m.group(1))),
-                        )
-    finally:
-        try:
-            if cancel:
-                fc.sr_post('runCancel', cancel)
-        except Exception:
-            pass

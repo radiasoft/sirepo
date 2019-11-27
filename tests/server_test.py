@@ -15,16 +15,6 @@ import re
 import time
 
 
-def test_myapp_basic(fc):
-    from pykern import pkunit
-
-    resp = fc.get('/old')
-    assert 'LandingPageController' in resp.get_data(), \
-        'Top level document is the landing page'
-    resp = fc.get('/robots.txt')
-    pkunit.pkre('elegant.*myapp.*srw', resp.get_data())
-
-
 def test_elegant_data_file(fc):
     from pykern import pkio
     from pykern import pkunit
@@ -77,23 +67,33 @@ def test_elegant_data_file(fc):
         ),
     )
     m = re.search(r'attachment; filename="([^"]+)"', resp.headers['Content-Disposition'])
-    with pkunit.save_chdir_work():
-        path = pkio.py_path(m.group(1))
-        with open(str(path), 'w') as f:
-            f.write(resp.get_data())
-        assert sdds.sddsdata.InitializeInput(0, str(path)) == 1, \
-            '{}: sdds failed to open'.format(path)
-        # Verify we can read something
-        assert 0 <= len(sdds.sddsdata.GetColumnNames(0))
-        sdds.sddsdata.Terminate(0)
+    d = pkunit.work_dir()
+    path = d.join(m.group(1))
+    path.write_binary(resp.get_data())
+    assert sdds.sddsdata.InitializeInput(0, str(path)) == 1, \
+        '{}: sdds failed to open'.format(path)
+    # Verify we can read something
+    assert 0 <= len(sdds.sddsdata.GetColumnNames(0))
+    sdds.sddsdata.Terminate(0)
 
 
-def test_srw(fc):
+def test_myapp_basic(fc):
+    from pykern import pkunit
+
+    resp = fc.get('/old')
+    assert 'LandingPageController' in resp.get_data(), \
+        'Top level document is the landing page'
+    resp = fc.get('/robots.txt')
+    pkunit.pkre('elegant.*myapp.*srw', resp.get_data())
+
+
+def test_srw(auth_fc):
     from pykern import pkio
     from pykern.pkdebug import pkdpretty
     from pykern.pkunit import pkeq, pkre
     import json
 
+    fc = auth_fc
     r = fc.sr_get_root()
     pkre('<!DOCTYPE html', r.data)
     fc.sr_login_as_guest()

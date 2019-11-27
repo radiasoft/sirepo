@@ -57,7 +57,7 @@ _FIELD_ALIAS = {
 _WIGGLER_TRAJECTOR_FILENAME = 'xshwig.sha'
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'validate_material':
         name = data['material_name']
         try:

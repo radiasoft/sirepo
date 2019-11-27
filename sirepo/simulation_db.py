@@ -287,7 +287,7 @@ def generate_json(data, pretty=False):
     Returns:
         str: formatted data
     """
-    return util.dump_json(data, pretty=pretty)
+    return util.json_dump(data, pretty=pretty)
 
 
 def hack_nfs_write_status(status, run_dir):
@@ -525,8 +525,7 @@ def read_json(filename):
     Returns:
         object: json converted to python
     """
-    with open(str(json_filename(filename))) as f:
-        return json_load(f)
+    return json_load(json_filename(filename))
 
 
 def read_result(run_dir):
@@ -854,7 +853,7 @@ def write_json(filename, data):
     Args:
         filename (py.path or str): will append JSON_SUFFIX if necessary
     """
-    util.dump_json(data, path=json_filename(filename), pretty=True)
+    util.json_dump(data, path=json_filename(filename), pretty=True)
 
 
 def write_result(result, run_dir=None):
