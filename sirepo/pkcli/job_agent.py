@@ -202,6 +202,7 @@ class _JobProcess(PKDict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._in_file = self._create_in_file()
         self._subprocess = _Subprocess(
                 self.subprocess_cmd_stdin_env,
                 self._on_stdout_read,
@@ -211,7 +212,6 @@ class _JobProcess(PKDict):
 
 # TODO(e-carlin): rename to cancel?
     def kill(self):
-        # TODO(e-carlin): terminate?
         self._terminating = True
         self._subprocess.kill()
 
@@ -222,7 +222,6 @@ class _JobProcess(PKDict):
         )
 
     def subprocess_cmd_stdin_env(self):
-        self._in_file = self._create_in_file()
         return job.subprocess_cmd_stdin_env(
             ('sirepo', 'job_process', self._in_file),
             PKDict(
@@ -242,32 +241,6 @@ class _JobProcess(PKDict):
         pkio.mkdir_parent_only(f)
         pkjson.dump_pretty(self.msg, filename=f, pretty=False)
         return f
-
-    async def _on_stdout_read(self, text):
-        if self._terminating:
-            return
-        try:
-            r = pkjson.load_any(text)
-            if 'opDone' in r:
-                del self.comm.processes[self.msg.computeJid]
-            if self.msg.jobProcessCmd == 'compute':
-                await self.comm.send(
-                    self.comm.format_op(
-                        self.msg,
-                        job.OP_RUN,
-                        reply=r,
-                    )
-                )
-            else:
-                await self.comm.send(
-                    self.comm.format_op(
-                        self.msg,
-                        job.OP_ANALYSIS,
-                        reply=r,
-                    )
-                )
-        except Exception as exc:
-            pkdlog('error=={}', exc)
 
     async def _on_exit(self):
         try:
@@ -301,6 +274,32 @@ class _JobProcess(PKDict):
                 )
         except Exception as exc:
             pkdlog('error={} returncode={}', exc, self._subprocess.returncode)
+
+    async def _on_stdout_read(self, text):
+        if self._terminating:
+            return
+        try:
+            r = pkjson.load_any(text)
+            if 'opDone' in r:
+                del self.comm.processes[self.msg.computeJid]
+            if self.msg.jobProcessCmd == 'compute':
+                await self.comm.send(
+                    self.comm.format_op(
+                        self.msg,
+                        job.OP_RUN,
+                        reply=r,
+                    )
+                )
+            else:
+                await self.comm.send(
+                    self.comm.format_op(
+                        self.msg,
+                        job.OP_ANALYSIS,
+                        reply=r,
+                    )
+                )
+        except Exception as exc:
+            pkdlog('error=={}', exc)
 
 
 class _DockerJobProcess(_JobProcess):
@@ -344,15 +343,32 @@ class _SBatchProcess(PKDict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.update(
+            _parallel_status_process=None,
+            _completed_parallel_status_process=None,
+            _sbatch_job_id=None,
+        )
+
         self.msg.update(
-            # TODO(e-carlin): job_process.do_compute() has the same coed
+            # TODO(e-carlin): job_process.do_compute() has the same code
             isRunning=False,
             simulationStatus=PKDict(
                 computeJobStart=None,
                 state=job.PENDING,
             ),
         )
-        self._terminating = False
+
+    def kill(self):
+        if self._parallel_status_process is not None:
+            self._parallel_status_process.kill()
+        if self._completed_parallel_status_process is not None:
+            self._completed_parallel_status_process.kill()
+        if self._sbatch_job_id is not None:
+            subprocess.check_call(
+                # TODO(e-carlin): what signal do we want to send?
+                # currently this defaults to SIGKILL
+                ('scancel', '--full', '--quiet', self._sbatch_job_id)
+            )
 
     def start(self):
         tornado.ioloop.IOLoop.current().add_callback(
@@ -363,20 +379,19 @@ class _SBatchProcess(PKDict):
         parallel_status_running = False
         while True:
             s = self._get_job_sbatch_state(job_id)
-            assert s in ('running', 'pending', 'completed'), \
+            assert s in ('running', 'pending', 'completed', 'completing'), \
                 'invalid state={}'.format(s)
-            if s in ('running', 'completed'):
-                if self.msg.isParallel and not parallel_status_running: # TODO(e-carlin): sbatch jobs are only parallel
-                    self._compute_job_start_time = int(time.time())
+            if s in ('running', 'completed', 'completing'):
+                if not parallel_status_running:
                     self._begin_get_parallel_status()
                     parallel_status_running = True
             if s == 'completed':
                 break
             await tornado.gen.sleep(2) # TODO(e-carlin): longer poll
-        self._parallel_status_process.kill()
+        self._kill_parallel_status_process()
         await self._get_completed_parallel_status()
 
-    async def  _get_completed_parallel_status(self):
+    async def _get_completed_parallel_status(self):
         m = self.msg.copy().update(
             isRunning=False,
             jobProcessCmd='get_sbatch_parallel_status_once',
@@ -385,11 +400,17 @@ class _SBatchProcess(PKDict):
                 state=job.COMPLETED,
             ),
         )
-        p = _DockerJobProcess(msg=m, comm=self.comm)
+        # POSIT: This is the only subprocess in DockerJobProcess that removes
+        # our jid from self.comm.processes
+        self._completed_parallel_status_process = p = _DockerJobProcess(
+            msg=m,
+            comm=self.comm,
+        )
         p.start()
         await p.exited()
 
     def _begin_get_parallel_status(self):
+        self._compute_job_start_time = int(time.time())
         m = self.msg.copy().update(
             isRunning=True,
             jobProcessCmd='get_sbatch_parallel_status',
@@ -430,6 +451,9 @@ class _SBatchProcess(PKDict):
             ' '.join(_docker_run_cmd_base(self.msg, self._container_name) + ('"' + ' '.join(cmd) + '"',)),
         )
 
+    def _kill_parallel_status_process(self):
+        self._parallel_status_process.kill()
+        self._parallel_status_process = None
 
     def _prepare_simulation(self):
         c, s, _ = _DockerJobProcess(
@@ -438,17 +462,15 @@ class _SBatchProcess(PKDict):
         r = subprocess.check_output(c, stdin=s)
         return pkjson.load_any(r).cmd
 
-    # TODO(e-carlin): handling cancel throughout all of this is tricky
-    # currently not implemented
     async def _start_compute(self):
         try:
+            self._sbatch_job_id =  self._submit_compute_to_sbatch(
+                self._prepare_simulation(),
+            )
             await self._await_job_completion_and_parallel_status(
-                self._submit_compute_to_sbatch(
-                    self._prepare_simulation()
-                )
+                self._sbatch_job_id,
             )
         except Exception as e:
-            # TODO(e-carlin): comm send this stuff don't return it
             await self._send_op_error(
                 PKDict(
                     state=job.ERROR,
