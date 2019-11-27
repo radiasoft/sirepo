@@ -62,7 +62,7 @@ class BackgroundJob(runner.JobBase):
                     break
                 else:
                     pkdlog(
-                        'pid={} status={}: unexpected waitpid result; job={} pid={}',
+                        'pid={} status={}: unexpected waitpid result; job={} pid={} (may happen in tests)',
                         pid,
                         status,
                         self.jid,
@@ -72,7 +72,7 @@ class BackgroundJob(runner.JobBase):
                 if not e.errno in (errno.ESRCH, errno.ECHILD):
                     raise
                 # reaped by _sigchld_handler()
-                return
+                break
 
     @classmethod
     def _sigchld_handler(cls, signum=None, frame=None):
