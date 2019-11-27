@@ -413,12 +413,11 @@
             "h": ["h", "MillerIndicesRange", "1"],
             "k": ["k", "MillerIndicesRange", "1"],
             "l": ["l", "MillerIndicesRange", "1"],
-            "energy": ["Average photon energy the crystal should be oriented for [eV]", "Float", 9000],
-	    "geometryType": ["Geometry type", "GeometryType", "1"],
-            "diffractionAngle": ["Diffraction plane angle [rad]", "DiffractionPlaneAngle", "0"],
+            "energyAvg": ["Average photon energy the crystal should be oriented for [eV]", "Float", 9000],
+	        "useCase": ["Geometry type", "GeometryType", "1"],
+            "angRoll": ["Diffraction plane (roll) angle [rad]", "DiffractionPlaneAngle", "0"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 0.0],
             "asymmetryAngle": ["Asymmetry angle [rad]", "Float", 0.0],
-            "rotationAngle": ["Rotation angle [rad]", "Float", 0.0],
             "crystalThickness": ["Crystal thickness [m]", "Float", 0.01],
             "dSpacing": ["Crystal reflecting planes d-spacing [A]", "Float", ""],
             "psi0r": ["0-th Fourier component", "Float", ""],
@@ -570,13 +569,16 @@
             "position": ["Nominal Position [m]", "Float"],
             "tangentialSize": ["Tangential Size [m]", "Float", 0.2],
             "sagittalSize": ["Sagittal Size [m]", "Float", 0.015],
-            "grazingAngle": ["Grazing Angle [mrad]", "Float", 12.9555790185373],
+            "angGraz": ["Grazing Angle [mrad]", "Float", 12.9555790185373],
             "autocomputeVectors": ["Auto-compute Vectors", "AutocomputeVectors", "horizontal"],
             "normalVectorX": ["Horizontal", "Float", 0.99991607766],
             "normalVectorY": ["Vertical", "Float", 0],
             "normalVectorZ": ["Longitudinal", "Float", -0.0129552166147],
             "tangentialVectorX": ["Horizontal", "Float", 0.0129552166147],
             "tangentialVectorY": ["Vertical", "Float", 0],
+            "energyAvg": ["Average photon energy the grating should be oriented for [eV]", "Float", 9000],
+	        "cff": ["Cff Parameter (cos(beta)/cos(alpha))", "Float", 1.5],
+            "angRoll": ["Roll Angle [rad]", "Float", 0.0],
             "diffractionOrder": ["Diffraction Order", "Float", 1],
             "grooveDensity0": ["a₀ [lines/mm]", "Float", 1800],
             "grooveDensity1": ["a₁ [lines/mm²]", "Float", 0.08997],
@@ -1050,26 +1052,6 @@
                         ]]
                     ]
                 ]],
-                ["Geometry", [
-                    "energy",
-		    "geometryType",
-                    "diffractionAngle",
-                    "asymmetryAngle",
-                    "rotationAngle",
-                    "crystalThickness",
-                    "dSpacing",
-                    [
-                        ["Outward normal vector", [
-                            "nvx",
-                            "nvy",
-                            "nvz"
-                        ]],
-                        ["Central tangential vector", [
-                            "tvx",
-                            "tvy"
-                        ]]
-                    ]
-                ]],
                 ["Polarizability", [
                     [
                         ["Real part", [
@@ -1081,6 +1063,25 @@
                             "psi0i",
                             "psiHi",
                             "psiHBi"
+                        ]]
+                    ]
+                ]],
+                ["Geometry", [
+                    "energyAvg",
+		            "useCase",
+                    "angRoll",
+                    "asymmetryAngle",
+                    "crystalThickness",
+                    "dSpacing",
+                    [
+                        ["Outward normal vector", [
+                            "nvx",
+                            "nvy",
+                            "nvz"
+                        ]],
+                        ["Central tangential vector", [
+                            "tvx",
+                            "tvy"
                         ]]
                     ]
                 ]],
@@ -1325,12 +1326,26 @@
             "title": "Grating",
             "basic": [],
             "advanced": [
+		        ["Main", [
+		            "title",
+		            "position"
+	        	]],
+                ["Groove Parameters", [
+                    "*Groove Density Polynomial:\n$a_0 + a_1 y + a_2 y^2 + a_3 y^3 + a_4 y^4$",
+                    "grooveDensity0",
+                    "grooveDensity1",
+                    "grooveDensity2",
+                    "grooveDensity3",
+                    "grooveDensity4"
+                ]],
                 ["Geometry", [
-                    "title",
-                    "position",
+                    "energyAvg",
+                    "angRoll",
+                    "cff",
+                    "angGraz",
+                    "diffractionOrder",
                     "tangentialSize",
                     "sagittalSize",
-                    "diffractionOrder",
                     [
                         ["Horizontal", [
                             "horizontalOffset"
@@ -1338,10 +1353,7 @@
                         ["Vertical", [
                             "verticalOffset"
                         ]]
-                    ]
-                ]],
-                ["Orientation", [
-                    "grazingAngle",
+                    ],
                     "autocomputeVectors",
                     [
                         ["Coordinates of Central Normal Vector", [
@@ -1354,14 +1366,6 @@
                             "tangentialVectorY"
                         ]]
                     ]
-                ]],
-                ["Groove Parameters", [
-                    "*Groove Density Polynomial:\n$a_0 + a_1 y + a_2 y^2 + a_3 y^3 + a_4 y^4$",
-                    "grooveDensity0",
-                    "grooveDensity1",
-                    "grooveDensity2",
-                    "grooveDensity3",
-                    "grooveDensity4"
                 ]],
                 ["Height Profile", [
                     "heightProfileFile",

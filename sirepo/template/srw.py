@@ -764,7 +764,7 @@ def _compute_crystal_orientation(model):
             _psi_hbr=model['psiHBr'],
             _psi_hbi=model['psiHBi'],
             _tc=model['crystalThickness'],
-            _uc=model['geometryType'],
+            _uc=model['useCase'],
             _ang_as=model['asymmetryAngle'],
         )
         orientDataCr = opCr.find_orient(_en=model['energy'], _ang_dif_pl=float(model['diffractionAngle']))[0]
@@ -1029,6 +1029,7 @@ def _generate_beamline_optics(report, models, last_id):
             diffractionOrder='m',
             externalAttenuationLength='atten_len_ext',
             externalRefractiveIndex='delta_ext',
+            energyAvg='e_avg',
             firstFocusLength='p',
             focalLength='q',
             focalPlane='foc_plane',
@@ -1077,6 +1078,7 @@ def _generate_beamline_optics(report, models, last_id):
             tipRadius='r_min',
             tipWallThickness='wall_thick',
             transmissionImage='extTransm',
+            useCase='uc',
             verticalApertureSize='apert_v',
             verticalCenterPosition='yc',
             verticalFocalLength='Fy',
