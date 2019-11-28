@@ -29,7 +29,7 @@ def default_command():
 
     cfg = pkconfig.init(
         debug=(pkconfig.channel_in('dev'), bool, 'run supervisor in debug mode'),
-        ip=('0.0.0.0', str, 'ip address to listen on'),
+        ip=('127.0.0.1', str, 'ip address to listen on'),
         port=(sirepo.job.DEFAULT_PORT, int, 'what port to listen on'),
     )
     sirepo.job_supervisor.init()

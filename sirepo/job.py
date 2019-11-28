@@ -28,8 +28,14 @@ OP_RUN = 'run'
 #: path supervisor registers to receive messages from agent
 AGENT_URI = '/agent'
 
+#: requests from the agent
+AGENT_ABS_URI = None
+
 #: path supervisor registers to receive requests from server
 SERVER_URI = '/server'
+
+#: requests from the flask server
+SERVER_ABS_URI = None
 
 #: path supervisor registers to receive requests from job_process for file PUTs
 DATA_FILE_URI = '/data-file'
@@ -95,7 +101,7 @@ def init():
         ),
     )
     pkdc('cfg={}', cfg)
-    global SUPERVISOR_SRV_ROOT, LIB_FILE_ROOT, DATA_FILE_ROOT, LIB_FILE_ABS_URI, DATA_FILE_ABS_URI
+    global SUPERVISOR_SRV_ROOT, LIB_FILE_ROOT, DATA_FILE_ROOT, LIB_FILE_ABS_URI, DATA_FILE_ABS_URI, AGENT_ABS_URI, SERVER_ABS_URI
 
     SUPERVISOR_SRV_ROOT = sirepo.srdb.root().join(SUPERVISOR_SRV_SUBDIR)
     LIB_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(LIB_FILE_URI[1:])
@@ -103,6 +109,8 @@ def init():
     # trailing slash necessary
     LIB_FILE_ABS_URI = cfg.supervisor_uri + LIB_FILE_URI + '/'
     DATA_FILE_ABS_URI = cfg.supervisor_uri + DATA_FILE_URI + '/'
+    AGENT_ABS_URI = cfg.supervisor_uri + AGENT_URI
+    SERVER_ABS_URI = cfg.supervisor_uri + SERVER_URI
 
 
 def subprocess_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.', fork=False):

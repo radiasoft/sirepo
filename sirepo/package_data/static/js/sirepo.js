@@ -169,6 +169,11 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, $location
     return self;
 });
 
+SIREPO.app.factory('jobState', function(errorService, fileManager, requestQueue, requestSender, $document, $interval, $rootScope, $window) {
+
+    requestSender.jobState
+    }
+
 SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, $document, $interval, $rootScope, $window) {
     var self = {
         models: {},

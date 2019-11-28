@@ -33,7 +33,7 @@ pykern.pksetup.setup(
         'pytz==2015.7',
         # requests-oauthlib-1.2.0 forces oauthlib-3.0.0 but Flask-OAuthlib
         # requires oauthlib<3.0.0.
-        'requests-oauthlib==1.1.0',
+        'requests-oauthlib>1.1.0',
         'scikit-learn==0.20',
         'sympy',
         'user-agents',

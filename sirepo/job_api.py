@@ -115,7 +115,7 @@ def init_apis(*args, **kwargs):
 def _request(**kwargs):
     d = kwargs.get('_request_data') or _request_data(PKDict(kwargs))
     r = requests.post(
-        sirepo.job.cfg.supervisor_uri + sirepo.job.SERVER_URI,
+        sirepo.job.SERVER_URI,
         data=pkjson.dump_bytes(d),
         headers=PKDict({'Content-type': 'application/json'}),
     )
@@ -156,10 +156,12 @@ def _request_data(kwargs):
         computeModel=lambda: s.compute_model(d),
         isParallel=lambda: s.is_parallel(d),
         reqId=sirepo.job.unique_key(),
+#TODO(robnagler) relative to srdb root
         runDir=lambda: str(simulation_db.simulation_run_dir(d)),
         simulationType=d.simulationType,
         uid=sirepo.auth.logged_in_user(),
     ).pksetdefault(
+#TODO(robnagler) configurable by request
         mpiCores=lambda: sirepo.mpi.cfg.cores if b.isParallel else 1,
         userDir=lambda: str(sirepo.simulation_db.user_dir_name(b.uid)),
     )

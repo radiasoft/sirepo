@@ -27,6 +27,10 @@ _CLASSES = None
 #: default class when not determined by request
 _DEFAULT_CLASS = None
 
+#: use sbatch?
+_SBATCH_CLASS = None
+
+
 class AgentMsg(PKDict):
 
     async def receive(self):
@@ -164,7 +168,8 @@ class DriverBase(PKDict):
             PKDict(
                 SIREPO_AUTH_LOGGED_IN_USER=self.uid,
                 SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=cfg.supervisor_uri,
+                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=job.AGENT_ABS_URI,
+#TODO(robnagler) dynamic
                 SIREPO_SRDB_ROOT=sirepo.srdb.root(),
                 **(env or {}),
             ),
@@ -198,6 +203,8 @@ class DriverBase(PKDict):
 
 async def get_instance(req):
     # TODO(e-carlin): parse req to get class
+    if req.kind == job.PARALLEL and _SBATCH_CLASS:
+        return await _SBATCH_CLASS.get_instance(req)
     return await _DEFAULT_CLASS.get_instance(req)
     # return await _CLASSES['sbatch'].get_instance(req)
 
@@ -206,11 +213,6 @@ def init():
     global cfg
     cfg = pkconfig.init(
         modules=(None, _cfg_parse_modules, 'driver modules'),
-        supervisor_uri=(
-            'ws://{}:{}{}'.format(job.DEFAULT_IP, job.DEFAULT_PORT, job.AGENT_URI),
-            str,
-            'uri for agent ws connection with supervisor',
-        ),
     )
 
 
@@ -220,7 +222,7 @@ async def terminate():
 
 @pkconfig.parse_none
 def _cfg_parse_modules(value):
-    global _CLASSES, _DEFAULT_CLASS
+    global _CLASSES, _DEFAULT_CLASS, _SBATCH_CLASS
     assert not _CLASSES
 
     s = pkconfig.parse_set(value)
@@ -237,8 +239,6 @@ def _cfg_parse_modules(value):
     for n in s:
         m = importlib.import_module(pkinspect.module_name_join((p, n)))
         _CLASSES[n] = m.init_class()
-    if 'docker' in s:
-        _DEFAULT_CLASS = _CLASSES['docker']
-    else:
-        _DEFAULT_CLASS = _CLASSES['local']
+    _SBATCH_CLASS = _CLASSES.sbatch if 'sbatch' in s else None
+    _DEFAULT_CLASS = _CLASSES['docker' if 'docker' in s else 'local']
     return s

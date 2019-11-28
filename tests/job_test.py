@@ -186,13 +186,17 @@ def _env_setup():
         env[k] = v
     env['PYENV_VERSION'] = 'py3'
     env.update(cfg)
+    try:
+        o = subprocess.check_output(
+            ['pyenv', 'exec', 'sirepo', 'job_supervisor', '--help'],
+            env=env,
+            stderr=subprocess.STDOUT,
+        )
+    except subprocess.CalledProcessError as e:
+        from pykern.pkdebug import pkdlog
 
-
-    o = subprocess.check_output(
-        ['pyenv', 'exec', 'sirepo', 'job_supervisor', '--help'],
-        env=env,
-        stderr=subprocess.STDOUT,
-    )
+        pkdlog('job_supervisor --help exit={} output={}', e.returncode, e.output)
+        raise
     assert 'usage: sirepo job_supervisor' in o
     return (env, cfg)
 

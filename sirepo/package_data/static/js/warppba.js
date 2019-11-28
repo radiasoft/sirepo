@@ -380,3 +380,51 @@ SIREPO.app.directive('appHeader', function() {
         ].join(''),
     };
 });
+
+SIREPO.app.directive('srJobsettingsEditor', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        controller: function($scope) {
+
+            function jobKindChanged() {
+                if (! appState.models.jobSettings) {
+                    return;
+                }
+                if (jobState.isReady()) {
+                    processFields();
+                    return;
+                }
+                jobService.checkReady(
+                    sends request
+                    function (auth_request) {
+                        if
+                        sorry no nersc, popup sbatch directive;
+                        else processFields();
+                    }
+                }
+revert jobKind if no credentials
+cancel changes to model
+                srdbg('check user logged in');
+
+            }
+            function processFields() {
+                if (! appState.models.jobSettings) {
+                    return;
+                }
+                appState
+                do not show jobKind sbatch if no sbatch;
+                var isSbatch = appState.models.jobSettings.jobKind == 'sbatch';
+                panelState.showField('jobSettings', 'jobCores', isSbatch);
+                panelState.showField('jobSettings', 'jobDbRoot', isSbatch);
+                jobState controlls pr
+                panelState.showField('jobSettings', 'jobProject', isSbatch);
+
+            }
+
+            appState.whenModelsLoaded($scope, function() {
+                appState.watchModelFields($scope, ['jobSettings.jobKind'], jobKindChanged);
+                processFields();
+            });
+        },
+    };
+});

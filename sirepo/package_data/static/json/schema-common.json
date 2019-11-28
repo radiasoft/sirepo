@@ -208,6 +208,11 @@
                 ["jet", "jet"],
                 ["contrast", "high contrast"]
             ],
+            "JobKind": [
+                ["serial", "Serial"],
+                ["parallel", "Parallel"],
+                ["sbatch", "Sbatch"]
+            ],
             "FramesPerSecond": [
                 ["1", "1"],
                 ["2", "2"],
@@ -323,6 +328,12 @@
             }
         },
         "model": {
+            "jobSettings": {
+                "jobKind": ["Execution Mode", "JobKind", "serial"],
+                "jobDbRoot": ["Remote Folder", "String", ""],
+                "jobCores": ["Cores", "Integer", 0],
+                "jobProject": ["Project", "String", ""]
+            },
             "simFolder": {
                 "name": ["Folder Name", "SafePath"],
                 "parent": ["Parent Folder", "UserFolder"]
@@ -370,6 +381,16 @@
             }
         },
         "view": {
+            "jobSettings": {
+                "title": "Job Settings",
+                "basic": [
+                    "jobKind",
+                    "jobCores",
+                    "jobDbRoot",
+                    "jobProject"
+                ],
+                "advanced": []
+            },
             "simDoc": {
                 "model": "simulation",
                 "title": "Simulation Documentation",

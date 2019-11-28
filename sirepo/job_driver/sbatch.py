@@ -26,7 +26,7 @@ class SBatchDriver(job_driver.DriverBase):
         super().__init__(req)
         self.update(
             _agentExecDir=pkio.py_path(req.content.userDir).join(
-                'agent-nersc', self._agentId),
+                'agent-sbatch', self._agentId),
         )
         self.instances[self.uid] = self
         pkio.mkdir_parent(self._agentExecDir) # TODO(e-carlin): cleanup these dirs
@@ -59,7 +59,8 @@ class SBatchDriver(job_driver.DriverBase):
         # TODO(e-carlin): handle cori ssh key. Currently this defaults
         # to using the keys in ~/.ssh/known_hosts
         async with asyncssh.connect(
-                cfg.nersc_uri,
+                cfg.host,
+#TODO(robnagler) add password
                 username='vagrant',
                 password='vagrant',
         ) as c:
@@ -89,6 +90,7 @@ def init_class():
     global cfg
 
     cfg = pkconfig.init(
-        nersc_uri=('v3.radia.run', str, 'ssh uri for nersc'),
+        host=pkconfig.Required(str, 'host name for slum controller'),
+        host_key=pkconfig.Required(bytes, 'host key'),
     )
     return SBatchDriver

@@ -179,23 +179,25 @@ def _docker_rm_cmd(name):
 
 def _docker_run_cmd_base(msg, name):
     return (
-            'docker',
-            'run',
-            '--rm',
-            '--name={}'.format(name),
-            '--interactive',
-            '--env=PYTHONUNBUFFERED=1',
-            '--env=SIREPO_SRDB_ROOT={}'.format(msg.agentDbRoot),
-            '--env=SIREPO_AUTH_LOGGED_IN_USER={}'.format(msg.uid),
-            '--volume=/home/vagrant/src/radiasoft/sirepo/sirepo:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/sirepo',
-            '--volume=/home/vagrant/src/radiasoft/pykern/pykern:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/pykern',
-            '--volume={}:{}'.format(msg.runDir, msg.runDir),
-            '--workdir={}'.format(msg.runDir),
-            'radiasoft/sirepo:dev',
-            '/bin/bash',
-            '-l',
-            '-c',
-        )
+        'docker',
+        'run',
+        '--rm',
+        '--name={}'.format(name),
+        '--interactive',
+#TODO(robnagler) propagated via stdin
+        '--env=PYTHONUNBUFFERED=1',
+        '--env=SIREPO_SRDB_ROOT={}'.format(msg.agentDbRoot),
+        '--env=SIREPO_AUTH_LOGGED_IN_USER={}'.format(msg.uid),
+        '--volume=/home/vagrant/src/radiasoft/sirepo/sirepo:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/sirepo',
+        '--volume=/home/vagrant/src/radiasoft/pykern/pykern:/home/vagrant/.pyenv/versions/2.7.16/envs/py2/lib/python2.7/site-packages/pykern',
+#TODO(robnagler) need to figure out temp_dir for lib_files
+        '--volume={}:{}'.format(msg.runDir, msg.runDir),
+        '--workdir={}'.format(msg.runDir),
+        'radiasoft/sirepo:dev',
+        '/bin/bash',
+        '-l',
+        '-c',
+    )
 
 
 class _JobProcess(PKDict):
@@ -310,6 +312,7 @@ class _DockerJobProcess(_JobProcess):
         self._in_file = self._create_in_file()
         self._container_name = _docker_get_container_name(self.msg)
         return job.subprocess_cmd_stdin_env(
+#TODO(robnagler) have job.subprocess_cmd_stdin_env aggregate stdin
             _docker_run_cmd_base(self.msg, self._container_name) + ('sirepo job_process {}'.format(self._in_file),),
             PKDict()
         )
