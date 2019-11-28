@@ -446,6 +446,8 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
             e.sr_response['redirect']['section'] = section
         resp = http_reply.gen_json(e.sr_response)
     return http_reply.headers_for_no_cache(resp)
+
+
 @api_perm.require_user
 def api_listSimulations():
     req = http_request.parse_post()
