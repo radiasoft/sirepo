@@ -6,7 +6,6 @@ u"""Run jobs as subprocesses
 """
 from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
-from sirepo import mpi
 from sirepo import runner
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -112,7 +111,7 @@ class BackgroundJob(runner.JobBase):
         so can't set signals.
         """
         env = _safe_env()
-        env['SIREPO_MPI_CORES'] = str(mpi.cfg.cores)
+        env.update(self.subprocess_env)
         try:
             pid = os.fork()
         except OSError as e:

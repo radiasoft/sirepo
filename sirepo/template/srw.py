@@ -21,9 +21,11 @@ import math
 import numpy as np
 import os
 import py.path
+import pykern.pkjson
 import re
 import sirepo.sim_data
 import sirepo.template.srw_fixup
+import sirepo.uri_router
 import srwl_uti_cryst
 import srwl_uti_smp
 import srwl_uti_src
@@ -38,6 +40,8 @@ import zipfile
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 WANT_BROWSER_FRAME_CACHE = False
+
+PARSED_DATA_ATTR = 'srwParsedData'
 
 _BRILLIANCE_OUTPUT_FILE = 'res_brilliance.dat'
 
@@ -68,6 +72,7 @@ _USER_MODEL_LIST_FILENAME = pkcollections.Dict({
     'tabulatedUndulator': '_user_undulator_list.json',
 })
 
+_IMPORT_PYTHON_POLLS = 5
 
 class MagnMeasZip:
     def __init__(self, archive_name):
@@ -414,19 +419,78 @@ def sim_frame(frame_args):
     )
 
 
-def import_file(request, tmp_dir):
-    f = request.files['file']
-    input_path = str(tmp_dir.join('import.py'))
-    f.save(input_path)
-    arguments = str(request.form.get('arguments', ''))
-    pkdlog('{}: arguments={}', f.filename, arguments)
-    data = simulation_db.default_data(SIM_TYPE)
-    data['models']['backgroundImport'] = {
-        'inputPath': input_path,
-        'arguments': arguments,
-        'userFilename': f.filename,
-    }
-    return data
+def import_file(req, tmp_dir, **kwargs):
+    import sirepo.server
+
+    i = None
+    try:
+        r = kwargs['reply_op'](simulation_db.default_data(SIM_TYPE))
+        d = pykern.pkjson.load_any(r.data)
+        i = d.models.simulation.simulationId
+        b = d.models.backgroundImport = PKDict(
+            arguments=req.import_file_arguments,
+            python=req.file_stream.read(),
+            userFilename=req.filename,
+        )
+        # POSIT: import.py uses ''', but we just don't allow quotes in names
+        if "'" in b.arguments:
+            raise sirepo.util.UserAlert('arguments may not contain quotes')
+        if "'" in b.userFilename:
+            raise sirepo.util.UserAlert('filename may not contain quotes')
+        d.pkupdate(
+            report='backgroundImport',
+            forceRun=True,
+            simulationId=i,
+        )
+        r = sirepo.uri_router.call_api('runSimulation', data=d)
+        for _ in range(_IMPORT_PYTHON_POLLS):
+            if r.status_code != 200:
+                raise sirepo.util.UserAlert(
+                    'error parsing python',
+                    'unexpected response status={} data={}',
+                    r.status_code,
+                    r.data,
+                )
+            try:
+                r = pykern.pkjson.load_any(r.data)
+            except Exception as e:
+                raise sirepo.util.UserAlert(
+                    'error parsing python',
+                    'error={} parsing response data={}',
+                    e,
+                    r.data,
+                )
+            if 'error' in r:
+                raise sirepo.util.UserAlert(r.get('error'))
+            if PARSED_DATA_ATTR in r:
+                break
+            if 'nextRequest' not in r:
+                raise sirepo.util.UserAlert(
+                    'error parsing python',
+                    'unable to find nextRequest in response={}',
+                    PARSED_DATA_ATTR,
+                    r,
+                )
+            time.sleep(r.nextRequestSeconds);
+            r = sirepo.uri_router.call_api('runStatus', data=r.nextRequest)
+        else:
+            raise sirepo.util.UserAlert(
+                'error parsing python',
+                'polled too many times, last response={}',
+                r,
+            )
+        r = r.get(PARSED_DATA_ATTR)
+        r.models.simulation.simulationId = i
+        r = simulation_db.save_simulation_json(r, do_validate=True)
+    except Exception:
+        raise
+        if i:
+            try:
+                simulation_db.delete_simulation(req.type, i)
+            except Exception:
+                passp
+        raise
+    raise sirepo.util.Response(sirepo.server.api_simulationData(r.simulationType, i, pretty=False))
 
 
 def new_simulation(data, new_simulation_data):
@@ -1126,6 +1190,9 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         v['brillianceOutputFilename'] = _BRILLIANCE_OUTPUT_FILE
         return template_common.render_jinja(SIM_TYPE, v, 'brilliance.py')
     if report == 'backgroundImport':
+        v.tmp_dir = str(run_dir)
+        v.python_file = run_dir.join('user_python.py')
+        v.python_file.write(data.models.backgroundImport.python)
         return template_common.render_jinja(SIM_TYPE, v, 'import.py')
     v['beamlineOptics'], v['beamlineOpticsParameters'] = _generate_beamline_optics(report, data['models'], last_id)
 

@@ -13,7 +13,7 @@ from pykern.pkdebug import pkdp, pkdc
 from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
-from sirepo.template.srw import extract_report_data, get_filename_for_model
+import sirepo.template.srw
 import copy
 import numpy as np
 
@@ -131,18 +131,13 @@ def _run_srw():
     # special case for importing python code
     r = sim_in.report
     if r == 'backgroundImport':
-        sim_id = sim_in['models']['simulation']['simulationId']
-        parsed_data['models']['simulation']['simulationId'] = sim_id
-        #TODO(pjm): assumes the parent directory contains the simulation data,
-        # can't call simulation_db.save_simulation_json() because user isn't set for pkcli commands
-        simulation_db.write_json('../{}'.format(simulation_db.SIMULATION_DATA_FILE), parsed_data)
         simulation_db.write_result({
-            'simulationId': sim_id,
+            sirepo.template.srw.PARSED_DATA_ATTR: parsed_data,
         })
     else:
         simulation_db.write_result(
-            extract_report_data(
-                get_filename_for_model(r),
+            sirepo.template.srw.extract_report_data(
+                sirepo.template.srw.get_filename_for_model(r),
                 sim_in,
             ),
         )

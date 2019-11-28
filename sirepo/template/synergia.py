@@ -20,6 +20,7 @@ import math
 import py.path
 import re
 import sirepo.sim_data
+import sirepo.util
 import werkzeug
 
 
@@ -127,24 +128,22 @@ def get_application_data(data, **kwargs):
     assert False, 'unknown application data method: {}'.format(data.method)
 
 
-def import_file(request, tmp_dir=None):
-    f = request.files['file']
-    filename = werkzeug.secure_filename(f.filename)
-    if re.search(r'.madx$', filename, re.IGNORECASE):
-        data = _import_madx_file(f.read())
-    elif re.search(r'.mad8$', filename, re.IGNORECASE):
+def import_file(req, tmp_dir=None, **kwargs):
+    if re.search(r'.madx$', req.filename, re.IGNORECASE):
+        data = _import_madx_file(req.file_stream.read())
+    elif re.search(r'.mad8$', req.filename, re.IGNORECASE):
         import pyparsing
         try:
-            data = _import_mad8_file(f.read())
+            data = _import_mad8_file(req.file_stream.read())
         except pyparsing.ParseException as e:
             # ParseException has no message attribute
-            raise IOError(str(e))
-    elif re.search(r'.lte$', filename, re.IGNORECASE):
-        data = _import_elegant_file(f.read())
+            raise sirepo.util.UserAlert(str(e))
+    elif re.search(r'.lte$', req.filename, re.IGNORECASE):
+        data = _import_elegant_file(req.file_stream.read())
     else:
-        raise IOError('invalid file extension, expecting .madx or .mad8')
+        raise sirepo.util.UserAlert('invalid file extension, expecting .madx or .mad8')
     LatticeUtil(data, _SCHEMA).sort_elements_and_beamlines()
-    data.models.simulation.name = re.sub(r'\.(mad.|lte)$', '', filename, flags=re.IGNORECASE)
+    data.models.simulation.name = re.sub(r'\.(mad.|lte)$', '', req.filename, flags=re.IGNORECASE)
     return data
 
 

@@ -271,7 +271,7 @@ def api_importArchive():
 
 
 @api_perm.require_user
-def api_importFile(simulation_type=None):
+def api_importFile(simulation_type):
     """
     Args:
         simulation_type (str): which simulation type
@@ -283,36 +283,40 @@ def api_importFile(simulation_type=None):
 
     error = None
     f = None
+
     try:
-        # special http_request parsing here
-        template = simulation_type and sirepo.template.import_module(
-            http_request.parse_params(type=simulation_type).type,
-        )
         f = flask.request.files.get('file')
-        assert f, \
-            ValueError('must supply a file')
-        if pkio.has_file_extension(f.filename, 'json'):
-            data = sirepo.importer.read_json(f.read(), simulation_type)
+        if not f:
+            raise sirepo.util.Error('must supply a file')
+        req = http_request.parse_params(
+            filename=f.filename,
+            folder=flask.request.form.get('folder'),
+            id=flask.request.form.get('simulationId'),
+            template=True,
+            type=simulation_type,
+        )
+        req.file_stream = f.stream
+        req.import_file_arguments = flask.request.form.get('arguments', '')
+
+        def s(data):
+            data.models.simulation.folder = req.folder
+            data.models.simulation.isExample = False
+            return _save_new_and_reply(data)
+
+        if pkio.has_file_extension(req.filename, 'json'):
+            data = sirepo.importer.read_json(req.file_stream.read(), req.type)
         #TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
         # (dicom input is normally a zip file)
-        elif pkio.has_file_extension(f.filename, 'zip') and simulation_type != 'rs4pi':
-            data = sirepo.importer.read_zip(f.stream, sim_type=simulation_type)
+        elif pkio.has_file_extension(req.filename, 'zip') and req.type != 'rs4pi':
+            data = sirepo.importer.read_zip(req.file_stream, sim_type=req.type)
         else:
-            assert simulation_type, \
-                'simulation_type is required param for non-zip|json imports'
-            assert hasattr(template, 'import_file'), \
-                ValueError('Only zip files are supported')
+            if not hasattr(req.template, 'import_file'):
+                raise sirepo.util.Error('Only zip files are supported')
             with simulation_db.tmp_dir() as d:
-                data = template.import_file(flask.request, tmp_dir=d)
+                data = req.template.import_file(req, tmp_dir=d, reply_op=s)
             if 'error' in data:
                 return http_reply.gen_json(data)
-            if 'version' in data:
-                # this will force the fixups to run when saved
-                del data['version']
-        #TODO(robnagler) need to validate folder
-        data.models.simulation.folder = flask.request.form['folder']
-        data.models.simulation.isExample = False
-        return _save_new_and_reply(data)
+        return s(data)
     except werkzeug.exceptions.HTTPException:
         raise
     except sirepo.util.Reply:
@@ -442,8 +446,6 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
             e.sr_response['redirect']['section'] = section
         resp = http_reply.gen_json(e.sr_response)
     return http_reply.headers_for_no_cache(resp)
-
-
 @api_perm.require_user
 def api_listSimulations():
     req = http_request.parse_post()

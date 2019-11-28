@@ -432,11 +432,8 @@ def sim_frame(frame_args):
     return None
 
 
-def import_file(request, tmp_dir=None, unit_test_mode=False):
-    f = request.files['file']
-    filename = werkzeug.secure_filename(f.filename)
-    data = zgoubi_importer.import_file(f.read(), unit_test_mode=unit_test_mode)
-    return data
+def import_file(req, unit_test_mode=False, **kwargs):
+    return zgoubi_importer.import_file(req.file_stream.read(), unit_test_mode=unit_test_mode)
 
 
 def python_source_for_model(data, model=None):

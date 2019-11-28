@@ -9,10 +9,15 @@ import pytest
 
 
 def test_import_json(fc):
-    import six
     from sirepo import srunit
 
     _do(fc, 'json', lambda f: f.read(mode='rb'))
+
+
+def test_import_python(fc):
+    from sirepo import srunit
+
+    _do(fc, 'py', lambda f: f.read(mode='rb'))
 
 
 def test_import_zip(fc):
@@ -46,18 +51,20 @@ def _do(fc, file_ext, parse):
             sim_type = re.search(r'^([a-z]+)_', f.basename).group(1)
             fc.sr_get_root(sim_type)
             is_dev = 'deviance' in f.basename
-            if not is_dev:
-                sim_name = pkcollections.json_load_any(json).models.simulation.name
             res = fc.sr_post_form(
                 'importFile',
                 PKDict(folder='/importer_test'),
                 PKDict(simulation_type=sim_type),
                 file=f,
             )
-            if is_dev:
+            if file_ext == 'py':
+                sim_name = f.purebasename
+            elif is_dev:
                 m = re.search(r'Error: (.+)', json)
                 if m:
                     expect = m.group(1)
                     pkre(expect, res.error)
                 continue
+            else:
+                sim_name = pkcollections.json_load_any(json).models.simulation.name
             pkeq(sim_name + suffix, res.models.simulation.name)
