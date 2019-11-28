@@ -70,7 +70,7 @@ class LocalDriver(job_driver.DriverBase):
                 in_use=0,
                 total=cfg[k + '_slots'],
             )
-        super().init_class(cfg)
+        super().init_class()
         return cls
 
     async def kill(self):

@@ -188,7 +188,7 @@ def init_class():
     if not cfg.tls_dir or not cfg.hosts:
         _init_dev_hosts()
     _init_hosts()
-    return DockerDriver.init_class(cfg)
+    return DockerDriver.init_class()
 
 
 def _cfg_tls_dir(value):

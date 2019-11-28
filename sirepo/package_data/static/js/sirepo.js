@@ -1062,6 +1062,38 @@ SIREPO.app.factory('authService', function(appState, authState, requestSender) {
     return self;
 });
 
+SIREPO.app.factory('jobConfig', function(appState, requestSender) {
+    var self = {};
+
+    requestSender.sendRequest(
+        'runStatus',
+        function () {
+        },
+        {
+            simulationType: SIREPO.APP_SCHEMA.simulationType,
+        },
+        process,
+    );
+
+    self.methods = authState.visibleMethods.map(
+        function (method) {
+            return {
+                'label': 'Sign in ' + label(method),
+                'url': requestSender.formatUrlLocal(
+                    'loginWith',
+                    {':method': method}
+                )
+            };
+        }
+    );
+    self.loginUrl = requestSender.formatUrlLocal('login');
+    self.logoutUrl = requestSender.formatUrl(
+        'authLogout',
+        {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
+    );
+    return self;
+});
+
 SIREPO.app.factory('panelState', function(appState, requestSender, simulationQueue, utilities, validationService, $compile, $rootScope, $timeout, $window) {
     // Tracks the data, error, hidden and loading values
     var self = {};

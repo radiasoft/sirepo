@@ -386,7 +386,7 @@ SIREPO.app.directive('srJobsettingsEditor', function(appState, panelState) {
         restrict: 'A',
         controller: function($scope) {
 
-            function jobKindChanged() {
+            function jobRunModeChanged() {
                 if (! appState.models.jobSettings) {
                     return;
                 }
@@ -402,7 +402,7 @@ SIREPO.app.directive('srJobsettingsEditor', function(appState, panelState) {
                         else processFields();
                     }
                 }
-revert jobKind if no credentials
+revert jobRunMode if no credentials
 cancel changes to model
                 srdbg('check user logged in');
 
@@ -412,8 +412,8 @@ cancel changes to model
                     return;
                 }
                 appState
-                do not show jobKind sbatch if no sbatch;
-                var isSbatch = appState.models.jobSettings.jobKind == 'sbatch';
+                do not show jobRunMode sbatch if no sbatch;
+                var isSbatch = appState.models.jobSettings.jobRunMode == 'sbatch';
                 panelState.showField('jobSettings', 'jobCores', isSbatch);
                 panelState.showField('jobSettings', 'jobDbRoot', isSbatch);
                 jobState controlls pr
@@ -422,7 +422,7 @@ cancel changes to model
             }
 
             appState.whenModelsLoaded($scope, function() {
-                appState.watchModelFields($scope, ['jobSettings.jobKind'], jobKindChanged);
+                appState.watchModelFields($scope, ['jobSettings.jobRunMode'], jobRunModeChanged);
                 processFields();
             });
         },

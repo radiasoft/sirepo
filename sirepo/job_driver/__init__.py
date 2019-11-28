@@ -17,8 +17,6 @@ import tornado.locks
 import sirepo.srdb
 
 
-cfg = None
-
 KILL_TIMEOUT_SECS = 3
 
 #: map of driver names to class
@@ -26,9 +24,6 @@ _CLASSES = None
 
 #: default class when not determined by request
 _DEFAULT_CLASS = None
-
-#: use sbatch?
-_SBATCH_CLASS = None
 
 
 class AgentMsg(PKDict):
@@ -93,7 +88,7 @@ class DriverBase(PKDict):
         return r
 
     @classmethod
-    def init_class(cls, cfg):
+    def init_class(cls):
 # TODO(e-carlin): this is not right for sbatch driver. No kinds
         for k in job.KINDS:
             cls.instances[k] = []
@@ -202,43 +197,21 @@ class DriverBase(PKDict):
 
 
 async def get_instance(req):
-    # TODO(e-carlin): parse req to get class
-    if req.kind == job.PARALLEL and _SBATCH_CLASS:
-        return await _SBATCH_CLASS.get_instance(req)
+    if req.kind == job.PARALLEL and req.jobRunMode == job.SBATCH:
+        return await _CLASSES[job.SBATCH].get_instance(req)
     return await _DEFAULT_CLASS.get_instance(req)
-    # return await _CLASSES['sbatch'].get_instance(req)
 
 
 def init():
-    global cfg
-    cfg = pkconfig.init(
-        modules=(None, _cfg_parse_modules, 'driver modules'),
-    )
+    global _CLASSES, _DEFAULT_CLASS
+    assert not _CLASSES
+    _CLASSES = PKDict()
+    p = pkinspect.this_module().__name__
+    for n in job.cfg.drivers:
+        m = importlib.import_module(pkinspect.module_name_join((p, n)))
+        _CLASSES[n] = m.init_class()
+    _DEFAULT_CLASS = _CLASSES.get('docker') or _CLASSES.get(job.DEFAULT_DRIVER)
 
 
 async def terminate():
     await DriverBase.terminate()
-
-
-@pkconfig.parse_none
-def _cfg_parse_modules(value):
-    global _CLASSES, _DEFAULT_CLASS, _SBATCH_CLASS
-    assert not _CLASSES
-
-    s = pkconfig.parse_set(value)
-    if not s:
-        s = frozenset(('docker',))
-        if pkconfig.channel_in('dev'):
-            s = frozenset(('local',))
-    assert not {'local', 'docker'}.issubset(s), \
-        'modules={} can only contain one of "docker" or "local"'.format(s)
-    assert 'docker' in s or 'local' in s, \
-        'modules={} must contain  "docker" or "local"'.format(s)
-    p = pkinspect.this_module().__name__
-    _CLASSES = PKDict()
-    for n in s:
-        m = importlib.import_module(pkinspect.module_name_join((p, n)))
-        _CLASSES[n] = m.init_class()
-    _SBATCH_CLASS = _CLASSES.sbatch if 'sbatch' in s else None
-    _DEFAULT_CLASS = _CLASSES['docker' if 'docker' in s else 'local']
-    return s

@@ -93,4 +93,4 @@ def init_class():
         host=pkconfig.Required(str, 'host name for slum controller'),
         host_key=pkconfig.Required(bytes, 'host key'),
     )
-    return SBatchDriver
+    return SBatchDriver.init_class()

@@ -96,6 +96,8 @@
         "homePageOld": "/old",
         "importArchive": "/import-archive",
         "importFile": "/import-file/?<simulation_type>",
+        "jobConfig": "/job-config",
+        "jobSbatchAuth": "/job-sbatch-auth",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",
@@ -208,7 +210,7 @@
                 ["jet", "jet"],
                 ["contrast", "high contrast"]
             ],
-            "JobKind": [
+            "JobRunMode": [
                 ["serial", "Serial"],
                 ["parallel", "Parallel"],
                 ["sbatch", "Sbatch"]
@@ -329,7 +331,7 @@
         },
         "model": {
             "jobSettings": {
-                "jobKind": ["Execution Mode", "JobKind", "serial"],
+                "jobRunMode": ["Execution Mode", "JobRunMode", "serial"],
                 "jobDbRoot": ["Remote Folder", "String", ""],
                 "jobCores": ["Cores", "Integer", 0],
                 "jobProject": ["Project", "String", ""]

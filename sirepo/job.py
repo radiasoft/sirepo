@@ -80,8 +80,12 @@ RUNNING = 'running'
 #: Valid values for job status
 STATUSES = frozenset((CANCELED, COMPLETED, ERROR, MISSING, PENDING, RUNNING))
 
+# should come from schema
 SEQUENTIAL = 'sequential'
 PARALLEL = 'parallel'
+SBATCH = 'sbatch'
+
+DEFAULT_DRIVER = 'local'
 
 #: categories of jobs
 KINDS = frozenset((SEQUENTIAL, PARALLEL))
@@ -94,6 +98,7 @@ def init():
     if cfg:
         return
     cfg = pkconfig.init(
+        drivers=((DEFAULT_DRIVER,), set, 'available job_driver modules'),
         supervisor_uri=(
             'http://{}:{}'.format(DEFAULT_IP, DEFAULT_PORT),
             str,

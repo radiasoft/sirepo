@@ -312,6 +312,13 @@ def hack_nfs_write_status(status, run_dir):
     write_status(status, run_dir)
 
 
+def init_by_job_api(have_sbatch):
+    """Called by job_api to initialize JobRunMode"""
+    if not have_sbatch:
+        x = SCHEMA_COMMON.common.enum.JobRunMode.pop(2)
+        assert sirepo.job.SBATCH == x[0]
+
+
 def iterate_simulation_datafiles(simulation_type, op, search=None):
     res = []
     sim_dir = simulation_dir(simulation_type)

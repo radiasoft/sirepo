@@ -65,6 +65,11 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         )
 
 @api_perm.require_user
+def api_jobSettings():
+    return _request()
+
+
+@api_perm.require_user
 def api_runCancel():
     return _request()
 
@@ -109,7 +114,9 @@ def api_simulationFrame(frame_id):
 
 
 def init_apis(*args, **kwargs):
+#TODO(robnagler) if we recover connections with agents and running jobs remove this
     pykern.pkio.unchecked_remove(sirepo.job.LIB_FILE_ROOT)
+    simulation_db.init_by_job_api(SBATCH in cfg.job.drivers)
 
 
 def _request(**kwargs):
