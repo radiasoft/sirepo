@@ -57,14 +57,14 @@ def _do(fc, file_ext, parse):
                 PKDict(simulation_type=sim_type),
                 file=f,
             )
-            if file_ext == 'py':
-                sim_name = f.purebasename
-            elif is_dev:
+            if is_dev:
                 m = re.search(r'Error: (.+)', json)
                 if m:
                     expect = m.group(1)
                     pkre(expect, res.error)
                 continue
+            elif file_ext == 'py':
+                sim_name = f.purebasename
             else:
                 sim_name = pkcollections.json_load_any(json).models.simulation.name
             pkeq(sim_name + suffix, res.models.simulation.name)
