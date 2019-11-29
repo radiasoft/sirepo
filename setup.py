@@ -12,13 +12,13 @@ pykern.pksetup.setup(
     description='accelerator code gui',
     install_requires=[
         # some "concrete" dependencies in requirements.txt
-        'Flask>=1.1',
-        'Flask-OAuthlib',
-        'Flask-Mail',
-        'Flask_SQLAlchemy',
-        'SQLAlchemy',
+        'Flask>=1.1; python_version < "3"',
+        'Flask-OAuthlib; python_version < "3"',
+        'Flask-Mail; python_version < "3"',
+        'Flask_SQLAlchemy; python_version < "3"',
+        'SQLAlchemy; python_version < "3"',
         'aenum',
-        'beaker',
+        'beaker; python_version < "3"',
         'celery==3.1.23; python_version < "3"',
         'cryptography>=2.8',
         'flower==0.8.4; python_version < "3"',
@@ -31,14 +31,13 @@ pykern.pksetup.setup(
         'pyIsEmail',
         'pykern',
         'pytz==2015.7',
-        # requests-oauthlib-1.2.0 forces oauthlib-3.0.0 but Flask-OAuthlib
-        # requires oauthlib<3.0.0.
-        'requests-oauthlib>1.1.0',
+        # for Flask-OAuthlib
+        'oauthlib!=2.0.3,!=2.0.4,!=2.0.5,<3.0.0,>=1.1.2',
         'scikit-learn==0.20',
-        'sympy',
+        'sympy; python_version < "3"',
         'user-agents',
         'uwsgi',
-        'docker; python_version >= "3"',
+#        'docker; python_version >= "3"',
         'tornado >= 6; python_version >= "3"',
    ],
     license='http://www.apache.org/licenses/LICENSE-2.0.html',

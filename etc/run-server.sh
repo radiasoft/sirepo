@@ -1,0 +1,7 @@
+#!/bin/bash
+export SIREPO_FEATURE_CONFIG_JOB_SUPERVISOR=1
+export SIREPO_JOB_SUPERVISOR_URI=http://$(hostname):8001
+export PYKERN_PKDEBUG_CONTROL=
+export PYKERN_PKDEBUG_OUTPUT=
+export PYKERN_PKDEBUG_WANT_PID_TIME=1
+PYENV_VERSION=py2 pyenv exec sirepo service http

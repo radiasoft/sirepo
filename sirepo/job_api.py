@@ -116,7 +116,7 @@ def api_simulationFrame(frame_id):
 def init_apis(*args, **kwargs):
 #TODO(robnagler) if we recover connections with agents and running jobs remove this
     pykern.pkio.unchecked_remove(sirepo.job.LIB_FILE_ROOT)
-    simulation_db.init_by_job_api(SBATCH in cfg.job.drivers)
+    simulation_db.init_by_job_api(sirepo.job.SBATCH in sirepo.job.cfg.drivers)
 
 
 def _request(**kwargs):

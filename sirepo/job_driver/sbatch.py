@@ -18,6 +18,8 @@ import tornado.ioloop
 
 cfg = None
 
+_KNOWN_HOSTS = None
+
 class SBatchDriver(job_driver.DriverBase):
 
     instances = PKDict()
@@ -59,10 +61,11 @@ class SBatchDriver(job_driver.DriverBase):
         # TODO(e-carlin): handle cori ssh key. Currently this defaults
         # to using the keys in ~/.ssh/known_hosts
         async with asyncssh.connect(
-                cfg.host,
+            cfg.host,
 #TODO(robnagler) add password
-                username='vagrant',
-                password='vagrant',
+            username='vagrant',
+            password='vagrant',
+            options=PKDict(known_hosts=_KNOWN_HOSTS)
         ) as c:
             cmd, stdin, _ = self._subprocess_cmd_stdin_env(
                 fork=True,
@@ -87,10 +90,12 @@ class SBatchDriver(job_driver.DriverBase):
 
 
 def init_class():
-    global cfg
+    global cfg, _KNOWN_HOSTS
 
     cfg = pkconfig.init(
         host=pkconfig.Required(str, 'host name for slum controller'),
         host_key=pkconfig.Required(bytes, 'host key'),
     )
+    _KNOWN_HOSTS = cfg.host_key if cfg.host in cfg.host_key \
+        else '{} {}'.format(cfg.host, cfg.host_key)
     return SBatchDriver.init_class()
