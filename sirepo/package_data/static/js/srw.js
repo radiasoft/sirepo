@@ -1357,25 +1357,6 @@ SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload,
             $scope.isUploading = false;
             $scope.title = 'Import Python or JSON Simulation File';
 
-            function handleStatus(data) {
-                $scope.isUploading = false;
-                if (data.error) {
-                    $scope.fileUploadError = data.error;
-                    appState.deleteSimulation(appState.models.simulation.simulationId, function() {});
-                }
-                appState.clearModels();
-                if (data.simulationId) {
-                    hideAndRedirect(data.simulationId);
-                }
-            }
-
-            function hideAndRedirect(simId) {
-                $('#srw-simulation-import').modal('hide');
-                requestSender.localRedirect('source', {
-                    ':simulationId': simId,
-                });
-            }
-
             $scope.fileType = function(pythonFile) {
                 var importArgs = $('.srw-python-file-import-args');
                 if (pythonFile && pythonFile.name.indexOf('.py') >= 0) {
@@ -1400,23 +1381,18 @@ SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload,
                         'importFile',
                         {
                             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        }),
+                        }
+                    ),
                     function(data) {
                         $scope.isUploading = false;
                         if (data.error) {
                             $scope.fileUploadError = data.error;
                         }
-                        else if (data.models.backgroundImport) {
-                            $scope.isUploading = true;
-                            appState.loadModels(data.models.simulation.simulationId, function() {
-                                simulationQueue.addTransientItem(
-                                    'backgroundImport',
-                                    appState.applicationState(),
-                                    handleStatus);
-                            });
-                        }
                         else {
-                            hideAndRedirect(data.models.simulation.simulationId);
+                            $('#srw-simulation-import').modal('hide');
+                            requestSender.localRedirect('source', {
+                                ':simulationId': simId,
+                            });
                         }
                     });
             };

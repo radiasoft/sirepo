@@ -46,7 +46,11 @@ class CeleryJob(runner.JobBase):
         """
         self.__celery_queue = simulation_db.celery_queue(self.data)
         self.__async_result = celery_tasks.start_simulation.apply_async(
-            args=[self.cmd, str(self.run_dir)],
+            args=[
+                self.cmd,
+                str(self.run_dir),
+                self.subprocess_env,
+            ],
             queue=self.__celery_queue,
         )
         pkdc(

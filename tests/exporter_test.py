@@ -51,6 +51,7 @@ def test_create_zip(fc):
 
 
 def _import(fc):
+    from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     from pykern import pkio
     from pykern import pkunit
@@ -62,10 +63,10 @@ def _import(fc):
             expect = sorted(z.namelist() + ['run.py'])
         d = fc.sr_post_form(
             'importFile',
-            {
-                'file': (open(str(f), 'rb'), f.basename),
-                'folder': '/exporter_test',
-            },
+            PKDict(folder='/exporter_test'),
+            PKDict(simulation_type=f.basename.split('_')[0]),
+            file=f,
         )
+        pkdp(d)
         res.append((d.simulationType, d.models.simulation.name, expect))
     return res

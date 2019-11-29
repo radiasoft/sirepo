@@ -23,6 +23,7 @@ import os.path
 import py.path
 import re
 import sirepo.sim_data
+import sirepo.util
 import struct
 import time
 import werkzeug
@@ -180,17 +181,16 @@ def get_simulation_frame(run_dir, data, model_data):
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
-def import_file(request, tmp_dir=None):
-    f = request.files['file']
-    filename = werkzeug.secure_filename(f.filename)
-    if not pkio.has_file_extension(str(filename), 'zip'):
-        raise RuntimeError('unsupported import filename: {}'.format(filename))
+def import_file(req, tmp_dir=None, **kwargs):
+    if not pkio.has_file_extension(req.filename, 'zip'):
+        raise sirepo.util.UserAlert('unsupported import filename: {}'.format(filename))
     filepath = str(tmp_dir.join(_ZIP_FILE_NAME))
-    f.save(filepath)
+    req.file_stream.save(filepath)
     data = simulation_db.default_data(SIM_TYPE)
-    data['models']['simulation']['name'] = filename
+    data['models']['simulation']['name'] = req.filename
     data['models']['simulation'][_TMP_INPUT_FILE_FIELD] = filepath
-    # more processing occurs below in prepare_for_client() after simulation dir is prepared
+    # more processing occurs in prepare_for_client() via:
+    # import_file => _save_new_and_reply => api_simulationData => prepare_for_client
     return data
 
 

@@ -163,11 +163,6 @@ def get_data_file(run_dir, model, frame, **kwargs):
         return os.path.basename(filename), f.read(), 'application/octet-stream'
 
 
-def import_file(*args, **kwargs):
-    """No custom import"""
-    raise ValueError('import of file not supported')
-
-
 def new_simulation(data, new_simulation_data):
     source = new_simulation_data['sourceType']
     if not source:

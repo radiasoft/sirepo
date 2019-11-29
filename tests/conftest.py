@@ -114,14 +114,9 @@ def fc(request, fc_module):
 
     Defaults to myapp.
     """
-    import sirepo.feature_config
     import sirepo.srunit
 
-    for c in sirepo.feature_config.ALL_CODES:
-        if c in request.function.func_name:
-            break
-    else:
-        c = 'myapp'
+    c = _sim_type(request)
     if fc_module.sr_uid:
         if fc_module.sr_sim_type != c:
             fc_module.sr_get_root(sim_type=c)
@@ -135,6 +130,22 @@ def fc_module(request):
     import sirepo.srunit
 
     yield sirepo.srunit.flask_client()
+
+
+@pytest.fixture
+def import_req(request):
+    def w(path):
+        req = http_request.parse_params(
+            filename=path.basename,
+            folder='/import_test',
+            template=True,
+            type=_sim_type(request),
+        )
+        # Supports read() for elegant and zgoubi
+        req.file_stream = path
+        return req
+
+    return w
 
 
 def pytest_collection_modifyitems(session, config, items):
@@ -206,3 +217,12 @@ def pytest_configure(config):
         config.option,
         namespace=config.option,
     )
+
+
+def _sim_type(request):
+    import sirepo.feature_config
+
+    for c in sirepo.feature_config.ALL_CODES:
+        if c in request.function.func_name or c in str(request.fspath):
+            return c
+    return 'myapp'

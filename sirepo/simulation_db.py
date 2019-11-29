@@ -135,7 +135,7 @@ def celery_queue(data):
         str: celery queue name
     """
     from sirepo import celery_tasks
-    return celery_tasks.queue_name(is_parallel(data))
+    return celery_tasks.queue_name(sirepo.sim_data.get_class(data).is_parallel(data))
 
 
 def default_data(sim_type):

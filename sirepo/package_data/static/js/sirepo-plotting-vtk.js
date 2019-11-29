@@ -190,7 +190,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
         var url = requestSender.formatUrl('downloadFile', {
             '<simulation_id>': appState.models.simulation.simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<filename>': fileName,
+            '<filename>': self.stlFileType + '.' + fileName,
         });
         return self.loadSTLURL(url).then(function (r) {
             return r;

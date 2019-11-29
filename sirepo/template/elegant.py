@@ -253,23 +253,21 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
     return _sdds(_report_output_filename('bunchReport'))
 
 
-def import_file(request, tmp_dir=None, test_data=None):
+def import_file(req, test_data=None, **kwargs):
     # input_data is passed by test cases only
-    f = request.files['file']
-    filename = werkzeug.secure_filename(f.filename)
     input_data = test_data
 
-    if 'simulationId' in request.form:
-        input_data = simulation_db.read_simulation_json(elegant_common.SIM_TYPE, sid=request.form['simulationId'])
-    if re.search(r'.ele$', filename, re.IGNORECASE):
-        data = elegant_command_importer.import_file(f.read())
-    elif re.search(r'.lte$', filename, re.IGNORECASE):
-        data = elegant_lattice_importer.import_file(f.read(), input_data)
+    if 'simulationId' in req:
+        input_data = simulation_db.read_simulation_json(elegant_common.SIM_TYPE, sid=req.simulationId)
+    if re.search(r'.ele$', req.filename, re.IGNORECASE):
+        data = elegant_command_importer.import_file(req.file_stream.read())
+    elif re.search(r'.lte$', req.filename, re.IGNORECASE):
+        data = elegant_lattice_importer.import_file(req.file_stream.read(), input_data)
         if input_data:
             _map_commands_to_lattice(data)
     else:
         raise IOError('invalid file extension, expecting .ele or .lte')
-    data.models.simulation.name = re.sub(r'\.(lte|ele)$', '', filename, flags=re.IGNORECASE)
+    data.models.simulation.name = re.sub(r'\.(lte|ele)$', '', req.filename, flags=re.IGNORECASE)
     if input_data and not test_data:
         simulation_db.delete_simulation(elegant_common.SIM_TYPE, input_data.models.simulation.simulationId)
     return data

@@ -95,7 +95,7 @@
         "homePage": "/en/*<path_info>",
         "homePageOld": "/old",
         "importArchive": "/import-archive",
-        "importFile": "/import-file/?<simulation_type>",
+        "importFile": "/import-file/<simulation_type>",
         "jobConfig": "/job-config",
         "jobSbatchAuth": "/job-sbatch-auth",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
