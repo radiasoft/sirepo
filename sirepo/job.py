@@ -114,7 +114,8 @@ def init():
     # trailing slash necessary
     LIB_FILE_ABS_URI = cfg.supervisor_uri + LIB_FILE_URI + '/'
     DATA_FILE_ABS_URI = cfg.supervisor_uri + DATA_FILE_URI + '/'
-    AGENT_ABS_URI = cfg.supervisor_uri + AGENT_URI
+#TODO(robnagler) figure out why we need ws (wss, implicit)
+    AGENT_ABS_URI = cfg.supervisor_uri.replace('http', 'ws', 1) + AGENT_URI
     SERVER_ABS_URI = cfg.supervisor_uri + SERVER_URI
 
 

@@ -342,7 +342,7 @@
             },
             "simulation": {
                 "name": ["Name", "SimulationName"],
-                "folder": ["Folder", "UserFolder"],
+                "folder": ["Folder", "UserFolder", "/"],
                 "documentationUrl": ["Documentation URL", "OptionalString", ""],
                 "notes": ["Notes", "Text", ""]
             }

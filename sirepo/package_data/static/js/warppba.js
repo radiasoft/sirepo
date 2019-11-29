@@ -404,7 +404,7 @@ SIREPO.app.directive('srJobsettingsEditor', function(appState, panelState) {
                 }
 revert jobRunMode if no credentials
 cancel changes to model
-                srdbg('check user logged in');
+//                srdbg('check user logged in');
 
             }
             function processFields() {

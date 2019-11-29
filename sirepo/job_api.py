@@ -122,7 +122,7 @@ def init_apis(*args, **kwargs):
 def _request(**kwargs):
     d = kwargs.get('_request_data') or _request_data(PKDict(kwargs))
     r = requests.post(
-        sirepo.job.SERVER_URI,
+        sirepo.job.SERVER_ABS_URI,
         data=pkjson.dump_bytes(d),
         headers=PKDict({'Content-type': 'application/json'}),
     )
