@@ -157,6 +157,7 @@ def subprocess_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.', fork=False):
     # POSIT: we control all these values
     t.write(
         '''
+source "$HOME/.bashrc"
 set -e
 mkdir -p '{}'
 cd '{}'
@@ -174,7 +175,7 @@ pyenv shell {}
     # it's reasonable to hardwire this path, even though we don't
     # do that with others. We want to make sure the subprocess starts
     # with a clean environment (no $PATH). You have to pass HOME.
-    return ('/bin/bash', '-l'), t, PKDict(HOME=os.environ['HOME'])
+    return ('/bin/bash',), t, PKDict(HOME=os.environ['HOME'])
 
 
 def init_by_server(app):

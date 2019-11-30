@@ -37,24 +37,30 @@ class SBatchDriver(job_driver.DriverBase):
     @classmethod
     async def get_instance(cls, req):
         u = req.content.uid
-        return cls.instances.pksetdefault(
-            u,
-            lambda: cls(req)
-        )[u]
-
-    def get_ops_with_send_allocation(self):
-        return super().get_ops_with_send_allocation()
+        return cls.instances.pksetdefault(u, lambda: cls(req))[u]
 
     @classmethod
-    def run_scheduler(cls, driver):
-        for d in cls.instances.values():
-            if not d.websocket:
+    def init_class(cls):
+        return cls
+
+    async def kill(self):
+        if not self.websocket:
+            # if there is no websocket then we don't know about the agent
+            # so we can't do anything
+            return
+        # hopefully the agent is nice and listens to the kill
+        self.websocket.write_message(PKDict(opName=job.OP_KILL))
+
+    def run_scheduler(self, exclude_self=False):
+        for d in self.instances.values():
+            if exclude_self and d == self:
                 continue
-            ops_with_send_alloc = d.get_ops_with_send_allocation()
-            for o in ops_with_send_alloc:
+            for o in d.get_ops_with_send_allocation():
                 assert o.opId not in d.ops_pending_done
                 d.ops_pending_send.remove(o)
                 d.ops_pending_done[o.opId] = o
+#TODO(robnagler) encapsulation is incorrect. Superclass should make
+# decisions about send_ready.
                 o.send_ready.set()
 
     async def _agent_start(self):
@@ -62,10 +68,10 @@ class SBatchDriver(job_driver.DriverBase):
         # to using the keys in ~/.ssh/known_hosts
         async with asyncssh.connect(
             cfg.host,
-#TODO(robnagler) add password
+#TODO(robnagler) add password management
             username='vagrant',
             password='vagrant',
-            options=PKDict(known_hosts=_KNOWN_HOSTS)
+            known_hosts=_KNOWN_HOSTS,
         ) as c:
             cmd, stdin, _ = self._subprocess_cmd_stdin_env(
                 fork=True,
@@ -75,18 +81,14 @@ class SBatchDriver(job_driver.DriverBase):
                 )
             )
             async with c.create_process(' '.join(cmd)) as p:
-                o, e = await p.communicate(input=stdin.read().decode('utf-8'))
+                o, e = await p.communicate(input=pkdp(stdin.read().decode('utf-8')))
                 assert o == '' and e == '', \
                     'stdout={} stderr={}'.format(o, e)
             stdin.close()
 
-    async def kill(self):
-        if not self.websocket:
-            # if there is no websocket then we don't know about the agent
-            # so we can't do anything
-            return
-        # hopefully the agent is nice and listens to the kill
-        self.websocket.write_message(PKDict(opName=job.OP_KILL))
+    def _websocket_free(self):
+        self.run_scheduler(exclude_self=True)
+        self.instances.pkdel(self.uid)
 
 
 def init_class():

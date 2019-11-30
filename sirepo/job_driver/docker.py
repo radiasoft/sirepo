@@ -55,6 +55,7 @@ class DockerDriver(job_driver.DriverBase):
             _userDir=req.content.userDir,
             host=host,
         )
+        self.has_slot = False
         self.host.drivers[self.kind].append(self)
         self.instances[self.kind].append(self)
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
@@ -62,6 +63,7 @@ class DockerDriver(job_driver.DriverBase):
 
     @classmethod
     async def get_instance(cls, req):
+        h = None
         for d in list(itertools.chain(*cls.instances.values())):
             # SECURITY: must only return instances for authorized user
             if d.uid == req.content.uid:
@@ -70,43 +72,41 @@ class DockerDriver(job_driver.DriverBase):
                 # jobs of different kinds for the same user need to go to the
                 # same host. Ex. sequential analysis jobs for parallel compute
                 # jobs need to go to the same host to avoid NFS caching problems
-                return cls(req, d.host)
-        h = min(cls.hosts.values(), key=lambda h:len(h.drivers[req.kind]))
+#TODO(robnagler) what if there's already a driver of this kind later in the chain?
+#  it seems like this needs to wait till the end.
+                h = d.host
+        if not h:
+            h = min(cls.hosts.values(), key=lambda h: len(h.drivers[req.kind]))
         return cls(req, h)
 
-    @classmethod
-    def free_slots(cls, driver):
-        for d in driver.host.drivers[driver.kind]:
+    def free_slots(self):
+        for d in self.host.drivers[driver.kind]:
             if d.has_slot and not d.ops_pending_done:
                 d.slot_free()
 
-    # TODO(e-carlin): very similar code between this and local
     @classmethod
-    def run_scheduler(cls, driver):
-        cls.free_slots(driver)
-        h = driver.host
-        try:
-            i = h.drivers[driver.kind].index(driver)
-        except ValueError:
-            # In the _websocket_free() code we remove driver from list of
-            # instances.
-            i = 0
-        # start iteration from index of current driver to enable fair scheduling
-        for d in h.drivers[driver.kind][i:] + h.drivers[driver.kind][:i]:
-            ops_with_send_alloc = d.get_ops_with_send_allocation()
-            if not ops_with_send_alloc:
+    def init_class(cls):
+        for k in job.KINDS:
+            cls.instances[k] = []
+        return cls
+
+    def run_scheduler(self, exclude_self=False):
+        self.free_slots()
+#TODO(robnagler) might want to try all hosts, just so run_scheduler is generic
+# it makes run_scheduler more of an auditor, and more robust if certain cases
+# slip through this host-specific algorithm.
+        h = self.host
+        i = h.drivers[self.kind].index(self)
+        # start iteration from index of current self to enable fair scheduling
+        for d in h.drivers[self.kind][i:] + h.drivers[self.kind][:i]:
+            if exclude_self and d == self:
                 continue
-            if ((not d.has_slot and
-                 h.slots[driver.kind].in_use >= h.slots[driver.kind].total
-                 )
-                    or not d.websocket
-                ):
-                continue
-            if not d.has_slot:
-                assert h.slots[driver.kind].in_use < h.slots[driver.kind].total
-                d.has_slot = True
-                h.slots[driver.kind].in_use += 1
-            for o in ops_with_send_alloc:
+            for o in d.get_ops_with_send_allocation():
+                if not d.has_slot:
+                    if h.slots[self.kind].in_use >= h.slots[self.kind].total:
+                        continue
+                    d.has_slot = True
+                    h.slots[self.kind].in_use += 1
                 assert o.opId not in d.ops_pending_done
                 d.ops_pending_send.remove(o)
                 d.ops_pending_done[o.opId] = o
@@ -146,8 +146,9 @@ class DockerDriver(job_driver.DriverBase):
         self._cid = await _cmd(self.host, p + cmd, stdin=stdin, env=env)
 
     def slot_free(self):
-        self.host.slots[self.kind].in_use -= 1
-        self.has_slot = False
+        if self.has_slot:
+            self.host.slots[self.kind].in_use -= 1
+            self.has_slot = False
 
     def _volumes(self):
         res = []
@@ -166,8 +167,10 @@ class DockerDriver(job_driver.DriverBase):
         return tuple(res)
 
     def _websocket_free(self):
+        self.slot_free()
+        self.run_scheduler(exclude_self=True)
         self.host.drivers[self.kind].remove(self)
-        super()._websocket_free()
+
 
 
 def init_class():

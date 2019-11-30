@@ -75,10 +75,7 @@ def api_runSimulation():
     t = None
     try:
         r = _request_content(PKDict(fixup_old_data=True))
-        r.pkupdate(
-            jobRunMode=_run_mode(r),
-            forceRun=r.data.get('forceRun', False),
-        )
+        r.pkupdate(jobRunMode=_run_mode(r))
         d = simulation_db.simulation_lib_dir(r.simulationType)
         p = d.join(sirepo.job.LIB_FILE_LIST_URI[1:])
         pykern.pkio.unchecked_remove(p)
@@ -156,7 +153,7 @@ def _request_content(kwargs):
 ##TODO(robnagler) this should be req_data
     b = PKDict(data=d, **kwargs)
 # TODO(e-carlin): some of these fields are only used for some type of reqs
-    return pkdp(b.pksetdefault(
+    return b.pksetdefault(
         analysisModel=lambda: s.parse_model(d),
         api=get_api_name(),
         computeJid=lambda: s.parse_jid(d),
@@ -173,17 +170,14 @@ def _request_content(kwargs):
 #TODO(robnagler) configurable by request
         mpiCores=lambda: sirepo.mpi.cfg.cores if b.isParallel else 1,
         userDir=lambda: str(sirepo.simulation_db.user_dir_name(b.uid)),
-    ))
+    )
 
 
 
 def _run_mode(request_content):
     if 'models' not in request_content.data:
-        pkdp(request_content)
         return None
-    pkdp(request_content.data.models.get('animation'))
     res = request_content.data.models.get(request_content.computeModel, {}).get('jobRunMode')
-    pkdp(res)
     if not res:
         return sirepo.job.PARALLEL if request_content.isParallel else sirepo.job.SEQUENTIAL
     s = sirepo.sim_data.get_class(request_content.simulationType)
@@ -199,4 +193,4 @@ def _run_mode(request_content):
             request_content.computeModel,
             request_content.computeJid,
         )
-    return pkdp(res)
+    return res

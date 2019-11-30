@@ -35,6 +35,7 @@ class LocalDriver(job_driver.DriverBase):
                 'agent-local', self._agentId),
             _agent_exit=tornado.locks.Event(),
         )
+        self.has_slot = False
         self.instances[self.kind].append(self)
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
 
@@ -64,13 +65,13 @@ class LocalDriver(job_driver.DriverBase):
         return cls(req)
 
     @classmethod
-    def init_class(cls, cfg):
+    def init_class(cls):
         for k in job.KINDS:
+            cls.instances[k] = []
             cls.slots[k] = PKDict(
                 in_use=0,
                 total=cfg[k + '_slots'],
             )
-        super().init_class()
         return cls
 
     async def kill(self):
@@ -84,46 +85,34 @@ class LocalDriver(job_driver.DriverBase):
         )
         await self._agent_exit.wait()
 
-    @classmethod
-    def free_slots(cls, kind):
-        for d in cls.instances[kind]:
+    def free_slots(self):
+        for d in self.instances[self.kind]:
             if d.has_slot and not d.ops_pending_done:
                 d.slot_free()
-        assert cls.slots[kind].in_use > -1
+        assert self.slots[kind].in_use > -1
 
-    @classmethod
-    def run_scheduler(cls, driver):
-        cls.free_slots(driver.kind)
-        try:
-            i = cls.instances[driver.kind].index(driver)
-        except ValueError:
-            # In the _websocket_free() code we remove driver from list of
-            # instances.
-            i = 0
+    def run_scheduler(self, exclude_self=False):
+        self.free_slots()
+        i = self.instances[self.kind].index(self)
         # start iteration from index of current driver to enable fair scheduling
-        for d in cls.instances[driver.kind][i:] + cls.instances[driver.kind][:i]:
-            ops_with_send_alloc = d.get_ops_with_send_allocation()
-            if not ops_with_send_alloc:
+        for d in self.instances[driver.kind][i:] + self.instances[driver.kind][:i]:
+            if exclude_self and d == self:
                 continue
-            if ((not d.has_slot and
-                 cls.slots[driver.kind].in_use >= cls.slots[driver.kind].total
-                 )
-                    or not d.websocket
-                ):
-                continue
-            if not d.has_slot:
-                assert cls.slots[driver.kind].in_use < cls.slots[driver.kind].total
-                d.has_slot = True
-                cls.slots[driver.kind].in_use += 1
-            for o in ops_with_send_alloc:
+            for o in d.get_ops_with_send_allocation():
+                if not d.has_slot:
+                    if self.slots[driver.kind].in_use >= self.slots[driver.kind].total:
+                        continue
+                    d.has_slot = True
+                    self.slots[driver.kind].in_use += 1
                 assert o.opId not in d.ops_pending_done
                 d.ops_pending_send.remove(o)
                 d.ops_pending_done[o.opId] = o
                 o.send_ready.set()
 
     def slot_free(self):
-        self.slots[self.kind].in_use -= 1
-        self.has_slot = False
+        if self.has_slot:
+            self.slots[self.kind].in_use -= 1
+            self.has_slot = False
 
     def terminate(self):
         if 'subprocess' in self:
@@ -147,6 +136,11 @@ class LocalDriver(job_driver.DriverBase):
         stdin.close()
         self.subprocess.set_exit_callback(self._agent_on_exit)
 
+    def _websocket_free(self):
+        self.slot_free()
+        self.run_scheduler(exclude_self=True)
+        self.instances[self.kind].remove(self)
+
 
 def init_class():
     global cfg
@@ -155,4 +149,4 @@ def init_class():
         parallel_slots=(1, int, 'max parallel slots'),
         sequential_slots=(1, int, 'max sequential slots'),
     )
-    return LocalDriver.init_class(cfg)
+    return LocalDriver.init_class()

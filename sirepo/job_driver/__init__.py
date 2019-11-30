@@ -44,7 +44,6 @@ class DriverBase(PKDict):
     def __init__(self, req):
         super().__init__(
             _agentId=job.unique_key(),
-            has_slot=False,
             kind=req.kind,
             ops_pending_done=PKDict(),
             ops_pending_send=[],
@@ -62,16 +61,24 @@ class DriverBase(PKDict):
         for o in self.ops_pending_send:
             if o == op:
                 self.ops_pending_send.remove(o)
-        for o in self.ops_pending_done.copy().values():
+#rjn there should only be one op
+                return
+#rjn it's cheaper to create a list of values (list(x.values()) than a copy of the whole dict.
+#   but we don't need to do that because we are going to exit once found
+        for o in self.ops_pending_done.values():
             if o == op:
                 del self.ops_pending_done[o.opId]
+#rjn there should only be one op
+                return
+#rjn is this a valid assumption?
+        raise AssertionError('could not find opId={} for agentId={}'.format(o.opId, self._agentId))
 
     def destroy_op(self, op):
         assert op not in self.ops_pending_send
         # canceled ops are removed in self.cancel_op()
         if not op.canceled and not op.errored:
             del self.ops_pending_done[op.opId]
-        self.run_scheduler(self)
+        self.run_scheduler()
 
     def get_ops_pending_done_types(self):
         d = collections.defaultdict(int)
@@ -81,9 +88,10 @@ class DriverBase(PKDict):
 
     def get_ops_with_send_allocation(self):
         """Get ops that could be sent assuming outside requirements are met.
-        Outside requirements are an alive websocket connection and the driver
-        having a slot.
+        Outside requirements driver having a slot.
         """
+        if not self.websocket:
+            return []
         r = []
         t = self.get_ops_pending_done_types()
         for o in self.ops_pending_send:
@@ -95,13 +103,6 @@ class DriverBase(PKDict):
             t[o.msg.opName] += 1
             r.append(o)
         return r
-
-    @classmethod
-    def init_class(cls):
-# TODO(e-carlin): this is not right for sbatch driver. No kinds
-        for k in job.KINDS:
-            cls.instances[k] = []
-        return cls
 
     @classmethod
     def receive(cls, msg):
@@ -125,7 +126,7 @@ class DriverBase(PKDict):
 #  we can cache that state in the agent(?) and have it send the response
 #  twice(?).
         self.ops_pending_send.append(op)
-        self.run_scheduler(self)
+        self.run_scheduler()
         await op.send_ready.wait()
         if op.opId in self.ops_pending_done:
             self.websocket.write_message(pkjson.dump_bytes(op.msg))
@@ -137,13 +138,20 @@ class DriverBase(PKDict):
     async def terminate(cls):
         for d in DriverBase.agents.copy().values():
             try:
+#TODO(robnagler) need a timeout on each kill or better do not await
+# here, but send all the kills (scheduling callbacks) and then set
+# a timer callback to do the loop exit in pkcli.job_supervisor
+# with callbacks from the driver saying they've terminated cleanly.
+# this allows a clean callback case for sbatch, which would be nice
+# to get an ack to the clean termination, because it needs to remove
+# stuff from the queue, and it would be good to know about that
                 await d.kill()
             except Exception as e:
                 # If one kill fails still try to kill the rest
                 pkdlog('error={} stack={}', e, pkdexc())
 
     def websocket_on_close(self):
-       self._websocket_free()
+       self.websocket_free()
 
     def _receive(self, msg):
         c = msg.content
@@ -160,11 +168,14 @@ class DriverBase(PKDict):
         """
         if self.websocket:
             if self.websocket == msg.handler:
+#TODO(robnagler) do we want to run_scheduler on alive in all cases?
+#                self.run_scheduler()
                 return
-            self._websocket_free()
+            self.websocket_free()
         self.websocket = msg.handler
         self.websocket.sr_driver_set(self)
-        self.run_scheduler(self)
+#TODO(robnagler) do we want to run_scheduler on alive in all cases?
+        self.run_scheduler()
 
     def _subprocess_cmd_stdin_env(self, env=None, **kwargs):
         return job.subprocess_cmd_stdin_env(
@@ -180,27 +191,24 @@ class DriverBase(PKDict):
             **kwargs,
         )
 
-    def _websocket_free(self):
+    def websocket_free(self):
         """Remove holds on all resources and remove self from data structures"""
         try:
             del self.agents[self._agentId]
-            self.instances[self.kind].remove(self)
-            if self.has_slot:
-                self.slot_free()
             w = self.websocket
-            self.websockt = None
+            self.websocket = None
             if w:
                 # Will not call websocket_on_close()
                 w.sr_close()
-            t = list(
-                self.ops_pending_done.values()
-                )
-            t.extend(self.ops_pending_send)
+            t = list(self.ops_pending_done.values()) + self.ops_pending_send
             self.ops_pending_done.clear()
-            self.ops_pending_send = []
+            self.ops_pending_send.clear()
             for o in t:
                 o.set_errored('websocket closed')
-            self.run_scheduler(self)
+#TODO(robnagler) when the websocket disappears unexpectedly, we don't
+# know that any resources are freed. With docker and local, we can check.
+# For sbatch, we need to ask the user to login again.
+            self._websocket_free()
         except Exception as e:
             pkdlog('error={} stack={}', e, pkdexc())
 

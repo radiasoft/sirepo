@@ -133,8 +133,8 @@ class SimDataBase(object):
         """
         cls._assert_server_side()
         c = cls.compute_model(data)
-        if cls.is_parallel(c):
-            return 'na'
+        if data.get('forceRun') or cls.is_parallel(c):
+            return cls._force_recompute()
         m = data['models']
         res = hashlib.md5()
         for f in sorted(
@@ -541,9 +541,9 @@ class SimDataBase(object):
         Used by `_compute_job_fields`
 
         Returns:
-            str: random value
+            str: random value same length as md5 hash
         """
-        return sirepo.util.random_base62()
+        return sirepo.util.random_base62(32)
 
     @classmethod
     def _frame_id_fields(cls, frame_args):

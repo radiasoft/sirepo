@@ -32,6 +32,9 @@ _NEXT_REQUEST_SECONDS = PKDict({
     job.SEQUENTIAL: 1,
 })
 
+_RUNNING_PENDING = (job.RUNNING, job.PENDING)
+
+
 def init():
     global _DB_DIR
     if _DB_DIR:
@@ -85,7 +88,7 @@ class _ComputeJob(PKDict):
 
     @classmethod
     async def receive(cls, req):
-        pkdlog('api={} uid={}', req.content.api, req.content.uid)
+        pkdlog('{} jid={}', req.content.api, req.content.computeJid)
         return await getattr(
             cls.get_instance(req),
             '_receive_' + req.content.api,
@@ -94,12 +97,14 @@ class _ComputeJob(PKDict):
     @classmethod
     def __create(cls, req):
         try:
-            return cls(
-                req,
-                db=pkcollections.json_load_any(
-                    cls.__db_file(req.content.computeJid),
-                ),
+            d = pkcollections.json_load_any(
+                cls.__db_file(req.content.computeJid),
             )
+#TODO(robnagler) when we reconnet with running processes at startup,
+#  we'll need to change this
+            if d.status in _RUNNING_PENDING:
+                d.status = job.CANCELED
+            return cls(req, db=d)
         except Exception as e:
             if pykern.pkio.exception_is_not_found(e):
                 return cls(req).__db_write()
@@ -117,7 +122,7 @@ class _ComputeJob(PKDict):
             computeJobStart=0,
             error=None,
             history=self.__db_init_history(prev),
-            isParallel=pkdp(c.isParallel),
+            isParallel=c.isParallel,
             jobRunMode=c.jobRunMode,
             simulationId=c.simulationId,
             simulationType=c.simulationType,
@@ -179,6 +184,9 @@ class _ComputeJob(PKDict):
             return await _reply_canceled(self, req)
 
         if self.db.computeJobHash == req.content.computeJobHash:
+#TODO(robnagler) not sure a state table works all that well here.
+#    if statements seem appropriate.
+
             d = PKDict({
                 job.CANCELED: _reply_canceled,
                 job.COMPLETED: _reply_canceled,
@@ -187,27 +195,34 @@ class _ComputeJob(PKDict):
                 job.PENDING: _cancel_queued,
                 job.RUNNING: _cancel_running,
             })
+#TODO(robnagler) why does this not need to be an await
             r = d[self.db.status](self, req)
+#TODO(robnagler) at this point we don't know anything so
+#  we are canceling something we need to validate the state
+# of.
             self.db.status = job.CANCELED
             self.__db_write()
             return await r
+#TODO(robnagler) this is always true, because the previous
+# if was false.
         if self.db.computeJobHash != req.content.computeJobHash:
             self.db.status = job.CANCELED
             self.__db_write()
             return await _cancel_queued(self, req)
 
     async def _receive_api_runSimulation(self, req):
-        pkdp(req.content)
-        if not req.content.get('forceRun') and self.db.status == (job.RUNNING, job.PENDING):
+        if self.db.status == _RUNNING_PENDING:
             if self.db.computeJobHash != req.content.computeJobHash:
+#TODO(robnagler) need to deal with double clicks
+#TODO(robnagler) do transient/sequential sims runSim without a cancel? I think we
+#  should require the GUI to cancel before running so would return an error here
                 raise AssertionError('FIXME')
-            return pkdp(PKDict(state=job.RUNNING))
-        if (req.content.get('forceRun')
-            or self.db.computeJobHash != req.content.computeJobHash
+            return PKDict(state=job.RUNNING)
+        if (self.db.computeJobHash != req.content.computeJobHash
             or self.db.status != job.COMPLETED
         ):
             self.__db_init(req, prev=self.db)
-            pkdp(self.db.jobRunMode)
+            self.db.jobRunMode
             self.db.pkupdate(
                 status=job.PENDING,
                 computeJobStart=int(time.time()),
@@ -220,7 +235,7 @@ class _ComputeJob(PKDict):
             self.__db_write()
             tornado.ioloop.IOLoop.current().add_callback(self._run, req)
         # Read this first https://github.com/radiasoft/sirepo/issues/2007
-        return pkdp(await self._receive_api_runStatus(req))
+        return await self._receive_api_runStatus(req)
 
     async def _receive_api_runStatus(self, req):
         def res(**kwargs):
@@ -231,7 +246,7 @@ class _ComputeJob(PKDict):
                 r.update(**self.db.parallelStatus)
                 r.elapsedTime = r.lastUpdateTime - r.computeJobStart
                 r.computeJobHash = self.db.computeJobHash
-            if self.db.status in (job.RUNNING, job.PENDING):
+            if self.db.status in _RUNNING_PENDING:
                 c = req.content
                 r.update(
                     nextRequestSeconds=self.db.nextRequestSeconds,
@@ -280,6 +295,11 @@ class _ComputeJob(PKDict):
         # message then set self.db.status back to canceled. This works because the
         # await o.reply_ready() doesn't block because there is a cancel message
         # in the q
+#TODO(robnagler) should this not check the state when it comes out of _send()?
+# if it's canceled, then don't run. It should only be PENDING in this state.
+# We talked about reusing status for two purposes: job status and driver queue state.
+# The two probably needed to be separated. status stays pending until the driver (sbatch)
+# says it is running. driver-wise we have "sent run", not "running"
         self.db.status = job.RUNNING
         self.__db_write()
         while True:
@@ -300,6 +320,7 @@ class _ComputeJob(PKDict):
     async def _send(self, opName, req, jobProcessCmd):
         # TODO(e-carlin): proper error handling
         try:
+#TODO(robnagler) kind should be set earlier in the queuing process.
             req.kind = job.PARALLEL if self.db.isParallel and opName != job.OP_ANALYSIS \
                 else job.SEQUENTIAL
             req.simulationType = self.db.simulationType
