@@ -312,13 +312,6 @@ def hack_nfs_write_status(status, run_dir):
     write_status(status, run_dir)
 
 
-def init_by_job_api(have_sbatch):
-    """Called by job_api to initialize JobRunMode"""
-    if not have_sbatch:
-        x = SCHEMA_COMMON.common.enum.JobRunMode.pop(2)
-        assert sirepo.job.SBATCH == x[0]
-
-
 def iterate_simulation_datafiles(simulation_type, op, search=None):
     res = []
     sim_dir = simulation_dir(simulation_type)
@@ -944,15 +937,30 @@ def _find_user_simulation_copy(simulation_type, sid):
 
 def _init():
     global SCHEMA_COMMON, cfg
+    cfg = pkconfig.init(
+        nfs_tries=(10, int, 'How many times to poll in hack_nfs_write_status'),
+        nfs_sleep=(0.5, float, 'Seconds sleep per hack_nfs_write_status poll'),
+        sbatch_display=(None, str, 'how to display sbatch cluster to user'),
+    )
     fn = STATIC_FOLDER.join('json/schema-common{}'.format(JSON_SUFFIX))
     with open(str(fn)) as f:
         SCHEMA_COMMON = json_load(f)
     # In development, you can touch schema-common to get a new version
     SCHEMA_COMMON.version = _timestamp(fn.mtime()) if pkconfig.channel_in('dev') else sirepo.__version__
-    cfg = pkconfig.init(
-        nfs_tries=(10, int, 'How many times to poll in hack_nfs_write_status'),
-        nfs_sleep=(0.5, float, 'Seconds sleep per hack_nfs_write_status poll'),
-    )
+    SCHEMA_COMMON.common.enum.JobRunMode = _init_JobRunMode()
+
+
+def _init_JobRunMode():
+    import sirepo.mpi
+
+#TODO(robnagler) import sequential, parallel, sbatch from job.*
+    res = [
+        ['sequential', 'Serial'],
+        ['parallel', '{} cores (SMP)'.format(sirepo.mpi.cfg.cores)],
+    ]
+    if cfg.sbatch_display:
+        res.append(['sbatch', cfg.sbatch_display])
+    return res
 
 
 def _merge_dicts(base, derived, depth=-1):

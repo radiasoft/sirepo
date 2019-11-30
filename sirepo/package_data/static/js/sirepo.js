@@ -169,11 +169,6 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, $location
     return self;
 });
 
-SIREPO.app.factory('jobState', function(errorService, fileManager, requestQueue, requestSender, $document, $interval, $rootScope, $window) {
-
-    requestSender.jobState
-    }
-
 SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, $document, $interval, $rootScope, $window) {
     var self = {
         models: {},
@@ -1062,38 +1057,22 @@ SIREPO.app.factory('authService', function(appState, authState, requestSender) {
     return self;
 });
 
-SIREPO.app.factory('jobConfig', function(appState, requestSender) {
-    var self = {};
-
-    requestSender.sendRequest(
-        'runStatus',
-        function () {
-        },
-        {
-            simulationType: SIREPO.APP_SCHEMA.simulationType,
-        },
-        process,
-    );
-
-    self.methods = authState.visibleMethods.map(
-        function (method) {
-            return {
-                'label': 'Sign in ' + label(method),
-                'url': requestSender.formatUrlLocal(
-                    'loginWith',
-                    {':method': method}
-                )
-            };
-        }
-    );
-    self.loginUrl = requestSender.formatUrlLocal('login');
-    self.logoutUrl = requestSender.formatUrl(
-        'authLogout',
-        {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
-    );
-    return self;
-});
-
+/* SIREPO.app.factory('jobConfig', function(appState, requestSender) {
+ *     var self = {};
+ *
+ *     requestSender.sendRequest(
+ *         'jobConfig',
+ *         function () {
+ *
+ *         },
+ *         {
+ *             simulationType: SIREPO.APP_SCHEMA.simulationType,
+ *         },
+ *         process,
+ *     );
+ *     return self;
+ * });
+ * */
 SIREPO.app.factory('panelState', function(appState, requestSender, simulationQueue, utilities, validationService, $compile, $rootScope, $timeout, $window) {
     // Tracks the data, error, hidden and loading values
     var self = {};
@@ -2067,8 +2046,8 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, f
             simulationQueueItem: null,
             timeData: {
                 elapsedDays: null,
-                elapsedTime: null,
-            },
+                elapsedTime: null
+            }
         };
 
         function clearSimulation() {
@@ -2198,6 +2177,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, f
             state.timeData.elapsedTime = null;
             state.timeData.elapsedDays = null;
             setSimulationStatus({state: 'pending'});
+            srdbg(appState.models[model]);
             state.simulationQueueItem = simulationQueue.addPersistentItem(
                 state.model,
                 appState.applicationState(),
@@ -2210,7 +2190,14 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, f
                 return;
             }
             simulationStatus().state = 'pending';
+            srdbg(appState.models[model]);
             appState.saveChanges(models, state.runSimulation);
+        };
+
+        state.showJobSettings = function () {
+            return SIREPO.APP_SCHEMA.common.enum.JobRunMode.length >= 3
+                && appState.models[model] && appState.models[model].jobRunMode
+                ? 1 : 0;
         };
 
         state.stateAsText = function() {

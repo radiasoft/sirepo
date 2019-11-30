@@ -64,10 +64,6 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
             'frame={} not found {id} {type}'.format(frame, **req)
         )
 
-@api_perm.require_user
-def api_jobSettings():
-    return _request()
-
 
 @api_perm.require_user
 def api_runCancel():
@@ -78,7 +74,11 @@ def api_runCancel():
 def api_runSimulation():
     t = None
     try:
-        r = _request_data(PKDict(fixup_old_data=True))
+        r = _request_content(PKDict(fixup_old_data=True))
+        r.pkupdate(
+            jobRunMode=_run_mode(r),
+            forceRun=r.data.get('forceRun', False),
+        )
         d = simulation_db.simulation_lib_dir(r.simulationType)
         p = d.join(sirepo.job.LIB_FILE_LIST_URI[1:])
         pykern.pkio.unchecked_remove(p)
@@ -89,10 +89,11 @@ def api_runSimulation():
         t = sirepo.job.LIB_FILE_ROOT.join(sirepo.job.unique_key())
         t.mksymlinkto(d, absolute=False)
         r.libFileUri = sirepo.job.LIB_FILE_ABS_URI + t.basename + '/'
-        return _request(_request_data=r)
+        return _request(_request_content=r)
     finally:
         if t:
             pykern.pkio.unchecked_remove(t)
+
 
 @api_perm.require_user
 def api_runStatus():
@@ -115,12 +116,13 @@ def api_simulationFrame(frame_id):
 
 def init_apis(*args, **kwargs):
 #TODO(robnagler) if we recover connections with agents and running jobs remove this
-    pykern.pkio.unchecked_remove(sirepo.job.LIB_FILE_ROOT)
-    simulation_db.init_by_job_api(sirepo.job.SBATCH in sirepo.job.cfg.drivers)
+    pykern.pkio.unchecked_remove(sirepo.job.LIB_FILE_ROOT, sirepo.job.DATA_FILE_ROOT)
+    pykern.pkio.mkdir_parent(sirepo.job.LIB_FILE_ROOT)
+    pykern.pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
 
 
 def _request(**kwargs):
-    d = kwargs.get('_request_data') or _request_data(PKDict(kwargs))
+    d = kwargs.get('_request_content') or _request_content(PKDict(kwargs))
     r = requests.post(
         sirepo.job.SERVER_ABS_URI,
         data=pkjson.dump_bytes(d),
@@ -130,7 +132,7 @@ def _request(**kwargs):
     return pkjson.load_any(r.content)
 
 
-def _request_data(kwargs):
+def _request_content(kwargs):
     def get_api_name():
         f = inspect.currentframe()
         for _ in range(_MAX_FRAME_SEARCH_DEPTH):
@@ -154,21 +156,47 @@ def _request_data(kwargs):
 ##TODO(robnagler) this should be req_data
     b = PKDict(data=d, **kwargs)
 # TODO(e-carlin): some of these fields are only used for some type of reqs
-    return b.pksetdefault(
-        simulationId=s.parse_sid(d),
-        analysisModel=d.report,
+    return pkdp(b.pksetdefault(
+        analysisModel=lambda: s.parse_model(d),
         api=get_api_name(),
         computeJid=lambda: s.parse_jid(d),
         computeJobHash=lambda: d.get('computeJobHash') or s.compute_job_hash(d),
         computeModel=lambda: s.compute_model(d),
         isParallel=lambda: s.is_parallel(d),
-        reqId=sirepo.job.unique_key(),
+        reqId=lambda: sirepo.job.unique_key(),
 #TODO(robnagler) relative to srdb root
         runDir=lambda: str(simulation_db.simulation_run_dir(d)),
-        simulationType=d.simulationType,
-        uid=sirepo.auth.logged_in_user(),
+        simulationId=lambda: s.parse_sid(d),
+        simulationType=lambda: d.simulationType,
+        uid=lambda: sirepo.auth.logged_in_user(),
     ).pksetdefault(
 #TODO(robnagler) configurable by request
         mpiCores=lambda: sirepo.mpi.cfg.cores if b.isParallel else 1,
         userDir=lambda: str(sirepo.simulation_db.user_dir_name(b.uid)),
-    )
+    ))
+
+
+
+def _run_mode(request_content):
+    if 'models' not in request_content.data:
+        pkdp(request_content)
+        return None
+    pkdp(request_content.data.models.get('animation'))
+    res = request_content.data.models.get(request_content.computeModel, {}).get('jobRunMode')
+    pkdp(res)
+    if not res:
+        return sirepo.job.PARALLEL if request_content.isParallel else sirepo.job.SEQUENTIAL
+    s = sirepo.sim_data.get_class(request_content.simulationType)
+    for r in s.schema().common.enum.JobRunMode:
+        if r[0] == res:
+            break
+    else:
+        # should not be sent
+        raise sirepo.util.Error(
+            'invalid JobRunMode={}'.format(res),
+            'jobRunMode={} computeModel={} computeJid={}',
+            res,
+            request_content.computeModel,
+            request_content.computeJid,
+        )
+    return pkdp(res)

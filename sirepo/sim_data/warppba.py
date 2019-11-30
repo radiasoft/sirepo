@@ -21,6 +21,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._init_models(
             dm,
             (
+                'animation',
                 'beamAnimation',
                 'beamPreviewReport',
                 'electronBeam',

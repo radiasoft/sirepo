@@ -2804,7 +2804,7 @@ SIREPO.app.directive('simSections', function(utilities) {
     };
 });
 
-SIREPO.app.directive('simStatusPanel', function() {
+SIREPO.app.directive('simStatusPanel', function(appState) {
     return {
         restrict: 'A',
         scope: {
@@ -2834,14 +2834,20 @@ SIREPO.app.directive('simStatusPanel', function() {
               '<div data-ng-show="simState.isStateError()">',
                 '<div class="col-sm-12">{{ simState.stateAsText() }}</div>',
               '</div>',
+              '<div data-ng-show="simState.showJobSettings()">',
+                '<div class="form-group form-group-sm">',
+                  '<div data-model-field="jobRunMode" data-model-name="simState.model"></div>',
+                '</div>',
+              '</div>',
               '<div class="col-sm-6 pull-right">',
-                '<button class="btn btn-default" data-ng-click="simState.runSimulation()">Start New Simulation</button>',
+                '<button class="btn btn-default" data-ng-click="start()">Start New Simulation</button>',
               '</div>',
             '</form>',
             '<div class="clearfix"></div>',
             '<div data-ng-if="errorMessage()"><div class="text-danger"><strong>{{ ::appName }} Error:</strong></div><pre>{{ errorMessage() }}</pre></div>',
         ].join(''),
         controller: function($scope) {
+            $scope.jobRunMode = 'jobRunMode';
             $scope.appName = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName;
 
             function callSimState(method) {
@@ -2864,6 +2870,10 @@ SIREPO.app.directive('simStatusPanel', function() {
                 }
                 return callSimState('notRunningMessage')
                     || 'Simulation ' + $scope.simState.stateAsText() + ': ' + $scope.simState.getFrameCount() + ' animation frames';
+            };
+            $scope.start = function() {
+                appState.saveChanges($scope.simState.model);
+                $scope.simState.runSimulation();
             };
         },
     };

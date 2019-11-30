@@ -85,7 +85,8 @@ SEQUENTIAL = 'sequential'
 PARALLEL = 'parallel'
 SBATCH = 'sbatch'
 
-DEFAULT_DRIVER = 'local'
+#: valid jobRunMode values
+RUN_MODES = frozenset((SEQUENTIAL, PARALLEL, SBATCH))
 
 #: categories of jobs
 KINDS = frozenset((SEQUENTIAL, PARALLEL))
@@ -98,15 +99,14 @@ def init():
     if cfg:
         return
     cfg = pkconfig.init(
-        drivers=((DEFAULT_DRIVER,), set, 'available job_driver modules'),
         supervisor_uri=(
             'http://{}:{}'.format(DEFAULT_IP, DEFAULT_PORT),
             str,
             'supervisor base uri',
         ),
     )
-    pkdc('cfg={}', cfg)
-    global SUPERVISOR_SRV_ROOT, LIB_FILE_ROOT, DATA_FILE_ROOT, LIB_FILE_ABS_URI, DATA_FILE_ABS_URI, AGENT_ABS_URI, SERVER_ABS_URI
+    global SUPERVISOR_SRV_ROOT, LIB_FILE_ROOT, DATA_FILE_ROOT, \
+        LIB_FILE_ABS_URI, DATA_FILE_ABS_URI, AGENT_ABS_URI, SERVER_ABS_URI
 
     SUPERVISOR_SRV_ROOT = sirepo.srdb.root().join(SUPERVISOR_SRV_SUBDIR)
     LIB_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(LIB_FILE_URI[1:])
@@ -143,6 +143,7 @@ def subprocess_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.', fork=False):
         **pkconfig.to_environ((
             'pykern.*',
             'sirepo.feature_config.job_supervisor',
+            'sirepo.simulation_db.sbatch_display',
         ))
     )
     t = tempfile.TemporaryFile()

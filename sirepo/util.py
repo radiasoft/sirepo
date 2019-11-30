@@ -7,7 +7,7 @@ u"""Support routines and classes, mostly around errors and I/O.
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdlog, pkdp
+from pykern.pkdebug import pkdlog, pkdp, pkdexc
 import inspect
 import numconv
 import pykern.pkinspect
@@ -138,7 +138,7 @@ def convert_exception(exception, display_text='unexpected error'):
     """
     if isinstance(exception, Reply):
         return exception
-    return UserAlert(display_text, 'exception={} str={}', type(exception), exception)
+    return UserAlert(display_text, 'exception={} str={} stack={}', type(exception), exception, pkdexc())
 
 
 def err(obj, fmt='', *args, **kwargs):

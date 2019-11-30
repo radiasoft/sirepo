@@ -25,6 +25,10 @@ _CLASSES = None
 #: default class when not determined by request
 _DEFAULT_CLASS = None
 
+_DEFAULT_MODULE = 'local'
+
+cfg = None
+
 
 class AgentMsg(PKDict):
 
@@ -48,6 +52,11 @@ class DriverBase(PKDict):
             websocket=None,
         )
         self.agents[self._agentId] = self
+        pkdlog(
+            'class={} agentId={_agentId} kind={kind} uid={uid}',
+            self.__class__.__name__,
+            **self
+        )
 
     def cancel_op(self, op):
         for o in self.ops_pending_send:
@@ -196,21 +205,24 @@ class DriverBase(PKDict):
             pkdlog('error={} stack={}', e, pkdexc())
 
 
-async def get_instance(req):
-    if req.kind == job.PARALLEL and req.jobRunMode == job.SBATCH:
+async def get_instance(req, jobRunMode):
+    if req.kind == job.PARALLEL and jobRunMode == job.SBATCH:
         return await _CLASSES[job.SBATCH].get_instance(req)
     return await _DEFAULT_CLASS.get_instance(req)
 
 
 def init():
-    global _CLASSES, _DEFAULT_CLASS
-    assert not _CLASSES
+    global cfg, _CLASSES, _DEFAULT_CLASS
+    assert not cfg
+    cfg = pkconfig.init(
+        modules=((_DEFAULT_MODULE,), set, 'available job driver modules'),
+    )
     _CLASSES = PKDict()
     p = pkinspect.this_module().__name__
-    for n in job.cfg.drivers:
+    for n in cfg.modules:
         m = importlib.import_module(pkinspect.module_name_join((p, n)))
         _CLASSES[n] = m.init_class()
-    _DEFAULT_CLASS = _CLASSES.get('docker') or _CLASSES.get(job.DEFAULT_DRIVER)
+    _DEFAULT_CLASS = _CLASSES.get('docker') or _CLASSES.get(_DEFAULT_MODULE)
 
 
 async def terminate():

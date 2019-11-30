@@ -555,7 +555,7 @@ class SimDataBase(object):
     @classmethod
     def _init_models(cls, models, names=None, dynamic=None):
         if names:
-            names = list(names) + ['jobSettings', 'simulation']
+            names = set(list(names) + ['simulation'])
         for n in names or cls.schema().model:
             cls.update_model_defaults(
                 models.setdefault(n, pkcollections.Dict()),

@@ -159,7 +159,8 @@
     },
     "model": {
         "animation": {
-            "allowSbatch": ["allowSbatch", "Constant", "1"]
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "sbatchCores": ["Cores", "Integer", 100]
         },
         "beamAnimation": {
             "x": ["X Value", "XValue", "z"],

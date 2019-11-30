@@ -73,6 +73,55 @@ SIREPO.app.controller('WarpPBADynamicsController', function(appState, frameCache
     self.simState.initMessage = function() {
         return 'Initializing Laser Pulse and Plasma';
     };
+
+    /* SIREPO.app.directive('srJobsettingsEditor', function(appState, panelState) {
+     *     return {
+     *         restrict: 'A',
+     *         controller: function($scope) {
+     *
+     *             function jobRunModeChanged() {
+     *                 if (! appState.models.jobSettings) {
+     *                     return;
+     *                 }
+     *                 if (jobState.isReady()) {
+     *                     processFields();
+     *                     return;
+     *                 }
+     *                 jobService.checkReady(
+     *                     sends request
+     *                     function (auth_request) {
+     *                         if
+     *                         sorry no nersc, popup sbatch directive;
+     *                         else processFields();
+     *                     }
+     *                 }
+     * revert jobRunMode if no credentials
+     * cancel changes to model
+     * //                srdbg('check user logged in');
+     *
+     *             }
+     *             function processFields() {
+     *                 if (! appState.models.jobSettings) {
+     *                     return;
+     *                 }
+     *                 appState
+     *                 do not show jobRunMode sbatch if no sbatch;
+     *                 var isSbatch = appState.models.jobSettings.jobRunMode == 'sbatch';
+     *                 panelState.showField('jobSettings', 'jobCores', isSbatch);
+     *                 panelState.showField('jobSettings', 'jobDbRoot', isSbatch);
+     *                 jobState controlls pr
+     *                 panelState.showField('jobSettings', 'jobProject', isSbatch);
+     *
+     *             }
+     *
+     *             appState.whenModelsLoaded($scope, function() {
+     *                 appState.watchModelFields($scope, ['jobSettings.jobRunMode'], jobRunModeChanged);
+     *                 processFields();
+     *             });
+     *         },
+     *     };
+     * });
+     * */
 });
 
 SIREPO.app.controller('WarpPBASourceController', function(appState, frameCache, warpPBAService, $scope) {
@@ -378,53 +427,5 @@ SIREPO.app.directive('appHeader', function() {
               '</app-header-right-sim-list>',
             '</div>',
         ].join(''),
-    };
-});
-
-SIREPO.app.directive('srJobsettingsEditor', function(appState, panelState) {
-    return {
-        restrict: 'A',
-        controller: function($scope) {
-
-            function jobRunModeChanged() {
-                if (! appState.models.jobSettings) {
-                    return;
-                }
-                if (jobState.isReady()) {
-                    processFields();
-                    return;
-                }
-                jobService.checkReady(
-                    sends request
-                    function (auth_request) {
-                        if
-                        sorry no nersc, popup sbatch directive;
-                        else processFields();
-                    }
-                }
-revert jobRunMode if no credentials
-cancel changes to model
-//                srdbg('check user logged in');
-
-            }
-            function processFields() {
-                if (! appState.models.jobSettings) {
-                    return;
-                }
-                appState
-                do not show jobRunMode sbatch if no sbatch;
-                var isSbatch = appState.models.jobSettings.jobRunMode == 'sbatch';
-                panelState.showField('jobSettings', 'jobCores', isSbatch);
-                panelState.showField('jobSettings', 'jobDbRoot', isSbatch);
-                jobState controlls pr
-                panelState.showField('jobSettings', 'jobProject', isSbatch);
-
-            }
-
-            appState.whenModelsLoaded($scope, function() {
-                appState.watchModelFields($scope, ['jobSettings.jobRunMode'], jobRunModeChanged);
-                processFields();
-            });
-        },
     };
 });

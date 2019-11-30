@@ -211,9 +211,7 @@
                 ["contrast", "high contrast"]
             ],
             "JobRunMode": [
-                ["serial", "Serial"],
-                ["parallel", "Parallel"],
-                ["sbatch", "Sbatch"]
+                ["parallel", "initialized by simulation_db.init_by_job_api"]
             ],
             "FramesPerSecond": [
                 ["1", "1"],
@@ -331,9 +329,9 @@
         },
         "model": {
             "jobSettings": {
-                "jobRunMode": ["Execution Mode", "JobRunMode", "serial"],
+                "JobRunMode": ["Execution Mode", "JobKind", "serial"],
                 "jobDbRoot": ["Remote Folder", "String", ""],
-                "jobCores": ["Cores", "Integer", 0],
+                "sbatchCores": ["Cores", "Integer", 0],
                 "jobProject": ["Project", "String", ""]
             },
             "simFolder": {
@@ -386,8 +384,8 @@
             "jobSettings": {
                 "title": "Job Settings",
                 "basic": [
-                    "jobKind",
-                    "jobCores",
+                    "jobRunMode",
+                    "sbatchCores",
                     "jobDbRoot",
                     "jobProject"
                 ],

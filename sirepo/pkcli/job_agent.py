@@ -228,6 +228,7 @@ class _JobProcess(PKDict):
             PKDict(
                 PYTHONUNBUFFERED='1',
                 SIREPO_AUTH_LOGGED_IN_USER=sirepo.auth.logged_in_user(),
+#TODO(robnagler) probably should justbe in job.py cascaded
                 SIREPO_MPI_CORES=self.msg.mpiCores,
                 SIREPO_SIM_LIB_FILE_URI=self.msg.get('libFileUri', ''),
                 SIREPO_SRDB_ROOT=sirepo.srdb.root(),

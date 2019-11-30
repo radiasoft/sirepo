@@ -94,8 +94,10 @@ def init_class():
 
     cfg = pkconfig.init(
         host=pkconfig.Required(str, 'host name for slum controller'),
-        host_key=pkconfig.Required(bytes, 'host key'),
+        host_key=pkconfig.Required(str, 'host key'),
     )
-    _KNOWN_HOSTS = cfg.host_key if cfg.host in cfg.host_key \
+    _KNOWN_HOSTS = (
+        cfg.host_key if cfg.host in cfg.host_key
         else '{} {}'.format(cfg.host, cfg.host_key)
+    ).encode('ascii')
     return SBatchDriver.init_class()

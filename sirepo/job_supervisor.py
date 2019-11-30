@@ -6,6 +6,7 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
+from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from sirepo import job
@@ -25,6 +26,11 @@ _DB_DIR = None
 #: where job db is stored under srdb.root
 _DB_SUBDIR = 'supervisor-job'
 
+_NEXT_REQUEST_SECONDS = PKDict({
+    job.PARALLEL: 2,
+    job.SBATCH: 10 if pkconfig.channel_in('dev') else 60,
+    job.SEQUENTIAL: 1,
+})
 
 def init():
     global _DB_DIR
@@ -79,6 +85,7 @@ class _ComputeJob(PKDict):
 
     @classmethod
     async def receive(cls, req):
+        pkdlog('api={} uid={}', req.content.api, req.content.uid)
         return await getattr(
             cls.get_instance(req),
             '_receive_' + req.content.api,
@@ -110,13 +117,15 @@ class _ComputeJob(PKDict):
             computeJobStart=0,
             error=None,
             history=self.__db_init_history(prev),
-            isParallel=c.isParallel,
+            isParallel=pkdp(c.isParallel),
+            jobRunMode=c.jobRunMode,
             simulationId=c.simulationId,
             simulationType=c.simulationType,
 #TODO(robnagler) when would req come in with status?
             status=req.get('status', job.MISSING),
             uid=c.uid,
         )
+        self.db.nextRequestSeconds = _NEXT_REQUEST_SECONDS[c.jobRunMode]
         if self.db.isParallel:
             self.db.parallelStatus = PKDict(
                 elapsedTime=0,
@@ -188,15 +197,17 @@ class _ComputeJob(PKDict):
             return await _cancel_queued(self, req)
 
     async def _receive_api_runSimulation(self, req):
-        if self.db.status == (job.RUNNING, job.PENDING):
+        pkdp(req.content)
+        if not req.content.get('forceRun') and self.db.status == (job.RUNNING, job.PENDING):
             if self.db.computeJobHash != req.content.computeJobHash:
                 raise AssertionError('FIXME')
-            return PKDict(state=job.RUNNING)
+            return pkdp(PKDict(state=job.RUNNING))
         if (req.content.get('forceRun')
             or self.db.computeJobHash != req.content.computeJobHash
             or self.db.status != job.COMPLETED
         ):
             self.__db_init(req, prev=self.db)
+            pkdp(self.db.jobRunMode)
             self.db.pkupdate(
                 status=job.PENDING,
                 computeJobStart=int(time.time()),
@@ -209,7 +220,7 @@ class _ComputeJob(PKDict):
             self.__db_write()
             tornado.ioloop.IOLoop.current().add_callback(self._run, req)
         # Read this first https://github.com/radiasoft/sirepo/issues/2007
-        return await self._receive_api_runStatus(req)
+        return pkdp(await self._receive_api_runStatus(req))
 
     async def _receive_api_runStatus(self, req):
         def res(**kwargs):
@@ -223,7 +234,7 @@ class _ComputeJob(PKDict):
             if self.db.status in (job.RUNNING, job.PENDING):
                 c = req.content
                 r.update(
-                    nextRequestSeconds=2 if self.db.isParallel else 1,
+                    nextRequestSeconds=self.db.nextRequestSeconds,
                     nextRequest=PKDict(
                         report=c.analysisModel,
                         computeJobHash=self.db.computeJobHash,
@@ -245,7 +256,8 @@ class _ComputeJob(PKDict):
     async def _receive_api_simulationFrame(self, req):
         assert self.db.computeJobHash == req.content.computeJobHash
         return await self._send_with_single_reply(
-            job.OP_ANALYSIS, req,
+            job.OP_ANALYSIS,
+            req,
             'get_simulation_frame'
         )
 
@@ -276,7 +288,7 @@ class _ComputeJob(PKDict):
             if self.db.status == job.ERROR:
                 self.db.error = r.get('error', '<unknown error>')
             if 'parallelStatus' in r:
-                assert self.isParallel
+                assert self.db.isParallel
                 self.db.parallelStatus.update(r.parallelStatus)
                 #TODO(robnagler) will need final frame count
             # TODO(e-carlin): What if this never comes?
@@ -294,7 +306,7 @@ class _ComputeJob(PKDict):
             # TODO(e-carlin): We need to be able to cancel requests waiting in this
             # state. Currently we assume that all requests get a driver and the
             # code does not block.
-            d = await job_driver.get_instance(req)
+            d = await job_driver.get_instance(req, self.db.jobRunMode)
             o = _Op(
                 driver=d,
                 msg=PKDict(
