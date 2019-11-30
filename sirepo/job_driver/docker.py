@@ -80,7 +80,7 @@ class DockerDriver(job_driver.DriverBase):
         return cls(req, h)
 
     def free_slots(self):
-        for d in self.host.drivers[driver.kind]:
+        for d in self.host.drivers[self.kind]:
             if d.has_slot and not d.ops_pending_done:
                 d.slot_free()
 

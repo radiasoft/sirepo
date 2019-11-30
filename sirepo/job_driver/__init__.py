@@ -129,6 +129,7 @@ class DriverBase(PKDict):
         self.run_scheduler()
         await op.send_ready.wait()
         if op.opId in self.ops_pending_done:
+            pkdlog('op={} agentId={} opId={}', op.opName, self._agentId, op.opId)
             self.websocket.write_message(pkjson.dump_bytes(op.msg))
         else:
             pkdlog('canceled op={}', job.LogFormatter(op))
@@ -156,6 +157,7 @@ class DriverBase(PKDict):
     def _receive(self, msg):
         c = msg.content
         i = c.get('opId')
+        pkdlog('{} agentId={} opId={}', c.opName, self._agentId, i)
         if i:
             self.ops_pending_done[i].reply_put(c.reply)
         else:

@@ -81,7 +81,7 @@ class SBatchDriver(job_driver.DriverBase):
                 )
             )
             async with c.create_process(' '.join(cmd)) as p:
-                o, e = await p.communicate(input=pkdp(stdin.read().decode('utf-8')))
+                o, e = await p.communicate(input=stdin.read().decode('utf-8'))
                 assert o == '' and e == '', \
                     'stdout={} stderr={}'.format(o, e)
             stdin.close()

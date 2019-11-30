@@ -75,7 +75,6 @@ def api_runSimulation():
     t = None
     try:
         r = _request_content(PKDict(fixup_old_data=True))
-        r.pkupdate(jobRunMode=_run_mode(r))
         d = simulation_db.simulation_lib_dir(r.simulationType)
         p = d.join(sirepo.job.LIB_FILE_LIST_URI[1:])
         pykern.pkio.unchecked_remove(p)
@@ -167,11 +166,11 @@ def _request_content(kwargs):
         simulationType=lambda: d.simulationType,
         uid=lambda: sirepo.auth.logged_in_user(),
     ).pksetdefault(
-#TODO(robnagler) configurable by request
+        jobRunMode=_run_mode(b),
+#TODO(robnagler) configured by job_supervisor
         mpiCores=lambda: sirepo.mpi.cfg.cores if b.isParallel else 1,
         userDir=lambda: str(sirepo.simulation_db.user_dir_name(b.uid)),
     )
-
 
 
 def _run_mode(request_content):

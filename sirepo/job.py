@@ -149,9 +149,9 @@ def subprocess_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.', fork=False):
     t = tempfile.TemporaryFile()
     c = ' '.join(("'{}'".format(x) for x in cmd))
     if fork:
-        c = 'setsid ' + c + ' >& /dev/null'
+        c = 'setsid ' + c + ' >& agent.log'
 # TODO(e-carlin): centos7 setsid doesn't have --fork
-        # c = 'setsid --fork ' + c + ' >& /dev/null'
+        # c = 'setsid --fork ' + c + ' >& agent.log'
     else:
         c = 'exec ' + c
     # POSIT: we control all these values

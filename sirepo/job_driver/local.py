@@ -15,6 +15,7 @@ import collections
 import os
 import sirepo.job_driver
 import sirepo.srdb
+import subprocess
 import tornado.ioloop
 import tornado.process
 import tornado.queues
@@ -38,6 +39,12 @@ class LocalDriver(job_driver.DriverBase):
         self.has_slot = False
         self.instances[self.kind].append(self)
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
+
+    def free_slots(self):
+        for d in self.instances[self.kind]:
+            if d.has_slot and not d.ops_pending_done:
+                d.slot_free()
+        assert self.slots[self.kind].in_use > -1
 
     @classmethod
     async def get_instance(cls, req):
@@ -85,25 +92,19 @@ class LocalDriver(job_driver.DriverBase):
         )
         await self._agent_exit.wait()
 
-    def free_slots(self):
-        for d in self.instances[self.kind]:
-            if d.has_slot and not d.ops_pending_done:
-                d.slot_free()
-        assert self.slots[kind].in_use > -1
-
     def run_scheduler(self, exclude_self=False):
         self.free_slots()
         i = self.instances[self.kind].index(self)
         # start iteration from index of current driver to enable fair scheduling
-        for d in self.instances[driver.kind][i:] + self.instances[driver.kind][:i]:
+        for d in self.instances[self.kind][i:] + self.instances[self.kind][:i]:
             if exclude_self and d == self:
                 continue
             for o in d.get_ops_with_send_allocation():
                 if not d.has_slot:
-                    if self.slots[driver.kind].in_use >= self.slots[driver.kind].total:
+                    if self.slots[self.kind].in_use >= self.slots[self.kind].total:
                         continue
                     d.has_slot = True
-                    self.slots[driver.kind].in_use += 1
+                    self.slots[self.kind].in_use += 1
                 assert o.opId not in d.ops_pending_done
                 d.ops_pending_send.remove(o)
                 d.ops_pending_done[o.opId] = o
@@ -122,18 +123,33 @@ class LocalDriver(job_driver.DriverBase):
         self._agent_exit.set()
         self.pkdel('subprocess')
         k = self.pkdel('kill_timeout')
-        self._agentExecDir.remove(rec=True, ignore_errors=True) # TODO(e-carlin): verify
+        # TODO(e-carlin): verify
+        #TODO(robnagler) what is there to verify? Maybe add to a test?
         if k:
             tornado.ioloop.IOLoop.current().remove_timeout(k)
+        if not pkconfig.channel_in('dev'):
+            self._agentExecDir.remove(rec=True, ignore_errors=True)
 
     async def _agent_start(self):
         cmd, stdin, env = self._subprocess_cmd_stdin_env(cwd=self._agentExecDir)
-        self.subprocess = tornado.process.Subprocess(
-            cmd,
-            env=env,
-            stdin=stdin,
-        )
-        stdin.close()
+        pkdlog('dir={}', self._agentExecDir)
+        # since this is local, we can make the directory; useful for debugging
+        pkio.mkdir_parent(self._agentExecDir)
+#TODO(robnagler) log to pkdebug output directly
+        o = self._agentExecDir.join('agent.log').open('w')
+        try:
+            self.subprocess = tornado.process.Subprocess(
+                cmd,
+                env=env,
+                stdin=stdin,
+                stdout=o,
+                stderr=subprocess.STDOUT,
+            )
+        finally:
+            if stdin:
+                stdin.close()
+            if o:
+                o.close()
         self.subprocess.set_exit_callback(self._agent_on_exit)
 
     def _websocket_free(self):

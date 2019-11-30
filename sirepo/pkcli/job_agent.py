@@ -306,7 +306,7 @@ class _JobProcess(PKDict):
 
 class _DockerJobProcess(_JobProcess):
 
-    def subprocess_cmd_stdin_env(self):
+    def xxx_subprocess_cmd_stdin_env(self):
         # The volumes mounted and no cascading of env is problematic for docker. Docker is
         # is going to be replaced with singulatiry which doesn't have these problems so
         # it is fine for now
@@ -318,7 +318,7 @@ class _DockerJobProcess(_JobProcess):
             PKDict()
         )
 
-    def kill(self):
+    def xxxxkill(self):
         self._terminating = True
         subprocess.check_call(_docker_rm_cmd(self._container_name))
 
