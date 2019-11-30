@@ -12,10 +12,10 @@ pykern.pksetup.setup(
     description='accelerator code gui',
     install_requires=[
         # some "concrete" dependencies in requirements.txt
-        'Flask>=1.1; python_version < "3"',
+        'Flask>=1.1',
         'Flask-OAuthlib; python_version < "3"',
         'Flask-Mail; python_version < "3"',
-        'Flask_SQLAlchemy; python_version < "3"',
+        'Flask_SQLAlchemy',
         'SQLAlchemy; python_version < "3"',
         'aenum',
         'beaker; python_version < "3"',
@@ -37,6 +37,7 @@ pykern.pksetup.setup(
         'sympy; python_version < "3"',
         'user-agents',
         'uwsgi',
+        'werkzeug',
 #        'docker; python_version >= "3"',
         'tornado >= 6; python_version >= "3"',
    ],
