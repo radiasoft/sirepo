@@ -127,6 +127,7 @@ class LocalDriver(job_driver.DriverBase):
         #TODO(robnagler) what is there to verify? Maybe add to a test?
         if k:
             tornado.ioloop.IOLoop.current().remove_timeout(k)
+        pkdlog('agentId={} returncode={}', self._agentId, returncode)
         if pkconfig.channel_in('dev'):
             if returncode != 0 and self._log.size() > 0:
                 pkdlog('{}: {}', self._log, self._log.read())
@@ -134,14 +135,16 @@ class LocalDriver(job_driver.DriverBase):
             self._agentExecDir.remove(rec=True, ignore_errors=True)
 
     async def _agent_start(self):
-        cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agentExecDir)
-        pkdlog('dir={}', self._agentExecDir)
-        # since this is local, we can make the directory; useful for debugging
-        pkio.mkdir_parent(self._agentExecDir)
-#TODO(robnagler) log to pkdebug output directly
-        self._log = self._agentExecDir.join('agent.log')
-        o = self._log.open('w')
+        stdin = None
+        o = None
         try:
+            cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agentExecDir)
+            pkdlog('dir={}', self._agentExecDir)
+            # since this is local, we can make the directory; useful for debugging
+            pkio.mkdir_parent(self._agentExecDir)
+    #TODO(robnagler) log to pkdebug output directly
+            self._log = self._agentExecDir.join('agent.log')
+            o = self._log.open('w')
             self.subprocess = tornado.process.Subprocess(
                 cmd,
                 env=env,
@@ -149,12 +152,20 @@ class LocalDriver(job_driver.DriverBase):
                 stdout=o,
                 stderr=subprocess.STDOUT,
             )
+            self.subprocess.set_exit_callback(self._agent_on_exit)
+        except Exception as e:
+            pkdlog(
+                'agentId={} exception={} log={}',
+                self._agentId,
+                e,
+                self._log.read(),
+            )
+            return
         finally:
             if stdin:
                 stdin.close()
             if o:
                 o.close()
-        self.subprocess.set_exit_callback(self._agent_on_exit)
 
     def _websocket_free(self):
         self.slot_free()

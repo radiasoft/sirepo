@@ -66,23 +66,6 @@ _REPORT = 'heightWeightReport'
 
 
 @_setup
-def test_runStatus(fc, sim_data):
-    from pykern.pkdebug import pkdc, pkdp, pkdlog
-    from sirepo import job
-
-    run = fc.sr_post(
-        'runStatus',
-        dict(
-            report=_REPORT,
-            simulationId=sim_data.models.simulation.simulationId,
-            simulationType=sim_data.simulationType,
-            computeJobHash='fakeHash',
-        ),
-    )
-    assert run.state == job.MISSING
-
-
-@_setup
 def test_runCancel(fc, sim_data):
     from pykern import pkunit
     from pykern.pkdebug import pkdc, pkdp, pkdlog

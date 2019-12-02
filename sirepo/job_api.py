@@ -180,17 +180,19 @@ def _run_mode(request_content):
         return request_content
 #TODO(robnagler) make sure this is set for animation sim frames
     m = request_content.data.models.get(request_content.computeModel)
-    res = m and m.get('jobRunMode')
-    if not res:
-        b.jobRunMode = sirepo.job.PARALLEL if request_content.isParallel else sirepo.job.SEQUENTIAL
-        return b
+    j = m and m.get('jobRunMode')
+    if not j:
+        request_content.jobRunMode = sirepo.job.PARALLEL if request_content.isParallel \
+            else sirepo.job.SEQUENTIAL
+        return request_content
     s = sirepo.sim_data.get_class(request_content.simulationType)
     for r in s.schema().common.enum.JobRunMode:
-        if r[0] == res:
-            b.jobRunMode = res
-            b.sbatchCores = m.get('sbatchCores')
-            b.sbatchHours = m.get('sbatchHours')
-            return res
+        if r[0] == j:
+            return request_content.pkupdate(
+                jobRunMode=j,
+                sbatchCores=m.sbatchCores,
+                sbatchHours=m.sbatchHours,
+            )
     raise sirepo.util.Error(
         'invalid JobRunMode={}'.format(res),
         'jobRunMode={} computeModel={} computeJid={}',

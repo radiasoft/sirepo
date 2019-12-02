@@ -341,7 +341,7 @@ class _SbatchRun(_SbatchCmd):
         if self._terminating:
             return
         o = subprocess.check_output(
-            ('sbatch', self._sbatch_script())
+            ('sbatch', self._sbatch_script()),
             cwd=str(self.run_dir),
             stdin=subprocess.DEVNULL,
             sdterr=subprocess.STDOUT,
@@ -367,11 +367,11 @@ class _SbatchRun(_SbatchCmd):
             return
         await super().start()
 
-    def _prepare_simulation(self):
+    async def _prepare_simulation(self):
         c = _SBatchCmd(
             msg=self.msg.copy().pkupdate(jobCmd='prepare_simulation'),
         )
-        c.start()
+        await c.start()
         await c._await_exit()
 
     def _sbatch_script(self):
@@ -437,7 +437,7 @@ EOF
             self._status_cb.stop()
             c = s == 'COMPLETED'
             self._completed_sentinel.write(job.COMPLETED if c else job.ERROR)
-            if s != 'COMPLETED':
+            if not c:
                 self.dispatcher.send(
                     self.dispatcher.format_op(
                         self.msg,
@@ -498,34 +498,6 @@ class _Process(PKDict):
         self._exit.set()
 
 
-class _ReadJsonlStream(_Stream):
-    def __init__(self, stream, cmd):
-        self.proceed_with_read = tornado.locks.Condition()
-        self.read_occurred = tornado.locks.Condition()
-        super().__init__(stream)
-
-    async def _read_stream(self):
-        self.text = await self._stream.read_until(b'\n', self._MAX)
-        pkdc('stdout={}', self.text[:1000])
-        await self.cmd.on_stdout_read(self.text)
-
-
-class _ReadUntilCloseStream(_Stream):
-    def __init__(self, stream):
-        super().__init__(stream)
-
-    async def _read_stream(self):
-        t = await self._stream.read_bytes(
-            self._MAX - len(self.text),
-            partial=True,
-        )
-        pkdc('stderr={}', t)
-        l = len(self.text) + len(t)
-        assert l < self._MAX, \
-            'len(bytes)={} greater than _MAX={}'.format(l, _MAX)
-        self.text.extend(t)
-
-
 class _Stream(PKDict):
     _MAX = int(1e8)
 
@@ -549,3 +521,32 @@ class _Stream(PKDict):
 
     async def _read_stream(self):
         raise NotImplementedError()
+
+
+class _ReadJsonlStream(_Stream):
+    def __init__(self, stream, cmd):
+        self.proceed_with_read = tornado.locks.Condition()
+        self.read_occurred = tornado.locks.Condition()
+        self.cmd = cmd
+        super().__init__(stream)
+
+    async def _read_stream(self):
+        self.text = await self._stream.read_until(b'\n', self._MAX)
+        pkdc('stdout={}', self.text[:1000])
+        await self.cmd.on_stdout_read(self.text)
+
+
+class _ReadUntilCloseStream(_Stream):
+    def __init__(self, stream):
+        super().__init__(stream)
+
+    async def _read_stream(self):
+        t = await self._stream.read_bytes(
+            self._MAX - len(self.text),
+            partial=True,
+        )
+        pkdc('stderr={}', t)
+        l = len(self.text) + len(t)
+        assert l < self._MAX, \
+            'len(bytes)={} greater than _MAX={}'.format(l, _MAX)
+        self.text.extend(t)

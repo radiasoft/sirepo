@@ -227,8 +227,8 @@ class _ComputeJob(PKDict):
                 r.update(
                     nextRequestSeconds=self.db.nextRequestSeconds,
                     nextRequest=PKDict(
-                        report=c.analysisModel,
                         computeJobHash=self.db.computeJobHash,
+                        report=c.analysisModel,
                         simulationId=self.db.simulationId,
                         simulationType=self.db.simulationType,
                     ),
@@ -310,7 +310,12 @@ class _ComputeJob(PKDict):
             d = await job_driver.get_instance(req, self.db.jobRunMode)
             o = _Op(
                 driver=d,
-                msg=PKDict(req.content).pkupdate(jobCmd=jobCmd, **kwargs),
+                msg=PKDict(
+                    req.content
+                ).pkupdate(
+                    jobCmd=jobCmd,
+                    **kwargs,
+                ).pksetdefault(jobRunMode=self.db.jobRunMode),
                 opName=opName,
             )
             self._ops.append(o)
