@@ -9,9 +9,13 @@ if true; then
     export SIREPO_JOB_DRIVER_SBATCH_HOST=v8.radia.run
     export SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=/home/vagrant/.pyenv/versions/py3/bin/sirepo
     export SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/var/tmp/{sbatch_user}/sirepo'
+    export SIREPO_JOB_DRIVER_SBATCH_USER=vagrant
+    export SIREPO_JOB_DRIVER_SBATCH_SHIFTER_IMAGE=radiasoft/sirepo:sbatch
     export SIREPO_SIMULATION_DB_SBATCH_DISPLAY='V8 Cluster'
+    export SIREPO_JOB_DRIVER_SBATCH_CORES=4
 else
     export SIREPO_JOB_DRIVER_SBATCH_HOST=cori.nersc.gov
+    export SIREPO_JOB_DRIVER_SBATCH_PASSWORD=nagler
     export SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=/global/homes/n/nagler/.pyenv/versions/py3/bin/sirepo
     export SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/global/cscratch1/sd/{sbatch_user}/sirepo'
     export SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Cori@NERSC'

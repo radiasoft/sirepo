@@ -52,13 +52,12 @@ def default_command(in_file):
     )
 
 
-def _background_percent_complete(msg, template):
+def _background_percent_complete(msg, template, is_running):
     r = template.background_percent_complete(
         msg.data.report,
         msg.runDir,
-        msg.isRunning,
+        is_running,
     )
-    r.pkdel('computeJobStart')
 #TODO(robnagler) this is incorrect, because we want to see file updates
 #   not just our polling frequency
     r.pksetdefault(lastUpdateTime=lambda: _mtime_or_now(msg.runDir))
@@ -75,16 +74,12 @@ def _do_cancel(msg, template):
 
 def _do_compute(msg, template):
     msg.runDir = pkio.py_path(msg.runDir)
-    with pkio.save_chdir('/'):
-        pkio.unchecked_remove(msg.runDir)
-        pkio.mkdir_parent(msg.runDir)
     msg.simulationStatus = PKDict(
         computeJobStart=int(time.time()),
         state=job.RUNNING,
     )
     try:
-        with open(
-                str(msg.runDir.join(template_common.RUN_LOG)), 'w') as run_log:
+        with msg.runDir.join(template_common.RUN_LOG).open('w') as run_log:
             p = subprocess.Popen(
                 _do_prepare_simulation(msg, template).cmd,
                 stdout=run_log,
@@ -92,53 +87,20 @@ def _do_compute(msg, template):
             )
         while True:
             r = p.poll()
+            i = r is None
             if msg.isParallel:
-                msg.isRunning = r is None
                 # TODO(e-carlin): This has a potential to fail. We likely
                 # don't want the job to fail in this case
-                _write_parallel_status(msg, template)
-            if r is None:
+                _write_parallel_status(msg, template, i)
+            if i:
                 time.sleep(msg.nextRequestSeconds)
+            elif r != 0:
+                return PKDict(state=job.ERROR, error='non zero returncode={}'.format(r))
             else:
-                assert r == 0, 'non zero returncode={}'.format(r)
-                break
+                return PKDict(state=job.COMPLETED)
     except Exception as e:
         return PKDict(state=job.ERROR, error=str(e), stack=pkdexc())
-    return PKDict(state=job.COMPLETED)
-
-
-def _do_get_sbatch_parallel_status_once(msg, template):
-    # TODO(e-carlin): This has a potential to fail. We likely
-    # don't want the job to fail in this case
-    _write_parallel_status(msg, template)
-    return PKDict(state=msg.simulationStatus.state)
-
-
-
-def _do_get_sbatch_parallel_status(msg, template):
-    while True:
-        o = subprocess.check_output(
-            ('scontrol', 'show', 'job', job_id)
-        ).decode('utf-8')
-        r = re.search(r'(?<=JobState=)(.*)(?= Reason)', o) # TODO(e-carlin): Make middle [A-Z]+
-        assert r, 'output={}'.format(s)
-        return r.group().lower()
-        _do_get_sbatch_parallel_status_once(msg, template)
-        time.sleep(msg.nextRequestSeconds)
-
-
-        while True:
-            s = self._get_job_sbatch_state(job_id)
-            assert s in ('running', 'pending', 'completed', 'completing'), \
-                'invalid state={}'.format(s)
-            if s in ('running', 'completed', 'completing'):
-                if not parallel_status_running:
-                    self._begin_get_parallel_status()
-                    parallel_status_running = True
-            if s == 'completed':
-                break
-            await tornado.gen.sleep(self.msg.nextRequestSeconds)
-        self._kill_parallel_status_process()
+    # DOES NOT RETURN
 
 
 def _do_get_simulation_frame(msg, template):
@@ -170,6 +132,21 @@ def _do_prepare_simulation(msg, template):
     )
 
 
+def _do_sbatch_status(msg, template):
+    p = 'PENDING'
+    s = pkio.path_path(msg.stopSentinel)
+    while True:
+        if s.exists():
+            if job.COMPLETED not in s.read():
+                return
+            _write_parallel_status(msg, template, False)
+            pkio.unchecked_remove(s)
+            return PKDict(state=job.COMPLETED)
+        time.sleep(msg.nextRequestSeconds)
+        _write_parallel_status(msg, template, True)
+    # DOES NOT RETURN
+
+
 def _do_sequential_result(msg, template):
     r = simulation_db.read_result(msg.runDir)
     # Read this first: https://github.com/radiasoft/sirepo/issues/2007
@@ -193,12 +170,12 @@ def _mtime_or_now(path):
     return int(path.mtime() if path.exists() else time.time())
 
 
-def _write_parallel_status(msg, template):
+def _write_parallel_status(msg, template, is_running):
     sys.stdout.write(
         pkjson.dump_pretty(
             PKDict(
-                state=job.RUNNING if msg.isRunning else job.COMPLETED,
-                parallelStatus=_background_percent_complete(msg, template),
+                state=job.RUNNING,
+                parallelStatus=_background_percent_complete(msg, template, is_running),
             ),
             pretty=False,
         ) + '\n',

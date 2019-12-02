@@ -27,9 +27,9 @@ class SBatchDriver(job_driver.DriverBase):
     def __init__(self, req):
         super().__init__(req)
         m = req.content
-#TODO(robnagler) read a db for an sbatchuser
-        self.__user = 'nagler'
-        self.__srdb_root = cfg.srdb_root.format(sbatchUser=self.__user)
+#TODO(robnagler) read a db for an sbatch_user
+        self._user = cfg.sbatch_user
+        self._srdb_root = cfg.srdb_root.format(sbatch_user=self._user)
         self.instances[self.uid] = self
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
 
@@ -63,11 +63,12 @@ class SBatchDriver(job_driver.DriverBase):
                 o.send_ready.set()
 
     async def send(self, op):
-        m = self.msg
-        op.msg.runDir = '/'.join(self._srdb_root, m.simulationType, m.computeJid)
-        op.msg.sbatchCores = 32
-        op.msg.sbatchHours = 1
-        op.msg.shifterImage = cfg.get('shifter_image', '')
+        m = op.msg
+        m.runDir = '/'.join(self._srdb_root, m.simulationType, m.computeJid)
+        assert m.sbatchCores and m.sbatchHours
+        if cfg.sbatch_cores:
+            m.sbatchCores = cfg.sbatch_cores
+        m.shifterImage = cfg.get('shifter_image', '')
         return super().send(op)
 
     async def _agent_start(self):
@@ -77,7 +78,7 @@ class SBatchDriver(job_driver.DriverBase):
             cfg.host,
 #TODO(robnagler) add password management
             username=self._user,
-            password=totp(),
+            password=self._user if self._user == 'vagrant' else totp(),
             known_hosts=_KNOWN_HOSTS,
         ) as c:
             script = f'''#!/bin/bash
@@ -85,11 +86,12 @@ set -e
 mkdir -p '{self._srdb_root}'
 cd '{self._srdb_root}'
 {self._agent_env()}
-setsid {cfg.sirepo_cmd} job_agent >& agent.log'''
+setsid {cfg.sirepo_cmd} job_agent >& job_agent.log'''
             async with c.create_process(' '.join(cmd)) as p:
                 o, e = await p.communicate(input=script)
-                assert o == '' and e == '', \
-                    'stdout={} stderr={}'.format(o, e)
+                if o or e:
+                    pkdlog('agentId={} stdout={} stderr={}', self._agentId, o, e)
+#TODO(robnagler) try to read the job_agent.log
             stdin.close()
 
     def _websocket_free(self):
@@ -103,6 +105,8 @@ def init_class():
     cfg = pkconfig.init(
         host=pkconfig.Required(str, 'host name for slum controller'),
         host_key=pkconfig.Required(str, 'host key'),
+        sbatch_user=('vagrant', str, 'temporary user config'),
+        sbatch_cores=(None, int, 'dev cores config'),
         shifter_image=(None, str, 'needed if using Shifter'),
         sirepo_cmd=pkconfig.Required(str, 'how to run sirepo'),
         srdb_root=pkconfig.Required(_cfg_srdb_root, 'where to run job_agent, must include {sbatch_user}'),

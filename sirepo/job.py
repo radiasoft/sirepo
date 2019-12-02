@@ -97,7 +97,7 @@ KINDS = frozenset((SEQUENTIAL, PARALLEL))
 
 cfg = None
 
-def agent_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.'):
+def agent_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.', source_bashrc=''):
     """Convert `cmd` in `pyenv` with `env` to script and cmd
 
     Uses tempfile so the file can be closed after the subprocess
@@ -122,7 +122,7 @@ def agent_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.'):
     c = 'exec ' + ' '.join(("'{}'".format(x) for x in cmd))
     # POSIT: we control all these values
     t.write(
-        '''
+        '''{}
 set -e
 mkdir -p '{}'
 cd '{}'
@@ -130,6 +130,7 @@ pyenv shell {}
 {}
 {}
 '''.format(
+        source_bashrc,
         cwd,
         cwd,
         pyenv,

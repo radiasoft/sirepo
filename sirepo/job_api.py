@@ -154,7 +154,7 @@ def _request_content(kwargs):
 ##TODO(robnagler) this should be req_data
     b = PKDict(data=d, **kwargs)
 # TODO(e-carlin): some of these fields are only used for some type of reqs
-    return b.pksetdefault(
+    b.pksetdefault(
         analysisModel=lambda: s.parse_model(d),
         api=get_api_name(),
         computeJid=lambda: s.parse_jid(d),
@@ -168,23 +168,28 @@ def _request_content(kwargs):
         simulationType=lambda: d.simulationType,
         uid=lambda: sirepo.auth.logged_in_user(),
     ).pksetdefault(
-        jobRunMode=_run_mode(b),
 #TODO(robnagler) configured by job_supervisor
         mpiCores=lambda: sirepo.mpi.cfg.cores if b.isParallel else 1,
         userDir=lambda: str(sirepo.simulation_db.user_dir_name(b.uid)),
     )
+    return _run_mode(b)
 
 
 def _run_mode(request_content):
     if 'models' not in request_content.data:
-        return None
+        return request_content
 #TODO(robnagler) make sure this is set for animation sim frames
-    res = request_content.data.models.get(request_content.computeModel, {}).get('jobRunMode')
+    m = request_content.data.models.get(request_content.computeModel)
+    res = m and m.get('jobRunMode')
     if not res:
-        return sirepo.job.PARALLEL if request_content.isParallel else sirepo.job.SEQUENTIAL
+        b.jobRunMode = sirepo.job.PARALLEL if request_content.isParallel else sirepo.job.SEQUENTIAL
+        return b
     s = sirepo.sim_data.get_class(request_content.simulationType)
     for r in s.schema().common.enum.JobRunMode:
         if r[0] == res:
+            b.jobRunMode = res
+            b.sbatchCores = m.get('sbatchCores')
+            b.sbatchHours = m.get('sbatchHours')
             return res
     raise sirepo.util.Error(
         'invalid JobRunMode={}'.format(res),

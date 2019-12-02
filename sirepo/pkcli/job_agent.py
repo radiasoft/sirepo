@@ -169,6 +169,9 @@ class _Cmd(PKDict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.run_dir = pkio.py_path(self.msg.runDir)
+        if self.msg.opName == job.OP_RUN:
+            pkio.unchecked_remove(self.run_dir)
+            pkio.mkdir_parent(self.run_dir)
         self._in_file = self._create_in_file()
         self._process = _Process(self)
         self._terminating = False
@@ -176,11 +179,15 @@ class _Cmd(PKDict):
         self._is_compute = self.msg.jobCmd == 'compute'
         self.jid = self.msg.computeJid
 
+    def job_cmd_cmd(self):
+        return ('sirepo', 'job_cmd', self._in_file)
+
     def job_cmd_cmd_stdin_env(self):
         return job.agent_cmd_stdin_env(
-            ('sirepo', 'job_cmd', self._in_file),
+            cmd=self.job_cmd_cmd(),
             env=self.job_cmd_env(),
             pyenv=self.job_cmd_pyenv(),
+            source_bashrc=self.job_cmd_source_bashrc(),
         )
 
     def job_cmd_env(self):
@@ -193,6 +200,9 @@ class _Cmd(PKDict):
 
     def job_cmd_pyenv(self):
         return 'py2'
+
+    def job_cmd_source_bashrc(self):
+        return ''
 
     def kill(self):
         self._terminating = True
@@ -285,157 +295,162 @@ class _Cmd(PKDict):
         f = self.run_dir.join(
             _IN_FILE.format(job.unique_key()),
         )
-        pkio.mkdir_parent_only(f)
         pkjson.dump_pretty(self.msg, filename=f, pretty=False)
         return f
 
 
 class _SbatchCmd(_Cmd):
 
-#TODO(robnagler) insert shifter
+    @classmethod
+    def job_cmd_source_bashrc(cls):
+        return 'export HOME=/home/vagrant; source /home/vagrant/.bashrc; eval export HOME=~$USER'
+
+    def job_cmd_cmd(self):
+        c = super().job_cmd_cmd()
+        if not self.msg.get('shifterImage'):
+            return c
+        return ('shifter', '--image={self.msg.shifterImage}') + c
+
     async def exited(self):
         await self._process.exit_ready()
 
 
-class _SbatchParallelStatus(_SbatchCmd):
-
-    async def _await_exit(self):
-        await self._process.exit_ready()
-        if self._terminating:
-            e = self._process.stderr.text.decode('utf-8', errors='ignore')
-            if e:
-                pkdlog('error={} jid={}', e, self.jid)
-            return
-        else:
-            # TODO(e-carlin): We should restart the job if this happens
-            pkdlog('error: exited without a termination request')
-
-
-class _SbatchRun(_Cmd):
+class _SbatchRun(_SbatchCmd):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._start_time = 0
         self._sbatch_id = None
-        self.run_dir = pkio.mkdir_parent(self.msg.runDir)
+        self._status_cb = None
+        self._status = 'PENDING'
+        self._completed_sentinel = self.run_dir.join('sbatch_status_stop')
 
     def kill(self):
         if self._sbatch_id is not None:
             subprocess.check_call(
                 ('scancel', '--full', '--quiet', self._sbatch_id)
             )
-        self.msg.sbatchId = self._sbatch_id
+        if self._status_cb:
+            self._status_cb.stop()
+            self._start_ready.set()
         super().kill(self)
 
     async def start(self):
-        self._sbatch_id =  self._submit_compute_to_sbatch(
-            self._prepare_simulation(),
+        await self._prepare_simulation()
+        if self._terminating:
+            return
+        o = subprocess.check_output(
+            ('sbatch', self._sbatch_script())
+            cwd=str(self.run_dir),
+            stdin=subprocess.DEVNULL,
+            sdterr=subprocess.STDOUT,
+        ).decode()
+        m = re.search(r'Submitted batch job (\d+)', o)
+#TODO(robnagler) if the guy is out of hours, will fail
+        if not m:
+            raise ValueError(f'Unable to submit: {o}')
+        self._sbatch_id = m.group(1)
+        self.msg.pkupdate(
+            jobCmd='sbatch_status',
+            sbatchId=self._sbatch_id,
+            stopSentinel=str(self._completed_sentinel),
         )
-        super().start()
+        self._status_cb = tornado.ioloop.IOLoop.PeriodicCallback(
+            self._sbatch_status,
+            self.msg.nextRequestSeconds,
+        )
+        self._start_ready = tornado.locks.Event()
+        self._status_cb.start()
+        await self._start_ready
+        if self._terminating:
+            return
+        await super().start()
+
+    def _prepare_simulation(self):
+        c = _SBatchCmd(
+            msg=self.msg.copy().pkupdate(jobCmd='prepare_simulation'),
+        )
+        c.start()
+        await c._await_exit()
 
     def _sbatch_script(self):
-        return f'''
+        i = self.msg.shifterImage
+        s = o = ''
+        if i:
+#TODO(robnagler) provide via sbatch driver
+            o = f'''#SBATCH --image={i}
 #SBATCH --constraint=haswell
+#SBATCH --qos=debug
+#SBATCH --tasks-per-node=32'''
+            s = '--cpu-bind=cores shifter'
+        f = self.run_dir().join('sbatch.in')
+        f.write(f'''#!/bin/bash
 #SBATCH --error={template_common.RUN_LOG}
 #SBATCH --ntasks={self.msg.sbatchCores}
 #SBATCH --output={template_common.RUN_LOG}
-#SBATCH --qos=debug
-#SBATCH --tasks-per-node=32
 #SBATCH --time={self._sbatch_time()}
-{'#SBATCH --image=self.msg.shifterImage' if self.msg.shifterImage else ''}
-
-srun --cpu-bind=cores shifter /bin/bash <<'EOF'
-export HOME=/home/vagrant; source /home/vagrant/.bashrc; eval export HOME=~$USER
+{o}
+srun {s} /bin/bash <<'EOF'
+{_SbatchCmd.job_cmd_source_bashrc()}
 # this may not be necessary
 {self.job_cmd_env()}
 pyenv shell {self.job_cmd_pyenv()}
+#TODO(robnagler) need to get this from prepare_simulation
 python template_common.PARAMETERS_PYTHON_FILE
 EOF
 '''
+        )
+        return f
+
+    async def _sbatch_status(self):
+        self._status
+        o = subprocess.check_output(
+            ('scontrol', 'show', 'job', msg.sbatchId)
+        ).decode()
+        r = re.search(r'(?<=JobState=)(\S+)(?= Reason)', o)
+        if not r:
+            pkdlog(
+                'opId={} failed to find JobState in output={}',
+                self.msg.opId,
+                o,
+            )
+            return
+        s = r.group()
+        p = self._status
+        self._status = s
+        if s in ('PENDING', 'COMPLETING'):
+            return
+        elif s == 'RUNNING':
+            if p != 'PENDING':
+                return
+            self._start_time = int(time.time())
+            self.dispatcher.send(
+                self.dispatcher.format_op(
+                    self.msg,
+                    job.OP_RUN,
+                    reply=PKDict(state=job.RUNNING, computeJobStart=self._start_time),
+                )
+            )
+            self._start_ready.set()
+        else:
+            self._status_cb.stop()
+            c = s == 'COMPLETED'
+            self._completed_sentinel.write(job.COMPLETED if c else job.ERROR)
+            if s != 'COMPLETED':
+                self.dispatcher.send(
+                    self.dispatcher.format_op(
+                        self.msg,
+                        job.OP_ERROR,
+                        reply=PKDict(state=job.ERROR, error='sbatch status={s}'),
+                    )
+                )
 
     def _sbatch_time(self):
-#TODO(robnagler) msg.sbatchHours is a float to be converted
         return round(
             datetime.timedelta(
                 hours=float(self.msg.sbatchHours)
             ).total_seconds() / 60,
         )
-
-    def _prepare_simulation(self):
-        c = _SBatchCmd(msg=self.msg.copy().pkupdate(
-            runDir=self.run_dir,
-            jobCmd='prepare_simulation'),
-        )
-        c.start()
-        return pkjson.load_any(r).cmd
-
-    async def _start_compute(self):
-        try:
-            await self._await_job_completion_and_parallel_status(
-                self._sbatch_id,
-            )
-        except Exception as e:
-            # POSIT: jobCmd is the only field every changed in msg
-            await self.dispatcher.send(
-                self.dispatcher.format_op(
-                    self.msg,
-                    job.OP_ERROR,
-                    reply=PKDict(
-                        state=job.ERROR,
-                        error=str(e),
-                        stack=pkdexc(),
-                    ),
-                ),
-            )
-
-    def _submit_compute_to_sbatch(self):
-        s = self._sbatch_script()
-        subprocess.check_output(
-            ('scancel', '--full', '--quiet', self._sbatch_id),
-        )
-
-        n = str(self.run_dir.join('sbatch.in'))
-        try:
-            with open(n, 'w+') as f:
-                f.write(s)
-                f.seek(0)
-                o = subprocess.check_output(
-                    ('sbatch'),
-                    stdin=f,
-                    stderr=subprocess.STDOUT,
-                ).decode('UTF-8')
-                r = re.search(r'\d+$', o)
-                assert r is not None, 'output={} did not cotain job id'.format(o)
-                return r.group()
-        except subprocess.CalledProcessError as e:
-            pkdlog('error: returncode={} output={}', e.returncode, e.output)
-            raise
-
-
-class _Stream(PKDict):
-    _MAX = int(1e8)
-
-    def __init__(self, stream):
-        super().__init__(
-            stream_closed=tornado.locks.Event(),
-            text=bytearray(),
-            _stream=stream,
-        )
-        tornado.ioloop.IOLoop.current().add_callback(self._begin_read_stream)
-
-    async def _begin_read_stream(self):
-        try:
-            while True:
-                await self._read_stream()
-        except tornado.iostream.StreamClosedError as e:
-            assert e.real_error is None, 'real_error={}'.format(e.real_error)
-        finally:
-            self._stream.close()
-            self.stream_closed.set()
-
-    async def _read_stream(self):
-        raise NotImplementedError()
-
 
 class _Process(PKDict):
     def __init__(self, cmd):
@@ -508,3 +523,28 @@ class _ReadUntilCloseStream(_Stream):
         assert l < self._MAX, \
             'len(bytes)={} greater than _MAX={}'.format(l, _MAX)
         self.text.extend(t)
+
+
+class _Stream(PKDict):
+    _MAX = int(1e8)
+
+    def __init__(self, stream):
+        super().__init__(
+            stream_closed=tornado.locks.Event(),
+            text=bytearray(),
+            _stream=stream,
+        )
+        tornado.ioloop.IOLoop.current().add_callback(self._begin_read_stream)
+
+    async def _begin_read_stream(self):
+        try:
+            while True:
+                await self._read_stream()
+        except tornado.iostream.StreamClosedError as e:
+            assert e.real_error is None, 'real_error={}'.format(e.real_error)
+        finally:
+            self._stream.close()
+            self.stream_closed.set()
+
+    async def _read_stream(self):
+        raise NotImplementedError()
