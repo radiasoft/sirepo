@@ -74,6 +74,8 @@ def api_runCancel():
 def api_runSimulation():
     t = None
     try:
+#TODO(robnagler) libUri only necessary if job_agent doesn't have access to NFS
+#   this could be computed from jobRunMode (or configured for development testing)
         r = _request_content(PKDict(fixup_old_data=True))
         d = simulation_db.simulation_lib_dir(r.simulationType)
         p = d.join(sirepo.job.LIB_FILE_LIST_URI[1:])
@@ -176,20 +178,18 @@ def _request_content(kwargs):
 def _run_mode(request_content):
     if 'models' not in request_content.data:
         return None
+#TODO(robnagler) make sure this is set for animation sim frames
     res = request_content.data.models.get(request_content.computeModel, {}).get('jobRunMode')
     if not res:
         return sirepo.job.PARALLEL if request_content.isParallel else sirepo.job.SEQUENTIAL
     s = sirepo.sim_data.get_class(request_content.simulationType)
     for r in s.schema().common.enum.JobRunMode:
         if r[0] == res:
-            break
-    else:
-        # should not be sent
-        raise sirepo.util.Error(
-            'invalid JobRunMode={}'.format(res),
-            'jobRunMode={} computeModel={} computeJid={}',
-            res,
-            request_content.computeModel,
-            request_content.computeJid,
-        )
-    return res
+            return res
+    raise sirepo.util.Error(
+        'invalid JobRunMode={}'.format(res),
+        'jobRunMode={} computeModel={} computeJid={}',
+        res,
+        request_content.computeModel,
+        request_content.computeJid,
+    )

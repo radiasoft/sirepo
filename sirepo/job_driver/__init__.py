@@ -179,18 +179,20 @@ class DriverBase(PKDict):
 #TODO(robnagler) do we want to run_scheduler on alive in all cases?
         self.run_scheduler()
 
-    def _subprocess_cmd_stdin_env(self, env=None, **kwargs):
-        return job.subprocess_cmd_stdin_env(
+    def _agent_cmd_stdin_env(self, env=None, **kwargs):
+        return job.agent_cmd_stdin_env(
             ('sirepo', 'job_agent'),
+            env=self._agent_env(),
+            **kwargs,
+        )
+
+    def _agent_env(self):
+        return job.subprocess_env(
             PKDict(
-                SIREPO_AUTH_LOGGED_IN_USER=self.uid,
                 SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=job.AGENT_ABS_URI,
-#TODO(robnagler) dynamic
-                SIREPO_SRDB_ROOT=sirepo.srdb.root(),
-                **(env or {}),
             ),
-            **kwargs,
+            uid=self.uid,
         )
 
     def websocket_free(self):

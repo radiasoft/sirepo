@@ -77,8 +77,12 @@ ERROR = 'error'
 MISSING = 'missing'
 PENDING = 'pending'
 RUNNING = 'running'
+
+#: When the job is completed
+EXIT_STATUSES = frozenset((CANCELED, COMPLETED, ERROR))
+
 #: Valid values for job status
-STATUSES = frozenset((CANCELED, COMPLETED, ERROR, MISSING, PENDING, RUNNING))
+STATUSES = EXIT_STATUSES.union((PENDING, RUNNING))
 
 # should come from schema
 SEQUENTIAL = 'sequential'
@@ -119,7 +123,7 @@ def init():
     SERVER_ABS_URI = cfg.supervisor_uri + SERVER_URI
 
 
-def subprocess_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.', fork=False):
+def subprocess_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.'):
     """Convert `cmd` in `pyenv` with `env` to script and cmd
 
     Uses tempfile so the file can be closed after the subprocess
@@ -129,35 +133,22 @@ def subprocess_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.', fork=False):
 
     Args:
         cmd (iter): list of words to be quoted
-        env (PKDict): environment to pass
+        env (str): empty or result of `subprocess_env`
         pyenv (str): python environment (py3 default)
         cwd (str): directory for the agent to run in (will be created if it doesn't exist)
-        fork (bool): whether or not the subprocess should fork from the calling process
+        uid (str): which user should be logged in
 
     Returns:
         tuple: new cmd (tuple), stdin (file), env (PKDict)
     """
     import os
     import tempfile
-    env.pksetdefault(
-        **pkconfig.to_environ((
-            'pykern.*',
-            'sirepo.feature_config.job_supervisor',
-            'sirepo.simulation_db.sbatch_display',
-        ))
-    )
+
     t = tempfile.TemporaryFile()
-    c = ' '.join(("'{}'".format(x) for x in cmd))
-    if fork:
-        c = 'setsid ' + c + ' >& agent.log'
-# TODO(e-carlin): centos7 setsid doesn't have --fork
-        # c = 'setsid --fork ' + c + ' >& agent.log'
-    else:
-        c = 'exec ' + c
+    c = 'exec ' + ' '.join(("'{}'".format(x) for x in cmd))
     # POSIT: we control all these values
     t.write(
         '''
-source "$HOME/.bashrc"
 set -e
 mkdir -p '{}'
 cd '{}'
@@ -168,15 +159,29 @@ pyenv shell {}
         cwd,
         cwd,
         pyenv,
-        '\n'.join(("export {}='{}'".format(k, v) for k, v in env.items())),
+        env or subprocess_env(),
         c,
     ).encode())
     t.seek(0)
     # it's reasonable to hardwire this path, even though we don't
     # do that with others. We want to make sure the subprocess starts
     # with a clean environment (no $PATH). You have to pass HOME.
-    return ('/bin/bash',), t, PKDict(HOME=os.environ['HOME'])
+    return ('/bin/bash', '-l'), t, PKDict(HOME=os.environ['HOME'])
 
+
+def subprocess_env(env=None, uid=None):
+    env = (env or PKDict()).pksetdefault(
+        **pkconfig.to_environ((
+            'pykern.*',
+            'sirepo.feature_config.job_supervisor',
+            'sirepo.simulation_db.sbatch_display',
+        ))
+    ).pkupdate(
+        PYTHONUNBUFFERED='1',
+        SIREPO_AUTH_LOGGED_IN_USER=uid or sirepo.auth.logged_in_user(),
+        SIREPO_SRDB_ROOT=str(sirepo.srdb.root()),
+    )
+    return '\n'.join(("export {}='{}'".format(k, v) for k, v in env.items()))
 
 def init_by_server(app):
     """Initialize module"""

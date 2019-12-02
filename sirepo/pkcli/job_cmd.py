@@ -12,7 +12,6 @@ from pykern import pksubprocess
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdexc, pkdc
 from sirepo import job
-from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
 import functools
@@ -26,7 +25,7 @@ import time
 
 
 def default_command(in_file):
-    """Reads `in_file` passes to `msg.jobProcessCmd`
+    """Reads `in_file` passes to `msg.jobCmd`
 
     Must be called in run_dir
 
@@ -39,13 +38,16 @@ def default_command(in_file):
     """
     f = pkio.py_path(in_file)
     msg = pkjson.load_any(f)
-    msg.runDir = pkio.py_path(msg.runDir) # TODO(e-carlin): find common place to serialize/deserialize paths
+#TODO(e-carlin): find common place to serialize/deserialize paths
+    msg.runDir = pkio.py_path(msg.runDir)
     f.remove()
     return pkjson.dump_pretty(
-        PKDict(globals()['_do_' + msg.jobProcessCmd](
-            msg,
-            sirepo.template.import_module(msg.simulationType)
-        )).pkupdate(opDone=True),
+        PKDict(
+            globals()['_do_' + msg.jobCmd](
+                msg,
+                sirepo.template.import_module(msg.simulationType)
+            )
+        ).pksetdefault(state=job.COMPLETED),
         pretty=False,
     )
 
@@ -56,11 +58,12 @@ def _background_percent_complete(msg, template):
         msg.runDir,
         msg.isRunning,
     )
-    r.setdefault('computeJobStart', msg.simulationStatus.computeJobStart)
-    r.setdefault('lastUpdateTime', _mtime_or_now(msg.runDir))
-    r.setdefault('elapsedTime', r.lastUpdateTime - r.computeJobStart)
-    r.setdefault('frameCount', 0)
-    r.setdefault('percentComplete', 0.0)
+    r.pkdel('computeJobStart')
+#TODO(robnagler) this is incorrect, because we want to see file updates
+#   not just our polling frequency
+    r.pksetdefault(lastUpdateTime=lambda: _mtime_or_now(msg.runDir))
+    r.pksetdefault(frameCount=0)
+    r.pksetdefault(percentComplete=0.0)
     return r
 
 
@@ -95,7 +98,7 @@ def _do_compute(msg, template):
                 # don't want the job to fail in this case
                 _write_parallel_status(msg, template)
             if r is None:
-                time.sleep(2) # TODO(e-carlin): cfg
+                time.sleep(msg.nextRequestSeconds)
             else:
                 assert r == 0, 'non zero returncode={}'.format(r)
                 break
@@ -114,8 +117,28 @@ def _do_get_sbatch_parallel_status_once(msg, template):
 
 def _do_get_sbatch_parallel_status(msg, template):
     while True:
+        o = subprocess.check_output(
+            ('scontrol', 'show', 'job', job_id)
+        ).decode('utf-8')
+        r = re.search(r'(?<=JobState=)(.*)(?= Reason)', o) # TODO(e-carlin): Make middle [A-Z]+
+        assert r, 'output={}'.format(s)
+        return r.group().lower()
         _do_get_sbatch_parallel_status_once(msg, template)
-        time.sleep(2) # TODO(e-carlin): cfg
+        time.sleep(msg.nextRequestSeconds)
+
+
+        while True:
+            s = self._get_job_sbatch_state(job_id)
+            assert s in ('running', 'pending', 'completed', 'completing'), \
+                'invalid state={}'.format(s)
+            if s in ('running', 'completed', 'completing'):
+                if not parallel_status_running:
+                    self._begin_get_parallel_status()
+                    parallel_status_running = True
+            if s == 'completed':
+                break
+            await tornado.gen.sleep(self.msg.nextRequestSeconds)
+        self._kill_parallel_status_process()
 
 
 def _do_get_simulation_frame(msg, template):
@@ -139,11 +162,12 @@ def _do_get_data_file(msg, template):
 
 
 def _do_prepare_simulation(msg, template):
-    return PKDict(cmd=simulation_db.prepare_simulation(
-                    msg.data,
-                    run_dir=msg.runDir
-                )[0]
-            )
+    return PKDict(
+        cmd=simulation_db.prepare_simulation(
+            msg.data,
+            run_dir=msg.runDir,
+        )[0],
+    )
 
 
 def _do_sequential_result(msg, template):

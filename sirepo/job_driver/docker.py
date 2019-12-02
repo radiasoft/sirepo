@@ -123,7 +123,7 @@ class DockerDriver(job_driver.DriverBase):
         self._cid = None
 
     async def _agent_start(self):
-        cmd, stdin, env = self._subprocess_cmd_stdin_env()
+        cmd, stdin, env = self._agent_cmd_stdin_env()
         p = (
             'run',
             '--attach=stdin', # attach to stdin for writing

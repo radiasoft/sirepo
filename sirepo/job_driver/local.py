@@ -131,7 +131,7 @@ class LocalDriver(job_driver.DriverBase):
             self._agentExecDir.remove(rec=True, ignore_errors=True)
 
     async def _agent_start(self):
-        cmd, stdin, env = self._subprocess_cmd_stdin_env(cwd=self._agentExecDir)
+        cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agentExecDir)
         pkdlog('dir={}', self._agentExecDir)
         # since this is local, we can make the directory; useful for debugging
         pkio.mkdir_parent(self._agentExecDir)

@@ -34,6 +34,22 @@ _NEXT_REQUEST_SECONDS = PKDict({
 
 _RUNNING_PENDING = (job.RUNNING, job.PENDING)
 
+_HISTORY_FIELDS = frozenset((
+    'computeJobStart',
+    'error',
+    'jobRunMode',
+    'lastUpdateTime',
+    'status',
+))
+
+_PARALLEL_STATUS_FIELDS = frozenset((
+    'computeJobHash',
+    'elapsedTime',
+    'frameCount',
+    'lastUpdateTime',
+    'percentComplete',
+    'computeJobStart',
+))
 
 def init():
     global _DB_DIR
@@ -66,7 +82,7 @@ class _ComputeJob(PKDict):
 
     def __init__(self, req, **kwargs):
         c = req.content
-        super().__init__(_ops=[], **kwargs)
+        super().__init__(_ops=[], _sent_run=False, **kwargs)
         self.pksetdefault(db=lambda: self.__db_init(req))
 
     def destroy_op(self, op):
@@ -114,45 +130,36 @@ class _ComputeJob(PKDict):
     def __db_file(cls, computeJid):
         return _DB_DIR.join(computeJid + '.json')
 
-    def __db_init(self, req, prev=None):
+    def __db_init(self, req, prev_db=None):
         c = req.content
         self.db = PKDict(
             computeJid=c.computeJid,
             computeJobHash=c.computeJobHash,
             computeJobStart=0,
             error=None,
-            history=self.__db_init_history(prev),
+            history=self.__db_init_history(prev_db),
             isParallel=c.isParallel,
             jobRunMode=c.jobRunMode,
+            lastUpdateTime=0,
+            nextRequestSeconds=_NEXT_REQUEST_SECONDS[c.jobRunMode],
             simulationId=c.simulationId,
             simulationType=c.simulationType,
 #TODO(robnagler) when would req come in with status?
             status=req.get('status', job.MISSING),
             uid=c.uid,
         )
-        self.db.nextRequestSeconds = _NEXT_REQUEST_SECONDS[c.jobRunMode]
         if self.db.isParallel:
             self.db.parallelStatus = PKDict(
-                elapsedTime=0,
-                frameCount=0,
-                lastUpdateTime=0,
-                percentComplete=0.0,
-                computeJobStart=0,
+                ((k, 0) for k in _PARALLEL_STATUS_FIELDS),
             )
         return self.db
 
-    def __db_init_history(self, prev):
-        if prev is None:
-            return PKDict()
-        h = prev.history
-        if prev.computeJobStart > 0:
-            x = h[prev.computeJobStart] = PKDict(
-                status=prev.status,
-                error=prev.error,
-            )
-            if prev.isParallel:
-                x.lastUpdateTime = prev.parallelStatus.lastUpdateTime
-        return h
+    def __db_init_history(self, prev_db):
+        if prev_db is None:
+            return []
+        return prev_db.history + [
+            PKDict(((k, v) for k, v in prev_db.items() if k in _HISTORY_FIELDS)),
+        ]
 
     def __db_write(self):
         sirepo.util.json_dump(self.db, path=self.__db_file(self.db.computeJid))
@@ -162,47 +169,25 @@ class _ComputeJob(PKDict):
         await self._send_with_single_reply(
             job.OP_ANALYSIS,
             req,
-            jobProcessCmd='get_data_file'
+            jobCmd='get_data_file',
         )
 
     async def _receive_api_runCancel(self, req):
-        async def _reply_canceled(self, req):
-            return PKDict(state=job.CANCELED)
-
-        async def _cancel_queued(self, req):
-            for o in self._ops:
-                if o.msg.computeJid == req.content.computeJid:
-                    o.set_canceled()
-            return await _reply_canceled(self, req)
-
-        async def _cancel_running(self, req):
-            o = await self._send_with_single_reply(
-                job.OP_CANCEL,
-                req,
-            )
-            assert o.state == job.CANCELED
-            return await _reply_canceled(self, req)
-
         if self.db.computeJobHash == req.content.computeJobHash:
-#TODO(robnagler) not sure a state table works all that well here.
-#    if statements seem appropriate.
-
-            d = PKDict({
-                job.CANCELED: _reply_canceled,
-                job.COMPLETED: _reply_canceled,
-                job.ERROR: _reply_canceled,
-                job.MISSING: _reply_canceled,
-                job.PENDING: _cancel_queued,
-                job.RUNNING: _cancel_running,
-            })
-#TODO(robnagler) why does this not need to be an await
-            r = d[self.db.status](self, req)
-#TODO(robnagler) at this point we don't know anything so
-#  we are canceling something we need to validate the state
-# of.
+            if self._sent_run:
+                o = await self._send_with_single_reply(
+                    job.OP_CANCEL,
+                    req,
+                )
+                assert o.state == job.CANCELED
+            elif self.db.status == job.PENDING:
+                for o in self._ops:
+                    if o.msg.computeJid == req.content.computeJid:
+                        o.set_canceled()
+            r = PKDict(state=job.CANCELED)
             self.db.status = job.CANCELED
             self.__db_write()
-            return await r
+            return r
 #TODO(robnagler) this is always true, because the previous
 # if was false.
         if self.db.computeJobHash != req.content.computeJobHash:
@@ -221,17 +206,8 @@ class _ComputeJob(PKDict):
         if (self.db.computeJobHash != req.content.computeJobHash
             or self.db.status != job.COMPLETED
         ):
-            self.__db_init(req, prev=self.db)
-            self.db.jobRunMode
-            self.db.pkupdate(
-                status=job.PENDING,
-                computeJobStart=int(time.time()),
-            )
-            if self.db.isParallel:
-                self.db.parallelStatus.pkupdate(
-                    computeJobStart=self.db.computeJobStart,
-                    lastUpdateTime=self.db.computeJobStart,
-                )
+            self.__db_init(req, prev_db=self.db)
+            self.db.pkupdate(status=job.PENDING)
             self.__db_write()
             tornado.ioloop.IOLoop.current().add_callback(self._run, req)
         # Read this first https://github.com/radiasoft/sirepo/issues/2007
@@ -243,9 +219,9 @@ class _ComputeJob(PKDict):
             if self.db.error:
                 r.error = self.db.error
             if self.db.isParallel:
-                r.update(**self.db.parallelStatus)
+                r.update(self.db.parallelStatus)
+                r.computeJobStart = self.db.computeJobStart
                 r.elapsedTime = r.lastUpdateTime - r.computeJobStart
-                r.computeJobHash = self.db.computeJobHash
             if self.db.status in _RUNNING_PENDING:
                 c = req.content
                 r.update(
@@ -265,7 +241,7 @@ class _ComputeJob(PKDict):
         return await self._send_with_single_reply(
             job.OP_ANALYSIS,
             req,
-            jobProcessCmd='sequential_result'
+            jobCmd='sequential_result',
         )
 
     async def _receive_api_simulationFrame(self, req):
@@ -283,11 +259,13 @@ class _ComputeJob(PKDict):
                 self.db.computeJobHash,
                 req.content.computeJobHash
             )
+#TODO(robnagler) ensure the request is replied to
             return
         o = await self._send(
             job.OP_RUN,
             req,
-            jobProcessCmd='compute'
+            jobCmd='compute',
+            nextRequestSeconds=self.db.nextRequestSeconds,
         )
         # TODO(e-carlin): XXX bug. If cancel comes in then self.db.status = canceled
         # This overwrites it, but there is a state=canceled message waiting for
@@ -295,29 +273,31 @@ class _ComputeJob(PKDict):
         # message then set self.db.status back to canceled. This works because the
         # await o.reply_ready() doesn't block because there is a cancel message
         # in the q
-#TODO(robnagler) should this not check the state when it comes out of _send()?
-# if it's canceled, then don't run. It should only be PENDING in this state.
-# We talked about reusing status for two purposes: job status and driver queue state.
-# The two probably needed to be separated. status stays pending until the driver (sbatch)
-# says it is running. driver-wise we have "sent run", not "running"
-        self.db.status = job.RUNNING
-        self.__db_write()
+#TODO(robnagler) need to assert that this is still our job
+#TODO(robnagler) this is a general problem: after await: check ownership
+        self._sent_run = True
         while True:
             r = await o.reply_ready()
             self.db.status = r.state
             if self.db.status == job.ERROR:
                 self.db.error = r.get('error', '<unknown error>')
+            if 'computeJobStart' in r:
+                self.db.computeJobStart = r.computeJobStart
             if 'parallelStatus' in r:
-                assert self.db.isParallel
+#rjn i removed the assert, because the parallelStatus.update will do the trick
                 self.db.parallelStatus.update(r.parallelStatus)
+                self.db.lastUpdateTime = r.parallelStatus.lastUpdateTime
+            else:
+                # sequential jobs don't send this
+                self.db.lastUpdateTime = int(time.time())
                 #TODO(robnagler) will need final frame count
+            self.__db_write()
             # TODO(e-carlin): What if this never comes?
-            if 'opDone' in r:
+            if r.state in job.EXIT_STATUSES:
                 break
         self.destroy_op(o)
-        self.__db_write()
 
-    async def _send(self, opName, req, jobProcessCmd):
+    async def _send(self, opName, req, jobCmd, **kwargs):
         # TODO(e-carlin): proper error handling
         try:
 #TODO(robnagler) kind should be set earlier in the queuing process.
@@ -330,10 +310,7 @@ class _ComputeJob(PKDict):
             d = await job_driver.get_instance(req, self.db.jobRunMode)
             o = _Op(
                 driver=d,
-                msg=PKDict(
-                    jobProcessCmd=jobProcessCmd,
-                    **req.content,
-                ),
+                msg=PKDict(req.content).pkupdate(jobCmd=jobCmd, **kwargs),
                 opName=opName,
             )
             self._ops.append(o)
@@ -342,10 +319,10 @@ class _ComputeJob(PKDict):
         except Exception as e:
             pkdlog('error={} stack={}', e, pkdexc())
 
-    async def _send_with_single_reply(self, opName, req, jobProcessCmd=None):
-        o = await self._send(opName, req, jobProcessCmd)
+    async def _send_with_single_reply(self, opName, req, jobCmd=None):
+        o = await self._send(opName, req, jobCmd)
         r = await o.reply_ready()
-        assert 'opDone' in r
+        assert r.state in job.EXIT_STATUSES
         self.destroy_op(o)
         return r
 
@@ -365,14 +342,14 @@ class _Op(PKDict):
 
     def set_canceled(self):
         self.canceled = True
-        self.reply_put(PKDict(state=job.CANCELED, opDone=True))
+        self.reply_put(PKDict(state=job.CANCELED))
         self.send_ready.set()
         self.driver.cancel_op(self)
 
     def set_errored(self, error):
         self.errored = True
         self.reply_put(
-            PKDict(state=job.ERROR, error=error, opDone=True),
+            PKDict(state=job.ERROR, error=error),
         )
         self.send_ready.set()
 
