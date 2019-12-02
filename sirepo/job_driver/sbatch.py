@@ -86,7 +86,7 @@ mkdir -p '{self._srdb_root}'
 cd '{self._srdb_root}'
 {self._agent_env()}
 setsid {cfg.sirepo_cmd} job_agent >& agent.log'''
-            async with c.create_process(pkdp(' '.join(cmd))) as p:
+            async with c.create_process(' '.join(cmd)) as p:
                 o, e = await p.communicate(input=script)
                 assert o == '' and e == '', \
                     'stdout={} stderr={}'.format(o, e)
@@ -118,3 +118,26 @@ def _cfg_srdb_root(value):
     assert '{sbatch_user}' in value, \
         'must include {sbatch_user} in string'
     return value
+
+
+import base64
+import hashlib
+import hmac
+import os
+import struct
+import sys
+import time
+
+def totp():
+    return pkio.py_path(os.getenv('A')).read().strip() + _totp(pkio.py_path(os.getenv('B')).read().strip())
+
+def _hotp(secret, counter):
+    secret  = base64.b32decode(secret)
+    counter = struct.pack('>Q', counter)
+    hash   = hmac.new(secret, counter, hashlib.sha1).digest()
+    offset = hash[19] & 0xF
+    return (struct.unpack(">I", hash[offset:offset + 4])[0] & 0x7FFFFFFF) % 1000000
+
+
+def _totp(secret):
+    return '{:06d}'.format(int(_hotp(secret, int(time.time()) // 30)))

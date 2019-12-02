@@ -34,7 +34,6 @@ def test_copy_non_session(fc):
             simulationType=fc.sr_sim_type,
         ),
     )
-    pkdp(d)
     pkeq(i, d.models.simulation.outOfSessionSimulationId)
     # Try again
     r = fc.sr_get_json(

@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkconfig, pkio, pkinspect, pkcollections, pkconfig, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdc, pkdexc
@@ -157,8 +156,14 @@ class DriverBase(PKDict):
     def _receive(self, msg):
         c = msg.content
         i = c.get('opId')
-        pkdlog('{} agentId={} opId={}', c.opName, self._agentId, i)
+        if c.opName == job.OP_ERROR:
+            pkdlog('agentId={} msg={}',self._agentId, c)
+        else:
+            pkdlog('{} agentId={} opId={}', c.opName, self._agentId, i)
         if i:
+            if 'reply' not in c:
+                pkdlog('agentId={} No reply={}', self._agentId, c)
+                c.reply = PKDict(state='error', error='no reply')
             self.ops_pending_done[i].reply_put(c.reply)
         else:
             getattr(self, '_receive_' + c.opName)(msg)
@@ -187,7 +192,7 @@ class DriverBase(PKDict):
         )
 
     def _agent_env(self):
-        return job.subprocess_env(
+        return job.agent_env(
             PKDict(
                 SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=job.AGENT_ABS_URI,

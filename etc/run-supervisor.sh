@@ -10,7 +10,7 @@ if true; then
     export SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=/home/vagrant/.pyenv/versions/py3/bin/sirepo
     export SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/var/tmp/{sbatch_user}/sirepo'
     export SIREPO_SIMULATION_DB_SBATCH_DISPLAY='V8 Cluster'
-else:
+else
     export SIREPO_JOB_DRIVER_SBATCH_HOST=cori.nersc.gov
     export SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=/global/homes/n/nagler/.pyenv/versions/py3/bin/sirepo
     export SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/global/cscratch1/sd/{sbatch_user}/sirepo'

@@ -10,7 +10,7 @@ import pytest
 
 def test_synergia(fc):
     from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdp
+    from pykern.pkdebug import pkdp, pkdlog
     from pykern.pkunit import pkre
     import sirepo.sim_data
     import time
@@ -34,7 +34,7 @@ def test_synergia(fc):
         cancel = r.nextRequest
         for _ in range(100):
             if r.state in ('completed', 'error'):
-                pkdp(r.state)
+                pkdlog(r.state)
                 cancel = None
                 break
             r = fc.sr_post('runStatus', r.nextRequest)
@@ -45,7 +45,7 @@ def test_synergia(fc):
                         PKDict(frame_id=s.frame_id(data, r, 'beamEvolutionAnimation', r.frameCount - i)),
                     )
                     if f.get('error'):
-                        pkdp(f.error)
+                        pkdlog(f.error)
                         pkre('not generated', f.error)
                         # cannot guarantee this happens, but exit if it does
                         break

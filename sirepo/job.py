@@ -97,33 +97,7 @@ KINDS = frozenset((SEQUENTIAL, PARALLEL))
 
 cfg = None
 
-def init():
-    global cfg
-
-    if cfg:
-        return
-    cfg = pkconfig.init(
-        supervisor_uri=(
-            'http://{}:{}'.format(DEFAULT_IP, DEFAULT_PORT),
-            str,
-            'supervisor base uri',
-        ),
-    )
-    global SUPERVISOR_SRV_ROOT, LIB_FILE_ROOT, DATA_FILE_ROOT, \
-        LIB_FILE_ABS_URI, DATA_FILE_ABS_URI, AGENT_ABS_URI, SERVER_ABS_URI
-
-    SUPERVISOR_SRV_ROOT = sirepo.srdb.root().join(SUPERVISOR_SRV_SUBDIR)
-    LIB_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(LIB_FILE_URI[1:])
-    DATA_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(DATA_FILE_URI[1:])
-    # trailing slash necessary
-    LIB_FILE_ABS_URI = cfg.supervisor_uri + LIB_FILE_URI + '/'
-    DATA_FILE_ABS_URI = cfg.supervisor_uri + DATA_FILE_URI + '/'
-#TODO(robnagler) figure out why we need ws (wss, implicit)
-    AGENT_ABS_URI = cfg.supervisor_uri.replace('http', 'ws', 1) + AGENT_URI
-    SERVER_ABS_URI = cfg.supervisor_uri + SERVER_URI
-
-
-def subprocess_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.'):
+def agent_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.'):
     """Convert `cmd` in `pyenv` with `env` to script and cmd
 
     Uses tempfile so the file can be closed after the subprocess
@@ -133,7 +107,7 @@ def subprocess_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.'):
 
     Args:
         cmd (iter): list of words to be quoted
-        env (str): empty or result of `subprocess_env`
+        env (str): empty or result of `agent_env`
         pyenv (str): python environment (py3 default)
         cwd (str): directory for the agent to run in (will be created if it doesn't exist)
         uid (str): which user should be logged in
@@ -159,7 +133,7 @@ pyenv shell {}
         cwd,
         cwd,
         pyenv,
-        env or subprocess_env(),
+        env or agent_env(),
         c,
     ).encode())
     t.seek(0)
@@ -169,7 +143,7 @@ pyenv shell {}
     return ('/bin/bash', '-l'), t, PKDict(HOME=os.environ['HOME'])
 
 
-def subprocess_env(env=None, uid=None):
+def agent_env(env=None, uid=None):
     env = (env or PKDict()).pksetdefault(
         **pkconfig.to_environ((
             'pykern.*',
@@ -182,6 +156,32 @@ def subprocess_env(env=None, uid=None):
         SIREPO_SRDB_ROOT=str(sirepo.srdb.root()),
     )
     return '\n'.join(("export {}='{}'".format(k, v) for k, v in env.items()))
+
+def init():
+    global cfg
+
+    if cfg:
+        return
+    cfg = pkconfig.init(
+        supervisor_uri=(
+            'http://{}:{}'.format(DEFAULT_IP, DEFAULT_PORT),
+            str,
+            'supervisor base uri',
+        ),
+    )
+    global SUPERVISOR_SRV_ROOT, LIB_FILE_ROOT, DATA_FILE_ROOT, \
+        LIB_FILE_ABS_URI, DATA_FILE_ABS_URI, AGENT_ABS_URI, SERVER_ABS_URI
+
+    SUPERVISOR_SRV_ROOT = sirepo.srdb.root().join(SUPERVISOR_SRV_SUBDIR)
+    LIB_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(LIB_FILE_URI[1:])
+    DATA_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(DATA_FILE_URI[1:])
+    # trailing slash necessary
+    LIB_FILE_ABS_URI = cfg.supervisor_uri + LIB_FILE_URI + '/'
+    DATA_FILE_ABS_URI = cfg.supervisor_uri + DATA_FILE_URI + '/'
+#TODO(robnagler) figure out why we need ws (wss, implicit)
+    AGENT_ABS_URI = cfg.supervisor_uri.replace('http', 'ws', 1) + AGENT_URI
+    SERVER_ABS_URI = cfg.supervisor_uri + SERVER_URI
+
 
 def init_by_server(app):
     """Initialize module"""

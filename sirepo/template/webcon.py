@@ -110,7 +110,7 @@ def background_percent_complete(report, run_dir, is_running):
                 ),
             )
     if report == 'correctorSettingAnimation':
-        #pkdp('background_percent_complete for correctorSettingAnimation')
+        #pkdlog('background_percent_complete for correctorSettingAnimation')
         monitor_file = run_dir.join(MONITOR_LOGFILE)
         if monitor_file.exists():
             values, count, start_time = _read_monitor_file(monitor_file, True)
@@ -277,7 +277,7 @@ def get_fft(run_dir, data):
     coefs = (2.0 / num_samples) * np.abs(fft_out[0:half_num_samples])
     peaks, props = scipy.signal.find_peaks(coefs)
     found_freqs = zip(peaks, np.around(w[peaks], 3))
-    #pkdp('!FOUND {} FREQS {}, S2N {}, MEAN {}', len(found_freqs), found_freqs, s2n, m)
+    #pkdlog('!FOUND {} FREQS {}, S2N {}, MEAN {}', len(found_freqs), found_freqs, s2n, m)
 
     # focus in on the peaks?
     # maybe better in browser
@@ -369,7 +369,7 @@ def read_epics_values(server_address, fields):
     if not output:
         return None
     res = np.array(re.split(r'\s+', output)[1::2]).astype('float').tolist()
-    #pkdp(' got result: {}', res)
+    #pkdlog(' got result: {}', res)
     return res
 
 

@@ -933,7 +933,7 @@ def _prepare_conductors(data):
         if ct is None:
             continue
         type_by_id[ct.id] = ct
-        #pkdp('!PREP CONDS {}', ct)
+        #pkdlog('!PREP CONDS {}', ct)
         for f in ('xLength', 'yLength', 'zLength'):
             ct[f] = _meters(ct[f])
         if not _SIM_DATA.warpvnd_is_3d(data):

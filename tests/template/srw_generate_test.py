@@ -38,7 +38,6 @@ def _generate_source(fc, sim, name):
     from pykern import pkio, pkunit, pkdebug
     import re
 
-    pkdebug.pkdp(sim)
     d = fc.sr_get(
         'pythonSource',
         PKDict(

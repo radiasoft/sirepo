@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
@@ -114,7 +113,7 @@ class _Dispatcher(PKDict):
 
     def terminate(self):
         c = self.cmds
-        self.cmds = []
+        self.cmds.clear()
         for p in c:
             p.kill()
         tornado.ioloop.IOLoop.current().stop()
@@ -131,7 +130,7 @@ class _Dispatcher(PKDict):
             return self.format_op(m, job.OP_ERROR, error=err, stack=stack)
 
     async def _op_analysis(self, msg):
-        return self._cmd(msg)
+        return await self._cmd(msg)
 
     async def _op_cancel(self, msg):
         for c in self.cmds:
@@ -153,15 +152,15 @@ class _Dispatcher(PKDict):
             tornado.ioloop.IOLoop.current().stop()
 
     async def _op_run(self, msg):
-        return self._cmd(msg)
+        return await self._cmd(msg)
 
-    def _cmd(self, msg):
+    async def _cmd(self, msg):
         c = _Cmd
         if msg.jobRunMode == job.SBATCH:
             c = _SbatchRun if msg.isParallel else _SbatchProcess
         p = c(msg=msg, dispatcher=self)
         self.cmds.append(p)
-        p.start()
+        await p.start()
         return None
 
 
@@ -169,23 +168,23 @@ class _Cmd(PKDict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.run_dir = pkio.py_path(self.msg.runDir)
         self._in_file = self._create_in_file()
         self._process = _Process(self)
         self._terminating = False
         self._start_time = int(time.time())
         self._is_compute = self.msg.jobCmd == 'compute'
         self.jid = self.msg.computeJid
-        self.run_dir = pkio.py_path(self.msg.runDir)
 
     def job_cmd_cmd_stdin_env(self):
-        return job.subprocess_cmd_stdin_env(
+        return job.agent_cmd_stdin_env(
             ('sirepo', 'job_cmd', self._in_file),
             env=self.job_cmd_env(),
             pyenv=self.job_cmd_pyenv(),
         )
 
     def job_cmd_env(self):
-        return job.subprocess_env(
+        return job.agent_env(
             env=PKDict(
                 SIREPO_MPI_CORES=self.msg.mpiCores,
                 SIREPO_SIM_LIB_FILE_URI=self.msg.get('libFileUri', ''),
@@ -217,7 +216,7 @@ class _Cmd(PKDict):
         except Exception as exc:
             pkdlog('error=={}', exc)
 
-    def start(self):
+    async def start(self):
         self._process.start()
         if self._is_compute and self._start_time:
             await self.dispatcher.send(
@@ -237,7 +236,7 @@ class _Cmd(PKDict):
                 self._in_file = None
             if 'dispatcher' not in self:
                 return
-            self.dispatcher.cmd_exit()
+            self.dispatcher.cmd_exit(self)
             if self._terminating:
                 await self.dispatcher.send(
                     self.dispatcher.format_op(
@@ -249,7 +248,7 @@ class _Cmd(PKDict):
                 return
             e = self._process.stderr.text.decode('utf-8', errors='ignore')
             if e:
-                pkdlog('error={}', e)
+                pkdlog('jid={} error={}', self.jid, e)
             if self._process.returncode != 0:
                 await self.dispatcher.send(
                     self.dispatcher.format_op(
@@ -263,7 +262,24 @@ class _Cmd(PKDict):
                     )
                 )
         except Exception as exc:
-            pkdlog('jid={} error={} returncode={}', self.jid, exc, self._process.returncode)
+            pkdlog(
+                'jid={} error={} returncode={} stack={}',
+                self.jid,
+                exc,
+                self._process.returncode,
+                pkdexc(),
+            )
+            await self.dispatcher.send(
+                self.dispatcher.format_op(
+                    self.msg,
+                    job.OP_ERROR,
+                    error=str(exc),
+                    reply=PKDict(
+                        state=job.ERROR,
+                        error='job_agent error',
+                    ),
+                ),
+            )
 
     def _create_in_file(self):
         f = self.run_dir.join(
@@ -311,7 +327,7 @@ class _SbatchRun(_Cmd):
         self.msg.sbatchId = self._sbatch_id
         super().kill(self)
 
-    def start(self):
+    async def start(self):
         self._sbatch_id =  self._submit_compute_to_sbatch(
             self._prepare_simulation(),
         )
@@ -354,7 +370,8 @@ EOF
         return pkjson.load_any(r).cmd
 
     async def _start_compute(self):
-        await self._await_job_completion_and_parallel_status(
+        try:
+            await self._await_job_completion_and_parallel_status(
                 self._sbatch_id,
             )
         except Exception as e:
@@ -422,7 +439,7 @@ class _Stream(PKDict):
 
 class _Process(PKDict):
     def __init__(self, cmd):
-        super().__init__(*args, **kwargs)
+        super().__init__()
         self.update(
             stderr=None,
             stdout=None,
@@ -443,7 +460,7 @@ class _Process(PKDict):
 
     def start(self):
         # SECURITY: msg must not contain agentId
-        assert not self.msg.get('agentId')
+        assert not self.cmd.msg.get('agentId')
         c, s, e = self.cmd.job_cmd_cmd_stdin_env()
         self._subprocess = tornado.process.Subprocess(
             c,

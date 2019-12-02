@@ -67,6 +67,5 @@ def _import(fc):
             PKDict(simulation_type=f.basename.split('_')[0]),
             file=f,
         )
-        pkdp(d)
         res.append((d.simulationType, d.models.simulation.name, expect))
     return res

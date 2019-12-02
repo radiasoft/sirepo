@@ -127,7 +127,10 @@ class LocalDriver(job_driver.DriverBase):
         #TODO(robnagler) what is there to verify? Maybe add to a test?
         if k:
             tornado.ioloop.IOLoop.current().remove_timeout(k)
-        if not pkconfig.channel_in('dev'):
+        if pkconfig.channel_in('dev'):
+            if returncode != 0 and self._log.size() > 0:
+                pkdlog('{}: {}', self._log, self._log.read())
+        else:
             self._agentExecDir.remove(rec=True, ignore_errors=True)
 
     async def _agent_start(self):
@@ -136,7 +139,8 @@ class LocalDriver(job_driver.DriverBase):
         # since this is local, we can make the directory; useful for debugging
         pkio.mkdir_parent(self._agentExecDir)
 #TODO(robnagler) log to pkdebug output directly
-        o = self._agentExecDir.join('agent.log').open('w')
+        self._log = self._agentExecDir.join('agent.log')
+        o = self._log.open('w')
         try:
             self.subprocess = tornado.process.Subprocess(
                 cmd,
