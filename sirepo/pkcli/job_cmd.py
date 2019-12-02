@@ -10,7 +10,7 @@ from pykern import pkio
 from pykern import pkjson
 from pykern import pksubprocess
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdexc, pkdc
+from pykern.pkdebug import pkdp, pkdexc, pkdc, pkdlog
 from sirepo import job
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -86,15 +86,19 @@ def _do_compute(msg, template):
                 stderr=run_log,
             )
         while True:
-            r = p.poll()
-            i = r is None
+            for j in range(20):
+                time.sleep(.1)
+                r = p.poll()
+                i = r is None
+                if not i:
+                    break
             if msg.isParallel:
                 # TODO(e-carlin): This has a potential to fail. We likely
                 # don't want the job to fail in this case
                 _write_parallel_status(msg, template, i)
             if i:
-                time.sleep(msg.nextRequestSeconds)
-            elif r != 0:
+                continue
+            if r != 0:
                 return PKDict(state=job.ERROR, error='non zero returncode={}'.format(r))
             else:
                 return PKDict(state=job.COMPLETED)

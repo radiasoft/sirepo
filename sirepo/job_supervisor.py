@@ -220,6 +220,7 @@ class _ComputeJob(PKDict):
                 r.error = self.db.error
             if self.db.isParallel:
                 r.update(self.db.parallelStatus)
+                r.computeJobHash = self.db.computeJobHash
                 r.computeJobStart = self.db.computeJobStart
                 r.elapsedTime = r.lastUpdateTime - r.computeJobStart
             if self.db.status in _RUNNING_PENDING:
@@ -245,7 +246,11 @@ class _ComputeJob(PKDict):
         )
 
     async def _receive_api_simulationFrame(self, req):
-        assert self.db.computeJobHash == req.content.computeJobHash
+        assert self.db.computeJobHash == req.content.computeJobHash, \
+            'expected computeJobHash={} but got={}'.format(
+                self.db.computeJobHash,
+                req.content.computeJobHash,
+            )
         return await self._send_with_single_reply(
             job.OP_ANALYSIS,
             req,

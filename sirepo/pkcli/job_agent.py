@@ -258,7 +258,7 @@ class _Cmd(PKDict):
                 return
             e = self._process.stderr.text.decode('utf-8', errors='ignore')
             if e:
-                pkdlog('jid={} error={}', self.jid, e)
+                pkdlog('jid={} exit={} stderr={}', self.jid, self._process.returncode, e)
             if self._process.returncode != 0:
                 await self.dispatcher.send(
                     self.dispatcher.format_op(
