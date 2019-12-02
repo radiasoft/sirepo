@@ -157,7 +157,7 @@ class _Dispatcher(PKDict):
     async def _cmd(self, msg):
         c = _Cmd
         if msg.jobRunMode == job.SBATCH:
-            c = _SbatchRun if msg.isParallel else _SbatchProcess
+            c = _SbatchRun if msg.isParallel else _SbatchCmd
         p = c(msg=msg, dispatcher=self)
         self.cmds.append(p)
         await p.start()
@@ -301,15 +301,16 @@ class _Cmd(PKDict):
 
 class _SbatchCmd(_Cmd):
 
-    @classmethod
-    def job_cmd_source_bashrc(cls):
-        return 'export HOME=/home/vagrant; source /home/vagrant/.bashrc; eval export HOME=~$USER'
+    def job_cmd_source_bashrc(self):
+        if self.msg.get('shifterImage'):
+            return 'export HOME=/home/vagrant; source /home/vagrant/.bashrc; eval export HOME=~$USER'
+        return ''
 
     def job_cmd_cmd(self):
         c = super().job_cmd_cmd()
-        if not self.msg.get('shifterImage'):
-            return c
-        return ('shifter', '--image={self.msg.shifterImage}') + c
+        if self.msg.get('shifterImage'):
+            return ('shifter', '--image={self.msg.shifterImage}') + c
+        return c
 
     async def exited(self):
         await self._process.exit_ready()
@@ -391,7 +392,7 @@ class _SbatchRun(_SbatchCmd):
 #SBATCH --time={self._sbatch_time()}
 {o}
 srun {s} /bin/bash <<'EOF'
-{_SbatchCmd.job_cmd_source_bashrc()}
+{self.job_cmd_source_bashrc()}
 # this may not be necessary
 {self.job_cmd_env()}
 pyenv shell {self.job_cmd_pyenv()}
