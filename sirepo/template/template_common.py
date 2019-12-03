@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdlog, pkdp
+from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 import math
 import numpy
 import os.path
@@ -219,6 +219,7 @@ def sim_frame(frame_id, op):
     try:
         x = op(f)
     except Exception as e:
+        pkdlog('error generating report frame_id={} stack={}', frame_id, pkdexc())
         raise sirepo.util.convert_exception(e, display_text='Report not generated')
     r = sirepo.http_reply.gen_json(x)
     if 'error' not in x and s.want_browser_frame_cache():
