@@ -163,7 +163,6 @@ class _Dispatcher(PKDict):
         c = _Cmd
         if msg.jobRunMode == job.SBATCH:
             c = _SbatchRun if msg.isParallel else _SbatchCmd
-        pkdp('jobRunMode={}', msg.jobRunMode)
         p = c(msg=msg, dispatcher=self)
         self.cmds.append(p)
         await p.start()
@@ -527,8 +526,6 @@ class _Process(PKDict):
         # SECURITY: msg must not contain agentId
         assert not self.cmd.msg.get('agentId')
         c, s, e = self.cmd.job_cmd_cmd_stdin_env()
-        pkdp('starting cmd={} stdin={}', c, s.read())
-        s.seek(0)
         self._subprocess = tornado.process.Subprocess(
             c,
             close_fds=True,

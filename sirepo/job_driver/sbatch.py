@@ -91,7 +91,7 @@ class SBatchDriver(job_driver.DriverBase):
             password=self._user if self._user == 'vagrant' else totp(),
             known_hosts=_KNOWN_HOSTS,
         ) as c:
-            script = pkdp(f'''#!/bin/bash
+            script = f'''#!/bin/bash
 set -x
 set -e
 mkdir -p '{self._srdb_root}'
@@ -103,7 +103,7 @@ pkill -f 'sirepo job_agent' >& /dev/null || true
 scancel -u $USER >& /dev/null || true
 setsid {cfg.sirepo_cmd} job_agent >& job_agent.log &
 disown
-''')
+'''
             async with c.create_process('/bin/bash') as p:
                 o, e = await p.communicate(input=script)
                 if o or e:

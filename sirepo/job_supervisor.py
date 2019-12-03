@@ -279,7 +279,6 @@ class _ComputeJob(PKDict):
         self._sent_run = True
         while True:
             r = await o.reply_ready()
-            pkdp(r)
             self.db.status = r.state
             if self.db.status == job.ERROR:
                 self.db.error = r.get('error', '<unknown error>')

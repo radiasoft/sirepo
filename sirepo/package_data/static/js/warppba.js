@@ -97,7 +97,6 @@ SIREPO.app.controller('WarpPBADynamicsController', function(appState, frameCache
      *                 }
      * revert jobRunMode if no credentials
      * cancel changes to model
-     * //                srdbg('check user logged in');
      *
      *             }
      *             function processFields() {
