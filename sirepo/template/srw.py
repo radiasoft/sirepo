@@ -72,7 +72,7 @@ _USER_MODEL_LIST_FILENAME = pkcollections.Dict({
     'tabulatedUndulator': '_user_undulator_list.json',
 })
 
-_IMPORT_PYTHON_POLLS = 5
+_IMPORT_PYTHON_POLLS = 15
 
 class MagnMeasZip:
     def __init__(self, archive_name):
@@ -471,7 +471,7 @@ def import_file(req, tmp_dir, **kwargs):
                     PARSED_DATA_ATTR,
                     r,
                 )
-            time.sleep(r.nextRequestSeconds);
+            time.sleep(r.nextRequestSeconds)
             r = sirepo.uri_router.call_api('runStatus', data=r.nextRequest)
         else:
             raise sirepo.util.UserAlert(
@@ -488,7 +488,7 @@ def import_file(req, tmp_dir, **kwargs):
             try:
                 simulation_db.delete_simulation(req.type, i)
             except Exception:
-                passp
+                pass
         raise
     raise sirepo.util.Response(sirepo.server.api_simulationData(r.simulationType, i, pretty=False))
 
