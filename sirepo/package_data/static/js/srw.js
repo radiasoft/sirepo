@@ -1391,7 +1391,7 @@ SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload,
                         else {
                             $('#srw-simulation-import').modal('hide');
                             requestSender.localRedirect('source', {
-                                ':simulationId': simId,
+                                ':simulationId': data.models.simulation.simulationId
                             });
                         }
                     });
