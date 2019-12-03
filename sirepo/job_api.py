@@ -9,24 +9,60 @@ from pykern import pkinspect, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import api_perm
-from sirepo import http_reply
-from sirepo import http_request
-from sirepo import job
 from sirepo import simulation_db
-from sirepo import srdb
-from sirepo import srtime
 from sirepo.template import template_common
-import sirepo.auth
-import calendar
-import datetime
+import inspect
+import pykern.pkio
+import re
 import requests
+import sirepo.auth
+import sirepo.http_reply
+import sirepo.http_request
+import sirepo.job
+import sirepo.mpi
 import sirepo.sim_data
-import sirepo.template
-import time
+import sirepo.util
 
 
-_YEAR = datetime.timedelta(365)
+#: how many call frames to search backwards to find the api_.* caller
+_MAX_FRAME_SEARCH_DEPTH = 6
 
+@api_perm.require_user
+def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
+#TODO(robnagler) validate suffix and frame
+    req = sirepo.http_request.parse_params(
+        id=simulation_id,
+        model=model,
+        type=simulation_type,
+    )
+    s = suffix and sireop.srschema.parse_name(suffix)
+    t = None
+    with simulation_db.tmp_dir() as d:
+        # TODO(e-carlin): computeJobHash
+        t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
+        t.mksymlinkto(d, absolute=True)
+        try:
+            _request(
+                frame=int(frame),
+                suffix=s,
+                computeJobHash='unused',
+                dataFileUri=sirepo.job.DATA_FILE_ABS_URI + t.basename + '/',
+                req_data=req.req_data,
+            )
+            f = d.listdir()
+            if len(f) > 0:
+                assert len(f) == 1, \
+                    'too many files={}'.format(f)
+                return sirepo.http_reply.gen_file_as_attachment(f[0])
+        except requests.exceptions.HTTPError:
+#TODO(robnagler) HTTPError is too coarse a check
+            pass
+        finally:
+            if t:
+                pykern.pkio.unchecked_remove(t)
+        raise sirepo.util.raise_not_found(
+            'frame={} not found {id} {type}'.format(frame, **req)
+        )
 
 @api_perm.require_user
 def api_runCancel():
@@ -35,62 +71,89 @@ def api_runCancel():
 
 @api_perm.require_user
 def api_runSimulation():
-    return _request(
-        data=http_request.parse_post(fixup_old_data=1, id=1, model=1),
-    )
-
+    t = None
+    try:
+        r = _request_data(PKDict(fixup_old_data=True))
+        d = simulation_db.simulation_lib_dir(r.simulationType)
+        p = d.join(sirepo.job.LIB_FILE_LIST_URI[1:])
+        pykern.pkio.unchecked_remove(p)
+        sirepo.util.json_dump(
+            [x.basename for x in d.listdir()],
+            path=p,
+        )
+        t = sirepo.job.LIB_FILE_ROOT.join(sirepo.job.unique_key())
+        t.mksymlinkto(d, absolute=False)
+        r.libFileUri = sirepo.job.LIB_FILE_ABS_URI + t.basename + '/'
+        return _request(_request_data=r)
+    finally:
+        if t:
+            pykern.pkio.unchecked_remove(t)
 
 @api_perm.require_user
 def api_runStatus():
-    d = http_request.parse_post(id=1, model=1).req_data
-    return _request(data=d, computeJobHash=d.computeJobHash)
+    return _request()
 
 
 @api_perm.require_user
 def api_simulationFrame(frame_id):
-    # fram_id is parsed by template_common
     return template_common.sim_frame(
         frame_id,
-        lambda a: _request(data=a, computeJobHash=a.computeJobHash),
+        lambda a: _request(analysisModel=a.frameReport, req_data=PKDict(**a))
     )
 
 
 def init_apis(*args, **kwargs):
-    pass
-
-
-def _rfc1123(dt):
-    return wsgiref.handlers.format_date_time(srtime.to_timestamp(dt))
+    pykern.pkio.unchecked_remove(sirepo.job.LIB_FILE_ROOT)
 
 
 def _request(**kwargs):
-    b = _request_body(kwargs)
-    import inspect
-    b.setdefault(
-        api=inspect.currentframe().f_back.f_code.co_name,
-        reqId=job.unique_key(),
-        uid=sirepo.auth.logged_in_user(),
-    )
+    d = kwargs.get('_request_data') or _request_data(PKDict(kwargs))
     r = requests.post(
-        job.cfg.supervisor_uri,
-        data=pkjson.dump_bytes(b),
+        sirepo.job.cfg.supervisor_uri + sirepo.job.SERVER_URI,
+        data=pkjson.dump_bytes(d),
         headers=PKDict({'Content-type': 'application/json'}),
     )
     r.raise_for_status()
     return pkjson.load_any(r.content)
 
 
-def _request_body(kwargs):
-    b = PKDict(kwargs)
-    d = b.data
+def _request_data(kwargs):
+    def get_api_name():
+        f = inspect.currentframe()
+        for _ in range(_MAX_FRAME_SEARCH_DEPTH):
+            m = re.search(r'^api_.*$', f.f_code.co_name)
+            if m:
+                return m.group()
+            f = f.f_back
+        else:
+            raise AssertionError(
+                '{}: max frame search depth reached'.format(f.f_code)
+            )
+
+    d = kwargs.pkdel('req_data')
+    if not d:
+        d = sirepo.http_request.parse_post(
+            fixup_old_data=kwargs.pkdel('fixup_old_data', False),
+            id=True,
+            model=True,
+        ).req_data
     s = sirepo.sim_data.get_class(d)
+##TODO(robnagler) this should be req_data
+    b = PKDict(data=d, **kwargs)
+# TODO(e-carlin): some of these fields are only used for some type of reqs
     return b.pksetdefault(
-        computeJobHash=lambda: s.compute_job_hash(d),
+        simulationId=s.parse_sid(d),
+        analysisModel=d.report,
+        api=get_api_name(),
+        computeJid=lambda: s.parse_jid(d),
+        computeJobHash=lambda: d.get('computeJobHash') or s.compute_job_hash(d),
         computeModel=lambda: s.compute_model(d),
         isParallel=lambda: s.is_parallel(d),
-    ).pksetdefault(
-        computeJid=lambda: s.parse_jid(d),
-    ).pksetdefault(
-        # TODO(robnagler) remove this
+        reqId=sirepo.job.unique_key(),
         runDir=lambda: str(simulation_db.simulation_run_dir(d)),
+        simulationType=d.simulationType,
+        uid=sirepo.auth.logged_in_user(),
+    ).pksetdefault(
+        mpiCores=lambda: sirepo.mpi.cfg.cores if b.isParallel else 1,
+        userDir=lambda: str(sirepo.simulation_db.user_dir_name(b.uid)),
     )

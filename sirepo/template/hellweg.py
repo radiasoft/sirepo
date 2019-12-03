@@ -60,7 +60,7 @@ def background_percent_complete(report, run_dir, is_running):
     }
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_files)
     assert False, 'unknown application data method: {}'.format(data['method'])
@@ -229,12 +229,12 @@ def _generate_beam(models):
         return 'BEAM {} {}'.format(_generate_transverse_dist(models), _generate_longitude_dist(models))
     if beam_def == 'cst_pit':
         return 'BEAM CST_PIT {} {}'.format(
-            _SIM_DATA.lib_file_name('beam', 'cstFile', models.beam.cstFile),
+            _SIM_DATA.lib_file_name_with_model_field('beam', 'cstFile', models.beam.cstFile),
             'COMPRESS' if models.beam.cstCompress else '',
         )
     if beam_def == 'cst_pid':
         return 'BEAM CST_PID {} {}'.format(
-            _SIM_DATA.lib_file_name('beam', 'cstFile', models.beam.cstFile),
+            _SIM_DATA.lib_file_name_with_model_field('beam', 'cstFile', models.beam.cstFile),
             _generate_energy_phase_distribution(models.energyPhaseDistribution),
         )
     raise RuntimeError('invalid beam def: {}'.format(beam_def))
@@ -301,11 +301,11 @@ def _generate_longitude_dist(models):
         raise RuntimeError('unknown longitudinal distribution type: {}'.format(models.longitudinalDistribution.distributionType))
     if dist_type == 'file1d':
         return 'FILE1D {} {}'.format(
-            _SIM_DATA.lib_file_name('beam', 'longitudinalFile1d', models.beam.longitudinalFile1d),
+            _SIM_DATA.lib_file_name_with_model_field('beam', 'longitudinalFile1d', models.beam.longitudinalFile1d),
             _generate_energy_phase_distribution(models.energyPhaseDistribution),
         )
     if dist_type == 'file2d':
-        return 'FILE2D {}'.format(_SIM_DATA.lib_file_name('beam', 'transversalFile2d', beam.transversalFile2d))
+        return 'FILE2D {}'.format(_SIM_DATA.lib_file_name_with_model_field('beam', 'transversalFile2d', beam.transversalFile2d))
 
     raise RuntimeError('unknown longitudinal distribution: {}'.format(models.beam.longitudinalDistribution))
 
@@ -341,7 +341,7 @@ def _generate_solenoid(models):
             solenoid.fieldStrength, solenoid.length, solenoid.z0)
     if solenoid.sourceDefinition == 'file':
         return 'SOLENOID {}'.format(
-            _SIM_DATA.lib_file_name('solenoid', 'solenoidFile', solenoid.solenoidFile))
+            _SIM_DATA.lib_file_name_with_model_field('solenoid', 'solenoidFile', solenoid.solenoidFile))
     raise RuntimeError('unknown solenoidDefinition: {}'.format(solenoid.sourceDefinition))
 
 
@@ -362,9 +362,9 @@ def _generate_transverse_dist(models):
         return 'ELL2D {} {} {} {}'.format(dist.aX, dist.bY, dist.rotationAngle, dist.rmsDeviationFactor)
     beam = models.beam
     if dist_type == 'file2d':
-        return 'FILE2D {}'.format(_SIM_DATA.lib_file_name('beam', 'transversalFile2d', beam.transversalFile2d))
+        return 'FILE2D {}'.format(_SIM_DATA.lib_file_name_with_model_field('beam', 'transversalFile2d', beam.transversalFile2d))
     if dist_type == 'file4d':
-        return 'FILE4D {}'.format(_SIM_DATA.lib_file_name('beam', 'transversalFile4d', beam.transversalFile4d))
+        return 'FILE4D {}'.format(_SIM_DATA.lib_file_name_with_model_field('beam', 'transversalFile4d', beam.transversalFile4d))
     raise RuntimeError('unknown transverse distribution: {}'.format(dist_type))
 
 

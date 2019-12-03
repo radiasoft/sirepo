@@ -21,9 +21,11 @@ import math
 import numpy as np
 import os
 import py.path
+import pykern.pkjson
 import re
 import sirepo.sim_data
 import sirepo.template.srw_fixup
+import sirepo.uri_router
 import srwl_uti_cryst
 import srwl_uti_smp
 import srwl_uti_src
@@ -38,6 +40,8 @@ import zipfile
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 WANT_BROWSER_FRAME_CACHE = False
+
+PARSED_DATA_ATTR = 'srwParsedData'
 
 _BRILLIANCE_OUTPUT_FILE = 'res_brilliance.dat'
 
@@ -68,6 +72,7 @@ _USER_MODEL_LIST_FILENAME = pkcollections.Dict({
     'tabulatedUndulator': '_user_undulator_list.json',
 })
 
+_IMPORT_PYTHON_POLLS = 60
 
 class MagnMeasZip:
     def __init__(self, archive_name):
@@ -193,11 +198,11 @@ def compute_crl_focus(model):
 def compute_undulator_length(model):
     if model['undulatorType'] == 'u_i':
         return PKDict()
-    zip_file = simulation_db.simulation_lib_dir(SIM_TYPE).join(model['magneticFile'])
-    if zip_file.check():
+    if _SIM_DATA.lib_file_exists(model['magneticFile']):
+        z = _SIM_DATA.lib_file_abspath(model['magneticFile'])
         return PKDict(
             length=_SIM_DATA.srw_format_float(
-                MagnMeasZip(str(zip_file)).find_closest_gap(model['gap']),
+                MagnMeasZip(str(z)).find_closest_gap(model['gap']),
             ),
         )
     return PKDict()
@@ -315,7 +320,7 @@ def extract_report_data(filename, sim_in):
     return info
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'model_list':
         res = []
         model_name = data['model_name']
@@ -367,7 +372,7 @@ def get_application_data(data):
     elif data['method'] == 'process_undulator_definition':
         return process_undulator_definition(data)
     elif data['method'] == 'processedImage':
-        return _process_image(data)
+        return _process_image(data, kwargs['tmp_dir'])
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
@@ -414,20 +419,78 @@ def sim_frame(frame_args):
     )
 
 
-def import_file(request, lib_dir, tmp_dir):
-    f = request.files['file']
-    input_path = str(tmp_dir.join('import.py'))
-    f.save(input_path)
-    arguments = str(request.form.get('arguments', ''))
-    pkdlog('{}: arguments={}', f.filename, arguments)
-    data = simulation_db.default_data(SIM_TYPE)
-    data['models']['backgroundImport'] = {
-        'inputPath': input_path,
-        'arguments': arguments,
-        'userFilename': f.filename,
-        'libDir': str(simulation_db.simulation_lib_dir(SIM_TYPE)),
-    }
-    return data
+def import_file(req, tmp_dir, **kwargs):
+    import sirepo.server
+
+    i = None
+    try:
+        r = kwargs['reply_op'](simulation_db.default_data(SIM_TYPE))
+        d = pykern.pkjson.load_any(r.data)
+        i = d.models.simulation.simulationId
+        b = d.models.backgroundImport = PKDict(
+            arguments=req.import_file_arguments,
+            python=req.file_stream.read(),
+            userFilename=req.filename,
+        )
+        # POSIT: import.py uses ''', but we just don't allow quotes in names
+        if "'" in b.arguments:
+            raise sirepo.util.UserAlert('arguments may not contain quotes')
+        if "'" in b.userFilename:
+            raise sirepo.util.UserAlert('filename may not contain quotes')
+        d.pkupdate(
+            report='backgroundImport',
+            forceRun=True,
+            simulationId=i,
+        )
+        r = sirepo.uri_router.call_api('runSimulation', data=d)
+        for _ in range(_IMPORT_PYTHON_POLLS):
+            if r.status_code != 200:
+                raise sirepo.util.UserAlert(
+                    'error parsing python',
+                    'unexpected response status={} data={}',
+                    r.status_code,
+                    r.data,
+                )
+            try:
+                r = pykern.pkjson.load_any(r.data)
+            except Exception as e:
+                raise sirepo.util.UserAlert(
+                    'error parsing python',
+                    'error={} parsing response data={}',
+                    e,
+                    r.data,
+                )
+            if 'error' in r:
+                raise sirepo.util.UserAlert(r.get('error'))
+            if PARSED_DATA_ATTR in r:
+                break
+            if 'nextRequest' not in r:
+                raise sirepo.util.UserAlert(
+                    'error parsing python',
+                    'unable to find nextRequest in response={}',
+                    PARSED_DATA_ATTR,
+                    r,
+                )
+            time.sleep(r.nextRequestSeconds)
+            r = sirepo.uri_router.call_api('runStatus', data=r.nextRequest)
+        else:
+            raise sirepo.util.UserAlert(
+                'error parsing python',
+                'polled too many times, last response={}',
+                r,
+            )
+        r = r.get(PARSED_DATA_ATTR)
+        r.models.simulation.simulationId = i
+        r = simulation_db.save_simulation_json(r, do_validate=True)
+    except Exception:
+        raise
+        if i:
+            try:
+                simulation_db.delete_simulation(req.type, i)
+            except Exception:
+                pass
+        raise
+    raise sirepo.util.Response(sirepo.server.api_simulationData(r.simulationType, i, pretty=False))
 
 
 def new_simulation(data, new_simulation_data):
@@ -581,9 +644,12 @@ def validate_file(file_type, path):
         except AssertionError as err:
             return err.message
     elif file_type == 'sample':
-        filename = os.path.splitext(os.path.basename(str(path)))[0]
-        # Save the processed file:
-        srwl_uti_smp.SRWLUtiSmp(file_path=str(path), is_save_images=True, prefix=filename)
+        srwl_uti_smp.SRWLUtiSmp(
+            file_path=str(path),
+            # srw processes the image so we save to tmp location
+            is_save_images=True,
+            prefix=path.purebasename,
+        )
     if not _SIM_DATA.srw_is_valid_file(file_type, path):
         return 'Column count is incorrect for file type: {}'.format(file_type)
     return None
@@ -1124,6 +1190,9 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         v['brillianceOutputFilename'] = _BRILLIANCE_OUTPUT_FILE
         return template_common.render_jinja(SIM_TYPE, v, 'brilliance.py')
     if report == 'backgroundImport':
+        v.tmp_dir = str(run_dir)
+        v.python_file = run_dir.join('user_python.py')
+        v.python_file.write(data.models.backgroundImport.python)
         return template_common.render_jinja(SIM_TYPE, v, 'import.py')
     v['beamlineOptics'], v['beamlineOpticsParameters'] = _generate_beamline_optics(report, data['models'], last_id)
 
@@ -1232,8 +1301,7 @@ def _height_profile_dimension(item):
     """
     dimension = 0
     if item['heightProfileFile'] and item['heightProfileFile'] != 'None':
-        dat_file = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(item['heightProfileFile']))
-        with open(dat_file, 'r') as f:
+        with _SIM_DATA.lib_file_abspath(item['heightProfileFile']).open('r') as f:
             header = f.readline().strip().split()
             dimension = 1 if len(header) == 2 else 2
     return dimension
@@ -1250,17 +1318,17 @@ def _intensity_units(is_gaussian, sim_in):
 
 
 def _load_user_model_list(model_name):
-    filepath = simulation_db.simulation_lib_dir(SIM_TYPE).join(_USER_MODEL_LIST_FILENAME[model_name])
+    f = _SIM_DATA.lib_file_write_path(_USER_MODEL_LIST_FILENAME[model_name])
     try:
-        if filepath.exists():
-            return simulation_db.read_json(filepath)
+        if f.exists():
+            return simulation_db.read_json(f)
     except Exception:
-        pkdlog('user list read failed, resetting contents: {}', filepath)
+        pkdlog('user list read failed, resetting contents: {}', f)
     _save_user_model_list(model_name, [])
     return _load_user_model_list(model_name)
 
 
-def _process_image(data):
+def _process_image(data, tmp_dir):
     """Process image and return
 
     Args:
@@ -1270,9 +1338,9 @@ def _process_image(data):
         py.path.local: file to return
     """
     # This should just be a basename, but this ensures it.
-    path = str(simulation_db.simulation_lib_dir(data.simulationType).join(werkzeug.secure_filename(data.baseImage)))
+    path = str(_SIM_DATA.lib_file_abspath(werkzeug.secure_filename(data.baseImage)))
     m = data['model']
-    with pkio.save_chdir(simulation_db.tmp_dir()):
+    with pkio.save_chdir(tmp_dir):
         s = srwl_uti_smp.SRWLUtiSmp(
             file_path=path,
             area=None if not int(m['cropArea']) else (m['areaXStart'], m['areaXEnd'], m['areaYStart'], m['areaYEnd']),
@@ -1285,10 +1353,10 @@ def _process_image(data):
             shift_x=m['shiftX'],
             shift_y=m['shiftY'],
             is_save_images=True,
-            prefix=str(py.path.local()),
+            prefix=str(tmp_dir),
             output_image_format=m['outputImageFormat'],
         )
-        return py.path.local(s.processed_image_name)
+        return pkio.py_path(s.processed_image_name)
 
 
 def _process_intensity_reports(source_type, undulator_type):
@@ -1385,16 +1453,19 @@ def _safe_beamline_item_name(name, names):
 
 def _save_user_model_list(model_name, beam_list):
     pkdc('saving {} list', model_name)
-    filepath = simulation_db.simulation_lib_dir(SIM_TYPE).join(_USER_MODEL_LIST_FILENAME[model_name])
-    #TODO(pjm): want atomic replace?
-    simulation_db.write_json(filepath, beam_list)
+    simulation_db.write_json(
+        _SIM_DATA.lib_file_write_path(_USER_MODEL_LIST_FILENAME[model_name]),
+        beam_list,
+    )
 
 
 def _superscript(val):
     return re.sub(r'\^2', u'\u00B2', val)
 
+
 def _superscript_2(val):
     return re.sub(r'\^0', u'\u00B0', val)
+
 
 def _trim(v):
     res = ''
@@ -1402,6 +1473,7 @@ def _trim(v):
         res += l.rstrip() + '\n'
     x = res.rstrip('\n') + '\n'
     return x
+
 
 def _unique_name(items, field, template):
     #TODO(pjm): this is the same logic as sirepo.js uniqueName()

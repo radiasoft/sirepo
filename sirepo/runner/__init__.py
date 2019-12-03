@@ -11,21 +11,24 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkio
 from pykern import pkjinja
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import simulation_db
 from sirepo.template import template_common
-import sirepo.sim_data
 import aenum
 import errno
 import importlib
 import os
 import re
 import signal
+import sirepo.auth
+import sirepo.sim_data
+import sirepo.mpi
+import sirepo.srdb
 import subprocess
 import sys
 import threading
 import time
-import uuid
 
 #: Configuration
 cfg = None
@@ -136,6 +139,11 @@ class JobBase(object):
         self.jid = jid
         self.lock = threading.RLock()
         self.set_state(State.INIT)
+        self.subprocess_env = PKDict(
+            SIREPO_MPI_CORES=str(sirepo.mpi.cfg.cores),
+            SIREPO_AUTH_LOGGED_IN_USER=str(sirepo.auth.logged_in_user()),
+            SIREPO_SRDB_ROOT=str(sirepo.srdb.root()),
+        )
 
     def is_processing(self):
         with self.lock:

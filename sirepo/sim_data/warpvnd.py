@@ -19,6 +19,15 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
+        if analysis_model in (
+            'currentAnimation',
+            'egunCurrentAnimation',
+            'fieldAnimation',
+            'impactDensityAnimation',
+            'particle3d',
+            'particleAnimation',
+        ):
+            return 'animation'
         if analysis_model == 'optimizerAnimation':
             return analysis_model
         if analysis_model in (
@@ -116,11 +125,11 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
 
     @classmethod
-    def _lib_files(cls, data):
+    def _lib_file_basenames(cls, data):
         res = []
         for m in data.models.conductorTypes:
             if m.type == 'stl':
-                res.append(cls.lib_file_name('stl', 'file', m.file))
+                res.append(cls.lib_file_name_with_model_field('stl', 'file', m.file))
         return res
 
     @classmethod

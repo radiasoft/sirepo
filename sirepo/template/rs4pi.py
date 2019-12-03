@@ -23,6 +23,7 @@ import os.path
 import py.path
 import re
 import sirepo.sim_data
+import sirepo.util
 import struct
 import time
 import werkzeug
@@ -146,7 +147,7 @@ def generate_rtdose_file(data, run_dir):
         return _summarize_rt_dose(None, ds, run_dir=run_dir)
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'roi_points':
         return _read_roi_file(data['simulationId'])
     elif data['method'] == 'update_roi_points':
@@ -159,25 +160,24 @@ def get_data_file(run_dir, model, frame, **kwargs):
     if model == 'dicomAnimation4':
         with open(_parent_file(run_dir, _DOSE_DICOM_FILE)) as f:
             return RTDOSE_EXPORT_FILENAME, f.read(), 'application/octet-stream'
-    tmp_dir = simulation_db.tmp_dir()
-    filename, _ = _generate_rtstruct_file(_parent_dir(run_dir), tmp_dir)
+    filename, _ = _generate_rtstruct_file(_parent_dir(run_dir), kwargs['tmp_dir'])
     with open (filename, 'rb') as f:
         dicom_data = f.read()
-    pkio.unchecked_remove(tmp_dir)
     return RTSTRUCT_EXPORT_FILENAME, dicom_data, 'application/octet-stream'
 
 
-def import_file(request, lib_dir=None, tmp_dir=None):
-    f = request.files['file']
-    filename = werkzeug.secure_filename(f.filename)
-    if not pkio.has_file_extension(str(filename), 'zip'):
-        raise RuntimeError('unsupported import filename: {}'.format(filename))
-    filepath = str(tmp_dir.join(_ZIP_FILE_NAME))
-    f.save(filepath)
+def import_file(req, tmp_dir=None, **kwargs):
+    if not pkio.has_file_extension(req.filename, 'zip'):
+        raise sirepo.util.UserAlert('unsupported import filename: {}'.format(filename))
+    #TODO(pjm): writing to simulation lib for now, tmp_dir will get removed after this request
+    filepath = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(_ZIP_FILE_NAME))
+    with open(filepath, 'wb') as f:
+        f.write(req.file_stream.read())
     data = simulation_db.default_data(SIM_TYPE)
-    data['models']['simulation']['name'] = filename
+    data['models']['simulation']['name'] = req.filename
     data['models']['simulation'][_TMP_INPUT_FILE_FIELD] = filepath
-    # more processing occurs below in prepare_for_client() after simulation dir is prepared
+    # more processing occurs in prepare_for_client() via:
+    # import_file => _save_new_and_reply => api_simulationData => prepare_for_client
     return data
 
 

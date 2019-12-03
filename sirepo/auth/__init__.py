@@ -123,16 +123,16 @@ def api_authLogout(simulation_type=None):
 
     Redirects to root simulation page.
     """
-    sim = None
+    req = None
     if simulation_type:
         try:
-            sim = http_request.parse_params(type=simulation_type)
+            req = http_request.parse_params(type=simulation_type)
         except AssertionError:
             pass
     if _is_logged_in():
         cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         _set_log_user()
-    return http_reply.gen_redirect_for_app_root(sim and sim.type)
+    return http_reply.gen_redirect_for_app_root(req and req.type)
 
 
 def complete_registration(name=None):
@@ -156,13 +156,11 @@ def guest_uids():
 
 
 def init_apis(app, *args, **kwargs):
-    global uri_router, simulation_db, _app, cfg, visible_methods, valid_methods, non_guest_methods
+    global uri_router, simulation_db, _app, visible_methods, valid_methods, non_guest_methods
     assert not _METHOD_MODULES
 
-    cfg = pkconfig.init(
-        methods=((METHOD_GUEST,), set, 'for logging in'),
-        deprecated_methods=(set(), set, 'for migrating to methods'),
-    )
+    assert not cfg.logged_in_user, \
+        'Do not set $SIREPO_AUTH_LOGGED_IN_USER in server'
     uri_router = importlib.import_module('sirepo.uri_router')
     simulation_db = importlib.import_module('sirepo.simulation_db')
     auth_db.init(app)
@@ -276,6 +274,8 @@ def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js=False
             sim_type=sim_type,
         ),
         'login failed: reason={} method={}',
+        reason,
+        module.AUTH_METHOD,
     )
 
 
@@ -379,7 +379,7 @@ def reset_state():
     _set_log_user()
 
 
-def user_dir_not_found(uid):
+def user_dir_not_found(user_dir, uid):
     """Called by simulation_db when user_dir is not found
 
     Deletes any user records
@@ -399,7 +399,8 @@ def user_dir_not_found(uid):
     raise util.SRException(
         'login',
         PKDict(reload_js=True),
-        'simulation_db dir not found, deleted uid={}',
+        'simulation_db dir={} not found, deleted uid={}',
+        user_dir,
         uid,
     )
 
@@ -493,6 +494,29 @@ def _get_user():
     return cookie.unchecked_get_value(_COOKIE_USER)
 
 
+def _init():
+    global cfg
+
+    cfg = pkconfig.init(
+        methods=((METHOD_GUEST,), set, 'for logging in'),
+        deprecated_methods=(set(), set, 'for migrating to methods'),
+        logged_in_user=(None, str, 'Only for sirepo.job_supervisor'),
+    )
+    if not cfg.logged_in_user:
+        return
+    global logged_in_user, user_dir_not_found
+
+    def logged_in_user():
+        return cfg.logged_in_user
+
+    def user_dir_not_found(d, u):
+        # can't raise in a lambda so do something like this
+        raise AssertionError('user_dir={} not found'.format(d))
+
+    cfg.deprecated_methods = set()
+    cfg.methods = set((METHOD_GUEST,))
+
+
 def _is_logged_in(state=None):
     """Logged in is either needing to complete registration or done
 
@@ -574,3 +598,6 @@ def _validate_method(module, sim_type=None):
         return None
     pkdlog('invalid auth method={}'.format(module.AUTH_METHOD))
     login_fail_redirect(sim_type, module, 'invalid-method', reload_js=True)
+
+
+_init()

@@ -24,7 +24,7 @@ _cfg = {
     'SIREPO_FEATURE_CONFIG_SIM_TYPES': _sim_type,
 }
 
-@srunit.wrap_in_request(cfg=_cfg, want_cookie=True)
+@srunit.wrap_in_request(cfg=_cfg, want_user=False)
 def test_migration():
     """See if user gets migrated"""
     from pykern.pkunit import pkeq, pkok, pkexcept, work_dir

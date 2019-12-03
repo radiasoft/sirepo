@@ -26,15 +26,6 @@ def root():
     return _root
 
 
-def runner_socket_path():
-    return root() / 'runner.sock'
-
-
-def server_init_root(value):
-    _init_root(value)
-    return root()
-
-
 @pkconfig.parse_none
 def _cfg_root(value):
     """Config value or root package's parent or cwd with `_DEFAULT_ROOT`"""

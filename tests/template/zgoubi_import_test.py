@@ -9,23 +9,11 @@ from pykern import pkio
 from pykern import pkunit
 from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
 import pytest
-
-#TODO(pjm): very similar to elegant_import_test.py
-
-class FlaskRequest(object):
-
-    def __init__(self, filename):
-        self.filename = str(filename)
-        self.files = {
-            'file': self,
-        }
-        self.form = {}
-
-    def read(self):
-        return pkio.read_text(self.filename)
+from sirepo import srunit
 
 
-def test_importer():
+@srunit.wrap_in_request()
+def test_importer(import_req):
     from pykern import pkcollections
     from pykern import pkjson
     from pykern.pkunit import pkeq
@@ -36,7 +24,7 @@ def test_importer():
         for fn in pkio.sorted_glob(pkunit.data_dir().join('*.dat')):
             error = None
             try:
-                data = zgoubi.import_file(FlaskRequest(fn), unit_test_mode=True)
+                data = zgoubi.import_file(import_req(fn), unit_test_mode=True)
                 sirepo.sim_data.get_class('zgoubi').fixup_old_data(data)
                 #TODO(pjm): easier way to convert nested dict to pkcollections.Dict?
                 data = pkcollections.json_load_any(pkjson.dump_pretty(data))

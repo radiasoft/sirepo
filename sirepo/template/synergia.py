@@ -20,6 +20,7 @@ import math
 import py.path
 import re
 import sirepo.sim_data
+import sirepo.util
 import werkzeug
 
 
@@ -119,7 +120,7 @@ def format_float(v):
     return float(format(v, '.10f'))
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data.method == 'calculate_bunch_parameters':
         return _calc_bunch_parameters(data.bunch)
     if data.method == 'compute_particle_ranges':
@@ -127,28 +128,26 @@ def get_application_data(data):
     assert False, 'unknown application data method: {}'.format(data.method)
 
 
-def import_file(request, lib_dir=None, tmp_dir=None):
-    f = request.files['file']
-    filename = werkzeug.secure_filename(f.filename)
-    if re.search(r'.madx$', filename, re.IGNORECASE):
-        data = _import_madx_file(f.read())
-    elif re.search(r'.mad8$', filename, re.IGNORECASE):
+def import_file(req, tmp_dir=None, **kwargs):
+    if re.search(r'.madx$', req.filename, re.IGNORECASE):
+        data = _import_madx_file(req.file_stream.read())
+    elif re.search(r'.mad8$', req.filename, re.IGNORECASE):
         import pyparsing
         try:
-            data = _import_mad8_file(f.read())
+            data = _import_mad8_file(req.file_stream.read())
         except pyparsing.ParseException as e:
             # ParseException has no message attribute
-            raise IOError(str(e))
-    elif re.search(r'.lte$', filename, re.IGNORECASE):
-        data = _import_elegant_file(f.read())
+            raise sirepo.util.UserAlert(str(e))
+    elif re.search(r'.lte$', req.filename, re.IGNORECASE):
+        data = _import_elegant_file(req.file_stream.read())
     else:
-        raise IOError('invalid file extension, expecting .madx or .mad8')
+        raise sirepo.util.UserAlert('invalid file extension, expecting .madx or .mad8')
     LatticeUtil(data, _SCHEMA).sort_elements_and_beamlines()
-    data.models.simulation.name = re.sub(r'\.(mad.|lte)$', '', filename, flags=re.IGNORECASE)
+    data.models.simulation.name = re.sub(r'\.(mad.|lte)$', '', req.filename, flags=re.IGNORECASE)
     return data
 
 
-def get_data_file(run_dir, model, frame, options=None):
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if model in OUTPUT_FILE:
         path = run_dir.join(OUTPUT_FILE[model])
     elif model == 'bunchAnimation':
@@ -176,7 +175,20 @@ def label(field, enum_labels=None):
     return '{} [{}]'.format(res, _UNITS[field])
 
 
-def parse_error_log(run_dir):
+def prepare_output_file(run_dir, data):
+    report = data.report
+    if 'bunchReport' in report or 'twissReport' in report:
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
+        if fn.exists():
+            fn.remove()
+            save_report_data(data, run_dir)
+
+
+def python_source_for_model(data, model):
+    return _generate_parameters_file(data)
+
+
+def parse_synergia_log(run_dir):
     if not run_dir.join(template_common.RUN_LOG).exists():
         return None
     text = pkio.read_text(run_dir.join(template_common.RUN_LOG))
@@ -209,19 +221,6 @@ def parse_error_log(run_dir):
     return None
 
 
-def prepare_output_file(run_dir, data):
-    report = data.report
-    if 'bunchReport' in report or 'twissReport' in report:
-        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
-        if fn.exists():
-            fn.remove()
-            save_report_data(data, run_dir)
-
-
-def python_source_for_model(data, model):
-    return _generate_parameters_file(data)
-
-
 def save_report_data(data, run_dir):
     if 'bunchReport' in data.report:
         import synergia.bunch
@@ -233,7 +232,7 @@ def save_report_data(data, run_dir):
         report = data.models[data.report]
         bunch = data.models.bunch
         if bunch.distribution == 'file':
-            bunch_file = _SIM_DATA.lib_file_name('bunch', 'particleFile', bunch.particleFile)
+            bunch_file = _SIM_DATA.lib_file_name_with_model_field('bunch', 'particleFile', bunch.particleFile)
         else:
             bunch_file = OUTPUT_FILE.bunchReport
         if not run_dir.join(bunch_file).exists():
@@ -288,7 +287,7 @@ def sim_frame_beamEvolutionAnimation(frame_args):
             points = _plot_values(f, frame_args[yfield])
             for v in points:
                 if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
-                    return parse_error_log(run_dir) or PKDict(
+                    return parse_synergia_log(frame_args.run_dir) or PKDict(
                         error='Invalid data computed',
                     )
             plots.append(PKDict(
@@ -338,7 +337,7 @@ def sim_frame_turnComparisonAnimation(frame_args):
         points = _plot_values(f, frame_args.y)
         for v in points:
             if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
-                return parse_error_log(frame_args.run_dir) or {
+                return parse_synergia_log(frame_args.run_dir) or {
                     'error': 'Invalid data computed',
                 }
         steps = (len(points) - 1) / turn_count
@@ -376,7 +375,8 @@ def simulation_dir_name(report_name):
 
 
 def validate_file(file_type, path):
-    assert file_type == 'bunch-particleFile'
+    if file_type != 'bunch-particleFile':
+        return 'invalid file type'
     try:
         with h5py.File(path, 'r') as f:
             if 'particles' in f:
@@ -500,7 +500,7 @@ def _generate_parameters_file(data):
         'twissFileName': OUTPUT_FILE.twissReport,
     })
     if data.models.bunch.distribution == 'file':
-        v.bunchFile = _SIM_DATA.lib_file_name('bunch', 'particleFile', data.models.bunch.particleFile)
+        v.bunchFile = _SIM_DATA.lib_file_name_with_model_field('bunch', 'particleFile', data.models.bunch.particleFile)
     v.bunch = template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
     res += template_common.render_jinja(SIM_TYPE, v, 'base.py')
     report = data.report if 'report' in data else ''

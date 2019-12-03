@@ -7,51 +7,51 @@ u"""?
 from __future__ import absolute_import, division, print_function
 import pytest
 
-pytest.importorskip('sdds')
-pytest.importorskip('srwl_bl')
-pytest.importorskip('warpC')
 
-def test_create_zip():
+def test_create_zip(fc):
     from pykern import pkio
     from pykern import pkunit
+    from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp, pkdpretty
-    from pykern.pkunit import pkfail, pkok
+    from pykern.pkunit import pkeq
     from sirepo import srunit
-    import copy
+    import re
     import zipfile
 
-    fc = srunit.flask_client(sim_types='elegant:srw:warppba')
-    fc.sr_login_as_guest('srw')
     imported = _import(fc)
     for sim_type, sim_name, expect in imported + [
         ('elegant', 'bunchComp - fourDipoleCSR', ['WAKE-inputfile.knsl45.liwake.sdds', 'run.py', 'sirepo-data.json']),
         ('srw', 'Tabulated Undulator Example', ['magnetic_measurements.zip', 'run.py', 'sirepo-data.json']),
         ('warppba', 'Laser Pulse', ['run.py', 'sirepo-data.json']),
     ]:
-        sim_id = fc.sr_sim_data(sim_type, sim_name)['models']['simulation']['simulationId']
-        resp = fc.sr_get(
-            'exportArchive',
-            {
-                'simulation_type': sim_type,
-                'simulation_id': sim_id,
-                'filename': 'anything.zip',
-            },
-        )
-        with pkio.save_chdir(pkunit.work_dir()):
-            fn = sim_name + '.zip'
-            with open(fn, 'wb') as f:
-                f.write(resp.data)
-            z = zipfile.ZipFile(fn)
-            nl = sorted(z.namelist())
-            pkok(
-                nl == expect,
-                '{}: zip namelist incorrect, expect={}',
-                nl,
-                expect,
-            )
+        sim_id = fc.sr_sim_data(sim_name, sim_type)['models']['simulation']['simulationId']
+        with pkio.save_chdir(pkunit.work_dir()) as d:
+            for t in 'zip', 'html':
+                r = fc.sr_get(
+                    'exportArchive',
+                    PKDict(
+                        simulation_type=sim_type,
+                        simulation_id=sim_id,
+                        filename='anything.' + t,
+                    )
+                )
+                p = d.join(sim_name + '.' + t)
+                x = r.data
+                if t == 'html':
+                    m = re.search(r'name="zip" \S+ value="([^"]+)"', x, flags=re.DOTALL)
+                    x = m.group(1).decode('base64')
+                p.write(x, mode='wb')
+                e = expect
+                if t == 'html':
+                    e.remove('run.py')
+                pkeq(
+                    e,
+                    sorted(zipfile.ZipFile(str(p)).namelist()),
+                )
 
 
 def _import(fc):
+    from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     from pykern import pkio
     from pykern import pkunit
@@ -63,10 +63,10 @@ def _import(fc):
             expect = sorted(z.namelist() + ['run.py'])
         d = fc.sr_post_form(
             'importFile',
-            {
-                'file': (open(str(f), 'rb'), f.basename),
-                'folder': '/exporter_test',
-            },
+            PKDict(folder='/exporter_test'),
+            PKDict(simulation_type=f.basename.split('_')[0]),
+            file=f,
         )
+        pkdp(d)
         res.append((d.simulationType, d.models.simulation.name, expect))
     return res

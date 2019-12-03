@@ -26,6 +26,7 @@ def test_guest_merge(monkeypatch):
             simulationId=d.simulationId,
             simulationType=sim_type,
             name='guest-sim',
+            folder='/',
         ),
     )
     guest_uid = fc.sr_auth_state().uid
@@ -52,6 +53,7 @@ def test_guest_merge(monkeypatch):
             simulationId=d.simulationId,
             simulationType=sim_type,
             name='oauth-sim',
+            folder='/',
         ),
     )
     fc.sr_get('authLogout', {'simulation_type': sim_type})

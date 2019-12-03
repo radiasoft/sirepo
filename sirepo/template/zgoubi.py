@@ -394,14 +394,14 @@ def extract_tunes_report(run_dir, data):
     }, plot_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'])
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_frames)
     if data['method'] == 'tosca_info':
         return zgoubi_importer.tosca_info(data['tosca'])
 
 
-def get_data_file(run_dir, model, frame, options=None):
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
     filename = _ZGOUBI_FAI_DATA_FILE
     if options and options['suffix'] == _ZGOUBI_COMMAND_FILE:
         if model == 'tunesReport':
@@ -432,15 +432,8 @@ def sim_frame(frame_args):
     return None
 
 
-def import_file(request, lib_dir=None, tmp_dir=None, unit_test_mode=False):
-    f = request.files['file']
-    filename = werkzeug.secure_filename(f.filename)
-    data = zgoubi_importer.import_file(f.read(), unit_test_mode=unit_test_mode)
-    return data
-
-
-def parse_error_log(run_dir):
-    return None
+def import_file(req, unit_test_mode=False, **kwargs):
+    return zgoubi_importer.import_file(req.file_stream.read(), unit_test_mode=unit_test_mode)
 
 
 def python_source_for_model(data, model=None):
@@ -544,7 +537,7 @@ def write_parameters(data, run_dir, is_parallel, python_file=template_common.PAR
     for el in data.models.elements:
         if el.type != 'TOSCA':
             continue
-        filename = str(run_dir.join(_SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el.magnetFile)))
+        filename = str(run_dir.join(_SIM_DATA.lib_file_name_with_model_field('TOSCA', 'magnetFile', el.magnetFile)))
         if zgoubi_importer.is_zip_file(filename):
             with zipfile.ZipFile(filename, 'r') as z:
                 for info in z.infolist():
@@ -895,9 +888,9 @@ def _prepare_tosca_element(el):
     file_count = zgoubi_parser.tosca_file_count(el)
     el['fileNames'] = el['fileNames'][:file_count]
 
-    filename = _SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el.magnetFile)
+    filename = _SIM_DATA.lib_file_name_with_model_field('TOSCA', 'magnetFile', el.magnetFile)
     if file_count == 1 and not zgoubi_importer.is_zip_file(filename):
-        el['fileNames'][0] = _SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el['fileNames'][0])
+        el['fileNames'][0] = _SIM_DATA.lib_file_name_with_model_field('TOSCA', 'magnetFile', el['fileNames'][0])
 
 
 def _read_data_file(path, mode='title'):

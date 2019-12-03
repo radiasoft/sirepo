@@ -175,7 +175,7 @@ def get_analysis_report(run_dir, data):
     )
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'column_info':
         data = PKDict(
             models=PKDict(
@@ -184,7 +184,8 @@ def get_application_data(data):
         )
         return PKDict(
             columnInfo=_column_info(
-                _analysis_data_path(simulation_db.simulation_lib_dir(SIM_TYPE), data)),
+                str(_SIM_DATA.lib_file_abspath(_analysis_data_path(data))),
+            ),
         )
     if data['method'] == 'update_kicker':
         return _update_epics_kicker(data)
@@ -224,10 +225,10 @@ def get_beam_pos_report(run_dir, data):
     )
 
 
-def get_data_file(run_dir, model, frame, options=None):
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     report = data.models[data.report]
-    path = _analysis_data_path(run_dir, data)
+    path = str(run_dir.join(_analysis_data_path(data)))
     col_info = _column_info(path)
     plot_data = _load_file_with_history(report, path, col_info)
     buf = StringIO.StringIO()
@@ -422,8 +423,8 @@ def write_epics_values(server_address, fields, values):
     return True
 
 
-def _analysis_data_path(run_dir, data):
-    return str(run_dir.join(_SIM_DATA.webcon_analysis_data_file(data)))
+def _analysis_data_path(data):
+    return _SIM_DATA.webcon_analysis_data_file(data)
 
 
 def _beam_pos_plots(data, history, start_time):
@@ -956,7 +957,7 @@ def _read_monitor_file(monitor_path, history=False):
 
 def _report_info(run_dir, data):
     report = data.models[data.report]
-    path = _analysis_data_path(run_dir, data)
+    path = str(run_dir.join(_analysis_data_path(data)))
     col_info = _column_info(path)
     plot_data = _load_file_with_history(report, path, col_info)
     return report, col_info, plot_data

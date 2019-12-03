@@ -16,6 +16,7 @@ from sirepo import feature_config
 from sirepo import srschema
 from sirepo import util
 from sirepo.template import template_common
+import contextlib
 import copy
 import datetime
 import errno
@@ -29,6 +30,8 @@ import random
 import re
 import sirepo.auth
 import sirepo.job
+import sirepo.srdb
+import sirepo.srdb
 import sirepo.template
 import threading
 import time
@@ -87,9 +90,6 @@ _TMP_DIR = 'tmp'
 #: where users live under db_dir
 _USER_ROOT_DIR = 'user'
 
-#: Flask app (init() must be called to set this)
-_app = None
-
 #: Use to assert _serial_new result. Not perfect but good enough to avoid common problems
 _serial_prev = 0
 
@@ -135,7 +135,7 @@ def celery_queue(data):
         str: celery queue name
     """
     from sirepo import celery_tasks
-    return celery_tasks.queue_name(is_parallel(data))
+    return celery_tasks.queue_name(sirepo.sim_data.get_class(data).is_parallel(data))
 
 
 def default_data(sim_type):
@@ -277,16 +277,6 @@ def get_schema(sim_type):
     return schema
 
 
-def init_by_server(app):
-    """Avoid circular import by explicit call from `sirepo.server`.
-
-    Args:
-        app (Flask): flask instance
-    """
-    global _app
-    _app = app
-
-
 def generate_json(data, pretty=False):
     """Convert data to JSON to be send back to client
 
@@ -297,9 +287,7 @@ def generate_json(data, pretty=False):
     Returns:
         str: formatted data
     """
-    if pretty:
-        return json.dumps(data, indent=4, separators=(',', ': '), sort_keys=True, allow_nan=False)
-    return json.dumps(data, allow_nan=False)
+    return util.json_dump(data, pretty=pretty)
 
 
 def hack_nfs_write_status(status, run_dir):
@@ -313,13 +301,15 @@ def hack_nfs_write_status(status, run_dir):
         status (str): pending, running, completed, canceled
         run_dir (py.path): where to write the file
     """
+    if feature_config.cfg().job_supervisor:
+        return
     fn = run_dir.join(sirepo.job.RUNNER_STATUS_FILE)
     for i in range(cfg.nfs_tries):
         if fn.check(file=True):
             break
         time.sleep(cfg.nfs_sleep)
     # Try once always
-    pkio.write_text(fn, status)
+    write_status(status, run_dir)
 
 
 def iterate_simulation_datafiles(simulation_type, op, search=None):
@@ -490,19 +480,11 @@ def prepare_simulation(data, run_dir=None):
         #TODO(robnagler) create a lock_dir -- what node/pid/thread to use?
         #   probably can only do with celery.
         pkio.mkdir_parent(run_dir)
-        # Only done on the legacy path, because the job supervisor owns the
-        # status file.
         write_status('pending', run_dir)
     sim_type = data.simulationType
     template = sirepo.template.import_module(data)
     s = sirepo.sim_data.get_class(sim_type)
-    s.lib_files_copy(
-        data,
-        # needed for job_supervisor, which can't get at user
-        lib_dir_from_sim_dir(run_dir),
-        run_dir,
-        symlink=True,
-    )
+    s.lib_files_to_run_dir(data, run_dir)
     write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
     is_p = s.is_parallel(data)
@@ -543,8 +525,7 @@ def read_json(filename):
     Returns:
         object: json converted to python
     """
-    with open(str(json_filename(filename))) as f:
-        return json_load(f)
+    return json_load(json_filename(filename))
 
 
 def read_result(run_dir):
@@ -554,7 +535,7 @@ def read_result(run_dir):
         run_dir (py.path): where to find output
 
     Returns:
-        dict: result or describes error
+        dict: result (possibly error)
     """
     fn = json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
     res = None
@@ -581,14 +562,11 @@ def read_result(run_dir):
         else:
             pkdlog('{}: error reading output: {}', fn, err)
     if err:
-        return None, err
-    if not res:
-        res = PKDict()
-    if 'state' not in res:
+        res = PKDict(state=sirepo.job.ERROR, error=err)
+    elif not res or 'state' not in res:
         # Old simulation or other error, just say is canceled so restarts
-        res = PKDict(state='canceled')
-    return res, None
-
+        res = PKDict(state=sirepo.job.CANCELED)
+    return res
 
 def read_simulation_json(sim_type, *args, **kwargs):
     """Calls `open_json_file` and fixes up data, possibly saving
@@ -604,21 +582,6 @@ def read_simulation_json(sim_type, *args, **kwargs):
     if changed:
         return save_simulation_json(new)
     return data
-
-
-def read_status(run_dir):
-    """Read status from simulation dir
-
-    Args:
-        run_dir (py.path): where to read
-    """
-    try:
-        return pkio.read_text(run_dir.join(sirepo.job.RUNNER_STATUS_FILE))
-    except IOError as e:
-        if pkio.exception_is_not_found(e):
-            # simulation may never have been run
-            return 'stopped'
-        return 'error'
 
 
 def save_new_example(data):
@@ -765,15 +728,28 @@ def static_file_path(file_dir, file_name):
     return STATIC_FOLDER.join(file_dir).join(file_name)
 
 
-def tmp_dir():
+@contextlib.contextmanager
+def tmp_dir(chdir=False):
     """Generates new, temporary directory
 
+    Args:
+        chdir (bool): if true, will save_chdir
     Returns:
         py.path: directory to use for temporary work
     """
-    d = _random_id(_user_dir().join(_TMP_DIR))['path']
-    pkio.unchecked_remove(d)
-    return pkio.mkdir_parent(d)
+    d = None
+    try:
+        d = _random_id(_user_dir().join(_TMP_DIR))['path']
+        pkio.unchecked_remove(d)
+        pkio.mkdir_parent(d)
+        if chdir:
+            with pkio.save_chdir(d):
+                yield d
+        else:
+            yield d
+    finally:
+        if d:
+            pkio.unchecked_remove(d)
 
 
 def uid_from_dir_name(dir_name):
@@ -810,7 +786,7 @@ def user_create(login_callback):
     # Must logged in before calling simulation_dir
     login_callback(uid)
     for simulation_type in feature_config.cfg().sim_types:
-        _create_example_and_lib_files(simulation_type)
+        _create_lib_and_examples(simulation_type)
     return uid
 
 
@@ -822,7 +798,7 @@ def user_dir_name(uid=None):
     Return:
         py.path: directory name
     """
-    d = _app.sirepo_db_dir.join(_USER_ROOT_DIR)
+    d = sirepo.srdb.root().join(_USER_ROOT_DIR)
     if not uid:
         return d
     return d.join(uid)
@@ -866,17 +842,18 @@ def verify_app_directory(simulation_type):
     d = simulation_dir(simulation_type)
     if d.exists():
         return
-    _create_example_and_lib_files(simulation_type)
+    _create_lib_and_examples(simulation_type)
 
 
 def write_json(filename, data):
     """Write data as json to filename
 
+    pretty is true.
+
     Args:
         filename (py.path or str): will append JSON_SUFFIX if necessary
     """
-    with open(str(json_filename(filename)), 'w') as f:
-        f.write(generate_json(data, pretty=True))
+    util.json_dump(data, path=json_filename(filename), pretty=True)
 
 
 def write_result(result, run_dir=None):
@@ -910,17 +887,17 @@ def write_status(status, run_dir):
         status (str): pending, running, completed, canceled
         run_dir (py.path): where to write the file
     """
-    pkio.write_text(run_dir.join(sirepo.job.RUNNER_STATUS_FILE), status)
+    if not feature_config.cfg().job_supervisor:
+        pkio.atomic_write(
+            run_dir.join(sirepo.job.RUNNER_STATUS_FILE),
+            status.encode(),
+        )
 
 
-def _create_example_and_lib_files(simulation_type):
+def _create_lib_and_examples(simulation_type):
     import sirepo.sim_data
 
-    d = pkio.mkdir_parent(simulation_lib_dir(simulation_type))
-    for f in sirepo.sim_data.get_class(simulation_type).resource_files():
-        #TODO(pjm): symlink has problems in containers
-        f.copy(d)
-    pkio.mkdir_parent(simulation_dir(simulation_type))
+    pkio.mkdir_parent(simulation_lib_dir(simulation_type))
     for s in examples(simulation_type):
         save_new_example(s)
 
@@ -1129,7 +1106,7 @@ def _user_dir():
     uid = sirepo.auth.logged_in_user()
     d = user_dir_name(uid)
     if not d.check():
-        sirepo.auth.user_dir_not_found(uid)
+        sirepo.auth.user_dir_not_found(d, uid)
     return d
 
 

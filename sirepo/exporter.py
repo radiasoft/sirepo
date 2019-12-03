@@ -9,32 +9,36 @@ from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdp
-import os.path
-import py.path
-import zipfile
+from sirepo import sim_data
+from sirepo import simulation_db
+from sirepo import uri_router
+import sirepo.http_reply
+import copy
 import sirepo.util
+import zipfile
 
 
-def create_archive(sim_type, sim_id, filename):
+def create_archive(sim):
     """Zip up the json file and its dependencies
 
     Args:
-        sim_type (str): simulation type
-        sim_id (str): simulation id
-        filename (str): for file type
+        sim (PKDict): parsed request
 
     Returns:
         py.path.Local: zip file name
     """
-    if not pkio.has_file_extension(filename, ('zip', 'html')):
+    if not pkio.has_file_extension(sim.filename, ('zip', 'html')):
         raise sirepo.util.NotFound(
-            'unknown file type={}; expecting html or zip'.format(filename),
+            'unknown file type={}; expecting html or zip'.format(sim.filename),
         )
-    want_zip = filename.endswith('zip')
-    fp, data = _create_zip(sim_type, sim_id, want_python=want_zip)
-    if want_zip:
-        return fp, 'application/zip'
-    return _create_html(fp, data)
+    with simulation_db.tmp_dir() as d:
+        want_zip = sim.filename.endswith('zip')
+        f, c = _create_zip(sim, want_python=want_zip, out_dir=d)
+        if want_zip:
+            t = 'application/zip'
+        else:
+            f, t = _create_html(f, c)
+        return sirepo.http_reply.gen_file_as_attachment(f, t, sim.filename)
 
 
 def _create_html(zip_path, data):
@@ -46,13 +50,8 @@ def _create_html(zip_path, data):
     Returns:
         py.path, str: file and mime type
     """
-    from sirepo import uri_router
-    from sirepo import simulation_db
-    import py.path
-    import copy
-
     # Use same tmp directory
-    fp = py.path.local(zip_path.dirname).join(zip_path.purebasename) + '.html'
+    fp = zip_path.new(ext='.html')
     values = pkcollections.Dict(data=data)
     values.uri = uri_router.uri_for_api('importArchive', external=False)
     values.server = uri_router.uri_for_api('importArchive')[:-len(values.uri)]
@@ -67,39 +66,33 @@ def _create_html(zip_path, data):
     return fp, 'text/html'
 
 
-def _create_zip(sim_type, sim_id, want_python):
+def _create_zip(sim, want_python, out_dir):
     """Zip up the json file and its dependencies
 
     Args:
-        sim_type (str): simulation type
-        sim_id (str): simulation id
+        sim (req): simulation
         want_python (bool): include template's python source?
+        out_dir (py.path): where to write to
 
     Returns:
         py.path.Local: zip file name
     """
-    from sirepo import sim_data
-    from sirepo import simulation_db
-
-    #TODO(robnagler) need a lock
-    with pkio.save_chdir(simulation_db.tmp_dir()):
-        res = py.path.local(sim_id + '.zip')
-        data = simulation_db.open_json_file(sim_type, sid=sim_id)
-        if 'report' in data:
-            del data['report']
-        files = sim_data.get_class(data).lib_files(data)
-        files.insert(0, simulation_db.sim_data_file(data.simulationType, sim_id))
-        if want_python:
-            files.append(_python(data))
-        with zipfile.ZipFile(
-            str(res),
-            mode='w',
-            compression=zipfile.ZIP_DEFLATED,
-            allowZip64=True,
-        ) as z:
-            for f in files:
-                z.write(str(f), f.basename)
-    return res, data
+    path = out_dir.join(sim.id + '.zip')
+    data = simulation_db.open_json_file(sim.type, sid=sim.id)
+    data.pkdel('report')
+    files = sim_data.get_class(data).lib_files_for_export(data)
+    files.insert(0, simulation_db.sim_data_file(sim.type, sim.id))
+    if want_python:
+        files.append(_python(data))
+    with zipfile.ZipFile(
+        str(path),
+        mode='w',
+        compression=zipfile.ZIP_DEFLATED,
+        allowZip64=True,
+    ) as z:
+        for f in files:
+            z.write(str(f), f.basename)
+    return path, data
 
 
 def _python(data):
@@ -115,6 +108,6 @@ def _python(data):
     import copy
 
     template = sirepo.template.import_module(data)
-    res = py.path.local('run.py')
+    res = pkio.py_path('run.py')
     res.write(template.python_source_for_model(copy.deepcopy(data), None))
     return res

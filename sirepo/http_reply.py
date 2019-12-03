@@ -7,9 +7,12 @@ u"""response generation
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
+from pykern import pkconst
+from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import flask
+import mimetypes
 import pykern.pkinspect
 import re
 import sirepo.http_request
@@ -31,12 +34,16 @@ _STATE = 'state'
 #: Default response
 _RESPONSE_OK = PKDict({_STATE: 'ok'})
 
-
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\n|$)', flags=re.IGNORECASE)
 
 #: routes that will require a reload
 _RELOAD_JS_ROUTES = None
+
+def as_attachment(resp, content_type, filename):
+    resp.mimetype = content_type
+    resp.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
+    return resp
 
 
 def gen_exception(exc):
@@ -52,6 +59,36 @@ def gen_exception(exc):
     if isinstance(exc, werkzeug.exceptions.HTTPException):
         return _gen_exception_werkzeug(exc)
     return _gen_exception_error(exc)
+
+
+def gen_file_as_attachment(content_or_path, filename=None, content_type=None):
+    """Generate a flask file attachment response
+
+    Args:
+        content_or_path (bytes or py.path): File contents
+        filename (str): Name of file [content_or_path.basename]
+        content_type (str): MIMETYPE of file [guessed]
+
+    Returns:
+        flask.Response: reply object
+    """
+    def f():
+        if isinstance(content_or_path, pkconst.PY_PATH_LOCAL_TYPE):
+            return flask.send_file(str(content_or_path))
+        return flask.current_app.response_class(content_or_path)
+
+    if filename is None:
+        # dies if content_or_path is not a path
+        filename = content_or_path.basename
+    if content_type is None:
+        content_type, _ = mimetypes.guess_type(filename)
+        if content_type is None:
+            content_type = 'application/octet-stream'
+        # overrule mimetypes for this case
+        elif content_type == 'text/x-python':
+            content_type = 'text/plain'
+    return headers_for_no_cache(
+        as_attachment(f(), content_type, filename))
 
 
 def gen_json(value, pretty=False, response_kwargs=None):
@@ -193,7 +230,7 @@ def render_static(base, ext, j2_ctx, cache_ok=False):
 
 
 def _gen_exception_error(exc):
-    pkdlog('unsupported exception={}', exc)
+    pkdlog('unsupported exception={} msg={}', type(exc), exc)
     return gen_redirect_for_local_route(None, route='error')
 
 

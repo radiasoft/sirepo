@@ -40,7 +40,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def webcon_analysis_data_file(cls, data):
-        return cls.lib_file_name('analysisData', 'file', data.models.analysisData.file)
+        return cls.lib_file_name_with_model_field('analysisData', 'file', data.models.analysisData.file)
 
     @classmethod
     def webcon_analysis_report_name_for_fft(cls, data):
@@ -67,7 +67,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
-    def _lib_files(cls, data):
+    def _lib_file_basenames(cls, data):
         res = []
         r = data.get('report')
         if r == 'epicsServerAnimation':

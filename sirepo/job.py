@@ -8,26 +8,22 @@ must be py2 compatible.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkconfig
-from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
-import aenum
-import uuid
+import sirepo.util
+import re
+
 
 OP_ANALYSIS = 'analysis'
 OP_CANCEL = 'cancel'
-OP_COMPUTE_STATUS = 'compute_status'
 OP_CONDITION = 'condition'
 OP_ERROR = 'error'
 OP_KILL = 'kill'
 OP_OK = 'ok'
 #: Agent indicates it is ready
 OP_ALIVE = 'alive'
-OP_RESULT = 'result'
 OP_RUN = 'run'
-OP_STATUS = 'status'
 
 #: path supervisor registers to receive messages from agent
 AGENT_URI = '/agent'
@@ -35,18 +31,48 @@ AGENT_URI = '/agent'
 #: path supervisor registers to receive requests from server
 SERVER_URI = '/server'
 
+#: path supervisor registers to receive requests from job_process for file PUTs
+DATA_FILE_URI = '/data-file'
+
+#: how jobs request files
+LIB_FILE_URI = '/lib-file'
+
+#: how jobs request list of files (relative to `LIB_FILE_URI`)
+LIB_FILE_LIST_URI = '/list.json'
+
+#: where user lib file directories are linked for static download (job_supervisor)
+LIB_FILE_ROOT = None
+
+#: where user data files come in (job_supervisor)
+DATA_FILE_ROOT = None
+
+#: where job_processes request files lib files for api_runSimulation
+LIB_FILE_ABS_URI = None
+
+#: where job_process will PUT data files for api_downloadDataFile
+DATA_FILE_ABS_URI = None
+
+#: how jobs request files (relative to `srdb.root`)
+SUPERVISOR_SRV_SUBDIR = 'supervisor-srv'
+
+#: how jobs request files (absolute)
+SUPERVISOR_SRV_ROOT = None
+
 DEFAULT_IP = '127.0.0.1'
 DEFAULT_PORT = 8001
 
 RUNNER_STATUS_FILE = 'status'
 
+UNIQUE_KEY_RE = re.compile(r'^\w$')
+
 CANCELED = 'canceled'
 COMPLETED = 'completed'
 ERROR = 'error'
 MISSING = 'missing'
+PENDING = 'pending'
 RUNNING = 'running'
 #: Valid values for job status
-STATUSES = frozenset((CANCELED, COMPLETED, ERROR, MISSING, RUNNING))
+STATUSES = frozenset((CANCELED, COMPLETED, ERROR, MISSING, PENDING, RUNNING))
 
 SEQUENTIAL = 'sequential'
 PARALLEL = 'parallel'
@@ -63,12 +89,64 @@ def init():
         return
     cfg = pkconfig.init(
         supervisor_uri=(
-            'http://{}:{}{}'.format(DEFAULT_IP, DEFAULT_PORT, SERVER_URI),
+            'http://{}:{}'.format(DEFAULT_IP, DEFAULT_PORT),
             str,
-            'for supervisor requests',
+            'supervisor base uri',
         ),
     )
     pkdc('cfg={}', cfg)
+    global SUPERVISOR_SRV_ROOT, LIB_FILE_ROOT, DATA_FILE_ROOT, LIB_FILE_ABS_URI, DATA_FILE_ABS_URI
+
+    SUPERVISOR_SRV_ROOT = sirepo.srdb.root().join(SUPERVISOR_SRV_SUBDIR)
+    LIB_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(LIB_FILE_URI[1:])
+    DATA_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(DATA_FILE_URI[1:])
+    # trailing slash necessary
+    LIB_FILE_ABS_URI = cfg.supervisor_uri + LIB_FILE_URI + '/'
+    DATA_FILE_ABS_URI = cfg.supervisor_uri + DATA_FILE_URI + '/'
+
+
+def subprocess_cmd_stdin_env(cmd, env, pyenv='py3'):
+    """Convert `cmd` in `pyenv` with `env` to script and cmd
+
+    Uses tempfile so the file can be closed after the subprocess
+    gets the handle. You have to close `stdin` after calling
+    `tornado.process.Subprocess`, which calls `subprocess.Popen`
+    inline, since it' not ``async``.
+
+    Args:
+        cmd (iter): list of words to be quoted
+        env (PKDict): environment to pass
+        pyenv (str): python environment (py3 default)
+
+    Returns:
+        tuple: new cmd (tuple), stdin (file), env (PKDict)
+    """
+    import os
+    import tempfile
+    env.pksetdefault(
+        **pkconfig.to_environ((
+            'pykern.*',
+            'sirepo.feature_config.job_supervisor',
+        ))
+    )
+    t = tempfile.TemporaryFile()
+    # POSIT: we control all these values
+    t.write(
+        '''
+set -e
+pyenv shell {}
+{}
+exec {}
+'''.format(
+        pyenv,
+        '\n'.join(("export {}='{}'".format(k, v) for k, v in env.items())),
+        ' '.join(("'{}'".format(x) for x in cmd)),
+    ).encode())
+    t.seek(0)
+    # it's reasonable to hardwire this path, even though we don't
+    # do that with others. We want to make sure the subprocess starts
+    # with a clean environment (no $PATH). You have to pass HOME.
+    return ('/bin/bash', '-l'), t, PKDict(HOME=os.environ['HOME'])
 
 
 def init_by_server(app):
@@ -82,7 +160,7 @@ def init_by_server(app):
 
 
 def unique_key():
-    return str(uuid.uuid4())
+    return sirepo.util.random_base62(32)
 
 
 #TODO(robnagler) consider moving this into pkdebug

@@ -186,7 +186,7 @@ def generate_parameters_file(data, is_parallel=False):
     return res + _generate_bunch_simulation(data, v)
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data.method == 'get_beam_input_type':
         if data.input_file:
             data.input_type = _sdds_beam_type_from_file(data.input_file)
@@ -217,7 +217,7 @@ def _file_name_from_id(file_id, model_data, run_dir):
         _get_filename_for_element_id(file_id.split(_FILE_ID_SEP), model_data)))
 
 
-def get_data_file(run_dir, model, frame, options=None):
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
     def _sdds(filename):
         path = run_dir.join(filename)
         assert path.check(file=True, exists=True), \
@@ -253,23 +253,21 @@ def get_data_file(run_dir, model, frame, options=None):
     return _sdds(_report_output_filename('bunchReport'))
 
 
-def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
+def import_file(req, test_data=None, **kwargs):
     # input_data is passed by test cases only
-    f = request.files['file']
-    filename = werkzeug.secure_filename(f.filename)
     input_data = test_data
 
-    if 'simulationId' in request.form:
-        input_data = simulation_db.read_simulation_json(elegant_common.SIM_TYPE, sid=request.form['simulationId'])
-    if re.search(r'.ele$', filename, re.IGNORECASE):
-        data = elegant_command_importer.import_file(f.read())
-    elif re.search(r'.lte$', filename, re.IGNORECASE):
-        data = elegant_lattice_importer.import_file(f.read(), input_data)
+    if 'simulationId' in req:
+        input_data = simulation_db.read_simulation_json(elegant_common.SIM_TYPE, sid=req.simulationId)
+    if re.search(r'.ele$', req.filename, re.IGNORECASE):
+        data = elegant_command_importer.import_file(req.file_stream.read())
+    elif re.search(r'.lte$', req.filename, re.IGNORECASE):
+        data = elegant_lattice_importer.import_file(req.file_stream.read(), input_data)
         if input_data:
             _map_commands_to_lattice(data)
     else:
         raise IOError('invalid file extension, expecting .ele or .lte')
-    data.models.simulation.name = re.sub(r'\.(lte|ele)$', '', filename, flags=re.IGNORECASE)
+    data.models.simulation.name = re.sub(r'\.(lte|ele)$', '', req.filename, flags=re.IGNORECASE)
     if input_data and not test_data:
         simulation_db.delete_simulation(elegant_common.SIM_TYPE, input_data.models.simulation.simulationId)
     return data
@@ -421,8 +419,7 @@ def write_parameters(data, run_dir, is_parallel):
             is_parallel,
         ),
     )
-    for f in _SIM_DATA.lib_files(data, simulation_db.lib_dir_from_sim_dir(run_dir)):
-        b = f.basename
+    for b in _SIM_DATA.lib_file_basenames(data):
         if re.search(r'SCRIPT-commandFile', b):
             os.chmod(str(run_dir.join(b)), stat.S_IRUSR | stat.S_IXUSR)
 
@@ -668,7 +665,7 @@ def _format_field_value(state, model, field, el_type):
     elif el_type == 'OutputFile':
         value = state.filename_map[_file_id(model._id, state.field_index)]
     elif el_type.startswith('InputFile'):
-        value = _SIM_DATA.lib_file_name(LatticeUtil.model_name_for_data(model), field, value)
+        value = _SIM_DATA.lib_file_name_with_model_field(LatticeUtil.model_name_for_data(model), field, value)
         if el_type == 'InputFileXY':
             value += '={}+{}'.format(model[field + 'X'], model[field + 'Y'])
     elif el_type == 'BeamInputFile':
@@ -683,7 +680,7 @@ def _format_field_value(state, model, field, el_type):
     elif field == 'command' and LatticeUtil.model_name_for_data(model) == 'SCRIPT':
         for f in ('commandFile', 'commandInputFile'):
             if f in model and model[f]:
-                fn = _SIM_DATA.lib_file_name(model.type, f, model[f])
+                fn = _SIM_DATA.lib_file_name_with_model_field(model.type, f, model[f])
                 value = re.sub(r'\b' + re.escape(model[f]) + r'\b', fn, value)
         if model.commandFile:
             value = './' + value
@@ -728,13 +725,13 @@ def _generate_bunch_simulation(data, v):
         v.bunch_alpha_x = 0
         v.bunch_alpha_x = 0
         if v.bunchFile_sourceFile and v.bunchFile_sourceFile != 'None':
-            v.bunchInputFile = _SIM_DATA.lib_file_name('bunchFile', 'sourceFile', v.bunchFile_sourceFile)
+            v.bunchInputFile = _SIM_DATA.lib_file_name_with_model_field('bunchFile', 'sourceFile', v.bunchFile_sourceFile)
             v.bunchFileType = _sdds_beam_type_from_file(v.bunchInputFile)
     if str(data.models.bunch.p_central_mev) == '0':
         run_setup = _find_first_command(data, 'run_setup')
         if run_setup and run_setup.expand_for:
             v.bunchExpandForFile = 'expand_for = "{}",'.format(
-                _SIM_DATA.lib_file_name('command_run_setup', 'expand_for', run_setup.expand_for))
+                _SIM_DATA.lib_file_name_with_model_field('command_run_setup', 'expand_for', run_setup.expand_for))
     v.bunchOutputFile = _report_output_filename('bunchReport')
     return template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
 
@@ -1016,7 +1013,7 @@ def _sdds_beam_type(column_names):
 
 def _sdds_beam_type_from_file(filename):
     res = ''
-    path = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(filename))
+    path = str(_SIM_DATA.lib_file_abspath(filename))
     if sdds.sddsdata.InitializeInput(_SDDS_INDEX, path) == 1:
         res = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
     sdds.sddsdata.Terminate(_SDDS_INDEX)
