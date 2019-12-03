@@ -115,9 +115,11 @@ def test_warpvnd(animation_fc):
         'fieldCalculationAnimation',
         PKDict(
             fieldCalcAnimation=PKDict(
+                frame_index=0,
                 expect_y_range='-1e-07, 1e-07, 23',
             ),
         ),
+        timeout=10,
     )
     animation_fc.sr_animation_run(
         animation_fc,
@@ -125,14 +127,16 @@ def test_warpvnd(animation_fc):
         'animation',
         PKDict(
             currentAnimation=PKDict(
+                frame_index=0,
                 expect_y_range='0.0, 3.*e-05',
             ),
             fieldAnimation=PKDict(
+                frame_index=0,
                 expect_y_range='-1e-07, 1e-07, 23',
             ),
         ),
         expect_completed=False,
-        timeout=10,
+        timeout=15,
     )
 
 
