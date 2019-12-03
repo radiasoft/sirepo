@@ -212,7 +212,7 @@ class _Cmd(PKDict):
         return 'py2'
 
     def job_cmd_source_bashrc(self):
-        return ''
+        return 'source $HOME/.bashrc'
 
     def kill(self):
         self._terminating = True
@@ -314,7 +314,7 @@ class _SbatchCmd(_Cmd):
     def job_cmd_source_bashrc(self):
         if self.msg.get('shifterImage'):
             return 'export HOME=/home/vagrant; source /home/vagrant/.bashrc; eval export HOME=~$USER'
-        return ''
+        return super().job_cmd_source_bashrc()
 
     def job_cmd_cmd(self):
         c = super().job_cmd_cmd()
@@ -340,6 +340,8 @@ class _SbatchRun(_SbatchCmd):
         if self._sbatch_id is not None:
             p = subprocess.run(
                 ('scancel', '--full', '--quiet', self._sbatch_id),
+                close_fds=True,
+                cwd=str(self.run_dir),
                 capture_output=True,
                 text=True,
             )
@@ -348,8 +350,8 @@ class _SbatchRun(_SbatchCmd):
                     'cancel error exit={} sbatch={} stderr={} stdout={}',
                     p.returncode,
                     self._sbatch_id,
-                    p.stdout,
                     p.stderr,
+                    p.stdout,
                 )
         if self._status_cb:
             self._status_cb.stop()
@@ -362,6 +364,7 @@ class _SbatchRun(_SbatchCmd):
             return
         p = subprocess.run(
             ('sbatch', self._sbatch_script()),
+            close_fds=True,
             cwd=str(self.run_dir),
             capture_output=True,
             text=True,
@@ -406,36 +409,47 @@ class _SbatchRun(_SbatchCmd):
 #SBATCH --qos=debug
 #SBATCH --tasks-per-node=32'''
             s = '--cpu-bind=cores shifter'
-        f = self.run_dir.join('sbatch.in')
+        f = self.run_dir.join(self.jid + '.sbatch')
         f.write(f'''#!/bin/bash
 #SBATCH --error={template_common.RUN_LOG}
 #SBATCH --ntasks={self.msg.sbatchCores}
 #SBATCH --output={template_common.RUN_LOG}
 #SBATCH --time={self._sbatch_time()}
 {o}
-srun {s} /bin/bash <<'EOF'
 {self.job_cmd_source_bashrc()}
-# this may not be necessary
 {self.job_cmd_env()}
 pyenv shell {self.job_cmd_pyenv()}
-#TODO(robnagler) need to get this from prepare_simulation
-python {template_common.PARAMETERS_PYTHON_FILE}
-EOF
+exit 99
+#TODO(robnagler) need to get command from
+exec mpiexec -n {self.msg.sbatchCores} {s} python {template_common.PARAMETERS_PYTHON_FILE}
 '''
         )
         return f
 
     async def _sbatch_status(self):
         self._status
-        o = subprocess.check_output(
-            ('scontrol', 'show', 'job', self.msg.sbatchId)
-        ).decode()
-        r = re.search(r'(?<=JobState=)(\S+)(?= Reason)', o)
+        p = subprocess.run(
+            ('scontrol', 'show', 'job', self.msg.sbatchId),
+            cwd=str(self.run_dir),
+            close_fds=True,
+            capture_output=True,
+            text=True,
+        )
+        if p.returncode != 0:
+            pkdlog(
+                'scontrol error exit={} sbatch={} stderr={} stdout={}',
+                p.returncode,
+                self._sbatch_id,
+                p.stderr,
+                p.stdout,
+            )
+        r = re.search(r'(?<=JobState=)(\S+)(?= Reason)', p.stdout)
         if not r:
             pkdlog(
-                'opId={} failed to find JobState in output={}',
+                'opId={} failed to find JobState in sderr={} stdout={}',
                 self.msg.opId,
-                o,
+                p.stderr,
+                p.stdout,
             )
             return
         s = r.group()
@@ -447,7 +461,7 @@ EOF
             if p != 'PENDING':
                 return
             self._start_time = int(time.time())
-            self.dispatcher.send(
+            await self.dispatcher.send(
                 self.dispatcher.format_op(
                     self.msg,
                     job.OP_RUN,
@@ -460,7 +474,7 @@ EOF
             c = s == 'COMPLETED'
             self._completed_sentinel.write(job.COMPLETED if c else job.ERROR)
             if not c:
-                self.dispatcher.send(
+                await self.dispatcher.send(
                     self.dispatcher.format_op(
                         self.msg,
                         job.OP_ERROR,
@@ -502,6 +516,7 @@ class _Process(PKDict):
         c, s, e = self.cmd.job_cmd_cmd_stdin_env()
         self._subprocess = tornado.process.Subprocess(
             c,
+            close_fds=True,
             cwd=str(self.cmd.run_dir),
             env=e,
             start_new_session=True, # TODO(e-carlin): generalize?

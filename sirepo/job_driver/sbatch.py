@@ -68,7 +68,6 @@ class SBatchDriver(job_driver.DriverBase):
         assert m.sbatchCores and m.sbatchHours
         if cfg.cores:
             # override for dev
-            pkdp('here')
             m.sbatchCores = cfg.cores
         m.mpiCores = m.sbatchCores
         m.shifterImage = cfg.shifter_image
@@ -98,7 +97,8 @@ mkdir -p '{self._srdb_root}'
 cd '{self._srdb_root}'
 {self._agent_env()}
 #TODO(robnagler) development
-pkill -f job_agent >& /dev/null || true
+pkill -f 'sirepo job_agent' >& /dev/null || true
+scancel -u $USER >& /dev/null || true
 setsid {cfg.sirepo_cmd} job_agent >& job_agent.log &
 disown
 ''')
