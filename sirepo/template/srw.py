@@ -72,7 +72,7 @@ _USER_MODEL_LIST_FILENAME = pkcollections.Dict({
     'tabulatedUndulator': '_user_undulator_list.json',
 })
 
-_IMPORT_PYTHON_POLLS = 15
+_IMPORT_PYTHON_POLLS = 60
 
 class MagnMeasZip:
     def __init__(self, archive_name):
