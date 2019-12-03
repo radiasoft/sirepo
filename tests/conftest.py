@@ -153,6 +153,7 @@ def pytest_collection_modifyitems(session, config, items):
     import importlib
     import sirepo.feature_config
     from pykern.pkcollections import PKDict
+    import os
 
     s = PKDict(
         elegant='sdds',
@@ -165,7 +166,11 @@ def pytest_collection_modifyitems(session, config, items):
     codes = set()
     import_fail = PKDict()
     res = set()
+    skip_list = os.environ.get('SIREPO_PYTEST_SKIP', '').split(':')
     for i in items:
+        if i.fspath.purebasename in skip_list:
+            i.add_marker(pytest.mark.skip(reason="SIREPO_PYTEST_SKIP"))
+            continue
         c = [x for x in all_codes if x in i.name]
         if not c:
             continue

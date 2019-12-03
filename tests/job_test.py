@@ -56,14 +56,7 @@ def _setup(func):
         signal.alarm(0)
     return wrapper
 
-#: skip all tests in this model (pytestmark is magic)
-pytestmark = pytest.mark.skipif(
-    ':job_test:' in ':' + os.environ.get('SIREPO_PYTEST_SKIP', '') + ':',
-    reason="SIREPO_PYTEST_SKIP",
-)
-
 _REPORT = 'heightWeightReport'
-
 
 @_setup
 def test_runCancel(fc, sim_data):
