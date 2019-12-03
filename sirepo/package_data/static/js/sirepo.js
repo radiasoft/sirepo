@@ -2177,7 +2177,6 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, f
             state.timeData.elapsedTime = null;
             state.timeData.elapsedDays = null;
             setSimulationStatus({state: 'pending'});
-            srdbg(appState.models[model]);
             state.simulationQueueItem = simulationQueue.addPersistentItem(
                 state.model,
                 appState.applicationState(),
@@ -2190,7 +2189,6 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, f
                 return;
             }
             simulationStatus().state = 'pending';
-            srdbg(appState.models[model]);
             appState.saveChanges(models, state.runSimulation);
         };
 
