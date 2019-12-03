@@ -19,7 +19,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _compute_model(cls, analysis_model, data):
         if analysis_model.startswith('dicomAnimation'):
             return 'dicomAnimation'
-        if analysis_model == 'dicomDose':
+        if analysis_model == 'dicomDose' or analysis_model == 'doseCalculation':
             # if the doseCalculation has been run, use that directory for work
             # otherwise, it is an imported dose file
             if simulation_db.simulation_dir(cls.sim_type(), data.simulationId).join('doseCalculation').exists():
