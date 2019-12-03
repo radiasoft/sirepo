@@ -11,6 +11,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
+import sirepo.srdb
 import sirepo.util
 import re
 
@@ -151,10 +152,10 @@ def agent_env(env=None, uid=None):
             'sirepo.feature_config.job_supervisor',
             'sirepo.simulation_db.sbatch_display',
         ))
-    ).pkupdate(
+    ).pksetdefault(
         PYTHONUNBUFFERED='1',
-        SIREPO_AUTH_LOGGED_IN_USER=uid or sirepo.auth.logged_in_user(),
-        SIREPO_SRDB_ROOT=str(sirepo.srdb.root()),
+        SIREPO_AUTH_LOGGED_IN_USER=lambda: uid or sirepo.auth.logged_in_user(),
+        SIREPO_SRDB_ROOT=lambda: sirepo.srdb.root(),
     )
     return '\n'.join(("export {}='{}'".format(k, v) for k, v in env.items()))
 

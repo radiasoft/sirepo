@@ -12,12 +12,12 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
 from sirepo import job
 from sirepo.template import template_common
+import datetime
 import json
 import os
 import re
 import signal
 import sirepo.auth
-import sirepo.srdb
 import subprocess
 import sys
 import time
@@ -64,7 +64,9 @@ def default_command():
 
 
 class _Dispatcher(PKDict):
-    cmds = []
+    def __init__(self):
+        super().__init__()
+        self.cmds = []
 
     def cmd_exit(self, cmd):
         try:
@@ -122,11 +124,18 @@ class _Dispatcher(PKDict):
         m = None
         try:
             m = pkjson.load_any(msg)
+            pkdlog('op={} opId={}', m.opName, m.get('opId'))
             pkdc('m={}', job.LogFormatter(m))
             return await getattr(self, '_op_' + m.opName)(m)
         except Exception as e:
             err = 'exception=' + str(e)
             stack = pkdexc()
+            pkdlog(
+                'op={} exception={} stack={}',
+                m and m.get('opName'),
+                e,
+                stack,
+            )
             return self.format_op(m, job.OP_ERROR, error=err, stack=stack)
 
     async def _op_analysis(self, msg):
@@ -142,7 +151,7 @@ class _Dispatcher(PKDict):
     async def _op_kill(self, msg):
         try:
             x = self.cmds
-            self.cmds = []
+            self.cmds.clear()
             for c in x:
                 try:
                     c.kill()
@@ -158,6 +167,7 @@ class _Dispatcher(PKDict):
         c = _Cmd
         if msg.jobRunMode == job.SBATCH:
             c = _SbatchRun if msg.isParallel else _SbatchCmd
+        pkdp('jobRunMode={}', msg.jobRunMode)
         p = c(msg=msg, dispatcher=self)
         self.cmds.append(p)
         await p.start()
@@ -190,9 +200,9 @@ class _Cmd(PKDict):
             source_bashrc=self.job_cmd_source_bashrc(),
         )
 
-    def job_cmd_env(self):
+    def job_cmd_env(self, env=None):
         return job.agent_env(
-            env=PKDict(
+            env=(env or PKDict()).pksetdefault(
                 SIREPO_MPI_CORES=self.msg.mpiCores,
                 SIREPO_SIM_LIB_FILE_URI=self.msg.get('libFileUri', ''),
             ),
@@ -224,7 +234,7 @@ class _Cmd(PKDict):
                 self.dispatcher.format_op(self.msg, o, reply=r)
             )
         except Exception as exc:
-            pkdlog('error=={}', exc)
+            pkdlog('error={} stack={}', exc, pkdexc())
 
     async def start(self):
         self._process.start()
@@ -328,9 +338,19 @@ class _SbatchRun(_SbatchCmd):
 
     def kill(self):
         if self._sbatch_id is not None:
-            subprocess.check_call(
-                ('scancel', '--full', '--quiet', self._sbatch_id)
+            p = subprocess.run(
+                ('scancel', '--full', '--quiet', self._sbatch_id),
+                capture_output=True,
+                text=True,
             )
+            if p.returncode != 0:
+                pkdlog(
+                    'cancel error exit={} sbatch={} stderr={} stdout={}',
+                    p.returncode,
+                    self._sbatch_id,
+                    p.stdout,
+                    p.stderr,
+                )
         if self._status_cb:
             self._status_cb.stop()
             self._start_ready.set()
@@ -340,35 +360,37 @@ class _SbatchRun(_SbatchCmd):
         await self._prepare_simulation()
         if self._terminating:
             return
-        o = subprocess.check_output(
+        p = subprocess.run(
             ('sbatch', self._sbatch_script()),
             cwd=str(self.run_dir),
-            stdin=subprocess.DEVNULL,
-            sdterr=subprocess.STDOUT,
-        ).decode()
-        m = re.search(r'Submitted batch job (\d+)', o)
+            capture_output=True,
+            text=True,
+        )
+        m = re.search(r'Submitted batch job (\d+)', p.stdout)
 #TODO(robnagler) if the guy is out of hours, will fail
         if not m:
-            raise ValueError(f'Unable to submit: {o}')
+            raise ValueError(
+                f'Unable to submit exit={p.returncode} stdout={p.stdout} stderr={p.stderr}')
         self._sbatch_id = m.group(1)
         self.msg.pkupdate(
             jobCmd='sbatch_status',
             sbatchId=self._sbatch_id,
             stopSentinel=str(self._completed_sentinel),
         )
-        self._status_cb = tornado.ioloop.IOLoop.PeriodicCallback(
+        self._status_cb = tornado.ioloop.PeriodicCallback(
             self._sbatch_status,
             self.msg.nextRequestSeconds,
         )
         self._start_ready = tornado.locks.Event()
         self._status_cb.start()
-        await self._start_ready
+        await self._start_ready.wait()
         if self._terminating:
             return
         await super().start()
 
     async def _prepare_simulation(self):
-        c = _SBatchCmd(
+        c = _SbatchCmd(
+            dispatcher=self.dispatcher,
             msg=self.msg.copy().pkupdate(jobCmd='prepare_simulation'),
         )
         await c.start()
@@ -384,7 +406,7 @@ class _SbatchRun(_SbatchCmd):
 #SBATCH --qos=debug
 #SBATCH --tasks-per-node=32'''
             s = '--cpu-bind=cores shifter'
-        f = self.run_dir().join('sbatch.in')
+        f = self.run_dir.join('sbatch.in')
         f.write(f'''#!/bin/bash
 #SBATCH --error={template_common.RUN_LOG}
 #SBATCH --ntasks={self.msg.sbatchCores}
@@ -397,7 +419,7 @@ srun {s} /bin/bash <<'EOF'
 {self.job_cmd_env()}
 pyenv shell {self.job_cmd_pyenv()}
 #TODO(robnagler) need to get this from prepare_simulation
-python template_common.PARAMETERS_PYTHON_FILE
+python {template_common.PARAMETERS_PYTHON_FILE}
 EOF
 '''
         )
@@ -406,7 +428,7 @@ EOF
     async def _sbatch_status(self):
         self._status
         o = subprocess.check_output(
-            ('scontrol', 'show', 'job', msg.sbatchId)
+            ('scontrol', 'show', 'job', self.msg.sbatchId)
         ).decode()
         r = re.search(r'(?<=JobState=)(\S+)(?= Reason)', o)
         if not r:

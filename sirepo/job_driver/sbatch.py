@@ -9,7 +9,7 @@ from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp
+from pykern.pkdebug import pkdp, pkdlog
 from sirepo import job
 from sirepo import job_driver
 import asyncssh
@@ -28,7 +28,7 @@ class SBatchDriver(job_driver.DriverBase):
         super().__init__(req)
         m = req.content
 #TODO(robnagler) read a db for an sbatch_user
-        self._user = cfg.sbatch_user
+        self._user = cfg.user
         self._srdb_root = cfg.srdb_root.format(sbatch_user=self._user)
         self.instances[self.uid] = self
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
@@ -64,12 +64,22 @@ class SBatchDriver(job_driver.DriverBase):
 
     async def send(self, op):
         m = op.msg
-        m.runDir = '/'.join(self._srdb_root, m.simulationType, m.computeJid)
+        m.runDir = '/'.join((str(self._srdb_root), m.simulationType, m.computeJid))
         assert m.sbatchCores and m.sbatchHours
-        if cfg.sbatch_cores:
-            m.sbatchCores = cfg.sbatch_cores
-        m.shifterImage = cfg.get('shifter_image', '')
-        return super().send(op)
+        if cfg.cores:
+            # override for dev
+            pkdp('here')
+            m.sbatchCores = cfg.cores
+        m.mpiCores = m.sbatchCores
+        m.shifterImage = cfg.shifter_image
+        return await super().send(op)
+
+    def _agent_env(self):
+        return super()._agent_env(
+            env=PKDict(
+                SIREPO_SRDB_ROOT=self._srdb_root,
+            )
+        )
 
     async def _agent_start(self):
         # TODO(e-carlin): handle cori ssh key. Currently this defaults
@@ -81,18 +91,24 @@ class SBatchDriver(job_driver.DriverBase):
             password=self._user if self._user == 'vagrant' else totp(),
             known_hosts=_KNOWN_HOSTS,
         ) as c:
-            script = f'''#!/bin/bash
+            script = pkdp(f'''#!/bin/bash
+set -x
 set -e
 mkdir -p '{self._srdb_root}'
 cd '{self._srdb_root}'
 {self._agent_env()}
-setsid {cfg.sirepo_cmd} job_agent >& job_agent.log'''
-            async with c.create_process(' '.join(cmd)) as p:
+#TODO(robnagler) development
+pkill -f job_agent >& /dev/null || true
+setsid {cfg.sirepo_cmd} job_agent >& job_agent.log &
+disown
+''')
+            async with c.create_process('/bin/bash') as p:
                 o, e = await p.communicate(input=script)
                 if o or e:
                     pkdlog('agentId={} stdout={} stderr={}', self._agentId, o, e)
-#TODO(robnagler) try to read the job_agent.log
-            stdin.close()
+                #TODO(robnagler) try to read the job_agent.log
+                pkdlog('agentId={} exit={}', self._agentId, p.exit_status)
+
 
     def _websocket_free(self):
         self.run_scheduler(exclude_self=True)
@@ -105,8 +121,8 @@ def init_class():
     cfg = pkconfig.init(
         host=pkconfig.Required(str, 'host name for slum controller'),
         host_key=pkconfig.Required(str, 'host key'),
-        sbatch_user=('vagrant', str, 'temporary user config'),
-        sbatch_cores=(None, int, 'dev cores config'),
+        user=('vagrant', str, 'temporary user config'),
+        cores=(None, int, 'dev cores config'),
         shifter_image=(None, str, 'needed if using Shifter'),
         sirepo_cmd=pkconfig.Required(str, 'how to run sirepo'),
         srdb_root=pkconfig.Required(_cfg_srdb_root, 'where to run job_agent, must include {sbatch_user}'),

@@ -168,6 +168,9 @@ class DriverBase(PKDict):
         else:
             getattr(self, '_receive_' + c.opName)(msg)
 
+    def _receive_error(self, msg):
+        pkdlog('agentId={} msg={}', self._agentId, msg)
+
     def _receive_alive(self, msg):
         """Receive an ALIVE message from our agent
 
@@ -191,9 +194,9 @@ class DriverBase(PKDict):
             **kwargs,
         )
 
-    def _agent_env(self):
+    def _agent_env(self, env=None):
         return job.agent_env(
-            PKDict(
+            env=(env or PKDict()).pksetdefault(
                 SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=job.AGENT_ABS_URI,
             ),

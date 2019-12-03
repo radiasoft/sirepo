@@ -173,27 +173,23 @@ class _ComputeJob(PKDict):
         )
 
     async def _receive_api_runCancel(self, req):
-        if self.db.computeJobHash == req.content.computeJobHash:
-            if self._sent_run:
-                o = await self._send_with_single_reply(
-                    job.OP_CANCEL,
-                    req,
-                )
-                assert o.state == job.CANCELED
-            elif self.db.status == job.PENDING:
-                for o in self._ops:
-                    if o.msg.computeJid == req.content.computeJid:
-                        o.set_canceled()
-            r = PKDict(state=job.CANCELED)
-            self.db.status = job.CANCELED
-            self.__db_write()
-            return r
-#TODO(robnagler) this is always true, because the previous
-# if was false.
+        r = PKDict(state=job.CANCELED)
         if self.db.computeJobHash != req.content.computeJobHash:
-            self.db.status = job.CANCELED
-            self.__db_write()
-            return await _cancel_queued(self, req)
+            # not our job, but let the user know it isn't running
+            return r
+        if self._sent_run:
+            o = await self._send_with_single_reply(
+                job.OP_CANCEL,
+                req,
+            )
+            assert o.state == job.CANCELED
+        elif self.db.status == job.PENDING:
+            for o in self._ops:
+                if o.msg.computeJid == req.content.computeJid:
+                    o.set_canceled()
+        self.db.status = job.CANCELED
+        self.__db_write()
+        return r
 
     async def _receive_api_runSimulation(self, req):
         if self.db.status == _RUNNING_PENDING:
