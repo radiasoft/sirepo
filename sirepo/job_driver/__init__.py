@@ -105,14 +105,14 @@ class DriverBase(PKDict):
 
     @classmethod
     def receive(cls, msg):
-        try:
-            cls.agents[msg.content.agentId]._receive(msg)
-        except KeyError as e:
-            pkdc('unknown agent msg={}', msg)
+        a = cls.agents.get(msg.content.agentId)
+        if not a:
+            pkdlog('unknown agent msg={}, sending kill', msg)
             try:
                 msg.handler.write_message(PKDict(opName=job.OP_KILL))
             except Exception as e:
                 pkdlog('error={} stack={}', e, pkdexc())
+        a._receive(msg)
 
     async def send(self, op):
 #TODO(robnagler) need to send a retry to the ops, which should requeue
@@ -226,7 +226,7 @@ class DriverBase(PKDict):
 
 
 async def get_instance(req, jobRunMode):
-    if req.kind == job.PARALLEL and jobRunMode == job.SBATCH:
+    if jobRunMode == job.SBATCH:
         return await _CLASSES[job.SBATCH].get_instance(req)
     return await _DEFAULT_CLASS.get_instance(req)
 

@@ -28,7 +28,7 @@ _DB_SUBDIR = 'supervisor-job'
 
 _NEXT_REQUEST_SECONDS = PKDict({
     job.PARALLEL: 2,
-    job.SBATCH: 10 if pkconfig.channel_in('dev') else 60,
+    job.SBATCH: 5 if pkconfig.channel_in('dev') else 60,
     job.SEQUENTIAL: 1,
 })
 
@@ -279,6 +279,7 @@ class _ComputeJob(PKDict):
         self._sent_run = True
         while True:
             r = await o.reply_ready()
+            pkdp(r)
             self.db.status = r.state
             if self.db.status == job.ERROR:
                 self.db.error = r.get('error', '<unknown error>')
@@ -296,6 +297,7 @@ class _ComputeJob(PKDict):
             # TODO(e-carlin): What if this never comes?
             if r.state in job.EXIT_STATUSES:
                 break
+        pkdlog('destroy_op={}', o.opId)
         self.destroy_op(o)
 
     async def _send(self, opName, req, jobCmd, **kwargs):

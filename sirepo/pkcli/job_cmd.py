@@ -138,7 +138,7 @@ def _do_prepare_simulation(msg, template):
 
 def _do_sbatch_status(msg, template):
     p = 'PENDING'
-    s = pkio.path_path(msg.stopSentinel)
+    s = pkio.py_path(msg.stopSentinel)
     while True:
         if s.exists():
             if job.COMPLETED not in s.read():
@@ -146,8 +146,8 @@ def _do_sbatch_status(msg, template):
             _write_parallel_status(msg, template, False)
             pkio.unchecked_remove(s)
             return PKDict(state=job.COMPLETED)
-        time.sleep(msg.nextRequestSeconds)
         _write_parallel_status(msg, template, True)
+        time.sleep(msg.nextRequestSeconds)
     # DOES NOT RETURN
 
 

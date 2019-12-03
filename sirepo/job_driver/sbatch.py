@@ -65,12 +65,13 @@ class SBatchDriver(job_driver.DriverBase):
     async def send(self, op):
         m = op.msg
         m.runDir = '/'.join((str(self._srdb_root), m.simulationType, m.computeJid))
-        assert m.sbatchCores and m.sbatchHours
-        if cfg.cores:
-            # override for dev
-            m.sbatchCores = cfg.cores
-        m.mpiCores = m.sbatchCores
-        m.shifterImage = cfg.shifter_image
+        if op.opName == job.OP_RUN:
+            assert m.sbatchHours
+            if cfg.cores:
+                # override for dev
+                m.sbatchCores = cfg.cores
+            m.mpiCores = m.sbatchCores
+            m.shifterImage = cfg.shifter_image
         return await super().send(op)
 
     def _agent_env(self):
@@ -98,6 +99,7 @@ cd '{self._srdb_root}'
 {self._agent_env()}
 #TODO(robnagler) development
 pkill -f 'sirepo job_agent' >& /dev/null || true
+#TODO(robnagler) development
 scancel -u $USER >& /dev/null || true
 setsid {cfg.sirepo_cmd} job_agent >& job_agent.log &
 disown

@@ -68,12 +68,6 @@ class _Dispatcher(PKDict):
         super().__init__()
         self.cmds = []
 
-    def cmd_exit(self, cmd):
-        try:
-            self.cmds.remove(cmd)
-        except Exception:
-            pass
-
     def format_op(self, msg, opName, **kwargs):
         if msg:
             kwargs['opId'] = msg.get('opId')
@@ -106,6 +100,8 @@ class _Dispatcher(PKDict):
                     self._websocket.close()
 
     async def send(self, msg):
+        if not self._websocket:
+            return False
         try:
             await self._websocket.write_message(msg)
             return True
@@ -114,11 +110,17 @@ class _Dispatcher(PKDict):
             return False
 
     def terminate(self):
-        c = self.cmds
-        self.cmds.clear()
-        for p in c:
-            p.kill()
-        tornado.ioloop.IOLoop.current().stop()
+        try:
+            x = self.cmds
+            self.cmds.clear()
+            for c in x:
+                try:
+                    c.destroy()
+                except Exception as e:
+                    pkdlog('cmd={} error={} stack={}', c, e, pkdexc())
+            return None
+        finally:
+            tornado.ioloop.IOLoop.current().stop()
 
     async def _op(self, msg):
         m = None
@@ -142,23 +144,17 @@ class _Dispatcher(PKDict):
         return await self._cmd(msg)
 
     async def _op_cancel(self, msg):
+        await self.dispatcher.send(
+            self.format_op(msg, job.OP_OK, reply=PKDict(state=job.CANCELED)),
+        )
         for c in self.cmds:
             if c.jid == msg.computeJid:
-                c.kill()
-                self.cmd_exit(c)
-        return self.format_op(msg, job.OP_OK, reply=PKDict(state=job.CANCELED))
+                c.destroy()
+        return None
 
     async def _op_kill(self, msg):
-        try:
-            x = self.cmds
-            self.cmds.clear()
-            for c in x:
-                try:
-                    c.kill()
-                except Exception as e:
-                    pkdlog('cmd={} error={} stack={}', c, e, pkdexc())
-        finally:
-            tornado.ioloop.IOLoop.current().stop()
+        self.terminate()
+        return None
 
     async def _op_run(self, msg):
         return await self._cmd(msg)
@@ -179,15 +175,25 @@ class _Cmd(PKDict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.run_dir = pkio.py_path(self.msg.runDir)
-        if self.msg.opName == job.OP_RUN:
+        self._is_compute = self.msg.jobCmd == 'compute'
+        if self._is_compute:
             pkio.unchecked_remove(self.run_dir)
             pkio.mkdir_parent(self.run_dir)
         self._in_file = self._create_in_file()
         self._process = _Process(self)
         self._terminating = False
         self._start_time = int(time.time())
-        self._is_compute = self.msg.jobCmd == 'compute'
         self.jid = self.msg.computeJid
+
+    def destroy(self):
+        self._terminating = True
+        if '_in_file' in self:
+            pkio.unchecked_remove(self.pkdel('_in_file'))
+        self._process.kill()
+        try:
+            self.cmds.remove(cmd)
+        except Exception:
+            pass
 
     def job_cmd_cmd(self):
         return ('sirepo', 'job_cmd', self._in_file)
@@ -214,30 +220,21 @@ class _Cmd(PKDict):
     def job_cmd_source_bashrc(self):
         return 'source $HOME/.bashrc'
 
-    def kill(self):
-        self._terminating = True
-        self._process.kill()
-
     async def on_stdout_read(self, text):
-        if self._terminating:
+        if self._terminating or not self.msg.opId:
             return
         try:
-            r = pkjson.load_any(text)
-            if r.state in job.EXIT_STATUSES:
-                self.dispatcher.cmd_exit(self)
-            o = job.OP_ANALYSIS
-            if self._is_compute:
-                if 'computeJobStart' in r:
-                    self._start_time = r.computeJobStart
-                o = job.OP_RUN
             await self.dispatcher.send(
-                self.dispatcher.format_op(self.msg, o, reply=r)
+                self.dispatcher.format_op(
+                    self.msg,
+                    job.OP_RUN if self._is_compute else job.OP_ANALYSIS,
+                    reply=pkjson.load_any(text),
+                )
             )
         except Exception as exc:
             pkdlog('error={} stack={}', exc, pkdexc())
 
     async def start(self):
-        self._process.start()
         if self._is_compute and self._start_time:
             await self.dispatcher.send(
                 self.dispatcher.format_op(
@@ -246,25 +243,13 @@ class _Cmd(PKDict):
                     reply=PKDict(state=job.RUNNING, computeJobStart=self._start_time),
                 ),
             )
+        self._process.start()
         tornado.ioloop.IOLoop.current().add_callback(self._await_exit)
 
     async def _await_exit(self):
         try:
             await self._process.exit_ready()
-            if self._in_file:
-                pkio.unchecked_remove(self._in_file)
-                self._in_file = None
-            if 'dispatcher' not in self:
-                return
-            self.dispatcher.cmd_exit(self)
             if self._terminating:
-                await self.dispatcher.send(
-                    self.dispatcher.format_op(
-                        self.msg,
-                        job.OP_OK,
-                        reply=PKDict(state=job.CANCELED),
-                    )
-                )
                 return
             e = self._process.stderr.text.decode('utf-8', errors='ignore')
             if e:
@@ -281,6 +266,7 @@ class _Cmd(PKDict):
                         ),
                     )
                 )
+
         except Exception as exc:
             pkdlog(
                 'jid={} error={} returncode={} stack={}',
@@ -300,6 +286,8 @@ class _Cmd(PKDict):
                     ),
                 ),
             )
+        finally:
+            self.destroy()
 
     def _create_in_file(self):
         f = self.run_dir.join(
@@ -330,16 +318,26 @@ class _SbatchRun(_SbatchCmd):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._start_time = 0
-        self._sbatch_id = None
-        self._status_cb = None
-        self._status = 'PENDING'
-        self._completed_sentinel = self.run_dir.join('sbatch_status_stop')
+        self.pkupdate(
+            _start_time=0,
+            _sbatch_id=None,
+            _status_cb=None,
+            _status='PENDING',
+            _completed_sentinel=self.run_dir.join('sbatch_status_stop'),
+        )
+        self.msg.jobCmd = 'sbatch_status'
+        self.pkdel('_in_file').remove()
 
-    def kill(self):
-        if self._sbatch_id is not None:
+    def destroy(self):
+        if self._status_cb:
+            self._status_cb.stop()
+            self._status_cb = None
+        self._start_ready.set()
+        if self._sbatch_id:
+            i = self._sbatch_id
+            self._sbatch_id = None
             p = subprocess.run(
-                ('scancel', '--full', '--quiet', self._sbatch_id),
+                ('scancel', '--full', '--quiet', i),
                 close_fds=True,
                 cwd=str(self.run_dir),
                 capture_output=True,
@@ -349,14 +347,11 @@ class _SbatchRun(_SbatchCmd):
                 pkdlog(
                     'cancel error exit={} sbatch={} stderr={} stdout={}',
                     p.returncode,
-                    self._sbatch_id,
+                    i,
                     p.stderr,
                     p.stdout,
                 )
-        if self._status_cb:
-            self._status_cb.stop()
-            self._start_ready.set()
-        super().kill(self)
+        super().destroy()
 
     async def start(self):
         await self._prepare_simulation()
@@ -376,25 +371,37 @@ class _SbatchRun(_SbatchCmd):
                 f'Unable to submit exit={p.returncode} stdout={p.stdout} stderr={p.stderr}')
         self._sbatch_id = m.group(1)
         self.msg.pkupdate(
-            jobCmd='sbatch_status',
             sbatchId=self._sbatch_id,
             stopSentinel=str(self._completed_sentinel),
         )
         self._status_cb = tornado.ioloop.PeriodicCallback(
             self._sbatch_status,
-            self.msg.nextRequestSeconds,
+            self.msg.nextRequestSeconds * 1000,
         )
         self._start_ready = tornado.locks.Event()
         self._status_cb.start()
         await self._start_ready.wait()
         if self._terminating:
             return
+        self._in_file = self._create_in_file()
+        pkdlog(
+            'opId={} sbatchId={} starting jobCmd={}',
+            self.msg.opId,
+            self._sbatch_id,
+            self.msg.jobCmd,
+        )
         await super().start()
 
     async def _prepare_simulation(self):
         c = _SbatchCmd(
             dispatcher=self.dispatcher,
-            msg=self.msg.copy().pkupdate(jobCmd='prepare_simulation'),
+            msg=self.msg.copy().pkupdate(
+                jobCmd='prepare_simulation',
+                # needed so replies not sent back to supervisor
+                opId=None,
+                # sequential job
+                opName=job.OP_ANALYSIS,
+            ),
         )
         await c.start()
         await c._await_exit()
@@ -416,18 +423,22 @@ class _SbatchRun(_SbatchCmd):
 #SBATCH --output={template_common.RUN_LOG}
 #SBATCH --time={self._sbatch_time()}
 {o}
+cat > bash.stdin <<'EOF'
 {self.job_cmd_source_bashrc()}
 {self.job_cmd_env()}
 pyenv shell {self.job_cmd_pyenv()}
-exit 99
-#TODO(robnagler) need to get command from
-exec mpiexec -n {self.msg.sbatchCores} {s} python {template_common.PARAMETERS_PYTHON_FILE}
+#TODO(robnagler) need to get command from prepare_simulation
+exec python {template_common.PARAMETERS_PYTHON_FILE}
+EOF
+exec mpiexec -n {self.msg.sbatchCores} {s} /bin/bash bash.stdin
 '''
+
         )
         return f
 
     async def _sbatch_status(self):
-        self._status
+        if self._terminating:
+            return
         p = subprocess.run(
             ('scontrol', 'show', 'job', self.msg.sbatchId),
             cwd=str(self.run_dir),
@@ -455,32 +466,26 @@ exec mpiexec -n {self.msg.sbatchCores} {s} python {template_common.PARAMETERS_PY
         s = r.group()
         p = self._status
         self._status = s
-        if s in ('PENDING', 'COMPLETING'):
+        if s == 'PENDING':
             return
-        elif s == 'RUNNING':
-            if p != 'PENDING':
+        if s in ('RUNNING', 'COMPLETING', 'COMPLETED'):
+            if p == 'PENDING':
+                self._start_time = int(time.time())
+                self._start_ready.set()
+            if s in ('RUNNING', 'COMPLETING'):
                 return
-            self._start_time = int(time.time())
+        c = s == 'COMPLETED'
+        self._completed_sentinel.write(job.COMPLETED if c else job.ERROR)
+        if not c:
+            pkdlog('sbatch={} unexpected state={}', self._sbatch_id, s)
             await self.dispatcher.send(
                 self.dispatcher.format_op(
                     self.msg,
-                    job.OP_RUN,
-                    reply=PKDict(state=job.RUNNING, computeJobStart=self._start_time),
+                    job.OP_ERROR,
+                    reply=PKDict(state=job.ERROR, error=f'sbatch status={s}'),
                 )
             )
-            self._start_ready.set()
-        else:
-            self._status_cb.stop()
-            c = s == 'COMPLETED'
-            self._completed_sentinel.write(job.COMPLETED if c else job.ERROR)
-            if not c:
-                await self.dispatcher.send(
-                    self.dispatcher.format_op(
-                        self.msg,
-                        job.OP_ERROR,
-                        reply=PKDict(state=job.ERROR, error='sbatch status={s}'),
-                    )
-                )
+            self.destroy()
 
     def _sbatch_time(self):
         return round(
@@ -497,7 +502,6 @@ class _Process(PKDict):
             stdout=None,
             cmd=cmd,
             _exit=tornado.locks.Event(),
-            _in_file=None,
             _subprocess=None,
         )
 
@@ -508,12 +512,23 @@ class _Process(PKDict):
 
     def kill(self):
         # TODO(e-carlin): Terminate?
-        os.killpg(self._subprocess.proc.pid, signal.SIGKILL)
+        if 'returncode' in self or '_subprocess' not in self:
+            return
+        p = None
+        try:
+            p = self._subprocess.proc.pid
+            os.killpg(p, signal.SIGKILL)
+        except ProcessLookupError as e:
+            pass
+        except Exception as e:
+            pkdlog('kill pid={} exception={}', p, e)
 
     def start(self):
         # SECURITY: msg must not contain agentId
         assert not self.cmd.msg.get('agentId')
         c, s, e = self.cmd.job_cmd_cmd_stdin_env()
+        pkdp('starting cmd={} stdin={}', c, s.read())
+        s.seek(0)
         self._subprocess = tornado.process.Subprocess(
             c,
             close_fds=True,
