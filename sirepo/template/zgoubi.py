@@ -520,14 +520,6 @@ def save_report_data(data, run_dir):
     )
 
 
-def simulation_dir_name(report_name):
-    if 'bunchReport' in report_name:
-        return 'bunchReport'
-    if 'opticsReport' in report_name or report_name == 'twissSummaryReport':
-        return 'twissReport2'
-    return report_name
-
-
 def write_parameters(data, run_dir, is_parallel, python_file=template_common.PARAMETERS_PYTHON_FILE):
     pkio.write_text(
         run_dir.join(python_file),

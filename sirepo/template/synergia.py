@@ -368,12 +368,6 @@ def sim_frame_turnComparisonAnimation(frame_args):
         }
 
 
-def simulation_dir_name(report_name):
-    if 'bunchReport' in report_name:
-        return 'bunchReport'
-    return report_name
-
-
 def validate_file(file_type, path):
     if file_type != 'bunch-particleFile':
         return 'invalid file type'
