@@ -164,7 +164,10 @@ class DriverBase(PKDict):
             if 'reply' not in c:
                 pkdlog('agentId={} No reply={}', self._agentId, c)
                 c.reply = PKDict(state='error', error='no reply')
-            self.ops_pending_done[i].reply_put(c.reply)
+            if i in self.ops_pending_done:
+                self.ops_pending_done[i].reply_put(c.reply)
+            else:
+                pkdlog('agentId={} not pending opId={} opName={}', self._agentId, i, c.opName)
         else:
             getattr(self, '_receive_' + c.opName)(msg)
 
