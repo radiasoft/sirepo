@@ -426,12 +426,12 @@ cat > bash.stdin <<'EOF'
 {self.job_cmd_source_bashrc()}
 {self.job_cmd_env()}
 pyenv shell {self.job_cmd_pyenv()}
-#TODO(robnagler) need to get command from prepare_simulation
-exec python {template_common.PARAMETERS_PYTHON_FILE}
-EOF
 if [[ ! $LD_LIBRARY_PATH =~ /usr/lib64/mpich/lib ]]; then
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64/mpich/lib
 fi
+#TODO(robnagler) need to get command from prepare_simulation
+exec python {template_common.PARAMETERS_PYTHON_FILE}
+EOF
 exec srun {s} /bin/bash bash.stdin
 '''
         )
