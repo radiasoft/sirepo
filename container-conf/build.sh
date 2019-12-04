@@ -6,6 +6,7 @@ build_vars() {
     : ${build_image_base:=radiasoft/beamsim}
     export build_passenv='TRAVIS_BRANCH TRAVIS_COMMIT'
     : ${TRAVIS_BRANCH:=}
+    : ${TRAVIS_COMMIT:=}
     local boot_dir=$build_run_user_home/.radia-run
     sirepo_tini_file=$boot_dir/tini
     sirepo_boot=$boot_dir/start
