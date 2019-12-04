@@ -468,6 +468,7 @@ exec srun {s} /bin/bash bash.stdin
                 p.stderr,
                 p.stdout,
             )
+            return
         r = re.search(r'(?<=JobState=)(\S+)(?= Reason)', p.stdout)
         if not r:
             pkdlog(
@@ -491,6 +492,8 @@ exec srun {s} /bin/bash bash.stdin
         c = s == 'COMPLETED'
         self._completed_sentinel.write(job.COMPLETED if c else job.ERROR)
         if not c:
+            # because have to await before calling destroy
+            self._terminating = True
             pkdlog('sbatch={} unexpected state={}', self._sbatch_id, s)
             await self.dispatcher.send(
                 self.dispatcher.format_op(
