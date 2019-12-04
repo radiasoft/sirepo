@@ -166,26 +166,13 @@ def get_data_file(run_dir, model, frame, **kwargs):
     return RTSTRUCT_EXPORT_FILENAME, dicom_data, 'application/octet-stream'
 
 
-def get_simulation_frame(run_dir, data, model_data):
-    frame_index = int(data['frameIndex'])
-    args = data['animationArgs'].split('_')
-    if data['modelName'].startswith('dicomAnimation'):
-        plane = args[0]
-        res = simulation_db.read_json(_dicom_path(model_data['models']['simulation'], plane, frame_index))
-        res['pixel_array'] = _read_pixel_plane(plane, frame_index, model_data)
-        return res
-    if data['modelName'] == 'dicomDose':
-        return {
-            'dose_array': _read_dose_frame(frame_index, model_data)
-        }
-    raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
-
-
 def import_file(req, tmp_dir=None, **kwargs):
     if not pkio.has_file_extension(req.filename, 'zip'):
         raise sirepo.util.UserAlert('unsupported import filename: {}'.format(filename))
-    filepath = str(tmp_dir.join(_ZIP_FILE_NAME))
-    req.file_stream.save(filepath)
+    #TODO(pjm): writing to simulation lib for now, tmp_dir will get removed after this request
+    filepath = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(_ZIP_FILE_NAME))
+    with open(filepath, 'wb') as f:
+        f.write(req.file_stream.read())
     data = simulation_db.default_data(SIM_TYPE)
     data['models']['simulation']['name'] = req.filename
     data['models']['simulation'][_TMP_INPUT_FILE_FIELD] = filepath
@@ -202,6 +189,21 @@ def prepare_for_client(data):
 
 def remove_last_frame(run_dir):
     pass
+
+
+def sim_frame(frame_args):
+    frame_index = frame_args.frameIndex
+    model_data = frame_args.sim_in
+    if frame_args.frameReport.startswith('dicomAnimation'):
+        plane = frame_args.dicomPlane
+        res = simulation_db.read_json(_dicom_path(model_data['models']['simulation'], plane, frame_index))
+        res['pixel_array'] = _read_pixel_plane(plane, frame_index, model_data)
+        return res
+    if frame_args.frameReport == 'dicomDose':
+        return {
+            'dose_array': _read_dose_frame(frame_index, model_data)
+        }
+    assert False, '{}: unknown simulation frame model'.format(frame_args.frameReport)
 
 
 def write_parameters(data, run_dir, is_parallel):
