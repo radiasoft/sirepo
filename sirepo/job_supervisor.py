@@ -32,6 +32,7 @@ _RUNNING_PENDING = (job.RUNNING, job.PENDING)
 
 _HISTORY_FIELDS = frozenset((
     'computeJobStart',
+    'computeJobQueued',
     'error',
     'jobRunMode',
     'lastUpdateTime',
@@ -142,6 +143,7 @@ class _ComputeJob(PKDict):
             computeJid=c.computeJid,
             computeJobHash=c.computeJobHash,
             computeJobStart=0,
+            computeJobQueued=0,
             error=None,
             history=self.__db_init_history(prev_db),
             isParallel=c.isParallel,
@@ -207,6 +209,7 @@ class _ComputeJob(PKDict):
             or self.db.status != job.COMPLETED
         ):
             self.__db_init(req, prev_db=self.db)
+            self.db.computeJobQueued = int(time.time())
             self.db.pkupdate(status=job.PENDING)
             self.__db_write()
             tornado.ioloop.IOLoop.current().add_callback(self._run, req)
