@@ -153,6 +153,7 @@ def agent_env(env=None, uid=None):
             'sirepo.simulation_db.sbatch_display',
         ))
     ).pksetdefault(
+        PYTHONPATH='',
         PYTHONUNBUFFERED='1',
         SIREPO_AUTH_LOGGED_IN_USER=lambda: uid or sirepo.auth.logged_in_user(),
         SIREPO_SRDB_ROOT=lambda: sirepo.srdb.root(),

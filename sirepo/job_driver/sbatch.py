@@ -92,7 +92,6 @@ class SBatchDriver(job_driver.DriverBase):
             known_hosts=_KNOWN_HOSTS,
         ) as c:
             script = f'''#!/bin/bash
-set -x
 set -e
 mkdir -p '{self._srdb_root}'
 cd '{self._srdb_root}'

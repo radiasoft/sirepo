@@ -300,7 +300,7 @@ class _SbatchCmd(_Cmd):
 
     def job_cmd_source_bashrc(self):
         if self.msg.get('shifterImage'):
-            return 'export HOME=/home/vagrant; source /home/vagrant/.bashrc; eval export HOME=~$USER'
+            return 'unset PYTHONPATH; export PYENV_ROOT=/home/vagrant/.pyenv; export HOME=/home/vagrant; source /home/vagrant/.bashrc; eval export HOME=~$USER'
         return super().job_cmd_source_bashrc()
 
     def job_cmd_cmd(self):
@@ -429,7 +429,8 @@ pyenv shell {self.job_cmd_pyenv()}
 #TODO(robnagler) need to get command from prepare_simulation
 exec python {template_common.PARAMETERS_PYTHON_FILE}
 EOF
-exec mpiexec -n {self.msg.sbatchCores} {s} /bin/bash bash.stdin
+# mpiexec -n {self.msg.sbatchCores}
+exec srun {s} /bin/bash bash.stdin
 '''
 
         )
