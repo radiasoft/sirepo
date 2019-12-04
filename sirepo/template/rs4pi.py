@@ -171,6 +171,7 @@ def import_file(req, tmp_dir=None, **kwargs):
         raise sirepo.util.UserAlert('unsupported import filename: {}'.format(filename))
     #TODO(pjm): writing to simulation lib for now, tmp_dir will get removed after this request
     filepath = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(_ZIP_FILE_NAME))
+    pkio.mkdir_parent_only(filepath)
     with open(filepath, 'wb') as f:
         f.write(req.file_stream.read())
     data = simulation_db.default_data(SIM_TYPE)
@@ -511,7 +512,6 @@ def _move_import_file(data):
     if os.path.exists(path):
         zip_path = _sim_file(sim['simulationId'], _ZIP_FILE_NAME)
         os.rename(path, zip_path)
-        pkio.unchecked_remove(os.path.dirname(path))
         tmp_dir = _sim_file(sim['simulationId'], _TMP_ZIP_DIR)
         zipfile.ZipFile(zip_path).extractall(tmp_dir)
         _summarize_dicom_files(data, tmp_dir)
