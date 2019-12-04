@@ -300,7 +300,7 @@ class _SbatchCmd(_Cmd):
 
     def job_cmd_source_bashrc(self):
         if self.msg.get('shifterImage'):
-            return 'unset PYTHONPATH; export PYENV_ROOT=/home/vagrant/.pyenv; export HOME=/home/vagrant; source /home/vagrant/.bashrc; eval export HOME=~$USER'
+            return 'unset PYTHONPATH; unset PYTHONSTARTUP; export PYENV_ROOT=/home/vagrant/.pyenv; export HOME=/home/vagrant; source /home/vagrant/.bashrc; eval export HOME=~$USER'
         return super().job_cmd_source_bashrc()
 
     def job_cmd_cmd_stdin_env(self, *args, **kwargs):
@@ -488,13 +488,11 @@ exec srun {s} /bin/bash bash.stdin
             self.destroy()
 
     def _sbatch_time(self):
-        return str(
-            round(
-                datetime.timedelta(
-                    hours=float(self.msg.sbatchHours)
-                ).total_seconds() / 60,
+        return str(datetime.timedelta(
+            seconds=int(
+                datetime.timedelta(hours=float(self.msg.sbatchHours)).total_seconds(),
             ),
-        )
+        ))
 
 
 class _Process(PKDict):
