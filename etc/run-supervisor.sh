@@ -12,6 +12,7 @@ if false; then
     export SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/var/tmp/{sbatch_user}/sirepo'
     export SIREPO_JOB_DRIVER_SBATCH_USER=vagrant
     export SIREPO_SIMULATION_DB_SBATCH_DISPLAY='V8 Cluster'
+    export SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS=5
 else
     export SIREPO_JOB_DRIVER_SBATCH_HOST=cori.nersc.gov
     export SIREPO_JOB_DRIVER_SBATCH_SHIFTER_IMAGE=radiasoft/sirepo:sbatch
@@ -20,6 +21,7 @@ else
     export SIREPO_JOB_DRIVER_SBATCH_USER=nagler
     export SIREPO_JOB_SUPERVISOR_URI=http://fnl7i.bivio.biz:8001
     export SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Cori@NERSC'
+    export SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS=15
 fi
 export SIREPO_JOB_DRIVER_SBATCH_HOST_KEY="$(grep ^$SIREPO_JOB_DRIVER_SBATCH_HOST ~/.ssh/known_hosts || true)"
 if [[ ! $SIREPO_JOB_DRIVER_SBATCH_HOST_KEY ]]; then

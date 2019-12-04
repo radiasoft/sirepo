@@ -144,7 +144,7 @@ class _Dispatcher(PKDict):
         return await self._cmd(msg)
 
     async def _op_cancel(self, msg):
-        await self.dispatcher.send(
+        await self.send(
             self.format_op(msg, job.OP_OK, reply=PKDict(state=job.CANCELED)),
         )
         for c in self.cmds:

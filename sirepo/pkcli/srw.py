@@ -107,27 +107,13 @@ def run_background(cfg_dir):
         cfg_dir (str): directory to run srw in
     """
     with pkio.save_chdir(cfg_dir):
-        script = pkio.read_text(template_common.PARAMETERS_PYTHON_FILE)
-        p = dict(pkcollections.map_items(cfg))
-        if pkconfig.channel_in('dev'):
-            p['particles_per_core'] = 5
-        p['cores'] = mpi.cfg.cores
-        script += '''
-    v.wm_na = v.sm_na = {particles_per_core}
-    # Number of "iterations" per save is best set to num processes
-    v.wm_ns = v.sm_ns = {cores}
-    srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
-
-main()
-'''.format(**p)
-        mpi.run_script(script)
+        mpi.run_script(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE))
         simulation_db.write_result({})
 
 def _run_srw():
     #TODO(pjm): need to properly escape data values, untrusted from client
     sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
-    locals()['main']()
     # special case for importing python code
     r = sim_in.report
     if r == 'backgroundImport':

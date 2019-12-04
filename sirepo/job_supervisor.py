@@ -26,11 +26,7 @@ _DB_DIR = None
 #: where job db is stored under srdb.root
 _DB_SUBDIR = 'supervisor-job'
 
-_NEXT_REQUEST_SECONDS = PKDict({
-    job.PARALLEL: 2,
-    job.SBATCH: 5 if pkconfig.channel_in('dev') else 60,
-    job.SEQUENTIAL: 1,
-})
+_NEXT_REQUEST_SECONDS = None
 
 _RUNNING_PENDING = (job.RUNNING, job.PENDING)
 
@@ -51,14 +47,24 @@ _PARALLEL_STATUS_FIELDS = frozenset((
     'computeJobStart',
 ))
 
+cfg = None
+
 def init():
-    global _DB_DIR
+    global _DB_DIR, cfg, _NEXT_REQUEST_SECONDS
     if _DB_DIR:
         return
     job.init()
     job_driver.init()
     _DB_DIR = sirepo.srdb.root().join(_DB_SUBDIR)
     pykern.pkio.mkdir_parent(_DB_DIR)
+    cfg = pkconfig.init(
+        sbatch_poll_secs=(60, int, 'how often to poll squeue and parallel status'),
+    )
+    _NEXT_REQUEST_SECONDS = PKDict({
+        job.PARALLEL: 2,
+        job.SBATCH: cfg.sbatch_poll_secs,
+        job.SEQUENTIAL: 1,
+    })
 
 
 class ServerReq(PKDict):
@@ -178,16 +184,14 @@ class _ComputeJob(PKDict):
             # not our job, but let the user know it isn't running
             return r
         if self._sent_run:
-            o = await self._send_with_single_reply(
+            await self._send_with_single_reply(
                 job.OP_CANCEL,
                 req,
             )
-            assert o.state == job.CANCELED
-        elif self.db.status == job.PENDING:
-            for o in self._ops:
-                if o.msg.computeJid == req.content.computeJid:
-                    o.set_canceled()
         self.db.status = job.CANCELED
+        for o in self._ops:
+            if o.msg.computeJid == req.content.computeJid:
+                o.set_canceled()
         self.__db_write()
         return r
 
@@ -279,6 +283,8 @@ class _ComputeJob(PKDict):
         self._sent_run = True
         while True:
             r = await o.reply_ready()
+            if r.state == job.CANCELED:
+                break
             self.db.status = r.state
             if self.db.status == job.ERROR:
                 self.db.error = r.get('error', '<unknown error>')

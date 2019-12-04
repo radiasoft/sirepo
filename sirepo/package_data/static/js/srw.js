@@ -1870,6 +1870,11 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     '<div data-simulation-status-timer="simState.timeData"></div>',
                   '</div>',
                 '</div>',
+                '<div data-ng-show="simState.showJobSettings()">',
+                  '<div class="form-group form-group-sm">',
+                    '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model"></div>',
+                  '</div>',
+                '</div>',
                 '<div class="col-sm-6 pull-right">',
                   '<button class="btn btn-default" data-ng-click="startSimulation()">Start New Simulation</button>',
                 '</div>',
@@ -1944,6 +1949,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
 
             $scope.startSimulation = function() {
                 if ($scope.model == 'multiElectronAnimation') {
+                    appState.saveChanges($scope.simState.model);
                     appState.models.simulation.multiElectronAnimationTitle = beamlineService.getReportTitle($scope.model);
                 }
                 $scope.simState.saveAndRunSimulation('simulation');

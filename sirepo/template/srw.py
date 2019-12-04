@@ -23,6 +23,7 @@ import os
 import py.path
 import pykern.pkjson
 import re
+import sirepo.mpi
 import sirepo.sim_data
 import sirepo.template.srw_fixup
 import sirepo.uri_router
@@ -1281,9 +1282,13 @@ def _generate_srw_main(data, plot_reports):
             'mag.arZc.append(v.mp_zc)',
     ):
         content.append('    {}'.format(line))
-    if plot_reports or not _SIM_DATA.srw_is_background_report(report):
-        content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
-    return '\n'.join(['    {}'.format(x) for x in content])
+    if _SIM_DATA.srw_is_background_report(report):
+        content.append(
+            # Number of "iterations" per save is best set to num processes
+            'v.wm_ns = v.sm_ns = {}'.format(sirepo.mpi.cfg.cores),
+        )
+    content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
+    return '\n'.join(['    {}'.format(x) for x in content] + ['main()'])
 
 
 def _get_first_element_position(data):

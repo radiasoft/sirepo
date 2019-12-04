@@ -160,7 +160,7 @@
     "model": {
         "animation": {
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "sbatchCores": ["Cores", "Integer", 32],
+            "sbatchCores": ["Cores", "Integer", 4],
             "sbatchHours": ["Hours", "Float", 0.4]
         },
         "beamAnimation": {
