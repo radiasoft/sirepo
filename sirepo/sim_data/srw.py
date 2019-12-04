@@ -137,11 +137,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                 verticalRange=m.verticalRange,
             )
         cls.update_model_defaults(dm.multiElectronAnimation, 'multiElectronAnimation')
-        if 'folder' not in dm.simulation:
-            if dm.simulation.name in cls.__EXAMPLE_FOLDERS:
-                dm.simulation.folder = cls.__EXAMPLE_FOLDERS[dm.simulation.name]
-            else:
-                dm.simulation.folder = '/'
         if 'horizontalPosition' in dm.electronBeam:
             e = dm.electronBeam
             dm.electronBeamPosition.update(dict(
@@ -153,6 +148,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             for f in 'horizontalPosition', 'verticalPosition', 'driftCalculationMethod', 'drift':
                 if f in e:
                     del e[f]
+        cls._organize_example(data)
         cls._template_fixup_set(data)
 
 
@@ -173,6 +169,16 @@ class SimData(sirepo.sim_data.SimDataBase):
                 want_user_lib_dir=True
             ),
         )
+
+    @classmethod
+    def _organize_example(cls, data):
+        dm = data.models
+        if dm.simulation.get('isExample'):
+            f = cls.__EXAMPLE_FOLDERS.get(dm.simulation.name)
+            if f:
+                dm.simulation.folder = f
+        elif not dm.simulation.get('folder'):
+            dm.simulation.folder = '/'
 
     @classmethod
     def srw_lib_file_paths_for_type(cls, file_type, op, want_user_lib_dir):

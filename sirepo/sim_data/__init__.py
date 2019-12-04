@@ -643,9 +643,8 @@ class SimDataBase(object):
     @classmethod
     def _organize_example(cls, data):
         dm = data.models
-        if 'isExample' in dm.simulation and dm.simulation.isExample:
-            if dm.simulation.folder == '/':
-                dm.simulation.folder = '/Examples'
+        if dm.simulation.get('isExample') and dm.simulation.folder == '/':
+            dm.simulation.folder = '/Examples'
 
     @classmethod
     def _template_fixup_set(cls, data):
