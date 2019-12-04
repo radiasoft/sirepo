@@ -82,8 +82,6 @@ class SBatchDriver(job_driver.DriverBase):
         )
 
     async def _agent_start(self):
-        # TODO(e-carlin): handle cori ssh key. Currently this defaults
-        # to using the keys in ~/.ssh/known_hosts
         async with asyncssh.connect(
             cfg.host,
 #TODO(robnagler) add password management
@@ -92,14 +90,11 @@ class SBatchDriver(job_driver.DriverBase):
             known_hosts=_KNOWN_HOSTS,
         ) as c:
             script = f'''#!/bin/bash
+{self._agent_start_dev()}
 set -e
 mkdir -p '{self._srdb_root}'
 cd '{self._srdb_root}'
 {self._agent_env()}
-#TODO(robnagler) development
-pkill -f 'sirepo job_agent' >& /dev/null || true
-#TODO(robnagler) development
-scancel -u $USER >& /dev/null || true
 setsid {cfg.sirepo_cmd} job_agent >& job_agent.log &
 disown
 '''
@@ -110,6 +105,20 @@ disown
                 #TODO(robnagler) try to read the job_agent.log
                 pkdlog('agentId={} exit={}', self._agentId, p.exit_status)
 
+    def _agent_start_dev(self):
+        if not pkconfig.channel_in('dev'):
+            return ''
+        res = '''
+pkill -f 'sirepo job_agent' >& /dev/null || true
+scancel -u $USER >& /dev/null || true
+'''
+        if cfg.shifter_image:
+            res += '''
+(cd /home/vagrant/src/biviosoftware/home-env && git pull -q) || true
+(cd ~/src/radiasoft/sirepo && git pull -q) || true
+(cd ~/src/radiasoft/pykern && git pull -q) || true
+'''
+        return res
 
     def _websocket_free(self):
         self.run_scheduler(exclude_self=True)

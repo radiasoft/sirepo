@@ -299,10 +299,17 @@ class _Cmd(PKDict):
 class _SbatchCmd(_Cmd):
 
     def job_cmd_source_bashrc(self):
-        if self.msg.get('shifterImage'):
-            return 'unset PYTHONPATH; unset PYTHONSTARTUP; export PYENV_ROOT=/home/vagrant/.pyenv; export HOME=/home/vagrant; source /home/vagrant/.bashrc; eval export HOME=~$USER'
-        return super().job_cmd_source_bashrc()
-
+        if not self.msg.get('shifterImage'):
+            return super().job_cmd_source_bashrc()
+        return f'''
+unset PYTHONPATH
+unset PYTHONSTARTUP
+export PYENV_ROOT=/home/vagrant/.pyenv
+export HOME=/home/vagrant
+source /home/vagrant/.bashrc
+eval export HOME=~$USER
+{self._job_cmd_source_bashrc_dev()}
+'''
     def job_cmd_cmd_stdin_env(self, *args, **kwargs):
         c, s, e = super().job_cmd_cmd_stdin_env()
         if self.msg.get('shifterImage'):
@@ -311,6 +318,11 @@ class _SbatchCmd(_Cmd):
 
     async def exited(self):
         await self._process.exit_ready()
+
+    def _job_cmd_source_bashrc_dev(self):
+        if not pkconfig.channel_in('dev'):
+            return ''
+        return 'export PYTHONPATH=$HOME/src/radiasoft/sirepo:$HOME/src/radiasoft/pykern'
 
 
 class _SbatchRun(_SbatchCmd):
