@@ -161,7 +161,7 @@
         "animation": {
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "sbatchCores": ["Cores", "Integer", 32],
-            "sbatchHours": ["Hours", "Float", 1]
+            "sbatchHours": ["Hours", "Float", 0.4]
         },
         "beamAnimation": {
             "x": ["X Value", "XValue", "z"],

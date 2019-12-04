@@ -126,7 +126,7 @@ class _Dispatcher(PKDict):
         m = None
         try:
             m = pkjson.load_any(msg)
-            pkdlog('op={} opId={}', m.opName, m.get('opId'))
+            pkdlog('op={} opId={} shifterImage={}', m.opName, m.get('opId'), m.get('shifterImage'))
             pkdc('m={}', job.LogFormatter(m))
             return await getattr(self, '_op_' + m.opName)(m)
         except Exception as e:
@@ -303,11 +303,11 @@ class _SbatchCmd(_Cmd):
             return 'unset PYTHONPATH; export PYENV_ROOT=/home/vagrant/.pyenv; export HOME=/home/vagrant; source /home/vagrant/.bashrc; eval export HOME=~$USER'
         return super().job_cmd_source_bashrc()
 
-    def job_cmd_cmd(self):
-        c = super().job_cmd_cmd()
+    def job_cmd_cmd_stdin_env(self, *args, **kwargs):
+        c, s, e = super().job_cmd_cmd_stdin_env()
         if self.msg.get('shifterImage'):
-            return ('shifter', '--image={self.msg.shifterImage}') + c
-        return c
+            c = ('shifter', f'--image={self.msg.shifterImage}', '/bin/bash', '--norc', '--noprofile', '-l')
+        return c, s, e
 
     async def exited(self):
         await self._process.exit_ready()
@@ -488,11 +488,14 @@ exec srun {s} /bin/bash bash.stdin
             self.destroy()
 
     def _sbatch_time(self):
-        return round(
-            datetime.timedelta(
-                hours=float(self.msg.sbatchHours)
-            ).total_seconds() / 60,
+        return str(
+            round(
+                datetime.timedelta(
+                    hours=float(self.msg.sbatchHours)
+                ).total_seconds() / 60,
+            ),
         )
+
 
 class _Process(PKDict):
     def __init__(self, cmd):
@@ -527,6 +530,8 @@ class _Process(PKDict):
         # SECURITY: msg must not contain agentId
         assert not self.cmd.msg.get('agentId')
         c, s, e = self.cmd.job_cmd_cmd_stdin_env()
+        pkdlog('cmd={} stdin={}', c, s.read())
+        s.seek(0)
         self._subprocess = tornado.process.Subprocess(
             c,
             close_fds=True,

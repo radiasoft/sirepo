@@ -46,6 +46,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
                 frame=int(frame),
                 suffix=s,
                 computeJobHash='unused',
+                #TODO(robnagler) needs to be relative, and then filled in by job_driver
                 dataFileUri=sirepo.job.DATA_FILE_ABS_URI + t.basename + '/',
                 req_data=req.req_data,
             )
