@@ -429,10 +429,11 @@ pyenv shell {self.job_cmd_pyenv()}
 #TODO(robnagler) need to get command from prepare_simulation
 exec python {template_common.PARAMETERS_PYTHON_FILE}
 EOF
-# mpiexec -n {self.msg.sbatchCores}
+if [[ ! $LD_LIBRARY_PATH =~ /usr/lib64/mpich/lib ]]; then
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64/mpich/lib
+fi
 exec srun {s} /bin/bash bash.stdin
 '''
-
         )
         return f
 
