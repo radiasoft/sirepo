@@ -195,9 +195,8 @@ def _run_mode(request_content):
                 sbatchHours=m.sbatchHours,
             )
     raise sirepo.util.Error(
-        'invalid JobRunMode={}'.format(res),
         'jobRunMode={} computeModel={} computeJid={}',
-        res,
+        j,
         request_content.computeModel,
         request_content.computeJid,
     )

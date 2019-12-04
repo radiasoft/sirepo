@@ -231,7 +231,7 @@ class _Cmd(PKDict):
                 )
             )
         except Exception as exc:
-            pkdlog('error={} stack={}', exc, pkdexc())
+            pkdlog('text={} error={} stack={}', text, exc, pkdexc())
 
     async def start(self):
         if self._is_compute and self._start_time:
@@ -516,7 +516,6 @@ class _Process(PKDict):
             stdout=None,
             cmd=cmd,
             _exit=tornado.locks.Event(),
-            _subprocess=None,
         )
 
     async def exit_ready(self):
@@ -530,7 +529,7 @@ class _Process(PKDict):
             return
         p = None
         try:
-            p = self._subprocess.proc.pid
+            p = self.pkdel('_subprocess').proc.pid
             os.killpg(p, signal.SIGKILL)
         except ProcessLookupError as e:
             pass
