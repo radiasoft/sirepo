@@ -302,6 +302,7 @@ class _SbatchCmd(_Cmd):
         if not self.msg.get('shifterImage'):
             return super().job_cmd_source_bashrc()
         return f'''
+ulimit -c 0
 unset PYTHONPATH
 unset PYTHONSTARTUP
 export PYENV_ROOT=/home/vagrant/.pyenv
