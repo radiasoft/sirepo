@@ -41,13 +41,14 @@ def default_command(in_file):
 #TODO(e-carlin): find common place to serialize/deserialize paths
     msg.runDir = pkio.py_path(msg.runDir)
     f.remove()
+    res = globals()['_do_' + msg.jobCmd](
+        msg,
+        sirepo.template.import_module(msg.simulationType)
+    )
+    if res is None:
+        return
     return pkjson.dump_pretty(
-        PKDict(
-            globals()['_do_' + msg.jobCmd](
-                msg,
-                sirepo.template.import_module(msg.simulationType)
-            )
-        ).pksetdefault(state=job.COMPLETED),
+        PKDict(res).pksetdefault(state=job.COMPLETED),
         pretty=False,
     )
 
@@ -142,7 +143,8 @@ def _do_sbatch_status(msg, template):
     while True:
         if s.exists():
             if job.COMPLETED not in s.read():
-                return
+                # told to stop for an error or otherwise
+                return None
             _write_parallel_status(msg, template, False)
             pkio.unchecked_remove(s)
             return PKDict(state=job.COMPLETED)
