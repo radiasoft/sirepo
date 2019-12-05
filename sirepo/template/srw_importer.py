@@ -183,7 +183,7 @@ def _beamline_element(obj, idx, title, elem_type, position):
 
         data['firstFocusLength'] = obj.p
         data['focalLength'] = obj.q
-        data['grazingAngle'] = obj.angGraz * 1e3
+        data['grazingAngle'] = obj.grazingAngle * 1e3
         data['normalVectorX'] = obj.nvx
         data['normalVectorY'] = obj.nvy
         data['normalVectorZ'] = obj.nvz

@@ -23,7 +23,7 @@
     {{- fields(item, 'i', ('numberOfLenses',)) }}
 {% elif item.type == 'crystal' %}
     {{- fields(item, 's', ('heightProfileFile', 'orientation')) }}
-    {{- fields(item, 'f', ('dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'crystalThickness', 'useCase', 'asymmetryAngle', 'nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle', 'heightAmplification', 'energyAvg', 'angRoll')) }}
+    {{- fields(item, 'f', ('dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'crystalThickness', 'useCase', 'asymmetryAngle', 'nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle', 'heightAmplification', 'energyAvg', 'rollAngle')) }}
 {% elif item.type == 'drift' %}
     {{- fields(item, 'f', ('length',)) }}
 {% elif item.type == 'ellipsoidMirror' %}
@@ -33,7 +33,7 @@
     {{- fields(item, 'f', ('focalPlane', 'externalRefractiveIndex', 'coreRefractiveIndex', 'externalAttenuationLength', 'coreAttenuationLength', 'externalDiameter', 'coreDiameter', 'horizontalCenterPosition', 'verticalCenterPosition')) }}
 {% elif item.type == 'grating' %}
     {{- fields(item, 's', ('heightProfileFile', 'orientation')) }}
-    {{- fields(item, 'f', ('tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'horizontalOffset', 'verticalOffset', 'diffractionOrder', 'grooveDensity0', 'grooveDensity1', 'grooveDensity2', 'grooveDensity3', 'grooveDensity4', 'energyAvg', 'cff', 'angGraz', 'angRoll')) }}
+    {{- fields(item, 'f', ('tangentialSize', 'sagittalSize', 'nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'horizontalOffset', 'verticalOffset', 'diffractionOrder', 'grooveDensity0', 'grooveDensity1', 'grooveDensity2', 'grooveDensity3', 'grooveDensity4', 'energyAvg', 'cff', 'grazingAngle', 'rollAngle')) }}
 {% elif item.type == 'lens' %}
     {{- fields(item, 'f', ('horizontalFocalLength', 'verticalFocalLength', 'horizontalOffset', 'verticalOffset')) }}
 {% elif item.type == 'mask' %}

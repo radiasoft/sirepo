@@ -330,8 +330,8 @@ def get_application_data(data):
         })
     if data['method'] == 'delete_user_models':
         return _delete_user_models(data['electron_beam'], data['tabulated_undulator'])
-    if data['method'] == 'compute_grazing_angle':
-        return _compute_grazing_angle(data['optical_element'])
+    if data['method'] == 'compute_grazing_orientation':
+        return _compute_grazing_orientation(data['optical_element'])
     elif data['method'] == 'compute_crl_characteristics':
         return compute_crl_focus(_compute_material_characteristics(data['optical_element'], data['photon_energy']))
     elif data['method'] == 'compute_dual_characteristics':
@@ -346,6 +346,10 @@ def get_application_data(data):
         )
     elif data['method'] == 'compute_delta_atten_characteristics':
         return _compute_material_characteristics(data['optical_element'], data['photon_energy'])
+    elif data['method'] == 'compute_grating_init':
+        return _compute_grating_init(data['optical_element'])
+    elif data['method'] == 'compute_grating_orientation':
+        return _compute_grating_orientation(data['optical_element'])
     elif data['method'] == 'compute_crystal_init':
         return _compute_crystal_init(data['optical_element'])
     elif data['method'] == 'compute_crystal_orientation':
@@ -711,6 +715,92 @@ def _compute_material_characteristics(model, photon_energy, prefix=''):
 
     return model
 
+def _compute_grating_init(model):
+    parms_list = ['grazingAngle']
+    try:
+        mirror = srwlib.SRWLOptMirPl(
+            _size_tang=model['tangentialSize'],
+            _size_sag=model['sagittalSize'],
+            _nvx=model['nvx'],
+            _nvy=model['nvy'],
+            _nvz=model['nvz'],
+            _tvx=model['tvx'],
+            _tvy=model['tvy'],
+            _x=model['horizontalOffset'],
+            _y=model['verticalOffset'],
+        )
+        opGr = srwlib.SRWLOptG(
+            _mirSub=mirror,
+            _m=model['diffractionOrder'],
+            _grDen=model['grooveDensity0'],
+            _grDen1=model['grooveDensity1'],
+            _grDen2=model['grooveDensity2'],
+            _grDen3=model['grooveDensity3'],
+            _grDen4=model['grooveDensity4'],
+            _e_avg=model['energyAvg'],
+            _cff=model['cff'],
+            _ang_graz=model['grazingAngle'],
+            _ang_roll=model['rollAngle'],
+        )
+        grAng, defAng = opGr.cff2ang(_en=model['energyAvg'], _cff=model['cff'])
+        model['grazingAngle'] = grAng*1000
+        #if model.get('_param_direction_', '') == 'grazingAngle2energyAvg':
+        #    model['cff'] = opGr.ang2cff(_en=model['energyAvg'], _ang_graz=model['grazingAngle'])
+        #    model['_param_direction_'] = ''
+        #else:
+        #    #model['energyAvg'] = 249
+        #    model['grazingAngle'], defAng = opGr.cff2ang(_en=model['energyAvg'], _cff=model['cff'])
+        #    model['_param_direction_'] = ''
+    except:
+        for key in parms_list:
+            model[key] = None
+    return model
+
+def _compute_grating_orientation(model):
+    #if not model['grazingAngle']:
+    #    return model
+    parms_list = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy']
+    try:
+        mirror = srwlib.SRWLOptMirPl(
+            _size_tang=model['tangentialSize'],
+            _size_sag=model['sagittalSize'],
+            _nvx=model['nvx'],
+            _nvy=model['nvy'],
+            _nvz=model['nvz'],
+            _tvx=model['tvx'],
+            _tvy=model['tvy'],
+            _x=model['horizontalOffset'],
+            _y=model['verticalOffset'],
+        )
+        opGr = srwlib.SRWLOptG(
+            _mirSub=mirror,
+            _m=model['diffractionOrder'],
+            _grDen=model['grooveDensity0'],
+            _grDen1=model['grooveDensity1'],
+            _grDen2=model['grooveDensity2'],
+            _grDen3=model['grooveDensity3'],
+            _grDen4=model['grooveDensity4'],
+            _e_avg=model['energyAvg'],
+            _cff=model['cff'],
+            _ang_graz=model['grazingAngle'],
+            _ang_roll=model['rollAngle'],
+        )
+        orientData = opGr.find_orient(_en=model['energyAvg'], _cff=model['cff'], _ang_graz=model['grazingAngle'], _ang_roll=model['rollAngle'])
+        orientDataGr = orientData[0]
+        tCr = orientDataGr[0]  # Tangential Vector to Grating surface
+        nCr = orientDataGr[2]  # Normal Vector to Grating surface
+
+        model['nvx'] = nCr[0]
+        model['nvy'] = nCr[1]
+        model['nvz'] = nCr[2]
+        model['tvx'] = tCr[0]
+        model['tvy'] = tCr[1]
+        #_SIM_DATA.srw_compute_crystal_grazing_angle(model)
+    except Exception:
+        pkdlog('\n{}', traceback.format_exc())
+        for key in parms_list:
+            model[key] = None
+    return model
 
 def _compute_crystal_init(model):
     parms_list = ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi']
@@ -721,7 +811,7 @@ def _compute_crystal_init(model):
         k = int(model['k'])
         l = int(model['l'])
         millerIndices = [h, k, l]
-        energy = model['energy']
+        energy = model['energyAvg']
         if re.search('(X0h)', material_raw):
             crystal_parameters = crystal.get_crystal_parameters(material, energy, h, k, l)
             dc = crystal_parameters['d']
@@ -743,12 +833,11 @@ def _compute_crystal_init(model):
         model['psiHBr'] = xrh
         model['psiHBi'] = xih
     except Exception:
-        pkdlog('{https://github.com/ochubar/SRW/blob/master/env/work/srw_python/srwlib.py}: error: {}', material_raw, pkdexc())
+        pkdlog('{https://github.com/ochubar/SRW/blob/master/env/work/srw_python/srwlib.py}: error: {}', material_raw)
         for key in parms_list:
             model[key] = None
 
     return model
-
 
 def _compute_crystal_orientation(model):
     if not model['dSpacing']:
@@ -767,7 +856,7 @@ def _compute_crystal_orientation(model):
             _uc=model['useCase'],
             _ang_as=model['asymmetryAngle'],
         )
-        orientDataCr = opCr.find_orient(_en=model['energy'], _ang_dif_pl=float(model['diffractionAngle']))[0]
+        orientDataCr = opCr.find_orient(_en=model['energyAvg'], _ang_dif_pl=float(model['diffractionAngle']))[0]
         tCr = orientDataCr[0]  # Tangential Vector to Crystal surface
         nCr = orientDataCr[2]  # Normal Vector to Crystal surface
 
@@ -786,11 +875,9 @@ def _compute_crystal_orientation(model):
         pkdlog('\n{}', traceback.format_exc())
         for key in parms_list:
             model[key] = None
-
     return model
 
-
-def _compute_grazing_angle(model):
+def _compute_grazing_orientation(model):
     def preserve_sign(item, field, new_value):
         old_value = item[field] if field in item else 0
         was_negative = float(old_value) < 0

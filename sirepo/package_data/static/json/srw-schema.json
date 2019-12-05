@@ -415,7 +415,7 @@
             "l": ["l", "MillerIndicesRange", "1"],
             "energyAvg": ["Average photon energy the crystal should be oriented for [eV]", "Float", 9000],
 	        "useCase": ["Geometry type", "GeometryType", "1"],
-            "angRoll": ["Diffraction plane (roll) angle [rad]", "DiffractionPlaneAngle", "0"],
+            "rollAngle": ["Diffraction plane (roll) angle [rad]", "DiffractionPlaneAngle", "0"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 0.0],
             "asymmetryAngle": ["Asymmetry angle [rad]", "Float", 0.0],
             "crystalThickness": ["Crystal thickness [m]", "Float", 0.01],
@@ -569,16 +569,15 @@
             "position": ["Nominal Position [m]", "Float"],
             "tangentialSize": ["Tangential Size [m]", "Float", 0.2],
             "sagittalSize": ["Sagittal Size [m]", "Float", 0.015],
-            "angGraz": ["Grazing Angle [mrad]", "Float", 12.9555790185373],
-            "autocomputeVectors": ["Auto-compute Vectors", "AutocomputeVectors", "horizontal"],
-            "normalVectorX": ["Horizontal", "Float", 0.99991607766],
-            "normalVectorY": ["Vertical", "Float", 0],
-            "normalVectorZ": ["Longitudinal", "Float", -0.0129552166147],
-            "tangentialVectorX": ["Horizontal", "Float", 0.0129552166147],
-            "tangentialVectorY": ["Vertical", "Float", 0],
+            "grazingAngle": ["Grazing Angle [mrad]", "Float", 12.9555790185373],
+            "nvx": ["Horizontal", "Float", 0.99991607766],
+            "nvy": ["Vertical", "Float", 0],
+            "nvz": ["Longitudinal", "Float", -0.0129552166147],
+            "tvx": ["Horizontal", "Float", 0.0129552166147],
+            "tvy": ["Vertical", "Float", 0],
             "energyAvg": ["Average photon energy the grating should be oriented for [eV]", "Float", 9000],
 	        "cff": ["Cff Parameter (cos(beta)/cos(alpha))", "Float", 1.5],
-            "angRoll": ["Roll Angle [rad]", "Float", 0.0],
+            "rollAngle": ["Roll Angle [rad]", "Float", 1.5707963],
             "diffractionOrder": ["Diffraction Order", "Float", 1],
             "grooveDensity0": ["a₀ [lines/mm]", "Float", 1800],
             "grooveDensity1": ["a₁ [lines/mm²]", "Float", 0.08997],
@@ -1069,7 +1068,7 @@
                 ["Geometry", [
                     "energyAvg",
 		            "useCase",
-                    "angRoll",
+                    "rollAngle",
                     "asymmetryAngle",
                     "crystalThickness",
                     "dSpacing",
@@ -1340,9 +1339,9 @@
                 ]],
                 ["Geometry", [
                     "energyAvg",
-                    "angRoll",
                     "cff",
-                    "angGraz",
+                    "grazingAngle",
+                    "rollAngle",
                     "diffractionOrder",
                     "tangentialSize",
                     "sagittalSize",
@@ -1354,16 +1353,15 @@
                             "verticalOffset"
                         ]]
                     ],
-                    "autocomputeVectors",
                     [
-                        ["Coordinates of Central Normal Vector", [
-                            "normalVectorX",
-                            "normalVectorY",
-                            "normalVectorZ"
+                        ["Outward normal vector", [
+                            "nvx",
+                            "nvy",
+                            "nvz"
                         ]],
-                        ["Coordinates of Central Tangential Vector", [
-                            "tangentialVectorX",
-                            "tangentialVectorY"
+                        ["Central tangential vector", [
+                            "tvx",
+                            "tvy"
                         ]]
                     ]
                 ]],
