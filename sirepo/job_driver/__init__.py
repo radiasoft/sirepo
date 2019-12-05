@@ -107,7 +107,8 @@ class DriverBase(PKDict):
                 msg.handler.write_message(PKDict(opName=job.OP_KILL))
             except Exception as e:
                 pkdlog('error={} stack={}', e, pkdexc())
-        a._receive(msg)
+        else:
+            a._receive(msg)
 
     async def send(self, op):
 #TODO(robnagler) need to send a retry to the ops, which should requeue

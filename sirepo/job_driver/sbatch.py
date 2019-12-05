@@ -85,8 +85,7 @@ class SBatchDriver(job_driver.DriverBase):
                 cfg.host,
     #TODO(robnagler) add password management
                 username=self._user,
-                password='foo',
-                # password=self._user if self._user == 'vagrant' else totp(),
+                password=self._user if self._user == 'vagrant' else totp(),
                 known_hosts=_KNOWN_HOSTS,
             ) as c:
                 script = f'''#!/bin/bash
@@ -104,10 +103,14 @@ disown
                         pkdlog('agentId={} stdout={} stderr={}', self._agentId, o, e)
                     #TODO(robnagler) try to read the job_agent.log
                     pkdlog('agentId={} exit={}', self._agentId, p.exit_status)
-        except asyncssh.PermissionDenied as e:
-            pkdlog('permission denied host= user={}', cfg.host, self._user)
+        except (asyncssh.PermissionDenied, OSError) as e:
+            pkdlog(
+                'permission denied host={} user={} error={}',
+                cfg.host,
+                self._user,
+                e,
+            )
             self.set_auth_failed()
-
 
     def _agent_start_dev(self):
         if not pkconfig.channel_in('dev'):

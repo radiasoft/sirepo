@@ -220,8 +220,8 @@ class _ComputeJob(PKDict):
             )
             r = await o.reply_ready()
             if r.state == job.AUTH_FAILED:
-                assert 0
                 self.destroy_op(o)
+                return r
             tornado.ioloop.IOLoop.current().add_callback(self._run, req, o, r)
         # Read this first https://github.com/radiasoft/sirepo/issues/2007
         return await self._receive_api_runStatus(req)
