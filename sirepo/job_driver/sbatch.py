@@ -105,7 +105,7 @@ disown
                     pkdlog('agentId={} exit={}', self._agentId, p.exit_status)
         except (asyncssh.PermissionDenied, OSError) as e:
             pkdlog(
-                'permission denied host={} user={} error={}',
+                'Error with ssh host={} user={} error={}',
                 cfg.host,
                 self._user,
                 e,
