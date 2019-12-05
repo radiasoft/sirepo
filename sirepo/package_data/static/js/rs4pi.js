@@ -188,6 +188,19 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
         self.isEditing = ! self.isEditing;
     };
 
+    self.updateDicomAndDoseFrame = function(waitForDose) {
+        if (! waitForDose) {
+            frameCache.setFrameCount(1);
+            return;
+        }
+        var status = appState.models.simulationStatus;
+        if (status.dicomAnimation && status.dicomAnimation.state != 'missing'
+            && status.doseCalculation && status.doseCalculation.state != 'missing') {
+            // wait for both dicomAnimation and doseCalculation status
+            frameCache.setFrameCount(1);
+        }
+    };
+
     self.updateROIPoints = function(editedContours) {
         requestSender.getApplicationData(
             {
@@ -212,8 +225,7 @@ SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, pan
                 appState.models.dicomDose = data.dicomDose;
                 appState.saveChanges('dicomDose');
             }
-            // actual frame count is stored on dicomDose metadata
-            frameCache.setFrameCount(1);
+            rs4piService.updateDicomAndDoseFrame(true);
         }
     }
 
@@ -314,6 +326,7 @@ SIREPO.app.directive('dicomFrames', function(frameCache, persistentSimulation, r
         restrict: 'A',
         scope: {
             model: '@dicomFrames',
+            waitForDose: '@',
         },
         controller: function($scope) {
             function handleStatus(data) {
@@ -321,8 +334,7 @@ SIREPO.app.directive('dicomFrames', function(frameCache, persistentSimulation, r
                     $scope.simState.runSimulation();
                     return;
                 }
-                // actual frame counts are stored in dicomSeries metadata
-                frameCache.setFrameCount(1);
+                rs4piService.updateDicomAndDoseFrame($scope.waitForDose);
             }
 
             $scope.simState = persistentSimulation.initSimulationState(

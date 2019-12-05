@@ -619,6 +619,4 @@ def main():
         mag.arZc.append(v.mp_zc)
     srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
 
-
-if __name__ == '__main__':
-    main()
+main()

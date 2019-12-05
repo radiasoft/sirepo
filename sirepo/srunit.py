@@ -313,7 +313,6 @@ class _TestClient(flask.testing.FlaskClient):
             r = self.sr_post(
                 'runSimulation',
                 PKDict(
-                    forceRun=True,
                     models=data.models,
                     report=model,
                     simulationId=data.models.simulation.simulationId,

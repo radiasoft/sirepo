@@ -27,22 +27,22 @@ OP_ALIVE = 'alive'
 OP_RUN = 'run'
 
 #: path supervisor registers to receive messages from agent
-AGENT_URI = '/agent'
+AGENT_URI = '/job-agent-websocket'
 
 #: requests from the agent
 AGENT_ABS_URI = None
 
 #: path supervisor registers to receive requests from server
-SERVER_URI = '/server'
+SERVER_URI = '/job-api-request'
 
 #: requests from the flask server
 SERVER_ABS_URI = None
 
 #: path supervisor registers to receive requests from job_process for file PUTs
-DATA_FILE_URI = '/data-file'
+DATA_FILE_URI = '/job-cmd-data-file'
 
 #: how jobs request files
-LIB_FILE_URI = '/lib-file'
+LIB_FILE_URI = '/job-cmd-lib-file'
 
 #: how jobs request list of files (relative to `LIB_FILE_URI`)
 LIB_FILE_LIST_URI = '/list.json'

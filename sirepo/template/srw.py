@@ -604,14 +604,7 @@ def process_undulator_definition(model):
 
 def python_source_for_model(data, model):
     data['report'] = model or _SIM_DATA.SRW_RUN_ALL_MODEL
-    return _trim(
-        """{}
-
-if __name__ == '__main__':
-    main()
-""".format(_generate_parameters_file(data, plot_reports=True)),
-    )
-
+    return _generate_parameters_file(data, plot_reports=True)
 
 
 def remove_last_frame(run_dir):
@@ -1288,7 +1281,7 @@ def _generate_srw_main(data, plot_reports):
             'v.wm_ns = v.sm_ns = {}'.format(sirepo.mpi.cfg.cores),
         )
     content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
-    return '\n'.join(['    {}'.format(x) for x in content] + ['main()'])
+    return '\n'.join(['    {}'.format(x) for x in content] + ['', 'main()\n'])
 
 
 def _get_first_element_position(data):

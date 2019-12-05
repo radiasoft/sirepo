@@ -114,7 +114,6 @@ scancel -u $USER >& /dev/null || true
 '''
         if cfg.shifter_image:
             res += '''
-(cd /home/vagrant/src/biviosoftware/home-env && git pull -q) || true
 (cd ~/src/radiasoft/sirepo && git pull -q) || true
 (cd ~/src/radiasoft/pykern && git pull -q) || true
 '''

@@ -44,7 +44,7 @@ def test_jspec(animation_fc):
                 expect_y_range=r'-0.04.*, 0.00[4-7]',
             ),
         ),
-        timeout=15,
+        timeout=20,
     )
 
 
