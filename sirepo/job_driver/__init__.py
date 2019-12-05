@@ -59,24 +59,19 @@ class DriverBase(PKDict):
     def cancel_op(self, op):
         for o in self.ops_pending_send:
             if o == op:
-                self.ops_pending_send.remove(o)
-#rjn there should only be one op
+                op.do_not_send = True
                 return
-#rjn it's cheaper to create a list of values (list(x.values()) than a copy of the whole dict.
-#   but we don't need to do that because we are going to exit once found
         for o in self.ops_pending_done.values():
             if o == op:
-                del self.ops_pending_done[o.opId]
-#rjn there should only be one op
+                op.do_not_send = True
                 return
 #rjn is this a valid assumption?
         raise AssertionError('could not find opId={} for agentId={}'.format(o.opId, self._agentId))
 
     def destroy_op(self, op):
-        assert op not in self.ops_pending_send
-        # canceled ops are removed in self.cancel_op()
-        if not op.canceled and not op.errored:
-            del self.ops_pending_done[op.opId]
+        if op in self.ops_pending_send:
+            self.ops_pending_send.remove(op)
+        self.ops_pending_done.pkdel(op.opId)
         self.run_scheduler()
 
     def get_ops_pending_done_types(self):
@@ -127,12 +122,19 @@ class DriverBase(PKDict):
         self.ops_pending_send.append(op)
         self.run_scheduler()
         await op.send_ready.wait()
-        if op.opId in self.ops_pending_done:
+        if op.do_not_send:
+            pkdlog('op finished without being sent op={}', job.LogFormatter(op))
+        else:
             pkdlog('op={} agentId={} opId={}', op.opName, self._agentId, op.opId)
             self.websocket.write_message(pkjson.dump_bytes(op.msg))
-        else:
-            pkdlog('canceled op={}', job.LogFormatter(op))
-        assert op not in self.ops_pending_send
+
+    def set_auth_failed(self):
+        assert len(self.ops_pending_done) == 0, \
+            'expected no ops_pending_done={}'.format(self.ops_pending_done)
+        for o in self.ops_pending_send:
+            o.set_auth_failed()
+        del self.agents[self._agentId]
+        del self.instances[self.uid]
 
     @classmethod
     async def terminate(cls):

@@ -7,18 +7,17 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkio
-from pykern import pkjinja
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
 from sirepo import job
 from sirepo import job_driver
 import asyncssh
-import sirepo.srdb
 import tornado.ioloop
 
 cfg = None
 
 _KNOWN_HOSTS = None
+
 
 class SBatchDriver(job_driver.DriverBase):
 
@@ -26,7 +25,6 @@ class SBatchDriver(job_driver.DriverBase):
 
     def __init__(self, req):
         super().__init__(req)
-        m = req.content
 #TODO(robnagler) read a db for an sbatch_user
         self._user = cfg.user
         self._srdb_root = cfg.srdb_root.format(sbatch_user=self._user)
@@ -82,14 +80,16 @@ class SBatchDriver(job_driver.DriverBase):
         )
 
     async def _agent_start(self):
-        async with asyncssh.connect(
-            cfg.host,
-#TODO(robnagler) add password management
-            username=self._user,
-            password=self._user if self._user == 'vagrant' else totp(),
-            known_hosts=_KNOWN_HOSTS,
-        ) as c:
-            script = f'''#!/bin/bash
+        try:
+            async with asyncssh.connect(
+                cfg.host,
+    #TODO(robnagler) add password management
+                username=self._user,
+                password='foo',
+                # password=self._user if self._user == 'vagrant' else totp(),
+                known_hosts=_KNOWN_HOSTS,
+            ) as c:
+                script = f'''#!/bin/bash
 {self._agent_start_dev()}
 set -e
 mkdir -p '{self._srdb_root}'
@@ -98,12 +98,16 @@ cd '{self._srdb_root}'
 setsid {cfg.sirepo_cmd} job_agent >& job_agent.log &
 disown
 '''
-            async with c.create_process('/bin/bash') as p:
-                o, e = await p.communicate(input=script)
-                if o or e:
-                    pkdlog('agentId={} stdout={} stderr={}', self._agentId, o, e)
-                #TODO(robnagler) try to read the job_agent.log
-                pkdlog('agentId={} exit={}', self._agentId, p.exit_status)
+                async with c.create_process('/bin/bash') as p:
+                    o, e = await p.communicate(input=script)
+                    if o or e:
+                        pkdlog('agentId={} stdout={} stderr={}', self._agentId, o, e)
+                    #TODO(robnagler) try to read the job_agent.log
+                    pkdlog('agentId={} exit={}', self._agentId, p.exit_status)
+        except asyncssh.PermissionDenied as e:
+            pkdlog('permission denied host= user={}', cfg.host, self._user)
+            self.set_auth_failed()
+
 
     def _agent_start_dev(self):
         if not pkconfig.channel_in('dev'):

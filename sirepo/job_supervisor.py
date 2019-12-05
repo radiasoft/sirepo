@@ -212,7 +212,17 @@ class _ComputeJob(PKDict):
             self.db.computeJobQueued = int(time.time())
             self.db.pkupdate(status=job.PENDING)
             self.__db_write()
-            tornado.ioloop.IOLoop.current().add_callback(self._run, req)
+            o = await self._send(
+                job.OP_RUN,
+                req,
+                jobCmd='compute',
+                nextRequestSeconds=self.db.nextRequestSeconds,
+            )
+            r = await o.reply_ready()
+            if r.state == job.AUTH_FAILED:
+                assert 0
+                self.destroy_op(o)
+            tornado.ioloop.IOLoop.current().add_callback(self._run, req, o, r)
         # Read this first https://github.com/radiasoft/sirepo/issues/2007
         return await self._receive_api_runStatus(req)
 
@@ -260,7 +270,7 @@ class _ComputeJob(PKDict):
             'get_simulation_frame'
         )
 
-    async def _run(self, req):
+    async def _run(self, req, op, reply):
         if self.db.computeJobHash != req.content.computeJobHash:
             pkdlog(
                 'invalid computeJobHash self={} req={}',
@@ -269,12 +279,6 @@ class _ComputeJob(PKDict):
             )
 #TODO(robnagler) ensure the request is replied to
             return
-        o = await self._send(
-            job.OP_RUN,
-            req,
-            jobCmd='compute',
-            nextRequestSeconds=self.db.nextRequestSeconds,
-        )
         # TODO(e-carlin): XXX bug. If cancel comes in then self.db.status = canceled
         # This overwrites it, but there is a state=canceled message waiting for
         # us in the reply_ready q. We then await o.reply_ready() and get the cancel
@@ -285,28 +289,28 @@ class _ComputeJob(PKDict):
 #TODO(robnagler) this is a general problem: after await: check ownership
         self._sent_run = True
         while True:
-            r = await o.reply_ready()
-            if r.state == job.CANCELED:
+            if reply.state == job.CANCELED:
                 break
-            self.db.status = r.state
+            self.db.status = reply.state
             if self.db.status == job.ERROR:
-                self.db.error = r.get('error', '<unknown error>')
-            if 'computeJobStart' in r:
-                self.db.computeJobStart = r.computeJobStart
-            if 'parallelStatus' in r:
+                self.db.error = reply.get('error', '<unknown error>')
+            if 'computeJobStart' in reply:
+                self.db.computeJobStart = reply.computeJobStart
+            if 'parallelStatus' in reply:
 #rjn i removed the assert, because the parallelStatus.update will do the trick
-                self.db.parallelStatus.update(r.parallelStatus)
-                self.db.lastUpdateTime = r.parallelStatus.lastUpdateTime
+                self.db.parallelStatus.update(reply.parallelStatus)
+                self.db.lastUpdateTime = reply.parallelStatus.lastUpdateTime
             else:
                 # sequential jobs don't send this
                 self.db.lastUpdateTime = int(time.time())
                 #TODO(robnagler) will need final frame count
             self.__db_write()
             # TODO(e-carlin): What if this never comes?
-            if r.state in job.EXIT_STATUSES:
+            if reply.state in job.EXIT_STATUSES:
                 break
-        pkdlog('destroy_op={}', o.opId)
-        self.destroy_op(o)
+            reply = await op.reply_ready()
+        pkdlog('destroy_op={}', op.opId)
+        self.destroy_op(op)
 
     async def _send(self, opName, req, jobCmd, **kwargs):
         # TODO(e-carlin): proper error handling
@@ -348,22 +352,27 @@ class _Op(PKDict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.update(
+            do_not_send=False,
             opId=job.unique_key(),
             send_ready=tornado.locks.Event(),
-            canceled=False,
-            errored=False,
             _reply_q=tornado.queues.Queue(),
         )
         self.msg.update(opId=self.opId, opName=self.opName)
 
+    def set_auth_failed(self):
+        self.do_not_send = True
+        self.reply_put(PKDict(state=job.AUTH_FAILED))
+        self.send_ready.set()
+
     def set_canceled(self):
-        self.canceled = True
+        self.do_not_send = True
         self.reply_put(PKDict(state=job.CANCELED))
         self.send_ready.set()
         self.driver.cancel_op(self)
 
     def set_errored(self, error):
-        self.errored = True
+        self.do_not_send = True
+        self.send_ready.set()
         self.reply_put(
             PKDict(state=job.ERROR, error=error),
         )

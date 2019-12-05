@@ -72,6 +72,7 @@ RUNNER_STATUS_FILE = 'status'
 
 UNIQUE_KEY_RE = re.compile(r'^\w$')
 
+AUTH_FAILED = 'auth_failed'
 CANCELED = 'canceled'
 COMPLETED = 'completed'
 ERROR = 'error'
