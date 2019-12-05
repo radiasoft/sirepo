@@ -11,13 +11,10 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc, pkdpretty
 from sirepo import job
 from sirepo import job_driver
 from sirepo import mpi
-import functools
 import io
 import itertools
-import operator
 import os
 import re
-import socket
 import subprocess
 import tornado.ioloop
 import tornado.process
@@ -40,6 +37,7 @@ _MAX_OPEN_FILES = 1024
 #: Copy of sirepo.mpi.cfg.cores to avoid init inconsistencies; only used during init_class()
 _parallel_cores = None
 
+
 class DockerDriver(job_driver.DriverBase):
 
     instances = PKDict()
@@ -50,7 +48,7 @@ class DockerDriver(job_driver.DriverBase):
         super().__init__(req)
         self.update(
             _cname=_cname_join(self.kind, self.uid),
-            _image = _image(),
+            _image=self._get_image(),
             _uid=req.content.uid,
             _userDir=req.content.userDir,
             host=host,
@@ -59,7 +57,6 @@ class DockerDriver(job_driver.DriverBase):
         self.host.drivers[self.kind].append(self)
         self.instances[self.kind].append(self)
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
-
 
     @classmethod
     async def get_instance(cls, req):
@@ -116,11 +113,15 @@ class DockerDriver(job_driver.DriverBase):
         pkdlog('{}: stop cid={}', self.uid, self._cid)
         if '_cid' not in self:
             return
-        await _cmd(
-            self.host,
+        await self._cmd(
             ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), self._cid),
         )
         self._cid = None
+
+    def slot_free(self):
+        if self.has_slot:
+            self.host.slots[self.kind].in_use -= 1
+            self.has_slot = False
 
     async def _agent_start(self):
         cmd, stdin, env = self._agent_cmd_stdin_env()
@@ -143,12 +144,37 @@ class DockerDriver(job_driver.DriverBase):
             # IDs are universal.
             '--user={}'.format(os.getuid()),
         ) + self._volumes() + (self._image,)
-        self._cid = await _cmd(self.host, p + cmd, stdin=stdin, env=env)
+        self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
 
-    def slot_free(self):
-        if self.has_slot:
-            self.host.slots[self.kind].in_use -= 1
-            self.has_slot = False
+    async def _cmd(self, cmd, stdin=subprocess.DEVNULL, env=None):
+        c = DockerDriver.hosts[self.host.name].cmd_prefix + cmd
+        pkdc('Running: {}', ' '.join(c))
+        try:
+            p = tornado.process.Subprocess(
+                c,
+                stdin=stdin,
+                stdout=tornado.process.Subprocess.STREAM,
+                stderr=subprocess.STDOUT,
+                env=env,
+            )
+        finally:
+            assert isinstance(stdin, io.BufferedRandom) or isinstance(stdin, int), \
+                'type(stdin)={} expected io.BufferedRandom or int'.format(type(stdin))
+            if isinstance(stdin, io.BufferedRandom):
+                stdin.close()
+        o = (await p.stdout.read_until_close()).decode('utf-8').rstrip()
+        r = await p.wait_for_exit(raise_error=False)
+        # TODO(e-carlin): more robust handling
+        assert r == 0 , \
+            '{}: failed: exit={} output={}'.format(c, r, o)
+        return o
+
+    #TODO(robnagler) probably should push this to pykern also in rsconf
+    def _get_image(self):
+        res = cfg.image
+        if ':' in res:
+            return res
+        return res + ':' + pkconfig.cfg.channel
 
     def _volumes(self):
         res = []
@@ -170,7 +196,6 @@ class DockerDriver(job_driver.DriverBase):
         self.slot_free()
         self.run_scheduler(exclude_self=True)
         self.host.drivers[self.kind].remove(self)
-
 
 
 def init_class():
@@ -201,29 +226,6 @@ def _cfg_tls_dir(value):
     return res
 
 
-async def _cmd(host, cmd, stdin=subprocess.DEVNULL, env=None):
-    c = DockerDriver.hosts[host.name].cmd_prefix + cmd
-    pkdc('Running: {}', ' '.join(c))
-    try:
-        p = tornado.process.Subprocess(
-            c,
-            stdin=stdin,
-            stdout=tornado.process.Subprocess.STREAM,
-            stderr=subprocess.STDOUT,
-            env=env,
-        )
-    finally:
-        assert isinstance(stdin, io.BufferedRandom) or isinstance(stdin, int), \
-            'type(stdin)={} expected io.BufferedRandom or int'.format(type(stdin))
-        if isinstance(stdin, io.BufferedRandom):
-            stdin.close()
-    o = (await p.stdout.read_until_close()).decode('utf-8').rstrip()
-    r = await p.wait_for_exit(raise_error=False)
-    # TODO(e-carlin): more robust handling
-    assert r == 0 , \
-        '{}: failed: exit={} output={}'.format(c, r, o)
-    return o
-
 def _cmd_prefix(host, tls_d):
     args = [
         'docker',
@@ -246,14 +248,6 @@ def _cname_join(kind, uid):
     POSIT: matches _CNAME_RE
     """
     return _CNAME_SEP.join([_CNAME_PREFIX, kind[0], uid])
-
-
-#TODO(robnagler) probably should push this to pykern also in rsconf
-def _image():
-    res = cfg.image
-    if ':' in res:
-        return res
-    return res + ':' + pkconfig.cfg.channel
 
 
 def _init_dev_hosts():
