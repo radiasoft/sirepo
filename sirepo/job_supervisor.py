@@ -268,6 +268,7 @@ class _ComputeJob(PKDict):
                 req.content.computeJobHash
             )
 #TODO(robnagler) ensure the request is replied to
+            self.destroy_op(op)
             return
         o = await self._send(
             job.OP_RUN,

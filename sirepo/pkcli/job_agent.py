@@ -311,6 +311,7 @@ source /home/vagrant/.bashrc
 eval export HOME=~$USER
 {self._job_cmd_source_bashrc_dev()}
 '''
+
     def job_cmd_cmd_stdin_env(self, *args, **kwargs):
         c, s, e = super().job_cmd_cmd_stdin_env()
         if self.msg.get('shifterImage'):
@@ -335,7 +336,7 @@ class _SbatchRun(_SbatchCmd):
             _sbatch_id=None,
             _status_cb=None,
             _status='PENDING',
-            _completed_sentinel=self.run_dir.join('sbatch_status_stop'),
+            _stopped_sentinel=self.run_dir.join('sbatch_status_stop'),
         )
         self.msg.jobCmd = 'sbatch_status'
         self.pkdel('_in_file').remove()
@@ -384,7 +385,7 @@ class _SbatchRun(_SbatchCmd):
         self._sbatch_id = m.group(1)
         self.msg.pkupdate(
             sbatchId=self._sbatch_id,
-            stopSentinel=str(self._completed_sentinel),
+            stopSentinel=str(self._stopped_sentinel),
         )
         self._status_cb = tornado.ioloop.PeriodicCallback(
             self._sbatch_status,
@@ -478,23 +479,28 @@ exec srun {s} /bin/bash bash.stdin
                 p.stdout,
             )
             return
-        s = r.group()
-        p = self._status
-        self._status = s
-        if s == 'PENDING':
+        self._status = r.group()
+        if self._status == 'PENDING':
+            pkdp('pending - going around again')
             return
-        if s in ('RUNNING', 'COMPLETING', 'COMPLETED'):
-            if p == 'PENDING':
+        else:
+            pkdp('not pending {}', self._status)
+            if not self._start_ready.is_set():
                 self._start_time = int(time.time())
                 self._start_ready.set()
-            if s in ('RUNNING', 'COMPLETING'):
+            if self._status in ('COMPLETING', 'RUNNING'):
+                pdkp('going around because not terminal')
                 return
-        c = s == 'COMPLETED'
-        self._completed_sentinel.write(job.COMPLETED if c else job.ERROR)
+        c = self._status == 'COMPLETED'
+        self._stopped_sentinel.write(job.COMPLETED if c else job.ERROR)
         if not c:
             # because have to await before calling destroy
             self._terminating = True
-            pkdlog('sbatch={} unexpected state={}', self._sbatch_id, s)
+            pkdlog(
+                'sbatch={} unexpected state={}',
+                self._sbatch_id,
+                self._status,
+            )
             await self.dispatcher.send(
                 self.dispatcher.format_op(
                     self.msg,
