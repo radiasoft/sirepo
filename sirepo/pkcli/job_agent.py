@@ -481,15 +481,12 @@ exec srun {s} /bin/bash bash.stdin
             return
         self._status = r.group()
         if self._status == 'PENDING':
-            pkdp('pending - going around again')
             return
         else:
-            pkdp('not pending {}', self._status)
             if not self._start_ready.is_set():
                 self._start_time = int(time.time())
                 self._start_ready.set()
             if self._status in ('COMPLETING', 'RUNNING'):
-                pdkp('going around because not terminal')
                 return
         c = self._status == 'COMPLETED'
         self._stopped_sentinel.write(job.COMPLETED if c else job.ERROR)
