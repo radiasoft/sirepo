@@ -218,11 +218,7 @@ class _ComputeJob(PKDict):
                 jobCmd='compute',
                 nextRequestSeconds=self.db.nextRequestSeconds,
             )
-            r = await o.reply_ready()
-            if r.state == job.AUTH_FAILED:
-                self.destroy_op(o)
-                return r
-            tornado.ioloop.IOLoop.current().add_callback(self._run, req, o, r)
+            tornado.ioloop.IOLoop.current().add_callback(self._run, req, o)
         # Read this first https://github.com/radiasoft/sirepo/issues/2007
         return await self._receive_api_runStatus(req)
 
@@ -270,7 +266,7 @@ class _ComputeJob(PKDict):
             'get_simulation_frame'
         )
 
-    async def _run(self, req, op, reply):
+    async def _run(self, req, op):
         if self.db.computeJobHash != req.content.computeJobHash:
             pkdlog(
                 'invalid computeJobHash self={} req={}',
@@ -289,55 +285,57 @@ class _ComputeJob(PKDict):
 #TODO(robnagler) this is a general problem: after await: check ownership
         self._sent_run = True
         while True:
-            if reply.state == job.CANCELED:
+            r = await op.reply_ready()
+            if r.state == job.CANCELED:
                 break
-            self.db.status = reply.state
+            self.db.status = r.state
             if self.db.status == job.ERROR:
-                self.db.error = reply.get('error', '<unknown error>')
-            if 'computeJobStart' in reply:
-                self.db.computeJobStart = reply.computeJobStart
-            if 'parallelStatus' in reply:
+                self.db.error = r.get('error', '<unknown error>')
+            if 'computeJobStart' in r:
+                self.db.computeJobStart = r.computeJobStart
+            if 'parallelStatus' in r:
 #rjn i removed the assert, because the parallelStatus.update will do the trick
-                self.db.parallelStatus.update(reply.parallelStatus)
-                self.db.lastUpdateTime = reply.parallelStatus.lastUpdateTime
+                self.db.parallelStatus.update(r.parallelStatus)
+                self.db.lastUpdateTime = r.parallelStatus.lastUpdateTime
             else:
                 # sequential jobs don't send this
                 self.db.lastUpdateTime = int(time.time())
                 #TODO(robnagler) will need final frame count
             self.__db_write()
             # TODO(e-carlin): What if this never comes?
-            if reply.state in job.EXIT_STATUSES:
+            if r.state in job.EXIT_STATUSES:
                 break
-            reply = await op.reply_ready()
         pkdlog('destroy_op={}', op.opId)
         self.destroy_op(op)
 
     async def _send(self, opName, req, jobCmd, **kwargs):
-        # TODO(e-carlin): proper error handling
-        try:
 #TODO(robnagler) kind should be set earlier in the queuing process.
-            req.kind = job.PARALLEL if self.db.isParallel and opName != job.OP_ANALYSIS \
-                else job.SEQUENTIAL
-            req.simulationType = self.db.simulationType
-            # TODO(e-carlin): We need to be able to cancel requests waiting in this
-            # state. Currently we assume that all requests get a driver and the
-            # code does not block.
-            d = await job_driver.get_instance(req, self.db.jobRunMode)
-            o = _Op(
-                driver=d,
-                msg=PKDict(
-                    req.content
-                ).pkupdate(
-                    jobCmd=jobCmd,
-                    **kwargs,
-                ).pksetdefault(jobRunMode=self.db.jobRunMode),
-                opName=opName,
-            )
-            self._ops.append(o)
+        req.kind = job.PARALLEL if self.db.isParallel and opName != job.OP_ANALYSIS \
+            else job.SEQUENTIAL
+        req.simulationType = self.db.simulationType
+        # TODO(e-carlin): We need to be able to cancel requests waiting in this
+        # state. Currently we assume that all requests get a driver and the
+        # code does not block.
+        d = await job_driver.get_instance(req, self.db.jobRunMode)
+        o = _Op(
+            driver=d,
+            msg=PKDict(
+                req.content
+            ).pkupdate(
+                jobCmd=jobCmd,
+                **kwargs,
+            ).pksetdefault(jobRunMode=self.db.jobRunMode),
+            opName=opName,
+        )
+        self._ops.append(o)
+        try:
             await d.send(o)
             return o
+        # TODO(e-carlin): more granular exception
         except Exception as e:
-            pkdlog('error={} stack={}', e, pkdexc())
+            pkdlog('failed to send opID={} error={}', o.opId, e)
+            self.destroy_op(o)
+            raise
 
     async def _send_with_single_reply(self, opName, req, jobCmd=None):
         o = await self._send(opName, req, jobCmd)

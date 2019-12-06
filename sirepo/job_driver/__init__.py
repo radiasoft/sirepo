@@ -42,12 +42,13 @@ class DriverBase(PKDict):
 
     def __init__(self, req):
         super().__init__(
-            _agentId=job.unique_key(),
             kind=req.kind,
             ops_pending_done=PKDict(),
             ops_pending_send=[],
             uid=req.content.uid,
             websocket=None,
+            _agentId=job.unique_key(),
+            _agent_starting=False,
         )
         self.agents[self._agentId] = self
         pkdlog(
@@ -81,9 +82,6 @@ class DriverBase(PKDict):
         return d
 
     def get_ops_with_send_allocation(self):
-        """Get ops that could be sent assuming outside requirements are met.
-        Outside requirements driver having a slot.
-        """
         if not self.websocket:
             return []
         r = []
@@ -121,6 +119,8 @@ class DriverBase(PKDict):
 #  we can cache that state in the agent(?) and have it send the response
 #  twice(?).
         self.ops_pending_send.append(op)
+        if not self.websocket and not self._agent_starting:
+            await self._agent_start()
         self.run_scheduler()
         await op.send_ready.wait()
         if op.do_not_send:
@@ -128,14 +128,6 @@ class DriverBase(PKDict):
         else:
             pkdlog('op={} agentId={} opId={}', op.opName, self._agentId, op.opId)
             self.websocket.write_message(pkjson.dump_bytes(op.msg))
-
-    def set_auth_failed(self):
-        assert len(self.ops_pending_done) == 0, \
-            'expected no ops_pending_done={}'.format(self.ops_pending_done)
-        for o in self.ops_pending_send:
-            o.set_auth_failed()
-        del self.agents[self._agentId]
-        del self.instances[self.uid]
 
     @classmethod
     async def terminate(cls):
@@ -189,6 +181,7 @@ class DriverBase(PKDict):
                 return
             self.websocket_free()
         self.websocket = msg.handler
+        self._agent_starting = False
         self.websocket.sr_driver_set(self)
 #TODO(robnagler) do we want to run_scheduler on alive in all cases?
         self.run_scheduler()
@@ -212,6 +205,7 @@ class DriverBase(PKDict):
     def websocket_free(self):
         """Remove holds on all resources and remove self from data structures"""
         try:
+            self._agent_starting = False
             del self.agents[self._agentId]
             w = self.websocket
             self.websocket = None

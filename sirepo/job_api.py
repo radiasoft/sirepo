@@ -35,7 +35,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         model=model,
         type=simulation_type,
     )
-    s = suffix and sireop.srschema.parse_name(suffix)
+    s = suffix and sirepo.srschema.parse_name(suffix)
     t = None
     with simulation_db.tmp_dir() as d:
         # TODO(e-carlin): computeJobHash

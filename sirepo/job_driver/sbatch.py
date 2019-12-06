@@ -29,7 +29,6 @@ class SBatchDriver(job_driver.DriverBase):
         self._user = cfg.user
         self._srdb_root = cfg.srdb_root.format(sbatch_user=self._user)
         self.instances[self.uid] = self
-        tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
 
     @classmethod
     async def get_instance(cls, req):
@@ -80,6 +79,7 @@ class SBatchDriver(job_driver.DriverBase):
         )
 
     async def _agent_start(self):
+        self._agent_starting = True
         try:
             async with asyncssh.connect(
                 cfg.host,
@@ -100,17 +100,22 @@ disown
                 async with c.create_process('/bin/bash') as p:
                     o, e = await p.communicate(input=script)
                     if o or e:
-                        pkdlog('agentId={} stdout={} stderr={}', self._agentId, o, e)
-                    #TODO(robnagler) try to read the job_agent.log
-                    pkdlog('agentId={} exit={}', self._agentId, p.exit_status)
-        except (asyncssh.PermissionDenied, OSError) as e:
+                        raise AssertionError(
+                            'agentId={} stdout={} stderr={}'.format(
+                                self._agentId,
+                                o,
+                                e
+                            )
+                        )
+        except Exception as e:
+            self._agent_starting = False
             pkdlog(
-                'Error with ssh host={} user={} error={}',
-                cfg.host,
-                self._user,
+                'agentId={} exception={} log={}',
+                self._agentId,
                 e,
+            #TODO(robnagler) try to read the job_agent.log
             )
-            self.set_auth_failed()
+            raise
 
     def _agent_start_dev(self):
         if not pkconfig.channel_in('dev'):
