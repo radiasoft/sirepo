@@ -301,7 +301,7 @@ def hack_nfs_write_status(status, run_dir):
         status (str): pending, running, completed, canceled
         run_dir (py.path): where to write the file
     """
-    if feature_config.cfg().job_supervisor:
+    if feature_config.cfg().job:
         return
     fn = run_dir.join(sirepo.job.RUNNER_STATUS_FILE)
     for i in range(cfg.nfs_tries):
@@ -887,7 +887,7 @@ def write_status(status, run_dir):
         status (str): pending, running, completed, canceled
         run_dir (py.path): where to write the file
     """
-    if not feature_config.cfg().job_supervisor:
+    if not feature_config.cfg().job:
         pkio.atomic_write(
             run_dir.join(sirepo.job.RUNNER_STATUS_FILE),
             status.encode(),

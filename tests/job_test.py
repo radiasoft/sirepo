@@ -21,6 +21,8 @@ import os
 def _setup(func):
     def wrapper(*args, **kwargs):
         import signal
+        from pykern.pkcollections import PKDict
+        import requests.exceptions
 
         # ensure the test exits after a reasonable time
         signal.alarm(20)
@@ -28,26 +30,21 @@ def _setup(func):
         try:
             env, cfg = _env_setup()
             import sirepo.srunit
+            import sirepo.util
+            import time
+            from pykern.pkdebug import pkdp, pkdlog
 
-            sim_type = sirepo.srunit.MYAPP
-            fc = sirepo.srunit.flask_client(sim_types=sim_type, cfg=cfg)
-            s = _start_job_supervisor(env)
-            fc.sr_login_as_guest(sim_type)
-            d = fc.sr_post(
-                'listSimulations',
-                {
-                    'simulationType': sim_type,
-                    'search': {'simulation.name': 'Scooby Doo'},
-                },
-            )
-            d = fc.sr_get_json(
-                'simulationData',
-                params=dict(
-                    pretty='1',
-                    simulation_id=d[0].simulation.simulationId,
-                    simulation_type='myapp',
-                ),
-            )
+            # initialize server (and sirepo.job)
+            d, fc = sirepo.srunit.sim_data(cfg=cfg, sim_types=None)
+            s = _supervisor_start(env)
+            for i in range(30):
+                r = fc.sr_post('jobSupervisorPing', PKDict(simulationType=fc.sr_sim_type))
+                if r.state == 'ok':
+                    break
+                pkdlog(r)
+                time.sleep(.1)
+            else:
+                pkfail('could not connect to {}', sirepo.job.SERVER_PING_ABS_URI)
             func(fc, d)
         finally:
             if s:
@@ -56,7 +53,9 @@ def _setup(func):
         signal.alarm(0)
     return wrapper
 
+
 _REPORT = 'heightWeightReport'
+
 
 @_setup
 def test_runCancel(fc, sim_data):
@@ -131,16 +130,17 @@ def _env_setup():
     """Check if the py3 environment is set up properly"""
     import os
     import subprocess
+    from pykern.pkcollections import PKDict
 
     # DO NOT import pykern or sirepo to avoid pkconfig init too early
 
-    cfg = {
-        'PYKERN_PKDEBUG_CONTROL': os.environ.get('PYKERN_PKDEBUG_CONTROL', ''),
-        'PYKERN_PKDEBUG_OUTPUT': os.environ.get('PYKERN_PKDEBUG_OUTPUT', ''),
-        'PYKERN_PKDEBUG_WANT_PID_TIME': '1',
-        'PYTHONUNBUFFERED': '1',
-        'SIREPO_FEATURE_CONFIG_JOB_SUPERVISOR': '1',
-    }
+    cfg = PKDict(
+        PYKERN_PKDEBUG_CONTROL=os.environ.get('PYKERN_PKDEBUG_CONTROL', ''),
+        PYKERN_PKDEBUG_OUTPUT=os.environ.get('PYKERN_PKDEBUG_OUTPUT', ''),
+        PYKERN_PKDEBUG_WANT_PID_TIME='1',
+        PYTHONUNBUFFERED='1',
+        SIREPO_FEATURE_CONFIG_JOB='1',
+    )
     import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
@@ -173,7 +173,7 @@ def _env_setup():
 
         pkdlog('job_supervisor --help exit={} output={}', e.returncode, e.output)
         raise
-    assert 'usage: sirepo job_supervisor' in o
+    assert 'usage: sirepo job_supervisor' in str(o)
     return (env, cfg)
 
 
@@ -186,24 +186,12 @@ def _server_up(url):
         pass
 
 
-def _start_job_supervisor(env):
-    from pykern import pkunit
+def _supervisor_start(env):
     from sirepo import srdb
     import subprocess
-    import sys
-    import os
-    import time
 
     env['SIREPO_SRDB_ROOT'] = str(srdb.root())
-    job_supervisor = subprocess.Popen(
+    return subprocess.Popen(
         ['pyenv', 'exec', 'sirepo', 'job_supervisor'],
         env=env,
     )
-    from sirepo import job
-    for _ in range(30):
-        if _server_up('http://127.0.0.1:8001/server'):
-            break
-        time.sleep(0.1)
-    else:
-        pkunit.pkfail('job server did not start up')
-    return job_supervisor

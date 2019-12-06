@@ -39,6 +39,7 @@ def default_command():
         [
             (sirepo.job.AGENT_URI, _AgentMsg),
             (sirepo.job.SERVER_URI, _ServerReq),
+            (sirepo.job.SERVER_PING_URI, _ServerPing),
             (sirepo.job.DATA_FILE_URI + '/(.*)', _DataFileReq),
         ],
         debug=cfg.debug,
@@ -111,6 +112,17 @@ class _DataFileReq(tornado.web.RequestHandler):
     def sr_on_exception(self):
         self.send_error()
         self.on_connection_close()
+
+
+class _ServerPing(tornado.web.RequestHandler):
+    SUPPORTED_METHODS = ["POST"]
+
+    async def post(self):
+        r = pkjson.load_any(self.request.body)
+        self.write(r.pkupdate(state='ok'))
+
+    def set_default_headers(self):
+        self.set_header("Content-Type", 'application/json; charset="utf-8"')
 
 
 class _ServerReq(tornado.web.RequestHandler):

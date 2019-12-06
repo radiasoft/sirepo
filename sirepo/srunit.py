@@ -47,9 +47,11 @@ def flask_client(cfg=None, sim_types=None):
 
     a = 'srunit_flask_client'
     if not cfg:
-        cfg = {}
+        cfg = PKDict()
     t = sim_types or CONFTEST_ALL_CODES
     if t:
+        if isinstance(t, (tuple, list)):
+            t = ':'.join(t)
         cfg['SIREPO_FEATURE_CONFIG_SIM_TYPES'] = t
     if not (server and hasattr(app, a)):
         from pykern import pkconfig
@@ -74,12 +76,12 @@ def flask_client(cfg=None, sim_types=None):
 
 def init_auth_db():
     """Force a request that creates a user in db with just myapp"""
-    fc = flask_client(sim_types='myapp')
+    fc = flask_client(sim_types=MYAPP)
     fc.sr_login_as_guest()
     return fc, fc.sr_post('listSimulations', {'simulationType': fc.sr_sim_type})
 
 
-def sim_data(sim_name, sim_type=None, sim_types=CONFTEST_ALL_CODES):
+def sim_data(sim_name=None, sim_type=None, sim_types=CONFTEST_ALL_CODES, cfg=None):
     """Get simulation data
 
     Args:
@@ -90,9 +92,9 @@ def sim_data(sim_name, sim_type=None, sim_types=CONFTEST_ALL_CODES):
         PKDict: simulation data
         object: flask client
     """
-    fc = flask_client(sim_types=sim_types or sim_type or 'myapp')
+    fc = flask_client(sim_types=sim_types or [sim_type or MYAPP], cfg=cfg)
     fc.sr_login_as_guest()
-    return fc.sr_sim_data(sim_name), fc
+    return fc.sr_sim_data(sim_name=sim_name, sim_type=sim_type), fc
 
 
 def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie=True, want_user=True, **kwargs):
@@ -348,12 +350,12 @@ class _TestClient(flask.testing.FlaskClient):
                 raise AssertionError('cancel failed')
 
 
-    def sr_sim_data(self, sim_name='Scooby Doo', sim_type=None):
+    def sr_sim_data(self, sim_name=None, sim_type=None):
         """Return simulation data by name
 
         Args:
-            sim_name (str): case sensitive name
-            sim_type (str): app [defaults to myapp]
+            sim_name (str): case sensitive name ['Scooby Doo']
+            sim_type (str): app ['myapp']
 
         Returns:
             dict: data
@@ -362,6 +364,9 @@ class _TestClient(flask.testing.FlaskClient):
         from pykern.pkdebug import pkdpretty
 
         self.sr_sim_type_set(sim_type)
+
+        if not sim_name:
+            sim_name = 'Scooby Doo'
         d = self.sr_post(
             'listSimulations',
             PKDict(
@@ -391,7 +396,7 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             object: self
         """
-        self.sr_sim_type = sim_type or self.sr_sim_type or 'myapp'
+        self.sr_sim_type = sim_type or self.sr_sim_type or MYAPP
         return self
 
     def __req(self, route_or_uri, params, query, op, raw_response, **kwargs):
