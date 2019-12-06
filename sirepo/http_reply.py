@@ -185,10 +185,10 @@ def gen_redirect_for_local_route(sim_type=None, route=None, params=None, query=N
 
 
 def gen_tornado_exception(exc):
-    return PKDict(
-       _STATE=SR_EXCEPTION_STATE,
-       SR_EXCEPTION_STATE=exc.sr_args,
-    )
+    return PKDict({
+       _STATE: SR_EXCEPTION_STATE,
+       SR_EXCEPTION_STATE: exc.sr_args,
+    })
 
 
 def headers_for_no_cache(resp):
