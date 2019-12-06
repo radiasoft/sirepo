@@ -11,6 +11,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
 from sirepo import job
 from sirepo import job_driver
+from sirepo import util
 import asyncssh
 import tornado.ioloop
 
@@ -110,11 +111,14 @@ disown
         except Exception as e:
             self._agent_starting = False
             pkdlog(
-                'agentId={} exception={} log={}',
+                'agentId={} exception={}',
                 self._agentId,
                 e,
             #TODO(robnagler) try to read the job_agent.log
             )
+            if isinstance(e, asyncssh.misc.PermissionDenied):
+                # TODO(e-carlin): proper route and args
+                raise util.SRException('login', None)
             raise
 
     def _agent_start_dev(self):

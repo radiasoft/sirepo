@@ -13,6 +13,7 @@ from sirepo import job
 from sirepo import job_driver
 import os
 import pykern.pkio
+import sirepo.http_reply
 import sirepo.srdb
 import sirepo.util
 import time
@@ -112,10 +113,16 @@ class _ComputeJob(PKDict):
     @classmethod
     async def receive(cls, req):
         pkdlog('{} jid={}', req.content.api, req.content.computeJid)
-        return await getattr(
-            cls.get_instance(req),
-            '_receive_' + req.content.api,
-        )(req)
+        try:
+            return await getattr(
+                cls.get_instance(req),
+                '_receive_' + req.content.api,
+            )(req)
+        except Exception as e:
+            pkdlog('error={} stack={}', e, pkdexc())
+            if isinstance(e, sirepo.util.Reply):
+                return sirepo.http_reply.gen_tornado_exception(e)
+            raise
 
     @classmethod
     def __create(cls, req):
@@ -332,8 +339,7 @@ class _ComputeJob(PKDict):
             await d.send(o)
             return o
         # TODO(e-carlin): more granular exception
-        except Exception as e:
-            pkdlog('failed to send opID={} error={}', o.opId, e)
+        except Exception:
             self.destroy_op(o)
             raise
 
