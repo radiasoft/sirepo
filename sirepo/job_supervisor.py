@@ -281,6 +281,7 @@ class _ComputeJob(PKDict):
                 req.content.computeJobHash
             )
 #TODO(robnagler) ensure the request is replied to
+            self.destroy_op(op)
             return
         # TODO(e-carlin): XXX bug. If cancel comes in then self.db.status = canceled
         # This overwrites it, but there is a state=canceled message waiting for
