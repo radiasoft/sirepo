@@ -113,6 +113,11 @@ def api_simulationFrame(frame_id):
     )
 
 
+@api_perm.require_user
+def api_sbatchLogin():
+    return {}
+
+
 def init_apis(*args, **kwargs):
 #TODO(robnagler) if we recover connections with agents and running jobs remove this
     pykern.pkio.unchecked_remove(sirepo.job.LIB_FILE_ROOT, sirepo.job.DATA_FILE_ROOT)

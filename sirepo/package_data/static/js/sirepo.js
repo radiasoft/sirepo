@@ -2910,6 +2910,31 @@ SIREPO.app.controller('FindByNameController', function (appState, requestSender,
         });
 });
 
+SIREPO.app.controller('SbatchLoginController', function (authService, requestSender) {
+    var self = this;
+    self.authService = authService;
+
+    function handleResponse(data) {
+        if (data.state === 'ok') {
+            requestSender.globalRedirectRoot();
+            return;
+        }
+        self.showWarning = true;
+        self.warningText = 'Server reported an error, please contact support@radiasoft.net.';
+    }
+
+    self.submit = function() {
+        requestSender.sendRequest(
+            'sbatchLogin',
+            handleResponse,
+            {
+                email: self.email,
+                password: self.password,
+            }
+        );
+    };
+});
+
 SIREPO.app.controller('ServerUpgradedController', function (errorService, requestSender) {
     var self = this;
 

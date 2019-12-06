@@ -86,7 +86,8 @@ class SBatchDriver(job_driver.DriverBase):
                 cfg.host,
     #TODO(robnagler) add password management
                 username=self._user,
-                password=self._user if self._user == 'vagrant' else totp(),
+                password='foo',
+                # password=self._user if self._user == 'vagrant' else totp(),
                 known_hosts=_KNOWN_HOSTS,
             ) as c:
                 script = f'''#!/bin/bash
@@ -118,7 +119,7 @@ disown
             )
             if isinstance(e, asyncssh.misc.PermissionDenied):
                 # TODO(e-carlin): proper route and args
-                raise util.SRException('login', None)
+                raise util.SRException('sbatchLogin', None)
             raise
 
     def _agent_start_dev(self):

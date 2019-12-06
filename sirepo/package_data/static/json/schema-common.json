@@ -97,7 +97,6 @@
         "importArchive": "/import-archive",
         "importFile": "/import-file/<simulation_type>",
         "jobConfig": "/job-config",
-        "jobSbatchAuth": "/job-sbatch-auth",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",
@@ -108,6 +107,7 @@
         "runCancel": "/run-cancel",
         "runSimulation": "/run-simulation",
         "runStatus": "/run-status",
+        "sbatchLogin": "/sbatch-login",
         "saveSimulationData": "/save-simulation",
         "serverStatus": "/server-status",
         "simulationData": "/simulation/<simulation_type>/<simulation_id>/<pretty>/?<section>",
@@ -299,6 +299,13 @@
                 "config": {
                   "controller": "NotFoundCopyController as notFoundCopy",
                   "templateUrl": "/static/html/copy-session.html"
+                }
+            },
+            "sbatchLogin": {
+                "route": "/sbatch-login",
+                "config": {
+                  "controller": "SbatchLoginController as sbatchLogin",
+                  "templateUrl": "/static/html/sbatch-login.html"
                 }
             },
             "serverUpgraded": {
