@@ -76,6 +76,12 @@ class ServerReq(PKDict):
         self._response_received = tornado.locks.Event()
 
     async def receive(self):
+        s = self.content.pkdel('serverSecret')
+        # no longer contains secret so ok to log
+        assert s, \
+            'no secret in message: {}'.format(self.content)
+        assert s == sirepo.job.server_secret, \
+            'server_secret did not match'.format(self.content)
         self.handler.write(await _ComputeJob.receive(self))
 
 

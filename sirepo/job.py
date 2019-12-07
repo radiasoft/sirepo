@@ -170,9 +170,12 @@ def agent_env(env=None, uid=None):
 def init():
     global cfg
 
-    if cfg:
-        return
     cfg = pkconfig.init(
+        server_secret=pkconfig.RequiredUnlessDev(
+            'a very secret, secret',
+            str,
+            'shared secret between supervisor and server',
+        ),
         supervisor_uri=(
             'http://{}:{}'.format(DEFAULT_IP, DEFAULT_PORT),
             str,
