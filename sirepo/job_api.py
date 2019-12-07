@@ -115,7 +115,29 @@ def api_simulationFrame(frame_id):
 
 @api_perm.require_user
 def api_sbatchLogin():
-    return {}
+    # TODO(e-carlin): this is copied from _request_content() make that func useful
+    def get_api_name():
+        f = inspect.currentframe()
+        for _ in range(_MAX_FRAME_SEARCH_DEPTH):
+            m = re.search(r'^api_.*$', f.f_code.co_name)
+            if m:
+                return m.group()
+            f = f.f_back
+        else:
+            raise AssertionError(
+                '{}: max frame search depth reached'.format(f.f_code)
+            )
+
+    d = sirepo.http_request.parse_post(
+        fixup_old_data=False,
+    ).req_data
+    pkdp('dddddddddddddddddddddddddddddd')
+    pkdp(d)
+    pkdp('dddddddddddddddddddddddddddddd')
+    return _request(PKDict(_request_content=PKDict(
+        api=get_api_name(),
+        data=d,
+    )))
 
 
 def init_apis(*args, **kwargs):
