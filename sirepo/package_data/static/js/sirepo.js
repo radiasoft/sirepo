@@ -1659,7 +1659,11 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     };
 
     self.isRouteParameter = function(routeName, paramName) {
-        return (localRoutes[routeName] || SIREPO.APP_SCHEMA.route[routeName]).indexOf(paramName) >= 0;
+        var route = localRoutes[routeName] || SIREPO.APP_SCHEMA.route[routeName];
+        if (! route) {
+            throw new Error('Invalid routeName: ' + routeName);
+        }
+        return route.indexOf(paramName) >= 0;
     };
 
     self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {

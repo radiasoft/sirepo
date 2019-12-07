@@ -25,8 +25,9 @@ ALPHA_CODES = frozenset((
     'adm',
     'flash',
     'myapp',
-    'rs4pi',
     'opal',
+    'rcscon',
+    'rs4pi',
 ))
 
 #: All possible codes

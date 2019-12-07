@@ -28,6 +28,10 @@
             "longName": "OPAL",
             "shortName": "OPAL"
         },
+        "rcscon": {
+            "longName": "RCSCON",
+            "shortName": "RCSCON"
+        },
         "rs4pi": {
             "longName": "RS4PI",
             "shortName": "RS4PI"

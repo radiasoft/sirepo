@@ -1,0 +1,23 @@
+from __future__ import absolute_import, division, print_function
+import csv
+import numpy as np
+import os
+
+def scale_file(path):
+    with open(path) as f:
+        reader = csv.reader(f)
+        for row in reader:
+            header = row
+            break
+    v = np.genfromtxt(path, delimiter=',', skip_header=1)
+{% if files_scaler != 'none' %}
+    from sklearn.preprocessing import {{ files_scaler }}
+    v = {{ files_scaler }}().fit(v).transform(v)
+{% endif %}
+    os.remove(path)
+    np.savetxt(path, v, delimiter=',', header=','.join(header), comments='')
+    return v
+
+x_scaled = scale_file('{{ inputsFileName }}')
+y_scaled = scale_file('{{ outputsFileName }}')
+

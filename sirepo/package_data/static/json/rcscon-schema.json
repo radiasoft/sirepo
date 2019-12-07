@@ -1,0 +1,178 @@
+{
+    "appModes": {
+        "default": {
+            "localRoute": "visualization"
+        }
+    },
+    "enum": {
+        "MLModule": [
+            ["neuralnet", "Neural Network"]
+        ],
+        "NeuralNetActivation": [
+            ["elu", "Exponential Linear Unit (elu)"],
+            ["softmax", "Softmax"],
+            ["selu", "Scaled Exponential Linear Unit (selu)"],
+            ["softplus", "Softplus"],
+            ["softsign", "Softsign"],
+            ["relu", "Rectified Linear Unit (relu)"],
+            ["tanh", "Hyperbolic Tangent"],
+            ["sigmoid", "Sigmoid"],
+            ["hard_sigmoid", "Hard Sigmoid"],
+            ["exponential", "Exponential (base e)"],
+            ["linear", "Linear (identity)"]
+        ],
+        "NeuralNetLayer": [
+            ["Activation", "Activation Funciton"],
+            ["Dense", "Densely Connected NN"],
+            ["GaussianNoise", "Gaussian Noise"],
+            ["GaussianDropout", "Gaussian Noise Dropout"],
+            ["AlphaDropout", "Alpha Noise Dropout"],
+            ["Dropout", "Dropout"],
+            ["Flatten", "Flatten"]
+        ],
+        "NeuralNetLosses": [
+            ["mean_squared_error", "Mean Squared Error"],
+            ["mean_absolute_error", "Mean Absolute Error"],
+            ["mean_absolute_percentage_error", "Mean Absolute Percentage Error"],
+            ["mean_squared_logarithmic_error", "Mean Squared Logarithmic Error"],
+            ["squared_hinge", "Squared Hinge"],
+            ["hinge", "Hinge"],
+            ["categorical_hinge", "Categorical Hinge"],
+            ["logcosh", "log(cosh(x))"],
+            ["categorical_crossentropy", "Categorical Crossentropy"],
+            ["sparse_categorical_crossentropy", "Sparse Categorical Crossentropy"],
+            ["crossentropy", "Crossentropy"],
+            ["kullback_leibler_diverence", "Kullback Leibler Divergence"],
+            ["poisson", "Poisson"],
+            ["cosine_proximity", "Cosine Proximity"]
+        ],
+        "NeuralNetOptimizer": [
+            ["sgd", "Stochastic Gradient Descent"],
+            ["rmsprop", "RMSProp"],
+            ["adagrad", "Adagrad"],
+            ["adadelta", "Adadelta"],
+            ["adam", "Adam"],
+            ["adamax", "Adamax"],
+            ["nadam", "Nesterov Adam"]
+        ],
+        "Scaler": [
+            ["RobustScaler", "Robust Scaler"],
+            ["MinMaxScaler", "Min-Max Scaler"],
+            ["none", "None"]
+        ],
+        "SplitMethod": [
+            ["random", "Random"],
+            ["selection", "Select Ranges"]
+        ]
+    },
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": [
+                "rcscon.js"
+            ]
+        }
+    },
+    "localRoutes": {
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "VisualizationController as visualization",
+                "templateUrl": "/static/html/rcscon-visualization.html"
+            }
+        },
+        "machine-learning": {
+            "route": "/machine-learning/:simulationId",
+            "config": {
+                "controller": "MLController as ml",
+                "templateUrl": "/static/html/rcscon-machine-learning.html"
+            }
+        }
+    },
+    "model": {
+        "files": {
+            "inputs": ["Inputs File", "InputFile"],
+            "outputs": ["Outputs File", "InputFile"],
+            "scaler": ["Scaler", "Scaler", "RobustScaler"],
+            "columnCount": ["Column Count", "Integer", 0]
+        },
+        "fileColumnReport": {
+            "columnNumber": ["Column Number", "Integer", 0]
+        },
+        "mlModel": {
+            "mlModule": ["Model Type", "MLModule", "neuralnet"]
+        },
+        "neuralNet": {
+            "optimizer": ["Optimizer", "NeuralNetOptimizer", "adam"],
+            "losses": ["Losses", "NeuralNetLosses", "mean_squared_error"],
+            "epochs" : ["Epochs", "Integer", 500],
+            "batch_size": ["Batch Size", "Integer", 50],
+            "shuffle": ["Shuffle Before Epoch", "Boolean", "1"]
+        },
+        "neuralNetLayer": {
+            "layer": ["Layer", "NeuralNetLayer", "Dense"],
+            "denseDimensionality": ["Dimensionality", "Integer", 10],
+            "denseActivation": ["Activation", "NeuralNetActivation", "relu"],
+            "gaussianNoiseStddev": ["Standard Deviation", "Float", 0.01],
+            "gaussianDropoutRate": ["Rate", "Float", 0.5],
+            "alphaDropoutRate": ["Rate", "Float", 0.5],
+            "activationActivation": ["Activation", "NeuralNetActivation", "relu"],
+            "dropoutRate": ["Rate", "Float", 0.5]
+        },
+        "partition": {
+            "training": ["Training %", "Float", 75],
+            "testing": ["Testing %", "Float", 12.5],
+            "validation": ["Validation %", "Float", 12.5],
+            "method": ["Split Method", "SplitMethod", "random"],
+            "random_state": ["Random Seed", "Integer", 42]
+        }
+    },
+    "view": {
+        "files": {
+            "title": "Files",
+            "basic": [
+                "inputs",
+                "outputs",
+                "scaler"
+            ],
+            "advanced": []
+        },
+        "fileColumnReport": {
+            "title": "Column",
+            "advanced": []
+        },
+        "mlModel": {
+            "title": "Model",
+            "basic": [
+                "mlModule"
+            ],
+            "advanced": []
+        },
+        "neuralNet": {
+            "title": "Neural Network",
+            "basic": [
+                "optimizer",
+                "losses",
+                "epochs",
+                "batch_size",
+                "shuffle"
+            ],
+            "advanced": []
+        },
+        "neuralNetLayer": {
+            "title": "Neural Network Layers",
+            "advanced": []
+        },
+        "partition": {
+            "title": "Partition",
+            "basic": [
+                "training",
+                "testing",
+                "validation",
+                "method"
+            ],
+            "advanced": [
+                "random_state"
+            ]
+        }
+    }
+}
