@@ -18,7 +18,6 @@ import re
 
 OP_ANALYSIS = 'analysis'
 OP_CANCEL = 'cancel'
-OP_CONDITION = 'condition'
 OP_ERROR = 'error'
 OP_KILL = 'kill'
 OP_OK = 'ok'
@@ -40,7 +39,6 @@ SERVER_ABS_URI = None
 
 #: path supervisor registers to receive pings from server
 SERVER_PING_URI = '/job-api-ping'
-
 #: requests from the flask server
 SERVER_PING_ABS_URI = None
 

@@ -34,7 +34,6 @@ _CNAME_RE = re.compile(_CNAME_SEP.join(('^' + _CNAME_PREFIX, r'([a-z]+)', '(.+)'
 # TODO(e-carlin): max open files for local or nersc?
 _MAX_OPEN_FILES = 1024
 
-
 class DockerDriver(job_driver.DriverBase):
 
     instances = PKDict()
@@ -174,6 +173,9 @@ class DockerDriver(job_driver.DriverBase):
         if ':' in res:
             return res
         return res + ':' + pkconfig.cfg.channel
+
+    def _timer(self):
+
 
     def _volumes(self):
         res = []

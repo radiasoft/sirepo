@@ -48,7 +48,12 @@ _PARALLEL_STATUS_FIELDS = frozenset((
     'computeJobStart',
 ))
 
+_UNTIMED_OPS = frozenset((job.OP_ALIVE, job.OP_CANCEL, job.OP_ERROR, job.OP_KILL, job.OP_OK))
 cfg = None
+
+#: conversion of cfg.<kind>.max_hours
+_MAX_RUN_SECS = PKDict()
+
 
 def init():
     global _DB_DIR, cfg, _NEXT_REQUEST_SECONDS
@@ -59,8 +64,16 @@ def init():
     _DB_DIR = sirepo.srdb.root().join(_DB_SUBDIR)
     pykern.pkio.mkdir_parent(_DB_DIR)
     cfg = pkconfig.init(
+        parallel=(
+            max_hours=(1, float, 'maximum run-time for parallel job (except sbatch)'),
+        ),
         sbatch_poll_secs=(60, int, 'how often to poll squeue and parallel status'),
+        sequential=(
+            max_hours=(.1, float, 'maximum run-time for sequential job'),
+        ),
     )
+    for k in job.KINDS:
+        _MAX_RUN_SECS[k] = int(cfg[k].max_hours * 3600)
     _NEXT_REQUEST_SECONDS = PKDict({
         job.PARALLEL: 2,
         job.SBATCH: cfg.sbatch_poll_secs,
@@ -328,6 +341,8 @@ class _ComputeJob(PKDict):
             d = await job_driver.get_instance(req, self.db.jobRunMode)
             o = _Op(
                 driver=d,
+                kind=req.kind,
+                maxRunSecs=0 if opName in _UNTIMED_OPS else _MAX_RUN_SECS[req.kind],
                 msg=PKDict(
                     req.content
                 ).pkupdate(
@@ -363,6 +378,25 @@ class _Op(PKDict):
         )
         self.msg.update(opId=self.opId, opName=self.opName)
 
+    def destroy(self):
+        if 'timer' in self:
+            tornado.ioloop.IOLoop.current().remove_timeout(self.timer)
+        self.driver.destroy_op(self)
+
+    def reply_put(self, msg):
+        self._reply_q.put_nowait(msg)
+
+    async def reply_ready(self):
+        r = await self._reply_q.get()
+        self._reply_q.task_done()
+        return r
+
+    def run_timeout(self):
+        if self.canceled or self.errored:
+            return
+        pkdlog('opId={opId} opName={opName} maxRunSecs={maxRunSecs}', **self)
+        self.set_canceled()
+
     def set_canceled(self):
         self.canceled = True
         self.reply_put(PKDict(state=job.CANCELED))
@@ -376,13 +410,7 @@ class _Op(PKDict):
         )
         self.send_ready.set()
 
-    def destroy(self):
-        self.driver.destroy_op(self)
-
-    def reply_put(self, msg):
-        self._reply_q.put_nowait(msg)
-
-    async def reply_ready(self):
-        r = await self._reply_q.get()
-        self._reply_q.task_done()
-        return r
+    def start_timer(self):
+        if not self.maxRunSecs:
+            return
+        self.timer = tornado.ioloop.IOLoop.current().call_later(self.maxRunSecs, self.run_timeout)
