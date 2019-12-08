@@ -202,11 +202,8 @@ class DockerDriver(job_driver.DriverBase):
 def init_class():
     global cfg
 
-    def _r(*a):
-        return a if pkconfig.channel_in('dev') else pkconfig.Required(*(a[1:]))
-
     cfg = pkconfig.init(
-        hosts=_r(tuple(), tuple, 'execution hosts'),
+        hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, 'execution hosts'),
         image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
         parallel=(
             cores=(1, int, 'cores per parallel job'),
@@ -217,7 +214,7 @@ def init_class():
             gigabytes=(1, int, 'gigabytes per sequential job'),
             slots_per_host=(1, int, 'sequential slots per node'),
         ),
-        tls_dir=_r(None, _cfg_tls_dir, 'directory containing host certs'),
+        tls_dir=pkconfig.RequiredUnlessDev(None, _cfg_tls_dir, 'directory containing host certs'),
     )
     if not cfg.tls_dir or not cfg.hosts:
         _init_dev_hosts()
