@@ -42,15 +42,11 @@ def test_guest_merge(monkeypatch):
             'simulationType': sim_type,
         },
     )
-    d = fc.sr_post(
-        'listSimulations',
-        {'simulationType': sim_type, 'search': {'simulationName': 'Scooby Doo'}},
-    )
-    d = d[0].simulation
+    d = fc.sr_sim_data(sim_type=sim_type)
     d = fc.sr_post(
         'copySimulation',
         dict(
-            simulationId=d.simulationId,
+            simulationId=d.models.simulation.simulationId,
             simulationType=sim_type,
             name='oauth-sim',
             folder='/',

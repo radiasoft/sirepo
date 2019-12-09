@@ -130,16 +130,12 @@ def test_guest_merge(auth_fc):
         },
     )
     r = fc.sr_auth_state(method='email', uid=guest_uid)
-    d = fc.sr_post(
-        'listSimulations',
-        {'simulationType': fc.sr_sim_type, 'search': {'simulationName': 'Scooby Doo'}},
-    )
-    d = d[0].simulation
+    d = fc.sr_sim_data()
     # Copy sim as an email user
     d = fc.sr_post(
         'copySimulation',
         dict(
-            simulationId=d.simulationId,
+            simulationId=d.models.simulation.simulationId,
             simulationType=fc.sr_sim_type,
             name='email-sim',
             folder='/',
