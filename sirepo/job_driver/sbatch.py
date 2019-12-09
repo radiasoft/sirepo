@@ -20,7 +20,8 @@ cfg = None
 
 _KNOWN_HOSTS = None
 
-class SBatchDriver(job_driver.DriverBase):
+
+class SbatchDriver(job_driver.DriverBase):
 
     instances = PKDict()
 
@@ -140,7 +141,7 @@ def init_class():
         cfg.host_key if cfg.host in cfg.host_key
         else '{} {}'.format(cfg.host, cfg.host_key)
     ).encode('ascii')
-    return SBatchDriver.init_class()
+    return SbatchDriver.init_class()
 
 
 def _cfg_srdb_root(value):
