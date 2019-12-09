@@ -67,6 +67,36 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
 
 
 @api_perm.require_user
+def api_jobSupervisorPing():
+    import requests.exceptions
+
+    req = sirepo.http_request.parse_post()
+    e = None
+    try:
+        k = sirepo.job.unique_key()
+        r = _request(
+            _request_content=PKDict(ping=k),
+            _request_uri=sirepo.job.SERVER_PING_ABS_URI,
+        )
+        if r.get('state') != 'ok':
+            return r
+        try:
+            x = r.pknested_get('ping')
+            if x == k:
+                return r
+            e = 'expected={} but got ping={}'.format(k, x)
+        except KeyError:
+            e = 'incorrectly formatted reply'
+            pkdlog(r)
+    except requests.exceptions.ConnectionError as e:
+        e = 'unable to connect to supervisor'
+    except Exception as e:
+        pkdlog(e)
+        e = 'unexpected exception'
+    return PKDict(state='error', error=e)
+
+
+@api_perm.require_user
 def api_runCancel():
     return _request()
 
@@ -148,10 +178,12 @@ def init_apis(*args, **kwargs):
 
 
 def _request(**kwargs):
-    d = kwargs.get('_request_content') or _request_content(PKDict(kwargs))
+    k = PKDict(kwargs)
+    u = k.pkdel('_request_uri') or sirepo.job.SERVER_ABS_URI
+    c = k.pkdel('_request_content') or _request_content(k)
     r = requests.post(
-        sirepo.job.SERVER_ABS_URI,
-        data=pkjson.dump_bytes(d),
+        u,
+        data=pkjson.dump_bytes(c),
         headers=PKDict({'Content-type': 'application/json'}),
     )
     r.raise_for_status()

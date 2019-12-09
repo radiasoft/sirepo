@@ -38,6 +38,12 @@ SERVER_URI = '/job-api-request'
 #: requests from the flask server
 SERVER_ABS_URI = None
 
+#: path supervisor registers to receive pings from server
+SERVER_PING_URI = '/job-api-ping'
+
+#: requests from the flask server
+SERVER_PING_ABS_URI = None
+
 #: path supervisor registers to receive requests from job_process for file PUTs
 DATA_FILE_URI = '/job-cmd-data-file'
 
@@ -150,7 +156,7 @@ def agent_env(env=None, uid=None):
     env = (env or PKDict()).pksetdefault(
         **pkconfig.to_environ((
             'pykern.*',
-            'sirepo.feature_config.job_supervisor',
+            'sirepo.feature_config.job',
             'sirepo.simulation_db.sbatch_display',
         ))
     ).pksetdefault(
@@ -175,7 +181,8 @@ def init():
         ),
     )
     global SUPERVISOR_SRV_ROOT, LIB_FILE_ROOT, DATA_FILE_ROOT, \
-        LIB_FILE_ABS_URI, DATA_FILE_ABS_URI, AGENT_ABS_URI, SERVER_ABS_URI
+        LIB_FILE_ABS_URI, DATA_FILE_ABS_URI, AGENT_ABS_URI, \
+        SERVER_ABS_URI, SERVER_PING_ABS_URI
 
     SUPERVISOR_SRV_ROOT = sirepo.srdb.root().join(SUPERVISOR_SRV_SUBDIR)
     LIB_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(LIB_FILE_URI[1:])
@@ -186,6 +193,7 @@ def init():
 #TODO(robnagler) figure out why we need ws (wss, implicit)
     AGENT_ABS_URI = cfg.supervisor_uri.replace('http', 'ws', 1) + AGENT_URI
     SERVER_ABS_URI = cfg.supervisor_uri + SERVER_URI
+    SERVER_PING_ABS_URI = cfg.supervisor_uri + SERVER_PING_URI
 
 
 def init_by_server(app):

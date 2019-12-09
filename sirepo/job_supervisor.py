@@ -112,7 +112,7 @@ class _ComputeJob(PKDict):
 
     @classmethod
     async def receive(cls, req):
-        pkdlog('{} jid={}', req.content.api, req.content.computeJid)
+        pkdlog('{} jid={}', req.content.api, req.content.get('computeJid'))
         try:
             return await getattr(
                 cls.get_instance(req),

@@ -87,10 +87,10 @@ def call_api(func_or_name, kwargs=None, data=None):
             if data:
                 sirepo.http_request.set_post(p)
     except Exception as e:
-        if not isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
-            pkdlog('api={} exception={} stack={}', func_or_name, e, pkdexc())
-        else:
+        if isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
             pkdc('api={} exception={} stack={}', func_or_name, e, pkdexc())
+        else:
+            pkdlog('api={} exception={} stack={}', func_or_name, e, pkdexc())
         r = sirepo.http_reply.gen_exception(e)
     finally:
         # http_request tries to keep a valid sim_type so
