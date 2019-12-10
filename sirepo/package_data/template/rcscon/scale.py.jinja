@@ -16,8 +16,8 @@ def scale_file(path):
 {% endif %}
     os.remove(path)
     np.savetxt(path, v, delimiter=',', header=','.join(header), comments='')
-    return v
+    return v, header
 
-x_scaled = scale_file('{{ inputsFileName }}')
-y_scaled = scale_file('{{ outputsFileName }}')
+x_scaled, x_header = scale_file('{{ inputsFileName }}')
+y_scaled, y_header = scale_file('{{ outputsFileName }}')
 

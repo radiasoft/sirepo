@@ -1,0 +1,16 @@
+
+from sklearn.model_selection import train_test_split
+
+def train_test_validate(x, y, train, test):
+    size = (100 - train) / 100.
+    x_train, x_tv, y_train, y_tv = train_test_split(x, y, test_size=size, random_state=42, shuffle=True)
+    size = test / (test + (100 - train - test))
+    x_test, x_validate, y_test, y_validate = train_test_split(x_tv, y_tv, test_size=size, random_state=42, shuffle=True)
+    return (x_train, x_test, x_validate, y_train, y_test, y_validate)
+
+(x_train, x_test, x_validate, y_train, y_test, y_validate) = train_test_validate(
+    x_scaled,
+    y_scaled,
+    {{ partition_training }},
+    {{partition_testing }},
+)

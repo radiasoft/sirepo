@@ -1,18 +1,44 @@
 
-from sklearn.model_selection import train_test_split
 
-def train_test_validate(x, y, train, test):
-    size = (100 - train) / 100.
-    x_train, x_tv, y_train, y_tv = train_test_split(x, y, test_size=size, random_state=42, shuffle=True)
-    size = test / (test + (100 - train - test))
-    x_test, x_validate, y_test, y_validate = train_test_split(x_tv, y_tv, test_size=size, random_state=42, shuffle=True)
-    return (x_train, x_test, x_validate, y_train, y_test, y_validate)
 
-(x_train, x_test, x_validate, y_train, y_test, y_validate) = train_test_validate(
-    x_scaled,
-    y_scaled,
-    {{ partition_training }},
-    {{partition_testing }},
+from keras.models import Sequential
+{% for name in layerImplementationNames %}
+from keras.layers import {{ name }}
+{% endfor %}
+
+model = Sequential();
+{% for layer in neuralNetLayers %}
+model.add({{ layer.layer }}(
+    {%- if layer.layer == 'Activation' -%}
+    "{{ layer.activationActivation }}"
+    {%- elif layer.layer == 'AlphaDropout' -%}
+    {{ layer.alphaDropoutRate }}
+    {%- elif layer.layer == 'Dense' -%}
+    {{ layer.denseDimensionality }}, activation="{{ layer.denseActivation }}"
+    {%- elif layer.layer == 'Dropout' -%}
+    {{ layer.dropoutRate }}
+    {%- elif layer.layer == 'Flatten' -%}
+    {%- elif layer.layer == 'GaussianDropout' -%}
+    {{ layer.gaussianDropoutRate }}
+    {%- elif layer.layer == 'GaussianNoise' -%}
+    {{ layer.gaussianNoiseStddev }}
+    {%- endif -%}
+))
+{% endfor %}
+
+from keras.callbacks import CSVLogger
+
+model.compile(loss='{{ neuralNet_losses }}', optimizer='{{ neuralNet_optimizer }}')
+model.fit(
+    x=x_train,
+    y=y_train,
+    validation_data=(x_validate, y_validate),
+    batch_size={{ neuralNet_batch_size }},
+    shuffle={% if neuralNet_shuffle == '1' %}True{% else %}False{% endif %},
+    epochs={{ neuralNet_epochs }},
+    verbose=False,
+    callbacks=[CSVLogger('{{ fitOutputFile }}')],
 )
-print(x_train.shape, x_test.shape, x_validate.shape)
-print(y_train.shape, y_test.shape, y_validate.shape)
+
+np.savetxt('{{ testOutputFile }}', y_test, delimiter=',', header=','.join(y_header), comments='')
+np.savetxt('{{ predictOutputFile }}', model.predict(x=x_test), delimiter=',', header=','.join(y_header), comments='')

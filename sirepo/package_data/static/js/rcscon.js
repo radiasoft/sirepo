@@ -3,6 +3,26 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
+SIREPO.SINGLE_FRAME_ANIMATION = ['epochAnimation'];
+
+SIREPO.app.factory('rcsconService', function(appState) {
+    var self = {};
+    self.computeModel = function(analysisModel) {
+        return 'animation';
+    };
+    self.reportInfo = function(modelKey, title) {
+        return {
+            title: title,
+            modelKey: modelKey,
+            getData: function() {
+                return appState.models[modelKey];
+            },
+        };
+    };
+    appState.setAppService(self);
+    return self;
+});
+
 SIREPO.app.directive('appFooter', function() {
     return {
 	restrict: 'A',
@@ -44,12 +64,75 @@ SIREPO.app.directive('appHeader', function() {
     };
 });
 
-SIREPO.app.controller('MLController', function (appState, $scope) {
+SIREPO.app.controller('MLController', function (appState, frameCache, persistentSimulation, rcsconService, $scope) {
     var self = this;
+
+    function addFitAnimations() {
+        self.reports = [];
+        var files = appState.applicationState().files;
+        for (var i = 0; i < files.outputsCount; i++) {
+            var modelKey = 'fitAnimation' + i;
+            if (! appState.models[modelKey]) {
+                appState.models[modelKey] = {
+                    columnNumber: i,
+                };
+                appState.saveQuietly(modelKey);
+            }
+            self.reports.push(rcsconService.reportInfo(modelKey, 'Fit ' + (i + 1)));
+            if (SIREPO.SINGLE_FRAME_ANIMATION.indexOf(modelKey) < 0) {
+                SIREPO.SINGLE_FRAME_ANIMATION.push(modelKey);
+            }
+            frameCache.setFrameCount(1, modelKey);
+        }
+    }
+
+    function handleStatus(data) {
+        self.reports = null;
+        if ('percentComplete' in data && ! data.error) {
+            if (data.percentComplete === 100 && ! self.simState.isProcessing()) {
+                addFitAnimations();
+            }
+        }
+        frameCache.setFrameCount(data.frameCount || 0);
+    }
+
+    self.startSimulation = function() {
+        self.simState.saveAndRunSimulation('simulation');
+    };
+
+    self.hasFrames = function() {
+        return frameCache.hasFrames();
+    };
+
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        rcsconService.computeModel(),
+        handleStatus
+    );
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, $scope) {
+SIREPO.app.controller('VisualizationController', function (appState, requestSender, rcsconService, $scope) {
     var self = this;
+
+    function processColumnCount() {
+        var files = appState.models.files;
+        if (! files.inputs || ! files.outputs) {
+            return;
+        }
+        requestSender.getApplicationData(
+            {
+                method: 'compute_column_count',
+                files: files,
+            },
+            function(data) {
+                if (appState.isLoaded()) {
+                    var files = appState.models.files;
+                    ['columnCount', 'inputsCount', 'outputsCount'].forEach(function(f) {
+                        files[f] = data[f];
+                    });
+                }
+            });
+    }
 
     appState.whenModelsLoaded($scope, function() {
         self.reports = [];
@@ -63,17 +146,12 @@ SIREPO.app.controller('VisualizationController', function (appState, $scope) {
                 appState.saveQuietly(modelKey);
             }
             var title = 'Input ' + (i + 1);
-            if (i >= files.inputCount) {
-                title = 'Output ' + (i - files.inputCount + 1);
+            if (i >= files.inputsCount) {
+                title = 'Output ' + (i - files.inputsCount + 1);
             }
-            self.reports.push({
-                title: title,
-                modelKey: modelKey,
-                getData: function() {
-                    return appState.models[modelKey];
-                },
-            });
+            self.reports.push(rcsconService.reportInfo(modelKey, title));
         }
+        appState.watchModelFields($scope, ['files.inputs', 'files.outputs'], processColumnCount);
     });
 });
 

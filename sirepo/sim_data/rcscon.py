@@ -15,6 +15,8 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if 'fileColumnReport' in analysis_model:
             return 'fileColumnReport'
+        if analysis_model == 'epochAnimation' or 'fitAnimation' in analysis_model:
+            return 'animation'
         return analysis_model
 
     @classmethod
@@ -23,11 +25,12 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._init_models(
             dm,
             (
+                'epochAnimation',
                 'files',
                 'mlModel',
-                'partition',
                 'neuralNet',
                 'neuralNetLayer',
+                'partition',
             ))
 
     @classmethod

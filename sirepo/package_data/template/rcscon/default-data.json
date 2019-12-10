@@ -1,5 +1,8 @@
 {
     "models": {
+        "neuralNet": {
+            "layers": []
+        },
         "simulation": {
             "folder": "/",
             "name": "default",
