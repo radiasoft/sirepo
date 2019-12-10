@@ -3,5 +3,6 @@
     <div class="sr-input-warning" data-ng-show="sbatchLogin.showWarning">{{sbatchLogin.warningText}}</div>
     <input type="text" name="username" placeholder="username" data-ng-model="sbatchLogin.username" required />
     <input type="password" name="password" placeholder="password" data-ng-model="sbatchLogin.password" required />
+    <input type="text" name="otp" placeholder="one time password" data-ng-show="sbatchLogin.showOtp" data-ng-model="sbatchLogin.otp" required />
     <button data-ng-click="sbatchLogin.submit()">Submit</button>
 </div>

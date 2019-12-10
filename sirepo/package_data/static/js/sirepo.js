@@ -2916,6 +2916,7 @@ SIREPO.app.controller('SbatchLoginController', function (requestSender, $route) 
     self.host = $route.current.params.host;
     self.showWarning = $route.current.params.reason === 'invalid-creds';
     self.warningText = 'Your credentials were invalid. Please try again.';
+    self.showOtp = $route.current.params.host.includes('nersc');
 
     function handleResponse(data) {
         if (data.state === 'ok') {
