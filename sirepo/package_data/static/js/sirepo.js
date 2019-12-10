@@ -2916,7 +2916,6 @@ SIREPO.app.controller('SbatchLoginController', function (requestSender, $route) 
     self.host = $route.current.params.host;
     self.showWarning = $route.current.params.reason === 'invalid-creds';
     self.warningText = 'Your credentials were invalid. Please try again.';
-    srdbg(self.host)
 
     function handleResponse(data) {
         if (data.state === 'ok') {
@@ -2929,11 +2928,11 @@ SIREPO.app.controller('SbatchLoginController', function (requestSender, $route) 
             'sbatchLogin',
             handleResponse,
             {
-                simulationType: $route.current.params.simulationType,
-                simulationId: $route.current.params.simulationId,
+                password: "abc123", // TODO(e-carlin): $route.current.params.password
                 report: $route.current.params.report,
-                username: "evan",
-                password: "abc123",
+                simulationId: $route.current.params.simulationId,
+                simulationType: $route.current.params.simulationType,
+                username: "evan", // TODO(e-carlin): $route.current.params.username
             }
         );
     };

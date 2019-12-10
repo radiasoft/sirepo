@@ -81,16 +81,7 @@ class SbatchDriver(job_driver.DriverBase):
 
     async def _agent_start(self, msg):
         if 'password' not in msg or 'username' not in msg:
-            raise util.SRException(
-                'sbatchLogin',
-                PKDict(
-                    reason='no-creds',
-                    simulationId=msg.simulationId,
-                    simulationType=msg.simulationType,
-                    report=msg.computeModel,
-                    host=cfg.host,
-                ),
-            )
+            self._raise_sbatch_login_srexception('no-creds', msg)
         self._agent_starting = True
         try:
             async with asyncssh.connect(
@@ -130,16 +121,7 @@ disown
             )
             if isinstance(e, asyncssh.misc.PermissionDenied):
                 # TODO(e-carlin): only some fields from msg
-                raise util.SRException(
-                    'sbatchLogin',
-                    PKDict(
-                        reason='invalid-creds',
-                        simulationId=msg.simulationId,
-                        simulationType=msg.simulationType,
-                        report=msg.computeModel,
-                        host=cfg.host,
-                    ),
-                )
+                self._raise_sbatch_login_srexception('invalid-creds', msg)
             raise
 
     def _agent_start_dev(self):
@@ -161,9 +143,10 @@ scancel -u $USER >& /dev/null || true
             'sbatchLogin',
             PKDict(
                 reason=reason,
-                report=msg.computeModel,
+                simulationId=msg.simulationId,
                 simulationType=msg.simulationType,
-                # simulationId=msg.simulationId,
+                report=msg.computeModel,
+                host=cfg.host,
             ),
         )
 
