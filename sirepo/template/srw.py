@@ -842,7 +842,6 @@ def _compute_crystal_init(model):
         pkdlog('{https://github.com/ochubar/SRW/blob/master/env/work/srw_python/srwlib.py}: error: {}', material_raw)
         for key in parms_list:
             model[key] = None
-
     return model
 
 def _compute_crystal_orientation(model):
