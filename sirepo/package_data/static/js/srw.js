@@ -230,7 +230,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
 
 SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState, beamlineService, panelState, requestSender, simulationQueue, srwService, $scope, $location) {
     var self = this;
-    var grazingAngleElements = ['ellipsoidMirror', 'grating', 'sphericalMirror', 'toroidalMirror'];
+    var grazingAngleElements = ['ellipsoidMirror', 'sphericalMirror', 'toroidalMirror'];
     // tabs: single, multi, beamline3d
     var activeTab = 'single';
     self.mirrorReportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
@@ -272,18 +272,9 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
             });
     }
 
-    function computeGratingInit(item) {
-                //item._param_direction_ = '';
-            computeFields('compute_grating_init', item, ['grazingAngle']);
+    function computePMGValue(item) {
+        computeFields('compute_PMG_value', item, ['energyAvg', 'cff', 'grazingAngle']);
     }
-
-    //function computeGratingFromGrazingAngle(item) {
-    //    console.log("testing");
-    //    if (item.material != 'Unknown') {
-    //        item._param_direction_ = 'grazingAngle2energyAvg';
-    //        computeFields('compute_grating_init', item, ['energyAvg', 'grooveDensity1', 'diffractionOrder', 'cff', 'grazingAngle']);
-    //    }
-    //}
 
     function computeGratingOrientation(item) {
         computeFields('compute_grating_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'rollAngle']);
@@ -649,9 +640,8 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         ['mask', 'sample'].forEach(function(m) {
             beamlineService.watchBeamlineField($scope, m, ['method', 'material'], computeDeltaAttenCharacteristics);
         });
-        //beamlineService.watchBeamlineField($scope, 'grating', ['grazingAngle'], computeGratingFromGrazingAngle, true);
-        beamlineService.watchBeamlineField($scope, 'grating', ['energyAvg', 'cff'], computeGratingInit, true);
-        beamlineService.watchBeamlineField($scope, 'grating', ['energyAvg', 'cff', 'rollAngle', 'grazingAngle'], computeGratingOrientation, true);
+        beamlineService.watchBeamlineField($scope, 'grating', ['energyAvg', 'cff', 'rollAngle', 'grazingAngle', 'computePMGvalue'], computePMGValue, true);
+        beamlineService.watchBeamlineField($scope, 'grating', ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle'], computeGratingOrientation, true);
         beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energyAvg', 'h', 'k', 'l'], computeCrystalInit, true);
         beamlineService.watchBeamlineField($scope, 'crystal', ['diffractionAngle', 'dSpacing', 'asymmetryAngle', 'psi0r', 'psi0i', 'rotationAngle'], computeCrystalOrientation, true);
         beamlineService.watchBeamlineField($scope, 'sample', ['cropArea', 'tileImage', 'rotateAngle'], updateSampleFields);

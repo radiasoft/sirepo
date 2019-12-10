@@ -346,8 +346,8 @@ def get_application_data(data):
         )
     elif data['method'] == 'compute_delta_atten_characteristics':
         return _compute_material_characteristics(data['optical_element'], data['photon_energy'])
-    elif data['method'] == 'compute_grating_init':
-        return _compute_grating_init(data['optical_element'])
+    elif data['method'] == 'compute_PMG_value':
+        return _compute_PMG_value(data['optical_element'])
     elif data['method'] == 'compute_grating_orientation':
         return _compute_grating_orientation(data['optical_element'])
     elif data['method'] == 'compute_crystal_init':
@@ -715,8 +715,8 @@ def _compute_material_characteristics(model, photon_energy, prefix=''):
 
     return model
 
-def _compute_grating_init(model):
-    parms_list = ['grazingAngle']
+def _compute_PMG_value(model):
+    parms_list = ['energyAvg', 'cff', 'grazingAngle']
     try:
         mirror = srwlib.SRWLOptMirPl(
             _size_tang=model['tangentialSize'],
@@ -742,16 +742,15 @@ def _compute_grating_init(model):
             _ang_graz=model['grazingAngle'],
             _ang_roll=model['rollAngle'],
         )
-        grAng, defAng = opGr.cff2ang(_en=model['energyAvg'], _cff=model['cff'])
-        model['grazingAngle'] = grAng*1000
-        #if model.get('_param_direction_', '') == 'grazingAngle2energyAvg':
-        #    model['cff'] = opGr.ang2cff(_en=model['energyAvg'], _ang_graz=model['grazingAngle'])
-        #    model['_param_direction_'] = ''
-        #else:
-        #    #model['energyAvg'] = 249
-        #    model['grazingAngle'], defAng = opGr.cff2ang(_en=model['energyAvg'], _cff=model['cff'])
-        #    model['_param_direction_'] = ''
-    except:
+        if model.computePMGvalue == 'angGraz':
+            grAng, defAng = opGr.cff2ang(_en=model['energyAvg'], _cff=model['cff'])
+            model['grazingAngle'] = grAng * 1000.0
+        elif model.computePMGvalue == 'cff':
+            cff, defAng = opGr.ang2cff(_en=model['energyAvg'], _ang_graz=model['grazingAngle'])
+            model['cff'] = cff
+        _compute_grating_orientation(model)
+    except Exception:
+        pkdlog('\n{}', traceback.format_exc())
         for key in parms_list:
             model[key] = None
     return model
@@ -759,7 +758,7 @@ def _compute_grating_init(model):
 def _compute_grating_orientation(model):
     #if not model['grazingAngle']:
     #    return model
-    parms_list = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy']
+    parms_list = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle']
     try:
         mirror = srwlib.SRWLOptMirPl(
             _size_tang=model['tangentialSize'],

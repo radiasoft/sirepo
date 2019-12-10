@@ -97,6 +97,10 @@
             ["5", "Re(E): Real part of Single-Electron Electric Field"],
             ["6", "Im(E): Imaginary part of Single-Electron Electric Field"]
         ],
+        "computePMGvalue": [
+            ["angGraz", "energy_cff to grazingangle"],
+            ["cff", "energy_grazingangle to cff"]
+        ],
         "CRLMaterial": [
             ["User-defined", "User-defined"],
             ["Al", "Al"],
@@ -587,7 +591,7 @@
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
-            "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
+            "computePMGvalue": ["Compute PMG Values", "computePMGvalue", "angGraz"],
             "heightAmplification": ["Height Amplification Coefficient", "Float", 1]	    
         },
         "initialIntensityReport": {
@@ -1338,6 +1342,7 @@
                     "grooveDensity4"
                 ]],
                 ["Geometry", [
+                    "computePMGvalue",
                     "energyAvg",
                     "cff",
                     "grazingAngle",
