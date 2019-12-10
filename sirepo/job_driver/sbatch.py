@@ -83,7 +83,13 @@ class SbatchDriver(job_driver.DriverBase):
         if 'password' not in msg or 'username' not in msg:
             raise util.SRException(
                 'sbatchLogin',
-                PKDict(reason='invalid-creds', simulationId=msg.simulationId, simulationType=msg.simulationType, report=msg.computeModel),
+                PKDict(
+                    reason='no-creds',
+                    simulationId=msg.simulationId,
+                    simulationType=msg.simulationType,
+                    report=msg.computeModel,
+                    host=cfg.host,
+                ),
             )
         self._agent_starting = True
         try:
@@ -126,7 +132,13 @@ disown
                 # TODO(e-carlin): only some fields from msg
                 raise util.SRException(
                     'sbatchLogin',
-                    PKDict(reason='invalid-creds', simulationId=msg.simulationId, simulationType=msg.simulationType, report=msg.computeModel),
+                    PKDict(
+                        reason='invalid-creds',
+                        simulationId=msg.simulationId,
+                        simulationType=msg.simulationType,
+                        report=msg.computeModel,
+                        host=cfg.host,
+                    ),
                 )
             raise
 

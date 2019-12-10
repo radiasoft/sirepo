@@ -302,7 +302,7 @@
                 }
             },
             "sbatchLogin": {
-                "route": "/sbatch-login/:reason/:simulationId/:simulationType/:report",
+                "route": "/sbatch-login/:reason/:simulationId/:simulationType/:report/:host",
                 "config": {
                   "controller": "SbatchLoginController as sbatchLogin",
                   "templateUrl": "/static/html/sbatch-login.html"

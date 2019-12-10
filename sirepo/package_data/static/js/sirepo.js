@@ -2913,14 +2913,16 @@ SIREPO.app.controller('FindByNameController', function (appState, requestSender,
 
 SIREPO.app.controller('SbatchLoginController', function (requestSender, $route) {
     var self = this;
+    self.host = $route.current.params.host;
+    self.showWarning = $route.current.params.reason === 'invalid-creds';
+    self.warningText = 'Your credentials were invalid. Please try again.';
+    srdbg(self.host)
 
     function handleResponse(data) {
         if (data.state === 'ok') {
             requestSender.globalRedirectRoot();
             return;
         }
-        self.showWarning = true;
-        self.warningText = 'Server reported an error, please contact support@radiasoft.net.';
     }
     self.submit = function() {
         requestSender.sendRequest(
