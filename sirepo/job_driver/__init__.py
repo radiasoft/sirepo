@@ -120,7 +120,7 @@ class DriverBase(PKDict):
 #  twice(?).
         self.ops_pending_send.append(op)
         if not self.websocket and not self._agent_starting:
-            await self._agent_start()
+            await self._agent_start(op.msg)
         self.run_scheduler()
         await op.send_ready.wait()
         if op.do_not_send:

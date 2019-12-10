@@ -89,7 +89,6 @@ class _ComputeJob(PKDict):
     instances = PKDict()
 
     def __init__(self, req, **kwargs):
-        c = req.content
         super().__init__(_ops=[], _sent_run=False, **kwargs)
         self.pksetdefault(db=lambda: self.__db_init(req))
 
@@ -260,6 +259,9 @@ class _ComputeJob(PKDict):
             req,
             jobCmd='sequential_result',
         )
+
+    async def _receive_api_sbatchLogin(self, req):
+        return await self._send_with_single_reply(job.OP_SBATCH_LOGIN, req)
 
     async def _receive_api_simulationFrame(self, req):
         assert self.db.computeJobHash == req.content.computeJobHash, \

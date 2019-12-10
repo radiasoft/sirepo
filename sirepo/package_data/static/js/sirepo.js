@@ -1519,8 +1519,9 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                 if (url.indexOf(k) < 0) {
                     throw new Error(k + ': param not found in route: ' + map[routeName]);
                 }
+
                 url = url.replace(
-                    k,
+                    k[0] == ':' || k[0] == '<' ? k : ':' + k,
                     encodeURIComponent(serializeValue(params[k], k)));
             }
         }
@@ -2910,9 +2911,8 @@ SIREPO.app.controller('FindByNameController', function (appState, requestSender,
         });
 });
 
-SIREPO.app.controller('SbatchLoginController', function (authService, requestSender) {
+SIREPO.app.controller('SbatchLoginController', function (requestSender, $route) {
     var self = this;
-    self.authService = authService;
 
     function handleResponse(data) {
         if (data.state === 'ok') {
@@ -2922,14 +2922,16 @@ SIREPO.app.controller('SbatchLoginController', function (authService, requestSen
         self.showWarning = true;
         self.warningText = 'Server reported an error, please contact support@radiasoft.net.';
     }
-
     self.submit = function() {
         requestSender.sendRequest(
             'sbatchLogin',
             handleResponse,
             {
-                email: self.email,
-                password: self.password,
+                simulationType: $route.current.params.simulationType,
+                simulationId: $route.current.params.simulationId,
+                report: $route.current.params.report,
+                username: "evan",
+                password: "abc123",
             }
         );
     };

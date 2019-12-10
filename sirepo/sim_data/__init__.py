@@ -190,7 +190,7 @@ class SimDataBase(object):
         Args:
             data (dict): simulation
         """
-        raise NotImplemented()
+        raise NotImplementedError()
 
     @classmethod
     def frame_id(cls, data, response, model, index):

@@ -133,7 +133,7 @@ class LocalDriver(job_driver.DriverBase):
         else:
             self._agentExecDir.remove(rec=True, ignore_errors=True)
 
-    async def _agent_start(self):
+    async def _agent_start(self, msg):
         self._agent_starting = True
         stdin = None
         o = None

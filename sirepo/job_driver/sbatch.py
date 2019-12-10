@@ -79,14 +79,19 @@ class SbatchDriver(job_driver.DriverBase):
             )
         )
 
-    async def _agent_start(self):
+    async def _agent_start(self, msg):
+        if 'password' not in msg or 'username' not in msg:
+            raise util.SRException(
+                'sbatchLogin',
+                PKDict(reason='invalid-creds', simulationId=msg.simulationId, simulationType=msg.simulationType, report=msg.computeModel),
+            )
         self._agent_starting = True
         try:
             async with asyncssh.connect(
                 cfg.host,
     #TODO(robnagler) add password management
-                username=self._user,
-                password='foo',
+                username=self._user, # TODO(e-carlin): msg.get('email')
+                password=msg.get('password'),
                 # password=self._user if self._user == 'vagrant' else totp(),
                 known_hosts=_KNOWN_HOSTS,
             ) as c:
@@ -118,8 +123,11 @@ disown
             #TODO(robnagler) try to read the job_agent.log
             )
             if isinstance(e, asyncssh.misc.PermissionDenied):
-                # TODO(e-carlin): proper route and args
-                raise util.SRException('sbatchLogin', None)
+                # TODO(e-carlin): only some fields from msg
+                raise util.SRException(
+                    'sbatchLogin',
+                    PKDict(reason='invalid-creds', simulationId=msg.simulationId, simulationType=msg.simulationType, report=msg.computeModel),
+                )
             raise
 
     def _agent_start_dev(self):
@@ -135,6 +143,17 @@ scancel -u $USER >& /dev/null || true
 (cd ~/src/radiasoft/pykern && git pull -q) || true
 '''
         return res
+
+    def _raise_sbatch_login_srexception(self, reason, msg):
+        raise util.SRException(
+            'sbatchLogin',
+            PKDict(
+                reason=reason,
+                report=msg.computeModel,
+                simulationType=msg.simulationType,
+                # simulationId=msg.simulationId,
+            ),
+        )
 
     def _websocket_free(self):
         self.run_scheduler(exclude_self=True)

@@ -25,6 +25,7 @@ OP_OK = 'ok'
 #: Agent indicates it is ready
 OP_ALIVE = 'alive'
 OP_RUN = 'run'
+OP_SBATCH_LOGIN = 'sbatch_login'
 
 #: path supervisor registers to receive messages from agent
 AGENT_URI = '/job-agent-websocket'

@@ -122,7 +122,7 @@ class DockerDriver(job_driver.DriverBase):
             self.host.slots[self.kind].in_use -= 1
             self.has_slot = False
 
-    async def _agent_start(self):
+    async def _agent_start(self, msg):
         self._agent_starting = True
         try:
             cmd, stdin, env = self._agent_cmd_stdin_env()
