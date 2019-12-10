@@ -911,6 +911,9 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         m = m[frameReport in m ? frameReport : c];
         var f = SIREPO.APP_SCHEMA.frameIdFields;
         f = f[frameReport in f ? frameReport : c];
+        if (! f) {
+            throw new Error('frameReport=' + frameReport + ' missing from schema frameIdFields');
+        }
         // POSIT: same as sirepo.sim_data._FRAME_ID_SEP
         return v.concat(
             f.map(function (a) {return m[a];})
