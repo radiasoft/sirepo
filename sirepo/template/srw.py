@@ -758,7 +758,7 @@ def _compute_PMG_value(model):
 def _compute_grating_orientation(model):
     #if not model['grazingAngle']:
     #    return model
-    parms_list = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle']
+    parms_list = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy']
     try:
         mirror = srwlib.SRWLOptMirPl(
             _size_tang=model['tangentialSize'],
@@ -788,13 +788,20 @@ def _compute_grating_orientation(model):
         orientDataGr = orientData[0]
         tCr = orientDataGr[0]  # Tangential Vector to Grating surface
         nCr = orientDataGr[2]  # Normal Vector to Grating surface
-
         model['nvx'] = nCr[0]
         model['nvy'] = nCr[1]
         model['nvz'] = nCr[2]
         model['tvx'] = tCr[0]
         model['tvy'] = tCr[1]
-        #_SIM_DATA.srw_compute_crystal_grazing_angle(model)
+
+        orientDataGr_pp = orientData[1]
+        tCr_pp = orientDataGr_pp[0]  # Tangential Vector to Grating surface
+        nCr_pp = orientDataGr_pp[2]  # Normal Vector to Grating surface
+        model['outoptvx'] = nCr_pp[0]
+        model['outoptvy'] = nCr_pp[1]
+        model['outoptvz'] = nCr_pp[2]
+        model['outframevx'] = tCr_pp[0]
+        model['outframevy'] = tCr_pp[1]
     except Exception:
         pkdlog('\n{}', traceback.format_exc())
         for key in parms_list:

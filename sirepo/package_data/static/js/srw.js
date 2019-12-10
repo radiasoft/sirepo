@@ -277,7 +277,7 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
     }
 
     function computeGratingOrientation(item) {
-        computeFields('compute_grating_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'rollAngle']);
+        computeFields('compute_grating_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'rollAngle', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy']);
     }
 
     function computeCrystalInit(item) {
@@ -523,11 +523,25 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
             }
             var p = propagation[beamline[i].id];
             if (beamline[i].type != 'watch') {
-                self.propagations.push({
+                if(beamline[i].title == 'Grating'){
+                    p[0][12] = beamline[i].outoptvx
+                    p[0][13] = beamline[i].outoptvy
+                    p[0][14] = beamline[i].outoptvz
+                    p[0][15] = beamline[i].outframevx
+                    p[0][16] = beamline[i].outframevy
+                    self.propagations.push({
                     item: beamline[i],
                     title: beamline[i].title,
                     params: p[0],
                 });
+                }
+                else {
+                    self.propagations.push({
+                    item: beamline[i],
+                    title: beamline[i].title,
+                    params: p[0],
+                });
+                }
             }
             if (i == beamline.length - 1) {
                 break;
