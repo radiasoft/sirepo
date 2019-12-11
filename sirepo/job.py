@@ -69,7 +69,8 @@ SUPERVISOR_SRV_SUBDIR = 'supervisor-srv'
 #: how jobs request files (absolute)
 SUPERVISOR_SRV_ROOT = None
 
-DEFAULT_IP = '127.0.0.1' # use v3.radia.run when testing sbatch
+DEFAULT_IP = '127.0.0.1'
+
 DEFAULT_PORT = 8001
 
 RUNNER_STATUS_FILE = 'status'

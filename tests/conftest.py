@@ -2,6 +2,9 @@
 # https://github.com/pytest-dev/pytest/issues/935
 import pytest
 
+#: Maximum time an individual test case (function) can run
+MAX_CASE_RUN_SECS = 30
+
 
 @pytest.fixture
 def animation_fc(fc):
@@ -58,23 +61,6 @@ def animation_run(fc, sim_name, compute_model, reports, **kwargs):
                     )
 
 
-def email_confirm(fc, resp, display_name=None):
-    import re
-    from pykern.pkcollections import PKDict
-
-    fc.sr_get(resp.url)
-    m = re.search(r'/(\w+)$', resp.url)
-    assert m
-    r = PKDict(token=m.group(1))
-    if display_name:
-        r.displayName = display_name
-    fc.sr_post(
-        resp.url,
-        r,
-        raw_response=True,
-    )
-
-
 @pytest.fixture
 def auth_fc(auth_fc_module):
     # set the sentinel
@@ -106,6 +92,23 @@ def auth_fc_module(request):
     else:
         cfg.SIREPO_AUTH_DEPRECATED_METHODS = 'github'
     return srunit.flask_client(cfg=cfg)
+
+
+def email_confirm(fc, resp, display_name=None):
+    import re
+    from pykern.pkcollections import PKDict
+
+    fc.sr_get(resp.url)
+    m = re.search(r'/(\w+)$', resp.url)
+    assert m
+    r = PKDict(token=m.group(1))
+    if display_name:
+        r.displayName = display_name
+    fc.sr_post(
+        resp.url,
+        r,
+        raw_response=True,
+    )
 
 
 @pytest.fixture(scope='function')
@@ -203,11 +206,20 @@ def pytest_collection_modifyitems(session, config, items):
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_runtest_protocol(item, *args, **kwargs):
+    import signal
     from pykern import pkunit
+
+    def _timeout(*args, **kwargs):
+        pkunit.pkfail('MAX_CASE_RUN_SECS={} exceeded', MAX_CASE_RUN_SECS)
+
     # Seems to be the only way to get the module under test
     m = item._request.module
     is_new = m != pkunit.module_under_test
+
+    if is_new:
+        signal.signal(signal.SIGALRM, _timeout)
     pkunit.module_under_test = m
+    signal.alarm(MAX_CASE_RUN_SECS)
     if is_new:
         from pykern import pkio
         pkio.unchecked_remove(pkunit.work_dir())

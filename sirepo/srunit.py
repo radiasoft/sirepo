@@ -153,6 +153,8 @@ def wrap_in_request(*args, **kwargs):
 
 class _TestClient(flask.testing.FlaskClient):
 
+    SR_SIM_TYPE_DEFAULT = MYAPP
+
     def __init__(self, *args, **kwargs):
         super(_TestClient, self).__init__(*args, **kwargs)
         self.sr_uid = None
@@ -396,7 +398,7 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             object: self
         """
-        self.sr_sim_type = sim_type or self.sr_sim_type or MYAPP
+        self.sr_sim_type = sim_type or self.sr_sim_type or self.SR_SIM_TYPE_DEFAULT
         return self
 
     def __req(self, route_or_uri, params, query, op, raw_response, **kwargs):

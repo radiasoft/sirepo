@@ -20,37 +20,35 @@ import os
 
 def _setup(func):
     def wrapper(*args, **kwargs):
-        import signal
-        from pykern.pkcollections import PKDict
-        import requests.exceptions
-
-        # ensure the test exits after a reasonable time
-        signal.alarm(20)
-        s = None
+        p = None
         try:
-            env, cfg = _env_setup()
-            import sirepo.srunit
-            import sirepo.util
-            import time
-            from pykern.pkdebug import pkdp, pkdlog
+            env, fc = _job_supervisor_setup()
 
-            # initialize server (and sirepo.job)
-            d, fc = sirepo.srunit.sim_data(cfg=cfg, sim_types=None)
-            s = _supervisor_start(env)
+            from pykern.pkdebug import pkdp, pkdlog
+            import sirepo.job
+            import sirepo.srdb
+            import subprocess
+            import time
+            from pykern.pkcollections import PKDict
+
+            p = subprocess.Popen(
+                ['pyenv', 'exec', 'sirepo', 'job_supervisor'],
+                env=env,
+            )
             for i in range(30):
-                r = fc.sr_post('jobSupervisorPing', PKDict(simulationType=fc.sr_sim_type))
+                r = fc.sr_post('jobSupervisorPing', PKDict(simulationType=fc.SR_SIM_TYPE_DEFAULT))
                 if r.state == 'ok':
                     break
                 pkdlog(r)
                 time.sleep(.1)
             else:
                 pkfail('could not connect to {}', sirepo.job.SERVER_PING_ABS_URI)
-            func(fc, d)
+            fc.sr_login_as_guest()
+            func(fc, fc.sr_sim_data())
         finally:
-            if s:
-                s.terminate()
-                s.wait()
-        signal.alarm(0)
+            if p:
+                p.terminate()
+                p.wait()
     return wrapper
 
 
@@ -126,10 +124,9 @@ def test_runSimulation(fc, sim_data):
     assert u'plots' in d
 
 
-def _env_setup():
-    """Check if the py3 environment is set up properly"""
+def _job_supervisor_setup():
+    """"""
     import os
-    import subprocess
     from pykern.pkcollections import PKDict
 
     # DO NOT import pykern or sirepo to avoid pkconfig init too early
@@ -141,14 +138,6 @@ def _env_setup():
         PYTHONUNBUFFERED='1',
         SIREPO_FEATURE_CONFIG_JOB='1',
     )
-    import socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        s.bind(('127.0.0.1', 8001))
-    except Exception:
-        raise AssertionError('unable to bind job_supervisor port=8001, still running')
-    finally:
-        s.close()
     env = dict()
     for k, v in os.environ.items():
         if ('PYENV' in k or 'PYTHON' in k):
@@ -162,6 +151,20 @@ def _env_setup():
         env[k] = v
     env['PYENV_VERSION'] = 'py3'
     env.update(cfg)
+
+    import sirepo.srunit
+
+    fc = sirepo.srunit.flask_client(cfg=cfg)
+    env['SIREPO_SRDB_ROOT'] = str(sirepo.srdb.root())
+    _job_supervisor_check(env)
+    return (env, fc)
+
+
+def _job_supervisor_check(env):
+    import sirepo.job
+    import socket
+    import subprocess
+
     try:
         o = subprocess.check_output(
             ['pyenv', 'exec', 'sirepo', 'job_supervisor', '--help'],
@@ -174,24 +177,12 @@ def _env_setup():
         pkdlog('job_supervisor --help exit={} output={}', e.returncode, e.output)
         raise
     assert 'usage: sirepo job_supervisor' in str(o)
-    return (env, cfg)
-
-
-def _server_up(url):
-    import requests
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        r = requests.head(url)
-        return r.status_code == 405
-    except requests.ConnectionError:
-        pass
-
-
-def _supervisor_start(env):
-    from sirepo import srdb
-    import subprocess
-
-    env['SIREPO_SRDB_ROOT'] = str(srdb.root())
-    return subprocess.Popen(
-        ['pyenv', 'exec', 'sirepo', 'job_supervisor'],
-        env=env,
-    )
+        s.bind((sirepo.job.DEFAULT_IP, int(sirepo.job.DEFAULT_PORT)))
+    except Exception:
+        raise AssertionError(
+            'job_supervisor still running on port={}'.format(sirepo.job.DEFAULT_PORT),
+        )
+    finally:
+        s.close()
