@@ -205,12 +205,12 @@ def init_class():
     cfg = pkconfig.init(
         hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, 'execution hosts'),
         image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
-        parallel=(
+        parallel=dict(
             cores=(1, int, 'cores per parallel job'),
             gigabytes=(1, int, 'gigabytes per parallel job'),
             slots_per_host=(1, int, 'parallel slots per node'),
         ),
-        sequential=(
+        sequential=dict(
             gigabytes=(1, int, 'gigabytes per sequential job'),
             slots_per_host=(1, int, 'sequential slots per node'),
         ),

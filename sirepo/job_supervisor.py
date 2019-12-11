@@ -64,11 +64,11 @@ def init():
     _DB_DIR = sirepo.srdb.root().join(_DB_SUBDIR)
     pykern.pkio.mkdir_parent(_DB_DIR)
     cfg = pkconfig.init(
-        parallel=(
+        parallel=dict(
             max_hours=(1, float, 'maximum run-time for parallel job (except sbatch)'),
         ),
         sbatch_poll_secs=(60, int, 'how often to poll squeue and parallel status'),
-        sequential=(
+        sequential=dict(
             max_hours=(.1, float, 'maximum run-time for sequential job'),
         ),
     )
@@ -93,7 +93,7 @@ class ServerReq(PKDict):
         # no longer contains secret so ok to log
         assert s, \
             'no secret in message: {}'.format(self.content)
-        assert s == sirepo.job.server_secret, \
+        assert s == sirepo.job.cfg.server_secret, \
             'server_secret did not match'.format(self.content)
         self.handler.write(await _ComputeJob.receive(self))
 
