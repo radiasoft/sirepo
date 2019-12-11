@@ -1620,11 +1620,16 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         );
     };
 
-    self.handleSRException = function(data) {
+    self.handleSRException = function(data, errorCallback) {
         var e = data.srException;
         var u = $location.url();
         if (e.routeName == LOGIN_ROUTE_NAME && u != LOGIN_URI) {
             saveCookieRedirect(u);
+        }
+        if (e.params && e.params.isModal && e.routeName.includes('sbatch')) {
+            e.params.errorCallback = errorCallback;
+            $rootScope.$broadcast('showSbatchLoginModal', e.params);
+            return
         }
         self.localRedirect(e.routeName, e.params);
         return;
@@ -1760,7 +1765,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                 data.state = 'error';
             }
             if (data.state == 'srException') {
-                self.handleSRException(data);
+                self.handleSRException(data, errorCallback);
                 return;
             }
             if (! data.error) {
@@ -2909,34 +2914,6 @@ SIREPO.app.controller('FindByNameController', function (appState, requestSender,
                     '<application_mode>': $route.current.params.applicationMode,
                 });
         });
-});
-
-SIREPO.app.controller('SbatchLoginController', function (requestSender, $route) {
-    var self = this;
-    self.host = $route.current.params.host;
-    self.showWarning = $route.current.params.reason === 'invalid-creds';
-    self.warningText = 'Your credentials were invalid. Please try again.';
-    self.showOtp = $route.current.params.host.includes('nersc');
-
-    function handleResponse(data) {
-        if (data.state === 'ok') {
-            requestSender.globalRedirectRoot();
-            return;
-        }
-    }
-    self.submit = function() {
-        requestSender.sendRequest(
-            'sbatchLogin',
-            handleResponse,
-            {
-                password: "abc123", // TODO(e-carlin): $route.current.params.password
-                report: $route.current.params.report,
-                simulationId: $route.current.params.simulationId,
-                simulationType: $route.current.params.simulationType,
-                username: "evan", // TODO(e-carlin): $route.current.params.username
-            }
-        );
-    };
 });
 
 SIREPO.app.controller('ServerUpgradedController', function (errorService, requestSender) {

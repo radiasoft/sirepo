@@ -349,7 +349,7 @@ class _ComputeJob(PKDict):
     async def _send_with_single_reply(self, opName, req, jobCmd=None):
         o = await self._send(opName, req, jobCmd)
         r = await o.reply_ready()
-        assert r.state in job.EXIT_STATUSES
+        assert 'state' not in r or r.state in job.EXIT_STATUSES
         self.destroy_op(o)
         return r
 

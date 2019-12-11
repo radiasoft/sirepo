@@ -142,6 +142,7 @@ scancel -u $USER >& /dev/null || true
         raise util.SRException(
             'sbatchLogin',
             PKDict(
+                isModal=True,
                 reason=reason,
                 simulationId=msg.simulationId,
                 simulationType=msg.simulationType,

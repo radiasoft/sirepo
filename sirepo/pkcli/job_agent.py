@@ -159,6 +159,11 @@ class _Dispatcher(PKDict):
     async def _op_run(self, msg):
         return await self._cmd(msg)
 
+    async def _op_sbatch_login(self, msg):
+        await self.send(
+            self.format_op(msg, job.OP_OK, reply=PKDict(loginSuccess=True)),
+        )
+
     async def _cmd(self, msg):
         c = _Cmd
         if msg.jobRunMode == job.SBATCH:
