@@ -27,8 +27,7 @@ class SbatchDriver(job_driver.DriverBase):
     def __init__(self, req):
         super().__init__(req)
 #TODO(robnagler) read a db for an sbatch_user
-        self._user = cfg.user
-        self._srdb_root = cfg.srdb_root.format(sbatch_user=self._user)
+        self._srdb_root = None
         self.instances[self.uid] = self
 
     @classmethod
@@ -62,6 +61,13 @@ class SbatchDriver(job_driver.DriverBase):
 
     async def send(self, op):
         m = op.msg
+        if self._srdb_root is None:
+            assert not self.websocket, \
+                'expected no agent if _srdb_root not set msg={}'.format(m)
+            if 'username' not in m:
+                self._raise_sbatch_login_srexception('no-creds', m)
+            self._srdb_root = cfg.srdb_root.format(sbatch_user=m.username)
+
         m.runDir = '/'.join((str(self._srdb_root), m.simulationType, m.computeJid))
         if op.opName == job.OP_RUN:
             assert m.sbatchHours
@@ -80,16 +86,13 @@ class SbatchDriver(job_driver.DriverBase):
         )
 
     async def _agent_start(self, msg):
-        if 'password' not in msg or 'username' not in msg:
-            self._raise_sbatch_login_srexception('no-creds', msg)
         self._agent_starting = True
         try:
             async with asyncssh.connect(
                 cfg.host,
     #TODO(robnagler) add password management
-                username=self._user, # TODO(e-carlin): msg.get('email')
-                password=msg.get('password'),
-                # password=self._user if self._user == 'vagrant' else totp(),
+                username=msg.username,
+                password=msg.password + msg.otp if 'nersc' in cfg.host else msg.password,
                 known_hosts=_KNOWN_HOSTS,
             ) as c:
                 script = f'''#!/bin/bash
@@ -120,6 +123,7 @@ disown
             #TODO(robnagler) try to read the job_agent.log
             )
             if isinstance(e, asyncssh.misc.PermissionDenied):
+                self._srdb_root = None
                 self._raise_sbatch_login_srexception('invalid-creds', msg)
             raise
 
@@ -161,7 +165,6 @@ def init_class():
     cfg = pkconfig.init(
         host=pkconfig.Required(str, 'host name for slum controller'),
         host_key=pkconfig.Required(str, 'host key'),
-        user=('vagrant', str, 'temporary user config'),
         cores=(None, int, 'dev cores config'),
         shifter_image=(None, str, 'needed if using Shifter'),
         sirepo_cmd=pkconfig.Required(str, 'how to run sirepo'),
@@ -178,26 +181,3 @@ def _cfg_srdb_root(value):
     assert '{sbatch_user}' in value, \
         'must include {sbatch_user} in string'
     return value
-
-
-import base64
-import hashlib
-import hmac
-import os
-import struct
-import sys
-import time
-
-def totp():
-    return pkio.py_path(os.getenv('A')).read().strip() + _totp(pkio.py_path(os.getenv('B')).read().strip())
-
-def _hotp(secret, counter):
-    secret  = base64.b32decode(secret)
-    counter = struct.pack('>Q', counter)
-    hash   = hmac.new(secret, counter, hashlib.sha1).digest()
-    offset = hash[19] & 0xF
-    return (struct.unpack(">I", hash[offset:offset + 4])[0] & 0x7FFFFFFF) % 1000000
-
-
-def _totp(secret):
-    return '{:06d}'.format(int(_hotp(secret, int(time.time()) // 30)))
