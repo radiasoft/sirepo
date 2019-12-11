@@ -2805,15 +2805,15 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                         '<form>',
                             '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
                             '<div class="form-group">',
-                                '<input type="text" class="form-control" name="username" placeholder="username" data-ng-model="username" required />',
+                                '<input type="text" class="form-control" name="username" placeholder="username" data-ng-model="username" />',
                             '</div>',
                             '<div class="form-group">',
-                                '<input type="password" class="form-control" name="password" placeholder="password" data-ng-model="password" required />',
+                                '<input type="password" class="form-control" name="password" placeholder="password" data-ng-model="password" />',
                             '</div>',
                             '<div class="form-group">',
-                                '<input type="text" class="form-control" name="otp" placeholder="one time password" data-ng-show="showOtp" data-ng-model="otp" required />',
+                                '<input type="text" class="form-control" name="otp" placeholder="one time password" data-ng-show="showOtp" data-ng-model="otp"/>',
                             '</div>',
-                            '<button  data-ng-click="submit()" class="btn btn-primary">Submit</button>',
+                            '<button  data-ng-click="submit()" class="btn btn-primary" data-ng-disabled="submitDisabled()">Submit</button>',
                             ' <button  data-dismiss="modal" class="btn btn-default">Cancel</button>',
                         '<form>',
                     '</div>',
@@ -2823,6 +2823,9 @@ SIREPO.app.directive('sbatchLoginModal', function() {
             '</div>',
         ].join(''),
         controller: function(requestSender, $scope) {
+            $scope.password = "";
+            $scope.username = "";
+            var awaitingSendResponse = false;
             var el = $('#sbatch-login-modal');
             var onHidden = null;
 
@@ -2843,11 +2846,13 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                 if (onHidden === null) {
                     onHidden = data.errorCallback;
                 }
+                awaitingSendResponse = false;
                 $scope.host = data.host
                 $scope.showOtp = data.host.includes('nersc');
                 $scope.showWarning = data.reason === 'invalid-creds';
                 $scope.warningText = 'Your credentials were invalid. Please try again.';
                 $scope.submit = function() {
+                    awaitingSendResponse = true;
                     requestSender.sendRequest(
                         'sbatchLogin',
                         handleResponse,
@@ -2863,6 +2868,10 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                 };
                 el.modal('show');
             });
+
+            $scope.submitDisabled = function() {
+                return $scope.password.length < 1 || $scope.username.length < 1 || awaitingSendResponse;
+            }
         },
     };
 });
