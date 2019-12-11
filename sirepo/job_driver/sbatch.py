@@ -120,7 +120,6 @@ disown
             #TODO(robnagler) try to read the job_agent.log
             )
             if isinstance(e, asyncssh.misc.PermissionDenied):
-                # TODO(e-carlin): only some fields from msg
                 self._raise_sbatch_login_srexception('invalid-creds', msg)
             raise
 

@@ -2792,7 +2792,6 @@ SIREPO.app.directive('3dSliceWidget', function(appState, panelState) {
 SIREPO.app.directive('sbatchLoginModal', function() {
     return {
         restrict: 'A',
-        transclude: true, // TODO(e-carlin): necessary?
         scope: {},
         template: [
             '<div id="sbatch-login-modal" class="modal fade" tabindex="-1" role="dialog">',

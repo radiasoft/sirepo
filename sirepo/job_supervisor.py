@@ -366,11 +366,6 @@ class _Op(PKDict):
         )
         self.msg.update(opId=self.opId, opName=self.opName)
 
-    def set_auth_failed(self):
-        self.do_not_send = True
-        self.reply_put(PKDict(state=job.AUTH_FAILED))
-        self.send_ready.set()
-
     def set_canceled(self):
         self.do_not_send = True
         self.reply_put(PKDict(state=job.CANCELED))
