@@ -131,8 +131,11 @@ def fc(request, fc_module):
 @pytest.fixture(scope='module')
 def fc_module(request):
     import sirepo.srunit
-
+    p = _job_supervisor_start(request)
     yield sirepo.srunit.flask_client()
+    if p:
+        p.terminate()
+        p.wait()
 
 
 @pytest.fixture
@@ -234,6 +237,94 @@ def pytest_configure(config):
         config.option,
         namespace=config.option,
     )
+
+
+def _job_supervisor_check(env):
+    import sirepo.job
+    import socket
+    import subprocess
+
+    try:
+        o = subprocess.check_output(
+            ['pyenv', 'exec', 'sirepo', 'job_supervisor', '--help'],
+            env=env,
+            stderr=subprocess.STDOUT,
+        )
+    except subprocess.CalledProcessError as e:
+        from pykern.pkdebug import pkdlog
+
+        pkdlog('job_supervisor --help exit={} output={}', e.returncode, e.output)
+        raise
+    assert 'usage: sirepo job_supervisor' in str(o)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.bind((sirepo.job.DEFAULT_IP, int(sirepo.job.DEFAULT_PORT)))
+    except Exception:
+        raise AssertionError(
+            'job_supervisor still running on port={}'.format(sirepo.job.DEFAULT_PORT),
+        )
+    finally:
+        s.close()
+
+
+def _job_supervisor_setup():
+    """setup the supervisor"""
+    import os
+    from pykern.pkcollections import PKDict
+
+    env = PKDict()
+    for k, v in os.environ.items():
+        if ('PYENV' in k or 'PYTHON' in k):
+            continue
+        if k in ('PATH', 'LD_LIBRARY_PATH'):
+            v2 = []
+            for x in v.split(':'):
+                if x and 'py2' not in x:
+                    v2.append(x)
+            v = ':'.join(v2)
+        env[k] = v
+    cfg = PKDict(
+        PYKERN_PKDEBUG_WANT_PID_TIME='1',
+        SIREPO_FEATURE_CONFIG_JOB='1',
+    )
+    env.pkupdate(
+        PYENV_VERSION='py3',
+        PYTHONUNBUFFERED='1',
+        **cfg
+    )
+
+    import sirepo.srunit
+
+    fc = sirepo.srunit.flask_client(cfg=cfg)
+    import sirepo.srdb
+    env['SIREPO_SRDB_ROOT'] = str(sirepo.srdb.root())
+    _job_supervisor_check(env)
+    return (env, fc)
+
+
+def _job_supervisor_start(request):
+    import os
+    if 'job_test' == request.fspath.purebasename and not os.environ.get('SIREPO_FEATURE_CONFIG_JOB'):
+        return None
+
+    import sirepo.job
+    import subprocess
+    import time
+    from pykern.pkcollections import PKDict
+
+    env, fc = _job_supervisor_setup()
+    p = subprocess.Popen(
+        ['pyenv', 'exec', 'sirepo', 'job_supervisor'],
+        env=env,
+    )
+    for i in range(30):
+        r = fc.sr_post('jobSupervisorPing', PKDict(simulationType=fc.SR_SIM_TYPE_DEFAULT))
+        if r.state == 'ok':
+            break
+        time.sleep(.1)
+    else:
+        pkfail('could not connect to {}', sirepo.job.SERVER_PING_ABS_URI)
+    return p
 
 
 def _sim_type(request):
