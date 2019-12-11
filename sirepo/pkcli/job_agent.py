@@ -507,7 +507,10 @@ exec srun {s} /bin/bash bash.stdin
                 self.dispatcher.format_op(
                     self.msg,
                     job.OP_ERROR,
-                    reply=PKDict(state=job.ERROR, error=f'sbatch status={s}'),
+                    reply=PKDict(
+                        state=job.ERROR,
+                        error=f'sbatch status={self._status}'
+                    ),
                 )
             )
             self.destroy()
