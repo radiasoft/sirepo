@@ -31,20 +31,21 @@
             ["GaussianNoise", "Gaussian Noise"]
         ],
         "NeuralNetLosses": [
-            ["mean_squared_error", "Mean Squared Error"],
+            ["binary_crossentropy", "Binary Cross-Entropy"],
+            ["categorical_crossentropy", "Categorical Crossentropy"],
+            ["categorical_hinge", "Categorical Hinge"],
+            ["cosine_proximity", "Cosine Proximity"],
+            ["crossentropy", "Crossentropy"],
+            ["hinge", "Hinge"],
+            ["kullback_leibler_diverence", "Kullback Leibler Divergence"],
+            ["logcosh", "log(cosh(x))"],
             ["mean_absolute_error", "Mean Absolute Error"],
             ["mean_absolute_percentage_error", "Mean Absolute Percentage Error"],
+            ["mean_squared_error", "Mean Squared Error"],
             ["mean_squared_logarithmic_error", "Mean Squared Logarithmic Error"],
-            ["squared_hinge", "Squared Hinge"],
-            ["hinge", "Hinge"],
-            ["categorical_hinge", "Categorical Hinge"],
-            ["logcosh", "log(cosh(x))"],
-            ["categorical_crossentropy", "Categorical Crossentropy"],
-            ["sparse_categorical_crossentropy", "Sparse Categorical Crossentropy"],
-            ["crossentropy", "Crossentropy"],
-            ["kullback_leibler_diverence", "Kullback Leibler Divergence"],
             ["poisson", "Poisson"],
-            ["cosine_proximity", "Cosine Proximity"]
+            ["sparse_categorical_crossentropy", "Sparse Categorical Crossentropy"],
+            ["squared_hinge", "Squared Hinge"]
         ],
         "NeuralNetOptimizer": [
             ["sgd", "Stochastic Gradient Descent"],
@@ -56,9 +57,11 @@
             ["nadam", "Nesterov Adam"]
         ],
         "Scaler": [
-            ["RobustScaler", "Robust Scaler"],
+            ["MaxAbsScaler", "Max-Abs Scaler"],
             ["MinMaxScaler", "Min-Max Scaler"],
-            ["none", "None"]
+            ["RobustScaler", "Robust Scaler"],
+            ["StandardScaler", "Standard Scaler"],
+            ["None", "None"]
         ],
         "SplitMethod": [
             ["random", "Random"],
@@ -90,24 +93,34 @@
     },
     "frameIdFields": {
         "epochAnimation": [],
-        "fitAnimation0": [],
-        "fitAnimation1": [],
-        "fitAnimation2": [],
-        "fitAnimation3": [],
-        "fitAnimation4": [],
-        "fitAnimation5": [],
-        "fitAnimation6": [],
-        "fitAnimation7": [],
-        "fitAnimation8": [],
-        "fitAnimation9": []
+        "fitAnimation0": ["columnNumber"],
+        "fitAnimation1": ["columnNumber"],
+        "fitAnimation2": ["columnNumber"],
+        "fitAnimation3": ["columnNumber"],
+        "fitAnimation4": ["columnNumber"],
+        "fitAnimation5": ["columnNumber"],
+        "fitAnimation6": ["columnNumber"],
+        "fitAnimation7": ["columnNumber"],
+        "fitAnimation8": ["columnNumber"],
+        "fitAnimation9": ["columnNumber"],
+        "fitAnimation10": ["columnNumber"],
+        "fitAnimation11": ["columnNumber"],
+        "fitAnimation12": ["columnNumber"],
+        "fitAnimation13": ["columnNumber"],
+        "fitAnimation14": ["columnNumber"],
+        "fitAnimation15": ["columnNumber"],
+        "fitAnimation16": ["columnNumber"],
+        "fitAnimation17": ["columnNumber"],
+        "fitAnimation18": ["columnNumber"],
+        "fitAnimation19": ["columnNumber"]
     },
     "model": {
         "epochAnimation": {},
         "files": {
             "inputs": ["Inputs File", "InputFile"],
             "outputs": ["Outputs File", "InputFile"],
-            "scaler": ["Scaler", "Scaler", "RobustScaler"],
-            "columnCount": ["Column Count", "Integer", 0]
+            "inputsScaler": ["Inputs Scaler", "Scaler", "RobustScaler"],
+            "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"]
         },
         "fileColumnReport": {
             "columnNumber": ["Column Number", "Integer", 0]
@@ -154,7 +167,8 @@
             "basic": [
                 "inputs",
                 "outputs",
-                "scaler"
+                "inputsScaler",
+                "outputsScaler"
             ],
             "advanced": []
         },

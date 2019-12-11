@@ -114,6 +114,25 @@ SIREPO.app.controller('MLController', function (appState, frameCache, persistent
 SIREPO.app.controller('VisualizationController', function (appState, requestSender, rcsconService, $scope) {
     var self = this;
 
+    function createReports() {
+        self.reports = [];
+        var files = appState.applicationState().files;
+        for (var i = 0; i < files.columnCount; i++) {
+            var modelKey = 'fileColumnReport' + i;
+            if (! appState.models[modelKey]) {
+                appState.models[modelKey] = {
+                    columnNumber: i,
+                };
+                appState.saveQuietly(modelKey);
+            }
+            var title = 'Input ' + (i + 1);
+            if (i >= files.inputsCount) {
+                title = 'Output ' + (i - files.inputsCount + 1);
+            }
+            self.reports.push(rcsconService.reportInfo(modelKey, title));
+        }
+    }
+
     function processColumnCount() {
         var files = appState.models.files;
         if (! files.inputs || ! files.outputs) {
@@ -135,23 +154,9 @@ SIREPO.app.controller('VisualizationController', function (appState, requestSend
     }
 
     appState.whenModelsLoaded($scope, function() {
-        self.reports = [];
-        var files = appState.applicationState().files;
-        for (var i = 0; i < files.columnCount; i++) {
-            var modelKey = 'fileColumnReport' + i;
-            if (! appState.models[modelKey]) {
-                appState.models[modelKey] = {
-                    columnNumber: i,
-                };
-                appState.saveQuietly(modelKey);
-            }
-            var title = 'Input ' + (i + 1);
-            if (i >= files.inputsCount) {
-                title = 'Output ' + (i - files.inputsCount + 1);
-            }
-            self.reports.push(rcsconService.reportInfo(modelKey, title));
-        }
+        $scope.$on('files.changed', createReports);
         appState.watchModelFields($scope, ['files.inputs', 'files.outputs'], processColumnCount);
+        createReports();
     });
 });
 

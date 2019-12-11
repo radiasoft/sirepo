@@ -32,7 +32,7 @@ def background_percent_complete(report, run_dir, is_running):
     if csv_file.exists():
         line = _read_last_line(csv_file)
         m = re.search(r'^(\d+)', line)
-        if m:
+        if m and int(m.group(1)) > 0:
             data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
             max_frame = data.models.neuralNet.epochs
             res.frameCount = int(m.group(1)) + 1
@@ -126,7 +126,7 @@ def _epoch_animation(frame_args):
 
 
 def _fit_animation(frame_args):
-    idx = frame_args.sim_in.models[frame_args.frameReport].columnNumber
+    idx = int(frame_args.columnNumber)
     header, v = _read_file(frame_args.run_dir, _OUTPUT_FILE.predictOutputFile)
     _, y = _read_file(frame_args.run_dir, _OUTPUT_FILE.testOutputFile)
     return _plot_info(
@@ -188,8 +188,11 @@ def _read_csv_header_columns(path):
 
 def _read_file(run_dir, filename):
     path = str(run_dir.join(filename))
-    return _read_csv_header_columns(path), \
-        np.genfromtxt(path, delimiter=',', skip_header=1)
+    v = np.genfromtxt(path, delimiter=',', skip_header=1)
+    if len(v.shape) == 1:
+        v.shape = (v.shape[0], 1)
+    return _read_csv_header_columns(path), v
+
 
 
 def _read_last_line(path):
