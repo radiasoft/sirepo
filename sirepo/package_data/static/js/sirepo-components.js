@@ -2397,6 +2397,7 @@ SIREPO.app.directive('commonFooter', function() {
             '<div data-delete-simulation-modal="nav"></div>',
             '<div data-reset-simulation-modal="nav"></div>',
             '<div data-modal-editor="" view-name="simulation"></div>',
+            '<div data-sbatch-login-modal=""></div>',
         ].join(''),
     };
 });
@@ -2784,6 +2785,85 @@ SIREPO.app.directive('3dSliceWidget', function(appState, panelState) {
                 return (val || 0) + (offsets.y || 0);
             };
 
+        },
+    };
+});
+
+SIREPO.app.directive('sbatchLoginModal', function() {
+    return {
+        restrict: 'A',
+        transclude: true, // TODO(e-carlin): necessary?
+        scope: {},
+        template: [
+            '<div id="sbatch-login-modal" class="modal fade" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog" role="document">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-warning">',
+                    '<span class="lead modal-title text-info">Login to {{ host }}</span>',
+                    '<button  type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '</div>',
+                    '<div class="modal-body">',
+                        '<form>',
+                            '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
+                            '<div class="form-group">',
+                                '<input type="text" class="form-control" name="username" placeholder="username" data-ng-model="username" required />',
+                            '</div>',
+                            '<div class="form-group">',
+                                '<input type="password" class="form-control" name="password" placeholder="password" data-ng-model="password" required />',
+                            '</div>',
+                            '<div class="form-group">',
+                                '<input type="text" class="form-control" name="otp" placeholder="one time password" data-ng-show="showOtp" data-ng-model="otp" required />',
+                            '</div>',
+                            '<button  data-ng-click="submit()" class="btn btn-primary">Submit</button>',
+                            ' <button  data-dismiss="modal" class="btn btn-default">Cancel</button>',
+                        '<form>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function(requestSender, $scope) {
+            var el = $('#sbatch-login-modal');
+            var onHidden = null;
+
+            el.on('hidden.bs.modal', function() {
+                onHidden({'state': 'error', 'error': 'Please try agian.'});
+                onHidden = null
+                $scope.$apply();
+            });
+
+            function handleResponse(data) {
+                el.modal('hide');
+            }
+
+            $scope.$on('showSbatchLoginModal', function(e, data) {
+                // When a user enters invalid login creds 'showSbatchLoginModal' is
+                // broadcast again. onHidden keeps a references to the
+                // errorCallback of only the first broadcast's errorCallback
+                if (onHidden === null) {
+                    onHidden = data.errorCallback;
+                }
+                $scope.host = data.host
+                $scope.showOtp = data.host.includes('nersc');
+                $scope.showWarning = data.reason === 'invalid-creds';
+                $scope.warningText = 'Your credentials were invalid. Please try again.';
+                $scope.submit = function() {
+                    requestSender.sendRequest(
+                        'sbatchLogin',
+                        handleResponse,
+                        {
+                            otp: $scope.otp,
+                            password: $scope.password,
+                            report: data.report,
+                            simulationId: data.simulationId,
+                            simulationType: data.simulationType,
+                            username: $scope.username,
+                        }
+                    );
+                };
+                el.modal('show');
+            });
         },
     };
 });
