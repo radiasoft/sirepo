@@ -101,6 +101,7 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
     fc = flask_client(cfg, **kwargs)
     try:
         from pykern import pkunit
+        from pykern import pkcollections
 
         if before_request:
             before_request(fc)
@@ -110,17 +111,24 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
             PKDict(op=op, want_cookie=want_cookie, want_user=want_user),
         )
         from sirepo import uri_router
-        resp = fc.get(
+        r = fc.get(
             uri_router.srunit_uri,
             headers=headers,
         )
-        pkunit.pkeq(200, resp.status_code, 'FAIL: resp={}', resp.status)
+        pkunit.pkeq(200, r.status_code, 'FAIL: status={}', r.status)
+        if r.mimetype == 'text/html':
+            m = _JAVASCRIPT_REDIRECT_RE.search(r.data)
+            if m:
+                pkunit.pkfail('redirect={}', m.group(1))
+            pkunit.pkfail('other html response={}', r.data)
+        d = pkcollections.json_load_any(r.data)
+        pkunit.pkeq('ok', d.get('state'), 'FAIL: data={}', d)
     finally:
         try:
             delattr(server._app, server.SRUNIT_TEST_IN_REQUEST)
         except AttributeError:
             pass
-    return resp
+    return r
 
 
 def wrap_in_request(*args, **kwargs):

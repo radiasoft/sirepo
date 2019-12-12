@@ -131,11 +131,13 @@ def fc(request, fc_module):
 @pytest.fixture(scope='module')
 def fc_module(request):
     import sirepo.srunit
-    p = _job_supervisor_start(request)
-    yield sirepo.srunit.flask_client()
+    p, fc = _job_supervisor_start(request)
     if p:
+        yield fc
         p.terminate()
         p.wait()
+    else:
+        yield sirepo.srunit.flask_client()
 
 
 @pytest.fixture
@@ -304,8 +306,8 @@ def _job_supervisor_setup():
 
 def _job_supervisor_start(request):
     import os
-    if 'job_test' == request.fspath.purebasename and not os.environ.get('SIREPO_FEATURE_CONFIG_JOB'):
-        return None
+    if 'job_test' != request.fspath.purebasename and not os.environ.get('SIREPO_FEATURE_CONFIG_JOB'):
+        return None, None
 
     import sirepo.job
     import subprocess
@@ -324,7 +326,7 @@ def _job_supervisor_start(request):
         time.sleep(.1)
     else:
         pkfail('could not connect to {}', sirepo.job.SERVER_PING_ABS_URI)
-    return p
+    return p, fc
 
 
 def _sim_type(request):

@@ -496,12 +496,12 @@ def api_srUnit():
     v = getattr(flask.current_app, SRUNIT_TEST_IN_REQUEST)
     if v.want_user:
         import sirepo.auth
-        sirepo.auth.init_mock()
+        sirepo.auth.init_mock(uid=None)
     if v.want_cookie:
         import sirepo.cookie
         sirepo.cookie.set_sentinel()
     v.op()
-    return ''
+    return http_reply.gen_json_ok()
 
 
 @api_perm.allow_visitor
