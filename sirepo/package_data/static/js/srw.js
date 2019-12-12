@@ -654,8 +654,8 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         ['mask', 'sample'].forEach(function(m) {
             beamlineService.watchBeamlineField($scope, m, ['method', 'material'], computeDeltaAttenCharacteristics);
         });
-        beamlineService.watchBeamlineField($scope, 'grating', ['energyAvg', 'cff', 'rollAngle', 'grazingAngle'], computePGMValue, true);
-        beamlineService.watchBeamlineField($scope, 'grating', ['grazingAngle'], computeGratingOrientation, true);
+        beamlineService.watchBeamlineField($scope, 'grating', ['energyAvg', 'cff', 'grazingAngle'], computePGMValue, true);
+        beamlineService.watchBeamlineField($scope, 'grating', ['grazingAngle', 'rollAngle'], computeGratingOrientation, true);
         beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energyAvg', 'h', 'k', 'l'], computeCrystalInit, true);
         beamlineService.watchBeamlineField($scope, 'crystal', ['energyAvg', 'rollAngle', 'useCase'], computeCrystalOrientation, true);
         beamlineService.watchBeamlineField($scope, 'sample', ['cropArea', 'tileImage', 'rotateAngle'], updateSampleFields);
