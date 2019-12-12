@@ -272,12 +272,12 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
             });
     }
 
-    function computePMGValue(item) {
-        computeFields('compute_PMG_value', item, ['energyAvg', 'cff', 'grazingAngle']);
+    function computePGMValue(item) {
+        computeFields('compute_PGM_value', item, ['energyAvg', 'cff', 'grazingAngle']);
     }
 
     function computeGratingOrientation(item) {
-        computeFields('compute_grating_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'rollAngle', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy']);
+        computeFields('compute_grating_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy']);
     }
 
     function computeCrystalInit(item) {
@@ -287,7 +287,7 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
     }
 
     function computeCrystalOrientation(item) {
-        computeFields('compute_crystal_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle']);
+        computeFields('compute_crystal_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy']);
     }
 
     function computeDeltaAttenCharacteristics(item) {
@@ -654,10 +654,10 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         ['mask', 'sample'].forEach(function(m) {
             beamlineService.watchBeamlineField($scope, m, ['method', 'material'], computeDeltaAttenCharacteristics);
         });
-        beamlineService.watchBeamlineField($scope, 'grating', ['energyAvg', 'cff', 'rollAngle', 'grazingAngle', 'computePMGvalue'], computePMGValue, true);
-        beamlineService.watchBeamlineField($scope, 'grating', ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle'], computeGratingOrientation, true);
+        beamlineService.watchBeamlineField($scope, 'grating', ['energyAvg', 'cff', 'rollAngle', 'grazingAngle'], computePGMValue, true);
+        beamlineService.watchBeamlineField($scope, 'grating', ['grazingAngle'], computeGratingOrientation, true);
         beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energyAvg', 'h', 'k', 'l'], computeCrystalInit, true);
-        beamlineService.watchBeamlineField($scope, 'crystal', ['diffractionAngle', 'dSpacing', 'asymmetryAngle', 'psi0r', 'psi0i', 'rotationAngle'], computeCrystalOrientation, true);
+        beamlineService.watchBeamlineField($scope, 'crystal', ['energyAvg', 'rollAngle', 'useCase'], computeCrystalOrientation, true);
         beamlineService.watchBeamlineField($scope, 'sample', ['cropArea', 'tileImage', 'rotateAngle'], updateSampleFields);
         $scope.$on('beamline.changed', syncFirstElementPositionToDistanceFromSource);
         $scope.$on('simulation.changed', function() {
