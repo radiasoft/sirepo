@@ -420,20 +420,17 @@ class _SbatchRun(_SbatchCmd):
         await c._await_exit()
 
     def _sbatch_script(self):
-        pkdp('eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')
         i = self.msg.shifterImage
         s = o = ''
         if i:
 #TODO(robnagler) provide via sbatch driver
-# TODO(e-carlin): is self.msg.sbatchHours a string or a float? Need float for > comparison
-# TODO(e-carlin): move qos back below --contraint
             o = f'''#SBATCH --image={i}
 #SBATCH --constraint=haswell
+#SBATCH --partition={"debug" if self.msg.sbatchHours < 0.5 else "regular"}
 #SBATCH --tasks-per-node=32'''
             s = '--cpu-bind=cores shifter'
         f = self.run_dir.join(self.jid + '.sbatch')
         f.write(f'''#!/bin/bash
-#SBATCH --qos={"debug" if self.msg.sbatchHours < 0.5 else "regular"}
 #SBATCH --error={template_common.RUN_LOG}
 #SBATCH --ntasks={self.msg.sbatchCores}
 #SBATCH --output={template_common.RUN_LOG}
@@ -505,7 +502,10 @@ exec srun {s} /bin/bash bash.stdin
                 self.dispatcher.format_op(
                     self.msg,
                     job.OP_ERROR,
-                    reply=PKDict(state=job.ERROR, error=f'sbatch status={s}'),
+                    reply=PKDict(
+                        state=job.ERROR,
+                        error=f'sbatch status={self._status}'
+                    ),
                 )
             )
             self.destroy()
