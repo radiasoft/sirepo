@@ -2802,7 +2802,8 @@ SIREPO.app.directive('sbatchCoresAndHours', function(appState) {
         controller: function($scope) {
 
             $scope.showCoresAndHours = function() {
-                return appState.models[$scope.simState.model].jobRunMode === 'sbatch';
+                var m = appState.models[$scope.simState.model];
+                return m && m.jobRunMode === 'sbatch';
             }
         }
     }
