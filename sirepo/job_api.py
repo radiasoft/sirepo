@@ -104,8 +104,6 @@ def api_runCancel():
 def api_runSimulation():
     t = None
     try:
-#TODO(robnagler) libUri only necessary if job_agent doesn't have access to NFS
-#   this could be computed from jobRunMode (or configured for development testing)
         r = _request_content(PKDict(fixup_old_data=True))
         if r.jobRunMode == sirepo.job.SBATCH:
             d = simulation_db.simulation_lib_dir(r.simulationType)
@@ -117,8 +115,8 @@ def api_runSimulation():
         return _request(_request_content=r)
     finally:
         if t:
-            pass
-            # pykern.pkio.unchecked_remove(t)
+            pkdp('rrrrrrrrrrrrrrrrrrrrrrrrremoving')
+            pykern.pkio.unchecked_remove(t)
 
 
 @api_perm.require_user
