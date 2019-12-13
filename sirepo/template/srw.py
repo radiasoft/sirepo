@@ -986,7 +986,8 @@ def _fix_file_header(filename):
     pkio.write_text(filename, ''.join(rows))
 
 
-def _generate_beamline_optics(report, models, last_id):
+def _generate_beamline_optics(report, data, last_id):
+    models = data['models']
     if not _SIM_DATA.srw_is_beamline_report(report):
         return '    pass', ''
     has_beamline_elements = len(models.beamline) > 0
@@ -1033,7 +1034,7 @@ def _generate_beamline_optics(report, models, last_id):
                 ))
                 names.append(items[-1].name)
             if 'heightProfileFile' in item:
-                item.heightProfileDimension = _height_profile_dimension(item)
+                item.heightProfileDimension = _height_profile_dimension(item, data)
             items.append(item)
             names.append(name)
         if int(last_id) == int(item.id):
@@ -1188,7 +1189,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         v.python_file = run_dir.join('user_python.py')
         v.python_file.write(data.models.backgroundImport.python)
         return template_common.render_jinja(SIM_TYPE, v, 'import.py')
-    v['beamlineOptics'], v['beamlineOpticsParameters'] = _generate_beamline_optics(report, data['models'], last_id)
+    v['beamlineOptics'], v['beamlineOpticsParameters'] = _generate_beamline_optics(report, data, last_id)
 
     # und_g and und_ph API units are mm rather than m
     v['tabulatedUndulator_gap'] *= 1000
@@ -1293,13 +1294,13 @@ def _get_first_element_position(data):
     return template_common.DEFAULT_INTENSITY_DISTANCE
 
 
-def _height_profile_dimension(item):
+def _height_profile_dimension(item, data):
     """Find the dimension of the provided height profile .dat file.
     1D files have 2 columns, 2D - 8 columns.
     """
     dimension = 0
     if item['heightProfileFile'] and item['heightProfileFile'] != 'None':
-        with _SIM_DATA.lib_file_abspath(item['heightProfileFile']).open('r') as f:
+        with _SIM_DATA.lib_file_abspath(item['heightProfileFile'], data=data).open('r') as f:
             header = f.readline().strip().split()
             dimension = 1 if len(header) == 2 else 2
     return dimension

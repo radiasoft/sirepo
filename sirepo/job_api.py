@@ -112,13 +112,8 @@ def api_runSimulation():
             t = sirepo.job.LIB_FILE_ROOT.join(sirepo.job.unique_key())
             t.mksymlinkto(d, absolute=True)
             r.libFileUri = sirepo.job.LIB_FILE_ABS_URI + t.basename + '/'
-            r.libFileList = [x.basename for x in d.listdir()]
-            pkdp('tttttttttttttttttttttt')
-            pkdp(t)
-            pkdp(d)
-            pkdp(r.libFileUri)
-            pkdp(r.libFileList)
-            pkdp('tttttttttttttttttttttt')
+            # libfilelist must be on data
+            r.data.libFileList = [x.basename for x in d.listdir()]
         return _request(_request_content=r)
     finally:
         if t:

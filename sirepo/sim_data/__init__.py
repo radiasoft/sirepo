@@ -572,18 +572,14 @@ class SimDataBase(object):
 
         remote = cfg.lib_file_uri
         if remote:
-            pkdp('iiiiiiiiiiiiiiiiiiii in remote {}', data)
             x = data.libFileList  # TODO(e-carlin): put libFilelist on data. In job_api ?
             if basename in x:
                 t = pkio.py_path(basename)
                 r = requests.get(cfg.lib_file_uri + '/' + basename)
                 r.raise_for_status()
-                pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrr')
-                pkdp(r)
-                pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrr')
                 assert 0  # TODO(e-carlin): save file to current dir
                 return t
-            d = cls.lib_file_resource_dir(),
+            d = cls.lib_file_resource_dir()
             # TODO(e-carlin): repeated below
             p = d.join(basename)
             if p.check(file=True):
@@ -597,41 +593,6 @@ class SimDataBase(object):
                 if p.check(file=True):
                     return p
         return None
-
-
-
-        # remote = cfg.lib_file_uri
-        # # TODO(e-carlin): remove hack
-        # if remote:
-        #     import sirepo.auth
-        #     from pykern import pkio
-        #     uid = sirepo.auth.logged_in_user()
-        #     d = sirepo.srdb.root().join('user')
-        #     d = d.join(uid)
-        #     if not d.check():
-        #         pkio.mkdir_parent(d)
-        # for d in (
-        #     simulation_db.simulation_lib_dir(cls.sim_type()),
-        #     cls.lib_file_resource_dir(),
-        # ):
-        #     p = d.join(basename)
-        #     if p.check(file=True):
-        #         return p
-        #     if remote:
-        #         path = remote + '/' + basename
-        #         pkdp('xxxxxxxxxxxxxxxxxxxxx {}', path)
-        #         r = requests.get(path)
-        #         pkdp('iiiiiiiiiiiiiiiiiiiiiiiiiii')
-        #         pkdp(r)
-        #         pkdp('iiiiiiiiiiiiiiiiiiiiiiiiiii')
-        #         if r.status_code != 'not-found':
-        #             r.raise_for_status()
-        #             pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
-        #             pkdp(r.content)
-        #             pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
-        #             # TODO(e-carlin): write file and return p
-        #             assert 0
-        # return None
 
     @classmethod
     def _lib_file_list(cls, pat, want_user_lib_dir=True):
