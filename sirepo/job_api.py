@@ -102,22 +102,11 @@ def api_runCancel():
 
 @api_perm.require_user
 def api_runSimulation():
-    t = None
-    try:
-        r = _request_content(PKDict(fixup_old_data=True))
-        if r.jobRunMode == sirepo.job.SBATCH:
-            d = simulation_db.simulation_lib_dir(r.simulationType)
-            t = sirepo.job.LIB_FILE_ROOT.join(sirepo.job.unique_key())
-            t.mksymlinkto(d, absolute=True)
-            r.libFileUri = sirepo.job.LIB_FILE_ABS_URI + t.basename + '/'
-            # libfilelist must be on data
-            r.data.libFileList = [x.basename for x in d.listdir()]
-        return _request(_request_content=r)
-    finally:
-        if t:
-            pkdp('rrrrrrrrrrrrrrrrrrrrrrrrremoving')
-            pykern.pkio.unchecked_remove(t)
-
+    r = _request_content(PKDict(fixup_old_data=True))
+    # TODO(e-carlin): This should really be done in job_supervisor._lib_dir_symlink()
+    # but that is outside of the Flask context so it won't work
+    r.simulation_lib_dir = sirepo.simulation_db.simulation_lib_dir(r.simulationType)
+    return _request(_request_content=r)
 
 @api_perm.require_user
 def api_runStatus():

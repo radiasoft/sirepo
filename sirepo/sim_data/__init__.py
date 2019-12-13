@@ -574,7 +574,7 @@ class SimDataBase(object):
         if cfg.lib_file_uri:
             if basename in data.libFileList:
                 p = pkio.py_path(basename)
-                r = requests.get(cfg.lib_file_uri + '/' + basename)
+                r = requests.get(cfg.lib_file_uri + basename)
                 r.raise_for_status()
                 p.write(r.content)
                 return p

@@ -56,6 +56,9 @@ class DriverBase(PKDict):
             **self
         )
 
+    def has_remote_agent(self):
+        return False
+
     def cancel_op(self, op):
         for o in self.ops_pending_send:
             if o == op:
@@ -70,7 +73,10 @@ class DriverBase(PKDict):
 #rjn there should only be one op
                 return
 #rjn is this a valid assumption?
-        raise AssertionError('could not find opId={} for agentId={}'.format(o.opId, self._agentId))
+        raise AssertionError('could not find opId={} for agentId={}'.format(
+            op.opId,
+            self._agentId),
+        )
 
     def destroy_op(self, op):
         assert op not in self.ops_pending_send

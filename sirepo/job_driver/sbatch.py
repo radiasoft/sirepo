@@ -28,12 +28,14 @@ class SbatchDriver(job_driver.DriverBase):
 
     def __init__(self, req):
         super().__init__(req)
-        m = req.content
 #TODO(robnagler) read a db for an sbatch_user
         self._user = cfg.user
         self._srdb_root = cfg.srdb_root.format(sbatch_user=self._user)
         self.instances[self.uid] = self
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
+
+    def has_remote_agent(self):
+        return True
 
     @classmethod
     async def get_instance(cls, req):

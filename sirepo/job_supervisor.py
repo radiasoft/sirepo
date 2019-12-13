@@ -11,8 +11,10 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from sirepo import job
 from sirepo import job_driver
+import contextlib
 import os
 import pykern.pkio
+import sirepo.simulation_db
 import sirepo.srdb
 import sirepo.util
 import time
@@ -93,6 +95,7 @@ class _ComputeJob(PKDict):
         self.pksetdefault(db=lambda: self.__db_init(req))
 
     def destroy_op(self, op):
+        pkdlog('destroy_op={}', op.opId)
         self._ops.remove(op)
         op.destroy()
 
@@ -260,22 +263,7 @@ class _ComputeJob(PKDict):
             'get_simulation_frame'
         )
 
-    async def _run(self, req):
-        if self.db.computeJobHash != req.content.computeJobHash:
-            pkdlog(
-                'invalid computeJobHash self={} req={}',
-                self.db.computeJobHash,
-                req.content.computeJobHash
-            )
 #TODO(robnagler) ensure the request is replied to
-            self.destroy_op(op)
-            return
-        o = await self._send(
-            job.OP_RUN,
-            req,
-            jobCmd='compute',
-            nextRequestSeconds=self.db.nextRequestSeconds,
-        )
         # TODO(e-carlin): XXX bug. If cancel comes in then self.db.status = canceled
         # This overwrites it, but there is a state=canceled message waiting for
         # us in the reply_ready q. We then await o.reply_ready() and get the cancel
@@ -284,64 +272,98 @@ class _ComputeJob(PKDict):
         # in the q
 #TODO(robnagler) need to assert that this is still our job
 #TODO(robnagler) this is a general problem: after await: check ownership
-        self._sent_run = True
-        while True:
-            r = await o.reply_ready()
-            if r.state == job.CANCELED:
-                break
-            self.db.status = r.state
-            if self.db.status == job.ERROR:
-                self.db.error = r.get('error', '<unknown error>')
-            if 'computeJobStart' in r:
-                self.db.computeJobStart = r.computeJobStart
-            if 'parallelStatus' in r:
-#rjn i removed the assert, because the parallelStatus.update will do the trick
-                self.db.parallelStatus.update(r.parallelStatus)
-                self.db.lastUpdateTime = r.parallelStatus.lastUpdateTime
-            else:
-                # sequential jobs don't send this
-                self.db.lastUpdateTime = int(time.time())
-                #TODO(robnagler) will need final frame count
-            self.__db_write()
-            # TODO(e-carlin): What if this never comes?
-            if r.state in job.EXIT_STATUSES:
-                break
-        pkdlog('destroy_op={}', o.opId)
-        self.destroy_op(o)
-
-    async def _send(self, opName, req, jobCmd, **kwargs):
-        # TODO(e-carlin): proper error handling
-        try:
-#TODO(robnagler) kind should be set earlier in the queuing process.
-            req.kind = job.PARALLEL if self.db.isParallel and opName != job.OP_ANALYSIS \
-                else job.SEQUENTIAL
-            req.simulationType = self.db.simulationType
-            # TODO(e-carlin): We need to be able to cancel requests waiting in this
-            # state. Currently we assume that all requests get a driver and the
-            # code does not block.
-            d = await job_driver.get_instance(req, self.db.jobRunMode)
-            o = _Op(
-                driver=d,
-                msg=PKDict(
-                    req.content
-                ).pkupdate(
-                    jobCmd=jobCmd,
-                    **kwargs,
-                ).pksetdefault(jobRunMode=self.db.jobRunMode),
-                opName=opName,
+    async def _run(self, req):
+        if self.db.computeJobHash != req.content.computeJobHash:
+            pkdlog(
+                'invalid computeJobHash self={} req={}',
+                self.db.computeJobHash,
+                req.content.computeJobHash
             )
-            self._ops.append(o)
-            await d.send(o)
-            return o
+            return
+
+        try:
+            async with self._create_op(
+                    job.OP_RUN,
+                    req,
+                    jobCmd='compute',
+                    nextRequestSeconds=self.db.nextRequestSeconds,
+            ) as o:
+                with self._lib_dir_symlink(o):
+                    await o.send()
+                    self._sent_run = True
+                    while True:
+                        r = await o.reply_ready()
+                        if r.state == job.CANCELED:
+                            break
+                        self.db.status = r.state
+                        if self.db.status == job.ERROR:
+                            self.db.error = r.get('error', '<unknown error>')
+                        if 'computeJobStart' in r:
+                            self.db.computeJobStart = r.computeJobStart
+                        if 'parallelStatus' in r:
+                            self.db.parallelStatus.update(r.parallelStatus)
+                            self.db.lastUpdateTime = r.parallelStatus.lastUpdateTime
+                        else:
+                            # sequential jobs don't send this
+                            self.db.lastUpdateTime = int(time.time())
+                            #TODO(robnagler) will need final frame count
+                        self.__db_write()
+                        if r.state in job.EXIT_STATUSES:
+                            break
         except Exception as e:
             pkdlog('error={} stack={}', e, pkdexc())
+            self.db.status = job.ERROR
+            self.db.error = e
+
+    @contextlib.asynccontextmanager
+    async def _create_op(self, opName, req, jobCmd, **kwargs):
+#TODO(robnagler) kind should be set earlier in the queuing process.
+        req.kind = job.PARALLEL if self.db.isParallel and opName != job.OP_ANALYSIS \
+            else job.SEQUENTIAL
+        req.simulationType = self.db.simulationType
+        # TODO(e-carlin): We need to be able to cancel requests waiting in this
+        # state. Currently we assume that all requests get a driver and the
+        # code does not block.
+        d = await job_driver.get_instance(req, self.db.jobRunMode)
+        o = _Op(
+            driver=d,
+            msg=PKDict(
+                req.content
+            ).pkupdate(
+                jobCmd=jobCmd,
+                **kwargs,
+            ).pksetdefault(jobRunMode=self.db.jobRunMode),
+            opName=opName,
+        )
+        self._ops.append(o)
+        yield o
+        self.destroy_op(o)
+
+    @contextlib.contextmanager
+    def _lib_dir_symlink(self, op):
+        if op.driver.has_remote_agent():
+            m = op.msg
+            d = pykern.pkio.py_path(m.simulation_lib_dir)
+            op.lib_dir_symlink = sirepo.job.LIB_FILE_ROOT.join(
+                sirepo.job.unique_key()
+            )
+            op.lib_dir_symlink.mksymlinkto(d, absolute=True)
+            m.pkupdate(
+                libFileUri=sirepo.job.LIB_FILE_ABS_URI +
+                op.lib_dir_symlink.basename + '/',
+                libFileList=[f.basename for f in d.listdir()],
+            )
+            yield
+            pykern.pkio.unchecked_remove(op.lib_dir_symlink)
+            return
+        yield
 
     async def _send_with_single_reply(self, opName, req, jobCmd=None):
-        o = await self._send(opName, req, jobCmd)
-        r = await o.reply_ready()
-        assert r.state in job.EXIT_STATUSES
-        self.destroy_op(o)
-        return r
+        async with self._create_op(opName, req, jobCmd) as o:
+            await o.send()
+            r = await o.reply_ready()
+            assert r.state in job.EXIT_STATUSES
+            return r
 
 
 class _Op(PKDict):
@@ -380,3 +402,6 @@ class _Op(PKDict):
         r = await self._reply_q.get()
         self._reply_q.task_done()
         return r
+
+    async def send(self):
+        await self.driver.send(self)

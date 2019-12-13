@@ -129,6 +129,8 @@ def _do_get_data_file(msg, template):
 
 
 def _do_prepare_simulation(msg, template):
+    if 'libFileList' in msg:
+        msg.data.libFileList = msg.libFileList
     return PKDict(
         cmd=simulation_db.prepare_simulation(
             msg.data,
