@@ -570,28 +570,22 @@ class SimDataBase(object):
     def _lib_file_abspath(cls, basename, data=None):
         from sirepo import simulation_db
 
-        remote = cfg.lib_file_uri
-        if remote:
-            x = data.libFileList  # TODO(e-carlin): put libFilelist on data. In job_api ?
-            if basename in x:
-                t = pkio.py_path(basename)
+        p = [cls.lib_file_resource_dir().join(basename)]
+        if cfg.lib_file_uri:
+            if basename in data.libFileList:
+                p = pkio.py_path(basename)
                 r = requests.get(cfg.lib_file_uri + '/' + basename)
                 r.raise_for_status()
-                assert 0  # TODO(e-carlin): save file to current dir
-                return t
-            d = cls.lib_file_resource_dir()
-            # TODO(e-carlin): repeated below
-            p = d.join(basename)
-            if p.check(file=True):
+                p.write(r.content)
                 return p
         else:
-            for d in (
-                simulation_db.simulation_lib_dir(cls.sim_type()),
-                cls.lib_file_resource_dir(),
-            ):
-                p = d.join(basename)
-                if p.check(file=True):
-                    return p
+            p.append(
+                simulation_db.simulation_lib_dir(cls.sim_type()).join(basename)
+            )
+
+        for f in p:
+            if f.check(file=True):
+                return f
         return None
 
     @classmethod
