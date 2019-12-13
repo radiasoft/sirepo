@@ -718,6 +718,8 @@ def _compute_material_characteristics(model, photon_energy, prefix=''):
 def _compute_PGM_value(model):
     if not model['energyAvg'] or not model['cff'] or not model['grazingAngle']:
         return model
+    if model['cff'] == 1:
+        return model
     parms_list = ['energyAvg', 'cff', 'grazingAngle']
     try:
         mirror = srwlib.SRWLOptMirPl(
@@ -744,10 +746,10 @@ def _compute_PGM_value(model):
             _ang_graz=model['grazingAngle'],
             _ang_roll=model['rollAngle'],
         )
-        if model.computePGMvalue == 'angGraz':
+        if model.computeParametersFrom == 'cff':
             grAng, defAng = opGr.cff2ang(_en=model['energyAvg'], _cff=model['cff'])
             model['grazingAngle'] = grAng * 1000.0
-        elif model.computePGMvalue == 'cff':
+        elif model.computeParametersFrom == 'angGraz':
             cff, defAng = opGr.ang2cff(_en=model['energyAvg'], _ang_graz=model['grazingAngle']/1000.0)
             model['cff'] = cff
         _compute_grating_orientation(model)
