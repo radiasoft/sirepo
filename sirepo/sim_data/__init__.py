@@ -380,7 +380,6 @@ class SimDataBase(object):
             t = run_dir.join(b)
             s = cls.lib_file_abspath(b, data=data)
             if t != s:
-                # TODO(e-carlin): when is t == s?
                 t.mksymlinkto(s, absolute=False)
 
     @classmethod

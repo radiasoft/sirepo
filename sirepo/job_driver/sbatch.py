@@ -71,8 +71,7 @@ class SbatchDriver(job_driver.DriverBase):
         m.userDir = '/'.join(
             (
                 str(self._srdb_root),
-                # TODO(e-carlin): make _USER_ROOT_DIR public
-                sirepo.simulation_db._USER_ROOT_DIR,
+                sirepo.simulation_db.USER_ROOT_DIR,
                 m.uid,
              )
         )
