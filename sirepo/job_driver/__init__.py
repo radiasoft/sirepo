@@ -110,6 +110,7 @@ class DriverBase(PKDict):
             pkdlog('unknown agent msg={}, sending kill', msg)
             try:
                 msg.handler.write_message(PKDict(opName=job.OP_KILL))
+                return
             except Exception as e:
                 pkdlog('error={} stack={}', e, pkdexc())
         a._receive(msg)

@@ -17,6 +17,7 @@ import hashlib
 import importlib
 import inspect
 import re
+import requests
 import sirepo.util
 import sirepo.template
 
@@ -567,13 +568,39 @@ class SimDataBase(object):
     def _lib_file_abspath(cls, basename):
         from sirepo import simulation_db
 
+        remote = cfg.lib_file_uri
+        # TODO(e-carlin): remove hack
+        if remote:
+            import sirepo.auth
+            from pykern import pkio
+            uid = sirepo.auth.logged_in_user()
+            d = sirepo.srdb.root().join('user')
+            d = d.join(uid)
+            if not d.check():
+                pkio.mkdir_parent(d)
         for d in (
             simulation_db.simulation_lib_dir(cls.sim_type()),
             cls.lib_file_resource_dir(),
         ):
-            p = d.join(basename)
-            if p.check(file=True):
-                return p
+
+            if remote:
+                path = remote + '/' + basename
+                pkdp('xxxxxxxxxxxxxxxxxxxxx {}', path)
+                r = requests.get(path)
+                pkdp('iiiiiiiiiiiiiiiiiiiiiiiiiii')
+                pkdp(r)
+                pkdp('iiiiiiiiiiiiiiiiiiiiiiiiiii')
+                if r.status != 'not-found':
+                    r.raise_for_status()
+                    # TODO(e-carlin): write file and return p
+                    pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
+                    pkdp(r.content)
+                    pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
+                    assert 0
+            else:
+                p = d.join(basename)
+                if p.check(file=True):
+                    return p
         return None
 
     @classmethod

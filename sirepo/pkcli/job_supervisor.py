@@ -103,7 +103,7 @@ class _DataFileReq(tornado.web.RequestHandler):
         (d, f) = path.split('/')
         assert sirepo.job.UNIQUE_KEY_RE.search(d), \
             'invalid directory={}'.format(d)
-        d = DATA_FILE_ROOT.join(d)
+        d = sirepo.job.DATA_FILE_ROOT.join(d)
         # (tornado ensures no '..' and '.'), but a bit of sanity doesn't hurt
         assert not f.startswith('.'), \
             'invalid file={}'.format(f)

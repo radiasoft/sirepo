@@ -115,13 +115,19 @@ def api_runSimulation():
             [x.basename for x in d.listdir()],
             path=p,
         )
-        t = sirepo.job.LIB_FILE_ROOT.join(sirepo.job.unique_key())
-        t.mksymlinkto(d, absolute=False)
-        r.libFileUri = sirepo.job.LIB_FILE_ABS_URI + t.basename + '/'
+        if r.jobRunMode == sirepo.job.SBATCH:
+            t = sirepo.job.LIB_FILE_ROOT.join(sirepo.job.unique_key())
+            t.mksymlinkto(d, absolute=True)
+            pkdp('tttttttttttttttttttttt')
+            pkdp(t)
+            pkdp(d)
+            pkdp('tttttttttttttttttttttt')
+            r.libFileUri = sirepo.job.LIB_FILE_ABS_URI + t.basename + '/'
         return _request(_request_content=r)
     finally:
         if t:
-            pykern.pkio.unchecked_remove(t)
+            pass
+            # pykern.pkio.unchecked_remove(t)
 
 
 @api_perm.require_user

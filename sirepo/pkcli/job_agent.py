@@ -206,10 +206,13 @@ class _Cmd(PKDict):
         )
 
     def job_cmd_env(self, env=None):
+        pkdp('cccccccccccccccccccccccccccccccc')
+        pkdp(self.msg.get('libFileUri', ''))
+        pkdp('cccccccccccccccccccccccccccccccc')
         return job.agent_env(
             env=(env or PKDict()).pksetdefault(
                 SIREPO_MPI_CORES=self.msg.mpiCores,
-                SIREPO_SIM_LIB_FILE_URI=self.msg.get('libFileUri', ''),
+                SIREPO_SIM_DATA_LIB_FILE_URI=self.msg.get('libFileUri', ''),
             ),
         )
 
@@ -502,7 +505,10 @@ exec srun {s} /bin/bash bash.stdin
                 self.dispatcher.format_op(
                     self.msg,
                     job.OP_ERROR,
-                    reply=PKDict(state=job.ERROR, error=f'sbatch status={s}'),
+                    reply=PKDict(
+                        state=job.ERROR,
+                        error=f'sbatch status={self._status}'
+                    ),
                 )
             )
             self.destroy()
