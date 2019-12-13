@@ -746,10 +746,10 @@ def _compute_PGM_value(model):
             _ang_graz=model['grazingAngle'],
             _ang_roll=model['rollAngle'],
         )
-        if model.computeParametersFrom == 'cff':
+        if model.computeParametersFrom == '1':
             grAng, defAng = opGr.cff2ang(_en=model['energyAvg'], _cff=model['cff'])
             model['grazingAngle'] = grAng * 1000.0
-        elif model.computeParametersFrom == 'angGraz':
+        elif model.computeParametersFrom == '2':
             cff, defAng = opGr.ang2cff(_en=model['energyAvg'], _ang_graz=model['grazingAngle']/1000.0)
             model['cff'] = cff
         _compute_grating_orientation(model)

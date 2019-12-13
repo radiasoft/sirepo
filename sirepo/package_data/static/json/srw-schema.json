@@ -98,8 +98,8 @@
             ["6", "Im(E): Imaginary part of Single-Electron Electric Field"]
         ],
         "computeParametersFrom": [
-            ["angGraz", "Grazing Angle"],
-            ["cff", "Cff"]
+            ["1", "Cff"],
+            ["2", "Grazing Angle"]
         ],
         "CRLMaterial": [
             ["User-defined", "User-defined"],
@@ -596,7 +596,7 @@
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
-            "computeParametersFrom": ["Compute Parameters from", "computeParametersFrom", "angGraz"],
+            "computeParametersFrom": ["Compute Parameters from", "computeParametersFrom", "1"],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
             "heightAmplification": ["Height Amplification Coefficient", "Float", 1]	    
         },
