@@ -582,7 +582,9 @@ class SimDataBase(object):
             simulation_db.simulation_lib_dir(cls.sim_type()),
             cls.lib_file_resource_dir(),
         ):
-
+            p = d.join(basename)
+            if p.check(file=True):
+                return p
             if remote:
                 path = remote + '/' + basename
                 pkdp('xxxxxxxxxxxxxxxxxxxxx {}', path)
@@ -590,17 +592,13 @@ class SimDataBase(object):
                 pkdp('iiiiiiiiiiiiiiiiiiiiiiiiiii')
                 pkdp(r)
                 pkdp('iiiiiiiiiiiiiiiiiiiiiiiiiii')
-                if r.status != 'not-found':
+                if r.status_code != 'not-found':
                     r.raise_for_status()
-                    # TODO(e-carlin): write file and return p
                     pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
                     pkdp(r.content)
                     pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
+                    # TODO(e-carlin): write file and return p
                     assert 0
-            else:
-                p = d.join(basename)
-                if p.check(file=True):
-                    return p
         return None
 
     @classmethod

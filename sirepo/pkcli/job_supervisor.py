@@ -43,8 +43,9 @@ def default_command():
             (sirepo.job.DATA_FILE_URI + '/(.*)', _DataFileReq),
         ],
         debug=cfg.debug,
-        static_path=sirepo.job.SUPERVISOR_SRV_ROOT,
-        static_url_prefix=sirepo.job.LIB_FILE_URI,
+        static_path=sirepo.job.SUPERVISOR_SRV_ROOT.join(sirepo.job.LIB_FILE_URI),
+        # tornado expects a trailing slash
+        static_url_prefix=sirepo.job.LIB_FILE_URI + '/',
     )
     server = tornado.httpserver.HTTPServer(app)
     server.listen(cfg.port, cfg.ip)
