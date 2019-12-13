@@ -139,7 +139,9 @@ class SimDataBase(object):
         m = data['models']
         res = hashlib.md5()
         for f in sorted(
-            sirepo.sim_data.get_class(data.simulationType)._compute_job_fields(data, data.report, c),
+            sirepo.sim_data.get_class(
+                data.simulationType
+            )._compute_job_fields(data, data.report, c),
         ):
             # assert isinstance(f, pkconfig.STRING_TYPES), \
             #     'value={} not a string_type'.format(f)
@@ -158,7 +160,7 @@ class SimDataBase(object):
             )
         res.update(
             ''.join(
-                (str(cls.lib_file_abspath(b).mtime()) for b in sorted(
+                (str(cls.lib_file_abspath(b, data=data).mtime()) for b in sorted(
                     cls.lib_file_basenames(data))
                 ),
             ).encode())
@@ -243,7 +245,7 @@ class SimDataBase(object):
         return cls.WATCHPOINT_REPORT in name
 
     @classmethod
-    def lib_file_abspath(cls, basename):
+    def lib_file_abspath(cls, basename, data=None):
         """Returns full, unique paths of simulation files
 
         Args:
@@ -251,7 +253,7 @@ class SimDataBase(object):
         Returns:
             object: py.path.local to files (duplicates removed) OR py.path.local
         """
-        p = cls._lib_file_abspath(basename)
+        p = cls._lib_file_abspath(basename, data=data)
         if p:
             return p
         import sirepo.auth
@@ -276,6 +278,7 @@ class SimDataBase(object):
 
     @classmethod
     def lib_file_exists(cls, basename):
+        cls._assert_server_side()
         return bool(cls._lib_file_abspath(basename))
 
     @classmethod
@@ -341,7 +344,7 @@ class SimDataBase(object):
         cls._assert_server_side()
         res = []
         for b in cls.lib_file_basenames(data):
-            f = cls.lib_file_abspath(b)
+            f = cls.lib_file_abspath(b, data=data)
             if f.exists():
                 res.append(f)
         return res
@@ -373,13 +376,12 @@ class SimDataBase(object):
             data (dict): simulation db
             run_dir (py.path): where to copy to
         """
-        from sirepo import simulation_db
-
         for b in cls.lib_file_basenames(data):
-            s = run_dir.join(b)
-            # File might exist if directory exist (runner_api only)
-            pkio.unchecked_remove(s)
-            s.mksymlinkto(cls.lib_file_abspath(b), absolute=False)
+            t = run_dir.join(b)
+            s = cls.lib_file_abspath(b, data=data)
+            if t != s:
+                # TODO(e-carlin): when is t == s?
+                t.mksymlinkto(s, absolute=False)
 
     @classmethod
     def model_defaults(cls, name):
@@ -565,41 +567,71 @@ class SimDataBase(object):
             )
 
     @classmethod
-    def _lib_file_abspath(cls, basename):
+    def _lib_file_abspath(cls, basename, data=None):
         from sirepo import simulation_db
 
         remote = cfg.lib_file_uri
-        # TODO(e-carlin): remove hack
         if remote:
-            import sirepo.auth
-            from pykern import pkio
-            uid = sirepo.auth.logged_in_user()
-            d = sirepo.srdb.root().join('user')
-            d = d.join(uid)
-            if not d.check():
-                pkio.mkdir_parent(d)
-        for d in (
-            simulation_db.simulation_lib_dir(cls.sim_type()),
-            cls.lib_file_resource_dir(),
-        ):
+            pkdp('iiiiiiiiiiiiiiiiiiii in remote {}', data)
+            x = data.libFileList  # TODO(e-carlin): put libFilelist on data. In job_api ?
+            if basename in x:
+                t = pkio.py_path(basename)
+                r = requests.get(cfg.lib_file_uri + '/' + basename)
+                r.raise_for_status()
+                pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrr')
+                pkdp(r)
+                pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrr')
+                assert 0  # TODO(e-carlin): save file to current dir
+                return t
+            d = cls.lib_file_resource_dir(),
+            # TODO(e-carlin): repeated below
             p = d.join(basename)
             if p.check(file=True):
                 return p
-            if remote:
-                path = remote + '/' + basename
-                pkdp('xxxxxxxxxxxxxxxxxxxxx {}', path)
-                r = requests.get(path)
-                pkdp('iiiiiiiiiiiiiiiiiiiiiiiiiii')
-                pkdp(r)
-                pkdp('iiiiiiiiiiiiiiiiiiiiiiiiiii')
-                if r.status_code != 'not-found':
-                    r.raise_for_status()
-                    pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
-                    pkdp(r.content)
-                    pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
-                    # TODO(e-carlin): write file and return p
-                    assert 0
+        else:
+            for d in (
+                simulation_db.simulation_lib_dir(cls.sim_type()),
+                cls.lib_file_resource_dir(),
+            ):
+                p = d.join(basename)
+                if p.check(file=True):
+                    return p
         return None
+
+
+
+        # remote = cfg.lib_file_uri
+        # # TODO(e-carlin): remove hack
+        # if remote:
+        #     import sirepo.auth
+        #     from pykern import pkio
+        #     uid = sirepo.auth.logged_in_user()
+        #     d = sirepo.srdb.root().join('user')
+        #     d = d.join(uid)
+        #     if not d.check():
+        #         pkio.mkdir_parent(d)
+        # for d in (
+        #     simulation_db.simulation_lib_dir(cls.sim_type()),
+        #     cls.lib_file_resource_dir(),
+        # ):
+        #     p = d.join(basename)
+        #     if p.check(file=True):
+        #         return p
+        #     if remote:
+        #         path = remote + '/' + basename
+        #         pkdp('xxxxxxxxxxxxxxxxxxxxx {}', path)
+        #         r = requests.get(path)
+        #         pkdp('iiiiiiiiiiiiiiiiiiiiiiiiiii')
+        #         pkdp(r)
+        #         pkdp('iiiiiiiiiiiiiiiiiiiiiiiiiii')
+        #         if r.status_code != 'not-found':
+        #             r.raise_for_status()
+        #             pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
+        #             pkdp(r.content)
+        #             pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
+        #             # TODO(e-carlin): write file and return p
+        #             assert 0
+        # return None
 
     @classmethod
     def _lib_file_list(cls, pat, want_user_lib_dir=True):

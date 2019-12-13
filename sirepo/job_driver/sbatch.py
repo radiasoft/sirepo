@@ -13,6 +13,7 @@ from pykern.pkdebug import pkdp, pkdlog
 from sirepo import job
 from sirepo import job_driver
 import asyncssh
+import sirepo.simulation_db
 import sirepo.srdb
 import tornado.ioloop
 
@@ -65,7 +66,15 @@ class SbatchDriver(job_driver.DriverBase):
 
     async def send(self, op):
         m = op.msg
-        m.runDir = '/'.join((str(self._srdb_root), m.simulationType, m.computeJid))
+        m.userDir = '/'.join(
+            (
+                str(self._srdb_root),
+                # TODO(e-carlin): make _USER_ROOT_DIR public
+                sirepo.simulation_db._USER_ROOT_DIR,
+                m.uid,
+             )
+        )
+        m.runDir = '/'.join((m.userDir, m.simulationType, m.computeJid))
         if op.opName == job.OP_RUN:
             assert m.sbatchHours
             if cfg.cores:

@@ -206,9 +206,6 @@ class _Cmd(PKDict):
         )
 
     def job_cmd_env(self, env=None):
-        pkdp('cccccccccccccccccccccccccccccccc')
-        pkdp(self.msg.get('libFileUri', ''))
-        pkdp('cccccccccccccccccccccccccccccccc')
         return job.agent_env(
             env=(env or PKDict()).pksetdefault(
                 SIREPO_MPI_CORES=self.msg.mpiCores,

@@ -35,7 +35,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         model=model,
         type=simulation_type,
     )
-    s = suffix and sireop.srschema.parse_name(suffix)
+    s = suffix and sirepo.srschema.parse_name(suffix)
     t = None
     with simulation_db.tmp_dir() as d:
         # TODO(e-carlin): computeJobHash
@@ -70,7 +70,6 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
 def api_jobSupervisorPing():
     import requests.exceptions
 
-    req = sirepo.http_request.parse_post()
     e = None
     try:
         k = sirepo.job.unique_key()
@@ -88,7 +87,7 @@ def api_jobSupervisorPing():
         except KeyError:
             e = 'incorrectly formatted reply'
             pkdlog(r)
-    except requests.exceptions.ConnectionError as e:
+    except requests.exceptions.ConnectionError:
         e = 'unable to connect to supervisor'
     except Exception as e:
         pkdlog(e)
@@ -108,21 +107,18 @@ def api_runSimulation():
 #TODO(robnagler) libUri only necessary if job_agent doesn't have access to NFS
 #   this could be computed from jobRunMode (or configured for development testing)
         r = _request_content(PKDict(fixup_old_data=True))
-        d = simulation_db.simulation_lib_dir(r.simulationType)
-        p = d.join(sirepo.job.LIB_FILE_LIST_URI[1:])
-        pykern.pkio.unchecked_remove(p)
-        sirepo.util.json_dump(
-            [x.basename for x in d.listdir()],
-            path=p,
-        )
         if r.jobRunMode == sirepo.job.SBATCH:
+            d = simulation_db.simulation_lib_dir(r.simulationType)
             t = sirepo.job.LIB_FILE_ROOT.join(sirepo.job.unique_key())
             t.mksymlinkto(d, absolute=True)
+            r.libFileUri = sirepo.job.LIB_FILE_ABS_URI + t.basename + '/'
+            r.libFileList = [x.basename for x in d.listdir()]
             pkdp('tttttttttttttttttttttt')
             pkdp(t)
             pkdp(d)
+            pkdp(r.libFileUri)
+            pkdp(r.libFileList)
             pkdp('tttttttttttttttttttttt')
-            r.libFileUri = sirepo.job.LIB_FILE_ABS_URI + t.basename + '/'
         return _request(_request_content=r)
     finally:
         if t:
