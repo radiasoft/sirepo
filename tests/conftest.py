@@ -142,8 +142,13 @@ def fc_module(request):
 
 @pytest.fixture
 def import_req(request):
+    import flask
+
+    flask.g = {}
+
     def w(path):
-        req = http_request.parse_params(
+        import sirepo.http_request
+        req = sirepo.http_request.parse_params(
             filename=path.basename,
             folder='/import_test',
             template=True,
