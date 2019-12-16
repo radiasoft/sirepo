@@ -201,7 +201,10 @@ class _ComputeJob(PKDict):
 
     async def _receive_api_runCancel(self, req):
         r = PKDict(state=job.CANCELED)
-        if self.db.computeJobHash != req.content.computeJobHash:
+        if (
+            self.db.computeJobHash != req.content.computeJobHash
+            or self.db.computeJobStart != req.content.computeJobStart
+        ):
             # not our job, but let the user know it isn't running
             return r
         if self._sent_run:
@@ -217,14 +220,16 @@ class _ComputeJob(PKDict):
         return r
 
     async def _receive_api_runSimulation(self, req):
-        if self.db.status == _RUNNING_PENDING:
+        f = req.content.get('forceRun')
+        if not f and self.db.status == _RUNNING_PENDING:
             if self.db.computeJobHash != req.content.computeJobHash:
 #TODO(robnagler) need to deal with double clicks
 #TODO(robnagler) do transient/sequential sims runSim without a cancel? I think we
 #  should require the GUI to cancel before running so would return an error here
                 raise AssertionError('FIXME')
             return PKDict(state=job.RUNNING)
-        if (self.db.computeJobHash != req.content.computeJobHash
+        if (f
+            or self.db.computeJobHash != req.content.computeJobHash
             or self.db.status != job.COMPLETED
         ):
             self.__db_init(req, prev_db=self.db)
@@ -251,6 +256,7 @@ class _ComputeJob(PKDict):
                     nextRequestSeconds=self.db.nextRequestSeconds,
                     nextRequest=PKDict(
                         computeJobHash=self.db.computeJobHash,
+                        computeJobStart=self.db.computeJobStart,
                         report=c.analysisModel,
                         simulationId=self.db.simulationId,
                         simulationType=self.db.simulationType,
@@ -258,7 +264,12 @@ class _ComputeJob(PKDict):
                 )
             return r
         if self.db.computeJobHash != req.content.computeJobHash:
-            return res(state=job.MISSING)
+            return PKDict(state=job.MISSING, reason='computeJobHash-mismatch')
+        if (
+            self.db.computeJobStart and req.content.computeJobStart
+            and self.db.computeJobStart != req.content.computeJobStart
+        ):
+            return PKDict(state=job.MISSING, reason='computeJobStart-mismatch')
         if self.db.isParallel or self.db.status != job.COMPLETED:
             return res(state=self.db.status)
         return await self._send_with_single_reply(
@@ -272,6 +283,12 @@ class _ComputeJob(PKDict):
             'expected computeJobHash={} but got={}'.format(
                 self.db.computeJobHash,
                 req.content.computeJobHash,
+            )
+        # there has to be a computeJobStart
+        assert self.db.computeJobStart == req.content.computeJobStart, \
+            'expected computeJobStart={} but got={}'.format(
+                self.db.computeJobStart,
+                req.content.computeJobStart,
             )
         return await self._send_with_single_reply(
             job.OP_ANALYSIS,
