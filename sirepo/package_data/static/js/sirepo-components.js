@@ -2834,7 +2834,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               '<div data-ng-show="simState.isStateError()">',
                 '<div class="col-sm-12">{{ simState.stateAsText() }}</div>',
               '</div>',
-              '<div data-ng-show="simState.showJobSettings()">',
+              '<div data-ng-if="simState.showJobSettings()">',
                 '<div class="form-group form-group-sm">',
                   '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model"></div>',
                 '</div>',
