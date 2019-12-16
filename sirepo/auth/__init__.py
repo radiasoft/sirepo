@@ -179,12 +179,14 @@ def init_apis(app, *args, **kwargs):
     cookie.auth_hook_from_header = _auth_hook_from_header
 
 
-def init_mock(uid):
+def init_mock(uid=None, sim_type=None):
     """A mock user for pkcli"""
     cookie.init_mock()
+    import sirepo.auth.guest
     if uid:
-        import sirepo.auth.guest
         _login_user(sirepo.auth.guest, uid)
+    else:
+        login(sirepo.auth.guest, is_mock=True)
 
 
 def logged_in_user():
@@ -208,7 +210,7 @@ def logged_in_user():
     return res
 
 
-def login(module, uid=None, model=None, sim_type=None, display_name=None):
+def login(module, uid=None, model=None, sim_type=None, display_name=None, is_mock=False):
     """Login the user
 
     Raises an exception if successful, except in the case of methods
@@ -257,6 +259,8 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None):
             model.save()
     if display_name:
         complete_registration(_parse_display_name(display_name))
+    if is_mock:
+        return
     if sim_type:
         if guest_uid and guest_uid != uid:
             simulation_db.move_user_simulations(guest_uid, uid)
