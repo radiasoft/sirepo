@@ -1745,15 +1745,22 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                 // javascript-redirect.html
                 var m = REDIRECT_RE.exec(data);
                 if (m) {
-                    srlog('javascriptRedirectDocument', m[1]);
-                    self.globalRedirect(m[1], undefined, true);
-                    return;
+                    if (m[1].indexOf('#/error') <= -1) {
+                        srlog('javascriptRedirectDocument', m[1]);
+                        self.globalRedirect(m[1], undefined, true);
+                        return;
+                    }
+                    srlog('javascriptRedirectDocument: staying on page', m[1]);
+                    // set explicitly so we don't log below
+                    data = {state: 'error', error: 'server error'};
                 }
-                // HTML document with error msg in title
-                m = HTML_TITLE_RE.exec(data);
-                if (m) {
-                    srlog('htmlErrorDocument', m[1]);
-                    data = {error: m[1]};
+                else {
+                    // HTML document with error msg in title
+                    m = HTML_TITLE_RE.exec(data);
+                    if (m) {
+                        srlog('htmlErrorDocument', m[1]);
+                        data = {error: m[1]};
+                    }
                 }
             }
             if ($.isEmptyObject(data)) {
