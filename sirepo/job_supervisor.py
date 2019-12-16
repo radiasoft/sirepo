@@ -279,22 +279,27 @@ class _ComputeJob(PKDict):
         )
 
     async def _receive_api_simulationFrame(self, req):
-        assert self.db.computeJobHash == req.content.computeJobHash, \
-            'expected computeJobHash={} but got={}'.format(
-                self.db.computeJobHash,
-                req.content.computeJobHash,
+        # retry if we get a canceled
+        for i in range(2):
+            assert self.db.computeJobHash == req.content.computeJobHash, \
+                'expected computeJobHash={} but got={}'.format(
+                    self.db.computeJobHash,
+                    req.content.computeJobHash,
+                )
+            # there has to be a computeJobStart
+            assert self.db.computeJobStart == req.content.computeJobStart, \
+                'expected computeJobStart={} but got={}'.format(
+                    self.db.computeJobStart,
+                    req.content.computeJobStart,
+                )
+            r = await self._send_with_single_reply(
+                job.OP_ANALYSIS,
+                req,
+                'get_simulation_frame'
             )
-        # there has to be a computeJobStart
-        assert self.db.computeJobStart == req.content.computeJobStart, \
-            'expected computeJobStart={} but got={}'.format(
-                self.db.computeJobStart,
-                req.content.computeJobStart,
-            )
-        return await self._send_with_single_reply(
-            job.OP_ANALYSIS,
-            req,
-            'get_simulation_frame'
-        )
+            if r.get('state') != sirepo.job.CANCELED:
+                return r
+        return r
 
     async def _run(self, req):
         if self.db.computeJobHash != req.content.computeJobHash:
