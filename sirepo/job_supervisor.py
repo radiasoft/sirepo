@@ -415,7 +415,7 @@ class _Op(PKDict):
         if 'timer' in self:
             tornado.ioloop.IOLoop.current().remove_timeout(self.timer)
         if '_lib_dir_symlink' in self:
-            pykern.pkio.unchecked_remove(self.lib_dir_symlink)
+            pykern.pkio.unchecked_remove(self._lib_dir_symlink)
         self.driver.destroy_op(self)
 
     def lib_dir_symlink(self):
@@ -429,7 +429,7 @@ class _Op(PKDict):
         self._lib_dir_symlink.mksymlinkto(d, absolute=True)
         m.pkupdate(
             libFileUri=sirepo.job.LIB_FILE_ABS_URI +
-            self.lib_dir_symlink.basename + '/',
+            self._lib_dir_symlink.basename + '/',
             libFileList=[f.basename for f in d.listdir()],
         )
 
