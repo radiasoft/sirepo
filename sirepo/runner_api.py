@@ -242,15 +242,17 @@ def _simulation_run_status(req, quiet=False):
         is_running = False
         if reqd.run_dir.exists():
             res = simulation_db.read_result(reqd.run_dir)
-            if res.state != sirepo.job.ERROR:
-                if not reqd.is_parallel and hasattr(template, 'prepare_output_file') and in_run_simulation:
-                    template.prepare_output_file(reqd.run_dir, req.req_data)
-                    res = simulation_db.read_result(reqd.run_dir)
-            if res.state == sirepo.job.ERROR and not reqd.is_parallel:
+            if res.state == sirepo.job.ERROR:
                 return _subprocess_error(
                     error='read_result error: ' + res.get('error', '<no error in read_result>'),
                     run_dir=reqd.run_dir,
                 )
+            if (
+                in_run_simulation and res.state == sirepo.job.COMPLETED
+                and hasattr(template, 'prepare_output_file')
+            ):
+                template.prepare_output_file(reqd.run_dir, req.req_data)
+                res = simulation_db.read_result(reqd.run_dir)
     if reqd.is_parallel:
         new = template.background_percent_complete(
             reqd.model_name,
