@@ -174,6 +174,7 @@ def _do_beamline(template, data):
                 i.autocomputeVectors = 'none'
             elif i.autocomputeVectors == '1':
                 i.autocomputeVectors = 'vertical' if i.normalVectorX == 0 else 'horizontal'
+        _SIM_DATA.update_model_defaults(i, t)
 
 
 def _do_electron_beam(template, data):
