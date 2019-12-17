@@ -66,7 +66,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         )
 
 
-@api_perm.require_user
+@api_perm.allow_visitor
 def api_jobSupervisorPing():
     import requests.exceptions
 
@@ -154,6 +154,7 @@ def _request(**kwargs):
     k = PKDict(kwargs)
     u = k.pkdel('_request_uri') or sirepo.job.SERVER_ABS_URI
     c = k.pkdel('_request_content') or _request_content(k)
+    c.pkupdate(serverSecret=sirepo.job.cfg.server_secret)
     r = requests.post(
         u,
         data=pkjson.dump_bytes(c),
@@ -192,6 +193,7 @@ def _request_content(kwargs):
         api=get_api_name(),
         computeJid=lambda: s.parse_jid(d),
         computeJobHash=lambda: d.get('computeJobHash') or s.compute_job_hash(d),
+        computeJobStart=lambda: d.get('computeJobStart', 0),
         computeModel=lambda: s.compute_model(d),
         isParallel=lambda: s.is_parallel(d),
         reqId=lambda: sirepo.job.unique_key(),

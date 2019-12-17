@@ -72,6 +72,8 @@ class SbatchDriver(job_driver.DriverBase):
                 # override for dev
                 m.sbatchCores = cfg.cores
             m.mpiCores = m.sbatchCores
+            if op.kind == job.PARALLEL:
+                op.maxRunSecs = 0
         m.shifterImage = cfg.shifter_image
         return await super().send(op)
 

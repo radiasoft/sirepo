@@ -12,13 +12,13 @@ import pytest
 from sirepo import srunit
 
 
-@srunit.wrap_in_request()
 def test_importer(import_req):
-    from pykern import pkcollections
+    from pykern.pkcollections import PKDict
     from pykern.pkunit import pkeq
     from sirepo.template import lattice
     from sirepo.template import elegant
     import sirepo.util
+    import flask
 
     with pkunit.save_chdir_work():
         for fn in pkio.sorted_glob(pkunit.data_dir().join('*')):

@@ -136,8 +136,3 @@ def _cfg_int(lower, upper):
             'value must be from {} to {}'.format(lower, upper)
         return v
     return wrapper
-
-
-cfg = pkconfig.init(
-    particles_per_core=(5, int, 'particles for each core to process'),
-)

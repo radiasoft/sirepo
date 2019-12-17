@@ -108,7 +108,7 @@ def test_warppba(animation_fc):
     )
 
 
-def test_warpvnd(animation_fc):
+def test_warpvnd_1(animation_fc):
     animation_fc.sr_animation_run(
         animation_fc,
         'Two Poles',
@@ -121,6 +121,8 @@ def test_warpvnd(animation_fc):
         ),
         timeout=10,
     )
+
+def test_warpvnd_2(animation_fc):
     animation_fc.sr_animation_run(
         animation_fc,
         'Two Poles',
