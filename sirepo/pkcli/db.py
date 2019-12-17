@@ -74,18 +74,12 @@ def populate_supervisor_state(db_dir):
                 simulation_db.JSON_SUFFIX
             )
         )
-        o = run_dir.join(
-            sirepo.template.template_common.OUTPUT_BASE_NAME +
-            simulation_db.JSON_SUFFIX
-        )
-        s = sim_data.get_class(i.simulationType)
+        c = sim_data.get_class(i.simulationType)
         p = _is_parallel(run_dir.basename)
         j = job.PARALLEL if p else job.SEQUENTIAL
-        t = 0
-        if o.exists():
-            t = o.mtime()
+        s, t = _read_status_file(run_dir)
         d = PKDict(
-            computeJid=s.parse_jid(i, uid),
+            computeJid=c.parse_jid(i, uid),
             computeJobHash=i.models.computeJobCacheKey.computeJobHash,
             computeJobQueued=0,
             computeJobStart=i.models.computeJobCacheKey.computeJobStart,
@@ -97,11 +91,11 @@ def populate_supervisor_state(db_dir):
             nextRequestSeconds=_NEXT_REQUEST_SECONDS[j],
             simulationId=i.models.simulation.simulationId,
             simulationType=i.simulationType,
-            status=_read_status_file(run_dir),
+            status=s,
             uid=uid,
         )
         if d.isParallel:
-            _add_parallel_status(i, s, run_dir, d)
+            _add_parallel_status(i, c, run_dir, d)
         util.json_dump(d, path=_db_file(d.computeJid))
 
     def _db_file(computeJid):
@@ -111,12 +105,13 @@ def populate_supervisor_state(db_dir):
         # TODO(e-carlin): is this valid?
         return bool(re.compile('animation', re.IGNORECASE).search(report_name))
 
-    def _read_status_file(path):
-        s = pkio.read_text(path.join(job.RUNNER_STATUS_FILE))
-        return sirepo.job.COMPLETED if s == sirepo.job.COMPLETED \
+    def _read_status_file(run_dir):
+        p = path.join(job.RUNNER_STATUS_FILE)
+        s = sirepo.job.COMPLETED if pkio.read_text(p) == sirepo.job.COMPLETED \
             else sirepo.job.MISSING
+        return s, p.mtime()
 
-    for path, dirs, files in os.walk(simulation_db.user_dir_name()):
+    for path, dirs, files in os.walk(str(simulation_db.user_dir_name())):
         if not dirs and 'status' in files:
             path = pkio.py_path(path)
             _create_supervisor_state_file(
