@@ -273,6 +273,7 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
     }
 
     function computePGMValue(item) {
+        updateGratingFields(item);
         computeFields('compute_PGM_value', item, ['energyAvg', 'cff', 'grazingAngle']);
     }
 
@@ -410,6 +411,16 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         updateMaterialFields(item);
     }
 
+    function updateGratingFields(item) {
+        if (item.computeParametersFrom === '1') {
+            panelState.enableField(item.type, 'grazingAngle', false);
+            //panelState.enableField(item.type, 'cff', true);
+        }
+        else if (item.computeParametersFrom === '2') {
+            //panelState.enableField(item.type, 'grazingAngle', true);
+            panelState.enableField(item.type, 'cff', false);
+        }
+    }
     function updateDualFields(item) {
         var prefixes = attenuationPrefixes(item);
         panelState.showField(item.type, 'method', ! isUserDefined(item[prefixes[0] + 'Material']) || ! isUserDefined(item[prefixes[1] + 'Material']));
@@ -480,6 +491,9 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
                 if (name == 'sample') {
                     updateSampleFields(item);
                 }
+            }
+            else if (name === 'grating'){
+                updateGratingFields(item);
             }
             else if (name == 'crystal') {
                 if (item.materal != 'Unknown' && ! item.nvz) {
