@@ -57,7 +57,13 @@ def init():
     job.init()
     job_driver.init()
     _DB_DIR = sirepo.srdb.root().join(_DB_SUBDIR)
-    pykern.pkio.mkdir_parent(_DB_DIR)
+    if not _DB_DIR.exists():
+        pkdlog('populating supervisor state path={}', _DB_DIR)
+        import subprocess
+        subprocess.check_call(
+            ('sirepo', 'db', 'populate_supervisor_state', _DB_DIR),
+            env=os.environ.update(PKDict(PYENV_VERSION='py2'))
+        )
     cfg = pkconfig.init(
         sbatch_poll_secs=(60, int, 'how often to poll squeue and parallel status'),
     )
