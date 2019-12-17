@@ -431,7 +431,7 @@ class _SbatchRun(_SbatchCmd):
 #TODO(robnagler) provide via sbatch driver
             o = f'''#SBATCH --image={i}
 #SBATCH --constraint=haswell
-#SBATCH --qos=debug
+#SBATCH --qos={"debug" if self.msg.sbatchHours < 0.5 else "regular"}
 #SBATCH --tasks-per-node=32'''
             s = '--cpu-bind=cores shifter'
         f = self.run_dir.join(self.jid + '.sbatch')

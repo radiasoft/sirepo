@@ -18,7 +18,6 @@ import re
 
 OP_ANALYSIS = 'analysis'
 OP_CANCEL = 'cancel'
-OP_CONDITION = 'condition'
 OP_ERROR = 'error'
 OP_KILL = 'kill'
 OP_OK = 'ok'
@@ -41,7 +40,6 @@ SERVER_ABS_URI = None
 
 #: path supervisor registers to receive pings from server
 SERVER_PING_URI = '/job-api-ping'
-
 #: requests from the flask server
 SERVER_PING_ABS_URI = None
 
@@ -72,7 +70,8 @@ SUPERVISOR_SRV_SUBDIR = 'supervisor-srv'
 #: how jobs request files (absolute)
 SUPERVISOR_SRV_ROOT = None
 
-DEFAULT_IP = '127.0.0.1' # use v3.radia.run when testing sbatch
+DEFAULT_IP = '127.0.0.1'
+
 DEFAULT_PORT = 8001
 
 RUNNER_STATUS_FILE = 'status'
@@ -171,9 +170,12 @@ def agent_env(env=None, uid=None):
 def init():
     global cfg
 
-    if cfg:
-        return
     cfg = pkconfig.init(
+        server_secret=pkconfig.RequiredUnlessDev(
+            'a very secret, secret',
+            str,
+            'shared secret between supervisor and server',
+        ),
         supervisor_uri=(
             'http://{}:{}'.format(DEFAULT_IP, DEFAULT_PORT),
             str,

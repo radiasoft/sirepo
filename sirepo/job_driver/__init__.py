@@ -127,6 +127,7 @@ class DriverBase(PKDict):
             pkdlog('op finished without being sent op={}', job.LogFormatter(op))
         else:
             pkdlog('op={} agentId={} opId={}', op.opName, self._agentId, op.opId)
+            op.start_timer()
             self.websocket.write_message(pkjson.dump_bytes(op.msg))
 
     @classmethod

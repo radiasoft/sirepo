@@ -2,6 +2,9 @@
 # https://github.com/pytest-dev/pytest/issues/935
 import pytest
 
+#: Maximum time an individual test case (function) can run
+MAX_CASE_RUN_SECS = 30
+
 
 @pytest.fixture
 def animation_fc(fc):
@@ -58,23 +61,6 @@ def animation_run(fc, sim_name, compute_model, reports, **kwargs):
                     )
 
 
-def email_confirm(fc, resp, display_name=None):
-    import re
-    from pykern.pkcollections import PKDict
-
-    fc.sr_get(resp.url)
-    m = re.search(r'/(\w+)$', resp.url)
-    assert m
-    r = PKDict(token=m.group(1))
-    if display_name:
-        r.displayName = display_name
-    fc.sr_post(
-        resp.url,
-        r,
-        raw_response=True,
-    )
-
-
 @pytest.fixture
 def auth_fc(auth_fc_module):
     # set the sentinel
@@ -108,6 +94,23 @@ def auth_fc_module(request):
     return srunit.flask_client(cfg=cfg)
 
 
+def email_confirm(fc, resp, display_name=None):
+    import re
+    from pykern.pkcollections import PKDict
+
+    fc.sr_get(resp.url)
+    m = re.search(r'/(\w+)$', resp.url)
+    assert m
+    r = PKDict(token=m.group(1))
+    if display_name:
+        r.displayName = display_name
+    fc.sr_post(
+        resp.url,
+        r,
+        raw_response=True,
+    )
+
+
 @pytest.fixture(scope='function')
 def fc(request, fc_module):
     """Flask client based logged in to specific code of test
@@ -128,14 +131,24 @@ def fc(request, fc_module):
 @pytest.fixture(scope='module')
 def fc_module(request):
     import sirepo.srunit
-
-    yield sirepo.srunit.flask_client()
+    p, fc = _job_supervisor_start(request)
+    if p:
+        yield fc
+        p.terminate()
+        p.wait()
+    else:
+        yield sirepo.srunit.flask_client()
 
 
 @pytest.fixture
 def import_req(request):
+    import flask
+
+    flask.g = {}
+
     def w(path):
-        req = http_request.parse_params(
+        import sirepo.http_request
+        req = sirepo.http_request.parse_params(
             filename=path.basename,
             folder='/import_test',
             template=True,
@@ -203,11 +216,20 @@ def pytest_collection_modifyitems(session, config, items):
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_runtest_protocol(item, *args, **kwargs):
+    import signal
     from pykern import pkunit
+
+    def _timeout(*args, **kwargs):
+        pkunit.pkfail('MAX_CASE_RUN_SECS={} exceeded', MAX_CASE_RUN_SECS)
+
     # Seems to be the only way to get the module under test
     m = item._request.module
     is_new = m != pkunit.module_under_test
+
+    if is_new:
+        signal.signal(signal.SIGALRM, _timeout)
     pkunit.module_under_test = m
+    signal.alarm(MAX_CASE_RUN_SECS)
     if is_new:
         from pykern import pkio
         pkio.unchecked_remove(pkunit.work_dir())
@@ -222,6 +244,94 @@ def pytest_configure(config):
         config.option,
         namespace=config.option,
     )
+
+
+def _job_supervisor_check(env):
+    import sirepo.job
+    import socket
+    import subprocess
+
+    try:
+        o = subprocess.check_output(
+            ['pyenv', 'exec', 'sirepo', 'job_supervisor', '--help'],
+            env=env,
+            stderr=subprocess.STDOUT,
+        )
+    except subprocess.CalledProcessError as e:
+        from pykern.pkdebug import pkdlog
+
+        pkdlog('job_supervisor --help exit={} output={}', e.returncode, e.output)
+        raise
+    assert 'usage: sirepo job_supervisor' in str(o)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.bind((sirepo.job.DEFAULT_IP, int(sirepo.job.DEFAULT_PORT)))
+    except Exception:
+        raise AssertionError(
+            'job_supervisor still running on port={}'.format(sirepo.job.DEFAULT_PORT),
+        )
+    finally:
+        s.close()
+
+
+def _job_supervisor_setup():
+    """setup the supervisor"""
+    import os
+    from pykern.pkcollections import PKDict
+
+    env = PKDict()
+    for k, v in os.environ.items():
+        if ('PYENV' in k or 'PYTHON' in k):
+            continue
+        if k in ('PATH', 'LD_LIBRARY_PATH'):
+            v2 = []
+            for x in v.split(':'):
+                if x and 'py2' not in x:
+                    v2.append(x)
+            v = ':'.join(v2)
+        env[k] = v
+    cfg = PKDict(
+        PYKERN_PKDEBUG_WANT_PID_TIME='1',
+        SIREPO_FEATURE_CONFIG_JOB='1',
+    )
+    env.pkupdate(
+        PYENV_VERSION='py3',
+        PYTHONUNBUFFERED='1',
+        **cfg
+    )
+
+    import sirepo.srunit
+
+    fc = sirepo.srunit.flask_client(cfg=cfg)
+    import sirepo.srdb
+    env['SIREPO_SRDB_ROOT'] = str(sirepo.srdb.root())
+    _job_supervisor_check(env)
+    return (env, fc)
+
+
+def _job_supervisor_start(request):
+    import os
+    if 'job_test' != request.fspath.purebasename and not os.environ.get('SIREPO_FEATURE_CONFIG_JOB'):
+        return None, None
+
+    import sirepo.job
+    import subprocess
+    import time
+    from pykern.pkcollections import PKDict
+
+    env, fc = _job_supervisor_setup()
+    p = subprocess.Popen(
+        ['pyenv', 'exec', 'sirepo', 'job_supervisor'],
+        env=env,
+    )
+    for i in range(30):
+        r = fc.sr_post('jobSupervisorPing', PKDict(simulationType=fc.SR_SIM_TYPE_DEFAULT))
+        if r.state == 'ok':
+            break
+        time.sleep(.1)
+    else:
+        pkfail('could not connect to {}', sirepo.job.SERVER_PING_ABS_URI)
+    return p, fc
 
 
 def _sim_type(request):

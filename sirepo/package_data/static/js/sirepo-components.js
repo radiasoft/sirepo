@@ -537,7 +537,6 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 }
                 return true;
             }
-
             $scope.enum = SIREPO.APP_SCHEMA.enum;
             // field def: [label, type]
             $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
@@ -2789,6 +2788,7 @@ SIREPO.app.directive('3dSliceWidget', function(appState, panelState) {
     };
 });
 
+
 SIREPO.app.directive('sbatchLoginModal', function() {
     return {
         restrict: 'A',
@@ -2874,6 +2874,27 @@ SIREPO.app.directive('sbatchLoginModal', function() {
             }
         },
     };
+
+SIREPO.app.directive('sbatchCoresAndHours', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            simState: '=sbatchCoresAndHours',
+        },
+        template: [
+            '<div data-ng-show="showCoresAndHours()">',
+                '<div data-model-field="\'sbatchHours\'" data-model-name="simState.model"></div>',
+                '<div data-model-field="\'sbatchCores\'" data-model-name="simState.model"></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+
+            $scope.showCoresAndHours = function() {
+                var m = appState.models[$scope.simState.model];
+                return m && m.jobRunMode === 'sbatch';
+            }
+        }
+    }
 });
 
 SIREPO.app.directive('simSections', function(utilities) {
@@ -2922,9 +2943,10 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               '<div data-ng-show="simState.isStateError()">',
                 '<div class="col-sm-12">{{ simState.stateAsText() }}</div>',
               '</div>',
-              '<div data-ng-show="simState.showJobSettings()">',
+              '<div data-ng-if="simState.showJobSettings()">',
                 '<div class="form-group form-group-sm">',
                   '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model"></div>',
+                  '<div data-sbatch-cores-and-hours="simState"></div>',
                 '</div>',
               '</div>',
               '<div class="col-sm-6 pull-right">',

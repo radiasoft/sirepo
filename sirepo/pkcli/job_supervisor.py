@@ -29,7 +29,7 @@ def default_command():
 
     cfg = pkconfig.init(
         debug=(pkconfig.channel_in('dev'), bool, 'run supervisor in debug mode'),
-        ip=('127.0.0.1', str, 'ip address to listen on'),
+        ip=(sirepo.job.DEFAULT_IP, str, 'ip address to listen on'),
         port=(sirepo.job.DEFAULT_PORT, int, 'what port to listen on'),
     )
     sirepo.job_supervisor.init()
@@ -104,6 +104,8 @@ class _DataFileReq(tornado.web.RequestHandler):
         assert sirepo.job.UNIQUE_KEY_RE.search(d), \
             'invalid directory={}'.format(d)
         d = DATA_FILE_ROOT.join(d)
+        assert d.check(dir=True), \
+            'directory does not exist={}'.format(d)
         # (tornado ensures no '..' and '.'), but a bit of sanity doesn't hurt
         assert not f.startswith('.'), \
             'invalid file={}'.format(f)

@@ -1605,18 +1605,32 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         $window.open(self.formatUrl(routeName, params), '_blank');
     };
 
-    self.globalRedirect = function(routeNameOrUrl, params) {
+    self.globalRedirect = function(routeNameOrUrl, params, reload) {
         var u = routeNameOrUrl;
         if (u.indexOf('/') < 0) {
             u = self.formatUrl(u, params);
         }
         $window.location.href = u;
+        if (reload) {
+            // need to reload after location is set, because may
+            // be in cache iwc the app is still loaded
+            // https://github.com/radiasoft/sirepo/issues/2071
+            $interval(
+                function () {
+                    $window.location.reload(true);
+                },
+                1,
+                1,
+                false
+            );
+        }
     };
 
     self.globalRedirectRoot = function() {
         self.globalRedirect(
             'root',
-            {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
+            {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType},
+            true
         );
     };
 
@@ -1737,20 +1751,22 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                 // javascript-redirect.html
                 var m = REDIRECT_RE.exec(data);
                 if (m) {
-                    srlog('javascriptRedirectDocument', m[1]);
-                    self.globalRedirect(m[1]);
-                    if (m[1].indexOf(SIREPO.APP_NAME) == 1) {
-                        // need to refresh because authState needs to be set
-                        // https://github.com/radiasoft/sirepo/pull/2031#issuecomment-554493331
-                        $window.location.reload(true);
+                    if (m[1].indexOf('#/error') <= -1) {
+                        srlog('javascriptRedirectDocument', m[1]);
+                        self.globalRedirect(m[1], undefined, true);
+                        return;
                     }
-                    return;
+                    srlog('javascriptRedirectDocument: staying on page', m[1]);
+                    // set explicitly so we don't log below
+                    data = {state: 'error', error: 'server error'};
                 }
-                // HTML document with error msg in title
-                m = HTML_TITLE_RE.exec(data);
-                if (m) {
-                    srlog('htmlErrorDocument', m[1]);
-                    data = {error: m[1]};
+                else {
+                    // HTML document with error msg in title
+                    m = HTML_TITLE_RE.exec(data);
+                    if (m) {
+                        srlog('htmlErrorDocument', m[1]);
+                        data = {error: m[1]};
+                    }
                 }
             }
             if ($.isEmptyObject(data)) {
@@ -2697,7 +2713,8 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
                         '<simulation_name>': name,
                         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         '<application_mode>': applicationMode,
-                    }
+                    },
+                    false
                 );
             }
         );
@@ -2800,7 +2817,8 @@ SIREPO.app.controller('LoginWithController', function ($route, $window, errorSer
         self.msg = 'Logging in via ' + m + '. Please wait...';
         requestSender.globalRedirect(
             'auth' + appState.ucfirst(m) + 'Login',
-            {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
+            {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType},
+            false
         );
         return;
     }
@@ -2912,7 +2930,9 @@ SIREPO.app.controller('FindByNameController', function (appState, requestSender,
                     '<simulation_name>': self.simulationName,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                     '<application_mode>': $route.current.params.applicationMode,
-                });
+                },
+                false
+            );
         });
 });
 

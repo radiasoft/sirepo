@@ -501,7 +501,7 @@ def api_srUnit():
         import sirepo.cookie
         sirepo.cookie.set_sentinel()
     v.op()
-    return ''
+    return http_reply.gen_json_ok()
 
 
 @api_perm.allow_visitor

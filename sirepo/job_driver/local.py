@@ -76,7 +76,7 @@ class LocalDriver(job_driver.DriverBase):
             cls.instances[k] = []
             cls.slots[k] = PKDict(
                 in_use=0,
-                total=cfg[k + '_slots'],
+                total=cfg.slots[k],
             )
         return cls
 
@@ -178,7 +178,9 @@ def init_class():
     global cfg
 
     cfg = pkconfig.init(
-        parallel_slots=(1, int, 'max parallel slots'),
-        sequential_slots=(1, int, 'max sequential slots'),
+        slots=dict(
+            parallel=(1, int, 'max parallel slots'),
+            sequential=(1, int, 'max sequential slots'),
+        ),
     )
     return LocalDriver.init_class()
