@@ -733,6 +733,9 @@ SIREPO.app.directive('srToscaEditor', function(appState, magnetService, panelSta
                                 }
                                 tosca.l = data.toscaInfo.toscaLength;
                                 tosca.allFileNames = data.toscaInfo.fileList;
+                                if (tosca.allFileNames.length == 1) {
+                                    tosca.fileNames = [tosca.allFileNames[0]];
+                                }
                             }
                         });
                     updateMagnetFiles(tosca);
