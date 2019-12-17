@@ -64,13 +64,6 @@ def init():
     job.init()
     job_driver.init()
     _DB_DIR = sirepo.srdb.root().join(_DB_SUBDIR)
-    if not _DB_DIR.exists():
-        pkdlog('populating supervisor state path={}', _DB_DIR)
-        import subprocess
-        subprocess.check_call(
-            ('sirepo', 'db', 'populate_supervisor_state', _DB_DIR),
-            env=os.environ.update(PKDict(PYENV_VERSION='py2'))
-        )
     cfg = pkconfig.init(
         parallel=dict(
             max_hours=(1, float, 'maximum run-time for parallel job (except sbatch)'),
@@ -87,6 +80,13 @@ def init():
         job.SBATCH: cfg.sbatch_poll_secs,
         job.SEQUENTIAL: 1,
     })
+    if not _DB_DIR.exists():
+        pkdlog('populating supervisor state path={}', _DB_DIR)
+        import subprocess
+        subprocess.check_call(
+            ('sirepo', 'db', 'populate_supervisor_state', _DB_DIR, str(cfg.sbatch_poll_secs)),
+            env=os.environ.update(PKDict(PYENV_VERSION='py2'))
+        )
 
 
 class ServerReq(PKDict):

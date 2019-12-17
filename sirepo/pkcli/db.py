@@ -36,7 +36,7 @@ def upgrade():
                 f.write(t)
 
 
-def populate_supervisor_state(db_dir):
+def populate_supervisor_state(db_dir, sbatch_poll_secs):
     from pykern import pkio
     from pykern.pkcollections import PKDict, json_load_any
     from pykern.pkdebug import pkdp
@@ -53,7 +53,7 @@ def populate_supervisor_state(db_dir):
 
     _NEXT_REQUEST_SECONDS = PKDict({
         job.PARALLEL: 2,
-        job.SBATCH: 60,  # TODO(e-carlin): how should this be set?
+        job.SBATCH: int(sbatch_poll_secs),
         job.SEQUENTIAL: 1,
     })
 
