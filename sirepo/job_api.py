@@ -175,8 +175,10 @@ def _request(**kwargs):
     k = PKDict(kwargs)
     u = k.pkdel('_request_uri') or sirepo.job.SERVER_ABS_URI
     c = k.pkdel('_request_content') or _request_content(k)
-    c.api = get_api_name()
-    c.pkupdate(serverSecret=sirepo.job.cfg.server_secret)
+    c.pkupdate(
+        api=get_api_name(),
+        serverSecret=sirepo.job.cfg.server_secret,
+    )
     r = requests.post(
         u,
         data=pkjson.dump_bytes(c),

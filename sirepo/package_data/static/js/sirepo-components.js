@@ -2788,7 +2788,6 @@ SIREPO.app.directive('3dSliceWidget', function(appState, panelState) {
     };
 });
 
-
 SIREPO.app.directive('sbatchLoginModal', function() {
     return {
         restrict: 'A',
@@ -2831,7 +2830,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
 
             el.on('hidden.bs.modal', function() {
                 onHidden({'state': 'error', 'error': 'Please try agian.'});
-                onHidden = null
+                onHidden = null;
                 $scope.$apply();
             });
 
@@ -2847,7 +2846,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                     onHidden = data.errorCallback;
                 }
                 awaitingSendResponse = false;
-                $scope.host = data.host
+                $scope.host = data.host;
                 $scope.showOtp = data.host.includes('nersc');
                 $scope.showWarning = data.reason === 'invalid-creds';
                 $scope.warningText = 'Your credentials were invalid. Please try again.';
@@ -2871,9 +2870,11 @@ SIREPO.app.directive('sbatchLoginModal', function() {
 
             $scope.submitDisabled = function() {
                 return $scope.password.length < 1 || $scope.username.length < 1 || awaitingSendResponse;
-            }
+            };
         },
     };
+
+});
 
 SIREPO.app.directive('sbatchCoresAndHours', function(appState) {
     return {
@@ -2892,9 +2893,9 @@ SIREPO.app.directive('sbatchCoresAndHours', function(appState) {
             $scope.showCoresAndHours = function() {
                 var m = appState.models[$scope.simState.model];
                 return m && m.jobRunMode === 'sbatch';
-            }
+            };
         }
-    }
+    };
 });
 
 SIREPO.app.directive('simSections', function(utilities) {

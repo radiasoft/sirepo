@@ -361,33 +361,33 @@ class _ComputeJob(PKDict):
 
     async def _send(self, opName, req, jobCmd, **kwargs):
 #TODO(robnagler) kind should be set earlier in the queuing process.
-       req.kind = job.PARALLEL if self.db.isParallel and opName != job.OP_ANALYSIS \
+        req.kind = job.PARALLEL if self.db.isParallel and opName != job.OP_ANALYSIS \
            else job.SEQUENTIAL
-       req.simulationType = self.db.simulationType
-       # TODO(e-carlin): We need to be able to cancel requests waiting in this
-       # state. Currently we assume that all requests get a driver and the
-       # code does not block.
-       d = await job_driver.get_instance(req, self.db.jobRunMode)
-       o = _Op(
-           driver=d,
-           kind=req.kind,
-           maxRunSecs=0 if opName in _UNTIMED_OPS else _MAX_RUN_SECS[req.kind],
-           msg=PKDict(
-               req.content
-           ).pkupdate(
-               jobCmd=jobCmd,
-               **kwargs,
-           ).pksetdefault(jobRunMode=self.db.jobRunMode),
-           opName=opName,
-       )
-       self._ops.append(o)
-       try:
-           await d.send(o)
-           return o
-        # TODO(e-carlin): more granular exception
-       except Exception:
-           self.destroy_op(o)
-           raise
+        req.simulationType = self.db.simulationType
+        # TODO(e-carlin): We need to be able to cancel requests waiting in this
+        # state. Currently we assume that all requests get a driver and the
+        # code does not block.
+        d = await job_driver.get_instance(req, self.db.jobRunMode)
+        o = _Op(
+            driver=d,
+            kind=req.kind,
+            maxRunSecs=0 if opName in _UNTIMED_OPS else _MAX_RUN_SECS[req.kind],
+            msg=PKDict(
+                req.content
+            ).pkupdate(
+                jobCmd=jobCmd,
+                **kwargs,
+            ).pksetdefault(jobRunMode=self.db.jobRunMode),
+            opName=opName,
+        )
+        self._ops.append(o)
+        try:
+            await d.send(o)
+            return o
+        #TODO(e-carlin): more granular exception
+        except Exception:
+            self.destroy_op(o)
+            raise
 
     async def _send_with_single_reply(self, opName, req, jobCmd=None):
         o = await self._send(opName, req, jobCmd)

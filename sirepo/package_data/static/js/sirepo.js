@@ -1643,7 +1643,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         if (e.params && e.params.isModal && e.routeName.includes('sbatch')) {
             e.params.errorCallback = errorCallback;
             $rootScope.$broadcast('showSbatchLoginModal', e.params);
-            return
+            return;
         }
         self.localRedirect(e.routeName, e.params);
         return;

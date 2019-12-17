@@ -124,19 +124,21 @@ class DockerDriver(job_driver.DriverBase):
             cmd, stdin, env = self._agent_cmd_stdin_env()
             p = (
                 'run',
-                '--attach=stdin', # attach to stdin for writing
-                '--interactive', # keeps stdin open so we can write to it
+                # attach to stdin for writing
+                '--attach=stdin',
+                '--cpus={}'.format(cfg[self.kind].get('cores', 1)),
+                '--init',
+                # keeps stdin open so we can write to it
+                '--interactive',
                 '--log-driver=json-file',
                 # should never be large, just for output of the monitor
                 '--log-opt=max-size=1m',
+                '--memory={}g'.format(cfg[self.kind].gigabytes),
+                '--name={}'.format(self._cname),
+                '--network=host',
                 '--rm',
                 '--ulimit=core=0',
                 '--ulimit=nofile={}'.format(_MAX_OPEN_FILES),
-                # '--cpus={}'.format(slot.cores), # TODO(e-carlin): impl
-                '--init',
-                # '--memory={}g'.format(slot.gigabytes), # TODO(e-carlin): impl
-                '--name={}'.format(self._cname), # TODO(e-carlin): impl
-                '--network=host', # TODO(e-carlin): Was 'none'. I think we can use 'bridge' or 'host'
                 # do not use a "name", but a uid, because /etc/password is image specific, but
                 # IDs are universal.
                 '--user={}'.format(os.getuid()),
@@ -151,32 +153,6 @@ class DockerDriver(job_driver.DriverBase):
                 # TODO(e-carlin): read log
             )
             raise
-=======
-    async def _agent_start(self):
-        cmd, stdin, env = self._agent_cmd_stdin_env()
-        p = (
-            'run',
-            # attach to stdin for writing
-            '--attach=stdin',
-            '--cpus={}'.format(cfg[self.kind].get('cores', 1)),
-            '--init',
-            # keeps stdin open so we can write to it
-            '--interactive',
-            '--log-driver=json-file',
-            # should never be large, just for output of the monitor
-            '--log-opt=max-size=1m',
-            '--memory={}g'.format(cfg[self.kind].gigabytes),
-            '--name={}'.format(self._cname),
-            '--network=host',
-            '--rm',
-            '--ulimit=core=0',
-            '--ulimit=nofile={}'.format(_MAX_OPEN_FILES),
-            # do not use a "name", but a uid, because /etc/password is image specific, but
-            # IDs are universal.
-            '--user={}'.format(os.getuid()),
-        ) + self._volumes() + (self._image,)
-        self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
->>>>>>> master
 
     async def _cmd(self, cmd, stdin=subprocess.DEVNULL, env=None):
         c = DockerDriver.hosts[self.host.name].cmd_prefix + cmd
