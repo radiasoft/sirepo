@@ -36,7 +36,7 @@ def upgrade():
                 f.write(t)
 
 
-def populate_supervisor_state(db_dir, sbatch_poll_secs):
+def seed_supervisor_state(db_dir, sbatch_poll_secs):
     from pykern import pkio
     from pykern.pkcollections import PKDict, json_load_any
     from pykern.pkdebug import pkdp
@@ -75,7 +75,7 @@ def populate_supervisor_state(db_dir, sbatch_poll_secs):
             )
         )
         c = sim_data.get_class(i.simulationType)
-        p = _is_parallel(run_dir.basename)
+        p = c.is_parallel(i)
         j = job.PARALLEL if p else job.SEQUENTIAL
         s, t = _read_status_file(run_dir)
         d = PKDict(
@@ -100,10 +100,6 @@ def populate_supervisor_state(db_dir, sbatch_poll_secs):
 
     def _db_file(computeJid):
         return db_dir.join(computeJid + '.json')
-
-    def _is_parallel(report_name):
-        # TODO(e-carlin): is this valid?
-        return bool(re.compile('animation', re.IGNORECASE).search(report_name))
 
     def _read_status_file(run_dir):
         p = path.join(job.RUNNER_STATUS_FILE)

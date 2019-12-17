@@ -84,7 +84,7 @@ def init():
         pkdlog('populating supervisor state path={}', _DB_DIR)
         import subprocess
         subprocess.check_call(
-            ('sirepo', 'db', 'populate_supervisor_state', _DB_DIR, str(cfg.sbatch_poll_secs)),
+            ('sirepo', 'db', 'seed_supervisor_state', _DB_DIR, str(cfg.sbatch_poll_secs)),
             env=os.environ.update(PKDict(PYENV_VERSION='py2'))
         )
 
