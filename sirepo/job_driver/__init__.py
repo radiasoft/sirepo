@@ -42,12 +42,13 @@ class DriverBase(PKDict):
 
     def __init__(self, req):
         super().__init__(
-            _agentId=job.unique_key(),
             kind=req.kind,
             ops_pending_done=PKDict(),
             ops_pending_send=[],
             uid=req.content.uid,
             websocket=None,
+            _agentId=job.unique_key(),
+            _agent_starting=False,
         )
         self.agents[self._agentId] = self
         pkdlog(
@@ -62,15 +63,11 @@ class DriverBase(PKDict):
     def cancel_op(self, op):
         for o in self.ops_pending_send:
             if o == op:
-                self.ops_pending_send.remove(o)
-#rjn there should only be one op
+                op.do_not_send = True
                 return
-#rjn it's cheaper to create a list of values (list(x.values()) than a copy of the whole dict.
-#   but we don't need to do that because we are going to exit once found
         for o in self.ops_pending_done.values():
             if o == op:
-                del self.ops_pending_done[o.opId]
-#rjn there should only be one op
+                op.do_not_send = True
                 return
 #rjn is this a valid assumption?
         raise AssertionError('could not find opId={} for agentId={}'.format(
@@ -79,10 +76,9 @@ class DriverBase(PKDict):
         )
 
     def destroy_op(self, op):
-        assert op not in self.ops_pending_send
-        # canceled ops are removed in self.cancel_op()
-        if not op.canceled and not op.errored:
-            del self.ops_pending_done[op.opId]
+        if op in self.ops_pending_send:
+            self.ops_pending_send.remove(op)
+        self.ops_pending_done.pkdel(op.opId)
         self.run_scheduler()
 
     def get_ops_pending_done_types(self):
@@ -92,9 +88,6 @@ class DriverBase(PKDict):
         return d
 
     def get_ops_with_send_allocation(self):
-        """Get ops that could be sent assuming outside requirements are met.
-        Outside requirements driver having a slot.
-        """
         if not self.websocket:
             return []
         r = []
@@ -119,7 +112,8 @@ class DriverBase(PKDict):
                 return
             except Exception as e:
                 pkdlog('error={} stack={}', e, pkdexc())
-        a._receive(msg)
+        else:
+            a._receive(msg)
 
     async def send(self, op):
 #TODO(robnagler) need to send a retry to the ops, which should requeue
@@ -132,14 +126,16 @@ class DriverBase(PKDict):
 #  we can cache that state in the agent(?) and have it send the response
 #  twice(?).
         self.ops_pending_send.append(op)
+        if not self.websocket and not self._agent_starting:
+            await self._agent_start(op.msg)
         self.run_scheduler()
         await op.send_ready.wait()
-        if op.opId in self.ops_pending_done:
-            pkdlog('op={} agentId={} opId={}', op.opName, self._agentId, op.opId)
-            self.websocket.write_message(pkjson.dump_bytes(op.msg))
+        if op.do_not_send:
+            pkdlog('op finished without being sent op={}', job.LogFormatter(op))
         else:
-            pkdlog('canceled op={}', job.LogFormatter(op))
-        assert op not in self.ops_pending_send
+            pkdlog('op={} agentId={} opId={}', op.opName, self._agentId, op.opId)
+            op.start_timer()
+            self.websocket.write_message(pkjson.dump_bytes(op.msg))
 
     @classmethod
     async def terminate(cls):
@@ -193,6 +189,7 @@ class DriverBase(PKDict):
                 return
             self.websocket_free()
         self.websocket = msg.handler
+        self._agent_starting = False
         self.websocket.sr_driver_set(self)
 #TODO(robnagler) do we want to run_scheduler on alive in all cases?
         self.run_scheduler()
@@ -216,6 +213,7 @@ class DriverBase(PKDict):
     def websocket_free(self):
         """Remove holds on all resources and remove self from data structures"""
         try:
+            self._agent_starting = False
             del self.agents[self._agentId]
             w = self.websocket
             self.websocket = None

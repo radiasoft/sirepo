@@ -38,7 +38,6 @@ class LocalDriver(job_driver.DriverBase):
         )
         self.has_slot = False
         self.instances[self.kind].append(self)
-        tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
 
     def free_slots(self):
         for d in self.instances[self.kind]:
@@ -77,7 +76,7 @@ class LocalDriver(job_driver.DriverBase):
             cls.instances[k] = []
             cls.slots[k] = PKDict(
                 in_use=0,
-                total=cfg[k + '_slots'],
+                total=cfg.slots[k],
             )
         return cls
 
@@ -134,7 +133,8 @@ class LocalDriver(job_driver.DriverBase):
         else:
             self._agentExecDir.remove(rec=True, ignore_errors=True)
 
-    async def _agent_start(self):
+    async def _agent_start(self, msg):
+        self._agent_starting = True
         stdin = None
         o = None
         try:
@@ -154,13 +154,14 @@ class LocalDriver(job_driver.DriverBase):
             )
             self.subprocess.set_exit_callback(self._agent_on_exit)
         except Exception as e:
+            self._agent_starting = False
             pkdlog(
                 'agentId={} exception={} log={}',
                 self._agentId,
                 e,
                 self._log.read(),
             )
-            return
+            raise
         finally:
             if stdin:
                 stdin.close()
@@ -177,7 +178,9 @@ def init_class():
     global cfg
 
     cfg = pkconfig.init(
-        parallel_slots=(1, int, 'max parallel slots'),
-        sequential_slots=(1, int, 'max sequential slots'),
+        slots=dict(
+            parallel=(1, int, 'max parallel slots'),
+            sequential=(1, int, 'max sequential slots'),
+        ),
     )
     return LocalDriver.init_class()

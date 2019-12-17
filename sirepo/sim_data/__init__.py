@@ -135,7 +135,7 @@ class SimDataBase(object):
         cls._assert_server_side()
         c = cls.compute_model(data)
         if data.get('forceRun') or cls.is_parallel(c):
-            return cls._force_recompute()
+            return 'HashIsUnused'
         m = data['models']
         res = hashlib.md5()
         for f in sorted(
@@ -193,7 +193,7 @@ class SimDataBase(object):
         Args:
             data (dict): simulation
         """
-        raise NotImplemented()
+        raise NotImplementedError()
 
     @classmethod
     def frame_id(cls, data, response, model, index):

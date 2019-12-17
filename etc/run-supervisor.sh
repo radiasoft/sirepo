@@ -32,7 +32,6 @@ radia_run redhat-docker
         export SIREPO_JOB_DRIVER_MODULES=local:sbatch
         export SIREPO_JOB_DRIVER_SBATCH_HOST=cori.nersc.gov
         export SIREPO_JOB_DRIVER_SBATCH_SHIFTER_IMAGE=radiasoft/sirepo:sbatch
-        export SIREPO_JOB_DRIVER_SBATCH_USER=$3
         export SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=/global/homes/${3::1}/$3/.pyenv/versions/py3/bin/sirepo
         export SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/global/cscratch1/sd/{sbatch_user}/sirepo'
         export SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS=15
@@ -56,7 +55,6 @@ radia_run slurm-dev
         fi
         export SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=$HOME/.pyenv/versions/py3/bin/sirepo
         export SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/var/tmp/{sbatch_user}/sirepo'
-        export SIREPO_JOB_DRIVER_SBATCH_USER=$USER
         export SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS=5
         export SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Vagrant Cluster'
         ;;

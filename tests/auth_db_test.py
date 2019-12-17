@@ -32,7 +32,7 @@ def test_migration():
     from sirepo import auth
 
     # deprecated methods raise Unauthorized, but still login
-    with pkexcept('UNAUTHORIZED'):
+    with pkexcept('SRException.*deprecated'):
         auth.login(auth.github, uid='jeTJR5G4')
     # verify logged in
     pkeq('jeTJR5G4', auth.user_if_logged_in('github'))

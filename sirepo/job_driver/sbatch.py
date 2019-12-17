@@ -7,15 +7,16 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkio
-from pykern import pkjinja
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
 from sirepo import job
 from sirepo import job_driver
+from sirepo import util
 import asyncssh
 import sirepo.simulation_db
 import sirepo.srdb
 import tornado.ioloop
+
 
 cfg = None
 
@@ -29,10 +30,8 @@ class SbatchDriver(job_driver.DriverBase):
     def __init__(self, req):
         super().__init__(req)
 #TODO(robnagler) read a db for an sbatch_user
-        self._user = cfg.user
-        self._srdb_root = cfg.srdb_root.format(sbatch_user=self._user)
+        self._srdb_root = None
         self.instances[self.uid] = self
-        tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
 
     def has_remote_agent(self):
         return True
@@ -68,12 +67,18 @@ class SbatchDriver(job_driver.DriverBase):
 
     async def send(self, op):
         m = op.msg
+        if self._srdb_root is None:
+            assert not self.websocket, \
+                'expected no agent if _srdb_root not set msg={}'.format(m)
+            if 'username' not in m:
+                self._raise_sbatch_login_srexception('no-creds', m)
+            self._srdb_root = cfg.srdb_root.format(sbatch_user=m.username)
         m.userDir = '/'.join(
             (
                 str(self._srdb_root),
                 sirepo.simulation_db.USER_ROOT_DIR,
                 m.uid,
-             )
+            )
         )
         m.runDir = '/'.join((m.userDir, m.simulationType, m.computeJid))
         if op.opName == job.OP_RUN:
@@ -82,6 +87,8 @@ class SbatchDriver(job_driver.DriverBase):
                 # override for dev
                 m.sbatchCores = cfg.cores
             m.mpiCores = m.sbatchCores
+            if op.kind == job.PARALLEL:
+                op.maxRunSecs = 0
         m.shifterImage = cfg.shifter_image
         return await super().send(op)
 
@@ -92,15 +99,17 @@ class SbatchDriver(job_driver.DriverBase):
             )
         )
 
-    async def _agent_start(self):
-        async with asyncssh.connect(
-            cfg.host,
-#TODO(robnagler) add password management
-            username=self._user,
-            password=self._user if self._user == 'vagrant' else totp(),
-            known_hosts=_KNOWN_HOSTS,
-        ) as c:
-            script = f'''#!/bin/bash
+    async def _agent_start(self, msg):
+        self._agent_starting = True
+        try:
+            async with asyncssh.connect(
+                cfg.host,
+    #TODO(robnagler) add password management
+                username=msg.username,
+                password=msg.password + msg.otp if 'nersc' in cfg.host else msg.password,
+                known_hosts=_KNOWN_HOSTS,
+            ) as c:
+                script = f'''#!/bin/bash
 {self._agent_start_dev()}
 set -e
 mkdir -p '{self._srdb_root}'
@@ -109,12 +118,28 @@ cd '{self._srdb_root}'
 setsid {cfg.sirepo_cmd} job_agent >& job_agent.log &
 disown
 '''
-            async with c.create_process('/bin/bash') as p:
-                o, e = await p.communicate(input=script)
-                if o or e:
-                    pkdlog('agentId={} stdout={} stderr={}', self._agentId, o, e)
-                #TODO(robnagler) try to read the job_agent.log
-                pkdlog('agentId={} exit={}', self._agentId, p.exit_status)
+                async with c.create_process('/bin/bash') as p:
+                    o, e = await p.communicate(input=script)
+                    if o or e:
+                        raise AssertionError(
+                            'agentId={} stdout={} stderr={}'.format(
+                                self._agentId,
+                                o,
+                                e
+                            )
+                        )
+        except Exception as e:
+            self._agent_starting = False
+            pkdlog(
+                'agentId={} exception={}',
+                self._agentId,
+                e,
+            #TODO(robnagler) try to read the job_agent.log
+            )
+            if isinstance(e, asyncssh.misc.PermissionDenied):
+                self._srdb_root = None
+                self._raise_sbatch_login_srexception('invalid-creds', msg)
+            raise
 
     def _agent_start_dev(self):
         if not pkconfig.channel_in('dev'):
@@ -130,6 +155,19 @@ scancel -u $USER >& /dev/null || true
 '''
         return res
 
+    def _raise_sbatch_login_srexception(self, reason, msg):
+        raise util.SRException(
+            'sbatchLogin',
+            PKDict(
+                isModal=True,
+                reason=reason,
+                simulationId=msg.simulationId,
+                simulationType=msg.simulationType,
+                report=msg.computeModel,
+                host=cfg.host,
+            ),
+        )
+
     def _websocket_free(self):
         self.run_scheduler(exclude_self=True)
         self.instances.pkdel(self.uid)
@@ -141,7 +179,6 @@ def init_class():
     cfg = pkconfig.init(
         host=pkconfig.Required(str, 'host name for slum controller'),
         host_key=pkconfig.Required(str, 'host key'),
-        user=('vagrant', str, 'temporary user config'),
         cores=(None, int, 'dev cores config'),
         shifter_image=(None, str, 'needed if using Shifter'),
         sirepo_cmd=pkconfig.Required(str, 'how to run sirepo'),
@@ -158,26 +195,3 @@ def _cfg_srdb_root(value):
     assert '{sbatch_user}' in value, \
         'must include {sbatch_user} in string'
     return value
-
-
-import base64
-import hashlib
-import hmac
-import os
-import struct
-import sys
-import time
-
-def totp():
-    return pkio.py_path(os.getenv('A')).read().strip() + _totp(pkio.py_path(os.getenv('B')).read().strip())
-
-def _hotp(secret, counter):
-    secret  = base64.b32decode(secret)
-    counter = struct.pack('>Q', counter)
-    hash   = hmac.new(secret, counter, hashlib.sha1).digest()
-    offset = hash[19] & 0xF
-    return (struct.unpack(">I", hash[offset:offset + 4])[0] & 0x7FFFFFFF) % 1000000
-
-
-def _totp(secret):
-    return '{:06d}'.format(int(_hotp(secret, int(time.time()) // 30)))

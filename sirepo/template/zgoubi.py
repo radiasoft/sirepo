@@ -285,7 +285,7 @@ _TWISS_SUMMARY_LABELS = {
 
 
 def background_percent_complete(report, run_dir, is_running):
-    errors = ''
+    error = ''
     if not is_running:
         out_file = run_dir.join('{}.json'.format(template_common.OUTPUT_BASE_NAME))
         show_tunes_report = False
@@ -311,13 +311,13 @@ def background_percent_complete(report, run_dir, is_running):
                 'showSpin3d': show_spin_3d,
             }
         else:
-            errors = _parse_zgoubi_log(run_dir)
+            error = _parse_zgoubi_log(run_dir)
     res = {
         'percentComplete': 0,
         'frameCount': 0,
     }
-    if errors:
-        res['errors'] = errors
+    if error:
+        res['error'] = error
     return res
 
 
@@ -852,6 +852,13 @@ def _parse_zgoubi_log(run_dir):
             num = match.group(1)
             if num in element_by_num:
                 res += '  element # {}: {}\n'.format(num, element_by_num[num])
+    path = run_dir.join(template_common.RUN_LOG)
+    if res == '' and path.exists():
+        text = pkio.read_text(str(path))
+        for line in text.split("\n"):
+            match = re.search(r'Fortran runtime error: (.*)', line)
+            if match:
+                res += '{}\n'.format(match.group(1))
     return res
 
 

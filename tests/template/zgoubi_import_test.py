@@ -12,7 +12,6 @@ import pytest
 from sirepo import srunit
 
 
-@srunit.wrap_in_request()
 def test_importer(import_req):
     from pykern import pkcollections
     from pykern import pkjson
