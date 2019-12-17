@@ -278,7 +278,20 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
     }
 
     function computeGratingOrientation(item) {
-        computeFields('compute_grating_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy']);
+        //computeFields('compute_grating_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy']);
+        updateOrientationFields(item);
+        requestSender.getApplicationData(
+            {
+                method: 'compute_grating_orientation',
+                optical_element: item,
+                photon_energy: appState.models.simulation.photonEnergy,
+            },
+            function(data) {
+                ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy'].forEach(function(f) {
+                    item[f] = data[f];
+                    formatOrientationOutput(item, data, f);
+                });
+            });
     }
 
     function computeCrystalInit(item) {
@@ -377,6 +390,16 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         }
     }
 
+    function formatOrientationOutput(item, data, f) {
+        item[f] = parseFloat(data[f]);
+        if (item[f] === 1) {
+            item[f] = item[f].toFixed(1)
+        }
+        else {
+            item[f] = item[f].toFixed(12);
+        }
+    }
+
     function isUserDefined(v) {
         return v === 'User-defined';
     }
@@ -414,10 +437,8 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
     function updateGratingFields(item) {
         if (item.computeParametersFrom === '1') {
             panelState.enableField(item.type, 'grazingAngle', false);
-            //panelState.enableField(item.type, 'cff', true);
         }
         else if (item.computeParametersFrom === '2') {
-            //panelState.enableField(item.type, 'grazingAngle', true);
             panelState.enableField(item.type, 'cff', false);
         }
     }
@@ -477,6 +498,12 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         });
     }
 
+    function updateOrientationFields(item) {
+        ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy'].forEach(function(f) {
+            panelState.enableField(item.type, f, item.computeParametersFrom === '3');
+        });
+    }
+
     self.handleModalShown = function(name) {
         var item = beamlineService.activeItem;
         if (item && item.type == name) {
@@ -494,6 +521,7 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
             }
             else if (name === 'grating'){
                 updateGratingFields(item);
+                updateOrientationFields(item);
             }
             else if (name == 'crystal') {
                 if (item.materal != 'Unknown' && ! item.nvz) {
