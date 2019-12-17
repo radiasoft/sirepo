@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 u"""Entry points for job execution
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
@@ -35,7 +34,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         model=model,
         type=simulation_type,
     )
-    s = suffix and sireop.srschema.parse_name(suffix)
+    s = suffix and sirepo.srschema.parse_name(suffix)
     t = None
     with simulation_db.tmp_dir() as d:
         # TODO(e-carlin): computeJobHash
@@ -66,11 +65,10 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         )
 
 
-@api_perm.require_user
+@api_perm.allow_visitor
 def api_jobSupervisorPing():
     import requests.exceptions
 
-    req = sirepo.http_request.parse_post()
     e = None
     try:
         k = sirepo.job.unique_key()
@@ -88,7 +86,7 @@ def api_jobSupervisorPing():
         except KeyError:
             e = 'incorrectly formatted reply'
             pkdlog(r)
-    except requests.exceptions.ConnectionError as e:
+    except requests.exceptions.ConnectionError:
         e = 'unable to connect to supervisor'
     except Exception as e:
         pkdlog(e)
@@ -103,26 +101,11 @@ def api_runCancel():
 
 @api_perm.require_user
 def api_runSimulation():
-    t = None
-    try:
-#TODO(robnagler) libUri only necessary if job_agent doesn't have access to NFS
-#   this could be computed from jobRunMode (or configured for development testing)
-        r = _request_content(PKDict(fixup_old_data=True))
-        d = simulation_db.simulation_lib_dir(r.simulationType)
-        p = d.join(sirepo.job.LIB_FILE_LIST_URI[1:])
-        pykern.pkio.unchecked_remove(p)
-        sirepo.util.json_dump(
-            [x.basename for x in d.listdir()],
-            path=p,
-        )
-        t = sirepo.job.LIB_FILE_ROOT.join(sirepo.job.unique_key())
-        t.mksymlinkto(d, absolute=False)
-        r.libFileUri = sirepo.job.LIB_FILE_ABS_URI + t.basename + '/'
-        return _request(_request_content=r)
-    finally:
-        if t:
-            pykern.pkio.unchecked_remove(t)
-
+    r = _request_content(PKDict(fixup_old_data=True))
+    # TODO(e-carlin): This should really be done in job_supervisor._lib_dir_symlink()
+    # but that is outside of the Flask context so it won't work
+    r.simulation_lib_dir = sirepo.simulation_db.simulation_lib_dir(r.simulationType)
+    return _request(_request_content=r)
 
 @api_perm.require_user
 def api_runStatus():
@@ -143,6 +126,17 @@ def api_simulationFrame(frame_id):
     )
 
 
+@api_perm.require_user
+def api_sbatchLogin():
+    c = sirepo.http_request.parse_json()
+    c.pksetdefault(
+        computeJid=lambda: sirepo.sim_data.get_class(c).parse_jid(c),
+        uid=lambda: sirepo.auth.logged_in_user(),
+        computeModel=c.report,
+    )
+    return _request(_request_content=c)
+
+
 def init_apis(*args, **kwargs):
 #TODO(robnagler) if we recover connections with agents and running jobs remove this
     pykern.pkio.unchecked_remove(sirepo.job.LIB_FILE_ROOT, sirepo.job.DATA_FILE_ROOT)
@@ -151,19 +145,6 @@ def init_apis(*args, **kwargs):
 
 
 def _request(**kwargs):
-    k = PKDict(kwargs)
-    u = k.pkdel('_request_uri') or sirepo.job.SERVER_ABS_URI
-    c = k.pkdel('_request_content') or _request_content(k)
-    r = requests.post(
-        u,
-        data=pkjson.dump_bytes(c),
-        headers=PKDict({'Content-type': 'application/json'}),
-    )
-    r.raise_for_status()
-    return pkjson.load_any(r.content)
-
-
-def _request_content(kwargs):
     def get_api_name():
         f = inspect.currentframe()
         for _ in range(_MAX_FRAME_SEARCH_DEPTH):
@@ -175,6 +156,23 @@ def _request_content(kwargs):
             raise AssertionError(
                 '{}: max frame search depth reached'.format(f.f_code)
             )
+    k = PKDict(kwargs)
+    u = k.pkdel('_request_uri') or sirepo.job.SERVER_ABS_URI
+    c = k.pkdel('_request_content') or _request_content(k)
+    c.pkupdate(
+        api=get_api_name(),
+        serverSecret=sirepo.job.cfg.server_secret,
+    )
+    r = requests.post(
+        u,
+        data=pkjson.dump_bytes(c),
+        headers=PKDict({'Content-type': 'application/json'}),
+    )
+    r.raise_for_status()
+    return pkjson.load_any(r.content)
+
+
+def _request_content(kwargs):
 
     d = kwargs.pkdel('req_data')
     if not d:
@@ -189,9 +187,9 @@ def _request_content(kwargs):
 # TODO(e-carlin): some of these fields are only used for some type of reqs
     b.pksetdefault(
         analysisModel=lambda: s.parse_model(d),
-        api=get_api_name(),
         computeJid=lambda: s.parse_jid(d),
         computeJobHash=lambda: d.get('computeJobHash') or s.compute_job_hash(d),
+        computeJobStart=lambda: d.get('computeJobStart', 0),
         computeModel=lambda: s.compute_model(d),
         isParallel=lambda: s.is_parallel(d),
         reqId=lambda: sirepo.job.unique_key(),

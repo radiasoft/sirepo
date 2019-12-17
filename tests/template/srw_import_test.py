@@ -9,7 +9,7 @@ import pytest
 from sirepo import srunit
 
 
-@srunit.wrap_in_request()
+@srunit.wrap_in_request(want_cookie=True, want_user=True)
 def test_srw_importer():
     from sirepo.template.srw_importer import import_python
     from pykern import pkio
@@ -41,8 +41,7 @@ def test_srw_importer():
         'srx_bl4': ('srx', '--op_BL=4'),
         'nsls-ii-esm-beamline': ('nsls-ii-esm-beamline', None),
     }
-
-    with pkunit.save_chdir_work():
+    with pkio.save_chdir(pkunit.work_dir()):
         for b in sorted(_TESTS.keys()):
             base_py = '{}.py'.format(_TESTS[b][0])
             code = pkio.read_text(pkunit.data_dir().join(base_py))

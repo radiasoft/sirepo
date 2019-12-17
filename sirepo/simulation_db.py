@@ -51,6 +51,9 @@ RESOURCE_FOLDER = pkio.py_path(pkresource.filename(''))
 #: Where server files and static files are found
 STATIC_FOLDER = RESOURCE_FOLDER.join('static')
 
+#: where users live under db_dir
+USER_ROOT_DIR = 'user'
+
 #: How to find examples in resources
 _EXAMPLE_DIR = 'examples'
 
@@ -86,9 +89,6 @@ _SCHEMA_SUPERCLASS_FIELD = '_super'
 
 #: created under dir
 _TMP_DIR = 'tmp'
-
-#: where users live under db_dir
-_USER_ROOT_DIR = 'user'
 
 #: Use to assert _serial_new result. Not perfect but good enough to avoid common problems
 _serial_prev = 0
@@ -798,7 +798,7 @@ def user_dir_name(uid=None):
     Return:
         py.path: directory name
     """
-    d = sirepo.srdb.root().join(_USER_ROOT_DIR)
+    d = sirepo.srdb.root().join(USER_ROOT_DIR)
     if not uid:
         return d
     return d.join(uid)

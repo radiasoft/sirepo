@@ -34,10 +34,6 @@ _CNAME_RE = re.compile(_CNAME_SEP.join(('^' + _CNAME_PREFIX, r'([a-z]+)', '(.+)'
 # TODO(e-carlin): max open files for local or nersc?
 _MAX_OPEN_FILES = 1024
 
-#: Copy of sirepo.mpi.cfg.cores to avoid init inconsistencies; only used during init_class()
-_parallel_cores = None
-
-
 class DockerDriver(job_driver.DriverBase):
 
     instances = PKDict()
@@ -56,7 +52,6 @@ class DockerDriver(job_driver.DriverBase):
         self.has_slot = False
         self.host.drivers[self.kind].append(self)
         self.instances[self.kind].append(self)
-        tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
 
     @classmethod
     async def get_instance(cls, req):
@@ -123,28 +118,41 @@ class DockerDriver(job_driver.DriverBase):
             self.host.slots[self.kind].in_use -= 1
             self.has_slot = False
 
-    async def _agent_start(self):
-        cmd, stdin, env = self._agent_cmd_stdin_env()
-        p = (
-            'run',
-            '--attach=stdin', # attach to stdin for writing
-            '--interactive', # keeps stdin open so we can write to it
-            '--log-driver=json-file',
-            # should never be large, just for output of the monitor
-            '--log-opt=max-size=1m',
-            '--rm',
-            '--ulimit=core=0',
-            '--ulimit=nofile={}'.format(_MAX_OPEN_FILES),
-            # '--cpus={}'.format(slot.cores), # TODO(e-carlin): impl
-            '--init',
-            # '--memory={}g'.format(slot.gigabytes), # TODO(e-carlin): impl
-            '--name={}'.format(self._cname), # TODO(e-carlin): impl
-            '--network=host', # TODO(e-carlin): Was 'none'. I think we can use 'bridge' or 'host'
-            # do not use a "name", but a uid, because /etc/password is image specific, but
-            # IDs are universal.
-            '--user={}'.format(os.getuid()),
-        ) + self._volumes() + (self._image,)
-        self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
+    async def _agent_start(self, msg):
+        self._agent_starting = True
+        try:
+            cmd, stdin, env = self._agent_cmd_stdin_env()
+            p = (
+                'run',
+                # attach to stdin for writing
+                '--attach=stdin',
+                '--cpus={}'.format(cfg[self.kind].get('cores', 1)),
+                '--init',
+                # keeps stdin open so we can write to it
+                '--interactive',
+                '--log-driver=json-file',
+                # should never be large, just for output of the monitor
+                '--log-opt=max-size=1m',
+                '--memory={}g'.format(cfg[self.kind].gigabytes),
+                '--name={}'.format(self._cname),
+                '--network=host',
+                '--rm',
+                '--ulimit=core=0',
+                '--ulimit=nofile={}'.format(_MAX_OPEN_FILES),
+                # do not use a "name", but a uid, because /etc/password is image specific, but
+                # IDs are universal.
+                '--user={}'.format(os.getuid()),
+            ) + self._volumes() + (self._image,)
+            self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
+        except Exception as e:
+            self._agent_starting = False
+            pkdlog(
+                'agentId={} exception={}',
+                self._agentId,
+                e,
+                # TODO(e-carlin): read log
+            )
+            raise
 
     async def _cmd(self, cmd, stdin=subprocess.DEVNULL, env=None):
         c = DockerDriver.hosts[self.host.name].cmd_prefix + cmd
@@ -176,6 +184,9 @@ class DockerDriver(job_driver.DriverBase):
             return res
         return res + ':' + pkconfig.cfg.channel
 
+    def _timer(self):
+
+
     def _volumes(self):
         res = []
         def _res(src, tgt):
@@ -199,19 +210,21 @@ class DockerDriver(job_driver.DriverBase):
 
 
 def init_class():
-    global cfg, _parallel_cores
-
-    _parallel_cores = mpi.cfg.cores
-
-    def _r(*a):
-        return a if pkconfig.channel_in('dev') else pkconfig.Required(*(a[1:]))
+    global cfg
 
     cfg = pkconfig.init(
-        hosts=_r(tuple(), tuple, 'execution hosts'),
+        hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, 'execution hosts'),
         image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
-        parallel_slots=(1, int, 'max parallel slots'),
-        sequential_slots=(1, int, 'max sequential slots'),
-        tls_dir=_r(None, _cfg_tls_dir, 'directory containing host certs'),
+        parallel=dict(
+            cores=(1, int, 'cores per parallel job'),
+            gigabytes=(1, int, 'gigabytes per parallel job'),
+            slots_per_host=(1, int, 'parallel slots per node'),
+        ),
+        sequential=dict(
+            gigabytes=(1, int, 'gigabytes per sequential job'),
+            slots_per_host=(1, int, 'sequential slots per node'),
+        ),
+        tls_dir=pkconfig.RequiredUnlessDev(None, _cfg_tls_dir, 'directory containing host certs'),
     )
     if not cfg.tls_dir or not cfg.hosts:
         _init_dev_hosts()
@@ -285,7 +298,7 @@ def _init_hosts():
         for k in job.KINDS:
             DockerDriver.hosts[h].slots[k] = PKDict(
                 in_use=0,
-                total=cfg[k + '_slots'],
+                total=cfg[k].slots_per_host,
             )
             DockerDriver.hosts[h].drivers[k] = []
     assert len(DockerDriver.hosts) > 0, \

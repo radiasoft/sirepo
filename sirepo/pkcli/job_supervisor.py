@@ -29,7 +29,7 @@ def default_command():
 
     cfg = pkconfig.init(
         debug=(pkconfig.channel_in('dev'), bool, 'run supervisor in debug mode'),
-        ip=('127.0.0.1', str, 'ip address to listen on'),
+        ip=(sirepo.job.DEFAULT_IP, str, 'ip address to listen on'),
         port=(sirepo.job.DEFAULT_PORT, int, 'what port to listen on'),
     )
     sirepo.job_supervisor.init()
@@ -43,8 +43,9 @@ def default_command():
             (sirepo.job.DATA_FILE_URI + '/(.*)', _DataFileReq),
         ],
         debug=cfg.debug,
-        static_path=sirepo.job.SUPERVISOR_SRV_ROOT,
-        static_url_prefix=sirepo.job.LIB_FILE_URI,
+        static_path=sirepo.job.SUPERVISOR_SRV_ROOT.join(sirepo.job.LIB_FILE_URI),
+        # tornado expects a trailing slash
+        static_url_prefix=sirepo.job.LIB_FILE_URI + '/',
     )
     server = tornado.httpserver.HTTPServer(app)
     server.listen(cfg.port, cfg.ip)
@@ -103,7 +104,9 @@ class _DataFileReq(tornado.web.RequestHandler):
         (d, f) = path.split('/')
         assert sirepo.job.UNIQUE_KEY_RE.search(d), \
             'invalid directory={}'.format(d)
-        d = DATA_FILE_ROOT.join(d)
+        d = sirepo.job.DATA_FILE_ROOT.join(d)
+        assert d.check(dir=True), \
+            'directory does not exist={}'.format(d)
         # (tornado ensures no '..' and '.'), but a bit of sanity doesn't hurt
         assert not f.startswith('.'), \
             'invalid file={}'.format(f)

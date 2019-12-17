@@ -370,10 +370,13 @@
                 ]]
             ]
         },
-        "rateCalculationReport": {
-            "title": "Rate Calculation Report",
-            "basic": [],
-            "advanced": [
+        "coolingAndIBS": {
+            "title": "Cooling and Intrabeam Scattering",
+            "basic": [
+                ["Electron Cooling", [
+                    "electronCoolingRate.sample_number",
+                    "electronCoolingRate.force_formula"
+                ]],
                 ["Intrabeam Scattering", [
                     "intrabeamScatteringRate.nu",
                     "intrabeamScatteringRate.nv",
@@ -381,12 +384,13 @@
                     "intrabeamScatteringRate.nz",
                     "intrabeamScatteringRate.log_c",
                     "intrabeamScatteringRate.coupling"
-                ]],
-                ["Electron Cooling", [
-                    "electronCoolingRate.sample_number",
-                    "electronCoolingRate.force_formula"
                 ]]
-            ]
+            ],
+            "advanced": []
+        },
+        "rateCalculationReport": {
+            "title": "Rate Calculation Report",
+            "advanced": []
         },
         "ring": {
             "title": "Ring",
