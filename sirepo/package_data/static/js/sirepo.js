@@ -905,7 +905,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             appState.models.simulation.simulationId,
             SIREPO.APP_SCHEMA.simulationType,
             s.computeJobHash,
-            s.computeJobStart,
+            s.computeJobSerial,
         ];
         var m = appState.models;
         m = m[frameReport in m ? frameReport : c];

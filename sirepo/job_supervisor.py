@@ -33,8 +33,8 @@ _NEXT_REQUEST_SECONDS = None
 _RUNNING_PENDING = (job.RUNNING, job.PENDING)
 
 _HISTORY_FIELDS = frozenset((
+    'computeJobSerial',
     'computeJobStart',
-    'computeJobQueued',
     'error',
     'jobRunMode',
     'lastUpdateTime',
@@ -169,8 +169,8 @@ class _ComputeJob(PKDict):
         self.db = PKDict(
             computeJid=c.computeJid,
             computeJobHash=c.computeJobHash,
+            computeJobSerial=0,
             computeJobStart=0,
-            computeJobQueued=0,
             error=None,
             history=self.__db_init_history(prev_db),
             isParallel=c.isParallel,
@@ -211,7 +211,7 @@ class _ComputeJob(PKDict):
         r = PKDict(state=job.CANCELED)
         if (
             self.db.computeJobHash != req.content.computeJobHash
-            or self.db.computeJobStart != req.content.computeJobStart
+            or self.db.computeJobSerial != req.content.computeJobSerial
         ):
             # not our job, but let the user know it isn't running
             return r
@@ -241,7 +241,7 @@ class _ComputeJob(PKDict):
             or self.db.status != job.COMPLETED
         ):
             self.__db_init(req, prev_db=self.db)
-            self.db.computeJobQueued = int(time.time())
+            self.db.computeJobSerial = int(time.time())
             self.db.pkupdate(status=job.PENDING)
             self.__db_write()
             o = await self._create_op(
@@ -270,14 +270,15 @@ class _ComputeJob(PKDict):
             if self.db.isParallel:
                 r.update(self.db.parallelStatus)
                 r.computeJobHash = self.db.computeJobHash
-                r.computeJobStart = self.db.computeJobStart
-                r.elapsedTime = r.lastUpdateTime - r.computeJobStart
+                r.computeJobSerial = self.db.computeJobSerial
+                r.elapsedTime = r.lastUpdateTime - self.db.computeJobStart
             if self.db.status in _RUNNING_PENDING:
                 c = req.content
                 r.update(
                     nextRequestSeconds=self.db.nextRequestSeconds,
                     nextRequest=PKDict(
                         computeJobHash=self.db.computeJobHash,
+                        computeJobSerial=self.db.computeJobSerial,
                         computeJobStart=self.db.computeJobStart,
                         report=c.analysisModel,
                         simulationId=self.db.simulationId,
@@ -287,11 +288,8 @@ class _ComputeJob(PKDict):
             return r
         if self.db.computeJobHash != req.content.computeJobHash:
             return PKDict(state=job.MISSING, reason='computeJobHash-mismatch')
-        if (
-            self.db.computeJobStart and req.content.computeJobStart
-            and self.db.computeJobStart != req.content.computeJobStart
-        ):
-            return PKDict(state=job.MISSING, reason='computeJobStart-mismatch')
+        if self.db.computeJobSerial != req.content.computeJobSerial:
+            return PKDict(state=job.MISSING, reason='computeJobSerial-mismatch')
         if self.db.isParallel or self.db.status != job.COMPLETED:
             return res(state=self.db.status)
         return await self._send_with_single_reply(
@@ -311,11 +309,11 @@ class _ComputeJob(PKDict):
                     self.db.computeJobHash,
                     req.content.computeJobHash,
                 )
-           # there has to be a computeJobStart
-            assert self.db.computeJobStart == req.content.computeJobStart, \
-                'expected computeJobStart={} but got={}'.format(
-                    self.db.computeJobStart,
-                    req.content.computeJobStart,
+           # there has to be a computeJobSerial
+            assert self.db.computeJobSerial == req.content.computeJobSerial, \
+                'expected computeJobSerial={} but got={}'.format(
+                    self.db.computeJobSerial,
+                    req.content.computeJobSerial,
                 )
             r = await self._send_with_single_reply(
                 job.OP_ANALYSIS,

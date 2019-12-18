@@ -189,7 +189,7 @@ def _request_content(kwargs):
         analysisModel=lambda: s.parse_model(d),
         computeJid=lambda: s.parse_jid(d),
         computeJobHash=lambda: d.get('computeJobHash') or s.compute_job_hash(d),
-        computeJobStart=lambda: d.get('computeJobStart', 0),
+        computeJobSerial=lambda: d.get('computeJobSerial', 0),
         computeModel=lambda: s.compute_model(d),
         isParallel=lambda: s.is_parallel(d),
         reqId=lambda: sirepo.job.unique_key(),
