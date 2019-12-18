@@ -49,11 +49,12 @@ def default_command(in_file):
 
 
 def _background_percent_complete(msg, template, is_running):
-    r = template.background_percent_complete(
+    # some templates return a dict so wrap in PKDict
+    r = PKDict(template.background_percent_complete(
         msg.data.report,
         msg.runDir,
         is_running,
-    )
+    ))
 #TODO(robnagler) this is incorrect, because we want to see file updates
 #   not just our polling frequency
     r.pksetdefault(lastUpdateTime=lambda: _mtime_or_now(msg.runDir))
