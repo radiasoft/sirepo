@@ -192,7 +192,7 @@ class DockerDriver(job_driver.DriverBase):
         def _res(src, tgt):
             res.append('--volume={}:{}'.format(src, tgt))
 
-        if pkconfig.channel_in('dev'):
+        if cfg.want_dev_volumes:
             # POSIT: radiasoft/download/installers/rpm-code/codes.sh
             #   these are all the local environ directories.
             for v in '~/src', '~/.pyenv', '~/.local':
@@ -225,6 +225,7 @@ def init_class():
             slots_per_host=(1, int, 'sequential slots per node'),
         ),
         tls_dir=pkconfig.RequiredUnlessDev(None, _cfg_tls_dir, 'directory containing host certs'),
+        want_dev_volumes=(pkconfig.channel_in('dev'), bool, 'mount ~/.pyenv, ~/.local and ~/src for development'),
     )
     if not cfg.tls_dir or not cfg.hosts:
         _init_dev_hosts()
