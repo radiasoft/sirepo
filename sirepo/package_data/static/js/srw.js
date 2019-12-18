@@ -278,8 +278,7 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
     }
 
     function computeGratingOrientation(item) {
-        //computeFields('compute_grating_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy']);
-        updateOrientationFields(item);
+        updateGratingFields(item);
         requestSender.getApplicationData(
             {
                 method: 'compute_grating_orientation',
@@ -435,12 +434,11 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
     }
 
     function updateGratingFields(item) {
-        if (item.computeParametersFrom === '1') {
-            panelState.enableField(item.type, 'grazingAngle', false);
-        }
-        else if (item.computeParametersFrom === '2') {
-            panelState.enableField(item.type, 'cff', false);
-        }
+        panelState.enableField(item.type, 'cff', item.computeParametersFrom === '1');
+        panelState.enableField(item.type, 'grazingAngle', item.computeParametersFrom === '2');
+        ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy'].forEach(function(f) {
+            panelState.enableField(item.type, f, item.computeParametersFrom === '3');
+        });
     }
     function updateDualFields(item) {
         var prefixes = attenuationPrefixes(item);
@@ -498,12 +496,6 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         });
     }
 
-    function updateOrientationFields(item) {
-        ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy'].forEach(function(f) {
-            panelState.enableField(item.type, f, item.computeParametersFrom === '3');
-        });
-    }
-
     self.handleModalShown = function(name) {
         var item = beamlineService.activeItem;
         if (item && item.type == name) {
@@ -521,7 +513,6 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
             }
             else if (name === 'grating'){
                 updateGratingFields(item);
-                updateOrientationFields(item);
             }
             else if (name == 'crystal') {
                 if (item.materal != 'Unknown' && ! item.nvz) {
@@ -696,8 +687,8 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         ['mask', 'sample'].forEach(function(m) {
             beamlineService.watchBeamlineField($scope, m, ['method', 'material'], computeDeltaAttenCharacteristics);
         });
-        beamlineService.watchBeamlineField($scope, 'grating', ['energyAvg', 'cff', 'grazingAngle'], computePGMValue, true);
-        beamlineService.watchBeamlineField($scope, 'grating', ['grazingAngle', 'rollAngle'], computeGratingOrientation, true);
+        beamlineService.watchBeamlineField($scope, 'grating', ['energyAvg', 'cff', 'grazingAngle', 'computeParametersFrom'], computePGMValue, true);
+        beamlineService.watchBeamlineField($scope, 'grating', ['grazingAngle', 'rollAngle', 'computeParametersFrom'], computeGratingOrientation, true);
         beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energyAvg', 'h', 'k', 'l'], computeCrystalInit, true);
         beamlineService.watchBeamlineField($scope, 'crystal', ['energyAvg', 'rollAngle', 'useCase'], computeCrystalOrientation, true);
         beamlineService.watchBeamlineField($scope, 'sample', ['cropArea', 'tileImage', 'rotateAngle'], updateSampleFields);
