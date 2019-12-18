@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
+import pykern.pkcollections
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc, pkdpretty
 from sirepo import job
 from sirepo import job_driver
@@ -122,18 +123,20 @@ class DockerDriver(job_driver.DriverBase):
         self._agent_starting = True
         try:
             cmd, stdin, env = self._agent_cmd_stdin_env()
+#TODO(robnagler) remove PKDict after https://github.com/radiasoft/pykern/issues/50
+            c = PKDict(pykern.pkcollections.map_items(cfg[self.kind]))
             p = (
                 'run',
                 # attach to stdin for writing
                 '--attach=stdin',
-                '--cpus={}'.format(cfg[self.kind].get('cores', 1)),
+                '--cpus={}'.format(c.get('cores', 1)),
                 '--init',
                 # keeps stdin open so we can write to it
                 '--interactive',
                 '--log-driver=json-file',
                 # should never be large, just for output of the monitor
                 '--log-opt=max-size=1m',
-                '--memory={}g'.format(cfg[self.kind].gigabytes),
+                '--memory={}g'.format(c.gigabytes),
                 '--name={}'.format(self._cname),
                 '--network=host',
                 '--rm',
@@ -183,9 +186,6 @@ class DockerDriver(job_driver.DriverBase):
         if ':' in res:
             return res
         return res + ':' + pkconfig.cfg.channel
-
-    def _timer(self):
-
 
     def _volumes(self):
         res = []
