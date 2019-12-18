@@ -311,13 +311,14 @@ def _job_supervisor_setup():
 
 def _job_supervisor_start(request):
     import os
-    if 'job_test' != request.fspath.purebasename and not os.environ.get('SIREPO_FEATURE_CONFIG_JOB'):
+    if not os.environ.get('SIREPO_FEATURE_CONFIG_JOB'):
         return None, None
 
+    from pykern import pkunit
+    from pykern.pkcollections import PKDict
     import sirepo.job
     import subprocess
     import time
-    from pykern.pkcollections import PKDict
 
     env, fc = _job_supervisor_setup()
     p = subprocess.Popen(
@@ -330,7 +331,7 @@ def _job_supervisor_start(request):
             break
         time.sleep(.1)
     else:
-        pkfail('could not connect to {}', sirepo.job.SERVER_PING_ABS_URI)
+        pkunit.pkfail('could not connect to {}', sirepo.job.SERVER_PING_ABS_URI)
     return p, fc
 
 

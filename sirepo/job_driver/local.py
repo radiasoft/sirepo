@@ -171,7 +171,6 @@ class LocalDriver(job_driver.DriverBase):
     def _websocket_free(self):
         self.slot_free()
         self.run_scheduler(exclude_self=True)
-        self.instances[self.kind].remove(self)
 
 
 def init_class():

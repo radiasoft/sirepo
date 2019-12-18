@@ -5,18 +5,13 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjson
-from pykern import pksubprocess
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdexc, pkdc, pkdlog
 from sirepo import job
 from sirepo import simulation_db
 from sirepo.template import template_common
-import functools
-import os
-import re
 import requests
 import sirepo.template
 import subprocess
@@ -75,10 +70,6 @@ def _do_cancel(msg, template):
 
 def _do_compute(msg, template):
     msg.runDir = pkio.py_path(msg.runDir)
-    msg.simulationStatus = PKDict(
-        computeJobStart=int(time.time()),
-        state=job.RUNNING,
-    )
     try:
         with msg.runDir.join(template_common.RUN_LOG).open('w') as run_log:
             p = subprocess.Popen(
@@ -140,7 +131,6 @@ def _do_prepare_simulation(msg, template):
 
 
 def _do_sbatch_status(msg, template):
-    p = 'PENDING'
     s = pkio.py_path(msg.stopSentinel)
     while True:
         if s.exists():
