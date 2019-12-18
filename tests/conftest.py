@@ -311,7 +311,7 @@ def _job_supervisor_setup():
 
 def _job_supervisor_start(request):
     import os
-    if not os.environ.get('SIREPO_FEATURE_CONFIG_JOB'):
+    if not os.environ.get('SIREPO_FEATURE_CONFIG_JOB') == '1':
         return None, None
 
     from pykern import pkunit
