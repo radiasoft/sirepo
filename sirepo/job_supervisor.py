@@ -288,7 +288,10 @@ class _ComputeJob(PKDict):
             return r
         if self.db.computeJobHash != req.content.computeJobHash:
             return PKDict(state=job.MISSING, reason='computeJobHash-mismatch')
-        if self.db.computeJobSerial != req.content.computeJobSerial:
+        if (
+                req.content.computeJobSerial and
+                self.db.computeJobSerial != req.content.computeJobSerial
+           ):
             return PKDict(state=job.MISSING, reason='computeJobSerial-mismatch')
         if self.db.isParallel or self.db.status != job.COMPLETED:
             return res(state=self.db.status)
