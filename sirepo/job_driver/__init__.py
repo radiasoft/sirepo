@@ -159,8 +159,11 @@ class DriverBase(PKDict):
     def _receive(self, msg):
         c = msg.content
         i = c.get('opId')
-        if c.opName == job.OP_ERROR or \
-           (c.get('reply') and c.reply.get('state') == job.ERROR):
+        if (
+                (not c.get('opName') or c.opName == job.OP_ERROR)
+                or
+                (c.get('reply') and c.reply.get('state') == job.ERROR)
+           ):
             pkdlog('agentId={} msg={}', self._agentId, c)
         else:
             pkdlog('{} agentId={} opId={}', c.opName, self._agentId, i)
