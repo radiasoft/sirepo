@@ -133,9 +133,6 @@ class DockerDriver(job_driver.DriverBase):
                 '--init',
                 # keeps stdin open so we can write to it
                 '--interactive',
-                '--log-driver=json-file',
-                # should never be large, just for output of the monitor
-                '--log-opt=max-size=1m',
                 '--memory={}g'.format(c.gigabytes),
                 '--name={}'.format(self._cname),
                 '--network=host',
@@ -145,7 +142,7 @@ class DockerDriver(job_driver.DriverBase):
                 # do not use a "name", but a uid, because /etc/password is image specific, but
                 # IDs are universal.
                 '--user={}'.format(os.getuid()),
-            ) + self._volumes() + (self._image,)
+            ) + self._volumes() + self._log_driver() + (self._image,)
             self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
         except Exception as e:
             self._agent_starting = False
@@ -187,12 +184,15 @@ class DockerDriver(job_driver.DriverBase):
             return res
         return res + ':' + pkconfig.cfg.channel
 
+    def _log_driver(self):
+        return ('--log-driver=journald',)
+
     def _volumes(self):
         res = []
         def _res(src, tgt):
             res.append('--volume={}:{}'.format(src, tgt))
 
-        if cfg.want_dev_volumes:
+        if cfg.dev_volumes:
             # POSIT: radiasoft/download/installers/rpm-code/codes.sh
             #   these are all the local environ directories.
             for v in '~/src', '~/.pyenv', '~/.local':
@@ -225,7 +225,7 @@ def init_class():
             slots_per_host=(1, int, 'sequential slots per node'),
         ),
         tls_dir=pkconfig.RequiredUnlessDev(None, _cfg_tls_dir, 'directory containing host certs'),
-        want_dev_volumes=(pkconfig.channel_in('dev'), bool, 'mount ~/.pyenv, ~/.local and ~/src for development'),
+        dev_volumes=(pkconfig.channel_in('dev'), bool, 'mount ~/.pyenv, ~/.local and ~/src for development'),
     )
     if not cfg.tls_dir or not cfg.hosts:
         _init_dev_hosts()

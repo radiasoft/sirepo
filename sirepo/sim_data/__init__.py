@@ -567,19 +567,23 @@ class SimDataBase(object):
 
     @classmethod
     def _lib_file_abspath(cls, basename, data=None):
-        from sirepo import simulation_db
+        import sirepo.simulation_db
+        import sirepo.job
 
         p = [cls.lib_file_resource_dir().join(basename)]
         if cfg.lib_file_uri:
             if basename in data.libFileList:
                 p = pkio.py_path(basename)
-                r = requests.get(cfg.lib_file_uri + basename)
+                r = requests.get(
+                    cfg.lib_file_uri + basename,
+                    verify=sirepo.job.cfg.verify_tls,
+                )
                 r.raise_for_status()
                 p.write(r.content)
                 return p
         else:
             p.append(
-                simulation_db.simulation_lib_dir(cls.sim_type()).join(basename)
+                sirepo.simulation_db.simulation_lib_dir(cls.sim_type()).join(basename)
             )
 
         for f in p:

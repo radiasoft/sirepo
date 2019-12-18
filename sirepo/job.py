@@ -163,6 +163,7 @@ def agent_env(env=None, uid=None):
         PYTHONSTARTUP='',
         PYTHONUNBUFFERED='1',
         SIREPO_AUTH_LOGGED_IN_USER=lambda: uid or sirepo.auth.logged_in_user(),
+        SIREPO_JOB_VERIFY_TLS=cfg.verify_tls,
         SIREPO_SRDB_ROOT=lambda: sirepo.srdb.root(),
     )
     return '\n'.join(("export {}='{}'".format(k, v) for k, v in env.items()))
@@ -171,7 +172,7 @@ def init():
     global cfg
 
     cfg = pkconfig.init(
-        server_secret=pkconfig.RequiredUnlessDev(
+        server_secret=(
             'a very secret, secret',
             str,
             'shared secret between supervisor and server',
@@ -181,6 +182,7 @@ def init():
             str,
             'supervisor base uri',
         ),
+        verify_tls=(not pkconfig.channel_in('dev'), bool, 'do not validate (self-signed) certs'),
     )
     global SUPERVISOR_SRV_ROOT, LIB_FILE_ROOT, DATA_FILE_ROOT, \
         LIB_FILE_ABS_URI, DATA_FILE_ABS_URI, AGENT_ABS_URI, \
