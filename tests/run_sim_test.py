@@ -9,25 +9,31 @@ import pytest
 
 _REPORT = 'heightWeightReport'
 
+
 def test_myapp_status(fc):
     from pykern import pkunit
+    import os
 
     d = fc.sr_sim_data()
     r = fc.sr_post(
         'runStatus',
         dict(
+            computeJobHash='fakeHash',
+            models=d.models,
             report=_REPORT,
             simulationId=d.models.simulation.simulationId,
             simulationType=d.simulationType,
-            computeJobHash='fakeHash',
         ),
     )
-    pkunit.pkeq('stopped', r.state)
+
+    if os.environ.get('SIREPO_FEATURE_CONFIG_JOB') == '1':
+        pkunit.pkeq('missing', r.state)
+    else:
+        pkunit.pkeq('stopped', r.state)
 
 
 def test_myapp_cancel_error(fc):
     from pykern import pkunit
-    import subprocess
     import time
 
     d = fc.sr_sim_data()
