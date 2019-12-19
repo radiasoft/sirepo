@@ -12,7 +12,7 @@ def animation_fc(fc):
     return fc
 
 
-def animation_run(fc, sim_name, compute_model, reports, **kwargs):
+def animation_run(fc, sim_name, compute_model, reports, job_run_mode=None, **kwargs):
     from pykern import pkconfig
     from pykern import pkunit
     from pykern.pkcollections import PKDict
@@ -22,10 +22,9 @@ def animation_run(fc, sim_name, compute_model, reports, **kwargs):
     import time
 
     data = fc.sr_sim_data(sim_name)
-    pkdp('dddddddddddddddddd')
-    data.models[compute_model].jobRunMode = 'sbatch'
-    # pkdp(data.models)
-    pkdp('dddddddddddddddddd')
+    if job_run_mode:
+        data.models[compute_model].jobRunMode = job_run_mode
+
     run = fc.sr_run_sim(data, compute_model, **kwargs)
     for r, a in reports.items():
         if 'runSimulation' in a:
@@ -250,6 +249,48 @@ def pytest_configure(config):
     )
 
 
+@pytest.fixture
+def sbatch_animation_fc(fc):
+    import functools
+    fc.sr_animation_run = functools.partial(
+        animation_run,
+        job_run_mode='sbatch',
+    )
+    return fc
+
+
+def _configure_sbatch_env(env, cfg):
+    import pykern.pkio
+    import re
+    import subprocess
+
+    h = 'v.radia.run'
+    k = pykern.pkio.py_path('/home/vagrant/.ssh/known_hosts').read()
+    m = re.search('^{}.*$'.format(h), k, re.MULTILINE)
+    assert m, \
+        'You need to ssh into {} to get the host key'.format(h)
+
+    try:
+        subprocess.check_output(['sbatch', '--help'], stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError:
+        from pykern.pkdebug import pkdlog
+        pkdlog('you need to install slurm. run `radia_run slurm-dev`')
+        raise
+
+    cfg.pkupdate(
+        SIREPO_SIMULATION_DB_SBATCH_DISPLAY='testing@123',
+    )
+
+    env.pkupdate(
+        SIREPO_JOB_DRIVER_MODULES='local:sbatch',
+        SIREPO_JOB_DRIVER_SBATCH_HOST=h,
+        SIREPO_JOB_DRIVER_SBATCH_HOST_KEY=m.group(0),
+        SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD='$HOME/.pyenv/versions/py3/bin/sirepo',
+        # TODO(e-carlin): this isn't right for testing. I'm not sure env.SIREPO_SRDB_ROOT is right either
+        SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/var/tmp/{sbatch_user}/sirepo',
+    )
+
+
 def _job_supervisor_check(env):
     import sirepo.job
     import socket
@@ -278,7 +319,7 @@ def _job_supervisor_check(env):
         s.close()
 
 
-def _job_supervisor_setup():
+def _job_supervisor_setup(request):
     """setup the supervisor"""
     import os
     from pykern.pkcollections import PKDict
@@ -304,11 +345,15 @@ def _job_supervisor_setup():
         **cfg
     )
 
-    import sirepo.srunit
+    if 'sbatch' in request.module.__name__:
+        _configure_sbatch_env(env, cfg)
 
+    import sirepo.srunit
     fc = sirepo.srunit.flask_client(cfg=cfg)
+
     import sirepo.srdb
-    env['SIREPO_SRDB_ROOT'] = str(sirepo.srdb.root())
+    env.SIREPO_SRDB_ROOT = str(sirepo.srdb.root())
+
     _job_supervisor_check(env)
     return (env, fc)
 
@@ -324,7 +369,7 @@ def _job_supervisor_start(request):
     import subprocess
     import time
 
-    env, fc = _job_supervisor_setup()
+    env, fc = _job_supervisor_setup(request)
     p = subprocess.Popen(
         ['pyenv', 'exec', 'sirepo', 'job_supervisor'],
         env=env,
