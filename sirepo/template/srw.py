@@ -794,22 +794,22 @@ def _compute_grating_orientation(model):
         )
         orientData = opGr.find_orient(_en=model['energyAvg'], _cff=model['cff'], _ang_graz=model['grazingAngle'], _ang_roll=model['rollAngle'])
         orientDataGr = orientData[0]
-        tCr = orientDataGr[0]  # Tangential Vector to Grating surface
-        nCr = orientDataGr[2]  # Normal Vector to Grating surface
-        model['nvx'] = nCr[0]
-        model['nvy'] = nCr[1]
-        model['nvz'] = nCr[2]
-        model['tvx'] = tCr[0]
-        model['tvy'] = tCr[1]
+        tGr = orientDataGr[0]  # Tangential Vector to Grating surface
+        nGr = orientDataGr[2]  # Normal Vector to Grating surface
+        model['nvx'] = nGr[0]
+        model['nvy'] = nGr[1]
+        model['nvz'] = nGr[2]
+        model['tvx'] = tGr[0]
+        model['tvy'] = tGr[1]
 
         orientDataGr_pp = orientData[1]
-        tCr_pp = orientDataGr_pp[0]  # Tangential Vector to Grating surface
-        nCr_pp = orientDataGr_pp[2]  # Normal Vector to Grating surface
-        model['outoptvx'] = nCr_pp[0]
-        model['outoptvy'] = nCr_pp[1]
-        model['outoptvz'] = nCr_pp[2]
-        model['outframevx'] = tCr_pp[0]
-        model['outframevy'] = tCr_pp[1]
+        tGr_pp = orientDataGr_pp[0]  # Tangential Vector to Grating surface
+        nGr_pp = orientDataGr_pp[2]  # Normal Vector to Grating surface
+        model['outoptvx'] = nGr_pp[0]
+        model['outoptvy'] = nGr_pp[1]
+        model['outoptvz'] = nGr_pp[2]
+        model['outframevx'] = tGr_pp[0]
+        model['outframevy'] = tGr_pp[1]
     except Exception:
         pkdlog('\n{}', traceback.format_exc())
         for key in parms_list:
@@ -855,7 +855,7 @@ def _compute_crystal_init(model):
 def _compute_crystal_orientation(model):
     if not model['dSpacing']:
         return model
-    parms_list = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle']
+    parms_list = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy']
     try:
         opCr = srwlib.SRWLOptCryst(
             _d_sp=model['dSpacing'],
@@ -869,7 +869,8 @@ def _compute_crystal_orientation(model):
             _uc=model['useCase'],
             _ang_as=model['asymmetryAngle'],
         )
-        orientDataCr = opCr.find_orient(_en=model['energyAvg'], _ang_dif_pl=float(model['rollAngle']), _uc=model['useCase'])[0]
+        orientData = opCr.find_orient(_en=model['energyAvg'], _ang_dif_pl=float(model['rollAngle']), _uc=model['useCase'])
+        orientDataCr = orientData[0]
         tCr = orientDataCr[0]  # Tangential Vector to Crystal surface
         nCr = orientDataCr[2]  # Normal Vector to Crystal surface
 
@@ -883,7 +884,21 @@ def _compute_crystal_orientation(model):
         model['nvz'] = nCr[2]
         model['tvx'] = tCr[0]
         model['tvy'] = tCr[1]
+
+        orientDataCr_pp = orientData[1]
+        tCr_pp = orientDataCr_pp[0]  # Tangential Vector to Crystal surface
+        nCr_pp = orientDataCr_pp[2]  # Normal Vector to Crystal surface
+        model['outoptvx'] = nCr_pp[0]
+        model['outoptvy'] = nCr_pp[1]
+        model['outoptvz'] = nCr_pp[2]
+        model['outframevx'] = tCr_pp[0]
+        model['outframevy'] = tCr_pp[1]
+        if model['rollAngle'] == '-1.57079632' or model['rollAngle'] == '1.57079632':
+            model['orientation'] = 'x'
+        else:
+            model['orientation'] = 'y'
         _SIM_DATA.srw_compute_crystal_grazing_angle(model)
+
     except Exception:
         pkdlog('\n{}', traceback.format_exc())
         for key in parms_list:
