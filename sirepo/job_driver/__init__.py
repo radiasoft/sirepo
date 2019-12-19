@@ -255,6 +255,7 @@ def init():
         m = importlib.import_module(pkinspect.module_name_join((p, n)))
         _CLASSES[n] = m.init_class()
     _DEFAULT_CLASS = _CLASSES.get('docker') or _CLASSES.get(_DEFAULT_MODULE)
+    pkdlog('initialized with drivers {}', _CLASSES)
 
 
 async def terminate():

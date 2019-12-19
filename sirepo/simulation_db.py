@@ -255,7 +255,6 @@ def get_schema(sim_type):
         return _SCHEMA_CACHE[t]
     schema = read_json(
         STATIC_FOLDER.join('json/{}-schema'.format(t)))
-
     pkcollections.mapping_merge(schema, SCHEMA_COMMON)
     pkcollections.mapping_merge(
         schema,

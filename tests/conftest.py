@@ -22,6 +22,10 @@ def animation_run(fc, sim_name, compute_model, reports, **kwargs):
     import time
 
     data = fc.sr_sim_data(sim_name)
+    pkdp('dddddddddddddddddd')
+    data.models[compute_model].jobRunMode = 'sbatch'
+    # pkdp(data.models)
+    pkdp('dddddddddddddddddd')
     run = fc.sr_run_sim(data, compute_model, **kwargs)
     for r, a in reports.items():
         if 'runSimulation' in a:

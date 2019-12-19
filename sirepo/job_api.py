@@ -225,8 +225,9 @@ def _run_mode(request_content):
                 sbatchHours=m.sbatchHours,
             )
     raise sirepo.util.Error(
-        'jobRunMode={} computeModel={} computeJid={}',
-        j,
-        request_content.computeModel,
-        request_content.computeJid,
+        'jobRunMode={} computeModel={} computeJid={}'.format(
+            j,
+            request_content.computeModel,
+            request_content.computeJid,
+        )
     )
