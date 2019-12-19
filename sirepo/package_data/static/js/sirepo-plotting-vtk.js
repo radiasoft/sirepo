@@ -63,6 +63,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
             buildActorBundle: function(source) {
                 return actorBundle(source);
             },
+
             buildBox: function(labSize, labCenter) {
                 var vsize = labSize ? this.xform.doTransform(labSize) :  [1, 1, 1];
                 var cs = vtk.Filters.Sources.vtkCubeSource.newInstance({
@@ -84,6 +85,13 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
 
                 return ab;
             },
+
+            // arbitrary vtk source, transformed
+            buildFromSource: function(src) {
+                // add transform
+                return actorBundle(src);
+            },
+
             buildLine: function(labP1, labP2, colorArray) {
                 var vp1 = this.xform.doTransform(labP1);
                 var vp2 = this.xform.doTransform(labP2);
@@ -97,6 +105,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 ab.actor.getProperty().setColor(colorArray[0], colorArray[1], colorArray[2]);
                 return ab;
             },
+
             buildPlane: function(labOrigin, labP1, labP2) {
                 var src = vtk.Filters.Sources.vtkPlaneSource.newInstance();
                 var b = actorBundle(src);
@@ -105,6 +114,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 }
                 return b;
             },
+
             buildSphere: function(lcenter, radius, colorArray) {
                 var ps = vtk.Filters.Sources.vtkSphereSource.newInstance({
                     center: lcenter ? this.xform.doTransform(lcenter) : [0, 0, 0],
@@ -118,6 +128,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 ab.actor.getProperty().setLighting(false);
                 return ab;
             },
+
             buildSTL: function(file, callback) {
                 var cm = this;
                 var r = self.getSTLReader(file);
@@ -153,6 +164,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 }
 
             },
+
             setPlane: function(planeBundle, labOrigin, labP1, labP2) {
                 var vo = labOrigin ? this.xform.doTransform(labOrigin) : [0, 0, 0];
                 var vp1 = labP1 ? this.xform.doTransform(labP1) : [0, 0, 1];
@@ -217,6 +229,74 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
         if (stlReaders[file]) {
             delete stlReaders[file];
         }
+    };
+
+    self.cylinderSection = function(
+        center, axis, radius, height,
+        plane1Norm, plane2Norm, plane1Origin, plane2Origin
+    ) {
+        const startAxis = [0, 0, 1];
+        const startOrigin = [0, 0, 0];
+        const cylBounds = [-radius, radius, -radius, radius, -height/2.0, height/2.0];
+        const cyl = vtk.Common.DataModel.vtkCylinder.newInstance({
+            radius: radius,
+            center: startOrigin,
+            axis: startAxis
+        });
+
+        const cap1Plane = vtk.Common.DataModel.vtkPlane.newInstance({
+            normal: [-startAxis[0], -startAxis[1], -startAxis[2]],
+            origin: [0, 0, height / 2.0]
+        });
+        const cap2Plane = vtk.Common.DataModel.vtkPlane.newInstance({
+            normal: [startAxis[0], startAxis[1], startAxis[2]],
+            origin: [0, 0, -height / 2.0]
+        });
+        const plane1 = vtk.Common.DataModel.vtkPlane.newInstance({
+            normal: plane1Norm,
+            origin: plane1Origin
+        });
+        const plane2 = vtk.Common.DataModel.vtkPlane.newInstance({
+            normal: plane2Norm,
+            origin: plane2Origin
+        });
+
+        // perform the sectioning
+        const section = vtk.Common.DataModel.vtkImplicitBoolean.newInstance({
+            operation: 'Intersection',
+            functions: [cyl, cap1Plane, cap2Plane, plane1, plane2]
+        });
+
+        const sectionSample = vtk.Imaging.Hybrid.vtkSampleFunction.newInstance({
+            implicitFunction: section,
+            modelBounds: cylBounds,
+            sampleDimensions: [50, 50, 50]
+        });
+
+        const sectionSource = vtk.Filters.General.vtkImageMarchingCubes.newInstance();
+        sectionSource.setInputConnection(sectionSample.getOutputPort());
+        return sectionSource;
+    };
+
+    self.setColorSclars = function(data, color) {
+        const n = data.getPoints().getData().length;
+        const pd = data.getPointData();
+        const s = pd.getScalars();
+        const rgb = s ? s.getData() : new window.Uint8Array(n);
+        for (let i = 0; i < n; i += 3) {
+            for (let j = 0; j < 3; ++j) {
+                rgb[i + j] = color[j];
+            }
+        }
+        pd.setScalars(
+            vtk.Common.Core.vtkDataArray.newInstance({
+                name: 'color',
+                numberOfComponents: 3,
+                values: rgb,
+            })
+        );
+
+        data.modified();
     };
 
     self.stlFileType = 'stl-file';
