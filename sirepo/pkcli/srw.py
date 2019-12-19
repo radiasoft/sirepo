@@ -16,6 +16,7 @@ from sirepo.template import template_common
 import sirepo.template.srw
 import copy
 import numpy as np
+import sys
 
 
 def create_predefined(out_dir=None):
@@ -106,6 +107,7 @@ def run_background(cfg_dir):
     Args:
         cfg_dir (str): directory to run srw in
     """
+    pkdp('here')
     with pkio.save_chdir(cfg_dir):
         mpi.run_script(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE))
         simulation_db.write_result({})
@@ -113,7 +115,13 @@ def run_background(cfg_dir):
 def _run_srw():
     #TODO(pjm): need to properly escape data values, untrusted from client
     sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
+    a = sys.argv[1:]
+    try:
+        del sys.argv[1:]
+        pkdp('a')
+        exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
+    finally:
+        sys.argv.extend(a)
     # special case for importing python code
     r = sim_in.report
     if r == 'backgroundImport':

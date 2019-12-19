@@ -153,7 +153,11 @@ def wrap_in_request(*args, **kwargs):
     """
     def _decorator(func):
         def _wrapper(*ignore_args, **ignore_kwargs):
-            return test_in_request(lambda: func(), **kwargs)
+            try:
+                return test_in_request(lambda: func(), **kwargs)
+            finally:
+                if hasattr(flask, 'g') and 'sirepo_cookie' in flask.g:
+                    del flask.g['sirepo_cookie']
         return _wrapper
 
     return _decorator
