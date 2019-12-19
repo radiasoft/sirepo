@@ -752,6 +752,10 @@ def _compute_PGM_value(model):
         elif model.computeParametersFrom == '2':
             cff, defAng = opGr.ang2cff(_en=model['energyAvg'], _ang_graz=model['grazingAngle']/1000.0)
             model['cff'] = cff
+        angroll = model['rollAngle']
+        if abs(angroll) < np.pi/4 or abs(angroll-np.pi) < np.pi/4:
+            model['orientation'] = 'y'
+        else: model['orientation'] = 'x'
         _compute_grating_orientation(model)
     except Exception:
         pkdlog('\n{}', traceback.format_exc())

@@ -274,7 +274,7 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
 
     function computePGMValue(item) {
         updateGratingFields(item);
-        computeFields('compute_PGM_value', item, ['energyAvg', 'cff', 'grazingAngle']);
+        computeFields('compute_PGM_value', item, ['energyAvg', 'cff', 'grazingAngle', 'orientation']);
     }
 
     function computeGratingOrientation(item) {
@@ -687,7 +687,7 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         ['mask', 'sample'].forEach(function(m) {
             beamlineService.watchBeamlineField($scope, m, ['method', 'material'], computeDeltaAttenCharacteristics);
         });
-        beamlineService.watchBeamlineField($scope, 'grating', ['energyAvg', 'cff', 'grazingAngle', 'computeParametersFrom'], computePGMValue, true);
+        beamlineService.watchBeamlineField($scope, 'grating', ['energyAvg', 'cff', 'grazingAngle', 'rollAngle', 'computeParametersFrom'], computePGMValue, true);
         beamlineService.watchBeamlineField($scope, 'grating', ['grazingAngle', 'rollAngle', 'computeParametersFrom'], computeGratingOrientation, true);
         beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energyAvg', 'h', 'k', 'l'], computeCrystalInit, true);
         beamlineService.watchBeamlineField($scope, 'crystal', ['energyAvg', 'rollAngle', 'useCase'], computeCrystalOrientation, true);
