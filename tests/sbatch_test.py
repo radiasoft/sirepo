@@ -44,21 +44,42 @@ def test_warppba_invalid_creds(fc):
         )
 
 
-# def test_warppba_login(fc):
-#     from pykern import pkunit
-#     from pykern.pkunit import pkexcept
+def test_warppba_login(fc):
+    from pykern import pkunit
+    from pykern.pkunit import pkexcept
 
-#     data = fc.sr_sim_data('Laser Pulse')
-#     run = fc.sr_run_sim(data, 'animation')
-#     pkunit.pkeq('pending', run.state, 'not pending, run={}', run)
-#     with pkexcept('SRException.*invalid-creds'):
-#         fc.sr_post(
-#             'sbatchLogin',
-#             PKDict(
-#                 password='bar',
-#                 report=data.report,
-#                 simulationId=data.models.simulation.simulationId,
-#                 simulationType=data.simulationType,
-#                 username='foo',
-#             )
-#         )
+    s = 'Laser Pulse'
+    c = 'animation'
+    data = fc.sr_sim_data(s)
+    data.models[c].jobRunMode = 'sbatch'
+    with pkexcept('SRException.*no-creds'):
+        fc.sr_run_sim(data, c, expect_completed=False)
+    fc.sr_post(
+        'sbatchLogin',
+        PKDict(
+            password='vagrant',
+            report=c,
+            simulationId=data.models.simulation.simulationId,
+            simulationType=data.simulationType,
+            username='vagrant',
+        )
+    )
+    print('eeeeeeeeeeeeeeeeeeeeeeeeeee')
+    fc.sr_run_sim(data, c, expect_completed=False)
+    # fc.sr_post(
+    # sbatch_animation_fc.sr_animation_run(
+    #     sbatch_animation_fc,
+    #     s,
+    #     c,
+    #     PKDict(
+    #         particleAnimation=PKDict(
+    #             expect_title=lambda i: r'iteration {}\)'.format((i + 1) * 50),
+    #             expect_y_range='-2.096.*e-05, 2.096.*e-05, 219',
+    #         ),
+    #         fieldAnimation=PKDict(
+    #             expect_title=lambda i: r'iteration {}\)'.format((i + 1) * 50),
+    #             expect_y_range='-2.064.*e-05, 2.064.*e-05, 66',
+    #         ),
+    #     ),
+    #     expect_completed=False,
+    # )

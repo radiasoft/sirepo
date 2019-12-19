@@ -260,6 +260,7 @@ def sbatch_animation_fc(fc):
 
 
 def _configure_sbatch_env(env, cfg):
+    from pykern.pkcollections import PKDict
     import pykern.pkio
     import re
     import subprocess
@@ -277,17 +278,17 @@ def _configure_sbatch_env(env, cfg):
         pkdlog('you need to install slurm. run `radia_run slurm-dev`')
         raise
 
-    cfg.pkupdate(
-        SIREPO_SIMULATION_DB_SBATCH_DISPLAY='testing@123',
-    )
+    d = PKDict(SIREPO_SIMULATION_DB_SBATCH_DISPLAY='testing@123')
+    cfg.pkupdate(**d)
 
     env.pkupdate(
+        # TODO(e-carlin): this isn't right for testing. I'm not sure env.SIREPO_SRDB_ROOT is right either
         SIREPO_JOB_DRIVER_MODULES='local:sbatch',
         SIREPO_JOB_DRIVER_SBATCH_HOST=h,
         SIREPO_JOB_DRIVER_SBATCH_HOST_KEY=m.group(0),
         SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD='$HOME/.pyenv/versions/py3/bin/sirepo',
-        # TODO(e-carlin): this isn't right for testing. I'm not sure env.SIREPO_SRDB_ROOT is right either
         SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/var/tmp/{sbatch_user}/sirepo',
+        **d
     )
 
 
