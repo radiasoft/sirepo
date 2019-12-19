@@ -66,20 +66,3 @@ def test_warppba_login(fc):
     )
     print('eeeeeeeeeeeeeeeeeeeeeeeeeee')
     fc.sr_run_sim(data, c, expect_completed=False)
-    # fc.sr_post(
-    # sbatch_animation_fc.sr_animation_run(
-    #     sbatch_animation_fc,
-    #     s,
-    #     c,
-    #     PKDict(
-    #         particleAnimation=PKDict(
-    #             expect_title=lambda i: r'iteration {}\)'.format((i + 1) * 50),
-    #             expect_y_range='-2.096.*e-05, 2.096.*e-05, 219',
-    #         ),
-    #         fieldAnimation=PKDict(
-    #             expect_title=lambda i: r'iteration {}\)'.format((i + 1) * 50),
-    #             expect_y_range='-2.064.*e-05, 2.064.*e-05, 66',
-    #         ),
-    #     ),
-    #     expect_completed=False,
-    # )
