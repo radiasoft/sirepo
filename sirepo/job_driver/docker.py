@@ -142,7 +142,7 @@ class DockerDriver(job_driver.DriverBase):
                 # do not use a "name", but a uid, because /etc/password is image specific, but
                 # IDs are universal.
                 '--user={}'.format(os.getuid()),
-            ) + self._volumes() + self._log_driver() + (self._image,)
+            ) + self._volumes() + (self._image,)
             self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
         except Exception as e:
             self._agent_starting = False
@@ -183,9 +183,6 @@ class DockerDriver(job_driver.DriverBase):
         if ':' in res:
             return res
         return res + ':' + pkconfig.cfg.channel
-
-    def _log_driver(self):
-        return ('--log-driver=journald',)
 
     def _volumes(self):
         res = []
