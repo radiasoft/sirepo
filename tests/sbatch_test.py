@@ -22,27 +22,43 @@ def test_warppba_no_creds(sbatch_animation_fc):
         )
 
 
-def test_warppba_invalid_creds(fc, sbatch_animation_fc):
+def test_warppba_invalid_creds(fc):
+    from pykern import pkunit
     from pykern.pkunit import pkexcept
 
-    with pkexcept('SRException.*no-creds'):
-        sbatch_animation_fc.sr_animation_run(
-            sbatch_animation_fc,
-            'Laser Pulse',
-            'animation',
-            PKDict(),
-            expect_completed=False,
-        )
-
+    c = 'animation'
     data = fc.sr_sim_data('Laser Pulse')
+    data.models[c].jobRunMode = 'sbatch'
+    with pkexcept('SRException.*no-creds'):
+        fc.sr_run_sim(data, c, expect_completed=False)
     with pkexcept('SRException.*invalid-creds'):
         fc.sr_post(
             'sbatchLogin',
             PKDict(
-                password='bar',
-                report=data.report,
+                password='fake pass',
+                report=c,
                 simulationId=data.models.simulation.simulationId,
                 simulationType=data.simulationType,
-                username='foo',
+                username='notarealuser',
             )
         )
+
+
+# def test_warppba_login(fc):
+#     from pykern import pkunit
+#     from pykern.pkunit import pkexcept
+
+#     data = fc.sr_sim_data('Laser Pulse')
+#     run = fc.sr_run_sim(data, 'animation')
+#     pkunit.pkeq('pending', run.state, 'not pending, run={}', run)
+#     with pkexcept('SRException.*invalid-creds'):
+#         fc.sr_post(
+#             'sbatchLogin',
+#             PKDict(
+#                 password='bar',
+#                 report=data.report,
+#                 simulationId=data.models.simulation.simulationId,
+#                 simulationType=data.simulationType,
+#                 username='foo',
+#             )
+#         )
