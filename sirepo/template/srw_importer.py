@@ -37,7 +37,7 @@ class SRWParser(object):
         try:
             self.optics = getattr(m, optics_func_name)(self.var_param)
         except ValueError as e:
-            if re.search('could not convert string to float', e.message):
+            if re.search('could not convert string to float', str(e.args)):
                 self.replace_mirror_files('mirror_2d.dat')
                 self.optics = getattr(m, optics_func_name)(self.var_param)
         self.data = _parsed_dict(self.var_param, self.optics)
@@ -89,7 +89,10 @@ def import_python(code, tmp_dir, user_filename=None, arguments=None):
     try:
         with pkio.save_chdir(tmp_dir):
             # This string won't show up anywhere
-            script = pkio.write_text('in.py', code)
+            script = pkio.write_text(
+                'in.py',
+                re.sub(r'^main\(', '#', code, flags=re.MULTILINE),
+            )
             o = SRWParser(
                 script,
                 user_filename=user_filename,
