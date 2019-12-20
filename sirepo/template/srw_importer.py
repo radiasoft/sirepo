@@ -89,7 +89,10 @@ def import_python(code, tmp_dir, user_filename=None, arguments=None):
     try:
         with pkio.save_chdir(tmp_dir):
             # This string won't show up anywhere
-            script = pkio.write_text('in.py', code)
+            script = pkio.write_text(
+                'in.py',
+                re.sub(r'^main\(', '#', code, flags=re.MULTILINE),
+            )
             o = SRWParser(
                 script,
                 user_filename=user_filename,
