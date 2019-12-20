@@ -76,7 +76,7 @@ DEFAULT_PORT = 8001
 
 RUNNER_STATUS_FILE = 'status'
 
-UNIQUE_KEY_RE = re.compile(r'^\w$')
+UNIQUE_KEY_RE = re.compile(r'^\w+$')
 
 CANCELED = 'canceled'
 COMPLETED = 'completed'

@@ -201,7 +201,7 @@ class _ComputeJob(PKDict):
         return self
 
     async def _receive_api_downloadDataFile(self, req):
-        await self._send_with_single_reply(
+        return await self._send_with_single_reply(
             job.OP_ANALYSIS,
             req,
             jobCmd='get_data_file',
