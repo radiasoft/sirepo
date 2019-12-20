@@ -244,54 +244,78 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
             axis: startAxis
         });
 
-        const cap1Plane = vtk.Common.DataModel.vtkPlane.newInstance({
-            normal: [-startAxis[0], -startAxis[1], -startAxis[2]],
-            origin: [0, 0, height / 2.0]
-        });
-        const cap2Plane = vtk.Common.DataModel.vtkPlane.newInstance({
-            normal: [startAxis[0], startAxis[1], startAxis[2]],
-            origin: [0, 0, -height / 2.0]
-        });
-        const plane1 = vtk.Common.DataModel.vtkPlane.newInstance({
-            normal: plane1Norm,
-            origin: plane1Origin
-        });
-        const plane2 = vtk.Common.DataModel.vtkPlane.newInstance({
-            normal: plane2Norm,
-            origin: plane2Origin
-        });
+        if (! plane1Norm && ! plane2Norm) {
+            return null;
+        }
+
+        let planes = [
+            vtk.Common.DataModel.vtkPlane.newInstance({
+                normal: [-startAxis[0], -startAxis[1], -startAxis[2]],
+                origin: [0, 0, height / 2.0]
+            }),
+            vtk.Common.DataModel.vtkPlane.newInstance({
+                normal: [...startAxis],
+                origin: [0, 0, -height / 2.0]
+            })
+        ];
+
+        if (plane1Norm) {
+            planes.push(
+                vtk.Common.DataModel.vtkPlane.newInstance({
+                    normal: plane1Norm,
+                    origin: plane1Origin || startOrigin
+                })
+            );
+        }
+        if (plane2Norm) {
+            planes.push(
+                vtk.Common.DataModel.vtkPlane.newInstance({
+                    normal: plane2Norm,
+                    origin: plane2Origin || startOrigin
+                })
+            );
+        }
 
         // perform the sectioning
         const section = vtk.Common.DataModel.vtkImplicitBoolean.newInstance({
             operation: 'Intersection',
-            functions: [cyl, cap1Plane, cap2Plane, plane1, plane2]
+            functions: [cyl, ...planes]
         });
 
         const sectionSample = vtk.Imaging.Hybrid.vtkSampleFunction.newInstance({
             implicitFunction: section,
             modelBounds: cylBounds,
-            sampleDimensions: [50, 50, 50]
+            sampleDimensions: [32, 32, 32]
         });
 
         const sectionSource = vtk.Filters.General.vtkImageMarchingCubes.newInstance();
         sectionSource.setInputConnection(sectionSample.getOutputPort());
-        return sectionSource;
+        // this transformation adapted from VTK cylinder source
+        vtk.Common.Core.vtkMatrixBuilder
+            .buildFromRadian()
+            //.rotateFromDirections(startAxis, axis)
+            .translate(...center)
+            .rotateFromDirections(startAxis, axis)
+            //.translate(...center.map((c) => c * -1))
+            .apply(sectionSource.getOutputData().getPoints().getData());
+       return sectionSource;
     };
 
     self.setColorSclars = function(data, color) {
-        const n = data.getPoints().getData().length;
+        const pts = data.getPoints();
+        const n = color.length * (pts.getData().length / pts.getNumberOfComponents());
         const pd = data.getPointData();
         const s = pd.getScalars();
         const rgb = s ? s.getData() : new window.Uint8Array(n);
-        for (let i = 0; i < n; i += 3) {
-            for (let j = 0; j < 3; ++j) {
+        for (let i = 0; i < n; i += color.length) {
+            for (let j = 0; j < color.length; ++j) {
                 rgb[i + j] = color[j];
             }
         }
         pd.setScalars(
             vtk.Common.Core.vtkDataArray.newInstance({
                 name: 'color',
-                numberOfComponents: 3,
+                numberOfComponents: color.length,
                 values: rgb,
             })
         );
