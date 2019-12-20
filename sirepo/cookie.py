@@ -49,8 +49,6 @@ def init_mock():
 
 
 def process_header(unit_test=None):
-    if not unit_test:
-        assert not 'sirepo_cookie' in flask.g
     _State(unit_test or flask.request.environ.get('HTTP_COOKIE', ''))
 
 
