@@ -296,13 +296,25 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
     function computeCrystalInit(item) {
         if (item.material != 'Unknown') {
             updateCrystalInitFields(item);
-            computeFields('compute_crystal_init', item, ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi']);
+            computeFields('compute_crystal_init', item, ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'orientation']);
         }
     }
 
     function computeCrystalOrientation(item) {
         updateCrystalOrientationFields(item);
-        computeFields('compute_crystal_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy', 'orientation']);
+        //computeFields('compute_crystal_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy', 'orientation']);
+        requestSender.getApplicationData(
+            {
+                method: 'compute_crystal_orientation',
+                optical_element: item,
+                photon_energy: appState.models.simulation.photonEnergy,
+            },
+            function(data) {
+                ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy'].forEach(function(f) {
+                    item[f] = data[f];
+                    formatOrientationOutput(item, data, f);
+                });
+            });
     }
 
     function computeDeltaAttenCharacteristics(item) {
@@ -394,6 +406,9 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
     function formatOrientationOutput(item, data, f) {
         item[f] = parseFloat(data[f]);
         if (item[f] === 1) {
+            item[f] = item[f].toFixed(1)
+        }
+        else if (item[f] === 0) {
             item[f] = item[f].toFixed(1)
         }
         else {
@@ -706,8 +721,8 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         });
         beamlineService.watchBeamlineField($scope, 'grating', ['energyAvg', 'cff', 'grazingAngle', 'rollAngle', 'computeParametersFrom'], computePGMValue, true);
         beamlineService.watchBeamlineField($scope, 'grating', ['grazingAngle', 'rollAngle', 'computeParametersFrom'], computeGratingOrientation, true);
-        beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energyAvg', 'h', 'k', 'l'], computeCrystalInit, true);
-        beamlineService.watchBeamlineField($scope, 'crystal', ['energyAvg', 'rollAngle', 'useCase'], computeCrystalOrientation, true);
+        beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energyAvg', 'rollAngle', 'h', 'k', 'l'], computeCrystalInit, true);
+        beamlineService.watchBeamlineField($scope, 'crystal', ['energyAvg', 'rollAngle', 'useCase', 'dSpacing', 'asymmetryAngle', 'psi0r', 'psi0i'], computeCrystalOrientation, true);
         beamlineService.watchBeamlineField($scope, 'sample', ['cropArea', 'tileImage', 'rotateAngle'], updateSampleFields);
         $scope.$on('beamline.changed', syncFirstElementPositionToDistanceFromSource);
         $scope.$on('simulation.changed', function() {

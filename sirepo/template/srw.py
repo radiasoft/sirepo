@@ -846,6 +846,9 @@ def _compute_crystal_init(model):
         model['psiHi'] = xih
         model['psiHBr'] = xrh
         model['psiHBi'] = xih
+        if model['rollAngle'] == '-1.57079632' or model['rollAngle'] == '1.57079632':
+            model['orientation'] = 'x'
+        else: model['orientation'] = 'y'
     except Exception:
         pkdlog('{https://github.com/ochubar/SRW/blob/master/env/work/srw_python/srwlib.py}: error: {}', material_raw)
         for key in parms_list:
@@ -893,10 +896,6 @@ def _compute_crystal_orientation(model):
         model['outoptvz'] = nCr_pp[2]
         model['outframevx'] = tCr_pp[0]
         model['outframevy'] = tCr_pp[1]
-        if model['rollAngle'] == '-1.57079632' or model['rollAngle'] == '1.57079632':
-            model['orientation'] = 'x'
-        else:
-            model['orientation'] = 'y'
         _SIM_DATA.srw_compute_crystal_grazing_angle(model)
 
     except Exception:
