@@ -10,7 +10,7 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 import pytest
 
 
-def test_my_app_user_alert(fc):
+def test_user_alert(fc):
     from pykern.pkunit import pkeq, pkre
     from sirepo import srunit
 
