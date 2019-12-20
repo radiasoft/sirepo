@@ -14,6 +14,7 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import requests
 import sirepo.template
+import sirepo.util
 import subprocess
 import sys
 import time
@@ -95,6 +96,8 @@ def _do_compute(msg, template):
                 return PKDict(state=job.ERROR, error='non zero returncode={}'.format(r))
             else:
                 return PKDict(state=job.COMPLETED)
+    except sirepo.util.UserAlert as e:
+        return PKDict(state=job.ERROR, error=e.sr_args.error, stack=pkdexc())
     except Exception as e:
         return PKDict(state=job.ERROR, error=str(e), stack=pkdexc())
     # DOES NOT RETURN
