@@ -96,7 +96,12 @@ def api_jobSupervisorPing():
 
 @api_perm.require_user
 def api_runCancel():
-    return _request()
+    try:
+        return _request()
+    except Exception as e:
+        pkdlog('ignoring exception={} stack={}', e, pkdexc())
+    # Always true from the client's perspective
+    return sirepo.http_reply.gen_json({'state': 'canceled'})
 
 
 @api_perm.require_user

@@ -62,7 +62,7 @@ def api_runCancel():
             try:
                 simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
             except Exception as e:
-                if not pkio.exception_is_not_found(e):
+                if not pykern.pkio.exception_is_not_found(e):
                     raise
                 # else: run_dir may have been deleted
             runner.job_kill(jid)

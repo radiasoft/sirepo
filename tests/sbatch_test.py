@@ -31,7 +31,6 @@ pytestmark = [
 ]
 
 
-
 def test_warppba_no_creds(sbatch_animation_fc):
     from pykern.pkunit import pkexcept
 
@@ -46,7 +45,6 @@ def test_warppba_no_creds(sbatch_animation_fc):
 
 
 def test_warppba_invalid_creds(fc):
-    from pykern import pkunit
     from pykern.pkunit import pkexcept
 
     c = 'animation'
@@ -68,7 +66,6 @@ def test_warppba_invalid_creds(fc):
 
 
 def test_warppba_login(fc):
-    from pykern import pkunit
     from pykern.pkunit import pkexcept
 
     s = 'Laser Pulse'

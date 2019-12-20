@@ -49,7 +49,7 @@ def test_myapp_cancel_error(fc):
         ),
     )
     for _ in range(10):
-        pkunit.pkok(r.state != 'error', 'expected error state: {}')
+        pkunit.pkok(r.state != 'error', 'unexpected error state: {}')
         if r.state == 'running':
             break
         time.sleep(r.nextRequestSeconds)
