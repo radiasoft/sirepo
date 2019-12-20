@@ -333,8 +333,8 @@ class _TestClient(flask.testing.FlaskClient):
             )
             if r.state == 'completed':
                 return r
-            pkunit.pkeq('pending', r.state, 'not pending, run={}', r)
-            cancel = r.nextRequest
+            # pkunit.pkeq('pending', r.state, 'not pending, run={}', r)
+            cancel = r.get('nextRequest')
             for _ in range(timeout):
                 if r.state in ('completed', 'error'):
                     pkdlog(r.state)
