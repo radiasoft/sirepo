@@ -83,9 +83,12 @@ def init():
     if not _DB_DIR.exists():
         pkdlog('populating supervisor state path={}', _DB_DIR)
         import subprocess
+        e = os.environ
+        e.update(PKDict(PYENV_VERSION='py2'))
+        pkdp('eee {}', e.get('PYENV_VERSION'))
         subprocess.check_call(
-            ('sirepo', 'db', 'seed_supervisor_state', _DB_DIR, str(cfg.sbatch_poll_secs)),
-            env=os.environ.update(PKDict(PYENV_VERSION='py2'))
+            ('pyenv', 'exec', 'sirepo', 'db', 'seed_supervisor_state', _DB_DIR, str(cfg.sbatch_poll_secs)),
+            env=e,
         )
 
 

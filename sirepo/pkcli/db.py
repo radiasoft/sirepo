@@ -46,7 +46,6 @@ def seed_supervisor_state(db_dir, sbatch_poll_secs):
     from sirepo import sim_data
     import sirepo.template
     import os
-    import re
 
     db_dir = pkio.py_path(db_dir)
     pkio.mkdir_parent(db_dir)
@@ -78,18 +77,19 @@ def seed_supervisor_state(db_dir, sbatch_poll_secs):
         p = c.is_parallel(i)
         j = job.PARALLEL if p else job.SEQUENTIAL
         s, t = _read_status_file(run_dir)
+
         d = PKDict(
             computeJid=c.parse_jid(i, uid),
-            computeJobHash=i.models.computeJobCacheKey.computeJobHash,
+            computeJobHash=i.computeJobHash,
             computeJobQueued=0,
-            computeJobStart=i.models.computeJobCacheKey.computeJobStart,
+            computeJobStart=i.simulationStatus.startTime,
             error=None,
             history=[],
             isParallel=p,
             jobRunMode=j,
             lastUpdateTime=t,
             nextRequestSeconds=_NEXT_REQUEST_SECONDS[j],
-            simulationId=i.models.simulation.simulationId,
+            simulationId=i.simulationId,
             simulationType=i.simulationType,
             status=s,
             uid=uid,
@@ -106,11 +106,14 @@ def seed_supervisor_state(db_dir, sbatch_poll_secs):
         s = sirepo.job.COMPLETED if pkio.read_text(p) == sirepo.job.COMPLETED \
             else sirepo.job.MISSING
         return s, p.mtime()
-
-    for path, dirs, files in os.walk(str(simulation_db.user_dir_name())):
-        if not dirs and 'status' in files:
-            path = pkio.py_path(path)
-            _create_supervisor_state_file(
-                simulation_db.uid_from_dir_name(pkio.py_path(path)),
-                path,
-            )
+    try:
+        for path, dirs, files in os.walk(str(simulation_db.user_dir_name())):
+            if not dirs and 'status' in files:
+                path = pkio.py_path(path)
+                _create_supervisor_state_file(
+                    simulation_db.uid_from_dir_name(pkio.py_path(path)),
+                    path,
+                )
+    except Exception:
+        db_dir.remove()
+        raise
