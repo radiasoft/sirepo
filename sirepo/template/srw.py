@@ -869,26 +869,40 @@ def _compute_crystal_orientation(model):
             _psi_hbr=model['psiHBr'],
             _psi_hbi=model['psiHBi'],
             _tc=model['crystalThickness'],
-            _uc=model['useCase'],
+            _uc=float(model['useCase']),
             _ang_as=model['asymmetryAngle'],
+            _e_avg=model['energyAvg'],
+            _ang_roll=float(model['rollAngle']),
         )
-        orientData = opCr.find_orient(_en=model['energyAvg'], _ang_dif_pl=float(model['rollAngle']), _uc=model['useCase'])
-        orientDataCr = orientData[0]
-        tCr = orientDataCr[0]  # Tangential Vector to Crystal surface
-        nCr = orientDataCr[2]  # Normal Vector to Crystal surface
+#        orientData = opCr.find_orient(_en=model['energyAvg'], _ang_dif_pl=float(model['rollAngle']), _uc=model['useCase'])
+#        orientDataCr = orientData[0]
+#        tCr = orientDataCr[0]  # Tangential Vector to Crystal surface
+#        nCr = orientDataCr[2]  # Normal Vector to Crystal surface
 
         #if model['rollAngle'] != 0:
         #    rot = uti_math.trf_rotation([0, 1, 0], model['rollAngle'], [0, 0, 0])[0]
         #    nCr = uti_math.matr_prod(rot, nCr)
         #    tCr = uti_math.matr_prod(rot, tCr)
+#        model['nvx'] = nCr[0]
+#        model['nvy'] = nCr[1]
+#        model['nvz'] = nCr[2]
+#        model['tvx'] = tCr[0]
+#        model['tvy'] = tCr[1]
+#        orientDataCr_pp = orientData[1]
+#        tCr_pp = orientDataCr_pp[0]  # Tangential Vector to Crystal surface
+#        nCr_pp = orientDataCr_pp[2]  # Normal Vector to Crystal surface
+#        model['outoptvx'] = nCr_pp[0]
+#        model['outoptvy'] = nCr_pp[1]
+#        model['outoptvz'] = nCr_pp[2]
+#        model['outframevx'] = tCr_pp[0]
+#        model['outframevy'] = tCr_pp[1]
 
-        model['nvx'] = nCr[0]
-        model['nvy'] = nCr[1]
-        model['nvz'] = nCr[2]
-        model['tvx'] = tCr[0]
-        model['tvy'] = tCr[1]
-
-        orientDataCr_pp = orientData[1]
+        model['nvx'] = opCr.nvx
+        model['nvy'] = opCr.nvy
+        model['nvz'] = opCr.nvz
+        model['tvx'] = opCr.tvx
+        model['tvy'] = opCr.tvy
+        orientDataCr_pp = opCr.get_orient(_e=model['energyAvg'])[1]
         tCr_pp = orientDataCr_pp[0]  # Tangential Vector to Crystal surface
         nCr_pp = orientDataCr_pp[2]  # Normal Vector to Crystal surface
         model['outoptvx'] = nCr_pp[0]
