@@ -98,3 +98,39 @@ def test_rename_folder(fc):
     pkeq('/' + n, x.models.simulation.folder)
     x = fc.sr_sim_data('new sim 2')
     pkeq(r2.models.simulation.folder, x.models.simulation.folder)
+
+
+def test_srw_discard_example(fc):
+    """Emulates what the GUI does"""
+    from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdp
+    from pykern.pkunit import pkok
+
+    # See https://github.com/radiasoft/sirepo/issues/1972
+    n = 'Undulator Radiation'
+    d = fc.sr_sim_data(n)
+    fc.sr_post(
+        'deleteSimulation',
+        PKDict(
+            simulationType=fc.sr_sim_type,
+            simulationId=d.models.simulation.simulationId,
+        ),
+    )
+    r = fc.sr_get(
+        'findByNameWithAuth',
+        PKDict(
+            simulation_type=fc.sr_sim_type,
+            application_mode='default',
+            simulation_name=n
+        ),
+        redirect=False,
+    )
+    i = r.headers['Location'].split('/').pop()
+    r = fc.sr_get(
+        'pythonSource',
+        PKDict(
+            simulation_type=fc.sr_sim_type,
+            simulation_id=i,
+        ),
+    )
+    pkok('srwl_bl.SRWLBeamline' in r.data, 'incomplete python={}', r.data)
