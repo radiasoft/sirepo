@@ -87,6 +87,8 @@ def parse_post(**kwargs):
     kwargs.pksetdefault(type=True)
 
     def t(v):
+        assert not isinstance(v, bool), \
+            'missing type in params/post={}'.format(kwargs)
         v = sirepo.template.assert_sim_type(v)
         # flask.g API is very limited but do this in order to
         # maintain explicit coupling of _SIM_TYPE_ATTR
