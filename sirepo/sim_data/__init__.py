@@ -116,8 +116,6 @@ class SimDataBase(object):
 
     WATCHPOINT_REPORT_RE = re.compile('^{}(\d+)$'.format(WATCHPOINT_REPORT))
 
-    _TEMPLATE_FIXUP = 'sim_data_template_fixup'
-
     @classmethod
     def compute_job_hash(cls, data):
         """Hash fields related to data and set computeJobHash
@@ -488,13 +486,6 @@ class SimDataBase(object):
         return cls._memoize(pkinspect.module_basename(cls))
 
     @classmethod
-    def template_fixup_get(cls, data):
-        if data.get(cls._TEMPLATE_FIXUP):
-            del data[cls._TEMPLATE_FIXUP]
-            return True
-        return False
-
-    @classmethod
     def update_model_defaults(cls, model, name, dynamic=None):
         defaults = cls.model_defaults(name)
         if dynamic:
@@ -660,10 +651,6 @@ class SimDataBase(object):
         dm = data.models
         if dm.simulation.get('isExample') and dm.simulation.folder == '/':
             dm.simulation.folder = '/Examples'
-
-    @classmethod
-    def _template_fixup_set(cls, data):
-        data[cls._TEMPLATE_FIXUP] = True
 
 
 def _init():
