@@ -38,7 +38,7 @@ def test_jspec(animation_fc):
         'animation',
         PKDict(
             beamEvolutionAnimation=PKDict(
-                expect_y_range=r'^.2.04.*e-07, 2.15e-06',
+                expect_y_range=r'^.2.0.*e-07, 2.15e-06',
             ),
             coolingRatesAnimation=PKDict(
                 expect_y_range=r'-0.04.*, 0.00[4-7]',
