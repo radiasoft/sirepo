@@ -31,6 +31,7 @@ def default_command(in_file):
     Returns:
         str: json output of command, e.g. status msg
     """
+    job.init()
     f = pkio.py_path(in_file)
     msg = pkjson.load_any(f)
 #TODO(e-carlin): find common place to serialize/deserialize paths
@@ -114,7 +115,11 @@ def _do_get_data_file(msg, template):
             msg.frame,
             options=PKDict(suffix=msg.suffix),
         )
-        requests.put(msg.dataFileUri + f, data=c).raise_for_status()
+        requests.put(
+            msg.dataFileUri + f,
+            data=c,
+            verify=job.cfg.verify_tls,
+        ).raise_for_status()
         return PKDict()
     except Exception as e:
         return PKDict(error=e, stack=pkdexc())
