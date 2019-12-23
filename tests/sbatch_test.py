@@ -22,10 +22,10 @@ def _slurm_not_installed():
 pytestmark = [
     pytest.mark.skipif(
         _slurm_not_installed(),
-        reason="slurm not installed, skipping sbatch tests"
+        reason="slurm not installed"
     ),
     pytest.mark.skipif(
-        not os.environ.get('SIREPO_FEATURE_CONFIG_JOB') == '1',
+        os.environ.get('SIREPO_FEATURE_CONFIG_JOB') != '1',
         reason="SIREPO_FEATURE_CONFIG_JOB != 1"
     ),
 ]
