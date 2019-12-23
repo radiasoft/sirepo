@@ -85,7 +85,6 @@ def init():
         import subprocess
         e = os.environ
         e.update(PKDict(PYENV_VERSION='py2'))
-        pkdp('eee {}', e.get('PYENV_VERSION'))
         subprocess.check_call(
             ('pyenv', 'exec', 'sirepo', 'db', 'seed_supervisor_state', _DB_DIR, str(cfg.sbatch_poll_secs)),
             env=e,
