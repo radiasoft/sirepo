@@ -94,7 +94,7 @@ def seed_supervisor_state(db_dir, sbatch_poll_secs):
             status=s,
             uid=uid,
         )
-        if d.isParallel:
+        if s == sirepo.job.COMPLETED and d.isParallel:
             _add_parallel_status(i, c, run_dir, d)
         util.json_dump(d, path=_db_file(d.computeJid))
 
