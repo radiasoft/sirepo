@@ -5,26 +5,49 @@ u"""simulation data manipulations
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdpretty
 
-def fixup_all_examples():
+def fixup_package_data_json():
+    import pykern.pkconfig
+    import tempfile
+
+    pykern.pkconfig.reset_state_for_testing(
+        dict(SIREPO_SIMULATION_DB_TMP_DIR=tempfile.mkdtemp()),
+    )
+
+    from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdpretty
+    from pykern.pkcollections import PKDict
+    import pykern.pkcollections
     import pykern.pkio
+    import sirepo.auth
     import sirepo.feature_config
+    import sirepo.server
     import sirepo.simulation_db
     import sirepo.util
 
-    p = pykern.pkio.py_path()
-    for t in sorted(sirepo.feature_config.cfg().sim_types):
-        x = pykern.pkio.sorted_glob(p.join(t, 'examples', '*.json'))
-        if not x:
-            pykern.pkcli.command_error('must be run from package_data/template')
-        for f in x:
-            d = sirepo.simulation_db.fixup_old_data(
-                sirepo.simulation_db.json_load(f),
-                force=True,
-            )[0]
-            d.models.simulation.pkdel('simulationSerial')
-            d.models.simulation.pkdel('simulationId')
-            sirepo.util.json_dump(d, path=f, pretty=True)
-            pkdlog(f.basename)
+    i = 0
+    for f in pykern.pkio.sorted_glob(
+        pykern.pkio.py_path().join('*', 'examples', '*.json'),
+    ) + pykern.pkio.sorted_glob(
+        pykern.pkio.py_path().join('*', 'default-data.json'),
+    ):
+        if not any(x for x in sirepo.feature_config.cfg().sim_types if x in str(f)):
+            continue
+        pkdlog(f)
+        d = sirepo.simulation_db.json_load(f)
+        if f.basename != 'default-data.json':
+            d.models.pksetdefault(simulation=PKDict).simulation.isExample = True
+        d = sirepo.simulation_db.fixup_old_data(d, force=True)[0]
+        pykern.pkcollections.unchecked_del(
+            d.models.simulation,
+            'simulationSerial',
+            'simulationId',
+        )
+        d.pkdel('version')
+        d.models.pkdel('simulationStatus')
+        for m in d.models.values():
+            if isinstance(m, dict):
+                m.pkdel('startTime')
+        sirepo.util.json_dump(d, path=f, pretty=True)
+        i += 1
+    if i <= 0:
+        pykern.pkcli.command_error('must be run from package_data/template')

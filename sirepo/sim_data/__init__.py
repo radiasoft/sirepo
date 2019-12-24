@@ -572,11 +572,10 @@ class SimDataBase(object):
                 r.raise_for_status()
                 p.write(r.content)
                 return p
-        else:
+        elif not cfg.lib_file_resource_only:
             p.append(
                 sirepo.simulation_db.simulation_lib_dir(cls.sim_type()).join(basename)
             )
-
         for f in p:
             if f.check(file=True):
                 return f
@@ -656,6 +655,7 @@ class SimDataBase(object):
 def _init():
     global cfg
     cfg = pkconfig.init(
+        lib_file_resource_only=(False, bool, 'used by utility programs'),
         lib_file_uri=(None, str, 'where to get files from when remote'),
     )
 

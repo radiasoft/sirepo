@@ -455,9 +455,14 @@ class SimData(sirepo.sim_data.SimDataBase):
             try:
                 #TODO(robnagler) find a better way to do this
                 e = PKDict(os.environ).pkupdate(
-                    SIREPO_AUTH_LOGGED_IN_USER=str(sirepo.auth.logged_in_user()),
                     SIREPO_SRDB_ROOT=str(sirepo.srdb.root()),
                 )
+                d = sirepo.simulation_db.cfg.tmp_dir
+                if d:
+                    e.SIREPO_SIMULATION_DB_TMP_DIR = str(d)
+                    e.SIREPO_SIM_DATA_LIB_FILE_RESOURCE_ONLY = '1'
+                else:
+                    e.SIREPO_AUTH_LOGGED_IN_USER = str(sirepo.auth.logged_in_user())
                 n = subprocess.check_output(
                     ['sirepo', 'srw', 'fixup_old_data', str(f)],
                     stderr=subprocess.STDOUT,
