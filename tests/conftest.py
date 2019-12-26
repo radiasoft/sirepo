@@ -12,7 +12,7 @@ def animation_fc(fc):
     return fc
 
 
-def animation_run(fc, sim_name, compute_model, reports, job_run_mode=None, **kwargs):
+def animation_run(fc, sim_name, compute_model, reports, **kwargs):
     from pykern import pkconfig
     from pykern import pkunit
     from pykern.pkcollections import PKDict
@@ -22,9 +22,6 @@ def animation_run(fc, sim_name, compute_model, reports, job_run_mode=None, **kwa
     import time
 
     data = fc.sr_sim_data(sim_name)
-    if job_run_mode:
-        data.models[compute_model].jobRunMode = job_run_mode
-
     run = fc.sr_run_sim(data, compute_model, **kwargs)
     for r, a in reports.items():
         if 'runSimulation' in a:
@@ -183,9 +180,13 @@ def pytest_collection_modifyitems(session, config, items):
     import_fail = PKDict()
     res = set()
     skip_list = os.environ.get('SIREPO_PYTEST_SKIP', '').split(':')
+    slurm_not_installed = _slurm_not_installed()
     for i in items:
         if i.fspath.purebasename in skip_list:
             i.add_marker(pytest.mark.skip(reason="SIREPO_PYTEST_SKIP"))
+            continue
+        if 'sbatch' in i.fspath.basename and slurm_not_installed:
+            i.add_marker(pytest.mark.skip(reason="slurm not installed"))
             continue
         c = [x for x in all_codes if x in i.name]
         if not c:
@@ -263,20 +264,14 @@ def _configure_sbatch_env(env, cfg):
     from pykern.pkcollections import PKDict
     import pykern.pkio
     import re
+    import socket
     import subprocess
 
-    h = 'v.radia.run'
-    k = pykern.pkio.py_path('/home/vagrant/.ssh/known_hosts').read()
+    h = socket.gethostname()
+    k = pykern.pkio.py_path('~/.ssh/known_hosts').read()
     m = re.search('^{}.*$'.format(h), k, re.MULTILINE)
     assert m, \
         'You need to ssh into {} to get the host key'.format(h)
-
-    try:
-        subprocess.check_output(['sbatch', '--help'], stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError:
-        from pykern.pkdebug import pkdlog
-        pkdlog('you need to install slurm. run `radia_run slurm-dev`')
-        raise
 
     d = PKDict(SIREPO_SIMULATION_DB_SBATCH_DISPLAY='testing@123')
     cfg.pkupdate(**d)
@@ -285,7 +280,12 @@ def _configure_sbatch_env(env, cfg):
         SIREPO_JOB_DRIVER_MODULES='local:sbatch',
         SIREPO_JOB_DRIVER_SBATCH_HOST=h,
         SIREPO_JOB_DRIVER_SBATCH_HOST_KEY=m.group(0),
-        SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD='$HOME/.pyenv/versions/py3/bin/sirepo',
+        SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=subprocess.check_output(
+            'PYENV_VERSION=py3 pyenv which sirepo',
+            stderr=subprocess.STDOUT,
+            shell=True
+        ).rstrip(),
+        # SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD='/home/vagrant/.pyenv/versions/py3/bin/sirepo',
         # TODO(e-carlin): this isn't right for testing. I'm not sure env.SIREPO_SRDB_ROOT is right either
         SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/var/tmp/{sbatch_user}/sirepo',
         SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS='2',
@@ -393,3 +393,12 @@ def _sim_type(request):
         if c in request.function.func_name or c in str(request.fspath):
             return c
     return 'myapp'
+
+
+def _slurm_not_installed():
+    import subprocess
+    try:
+        subprocess.check_output(('sbatch', '--help'))
+    except OSError:
+        return True
+    return False

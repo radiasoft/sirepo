@@ -10,25 +10,10 @@ import os
 import pytest
 
 
-def _slurm_not_installed():
-    import subprocess
-    try:
-        subprocess.check_output(('sbatch', '--help'))
-    except OSError:
-        return True
-    return False
-
-
-pytestmark = [
-    pytest.mark.skipif(
-        _slurm_not_installed(),
-        reason="slurm not installed"
-    ),
-    pytest.mark.skipif(
-        os.environ.get('SIREPO_FEATURE_CONFIG_JOB') != '1',
-        reason="SIREPO_FEATURE_CONFIG_JOB != 1"
-    ),
-]
+pytestmark = pytest.mark.skipif(
+    os.environ.get('SIREPO_FEATURE_CONFIG_JOB') != '1',
+    reason="SIREPO_FEATURE_CONFIG_JOB != 1"
+)
 
 
 def test_warppba_no_creds(sbatch_animation_fc):

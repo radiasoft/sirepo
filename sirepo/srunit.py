@@ -315,10 +315,21 @@ class _TestClient(flask.testing.FlaskClient):
             **kwargs
         )
 
-    def sr_run_sim(self, data, model, expect_completed=True, timeout=7, **post_args):
+    def sr_run_sim(
+            self,
+            data,
+            model,
+            expect_completed=True,
+            timeout=7,
+            job_run_mode=None,
+            **post_args
+    ):
         from pykern import pkunit
         from pykern.pkdebug import pkdlog, pkdexc
         import time
+
+        if job_run_mode:
+            data.models[model].jobRunMode = job_run_mode
 
         cancel = None
         try:

@@ -13,6 +13,7 @@ _REPORT = 'heightWeightReport'
 def test_myapp_status(fc):
     from pykern import pkunit
     import os
+    import sirepo.feature_config
 
     d = fc.sr_sim_data()
     r = fc.sr_post(
@@ -26,7 +27,7 @@ def test_myapp_status(fc):
         ),
     )
 
-    if os.environ.get('SIREPO_FEATURE_CONFIG_JOB') == '1':
+    if sirepo.feature_config.cfg().job == 1:
         pkunit.pkeq('missing', r.state)
     else:
         pkunit.pkeq('stopped', r.state)

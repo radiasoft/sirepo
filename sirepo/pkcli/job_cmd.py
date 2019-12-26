@@ -32,7 +32,6 @@ def default_command(in_file):
     Returns:
         str: json output of command, e.g. status msg
     """
-    r = None
     try:
         job.init()
         f = pkio.py_path(in_file)
@@ -100,8 +99,7 @@ def _do_compute(msg, template):
             continue
         if r != 0:
             return PKDict(state=job.ERROR, error='non zero returncode={}'.format(r))
-        else:
-            return PKDict(state=job.COMPLETED)
+        return PKDict(state=job.COMPLETED)
 
 
 def _do_get_simulation_frame(msg, template):
