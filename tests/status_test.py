@@ -10,21 +10,11 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 import pytest
 
 
-def test_basic(monkeypatch):
+def test_basic(fc, monkeypatch):
     from pykern import pkconfig
     from pykern.pkunit import pkeq
     from sirepo import srunit
     import base64
-    p = 'pass'
-    fc = srunit.flask_client(
-        cfg=PKDict(
-            SIREPO_AUTH_BASIC_PASSWORD=p,
-            SIREPO_AUTH_BASIC_UID='dev-no-validate',
-            SIREPO_AUTH_METHODS='basic:guest',
-            SIREPO_FEATURE_CONFIG_API_MODULES='status',
-        ),
-        sim_types='myapp'
-    )
     import sirepo.auth.basic
 
     u = fc.sr_login_as_guest()
@@ -40,7 +30,7 @@ def test_basic(monkeypatch):
     r = fc.sr_get_json(
         'serverStatus',
         headers=PKDict(
-            Authorization='Basic ' + base64.b64encode(u + ':' + p),
+            Authorization='Basic ' + base64.b64encode(u + ':' + 'pass'),
         ),
     )
     pkeq('ok', r.state)

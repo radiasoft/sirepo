@@ -274,6 +274,13 @@ def _job_supervisor_setup(request):
         PYKERN_PKDEBUG_WANT_PID_TIME='1',
         SIREPO_FEATURE_CONFIG_JOB='1',
     )
+    if 'status_test' in request.module.__name__:
+        cfg.pkupdate(
+            SIREPO_AUTH_BASIC_PASSWORD='pass',
+            SIREPO_AUTH_BASIC_UID='dev-no-validate',
+            SIREPO_AUTH_METHODS='basic:guest',
+            SIREPO_FEATURE_CONFIG_API_MODULES='status',
+        )
     if sbatch_module:
         cfg.pkupdate(SIREPO_SIMULATION_DB_SBATCH_DISPLAY='testing@123')
     env.pkupdate(
