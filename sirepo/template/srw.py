@@ -792,24 +792,20 @@ def _compute_grating_orientation(model):
             _ang_graz=model['grazingAngle'],
             _ang_roll=model['rollAngle'],
         )
-        orientData = opGr.find_orient(_en=model['energyAvg'], _cff=model['cff'], _ang_graz=model['grazingAngle'], _ang_roll=model['rollAngle'])
-        orientDataGr = orientData[0]
-        tGr = orientDataGr[0]  # Tangential Vector to Grating surface
-        nGr = orientDataGr[2]  # Normal Vector to Grating surface
-        model['nvx'] = nGr[0]
-        model['nvy'] = nGr[1]
-        model['nvz'] = nGr[2]
-        model['tvx'] = tGr[0]
-        model['tvy'] = tGr[1]
-
-        orientDataGr_pp = orientData[1]
-        tGr_pp = orientDataGr_pp[0]  # Tangential Vector to Grating surface
-        nGr_pp = orientDataGr_pp[2]  # Normal Vector to Grating surface
+        model['nvx'] = opGr.nvx
+        model['nvy'] = opGr.nvy
+        model['nvz'] = opGr.nvz
+        model['tvx'] = opGr.tvx
+        model['tvy'] = opGr.tvy
+        orientDataGr_pp = opGr.get_orient(_e=model['energyAvg'])[1]
+        tGr_pp = orientDataGr_pp[0]  # Tangential Vector to Grystal surface
+        nGr_pp = orientDataGr_pp[2]  # Normal Vector to Grystal surface
         model['outoptvx'] = nGr_pp[0]
         model['outoptvy'] = nGr_pp[1]
         model['outoptvz'] = nGr_pp[2]
         model['outframevx'] = tGr_pp[0]
         model['outframevy'] = tGr_pp[1]
+
     except Exception:
         pkdlog('\n{}', traceback.format_exc())
         for key in parms_list:
@@ -874,29 +870,6 @@ def _compute_crystal_orientation(model):
             _e_avg=model['energyAvg'],
             _ang_roll=float(model['rollAngle']),
         )
-#        orientData = opCr.find_orient(_en=model['energyAvg'], _ang_dif_pl=float(model['rollAngle']), _uc=model['useCase'])
-#        orientDataCr = orientData[0]
-#        tCr = orientDataCr[0]  # Tangential Vector to Crystal surface
-#        nCr = orientDataCr[2]  # Normal Vector to Crystal surface
-
-        #if model['rollAngle'] != 0:
-        #    rot = uti_math.trf_rotation([0, 1, 0], model['rollAngle'], [0, 0, 0])[0]
-        #    nCr = uti_math.matr_prod(rot, nCr)
-        #    tCr = uti_math.matr_prod(rot, tCr)
-#        model['nvx'] = nCr[0]
-#        model['nvy'] = nCr[1]
-#        model['nvz'] = nCr[2]
-#        model['tvx'] = tCr[0]
-#        model['tvy'] = tCr[1]
-#        orientDataCr_pp = orientData[1]
-#        tCr_pp = orientDataCr_pp[0]  # Tangential Vector to Crystal surface
-#        nCr_pp = orientDataCr_pp[2]  # Normal Vector to Crystal surface
-#        model['outoptvx'] = nCr_pp[0]
-#        model['outoptvy'] = nCr_pp[1]
-#        model['outoptvz'] = nCr_pp[2]
-#        model['outframevx'] = tCr_pp[0]
-#        model['outframevy'] = tCr_pp[1]
-
         model['nvx'] = opCr.nvx
         model['nvy'] = opCr.nvy
         model['nvz'] = opCr.nvz
@@ -911,7 +884,6 @@ def _compute_crystal_orientation(model):
         model['outframevx'] = tCr_pp[0]
         model['outframevy'] = tCr_pp[1]
         _SIM_DATA.srw_compute_crystal_grazing_angle(model)
-
     except Exception:
         pkdlog('\n{}', traceback.format_exc())
         for key in parms_list:
