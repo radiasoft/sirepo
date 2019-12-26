@@ -260,9 +260,10 @@ def sbatch_animation_fc(fc):
     return fc
 
 
-def _configure_sbatch_env(env, cfg):
+def _config_sbatch_supervisor_env(env):
     from pykern.pkcollections import PKDict
     import pykern.pkio
+    import pykern.pkunit
     import re
     import socket
     import subprocess
@@ -273,9 +274,6 @@ def _configure_sbatch_env(env, cfg):
     assert m, \
         'You need to ssh into {} to get the host key'.format(h)
 
-    d = PKDict(SIREPO_SIMULATION_DB_SBATCH_DISPLAY='testing@123')
-    cfg.pkupdate(**d)
-
     env.pkupdate(
         SIREPO_JOB_DRIVER_MODULES='local:sbatch',
         SIREPO_JOB_DRIVER_SBATCH_HOST=h,
@@ -285,11 +283,10 @@ def _configure_sbatch_env(env, cfg):
             stderr=subprocess.STDOUT,
             shell=True
         ).rstrip(),
-        # SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD='/home/vagrant/.pyenv/versions/py3/bin/sirepo',
-        # TODO(e-carlin): this isn't right for testing. I'm not sure env.SIREPO_SRDB_ROOT is right either
-        SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/var/tmp/{sbatch_user}/sirepo',
+        SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT=str(pykern.pkunit.work_dir().join(
+            '/{sbatch_user}/sirepo'
+        )),
         SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS='2',
-        **d
     )
 
 
@@ -326,6 +323,7 @@ def _job_supervisor_setup(request):
     import os
     from pykern.pkcollections import PKDict
 
+    sbatch_module = 'sbatch' in request.module.__name__
     env = PKDict()
     for k, v in os.environ.items():
         if ('PYENV' in k or 'PYTHON' in k):
@@ -341,17 +339,20 @@ def _job_supervisor_setup(request):
         PYKERN_PKDEBUG_WANT_PID_TIME='1',
         SIREPO_FEATURE_CONFIG_JOB='1',
     )
+    if sbatch_module:
+        cfg.pkupdate(SIREPO_SIMULATION_DB_SBATCH_DISPLAY='testing@123')
     env.pkupdate(
         PYENV_VERSION='py3',
         PYTHONUNBUFFERED='1',
         **cfg
     )
 
-    if 'sbatch' in request.module.__name__:
-        _configure_sbatch_env(env, cfg)
-
     import sirepo.srunit
     fc = sirepo.srunit.flask_client(cfg=cfg)
+
+    if sbatch_module:
+        # must be performed after fc initialized so work_dir is configured
+        _config_sbatch_supervisor_env(env)
 
     import sirepo.srdb
     env.SIREPO_SRDB_ROOT = str(sirepo.srdb.root())
