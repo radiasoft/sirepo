@@ -28,7 +28,7 @@ _JAVASCRIPT_REDIRECT_RE = re.compile(r'window.location = "([^"]+)"')
 CONFTEST_ALL_CODES = None
 
 
-def flask_client(cfg=None, sim_types=None):
+def flask_client(cfg=None, sim_types=None, job_run_mode=None):
     """Return FlaskClient with easy access methods.
 
     Creates a new run directory every test file so can assume
@@ -70,7 +70,7 @@ def flask_client(cfg=None, sim_types=None):
             app = server.init()
             app.config['TESTING'] = True
             app.test_client_class = _TestClient
-            setattr(app, a, app.test_client())
+            setattr(app, a, app.test_client(job_run_mode=job_run_mode))
     return getattr(app, a)
 
 
@@ -164,10 +164,55 @@ class _TestClient(flask.testing.FlaskClient):
     SR_SIM_TYPE_DEFAULT = MYAPP
 
     def __init__(self, *args, **kwargs):
+        self.sr_job_run_mode = kwargs.pop('job_run_mode')
         super(_TestClient, self).__init__(*args, **kwargs)
         self.sr_uid = None
         self.sr_sim_type = None
 
+    def sr_animation_run(self, sim_name, compute_model, reports, **kwargs):
+        from pykern import pkunit
+        from pykern.pkcollections import PKDict
+        from pykern.pkdebug import pkdp, pkdlog
+        import re
+
+        data = self.sr_sim_data(sim_name)
+        run = self.sr_run_sim(data, compute_model, **kwargs)
+        for r, a in reports.items():
+            if 'runSimulation' in a:
+                f = self.sr_run_sim(data, r)
+                for k, v in a.items():
+                    m = re.search('^expect_(.+)', k)
+                    if m:
+                        pkunit.pkre(
+                            v(i) if callable(v) else v,
+                            str(f.get(m.group(1))),
+                        )
+                continue
+            if 'frame_index' in a:
+                c = [a.get('frame_index')]
+            else:
+                c = range(run.get(a.get('frame_count_key', 'frameCount')))
+                assert c, \
+                    'frame_count_key={} or frameCount={} is zero'.format(
+                        a.get('frame_count_key'), a.get('frameCount'),
+                    )
+            pkdlog('frameReport={} count={}', r, c)
+            import sirepo.sim_data
+
+            s = sirepo.sim_data.get_class(self.sr_sim_type)
+            for i in c:
+                pkdlog('frameIndex={} frameCount={}', i, run.get('frameCount'))
+                f = self.sr_get_json(
+                    'simulationFrame',
+                    PKDict(frame_id=s.frame_id(data, run, r, i)),
+                )
+                for k, v in a.items():
+                    m = re.search('^expect_(.+)', k)
+                    if m:
+                        pkunit.pkre(
+                            v(i) if callable(v) else v,
+                            str(f.get(m.group(1))),
+                        )
 
     def sr_auth_state(self, **kwargs):
         """Gets authState and prases
@@ -321,15 +366,14 @@ class _TestClient(flask.testing.FlaskClient):
             model,
             expect_completed=True,
             timeout=7,
-            job_run_mode=None,
             **post_args
     ):
         from pykern import pkunit
         from pykern.pkdebug import pkdlog, pkdexc
         import time
 
-        if job_run_mode:
-            data.models[model].jobRunMode = job_run_mode
+        if self.sr_job_run_mode:
+            data.models[model].jobRunMode = self.sr_job_run_mode
 
         cancel = None
         try:

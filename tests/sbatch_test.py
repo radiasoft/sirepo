@@ -16,12 +16,11 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_warppba_no_creds(sbatch_animation_fc):
+def test_warppba_no_creds(fc):
     from pykern.pkunit import pkexcept
 
     with pkexcept('SRException.*no-creds'):
-        sbatch_animation_fc.sr_animation_run(
-            sbatch_animation_fc,
+        fc.sr_animation_run(
             'Laser Pulse',
             'animation',
             PKDict(),

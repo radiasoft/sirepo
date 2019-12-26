@@ -7,61 +7,6 @@ MAX_CASE_RUN_SECS = 60
 
 
 @pytest.fixture
-def animation_fc(fc):
-    fc.sr_animation_run = animation_run
-    return fc
-
-
-def animation_run(fc, sim_name, compute_model, reports, **kwargs):
-    from pykern import pkconfig
-    from pykern import pkunit
-    from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdp, pkdlog
-    from sirepo import srunit
-    import re
-    import time
-
-    data = fc.sr_sim_data(sim_name)
-    run = fc.sr_run_sim(data, compute_model, **kwargs)
-    for r, a in reports.items():
-        if 'runSimulation' in a:
-            f = fc.sr_run_sim(data, r)
-            for k, v in a.items():
-                m = re.search('^expect_(.+)', k)
-                if m:
-                    pkunit.pkre(
-                        v(i) if callable(v) else v,
-                        str(f.get(m.group(1))),
-                    )
-            continue
-        if 'frame_index' in a:
-            c = [a.get('frame_index')]
-        else:
-            c = range(run.get(a.get('frame_count_key', 'frameCount')))
-            assert c, \
-                'frame_count_key={} or frameCount={} is zero'.format(
-                    a.get('frame_count_key'), a.get('frameCount'),
-                )
-        pkdlog('frameReport={} count={}', r, c)
-        import sirepo.sim_data
-
-        s = sirepo.sim_data.get_class(fc.sr_sim_type)
-        for i in c:
-            pkdlog('frameIndex={} frameCount={}', i, run.get('frameCount'))
-            f = fc.sr_get_json(
-                'simulationFrame',
-                PKDict(frame_id=s.frame_id(data, run, r, i)),
-            )
-            for k, v in a.items():
-                m = re.search('^expect_(.+)', k)
-                if m:
-                    pkunit.pkre(
-                        v(i) if callable(v) else v,
-                        str(f.get(m.group(1))),
-                    )
-
-
-@pytest.fixture
 def auth_fc(auth_fc_module):
     # set the sentinel
     auth_fc_module.cookie_jar.clear()
@@ -250,16 +195,6 @@ def pytest_configure(config):
     )
 
 
-@pytest.fixture
-def sbatch_animation_fc(fc):
-    import functools
-    fc.sr_animation_run = functools.partial(
-        animation_run,
-        job_run_mode='sbatch',
-    )
-    return fc
-
-
 def _config_sbatch_supervisor_env(env):
     from pykern.pkcollections import PKDict
     import pykern.pkio
@@ -348,7 +283,10 @@ def _job_supervisor_setup(request):
     )
 
     import sirepo.srunit
-    fc = sirepo.srunit.flask_client(cfg=cfg)
+    fc = sirepo.srunit.flask_client(
+        cfg=cfg,
+        job_run_mode='sbatch' if sbatch_module else None,
+    )
 
     if sbatch_module:
         # must be performed after fc initialized so work_dir is configured
