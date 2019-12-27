@@ -8,6 +8,7 @@ u"""Warp VND/WARP execution template.
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from rswarp.cathode import sources
 from rswarp.utilities.file_utils import readparticles
@@ -709,7 +710,7 @@ def _field_plot(values, axes, grid, is3d):
     xr.append(len(values[0]))
     yr.append(len(values))
 
-    return pkcollections.Dict({
+    return PKDict({
         'aspectRatio': ar,
         'x_range': xr,
         'y_range': yr,
@@ -851,10 +852,10 @@ def _mpi_core_count(run_dir):
 
 def _optimizer_percent_complete(run_dir, is_running):
     if not run_dir.exists():
-        return {
-            'percentComplete': 0,
-            'frameCount': 0,
-        }
+        return PKDict(
+            percentComplete=0,
+            frameCount=0,
+        )
     res, best_row = _read_optimizer_output(run_dir)
     summary_data = None
     frame_count = 0
@@ -892,23 +893,23 @@ def _optimizer_percent_complete(run_dir, is_running):
             except ValueError:
                 pass
     if summary_data:
-        return {
-            'percentComplete': 0 if is_running else 100,
-            'frameCount': frame_count,
-            'summary': summary_data,
-        }
+        return PKDict(
+            percentComplete=0 if is_running else 100,
+            frameCount=frame_count,
+            summary=summary_data,
+        )
     if is_running:
-        return {
-            'percentComplete': 0,
-            'frameCount': 0,
-        }
+        return PKDict(
+            percentComplete=0,
+            frameCount=0,
+        )
     #TODO(pjm): determine optimization error
-    return {
-        'percentComplete': 0,
-        'frameCount': 0,
-        'error': 'optimizer produced no data',
-        'state': 'error',
-    }
+    return PKDict(
+        percentComplete=0,
+        frameCount=0,
+        error='optimizer produced no data',
+        state='error',
+    )
 
 
 def _parse_optimize_field(text):
@@ -1017,33 +1018,33 @@ def _replace_optimize_variables(data, v):
 def _simulation_percent_complete(report, run_dir, is_running):
     if report == 'fieldCalculationAnimation':
         if run_dir.join(_POTENTIAL_FILE).exists():
-            return pkcollections.Dict({
+            return PKDict({
                 'percentComplete': 100,
                 'frameCount': 1,
             })
-        return pkcollections.Dict({
+        return PKDict({
             'percentComplete': 0,
             'frameCount': 0,
         })
     files = _h5_file_list(run_dir, 'currentAnimation')
     if (is_running and len(files) < 2) or (not run_dir.exists()):
-        return {
-            'mpiCores': _mpi_core_count(run_dir),
-            'percentComplete': 0,
-            'frameCount': 0,
-        }
+        return PKDict(
+            mpiCores=_mpi_core_count(run_dir),
+            percentComplete=0,
+            frameCount=0,
+        )
     if len(files) == 0:
-        return {
-            'percentComplete': 100,
-            'frameCount': 0,
-            'error': 'simulation produced no frames',
-            'state': 'error',
-        }
+        return PKDict(
+            percentComplete=100,
+            frameCount=0,
+            error='simulation produced no frames',
+            state='error',
+        )
     file_index = len(files) - 1
-    res = {
-        'mpiCores': _mpi_core_count(run_dir),
-        'lastUpdateTime': int(os.path.getmtime(str(files[file_index]))),
-    }
+    res = PKDict(
+        mpiCores=_mpi_core_count(run_dir),
+        lastUpdateTime=int(os.path.getmtime(str(files[file_index]))),
+    )
     # look at 2nd to last file if running, last one may be incomplete
     if is_running:
         file_index -= 1
@@ -1059,7 +1060,7 @@ def _simulation_percent_complete(report, run_dir, is_running):
         egun_current_file = run_dir.join(_EGUN_CURRENT_FILE)
         if egun_current_file.exists():
             v = np.load(str(egun_current_file), allow_pickle=True)
-            res['egunCurrentFrameCount'] = len(v)
+            res.egunCurrentFrameCount = len(v)
     else:
         percent_complete = (file_index + 1.0) * _PARTICLE_PERIOD / data.models.simulationGrid.num_steps
         percent_complete /= 2.0
@@ -1067,8 +1068,8 @@ def _simulation_percent_complete(report, run_dir, is_running):
         percent_complete = 0
     elif percent_complete > 1.0:
         percent_complete = 1.0
-    res['percentComplete'] = percent_complete * 100
-    res['frameCount'] = file_index + 1
+    res.percentComplete = percent_complete * 100
+    res.frameCount = file_index + 1
     return res
 
 

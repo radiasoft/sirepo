@@ -5,9 +5,9 @@ u"""FLASH execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -33,11 +33,11 @@ def background_percent_complete(report, run_dir, is_running):
     count = len(files)
     if is_running and count:
         count -= 1
-    return {
-        'percentComplete': 0 if is_running else 100,
-        'frameCount': count,
-        'error': errors,
-    }
+    return PKDict(
+        percentComplete=0 if is_running else 100,
+        frameCount=count,
+        error=errors,
+    )
 
 
 _DEFAULT_VALUES = {

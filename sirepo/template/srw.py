@@ -5,7 +5,6 @@ u"""SRW execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkinspect
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -48,7 +47,7 @@ _BRILLIANCE_OUTPUT_FILE = 'res_brilliance.dat'
 
 _MIRROR_OUTPUT_FILE = 'res_mirror.dat'
 
-_DATA_FILE_FOR_MODEL = pkcollections.Dict({
+_DATA_FILE_FOR_MODEL = PKDict({
     'coherenceXAnimation': {'filename': 'res_int_pr_me_dcx.dat', 'dimension': 3},
     'coherenceYAnimation': {'filename': 'res_int_pr_me_dcy.dat', 'dimension': 3},
     'fluxAnimation': {'filename': 'res_spec_me.dat', 'dimension': 2},
@@ -68,7 +67,7 @@ _LOG_DIR = '__srwl_logs__'
 
 _TABULATED_UNDULATOR_DATA_DIR = 'tabulatedUndulator'
 
-_USER_MODEL_LIST_FILENAME = pkcollections.Dict({
+_USER_MODEL_LIST_FILENAME = PKDict({
     'electronBeam': '_user_beam_list.json',
     'tabulatedUndulator': '_user_undulator_list.json',
 })
@@ -139,13 +138,13 @@ class MagnMeasZip:
 
 
 def background_percent_complete(report, run_dir, is_running):
-    res = pkcollections.Dict({
+    res = PKDict({
         'percentComplete': 0,
         'frameCount': 0,
     })
     filename = run_dir.join(get_filename_for_model(report))
     if filename.exists():
-        status = pkcollections.Dict({
+        status = PKDict({
             'progress': 100,
             'particle_number': 0,
             'total_num_of_particles': 0,
@@ -262,7 +261,7 @@ def extract_report_data(filename, sim_in):
         before_propagation_name = 'E={sourcePhotonEnergy} eV'
     else:
         before_propagation_name = 'E={photonEnergy} eV'
-    file_info = pkcollections.Dict({
+    file_info = PKDict({
         'res_spec_se.dat': [['Photon Energy', 'Intensity', 'On-Axis Spectrum from Filament Electron Beam'], ['eV', _intensity_units(is_gaussian, sim_in)]],
         'res_spec_me.dat': [['Photon Energy', sValShort, sValType], ['eV', sValUnit]],
         'res_pow.dat': [['Horizontal Position', 'Vertical Position', 'Power Density', 'Power Density'], ['m', 'm', 'W/mm^2']],
@@ -302,7 +301,7 @@ def extract_report_data(filename, sim_in):
     schema_values = [e for e in schema_enum if e[0] == str(subtitle_datum)]
     if len(schema_values) > 0:
         subtitle = subtitle_format.format(schema_values[0][1])
-    info = pkcollections.Dict({
+    info = PKDict({
         'title': title,
         'subtitle': subtitle,
         'x_range': [allrange[0], allrange[1]],
@@ -331,7 +330,7 @@ def get_application_data(data, **kwargs):
         if model_name == 'electronBeam':
             for beam in res:
                 srw_common.process_beam_parameters(beam)
-        return pkcollections.Dict({
+        return PKDict({
             'modelList': res
         })
     if data['method'] == 'delete_user_models':
@@ -727,7 +726,7 @@ def _add_report_filenames(v):
 
 
 def _compute_material_characteristics(model, photon_energy, prefix=''):
-    fields_with_prefix = pkcollections.Dict({
+    fields_with_prefix = PKDict({
         'material': 'material',
         'refractiveIndex': 'refractiveIndex',
         'attenuationLength': 'attenuationLength',
@@ -744,7 +743,7 @@ def _compute_material_characteristics(model, photon_energy, prefix=''):
         return model
 
     # Index of refraction:
-    kwargs = pkcollections.Dict({
+    kwargs = PKDict({
         'energy': photon_energy,
     })
     if model['method'] == 'server':
@@ -895,7 +894,7 @@ def _delete_user_models(electron_beam, tabulated_undulator):
                 del user_model_list[i]
                 _save_user_model_list(model_name, user_model_list)
                 break
-    return pkcollections.Dict()
+    return PKDict()
 
 
 def _extract_brilliance_report(model, data):
@@ -1360,7 +1359,7 @@ def _process_image(data, tmp_dir):
 
 def _process_intensity_reports(source_type, undulator_type):
     # Magnetic field processing:
-    return pkcollections.Dict({
+    return PKDict({
         'magneticField': 2 if source_type == 'a' or _SIM_DATA.srw_is_tabulated_undulator_with_magnetic_file(source_type, undulator_type) else 1,
     })
 
@@ -1416,7 +1415,7 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rota
 
     if z_units:
         z_label = u'{} [{}]'.format(z_label, z_units)
-    return pkcollections.Dict({
+    return PKDict({
         'x_range': x_range,
         'y_range': y_range,
         'x_label': info['x_label'],
@@ -1476,7 +1475,7 @@ def _trim(v):
 
 def _unique_name(items, field, template):
     #TODO(pjm): this is the same logic as sirepo.js uniqueName()
-    values = pkcollections.Dict()
+    values = PKDict()
     for item in items:
         values[item[field]] = True
     index = 1
@@ -1490,7 +1489,7 @@ def _unique_name(items, field, template):
 
 
 def _user_model_map(model_list, field):
-    res = pkcollections.Dict()
+    res = PKDict()
     for model in model_list:
         res[model[field]] = model
     return res
