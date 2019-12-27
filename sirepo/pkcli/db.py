@@ -84,7 +84,9 @@ def upgrade_runner_to_job_db(db_dir, sbatch_poll_secs):
         c = sim_data.get_class(i.simulationType)
         d = PKDict(
             computeJid=c.parse_jid(i, u),
-            computeJobHash=i.computeJobHash,
+            computeJobHash=i.models.computeJobCacheKey.computeJobHash if
+            i.models.get('computeJobCacheKey') else
+            i.computeJobHash,
             computeJobQueued=t,
             computeJobStart=t,
             error=None,
