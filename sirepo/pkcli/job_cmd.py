@@ -75,10 +75,6 @@ def _do_cancel(msg, template):
 
 def _do_compute(msg, template):
     msg.runDir = pkio.py_path(msg.runDir)
-    msg.simulationStatus = PKDict(
-        computeJobStart=int(time.time()),
-        state=job.RUNNING,
-    )
     try:
         with msg.runDir.join(template_common.RUN_LOG).open('w') as run_log:
             p = subprocess.Popen(

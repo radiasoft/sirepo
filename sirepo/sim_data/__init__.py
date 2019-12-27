@@ -391,6 +391,8 @@ class SimDataBase(object):
                 res[f] = d[2]
         return res
 
+    # TODO(e-carlin): Supplying uid is a temprorary workaround until
+    # issue/2129 is resolved
     @classmethod
     def parse_jid(cls, data, uid=None):
         """A Job is a tuple of user, sid, and compute_model.

@@ -81,10 +81,17 @@ def init():
         job.SEQUENTIAL: 1,
     })
     if not _DB_DIR.exists():
-        pkdlog('populating supervisor state path={}', _DB_DIR)
+        pkdlog('calling upgrade_runner_to_job_db path={}', _DB_DIR)
         import subprocess
         subprocess.check_call(
-            ('pyenv', 'exec', 'sirepo', 'db', 'seed_supervisor_state', _DB_DIR, str(cfg.sbatch_poll_secs)),
+            (
+                'pyenv',
+                'exec',
+                'sirepo',
+                'db',
+                'upgrade_runner_to_job_db',
+                _DB_DIR,
+                str(cfg.sbatch_poll_secs)),
             env=PKDict(os.environ).pkupdate(PYENV_VERSION='py2'),
         )
 
