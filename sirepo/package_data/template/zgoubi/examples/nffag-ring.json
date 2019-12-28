@@ -1,5 +1,16 @@
 {
     "models": {
+        "SPNTRK": {
+            "KSO": "0",
+            "S_X": 0,
+            "S_Y": 0,
+            "S_Z": 1
+        },
+        "SRLOSS": {
+            "KSR": "0",
+            "applyToAll": "0",
+            "keyword": "BEND"
+        },
         "beamlines": [
             {
                 "angle": 0.23270823982690794,
@@ -204,8 +215,8 @@
             "notes": "",
             "particleSelector": "all",
             "plotRangeType": "none",
+            "plotType": "3d",
             "showAllFrames": "1",
-            "startTime": 1558646276,
             "verticalOffset": 1.5836167686301296e-11,
             "verticalSize": 1.9894591126010387e-09,
             "x": "Y",
@@ -222,8 +233,8 @@
             "notes": "",
             "particleSelector": "all",
             "plotRangeType": "none",
+            "plotType": "3d",
             "showAllFrames": "1",
-            "startTime": 1558646276,
             "verticalOffset": 0,
             "verticalSize": 0,
             "x": "Z",
@@ -256,6 +267,23 @@
             "notes": "",
             "x": "S",
             "y": "D1"
+        },
+        "elementStepAnimation": {
+            "aspectRatio": "0.5625",
+            "colorMap": "contrast",
+            "framesPerSecond": "2",
+            "histogramBins": 200,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0,
+            "notes": "",
+            "particleSelector": "all",
+            "plotRangeType": "none",
+            "plotType": "particle",
+            "showAllFrames": "0",
+            "verticalOffset": 0.0,
+            "verticalSize": 0,
+            "x": "X",
+            "y": "YDY"
         },
         "elements": [
             {
@@ -543,8 +571,8 @@
             "notes": "",
             "particleSelector": "all",
             "plotRangeType": "none",
+            "plotType": "heatmap",
             "showAllFrames": "1",
-            "startTime": 1558646276,
             "verticalOffset": 0,
             "verticalSize": 0,
             "x": "SX",
@@ -565,6 +593,11 @@
             "particleType": "ELECTRON",
             "type": "particle"
         },
+        "particleAnimation": {
+            "aspectRatio": "0.75",
+            "notes": "",
+            "particleSelector": "all"
+        },
         "particleCoordinate": {
             "D": 1.19962464,
             "P": 0,
@@ -575,18 +608,28 @@
         },
         "simulation": {
             "activeBeamlineId": 13,
+            "documentationUrl": "",
             "folder": "/Examples",
             "isExample": true,
             "name": "Electron Model FFA Ring",
-            "simulationId": "deZ8jUNn",
-            "simulationSerial": 1558646417975506,
+            "notes": "",
             "visualizationBeamlineId": 1
         },
         "simulationSettings": {
             "ip": 1,
             "npass": 500
         },
-        "simulationStatus": {},
+        "tunesReport": {
+            "aspectRatio": "0.75",
+            "notes": "",
+            "nuMax": 0.5,
+            "nuMin": 0.0,
+            "particleSelector": "all",
+            "plotAxis": "x",
+            "plotScale": "linear",
+            "turnCount": 10000,
+            "turnStart": 0
+        },
         "twissReport": {
             "includeLattice": "1",
             "notes": "",
@@ -603,6 +646,5 @@
         },
         "twissSummaryReport": {}
     },
-    "simulationType": "zgoubi",
-    "version": "20190517.151408"
+    "simulationType": "zgoubi"
 }

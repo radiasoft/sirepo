@@ -391,7 +391,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "w1",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "x",
@@ -506,7 +505,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "h1",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "t",
@@ -609,7 +607,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "w2",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "x",
@@ -724,7 +721,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "h2",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "t",
@@ -827,7 +823,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "w3",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "x",
@@ -942,7 +937,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "h3",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "t",
@@ -1045,7 +1039,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "w4",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "x",
@@ -1160,7 +1153,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "h4",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "t",
@@ -1263,7 +1255,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "w5",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "x",
@@ -1378,7 +1369,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "h5",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "t",
@@ -1481,7 +1471,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "w6",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "x",
@@ -1596,7 +1585,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "h6",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "t",
@@ -1699,7 +1687,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "run_setup.output",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "x",
@@ -1780,7 +1767,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "run_setup.sigma",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "s",
@@ -2180,7 +2166,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "run_setup.centroid",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "s",
@@ -2283,8 +2268,8 @@
             "fileId": "31-13",
             "framesPerSecond": 2,
             "histogramBins": 200,
+            "includeLattice": "1",
             "panelTitle": "twiss_output",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "s",
@@ -2402,15 +2387,13 @@
             "y2FileId": "31-13",
             "y3": "etax",
             "y3File": "twiss_output.filename.sdds",
-            "y3FileId": "31-13",
-            "includeLattice": "1"
+            "y3FileId": "31-13"
         },
         "elementAnimation4-54": {
             "fileId": "4-54",
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "B1",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "s",
@@ -2509,7 +2492,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "B2",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "s",
@@ -2608,7 +2590,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "B3",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "s",
@@ -2707,7 +2688,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "B4",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "s",
@@ -2806,7 +2786,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "w0",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "x",
@@ -2921,7 +2900,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "h0",
-            "startTime": 1532379099,
             "valueList": {
                 "x": [
                     "t",
@@ -3932,20 +3910,21 @@
         "rpnVariables": [],
         "simulation": {
             "activeBeamlineId": 28,
-            "folder": "/",
+            "backtracking": "0",
+            "documentationUrl": "",
+            "folder": "/Examples",
             "isExample": true,
             "name": "bunchCompLSC - lattice",
-            "simulationId": "nTNJoEbQ",
+            "notes": "",
             "simulationMode": "serial",
-            "simulationSerial": 1532379191963899,
             "visualizationBeamlineId": 28
         },
         "twissReport": {
+            "includeLattice": "1",
             "y1": "betax",
             "y2": "betay",
             "y3": "etax"
         }
     },
-    "simulationType": "elegant",
-    "version": "20180719.000000"
+    "simulationType": "elegant"
 }

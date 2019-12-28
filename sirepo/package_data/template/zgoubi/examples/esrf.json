@@ -258,8 +258,8 @@
             "notes": "",
             "particleSelector": "all",
             "plotRangeType": "fit",
+            "plotType": "3d",
             "showAllFrames": "1",
-            "startTime": 1562087691,
             "verticalOffset": 1.3748377983297539e-05,
             "verticalSize": 0.000287836072740532,
             "x": "Y",
@@ -276,8 +276,8 @@
             "notes": "",
             "particleSelector": "all",
             "plotRangeType": "fit",
+            "plotType": "3d",
             "showAllFrames": "1",
-            "startTime": 1562087691,
             "verticalOffset": -1.021667433936518e-09,
             "verticalSize": 1.6415312546397744e-07,
             "x": "Z",
@@ -306,6 +306,23 @@
             "notes": "",
             "x": "S",
             "y": "D1"
+        },
+        "elementStepAnimation": {
+            "aspectRatio": "0.5625",
+            "colorMap": "contrast",
+            "framesPerSecond": "2",
+            "histogramBins": 200,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0,
+            "notes": "",
+            "particleSelector": "all",
+            "plotRangeType": "none",
+            "plotType": "particle",
+            "showAllFrames": "0",
+            "verticalOffset": 0.0,
+            "verticalSize": 0,
+            "x": "X",
+            "y": "YDY"
         },
         "elements": [
             {
@@ -917,8 +934,8 @@
             "notes": "",
             "particleSelector": "all",
             "plotRangeType": "none",
+            "plotType": "heatmap",
             "showAllFrames": "1",
-            "startTime": 1562087691,
             "verticalOffset": 0,
             "verticalSize": 0,
             "x": "IPASS",
@@ -942,6 +959,11 @@
             "particleType": "Other",
             "type": "particle"
         },
+        "particleAnimation": {
+            "aspectRatio": "0.75",
+            "notes": "",
+            "particleSelector": "all"
+        },
         "particleCoordinate": {
             "D": 1,
             "P": 0,
@@ -952,11 +974,12 @@
         },
         "simulation": {
             "activeBeamlineId": 29,
+            "documentationUrl": "",
             "folder": "/Examples",
+            "isExample": true,
             "name": "ESRF Ring",
+            "notes": "",
             "outOfSessionSimulationId": "",
-            "simulationId": "fwt4FQAI",
-            "simulationSerial": 1562087782100881,
             "visualizationBeamlineId": 29
         },
         "simulationSettings": {
@@ -964,7 +987,6 @@
             "npass": 200,
             "type": "simulationSettings"
         },
-        "simulationStatus": {},
         "tunesReport": {
             "aspectRatio": "0.75",
             "notes": "",
@@ -972,6 +994,7 @@
             "nuMin": 0,
             "particleSelector": "2",
             "plotAxis": "x",
+            "plotScale": "linear",
             "showTunesReport": true,
             "turnCount": 10000,
             "turnStart": 0
@@ -992,6 +1015,5 @@
         },
         "twissSummaryReport": {}
     },
-    "simulationType": "zgoubi",
-    "version": "20190627.222812"
+    "simulationType": "zgoubi"
 }

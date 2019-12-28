@@ -1,7 +1,6 @@
 {
     "models": {
         "beamEvolutionAnimation": {
-            "startTime": 1522782913,
             "y1": "emitx",
             "y2": "emity",
             "y3": "none"
@@ -20,7 +19,6 @@
             "section_number": 1
         },
         "coolingRatesAnimation": {
-            "startTime": 1522782913,
             "y1": "rx",
             "y2": "ry",
             "y3": "rs"
@@ -28,16 +26,16 @@
         "electronBeam": {
             "beam_type": "continuous",
             "current": 2,
-            "e_number": 0,
+            "e_number": 100000000.0,
             "gamma": "3.131578",
-            "length": 0,
+            "length": 0.2,
             "radius": 0.009,
             "rh": 0.004,
             "rv": 0.004,
             "shape": "dc_uniform",
-            "sigma_x": 0,
-            "sigma_y": 0,
-            "sigma_z": 0,
+            "sigma_x": 0.015,
+            "sigma_y": 0.015,
+            "sigma_z": 0.02,
             "tmp_l": 0.1,
             "tmp_tr": 0.1
         },
@@ -62,7 +60,7 @@
             "norm_emit_x": 2.15e-06,
             "norm_emit_y": 2.15e-06,
             "particle_number": 2800000000000,
-            "rms_bunch_length": 0
+            "rms_bunch_length": 7.0
         },
         "panelState": {
             "hidden": []
@@ -78,7 +76,6 @@
             "horizontalSize": 0.1,
             "isRunning": 0,
             "plotRangeType": "fit",
-            "startTime": 1522782913,
             "verticalOffset": 0,
             "verticalSize": 0.1,
             "x": "x",
@@ -91,11 +88,12 @@
         },
         "runSettings": {},
         "simulation": {
-            "folder": "/",
+            "documentationUrl": "",
+            "folder": "/Examples",
+            "isExample": true,
             "name": "DC Cooling Example",
-            "outOfSessionSimulationId": "5UxiPC1v",
-            "simulationId": "Tkn0vO0x",
-            "simulationSerial": 1522729906832166
+            "notes": "",
+            "outOfSessionSimulationId": "5UxiPC1v"
         },
         "simulationSettings": {
             "e_cool": "1",
@@ -114,8 +112,12 @@
             "save_particle_interval": 30,
             "step_number": 180,
             "time": 180
+        },
+        "twissReport": {
+            "y1": "betx",
+            "y2": "bety",
+            "y3": "dx"
         }
     },
-    "simulationType": "jspec",
-    "version": "20180402.000000"
+    "simulationType": "jspec"
 }
