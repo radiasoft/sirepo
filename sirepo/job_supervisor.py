@@ -91,7 +91,7 @@ def init():
                 'db',
                 'upgrade_runner_to_job_db',
                 _DB_DIR,
-                str(cfg.sbatch_poll_secs)),
+            ),
             env=PKDict(os.environ).pkupdate(PYENV_VERSION='py2'),
         )
 

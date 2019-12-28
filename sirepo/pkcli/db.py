@@ -36,7 +36,7 @@ def upgrade():
                 f.write(t)
 
 
-def upgrade_runner_to_job_db(db_dir, sbatch_poll_secs):
+def upgrade_runner_to_job_db(db_dir):
     from pykern import pkio
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
@@ -49,12 +49,6 @@ def upgrade_runner_to_job_db(db_dir, sbatch_poll_secs):
 
     db_dir = pkio.py_path(db_dir)
     pkio.mkdir_parent(db_dir)
-
-    _NEXT_REQUEST_SECONDS = PKDict({
-        job.PARALLEL: 2,
-        job.SBATCH: int(sbatch_poll_secs),
-        job.SEQUENTIAL: 1,
-    })
 
     def _add_compute_status(run_dir, data):
         s, t = _read_status_file(run_dir)
@@ -84,9 +78,7 @@ def upgrade_runner_to_job_db(db_dir, sbatch_poll_secs):
         c = sim_data.get_class(i.simulationType)
         d = PKDict(
             computeJid=c.parse_jid(i, u),
-            computeJobHash=i.models.computeJobCacheKey.computeJobHash if
-            i.models.get('computeJobCacheKey') else
-            i.computeJobHash,
+            # computeJobHash=c.compute_job_hash(i), # TODO(e-carlin): Another user cookie problem
             computeJobQueued=t,
             computeJobStart=t,
             error=None,
@@ -97,9 +89,8 @@ def upgrade_runner_to_job_db(db_dir, sbatch_poll_secs):
             uid=u,
         )
         d.pkupdate(
-            jobRunMode=job.PARALLEL if d.isParallel else job.SEQUENTIAL
-        ).pkupdate(
-            nextRequestSeconds=_NEXT_REQUEST_SECONDS[d.jobRunMode],
+            jobRunMode=job.PARALLEL if d.isParallel else job.SEQUENTIAL,
+            nextRequestSeconds=c.poll_seconds(i),
         )
         _add_compute_status(run_dir, d)
 
