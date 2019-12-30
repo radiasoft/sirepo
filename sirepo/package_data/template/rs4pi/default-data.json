@@ -10,13 +10,26 @@
             "dicomPlane": "c"
         },
         "dicomAnimation4": {
-            "dicomPlane": "t"
+            "dicomPlane": "t",
+            "doseTransparency": 56
+        },
+        "dicomDose": {
+            "frameCount": 0
         },
         "dicomEditorState": {},
         "dicomSeries": {},
         "dicomWindow": {
             "center": 0,
             "width": 400
+        },
+        "doseCalculation": {
+            "selectedOARs": [],
+            "selectedPTV": ""
+        },
+        "dvhReport": {
+            "dvhType": "cumulative",
+            "dvhVolume": "relative",
+            "roiNumber": ""
         },
         "panelState": {
             "hidden": []
@@ -25,11 +38,8 @@
             "folder": "/",
             "isExample": false,
             "name": "test",
-            "outOfSessionSimulationId": "",
-            "simulationId": "bEx5S3NV",
-            "simulationSerial": 1494020123970251
+            "outOfSessionSimulationId": ""
         }
     },
-    "simulationType": "rs4pi",
-    "version": "20170515.000000"
+    "simulationType": "rs4pi"
 }

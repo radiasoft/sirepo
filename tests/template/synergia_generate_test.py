@@ -5,31 +5,30 @@ u"""PyTest for :mod:`sirepo.template.synergia`
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkio
-from pykern import pkunit
-from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
 import pytest
-
 
 def test_generate_python():
     from pykern import pkio
-    from pykern.pkunit import pkeq
+    from pykern import pkunit
     from sirepo.template import synergia
+    import re
 
     with pkunit.save_chdir_work():
-        for name in ('IOTA 6-6 with NLINSERT', 'Simple FODO'):
-            data = _example_data(name)
-            actual = synergia._generate_parameters_file(data)
-            outfile = data.models.simulation.simulationId + '.txt'
-            pkio.write_text(outfile, actual)
-            expect = pkio.read_text(pkunit.data_dir().join(outfile))
-            pkeq(expect, actual)
+        for f in pkio.sorted_glob(pkunit.data_dir().join('*.txt')):
+            e = f.read()
+            m = re.search(r'^#\s*(.*\S)\s*$', e, flags=re.MULTILINE)
+            assert m
+            name = m.group(1)
+            a = synergia._generate_parameters_file(_example_data(name))
+            pkio.write_text(f.basename, a)
+            pkunit.pkeq(e, a)
 
 
-def _example_data(simulation_name):
+def _example_data(name):
     from sirepo import simulation_db
     from sirepo.template import synergia
-    for data in simulation_db.examples(synergia.SIM_TYPE):
-        if data.models.simulation.name == simulation_name:
-            return simulation_db.fixup_old_data(data)[0]
+
+    for d in simulation_db.examples(synergia.SIM_TYPE):
+        if d.models.simulation.name == name:
+            return simulation_db.fixup_old_data(d)[0]
     assert False

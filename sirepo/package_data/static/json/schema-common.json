@@ -335,12 +335,6 @@
             }
         },
         "model": {
-            "jobSettings": {
-                "JobRunMode": ["Execution Mode", "JobKind", "serial"],
-                "jobDbRoot": ["Remote Folder", "String", ""],
-                "sbatchCores": ["Cores", "Integer", 0],
-                "jobProject": ["Project", "String", ""]
-            },
             "simFolder": {
                 "name": ["Folder Name", "SafePath"],
                 "parent": ["Parent Folder", "UserFolder"]
@@ -388,16 +382,6 @@
             }
         },
         "view": {
-            "jobSettings": {
-                "title": "Job Settings",
-                "basic": [
-                    "jobRunMode",
-                    "sbatchCores",
-                    "jobDbRoot",
-                    "jobProject"
-                ],
-                "advanced": []
-            },
             "simDoc": {
                 "model": "simulation",
                 "title": "Simulation Documentation",

@@ -74,6 +74,19 @@ def create_predefined(out_dir=None):
     return 'Created {}'.format(p)
 
 
+def fixup_old_data(in_json):
+    import pykern.pkio
+    import pykern.pkjson
+    import sirepo.template
+
+    return pykern.pkjson.dump_pretty(
+        sirepo.template.import_module('srw').fixup_old_data(
+            pykern.pkjson.load_any(pykern.pkio.py_path(in_json)),
+        ),
+        pretty=False,
+    )
+
+
 def python_to_json(run_dir='.', in_py='in.py', out_json='out.json'):
     """Run importer in run_dir trying to import py_file
 
@@ -83,6 +96,7 @@ def python_to_json(run_dir='.', in_py='in.py', out_json='out.json'):
         out_json (str): valid json matching SRW schema
     """
     from sirepo.template import srw_importer
+
     with pkio.save_chdir(run_dir):
         out = srw_importer.python_to_json(in_py)
         with open(out_json, 'w') as f:

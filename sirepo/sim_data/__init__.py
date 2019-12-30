@@ -116,8 +116,6 @@ class SimDataBase(object):
 
     WATCHPOINT_REPORT_RE = re.compile('^{}(\d+)$'.format(WATCHPOINT_REPORT))
 
-    _TEMPLATE_FIXUP = 'sim_data_template_fixup'
-
     @classmethod
     def compute_job_hash(cls, data):
         """Hash fields related to data and set computeJobHash
@@ -488,13 +486,6 @@ class SimDataBase(object):
         return cls._memoize(pkinspect.module_basename(cls))
 
     @classmethod
-    def template_fixup_get(cls, data):
-        if data.get(cls._TEMPLATE_FIXUP):
-            del data[cls._TEMPLATE_FIXUP]
-            return True
-        return False
-
-    @classmethod
     def update_model_defaults(cls, model, name, dynamic=None):
         defaults = cls.model_defaults(name)
         if dynamic:
@@ -581,11 +572,10 @@ class SimDataBase(object):
                 r.raise_for_status()
                 p.write(r.content)
                 return p
-        else:
+        elif not cfg.lib_file_resource_only:
             p.append(
                 sirepo.simulation_db.simulation_lib_dir(cls.sim_type()).join(basename)
             )
-
         for f in p:
             if f.check(file=True):
                 return f
@@ -661,14 +651,11 @@ class SimDataBase(object):
         if dm.simulation.get('isExample') and dm.simulation.folder == '/':
             dm.simulation.folder = '/Examples'
 
-    @classmethod
-    def _template_fixup_set(cls, data):
-        data[cls._TEMPLATE_FIXUP] = True
-
 
 def _init():
     global cfg
     cfg = pkconfig.init(
+        lib_file_resource_only=(False, bool, 'used by utility programs'),
         lib_file_uri=(None, str, 'where to get files from when remote'),
     )
 

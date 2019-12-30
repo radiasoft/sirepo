@@ -739,7 +739,7 @@ def tmp_dir(chdir=False):
     """
     d = None
     try:
-        d = _random_id(_user_dir().join(_TMP_DIR))['path']
+        d = cfg.tmp_dir or _random_id(_user_dir().join(_TMP_DIR))['path']
         pkio.unchecked_remove(d)
         pkio.mkdir_parent(d)
         if chdir:
@@ -941,6 +941,7 @@ def _init():
         nfs_tries=(10, int, 'How many times to poll in hack_nfs_write_status'),
         nfs_sleep=(0.5, float, 'Seconds sleep per hack_nfs_write_status poll'),
         sbatch_display=(None, str, 'how to display sbatch cluster to user'),
+        tmp_dir=(None, pkio.py_path, 'Used by utilities (not regular config)'),
     )
     fn = STATIC_FOLDER.join('json/schema-common{}'.format(JSON_SUFFIX))
     with open(str(fn)) as f:

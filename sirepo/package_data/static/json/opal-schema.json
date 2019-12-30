@@ -106,7 +106,7 @@
             "verticalSize",
             "verticalOffset",
             "isRunning"
-        ]
+        ],
         "plotAnimation": ["x", "y1", "y2", "y3"]
     },
     "localRoutes": {

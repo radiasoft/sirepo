@@ -1,5 +1,11 @@
 {
     "models": {
+        "anode": {
+            "diffProb": "0.0",
+            "isReflector": "0",
+            "refScheme": "rand_angle",
+            "specProb": "0.0"
+        },
         "beam": {
             "anode_voltage": 0.4,
             "anode_work_function": 0.1,
@@ -13,20 +19,34 @@
         "conductorGridReport": {},
         "conductorTypes": [
             {
+                "_super": "conductor",
+                "color": null,
+                "diffProb": "0.0",
                 "id": 3,
                 "isConductor": "1",
+                "isReflector": "0",
                 "name": "Head",
                 "permittivity": 7,
+                "refScheme": "uniform",
+                "specProb": "0.0",
+                "type": "box",
                 "voltage": 30,
                 "xLength": 0.02,
                 "yLength": 0.01,
                 "zLength": 0.01
             },
             {
+                "_super": "conductor",
+                "color": null,
+                "diffProb": "0.0",
                 "id": 2,
                 "isConductor": "0",
+                "isReflector": "0",
                 "name": "Post",
                 "permittivity": 7,
+                "refScheme": "uniform",
+                "specProb": "0.0",
+                "type": "box",
                 "voltage": 0,
                 "xLength": 0.005,
                 "yLength": 0.01,
@@ -64,58 +84,104 @@
             }
         ],
         "currentAnimation": {
-            "framesPerSecond": "2",
-            "startTime": 1548959048
+            "framesPerSecond": "2"
         },
         "egunCurrentAnimation": {
-            "framesPerSecond": "2",
-            "startTime": 1548959048
+            "framesPerSecond": "2"
         },
         "fieldAnimation": {
+            "axes": "xz",
+            "colorMap": "viridis",
             "field": "phi",
             "framesPerSecond": "2",
-            "startTime": 1548959048
+            "notes": "",
+            "slice": 0.0
+        },
+        "fieldCalcAnimation": {
+            "_super": "fieldReport",
+            "axes": "xz",
+            "colorMap": "viridis",
+            "notes": "",
+            "slice": 0.0
+        },
+        "fieldCalculationAnimation": {},
+        "fieldComparisonAnimation": {
+            "_super": "fieldComparisonReport",
+            "dimension": "x",
+            "notes": "",
+            "xCell1": 0,
+            "xCell2": 11,
+            "xCell3": 22,
+            "yCell1": 0,
+            "yCell2": 0,
+            "yCell3": 0,
+            "zCell1": 0,
+            "zCell2": 256,
+            "zCell3": 512
         },
         "fieldComparisonReport": {
             "dimension": "x",
+            "notes": "",
             "xCell1": 6,
             "xCell2": 10,
             "xCell3": 18,
+            "yCell1": 0,
+            "yCell2": 0,
+            "yCell3": 0,
             "zCell1": 457,
             "zCell2": 460,
             "zCell3": 462
         },
         "fieldReport": {
+            "axes": "xz",
             "colorMap": "viridis",
-            "notes": ""
+            "notes": "",
+            "slice": 0.0
         },
         "impactDensityAnimation": {
             "colorMap": "coolwarm",
-            "notes": "",
-            "startTime": 1548959048
+            "notes": ""
         },
+        "optimizer": {
+            "constraints": [],
+            "continuousFieldSteps": 20,
+            "enabledFields": {},
+            "fields": [],
+            "initialSteps": 500,
+            "objective": "efficiency",
+            "optimizerSteps": 250,
+            "timeLimit": 60,
+            "tolerance": 0.001
+        },
+        "optimizerAnimation": {
+            "colorMap": "viridis",
+            "notes": "",
+            "x": 0,
+            "y": 1
+        },
+        "optimizerStatus": {},
         "panelState": {
             "hidden": []
         },
         "particle3d": {
             "colorMap": "viridis",
-            "renderCount": "10",
-            "startTime": 1548959048
+            "impactColorMap": "coolwarm",
+            "renderCount": "10"
         },
         "particleAnimation": {
-            "renderCount": "100",
-            "startTime": 1548959048
+            "renderCount": "100"
         },
         "simulation": {
+            "conductorFile": "",
             "documentationUrl": "",
             "egun_mode": "0",
-            "folder": "/",
+            "executionMode": "serial",
+            "folder": "/Examples",
             "isExample": true,
             "name": "Two Poles",
             "notes": "",
             "outOfSessionSimulationId": "",
-            "simulationId": "naKMhbkF",
-            "simulationSerial": 1548959108505503
+            "useConductorFile": "0"
         },
         "simulationGrid": {
             "channel_height": 0.08,
@@ -127,10 +193,9 @@
             "particles_per_step": 220,
             "plate_spacing": 5,
             "simulation_mode": "2d",
+            "trace_period": 1,
             "z_particle_min": 0.001220703125
-        },
-        "simulationStatus": {}
+        }
     },
-    "simulationType": "warpvnd",
-    "version": "20190125.225202"
+    "simulationType": "warpvnd"
 }
