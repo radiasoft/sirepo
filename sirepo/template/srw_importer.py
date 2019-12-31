@@ -700,6 +700,7 @@ def _parsed_dict(v, op):
             'beamline': beamline_elements,
             'electronBeam': electronBeam,
             'electronBeams': [],
+            'beamline3DReport': [],
             'fluxReport': pkcollections.Dict({
                 'azimuthalPrecision': v.sm_pra,
                 'distanceFromSource': v.op_r,

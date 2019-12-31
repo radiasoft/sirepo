@@ -56,6 +56,7 @@ _DATA_FILE_FOR_MODEL = pkcollections.Dict({
     'sourceIntensityReport': {'filename': 'res_int_se.dat', 'dimension': 3},
     'brillianceReport': {'filename': _BRILLIANCE_OUTPUT_FILE, 'dimension': 2},
     'trajectoryReport': {'filename': 'res_trj.dat', 'dimension': 2},
+    'beamline3DReport': {'filename': 'beamline_orient.dat', 'dimension': 2},
     _SIM_DATA.WATCHPOINT_REPORT: {'filename': 'res_int_pr_se.dat', 'dimension': 3},
 })
 

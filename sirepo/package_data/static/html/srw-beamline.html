@@ -34,7 +34,7 @@
   </div>
   <div data-ng-if="beamline.isActiveTab('beamline3d')" class="row">
     <div class="col-xs-12">
-      <div data-report-panel="beamline3d" data-model-name="beamline3DReport"></div>
+      <div data-report-panel="beamline3d" data-model-name="beamline3DReport" data-panel-title="{{ beamline.srwService.getReportTitle('beamline3DReport') }}"><div data-simulation-status-panel="beamline3DReport"></div></div>
     </div>
   </div>
   <div class="clearfix"></div>
