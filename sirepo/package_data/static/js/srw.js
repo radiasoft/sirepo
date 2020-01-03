@@ -2125,7 +2125,6 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
             var MAX_CONDENSED_LENGTH = 3;
             var MIN_CONDENSED_LENGTH = 0.7;
             var beamline, fsRenderer, labelCanvas, labels, orientationMarker, pngCanvas;
-            $scope.isClientOnly = true;
             $scope.dimensions = ['x', 'y', 'z'];
             $scope.viewDirection = null;
             $scope.selectedDimension = null;
@@ -2580,7 +2579,8 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                 return degrees * Math.PI / 180;
             }
 
-            function refresh() {
+            function refresh(colInfo) {
+                //TODO(pjm): use colInfo from beamline_orient.dat to set orientation
                 removeActors();
                 buildBeamline();
                 labels = [];
@@ -2610,6 +2610,8 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                 }
             }
 
+            $scope.clearData = function() {};
+
             $scope.destroy = function() {
                 window.removeEventListener('resize', fsRenderer.resize);
                 fsRenderer.getInteractor().unbindEvents();
@@ -2628,9 +2630,10 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                 labelCanvas = document.createElement('canvas');
                 fsRenderer.getInteractor().onAnimation(vtk.macro.debounce(updateOrientation, 250));
                 pngCanvas = vtkToPNG.pngCanvas($scope.reportId, fsRenderer, $element);
-                refresh();
-                $scope.$on('beamline.changed', refresh);
-                $scope.$on('beamline3DReport.changed', refresh);
+            };
+
+            $scope.load = function(json) {
+                refresh(json.cols);
             };
 
             $scope.resize = function() {};

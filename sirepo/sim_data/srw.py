@@ -215,7 +215,8 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def srw_is_beamline_report(cls, report):
         return not report or cls.is_watchpoint(report) \
-            or report in ('multiElectronAnimation', cls.SRW_RUN_ALL_MODEL)
+            or report in ('multiElectronAnimation', cls.SRW_RUN_ALL_MODEL) \
+            or report == 'beamline3DReport'
 
     @classmethod
     def srw_is_dipole_source(cls, sim):
@@ -306,7 +307,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             'arbitraryMagField',
         ]
         watchpoint = cls.is_watchpoint(r)
-        if watchpoint or r == 'initialIntensityReport':
+        if watchpoint or r == 'initialIntensityReport' or r == 'beamline3DReport':
             res.extend([
                 'simulation.horizontalPointCount',
                 'simulation.horizontalPosition',
@@ -335,6 +336,10 @@ class SimData(sirepo.sim_data.SimDataBase):
                     break
             if beamline[-1]['id'] == wid:
                 res.append('postPropagation')
+        #TODO(pjm): any changes to the beamline will recompute the beamline3DReport
+        #           instead, need to determine which model fields affect the orientation
+        if r == 'beamline3DReport':
+            res.append('beamline')
         return res
 
     @classmethod
