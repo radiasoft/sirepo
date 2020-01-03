@@ -82,8 +82,8 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
                 _tvx={{ field(item, 'tvx') }},
                 _tvy={{ field(item, 'tvy') }},
                 _uc={{ field(item, 'uc') }},
-                _e_avg={{ field(item, 'e_avg') }},
-                _ang_roll={{ field(item, 'rollAngle') }}
+                _e_avg={{ field(item, 'energy') }},
+                _ang_roll={{ field(item, 'diffractionAngle') }}
             )
             el.append(crystal)
 	    #[ex,ey,ez] = crystal.get_orient(_e= v.w_e if(v.w_ef <= 0) else 0.5*(v.w_e + v.w_ef))[1]

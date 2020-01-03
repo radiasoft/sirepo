@@ -721,8 +721,8 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         });
         beamlineService.watchBeamlineField($scope, 'grating', ['energyAvg', 'cff', 'grazingAngle', 'rollAngle', 'computeParametersFrom'], computePGMValue, true);
         beamlineService.watchBeamlineField($scope, 'grating', ['grazingAngle', 'rollAngle', 'computeParametersFrom'], computeGratingOrientation, true);
-        beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energyAvg', 'rollAngle', 'h', 'k', 'l'], computeCrystalInit, true);
-        beamlineService.watchBeamlineField($scope, 'crystal', ['energyAvg', 'rollAngle', 'useCase', 'dSpacing', 'asymmetryAngle', 'psi0r', 'psi0i'], computeCrystalOrientation, true);
+        beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energy', 'diffractionAngle', 'h', 'k', 'l'], computeCrystalInit, true);
+        beamlineService.watchBeamlineField($scope, 'crystal', ['energy', 'diffractionAngle', 'useCase', 'dSpacing', 'asymmetryAngle', 'psi0r', 'psi0i'], computeCrystalOrientation, true);
         beamlineService.watchBeamlineField($scope, 'sample', ['cropArea', 'tileImage', 'rotateAngle'], updateSampleFields);
         $scope.$on('beamline.changed', syncFirstElementPositionToDistanceFromSource);
         $scope.$on('simulation.changed', function() {

@@ -23,7 +23,7 @@
     {{- fields(item, 'i', ('numberOfLenses',)) }}
 {% elif item.type == 'crystal' %}
     {{- fields(item, 's', ('heightProfileFile', 'orientation')) }}
-    {{- fields(item, 'f', ('dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'crystalThickness', 'useCase', 'asymmetryAngle', 'nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle', 'heightAmplification', 'energyAvg', 'rollAngle')) }}
+    {{- fields(item, 'f', ('dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'crystalThickness', 'useCase', 'asymmetryAngle', 'nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle', 'heightAmplification', 'energy', 'diffractionAngle')) }}
 {% elif item.type == 'drift' %}
     {{- fields(item, 'f', ('length',)) }}
 {% elif item.type == 'ellipsoidMirror' %}

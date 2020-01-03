@@ -822,7 +822,7 @@ def _compute_crystal_init(model):
         k = int(model['k'])
         l = int(model['l'])
         millerIndices = [h, k, l]
-        energy = model['energyAvg']
+        energy = model['energy']
         if re.search('(X0h)', material_raw):
             crystal_parameters = crystal.get_crystal_parameters(material, energy, h, k, l)
             dc = crystal_parameters['d']
@@ -843,7 +843,7 @@ def _compute_crystal_init(model):
         model['psiHi'] = xih
         model['psiHBr'] = xrh
         model['psiHBi'] = xih
-        if model['rollAngle'] == '-1.57079632' or model['rollAngle'] == '1.57079632':
+        if model['diffractionAngle'] == '-1.57079632' or model['diffractionAngle'] == '1.57079632':
             model['orientation'] = 'x'
         else: model['orientation'] = 'y'
     except Exception:
@@ -868,15 +868,15 @@ def _compute_crystal_orientation(model):
             _tc=model['crystalThickness'],
             _uc=float(model['useCase']),
             _ang_as=model['asymmetryAngle'],
-            _e_avg=model['energyAvg'],
-            _ang_roll=float(model['rollAngle']),
+            _e_avg=model['energy'],
+            _ang_roll=float(model['diffractionAngle']),
         )
         model['nvx'] = opCr.nvx
         model['nvy'] = opCr.nvy
         model['nvz'] = opCr.nvz
         model['tvx'] = opCr.tvx
         model['tvy'] = opCr.tvy
-        orientDataCr_pp = opCr.get_orient(_e=model['energyAvg'])[1]
+        orientDataCr_pp = opCr.get_orient(_e=model['energy'])[1]
         tCr_pp = orientDataCr_pp[0]  # Tangential Vector to Crystal surface
         nCr_pp = orientDataCr_pp[2]  # Normal Vector to Crystal surface
         model['outoptvx'] = nCr_pp[0]
