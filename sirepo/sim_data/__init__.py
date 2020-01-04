@@ -110,7 +110,11 @@ class SimDataBase(object):
             return 'v2' + res.hexdigest()
 
         try:
-            return data.pksetdefault(computeJobHash=_op)
+            # note - this is broken in this version of sirepo, added work-around
+            # return data.pksetdefault(computeJobHash=_op)
+            if 'computeJobHash' not in data:
+                data.computeJobHash = _op()
+            return data.computeJobHash
         finally:
             if changed and c.changed:
                 changed()

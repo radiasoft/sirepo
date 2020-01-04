@@ -30,6 +30,7 @@ import srwl_uti_src
 import srwlib
 import time
 import traceback
+import uti_io
 import uti_math
 import uti_plot_com
 import werkzeug
@@ -230,6 +231,9 @@ def clean_run_dir(run_dir):
 
 
 def extract_report_data(filename, model_data):
+    # special case for 3d beamline report
+    if model_data['report'] == 'beamline3DReport':
+        return _extract_beamline_orientation(filename)
     #TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
     if re.search(r'/res_int_pr_me_dc.\.dat', filename):
         _fix_file_header(filename)
@@ -938,6 +942,14 @@ def _delete_user_models(electron_beam, tabulated_undulator):
     return pkcollections.Dict()
 
 
+def _extract_beamline_orientation(filename):
+    return {
+        #TODO(pjm): x_range is needed for sirepo-plotting.js, need a better valid-data check
+        'x_range': [],
+        'cols': uti_io.read_ascii_data_cols(filename, '\t', _i_col_start=1, _n_line_skip=1),
+    }
+
+
 def _extract_brilliance_report(model, data):
     label = template_common.enum_text(_SCHEMA, 'BrillianceReportType', model['reportType'])
     if model['reportType'] in ('3', '4'):
@@ -1305,7 +1317,7 @@ def _generate_srw_main(data, plot_reports):
     ]
     if plot_reports and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         content.append('setup_magnetic_measurement_files("{}", v)'.format(data['models']['tabulatedUndulator']['magneticFile']))
-    if run_all or _SIM_DATA.is_watchpoint(report) or report == 'multiElectronAnimation':
+    if run_all or _SIM_DATA.srw_is_beamline_report(report):
         content.append('op = set_optics(v)')
     else:
         # set_optics() can be an expensive call for mirrors, only invoke if needed
@@ -1330,7 +1342,7 @@ def _generate_srw_main(data, plot_reports):
         content.append('v.tr = True')
         if plot_reports:
             content.append("v.tr_pl = 'xz'")
-    if run_all or _SIM_DATA.is_watchpoint(report):
+    if run_all or _SIM_DATA.is_watchpoint(report) or report == 'beamline3DReport':
         content.append('v.ws = True')
         if plot_reports:
             content.append("v.ws_pl = 'xy'")
