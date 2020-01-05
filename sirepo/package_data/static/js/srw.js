@@ -587,26 +587,19 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
                 ];
             }
             var p = propagation[beamline[i].id];
-            if (beamline[i].type != 'watch') {
-                if(beamline[i].title == 'Grating' || beamline[i].title == 'Crystal'){
+            if(beamline[i].type == 'grating' || beamline[i].type == 'crystal'){
                     p[0][12] = beamline[i].outoptvx
                     p[0][13] = beamline[i].outoptvy
                     p[0][14] = beamline[i].outoptvz
                     p[0][15] = beamline[i].outframevx
                     p[0][16] = beamline[i].outframevy
-                    self.propagations.push({
+            }
+            if (beamline[i].type != 'watch') {
+                self.propagations.push({
                     item: beamline[i],
                     title: beamline[i].title,
                     params: p[0],
                 });
-                }
-                else {
-                    self.propagations.push({
-                    item: beamline[i],
-                    title: beamline[i].title,
-                    params: p[0],
-                });
-                }
             }
             if (i == beamline.length - 1) {
                 break;
