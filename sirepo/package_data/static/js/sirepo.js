@@ -905,7 +905,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             appState.models.simulation.simulationId,
             SIREPO.APP_SCHEMA.simulationType,
             s.computeJobHash,
-            s.computeJobStart,
+            s.computeJobSerial,
         ];
         var m = appState.models;
         m = m[frameReport in m ? frameReport : c];
@@ -1485,6 +1485,11 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         }
     }
 
+    function isFirefox() {
+        // https://stackoverflow.com/a/9851769
+        return typeof InstallTrigger !== 'undefined';
+    }
+
     function logError(data, status) {
         var err = SIREPO.APP_SCHEMA.customErrors[status];
         if (err && err.route) {
@@ -1619,7 +1624,9 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                 function () {
                     $window.location.reload(true);
                 },
-                1,
+                // avoids an abort message in firefox
+                // https://github.com/radiasoft/sirepo/issues/2130
+                isFirefox() ? 100 : 1,
                 1,
                 false
             );

@@ -100,7 +100,7 @@ class OutputFileIterator(lattice.ModelIterator):
         self.result = PKDict(
             keys_in_order=[],
         )
-        self.model_index = {}
+        self.model_index = PKDict()
 
     def field(self, model, field_schema, field):
         self.field_index += 1

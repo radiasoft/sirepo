@@ -103,6 +103,171 @@
             "y2": "none",
             "y3": "none"
         },
+        "beamPositionReport": {
+            "numHistory": 30.0,
+            "samplePeriod": 5
+        },
+        "beamSteering": {
+            "steeringMethod": "nmead",
+            "useSteering": "0"
+        },
+        "beamlines": [
+            {
+                "id": 1,
+                "items": [
+                    8,
+                    8,
+                    10,
+                    8,
+                    8,
+                    9,
+                    8,
+                    8,
+                    8,
+                    8,
+                    12,
+                    8,
+                    8,
+                    27,
+                    8,
+                    8,
+                    8,
+                    24,
+                    8,
+                    8,
+                    25,
+                    8,
+                    8,
+                    8,
+                    13,
+                    8,
+                    8,
+                    28,
+                    8,
+                    8,
+                    8,
+                    8,
+                    14,
+                    8,
+                    8,
+                    29,
+                    8,
+                    8,
+                    8,
+                    30,
+                    8,
+                    8,
+                    31,
+                    8
+                ],
+                "name": "beamline"
+            }
+        ],
+        "bunch": {
+            "centroid_x": 0.001,
+            "centroid_xp": 0,
+            "centroid_y": 0.001,
+            "centroid_yp": 0,
+            "p_central_mev": 1001
+        },
+        "correctorSettingReport": {
+            "numHistory": 30.0,
+            "plotOrder": "time",
+            "samplePeriod": 5
+        },
+        "elements": [
+            {
+                "_id": 8,
+                "l": 0.1,
+                "name": "drift",
+                "type": "DRIF"
+            },
+            {
+                "_id": 10,
+                "hkick": 0,
+                "name": "HV_KICKER_1",
+                "type": "KICKER",
+                "vkick": 0
+            },
+            {
+                "_id": 12,
+                "hkick": 0,
+                "name": "HV_KICKER_2",
+                "type": "KICKER",
+                "vkick": 0
+            },
+            {
+                "_id": 13,
+                "hkick": 0,
+                "name": "HV_KICKER_3",
+                "type": "KICKER",
+                "vkick": 0
+            },
+            {
+                "_id": 14,
+                "hkick": 0,
+                "name": "HV_KICKER_4",
+                "type": "KICKER",
+                "vkick": 0
+            },
+            {
+                "_id": 24,
+                "k1": -5,
+                "l": 0.05,
+                "name": "F_QUAD_1",
+                "type": "QUAD"
+            },
+            {
+                "_id": 25,
+                "k1": 5,
+                "l": 0.05,
+                "name": "D_QUAD_1",
+                "type": "QUAD"
+            },
+            {
+                "_id": 30,
+                "k1": -5,
+                "l": 0.05,
+                "name": "F_QUAD_2",
+                "type": "QUAD"
+            },
+            {
+                "_id": 31,
+                "k1": 5,
+                "l": 0.05,
+                "name": "D_QUAD_2",
+                "type": "QUAD"
+            },
+            {
+                "_id": 9,
+                "filename": "1",
+                "name": "BPM_1",
+                "type": "WATCH"
+            },
+            {
+                "_id": 27,
+                "filename": "1",
+                "name": "BPM_2",
+                "type": "WATCH"
+            },
+            {
+                "_id": 28,
+                "filename": "1",
+                "name": "BPM_3",
+                "type": "WATCH"
+            },
+            {
+                "_id": 29,
+                "filename": "1",
+                "name": "BPM_4",
+                "type": "WATCH"
+            }
+        ],
+        "epicsServerAnimation": {
+            "connectToServer": "0",
+            "serverAddress": "",
+            "serverType": "local"
+        },
         "fftReport": {},
         "fftReport1": {
             "analysisReport": "analysisReport1"
@@ -116,13 +281,49 @@
         "simulation": {
             "documentationUrl": "",
             "folder": "/Examples",
+            "isExample": true,
             "name": "Match Sine",
-            "notes": "",
-            "simulationId": "L87kXRjV",
-            "simulationSerial": 1555955116873580
+            "notes": ""
         },
-        "simulationStatus": {}
+        "watchpointReport": {
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0.003,
+            "plotRangeType": "fixed",
+            "verticalOffset": 0.0,
+            "verticalSize": 0.003
+        },
+        "watchpointReport27": {
+            "_id": 27,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0.003,
+            "plotRangeType": "fixed",
+            "verticalOffset": 0.0,
+            "verticalSize": 0.003
+        },
+        "watchpointReport28": {
+            "_id": 28,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0.003,
+            "plotRangeType": "fixed",
+            "verticalOffset": 0.0,
+            "verticalSize": 0.003
+        },
+        "watchpointReport29": {
+            "_id": 29,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0.003,
+            "plotRangeType": "fixed",
+            "verticalOffset": 0.0,
+            "verticalSize": 0.003
+        },
+        "watchpointReport9": {
+            "_id": 9,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0.003,
+            "plotRangeType": "fixed",
+            "verticalOffset": 0.0,
+            "verticalSize": 0.003
+        }
     },
-    "simulationType": "webcon",
-    "version": "20190422.173004"
+    "simulationType": "webcon"
 }

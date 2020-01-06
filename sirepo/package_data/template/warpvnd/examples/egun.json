@@ -1,5 +1,11 @@
 {
     "models": {
+        "anode": {
+            "diffProb": "0.0",
+            "isReflector": "0",
+            "refScheme": "rand_angle",
+            "specProb": "0.0"
+        },
         "beam": {
             "anode_voltage": 0.4,
             "anode_work_function": 0.1,
@@ -13,19 +19,37 @@
         "conductorGridReport": {},
         "conductorTypes": [
             {
+                "_super": "conductor",
+                "color": null,
+                "diffProb": "0.0",
                 "id": 2,
+                "isConductor": "1",
+                "isReflector": "0",
                 "name": "Box",
                 "permittivity": 7,
+                "refScheme": "uniform",
+                "specProb": "0.0",
+                "type": "box",
                 "voltage": 40,
                 "xLength": 0.01,
+                "yLength": 0.01,
                 "zLength": 0.01
             },
             {
+                "_super": "conductor",
+                "color": null,
+                "diffProb": "0.0",
                 "id": 3,
+                "isConductor": "0",
+                "isReflector": "0",
                 "name": "Box2",
                 "permittivity": 7,
+                "refScheme": "uniform",
+                "specProb": "0.0",
+                "type": "box",
                 "voltage": -1,
                 "xLength": 0.01,
+                "yLength": 0.01,
                 "zLength": 0.01
             }
         ],
@@ -34,83 +58,144 @@
                 "conductorTypeId": 2,
                 "id": 2,
                 "xCenter": -0.025,
+                "yCenter": 0.0,
                 "zCenter": "0.89500000"
             },
             {
                 "conductorTypeId": 2,
                 "id": 3,
                 "xCenter": 0.025,
+                "yCenter": 0.0,
                 "zCenter": 0.895
             },
             {
                 "conductorTypeId": 3,
                 "id": 4,
                 "xCenter": 0.036,
+                "yCenter": 0.0,
                 "zCenter": 0.7
             },
             {
                 "conductorTypeId": 3,
                 "id": 5,
                 "xCenter": -0.036,
+                "yCenter": 0.0,
                 "zCenter": "0.70000000"
             }
         ],
         "currentAnimation": {
-            "framesPerSecond": "2",
-            "startTime": 1512001962
+            "framesPerSecond": "2"
         },
         "egunCurrentAnimation": {
-            "framesPerSecond": "2",
-            "startTime": 1512001962
+            "framesPerSecond": "2"
         },
         "fieldAnimation": {
+            "axes": "xz",
+            "colorMap": "viridis",
             "field": "phi",
             "framesPerSecond": "2",
-            "startTime": 1512001962
+            "notes": "",
+            "slice": 0.0
+        },
+        "fieldCalcAnimation": {
+            "_super": "fieldReport",
+            "axes": "xz",
+            "colorMap": "viridis",
+            "notes": "",
+            "slice": 0.0
+        },
+        "fieldCalculationAnimation": {},
+        "fieldComparisonAnimation": {
+            "_super": "fieldComparisonReport",
+            "dimension": "x",
+            "notes": "",
+            "xCell1": 0,
+            "xCell2": 50,
+            "xCell3": 100,
+            "yCell1": 0,
+            "yCell2": 0,
+            "yCell3": 0,
+            "zCell1": 0,
+            "zCell2": 500,
+            "zCell3": 1000
         },
         "fieldComparisonReport": {
             "dimension": "x",
+            "notes": "",
             "xCell1": 19,
             "xCell2": 50,
             "xCell3": 66,
+            "yCell1": 0,
+            "yCell2": 0,
+            "yCell3": 0,
             "zCell1": 699,
             "zCell2": 709,
             "zCell3": 900
         },
-        "fieldReport": {},
-        "impactDensityAnimation": {
-            "startTime": 1512001962
+        "fieldReport": {
+            "axes": "xz",
+            "colorMap": "viridis",
+            "notes": "",
+            "slice": 0.0
         },
+        "impactDensityAnimation": {
+            "colorMap": "coolwarm",
+            "notes": ""
+        },
+        "optimizer": {
+            "constraints": [],
+            "continuousFieldSteps": 20,
+            "enabledFields": {},
+            "fields": [],
+            "initialSteps": 500,
+            "objective": "efficiency",
+            "optimizerSteps": 250,
+            "timeLimit": 60,
+            "tolerance": 0.001
+        },
+        "optimizerAnimation": {
+            "colorMap": "viridis",
+            "notes": "",
+            "x": 0,
+            "y": 1
+        },
+        "optimizerStatus": {},
         "panelState": {
             "hidden": []
         },
-        "particleAnimation": {
-            "renderCount": "100",
-            "startTime": 1512001962
-        },
         "particle3d": {
-            "renderCount": "10",
-            "startTime": 1512001962
+            "colorMap": "viridis",
+            "impactColorMap": "coolwarm",
+            "renderCount": "10"
+        },
+        "particleAnimation": {
+            "renderCount": "100"
         },
         "simulation": {
+            "conductorFile": "",
+            "documentationUrl": "",
             "egun_mode": "1",
-            "folder": "/",
+            "executionMode": "serial",
+            "folder": "/Examples",
             "isExample": true,
             "name": "EGun Example",
+            "notes": "",
             "outOfSessionSimulationId": "",
-            "simulationId": "80Le0bt3",
-            "simulationSerial": 1512002082734273
+            "useConductorFile": "0"
         },
         "simulationGrid": {
+            "channel_height": 0.08,
             "channel_width": 0.1,
             "num_steps": 6000,
             "num_x": 100,
+            "num_y": 10,
             "num_z": 1000,
             "particles_per_step": 1000,
             "plate_spacing": 1,
+            "simulation_mode": "2d",
+            "trace_period": 1,
             "z_particle_min": 0.000125
         }
     },
-    "simulationType": "warpvnd",
-    "version": "20180613.000000"
+    "simulationType": "warpvnd"
 }

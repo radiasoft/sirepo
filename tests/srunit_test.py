@@ -28,11 +28,9 @@ def test_wrap_in_request():
     import pykern.pkunit
     import flask
 
-    del flask.g['sirepo_cookie']
     with pykern.pkunit.pkexcept('error.*f-hello'):
         s['f'] = 'UserAlert'
         f()
-    del flask.g['sirepo_cookie']
     with pykern.pkunit.pkexcept('error.*b-hello'):
         s['b'] = 'UserAlert'
         f()

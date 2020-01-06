@@ -81,7 +81,10 @@ class _Dispatcher(PKDict):
             try:
 #TODO(robnagler) connect_timeout, max_message_size, ping_interval, ping_timeout
                 self._websocket = await tornado.websocket.websocket_connect(
-                    cfg.supervisor_uri,
+                    tornado.httpclient.HTTPRequest(
+                        url=cfg.supervisor_uri,
+                        validate_cert=sirepo.job.cfg.verify_tls,
+                    ),
                 )
                 m = self.format_op(None, job.OP_ALIVE)
                 while True:

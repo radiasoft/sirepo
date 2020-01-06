@@ -154,13 +154,17 @@ class DriverBase(PKDict):
                 pkdlog('error={} stack={}', e, pkdexc())
 
     def websocket_on_close(self):
-       self.websocket_free()
+        self.websocket_free()
 
     def _receive(self, msg):
         c = msg.content
         i = c.get('opId')
-        if c.opName == job.OP_ERROR:
-            pkdlog('agentId={} msg={}',self._agentId, c)
+        if (
+                (not c.get('opName') or c.opName == job.OP_ERROR)
+                or
+                (c.get('reply') and c.reply.get('state') == job.ERROR)
+           ):
+            pkdlog('agentId={} msg={}', self._agentId, c)
         else:
             pkdlog('{} agentId={} opId={}', c.opName, self._agentId, i)
         if i:
@@ -251,6 +255,7 @@ def init():
         m = importlib.import_module(pkinspect.module_name_join((p, n)))
         _CLASSES[n] = m.init_class()
     _DEFAULT_CLASS = _CLASSES.get('docker') or _CLASSES.get(_DEFAULT_MODULE)
+    pkdlog('initialized with drivers {}', _CLASSES.keys())
 
 
 async def terminate():

@@ -330,7 +330,6 @@
             "notes": "",
             "panelTitle": "run_setup.output",
             "plotRangeType": "none",
-            "startTime": 1545177437,
             "valueList": {
                 "x": [
                     "x",
@@ -404,7 +403,6 @@
             "notes": "",
             "panelTitle": "run_setup.sigma",
             "plotRangeType": "none",
-            "startTime": 1545177437,
             "valueList": {
                 "x": [
                     "s",
@@ -732,7 +730,6 @@
             "notes": "",
             "panelTitle": "run_setup.centroid",
             "plotRangeType": "none",
-            "startTime": 1545177437,
             "valueList": {
                 "x": [
                     "s",
@@ -824,7 +821,6 @@
             "notes": "",
             "panelTitle": "twiss_output",
             "plotRangeType": "none",
-            "startTime": 1545177437,
             "valueList": {
                 "x": [
                     "s",
@@ -1142,13 +1138,14 @@
         "rpnVariables": [],
         "simulation": {
             "activeBeamlineId": 23,
-            "folder": "/",
-            "isExample": false,
+            "backtracking": "0",
+            "documentationUrl": "",
+            "folder": "/Examples",
+            "isExample": true,
             "name": "Los Alamos Proton Storage Ring",
+            "notes": "",
             "outOfSessionSimulationId": "",
-            "simulationId": "FcMFawJs",
             "simulationMode": "serial",
-            "simulationSerial": 1545177859907359,
             "visualizationBeamlineId": 23
         },
         "twissReport": {
@@ -1159,6 +1156,5 @@
         }
     },
     "report": "bunchReport4",
-    "simulationType": "elegant",
-    "version": "20181218.224501"
+    "simulationType": "elegant"
 }

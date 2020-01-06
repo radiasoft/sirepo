@@ -2,9 +2,19 @@
     "models": {
         "dog": {
             "breed": "Labrador Retriever",
-            "gender": "female"
+            "disposition": "friendly",
+            "favoriteTreat": "",
+            "gender": "female",
+            "height": 50.0,
+            "weight": 60.5
         },
-        "simulation": {}
+        "heightWeightReport": {},
+        "simFolder": {},
+        "simulation": {
+            "documentationUrl": "",
+            "folder": "/",
+            "notes": ""
+        }
     },
     "simulationType": "myapp"
 }

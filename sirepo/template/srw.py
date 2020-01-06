@@ -320,6 +320,12 @@ def extract_report_data(filename, sim_in):
     return info
 
 
+def fixup_old_data(data):
+    import sirepo.template.srw_fixup
+
+    return sirepo.template.srw_fixup.do(pkinspect.this_module(), data)
+
+
 def get_application_data(data, **kwargs):
     if data['method'] == 'model_list':
         res = []
@@ -509,11 +515,6 @@ def new_simulation(data, new_simulation_data):
 
 def prepare_for_client(data):
     save = False
-    if _SIM_DATA.template_fixup_get(data):
-        import sirepo.template.srw_fixup
-        pkdlog('template fixup: {}', data.models.simulation.simulationId)
-        data = sirepo.template.srw_fixup.do(pkinspect.this_module(), data)
-        save = True
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
         if model_name == 'tabulatedUndulator' and not _SIM_DATA.srw_is_tabulated_undulator_source(data['models']['simulation']):
             # don't add a named undulator if tabulated is not the current source type

@@ -8,38 +8,42 @@ from __future__ import absolute_import, division, print_function
 import pytest
 
 
-def test_warppba(fc):
+def test_synergia(fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdc, pkdp, pkdlog
     import time
 
-    d = fc.sr_sim_data(sim_name='Laser Pulse', sim_type=fc.sr_sim_type)
-    d = fc.sr_post(
+    d = fc.sr_sim_data(sim_name='IOTA 6-6 with NLINSERT', sim_type=fc.sr_sim_type)
+    r = fc.sr_post(
         'runSimulation',
         dict(
             forceRun=False,
             models=d.models,
-            report='particleAnimation',
+            report='bunchReport1',
             simulationId=d.models.simulation.simulationId,
             simulationType=d.simulationType,
         ),
     )
-    for _ in range(10):
-        assert d.state != 'error'
-        if d.state == 'running':
+    for _ in range(20):
+        assert r.state != 'error'
+        if r.state == 'running':
             break
-        time.sleep(d.nextRequestSeconds)
-        d = fc.sr_post('runStatus', d.nextRequest)
+        time.sleep(.1)
+        r = fc.sr_post('runStatus', r.nextRequest)
     else:
-        pkunit.pkfail('runStatus: failed to start running: {}', d)
-    x = d.nextRequest
-    d = fc.sr_post(
-        'runCancel',
-        x,
+        pkunit.pkfail('runStatus: failed to start running: {}', r)
+    x = r.nextRequest
+    r = fc.sr_post('runCancel', x)
+    assert r.state == 'canceled'
+    r = fc.sr_post('runStatus', x)
+    assert r.state == 'canceled'
+    r = fc.sr_post(
+        'runSimulation',
+        dict(
+            forceRun=False,
+            models=d.models,
+            report='bunchReport1',
+            simulationId=d.models.simulation.simulationId,
+            simulationType=d.simulationType,
+        ),
     )
-    assert d.state == 'canceled'
-    d = fc.sr_post(
-        'runStatus',
-        x,
-    )
-    assert d.state == 'canceled'

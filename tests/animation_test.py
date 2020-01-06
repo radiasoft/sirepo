@@ -9,9 +9,8 @@ from pykern.pkcollections import PKDict
 import pytest
 
 
-def test_elegant(animation_fc):
-    animation_fc.sr_animation_run(
-        animation_fc,
+def test_elegant(fc):
+    fc.sr_animation_run(
         'Compact Storage Ring',
         'animation',
         PKDict({
@@ -31,14 +30,13 @@ def test_elegant(animation_fc):
     )
 
 
-def test_jspec(animation_fc):
-    animation_fc.sr_animation_run(
-        animation_fc,
+def test_jspec(fc):
+    fc.sr_animation_run(
         'DC Cooling Example',
         'animation',
         PKDict(
             beamEvolutionAnimation=PKDict(
-                expect_y_range=r'^.2.04.*e-07, 2.15e-06',
+                expect_y_range=r'^.2.0.*e-07, 2.15e-06',
             ),
             coolingRatesAnimation=PKDict(
                 expect_y_range=r'-0.04.*, 0.00[4-7]',
@@ -48,9 +46,8 @@ def test_jspec(animation_fc):
     )
 
 
-def test_srw(animation_fc):
-    animation_fc.sr_animation_run(
-        animation_fc,
+def test_srw(fc):
+    fc.sr_animation_run(
         "Young's Double Slit Experiment",
         'multiElectronAnimation',
         PKDict(
@@ -64,9 +61,8 @@ def test_srw(animation_fc):
     )
 
 
-def test_synergia(animation_fc):
-    animation_fc.sr_animation_run(
-        animation_fc,
+def test_synergia(fc):
+    fc.sr_animation_run(
         'Simple FODO',
         'animation',
         PKDict(
@@ -89,9 +85,9 @@ def test_synergia(animation_fc):
         ),
     )
 
-def test_warppba(animation_fc):
-    animation_fc.sr_animation_run(
-        animation_fc,
+
+def test_warppba(fc):
+    fc.sr_animation_run(
         'Laser Pulse',
         'animation',
         PKDict(
@@ -108,9 +104,8 @@ def test_warppba(animation_fc):
     )
 
 
-def test_warpvnd_1(animation_fc):
-    animation_fc.sr_animation_run(
-        animation_fc,
+def test_warpvnd_1(fc):
+    fc.sr_animation_run(
         'Two Poles',
         'fieldCalculationAnimation',
         PKDict(
@@ -122,9 +117,9 @@ def test_warpvnd_1(animation_fc):
         timeout=10,
     )
 
-def test_warpvnd_2(animation_fc):
-    animation_fc.sr_animation_run(
-        animation_fc,
+
+def test_warpvnd_2(fc):
+    fc.sr_animation_run(
         'Two Poles',
         'animation',
         PKDict(
@@ -142,9 +137,8 @@ def test_warpvnd_2(animation_fc):
     )
 
 
-def test_webcon(animation_fc):
-    animation_fc.sr_animation_run(
-        animation_fc,
+def test_webcon(fc):
+    fc.sr_animation_run(
         'Clustering Demo',
         'epicsServerAnimation',
         PKDict(
@@ -162,9 +156,8 @@ def test_webcon(animation_fc):
     )
 
 
-def test_zgoubi(animation_fc):
-    animation_fc.sr_animation_run(
-        animation_fc,
+def test_zgoubi(fc):
+    fc.sr_animation_run(
         'EMMA',
         'animation',
         PKDict(
