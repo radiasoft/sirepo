@@ -92,7 +92,10 @@ def init():
                 'upgrade_runner_to_job_db',
                 _DB_DIR,
             ),
-            env=PKDict(os.environ).pkupdate(PYENV_VERSION='py2'),
+            env=PKDict(os.environ).pkupdate(
+                PYENV_VERSION='py2',
+                SIREPO_AUTH_LOGGED_IN_USER='unused',
+            ),
         )
 
 

@@ -37,6 +37,7 @@ def upgrade():
 
 
 def upgrade_runner_to_job_db(db_dir):
+    import sirepo.auth
     from pykern import pkio
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
@@ -75,10 +76,11 @@ def upgrade_runner_to_job_db(db_dir):
                 return
             raise
         u = simulation_db.uid_from_dir_name(run_dir)
+        sirepo.auth.cfg.logged_in_user = u
         c = sim_data.get_class(i.simulationType)
         d = PKDict(
             computeJid=c.parse_jid(i, u),
-            # computeJobHash=c.compute_job_hash(i), # TODO(e-carlin): Another user cookie problem
+            computeJobHash=c.compute_job_hash(i), # TODO(e-carlin): Another user cookie problem
             computeJobQueued=t,
             computeJobStart=t,
             error=None,
