@@ -80,23 +80,26 @@ def init():
         job.SBATCH: cfg.sbatch_poll_secs,
         job.SEQUENTIAL: 1,
     })
-    if not _DB_DIR.exists():
-        pkdlog('calling upgrade_runner_to_job_db path={}', _DB_DIR)
-        import subprocess
-        subprocess.check_call(
-            (
-                'pyenv',
-                'exec',
-                'sirepo',
-                'db',
-                'upgrade_runner_to_job_db',
-                _DB_DIR,
-            ),
-            env=PKDict(os.environ).pkupdate(
-                PYENV_VERSION='py2',
-                SIREPO_AUTH_LOGGED_IN_USER='unused',
-            ),
-        )
+    if sirepo.simulation_db.user_dir_name().exists():
+        if not _DB_DIR.exists():
+            pkdlog('calling upgrade_runner_to_job_db path={}', _DB_DIR)
+            import subprocess
+            subprocess.check_call(
+                (
+                    'pyenv',
+                    'exec',
+                    'sirepo',
+                    'db',
+                    'upgrade_runner_to_job_db',
+                    _DB_DIR,
+                ),
+                env=PKDict(os.environ).pkupdate(
+                    PYENV_VERSION='py2',
+                    SIREPO_AUTH_LOGGED_IN_USER='unused',
+                ),
+            )
+    else:
+        pykern.pkio.mkdir_parent(_DB_DIR)
 
 
 class ServerReq(PKDict):

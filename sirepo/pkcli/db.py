@@ -48,9 +48,6 @@ def upgrade_runner_to_job_db(db_dir):
     import pykern.pkio
     import sirepo.template
 
-    db_dir = pkio.py_path(db_dir)
-    pkio.mkdir_parent(db_dir)
-
     def _add_compute_status(run_dir, data):
         s, t = _read_status_file(run_dir)
         data.pkupdate(
@@ -121,6 +118,9 @@ def upgrade_runner_to_job_db(db_dir):
         s = sirepo.job.COMPLETED if pkio.read_text(p) == sirepo.job.COMPLETED \
             else sirepo.job.MISSING
         return s, p.mtime()
+
+    db_dir = pkio.py_path(db_dir)
+    pkio.mkdir_parent(db_dir)
     try:
         for f in pkio.walk_tree(
                 simulation_db.user_dir_name(),
