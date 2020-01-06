@@ -96,7 +96,12 @@ def api_jobSupervisorPing():
 
 @api_perm.require_user
 def api_runCancel():
-    return _request()
+    try:
+        return _request()
+    except Exception as e:
+        pkdlog('ignoring exception={} stack={}', e, pkdexc())
+    # Always true from the client's perspective
+    return sirepo.http_reply.gen_json({'state': 'canceled'})
 
 
 @api_perm.require_user
@@ -190,7 +195,7 @@ def _request_content(kwargs):
         analysisModel=lambda: s.parse_model(d),
         computeJid=lambda: s.parse_jid(d),
         computeJobHash=lambda: d.get('computeJobHash') or s.compute_job_hash(d),
-        computeJobStart=lambda: d.get('computeJobStart', 0),
+        computeJobSerial=lambda: d.get('computeJobSerial', 0),
         computeModel=lambda: s.compute_model(d),
         isParallel=lambda: s.is_parallel(d),
         reqId=lambda: sirepo.job.unique_key(),
@@ -226,8 +231,9 @@ def _run_mode(request_content):
                 sbatchHours=m.sbatchHours,
             )
     raise sirepo.util.Error(
-        'jobRunMode={} computeModel={} computeJid={}',
-        j,
-        request_content.computeModel,
-        request_content.computeJid,
+        'jobRunMode={} computeModel={} computeJid={}'.format(
+            j,
+            request_content.computeModel,
+            request_content.computeJid,
+        )
     )

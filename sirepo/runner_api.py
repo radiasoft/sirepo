@@ -62,7 +62,7 @@ def api_runCancel():
             try:
                 simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
             except Exception as e:
-                if not pkio.exception_is_not_found(e):
+                if not pykern.pkio.exception_is_not_found(e):
                     raise
                 # else: run_dir may have been deleted
             runner.job_kill(jid)
@@ -189,7 +189,7 @@ def _reqd(req):
     res.cached_hash = c.models.pksetdefault(
         computeJobCacheKey=lambda: PKDict(
             computeJobHash=res.sim_data.compute_job_hash(c),
-            computeJobStart=int(res.input_file.mtime()),
+            computeJobSerial=int(res.input_file.mtime()),
         ),
     ).computeJobCacheKey.computeJobHash
     if res.req_hash == res.cached_hash:
@@ -272,10 +272,10 @@ def _simulation_run_status(req, quiet=False):
         )
     if reqd.is_parallel and reqd.cached_data:
         s = reqd.cached_data.models.computeJobCacheKey
-        t = s.get('computeJobStart', 0)
+        t = s.get('computeJobSerial', 0)
         res.pksetdefault(
             computeJobHash=s.computeJobHash,
-            computeJobStart=t,
+            computeJobSerial=t,
             elapsedTime=lambda: int(
                 (res.get('lastUpdateTime') or _mtime_or_now(reqd.run_dir)) - t
                 if t else 0,
@@ -311,8 +311,8 @@ def _start_simulation(data):
     """
     s = data.models.computeJobCacheKey
     s.pkupdate(
-        computeJobStart=int(time.time()),
-    );
+        computeJobSerial=int(time.time()),
+    )
     runner.job_start(data)
 
 

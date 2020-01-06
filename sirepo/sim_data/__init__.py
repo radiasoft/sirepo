@@ -44,7 +44,7 @@ _FRAME_ID_KEYS = (
     'simulationId',
     'simulationType',
     'computeJobHash',
-    'computeJobStart',
+    'computeJobSerial',
 )
 
 def get_class(type_or_data):
@@ -99,7 +99,7 @@ def parse_frame_id(frame_id):
     v = frame_id.split(_FRAME_ID_SEP)
     res = PKDict(zip(_FRAME_ID_KEYS, v[:len(_FRAME_ID_KEYS)]))
     res.frameIndex = int(res.frameIndex)
-    res.computeJobStart = int(res.computeJobStart)
+    res.computeJobSerial = int(res.computeJobSerial)
     s = get_class(res.simulationType)
     s.frameReport = s.parse_model(res)
     s.simulationId = s.parse_sid(res)
@@ -217,7 +217,7 @@ class SimDataBase(object):
                 data.models.simulation.simulationId,
                 data.simulationType,
                 response.computeJobHash,
-                str(response.computeJobStart),
+                str(response.computeJobSerial),
             ] + [str(m.get(k)) for k in cls._frame_id_fields(frame_args)],
         )
 

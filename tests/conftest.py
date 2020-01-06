@@ -7,61 +7,6 @@ MAX_CASE_RUN_SECS = 60
 
 
 @pytest.fixture
-def animation_fc(fc):
-    fc.sr_animation_run = animation_run
-    return fc
-
-
-def animation_run(fc, sim_name, compute_model, reports, **kwargs):
-    from pykern import pkconfig
-    from pykern import pkunit
-    from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdp, pkdlog
-    from sirepo import srunit
-    import re
-    import time
-
-    data = fc.sr_sim_data(sim_name)
-    run = fc.sr_run_sim(data, compute_model, **kwargs)
-    for r, a in reports.items():
-        if 'runSimulation' in a:
-            f = fc.sr_run_sim(data, r)
-            for k, v in a.items():
-                m = re.search('^expect_(.+)', k)
-                if m:
-                    pkunit.pkre(
-                        v(i) if callable(v) else v,
-                        str(f.get(m.group(1))),
-                    )
-            continue
-        if 'frame_index' in a:
-            c = [a.get('frame_index')]
-        else:
-            c = range(run.get(a.get('frame_count_key', 'frameCount')))
-            assert c, \
-                'frame_count_key={} or frameCount={} is zero'.format(
-                    a.get('frame_count_key'), a.get('frameCount'),
-                )
-        pkdlog('frameReport={} count={}', r, c)
-        import sirepo.sim_data
-
-        s = sirepo.sim_data.get_class(fc.sr_sim_type)
-        for i in c:
-            pkdlog('frameIndex={} frameCount={}', i, run.get('frameCount'))
-            f = fc.sr_get_json(
-                'simulationFrame',
-                PKDict(frame_id=s.frame_id(data, run, r, i)),
-            )
-            for k, v in a.items():
-                m = re.search('^expect_(.+)', k)
-                if m:
-                    pkunit.pkre(
-                        v(i) if callable(v) else v,
-                        str(f.get(m.group(1))),
-                    )
-
-
-@pytest.fixture
 def auth_fc(auth_fc_module):
     # set the sentinel
     auth_fc_module.cookie_jar.clear()
@@ -180,9 +125,13 @@ def pytest_collection_modifyitems(session, config, items):
     import_fail = PKDict()
     res = set()
     skip_list = os.environ.get('SIREPO_PYTEST_SKIP', '').split(':')
+    slurm_not_installed = _slurm_not_installed()
     for i in items:
         if i.fspath.purebasename in skip_list:
             i.add_marker(pytest.mark.skip(reason="SIREPO_PYTEST_SKIP"))
+            continue
+        if 'sbatch' in i.fspath.basename and slurm_not_installed:
+            i.add_marker(pytest.mark.skip(reason="slurm not installed"))
             continue
         c = [x for x in all_codes if x in i.name]
         if not c:
@@ -246,6 +195,36 @@ def pytest_configure(config):
     )
 
 
+def _config_sbatch_supervisor_env(env):
+    from pykern.pkcollections import PKDict
+    import pykern.pkio
+    import pykern.pkunit
+    import re
+    import socket
+    import subprocess
+
+    h = socket.gethostname()
+    k = pykern.pkio.py_path('~/.ssh/known_hosts').read()
+    m = re.search('^{}.*$'.format(h), k, re.MULTILINE)
+    assert m, \
+        'You need to ssh into {} to get the host key'.format(h)
+
+    env.pkupdate(
+        SIREPO_JOB_DRIVER_MODULES='local:sbatch',
+        SIREPO_JOB_DRIVER_SBATCH_HOST=h,
+        SIREPO_JOB_DRIVER_SBATCH_HOST_KEY=m.group(0),
+        SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=subprocess.check_output(
+            'PYENV_VERSION=py3 pyenv which sirepo',
+            stderr=subprocess.STDOUT,
+            shell=True
+        ).rstrip(),
+        SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT=str(pykern.pkunit.work_dir().join(
+            '/{sbatch_user}/sirepo'
+        )),
+        SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS='2',
+    )
+
+
 def _job_supervisor_check(env):
     import sirepo.job
     import socket
@@ -274,11 +253,12 @@ def _job_supervisor_check(env):
         s.close()
 
 
-def _job_supervisor_setup():
+def _job_supervisor_setup(request):
     """setup the supervisor"""
     import os
     from pykern.pkcollections import PKDict
 
+    sbatch_module = 'sbatch' in request.module.__name__
     env = PKDict()
     for k, v in os.environ.items():
         if ('PYENV' in k or 'PYTHON' in k):
@@ -294,6 +274,15 @@ def _job_supervisor_setup():
         PYKERN_PKDEBUG_WANT_PID_TIME='1',
         SIREPO_FEATURE_CONFIG_JOB='1',
     )
+    if 'status_test' in request.module.__name__:
+        cfg.pkupdate(
+            SIREPO_AUTH_BASIC_PASSWORD='pass',
+            SIREPO_AUTH_BASIC_UID='dev-no-validate',
+            SIREPO_AUTH_METHODS='basic:guest',
+            SIREPO_FEATURE_CONFIG_API_MODULES='status',
+        )
+    if sbatch_module:
+        cfg.pkupdate(SIREPO_SIMULATION_DB_SBATCH_DISPLAY='testing@123')
     env.pkupdate(
         PYENV_VERSION='py3',
         PYTHONUNBUFFERED='1',
@@ -301,25 +290,34 @@ def _job_supervisor_setup():
     )
 
     import sirepo.srunit
+    fc = sirepo.srunit.flask_client(
+        cfg=cfg,
+        job_run_mode='sbatch' if sbatch_module else None,
+    )
 
-    fc = sirepo.srunit.flask_client(cfg=cfg)
+    if sbatch_module:
+        # must be performed after fc initialized so work_dir is configured
+        _config_sbatch_supervisor_env(env)
+
     import sirepo.srdb
-    env['SIREPO_SRDB_ROOT'] = str(sirepo.srdb.root())
+    env.SIREPO_SRDB_ROOT = str(sirepo.srdb.root())
+
     _job_supervisor_check(env)
     return (env, fc)
 
 
 def _job_supervisor_start(request):
     import os
-    if 'job_test' != request.fspath.purebasename and not os.environ.get('SIREPO_FEATURE_CONFIG_JOB'):
+    if os.environ.get('SIREPO_FEATURE_CONFIG_JOB') != '1':
         return None, None
 
+    from pykern import pkunit
+    from pykern.pkcollections import PKDict
     import sirepo.job
     import subprocess
     import time
-    from pykern.pkcollections import PKDict
 
-    env, fc = _job_supervisor_setup()
+    env, fc = _job_supervisor_setup(request)
     p = subprocess.Popen(
         ['pyenv', 'exec', 'sirepo', 'job_supervisor'],
         env=env,
@@ -330,7 +328,7 @@ def _job_supervisor_start(request):
             break
         time.sleep(.1)
     else:
-        pkfail('could not connect to {}', sirepo.job.SERVER_PING_ABS_URI)
+        pkunit.pkfail('could not connect to {}', sirepo.job.SERVER_PING_ABS_URI)
     return p, fc
 
 
@@ -341,3 +339,12 @@ def _sim_type(request):
         if c in request.function.func_name or c in str(request.fspath):
             return c
     return 'myapp'
+
+
+def _slurm_not_installed():
+    import subprocess
+    try:
+        subprocess.check_output(('sbatch', '--help'))
+    except OSError:
+        return True
+    return False

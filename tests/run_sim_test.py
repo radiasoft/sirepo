@@ -9,25 +9,32 @@ import pytest
 
 _REPORT = 'heightWeightReport'
 
+
 def test_myapp_status(fc):
     from pykern import pkunit
+    import os
+    import sirepo.feature_config
 
     d = fc.sr_sim_data()
     r = fc.sr_post(
         'runStatus',
         dict(
+            computeJobHash='fakeHash',
+            models=d.models,
             report=_REPORT,
             simulationId=d.models.simulation.simulationId,
             simulationType=d.simulationType,
-            computeJobHash='fakeHash',
         ),
     )
-    pkunit.pkeq('stopped', r.state)
+
+    if sirepo.feature_config.cfg().job == 1:
+        pkunit.pkeq('missing', r.state)
+    else:
+        pkunit.pkeq('stopped', r.state)
 
 
 def test_myapp_cancel_error(fc):
     from pykern import pkunit
-    import subprocess
     import time
 
     d = fc.sr_sim_data()
@@ -43,7 +50,7 @@ def test_myapp_cancel_error(fc):
         ),
     )
     for _ in range(10):
-        pkunit.pkok(r.state != 'error', 'expected error state: {}')
+        pkunit.pkok(r.state != 'error', 'unexpected error state: {}')
         if r.state == 'running':
             break
         time.sleep(r.nextRequestSeconds)

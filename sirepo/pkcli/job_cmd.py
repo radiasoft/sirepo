@@ -5,20 +5,16 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjson
-from pykern import pksubprocess
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdexc, pkdc, pkdlog
 from sirepo import job
 from sirepo import simulation_db
 from sirepo.template import template_common
-import functools
-import os
-import re
 import requests
 import sirepo.template
+import sirepo.util
 import subprocess
 import sys
 import time
@@ -36,30 +32,36 @@ def default_command(in_file):
     Returns:
         str: json output of command, e.g. status msg
     """
-    job.init()
-    f = pkio.py_path(in_file)
-    msg = pkjson.load_any(f)
-#TODO(e-carlin): find common place to serialize/deserialize paths
-    msg.runDir = pkio.py_path(msg.runDir)
-    f.remove()
-    res = globals()['_do_' + msg.jobCmd](
-        msg,
-        sirepo.template.import_module(msg.simulationType)
-    )
-    if res is None:
-        return
-    return pkjson.dump_pretty(
-        PKDict(res).pksetdefault(state=job.COMPLETED),
-        pretty=False,
-    )
+    try:
+        job.init()
+        f = pkio.py_path(in_file)
+        msg = pkjson.load_any(f)
+    #TODO(e-carlin): find common place to serialize/deserialize paths
+        msg.runDir = pkio.py_path(msg.runDir)
+        f.remove()
+        res = globals()['_do_' + msg.jobCmd](
+            msg,
+            sirepo.template.import_module(msg.simulationType)
+        )
+        if res is None:
+            return
+        r = PKDict(res).pksetdefault(state=job.COMPLETED)
+    except Exception as e:
+        r = PKDict(
+            state=job.ERROR,
+            error=e.sr_args.error if isinstance(e, sirepo.util.UserAlert) else str(e),
+            stack=pkdexc(),
+        )
+    return pkjson.dump_pretty(r, pretty=False)
 
 
 def _background_percent_complete(msg, template, is_running):
-    r = template.background_percent_complete(
+    # some templates return a dict so wrap in PKDict
+    r = PKDict(template.background_percent_complete(
         msg.data.report,
         msg.runDir,
         is_running,
-    )
+    ))
 #TODO(robnagler) this is incorrect, because we want to see file updates
 #   not just our polling frequency
     r.pksetdefault(lastUpdateTime=lambda: _mtime_or_now(msg.runDir))
@@ -76,37 +78,28 @@ def _do_cancel(msg, template):
 
 def _do_compute(msg, template):
     msg.runDir = pkio.py_path(msg.runDir)
-    msg.simulationStatus = PKDict(
-        computeJobStart=int(time.time()),
-        state=job.RUNNING,
-    )
-    try:
-        with msg.runDir.join(template_common.RUN_LOG).open('w') as run_log:
-            p = subprocess.Popen(
-                _do_prepare_simulation(msg, template).cmd,
-                stdout=run_log,
-                stderr=run_log,
-            )
-        while True:
-            for j in range(20):
-                time.sleep(.1)
-                r = p.poll()
-                i = r is None
-                if not i:
-                    break
-            if msg.isParallel:
-                # TODO(e-carlin): This has a potential to fail. We likely
-                # don't want the job to fail in this case
-                _write_parallel_status(msg, template, i)
-            if i:
-                continue
-            if r != 0:
-                return PKDict(state=job.ERROR, error='non zero returncode={}'.format(r))
-            else:
-                return PKDict(state=job.COMPLETED)
-    except Exception as e:
-        return PKDict(state=job.ERROR, error=str(e), stack=pkdexc())
-    # DOES NOT RETURN
+    with msg.runDir.join(template_common.RUN_LOG).open('w') as run_log:
+        p = subprocess.Popen(
+            _do_prepare_simulation(msg, template).cmd,
+            stdout=run_log,
+            stderr=run_log,
+        )
+    while True:
+        for j in range(20):
+            time.sleep(.1)
+            r = p.poll()
+            i = r is None
+            if not i:
+                break
+        if msg.isParallel:
+            # TODO(e-carlin): This has a potential to fail. We likely
+            # don't want the job to fail in this case
+            _write_parallel_status(msg, template, i)
+        if i:
+            continue
+        if r != 0:
+            return PKDict(state=job.ERROR, error='non zero returncode={}'.format(r))
+        return PKDict(state=job.COMPLETED)
 
 
 def _do_get_simulation_frame(msg, template):
@@ -145,7 +138,6 @@ def _do_prepare_simulation(msg, template):
 
 
 def _do_sbatch_status(msg, template):
-    p = 'PENDING'
     s = pkio.py_path(msg.stopSentinel)
     while True:
         if s.exists():
