@@ -2120,7 +2120,9 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, f
                 appState.models.simulationStatus = {};
             }
             data.report = state.model;
-            appState.models.simulationStatus[state.model] = data;
+            appState.models.simulationStatus[state.model] = angular.extend(
+                {}, appState.models.simulationStatus[state.model], data
+            );
             if (appState.isLoaded()) {
                 // simulationStatus is not saved to server from client
                 appState.saveQuietly('simulationStatus');
