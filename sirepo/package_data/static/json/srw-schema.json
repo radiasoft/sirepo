@@ -590,7 +590,7 @@
             "outoptvz": ["Longitudinal", "Float", 0.996283792977],
             "outframevx": ["Horizontal", "Float", 1],
             "outframevy": ["Vertical", "Float", -1.99e-10],
-            "energyAvg": ["Average photon energy the grating should be oriented for [eV]", "Float", 250],
+            "energyAvg": ["Average photon energy the grating should be oriented for [eV]", "Float", 0],
 	        "cff": ["Cff Parameter (cos(beta)/cos(alpha))", "Float", 1.5],
             "rollAngle": ["Roll Angle [rad]", "Float", 3.1415926],
             "diffractionOrder": ["Diffraction Order", "Float", 1],

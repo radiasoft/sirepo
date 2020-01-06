@@ -175,7 +175,8 @@ def _do_beamline(template, data):
             elif i.autocomputeVectors == '1':
                 i.autocomputeVectors = 'vertical' if i.normalVectorX == 0 else 'horizontal'
         _SIM_DATA.update_model_defaults(i, t)
-
+        if t in {'grating'}:
+            i.energyAvg = dm.simulation.photonEnergy
 
 def _do_electron_beam(template, data):
     dm = data.models
