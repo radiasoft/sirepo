@@ -38,7 +38,11 @@ def create_archive(sim):
             t = 'application/zip'
         else:
             f, t = _create_html(f, c)
-        return sirepo.http_reply.gen_file_as_attachment(f, t, sim.filename)
+        return sirepo.http_reply.gen_file_as_attachment(
+            f,
+            content_type=t,
+            filename=sim.filename,
+        )
 
 
 def _create_html(zip_path, data):
