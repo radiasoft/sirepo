@@ -170,7 +170,6 @@ scancel -u $USER >& /dev/null || true
 
     def _websocket_free(self):
         self.run_scheduler(exclude_self=True)
-        self.instances.pkdel(self.uid)
 
 
 def init_class():

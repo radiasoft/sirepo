@@ -50,6 +50,7 @@ class DriverBase(PKDict):
             _agentId=job.unique_key(),
             _agent_starting=False,
         )
+        # Agents persist for the life of the program so they are never removed
         self.agents[self._agentId] = self
         pkdlog(
             'class={} agentId={_agentId} kind={kind} uid={uid}',
@@ -153,6 +154,27 @@ class DriverBase(PKDict):
                 # If one kill fails still try to kill the rest
                 pkdlog('error={} stack={}', e, pkdexc())
 
+    def websocket_free(self):
+        """Remove holds on all resources and remove self from data structures"""
+        try:
+            self._agent_starting = False
+            w = self.websocket
+            self.websocket = None
+            if w:
+                # Will not call websocket_on_close()
+                w.sr_close()
+            t = list(self.ops_pending_done.values()) + self.ops_pending_send
+            self.ops_pending_done.clear()
+            self.ops_pending_send.clear()
+            for o in t:
+                o.set_errored('websocket closed')
+#TODO(robnagler) when the websocket disappears unexpectedly, we don't
+# know that any resources are freed. With docker and local, we can check.
+# For sbatch, we need to ask the user to login again.
+            self._websocket_free()
+        except Exception as e:
+            pkdlog('error={} stack={}', e, pkdexc())
+
     def websocket_on_close(self):
         self.websocket_free()
 
@@ -213,28 +235,6 @@ class DriverBase(PKDict):
             ),
             uid=self.uid,
         )
-
-    def websocket_free(self):
-        """Remove holds on all resources and remove self from data structures"""
-        try:
-            self._agent_starting = False
-            del self.agents[self._agentId]
-            w = self.websocket
-            self.websocket = None
-            if w:
-                # Will not call websocket_on_close()
-                w.sr_close()
-            t = list(self.ops_pending_done.values()) + self.ops_pending_send
-            self.ops_pending_done.clear()
-            self.ops_pending_send.clear()
-            for o in t:
-                o.set_errored('websocket closed')
-#TODO(robnagler) when the websocket disappears unexpectedly, we don't
-# know that any resources are freed. With docker and local, we can check.
-# For sbatch, we need to ask the user to login again.
-            self._websocket_free()
-        except Exception as e:
-            pkdlog('error={} stack={}', e, pkdexc())
 
 
 async def get_instance(req, jobRunMode):
