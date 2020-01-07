@@ -49,20 +49,20 @@ def upgrade_runner_to_job_db(db_dir):
     import sirepo.template
 
     def _add_compute_status(run_dir, data):
-        s, t = _read_status_file(run_dir)
+        p = run_dir.join(job.RUNNER_STATUS_FILE)
         data.pkupdate(
-            lastUpdateTime=t,
-            status=s,
+            lastUpdateTime=int(p.mtime()),
+            status=pkio.read_text(p),
         )
 
     def _add_parallel_status(in_json, sim_data, run_dir, data):
         t = sirepo.template.import_module(data.simulationType)
         data.parallelStatus = PKDict(
-           t.background_percent_complete(
-               sim_data.parse_model(in_json),
-               run_dir,
-               False,
-           )
+            t.background_percent_complete(
+                sim_data.parse_model(in_json),
+                run_dir,
+                False,
+            )
         )
 
     def _create_supervisor_state_file(run_dir):
@@ -78,7 +78,7 @@ def upgrade_runner_to_job_db(db_dir):
         d = PKDict(
             computeJid=c.parse_jid(i, u),
             computeJobHash=c.compute_job_hash(i), # TODO(e-carlin): Another user cookie problem
-            computeJobQueued=t,
+            computeJobSerial=t,
             computeJobStart=t,
             error=None,
             history=[],
@@ -92,11 +92,10 @@ def upgrade_runner_to_job_db(db_dir):
             nextRequestSeconds=c.poll_seconds(i),
         )
         _add_compute_status(run_dir, d)
+        if d.status not in (job.COMPLETED, job.CANCELED):
+            return
 
-        if (
-            d.status in (sirepo.job.COMPLETED, sirepo.job.CANCELED)
-            and d.isParallel
-        ):
+        if d.isParallel:
             _add_parallel_status(i, c, run_dir, d)
         util.json_dump(d, path=_db_file(d.computeJid))
 
@@ -111,13 +110,7 @@ def upgrade_runner_to_job_db(db_dir):
         c = simulation_db.read_json(p)
         return c, c.computeJobCacheKey.computeJobStart if \
             c.get('computejobCacheKey') else \
-            p.mtime()
-
-    def _read_status_file(run_dir):
-        p = run_dir.join(job.RUNNER_STATUS_FILE)
-        s = sirepo.job.COMPLETED if pkio.read_text(p) == sirepo.job.COMPLETED \
-            else sirepo.job.MISSING
-        return s, p.mtime()
+            int(p.mtime())
 
     db_dir = pkio.py_path(db_dir)
     pkio.mkdir_parent(db_dir)
