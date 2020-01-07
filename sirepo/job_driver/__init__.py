@@ -218,7 +218,6 @@ class DriverBase(PKDict):
         """Remove holds on all resources and remove self from data structures"""
         try:
             self._agent_starting = False
-            del self.agents[self._agentId]
             w = self.websocket
             self.websocket = None
             if w:
