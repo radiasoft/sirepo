@@ -162,11 +162,16 @@ async def _incoming(content, handler):
         pkdc(
             'class={} content={}',
             handler.sr_class,
-            sirepo.job.LogFormatter(c)
+            c,
         )
         await handler.sr_class(handler=handler, content=c).receive()
     except Exception as e:
-        pkdlog('exception={} handler={} content={}', e, handler, content)
+        pkdlog(
+            'exception={} handler={} content={}',
+            e,
+            handler,
+            content
+        )
         pkdlog(pkdexc())
         try:
             handler.sr_on_exception()

@@ -34,3 +34,92 @@ def upgrade():
                 break
             with open(str(fn), 'w') as f:
                 f.write(t)
+
+
+def upgrade_runner_to_job_db(db_dir):
+    import sirepo.auth
+    from pykern import pkio
+    from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdp
+    from sirepo import job
+    from sirepo import simulation_db
+    from sirepo import sim_data
+    from sirepo import util
+    import pykern.pkio
+    import sirepo.template
+
+    def _add_compute_status(run_dir, data):
+        p = run_dir.join(job.RUNNER_STATUS_FILE)
+        data.pkupdate(
+            lastUpdateTime=int(p.mtime()),
+            status=pkio.read_text(p),
+        )
+
+    def _add_parallel_status(in_json, sim_data, run_dir, data):
+        t = sirepo.template.import_module(data.simulationType)
+        data.parallelStatus = PKDict(
+            t.background_percent_complete(
+                sim_data.parse_model(in_json),
+                run_dir,
+                False,
+            )
+        )
+
+    def _create_supervisor_state_file(run_dir):
+        try:
+            i, t = _load_in_json(run_dir)
+        except Exception as e:
+            if pykern.pkio.exception_is_not_found(e):
+                return
+            raise
+        u = simulation_db.uid_from_dir_name(run_dir)
+        sirepo.auth.cfg.logged_in_user = u
+        c = sim_data.get_class(i.simulationType)
+        d = PKDict(
+            computeJid=c.parse_jid(i, u),
+            computeJobHash=c.compute_job_hash(i), # TODO(e-carlin): Another user cookie problem
+            computeJobSerial=t,
+            computeJobStart=t,
+            error=None,
+            history=[],
+            isParallel=c.is_parallel(i),
+            simulationId=i.simulationId,
+            simulationType=i.simulationType,
+            uid=u,
+        )
+        d.pkupdate(
+            jobRunMode=job.PARALLEL if d.isParallel else job.SEQUENTIAL,
+            nextRequestSeconds=c.poll_seconds(i),
+        )
+        _add_compute_status(run_dir, d)
+        if d.status not in (job.COMPLETED, job.CANCELED):
+            return
+
+        if d.isParallel:
+            _add_parallel_status(i, c, run_dir, d)
+        util.json_dump(d, path=_db_file(d.computeJid))
+
+    def _db_file(computeJid):
+        return db_dir.join(computeJid + '.json')
+
+    def _load_in_json(run_dir):
+        p = simulation_db.json_filename(
+            sirepo.template.template_common.INPUT_BASE_NAME,
+            run_dir
+        )
+        c = simulation_db.read_json(p)
+        return c, c.computeJobCacheKey.computeJobStart if \
+            c.get('computejobCacheKey') else \
+            int(p.mtime())
+
+    db_dir = pkio.py_path(db_dir)
+    pkio.mkdir_parent(db_dir)
+    try:
+        for f in pkio.walk_tree(
+                simulation_db.user_dir_name(),
+                '/' + sirepo.job.RUNNER_STATUS_FILE + '$'
+        ):
+            _create_supervisor_state_file(pkio.py_path(f.dirname))
+    except Exception:
+        db_dir.remove()
+        raise

@@ -60,39 +60,39 @@ def background_percent_complete(report, run_dir, is_running):
             # the most recent file may not yet be fully written
             if count > 0:
                 count -= 1
-            return {
-                'percentComplete': percent_complete,
-                'frameCount': count,
-                'hasParticles': True,
-                'hasRates': has_rates,
-            }
+            return PKDict(
+                percentComplete=percent_complete,
+                frameCount=count,
+                hasParticles=True,
+                hasRates=has_rates,
+            )
         else:
             # estimate the percent complete from the simulation time in sdds file
             if run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME).exists():
                 return _beam_evolution_status(run_dir, settings, has_rates)
-            return {
-                'percentComplete': 0,
-                'frameCount': 0,
-            }
+            return PKDict(
+                percentComplete=0,
+                frameCount=0,
+            )
     if run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME).exists():
         count, settings, has_rates = _background_task_info(run_dir)
         if count:
-            return {
-                'percentComplete': 100,
-                'frameCount': count,
-                'hasParticles': True,
-                'hasRates': has_rates,
-            }
+            return PKDict(
+                percentComplete=100,
+                frameCount=count,
+                hasParticles=True,
+                hasRates=has_rates,
+            )
         else:
-            return {
-                'percentComplete': 100,
-                'frameCount': 1,
-                'hasRates': has_rates,
-            }
-    return {
-        'percentComplete': 0,
-        'frameCount': 0,
-    }
+            return PKDict(
+                percentComplete=100,
+                frameCount=1,
+                hasRates=has_rates,
+            )
+    return PKDict(
+        percentComplete=0,
+        frameCount=0,
+    )
 
 
 def get_application_data(data, **kwargs):
