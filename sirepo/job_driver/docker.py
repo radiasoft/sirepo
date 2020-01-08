@@ -123,8 +123,7 @@ class DockerDriver(job_driver.DriverBase):
         self._agent_starting = True
         try:
             cmd, stdin, env = self._agent_cmd_stdin_env()
-#TODO(robnagler) remove PKDict after https://github.com/radiasoft/pykern/issues/50
-            c = PKDict(pykern.pkcollections.map_items(cfg[self.kind]))
+            c = pykern.pkcollections.map_items(cfg[self.kind])
             p = (
                 'run',
                 # attach to stdin for writing

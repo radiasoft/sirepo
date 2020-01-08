@@ -122,8 +122,6 @@ class LocalDriver(job_driver.DriverBase):
         self._agent_exit.set()
         self.pkdel('subprocess')
         k = self.pkdel('kill_timeout')
-        # TODO(e-carlin): verify
-        #TODO(robnagler) what is there to verify? Maybe add to a test?
         if k:
             tornado.ioloop.IOLoop.current().remove_timeout(k)
         pkdlog('agentId={} returncode={}', self._agentId, returncode)
@@ -136,20 +134,15 @@ class LocalDriver(job_driver.DriverBase):
     async def _agent_start(self, msg):
         self._agent_starting = True
         stdin = None
-        o = None
         try:
             cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agentExecDir)
             pkdlog('dir={}', self._agentExecDir)
             # since this is local, we can make the directory; useful for debugging
             pkio.mkdir_parent(self._agentExecDir)
-    #TODO(robnagler) log to pkdebug output directly
-            self._log = self._agentExecDir.join('agent.log')
-            o = self._log.open('w')
             self.subprocess = tornado.process.Subprocess(
                 cmd,
                 env=env,
                 stdin=stdin,
-                stdout=o,
                 stderr=subprocess.STDOUT,
             )
             self.subprocess.set_exit_callback(self._agent_on_exit)
@@ -165,8 +158,6 @@ class LocalDriver(job_driver.DriverBase):
         finally:
             if stdin:
                 stdin.close()
-            if o:
-                o.close()
 
     def _websocket_free(self):
         self.slot_free()

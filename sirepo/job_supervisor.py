@@ -132,7 +132,7 @@ class _ComputeJob(PKDict):
 
     @classmethod
     async def receive(cls, req):
-        pkdlog('{} jid={}', req.content.api, req.content.get('computeJid'))
+        pkdlog('api={} jid={}', req.content.api, req.content.get('computeJid'))
         try:
             return await getattr(
                 cls.get_instance(req),
@@ -443,7 +443,7 @@ class _Op(PKDict):
         return r
 
     def run_timeout(self):
-        if self.canceled or self.errored:
+        if self.do_not_send:
             return
         pkdlog('opId={opId} opName={opName} maxRunSecs={maxRunSecs}', **self)
         self.set_canceled()

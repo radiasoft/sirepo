@@ -74,7 +74,11 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
         await _incoming(msg, self)
 
     def open(self):
-        pkdlog(self.request.uri)
+        pkdlog(
+            'uri={} remote_ip={} ',
+            self.request.uri,
+            self.request.remote_ip,
+        )
 
     def sr_close(self):
         """Close socket and does not call on_close

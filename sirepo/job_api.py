@@ -168,6 +168,11 @@ def _request(**kwargs):
         api=get_api_name(),
         serverSecret=sirepo.job.cfg.server_secret,
     )
+    pkdlog(
+        'api={} runDir={}',
+        c.api,
+        c.get('runDir')
+    )
     r = requests.post(
         u,
         data=pkjson.dump_bytes(c),

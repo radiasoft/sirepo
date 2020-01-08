@@ -77,6 +77,7 @@ def _do_cancel(msg, template):
 
 
 def _do_compute(msg, template):
+    10 / 0
     msg.runDir = pkio.py_path(msg.runDir)
     with msg.runDir.join(template_common.RUN_LOG).open('w') as run_log:
         p = subprocess.Popen(
