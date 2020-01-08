@@ -248,7 +248,7 @@ def _cmd_prefix(host, tls_d):
     for x in 'cacert', 'cert', 'key':
         f = tls_d.join(x + '.pem')
         assert f.check(), \
-            'tls file does not exist for host={}: file={}'.format(host, f)
+            'tls file does not exist for host={} file={}'.format(host, f)
         args.append('--tls{}={}'.format(x, f))
     return tuple(args)
 
