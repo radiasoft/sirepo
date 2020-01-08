@@ -40,7 +40,7 @@ def upgrade_runner_to_job_db(db_dir):
     import sirepo.auth
     from pykern import pkio
     from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdp
+    from pykern.pkdebug import pkdp, pkdlog, pkdexc
     from sirepo import job
     from sirepo import simulation_db
     from sirepo import sim_data
@@ -112,14 +112,19 @@ def upgrade_runner_to_job_db(db_dir):
             c.get('computejobCacheKey') else \
             int(p.mtime())
 
+    c = 0
     db_dir = pkio.py_path(db_dir)
     pkio.mkdir_parent(db_dir)
-    try:
-        for f in pkio.walk_tree(
-                simulation_db.user_dir_name(),
-                '/' + sirepo.job.RUNNER_STATUS_FILE + '$'
-        ):
+    for f in pkio.walk_tree(
+            simulation_db.user_dir_name(),
+            '/' + sirepo.job.RUNNER_STATUS_FILE + '$'
+    ):
+        try:
             _create_supervisor_state_file(pkio.py_path(f.dirname))
-    except Exception:
-        db_dir.remove()
-        raise
+        except Exception as e:
+            c += 1
+            if c < 50:
+
+                pkdlog('run_dir={} error={} stack={}', f, e,  pkdexc())
+            else:
+                pkdlog('run_dir={} error={}', f, e)
