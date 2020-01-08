@@ -57,12 +57,17 @@ def upgrade_runner_to_job_db(db_dir):
 
     def _add_parallel_status(in_json, sim_data, run_dir, data):
         t = sirepo.template.import_module(data.simulationType)
+        # pksetdefault emulates job_cmd._background_percent_complete
         data.parallelStatus = PKDict(
             t.background_percent_complete(
                 sim_data.parse_model(in_json),
                 run_dir,
                 False,
             )
+        ).pksetdefault(
+            lastUpdateTime=data.lastUpdateTime,
+            frameCount=0,
+            percentComplete=0.0,
         )
 
     def _create_supervisor_state_file(run_dir):
