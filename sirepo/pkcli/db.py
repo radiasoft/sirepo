@@ -123,7 +123,12 @@ def upgrade_runner_to_job_db(db_dir):
             _create_supervisor_state_file(pkio.py_path(f.dirname))
         except Exception as e:
             c += 1
+            k = PKDict(
+                run_dir=f,
+                error=str(e.args) if hasattr(e, 'args') else str(e),
+            )
+            s = 'run_dir={run_dir} error={error}'
             if c < 50:
-                pkdlog('run_dir={} error={} stack={}', f, e,  pkdexc())
-            else:
-                pkdlog('run_dir={} error={}', f, e)
+                k.stack = pkdexc()
+                s += ' stack={stack}'
+            pkdlog(s, **k)
