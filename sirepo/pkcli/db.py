@@ -124,7 +124,6 @@ def upgrade_runner_to_job_db(db_dir):
         except Exception as e:
             c += 1
             if c < 50:
-
                 pkdlog('run_dir={} error={} stack={}', f, e,  pkdexc())
             else:
                 pkdlog('run_dir={} error={}', f, e)
