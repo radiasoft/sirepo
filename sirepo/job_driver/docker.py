@@ -144,6 +144,7 @@ class DockerDriver(job_driver.DriverBase):
                 '--user={}'.format(os.getuid()),
             ) + self._volumes() + (self._image,)
             self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
+            pkdlog('cname={} cid={}', self._cname, self._cid)
         except Exception as e:
             self._agent_starting = False
             pkdlog(
@@ -203,7 +204,6 @@ class DockerDriver(job_driver.DriverBase):
     def _websocket_free(self):
         self.slot_free()
         self.run_scheduler(exclude_self=True)
-        self.host.drivers[self.kind].remove(self)
 
 
 def init_class():
