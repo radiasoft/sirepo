@@ -5,9 +5,9 @@ u"""zgoubi execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import lattice, template_common, zgoubi_importer, zgoubi_parser
@@ -303,21 +303,21 @@ def background_percent_complete(report, run_dir, is_running):
             count = read_frame_count(run_dir)
         if count:
             plt_file = run_dir.join(_ZGOUBI_PLT_DATA_FILE)
-            return {
-                'hasPlotFile': plt_file.exists(),
-                'percentComplete': 100,
-                'frameCount': count,
-                'showTunesReport': show_tunes_report,
-                'showSpin3d': show_spin_3d,
-            }
+            return PKDict(
+                hasPlotFile=plt_file.exists(),
+                percentComplete=100,
+                frameCount=count,
+                showTunesReport=show_tunes_report,
+                showSpin3d=show_spin_3d,
+            )
         else:
             error = _parse_zgoubi_log(run_dir)
-    res = {
-        'percentComplete': 0,
-        'frameCount': 0,
-    }
+    res = PKDict(
+        percentComplete=0,
+        frameCount=0,
+    )
     if error:
-        res['error'] = error
+        res.error = error
     return res
 
 

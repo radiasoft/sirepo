@@ -389,8 +389,10 @@ class SimDataBase(object):
                 res[f] = d[2]
         return res
 
+    # TODO(e-carlin): Supplying uid is a temprorary workaround until
+    # issue/2129 is resolved
     @classmethod
-    def parse_jid(cls, data):
+    def parse_jid(cls, data, uid=None):
         """A Job is a tuple of user, sid, and compute_model.
 
         A jid is words and dashes.
@@ -403,7 +405,7 @@ class SimDataBase(object):
         import sirepo.auth
 
         return _JOB_ID_SEP.join((
-            sirepo.auth.logged_in_user(),
+            uid or sirepo.auth.logged_in_user(),
             cls.parse_sid(data),
             cls.compute_model(data),
         ))

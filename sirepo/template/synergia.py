@@ -103,11 +103,11 @@ def background_percent_complete(report, run_dir, is_running):
                     percentComplete=complete if is_running else 100,
                     frameCount=size,
                     turnCount=turn,
-                );
+                )
                 res['bunchAnimation.frameCount'] = particle_file_count
                 return res
 
-        except Exception as e:
+        except Exception:
             # file present but not hdf formatted
             pass
     return PKDict(

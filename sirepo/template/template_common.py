@@ -242,7 +242,11 @@ def sim_frame_dispatch(frame_args):
     t = sirepo.template.import_module(frame_args.simulationType)
     o = getattr(t, 'sim_frame', None) \
         or getattr(t, 'sim_frame_' + frame_args.frameReport)
-    res = o(frame_args)
+    try:
+        res = o(frame_args)
+    except Exception as e:
+        pkdlog('error generating report frame_args={} stack={}', frame_args, pkdexc())
+        raise sirepo.util.convert_exception(e, display_text='Report not generated')
     if res is None:
         raise RuntimeError('unsupported simulation_frame model={}'.format(frame_args.frameReport))
     return res

@@ -143,6 +143,7 @@ class DockerDriver(job_driver.DriverBase):
                 '--user={}'.format(os.getuid()),
             ) + self._volumes() + (self._image,)
             self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
+            pkdlog('cname={} cid={}', self._cname, self._cid)
         except Exception as e:
             self._agent_starting = False
             pkdlog(
@@ -202,7 +203,6 @@ class DockerDriver(job_driver.DriverBase):
     def _websocket_free(self):
         self.slot_free()
         self.run_scheduler(exclude_self=True)
-        self.host.drivers[self.kind].remove(self)
 
 
 def init_class():
@@ -247,7 +247,7 @@ def _cmd_prefix(host, tls_d):
     for x in 'cacert', 'cert', 'key':
         f = tls_d.join(x + '.pem')
         assert f.check(), \
-            'tls file does not exist for host={}: file={}'.format(host, f)
+            'tls file does not exist for host={} file={}'.format(host, f)
         args.append('--tls{}={}'.format(x, f))
     return tuple(args)
 

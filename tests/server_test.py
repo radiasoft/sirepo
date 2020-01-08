@@ -87,16 +87,14 @@ def test_myapp_basic(fc):
     pkunit.pkre('elegant.*myapp.*srw', resp.get_data())
 
 
-def test_srw(auth_fc):
+def test_srw(fc):
     from pykern import pkio
     from pykern.pkdebug import pkdpretty
     from pykern.pkunit import pkeq, pkre
     import json
 
-    fc = auth_fc
     r = fc.sr_get_root()
     pkre('<!DOCTYPE html', r.data)
-    fc.sr_login_as_guest()
     d = fc.sr_post('listSimulations', {'simulationType': fc.sr_sim_type})
     pkeq(fc.get('/find-by-name-auth/srw/default/UndulatorRadiation').status_code, 404)
     for sep in (' ', '%20', '+'):

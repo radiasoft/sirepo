@@ -128,6 +128,7 @@ class DriverBase(PKDict):
 #  twice(?).
         self.ops_pending_send.append(op)
         if not self.websocket and not self._agent_starting:
+            pkdlog('starting agentId={} uid={}', self._agentId, self.uid)
             await self._agent_start(op.msg)
         self.run_scheduler()
         await op.send_ready.wait()
@@ -162,6 +163,7 @@ class DriverBase(PKDict):
 
     def websocket_free(self):
         """Remove holds on all resources and remove self from data structures"""
+        pkdlog('self={}', self)
         try:
             self._agent_starting = False
             w = self.websocket
@@ -179,7 +181,7 @@ class DriverBase(PKDict):
 # For sbatch, we need to ask the user to login again.
             self._websocket_free()
         except Exception as e:
-            pkdlog('error={} stack={}', e, pkdexc())
+            pkdlog('self={} error={} stack={}', self, e, pkdexc())
 
     def websocket_on_close(self):
         self.websocket_free()

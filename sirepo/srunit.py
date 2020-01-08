@@ -365,7 +365,7 @@ class _TestClient(flask.testing.FlaskClient):
             data,
             model,
             expect_completed=True,
-            timeout=7,
+            timeout=10,
             **post_args
     ):
         from pykern import pkunit

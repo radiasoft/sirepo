@@ -6,7 +6,7 @@ u"""RS4PI execution template.
 """
 
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
+from pykern.pkcollections import PKDict
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
@@ -67,16 +67,16 @@ _ZIP_FILE_NAME = 'input.zip'
 def background_percent_complete(report, run_dir, is_running):
     data_path = run_dir.join(template_common.INPUT_BASE_NAME)
     if not os.path.exists(str(simulation_db.json_filename(data_path))):
-        return {
-            'percentComplete': 0,
-            'frameCount': 0,
-        }
-    return {
-        'percentComplete': 100,
+        return PKDict(
+            percentComplete=0,
+            frameCount=0,
+        )
+    return PKDict(
+        percentComplete=100,
         # real frame count depends on the series selected
-        'frameCount': 1,
-        'errors': '',
-    }
+        frameCount=1,
+        errors='',
+    )
 
 
 def copy_related_files(data, source_path, target_path):
@@ -94,7 +94,7 @@ def copy_related_files(data, source_path, target_path):
 def generate_rtdose_file(data, run_dir):
     dose_hd5 = str(run_dir.join(DOSE_CALC_OUTPUT))
     dicom_series = data['models']['dicomSeries']
-    frame = pkcollections.Dict(
+    frame = PKDict(
         StudyInstanceUID=dicom_series['studyInstanceUID'],
         shape=np.array([
             dicom_series['planes']['t']['frameCount'],

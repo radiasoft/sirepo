@@ -45,7 +45,7 @@ def _do(fc, file_ext, parse):
     from pykern.pkunit import pkeq, pkfail, pkok, pkre
     import re
 
-    for suffix in '', ' 2', ' 3':
+    for suffix in (('',) if file_ext == 'py' else ('', ' 2', ' 3')):
         for f in pkio.sorted_glob(pkunit.data_dir().join('*.' + file_ext)):
             json = parse(f)
             sim_type = re.search(r'^([a-z]+)_', f.basename).group(1)
