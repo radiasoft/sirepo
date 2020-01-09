@@ -245,6 +245,19 @@ class DriverBase(PKDict):
             uid=self.uid,
         )
 
+    async def _agent_start(self, msg):
+        self._agent_starting = True
+        try:
+            await self._do_agent_start(msg)
+        except Exception as e:
+            self._agent_starting = False
+            pkdlog(
+                'agentId={} exception={} log={}',
+                self._agentId,
+                e,
+            )
+            raise
+
 
 async def get_instance(req, jobRunMode):
     if jobRunMode == job.SBATCH:
