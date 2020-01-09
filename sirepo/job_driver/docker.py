@@ -119,41 +119,30 @@ class DockerDriver(job_driver.DriverBase):
             self.host.slots[self.kind].in_use -= 1
             self.has_slot = False
 
-    async def _agent_start(self, msg):
-        self._agent_starting = True
-        try:
-            cmd, stdin, env = self._agent_cmd_stdin_env()
+    async def _do_agent_start(self, msg):
+        cmd, stdin, env = self._agent_cmd_stdin_env()
 #TODO(robnagler) remove PKDict after https://github.com/radiasoft/pykern/issues/50
-            c = PKDict(pykern.pkcollections.map_items(cfg[self.kind]))
-            p = (
-                'run',
-                # attach to stdin for writing
-                '--attach=stdin',
-                '--cpus={}'.format(c.get('cores', 1)),
-                '--init',
-                # keeps stdin open so we can write to it
-                '--interactive',
-                '--memory={}g'.format(c.gigabytes),
-                '--name={}'.format(self._cname),
-                '--network=host',
-                '--rm',
-                '--ulimit=core=0',
-                '--ulimit=nofile={}'.format(_MAX_OPEN_FILES),
-                # do not use a "name", but a uid, because /etc/password is image specific, but
-                # IDs are universal.
-                '--user={}'.format(os.getuid()),
-            ) + self._volumes() + (self._image,)
-            self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
-            pkdlog('cname={} cid={}', self._cname, self._cid)
-        except Exception as e:
-            self._agent_starting = False
-            pkdlog(
-                'agentId={} exception={}',
-                self._agentId,
-                e,
-                # TODO(e-carlin): read log
-            )
-            raise
+        c = PKDict(pykern.pkcollections.map_items(cfg[self.kind]))
+        p = (
+            'run',
+            # attach to stdin for writing
+            '--attach=stdin',
+            '--cpus={}'.format(c.get('cores', 1)),
+            '--init',
+            # keeps stdin open so we can write to it
+            '--interactive',
+            '--memory={}g'.format(c.gigabytes),
+            '--name={}'.format(self._cname),
+            '--network=host',
+            '--rm',
+            '--ulimit=core=0',
+            '--ulimit=nofile={}'.format(_MAX_OPEN_FILES),
+            # do not use a "name", but a uid, because /etc/password is image specific, but
+            # IDs are universal.
+            '--user={}'.format(os.getuid()),
+        ) + self._volumes() + (self._image,)
+        self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
+        pkdlog('cname={} cid={}', self._cname, self._cid)
 
     async def _cmd(self, cmd, stdin=subprocess.DEVNULL, env=None):
         c = DockerDriver.hosts[self.host.name].cmd_prefix + cmd

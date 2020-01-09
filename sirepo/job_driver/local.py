@@ -133,8 +133,7 @@ class LocalDriver(job_driver.DriverBase):
         else:
             self._agentExecDir.remove(rec=True, ignore_errors=True)
 
-    async def _agent_start(self, msg):
-        self._agent_starting = True
+    async def _do_agent_start(self, msg):
         stdin = None
         o = None
         try:
@@ -153,15 +152,6 @@ class LocalDriver(job_driver.DriverBase):
                 stderr=subprocess.STDOUT,
             )
             self.subprocess.set_exit_callback(self._agent_on_exit)
-        except Exception as e:
-            self._agent_starting = False
-            pkdlog(
-                'agentId={} exception={} log={}',
-                self._agentId,
-                e,
-                self._log.read(),
-            )
-            raise
         finally:
             if stdin:
                 stdin.close()
