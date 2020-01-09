@@ -63,8 +63,9 @@ def start():
     i.start()
 
 
-# Named command for starting sbatch agent allows us to differentiate between it
-# and non-sbatch agents for pkill in dev
+# Named command for starting sbatch differentiates between it and non-sbatch
+# agents. In development (where local and sbatch agents may be running on the
+# same machine) this allows us to pkill only sbatch agents.
 def start_sbatch():
     start()
 
