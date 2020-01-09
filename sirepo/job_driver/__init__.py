@@ -249,7 +249,6 @@ class DriverBase(PKDict):
             await self._do_agent_start(msg)
         except Exception as e:
             self._agent_starting = False
-            # TODO(e-carlin): does printing e actual work? does this lead to 2 log messages?
             pkdlog('agentId={} exception={}', self._agentId, e)
             raise
 
