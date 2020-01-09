@@ -2801,7 +2801,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                     '<button  type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
                     '</div>',
                     '<div class="modal-body">',
-                        '<form>',
+                        '<form name="form">',
                             '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
                             '<div class="form-group">',
                                 '<input type="text" class="form-control" name="username" placeholder="username" data-ng-model="username" />',
@@ -2821,14 +2821,18 @@ SIREPO.app.directive('sbatchLoginModal', function() {
               '</div>',
             '</div>',
         ].join(''),
-        controller: function(requestSender, $scope) {
-            $scope.password = "";
-            $scope.username = "";
+        controller: function(requestSender, $scope, $element) {
+            $scope.form = angular.element($($element).find('form').eq(0));
+            $scope.password = '';
+            $scope.username = '';
             var awaitingSendResponse = false;
             var el = $('#sbatch-login-modal');
             var onHidden = null;
 
             el.on('hidden.bs.modal', function() {
+                $scope.password = '';
+                $scope.username = '';
+                $scope.form.$setPristine();
                 onHidden({'state': 'error', 'error': 'Please try agian.'});
                 onHidden = null;
                 $scope.$apply();
@@ -2845,6 +2849,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                 if (onHidden === null) {
                     onHidden = data.errorCallback;
                 }
+                $scope.password = '';
                 awaitingSendResponse = false;
                 $scope.host = data.host;
                 $scope.showOtp = data.host.includes('nersc');
