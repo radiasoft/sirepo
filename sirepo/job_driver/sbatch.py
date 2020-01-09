@@ -46,6 +46,10 @@ class SbatchDriver(job_driver.DriverBase):
         return cls
 
     async def kill(self):
+        # TODO(e-carlin): this won't work for the case where the ws drops, the
+        # agent is trying to reconnect and a new request comes in that starts
+        # an agent. In that case the script that starts job_agent should kill
+        # any running agents before starting a new one
         if not self.websocket:
             # if there is no websocket then we don't know about the agent
             # so we can't do anything

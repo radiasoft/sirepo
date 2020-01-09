@@ -239,11 +239,17 @@ class DriverBase(PKDict):
         )
 
     async def _agent_start(self, msg):
-        self._agent_starting = True
         try:
+            # TODO(e-carlin): We need a timeout on agent starts. If an agent
+            # is started but never connects we will be in the '_agent_starting'
+            # state forever. After a timeout we should kill the misbehaving
+            # agent and start a new one.
+            self._agent_starting = True
+            await self.kill()
             await self._do_agent_start(msg)
         except Exception as e:
             self._agent_starting = False
+            # TODO(e-carlin): does printing e actual work? does this lead to 2 log messages?
             pkdlog('agentId={} exception={}', self._agentId, e)
             raise
 

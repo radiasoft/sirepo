@@ -90,6 +90,7 @@ class LocalDriver(job_driver.DriverBase):
             self.subprocess.proc.kill,
         )
         await self._agent_exit.wait()
+        self._agent_exit.clear()
 
     def run_scheduler(self, exclude_self=False):
         self.free_slots()
@@ -114,16 +115,10 @@ class LocalDriver(job_driver.DriverBase):
             self.slots[self.kind].in_use -= 1
             self.has_slot = False
 
-    def terminate(self):
-        if 'subprocess' in self:
-            self.subprocess.proc.kill()
-
     def _agent_on_exit(self, returncode):
         self._agent_exit.set()
         self.pkdel('subprocess')
         k = self.pkdel('kill_timeout')
-        # TODO(e-carlin): verify
-        #TODO(robnagler) what is there to verify? Maybe add to a test?
         if k:
             tornado.ioloop.IOLoop.current().remove_timeout(k)
         pkdlog('agentId={} returncode={}', self._agentId, returncode)
