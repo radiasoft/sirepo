@@ -71,11 +71,13 @@ class SbatchDriver(job_driver.DriverBase):
 
     async def send(self, op):
         m = op.msg
+        if not self.websocket:
+            if 'username' not in m:
+                self._raise_sbatch_login_srexception('no-creds', m)
+
         if self._srdb_root is None:
             assert not self.websocket, \
                 'expected no agent if _srdb_root not set msg={}'.format(m)
-            if 'username' not in m:
-                self._raise_sbatch_login_srexception('no-creds', m)
             self._srdb_root = cfg.srdb_root.format(sbatch_user=m.username)
         m.userDir = '/'.join(
             (
