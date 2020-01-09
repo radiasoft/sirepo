@@ -40,7 +40,7 @@ _IN_FILE = 'in-{}.json'
 cfg = None
 
 
-def default_command():
+def start():
 #TODO(robnagler) commands need their own init hook like the server has
     job.init()
     global cfg
@@ -61,6 +61,12 @@ def default_command():
     signal.signal(signal.SIGINT, s)
     i.spawn_callback(d.loop)
     i.start()
+
+
+# Named command for starting sbatch agent allows us to differentiate between it
+# and non-sbatch agents for pkill in dev
+def start_sbatch():
+    start()
 
 
 class _Dispatcher(PKDict):

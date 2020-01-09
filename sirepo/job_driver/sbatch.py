@@ -115,10 +115,11 @@ class SbatchDriver(job_driver.DriverBase):
                 script = f'''#!/bin/bash
 {self._agent_start_dev()}
 set -e
+pkill -f 'sirepo job_agent start_sbatch' >& /dev/null || true
 mkdir -p '{self._srdb_root}'
 cd '{self._srdb_root}'
 {self._agent_env()}
-setsid {cfg.sirepo_cmd} job_agent >& job_agent.log &
+setsid {cfg.sirepo_cmd} job_agent start_sbatch >& job_agent.log &
 disown
 '''
                 async with c.create_process('/bin/bash') as p:
@@ -141,7 +142,6 @@ disown
         if not pkconfig.channel_in('dev'):
             return ''
         res = '''
-pkill -f 'sirepo job_agent' >& /dev/null || true
 scancel -u $USER >& /dev/null || true
 '''
         if cfg.shifter_image:
