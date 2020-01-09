@@ -100,7 +100,6 @@ class SbatchDriver(job_driver.DriverBase):
         )
 
     async def _agent_start(self, msg):
-        self._agent_starting = True
         try:
             async with asyncssh.connect(
                 cfg.host,
@@ -129,13 +128,6 @@ disown
                             )
                         )
         except Exception as e:
-            self._agent_starting = False
-            pkdlog(
-                'agentId={} exception={}',
-                self._agentId,
-                e,
-            #TODO(robnagler) try to read the job_agent.log
-            )
             if isinstance(e, asyncssh.misc.PermissionDenied):
                 self._srdb_root = None
                 self._raise_sbatch_login_srexception('invalid-creds', msg)
