@@ -106,9 +106,9 @@ class DockerDriver(job_driver.DriverBase):
                 o.send_ready.set()
 
     async def kill(self):
-        pkdlog('{}: stop cid={}', self.uid, self._cid)
         if '_cid' not in self:
             return
+        pkdlog('uid={} cid={}', self.get('uid'), self.get('_cid'))
         await self._cmd(
             ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), self._cid),
         )
