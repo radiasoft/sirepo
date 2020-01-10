@@ -1615,22 +1615,31 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         if (u.indexOf('/') < 0) {
             u = self.formatUrl(u, params);
         }
-        $window.location.href = u;
-        if (reload) {
-            // need to reload after location is set, because may
-            // be in cache iwc the app is still loaded
-            // https://github.com/radiasoft/sirepo/issues/2071
-            $interval(
-                function () {
-                    $window.location.reload(true);
-                },
-                // avoids an abort message in firefox
-                // https://github.com/radiasoft/sirepo/issues/2130
-                isFirefox() ? 100 : 1,
-                1,
-                false
-            );
+        var i = u.indexOf('#');
+        // https://github.com/radiasoft/sirepo/issues/2160
+        // hash is persistent even if setting href so explicitly
+        // set hash before href to avoid loops (e.g. #/server-upgraded)
+        if (i >= 0) {
+            $window.location.hash = u.substring(i);
+            u = u.substring(0, i);
         }
+        else {
+            $window.location.hash = '#';
+        }
+        $window.location.href = u;
+//        if (reload) {
+//            // need to reload after location is set, because may
+//            // be in cache iwc the app is still loaded
+//            // https://github.com/radiasoft/sirepo/issues/2071
+//            $interval(
+//                function () {
+//                    $window.location.reload(true);
+//                },
+//                1,
+//                1,
+//                false
+//            );
+//        }
     };
 
     self.globalRedirectRoot = function() {
