@@ -67,30 +67,36 @@ class SbatchDriver(job_driver.DriverBase):
 
     async def send(self, op):
         m = op.msg
-        if self._srdb_root is None:
-            assert not self.websocket, \
-                'expected no agent if _srdb_root not set msg={}'.format(m)
-            if 'username' not in m:
-                self._raise_sbatch_login_srexception('no-creds', m)
-            self._srdb_root = cfg.srdb_root.format(sbatch_user=m.username)
-        m.userDir = '/'.join(
-            (
-                str(self._srdb_root),
-                sirepo.simulation_db.USER_ROOT_DIR,
-                m.uid,
+        try:
+            self._creds = m.pkdel('sbatchCredentials')
+            if self._srdb_root is None:
+                assert not self.websocket, \
+                    'expected no agent if _srdb_root not set msg={}'.format(m)
+                if not self._creds or 'username' not in self._creds:
+                    self._raise_sbatch_login_srexception('no-creds', m)
+                self._srdb_root = cfg.srdb_root.format(
+                    sbatch_user=self._creds.username,
+                )
+            m.userDir = '/'.join(
+                (
+                    str(self._srdb_root),
+                    sirepo.simulation_db.USER_ROOT_DIR,
+                    m.uid,
+                )
             )
-        )
-        m.runDir = '/'.join((m.userDir, m.simulationType, m.computeJid))
-        if op.opName == job.OP_RUN:
-            assert m.sbatchHours
-            if cfg.cores:
-                # override for dev
-                m.sbatchCores = cfg.cores
-            m.mpiCores = m.sbatchCores
-            if op.kind == job.PARALLEL:
-                op.maxRunSecs = 0
-        m.shifterImage = cfg.shifter_image
-        return await super().send(op)
+            m.runDir = '/'.join((m.userDir, m.simulationType, m.computeJid))
+            if op.opName == job.OP_RUN:
+                assert m.sbatchHours
+                if cfg.cores:
+                    # override for dev
+                    m.sbatchCores = cfg.cores
+                m.mpiCores = m.sbatchCores
+                if op.kind == job.PARALLEL:
+                    op.maxRunSecs = 0
+            m.shifterImage = cfg.shifter_image
+            return await super().send(op)
+        finally:
+            self.pkdel('_creds')
 
     def _agent_env(self):
         return super()._agent_env(
@@ -104,9 +110,8 @@ class SbatchDriver(job_driver.DriverBase):
         try:
             async with asyncssh.connect(
                 cfg.host,
-    #TODO(robnagler) add password management
-                username=msg.username,
-                password=msg.password + msg.otp if 'nersc' in cfg.host else msg.password,
+                username=self._creds.username,
+                password=self._creds.password + self._creds.otp if 'nersc' in cfg.host else self._creds.password,
                 known_hosts=_KNOWN_HOSTS,
             ) as c:
                 script = f'''#!/bin/bash
@@ -169,6 +174,7 @@ scancel -u $USER >& /dev/null || true
         )
 
     def _websocket_free(self):
+        self._srdb_root = None
         self.run_scheduler(exclude_self=True)
 
 
