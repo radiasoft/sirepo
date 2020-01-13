@@ -226,10 +226,10 @@ def init_class():
             gigabytes=(1, int, 'gigabytes per sequential job'),
             slots_per_host=(1, int, 'sequential slots per node'),
         ),
-        supervisor_ip=(
-            job.DEFAULT_IP,
+        supervisor_host=(
+            job.DEFAULT_HOST,
             str,
-            'ip address agents will reach supervisor on'
+            'host agents will reach supervisor on'
         ),
         supervisor_port=(
             job.DEFAULT_PORT,

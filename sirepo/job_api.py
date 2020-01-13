@@ -153,10 +153,10 @@ def init_apis(*args, **kwargs):
     pykern.pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
 
     cfg = pykern.pkconfig.init(
-            supervisor_ip=(
-                sirepo.job.DEFAULT_IP,
+            supervisor_host=(
+                sirepo.job.DEFAULT_HOST,
                 str,
-                'ip address to reach supervisor on'
+                'host to reach supervisor on'
             ),
             supervisor_port=(
                 sirepo.job.DEFAULT_PORT,
@@ -165,7 +165,7 @@ def init_apis(*args, **kwargs):
             ),
     )
     SUPERVISOR_URI = sirepo.job.supervisor_uri(
-        cfg.supervisor_ip,
+        cfg.supervisor_host,
         cfg.supervisor_port
     )
 

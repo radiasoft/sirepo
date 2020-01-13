@@ -260,7 +260,7 @@ def _job_supervisor_check(env):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
-        s.bind((sirepo.job.DEFAULT_IP, int(sirepo.job.DEFAULT_PORT)))
+        s.bind((sirepo.job.DEFAULT_HOST, int(sirepo.job.DEFAULT_PORT)))
     except Exception:
         raise AssertionError(
             'job_supervisor still running on port={}'.format(sirepo.job.DEFAULT_PORT),
@@ -323,7 +323,7 @@ def _job_supervisor_start(request, cfg=None):
 
     from pykern import pkunit
     from pykern.pkcollections import PKDict
-    import sirepo.job
+    import sirepo.job_api
     import subprocess
     import time
 
@@ -338,7 +338,7 @@ def _job_supervisor_start(request, cfg=None):
             break
         time.sleep(.1)
     else:
-        pkunit.pkfail('could not connect to {}', sirepo.job.SERVER_PING_ABS_URI)
+        pkunit.pkfail('could not connect to {}', sirepo.job_api.SUPERVISOR_URI)
     return p, fc
 
 

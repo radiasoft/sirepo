@@ -29,7 +29,7 @@ def default_command():
 
     cfg = pkconfig.init(
         debug=(pkconfig.channel_in('dev'), bool, 'run supervisor in debug mode'),
-        ip=(sirepo.job.DEFAULT_IP, str, 'ip address to listen on'),
+        host=(sirepo.job.DEFAULT_HOST, str, 'host to listen on'),
         port=(sirepo.job.DEFAULT_PORT, int, 'what port to listen on'),
     )
     sirepo.job_supervisor.init()
@@ -48,10 +48,10 @@ def default_command():
         static_url_prefix=sirepo.job.LIB_FILE_URI + '/',
     )
     server = tornado.httpserver.HTTPServer(app)
-    server.listen(cfg.port, cfg.ip)
+    server.listen(cfg.port, cfg.host)
     signal.signal(signal.SIGTERM, _sigterm)
     signal.signal(signal.SIGINT, _sigterm)
-    pkdlog('ip={} port={}', cfg.ip, cfg.port)
+    pkdlog('host={} port={}', cfg.host, cfg.port)
     tornado.ioloop.IOLoop.current().start()
 
 

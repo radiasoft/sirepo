@@ -57,7 +57,7 @@ SUPERVISOR_SRV_SUBDIR = 'supervisor-srv'
 #: how jobs request files (absolute)
 SUPERVISOR_SRV_ROOT = None
 
-DEFAULT_IP = socket.gethostname()
+DEFAULT_HOST = socket.gethostname()
 
 DEFAULT_PORT = 8001
 

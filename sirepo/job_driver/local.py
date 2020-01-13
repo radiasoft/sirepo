@@ -74,7 +74,7 @@ class LocalDriver(job_driver.DriverBase):
     @classmethod
     def init_class(cls):
         cls.SUPERVISOR_URI = job.supervisor_uri(
-            cfg.supervisor_ip,
+            cfg.supervisor_host,
             cfg.supervisor_port
         )
         for k in job.KINDS:
@@ -186,10 +186,10 @@ def init_class():
             parallel=(1, int, 'max parallel slots'),
             sequential=(1, int, 'max sequential slots'),
         ),
-        supervisor_ip=(
-            job.DEFAULT_IP,
+        supervisor_host=(
+            job.DEFAULT_HOST,
             str,
-            'ip address agents will reach supervisor on'
+            'host agents will reach supervisor on'
         ),
         supervisor_port=(
             job.DEFAULT_PORT,
