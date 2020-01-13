@@ -71,20 +71,20 @@ def start_sbatch():
             os.kill(pid_file.pid, signal.SIGKILL)
         else:
             try:
-                subprocess.check_output(
+                subprocess.run(
                     ('ssh', pid_file.fqdn, 'kill', '-KILL', str(pid_file.pid)),
-                    stderr=subprocess.STDOUT,
-                )
+                    capture_output=True,
+                ).check_returncode()
             except subprocess.CalledProcessError as e:
                 pkdp(
-                    'cmd={cmd} returncode={returncode} output={output}',
+                    'cmd={cmd} returncode={returncode} stderr={stderr}',
                     **vars(e)
                 )
     try:
-        f = pkio.py_path(_PID_FILE)
-        if f.exists():
-            kill_agent(pkjson.load_any(f))
+        kill_agent(pkjson.load_any(pkio.py_path(_PID_FILE)))
     except Exception as e:
+        if pkio.exception_is_not_found(e):
+            pass
         pkdlog('error={} stack={}', e, pkdexc())
     pkjson.dump_pretty(
         PKDict(
@@ -92,7 +92,6 @@ def start_sbatch():
             pid=os.getpid(),
         ),
         _PID_FILE,
-        pretty=False,
     )
     try:
         start()
@@ -673,5 +672,5 @@ class _ReadUntilCloseStream(_Stream):
 
 
 def _terminate(dispatcher):
-    pkio.unchecked_remove(_PID_FILE)
     dispatcher.terminate()
+    pkio.unchecked_remove(_PID_FILE)
