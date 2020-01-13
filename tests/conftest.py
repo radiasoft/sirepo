@@ -323,7 +323,6 @@ def _job_supervisor_start(request, cfg=None):
 
     from pykern import pkunit
     from pykern.pkcollections import PKDict
-    import sirepo.job_api
     import subprocess
     import time
 
@@ -338,6 +337,7 @@ def _job_supervisor_start(request, cfg=None):
             break
         time.sleep(.1)
     else:
+        import sirepo.job_api
         pkunit.pkfail('could not connect to {}', sirepo.job_api.SUPERVISOR_URI)
     return p, fc
 
