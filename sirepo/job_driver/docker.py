@@ -80,7 +80,7 @@ class DockerDriver(job_driver.DriverBase):
     @classmethod
     def init_class(cls):
         cls.SUPERVISOR_URI = job.supervisor_uri(
-            cfg.supervisor_ip,
+            cfg.supervisor_host,
             cfg.supervisor_port
         )
         for k in job.KINDS:
