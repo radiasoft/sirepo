@@ -113,7 +113,6 @@ class SbatchDriver(job_driver.DriverBase):
                 script = f'''#!/bin/bash
 {self._agent_start_dev()}
 set -e
-pkill -u $USER -f 'sirepo job_agent start_sbatch' >& /dev/null || true
 mkdir -p '{self._srdb_root}'
 cd '{self._srdb_root}'
 {self._agent_env()}

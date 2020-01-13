@@ -18,6 +18,7 @@ import os
 import re
 import signal
 import sirepo.auth
+import socket
 import subprocess
 import sys
 import time
@@ -36,6 +37,7 @@ _RETRY_SECS = 1
 
 _IN_FILE = 'in-{}.json'
 
+_PID_FILE = 'job_agent.pid'
 
 cfg = None
 
@@ -55,19 +57,47 @@ def start():
     pkdlog('{}', cfg)
     i = tornado.ioloop.IOLoop.current()
     d = _Dispatcher()
-    def s(n, x):
-        return i.add_callback_from_signal(d.terminate)
+    def s(*args):
+        return i.add_callback_from_signal(_terminate, d)
     signal.signal(signal.SIGTERM, s)
     signal.signal(signal.SIGINT, s)
     i.spawn_callback(d.loop)
     i.start()
 
 
-# Named command for starting sbatch differentiates between it and non-sbatch
-# agents. In development (where local and sbatch agents may be running on the
-# same machine) this allows us to pkill only sbatch agents.
 def start_sbatch():
-    start()
+    def kill_agent(pid_file):
+        if socket.getfqdn() == pid_file.fqdn:
+            os.kill(pid_file.pid, signal.SIGKILL)
+        else:
+            try:
+                subprocess.check_output(
+                    ('ssh', pid_file.fqdn, 'kill', '-KILL', str(pid_file.pid)),
+                    stderr=subprocess.STDOUT,
+                )
+            except subprocess.CalledProcessError as e:
+                pkdp(
+                    'cmd={cmd} returncode={returncode} output={output}',
+                    **vars(e)
+                )
+    try:
+        f = pkio.py_path(_PID_FILE)
+        if f.exists():
+            kill_agent(pkjson.load_any(f))
+    except Exception as e:
+        pkdlog('error={} stack={}', e, pkdexc())
+    pkjson.dump_pretty(
+        PKDict(
+            fqdn=socket.getfqdn(),
+            pid=os.getpid(),
+        ),
+        _PID_FILE,
+        pretty=False,
+    )
+    try:
+        start()
+    finally:
+        pkio.unchecked_remove(_PID_FILE)
 
 
 class _Dispatcher(PKDict):
@@ -640,3 +670,8 @@ class _ReadUntilCloseStream(_Stream):
         assert l < self._MAX, \
             'len(bytes)={} greater than _MAX={}'.format(l, _MAX)
         self.text.extend(t)
+
+
+def _terminate(dispatcher):
+    pkio.unchecked_remove(_PID_FILE)
+    dispatcher.terminate()
