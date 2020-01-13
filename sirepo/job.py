@@ -14,6 +14,7 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 import sirepo.srdb
 import sirepo.util
 import re
+import socket
 
 
 OP_ANALYSIS = 'analysis'
@@ -29,19 +30,11 @@ OP_SBATCH_LOGIN = 'sbatch_login'
 #: path supervisor registers to receive messages from agent
 AGENT_URI = '/job-agent-websocket'
 
-#: requests from the agent
-AGENT_ABS_URI = None
-
 #: path supervisor registers to receive requests from server
 SERVER_URI = '/job-api-request'
 
-#: requests from the flask server
-SERVER_ABS_URI = None
-
 #: path supervisor registers to receive pings from server
 SERVER_PING_URI = '/job-api-ping'
-#: requests from the flask server
-SERVER_PING_ABS_URI = None
 
 #: path supervisor registers to receive requests from job_process for file PUTs
 DATA_FILE_URI = '/job-cmd-data-file'
@@ -58,19 +51,13 @@ LIB_FILE_ROOT = None
 #: where user data files come in (job_supervisor)
 DATA_FILE_ROOT = None
 
-#: where job_processes request files lib files for api_runSimulation
-LIB_FILE_ABS_URI = None
-
-#: where job_process will PUT data files for api_downloadDataFile
-DATA_FILE_ABS_URI = None
-
 #: how jobs request files (relative to `srdb.root`)
 SUPERVISOR_SRV_SUBDIR = 'supervisor-srv'
 
 #: how jobs request files (absolute)
 SUPERVISOR_SRV_ROOT = None
 
-DEFAULT_IP = '127.0.0.1'
+DEFAULT_IP = socket.gethostname()
 
 DEFAULT_PORT = 8001
 
@@ -103,6 +90,7 @@ RUN_MODES = frozenset((SEQUENTIAL, PARALLEL, SBATCH))
 KINDS = frozenset((SEQUENTIAL, PARALLEL))
 
 cfg = None
+
 
 def agent_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.', source_bashrc=''):
     """Convert `cmd` in `pyenv` with `env` to script and cmd
@@ -168,6 +156,7 @@ def agent_env(env=None, uid=None):
     )
     return '\n'.join(("export {}='{}'".format(k, v) for k, v in env.items()))
 
+
 def init():
     global cfg
 
@@ -177,27 +166,13 @@ def init():
             str,
             'shared secret between supervisor and server',
         ),
-        supervisor_uri=(
-            'http://{}:{}'.format(DEFAULT_IP, DEFAULT_PORT),
-            str,
-            'supervisor base uri',
-        ),
         verify_tls=(not pkconfig.channel_in('dev'), bool, 'do not validate (self-signed) certs'),
     )
-    global SUPERVISOR_SRV_ROOT, LIB_FILE_ROOT, DATA_FILE_ROOT, \
-        LIB_FILE_ABS_URI, DATA_FILE_ABS_URI, AGENT_ABS_URI, \
-        SERVER_ABS_URI, SERVER_PING_ABS_URI
+    global SUPERVISOR_SRV_ROOT, LIB_FILE_ROOT, DATA_FILE_ROOT
 
     SUPERVISOR_SRV_ROOT = sirepo.srdb.root().join(SUPERVISOR_SRV_SUBDIR)
     LIB_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(LIB_FILE_URI[1:])
     DATA_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(DATA_FILE_URI[1:])
-    # trailing slash necessary
-    LIB_FILE_ABS_URI = cfg.supervisor_uri + LIB_FILE_URI + '/'
-    DATA_FILE_ABS_URI = cfg.supervisor_uri + DATA_FILE_URI + '/'
-#TODO(robnagler) figure out why we need ws (wss, implicit)
-    AGENT_ABS_URI = cfg.supervisor_uri.replace('http', 'ws', 1) + AGENT_URI
-    SERVER_ABS_URI = cfg.supervisor_uri + SERVER_URI
-    SERVER_PING_ABS_URI = cfg.supervisor_uri + SERVER_PING_URI
 
 
 def init_by_server(app):
@@ -208,6 +183,10 @@ def init_by_server(app):
     from sirepo import uri_router
 
     uri_router.register_api_module(job_api)
+
+
+def supervisor_uri(ip, port):
+    return 'http://{}:{}'.format(ip, port)
 
 
 def unique_key():

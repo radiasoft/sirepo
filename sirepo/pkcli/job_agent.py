@@ -565,7 +565,7 @@ class _Process(PKDict):
             close_fds=True,
             cwd=str(self.cmd.run_dir),
             env=e,
-            start_new_session=True, # TODO(e-carlin): generalize?
+            start_new_session=True,
             stdin=s,
             stdout=tornado.process.Subprocess.STREAM,
             stderr=tornado.process.Subprocess.STREAM,

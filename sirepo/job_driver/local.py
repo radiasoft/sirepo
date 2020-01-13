@@ -20,6 +20,7 @@ import tornado.ioloop
 import tornado.process
 import tornado.queues
 
+
 cfg = None
 
 
@@ -72,6 +73,10 @@ class LocalDriver(job_driver.DriverBase):
 
     @classmethod
     def init_class(cls):
+        cls.SUPERVISOR_URI = job.supervisor_uri(
+            cfg.supervisor_ip,
+            cfg.supervisor_port
+        )
         for k in job.KINDS:
             cls.instances[k] = []
             cls.slots[k] = PKDict(
@@ -180,6 +185,16 @@ def init_class():
         slots=dict(
             parallel=(1, int, 'max parallel slots'),
             sequential=(1, int, 'max sequential slots'),
+        ),
+        supervisor_ip=(
+            job.DEFAULT_IP,
+            str,
+            'ip address agents will reach supervisor on'
+        ),
+        supervisor_port=(
+            job.DEFAULT_PORT,
+            int,
+            'port agents will reach supervisor on'
         ),
     )
     return LocalDriver.init_class()
