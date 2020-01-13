@@ -55,7 +55,10 @@ def test_warppba_login(fc):
     s = 'Laser Pulse'
     c = 'animation'
     data = fc.sr_sim_data(s)
-    data.models[c].jobRunMode = 'sbatch'
+    data.models[c].pkupdate(
+        jobRunMode='sbatch',
+        sbatchCores=2,
+    )
     with pkexcept('SRException.*no-creds'):
         fc.sr_run_sim(data, c, expect_completed=False)
     fc.sr_post(
