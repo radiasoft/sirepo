@@ -1,0 +1,51 @@
+
+.sr-plot .dicom-roi {
+  fill: none;
+  stroke-width: 4px;
+  stroke-dasharray: 5,5;
+  stroke-width: 2px;
+  fill-rule: evenodd;
+  pointer-events: none;
+}
+
+.sr-plot .dicom-roi-selected {
+  stroke-dasharray: 1,0;
+}
+
+.sr-plot .dicom-roi-drawing {
+  stroke-width: 2px;
+  stroke-dasharray: 1,0;
+}
+
+.sr-plot .dicom-dragpath {
+  stroke: #fff;
+  stroke-opacity: 0;
+  fill: none;
+  stroke-width: 15px;
+}
+
+.sr-plot .dicom-dragpath:hover {
+  stroke-opacity: 0.1;
+}
+
+.sr-plot .dicom-dragpath-move {
+  cursor: move;
+}
+
+.sr-plot .dicom-dragpath-select {
+  cursor: auto;
+}
+
+.sr-plot .dicom-roimode-draw {
+  cursor: crosshair;
+}
+
+.sr-plot .dicom-draw-start {
+  stroke: rgb(0,230,0);
+  stroke-width: 1px;
+  fill: none;
+}
+
+.dicom-button-panel {
+  margin-bottom: 1ex;
+}

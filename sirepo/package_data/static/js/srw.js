@@ -1978,31 +1978,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
     };
 });
 
-//TODO(pjm): move this to sirepo-components and share with warpvnd
-SIREPO.app.service('vtkToPNG', function(plotToPNG, utilities) {
-    this.pngCanvas = function(reportId, vtkRenderer, panel) {
-        var canvas = document.createElement('canvas');
-        var res = {
-            copyCanvas: function() {
-                var canvas3d = $(panel).find('canvas')[0];
-                canvas.width = parseInt(canvas3d.getAttribute('width'));
-                canvas.height = parseInt(canvas3d.getAttribute('height'));
-                // this call makes sure the buffer is fresh (it appears)
-                vtkRenderer.getOpenGLRenderWindow().traverseAllPasses();
-                canvas.getContext('2d').drawImage(canvas3d, 0, 0, canvas.width, canvas.height);
-            },
-            destroy: function() {
-                panel.off();
-                plotToPNG.removeCanvas(reportId);
-            },
-        };
-        plotToPNG.addCanvas(canvas, reportId);
-        $(panel).on('pointerup', res.copyCanvas);
-        $(panel).on('wheel', utilities.debounce(res.copyCanvas, 100));
-        return res;
-    };
-});
-
 SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkToPNG) {
     return {
         restrict: 'A',

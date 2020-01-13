@@ -1,0 +1,42 @@
+{
+    "enum": {
+    },
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "vtk.js"
+            ]
+        },
+        "sirepoLibs": {
+            "js": ["irad.js"],
+            "css": [
+                "vtk.css",
+                "irad.css"
+            ]
+        }
+    },
+    "frameIdFields": {
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/irad-source.html"
+            }
+        }
+    },
+    "model": {
+        "dicom3DReport": {},
+        "dicomReport": {}
+    },
+    "view": {
+        "dicom3DReport": {
+            "title": "3D DICOM",
+            "advanced": []
+        },
+        "dicomReport": {
+            "title": "DICOM",
+            "advanced": []
+        }
+    }
+}

@@ -20,6 +20,10 @@
             "longName": "Hellweg",
             "shortName": "Hellweg"
         },
+        "irad": {
+            "longName": "IRAD",
+            "shortName": "IRAD"
+        },
         "jspec": {
             "longName": "JSPEC",
             "shortName": "JSPEC"
