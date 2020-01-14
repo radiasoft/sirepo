@@ -38,8 +38,9 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
             if (source) {
                 m.setInputConnection(source.getOutputPort());
             }
-            var a = vtk.Rendering.Core.vtkActor.newInstance();
-            a.setMapper(m);
+            var a = vtk.Rendering.Core.vtkActor.newInstance({
+                mapper: m
+            });
 
             return {
                 actor: a,
@@ -63,6 +64,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
             buildActorBundle: function(source) {
                 return actorBundle(source);
             },
+
             buildBox: function(labSize, labCenter) {
                 var vsize = labSize ? this.xform.doTransform(labSize) :  [1, 1, 1];
                 var cs = vtk.Filters.Sources.vtkCubeSource.newInstance({
@@ -84,6 +86,15 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
 
                 return ab;
             },
+
+            // arbitrary vtk source, transformed
+            buildFromSource: function(src) {
+                // add transform
+                let ab = actorBundle(src);
+                ab.actor.setUserMatrix(this.userMatrix());
+                return ab;
+            },
+
             buildLine: function(labP1, labP2, colorArray) {
                 var vp1 = this.xform.doTransform(labP1);
                 var vp2 = this.xform.doTransform(labP2);
@@ -97,6 +108,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 ab.actor.getProperty().setColor(colorArray[0], colorArray[1], colorArray[2]);
                 return ab;
             },
+
             buildPlane: function(labOrigin, labP1, labP2) {
                 var src = vtk.Filters.Sources.vtkPlaneSource.newInstance();
                 var b = actorBundle(src);
@@ -105,6 +117,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 }
                 return b;
             },
+
             buildSphere: function(lcenter, radius, colorArray) {
                 var ps = vtk.Filters.Sources.vtkSphereSource.newInstance({
                     center: lcenter ? this.xform.doTransform(lcenter) : [0, 0, 0],
@@ -118,6 +131,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 ab.actor.getProperty().setLighting(false);
                 return ab;
             },
+
             buildSTL: function(file, callback) {
                 var cm = this;
                 var r = self.getSTLReader(file);
@@ -153,6 +167,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 }
 
             },
+
             setPlane: function(planeBundle, labOrigin, labP1, labP2) {
                 var vo = labOrigin ? this.xform.doTransform(labOrigin) : [0, 0, 0];
                 var vp1 = labP1 ? this.xform.doTransform(labP1) : [0, 0, 1];
@@ -161,11 +176,61 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 planeBundle.source.setPoint1(vp1[0], vp1[1], vp1[2]);
                 planeBundle.source.setPoint2(vp2[0], vp2[1], vp2[2]);
             },
+
+            userMatrix: function () {
+                let m = transform.matrix.flat();
+                m.splice(3, 0, 0);
+                m.splice(7, 0, 0);
+                m.push(0);
+                m.push (0, 0, 0, 1);
+                return m;
+            }
         };
     };
 
     self.clearSTLReaders = function() {
         stlReaders = {};
+    };
+
+    self.cylinderSection = function(center, axis, radius, height, planes) {
+        const startAxis = [0, 0, 1];
+        const startOrigin = [0, 0, 0];
+        const cylBounds = [-radius, radius, -radius, radius, -height/2.0, height/2.0];
+        const cyl = vtk.Common.DataModel.vtkCylinder.newInstance({
+            radius: radius,
+            center: startOrigin,
+            axis: startAxis
+        });
+
+        const pl = planes.map(function (p) {
+            return vtk.Common.DataModel.vtkPlane.newInstance({
+                normal: p.norm || startAxis,
+                origin: p.origin || startOrigin
+            });
+        });
+
+        // perform the sectioning
+        const section = vtk.Common.DataModel.vtkImplicitBoolean.newInstance({
+            operation: 'Intersection',
+            functions: [cyl, ...pl]
+        });
+
+        const sectionSample = vtk.Imaging.Hybrid.vtkSampleFunction.newInstance({
+            implicitFunction: section,
+            modelBounds: cylBounds,
+            sampleDimensions: [32, 32, 32]
+        });
+
+        const sectionSource = vtk.Filters.General.vtkImageMarchingCubes.newInstance();
+        sectionSource.setInputConnection(sectionSample.getOutputPort());
+        // this transformation adapted from VTK cylinder source - we don't "untranslate" because we want to
+        // rotate in place, not around the global origin
+        vtk.Common.Core.vtkMatrixBuilder
+            .buildFromRadian()
+            .translate(...center)
+            .rotateFromDirections(startAxis, axis)
+            .apply(sectionSource.getOutputData().getPoints().getData());
+       return sectionSource;
     };
 
     self.getSTLReader = function(file) {
@@ -217,6 +282,54 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
         if (stlReaders[file]) {
             delete stlReaders[file];
         }
+    };
+
+    self.setColorScalars = function(data, color) {
+        const pts = data.getPoints();
+        const n = color.length * (pts.getData().length / pts.getNumberOfComponents());
+        const pd = data.getPointData();
+        const s = pd.getScalars();
+        const rgb = s ? s.getData() : new window.Uint8Array(n);
+        for (let i = 0; i < n; i += color.length) {
+            for (let j = 0; j < color.length; ++j) {
+                rgb[i + j] = color[j];
+            }
+        }
+        pd.setScalars(
+            vtk.Common.Core.vtkDataArray.newInstance({
+                name: 'color',
+                numberOfComponents: color.length,
+                values: rgb,
+            })
+        );
+
+        data.modified();
+    };
+
+
+    self.sirepoLogo3D = function() {
+        let source = vtk.Filters.General.vtkAppendPolyData.newInstance();
+        const r2 = 1.0;
+        const r1 = r2 / 2.0;
+        const R = 3 * r2;
+        for (let i = 0; i < 8; ++i) {
+            let th = (i + 1) * Math.PI / 4;
+            let s = vtk.Filters.Sources.vtkSphereSource.newInstance({
+                radius: r2 - (i * (r2 -r1) / 7),
+                center: [R * Math.sin(th),  R * Math.cos(th), 0],
+                thetaResolution: 24,
+                phiResolution: 24,
+            }).getOutputData();
+            if (i === 0) {
+                self.setColorScalars(s, [31, 91, 165]);
+                source.setInputData(s);
+            }
+            else {
+                self.setColorScalars(s, [154, 195, 85]);
+                source.addInputData(s);
+            }
+        }
+        return self.coordMapper().buildFromSource(source);
     };
 
     self.stlFileType = 'stl-file';
