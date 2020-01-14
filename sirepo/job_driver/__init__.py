@@ -238,7 +238,6 @@ class DriverBase(PKDict):
     def _agent_env(self, env=None):
         return job.agent_env(
             env=(env or PKDict()).pksetdefault(
-                PYKERN_PKDEBUG_WANT_PID_TIME=1,
                 SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=job.AGENT_ABS_URI,
             ),
