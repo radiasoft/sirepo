@@ -20,6 +20,7 @@ import tornado.ioloop
 import tornado.process
 import tornado.queues
 
+
 cfg = None
 
 
@@ -90,6 +91,7 @@ class LocalDriver(job_driver.DriverBase):
             self.subprocess.proc.kill,
         )
         await self._agent_exit.wait()
+        self._agent_exit.clear()
 
     def run_scheduler(self, exclude_self=False):
         self.free_slots()
@@ -114,10 +116,6 @@ class LocalDriver(job_driver.DriverBase):
             self.slots[self.kind].in_use -= 1
             self.has_slot = False
 
-    def terminate(self):
-        if 'subprocess' in self:
-            self.subprocess.proc.kill()
-
     def _agent_on_exit(self, returncode):
         self._agent_exit.set()
         self.pkdel('subprocess')
@@ -125,7 +123,11 @@ class LocalDriver(job_driver.DriverBase):
         if k:
             tornado.ioloop.IOLoop.current().remove_timeout(k)
         pkdlog('agentId={} returncode={}', self._agentId, returncode)
-        self._agentExecDir.remove(rec=True, ignore_errors=True)
+        if pkconfig.channel_in('dev'):
+            if returncode != 0 and self._log.size() > 0:
+                pkdlog('{}: {}', self._log, self._log.read())
+        else:
+            self._agentExecDir.remove(rec=True, ignore_errors=True)
 
     async def _do_agent_start(self, msg):
         stdin = None
@@ -158,5 +160,6 @@ def init_class():
             parallel=(1, int, 'max parallel slots'),
             sequential=(1, int, 'max sequential slots'),
         ),
+        supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
     )
     return LocalDriver.init_class()

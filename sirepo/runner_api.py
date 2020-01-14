@@ -21,6 +21,7 @@ import hashlib
 import inspect
 import sirepo.sim_data
 import sirepo.template
+import sirepo.util
 import time
 
 #: What is_running?
@@ -34,6 +35,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         id=simulation_id,
         model=model,
         type=simulation_type,
+        check_sim_exists=True,
     )
     f, c, t = sirepo.template.import_module(req.type).get_data_file(
         simulation_db.simulation_run_dir(req.req_data),
@@ -48,7 +50,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
 def api_runCancel():
     jid = None
     try:
-        req = http_request.parse_post(id=True, model=True)
+        req = http_request.parse_post(id=True, model=True, check_sim_exists=True)
         jid = req.sim_data.parse_jid(req.req_data)
         # TODO(robnagler) need to have a way of listing jobs
         # Don't bother with cache_hit check. We don't have any way of canceling
@@ -79,7 +81,7 @@ def api_runCancel():
 
 @api_perm.require_user
 def api_runSimulation():
-    req = http_request.parse_post(id=True, model=True, fixup_old_data=True)
+    req = http_request.parse_post(id=True, model=True, fixup_old_data=True, check_sim_exists=True)
     res = _simulation_run_status(req, quiet=True)
     if (
         (
@@ -99,7 +101,7 @@ def api_runSimulation():
 def api_runStatus():
     return http_reply.gen_json(
         _simulation_run_status(
-            http_request.parse_post(id=True, model=True),
+            http_request.parse_post(id=True, model=True, check_sim_exists=True),
         ),
     )
 

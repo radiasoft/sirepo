@@ -106,9 +106,9 @@ class DockerDriver(job_driver.DriverBase):
                 o.send_ready.set()
 
     async def kill(self):
-        pkdlog('{}: stop cid={}', self.uid, self._cid)
         if '_cid' not in self:
             return
+        pkdlog('uid={} cid={}', self.get('uid'), self.get('_cid'))
         await self._cmd(
             ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), self._cid),
         )
@@ -121,8 +121,7 @@ class DockerDriver(job_driver.DriverBase):
 
     async def _do_agent_start(self, msg):
         cmd, stdin, env = self._agent_cmd_stdin_env()
-        #TODO(robnagler) remove PKDict after https://github.com/radiasoft/pykern/issues/50
-        c = PKDict(pykern.pkcollections.map_items(cfg[self.kind]))
+        c = cfg[self.kind]
         p = (
             'run',
             # attach to stdin for writing
@@ -163,7 +162,7 @@ class DockerDriver(job_driver.DriverBase):
         o = (await p.stdout.read_until_close()).decode('utf-8').rstrip()
         r = await p.wait_for_exit(raise_error=False)
         # TODO(e-carlin): more robust handling
-        assert r == 0 , \
+        assert r == 0, \
             '{}: failed: exit={} output={}'.format(c, r, o)
         return o
 
@@ -199,6 +198,7 @@ def init_class():
     global cfg
 
     cfg = pkconfig.init(
+        dev_volumes=(pkconfig.channel_in('dev'), bool, 'mount ~/.pyenv, ~/.local and ~/src for development'),
         hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, 'execution hosts'),
         image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
         parallel=dict(
@@ -210,8 +210,8 @@ def init_class():
             gigabytes=(1, int, 'gigabytes per sequential job'),
             slots_per_host=(1, int, 'sequential slots per node'),
         ),
+        supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
         tls_dir=pkconfig.RequiredUnlessDev(None, _cfg_tls_dir, 'directory containing host certs'),
-        dev_volumes=(pkconfig.channel_in('dev'), bool, 'mount ~/.pyenv, ~/.local and ~/src for development'),
     )
     if not cfg.tls_dir or not cfg.hosts:
         _init_dev_hosts()

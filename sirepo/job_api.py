@@ -11,6 +11,7 @@ from sirepo import api_perm
 from sirepo import simulation_db
 from sirepo.template import template_common
 import inspect
+import pykern.pkconfig
 import pykern.pkio
 import re
 import requests
@@ -23,6 +24,8 @@ import sirepo.sim_data
 import sirepo.util
 
 
+cfg = None
+
 #: how many call frames to search backwards to find the api_.* caller
 _MAX_FRAME_SEARCH_DEPTH = 6
 
@@ -33,6 +36,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         id=simulation_id,
         model=model,
         type=simulation_type,
+        check_sim_exists=True,
     )
     s = suffix and sirepo.srschema.parse_name(suffix)
     t = None
@@ -42,12 +46,11 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         t.mksymlinkto(d, absolute=True)
         try:
             _request(
-                frame=int(frame),
-                suffix=s,
                 computeJobHash='unused',
-                #TODO(robnagler) needs to be relative, and then filled in by job_driver
-                dataFileUri=sirepo.job.DATA_FILE_ABS_URI + t.basename + '/',
+                dataFileKey=t.basename,
+                frame=int(frame),
                 req_data=req.req_data,
+                suffix=s,
             )
             f = d.listdir()
             if len(f) > 0:
@@ -74,7 +77,7 @@ def api_jobSupervisorPing():
         k = sirepo.job.unique_key()
         r = _request(
             _request_content=PKDict(ping=k),
-            _request_uri=sirepo.job.SERVER_PING_ABS_URI,
+            _request_uri=cfg.supervisor_uri + sirepo.job.SERVER_PING_URI,
         )
         if r.get('state') != 'ok':
             return r
@@ -112,6 +115,7 @@ def api_runSimulation():
     r.simulation_lib_dir = sirepo.simulation_db.simulation_lib_dir(r.simulationType)
     return _request(_request_content=r)
 
+
 @api_perm.require_user
 def api_runStatus():
     return _request()
@@ -133,20 +137,21 @@ def api_simulationFrame(frame_id):
 
 @api_perm.require_user
 def api_sbatchLogin():
-    c = sirepo.http_request.parse_json()
-    c.pksetdefault(
-        computeJid=lambda: sirepo.sim_data.get_class(c).parse_jid(c),
-        uid=lambda: sirepo.auth.logged_in_user(),
-        computeModel=c.report,
-    )
-    return _request(_request_content=c)
+    r = _request_content(PKDict(computeJobHash='unused'))
+    r.sbatchCredentials = r.pkdel('data')
+    return _request(_request_content=r)
 
 
 def init_apis(*args, **kwargs):
+    global cfg
 #TODO(robnagler) if we recover connections with agents and running jobs remove this
     pykern.pkio.unchecked_remove(sirepo.job.LIB_FILE_ROOT, sirepo.job.DATA_FILE_ROOT)
     pykern.pkio.mkdir_parent(sirepo.job.LIB_FILE_ROOT)
     pykern.pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
+
+    cfg = pykern.pkconfig.init(
+        supervisor_uri=sirepo.job.DEFAULT_SUPERVISOR_URI_DECL,
+    )
 
 
 def _request(**kwargs):
@@ -162,7 +167,7 @@ def _request(**kwargs):
                 '{}: max frame search depth reached'.format(f.f_code)
             )
     k = PKDict(kwargs)
-    u = k.pkdel('_request_uri') or sirepo.job.SERVER_ABS_URI
+    u = k.pkdel('_request_uri') or cfg.supervisor_uri + sirepo.job.SERVER_URI
     c = k.pkdel('_request_content') or _request_content(k)
     c.pkupdate(
         api=get_api_name(),
@@ -184,13 +189,16 @@ def _request(**kwargs):
 
 
 def _request_content(kwargs):
-
     d = kwargs.pkdel('req_data')
     if not d:
+#TODO(robnagler) need to use parsed values, ok for now, becasue none of
+# of the used values are modified by parse_post. If we have files (e.g. file_type, filename),
+# we need to use those values from parse_post
         d = sirepo.http_request.parse_post(
             fixup_old_data=kwargs.pkdel('fixup_old_data', False),
             id=True,
             model=True,
+            check_sim_exists=True,
         ).req_data
     s = sirepo.sim_data.get_class(d)
 ##TODO(robnagler) this should be req_data
@@ -198,21 +206,23 @@ def _request_content(kwargs):
 # TODO(e-carlin): some of these fields are only used for some type of reqs
     b.pksetdefault(
         analysisModel=lambda: s.parse_model(d),
-        computeJid=lambda: s.parse_jid(d),
         computeJobHash=lambda: d.get('computeJobHash') or s.compute_job_hash(d),
         computeJobSerial=lambda: d.get('computeJobSerial', 0),
         computeModel=lambda: s.compute_model(d),
         isParallel=lambda: s.is_parallel(d),
-        reqId=lambda: sirepo.job.unique_key(),
 #TODO(robnagler) relative to srdb root
-        runDir=lambda: str(simulation_db.simulation_run_dir(d)),
         simulationId=lambda: s.parse_sid(d),
         simulationType=lambda: d.simulationType,
-        uid=lambda: sirepo.auth.logged_in_user(),
     ).pksetdefault(
 #TODO(robnagler) configured by job_supervisor
         mpiCores=lambda: sirepo.mpi.cfg.cores if b.isParallel else 1,
-        userDir=lambda: str(sirepo.simulation_db.user_dir_name(b.uid)),
+    ).pkupdate(
+        reqId=sirepo.job.unique_key(),
+        runDir=str(simulation_db.simulation_run_dir(d)),
+        uid=sirepo.auth.logged_in_user(),
+    ).pkupdate(
+        computeJid=s.parse_jid(d, uid=b.uid),
+        userDir=str(sirepo.simulation_db.user_dir_name(b.uid)),
     )
     return _run_mode(b)
 

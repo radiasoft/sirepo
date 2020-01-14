@@ -10,10 +10,12 @@ from pykern.pkdebug import pkdp, pkdlog, pkdc, pkdexc
 from sirepo import job
 import collections
 import importlib
+import inspect
+import pykern.pkio
+import sirepo.srdb
 import tornado.gen
 import tornado.ioloop
 import tornado.locks
-import sirepo.srdb
 
 
 KILL_TIMEOUT_SECS = 3
@@ -58,9 +60,6 @@ class DriverBase(PKDict):
             **self
         )
 
-    def has_remote_agent(self):
-        return False
-
     def cancel_op(self, op):
         for o in self.ops_pending_send:
             if o == op:
@@ -102,6 +101,27 @@ class DriverBase(PKDict):
             t[o.msg.opName] += 1
             r.append(o)
         return r
+
+    def get_supervisor_uri(self):
+        return inspect.getmodule(self).cfg.supervisor_uri
+
+    def make_lib_dir_symlink(self, op):
+        if not self._has_remote_agent():
+            return
+        m = op.msg
+        d = pykern.pkio.py_path(m.simulation_lib_dir)
+        op.lib_dir_symlink = job.LIB_FILE_ROOT.join(
+            job.unique_key()
+        )
+        op.lib_dir_symlink.mksymlinkto(d, absolute=True)
+        m.pkupdate(
+            libFileUri=job.supervisor_file_uri(
+                self.get_supervisor_uri(),
+                job.LIB_FILE_URI,
+                op.lib_dir_symlink.basename,
+            ),
+            libFileList=[f.basename for f in d.listdir()],
+        )
 
     @classmethod
     def receive(cls, msg):
@@ -186,6 +206,9 @@ class DriverBase(PKDict):
     def websocket_on_close(self):
         self.websocket_free()
 
+    def _has_remote_agent(self):
+        return False
+
     def _receive(self, msg):
         c = msg.content
         i = c.get('opId')
@@ -230,7 +253,7 @@ class DriverBase(PKDict):
 
     def _agent_cmd_stdin_env(self, **kwargs):
         return job.agent_cmd_stdin_env(
-            ('sirepo', 'job_agent'),
+            ('sirepo', 'job_agent', 'start'),
             env=self._agent_env(),
             **kwargs,
         )
@@ -239,22 +262,28 @@ class DriverBase(PKDict):
         return job.agent_env(
             env=(env or PKDict()).pksetdefault(
                 SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=job.AGENT_ABS_URI,
+                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.get_supervisor_uri().replace(
+#TODO(robnagler) figure out why we need ws (wss, implicit)
+                    'http',
+                    'ws',
+                    1,
+                ) + job.AGENT_URI
             ),
             uid=self.uid,
         )
 
     async def _agent_start(self, msg):
-        self._agent_starting = True
         try:
+            # TODO(e-carlin): We need a timeout on agent starts. If an agent
+            # is started but never connects we will be in the '_agent_starting'
+            # state forever. After a timeout we should kill the misbehaving
+            # agent and start a new one.
+            self._agent_starting = True
+            await self.kill()
             await self._do_agent_start(msg)
         except Exception as e:
             self._agent_starting = False
-            pkdlog(
-                'agentId={} exception={} log={}',
-                self._agentId,
-                e,
-            )
+            pkdlog('agentId={} exception={}', self._agentId, e)
             raise
 
 

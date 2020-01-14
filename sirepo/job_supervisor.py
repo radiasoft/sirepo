@@ -224,6 +224,7 @@ class _ComputeJob(PKDict):
             job.OP_ANALYSIS,
             req,
             jobCmd='get_data_file',
+            dataFileKey=req.content.pop('dataFileKey')
         )
 
     async def _receive_api_runCancel(self, req):
@@ -270,7 +271,7 @@ class _ComputeJob(PKDict):
                 nextRequestSeconds=self.db.nextRequestSeconds,
             )
             try:
-                o.lib_dir_symlink()
+                o.make_lib_dir_symlink()
                 await o.send()
                 self._sent_run = True
                 tornado.ioloop.IOLoop.current().add_callback(self._run, req, o)
@@ -340,7 +341,7 @@ class _ComputeJob(PKDict):
             r = await self._send_with_single_reply(
                 job.OP_ANALYSIS,
                 req,
-                'get_simulation_frame'
+                jobCmd='get_simulation_frame'
             )
             if r.get('state') != sirepo.job.CANCELED:
                 return r
@@ -384,7 +385,7 @@ class _ComputeJob(PKDict):
         finally:
             self.destroy_op(op)
 
-    async def _create_op(self, opName, req, jobCmd, **kwargs):
+    async def _create_op(self, opName, req, **kwargs):
 #TODO(robnagler) kind should be set earlier in the queuing process.
         req.kind = job.PARALLEL if self.db.isParallel and opName != job.OP_ANALYSIS \
             else job.SEQUENTIAL
@@ -393,6 +394,12 @@ class _ComputeJob(PKDict):
         # state. Currently we assume that all requests get a driver and the
         # code does not block.
         d = await job_driver.get_instance(req, self.db.jobRunMode)
+        if 'dataFileKey' in kwargs:
+            kwargs['dataFileUri'] = job.supervisor_file_uri(
+                d.get_supervisor_uri(),
+                job.DATA_FILE_URI,
+                kwargs.pop('dataFileKey')
+            )
         o = _Op(
             driver=d,
             kind=req.kind,
@@ -400,7 +407,6 @@ class _ComputeJob(PKDict):
             msg=PKDict(
                 req.content
             ).pkupdate(
-                jobCmd=jobCmd,
                 **kwargs,
             ).pksetdefault(jobRunMode=self.db.jobRunMode),
             opName=opName,
@@ -408,8 +414,8 @@ class _ComputeJob(PKDict):
         self._ops.append(o)
         return o
 
-    async def _send_with_single_reply(self, opName, req, jobCmd=None):
-        o = await self._create_op(opName, req, jobCmd)
+    async def _send_with_single_reply(self, opName, req, **kwargs):
+        o = await self._create_op(opName, req, **kwargs)
         try:
             await o.send()
             r = await o.reply_ready()
@@ -434,24 +440,12 @@ class _Op(PKDict):
     def destroy(self):
         if 'timer' in self:
             tornado.ioloop.IOLoop.current().remove_timeout(self.timer)
-        if '_lib_dir_symlink' in self:
-            pykern.pkio.unchecked_remove(self._lib_dir_symlink)
+        if 'lib_dir_symlink' in self:
+            pykern.pkio.unchecked_remove(self.lib_dir_symlink)
         self.driver.destroy_op(self)
 
-    def lib_dir_symlink(self):
-        if not self.driver.has_remote_agent():
-            return
-        m = self.msg
-        d = pykern.pkio.py_path(m.simulation_lib_dir)
-        self._lib_dir_symlink = sirepo.job.LIB_FILE_ROOT.join(
-            sirepo.job.unique_key()
-        )
-        self._lib_dir_symlink.mksymlinkto(d, absolute=True)
-        m.pkupdate(
-            libFileUri=sirepo.job.LIB_FILE_ABS_URI +
-            self._lib_dir_symlink.basename + '/',
-            libFileList=[f.basename for f in d.listdir()],
-        )
+    def make_lib_dir_symlink(self):
+        self.driver.make_lib_dir_symlink(self)
 
     def reply_put(self, msg):
         self._reply_q.put_nowait(msg)
