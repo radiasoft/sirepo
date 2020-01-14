@@ -1624,7 +1624,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
             u = u.substring(0, i);
         }
         else {
-            $window.location.hash = '#';
+            $location.hash('#');
         }
         $window.location.href = u;
 //        if (reload) {
