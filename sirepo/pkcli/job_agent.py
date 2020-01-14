@@ -66,29 +66,42 @@ def start():
 
 
 def start_sbatch():
+    def get_host():
+        h = socket.gethostname()
+        if '.' not in h:
+            h = socket.getfqdn()
+        return h
+
     def kill_agent(pid_file):
-        if socket.getfqdn() == pid_file.fqdn:
+        if get_host() == pid_file.host:
             os.kill(pid_file.pid, signal.SIGKILL)
         else:
             try:
                 subprocess.run(
-                    ('ssh', pid_file.fqdn, 'kill', '-KILL', str(pid_file.pid)),
+                    ('ssh', pid_file.host, 'kill', '-KILL', str(pid_file.pid)),
                     capture_output=True,
+                    text=True,
                 ).check_returncode()
             except subprocess.CalledProcessError as e:
-                pkdp(
-                    'cmd={cmd} returncode={returncode} stderr={stderr}',
-                    **vars(e)
-                )
+                if '({}) - No such process'.format(pid_file.pid) not in e.stderr:
+                    pkdlog(
+                        'cmd={cmd} returncode={returncode} stderr={stderr}',
+                        **vars(e)
+                    )
+    f = None
     try:
-        kill_agent(pkjson.load_any(pkio.py_path(_PID_FILE)))
+        f = pkjson.load_any(pkio.py_path(_PID_FILE))
     except Exception as e:
-        if pkio.exception_is_not_found(e):
-            pass
+        if not pkio.exception_is_not_found(e):
+            pkdlog('error={} stack={}', e, pkdexc())
+    try:
+        if f:
+            kill_agent(f)
+    except Exception as e:
         pkdlog('error={} stack={}', e, pkdexc())
     pkjson.dump_pretty(
         PKDict(
-            fqdn=socket.getfqdn(),
+            host=get_host(),
             pid=os.getpid(),
         ),
         _PID_FILE,
@@ -97,6 +110,8 @@ def start_sbatch():
         start()
     finally:
         pkio.unchecked_remove(_PID_FILE)
+
+
 
 
 class _Dispatcher(PKDict):
