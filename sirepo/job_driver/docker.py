@@ -222,11 +222,7 @@ def init_class():
             gigabytes=(1, int, 'gigabytes per sequential job'),
             slots_per_host=(1, int, 'sequential slots per node'),
         ),
-        supervisor_uri=(
-            job.DEFAULT_SUPERVISOR_URI,
-            str,
-            'uri agents will use to reach supervisor'
-        ),
+        supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
         tls_dir=pkconfig.RequiredUnlessDev(None, _cfg_tls_dir, 'directory containing host certs'),
     )
     if not cfg.tls_dir or not cfg.hosts:

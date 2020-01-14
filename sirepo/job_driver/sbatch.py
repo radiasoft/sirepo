@@ -188,11 +188,7 @@ def init_class():
         shifter_image=(None, str, 'needed if using Shifter'),
         sirepo_cmd=pkconfig.Required(str, 'how to run sirepo'),
         srdb_root=pkconfig.Required(_cfg_srdb_root, 'where to run job_agent, must include {sbatch_user}'),
-        supervisor_uri=(
-            job.DEFAULT_SUPERVISOR_URI,
-            str,
-            'uri agents will use to reach supervisor'
-        ),
+        supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
     )
     _KNOWN_HOSTS = (
         cfg.host_key if cfg.host in cfg.host_key

@@ -182,10 +182,6 @@ def init_class():
             parallel=(1, int, 'max parallel slots'),
             sequential=(1, int, 'max sequential slots'),
         ),
-        supervisor_uri=(
-            job.DEFAULT_SUPERVISOR_URI,
-            str,
-            'uri agents will use to reach supervisor'
-        ),
+        supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
     )
     return LocalDriver.init_class()
