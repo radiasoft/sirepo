@@ -11,6 +11,7 @@ from sirepo import api_perm
 from sirepo import simulation_db
 from sirepo.template import template_common
 import inspect
+import pykern.pkconfig
 import pykern.pkio
 import re
 import requests
@@ -22,6 +23,8 @@ import sirepo.mpi
 import sirepo.sim_data
 import sirepo.util
 
+
+cfg = None
 
 #: how many call frames to search backwards to find the api_.* caller
 _MAX_FRAME_SEARCH_DEPTH = 6
@@ -43,12 +46,11 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         t.mksymlinkto(d, absolute=True)
         try:
             _request(
-                frame=int(frame),
-                suffix=s,
                 computeJobHash='unused',
-                #TODO(robnagler) needs to be relative, and then filled in by job_driver
-                dataFileUri=sirepo.job.DATA_FILE_ABS_URI + t.basename + '/',
+                dataFileKey=t.basename,
+                frame=int(frame),
                 req_data=req.req_data,
+                suffix=s,
             )
             f = d.listdir()
             if len(f) > 0:
@@ -75,7 +77,7 @@ def api_jobSupervisorPing():
         k = sirepo.job.unique_key()
         r = _request(
             _request_content=PKDict(ping=k),
-            _request_uri=sirepo.job.SERVER_PING_ABS_URI,
+            _request_uri=cfg.supervisor_uri + sirepo.job.SERVER_PING_URI,
         )
         if r.get('state') != 'ok':
             return r
@@ -141,10 +143,15 @@ def api_sbatchLogin():
 
 
 def init_apis(*args, **kwargs):
+    global cfg
 #TODO(robnagler) if we recover connections with agents and running jobs remove this
     pykern.pkio.unchecked_remove(sirepo.job.LIB_FILE_ROOT, sirepo.job.DATA_FILE_ROOT)
     pykern.pkio.mkdir_parent(sirepo.job.LIB_FILE_ROOT)
     pykern.pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
+
+    cfg = pykern.pkconfig.init(
+        supervisor_uri=sirepo.job.DEFAULT_SUPERVISOR_URI_DECL,
+    )
 
 
 def _request(**kwargs):
@@ -160,7 +167,7 @@ def _request(**kwargs):
                 '{}: max frame search depth reached'.format(f.f_code)
             )
     k = PKDict(kwargs)
-    u = k.pkdel('_request_uri') or sirepo.job.SERVER_ABS_URI
+    u = k.pkdel('_request_uri') or cfg.supervisor_uri + sirepo.job.SERVER_URI
     c = k.pkdel('_request_content') or _request_content(k)
     c.pkupdate(
         api=get_api_name(),

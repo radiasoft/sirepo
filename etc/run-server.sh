@@ -3,7 +3,6 @@ export PYKERN_PKDEBUG_CONTROL=
 export PYKERN_PKDEBUG_OUTPUT=
 export PYKERN_PKDEBUG_WANT_PID_TIME=1
 export SIREPO_FEATURE_CONFIG_JOB=1
-export SIREPO_JOB_SUPERVISOR_URI=http://$(hostname):8001
 export SIREPO_MPI_CORES=2
 case ${1:-} in
     docker|local)

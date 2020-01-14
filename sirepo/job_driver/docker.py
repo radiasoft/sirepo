@@ -198,6 +198,7 @@ def init_class():
     global cfg
 
     cfg = pkconfig.init(
+        dev_volumes=(pkconfig.channel_in('dev'), bool, 'mount ~/.pyenv, ~/.local and ~/src for development'),
         hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, 'execution hosts'),
         image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
         parallel=dict(
@@ -209,8 +210,8 @@ def init_class():
             gigabytes=(1, int, 'gigabytes per sequential job'),
             slots_per_host=(1, int, 'sequential slots per node'),
         ),
+        supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
         tls_dir=pkconfig.RequiredUnlessDev(None, _cfg_tls_dir, 'directory containing host certs'),
-        dev_volumes=(pkconfig.channel_in('dev'), bool, 'mount ~/.pyenv, ~/.local and ~/src for development'),
     )
     if not cfg.tls_dir or not cfg.hosts:
         _init_dev_hosts()

@@ -33,9 +33,6 @@ class SbatchDriver(job_driver.DriverBase):
         self._srdb_root = None
         self.instances[self.uid] = self
 
-    def has_remote_agent(self):
-        return True
-
     @classmethod
     async def get_instance(cls, req):
         u = req.content.uid
@@ -151,6 +148,9 @@ scancel -u $USER >& /dev/null || true
 '''
         return res
 
+    def _has_remote_agent(self):
+        return True
+
     def _raise_sbatch_login_srexception(self, reason, msg):
         raise util.SRException(
             'sbatchLogin',
@@ -173,12 +173,13 @@ def init_class():
     global cfg, _KNOWN_HOSTS
 
     cfg = pkconfig.init(
+        cores=(None, int, 'dev cores config'),
         host=pkconfig.Required(str, 'host name for slum controller'),
         host_key=pkconfig.Required(str, 'host key'),
-        cores=(None, int, 'dev cores config'),
         shifter_image=(None, str, 'needed if using Shifter'),
         sirepo_cmd=pkconfig.Required(str, 'how to run sirepo'),
         srdb_root=pkconfig.Required(_cfg_srdb_root, 'where to run job_agent, must include {sbatch_user}'),
+        supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
     )
     _KNOWN_HOSTS = (
         cfg.host_key if cfg.host in cfg.host_key

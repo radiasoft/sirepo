@@ -20,6 +20,7 @@ import tornado.ioloop
 import tornado.process
 import tornado.queues
 
+
 cfg = None
 
 
@@ -166,5 +167,6 @@ def init_class():
             parallel=(1, int, 'max parallel slots'),
             sequential=(1, int, 'max sequential slots'),
         ),
+        supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
     )
     return LocalDriver.init_class()
