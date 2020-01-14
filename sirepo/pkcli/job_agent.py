@@ -18,6 +18,7 @@ import os
 import re
 import signal
 import sirepo.auth
+import socket
 import subprocess
 import sys
 import time
@@ -36,11 +37,12 @@ _RETRY_SECS = 1
 
 _IN_FILE = 'in-{}.json'
 
+_PID_FILE = 'job_agent.pid'
 
 cfg = None
 
 
-def default_command():
+def start():
 #TODO(robnagler) commands need their own init hook like the server has
     job.init()
     global cfg
@@ -55,12 +57,61 @@ def default_command():
     pkdlog('{}', cfg)
     i = tornado.ioloop.IOLoop.current()
     d = _Dispatcher()
-    def s(n, x):
-        return i.add_callback_from_signal(d.terminate)
+    def s(*args):
+        return i.add_callback_from_signal(_terminate, d)
     signal.signal(signal.SIGTERM, s)
     signal.signal(signal.SIGINT, s)
     i.spawn_callback(d.loop)
     i.start()
+
+
+def start_sbatch():
+    def get_host():
+        h = socket.gethostname()
+        if '.' not in h:
+            h = socket.getfqdn()
+        return h
+
+    def kill_agent(pid_file):
+        if get_host() == pid_file.host:
+            os.kill(pid_file.pid, signal.SIGKILL)
+        else:
+            try:
+                subprocess.run(
+                    ('ssh', pid_file.host, 'kill', '-KILL', str(pid_file.pid)),
+                    capture_output=True,
+                    text=True,
+                ).check_returncode()
+            except subprocess.CalledProcessError as e:
+                if '({}) - No such process'.format(pid_file.pid) not in e.stderr:
+                    pkdlog(
+                        'cmd={cmd} returncode={returncode} stderr={stderr}',
+                        **vars(e)
+                    )
+    f = None
+    try:
+        f = pkjson.load_any(pkio.py_path(_PID_FILE))
+    except Exception as e:
+        if not pkio.exception_is_not_found(e):
+            pkdlog('error={} stack={}', e, pkdexc())
+    try:
+        if f:
+            kill_agent(f)
+    except Exception as e:
+        pkdlog('error={} stack={}', e, pkdexc())
+    pkjson.dump_pretty(
+        PKDict(
+            host=get_host(),
+            pid=os.getpid(),
+        ),
+        _PID_FILE,
+    )
+    try:
+        start()
+    finally:
+        pkio.unchecked_remove(_PID_FILE)
+
+
 
 
 class _Dispatcher(PKDict):
@@ -633,3 +684,8 @@ class _ReadUntilCloseStream(_Stream):
         assert l < self._MAX, \
             'len(bytes)={} greater than _MAX={}'.format(l, _MAX)
         self.text.extend(t)
+
+
+def _terminate(dispatcher):
+    dispatcher.terminate()
+    pkio.unchecked_remove(_PID_FILE)

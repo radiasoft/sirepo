@@ -224,7 +224,7 @@ class DriverBase(PKDict):
 
     def _agent_cmd_stdin_env(self, env=None, **kwargs):
         return job.agent_cmd_stdin_env(
-            ('sirepo', 'job_agent'),
+            ('sirepo', 'job_agent', 'start'),
             env=self._agent_env(),
             **kwargs,
         )
@@ -237,6 +237,20 @@ class DriverBase(PKDict):
             ),
             uid=self.uid,
         )
+
+    async def _agent_start(self, msg):
+        try:
+            # TODO(e-carlin): We need a timeout on agent starts. If an agent
+            # is started but never connects we will be in the '_agent_starting'
+            # state forever. After a timeout we should kill the misbehaving
+            # agent and start a new one.
+            self._agent_starting = True
+            await self.kill()
+            await self._do_agent_start(msg)
+        except Exception as e:
+            self._agent_starting = False
+            pkdlog('agentId={} exception={}', self._agentId, e)
+            raise
 
 
 async def get_instance(req, jobRunMode):

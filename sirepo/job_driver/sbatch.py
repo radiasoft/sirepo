@@ -105,8 +105,7 @@ class SbatchDriver(job_driver.DriverBase):
             )
         )
 
-    async def _agent_start(self, msg):
-        self._agent_starting = True
+    async def _do_agent_start(self, msg):
         try:
             async with asyncssh.connect(
                 cfg.host,
@@ -120,7 +119,7 @@ set -e
 mkdir -p '{self._srdb_root}'
 cd '{self._srdb_root}'
 {self._agent_env()}
-setsid {cfg.sirepo_cmd} job_agent >& job_agent.log &
+setsid {cfg.sirepo_cmd} job_agent start_sbatch >& job_agent.log &
 disown
 '''
                 async with c.create_process('/bin/bash') as p:
@@ -134,13 +133,6 @@ disown
                             )
                         )
         except Exception as e:
-            self._agent_starting = False
-            pkdlog(
-                'agentId={} exception={}',
-                self._agentId,
-                e,
-            #TODO(robnagler) try to read the job_agent.log
-            )
             if isinstance(e, asyncssh.misc.PermissionDenied):
                 self._srdb_root = None
                 self._raise_sbatch_login_srexception('invalid-creds', msg)
@@ -150,7 +142,6 @@ disown
         if not pkconfig.channel_in('dev'):
             return ''
         res = '''
-pkill -f 'sirepo job_agent' >& /dev/null || true
 scancel -u $USER >& /dev/null || true
 '''
         if cfg.shifter_image:
