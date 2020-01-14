@@ -40,10 +40,6 @@ class SbatchDriver(job_driver.DriverBase):
 
     @classmethod
     def init_class(cls):
-        cls.SUPERVISOR_URI = job.supervisor_uri(
-            cfg.supervisor_host,
-            cfg.supervisor_port
-        )
         return cls
 
     async def kill(self):
@@ -192,15 +188,10 @@ def init_class():
         shifter_image=(None, str, 'needed if using Shifter'),
         sirepo_cmd=pkconfig.Required(str, 'how to run sirepo'),
         srdb_root=pkconfig.Required(_cfg_srdb_root, 'where to run job_agent, must include {sbatch_user}'),
-        supervisor_host=(
-            job.DEFAULT_HOST,
+        supervisor_uri=(
+            job.DEFAULT_SUPERVISOR_URI,
             str,
-            'host agents will reach supervisor on'
-        ),
-        supervisor_port=(
-            job.DEFAULT_PORT,
-            int,
-            'port agents will reach supervisor on'
+            'uri agents will use to reach supervisor'
         ),
     )
     _KNOWN_HOSTS = (

@@ -10,6 +10,7 @@ from pykern.pkdebug import pkdp, pkdlog, pkdc, pkdexc
 from sirepo import job
 import collections
 import importlib
+import inspect
 import pykern.pkio
 import sirepo.srdb
 import tornado.gen
@@ -101,6 +102,9 @@ class DriverBase(PKDict):
             r.append(o)
         return r
 
+    def get_supervisor_uri(self):
+        return inspect.getmodule(self).cfg.supervisor_uri
+
     def make_lib_dir_symlink(self, op):
         if not self._has_remote_agent():
             return
@@ -111,8 +115,11 @@ class DriverBase(PKDict):
         )
         op.lib_dir_symlink.mksymlinkto(d, absolute=True)
         m.pkupdate(
-            libFileUri=self.SUPERVISOR_URI + job.LIB_FILE_URI + '/' +
-            op.lib_dir_symlink.basename + '/',
+            libFileUri=job.supervisor_file_uri(
+                self.get_supervisor_uri(),
+                job.LIB_FILE_URI,
+                op.lib_dir_symlink.basename,
+            ),
             libFileList=[f.basename for f in d.listdir()],
         )
 
@@ -249,7 +256,7 @@ class DriverBase(PKDict):
         return job.agent_env(
             env=(env or PKDict()).pksetdefault(
                 SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.SUPERVISOR_URI.replace(
+                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.get_supervisor_uri().replace(
 #TODO(robnagler) figure out why we need ws (wss, implicit)
                     'http',
                     'ws',

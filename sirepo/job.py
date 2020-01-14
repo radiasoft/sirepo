@@ -14,7 +14,6 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 import sirepo.srdb
 import sirepo.util
 import re
-import socket
 
 
 OP_ANALYSIS = 'analysis'
@@ -57,9 +56,12 @@ SUPERVISOR_SRV_SUBDIR = 'supervisor-srv'
 #: how jobs request files (absolute)
 SUPERVISOR_SRV_ROOT = None
 
-DEFAULT_HOST = socket.gethostname()
+DEFAULT_IP = '127.0.0.1'
 
 DEFAULT_PORT = 8001
+
+#: uri used to reach the supervisor
+DEFAULT_SUPERVISOR_URI = 'http://{}:{}'.format(DEFAULT_IP, DEFAULT_PORT)
 
 RUNNER_STATUS_FILE = 'status'
 
@@ -185,8 +187,9 @@ def init_by_server(app):
     uri_router.register_api_module(job_api)
 
 
-def supervisor_uri(ip, port):
-    return 'http://{}:{}'.format(ip, port)
+def supervisor_file_uri(supervisor_uri, *args):
+    # trailing slash necessary
+    return '{}{}/'.format(supervisor_uri, '/'.join(args))
 
 
 def unique_key():

@@ -79,10 +79,6 @@ class DockerDriver(job_driver.DriverBase):
 
     @classmethod
     def init_class(cls):
-        cls.SUPERVISOR_URI = job.supervisor_uri(
-            cfg.supervisor_host,
-            cfg.supervisor_port
-        )
         for k in job.KINDS:
             cls.instances[k] = []
         return cls
@@ -226,15 +222,10 @@ def init_class():
             gigabytes=(1, int, 'gigabytes per sequential job'),
             slots_per_host=(1, int, 'sequential slots per node'),
         ),
-        supervisor_host=(
-            job.DEFAULT_HOST,
+        supervisor_uri=(
+            job.DEFAULT_SUPERVISOR_URI,
             str,
-            'host agents will reach supervisor on'
-        ),
-        supervisor_port=(
-            job.DEFAULT_PORT,
-            int,
-            'port agents will reach supervisor on'
+            'uri agents will use to reach supervisor'
         ),
         tls_dir=pkconfig.RequiredUnlessDev(None, _cfg_tls_dir, 'directory containing host certs'),
     )

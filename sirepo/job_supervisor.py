@@ -395,9 +395,10 @@ class _ComputeJob(PKDict):
         # code does not block.
         d = await job_driver.get_instance(req, self.db.jobRunMode)
         if 'dataFileKey' in kwargs:
-            kwargs['dataFileUri'] = '{}{}/'.format(
-                d.SUPERVISOR_URI + job.DATA_FILE_URI + '/',
-                kwargs.pop('dataFileKey'),
+            kwargs['dataFileUri'] = job.supervisor_file_uri(
+                d.get_supervisor_uri(),
+                job.DATA_FILE_URI,
+                kwargs.pop('dataFileKey')
             )
         o = _Op(
             driver=d,

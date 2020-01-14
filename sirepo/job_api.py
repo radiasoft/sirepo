@@ -26,9 +26,6 @@ import sirepo.util
 
 cfg = None
 
-#: uri to reach job_supervisor with
-SUPERVISOR_URI = None
-
 #: how many call frames to search backwards to find the api_.* caller
 _MAX_FRAME_SEARCH_DEPTH = 6
 
@@ -80,7 +77,7 @@ def api_jobSupervisorPing():
         k = sirepo.job.unique_key()
         r = _request(
             _request_content=PKDict(ping=k),
-            _request_uri=SUPERVISOR_URI + sirepo.job.SERVER_PING_URI,
+            _request_uri=cfg.supervisor_uri + sirepo.job.SERVER_PING_URI,
         )
         if r.get('state') != 'ok':
             return r
@@ -146,27 +143,18 @@ def api_sbatchLogin():
 
 
 def init_apis(*args, **kwargs):
-    global SUPERVISOR_URI
+    global cfg
 #TODO(robnagler) if we recover connections with agents and running jobs remove this
     pykern.pkio.unchecked_remove(sirepo.job.LIB_FILE_ROOT, sirepo.job.DATA_FILE_ROOT)
     pykern.pkio.mkdir_parent(sirepo.job.LIB_FILE_ROOT)
     pykern.pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
 
     cfg = pykern.pkconfig.init(
-            supervisor_host=(
-                sirepo.job.DEFAULT_HOST,
+            supervisor_uri=(
+                sirepo.job.DEFAULT_SUPERVISOR_URI,
                 str,
-                'host to reach supervisor on'
+                'uri to reach supervisor'
             ),
-            supervisor_port=(
-                sirepo.job.DEFAULT_PORT,
-                int,
-                'port to reach supervisor on'
-            ),
-    )
-    SUPERVISOR_URI = sirepo.job.supervisor_uri(
-        cfg.supervisor_host,
-        cfg.supervisor_port
     )
 
 
@@ -183,7 +171,7 @@ def _request(**kwargs):
                 '{}: max frame search depth reached'.format(f.f_code)
             )
     k = PKDict(kwargs)
-    u = k.pkdel('_request_uri') or SUPERVISOR_URI + sirepo.job.SERVER_URI
+    u = k.pkdel('_request_uri') or cfg.supervisor_uri + sirepo.job.SERVER_URI
     c = k.pkdel('_request_content') or _request_content(k)
     c.pkupdate(
         api=get_api_name(),

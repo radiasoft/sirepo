@@ -34,7 +34,7 @@ radia_run redhat-docker
         export SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=/global/homes/${3::1}/$3/.pyenv/versions/py3/bin/sirepo
         export SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/global/cscratch1/sd/{sbatch_user}/sirepo'
         export SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS=15
-        export SIREPO_JOB_DRIVER_SBATCH_SUPERVISOR_HOST=$2
+        export SIREPO_JOB_DRIVER_SBATCH_SUPERVISOR_URI=http://$2:8001
         export SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Cori@NERSC'
         ;;
     sbatch)
