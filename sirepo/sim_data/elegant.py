@@ -67,24 +67,25 @@ class SimData(sirepo.sim_data.SimDataBase):
         return max_id
 
     @classmethod
-    def resource_files(cls):
-        return cls.resource_glob('*.sdds')
-
-    @classmethod
-    def _compute_job_fields(cls, data):
-        r = data.report
+    def _compute_job_fields(cls, data, r, compute_model):
         res = []
-        if r == 'twissReport' or 'bunchReport' in r:
+        if compute_model in ('twissReport', 'bunchReport'):
             res += ['bunch', 'bunchSource', 'bunchFile']
         if r == 'twissReport':
             res += ['elements', 'beamlines', 'commands', 'simulation.activeBeamlineId']
         return res
 
     @classmethod
-    def _lib_files(cls, data):
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if 'bunchReport' in analysis_model:
+            return 'bunchReport'
+        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
+
+    @classmethod
+    def _lib_file_basenames(cls, data):
         res = LatticeUtil(data, cls.schema()).iterate_models(lattice.InputFileIterator(cls)).result
         if data.models.bunchFile.sourceFile:
-            res.append(cls.lib_file_name('bunchFile', 'sourceFile', data.models.bunchFile.sourceFile))
+            res.append(cls.lib_file_name_with_model_field('bunchFile', 'sourceFile', data.models.bunchFile.sourceFile))
         return res
 
     @classmethod

@@ -105,6 +105,10 @@ SIREPO.app.factory('webconService', function(appState, panelState) {
         return parameterValues;
     };
 
+    self.computeModel = function(analysisModel) {
+        return 'epicsServerAnimation';
+    };
+
     self.getSubreports = function() {
         // subreports are kept on a report which is never shown.
         // This avoids refreshing all reports when a subreport is added or removed.
@@ -139,6 +143,8 @@ SIREPO.app.factory('webconService', function(appState, panelState) {
             return t.length > 0;
         });
     };
+
+    appState.setAppService(self);
 
     return self;
 });
@@ -558,7 +564,11 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
         });
     });
 
-    self.simState = persistentSimulation.initSimulationState($scope, 'epicsServerAnimation', handleStatus, {});
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        webconService.computeModel(),
+        handleStatus
+    );
 
     return self;
 });

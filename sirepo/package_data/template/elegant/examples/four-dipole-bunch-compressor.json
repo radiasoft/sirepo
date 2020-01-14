@@ -476,7 +476,6 @@
             "notes": "",
             "panelTitle": "w2",
             "plotRangeType": "none",
-            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "x",
@@ -566,7 +565,6 @@
             "notes": "",
             "panelTitle": "w3",
             "plotRangeType": "none",
-            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "x",
@@ -656,7 +654,6 @@
             "notes": "",
             "panelTitle": "w4",
             "plotRangeType": "none",
-            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "x",
@@ -746,7 +743,6 @@
             "notes": "",
             "panelTitle": "w5",
             "plotRangeType": "none",
-            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "x",
@@ -836,7 +832,6 @@
             "notes": "",
             "panelTitle": "run_setup.output",
             "plotRangeType": "none",
-            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "x",
@@ -914,7 +909,6 @@
             "notes": "",
             "panelTitle": "run_setup.sigma",
             "plotRangeType": "none",
-            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "s",
@@ -1248,7 +1242,6 @@
             "notes": "",
             "panelTitle": "run_setup.centroid",
             "plotRangeType": "none",
-            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "s",
@@ -1346,7 +1339,6 @@
             "notes": "",
             "panelTitle": "twiss_output",
             "plotRangeType": "none",
-            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "s",
@@ -1460,7 +1452,6 @@
             "notes": "",
             "panelTitle": "B1",
             "plotRangeType": "fit",
-            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "s",
@@ -1540,7 +1531,6 @@
             "notes": "",
             "panelTitle": "B2",
             "plotRangeType": "fit",
-            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "s",
@@ -1620,7 +1610,6 @@
             "notes": "",
             "panelTitle": "B3",
             "plotRangeType": "fit",
-            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "s",
@@ -1700,7 +1689,6 @@
             "notes": "",
             "panelTitle": "B4",
             "plotRangeType": "fit",
-            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "s",
@@ -1780,7 +1768,6 @@
             "notes": "",
             "panelTitle": "w1",
             "plotRangeType": "none",
-            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "x",
@@ -2533,20 +2520,21 @@
         "rpnVariables": [],
         "simulation": {
             "activeBeamlineId": 20,
-            "folder": "/",
+            "backtracking": "0",
+            "documentationUrl": "",
+            "folder": "/Examples",
             "isExample": true,
             "name": "bunchComp - fourDipoleCSR",
-            "simulationId": "6GB6G1QL",
+            "notes": "",
             "simulationMode": "serial",
-            "simulationSerial": 1532378814171904,
             "visualizationBeamlineId": 20
         },
         "twissReport": {
+            "includeLattice": "1",
             "y1": "betax",
             "y2": "betay",
             "y3": "etax"
         }
     },
-    "simulationType": "elegant",
-    "version": "20180719.000000"
+    "simulationType": "elegant"
 }

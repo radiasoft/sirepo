@@ -13,49 +13,19 @@ import csv
 import pytest
 import re
 import time
-pytest.importorskip('srwl_bl')
-pytest.importorskip('sdds')
 
 
-_TYPES = 'elegant:jspec:myapp:srw'
-
-def test_basic():
-    from sirepo import srunit
-    from pykern import pkunit
-    fc = srunit.flask_client(sim_types=_TYPES)
-    resp = fc.get('/old')
-    assert 'LandingPageController' in resp.get_data(), \
-        'Top level document is the landing page'
-    resp = fc.get('/robots.txt')
-    pkunit.pkre('elegant.*myapp.*srw', resp.get_data())
-
-
-def test_get_data_file():
-    from pykern.pkdebug import pkdp
-    from sirepo import srunit
-    from pykern import pkunit
+def test_elegant_data_file(fc):
     from pykern import pkio
+    from pykern import pkunit
+    from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdp
     import sdds
 
-    fc = srunit.flask_client(sim_types=_TYPES)
-    sim_type = 'elegant'
-    fc.sr_login_as_guest(sim_type)
-    data = fc.sr_post(
-        'listSimulations',
-        {'simulationType': sim_type, 'search': {'simulationName': 'fourDipoleCSR'}},
-    )
-    data = data[0].simulation
-    data = fc.sr_get_json(
-        'simulationData',
-        params=dict(
-            pretty='1',
-            simulation_id=data.simulationId,
-            simulation_type=sim_type,
-        ),
-    )
+    data = fc.sr_sim_data('bunchComp - fourDipoleCSR')
     run = fc.sr_post(
         'runSimulation',
-        dict(
+        PKDict(
             forceRun=False,
             models=data.models,
             report='bunchReport1',
@@ -76,7 +46,7 @@ def test_get_data_file():
         pkunit.pkfail('runStatus: failed to complete: {}', run)
     resp = fc.sr_get(
         'downloadDataFile',
-        dict(
+        PKDict(
             simulation_type=data.simulationType,
             simulation_id=data.models.simulation.simulationId,
             model='bunchReport1',
@@ -84,11 +54,12 @@ def test_get_data_file():
             suffix='csv',
         ),
     )
+    pkunit.pkre('no-cache', resp.headers['Cache-Control'])
     rows = csv.reader(StringIO.StringIO(resp.get_data()))
-    assert len(list(rows)) == 5001
+    pkunit.pkeq(50001, len(list(rows)), '50,000 particles plus header row')
     resp = fc.sr_get(
         'downloadDataFile',
-        dict(
+        PKDict(
             simulation_type=data.simulationType,
             simulation_id=data.models.simulation.simulationId,
             model='bunchReport1',
@@ -96,48 +67,35 @@ def test_get_data_file():
         ),
     )
     m = re.search(r'attachment; filename="([^"]+)"', resp.headers['Content-Disposition'])
-    with pkunit.save_chdir_work():
-        path = pkio.py_path(m.group(1))
-        with open(str(path), 'w') as f:
-            f.write(resp.get_data())
-        assert sdds.sddsdata.InitializeInput(0, str(path)) == 1, \
-            '{}: sdds failed to open'.format(path)
-        # Verify we can read something
-        assert 0 <= len(sdds.sddsdata.GetColumnNames(0))
-        sdds.sddsdata.Terminate(0)
+    d = pkunit.work_dir()
+    path = d.join(m.group(1))
+    path.write_binary(resp.get_data())
+    assert sdds.sddsdata.InitializeInput(0, str(path)) == 1, \
+        '{}: sdds failed to open'.format(path)
+    # Verify we can read something
+    assert 0 <= len(sdds.sddsdata.GetColumnNames(0))
+    sdds.sddsdata.Terminate(0)
 
 
-def test_jspec():
-    from pykern import pkio
-    from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdpretty
-    from pykern.pkunit import pkeq, pkre
-    from sirepo import srunit
-    import json
+def test_myapp_basic(fc):
+    from pykern import pkunit
 
-    fc = srunit.flask_client(sim_types=_TYPES)
-    sim_type = 'jspec'
-    fc.sr_login_as_guest(sim_type)
-    a = fc.sr_get_json(
-        'listFiles',
-        PKDict(simulation_type=sim_type, simulation_id='xxxxxxxxxx', file_type='ring-lattice'),
-    )
-    pkeq(['Booster.tfs'], a)
+    resp = fc.get('/old')
+    assert 'LandingPageController' in resp.get_data(), \
+        'Top level document is the landing page'
+    resp = fc.get('/robots.txt')
+    pkunit.pkre('elegant.*myapp.*srw', resp.get_data())
 
 
-def test_srw():
+def test_srw(fc):
     from pykern import pkio
     from pykern.pkdebug import pkdpretty
     from pykern.pkunit import pkeq, pkre
-    from sirepo import srunit
     import json
 
-    fc = srunit.flask_client(sim_types=_TYPES)
-    sim_type = 'srw'
-    r = fc.sr_get_root(sim_type)
+    r = fc.sr_get_root()
     pkre('<!DOCTYPE html', r.data)
-    fc.sr_login_as_guest(sim_type)
-    d = fc.sr_post('listSimulations', {'simulationType': sim_type})
+    d = fc.sr_post('listSimulations', {'simulationType': fc.sr_sim_type})
     pkeq(fc.get('/find-by-name-auth/srw/default/UndulatorRadiation').status_code, 404)
     for sep in (' ', '%20', '+'):
         pkeq(fc.get('/find-by-name-auth/srw/default/Undulator{}Radiation'.format(sep)).status_code, 200)

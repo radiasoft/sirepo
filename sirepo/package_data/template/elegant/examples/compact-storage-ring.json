@@ -265,7 +265,6 @@
             "histogramBins": 200,
             "notes": "",
             "panelTitle": "run_setup.output",
-            "startTime": 1532379291,
             "valueList": {
                 "x": [
                     "x",
@@ -337,7 +336,6 @@
             "histogramBins": 200,
             "notes": "",
             "panelTitle": "run_setup.sigma",
-            "startTime": 1532379291,
             "valueList": {
                 "x": [
                     "s",
@@ -663,7 +661,6 @@
             "histogramBins": 200,
             "notes": "",
             "panelTitle": "run_setup.centroid",
-            "startTime": 1532379291,
             "valueList": {
                 "x": [
                     "s",
@@ -751,9 +748,9 @@
             "colorMap": "afmhot",
             "framesPerSecond": "2",
             "histogramBins": 200,
+            "includeLattice": "1",
             "notes": "",
             "panelTitle": "twiss_output",
-            "startTime": 1532379291,
             "valueList": {
                 "x": [
                     "s",
@@ -849,8 +846,7 @@
             "y2FileId": "22-13",
             "y3": "etax",
             "y3File": "twiss_output.filename.sdds",
-            "y3FileId": "22-13",
-            "includeLattice": "1"
+            "y3FileId": "22-13"
         },
         "elements": [
             {
@@ -1169,20 +1165,21 @@
         "rpnVariables": [],
         "simulation": {
             "activeBeamlineId": 19,
-            "folder": "/",
+            "backtracking": "0",
+            "documentationUrl": "",
+            "folder": "/Examples",
             "isExample": true,
             "name": "Compact Storage Ring",
-            "simulationId": "enU56RuU",
+            "notes": "",
             "simulationMode": "serial",
-            "simulationSerial": 1532379345701692,
             "visualizationBeamlineId": 19
         },
         "twissReport": {
+            "includeLattice": "1",
             "y1": "betax",
             "y2": "betay",
             "y3": "etax"
         }
     },
-    "simulationType": "elegant",
-    "version": "20180719.000000"
+    "simulationType": "elegant"
 }

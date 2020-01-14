@@ -1,23 +1,4 @@
 {
-    "animationArgs": {
-        "fieldAnimation": ["field", "axes", "slice", "displayMode", "startTime"],
-        "fieldCalcAnimation": ["axes", "displayMode", "slice"],
-        "fieldComparisonAnimation": [
-            "dimension",
-            "displayMode",
-            "xCell1",
-            "xCell2",
-            "xCell3",
-            "yCell1",
-            "yCell2",
-            "yCell3",
-            "zCell1",
-            "zCell2",
-            "zCell3"
-        ],
-        "particleAnimation": ["renderCount", "startTime"],
-        "particle3d": ["renderCount", "displayMode", "startTime"]
-    },
     "constants": {
         "cellColors": ["#ff0000", "#008000", "#0000ff"],
         "nonZeroVoltsColor": "#6992ff",
@@ -30,46 +11,6 @@
         "planeVentral": "ventral",
         "reflectedParticleTrackColor": "#d04836",
         "zeroVoltsColor": "#f3d4c8"
-    },
-    "dynamicFiles": {
-        "externalLibs": {
-            "js": [
-                "vtk.js"
-            ]
-        },
-        "sirepoLibs": {
-            "js": [
-                "warpvnd.js",
-                "sirepo-geometry.js",
-                "sirepo-plotting-vtk.js"
-            ],
-            "css": [
-                "warpvnd.css",
-                "vtk.css"
-            ]
-        }
-    },
-    "localRoutes": {
-        "source": {
-            "config": {
-                "controller": "SourceController as source",
-                "templateUrl": "/static/html/warpvnd-source.html"
-            }
-        },
-        "visualization": {
-            "route": "/visualization/:simulationId",
-            "config": {
-                "controller": "VisualizationController as visualization",
-                "templateUrl": "static/html/warpvnd-visualization.html"
-            }
-        },
-        "optimization": {
-            "route": "/optimization/:simulationId",
-            "config": {
-                "controller": "OptimizationController as optimization",
-                "templateUrl": "/static/html/warpvnd-optimization.html"
-            }
-        }
     },
     "enum": {
         "Axes": [
@@ -128,6 +69,69 @@
             ["2d", "2D"],
             ["3d", "3D"]
         ]
+    },
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "vtk.js"
+            ]
+        },
+        "sirepoLibs": {
+            "js": [
+                "warpvnd.js",
+                "sirepo-geometry.js",
+                "sirepo-plotting-vtk.js"
+            ],
+            "css": [
+                "warpvnd.css",
+                "vtk.css"
+            ]
+        }
+    },
+    "frameIdFields": {
+        "currentAnimation": [],
+        "egunCurrentAnimation": [],
+        "fieldAnimation": ["field", "axes", "slice", "displayMode"],
+        "fieldCalcAnimation": ["axes", "displayMode", "slice"],
+        "fieldComparisonAnimation": [
+            "dimension",
+            "displayMode",
+            "xCell1",
+            "xCell2",
+            "xCell3",
+            "yCell1",
+            "yCell2",
+            "yCell3",
+            "zCell1",
+            "zCell2",
+            "zCell3"
+        ],
+        "impactDensityAnimation": [],
+        "optimizerAnimation": ["x", "y"],
+        "particleAnimation": ["renderCount"],
+        "particle3d": ["renderCount", "displayMode"]
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/warpvnd-source.html"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "VisualizationController as visualization",
+                "templateUrl": "static/html/warpvnd-visualization.html"
+            }
+        },
+        "optimization": {
+            "route": "/optimization/:simulationId",
+            "config": {
+                "controller": "OptimizationController as optimization",
+                "templateUrl": "/static/html/warpvnd-optimization.html"
+            }
+        }
     },
     "model": {
         "anode": {

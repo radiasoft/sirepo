@@ -179,7 +179,6 @@
             "plotRangeType": "none",
             "plotType": "3d",
             "showAllFrames": "1",
-            "startTime": 1562793232,
             "verticalOffset": -0.0005402810082933764,
             "verticalSize": 0.0035508860505445543,
             "x": "Y",
@@ -198,7 +197,6 @@
             "plotRangeType": "fit",
             "plotType": "3d",
             "showAllFrames": "1",
-            "startTime": 1562793232,
             "verticalOffset": -4.322073365661816e-07,
             "verticalSize": 0.0053411941411229905,
             "x": "Z",
@@ -245,7 +243,6 @@
             "plotRangeType": "none",
             "plotType": "particle",
             "showAllFrames": "0",
-            "startTime": 1562793232,
             "verticalOffset": 0,
             "verticalSize": 0,
             "x": "X",
@@ -535,7 +532,6 @@
             "plotRangeType": "none",
             "plotType": "particle",
             "showAllFrames": "1",
-            "startTime": 1562793232,
             "verticalOffset": 0,
             "verticalSize": 0,
             "x": "IPASS",
@@ -571,17 +567,17 @@
         },
         "simulation": {
             "activeBeamlineId": 12,
+            "documentationUrl": "",
             "folder": "/Examples",
+            "isExample": true,
             "name": "SATURNE 3 GeV Synchrotron",
-            "simulationId": "KdhO0fhv",
-            "simulationSerial": 1562793271217017,
+            "notes": "",
             "visualizationBeamlineId": 12
         },
         "simulationSettings": {
             "ip": 1,
             "npass": 3000
         },
-        "simulationStatus": {},
         "tunesReport": {
             "aspectRatio": "0.75",
             "notes": "",
@@ -589,6 +585,7 @@
             "nuMin": 0.54,
             "particleSelector": "1",
             "plotAxis": "x",
+            "plotScale": "linear",
             "showTunesReport": true,
             "turnCount": 10000,
             "turnStart": 0
@@ -609,6 +606,5 @@
         },
         "twissSummaryReport": {}
     },
-    "simulationType": "zgoubi",
-    "version": "20190710.201637"
+    "simulationType": "zgoubi"
 }

@@ -16,7 +16,7 @@ from pykern import pksubprocess
 from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
 from sirepo.template import template_common
 import py.path
-
+import os
 
 celery = Celery('sirepo')
 
@@ -77,7 +77,7 @@ def queue_name(is_parallel):
 
 
 @celery.task
-def start_simulation(cmd, run_dir):
+def start_simulation(cmd, run_dir, env):
     """Call simulation's in run_background with run_dir
 
     Args:
@@ -88,9 +88,12 @@ def start_simulation(cmd, run_dir):
     from sirepo import simulation_db
     run_dir = py.path.local(run_dir)
     simulation_db.hack_nfs_write_status('running', run_dir)
+    e = os.environ.copy()
+    e.update(env)
     with pkio.save_chdir(run_dir):
         pksubprocess.check_call_with_signals(
             cmd,
             msg=pkdlog,
             output=str(run_dir.join(template_common.RUN_LOG)),
+            env=e,
         )

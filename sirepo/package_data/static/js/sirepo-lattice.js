@@ -2119,9 +2119,11 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
                             var v = element[f];
                             if (angular.isArray(v)) {
                                 //TODO(pjm): zgoubi specific
-                                for (var j = 0; j < v.length; j++) {
-                                    var item = v[j];
-                                    res += item.transformType + '=' + item.transformValue + ' ';
+                                if (v.length && v[0].transformType) {
+                                    for (var j = 0; j < v.length; j++) {
+                                        var item = v[j];
+                                        res += item.transformType + '=' + item.transformValue + ' ';
+                                    }
                                 }
                             }
                             else {

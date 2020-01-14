@@ -4,44 +4,6 @@
             "localRoute": "lattice"
         }
     },
-    "dynamicFiles": {
-        "externalLibs": {
-            "js": [
-                "split-1.3.5.min.js"
-            ]
-        },
-        "sirepoLibs": {
-            "js": [
-                "synergia.js",
-                "sirepo-lattice.js"
-            ],
-            "css": [
-                "lattice.css"
-            ]
-        }
-    },
-    "localRoutes": {
-        "source": {
-            "config": {
-                "controller": "SynergiaSourceController as source",
-                "templateUrl": "/static/html/synergia-source.html"
-            }
-        },
-        "lattice": {
-            "route": "/lattice/:simulationId",
-            "config": {
-                "controller": "LatticeController as lattice",
-                "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
-            }
-        },
-        "visualization": {
-            "route": "/visualization/:simulationId",
-            "config": {
-                "controller": "VisualizationController as visualization",
-                "templateUrl": "/static/html/synergia-visualization.html"
-            }
-        }
-    },
     "enum": {
         "BeamCharge": [
             ["1", "1"],
@@ -231,6 +193,59 @@
             ["psi_y", "Vertical PSI"],
             ["none", "None"]
         ]
+    },
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "split-1.3.5.min.js"
+            ]
+        },
+        "sirepoLibs": {
+            "js": [
+                "synergia.js",
+                "sirepo-lattice.js"
+            ],
+            "css": [
+                "lattice.css"
+            ]
+        }
+    },
+    "frameIdFields": {
+        "beamEvolutionAnimation": ["y1", "y2", "y3"],
+        "bunchAnimation": [
+            "x",
+            "y",
+            "histogramBins",
+            "plotRangeType",
+            "horizontalSize",
+            "horizontalOffset",
+            "verticalSize",
+            "verticalOffset",
+            "isRunning"
+        ],
+        "turnComparisonAnimation": ["y", "turn1", "turn2"]
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SynergiaSourceController as source",
+                "templateUrl": "/static/html/synergia-source.html"
+            }
+        },
+        "lattice": {
+            "route": "/lattice/:simulationId",
+            "config": {
+                "controller": "LatticeController as lattice",
+                "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "VisualizationController as visualization",
+                "templateUrl": "/static/html/synergia-visualization.html"
+            }
+        }
     },
     "model": {
         "beamEvolutionAnimation": {

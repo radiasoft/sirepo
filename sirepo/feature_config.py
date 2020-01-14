@@ -5,23 +5,47 @@ u"""List of features available
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern.pkdebug import pkdp
-from pykern import pkconfig
-from pykern import pkcollections
-import copy
+# defer all imports so *_CODES is available to testing functions
 
 
-#: Codes on beta and prod;'shadow' is unsupported on F29 for now
-_NON_ALPHA_CODES = ('srw', 'warppba', 'elegant', 'warpvnd', 'jspec', 'synergia', 'zgoubi', 'webcon')
+#: Codes on beta and prod; 'shadow' is unsupported on F29 for now
+NON_ALPHA_CODES = frozenset((
+    'elegant',
+    'jspec',
+    'srw',
+    'synergia',
+    'warppba',
+    'warpvnd',
+    'webcon',
+    'zgoubi',
+))
 
 #: Codes on dev and alpha
-_ALPHA_CODES = ('myapp', 'adm', 'flash', 'rs4pi', 'opal')
+ALPHA_CODES = frozenset((
+    'adm',
+    'flash',
+    'myapp',
+    'rs4pi',
+    'opal',
+))
 
 #: All possible codes
-_ALL_CODES = _NON_ALPHA_CODES + _ALPHA_CODES
+ALL_CODES = NON_ALPHA_CODES.union(ALPHA_CODES)
 
 #: Configuration
-cfg = None
+_cfg = None
+
+
+def cfg():
+    """global configuration
+
+    Returns:
+        dict: configurated features
+    """
+    global _cfg
+    if not _cfg:
+        _init()
+    return _cfg
 
 
 def for_sim_type(sim_type):
@@ -33,43 +57,52 @@ def for_sim_type(sim_type):
     Returns:
         dict: application specific config
     """
-    if sim_type not in cfg:
-        return {}
-    return pkcollections.map_to_dict(cfg[sim_type])
+    import pykern.pkcollections
+
+    c = cfg()
+    if sim_type not in c:
+        return pykern.pkcollections.PKDict()
+    return pykern.pkcollections.PKDict(
+        pykern.pkcollections.map_items(c[sim_type]),
+    )
 
 
-@pkconfig.parse_none
-def _cfg_sim_types(value):
-    res = pkconfig.parse_set(value)
-    if not res:
-        return _codes()
-    for c in res:
-        assert c in _codes(), \
-            'invalid sim_type={}, expected one of={}'.format(c, _codes())
-    return tuple(res)
+def _init():
+    from pykern import pkconfig
+    global _cfg
 
+    @pkconfig.parse_none
+    def _cfg_sim_types(value):
+        res = pkconfig.parse_set(value)
+        if not res:
+            return tuple(_codes())
+        for c in res:
+            assert c in _codes(), \
+                'invalid sim_type={}, expected one of={}'.format(c, _codes())
+        if 'jspec' in res:
+            res = set(res)
+            res.add('elegant')
+        return tuple(res)
 
-def _codes(want_all=None):
-    if want_all is None:
-        want_all = pkconfig.channel_in_internal_test()
-    return _ALL_CODES if want_all else _NON_ALPHA_CODES
+    def _codes():
+        return ALL_CODES if pkconfig.channel_in_internal_test() \
+            else NON_ALPHA_CODES
 
-
-cfg = pkconfig.init(
-    api_modules=((), set, 'optional api modules, e.g. status'),
-    job_supervisor=(False, bool, 'job supervisor to manage running of jobs'),
-    #TODO(robnagler) make sim_type config
-    rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
-    sim_types=(None, _cfg_sim_types, 'simulation types (codes) to be imported'),
-    srw=dict(
-        mask_in_toolbar=(pkconfig.channel_in_internal_test(), bool, 'Show the mask element in toolbar'),
-        beamline3d=(pkconfig.channel_in_internal_test(), bool, 'Show 3D beamline plot'),
-    ),
-    jspec=dict(
-        derbenevskrinsky_force_formula=(pkconfig.channel_in_internal_test(), bool, 'Include Derbenev-Skrinsky force forumla'),
-    ),
-    warpvnd=dict(
-        allow_3d_mode=(True, bool, 'Include 3D features in the Warp VND UI'),
-        display_test_boxes=(pkconfig.channel_in_internal_test(), bool, 'Display test boxes to visualize 3D -> 2D projections'),
-    ),
-)
+    _cfg = pkconfig.init(
+        api_modules=((), set, 'optional api modules, e.g. status'),
+        job=(False, bool, '[new] job execution architecture (replaces runner)'),
+        jspec=dict(
+            derbenevskrinsky_force_formula=(pkconfig.channel_in_internal_test(), bool, 'Include Derbenev-Skrinsky force forumla'),
+        ),
+        #TODO(robnagler) make sim_type config
+        rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
+        sim_types=(None, _cfg_sim_types, 'simulation types (codes) to be imported'),
+        srw=dict(
+            mask_in_toolbar=(pkconfig.channel_in_internal_test(), bool, 'Show the mask element in toolbar'),
+            beamline3d=(pkconfig.channel_in_internal_test(), bool, 'Show 3D beamline plot'),
+        ),
+        warpvnd=dict(
+            allow_3d_mode=(True, bool, 'Include 3D features in the Warp VND UI'),
+            display_test_boxes=(pkconfig.channel_in_internal_test(), bool, 'Display test boxes to visualize 3D -> 2D projections'),
+        ),
+    )

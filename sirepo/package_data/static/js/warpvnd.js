@@ -154,6 +154,30 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
         return optFields;
     };
 
+    self.computeModel = function(analysisModel) {
+        if ([
+            'currentAnimation',
+            'egunCurrentAnimation',
+            'fieldAnimation',
+            'impactDensityAnimation',
+            'particle3d',
+            'particleAnimation'
+        ].indexOf(analysisModel) >= 0) {
+            return 'animation';
+        }
+        if (analysisModel == 'optimizerAnimation') {
+            return analysisModel;
+        }
+        if ([
+            'fieldCalcAnimation',
+            'fieldComparisonAnimation',
+            'fieldCalculationAnimation'
+        ].indexOf(analysisModel) >=0) {
+            return 'fieldCalculationAnimation';
+        }
+        return 'animation';
+    };
+
     self.conductorTypeMap = function() {
         var res = {};
         appState.models.conductorTypes.forEach(function(m) {
@@ -327,6 +351,8 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
         plateSpacing = appState.models.simulationGrid.plate_spacing;
         rootScopeListener = $rootScope.$on('simulationGrid.changed', realignConductors);
     });
+
+    appState.setAppService(self);
 
     return self;
 });
@@ -804,13 +830,11 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
     });
 });
 
-SIREPO.app.controller('OptimizationController', function (appState, frameCache, persistentSimulation, $scope) {
+SIREPO.app.controller('OptimizationController', function (appState, frameCache, persistentSimulation, warpvndService, $scope) {
     var self = this;
 
     function handleStatus(data) {
-        if (data.startTime && ! data.error) {
-            appState.models.optimizerAnimation.startTime = data.startTime;
-            appState.saveQuietly('optimizerAnimation');
+        if ('frameCount' in data && ! data.error) {
             frameCache.setFrameCount(data.frameCount > 1 ? data.frameCount : 0);
             self.simState.summaryData = data.summary;
         }
@@ -826,9 +850,11 @@ SIREPO.app.controller('OptimizationController', function (appState, frameCache, 
         return false;
     };
 
-    self.simState = persistentSimulation.initSimulationState($scope, 'optimizerAnimation', handleStatus, {
-        optimizerAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'startTime'],
-    });
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        warpvndService.computeModel('optimizerAnimation'),
+        handleStatus
+    );
 
     self.simState.notRunningMessage = function() {
         return 'Optimization ' + self.simState.stateAsText() + ': ' + self.simState.getFrameCount() + ' runs';
@@ -2066,7 +2092,7 @@ SIREPO.app.directive('fieldAnimation', function(appState, panelState, plotting, 
     };
 });
 
-SIREPO.app.directive('fieldCalculationAnimation', function(appState, frameCache, panelState, persistentSimulation) {
+SIREPO.app.directive('fieldCalculationAnimation', function(appState, frameCache, panelState, persistentSimulation, warpvndService) {
     return {
         restrict: 'A',
         transclude: true,
@@ -2083,22 +2109,11 @@ SIREPO.app.directive('fieldCalculationAnimation', function(appState, frameCache,
             var SINGLE_PLOTS = ['fieldCalcAnimation', 'fieldComparisonAnimation'];
             $scope.panelState = panelState;
 
-            function buildAnimArgs(name, version) {
-                var args = [SIREPO.ANIMATION_ARGS_VERSION + version]
-                    .concat(SIREPO.APP_SCHEMA.animationArgs[name]);
-                args.push('startTime');
-                return args;
-            }
-
             function handleStatus(data) {
                 SINGLE_PLOTS.forEach(function(name) {
                     frameCache.setFrameCount(0, name);
                 });
-                if (data.startTime && ! data.error) {
-                    SINGLE_PLOTS.forEach(function(modelName) {
-                        appState.models[modelName].startTime = data.startTime;
-                        appState.saveQuietly(modelName);
-                    });
+                if ('percentComplete' in data && ! data.error) {
                     if (data.percentComplete === 100 && ! $scope.simState.isProcessing()) {
                         SINGLE_PLOTS.forEach(function(name) {
                             frameCache.setFrameCount(1, name);
@@ -2112,11 +2127,11 @@ SIREPO.app.directive('fieldCalculationAnimation', function(appState, frameCache,
                 $scope.simState.saveAndRunSimulation(['simulation', 'simulationGrid']);
             };
 
-
-            $scope.simState = persistentSimulation.initSimulationState($scope, 'fieldCalculationAnimation', handleStatus, {
-                fieldCalcAnimation: buildAnimArgs('fieldCalcAnimation', '1'),
-                fieldComparisonAnimation: buildAnimArgs('fieldComparisonAnimation', '1'),
-            });
+            $scope.simState = persistentSimulation.initSimulationState(
+                $scope,
+                warpvndService.computeModel('fieldCalculationAnimation'),
+                handleStatus
+            );
         },
     };
 });
@@ -2614,7 +2629,7 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
     };
 });
 
-SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, panelState, persistentSimulation) {
+SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, panelState, persistentSimulation, warpvndService) {
     return {
         restrict: 'A',
         transclude: true,
@@ -2664,11 +2679,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                 SINGLE_PLOTS.forEach(function(name) {
                     frameCache.setFrameCount(0, name);
                 });
-                if (data.startTime && ! data.error) {
-                    ['currentAnimation', 'fieldAnimation', 'particleAnimation', 'particle3d', 'egunCurrentAnimation', 'impactDensityAnimation'].forEach(function(modelName) {
-                        appState.models[modelName].startTime = data.startTime;
-                        appState.saveQuietly(modelName);
-                    });
+                if ('percentComplete' in data && ! data.error) {
                     if (data.percentComplete === 100 && ! $scope.simState.isProcessing()) {
                         SINGLE_PLOTS.forEach(function(name) {
                             frameCache.setFrameCount(1, name);
@@ -2688,14 +2699,11 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                 $scope.simState.saveAndRunSimulation(['simulation', 'simulationGrid']);
             };
 
-            $scope.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-                currentAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
-                fieldAnimation: frameCache.buildArgs('fieldAnimation', '1'),
-                particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '3', 'renderCount', 'startTime'],
-                particle3d: frameCache.buildArgs('particle3d', '1'),
-                impactDensityAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
-                egunCurrentAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
-            });
+            $scope.simState = persistentSimulation.initSimulationState(
+                $scope,
+                warpvndService.computeModel('animation'),
+                handleStatus
+            );
         },
     };
 });

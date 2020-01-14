@@ -99,6 +99,8 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             requestData();
         };
         scope.hasFrames = function() {
+//rn scope.modelName is beamAnimation or particleAnimation but there would
+// be no frames.
             return frameCache.isLoaded() && frameCache.getFrameCount(scope.modelName) > 0;
         };
         scope.hasManyFrames = function() {

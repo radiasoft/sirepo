@@ -5,9 +5,9 @@ u"""zgoubi execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import lattice, template_common, zgoubi_importer, zgoubi_parser
@@ -285,7 +285,7 @@ _TWISS_SUMMARY_LABELS = {
 
 
 def background_percent_complete(report, run_dir, is_running):
-    errors = ''
+    error = ''
     if not is_running:
         out_file = run_dir.join('{}.json'.format(template_common.OUTPUT_BASE_NAME))
         show_tunes_report = False
@@ -303,21 +303,21 @@ def background_percent_complete(report, run_dir, is_running):
             count = read_frame_count(run_dir)
         if count:
             plt_file = run_dir.join(_ZGOUBI_PLT_DATA_FILE)
-            return {
-                'hasPlotFile': plt_file.exists(),
-                'percentComplete': 100,
-                'frameCount': count,
-                'showTunesReport': show_tunes_report,
-                'showSpin3d': show_spin_3d,
-            }
+            return PKDict(
+                hasPlotFile=plt_file.exists(),
+                percentComplete=100,
+                frameCount=count,
+                showTunesReport=show_tunes_report,
+                showSpin3d=show_spin_3d,
+            )
         else:
-            errors = _parse_zgoubi_log(run_dir)
-    res = {
-        'percentComplete': 0,
-        'frameCount': 0,
-    }
-    if errors:
-        res['errors'] = errors
+            error = _parse_zgoubi_log(run_dir)
+    res = PKDict(
+        percentComplete=0,
+        frameCount=0,
+    )
+    if error:
+        res.error = error
     return res
 
 
@@ -394,17 +394,20 @@ def extract_tunes_report(run_dir, data):
     }, plot_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'])
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_frames)
     if data['method'] == 'tosca_info':
         return zgoubi_importer.tosca_info(data['tosca'])
 
 
-def get_data_file(run_dir, model, frame, options=None):
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
     filename = _ZGOUBI_FAI_DATA_FILE
     if options and options['suffix'] == _ZGOUBI_COMMAND_FILE:
-        filename = _ZGOUBI_COMMAND_FILE
+        if model == 'tunesReport':
+            filename = TUNES_INPUT_FILE
+        else:
+            filename = _ZGOUBI_COMMAND_FILE
     elif model == 'elementStepAnimation':
         filename = _ZGOUBI_PLT_DATA_FILE
     elif model == 'opticsReport' or 'twissReport' in model:
@@ -417,24 +420,20 @@ def get_data_file(run_dir, model, frame, options=None):
         return path.basename, f.read(), 'application/octet-stream'
 
 
-def get_simulation_frame(run_dir, data, model_data):
-    if re.search(r'bunchAnimation', data['modelName']) \
-       or data['modelName'] in ('energyAnimation', 'elementStepAnimation'):
-        return _extract_animation(run_dir, data, model_data)
-    if data['modelName'] == 'particleAnimation':
-        return _extract_spin_3d(run_dir, data, model_data)
-    assert False, 'invalid animation frame model: {}'.format(data['modelName'])
-
-
-def import_file(request, lib_dir=None, tmp_dir=None, unit_test_mode=False):
-    f = request.files['file']
-    filename = werkzeug.secure_filename(f.filename)
-    data = zgoubi_importer.import_file(f.read(), unit_test_mode=unit_test_mode)
-    return data
-
-
-def parse_error_log(run_dir):
+def sim_frame(frame_args):
+    r = frame_args.frameReport
+    if (
+        'bunchAnimation' in r
+        or r in ('energyAnimation', 'elementStepAnimation')
+    ):
+        return _extract_animation(frame_args)
+    if r == 'particleAnimation':
+        return _extract_spin_3d(frame_args)
     return None
+
+
+def import_file(req, unit_test_mode=False, **kwargs):
+    return zgoubi_importer.import_file(req.file_stream.read(), unit_test_mode=unit_test_mode)
 
 
 def python_source_for_model(data, model=None):
@@ -521,14 +520,6 @@ def save_report_data(data, run_dir):
     )
 
 
-def simulation_dir_name(report_name):
-    if 'bunchReport' in report_name:
-        return 'bunchReport'
-    if 'opticsReport' in report_name or report_name == 'twissSummaryReport':
-        return 'twissReport2'
-    return report_name
-
-
 def write_parameters(data, run_dir, is_parallel, python_file=template_common.PARAMETERS_PYTHON_FILE):
     pkio.write_text(
         run_dir.join(python_file),
@@ -538,7 +529,7 @@ def write_parameters(data, run_dir, is_parallel, python_file=template_common.PAR
     for el in data.models.elements:
         if el.type != 'TOSCA':
             continue
-        filename = str(run_dir.join(_SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el.magnetFile)))
+        filename = str(run_dir.join(_SIM_DATA.lib_file_name_with_model_field('TOSCA', 'magnetFile', el.magnetFile)))
         if zgoubi_importer.is_zip_file(filename):
             with zipfile.ZipFile(filename, 'r') as z:
                 for info in z.infolist():
@@ -571,51 +562,27 @@ def _compute_range_across_frames(run_dir, data):
     return res
 
 
-def _extract_spin_3d(run_dir, data, model_data):
-    frame_index = int(data['frameIndex'])
-    report = template_common.parse_animation_args(
-        data,
-        {
-            '': ['isRunning', 'particleNumber', 'startTime'],
-        },
-    )
-    col_names, all_rows = _read_data_file(run_dir.join(_ZGOUBI_FAI_DATA_FILE))
-    x_idx = col_names.index('SX')
-    y_idx = col_names.index('SY')
-    z_idx = col_names.index('SZ')
-    points = []
-    it_idx = int(col_names.index('IT'))
-    it_filter = None
-    if report['particleNumber'] != 'all':
-        it_filter = report['particleNumber']
-    for row in all_rows:
-        if it_filter and it_filter != row[it_idx]:
-            continue
-        points.append(row[x_idx])
-        points.append(row[y_idx])
-        points.append(row[z_idx])
-    return {
-        'title': 'Particle {}'.format(it_filter) if it_filter else 'All Particles',
-        'points': points,
-    }
+def _2d_range(rows):
+    # returns min, max from a set of 2d data
+    # the rows may have an uneven shape, this works when np.amin(), np.amax() doesn't
+    vmax = vmin = rows[0][0]
+    for row in rows:
+        for v in row:
+            if v > vmax:
+                vmax = v
+            elif v < vmin:
+                vmin = v
+    return [vmin, vmax]
 
 
-def _extract_animation(run_dir, data, model_data):
-    frame_index = int(data['frameIndex'])
-    report = template_common.parse_animation_args(
-        data,
-        {
-            '1': ['x', 'y', 'histogramBins', 'startTime'],
-            '2': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
-            '3': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'showAllFrames', 'particleNumber', 'startTime'],
-            '': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'showAllFrames', 'particleNumber', 'plotType', 'startTime'],
-        },
-    )
+def _extract_animation(frame_args):
+    r = frame_args.frameReport
+    frame_index = frame_args.frameIndex
     is_frame_0 = False
     # fieldRange is store on the bunchAnimation
-    model = model_data.models.bunchAnimation
-    if data['modelName'] in ('energyAnimation', 'elementStepAnimation'):
-        model.update(model_data.models.energyAnimation)
+    model = frame_args.sim_in.models.bunchAnimation
+    if r in ('energyAnimation', 'elementStepAnimation'):
+        model.update(frame_args.sim_in.models.energyAnimation)
         frame_index += 1
     else:
         # bunchAnimations
@@ -623,33 +590,33 @@ def _extract_animation(run_dir, data, model_data):
         if frame_index == 0:
             is_frame_0 = True
             for f in ('x', 'y'):
-                report[f] = _initial_phase_field(report[f])
+                frame_args[f] = _initial_phase_field(frame_args[f])
             frame_index = 1
-    model.update(report)
-    if data['modelName'] == 'elementStepAnimation':
-        col_names, all_rows = _read_data_file(run_dir.join(_ZGOUBI_PLT_DATA_FILE))
+    model.update(frame_args)
+    if r == 'elementStepAnimation':
+        col_names, all_rows = _read_data_file(frame_args.run_dir.join(_ZGOUBI_PLT_DATA_FILE))
     else:
-        col_names, all_rows = _read_data_file(run_dir.join(_ZGOUBI_FAI_DATA_FILE))
+        col_names, all_rows = _read_data_file(frame_args.run_dir.join(_ZGOUBI_FAI_DATA_FILE))
     ipasses = _ipasses_for_data(col_names, all_rows)
     ipass = int(ipasses[frame_index - 1])
     rows = []
     ipass_index = int(col_names.index('IPASS'))
     it_index = int(col_names.index('IT'))
     it_filter = None
-    if _particle_count(model_data) <= _MAX_FILTER_PLOT_PARTICLES:
-        if report['particleNumber'] != 'all':
-            it_filter = report['particleNumber']
+    if _particle_count(frame_args.sim_in) <= _MAX_FILTER_PLOT_PARTICLES:
+        if frame_args.particleSelector != 'all':
+            it_filter = frame_args.particleSelector
 
     count = 0
     el_names = []
     for row in all_rows:
-        if report['showAllFrames'] == '1':
+        if frame_args.showAllFrames == '1':
             if it_filter and row[it_index] != it_filter:
                 continue
             rows.append(row)
         elif int(row[ipass_index]) == ipass:
             rows.append(row)
-    if report['showAllFrames'] == '1':
+    if frame_args.showAllFrames == '1':
         title = 'All Frames'
         if it_filter:
             title += ', Particle {}'.format(it_filter)
@@ -658,7 +625,7 @@ def _extract_animation(run_dir, data, model_data):
             model.plotRangeType = 'none'
     else:
         title = 'Initial Distribution' if is_frame_0 else 'Pass {}'.format(ipass)
-    if 'plotType' in report and report.plotType == 'particle':
+    if frame_args.get('plotType') == 'particle':
         return _extract_particle_data(model, col_names, rows, title)
     return _extract_heatmap_data(model, col_names, rows, title)
 
@@ -674,19 +641,6 @@ def _extract_heatmap_data(report, col_names, rows, title):
         'title': title,
         'z_label': 'Number of Particles',
     })
-
-
-def _2d_range(rows):
-    # returns min, max from a set of 2d data
-    # the rows may have an uneven shape, this works when np.amin(), np.amax() doesn't
-    vmax = vmin = rows[0][0]
-    for row in rows:
-        for v in row:
-            if v > vmax:
-                vmax = v
-            elif v < vmin:
-                vmin = v
-    return [vmin, vmax]
 
 
 def _extract_particle_data(report, col_names, rows, title):
@@ -738,6 +692,28 @@ def _extract_particle_data(report, col_names, rows, title):
         'x_range': _2d_range(x_points),
         'y_range': _2d_range(points),
         'x_points': x_points,
+        'points': points,
+    }
+
+
+def _extract_spin_3d(frame_args):
+    col_names, all_rows = _read_data_file(frame_args.run_dir.join(_ZGOUBI_FAI_DATA_FILE))
+    x_idx = col_names.index('SX')
+    y_idx = col_names.index('SY')
+    z_idx = col_names.index('SZ')
+    points = []
+    it_idx = int(col_names.index('IT'))
+    it_filter = None
+    if frame_args.particleSelector != 'all':
+        it_filter = frame_args.particleSelector
+    for row in all_rows:
+        if it_filter and it_filter != row[it_idx]:
+            continue
+        points.append(row[x_idx])
+        points.append(row[y_idx])
+        points.append(row[z_idx])
+    return {
+        'title': 'Particle {}'.format(it_filter) if it_filter else 'All Particles',
         'points': points,
     }
 
@@ -876,6 +852,13 @@ def _parse_zgoubi_log(run_dir):
             num = match.group(1)
             if num in element_by_num:
                 res += '  element # {}: {}\n'.format(num, element_by_num[num])
+    path = run_dir.join(template_common.RUN_LOG)
+    if res == '' and path.exists():
+        text = pkio.read_text(str(path))
+        for line in text.split("\n"):
+            match = re.search(r'Fortran runtime error: (.*)', line)
+            if match:
+                res += '{}\n'.format(match.group(1))
     return res
 
 
@@ -904,9 +887,9 @@ def _prepare_tosca_element(el):
     file_count = zgoubi_parser.tosca_file_count(el)
     el['fileNames'] = el['fileNames'][:file_count]
 
-    filename = _SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el.magnetFile)
+    filename = _SIM_DATA.lib_file_name_with_model_field('TOSCA', 'magnetFile', el.magnetFile)
     if file_count == 1 and not zgoubi_importer.is_zip_file(filename):
-        el['fileNames'][0] = _SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el['fileNames'][0])
+        el['fileNames'][0] = _SIM_DATA.lib_file_name_with_model_field('TOSCA', 'magnetFile', el['fileNames'][0])
 
 
 def _read_data_file(path, mode='title'):

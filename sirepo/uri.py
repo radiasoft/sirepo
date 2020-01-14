@@ -5,6 +5,7 @@ u"""uri formatting
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+import pykern.pkinspect
 import re
 
 try:
@@ -17,25 +18,36 @@ except ImportError:
 
 def api(*args, **kwargs):
     """Alias for `uri_router.uri_for_api`"""
-    import sirepo.uri_router
-
-    return sirepo.uri_router.uri_for_api(*args, **kwargs)
+    return uri_router.uri_for_api(*args, **kwargs)
 
 
 def app_root(sim_type):
     """Generate uri for application root
 
     Args:
-        sim_type (str): application name
+        sim_type (str): application name [flask.g.sirepo_sim_type]
 
     Returns:
         str: formatted URI
     """
-    import sirepo.template
+    t = http_request.sim_type(sim_type)
+    return '/' if t is None else '/' + t
 
-    if sim_type is None:
-        return '/'
-    return '/' + sirepo.template.assert_sim_type(sim_type)
+
+def default_local_route_name(schema):
+    for k, v in schema.localRoutes.items():
+        if v.get('isDefault'):
+            return k
+    else:
+        raise AssertionError(
+            'no isDefault in localRoutes for {}'.format(schema.simulationType),
+        )
+
+
+def init(**imports):
+    import sirepo.util
+
+    sirepo.util.setattr_imports(imports)
 
 
 def local_route(sim_type, route_name=None, params=None, query=None):
@@ -49,11 +61,10 @@ def local_route(sim_type, route_name=None, params=None, query=None):
     Returns:
         str: formatted URI
     """
-    import sirepo.simulation_db
-
-    s = sirepo.simulation_db.get_schema(sim_type)
+    t = http_request.sim_type(sim_type)
+    s = simulation_db.get_schema(t)
     if not route_name:
-        route_name = _default_local_route(s)
+        route_name = default_local_route_name(s)
     parts = s.localRoutes[route_name].route.split('/:')
     u = parts.pop(0)
     for p in parts:
@@ -62,7 +73,7 @@ def local_route(sim_type, route_name=None, params=None, query=None):
             if not params or p not in params:
                 continue
         u += '/' + _to_uri(params[p])
-    return app_root(sim_type) + '#' + u + _query(query)
+    return app_root(t) + '#' + u + _query(query)
 
 
 def server_route(route_or_uri, params, query):
@@ -76,8 +87,6 @@ def server_route(route_or_uri, params, query):
     Returns:
         str: URI
     """
-    from sirepo import simulation_db
-
     if '/' in route_or_uri:
         assert not params and not query, \
             'when uri={} must not have params={} or query={}'.format(
@@ -90,7 +99,7 @@ def server_route(route_or_uri, params, query):
     if params:
         for k, v in params.items():
             k2 = r'\??<' + k + '>'
-            n = re.sub(k2, _to_uri(v), route)
+            n = re.sub(k2, _to_uri(str(v)), route)
             assert n != route, \
                 '{}: not found in "{}"'.format(k2, route)
             route = n
@@ -99,16 +108,6 @@ def server_route(route_or_uri, params, query):
         '{}: missing params'.format(route)
     route += _query(query)
     return route
-
-
-def _default_local_route(schema):
-    for k, v in schema.localRoutes.items():
-        if v.get('isDefault'):
-            return k
-    else:
-        raise AssertionError(
-            'no isDefault in localRoutes for {}'.format(schema.simulationType),
-        )
 
 
 def _query(query):

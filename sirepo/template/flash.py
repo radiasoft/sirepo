@@ -5,9 +5,9 @@ u"""FLASH execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -18,8 +18,6 @@ import re
 import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
-
-WANT_BROWSER_FRAME_CACHE = True
 
 _FLASH_UNITS_PATH = {
     'RTFlame': '/home/vagrant/src/FLASH4.5/object/setup_units',
@@ -35,19 +33,11 @@ def background_percent_complete(report, run_dir, is_running):
     count = len(files)
     if is_running and count:
         count -= 1
-    return {
-        'percentComplete': 0 if is_running else 100,
-        'frameCount': count,
-        'error': errors,
-    }
-
-
-def get_simulation_frame(run_dir, data, model_data):
-    if data['modelName'] == 'varAnimation':
-        return _extract_meshed_plot(run_dir, data)
-    if data['modelName'] == 'gridEvolutionAnimation':
-        return _extract_evolution_plot(run_dir, data, model_data)
-    assert False, 'invalid animation frame model: {}'.format(data['modelName'])
+    return PKDict(
+        percentComplete=0 if is_running else 100,
+        frameCount=count,
+        error=errors,
+    )
 
 
 _DEFAULT_VALUES = {
@@ -311,6 +301,85 @@ def remove_last_frame(run_dir):
         pkio.unchecked_remove(files[-1])
 
 
+def sim_frame_gridEvolutionAnimation(frame_args):
+    dat = np.loadtxt(str(frame_args.run_dir.join(_GRID_EVOLUTION_FILE)))
+    stride = 20
+    x = dat[::stride, 0]
+    plots = []
+    for plot in _PLOT_COLUMNS[
+        frame_args.sim_in.models.simulation.get('flashType', 'RTFlame')
+    ]:
+        plots.append({
+            'name': plot[0],
+            'label': plot[0],
+            'points': dat[::stride, plot[1]].tolist(),
+        })
+    return {
+        'title': '',
+        'x_range': [min(x), max(x)],
+        'y_label': '',
+        'x_label': 'time [s]',
+        'x_points': x.tolist(),
+        'plots': plots,
+        'y_range': template_common.compute_plot_color_and_range(plots),
+    }
+
+
+def sim_frame_varAnimation(frame_args):
+    field = frame_args['var']
+    filename = _h5_file_list(frame_args.run_dir)[frame_args.frameIndex]
+    with h5py.File(filename) as f:
+        params = _parameters(f)
+        node_type = f['node type']
+        bounding_box = f['bounding box']
+        xdomain = [params['xmin'], params['xmax']]
+        ydomain = [params['ymin'], params['ymax']]
+        size = _cell_size(f, params['lrefine_max'])
+        dim = (
+            _rounded_int((ydomain[1] - ydomain[0]) / size[1]) * params['nyb'],
+            _rounded_int((xdomain[1] - xdomain[0]) / size[0]) * params['nxb'],
+        )
+        grid = np.zeros(dim)
+        values = f[field]
+        amr_grid = []
+        for i in xrange(len(node_type)):
+            if node_type[i] == 1:
+                bounds = bounding_box[i]
+                _apply_to_grid(grid, values[i, 0], bounds, size, xdomain, ydomain)
+                amr_grid.append([
+                    (bounds[0] / 100).tolist(),
+                    (bounds[1] / 100).tolist(),
+                ])
+
+    # imgplot = plt.imshow(grid, extent=[xdomain[0], xdomain[1], ydomain[1], ydomain[0]], cmap='PiYG')
+    aspect_ratio = float(params['nblocky']) / params['nblockx']
+    time_units = 's'
+    if params['time'] != 0:
+        if params['time'] < 1e-6:
+            params['time'] *= 1e9
+            time_units = 'ns'
+        elif params['time'] < 1e-3:
+            params['time'] *= 1e6
+            time_units = 'µs'
+        elif params['time'] < 1:
+            params['time'] *= 1e3
+            time_units = 'ms'
+    return {
+        'x_range': [xdomain[0] / 100, xdomain[1] / 100, len(grid[0])],
+        'y_range': [ydomain[0] / 100, ydomain[1] / 100, len(grid)],
+        'x_label': 'x [m]',
+        'y_label': 'y [m]',
+        'title': '{}'.format(field),
+        'subtitle': 'Time: {:.1f} [{}], Plot {}'.format(params['time'], time_units, frame_args.frameIndex + 1),
+        'aspectRatio': aspect_ratio,
+        'z_matrix': grid.tolist(),
+        'amr_grid': amr_grid,
+        'summaryData': {
+            'aspectRatio': aspect_ratio,
+        },
+    }
+
+
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         #TODO: generate python instead
@@ -356,95 +425,6 @@ _PLOT_COLUMNS = {
         ['E kinetic', 6],
     ],
 }
-
-def _extract_evolution_plot(run_dir, data, model_data):
-    frame_index = int(data['frameIndex'])
-    args = template_common.parse_animation_args(
-        data,
-        {
-            '': ['y1', 'y2', 'y3', 'startTime'],
-        },
-    )
-    datfile = np.loadtxt(str(run_dir.join(_GRID_EVOLUTION_FILE)))
-    stride = 20
-    x = datfile[::stride, 0]
-    plots = []
-    for plot in _PLOT_COLUMNS[model_data.models.simulation.get('flashType', 'RTFlame')]:
-        plots.append({
-            'name': plot[0],
-            'label': plot[0],
-            'points': datfile[::stride, plot[1]].tolist(),
-        })
-    return {
-        'title': '',
-        'x_range': [min(x), max(x)],
-        'y_label': '',
-        'x_label': 'time [s]',
-        'x_points': x.tolist(),
-        'plots': plots,
-        'y_range': template_common.compute_plot_color_and_range(plots),
-    }
-
-
-def _extract_meshed_plot(run_dir, data):
-    frame_index = int(data['frameIndex'])
-    report = template_common.parse_animation_args(
-        data,
-        {'': ['var', 'startTime']},
-    )
-    field = report['var']
-    filename = _h5_file_list(run_dir)[frame_index]
-    with h5py.File(filename) as f:
-        params = _parameters(f)
-        node_type = f['node type']
-        bounding_box = f['bounding box']
-        xdomain = [params['xmin'], params['xmax']]
-        ydomain = [params['ymin'], params['ymax']]
-        size = _cell_size(f, params['lrefine_max'])
-        dim = (
-            _rounded_int((ydomain[1] - ydomain[0]) / size[1]) * params['nyb'],
-            _rounded_int((xdomain[1] - xdomain[0]) / size[0]) * params['nxb'],
-        )
-        grid = np.zeros(dim)
-        values = f[field]
-        amr_grid = []
-        for i in xrange(len(node_type)):
-            if node_type[i] == 1:
-                bounds = bounding_box[i]
-                _apply_to_grid(grid, values[i, 0], bounds, size, xdomain, ydomain)
-                amr_grid.append([
-                    (bounds[0] / 100).tolist(),
-                    (bounds[1] / 100).tolist(),
-                ])
-
-    # imgplot = plt.imshow(grid, extent=[xdomain[0], xdomain[1], ydomain[1], ydomain[0]], cmap='PiYG')
-    aspect_ratio = float(params['nblocky']) / params['nblockx']
-    time_units = 's'
-    if params['time'] != 0:
-        if params['time'] < 1e-6:
-            params['time'] *= 1e9
-            time_units = 'ns'
-        elif params['time'] < 1e-3:
-            params['time'] *= 1e6
-            time_units = 'µs'
-        elif params['time'] < 1:
-            params['time'] *= 1e3
-            time_units = 'ms'
-    return {
-        'x_range': [xdomain[0] / 100, xdomain[1] / 100, len(grid[0])],
-        'y_range': [ydomain[0] / 100, ydomain[1] / 100, len(grid)],
-        'x_label': 'x [m]',
-        'y_label': 'y [m]',
-        'title': '{}'.format(field),
-        'subtitle': 'Time: {:.1f} [{}], Plot {}'.format(params['time'], time_units, frame_index + 1),
-        'aspectRatio': aspect_ratio,
-        'z_matrix': grid.tolist(),
-        'amr_grid': amr_grid,
-        'summaryData': {
-            'aspectRatio': aspect_ratio,
-        },
-    }
-
 
 def _generate_parameters_file(data):
     res = ''

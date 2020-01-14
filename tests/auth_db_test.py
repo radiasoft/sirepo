@@ -24,7 +24,7 @@ _cfg = {
     'SIREPO_FEATURE_CONFIG_SIM_TYPES': _sim_type,
 }
 
-@srunit.wrap_in_request(cfg=_cfg, want_cookie=True)
+@srunit.wrap_in_request(cfg=_cfg, want_user=False)
 def test_migration():
     """See if user gets migrated"""
     from pykern.pkunit import pkeq, pkok, pkexcept, work_dir
@@ -32,7 +32,7 @@ def test_migration():
     from sirepo import auth
 
     # deprecated methods raise Unauthorized, but still login
-    with pkexcept('UNAUTHORIZED'):
+    with pkexcept('SRException.*deprecated'):
         auth.login(auth.github, uid='jeTJR5G4')
     # verify logged in
     pkeq('jeTJR5G4', auth.user_if_logged_in('github'))

@@ -4,7 +4,6 @@ u"""Synergia execution template.
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -21,6 +20,7 @@ import math
 import py.path
 import re
 import sirepo.sim_data
+import sirepo.util
 import werkzeug
 
 
@@ -99,26 +99,28 @@ def background_percent_complete(report, run_dir, is_running):
                 size = f['emitx'].shape[0]
                 turn = int(f['repetition'][-1]) + 1
                 complete = 100 * (turn - 0.5) / data.models.simulationSettings.turn_count
-                return {
-                    'percentComplete': complete if is_running else 100,
-                    'frameCount': size,
-                    'turnCount': turn,
-                    'bunchAnimation.frameCount': particle_file_count,
-                }
-        except Exception as e:
+                res = PKDict(
+                    percentComplete=complete if is_running else 100,
+                    frameCount=size,
+                    turnCount=turn,
+                )
+                res['bunchAnimation.frameCount'] = particle_file_count
+                return res
+
+        except Exception:
             # file present but not hdf formatted
             pass
-    return {
-        'percentComplete': 0,
-        'frameCount': 0,
-    }
+    return PKDict(
+        percentComplete=0,
+        frameCount=0,
+    )
 
 
 def format_float(v):
     return float(format(v, '.10f'))
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data.method == 'calculate_bunch_parameters':
         return _calc_bunch_parameters(data.bunch)
     if data.method == 'compute_particle_ranges':
@@ -126,28 +128,26 @@ def get_application_data(data):
     assert False, 'unknown application data method: {}'.format(data.method)
 
 
-def import_file(request, lib_dir=None, tmp_dir=None):
-    f = request.files['file']
-    filename = werkzeug.secure_filename(f.filename)
-    if re.search(r'.madx$', filename, re.IGNORECASE):
-        data = _import_madx_file(f.read())
-    elif re.search(r'.mad8$', filename, re.IGNORECASE):
+def import_file(req, tmp_dir=None, **kwargs):
+    if re.search(r'.madx$', req.filename, re.IGNORECASE):
+        data = _import_madx_file(req.file_stream.read())
+    elif re.search(r'.mad8$', req.filename, re.IGNORECASE):
         import pyparsing
         try:
-            data = _import_mad8_file(f.read())
+            data = _import_mad8_file(req.file_stream.read())
         except pyparsing.ParseException as e:
             # ParseException has no message attribute
-            raise IOError(str(e))
-    elif re.search(r'.lte$', filename, re.IGNORECASE):
-        data = _import_elegant_file(f.read())
+            raise sirepo.util.UserAlert(str(e))
+    elif re.search(r'.lte$', req.filename, re.IGNORECASE):
+        data = _import_elegant_file(req.file_stream.read())
     else:
-        raise IOError('invalid file extension, expecting .madx or .mad8')
-    LatticeUtil.sort_elements_and_beamlines(data)
-    data.models.simulation.name = re.sub(r'\.(mad.|lte)$', '', filename, flags=re.IGNORECASE)
+        raise sirepo.util.UserAlert('invalid file extension, expecting .madx or .mad8')
+    LatticeUtil(data, _SCHEMA).sort_elements_and_beamlines()
+    data.models.simulation.name = re.sub(r'\.(mad.|lte)$', '', req.filename, flags=re.IGNORECASE)
     return data
 
 
-def get_data_file(run_dir, model, frame, options=None):
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if model in OUTPUT_FILE:
         path = run_dir.join(OUTPUT_FILE[model])
     elif model == 'bunchAnimation':
@@ -164,37 +164,6 @@ def get_data_file(run_dir, model, frame, options=None):
         return path.basename, f.read(), 'application/octet-stream'
 
 
-def get_simulation_frame(run_dir, data, model_data):
-    frame_index = int(data.frameIndex)
-    if data.modelName == 'beamEvolutionAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {
-                '1': ['x', 'y1', 'y2', 'y3', 'startTime'],
-                '': ['y1', 'y2', 'y3', 'startTime'],
-            },
-        )
-        return _extract_evolution_plot(args, run_dir)
-    if data.modelName == 'bunchAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {
-                '1': ['x', 'y', 'histogramBins', 'startTime'],
-                '': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
-            },
-        )
-        return _extract_bunch_plot(args, frame_index, run_dir)
-    if data.modelName == 'turnComparisonAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {
-                '': ['y', 'turn1', 'turn2', 'startTime'],
-            },
-        )
-        return _extract_turn_comparison_plot(args, run_dir, model_data.models.simulationSettings.turn_count)
-    raise RuntimeError('unknown animation model: {}'.format(data.modelName))
-
-
 def label(field, enum_labels=None):
     res = field
     if enum_labels:
@@ -206,7 +175,22 @@ def label(field, enum_labels=None):
     return '{} [{}]'.format(res, _UNITS[field])
 
 
-def parse_error_log(run_dir):
+def prepare_output_file(run_dir, data):
+    report = data.report
+    if 'bunchReport' in report or 'twissReport' in report:
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
+        if fn.exists():
+            fn.remove()
+            save_report_data(data, run_dir)
+
+
+def python_source_for_model(data, model):
+    return _generate_parameters_file(data)
+
+
+def parse_synergia_log(run_dir):
+    if not run_dir.join(template_common.RUN_LOG).exists():
+        return None
     text = pkio.read_text(run_dir.join(template_common.RUN_LOG))
     errors = []
     current = ''
@@ -237,19 +221,6 @@ def parse_error_log(run_dir):
     return None
 
 
-def prepare_output_file(run_dir, data):
-    report = data.report
-    if 'bunchReport' in report or 'twissReport' in report:
-        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
-        if fn.exists():
-            fn.remove()
-            save_report_data(data, run_dir)
-
-
-def python_source_for_model(data, model):
-    return _generate_parameters_file(data)
-
-
 def save_report_data(data, run_dir):
     if 'bunchReport' in data.report:
         import synergia.bunch
@@ -261,7 +232,7 @@ def save_report_data(data, run_dir):
         report = data.models[data.report]
         bunch = data.models.bunch
         if bunch.distribution == 'file':
-            bunch_file = _SIM_DATA.lib_file_name('bunch', 'particleFile', bunch.particleFile)
+            bunch_file = _SIM_DATA.lib_file_name_with_model_field('bunch', 'particleFile', bunch.particleFile)
         else:
             bunch_file = OUTPUT_FILE.bunchReport
         if not run_dir.join(bunch_file).exists():
@@ -305,14 +276,101 @@ def save_report_data(data, run_dir):
     simulation_db.write_result(res, run_dir=run_dir)
 
 
-def simulation_dir_name(report_name):
-    if 'bunchReport' in report_name:
-        return 'bunchReport'
-    return report_name
+def sim_frame_beamEvolutionAnimation(frame_args):
+    plots = []
+    n = str(frame_args.run_dir.join(OUTPUT_FILE.beamEvolutionAnimation))
+    with h5py.File(n, 'r') as f:
+        x = f['s'][:].tolist()
+        for yfield in ('y1', 'y2', 'y3'):
+            if frame_args[yfield] == 'none':
+                continue
+            points = _plot_values(f, frame_args[yfield])
+            for v in points:
+                if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
+                    return parse_synergia_log(frame_args.run_dir) or PKDict(
+                        error='Invalid data computed',
+                    )
+            plots.append(PKDict(
+                points=points,
+                label=label(frame_args[yfield], _SCHEMA.enum.BeamColumn),
+            ))
+        return PKDict(
+            title='',
+            x_range=[min(x), max(x)],
+            y_label='',
+            x_label='s [m]',
+            x_points=x,
+            plots=plots,
+            y_range=template_common.compute_plot_color_and_range(plots),
+        )
+
+
+def sim_frame_bunchAnimation(frame_args):
+    n = _particle_file_list(frame_args.run_dir)[frame_args.frameIndex]
+    with h5py.File(str(n), 'r') as f:
+        x = f['particles'][:, _COORD6.index(frame_args.x)].tolist()
+        y = f['particles'][:, _COORD6.index(frame_args.y)].tolist()
+        if 'bunchAnimation' not in frame_args.sim_in.models:
+            # In case the simulation was run before the bunchAnimation was added
+            return PKDict(error='report not generated')
+        tlen = f['tlen'][()]
+        s_n = f['s_n'][()]
+        rep = 0 if s_n == 0 else int(round(tlen / s_n))
+        model = frame_args.sim_in.models.bunchAnimation
+        model.update(frame_args)
+        return template_common.heatmap(
+            [x, y],
+            model,
+            PKDict(
+                x_label=label(frame_args.x),
+                y_label=label(frame_args.y),
+                title='{}-{} at {:.1f}m, turn {}'.format(frame_args.x, frame_args.y, tlen, rep),
+            ),
+        )
+
+
+def sim_frame_turnComparisonAnimation(frame_args):
+    turn_count = frame_args.sim_in.models.simulationSettings.turn_count
+    plots = []
+    with h5py.File(str(frame_args.run_dir.join(OUTPUT_FILE.beamEvolutionAnimation)), 'r') as f:
+        x = f['s'][:].tolist()
+        points = _plot_values(f, frame_args.y)
+        for v in points:
+            if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
+                return parse_synergia_log(frame_args.run_dir) or {
+                    'error': 'Invalid data computed',
+                }
+        steps = (len(points) - 1) / turn_count
+        x = x[0:int(steps + 1)]
+        if not frame_args.turn1 or int(frame_args.turn1) > turn_count:
+            frame_args.turn1 = 1
+        if not frame_args.turn2 or int(frame_args.turn2) > turn_count or int(frame_args.turn1) == int(frame_args.turn2):
+            frame_args.turn2 = turn_count
+        for yfield in ('turn1', 'turn2'):
+            turn = int(frame_args[yfield])
+            p = points[int((turn - 1) * steps):int((turn - 1) * steps + steps + 1)]
+            if not len(p):
+                return {
+                    'error': 'Simulation data is not yet available',
+                }
+            plots.append({
+                'points': p,
+                'label': '{} turn {}'.format(label(frame_args.y, _SCHEMA.enum.BeamColumn), turn),
+            })
+        return {
+            'title': '',
+            'x_range': [min(x), max(x)],
+            'y_label': '',
+            'x_label': 's [m]',
+            'x_points': x,
+            'plots': plots,
+            'y_range': template_common.compute_plot_color_and_range(plots),
+        }
 
 
 def validate_file(file_type, path):
-    assert file_type == 'bunch-particleFile'
+    if file_type != 'bunch-particleFile':
+        return 'invalid file type'
     try:
         with h5py.File(path, 'r') as f:
             if 'particles' in f:
@@ -394,7 +452,7 @@ def _calc_particle_info(bunch):
 
 
 def _compute_range_across_files(run_dir, data):
-    res = {}
+    res = PKDict()
     for v in _SCHEMA.enum.PhaseSpaceCoordinate6:
         res[v[0]] = []
     for filename in _particle_file_list(run_dir):
@@ -411,95 +469,6 @@ def _compute_range_across_files(run_dir, data):
 
 def _drift_name(length):
     return 'D{}'.format(length).replace('.', '_')
-
-
-def _extract_bunch_plot(report, frame_index, run_dir):
-    filename = _particle_file_list(run_dir)[frame_index]
-    with h5py.File(str(filename), 'r') as f:
-        x = f['particles'][:, _COORD6.index(report.x)].tolist()
-        y = f['particles'][:, _COORD6.index(report.y)].tolist()
-        data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-        if 'bunchAnimation' not in data.models:
-            # In case the simulation was run before the bunchAnimation was added
-            return {
-                'error': 'Report not generated',
-            }
-        tlen = f['tlen'][()]
-        s_n = f['s_n'][()]
-        rep = 0 if s_n == 0 else int(round(tlen / s_n))
-        model = data.models.bunchAnimation
-        model.update(report)
-        return template_common.heatmap([x, y], model, {
-            'x_label': label(report.x),
-            'y_label': label(report.y),
-            'title': '{}-{} at {:.1f}m, turn {}'.format(report.x, report.y, tlen, rep),
-        })
-
-
-def _extract_evolution_plot(report, run_dir):
-    plots = []
-    with h5py.File(str(run_dir.join(OUTPUT_FILE.beamEvolutionAnimation)), 'r') as f:
-        x = f['s'][:].tolist()
-        for yfield in ('y1', 'y2', 'y3'):
-            if report[yfield] == 'none':
-                continue
-            points = _plot_values(f, report[yfield])
-            for v in points:
-                if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
-                    return parse_error_log(run_dir) or {
-                        'error': 'Invalid data computed',
-                    }
-            plots.append({
-                'points': points,
-                'label': label(report[yfield], _SCHEMA.enum.BeamColumn),
-            })
-        return {
-            'title': '',
-            'x_range': [min(x), max(x)],
-            'y_label': '',
-            'x_label': 's [m]',
-            'x_points': x,
-            'plots': plots,
-            'y_range': template_common.compute_plot_color_and_range(plots),
-        }
-
-
-def _extract_turn_comparison_plot(report, run_dir, turn_count):
-    plots = []
-    with h5py.File(str(run_dir.join(OUTPUT_FILE.beamEvolutionAnimation)), 'r') as f:
-        x = f['s'][:].tolist()
-        points = _plot_values(f, report.y)
-        for v in points:
-            if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
-                return parse_error_log(run_dir) or {
-                    'error': 'Invalid data computed',
-                }
-        steps = (len(points) - 1) / turn_count
-        x = x[0:int(steps + 1)]
-        if not report.turn1 or int(report.turn1) > turn_count:
-            report.turn1 = 1
-        if not report.turn2 or int(report.turn2) > turn_count or int(report.turn1) == int(report.turn2):
-            report.turn2 = turn_count
-        for yfield in ('turn1', 'turn2'):
-            turn = int(report[yfield])
-            p = points[int((turn - 1) * steps):int((turn - 1) * steps + steps + 1)]
-            if not len(p):
-                return {
-                    'error': 'Simulation data is not yet available',
-                }
-            plots.append({
-                'points': p,
-                'label': '{} turn {}'.format(label(report.y, _SCHEMA.enum.BeamColumn), turn),
-            })
-        return {
-            'title': '',
-            'x_range': [min(x), max(x)],
-            'y_label': '',
-            'x_label': 's [m]',
-            'x_points': x,
-            'plots': plots,
-            'y_range': template_common.compute_plot_color_and_range(plots),
-        }
 
 
 def _format_field_value(state, model, field, el_type):
@@ -525,7 +494,7 @@ def _generate_parameters_file(data):
         'twissFileName': OUTPUT_FILE.twissReport,
     })
     if data.models.bunch.distribution == 'file':
-        v.bunchFile = _SIM_DATA.lib_file_name('bunch', 'particleFile', data.models.bunch.particleFile)
+        v.bunchFile = _SIM_DATA.lib_file_name_with_model_field('bunch', 'particleFile', data.models.bunch.particleFile)
     v.bunch = template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
     res += template_common.render_jinja(SIM_TYPE, v, 'base.py')
     report = data.report if 'report' in data else ''

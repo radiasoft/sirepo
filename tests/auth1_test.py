@@ -10,7 +10,7 @@ from pykern import pkcollections
 from sirepo import srunit
 
 
-@srunit.wrap_in_request(sim_types='myapp')
+@srunit.wrap_in_request(sim_types='myapp', want_user=False)
 def test_login():
     from pykern import pkunit
     from pykern.pkdebug import pkdp
@@ -25,17 +25,17 @@ def test_login():
     pkre('LoggedIn": false.*Registration": false', r.data)
     delattr(flask.g, 'sirepo_cookie')
     auth.process_request()
-    with pkunit.pkexcept('Unauthorized'):
+    with pkunit.pkexcept('SRException.*routeName=login'):
         auth.logged_in_user()
     with pkexcept('SRException.*routeName=login'):
         auth.require_user()
     sirepo.cookie.set_sentinel()
     # copying examples for new user takes time
-    r = auth.login(sirepo.auth.guest)
-    pkeq(None, r, 'user created')
+    with pkunit.pkexcept('SRException.*routeName=None'):
+        r = auth.login(sirepo.auth.guest, sim_type='myapp')
     r = auth.api_authState()
     pkre('LoggedIn": true.*Registration": false', r.data)
     u = auth.logged_in_user()
     pkok(u, 'user should exist')
     # guests do not require completeRegistration
-    pkeq(auth.require_user(), None)
+    auth.require_user()

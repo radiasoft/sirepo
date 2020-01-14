@@ -1,5 +1,11 @@
 {
     "models": {
+        "anode": {
+            "diffProb": "0.0",
+            "isReflector": "0",
+            "refScheme": "rand_angle",
+            "specProb": "0.0"
+        },
         "beam": {
             "anode_voltage": 0,
             "anode_work_function": 0.1,
@@ -13,10 +19,17 @@
         "conductorGridReport": {},
         "conductorTypes": [
             {
+                "_super": "conductor",
+                "color": null,
+                "diffProb": "0.0",
                 "id": 2,
                 "isConductor": "1",
+                "isReflector": "0",
                 "name": "grid",
                 "permittivity": 7,
+                "refScheme": "uniform",
+                "specProb": "0.0",
+                "type": "box",
                 "voltage": 16,
                 "voltage_opt": true,
                 "xLength": 0.002,
@@ -67,35 +80,63 @@
             }
         ],
         "currentAnimation": {
-            "framesPerSecond": "2",
-            "startTime": 1551826477
+            "framesPerSecond": "2"
         },
         "egunCurrentAnimation": {
-            "framesPerSecond": "2",
-            "startTime": 1551826477
+            "framesPerSecond": "2"
         },
         "fieldAnimation": {
+            "axes": "xz",
+            "colorMap": "viridis",
             "field": "phi",
             "framesPerSecond": "2",
-            "startTime": 1551826477
+            "notes": "",
+            "slice": 0.0
+        },
+        "fieldCalcAnimation": {
+            "_super": "fieldReport",
+            "axes": "xz",
+            "colorMap": "viridis",
+            "notes": "",
+            "slice": 0.0
+        },
+        "fieldCalculationAnimation": {},
+        "fieldComparisonAnimation": {
+            "_super": "fieldComparisonReport",
+            "dimension": "x",
+            "notes": "",
+            "xCell1": 0,
+            "xCell2": 10,
+            "xCell3": 20,
+            "yCell1": 0,
+            "yCell2": 0,
+            "yCell3": 0,
+            "zCell1": 0,
+            "zCell2": 125,
+            "zCell3": 250
         },
         "fieldComparisonReport": {
             "dimension": "x",
+            "notes": "",
             "xCell1": 13,
             "xCell2": 8,
             "xCell3": 3,
+            "yCell1": 0,
+            "yCell2": 0,
+            "yCell3": 0,
             "zCell1": 180,
             "zCell2": 102,
             "zCell3": 124
         },
         "fieldReport": {
+            "axes": "xz",
             "colorMap": "viridis",
-            "notes": ""
+            "notes": "",
+            "slice": 0.0
         },
         "impactDensityAnimation": {
             "colorMap": "coolwarm",
-            "notes": "",
-            "startTime": 1551826477
+            "notes": ""
         },
         "optimizer": {
             "constraints": [
@@ -143,14 +184,15 @@
                     "minimum": 10
                 }
             ],
+            "initialSteps": 500,
             "objective": "efficiency",
+            "optimizerSteps": 250,
             "timeLimit": 120,
             "tolerance": 0.001
         },
         "optimizerAnimation": {
             "colorMap": "viridis",
             "notes": "",
-            "startTime": 1551119371,
             "x": 0,
             "y": 1
         },
@@ -160,23 +202,23 @@
         },
         "particle3d": {
             "colorMap": "viridis",
-            "renderCount": "10",
-            "startTime": 1551826477
+            "impactColorMap": "coolwarm",
+            "renderCount": "10"
         },
         "particleAnimation": {
-            "renderCount": "100",
-            "startTime": 1551826477
+            "renderCount": "100"
         },
         "simulation": {
+            "conductorFile": "",
             "documentationUrl": "",
             "egun_mode": "0",
-            "folder": "/",
+            "executionMode": "serial",
+            "folder": "/Examples",
             "isExample": true,
             "name": "Gridded TEC 2D Opt",
             "notes": "",
             "outOfSessionSimulationId": "",
-            "simulationId": "J8ncdMh0",
-            "simulationSerial": 1552000635690572
+            "useConductorFile": "0"
         },
         "simulationGrid": {
             "channel_height": 0.08,
@@ -188,10 +230,9 @@
             "particles_per_step": 200,
             "plate_spacing": 10,
             "simulation_mode": "2d",
+            "trace_period": 1,
             "z_particle_min": 0.005
-        },
-        "simulationStatus": {}
+        }
     },
-    "simulationType": "warpvnd",
-    "version": "20190304.171906"
+    "simulationType": "warpvnd"
 }

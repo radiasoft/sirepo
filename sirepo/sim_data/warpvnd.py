@@ -18,12 +18,28 @@ class SimData(sirepo.sim_data.SimDataBase):
     ANALYSIS_ONLY_FIELDS = frozenset(('colorMap', 'notes', 'color', 'impactColorMap', 'axes', 'slice'))
 
     @classmethod
-    def animation_name(cls, data):
-        if data.modelName == 'optimizerAnimation':
-            return data.modelName
-        if data.modelName in ['fieldCalcAnimation', 'fieldComparisonAnimation']:
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if analysis_model in (
+            'currentAnimation',
+            'egunCurrentAnimation',
+            'fieldAnimation',
+            'impactDensityAnimation',
+            'particle3d',
+            'particleAnimation',
+        ):
+            return 'animation'
+        if analysis_model == 'optimizerAnimation':
+            return analysis_model
+        if analysis_model in (
+            'fieldCalcAnimation',
+            'fieldCalculationAnimation',
+            'fieldComparisonAnimation',
+        ):
             return 'fieldCalculationAnimation'
-        return 'animation'
+        #TODO(pjm): special case, should be an Animation model
+        if analysis_model == 'particle3d':
+            return 'animation'
+        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -80,12 +96,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return data.models.simulationGrid.simulation_mode == '3d'
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data.report
-        if 'modelName' not in data:
-            data.modelName = r
-        if data.report == cls.animation_name(data) or data['report'] == 'optimizerAnimation':
-            return []
+    def _compute_job_fields(cls, data, r, compute_model):
         res = ['simulationGrid']
         res.append(cls.__non_opt_fields_to_array(data.models.beam))
         for container in ('conductors', 'conductorTypes'):
@@ -114,11 +125,11 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
 
     @classmethod
-    def _lib_files(cls, data):
+    def _lib_file_basenames(cls, data):
         res = []
         for m in data.models.conductorTypes:
             if m.type == 'stl':
-                res.append(cls.lib_file_name('stl', 'file', m.file))
+                res.append(cls.lib_file_name_with_model_field('stl', 'file', m.file))
         return res
 
     @classmethod

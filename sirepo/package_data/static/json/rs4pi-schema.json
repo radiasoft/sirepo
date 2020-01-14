@@ -1,4 +1,19 @@
 {
+    "enum": {
+        "DicomPlane": [
+            ["c", "Coronal"],
+            ["t", "Transverse"],
+            ["s", "Sagittal"]
+        ],
+        "DVHType": [
+            ["cumulative", "Cumulative"],
+            ["differential", "Differential"]
+        ],
+        "DVHVolume": [
+            ["absolute", "Absolute (cm³)"],
+            ["relative", "Relative (%)"]
+        ]
+    },
     "dynamicFiles": {
         "externalLibs": {
             "js": [
@@ -12,6 +27,14 @@
                 "vtk.css"
             ]
         }
+    },
+    "frameIdFields": {
+        "dicomAnimation": ["dicomPlane"],
+        "dicomAnimation2": ["dicomPlane"],
+        "dicomAnimation3": ["dicomPlane"],
+        "dicomAnimation4": ["dicomPlane"],
+        "doseCalculation": [],
+        "dicomDose": []
     },
     "localRoutes": {
         "source": {
@@ -27,21 +50,6 @@
                 "templateUrl": "/static/html/rs4pi-dose.html"
             }
         }
-    },
-    "enum": {
-        "DicomPlane": [
-            ["c", "Coronal"],
-            ["t", "Transverse"],
-            ["s", "Sagittal"]
-        ],
-        "DVHType": [
-            ["cumulative", "Cumulative"],
-            ["differential", "Differential"]
-        ],
-        "DVHVolume": [
-            ["absolute", "Absolute (cm³)"],
-            ["relative", "Relative (%)"]
-        ]
     },
     "model": {
         "dicomAnimation": {

@@ -6,7 +6,6 @@ u"""Run jobs as subprocesses
 """
 from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
-from sirepo import mpi
 from sirepo import runner
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -42,7 +41,7 @@ class BackgroundJob(runner.JobBase):
         return True
 
     def _kill(self):
-        if self.__pid == 0:
+        if not self.__pid:
             return
         pid = self.__pid
         for sig in (signal.SIGTERM, signal.SIGKILL):
@@ -62,7 +61,7 @@ class BackgroundJob(runner.JobBase):
                     break
                 else:
                     pkdlog(
-                        'pid={} status={}: unexpected waitpid result; job={} pid={}',
+                        'pid={} status={}: unexpected waitpid result; job={} pid={} (may happen in tests)',
                         pid,
                         status,
                         self.jid,
@@ -72,7 +71,7 @@ class BackgroundJob(runner.JobBase):
                 if not e.errno in (errno.ESRCH, errno.ECHILD):
                     raise
                 # reaped by _sigchld_handler()
-                return
+                break
 
     @classmethod
     def _sigchld_handler(cls, signum=None, frame=None):
@@ -112,7 +111,7 @@ class BackgroundJob(runner.JobBase):
         so can't set signals.
         """
         env = _safe_env()
-        env['SIREPO_MPI_CORES'] = str(mpi.cfg.cores)
+        env.update(self.subprocess_env)
         try:
             pid = os.fork()
         except OSError as e:
