@@ -78,7 +78,7 @@ def test_srw_data_file(fc):
             ),
         ),
         expect_completed=False,
-        timeout=20,
+        timeout=200,
     )
     d = fc.sr_sim_data(a)
     r = fc.sr_get(
