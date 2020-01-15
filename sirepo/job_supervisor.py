@@ -128,7 +128,7 @@ class _ComputeJob(PKDict):
     instances = PKDict()
 
     def __init__(self, req, **kwargs):
-        super().__init__(_ops=[], _sent_run=False, **kwargs)
+        super().__init__(_ops=[], **kwargs)
         self.pksetdefault(db=lambda: self.__db_init(req))
 
     def destroy_op(self, op):
@@ -232,22 +232,25 @@ class _ComputeJob(PKDict):
         if (
             self.db.computeJobHash != req.content.computeJobHash
             or self.db.computeJobSerial != req.content.computeJobSerial
+            or self.db.status not in _RUNNING_PENDING
         ):
             # not our job, but let the user know it isn't running
             return r
-        if self._sent_run:
-            await self._send_with_single_reply(
-                job.OP_CANCEL,
-                req,
-            )
         self.db.status = job.CANCELED
-        for o in self._ops:
-            if o.msg.computeJid == req.content.computeJid:
-                o.set_canceled()
         self.__db_write()
+        c = False
+        for o in self._ops:
+            if self.db.isParallel and o.opName == job.OP_ANALYSIS:
+                continue
+            o.set_canceled()
+            if o.opName == job.OP_RUN and o.driver.op_was_sent(o):
+                c = True
+        if c:
+            await self._send_with_single_reply(job.OP_CANCEL, req)
         return r
 
     async def _receive_api_runSimulation(self, req):
+need to check for cancel in the queue
         f = req.content.get('forceRun')
         if not f and self.db.status == _RUNNING_PENDING:
             if self.db.computeJobHash != req.content.computeJobHash:
@@ -264,7 +267,7 @@ class _ComputeJob(PKDict):
             self.db.computeJobSerial = int(time.time())
             self.db.pkupdate(status=job.PENDING)
             self.__db_write()
-            o = await self._create_op(
+            o = self._create_op(
                 job.OP_RUN,
                 req,
                 jobCmd='compute',
@@ -272,11 +275,10 @@ class _ComputeJob(PKDict):
             )
             try:
                 o.make_lib_dir_symlink()
-                await o.send()
-                self._sent_run = True
-                tornado.ioloop.IOLoop.current().add_callback(self._run, req, o)
+                if await o.send():
+                    tornado.ioloop.IOLoop.current().add_callback(self._run, req, o)
             except Exception:
-                # _run destroys in the happy path
+                # _run destroys in the happy path (never got to _run here)
                 self.destroy_op(o)
                 raise
         # Read this first https://github.com/radiasoft/sirepo/issues/2007
@@ -325,27 +327,23 @@ class _ComputeJob(PKDict):
         return await self._send_with_single_reply(job.OP_SBATCH_LOGIN, req)
 
     async def _receive_api_simulationFrame(self, req):
-        # retry if we get a canceled
-        for i in range(2):
-            assert self.db.computeJobHash == req.content.computeJobHash, \
-                'expected computeJobHash={} but got={}'.format(
-                    self.db.computeJobHash,
-                    req.content.computeJobHash,
-                )
-            # there has to be a computeJobSerial
-            assert self.db.computeJobSerial == req.content.computeJobSerial, \
-                'expected computeJobSerial={} but got={}'.format(
-                    self.db.computeJobSerial,
-                    req.content.computeJobSerial,
-                )
-            r = await self._send_with_single_reply(
-                job.OP_ANALYSIS,
-                req,
-                jobCmd='get_simulation_frame'
+#TODO(robnagler) not found
+        assert self.db.computeJobHash == req.content.computeJobHash, \
+            'expected computeJobHash={} but got={}'.format(
+                self.db.computeJobHash,
+                req.content.computeJobHash,
             )
-            if r.get('state') != sirepo.job.CANCELED:
-                return r
-        return r
+        # there has to be a computeJobSerial
+        assert self.db.computeJobSerial == req.content.computeJobSerial, \
+            'expected computeJobSerial={} but got={}'.format(
+                self.db.computeJobSerial,
+                req.content.computeJobSerial,
+            )
+        return await self._send_with_single_reply(
+            job.OP_ANALYSIS,
+            req,
+            jobCmd='get_simulation_frame'
+        )
 
 #TODO(robnagler) need to assert that this is still our job
 #TODO(robnagler) this is a general problem: after await: check ownership
@@ -385,7 +383,7 @@ class _ComputeJob(PKDict):
         finally:
             self.destroy_op(op)
 
-    async def _create_op(self, opName, req, **kwargs):
+    def _create_op(self, opName, req, **kwargs):
 #TODO(robnagler) kind should be set earlier in the queuing process.
         req.kind = job.PARALLEL if self.db.isParallel and opName != job.OP_ANALYSIS \
             else job.SEQUENTIAL
@@ -393,7 +391,7 @@ class _ComputeJob(PKDict):
         # TODO(e-carlin): We need to be able to cancel requests waiting in this
         # state. Currently we assume that all requests get a driver and the
         # code does not block.
-        d = await job_driver.get_instance(req, self.db.jobRunMode)
+        d = job_driver.get_instance(req, self.db.jobRunMode)
         if 'dataFileKey' in kwargs:
             kwargs['dataFileUri'] = job.supervisor_file_uri(
                 d.get_supervisor_uri(),
@@ -415,12 +413,10 @@ class _ComputeJob(PKDict):
         return o
 
     async def _send_with_single_reply(self, opName, req, **kwargs):
-        o = await self._create_op(opName, req, **kwargs)
+        o = self._create_op(opName, req, **kwargs)
         try:
             await o.send()
-            r = await o.reply_ready()
-            assert 'state' not in r or r.state in job.EXIT_STATUSES
-            return r
+            return await o.reply_ready()
         finally:
             self.destroy_op(o)
 
@@ -447,36 +443,33 @@ class _Op(PKDict):
     def make_lib_dir_symlink(self):
         self.driver.make_lib_dir_symlink(self)
 
-    def reply_put(self, msg):
-        self._reply_q.put_nowait(msg)
+    def reply_put(self, reply):
+        self._reply_q.put_nowait(reply)
 
     async def reply_ready(self):
-        r = await self._reply_q.get()
-        self._reply_q.task_done()
-        return r
+        try:
+            return await self._reply_q.get()
+        finally:
+            self._reply_q.task_done()
 
     def run_timeout(self):
-        if self.canceled or self.errored:
+        if self.do_not_send:
             return
         pkdlog('opId={opId} opName={opName} maxRunSecs={maxRunSecs}', **self)
         self.set_canceled()
 
     def set_canceled(self):
         self.do_not_send = True
-        self.reply_put(PKDict(state=job.CANCELED))
         self.send_ready.set()
-        self.driver.cancel_op(self)
+        self.reply_put(PKDict(state=job.CANCELED))
 
     def set_errored(self, error):
         self.do_not_send = True
         self.send_ready.set()
-        self.reply_put(
-            PKDict(state=job.ERROR, error=error),
-        )
-        self.send_ready.set()
+        self.reply_put(PKDict(state=job.ERROR, error=error))
 
     async def send(self):
-        await self.driver.send(self)
+        return await self.driver.send(self)
 
     def start_timer(self):
         if not self.maxRunSecs:

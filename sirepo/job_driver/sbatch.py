@@ -34,7 +34,7 @@ class SbatchDriver(job_driver.DriverBase):
         self.instances[self.uid] = self
 
     @classmethod
-    async def get_instance(cls, req):
+    def get_instance(cls, req):
         u = req.content.uid
         return cls.instances.pksetdefault(u, lambda: cls(req))[u]
 

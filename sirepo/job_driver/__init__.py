@@ -60,21 +60,6 @@ class DriverBase(PKDict):
             **self
         )
 
-    def cancel_op(self, op):
-        for o in self.ops_pending_send:
-            if o == op:
-                op.do_not_send = True
-                return
-        for o in self.ops_pending_done.values():
-            if o == op:
-                op.do_not_send = True
-                return
-#rjn is this a valid assumption?
-        raise AssertionError('could not find opId={} for agentId={}'.format(
-            op.opId,
-            self._agentId),
-        )
-
     def destroy_op(self, op):
         if op in self.ops_pending_send:
             self.ops_pending_send.remove(op)
@@ -123,6 +108,16 @@ class DriverBase(PKDict):
             libFileList=[f.basename for f in d.listdir()],
         )
 
+    def op_was_sent(self, op):
+        """Is the op in ops_pending_done
+
+        Args:
+            op (job_supervisor._Op): what to check
+        Returns:
+            bool: true if in ops_pending_done
+        """
+        return op in self.ops_pending_done
+
     @classmethod
     def receive(cls, msg):
         a = cls.agents.get(msg.content.agentId)
@@ -137,6 +132,11 @@ class DriverBase(PKDict):
             a._receive(msg)
 
     async def send(self, op):
+        """Sends the op
+
+        Returns:
+            bool: True if the op was actually sent
+        """
 #TODO(robnagler) need to send a retry to the ops, which should requeue
 #  themselves at an outer level(?).
 #  If a job is still running, but we just lost the websocket, want to
@@ -154,10 +154,11 @@ class DriverBase(PKDict):
         await op.send_ready.wait()
         if op.do_not_send:
             pkdlog('op finished without being sent op={}', job.LogFormatter(op))
-        else:
-            pkdlog('op={} agentId={} opId={}', op.opName, self._agentId, op.opId)
-            op.start_timer()
-            self.websocket.write_message(pkjson.dump_bytes(op.msg))
+            return False
+        pkdlog('op={} agentId={} opId={}', op.opName, self._agentId, op.opId)
+        op.start_timer()
+        self.websocket.write_message(pkjson.dump_bytes(op.msg))
+        return True
 
     @classmethod
     async def terminate(cls):
@@ -281,10 +282,10 @@ class DriverBase(PKDict):
             raise
 
 
-async def get_instance(req, jobRunMode):
+def get_instance(req, jobRunMode):
     if jobRunMode == job.SBATCH:
-        return await _CLASSES[job.SBATCH].get_instance(req)
-    return await _DEFAULT_CLASS.get_instance(req)
+        return _CLASSES[job.SBATCH].get_instance(req)
+    return _DEFAULT_CLASS.get_instance(req)
 
 
 def init():

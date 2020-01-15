@@ -55,7 +55,7 @@ class DockerDriver(job_driver.DriverBase):
         self.instances[self.kind].append(self)
 
     @classmethod
-    async def get_instance(cls, req):
+    def get_instance(cls, req):
         h = None
         for d in list(itertools.chain(*cls.instances.values())):
             # SECURITY: must only return instances for authorized user
