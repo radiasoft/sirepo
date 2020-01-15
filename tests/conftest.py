@@ -233,6 +233,7 @@ def _config_sbatch_supervisor_env(env):
 
     env.pkupdate(
         SIREPO_JOB_DRIVER_MODULES='local:sbatch',
+        SIREPO_JOB_DRIVER_SBATCH_CORES='2',
         SIREPO_JOB_DRIVER_SBATCH_HOST=h,
         SIREPO_JOB_DRIVER_SBATCH_HOST_KEY=m.group(0),
         SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=subprocess.check_output(

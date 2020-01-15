@@ -85,8 +85,7 @@ class SbatchDriver(job_driver.DriverBase):
             if op.opName == job.OP_RUN:
                 assert m.sbatchHours
                 if cfg.cores:
-                    # override for dev
-                    m.sbatchCores = cfg.cores
+                    m.sbatchCores = min(m.mpiCores, cfg.cores)
                 m.mpiCores = m.sbatchCores
                 if op.kind == job.PARALLEL:
                     op.maxRunSecs = 0

@@ -16,7 +16,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def xtest_warppba_no_creds(new_user_fc):
+def test_warppba_no_creds(new_user_fc):
     from pykern.pkunit import pkexcept
 
     c, d = _warppba_login_setup(new_user_fc)
@@ -24,7 +24,7 @@ def xtest_warppba_no_creds(new_user_fc):
         new_user_fc.sr_run_sim(d, c, expect_completed=False)
 
 
-def xtest_warppba_invalid_creds(new_user_fc):
+def test_warppba_invalid_creds(new_user_fc):
     from pykern.pkunit import pkexcept
 
     c, d = _warppba_login_setup(new_user_fc)
@@ -43,7 +43,7 @@ def xtest_warppba_invalid_creds(new_user_fc):
         )
 
 
-def xtest_warppba_login(new_user_fc):
+def test_warppba_login(new_user_fc):
     from pykern.pkunit import pkexcept
 
     c, d = _warppba_login_setup(new_user_fc)
@@ -78,7 +78,6 @@ def test_srw_data_file(fc):
             ),
         ),
         expect_completed=False,
-        timeout=200,
     )
     d = fc.sr_sim_data(a)
     r = fc.sr_get(
@@ -94,10 +93,4 @@ def test_srw_data_file(fc):
 
 
 def _warppba_login_setup(fc):
-    c = 'animation'
-    d = fc.sr_sim_data('Laser Pulse')
-    d.models[c].pkupdate(
-        jobRunMode='sbatch',
-        sbatchCores=2,
-    )
-    return c, d
+    return 'animation', fc.sr_sim_data('Laser Pulse')
