@@ -180,9 +180,8 @@ class _TestClient(flask.testing.FlaskClient):
         try:
             run = self.sr_run_sim(data, compute_model, **kwargs)
         except sirepo.util.SRException as e:
+            pkunit.pkeq('sbatch', self.sr_job_run_mode)
             pkunit.pkre('^no-creds$', e.sr_args.params.reason)
-            assert self.sr_job_run_mode == 'sbatch', \
-                'sr_job_run_mode expected=sbatch actual={}'.format(self.sr_job_run_mode)
             self.sr_sbatch_login(compute_model, data)
             run = self.sr_run_sim(data, compute_model, **kwargs)
         for r, a in reports.items():
