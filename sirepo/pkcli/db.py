@@ -122,7 +122,8 @@ def upgrade_runner_to_job_db(db_dir):
     pkio.mkdir_parent(db_dir)
     for f in pkio.walk_tree(
             simulation_db.user_dir_name(),
-            '/' + sirepo.job.RUNNER_STATUS_FILE + '$'
+            '^(?!.*src/).*/{}$'.format(sirepo.job.RUNNER_STATUS_FILE),
+
     ):
         try:
             _create_supervisor_state_file(pkio.py_path(f.dirname))
