@@ -454,6 +454,7 @@ def new_simulation(data, new_simulation_data):
 
 def prepare_for_client(data):
     save = False
+    pkdlog('srw data need fix? {}', data.get('sim_data_template_fixup', None))
     if _SIM_DATA.template_fixup_get(data):
         import sirepo.template.srw_fixup
         pkdlog('template fixup: {}', data.models.simulation.simulationId)
@@ -485,6 +486,7 @@ def prepare_for_client(data):
                 _save_user_model_list(model_name, user_model_list)
                 save = True
     if save:
+        pkdp("save simulation json with sim_data_template_fixup={}", data.get('sim_data_template_fixup', None))
         simulation_db.save_simulation_json(data)
     return data
 

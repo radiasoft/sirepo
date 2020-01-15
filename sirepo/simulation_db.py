@@ -205,6 +205,8 @@ def fixup_old_data(data, force=False):
         bool: True if data changed
     """
     try:
+        pkdp("force= {}, version= {} (SCHEMA_COMMON.version={})", force,
+             data.get('version', None), SCHEMA_COMMON.version)
         if not force and 'version' in data and data.version == SCHEMA_COMMON.version:
             return data, False
         try:
