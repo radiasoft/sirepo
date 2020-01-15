@@ -16,7 +16,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_warppba_no_creds(new_user_fc):
+def xtest_warppba_no_creds(new_user_fc):
     from pykern.pkunit import pkexcept
 
     c, d = _warppba_login_setup(new_user_fc)
@@ -24,7 +24,7 @@ def test_warppba_no_creds(new_user_fc):
         new_user_fc.sr_run_sim(d, c, expect_completed=False)
 
 
-def test_warppba_invalid_creds(new_user_fc):
+def xtest_warppba_invalid_creds(new_user_fc):
     from pykern.pkunit import pkexcept
 
     c, d = _warppba_login_setup(new_user_fc)
@@ -43,7 +43,7 @@ def test_warppba_invalid_creds(new_user_fc):
         )
 
 
-def test_warppba_login(new_user_fc):
+def xtest_warppba_login(new_user_fc):
     from pykern.pkunit import pkexcept
 
     c, d = _warppba_login_setup(new_user_fc)
@@ -62,31 +62,31 @@ def test_warppba_login(new_user_fc):
     new_user_fc.sr_run_sim(d, c, expect_completed=False)
 
 
-def test_warppba_data_file(fc):
+def test_srw_data_file(fc):
     from pykern.pkunit import pkeq
 
+    a = "Young's Double Slit Experiment"
+    c = 'multiElectronAnimation'
     fc.sr_animation_run(
-        'Laser Pulse',
-        'animation',
+        a,
+        c,
         PKDict(
-            particleAnimation=PKDict(
-                expect_title=lambda i: r'iteration {}\)'.format((i + 1) * 50),
-                expect_y_range='-2.096.*e-05, 2.096.*e-05, 219',
-            ),
-            fieldAnimation=PKDict(
-                expect_title=lambda i: r'iteration {}\)'.format((i + 1) * 50),
-                expect_y_range='-2.064.*e-05, 2.064.*e-05, 66',
+            multiElectronAnimation=PKDict(
+                # Prevents "Memory Error" because SRW uses computeJobStart as frameCount
+                frame_index=0,
+                expect_title='E=4240 eV',
             ),
         ),
         expect_completed=False,
+        timeout=20,
     )
-    d = fc.sr_sim_data('Laser Pulse')
+    d = fc.sr_sim_data(a)
     r = fc.sr_get(
         'downloadDataFile',
         PKDict(
             simulation_type=d.simulationType,
             simulation_id=d.models.simulation.simulationId,
-            model='animation',
+            model=c,
             frame='0',
         ),
     )
