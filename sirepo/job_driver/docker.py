@@ -106,13 +106,14 @@ class DockerDriver(job_driver.DriverBase):
                 o.send_ready.set()
 
     async def kill(self):
-        if '_cid' not in self:
+        c = self.get('_cid')
+        if not c:
             return
-        pkdlog('uid={} cid={}', self.get('uid'), self.get('_cid'))
-        await self._cmd(
-            ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), self._cid),
-        )
         self._cid = None
+        pkdlog('uid={} cid={}', self.get('uid'), c)
+        await self._cmd(
+            ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), c),
+        )
 
     def slot_free(self):
         if self.has_slot:
