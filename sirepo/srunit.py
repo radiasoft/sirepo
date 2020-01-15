@@ -174,9 +174,17 @@ class _TestClient(flask.testing.FlaskClient):
         from pykern.pkcollections import PKDict
         from pykern.pkdebug import pkdp, pkdlog
         import re
+        import sirepo.util
 
         data = self.sr_sim_data(sim_name)
-        run = self.sr_run_sim(data, compute_model, **kwargs)
+        try:
+            run = self.sr_run_sim(data, compute_model, **kwargs)
+        except sirepo.util.SRException as e:
+            pkunit.pkre('^no-creds$', e.sr_args.params.reason)
+            assert self.sr_job_run_mode == 'sbatch', \
+                'sr_job_run_mode expected=sbatch actual={}'.format(self.sr_job_run_mode)
+            self.sr_sbatch_login(compute_model, data)
+            run = self.sr_run_sim(data, compute_model, **kwargs)
         for r, a in reports.items():
             if 'runSimulation' in a:
                 f = self.sr_run_sim(data, r)
@@ -413,6 +421,17 @@ class _TestClient(flask.testing.FlaskClient):
                 # this exception won't be seen because in finally
                 raise AssertionError('cancel failed')
 
+    def sr_sbatch_login(self, compute_model, data):
+        self.sr_post(
+            'sbatchLogin',
+            PKDict(
+                password='vagrant',
+                report=compute_model,
+                simulationId=data.models.simulation.simulationId,
+                simulationType=data.simulationType,
+                username='vagrant',
+            )
+        )
 
     def sr_sim_data(self, sim_name=None, sim_type=None):
         """Return simulation data by name

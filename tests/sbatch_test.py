@@ -16,7 +16,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_warppba_no_creds(fc):
+def xtest_warppba_no_creds(fc):
     from pykern.pkunit import pkexcept
 
     with pkexcept('SRException.*no-creds'):
@@ -28,7 +28,7 @@ def test_warppba_no_creds(fc):
         )
 
 
-def test_warppba_invalid_creds(fc):
+def xtest_warppba_invalid_creds(fc):
     from pykern.pkunit import pkexcept
 
     c = 'animation'
@@ -49,16 +49,10 @@ def test_warppba_invalid_creds(fc):
         )
 
 
-def test_warppba_login(fc):
+def xtest_warppba_login(fc):
     from pykern.pkunit import pkexcept
 
-    s = 'Laser Pulse'
-    c = 'animation'
-    data = fc.sr_sim_data(s)
-    data.models[c].pkupdate(
-        jobRunMode='sbatch',
-        sbatchCores=2,
-    )
+    c, data = _warppba_setup(fc)
     with pkexcept('SRException.*no-creds'):
         fc.sr_run_sim(data, c, expect_completed=False)
     fc.sr_post(
@@ -72,3 +66,47 @@ def test_warppba_login(fc):
         )
     )
     fc.sr_run_sim(data, c, expect_completed=False)
+
+
+def test_warppba_data_file(fc):
+    from pykern.pkunit import pkexcept
+
+    fc.sr_animation_run(
+        'Laser Pulse',
+        'animation',
+        PKDict(
+            particleAnimation=PKDict(
+                expect_title=lambda i: r'iteration {}\)'.format((i + 1) * 50),
+                expect_y_range='-2.096.*e-05, 2.096.*e-05, 219',
+            ),
+            fieldAnimation=PKDict(
+                expect_title=lambda i: r'iteration {}\)'.format((i + 1) * 50),
+                expect_y_range='-2.064.*e-05, 2.064.*e-05, 66',
+            ),
+        ),
+        expect_completed=False,
+    )
+    d = fc.sr_sim_data('Laser Pulse')
+    resp = fc.sr_get(
+        'downloadDataFile',
+        PKDict(
+            simulation_type=d.simulationType,
+            simulation_id=d.models.simulation.simulationId,
+            model='animation',
+            frame='0',
+        ),
+    )
+    print('rrrrrrrrrrrrrrrrrrrrrrrrr')
+    print(resp)
+    print('rrrrrrrrrrrrrrrrrrrrrrrrr')
+    assert 0
+
+
+def _warppba_setup(fc):
+    c = 'animation'
+    data = fc.sr_sim_data('Laser Pulse')
+    data.models[c].pkupdate(
+        jobRunMode='sbatch',
+        sbatchCores=2,
+    )
+    return c, data

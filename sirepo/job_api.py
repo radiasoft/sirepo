@@ -49,6 +49,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
                 computeJobHash='unused',
                 dataFileKey=t.basename,
                 frame=int(frame),
+                isParallel=False,
                 req_data=req.req_data,
                 suffix=s,
             )
