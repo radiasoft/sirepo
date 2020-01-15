@@ -69,7 +69,7 @@ def xtest_warppba_login(fc):
 
 
 def test_warppba_data_file(fc):
-    from pykern.pkunit import pkexcept
+    from pykern.pkunit import pkexcept, pkeq
 
     fc.sr_animation_run(
         'Laser Pulse',
@@ -87,7 +87,7 @@ def test_warppba_data_file(fc):
         expect_completed=False,
     )
     d = fc.sr_sim_data('Laser Pulse')
-    resp = fc.sr_get(
+    r = fc.sr_get(
         'downloadDataFile',
         PKDict(
             simulation_type=d.simulationType,
@@ -96,10 +96,7 @@ def test_warppba_data_file(fc):
             frame='0',
         ),
     )
-    print('rrrrrrrrrrrrrrrrrrrrrrrrr')
-    print(resp)
-    print('rrrrrrrrrrrrrrrrrrrrrrrrr')
-    assert 0
+    pkeq(200, r.status_code)
 
 
 def _warppba_setup(fc):

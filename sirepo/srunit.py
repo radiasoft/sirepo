@@ -509,7 +509,11 @@ class _TestClient(flask.testing.FlaskClient):
             u = sirepo.uri.server_route(route_or_uri, params, query)
             pkdc('uri={}', u)
             r = op(u)
-            pkdc('status={} data={}', r.status_code, r.data)
+            pkdc(
+                'status={} data={}',
+                r.status_code,
+                '<snip-file>' if 'download-data-file' in u else r.data,
+            )
             # Emulate code in sirepo.js to deal with redirects
             if r.status_code == 200 and r.mimetype == 'text/html':
                 m = _JAVASCRIPT_REDIRECT_RE.search(r.data)
