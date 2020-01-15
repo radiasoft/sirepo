@@ -114,6 +114,11 @@ class DockerDriver(job_driver.DriverBase):
         )
         self._cid = None
 
+    async def send(self, op):
+        if op.opName == job.OP_RUN:
+            op.msg.mpiCores = cfg[self.kind].get('cores', 1)
+        return await super().send(op)
+
     def slot_free(self):
         if self.has_slot:
             self.host.slots[self.kind].in_use -= 1
@@ -202,7 +207,7 @@ def init_class():
         hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, 'execution hosts'),
         image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
         parallel=dict(
-            cores=(1, int, 'cores per parallel job'),
+            cores=(2, int, 'cores per parallel job'),
             gigabytes=(1, int, 'gigabytes per parallel job'),
             slots_per_host=(1, int, 'parallel slots per node'),
         ),
