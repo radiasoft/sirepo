@@ -16,60 +16,54 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def xtest_warppba_no_creds(fc):
+def test_warppba_no_creds(new_user_fc):
     from pykern.pkunit import pkexcept
 
+    c, d = _warppba_login_setup(new_user_fc)
     with pkexcept('SRException.*no-creds'):
-        fc.sr_animation_run(
-            'Laser Pulse',
-            'animation',
-            PKDict(),
-            expect_completed=False,
-        )
+        new_user_fc.sr_run_sim(d, c, expect_completed=False)
 
 
-def xtest_warppba_invalid_creds(fc):
+def test_warppba_invalid_creds(new_user_fc):
     from pykern.pkunit import pkexcept
 
-    c = 'animation'
-    data = fc.sr_sim_data('Laser Pulse')
-    data.models[c].jobRunMode = 'sbatch'
+    c, d = _warppba_login_setup(new_user_fc)
     with pkexcept('SRException.*no-creds'):
-        fc.sr_run_sim(data, c, expect_completed=False)
+        new_user_fc.sr_run_sim(d, c, expect_completed=False)
     with pkexcept('SRException.*invalid-creds'):
-        fc.sr_post(
+        new_user_fc.sr_post(
             'sbatchLogin',
             PKDict(
                 password='fake pass',
                 report=c,
-                simulationId=data.models.simulation.simulationId,
-                simulationType=data.simulationType,
+                simulationId=d.models.simulation.simulationId,
+                simulationType=d.simulationType,
                 username='notarealuser',
             )
         )
 
 
-def xtest_warppba_login(fc):
+def test_warppba_login(new_user_fc):
     from pykern.pkunit import pkexcept
 
-    c, data = _warppba_setup(fc)
+    c, d = _warppba_login_setup(new_user_fc)
     with pkexcept('SRException.*no-creds'):
-        fc.sr_run_sim(data, c, expect_completed=False)
-    fc.sr_post(
+        new_user_fc.sr_run_sim(d, c, expect_completed=False)
+    new_user_fc.sr_post(
         'sbatchLogin',
         PKDict(
             password='vagrant',
             report=c,
-            simulationId=data.models.simulation.simulationId,
-            simulationType=data.simulationType,
+            simulationId=d.models.simulation.simulationId,
+            simulationType=d.simulationType,
             username='vagrant',
         )
     )
-    fc.sr_run_sim(data, c, expect_completed=False)
+    new_user_fc.sr_run_sim(d, c, expect_completed=False)
 
 
 def test_warppba_data_file(fc):
-    from pykern.pkunit import pkexcept, pkeq
+    from pykern.pkunit import pkeq
 
     fc.sr_animation_run(
         'Laser Pulse',
@@ -99,11 +93,11 @@ def test_warppba_data_file(fc):
     pkeq(200, r.status_code)
 
 
-def _warppba_setup(fc):
+def _warppba_login_setup(fc):
     c = 'animation'
-    data = fc.sr_sim_data('Laser Pulse')
-    data.models[c].pkupdate(
+    d = fc.sr_sim_data('Laser Pulse')
+    d.models[c].pkupdate(
         jobRunMode='sbatch',
         sbatchCores=2,
     )
-    return c, data
+    return c, d
