@@ -166,8 +166,9 @@ class _TestClient(flask.testing.FlaskClient):
     def __init__(self, *args, **kwargs):
         self.sr_job_run_mode = kwargs.pop('job_run_mode')
         super(_TestClient, self).__init__(*args, **kwargs)
-        self.sr_uid = None
+        self.sr_sbatch_logged_in = False
         self.sr_sim_type = None
+        self.sr_uid = None
 
     def sr_animation_run(self, sim_name, compute_model, reports, **kwargs):
         from pykern import pkunit
@@ -177,13 +178,7 @@ class _TestClient(flask.testing.FlaskClient):
         import sirepo.util
 
         data = self.sr_sim_data(sim_name)
-        try:
-            run = self.sr_run_sim(data, compute_model, **kwargs)
-        except sirepo.util.SRException as e:
-            pkunit.pkeq('sbatch', self.sr_job_run_mode)
-            pkunit.pkre('^no-creds$', e.sr_args.params.reason)
-            self.sr_sbatch_login(compute_model, data)
-            run = self.sr_run_sim(data, compute_model, **kwargs)
+        run = self.sr_run_sim(data, compute_model, **kwargs)
         for r, a in reports.items():
             if 'runSimulation' in a:
                 f = self.sr_run_sim(data, r)
@@ -420,15 +415,30 @@ class _TestClient(flask.testing.FlaskClient):
                 # this exception won't be seen because in finally
                 raise AssertionError('cancel failed')
 
+    def sr_sbatch_animation_run(self, sim_name, compute_model, reports, **kwargs):
+        from pykern.pkunit import pkexcept
+
+        d = self.sr_sim_data(sim_name)
+        if not self.sr_sbatch_logged_in:
+            with pkexcept('SRException.*no-creds'):
+                # Must try to run sim first to seed job_supervisor.db
+                self.sr_run_sim(d, compute_model, expect_completed=False)
+            self.sr_sbatch_login(compute_model, d)
+            self.sr_sbatch_logged_in = True
+        self.sr_animation_run(sim_name, compute_model, reports, **kwargs)
+
     def sr_sbatch_login(self, compute_model, data):
+        import getpass
+
+        p = getpass.getuser()
         self.sr_post(
             'sbatchLogin',
             PKDict(
-                password='vagrant',
+                password=p,
                 report=compute_model,
                 simulationId=data.models.simulation.simulationId,
                 simulationType=data.simulationType,
-                username='vagrant',
+                username=p,
             )
         )
 

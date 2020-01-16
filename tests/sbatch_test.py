@@ -62,12 +62,12 @@ def test_warppba_login(new_user_fc):
     new_user_fc.sr_run_sim(d, c, expect_completed=False)
 
 
-def test_srw_data_file(fc):
+def test_srw_data_file(new_user_fc):
     from pykern.pkunit import pkeq
 
     a = "Young's Double Slit Experiment"
     c = 'multiElectronAnimation'
-    fc.sr_animation_run(
+    new_user_fc.sr_sbatch_animation_run(
         a,
         c,
         PKDict(
@@ -79,8 +79,8 @@ def test_srw_data_file(fc):
         ),
         expect_completed=False,
     )
-    d = fc.sr_sim_data(a)
-    r = fc.sr_get(
+    d = new_user_fc.sr_sim_data(a)
+    r = new_user_fc.sr_get(
         'downloadDataFile',
         PKDict(
             simulation_type=d.simulationType,

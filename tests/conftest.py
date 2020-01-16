@@ -219,6 +219,7 @@ def pytest_configure(config):
 
 def _config_sbatch_supervisor_env(env):
     from pykern.pkcollections import PKDict
+    import os
     import pykern.pkio
     import pykern.pkunit
     import re
@@ -233,7 +234,10 @@ def _config_sbatch_supervisor_env(env):
 
     env.pkupdate(
         SIREPO_JOB_DRIVER_MODULES='local:sbatch',
-        SIREPO_JOB_DRIVER_SBATCH_CORES='2',
+        SIREPO_JOB_DRIVER_SBATCH_CORES=os.getenv(
+            'SIREPO_JOB_DRIVER_SBATCH_CORES',
+            '2',
+        ),
         SIREPO_JOB_DRIVER_SBATCH_HOST=h,
         SIREPO_JOB_DRIVER_SBATCH_HOST_KEY=m.group(0),
         SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=subprocess.check_output(
