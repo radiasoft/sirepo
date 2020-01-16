@@ -175,7 +175,6 @@ class _TestClient(flask.testing.FlaskClient):
         from pykern.pkcollections import PKDict
         from pykern.pkdebug import pkdp, pkdlog
         import re
-        import sirepo.util
 
         data = self.sr_sim_data(sim_name)
         run = self.sr_run_sim(data, compute_model, **kwargs)
