@@ -162,7 +162,7 @@ class DockerDriver(job_driver.DriverBase):
         o = (await p.stdout.read_until_close()).decode('utf-8').rstrip()
         r = await p.wait_for_exit(raise_error=False)
         # TODO(e-carlin): more robust handling
-        assert r == 0 , \
+        assert r == 0, \
             '{}: failed: exit={} output={}'.format(c, r, o)
         return o
 

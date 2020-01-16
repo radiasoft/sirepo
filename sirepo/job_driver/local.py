@@ -123,36 +123,25 @@ class LocalDriver(job_driver.DriverBase):
         if k:
             tornado.ioloop.IOLoop.current().remove_timeout(k)
         pkdlog('agentId={} returncode={}', self._agentId, returncode)
-        if pkconfig.channel_in('dev'):
-            if returncode != 0 and self._log.size() > 0:
-                pkdlog('{}: {}', self._log, self._log.read())
-        else:
-            self._agentExecDir.remove(rec=True, ignore_errors=True)
+        self._agentExecDir.remove(rec=True, ignore_errors=True)
 
     async def _do_agent_start(self, msg):
         stdin = None
-        o = None
         try:
             cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agentExecDir)
             pkdlog('dir={}', self._agentExecDir)
             # since this is local, we can make the directory; useful for debugging
             pkio.mkdir_parent(self._agentExecDir)
-    #TODO(robnagler) log to pkdebug output directly
-            self._log = self._agentExecDir.join('agent.log')
-            o = self._log.open('w')
             self.subprocess = tornado.process.Subprocess(
                 cmd,
                 env=env,
                 stdin=stdin,
-                stdout=o,
                 stderr=subprocess.STDOUT,
             )
             self.subprocess.set_exit_callback(self._agent_on_exit)
         finally:
             if stdin:
                 stdin.close()
-            if o:
-                o.close()
 
     def _websocket_free(self):
         self.slot_free()
