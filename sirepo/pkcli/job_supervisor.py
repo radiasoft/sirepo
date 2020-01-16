@@ -47,7 +47,7 @@ def default_command():
         # tornado expects a trailing slash
         static_url_prefix=sirepo.job.LIB_FILE_URI + '/',
     )
-    server = tornado.httpserver.HTTPServer(app)
+    server = tornado.httpserver.HTTPServer(app, xheaders=True)
     server.listen(cfg.port, cfg.ip)
     signal.signal(signal.SIGTERM, _sigterm)
     signal.signal(signal.SIGINT, _sigterm)
