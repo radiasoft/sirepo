@@ -214,9 +214,6 @@ def _request_content(kwargs):
 #TODO(robnagler) relative to srdb root
         simulationId=lambda: s.parse_sid(d),
         simulationType=lambda: d.simulationType,
-    ).pksetdefault(
-#TODO(robnagler) configured by job_supervisor
-        mpiCores=lambda: sirepo.mpi.cfg.cores if b.isParallel else 1,
     ).pkupdate(
         reqId=sirepo.job.unique_key(),
         runDir=str(simulation_db.simulation_run_dir(d)),

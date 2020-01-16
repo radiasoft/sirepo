@@ -14,6 +14,7 @@ from sirepo import job_driver
 import collections
 import os
 import sirepo.job_driver
+import sirepo.mpi
 import sirepo.srdb
 import subprocess
 import tornado.ioloop
@@ -110,6 +111,11 @@ class LocalDriver(job_driver.DriverBase):
                 d.ops_pending_send.remove(o)
                 d.ops_pending_done[o.opId] = o
                 o.send_ready.set()
+
+    async def send(self, op):
+        if op.opName == job.OP_RUN:
+            op.msg.mpiCores = sirepo.mpi.cfg.cores if op.msg.isParallel else 1
+        return await super().send(op)
 
     def slot_free(self):
         if self.has_slot:
