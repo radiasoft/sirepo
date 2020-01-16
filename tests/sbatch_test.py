@@ -16,59 +16,81 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_warppba_no_creds(fc):
+def test_warppba_no_creds(new_user_fc):
     from pykern.pkunit import pkexcept
 
+    c, d = _warppba_login_setup(new_user_fc)
     with pkexcept('SRException.*no-creds'):
-        fc.sr_animation_run(
-            'Laser Pulse',
-            'animation',
-            PKDict(),
-            expect_completed=False,
-        )
+        new_user_fc.sr_run_sim(d, c, expect_completed=False)
 
 
-def test_warppba_invalid_creds(fc):
+def test_warppba_invalid_creds(new_user_fc):
     from pykern.pkunit import pkexcept
 
-    c = 'animation'
-    data = fc.sr_sim_data('Laser Pulse')
-    data.models[c].jobRunMode = 'sbatch'
+    c, d = _warppba_login_setup(new_user_fc)
     with pkexcept('SRException.*no-creds'):
-        fc.sr_run_sim(data, c, expect_completed=False)
+        new_user_fc.sr_run_sim(d, c, expect_completed=False)
     with pkexcept('SRException.*invalid-creds'):
-        fc.sr_post(
+        new_user_fc.sr_post(
             'sbatchLogin',
             PKDict(
                 password='fake pass',
                 report=c,
-                simulationId=data.models.simulation.simulationId,
-                simulationType=data.simulationType,
+                simulationId=d.models.simulation.simulationId,
+                simulationType=d.simulationType,
                 username='notarealuser',
             )
         )
 
 
-def test_warppba_login(fc):
+def test_warppba_login(new_user_fc):
     from pykern.pkunit import pkexcept
 
-    s = 'Laser Pulse'
-    c = 'animation'
-    data = fc.sr_sim_data(s)
-    data.models[c].pkupdate(
-        jobRunMode='sbatch',
-        sbatchCores=2,
-    )
+    c, d = _warppba_login_setup(new_user_fc)
     with pkexcept('SRException.*no-creds'):
-        fc.sr_run_sim(data, c, expect_completed=False)
-    fc.sr_post(
+        new_user_fc.sr_run_sim(d, c, expect_completed=False)
+    new_user_fc.sr_post(
         'sbatchLogin',
         PKDict(
             password='vagrant',
             report=c,
-            simulationId=data.models.simulation.simulationId,
-            simulationType=data.simulationType,
+            simulationId=d.models.simulation.simulationId,
+            simulationType=d.simulationType,
             username='vagrant',
         )
     )
-    fc.sr_run_sim(data, c, expect_completed=False)
+    new_user_fc.sr_run_sim(d, c, expect_completed=False)
+
+
+def test_srw_data_file(new_user_fc):
+    from pykern.pkunit import pkeq
+
+    a = "Young's Double Slit Experiment"
+    c = 'multiElectronAnimation'
+    new_user_fc.sr_sbatch_animation_run(
+        a,
+        c,
+        PKDict(
+            multiElectronAnimation=PKDict(
+                # Prevents "Memory Error" because SRW uses computeJobStart as frameCount
+                frame_index=0,
+                expect_title='E=4240 eV',
+            ),
+        ),
+        expect_completed=False,
+    )
+    d = new_user_fc.sr_sim_data(a)
+    r = new_user_fc.sr_get(
+        'downloadDataFile',
+        PKDict(
+            simulation_type=d.simulationType,
+            simulation_id=d.models.simulation.simulationId,
+            model=c,
+            frame='0',
+        ),
+    )
+    pkeq(200, r.status_code)
+
+
+def _warppba_login_setup(fc):
+    return 'animation', fc.sr_sim_data('Laser Pulse')
