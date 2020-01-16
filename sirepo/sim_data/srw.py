@@ -154,8 +154,10 @@ class SimData(sirepo.sim_data.SimDataBase):
             for f in 'horizontalPosition', 'verticalPosition', 'driftCalculationMethod', 'drift':
                 if f in e:
                     del e[f]
+        pkdp("cls={} _template_fixup_set(data)", cls)
         cls._template_fixup_set(data)
-
+        pkdp("now the fixed data has sim_data_template_fixup={}, should be True",
+             data.get('sim_data_template_fixup', None))
 
     @classmethod
     def lib_files_for_type(cls, file_type):

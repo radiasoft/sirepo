@@ -454,7 +454,7 @@ def new_simulation(data, new_simulation_data):
 
 def prepare_for_client(data):
     save = False
-    pkdlog('srw data need fix? {}', data.get('sim_data_template_fixup', None))
+    pkdp('srw data need fix? {}', data.get('sim_data_template_fixup', None))
     if _SIM_DATA.template_fixup_get(data):
         import sirepo.template.srw_fixup
         pkdlog('template fixup: {}', data.models.simulation.simulationId)

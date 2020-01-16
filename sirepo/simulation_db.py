@@ -775,6 +775,7 @@ def save_simulation_json(data, do_validate=True):
             )
             srschema.validate_fields(data, get_schema(data.simulationType))
         s.simulationSerial = _serial_new()
+        pkdp("write simulation data: {}", fn)
         write_json(fn, data)
     return data
 
