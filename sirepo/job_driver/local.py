@@ -123,11 +123,7 @@ class LocalDriver(job_driver.DriverBase):
         if k:
             tornado.ioloop.IOLoop.current().remove_timeout(k)
         pkdlog('agentId={} returncode={}', self._agentId, returncode)
-        if pkconfig.channel_in('dev'):
-            if returncode != 0 and self._log.size() > 0:
-                pkdlog('{}: {}', self._log, self._log.read())
-        else:
-            self._agentExecDir.remove(rec=True, ignore_errors=True)
+        self._agentExecDir.remove(rec=True, ignore_errors=True)
 
     async def _do_agent_start(self, msg):
         stdin = None
