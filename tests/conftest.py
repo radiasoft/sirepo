@@ -70,14 +70,16 @@ def email_confirm(fc, resp, display_name=None):
         raw_response=True,
     )
 
-
 @pytest.fixture(scope='function')
-def fc(request, fc_module):
+def fc(request, fc_module, new_user=False):
     """Flask client based logged in to specific code of test
 
     Defaults to myapp.
     """
     import sirepo.srunit
+
+    if fc_module.sr_uid and new_user:
+        fc_module.sr_logout()
 
     c = _sim_type(request)
     if fc_module.sr_uid:
@@ -119,6 +121,11 @@ def import_req(request):
         return req
 
     return w
+
+
+@pytest.fixture(scope='function')
+def new_user_fc(request, fc_module):
+    return fc(request, fc_module, new_user=True)
 
 
 def pytest_collection_modifyitems(session, config, items):
@@ -212,6 +219,7 @@ def pytest_configure(config):
 
 def _config_sbatch_supervisor_env(env):
     from pykern.pkcollections import PKDict
+    import os
     import pykern.pkio
     import pykern.pkunit
     import re
@@ -226,6 +234,10 @@ def _config_sbatch_supervisor_env(env):
 
     env.pkupdate(
         SIREPO_JOB_DRIVER_MODULES='local:sbatch',
+        SIREPO_JOB_DRIVER_SBATCH_CORES=os.getenv(
+            'SIREPO_JOB_DRIVER_SBATCH_CORES',
+            '2',
+        ),
         SIREPO_JOB_DRIVER_SBATCH_HOST=h,
         SIREPO_JOB_DRIVER_SBATCH_HOST_KEY=m.group(0),
         SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=subprocess.check_output(

@@ -73,5 +73,4 @@ EOF
         exit 1
     fi
 fi
-export SIREPO_PKCLI_JOB_SUPERVISOR_IP=$(hostname --ip)
 PYENV_VERSION=py3 pyenv exec sirepo job_supervisor

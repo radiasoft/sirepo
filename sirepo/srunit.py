@@ -166,8 +166,9 @@ class _TestClient(flask.testing.FlaskClient):
     def __init__(self, *args, **kwargs):
         self.sr_job_run_mode = kwargs.pop('job_run_mode')
         super(_TestClient, self).__init__(*args, **kwargs)
-        self.sr_uid = None
+        self.sr_sbatch_logged_in = False
         self.sr_sim_type = None
+        self.sr_uid = None
 
     def sr_animation_run(self, sim_name, compute_model, reports, **kwargs):
         from pykern import pkunit
@@ -413,6 +414,32 @@ class _TestClient(flask.testing.FlaskClient):
                 # this exception won't be seen because in finally
                 raise AssertionError('cancel failed')
 
+    def sr_sbatch_animation_run(self, sim_name, compute_model, reports, **kwargs):
+        from pykern.pkunit import pkexcept
+
+        d = self.sr_sim_data(sim_name)
+        if not self.sr_sbatch_logged_in:
+            with pkexcept('SRException.*no-creds'):
+                # Must try to run sim first to seed job_supervisor.db
+                self.sr_run_sim(d, compute_model, expect_completed=False)
+            self.sr_sbatch_login(compute_model, d)
+            self.sr_sbatch_logged_in = True
+        self.sr_animation_run(sim_name, compute_model, reports, **kwargs)
+
+    def sr_sbatch_login(self, compute_model, data):
+        import getpass
+
+        p = getpass.getuser()
+        self.sr_post(
+            'sbatchLogin',
+            PKDict(
+                password=p,
+                report=compute_model,
+                simulationId=data.models.simulation.simulationId,
+                simulationType=data.simulationType,
+                username=p,
+            )
+        )
 
     def sr_sim_data(self, sim_name=None, sim_type=None):
         """Return simulation data by name
@@ -490,7 +517,11 @@ class _TestClient(flask.testing.FlaskClient):
             u = sirepo.uri.server_route(route_or_uri, params, query)
             pkdc('uri={}', u)
             r = op(u)
-            pkdc('status={} data={}', r.status_code, r.data)
+            pkdc(
+                'status={} data={}',
+                r.status_code,
+                '<snip-file>' if 'download-data-file' in u else r.data,
+            )
             # Emulate code in sirepo.js to deal with redirects
             if r.status_code == 200 and r.mimetype == 'text/html':
                 m = _JAVASCRIPT_REDIRECT_RE.search(r.data)
