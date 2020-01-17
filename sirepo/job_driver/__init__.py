@@ -147,8 +147,7 @@ class DriverBase(PKDict):
 #  we can cache that state in the agent(?) and have it send the response
 #  twice(?).
         self.ops_pending_send.append(op)
-        if not self.websocket and not self._agent_starting:
-            pkdlog('starting agentId={} uid={}', self._agentId, self.uid)
+        if not self.websocket:
             await self._agent_start(op.msg)
         self.run_scheduler()
         await op.send_ready.wait()
@@ -275,6 +274,9 @@ class DriverBase(PKDict):
         )
 
     async def _agent_start(self, msg):
+        if self._agent_starting:
+            return
+        pkdlog('starting agentId={} uid={}', self._agentId, self.uid)
         try:
             # TODO(e-carlin): We need a timeout on agent starts. If an agent
             # is started but never connects we will be in the '_agent_starting'
@@ -282,6 +284,8 @@ class DriverBase(PKDict):
             # agent and start a new one.
             self._agent_starting = True
             await self.kill()
+            # this starts the process, but _receive_alive sets it to false
+            # when the agent fully starts.
             await self._do_agent_start(msg)
         except Exception as e:
             self._agent_starting = False

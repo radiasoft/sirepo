@@ -250,7 +250,9 @@ class _ComputeJob(PKDict):
         return r
 
     async def _receive_api_runSimulation(self, req):
+
 need to check for cancel in the queue
+
         f = req.content.get('forceRun')
         if not f and self.db.status == _RUNNING_PENDING:
             if self.db.computeJobHash != req.content.computeJobHash:

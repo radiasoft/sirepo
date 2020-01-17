@@ -127,7 +127,7 @@ disown
         async def get_agent_log(connection):
             await tornado.gen.sleep(cfg.agent_log_read_sleep)
             async with connection.create_process(
-                    f'/bin/cat {agent_start_dir}/{log_file}'
+                f'/bin/cat {agent_start_dir}/{log_file}'
             ) as p:
                 o, e = await p.communicate()
                 write_to_log(o, e, 'remote-job-agent-log')
