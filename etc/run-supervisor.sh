@@ -32,9 +32,10 @@ radia_run redhat-docker
         export SIREPO_JOB_DRIVER_SBATCH_HOST=cori.nersc.gov
         export SIREPO_JOB_DRIVER_SBATCH_SHIFTER_IMAGE=radiasoft/sirepo:sbatch
         export SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=/global/homes/${3::1}/$3/.pyenv/versions/py3/bin/sirepo
-        export SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/global/cscratch1/sd/{sbatch_user}/sirepo'
+        export SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/global/cscratch1/sd/{sbatch_user}/sirepo-dev'
         export SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS=15
         export SIREPO_JOB_DRIVER_SBATCH_SUPERVISOR_URI=http://$2:8001
+        export SIREPO_PKCLI_JOB_SUPERVISOR_IP=0.0.0.0
         export SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Cori@NERSC'
         ;;
     sbatch)
@@ -73,5 +74,4 @@ EOF
         exit 1
     fi
 fi
-export SIREPO_PKCLI_JOB_SUPERVISOR_IP=$(hostname --ip)
 PYENV_VERSION=py3 pyenv exec sirepo job_supervisor

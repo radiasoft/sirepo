@@ -155,7 +155,13 @@ class DriverBase(PKDict):
         if op.do_not_send:
             pkdlog('op finished without being sent op={}', job.LogFormatter(op))
             return False
-        pkdlog('op={} agentId={} opId={}', op.opName, self._agentId, op.opId)
+        pkdlog(
+            'op={} agentId={} opId={} runDir={}',
+            op.opName,
+            self._agentId,
+            op.opId,
+            op.msg.get('runDir')
+        )
         op.start_timer()
         self.websocket.write_message(pkjson.dump_bytes(op.msg))
         return True
@@ -208,9 +214,9 @@ class DriverBase(PKDict):
         c = msg.content
         i = c.get('opId')
         if (
-                (not c.get('opName') or c.opName == job.OP_ERROR)
+                ('opName' not in c or c.opName == job.OP_ERROR)
                 or
-                (c.get('reply') and c.reply.get('state') == job.ERROR)
+                ('reply' in c and c.reply.get('state') == job.ERROR)
            ):
             pkdlog('agentId={} msg={}', self._agentId, c)
         else:
@@ -246,7 +252,7 @@ class DriverBase(PKDict):
 #TODO(robnagler) do we want to run_scheduler on alive in all cases?
         self.run_scheduler()
 
-    def _agent_cmd_stdin_env(self, env=None, **kwargs):
+    def _agent_cmd_stdin_env(self, **kwargs):
         return job.agent_cmd_stdin_env(
             ('sirepo', 'job_agent', 'start'),
             env=self._agent_env(),
@@ -256,6 +262,7 @@ class DriverBase(PKDict):
     def _agent_env(self, env=None):
         return job.agent_env(
             env=(env or PKDict()).pksetdefault(
+                PYKERN_PKDEBUG_WANT_PID_TIME='1',
                 SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.get_supervisor_uri().replace(
 #TODO(robnagler) figure out why we need ws (wss, implicit)
@@ -300,7 +307,7 @@ def init():
         m = importlib.import_module(pkinspect.module_name_join((p, n)))
         _CLASSES[n] = m.init_class()
     _DEFAULT_CLASS = _CLASSES.get('docker') or _CLASSES.get(_DEFAULT_MODULE)
-    pkdlog('initialized with drivers {}', _CLASSES.keys())
+    pkdlog('drivers={}', _CLASSES.keys())
 
 
 async def terminate():

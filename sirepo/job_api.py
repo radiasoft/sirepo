@@ -49,6 +49,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
                 computeJobHash='unused',
                 dataFileKey=t.basename,
                 frame=int(frame),
+                isParallel=False,
                 req_data=req.req_data,
                 suffix=s,
             )
@@ -173,6 +174,11 @@ def _request(**kwargs):
         api=get_api_name(),
         serverSecret=sirepo.job.cfg.server_secret,
     )
+    pkdlog(
+        'api={} runDir={}',
+        c.api,
+        c.get('runDir')
+    )
     r = requests.post(
         u,
         data=pkjson.dump_bytes(c),
@@ -208,9 +214,6 @@ def _request_content(kwargs):
 #TODO(robnagler) relative to srdb root
         simulationId=lambda: s.parse_sid(d),
         simulationType=lambda: d.simulationType,
-    ).pksetdefault(
-#TODO(robnagler) configured by job_supervisor
-        mpiCores=lambda: sirepo.mpi.cfg.cores if b.isParallel else 1,
     ).pkupdate(
         reqId=sirepo.job.unique_key(),
         runDir=str(simulation_db.simulation_run_dir(d)),

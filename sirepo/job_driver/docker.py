@@ -115,6 +115,11 @@ class DockerDriver(job_driver.DriverBase):
             ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), c),
         )
 
+    async def send(self, op):
+        if op.opName == job.OP_RUN:
+            op.msg.mpiCores = cfg[self.kind].get('cores', 1)
+        return await super().send(op)
+
     def slot_free(self):
         if self.has_slot:
             self.host.slots[self.kind].in_use -= 1
@@ -163,7 +168,7 @@ class DockerDriver(job_driver.DriverBase):
         o = (await p.stdout.read_until_close()).decode('utf-8').rstrip()
         r = await p.wait_for_exit(raise_error=False)
         # TODO(e-carlin): more robust handling
-        assert r == 0 , \
+        assert r == 0, \
             '{}: failed: exit={} output={}'.format(c, r, o)
         return o
 
@@ -203,7 +208,7 @@ def init_class():
         hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, 'execution hosts'),
         image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
         parallel=dict(
-            cores=(1, int, 'cores per parallel job'),
+            cores=(2, int, 'cores per parallel job'),
             gigabytes=(1, int, 'gigabytes per parallel job'),
             slots_per_host=(1, int, 'parallel slots per node'),
         ),
