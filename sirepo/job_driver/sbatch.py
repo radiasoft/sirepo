@@ -14,9 +14,9 @@ from sirepo import job
 from sirepo import job_driver
 from sirepo import util
 import asyncssh
+import datetime
 import sirepo.simulation_db
 import sirepo.srdb
-import time
 import tornado.ioloop
 
 
@@ -118,11 +118,10 @@ disown
 
         def write_to_log(stdout, stderr, filename):
             p = pkio.py_path(msg.userDir).join('log')
-            if not p.exists():
-                pkio.mkdir_parent(p)
+            pkio.mkdir_parent(p)
             pkjson.dump_pretty(
                 PKDict(stdout=stdout, stderr=stderr),
-                p.join(f'{int(time.time())}-{filename}.log'),
+                p.join(f'{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}-{filename}.log'),
             )
 
         async def get_agent_log(connection):
