@@ -7,8 +7,9 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdlog
+from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from sirepo import job
 from sirepo import job_driver
 from sirepo import util
@@ -102,6 +103,35 @@ class SbatchDriver(job_driver.DriverBase):
         )
 
     async def _do_agent_start(self, msg):
+        log_file = 'job_agent.log'
+        agent_start_dir = self._srdb_root
+        script = f'''#!/bin/bash
+{self._agent_start_dev()}
+set -e
+mkdir -p '{agent_start_dir}'
+cd '{self._srdb_root}'
+{self._agent_env()}
+(/usr/bin/env; setsid {cfg.sirepo_cmd} job_agent start_sbatch) >& {log_file} &
+disown
+'''
+
+        def write_to_log(stdout, stderr, filename):
+            p = pkio.py_path(msg.userDir).join('log')
+            if not p.exists():
+                pkio.mkdir_parent(p)
+            pkjson.dump_pretty(
+                PKDict(stdout=stdout, stderr=stderr),
+                p.join(f'{filename}.log'),
+            )
+
+        async def get_agent_log(connection):
+            await tornado.gen.sleep(cfg.agent_log_read_sleep)
+            async with connection.create_process(
+                    f'/bin/bash -c "/usr/bin/cat {agent_start_dir}/{log_file}"'
+            ) as p:
+                o, e = await p.communicate()
+                write_to_log(o, e, 'remote-job-agent-log')
+
         try:
             async with asyncssh.connect(
                 cfg.host,
@@ -109,25 +139,40 @@ class SbatchDriver(job_driver.DriverBase):
                 password=self._creds.password + self._creds.otp if 'nersc' in cfg.host else self._creds.password,
                 known_hosts=_KNOWN_HOSTS,
             ) as c:
-                script = f'''#!/bin/bash
-{self._agent_start_dev()}
-set -e
-mkdir -p '{self._srdb_root}'
-cd '{self._srdb_root}'
-{self._agent_env()}
-setsid {cfg.sirepo_cmd} job_agent start_sbatch >& job_agent.log &
-disown
-'''
-                async with c.create_process('/bin/bash') as p:
-                    o, e = await p.communicate(input=script)
-                    if o or e:
-                        raise AssertionError(
-                            'agentId={} stdout={} stderr={}'.format(
-                                self._agentId,
-                                o,
-                                e
+                try:
+                    async with c.create_process('/bin/bash') as p:
+                        o, e = await p.communicate(input=script)
+                        if o or e:
+                            write_to_log(o, e, 'job-agent-start-sbatch')
+                        await get_agent_log(c)
+                except Exception as e:
+                    pkdlog(
+                        'agentId={} e={} stack={}',
+                        self._agentId,
+                        e,
+                        pkdexc(),
+                    )
+
+                try:
+                    async with c.create_process('/bin/bash') as p:
+                        o, e = await p.communicate(input=script)
+                        if o or e:
+                            # TODO(e-carlin): log to file
+                            pkdlog(
+                                'agentId={} stdout={} stderr={}'.format(
+                                    self._agentId,
+                                    o,
+                                    e
+                                )
                             )
-                        )
+                except Exception as e:
+                    pkdlog(
+                        'agentId={} e={} stack={}',
+                        self._agentId,
+                        e,
+                        pkdexc(),
+                    )
+
         except Exception as e:
             if isinstance(e, asyncssh.misc.PermissionDenied):
                 self._srdb_root = None
@@ -172,6 +217,11 @@ def init_class():
     global cfg, _KNOWN_HOSTS
 
     cfg = pkconfig.init(
+        agent_log_read_sleep=(
+            5,
+            int,
+            'how long to wait before reading the agent log on start',
+        ),
         cores=(None, int, 'dev cores config'),
         host=pkconfig.Required(str, 'host name for slum controller'),
         host_key=pkconfig.Required(str, 'host key'),
