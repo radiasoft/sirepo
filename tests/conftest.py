@@ -71,24 +71,8 @@ def email_confirm(fc, resp, display_name=None):
     )
 
 @pytest.fixture(scope='function')
-def fc(request, fc_module, new_user=False):
-    """Flask client based logged in to specific code of test
-
-    Defaults to myapp.
-    """
-    import sirepo.srunit
-
-    if fc_module.sr_uid and new_user:
-        fc_module.sr_logout()
-
-    c = _sim_type(request)
-    if fc_module.sr_uid:
-        if fc_module.sr_sim_type != c:
-            fc_module.sr_get_root(sim_type=c)
-    else:
-        fc_module.sr_login_as_guest(sim_type=c)
-    return fc_module
-
+def fc(request, fc_module):
+    return _fc(request, fc_module)
 
 @pytest.fixture(scope='module')
 def fc_module(request, cfg=None):
@@ -125,7 +109,7 @@ def import_req(request):
 
 @pytest.fixture(scope='function')
 def new_user_fc(request, fc_module):
-    return fc(request, fc_module, new_user=True)
+    return _fc(request, fc_module, new_user=True)
 
 
 def pytest_collection_modifyitems(session, config, items):
@@ -281,6 +265,25 @@ def _job_supervisor_check(env):
         )
     finally:
         s.close()
+
+
+def _fc(request, fc_module, new_user=False):
+    """Flask client based logged in to specific code of test
+
+    Defaults to myapp.
+    """
+    import sirepo.srunit
+
+    if fc_module.sr_uid and new_user:
+        fc_module.sr_logout()
+
+    c = _sim_type(request)
+    if fc_module.sr_uid:
+        if fc_module.sr_sim_type != c:
+            fc_module.sr_get_root(sim_type=c)
+    else:
+        fc_module.sr_login_as_guest(sim_type=c)
+    return fc_module
 
 
 def _job_supervisor_setup(request, cfg=None):

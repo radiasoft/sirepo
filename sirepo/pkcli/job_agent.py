@@ -368,6 +368,7 @@ export PYENV_ROOT=/home/vagrant/.pyenv
 export HOME=/home/vagrant
 source /home/vagrant/.bashrc
 eval export HOME=~$USER
+/usr/bin/env
 {self._job_cmd_source_bashrc_dev()}
 '''
 

@@ -87,7 +87,7 @@ class SbatchDriver(job_driver.DriverBase):
             if op.opName == job.OP_RUN:
                 assert m.sbatchHours
                 if cfg.cores:
-                    m.sbatchCores = min(m.mpiCores, cfg.cores)
+                    m.sbatchCores = min(m.sbatchCores, cfg.cores)
                 m.mpiCores = m.sbatchCores
                 if op.kind == job.PARALLEL:
                     op.maxRunSecs = 0
@@ -127,7 +127,7 @@ disown
         async def get_agent_log(connection):
             await tornado.gen.sleep(cfg.agent_log_read_sleep)
             async with connection.create_process(
-                    f'/bin/bash -c "/usr/bin/cat {agent_start_dir}/{log_file}"'
+                    f'/bin/cat {agent_start_dir}/{log_file}'
             ) as p:
                 o, e = await p.communicate()
                 write_to_log(o, e, 'remote-job-agent-log')
@@ -140,11 +140,11 @@ disown
                 known_hosts=_KNOWN_HOSTS,
             ) as c:
                 try:
-                    async with c.create_process('/bin/bash') as p:
+                    async with c.create_process('/bin/bash --noprofile --norc -l') as p:
                         o, e = await p.communicate(input=script)
                         if o or e:
                             write_to_log(o, e, 'job-agent-start-sbatch')
-                        await get_agent_log(c)
+                    await get_agent_log(c)
                 except Exception as e:
                     pkdlog(
                         'agentId={} e={} stack={}',
@@ -152,27 +152,6 @@ disown
                         e,
                         pkdexc(),
                     )
-
-                try:
-                    async with c.create_process('/bin/bash') as p:
-                        o, e = await p.communicate(input=script)
-                        if o or e:
-                            # TODO(e-carlin): log to file
-                            pkdlog(
-                                'agentId={} stdout={} stderr={}'.format(
-                                    self._agentId,
-                                    o,
-                                    e
-                                )
-                            )
-                except Exception as e:
-                    pkdlog(
-                        'agentId={} e={} stack={}',
-                        self._agentId,
-                        e,
-                        pkdexc(),
-                    )
-
         except Exception as e:
             if isinstance(e, asyncssh.misc.PermissionDenied):
                 self._srdb_root = None
