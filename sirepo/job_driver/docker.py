@@ -50,8 +50,9 @@ class DockerDriver(job_driver.DriverBase):
             _userDir=req.content.userDir,
             host=host,
         )
-        self.has_slot = False
-        self.host.drivers[self.kind].append(self)
+        self.slot_num = None
+        host.drivers[self.kind].append(self)
+        self.slot_q = host.slot_q
         self.instances[self.kind].append(self)
 
     @classmethod
@@ -73,41 +74,18 @@ class DockerDriver(job_driver.DriverBase):
         return cls(req, h)
 
     def free_slots(self):
+        if self.slot_q.qsize > 0:
+            return
         for d in self.host.drivers[self.kind]:
-            if d.has_slot and not d.ops_pending_done:
+            if d.slot_num and not d.ops_pending_done:
                 d.slot_free()
+                return
 
     @classmethod
     def init_class(cls):
         for k in job.KINDS:
             cls.instances[k] = []
         return cls
-
-    def run_scheduler(self, try_op=None, exclude_self=False):
-        res = False
-        self.free_slots()
-#TODO(robnagler) might want to try all hosts, just so run_scheduler is generic
-# it makes run_scheduler more of an auditor, and more robust if certain cases
-# slip through this host-specific algorithm.
-        h = self.host
-        i = h.drivers[self.kind].index(self)
-        # start iteration from index of current self to enable fair scheduling
-        for d in h.drivers[self.kind][i:] + h.drivers[self.kind][:i]:
-            if exclude_self and d == self:
-                continue
-            for o in d.get_ops_with_send_allocation():
-                if not d.has_slot:
-                    if h.slots[self.kind].in_use >= h.slots[self.kind].total:
-                        continue
-                    d.has_slot = True
-                    h.slots[self.kind].in_use += 1
-#                assert o.opId not in d.ops_pending_done
-#                d.ops_pending_send.remove(o)
-#                d.ops_pending_done[o.opId] = o
-                if try_op == o:
-                    res = True
-                o.send_ready.set()
-        return res
 
     async def kill(self):
         c = self.get('_cid')
@@ -125,9 +103,11 @@ class DockerDriver(job_driver.DriverBase):
         return await super().send(op)
 
     def slot_free(self):
-        if self.has_slot:
-            self.host.slots[self.kind].in_use -= 1
-            self.has_slot = False
+        if not self.has_slot:
+            return
+        self.slot_q.put_nowait(self.slot_num)
+        self.slot_num = None
+
 
     async def _do_agent_start(self, msg):
         cmd, stdin, env = self._agent_cmd_stdin_env()
@@ -286,17 +266,16 @@ def _init_dev_hosts():
 def _init_hosts():
     for h in cfg.hosts:
         d = cfg.tls_dir.join(h)
-        DockerDriver.hosts[h] = PKDict(
+        x = DockerDriver.hosts[h] = PKDict(
             cmd_prefix=_cmd_prefix(h, d),
             drivers=PKDict(),
             name=h,
             slots=PKDict(),
         )
         for k in job.KINDS:
-            DockerDriver.hosts[h].slots[k] = PKDict(
-                in_use=0,
-                total=cfg[k].slots_per_host,
-            )
-            DockerDriver.hosts[h].drivers[k] = []
+            y = x.slot_q[k] = tornado.queues.Queue(maxsize=cfg[k].slots_per_host)
+            for i in range(1, y.maxsize + 1):
+                y.put_nowait(i)
+            x.drivers[k] = []
     assert len(DockerDriver.hosts) > 0, \
         '{}: no docker hosts found in directory'.format(cfg.tls_d)

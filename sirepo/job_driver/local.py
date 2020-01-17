@@ -42,10 +42,7 @@ class LocalDriver(job_driver.DriverBase):
         self.instances[self.kind].append(self)
 
     def free_slots(self):
-        for d in self.instances[self.kind]:
-            if d.has_slot and not d.ops_pending_done:
-                d.slot_free()
-        assert self.slots[self.kind].in_use > -1
+        fixme
 
     @classmethod
     def get_instance(cls, req):
@@ -93,28 +90,6 @@ class LocalDriver(job_driver.DriverBase):
         )
         await self._agent_exit.wait()
         self._agent_exit.clear()
-
-    def run_scheduler(self, try_op=None, exclude_self=False):
-        res = False
-        self.free_slots()
-        i = self.instances[self.kind].index(self)
-        # start iteration from index of current driver to enable fair scheduling
-        for d in self.instances[self.kind][i:] + self.instances[self.kind][:i]:
-            if exclude_self and d == self:
-                continue
-            for o in d.get_ops_with_send_allocation():
-                if not d.has_slot:
-                    if self.slots[self.kind].in_use >= self.slots[self.kind].total:
-                        continue
-                    d.has_slot = True
-                    self.slots[self.kind].in_use += 1
-                assert o.opId not in d.ops_pending_done
-                d.ops_pending_send.remove(o)
-                d.ops_pending_done[o.opId] = o
-                if try_op == o:
-                    res = True
-                o.send_ready.set()
-        return res
 
     async def send(self, op):
         if op.opName == job.OP_RUN:

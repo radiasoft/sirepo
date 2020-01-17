@@ -154,6 +154,38 @@ class _ComputeJob(PKDict):
             )
         return self
 
+    def ops_valid_in_protocol(self):
+        """Ensures that only one op per type runs simultaneously
+
+        This limits running multiple job_cmds such as OP_ANALYSIS or
+        OP_RUN so it is a bit of fair scheduling.
+
+        Returns:
+            list: one of each available type
+        """
+        def get_ops_pending_done_types():
+            d = collections.defaultdict(int)
+            for v in self.ops_pending_done.values():
+                d[v.msg.opName] += 1
+            return d
+
+        if there is a cancel or analysis, and
+        is_set
+             op
+need to check if ready in with send allocation
+
+        r = []
+        t = get_ops_pending_done_types()
+        for o in self.ops_pending_send:
+            if t.get(o.msg.opName, 0) > 0:
+                continue
+            that are not just ready to send
+                o.send_ready.set()
+            assert o.opId not in self.ops_pending_done
+            t[o.msg.opName] += 1
+            r.append(o)
+        return r
+
     @classmethod
     async def receive(cls, req):
         pkdlog('api={} jid={}', req.content.api, req.content.get('computeJid'))
@@ -245,8 +277,6 @@ class _ComputeJob(PKDict):
         ):
             # not our job, but let the user know it isn't running
             return r
-        self.db.status = job.CANCELED
-        self.__db_write()
         c = False
         for o in self._ops:
             if self.db.isParallel and o.opName == job.OP_ANALYSIS:
@@ -254,14 +284,15 @@ class _ComputeJob(PKDict):
             o.set_canceled()
             if o.opName == job.OP_RUN and o.driver.op_was_sent(o):
                 c = True
+        if not await self.driver_ready():
+            return _RETRY_FLAG
+        self.db.status = job.CANCELED
+        self.__db_write()
         if c:
             await self._send_with_single_reply(job.OP_CANCEL, req)
         return r
 
     async def _receive_api_runSimulation(self, req):
-
-need to check for cancel in the queue
-
         f = req.content.get('forceRun')
         if self.db.status == _RUNNING_PENDING:
             if f or not self._req_is_valid(req)
@@ -271,15 +302,7 @@ need to check for cancel in the queue
             or not self._req_is_valid(req)
             or self.db.status != job.COMPLETED
         ):
-            if not op.driver.run_up(o):
-                await op.driver.ready_op(o)
-                return restart_me
-            if OP_CANCEL or OP_ANALYSIS then
-                wait for cancle and analysisModel to be done
-
-                add to queue
-
-
+            if not await self.driver_ready(req):
                 return _RETRY_FLAG
             o = self._create_op(
                 job.OP_RUN,
@@ -287,13 +310,16 @@ need to check for cancel in the queue
                 jobCmd='compute',
                 nextRequestSeconds=self.db.nextRequestSeconds,
             )
+            if not await o.ready_send():
+                self.destroy_op(o)
+                return _RETRY_FLAG
             self.__db_init(req, prev_db=self.db)
             self.db.computeJobSerial = int(time.time())
             self.db.pkupdate(status=job.PENDING)
             self.__db_write()
             try:
                 o.make_lib_dir_symlink()
-                x = await o.send()
+                x = o.send()
                 if x == _RETRY_FLAG:
                     return x
                 if x:
@@ -338,6 +364,8 @@ need to check for cancel in the queue
             return PKDict(state=job.MISSING, reason='computeJobSerial-mismatch')
         if self.db.isParallel or self.db.status != job.COMPLETED:
             return res(state=self.db.status)
+        if not self.driver_ready():
+            return _RETRY_FLAG
         return await self._send_with_single_reply(
             job.OP_ANALYSIS,
             req,
@@ -444,6 +472,7 @@ need to check for cancel in the queue
             r = await o.prepare_send()
             if not r:
                 return _RETRY_FLAG
+            o.send()
             return await o.reply_ready()
         finally:
             self.destroy_op(o)
@@ -470,6 +499,12 @@ class _Op(PKDict):
 
     def make_lib_dir_symlink(self):
         self.driver.make_lib_dir_symlink(self)
+
+    def ready_to_send(self):
+        if there are not ops ahead of me:
+            return True
+        self._op_queue.wait()
+        return False
 
     def reply_put(self, reply):
         self._reply_q.put_nowait(reply)

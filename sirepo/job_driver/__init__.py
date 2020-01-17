@@ -49,6 +49,7 @@ class DriverBase(PKDict):
             ops_pending_send=[],
             uid=req.content.uid,
             websocket=None,
+            websocket_ready=tornado.locks.Event(),
             _agentId=job.unique_key(),
             _agent_starting=False,
         )
@@ -66,35 +67,19 @@ class DriverBase(PKDict):
         self.ops_pending_done.pkdel(op.opId)
         self.run_scheduler()
 
-    def get_ops_with_send_allocation(self):
-        """Ensures that only one op per type runs simultaneously
-
-        This limits running multiple job_cmds such as OP_ANALYSIS or
-        OP_RUN so it is a bit of fair scheduling.
-
-        Returns:
-            list: one of each available type
-        """
-        def get_ops_pending_done_types():
-            d = collections.defaultdict(int)
-            for v in self.ops_pending_done.values():
-                d[v.msg.opName] += 1
-            return d
-
+    async def driver_ready(self, exclude_self=False):
         if not self.websocket:
-            return []
-
-need to check if ready in with send allocation
-
-        r = []
-        t = get_ops_pending_done_types()
-        for o in self.ops_pending_send:
-            if t.get(o.msg.opName, 0) > 0:
-                continue
-            assert o.opId not in self.ops_pending_done
-            t[o.msg.opName] += 1
-            r.append(o)
-        return r
+            await self.websocket_ready.wait()
+            return False
+        if self.slot_num:
+            return True
+        try:
+            self.slot_num = self.slot_q.get_nowait()
+            return True
+        except tornado.queues.QueueEmpty:
+            self.free_slots()
+            self.slot_num = await self.slot_q.get()
+            return False
 
     def get_supervisor_uri(self):
         return inspect.getmodule(self).cfg.supervisor_uri
@@ -140,7 +125,7 @@ need to check if ready in with send allocation
         else:
             a._receive(msg)
 
-    async def send(self, op):
+    async def prepare_send(self, op):
         """Sends the op
 
         Returns:
@@ -155,19 +140,17 @@ need to check if ready in with send allocation
 #  to the job. If it was already completed (and reply on the way), then
 #  we can cache that state in the agent(?) and have it send the response
 #  twice(?).
-        self.ops_pending_send.append(op)
+        if op not in self.ops_pending_send:
+            self.ops_pending_send.append(op)
         if not self.websocket:
             await self._agent_start(op.msg)
             return False
         if self.run_scheduler(try_op=op):
             return True
-
         await op.send_ready.wait()
-
-
-
         return False
 
+   async def send(self, op):
         if op.do_not_send:
             pkdlog('op finished without being sent op={}', job.LogFormatter(op))
             return False
@@ -203,6 +186,7 @@ need to check if ready in with send allocation
         pkdlog('self={}', self)
         try:
             self._agent_starting = False
+            self.websocket_ready.clear()
             w = self.websocket
             self.websocket = None
             if w:
@@ -264,6 +248,7 @@ need to check if ready in with send allocation
             self.websocket_free()
         self.websocket = msg.handler
         self._agent_starting = False
+        self.websocket_ready.set()
         self.websocket.sr_driver_set(self)
 #TODO(robnagler) do we want to run_scheduler on alive in all cases?
         self.run_scheduler()

@@ -35,6 +35,9 @@ class SbatchDriver(job_driver.DriverBase):
         self._srdb_root = None
         self.instances[self.uid] = self
 
+    def free_slots(self):
+        pass
+
     @classmethod
     def get_instance(cls, req):
         u = req.content.uid
@@ -51,23 +54,6 @@ class SbatchDriver(job_driver.DriverBase):
             return
         # hopefully the agent is nice and listens to the kill
         self.websocket.write_message(PKDict(opName=job.OP_KILL))
-
-    def run_scheduler(self, try_op=None, exclude_self=False):
-        res = False
-        for d in self.instances.values():
-            if exclude_self and d == self:
-                continue
-            for o in d.get_ops_with_send_allocation():
-#                assert o.opId not in d.ops_pending_done
-#                d.ops_pending_send.remove(o)
-
-#                d.ops_pending_done[o.opId] = o
-#TODO(robnagler) encapsulation is incorrect. Superclass should make
-# decisions about send_ready.
-                if try_op == o:
-                    res = True
-                o.send_ready.set()
-        return res
 
     async def prepare_send(self, op):
         m = op.msg
