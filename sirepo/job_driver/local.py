@@ -94,7 +94,8 @@ class LocalDriver(job_driver.DriverBase):
         await self._agent_exit.wait()
         self._agent_exit.clear()
 
-    def run_scheduler(self, exclude_self=False):
+    def run_scheduler(self, try_op=None, exclude_self=False):
+        res = False
         self.free_slots()
         i = self.instances[self.kind].index(self)
         # start iteration from index of current driver to enable fair scheduling
@@ -110,7 +111,10 @@ class LocalDriver(job_driver.DriverBase):
                 assert o.opId not in d.ops_pending_done
                 d.ops_pending_send.remove(o)
                 d.ops_pending_done[o.opId] = o
+                if try_op == o:
+                    res = True
                 o.send_ready.set()
+        return res
 
     async def send(self, op):
         if op.opName == job.OP_RUN:

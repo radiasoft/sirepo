@@ -52,19 +52,24 @@ class SbatchDriver(job_driver.DriverBase):
         # hopefully the agent is nice and listens to the kill
         self.websocket.write_message(PKDict(opName=job.OP_KILL))
 
-    def run_scheduler(self, exclude_self=False):
+    def run_scheduler(self, try_op=None, exclude_self=False):
+        res = False
         for d in self.instances.values():
             if exclude_self and d == self:
                 continue
             for o in d.get_ops_with_send_allocation():
-                assert o.opId not in d.ops_pending_done
-                d.ops_pending_send.remove(o)
-                d.ops_pending_done[o.opId] = o
+#                assert o.opId not in d.ops_pending_done
+#                d.ops_pending_send.remove(o)
+
+#                d.ops_pending_done[o.opId] = o
 #TODO(robnagler) encapsulation is incorrect. Superclass should make
 # decisions about send_ready.
+                if try_op == o:
+                    res = True
                 o.send_ready.set()
+        return res
 
-    async def send(self, op):
+    async def prepare_send(self, op):
         m = op.msg
         try:
             self._creds = m.pkdel('sbatchCredentials')
@@ -92,7 +97,7 @@ class SbatchDriver(job_driver.DriverBase):
                 if op.kind == job.PARALLEL:
                     op.maxRunSecs = 0
             m.shifterImage = cfg.shifter_image
-            return await super().send(op)
+            return await super().prepare_send(op)
         finally:
             self.pkdel('_creds')
 

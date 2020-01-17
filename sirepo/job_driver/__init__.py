@@ -66,21 +66,30 @@ class DriverBase(PKDict):
         self.ops_pending_done.pkdel(op.opId)
         self.run_scheduler()
 
-    def get_ops_pending_done_types(self):
-        d = collections.defaultdict(int)
-        for v in self.ops_pending_done.values():
-            d[v.msg.opName] += 1
-        return d
-
     def get_ops_with_send_allocation(self):
+        """Ensures that only one op per type runs simultaneously
+
+        This limits running multiple job_cmds such as OP_ANALYSIS or
+        OP_RUN so it is a bit of fair scheduling.
+
+        Returns:
+            list: one of each available type
+        """
+        def get_ops_pending_done_types():
+            d = collections.defaultdict(int)
+            for v in self.ops_pending_done.values():
+                d[v.msg.opName] += 1
+            return d
+
         if not self.websocket:
             return []
+
+need to check if ready in with send allocation
+
         r = []
-        t = self.get_ops_pending_done_types()
+        t = get_ops_pending_done_types()
         for o in self.ops_pending_send:
-            if (o.msg.opName in t
-                and t[o.msg.opName] > 0
-            ):
+            if t.get(o.msg.opName, 0) > 0:
                 continue
             assert o.opId not in self.ops_pending_done
             t[o.msg.opName] += 1
@@ -149,8 +158,16 @@ class DriverBase(PKDict):
         self.ops_pending_send.append(op)
         if not self.websocket:
             await self._agent_start(op.msg)
-        self.run_scheduler()
+            return False
+        if self.run_scheduler(try_op=op):
+            return True
+
         await op.send_ready.wait()
+
+
+
+        return False
+
         if op.do_not_send:
             pkdlog('op finished without being sent op={}', job.LogFormatter(op))
             return False

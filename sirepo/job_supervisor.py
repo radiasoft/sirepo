@@ -56,6 +56,11 @@ cfg = None
 #: conversion of cfg.<kind>.max_hours
 _MAX_RUN_SECS = PKDict()
 
+_MAX_RETRIES = 10
+
+# can be anything that is globally unique
+_RETRY_FLAG = object()
+
 
 def init():
     global _DB_DIR, cfg, _NEXT_REQUEST_SECONDS
@@ -153,10 +158,15 @@ class _ComputeJob(PKDict):
     async def receive(cls, req):
         pkdlog('api={} jid={}', req.content.api, req.content.get('computeJid'))
         try:
-            return await getattr(
-                cls.get_instance(req),
-                '_receive_' + req.content.api,
-            )(req)
+            for i in range(_MAX_RETRIES):
+                r = await getattr(
+                    cls.get_instance(req),
+                    '_receive_' + req.content.api,
+                )(req)
+                if r == _RETRY_FLAG:
+                    continue
+                return r
+            raise AssertionError('too many retries')
         except Exception as e:
             pkdlog('error={} stack={}', e, pkdexc())
             if isinstance(e, sirepo.util.Reply):
@@ -230,8 +240,7 @@ class _ComputeJob(PKDict):
     async def _receive_api_runCancel(self, req):
         r = PKDict(state=job.CANCELED)
         if (
-            self.db.computeJobHash != req.content.computeJobHash
-            or self.db.computeJobSerial != req.content.computeJobSerial
+            self._req_is_valid(req)
             or self.db.status not in _RUNNING_PENDING
         ):
             # not our job, but let the user know it isn't running
@@ -254,30 +263,40 @@ class _ComputeJob(PKDict):
 need to check for cancel in the queue
 
         f = req.content.get('forceRun')
-        if not f and self.db.status == _RUNNING_PENDING:
-            if self.db.computeJobHash != req.content.computeJobHash:
-#TODO(robnagler) need to deal with double clicks
-#TODO(robnagler) do transient/sequential sims runSim without a cancel? I think we
-#  should require the GUI to cancel before running so would return an error here
-                raise AssertionError('FIXME')
-            return PKDict(state=job.RUNNING)
+        if self.db.status == _RUNNING_PENDING:
+            if f or not self._req_is_valid(req)
+                return PKDict(state=job.ERROR, error='another browser is running the simulation')
+            return PKDict(state=self.db.status)
         if (f
-            or self.db.computeJobHash != req.content.computeJobHash
+            or not self._req_is_valid(req)
             or self.db.status != job.COMPLETED
         ):
-            self.__db_init(req, prev_db=self.db)
-            self.db.computeJobSerial = int(time.time())
-            self.db.pkupdate(status=job.PENDING)
-            self.__db_write()
+            if not op.driver.run_up(o):
+                await op.driver.ready_op(o)
+                return restart_me
+            if OP_CANCEL or OP_ANALYSIS then
+                wait for cancle and analysisModel to be done
+
+                add to queue
+
+
+                return _RETRY_FLAG
             o = self._create_op(
                 job.OP_RUN,
                 req,
                 jobCmd='compute',
                 nextRequestSeconds=self.db.nextRequestSeconds,
             )
+            self.__db_init(req, prev_db=self.db)
+            self.db.computeJobSerial = int(time.time())
+            self.db.pkupdate(status=job.PENDING)
+            self.__db_write()
             try:
                 o.make_lib_dir_symlink()
-                if await o.send():
+                x = await o.send()
+                if x == _RETRY_FLAG:
+                    return x
+                if x:
                     tornado.ioloop.IOLoop.current().add_callback(self._run, req, o)
             except Exception:
                 # _run destroys in the happy path (never got to _run here)
@@ -351,12 +370,7 @@ need to check for cancel in the queue
 #TODO(robnagler) this is a general problem: after await: check ownership
     async def _run(self, req, op):
         try:
-            if self.db.computeJobHash != req.content.computeJobHash:
-                pkdlog(
-                    'invalid computeJobHash self={} req={}',
-                    self.db.computeJobHash,
-                    req.content.computeJobHash
-                )
+            if not self._req_is_valid(req):
                 return
             try:
                 while True:
@@ -414,10 +428,22 @@ need to check for cancel in the queue
         self._ops.append(o)
         return o
 
+    def _req_is_valid(self, req):
+
+        validate serial and hash
+
+                pkdlog(
+                    'invalid computeJobHash self={} req={}',
+                    self.db.computeJobHash,
+                    req.content.computeJobHash
+                )
+
     async def _send_with_single_reply(self, opName, req, **kwargs):
         o = self._create_op(opName, req, **kwargs)
         try:
-            await o.send()
+            r = await o.prepare_send()
+            if not r:
+                return _RETRY_FLAG
             return await o.reply_ready()
         finally:
             self.destroy_op(o)

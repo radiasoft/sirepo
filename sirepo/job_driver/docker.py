@@ -83,7 +83,8 @@ class DockerDriver(job_driver.DriverBase):
             cls.instances[k] = []
         return cls
 
-    def run_scheduler(self, exclude_self=False):
+    def run_scheduler(self, try_op=None, exclude_self=False):
+        res = False
         self.free_slots()
 #TODO(robnagler) might want to try all hosts, just so run_scheduler is generic
 # it makes run_scheduler more of an auditor, and more robust if certain cases
@@ -100,10 +101,13 @@ class DockerDriver(job_driver.DriverBase):
                         continue
                     d.has_slot = True
                     h.slots[self.kind].in_use += 1
-                assert o.opId not in d.ops_pending_done
-                d.ops_pending_send.remove(o)
-                d.ops_pending_done[o.opId] = o
+#                assert o.opId not in d.ops_pending_done
+#                d.ops_pending_send.remove(o)
+#                d.ops_pending_done[o.opId] = o
+                if try_op == o:
+                    res = True
                 o.send_ready.set()
+        return res
 
     async def kill(self):
         c = self.get('_cid')
