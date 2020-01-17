@@ -16,6 +16,7 @@ from sirepo import util
 import asyncssh
 import sirepo.simulation_db
 import sirepo.srdb
+import time
 import tornado.ioloop
 
 
@@ -121,7 +122,7 @@ disown
                 pkio.mkdir_parent(p)
             pkjson.dump_pretty(
                 PKDict(stdout=stdout, stderr=stderr),
-                p.join(f'{filename}.log'),
+                p.join(f'{int(time.time())}-{filename}.log'),
             )
 
         async def get_agent_log(connection):
