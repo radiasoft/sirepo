@@ -327,6 +327,7 @@ need to check if ready in with send allocation
             except Exception:
                 # _run destroys in the happy path (never got to _run here)
                 self.destroy_op(o)
+                the ready next op that is in the queue that has not been sent
                 raise
         # Read this first https://github.com/radiasoft/sirepo/issues/2007
         return await self._receive_api_runStatus(req)
@@ -398,8 +399,9 @@ need to check if ready in with send allocation
 #TODO(robnagler) this is a general problem: after await: check ownership
     async def _run(self, req, op):
         try:
-            if not self._req_is_valid(req):
-                return
+            while not await self.driver_ready() or not await op.ready_send():
+                if op.canceled:
+                    return
             try:
                 while True:
                     r = await op.reply_ready()
@@ -425,6 +427,7 @@ need to check if ready in with send allocation
                 self.db.status = job.ERROR
                 self.db.error = e
         finally:
+        the ready next op that is in the queue that has not been sent
             self.destroy_op(op)
 
     def _create_op(self, opName, req, **kwargs):
@@ -475,6 +478,7 @@ need to check if ready in with send allocation
             o.send()
             return await o.reply_ready()
         finally:
+            the ready next op that is in the queue that has not been sent
             self.destroy_op(o)
 
 
@@ -505,6 +509,7 @@ class _Op(PKDict):
             return True
         self._op_queue.wait()
         return False
+
 
     def reply_put(self, reply):
         self._reply_q.put_nowait(reply)
