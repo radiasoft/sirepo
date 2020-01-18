@@ -205,7 +205,8 @@ def fixup_old_data(data, force=False):
         bool: True if data changed
     """
     try:
-        pkdp("force= {}, version= {} (SCHEMA_COMMON.version={})", force,
+        pkdp("{} force= {}, version= {} (SCHEMA_COMMON.version={})",
+             data.get('models', {}).get('simulation', {}).get('simulationId', None), force,
              data.get('version', None), SCHEMA_COMMON.version)
         if not force and 'version' in data and data.version == SCHEMA_COMMON.version:
             return data, False
@@ -478,6 +479,10 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True):
             # ensure the simulationId matches the path
             if sid:
                 data['models']['simulation']['simulationId'] = _sim_from_path(path)[0]
+        # DEBUG
+        import hashlib
+        with open(str(path)) as f:
+            pkdp("{}: {}", path, hashlib.sha1(f.read()).hexdigest())
     except Exception as e:
         pkdlog('{}: error: {}', path, pkdexc())
         raise
@@ -775,8 +780,12 @@ def save_simulation_json(data, do_validate=True):
             )
             srschema.validate_fields(data, get_schema(data.simulationType))
         s.simulationSerial = _serial_new()
-        pkdp("write simulation data: {}", fn)
+        pkdp("write simulation data: {}. In this sirepo-data.json file, sim_data_template_fixup is {}", fn, data.get('sim_data_template_fixup', None))
         write_json(fn, data)
+        # DEBUG
+        import hashlib
+        with open(str(json_filename(fn)), 'rb') as f:
+            pkdp("saved {}: {}", fn, hashlib.sha1(f.read()).hexdigest())
     return data
 
 
