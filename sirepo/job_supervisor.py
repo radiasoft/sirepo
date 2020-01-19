@@ -62,6 +62,16 @@ _MAX_RETRIES = 10
 _RETRY_FLAG = object()
 
 
+class Awaited(Exception):
+    """An await occurred, restart operation"""
+    pass
+
+
+class Canceled(Exception):
+    """Operation was canceled, send reply"""
+    pass
+
+
 def init():
     global _DB_DIR, cfg, _NEXT_REQUEST_SECONDS
     if _DB_DIR:
@@ -191,14 +201,17 @@ need to check if ready in with send allocation
         pkdlog('api={} jid={}', req.content.api, req.content.get('computeJid'))
         try:
             for i in range(_MAX_RETRIES):
-                r = await getattr(
-                    cls.get_instance(req),
-                    '_receive_' + req.content.api,
-                )(req)
-                if r == _RETRY_FLAG:
-                    continue
-                return r
-            raise AssertionError('too many retries')
+                try:
+                    return await getattr(
+                        cls.get_instance(req),
+                        '_receive_' + req.content.api,
+                    )(req)
+                except Awaited:
+                    pass
+                except Canceled:
+todo: return canceled
+            else:
+                raise AssertionError('too many retries: {}', req)
         except Exception as e:
             pkdlog('error={} stack={}', e, pkdexc())
             if isinstance(e, sirepo.util.Reply):
@@ -284,8 +297,7 @@ need to check if ready in with send allocation
             o.set_canceled()
             if o.opName == job.OP_RUN and o.driver.op_was_sent(o):
                 c = True
-        if not await self.driver_ready():
-            return _RETRY_FLAG
+        await self.driver_ready()
         self.db.status = job.CANCELED
         self.__db_write()
         if c:
@@ -302,32 +314,28 @@ need to check if ready in with send allocation
             or not self._req_is_valid(req)
             or self.db.status != job.COMPLETED
         ):
-            if not await self.driver_ready(req):
-                return _RETRY_FLAG
-            o = self._create_op(
-                job.OP_RUN,
-                req,
-                jobCmd='compute',
-                nextRequestSeconds=self.db.nextRequestSeconds,
-            )
-            if not await o.ready_send():
-                self.destroy_op(o)
-                return _RETRY_FLAG
-            self.__db_init(req, prev_db=self.db)
-            self.db.computeJobSerial = int(time.time())
-            self.db.pkupdate(status=job.PENDING)
-            self.__db_write()
+            await self.driver_ready(req)
+            o = None
             try:
+                o = self._create_op(
+                    job.OP_RUN,
+                    req,
+                    jobCmd='compute',
+                    nextRequestSeconds=self.db.nextRequestSeconds,
+                )
+                await o.ready_send()
+                self.__db_init(req, prev_db=self.db)
+                self.db.computeJobSerial = int(time.time())
+                self.db.pkupdate(status=job.PENDING)
+                self.__db_write()
                 o.make_lib_dir_symlink()
-                x = o.send()
-                if x == _RETRY_FLAG:
-                    return x
-                if x:
-                    tornado.ioloop.IOLoop.current().add_callback(self._run, req, o)
+                o.send()
+                tornado.ioloop.IOLoop.current().add_callback(self._run, req, o)
             except Exception:
                 # _run destroys in the happy path (never got to _run here)
-                self.destroy_op(o)
-                the ready next op that is in the queue that has not been sent
+                if o:
+                    self.destroy_op(o)
+TODO: the ready next op that is in the queue that has not been sent
                 raise
         # Read this first https://github.com/radiasoft/sirepo/issues/2007
         return await self._receive_api_runStatus(req)

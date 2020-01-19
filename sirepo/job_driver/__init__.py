@@ -152,8 +152,10 @@ class DriverBase(PKDict):
 
    async def send(self, op):
         if op.do_not_send:
+            asyncio.CanceledError
+should this be an exception or cancel the coroutine?
             pkdlog('op finished without being sent op={}', job.LogFormatter(op))
-            return False
+            raise job_supervisor.Canceled
         pkdlog(
             'op={} agentId={} opId={} runDir={}',
             op.opName,
