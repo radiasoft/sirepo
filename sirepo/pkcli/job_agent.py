@@ -109,9 +109,8 @@ def start_sbatch():
     try:
         start()
     finally:
+#TODO(robnagler) https://github.com/radiasoft/sirepo/issues/2195
         pkio.unchecked_remove(_PID_FILE)
-
-
 
 
 class _Dispatcher(PKDict):

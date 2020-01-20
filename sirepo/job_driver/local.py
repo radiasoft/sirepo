@@ -29,7 +29,7 @@ class LocalDriver(job_driver.DriverBase):
 
     instances = PKDict()
 
-    slots = PKDict()
+    slot_q = None
 
     def __init__(self, req):
         super().__init__(req)
@@ -38,11 +38,8 @@ class LocalDriver(job_driver.DriverBase):
                 'agent-local', self._agentId),
             _agent_exit=tornado.locks.Event(),
         )
-        self.has_slot = False
+        self.slot_num = None
         self.instances[self.kind].append(self)
-
-    def free_slots(self):
-        fixme
 
     @classmethod
     def get_instance(cls, req):
@@ -73,10 +70,9 @@ class LocalDriver(job_driver.DriverBase):
     def init_class(cls):
         for k in job.KINDS:
             cls.instances[k] = []
-            cls.slots[k] = PKDict(
-                in_use=0,
-                total=cfg.slots[k],
-            )
+            y = cls.slot_q[k] = tornado.queues.Queue(maxsize=cfg.slots[k])
+            for i in range(1, y.maxsize + 1):
+                y.put_nowait(i)
         return cls
 
     async def kill(self):
@@ -91,15 +87,13 @@ class LocalDriver(job_driver.DriverBase):
         await self._agent_exit.wait()
         self._agent_exit.clear()
 
-    async def send(self, op):
+    async def prepare_send(self, op):
         if op.opName == job.OP_RUN:
             op.msg.mpiCores = sirepo.mpi.cfg.cores if op.msg.isParallel else 1
-        return await super().send(op)
+        return await super().prepare_send(op)
 
-    def slot_free(self):
-        if self.has_slot:
-            self.slots[self.kind].in_use -= 1
-            self.has_slot = False
+    def slot_peers(self):
+        return self.instances[self.kind]:
 
     def _agent_on_exit(self, returncode):
         self._agent_exit.set()
@@ -127,10 +121,6 @@ class LocalDriver(job_driver.DriverBase):
         finally:
             if stdin:
                 stdin.close()
-
-    def _websocket_free(self):
-        self.slot_free()
-        self.run_scheduler(exclude_self=True)
 
 
 def init_class():

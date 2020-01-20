@@ -50,7 +50,6 @@ class DockerDriver(job_driver.DriverBase):
             _userDir=req.content.userDir,
             host=host,
         )
-        self.slot_num = None
         host.drivers[self.kind].append(self)
         self.slot_q = host.slot_q
         self.instances[self.kind].append(self)
@@ -70,16 +69,9 @@ class DockerDriver(job_driver.DriverBase):
 #  it seems like this needs to wait till the end.
                 h = d.host
         if not h:
+            # least used host
             h = min(cls.hosts.values(), key=lambda h: len(h.drivers[req.kind]))
         return cls(req, h)
-
-    def free_slots(self):
-        if self.slot_q.qsize > 0:
-            return
-        for d in self.host.drivers[self.kind]:
-            if d.slot_num and not d.ops_pending_done:
-                d.slot_free()
-                return
 
     @classmethod
     def init_class(cls):
@@ -97,17 +89,13 @@ class DockerDriver(job_driver.DriverBase):
             ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), c),
         )
 
-    async def send(self, op):
+    async def prepare_send(self, op):
         if op.opName == job.OP_RUN:
             op.msg.mpiCores = cfg[self.kind].get('cores', 1)
-        return await super().send(op)
+        return await super().prepare_send(op)
 
-    def slot_free(self):
-        if not self.has_slot:
-            return
-        self.slot_q.put_nowait(self.slot_num)
-        self.slot_num = None
-
+    def slot_peers(self):
+        return self.host.drivers[self.kind]:
 
     async def _do_agent_start(self, msg):
         cmd, stdin, env = self._agent_cmd_stdin_env()
@@ -178,10 +166,6 @@ class DockerDriver(job_driver.DriverBase):
         # SECURITY: Must only mount the user's directory
         _res(self._userDir, self._userDir)
         return tuple(res)
-
-    def _websocket_free(self):
-        self.slot_free()
-        self.run_scheduler(exclude_self=True)
 
 
 def init_class():
@@ -273,9 +257,7 @@ def _init_hosts():
             slots=PKDict(),
         )
         for k in job.KINDS:
-            y = x.slot_q[k] = tornado.queues.Queue(maxsize=cfg[k].slots_per_host)
-            for i in range(1, y.maxsize + 1):
-                y.put_nowait(i)
+            x.slot_q[k] = job_driver.init_slot_q(maxsize=cfg[k].slots_per_host)
             x.drivers[k] = []
     assert len(DockerDriver.hosts) > 0, \
         '{}: no docker hosts found in directory'.format(cfg.tls_d)

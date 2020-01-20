@@ -67,11 +67,6 @@ class Awaited(Exception):
     pass
 
 
-class Canceled(Exception):
-    """Operation was canceled, send reply"""
-    pass
-
-
 def init():
     global _DB_DIR, cfg, _NEXT_REQUEST_SECONDS
     if _DB_DIR:
@@ -118,11 +113,10 @@ def init():
 
 
 class ServerReq(PKDict):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.uid = self.content.uid
-        self._response = None
-        self._response_received = tornado.locks.Event()
+        self.task = asyncio.current_task()
 
     async def receive(self):
         s = self.content.pkdel('serverSecret')
@@ -132,6 +126,15 @@ class ServerReq(PKDict):
         assert s == sirepo.job.cfg.server_secret, \
             'server_secret did not match'.format(self.content)
         self.handler.write(await _ComputeJob.receive(self))
+
+    def __str__(self):
+        c = self.get('content')
+        if not c:
+            return 'ServerReq({})'.format(self)
+        return 'ServerReq(api={}, jid={})'.format(
+            c.get('api'),
+            c.get('computeJid'),
+        )
 
 
 async def terminate():
@@ -198,7 +201,7 @@ need to check if ready in with send allocation
 
     @classmethod
     async def receive(cls, req):
-        pkdlog('api={} jid={}', req.content.api, req.content.get('computeJid'))
+        pkdlog('{}', req)
         try:
             for i in range(_MAX_RETRIES):
                 try:
@@ -208,15 +211,16 @@ need to check if ready in with send allocation
                     )(req)
                 except Awaited:
                     pass
-                except Canceled:
-todo: return canceled
-            else:
-                raise AssertionError('too many retries: {}', req)
+                except asyncio.CancelledError:
+                    return PKDict(state=job.CANCELED)
+            raise AssertionError('too many retries {}'.format(req))
         except Exception as e:
-            pkdlog('error={} stack={}', e, pkdexc())
+            pkdlog('{} error={} stack={}', req, e, pkdexc())
             if isinstance(e, sirepo.util.Reply):
                 return sirepo.http_reply.gen_tornado_exception(e)
             raise
+        finally:
+            req.task = None
 
     @classmethod
     def __create(cls, req):
@@ -288,7 +292,7 @@ todo: return canceled
             self._req_is_valid(req)
             or self.db.status not in _RUNNING_PENDING
         ):
-            # not our job, but let the user know it isn't running
+            # job is not relevant, but let the user know it isn't running
             return r
         c = False
         for o in self._ops:
@@ -301,6 +305,7 @@ todo: return canceled
         self.db.status = job.CANCELED
         self.__db_write()
         if c:
+todo: could throw awaited
             await self._send_with_single_reply(job.OP_CANCEL, req)
         return r
 
@@ -314,7 +319,6 @@ todo: return canceled
             or not self._req_is_valid(req)
             or self.db.status != job.COMPLETED
         ):
-            await self.driver_ready(req)
             o = None
             try:
                 o = self._create_op(
@@ -323,6 +327,7 @@ todo: return canceled
                     jobCmd='compute',
                     nextRequestSeconds=self.db.nextRequestSeconds,
                 )
+                await self.driver_ready(req)
                 await o.ready_send()
                 self.__db_init(req, prev_db=self.db)
                 self.db.computeJobSerial = int(time.time())
@@ -330,6 +335,7 @@ todo: return canceled
                 self.__db_write()
                 o.make_lib_dir_symlink()
                 o.send()
+                o.task = None
                 tornado.ioloop.IOLoop.current().add_callback(self._run, req, o)
             except Exception:
                 # _run destroys in the happy path (never got to _run here)
@@ -373,8 +379,7 @@ TODO: the ready next op that is in the queue that has not been sent
             return PKDict(state=job.MISSING, reason='computeJobSerial-mismatch')
         if self.db.isParallel or self.db.status != job.COMPLETED:
             return res(state=self.db.status)
-        if not self.driver_ready():
-            return _RETRY_FLAG
+        await self.driver_ready()
         return await self._send_with_single_reply(
             job.OP_ANALYSIS,
             req,
@@ -403,18 +408,15 @@ TODO: the ready next op that is in the queue that has not been sent
             jobCmd='get_simulation_frame'
         )
 
-#TODO(robnagler) need to assert that this is still our job
-#TODO(robnagler) this is a general problem: after await: check ownership
     async def _run(self, req, op):
         try:
-            while not await self.driver_ready() or not await op.ready_send():
-                if op.canceled:
-                    return
+op.task?
+            req.task = asyncio.current_task()
             try:
                 while True:
+                    await self.driver_ready()
+                    await op.ready_send()
                     r = await op.reply_ready()
-                    if r.state == job.CANCELED:
-                        break
                     self.db.status = r.state
                     if self.db.status == job.ERROR:
                         self.db.error = r.get('error', '<unknown error>')
@@ -426,15 +428,19 @@ TODO: the ready next op that is in the queue that has not been sent
                     else:
                         # sequential jobs don't send this
                         self.db.lastUpdateTime = int(time.time())
-                        #TODO(robnagler) will need final frame count
+#TODO(robnagler) will need final frame count
                     self.__db_write()
                     if r.state in job.EXIT_STATUSES:
                         break
+            except (Awaited, asyncio.CancelledError):
+                pass
             except Exception as e:
                 pkdlog('error={} stack={}', e, pkdexc())
+we do not own this necessarily
                 self.db.status = job.ERROR
                 self.db.error = e
         finally:
+            req.task = None
         the ready next op that is in the queue that has not been sent
             self.destroy_op(op)
 
@@ -480,9 +486,7 @@ TODO: the ready next op that is in the queue that has not been sent
     async def _send_with_single_reply(self, opName, req, **kwargs):
         o = self._create_op(opName, req, **kwargs)
         try:
-            r = await o.prepare_send()
-            if not r:
-                return _RETRY_FLAG
+            await o.prepare_send()
             o.send()
             return await o.reply_ready()
         finally:
@@ -508,6 +512,7 @@ class _Op(PKDict):
         if 'lib_dir_symlink' in self:
             pykern.pkio.unchecked_remove(self.lib_dir_symlink)
         self.driver.destroy_op(self)
+todo:        run_scheduler
 
     def make_lib_dir_symlink(self):
         self.driver.make_lib_dir_symlink(self)
@@ -535,6 +540,8 @@ class _Op(PKDict):
         self.set_canceled()
 
     def set_canceled(self):
+        self.task.cancel()
+todo
         self.do_not_send = True
         self.send_ready.set()
         self.reply_put(PKDict(state=job.CANCELED))

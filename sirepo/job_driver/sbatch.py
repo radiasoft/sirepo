@@ -55,6 +55,10 @@ class SbatchDriver(job_driver.DriverBase):
         # hopefully the agent is nice and listens to the kill
         self.websocket.write_message(PKDict(opName=job.OP_KILL))
 
+    async def slot_ready(self):
+        """We allow as many users as the sbatch system allows"""
+        pass
+
     async def prepare_send(self, op):
         m = op.msg
         try:
@@ -180,7 +184,6 @@ scancel -u $USER >& /dev/null || true
 
     def _websocket_free(self):
         self._srdb_root = None
-        self.run_scheduler(exclude_self=True)
 
 
 def init_class():

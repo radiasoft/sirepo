@@ -44,14 +44,15 @@ class DriverBase(PKDict):
 
     def __init__(self, req):
         super().__init__(
+            _agentId=job.unique_key(),
+            _agent_starting=False,
             kind=req.kind,
-            ops_pending_done=PKDict(),
-            ops_pending_send=[],
+            slot_alloc_time=None,
+            slot_num=None,
             uid=req.content.uid,
             websocket=None,
             websocket_ready=tornado.locks.Event(),
-            _agentId=job.unique_key(),
-            _agent_starting=False,
+#TODO(robnagler) https://github.com/radiasoft/sirepo/issues/2195
         )
         # Agents persist for the life of the program so they are never removed
         self.agents[self._agentId] = self
@@ -61,25 +62,45 @@ class DriverBase(PKDict):
             **self
         )
 
-    def destroy_op(self, op):
-        if op in self.ops_pending_send:
-            self.ops_pending_send.remove(op)
-        self.ops_pending_done.pkdel(op.opId)
-        self.run_scheduler()
-
     async def driver_ready(self, exclude_self=False):
         if not self.websocket:
             await self.websocket_ready.wait()
-            return False
+            raise job_supervisor.Awaited()
+        await self.slot_ready()
+
+    def slot_free(self):
+        if not self.slot_num:
+            return
+        self.slot_q.put_nowait(self.slot_num)
+        self.slot_num = None
+        self.slot_alloc_time = None
+
+    async def slot_free_one(self):
+        if self.slot_q.qsize > 0:
+            # available slots, don't need to free
+            return
+        # least recently used, if any
+        d = sorted(
+            filter(
+                lambda x: bool(x.slot_num and not x.ops_pending_done),
+                self.slot_peers(),
+            ),
+            key=lambda x: x.slot_alloc_time,
+        )
+        if d:
+            d[0].slot_free()
+
+    async def slot_ready(self):
         if self.slot_num:
-            return True
+            return
         try:
             self.slot_num = self.slot_q.get_nowait()
-            return True
         except tornado.queues.QueueEmpty:
-            self.free_slots()
+            self.slot_free_one()
             self.slot_num = await self.slot_q.get()
-            return False
+            raise job_supervisor.Awaited()
+        finally:
+            self.slot_alloc_time = time.time()
 
     def get_supervisor_uri(self):
         return inspect.getmodule(self).cfg.supervisor_uri
@@ -144,18 +165,13 @@ class DriverBase(PKDict):
             self.ops_pending_send.append(op)
         if not self.websocket:
             await self._agent_start(op.msg)
-            return False
+            raise job_supervisor.Awaited()
         if self.run_scheduler(try_op=op):
-            return True
+            raise job_supervisor.Awaited()
         await op.send_ready.wait()
         return False
 
-   async def send(self, op):
-        if op.do_not_send:
-            asyncio.CanceledError
-should this be an exception or cancel the coroutine?
-            pkdlog('op finished without being sent op={}', job.LogFormatter(op))
-            raise job_supervisor.Canceled
+   def send(self, op):
         pkdlog(
             'op={} agentId={} opId={} runDir={}',
             op.opName,
@@ -165,11 +181,10 @@ should this be an exception or cancel the coroutine?
         )
         op.start_timer()
         self.websocket.write_message(pkjson.dump_bytes(op.msg))
-        return True
 
     @classmethod
     async def terminate(cls):
-        for d in DriverBase.agents.copy().values():
+        for d in list(DriverBase.agents.values()):
             try:
 #TODO(robnagler) need a timeout on each kill or better do not await
 # here, but send all the kills (scheduling callbacks) and then set
@@ -179,6 +194,8 @@ should this be an exception or cancel the coroutine?
 # to get an ack to the clean termination, because it needs to remove
 # stuff from the queue, and it would be good to know about that
                 await d.kill()
+            except job_supervisor.Awaited:
+                pass
             except Exception as e:
                 # If one kill fails still try to kill the rest
                 pkdlog('error={} stack={}', e, pkdexc())
@@ -196,13 +213,14 @@ should this be an exception or cancel the coroutine?
                 w.sr_close()
             t = list(self.ops_pending_done.values()) + self.ops_pending_send
             self.ops_pending_done.clear()
-            self.ops_pending_send.clear()
             for o in t:
                 o.set_errored('websocket closed')
 #TODO(robnagler) when the websocket disappears unexpectedly, we don't
 # know that any resources are freed. With docker and local, we can check.
 # For sbatch, we need to ask the user to login again.
+            self.slot_free()
             self._websocket_free()
+            self.run_scheduler()
         except Exception as e:
             pkdlog('self={} error={} stack={}', self, e, pkdexc())
 
@@ -216,13 +234,12 @@ should this be an exception or cancel the coroutine?
         c = msg.content
         i = c.get('opId')
         if (
-                ('opName' not in c or c.opName == job.OP_ERROR)
-                or
-                ('reply' in c and c.reply.get('state') == job.ERROR)
-           ):
-            pkdlog('agentId={} msg={}', self._agentId, c)
+            ('opName' not in c or c.opName == job.OP_ERROR)
+            or ('reply' in c and c.reply.get('state') == job.ERROR)
+        ):
+            pkdlog('error agentId={} msg={}', self._agentId, c)
         else:
-            pkdlog('{} agentId={} opId={}', c.opName, self._agentId, i)
+            pkdlog('opName={} agentId={} opId={}', c.opName, self._agentId, i)
         if i:
             if 'reply' not in c:
                 pkdlog('agentId={} No reply={}', self._agentId, c)
@@ -232,9 +249,11 @@ should this be an exception or cancel the coroutine?
             else:
                 pkdlog('agentId={} not pending opId={} opName={}', self._agentId, i, c.opName)
         else:
+# todo only a few ops fit this category (receive_alive)
             getattr(self, '_receive_' + c.opName)(msg)
 
     def _receive_error(self, msg):
+#TODO(robnagler) what does this mean? Just a way of logging? Document this.
         pkdlog('agentId={} msg={}', self._agentId, msg)
 
     def _receive_alive(self, msg):
@@ -246,6 +265,7 @@ should this be an exception or cancel the coroutine?
             if self.websocket == msg.handler:
 #TODO(robnagler) do we want to run_scheduler on alive in all cases?
 #                self.run_scheduler()
+                # random alive message
                 return
             self.websocket_free()
         self.websocket = msg.handler
@@ -278,7 +298,9 @@ should this be an exception or cancel the coroutine?
         )
 
     async def _agent_start(self, msg):
+        # this is a mutex
         if self._agent_starting:
+todo: need to queue here and wait
             return
         pkdlog('starting agentId={} uid={}', self._agentId, self.uid)
         try:
@@ -295,12 +317,20 @@ should this be an exception or cancel the coroutine?
             self._agent_starting = False
             pkdlog('agentId={} exception={}', self._agentId, e)
             raise
+        raise job_supervisor.Awaited()
 
 
 def get_instance(req, jobRunMode):
     if jobRunMode == job.SBATCH:
         return _CLASSES[job.SBATCH].get_instance(req)
     return _DEFAULT_CLASS.get_instance(req)
+
+
+def init_slot_q(maxsize):
+    res = tornado.queues.Queue(maxsize=maxsize)
+    for i in range(1, maxsize + 1):
+        res.put_nowait(i)
+    return res
 
 
 def init():
