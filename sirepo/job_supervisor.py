@@ -300,12 +300,17 @@ need to check if ready in with send allocation
             o.set_canceled()
             if o.opName == job.OP_RUN and o.driver.op_was_sent(o):
                 c = True
-        await self.driver_ready()
-        self.db.status = job.CANCELED
-        self.__db_write()
-        if c:
-todo: could throw awaited
-            await self._send_with_single_reply(job.OP_CANCEL, req)
+        o = self._create_op(job.OP_CANCEL, req)
+        try:
+            if c:
+                await o.prepare_send()
+            self.db.status = job.CANCELED
+            self.__db_write()
+            if c:
+                o.send()
+            return await o.reply_ready()
+        finally:
+            op.destroy()
         return r
 
     async def _receive_api_runSimulation(self, req):
@@ -314,37 +319,34 @@ todo: could throw awaited
             if f or not self._req_is_valid(req)
                 return PKDict(state=job.ERROR, error='another browser is running the simulation')
             return PKDict(state=self.db.status)
-        if (f
+        if not (f
             or not self._req_is_valid(req)
             or self.db.status != job.COMPLETED
         ):
-            o = None
-            try:
-                o = self._create_op(
-                    job.OP_RUN,
-                    req,
-                    jobCmd='compute',
-                    nextRequestSeconds=self.db.nextRequestSeconds,
-                )
-                await self.driver_ready(req)
-                await o.ready_send()
-                self.__db_init(req, prev_db=self.db)
-                self.db.computeJobSerial = int(time.time())
-                self.db.pkupdate(status=job.PENDING)
-                self.__db_write()
-                o.make_lib_dir_symlink()
-                o.send()
-lock needs to be held(?)
-                o.task = None
-                tornado.ioloop.IOLoop.current().add_callback(self._run, req, o)
-            except Exception:
-                # _run destroys in the happy path (never got to _run here)
-                if o:
-                    o.destroy()
+            # Read this first https://github.com/radiasoft/sirepo/issues/2007
+            return await self._receive_api_runStatus(req)
+        o = self._create_op(
+            job.OP_RUN,
+            req,
+            jobCmd='compute',
+            nextRequestSeconds=self.db.nextRequestSeconds,
+        )
+        try:
+            await o.prepare_send()
+            self.__db_init(req, prev_db=self.db)
+            self.db.computeJobSerial = int(time.time())
+            self.db.pkupdate(status=job.PENDING)
+            self.__db_write()
+            o.make_lib_dir_symlink()
+            o.send()
+            o.task = None
+            tornado.ioloop.IOLoop.current().add_callback(self._run, req, o)
+        except Exception:
+            # _run destroys in the happy path (never got to _run here)
+            if o:
+                o.destroy()
 TODO: the ready next op that is in the queue that has not been sent
-                raise
-        # Read this first https://github.com/radiasoft/sirepo/issues/2007
-        return await self._receive_api_runStatus(req)
+            raise
 
     async def _receive_api_runStatus(self, req):
         def res(**kwargs):
@@ -478,14 +480,11 @@ todo: run scheduler
         return o
 
     def _req_is_valid(self, req):
-
-        validate serial and hash
-
-                pkdlog(
-                    'invalid computeJobHash self={} req={}',
-                    self.db.computeJobHash,
-                    req.content.computeJobHash
-                )
+        return (
+            self.db.computeJobHash == req.content.computeJobHash
+            and (not req.content.computeJobSerial or
+            self.db.computeJobSerial == req.content.computeJobSerial
+        )
 
     async def _send_with_single_reply(self, opName, req, **kwargs):
         o = self._create_op(opName, req, **kwargs)
@@ -494,7 +493,6 @@ todo: run scheduler
             o.send()
             return await o.reply_ready()
         finally:
-todo:            the ready next op that is in the queue that has not been sent
             op.destroy()
 
 
@@ -514,32 +512,22 @@ class _Op(PKDict):
         if 'timer' in self:
             tornado.ioloop.IOLoop.current().remove_timeout(self.timer)
         if 'lib_dir_symlink' in self:
-todo: need a lock on this; lib_dir_symlink is unique but....
+            # lib_dir_symlink is unique_key so not dangerous to remove
             pykern.pkio.unchecked_remove(self.lib_dir_symlink)
-        if self.computeJob:
-            self.computeJob.destroy_op(self)
-        if self.driver:
-            self.driver.destroy_op(self)
-
-
-this may not make sense, because it happens in websocket_free
-todo:        run_scheduler
+        self.computeJob.destroy_op(self)
+        self.driver.destroy_op(self)
 
     def make_lib_dir_symlink(self):
         self.driver.make_lib_dir_symlink(self)
-
-    def ready_to_send(self):
-        if there are not ops ahead of me:
-            return True
-        self._op_queue.wait()
-        return False
-
 
     def reply_put(self, reply):
         self._reply_q.put_nowait(reply)
 
     async def reply_ready(self):
-        # If we get an exception (cancelled), task is not done
+        # If we get an exception (cancelled), task is not done.
+        # Had to look at the implementation of Queue to see that
+        # task_done should only be called if get actually removes
+        # the item from the queue.
         r = await self._reply_q.get()
         self._reply_q.task_done()
         return r
@@ -552,16 +540,6 @@ todo:        run_scheduler
 
     def set_canceled(self):
         self.task.cancel()
-
-todo
-        self.do_not_send = True
-        self.send_ready.set()
-        self.reply_put(PKDict(state=job.CANCELED))
-
-    def set_errored(self, error):
-        self.do_not_send = True
-        self.send_ready.set()
-        self.reply_put(PKDict(state=job.ERROR, error=error))
 
     async def send(self):
         return await self.driver.send(self)
