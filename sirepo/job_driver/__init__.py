@@ -47,6 +47,7 @@ class DriverBase(PKDict):
             _agentId=job.unique_key(),
             _agent_starting=False,
             kind=req.kind,
+            ops=PKDict(),
             slot_alloc_time=None,
             slot_num=None,
             uid=req.content.uid,
@@ -62,7 +63,10 @@ class DriverBase(PKDict):
             **self
         )
 
-    async def driver_ready(self, exclude_self=False):
+    def destroy_op(self, op):
+        self.ops.pkdel(op.opId)
+
+    async def driver_ready(self):
         if not self.websocket:
             await self.websocket_ready.wait()
             raise job_supervisor.Awaited()
@@ -71,6 +75,7 @@ class DriverBase(PKDict):
     def slot_free(self):
         if not self.slot_num:
             return
+        self.slot_q.task_done()
         self.slot_q.put_nowait(self.slot_num)
         self.slot_num = None
         self.slot_alloc_time = None
@@ -82,7 +87,7 @@ class DriverBase(PKDict):
         # least recently used, if any
         d = sorted(
             filter(
-                lambda x: bool(x.slot_num and not x.ops_pending_done),
+                lambda x: bool(x.slot_num and not x.ops),
                 self.slot_peers(),
             ),
             key=lambda x: x.slot_alloc_time,
@@ -124,27 +129,27 @@ class DriverBase(PKDict):
         )
 
     def op_was_sent(self, op):
-        """Is the op in ops_pending_done
+        """Is the op in ops
 
         Args:
             op (job_supervisor._Op): what to check
         Returns:
-            bool: true if in ops_pending_done
+            bool: true if in ops
         """
-        return op in self.ops_pending_done
+        return op in self.ops
 
     @classmethod
     def receive(cls, msg):
+        """Receive message from agent"""
         a = cls.agents.get(msg.content.agentId)
-        if not a:
-            pkdlog('unknown agent msg={}, sending kill', msg)
-            try:
-                msg.handler.write_message(PKDict(opName=job.OP_KILL))
-                return
-            except Exception as e:
-                pkdlog('error={} stack={}', e, pkdexc())
-        else:
+        if a:
             a._receive(msg)
+            return
+        pkdlog('unknown agent, sending kill; msg={}', msg)
+        try:
+            msg.handler.write_message(PKDict(opName=job.OP_KILL))
+        except Exception as e:
+            pkdlog('error={} stack={}', e, pkdexc())
 
     async def prepare_send(self, op):
         """Sends the op
@@ -152,24 +157,11 @@ class DriverBase(PKDict):
         Returns:
             bool: True if the op was actually sent
         """
-#TODO(robnagler) need to send a retry to the ops, which should requeue
-#  themselves at an outer level(?).
-#  If a job is still running, but we just lost the websocket, want to
-#  pickup where we left off. If the op already was written, then you
-#  have to ask the agent. If ops are idempotent, we can simply
-#  resend the request. If it is in process, then it will be reconnected
-#  to the job. If it was already completed (and reply on the way), then
-#  we can cache that state in the agent(?) and have it send the response
-#  twice(?).
-        if op not in self.ops_pending_send:
-            self.ops_pending_send.append(op)
         if not self.websocket:
             await self._agent_start(op.msg)
             raise job_supervisor.Awaited()
         if self.run_scheduler(try_op=op):
             raise job_supervisor.Awaited()
-        await op.send_ready.wait()
-        return False
 
    def send(self, op):
         pkdlog(
@@ -181,18 +173,13 @@ class DriverBase(PKDict):
         )
         op.start_timer()
         self.websocket.write_message(pkjson.dump_bytes(op.msg))
+        self.ops.append(op)
 
     @classmethod
     async def terminate(cls):
         for d in list(DriverBase.agents.values()):
             try:
-#TODO(robnagler) need a timeout on each kill or better do not await
-# here, but send all the kills (scheduling callbacks) and then set
-# a timer callback to do the loop exit in pkcli.job_supervisor
-# with callbacks from the driver saying they've terminated cleanly.
-# this allows a clean callback case for sbatch, which would be nice
-# to get an ack to the clean termination, because it needs to remove
-# stuff from the queue, and it would be good to know about that
+#TODO(robnagler) need timeout
                 await d.kill()
             except job_supervisor.Awaited:
                 pass
@@ -211,13 +198,8 @@ class DriverBase(PKDict):
             if w:
                 # Will not call websocket_on_close()
                 w.sr_close()
-            t = list(self.ops_pending_done.values()) + self.ops_pending_send
-            self.ops_pending_done.clear()
-            for o in t:
-                o.set_errored('websocket closed')
-#TODO(robnagler) when the websocket disappears unexpectedly, we don't
-# know that any resources are freed. With docker and local, we can check.
-# For sbatch, we need to ask the user to login again.
+            for o in list(self.ops.values()):
+                o.destroy(error='websocket closed')
             self.slot_free()
             self._websocket_free()
             self.run_scheduler()
@@ -244,8 +226,9 @@ class DriverBase(PKDict):
             if 'reply' not in c:
                 pkdlog('agentId={} No reply={}', self._agentId, c)
                 c.reply = PKDict(state='error', error='no reply')
-            if i in self.ops_pending_done:
-                self.ops_pending_done[i].reply_put(c.reply)
+            if i in self.ops:
+                #SECURITY: only ops known to this driver can be replied to
+                self.ops[i].reply_put(c.reply)
             else:
                 pkdlog('agentId={} not pending opId={} opName={}', self._agentId, i, c.opName)
         else:
@@ -319,6 +302,9 @@ todo: need to queue here and wait
             raise
         raise job_supervisor.Awaited()
 
+
+    def _websocket_free(self):
+        pass
 
 def get_instance(req, jobRunMode):
     if jobRunMode == job.SBATCH:

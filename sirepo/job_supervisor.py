@@ -146,13 +146,12 @@ class _ComputeJob(PKDict):
     instances = PKDict()
 
     def __init__(self, req, **kwargs):
-        super().__init__(_ops=[], **kwargs)
+        super().__init__(ops=[], **kwargs)
         self.pksetdefault(db=lambda: self.__db_init(req))
 
     def destroy_op(self, op):
-        pkdlog('destroy_op={}', op.opId)
-        self._ops.remove(op)
-        op.destroy()
+        if op in self.ops:
+            self.ops.remove(op)
 
     @classmethod
     def get_instance(cls, req):
@@ -295,7 +294,7 @@ need to check if ready in with send allocation
             # job is not relevant, but let the user know it isn't running
             return r
         c = False
-        for o in self._ops:
+        for o in self.ops:
             if self.db.isParallel and o.opName == job.OP_ANALYSIS:
                 continue
             o.set_canceled()
@@ -335,12 +334,13 @@ todo: could throw awaited
                 self.__db_write()
                 o.make_lib_dir_symlink()
                 o.send()
+lock needs to be held(?)
                 o.task = None
                 tornado.ioloop.IOLoop.current().add_callback(self._run, req, o)
             except Exception:
                 # _run destroys in the happy path (never got to _run here)
                 if o:
-                    self.destroy_op(o)
+                    o.destroy()
 TODO: the ready next op that is in the queue that has not been sent
                 raise
         # Read this first https://github.com/radiasoft/sirepo/issues/2007
@@ -410,10 +410,9 @@ TODO: the ready next op that is in the queue that has not been sent
 
     async def _run(self, req, op):
         try:
-op.task?
-            req.task = asyncio.current_task()
-            try:
-                while True:
+            op.task = asyncio.current_task()
+            while True:
+                try:
                     await self.driver_ready()
                     await op.ready_send()
                     r = await op.reply_ready()
@@ -432,17 +431,18 @@ op.task?
                     self.__db_write()
                     if r.state in job.EXIT_STATUSES:
                         break
-            except (Awaited, asyncio.CancelledError):
-                pass
+                except Awaited:
+                    pass
+                except asyncio.CancelledError:
+                    break
             except Exception as e:
                 pkdlog('error={} stack={}', e, pkdexc())
-we do not own this necessarily
+we do not own this necessarily own the job at this point
                 self.db.status = job.ERROR
                 self.db.error = e
         finally:
-            req.task = None
-        the ready next op that is in the queue that has not been sent
-            self.destroy_op(op)
+todo: run scheduler
+            op.destroy()
 
     def _create_op(self, opName, req, **kwargs):
 #TODO(robnagler) kind should be set earlier in the queuing process.
@@ -460,6 +460,9 @@ we do not own this necessarily
                 kwargs.pop('dataFileKey')
             )
         o = _Op(
+#TODO(robnagler) don't like the camelcase. It doesn't actually work right because
+# these values are never sent directly, only msg which can be camelcase
+            computeJob=self,
             driver=d,
             kind=req.kind,
             maxRunSecs=0 if opName in _UNTIMED_OPS else _MAX_RUN_SECS[req.kind],
@@ -469,8 +472,9 @@ we do not own this necessarily
                 **kwargs,
             ).pksetdefault(jobRunMode=self.db.jobRunMode),
             opName=opName,
+            task=asyncio.current_task(),
         )
-        self._ops.append(o)
+        self.ops.append(o)
         return o
 
     def _req_is_valid(self, req):
@@ -490,8 +494,8 @@ we do not own this necessarily
             o.send()
             return await o.reply_ready()
         finally:
-            the ready next op that is in the queue that has not been sent
-            self.destroy_op(o)
+todo:            the ready next op that is in the queue that has not been sent
+            op.destroy()
 
 
 class _Op(PKDict):
@@ -506,12 +510,19 @@ class _Op(PKDict):
         )
         self.msg.update(opId=self.opId, opName=self.opName)
 
-    def destroy(self):
+    def destroy(self, error=None):
         if 'timer' in self:
             tornado.ioloop.IOLoop.current().remove_timeout(self.timer)
         if 'lib_dir_symlink' in self:
+todo: need a lock on this; lib_dir_symlink is unique but....
             pykern.pkio.unchecked_remove(self.lib_dir_symlink)
-        self.driver.destroy_op(self)
+        if self.computeJob:
+            self.computeJob.destroy_op(self)
+        if self.driver:
+            self.driver.destroy_op(self)
+
+
+this may not make sense, because it happens in websocket_free
 todo:        run_scheduler
 
     def make_lib_dir_symlink(self):
@@ -528,10 +539,10 @@ todo:        run_scheduler
         self._reply_q.put_nowait(reply)
 
     async def reply_ready(self):
-        try:
-            return await self._reply_q.get()
-        finally:
-            self._reply_q.task_done()
+        # If we get an exception (cancelled), task is not done
+        r = await self._reply_q.get()
+        self._reply_q.task_done()
+        return r
 
     def run_timeout(self):
         if self.do_not_send:
@@ -541,6 +552,7 @@ todo:        run_scheduler
 
     def set_canceled(self):
         self.task.cancel()
+
 todo
         self.do_not_send = True
         self.send_ready.set()
