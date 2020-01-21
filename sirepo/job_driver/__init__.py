@@ -65,7 +65,11 @@ class DriverBase(PKDict):
         )
 
     def destroy_op(self, op):
+        """Clear our op and (possibly) free slot"""
         self.ops.pkdel(op.opId)
+        if not self.ops:
+            # free up our slot
+            self.slot_free_one()
 
     @classmethod
     def init_slot_q(cls, maxsize):
@@ -113,6 +117,18 @@ class DriverBase(PKDict):
         """
         return op in self.ops
 
+    async def prepare_send(self, op):
+        """Sends the op
+
+        Returns:
+            bool: True if the op was actually sent
+        """
+        if not self._websocket_ready.is_set():
+            await self._agent_start(op)
+            await self._websocket_ready.wait()
+            raise job_supervisor.Awaited()
+        await self.slot_ready()
+
     @classmethod
     def receive(cls, msg):
         """Receive message from agent"""
@@ -126,20 +142,7 @@ class DriverBase(PKDict):
         except Exception as e:
             pkdlog('error={} stack={}', e, pkdexc())
 
-    async def prepare_send(self, op):
-        """Sends the op
-
-        Returns:
-            bool: True if the op was actually sent
-        """
-        if not self._websocket_ready.is_set():
-            await self._agent_start(op)
-            await self._websocket_ready.wait()
-            raise job_supervisor.Awaited()
-        if self.run_scheduler(try_op=op):
-            raise job_supervisor.Awaited()
-
-   def send(self, op):
+    def send(self, op):
         pkdlog(
             'op={} agentId={} opId={} runDir={}',
             op.opName,
@@ -147,9 +150,7 @@ class DriverBase(PKDict):
             op.opId,
             op.msg.get('runDir')
         )
-        op.start_timer()
         self._websocket.write_message(pkjson.dump_bytes(op.msg))
-        self.ops.append(op)
 
     def slot_free(self):
         if not self.slot_num:
@@ -159,11 +160,11 @@ class DriverBase(PKDict):
         self.slot_num = None
         self._slot_alloc_time = None
 
-    async def slot_free_one(self):
+    def slot_free_one(self):
         if self.slot_q.qsize > 0:
             # available slots, don't need to free
             return
-        # least recently used, if any
+        # least recently used and not in use
         d = sorted(
             filter(
                 lambda x: bool(x.slot_num and not x.ops),
@@ -213,7 +214,6 @@ class DriverBase(PKDict):
                 o.destroy(error='websocket closed')
             self.slot_free()
             self._websocket_free()
-            self.run_scheduler()
         except Exception as e:
             pkdlog('job_driver={} error={} stack={}', self, e, pkdexc())
 
@@ -243,10 +243,12 @@ class DriverBase(PKDict):
         )
 
     async def _agent_start(self, op):
+        if self._agent_starting:
+            return
         async with self._agent_start_lock:
             if self._agent_starting or self._websocket_ready.is_set():
                 return
-            pkdlog('starting agentId={} uid={} opId={}', self._agentId, self.uid, op.opId)
+            pkdlog('agentId={} uid={} opId={}', self._agentId, self.uid, op.opId)
             try:
                 self._agent_starting = True
                 # TODO(e-carlin): We need a timeout on agent starts. If an agent
@@ -283,7 +285,12 @@ class DriverBase(PKDict):
                 #SECURITY: only ops known to this driver can be replied to
                 self.ops[i].reply_put(c.reply)
             else:
-                pkdlog('agentId={} not pending opId={} opName={}', self._agentId, i, c.opName)
+                pkdlog(
+                    'agentId={} not pending opId={} opName={}',
+                    self._agentId,
+                    i,
+                    c.opName,
+                )
         else:
             getattr(self, '_receive_' + c.opName)(msg)
 
@@ -292,18 +299,14 @@ class DriverBase(PKDict):
 
         Save the websocket and register self with the websocket
         """
+        self._agent_starting = False
         if self._websocket:
-            if self._websocket == msg.handler:
-#TODO(robnagler) do we want to run_scheduler on alive in all cases?
-#                self.run_scheduler()
-                # random alive message
-                return
-            self.websocket_free()
+            if self._websocket != msg.handler:
+                # New _websocket so bind
+                self.websocket_free()
         self._websocket = msg.handler
         self._websocket_ready.set()
         self._websocket.sr_driver_set(self)
-#TODO(robnagler) do we want to run_scheduler on alive in all cases?
-        self.run_scheduler()
 
     def _receive_error(self, msg):
 #TODO(robnagler) what does this mean? Just a way of logging? Document this.
@@ -312,10 +315,20 @@ class DriverBase(PKDict):
     def _websocket_free(self):
         pass
 
-def get_instance(req, jobRunMode):
+
+def get_instance(req, jobRunMode, op):
     if jobRunMode == job.SBATCH:
-        return _CLASSES[job.SBATCH].get_instance(req)
-    return _DEFAULT_CLASS.get_instance(req)
+        res = _CLASSES[job.SBATCH].get_instance(req)
+    else:
+        res = _DEFAULT_CLASS.get_instance(req)
+    assert req.content.uid == res.db.uid, \
+        'req.content.uid={} is not same as db.uid={} for jid={}'.format(
+            req.content.uid,
+            res.db.uid,
+            req.content.computeJid,
+        )
+    res.ops[op.opId] = op
+    return res
 
 
 def init():

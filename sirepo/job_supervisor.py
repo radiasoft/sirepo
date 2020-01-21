@@ -168,37 +168,6 @@ class _ComputeJob(PKDict):
             )
         return self
 
-    def ops_valid_in_protocol(self):
-        """Ensures that only one op per type runs simultaneously
-
-        This limits running multiple job_cmds such as OP_ANALYSIS or
-        OP_RUN so it is a bit of fair scheduling.
-
-        Returns:
-            list: one of each available type
-        """
-        def get_ops_pending_done_types():
-            d = collections.defaultdict(int)
-            for v in self.ops_pending_done.values():
-                d[v.msg.opName] += 1
-            return d
-
-        if there is a cancel or analysis, and
-        is_set
-             op
-        need to check if ready in with send allocation
-        r = []
-        t = get_ops_pending_done_types()
-        for o in self.ops_pending_send:
-            if t.get(o.msg.opName, 0) > 0:
-                continue
-            that are not just ready to send
-                o.send_ready.set()
-            assert o.opId not in self.ops_pending_done
-            t[o.msg.opName] += 1
-            r.append(o)
-        return r
-
     @classmethod
     async def receive(cls, req):
         pkdlog('{}', req)
@@ -219,8 +188,6 @@ class _ComputeJob(PKDict):
             if isinstance(e, sirepo.util.Reply):
                 return sirepo.http_reply.gen_tornado_exception(e)
             raise
-        finally:
-            req.task = None
 
     @classmethod
     def __create(cls, req):
@@ -294,37 +261,43 @@ class _ComputeJob(PKDict):
         ):
             # job is not relevant, but let the user know it isn't running
             return r
-        o = None
+        c = None
         try:
             if self.run_op:
 #TODO(robnagler) cancel run_op, not just by jid, which is insufficient (hash)
-                o = self._create_op(job.OP_CANCEL, req)
-                await o.prepare_send()
+                c = self._create_op(job.OP_CANCEL, req)
+                await c.prepare_send()
             for x in self.ops:
-                if not (self.db.isParallel and o.opName == job.OP_ANALYSIS):
-                    x.set_canceled()
+                if not (self.db.isParallel and x.opName == job.OP_ANALYSIS):
+                    x.destroy(cancel=True)
             self.db.status = job.CANCELED
             self.__db_write()
-            if self.run_op:
-                o.send()
-                await o.reply_get()
+            if c:
+                c.send()
+                await c.reply_get()
         finally:
-            if o:
-                o.destroy()
+            if c:
+                c.destroy(cancel=False)
         return r
 
     async def _receive_api_runSimulation(self, req):
         f = req.content.get('forceRun')
         if self.db.status == _RUNNING_PENDING:
-            if f or not self._req_is_valid(req)
-                return PKDict(state=job.ERROR, error='another browser is running the simulation')
+            if f or not self._req_is_valid(req):
+                return PKDict(
+                    state=job.ERROR,
+                    error='another browser is running the simulation',
+                )
             return PKDict(state=self.db.status)
-        if not (f
-            or not self._req_is_valid(req)
-            or self.db.status != job.COMPLETED
+        if (
+            not f
+            and self._req_is_valid(req)
+            and self.db.status == job.COMPLETED
         ):
+            # Valid, completed, transient simulation
             # Read this first https://github.com/radiasoft/sirepo/issues/2007
             return await self._receive_api_runStatus(req)
+        # Forced or canceled/errored/missing/invalid so run
         o = self._create_op(
             job.OP_RUN,
             req,
@@ -340,15 +313,19 @@ class _ComputeJob(PKDict):
             self.__db_write()
             o.make_lib_dir_symlink()
             o.send()
-            o.task = None
             r = self._status_reply(req)
             assert r
-            tornado.ioloop.IOLoop.current().add_callback(self._run, o)
+            o.run_callback = tornado.ioloop.IOLoop.current().call_later(
+                0,
+                self._run,
+                o,
+            )
+            o = None
             return r
-        except Exception:
+        finally:
             # _run destroys in the happy path (never got to _run here)
-            o.destroy()
-            raise
+            if o:
+                o.destroy(cancel=False)
 
     async def _receive_api_runStatus(self, req):
         r = self._status_reply(req)
@@ -380,48 +357,49 @@ class _ComputeJob(PKDict):
         # TODO(e-carlin): We need to be able to cancel requests waiting in this
         # state. Currently we assume that all requests get a driver and the
         # code does not block.
-        d = job_driver.get_instance(req, self.db.jobRunMode)
-        if 'dataFileKey' in kwargs:
-            kwargs['dataFileUri'] = job.supervisor_file_uri(
-                d.get_supervisor_uri(),
-                job.DATA_FILE_URI,
-                kwargs.pop('dataFileKey')
-            )
         o = _Op(
 #TODO(robnagler) don't like the camelcase. It doesn't actually work right because
 # these values are never sent directly, only msg which can be camelcase
             computeJob=self,
-            driver=d,
             kind=req.kind,
             maxRunSecs=0 if opName in _UNTIMED_OPS else _MAX_RUN_SECS[req.kind],
-            msg=PKDict(
-                req.content
-            ).pkupdate(
-                **kwargs,
-            ).pksetdefault(jobRunMode=self.db.jobRunMode),
+            msg=PKDict(req.content).pksetdefault(jobRunMode=self.db.jobRunMode),
             opName=opName,
             task=asyncio.current_task(),
         )
+        o.driver = job_driver.get_instance(req, self.db.jobRunMode, o)
+        if 'dataFileKey' in kwargs:
+            kwargs['dataFileUri'] = job.supervisor_file_uri(
+                o.driver.get_supervisor_uri(),
+                job.DATA_FILE_URI,
+                kwargs.pop('dataFileKey'),
+            )
+        o.msg.pkupdate(**kwargs)
         self.ops.append(o)
         return o
 
     def _req_is_valid(self, req):
         return (
             self.db.computeJobHash == req.content.computeJobHash
-            and (not req.content.computeJobSerial or
-            self.db.computeJobSerial == req.content.computeJobSerial
+            and (
+                not req.content.computeJobSerial or
+                self.db.computeJobSerial == req.content.computeJobSerial
+            )
         )
 
     async def _run(self, op):
+        op.task = asyncio.current_task()
+        op.pkdel('run_callback')
         try:
             while True:
                 try:
                     if op != self.run_op:
                         return
-                    op.task = asyncio.current_task()
                     await op.prepare_send()
                     op.send()
                     r = await op.reply_get()
+                    if op != self.run_op:
+                        return
                     self.db.status = r.state
                     if self.db.status == job.ERROR:
                         self.db.error = r.get('error', '<unknown error>')
@@ -441,14 +419,14 @@ class _ComputeJob(PKDict):
                     pass
                 except asyncio.CancelledError:
                     return
-            except Exception as e:
-                pkdlog('error={} stack={}', e, pkdexc())
-                if op == run_op:
-                    self.db.status = job.ERROR
-                    self.db.error = e
-                    self.__db_write()
+        except Exception as e:
+            pkdlog('error={} stack={}', e, pkdexc())
+            if op == run_op:
+                self.db.status = job.ERROR
+                self.db.error = 'server error'
+                self.__db_write()
         finally:
-            op.destroy()
+            op.destroy(cancel=False)
 
     async def _send_with_single_reply(self, opName, req, **kwargs):
         o = self._create_op(opName, req, **kwargs)
@@ -457,7 +435,7 @@ class _ComputeJob(PKDict):
             o.send()
             return await o.reply_get()
         finally:
-            op.destroy()
+            o.destroy(cancel=False)
 
     def _status_reply(self, req):
         def res(**kwargs):
@@ -507,13 +485,17 @@ class _Op(PKDict):
         )
         self.msg.update(opId=self.opId, opName=self.opName)
 
-    def destroy(self, error=None):
-        self.task = None
-        if 'timer' in self:
-            tornado.ioloop.IOLoop.current().remove_timeout(self.timer)
+    def destroy(self, cancel=True, error=None):
+        if cancel:
+            if self.task:
+                self.task.cancel()
+                self.task = None
+        for x in 'run_callback', 'timer':
+            if x in self:
+                tornado.ioloop.IOLoop.current().remove_timeout(self.pkdel(x))
         if 'lib_dir_symlink' in self:
             # lib_dir_symlink is unique_key so not dangerous to remove
-            pykern.pkio.unchecked_remove(self.lib_dir_symlink)
+            pykern.pkio.unchecked_remove(self.pkdel('lib_dir_symlink'))
         self.computeJob.destroy_op(self)
         self.driver.destroy_op(self)
 
@@ -521,6 +503,37 @@ class _Op(PKDict):
         self.driver.make_lib_dir_symlink(self)
 
     async def prepare_send(self):
+        """Ensures resources are available for sending to agent
+
+        To maintain consistency, do not modify global state before
+        calling this method.
+        """
+        n = self.opName
+        self.computeJob
+        def get_ops_pending_done_types():
+            d = collections.defaultdict(int)
+            for v in self.ops_pending_done.values():
+                d[v.msg.opName] += 1
+            return d
+
+        if there is a cancel or analysis:
+            pass
+        is_set
+             op
+        need to check if ready in with send allocation
+        r = []
+        t = get_ops_pending_done_types()
+        for o in self.ops_pending_send:
+            if t.get(o.msg.opName, 0) > 0:
+                continue
+            that are not just ready to send
+                o.send_ready.set()
+            assert o.opId not in self.ops_pending_done
+            t[o.msg.opName] += 1
+            r.append(o)
+        return r
+
+
         await self.driver.prepare_send(self)
 
     async def reply_get(self):
@@ -536,22 +549,13 @@ class _Op(PKDict):
         self._reply_q.put_nowait(reply)
 
     def run_timeout(self):
-        if self.do_not_send:
-            return
         pkdlog('opId={opId} opName={opName} maxRunSecs={maxRunSecs}', **self)
-        self.set_canceled()
+        self.destroy(error='timeout')
 
-    def set_canceled(self):
-        if self.task:
-            self.task.cancel()
-
-    async def send(self):
-        return await self.driver.send(self)
-
-    def start_timer(self):
-        if not self.maxRunSecs:
-            return
-        self.timer = tornado.ioloop.IOLoop.current().call_later(
-            self.maxRunSecs,
-            self.run_timeout,
-        )
+    def send(self):
+        if self.maxRunSecs:
+            self.timer = tornado.ioloop.IOLoop.current().call_later(
+                self.maxRunSecs,
+                self.run_timeout,
+            )
+        self.driver.send(self)
