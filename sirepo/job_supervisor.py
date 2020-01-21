@@ -146,12 +146,14 @@ class _ComputeJob(PKDict):
     instances = PKDict()
 
     def __init__(self, req, **kwargs):
-        super().__init__(ops=[], **kwargs)
+        super().__init__(ops=[], run_op=None, **kwargs)
         self.pksetdefault(db=lambda: self.__db_init(req))
 
     def destroy_op(self, op):
         if op in self.ops:
             self.ops.remove(op)
+        if self.run_op == op:
+            self.run_op = None
 
     @classmethod
     def get_instance(cls, req):
@@ -184,8 +186,7 @@ class _ComputeJob(PKDict):
         if there is a cancel or analysis, and
         is_set
              op
-need to check if ready in with send allocation
-
+        need to check if ready in with send allocation
         r = []
         t = get_ops_pending_done_types()
         for o in self.ops_pending_send:
@@ -288,29 +289,28 @@ need to check if ready in with send allocation
     async def _receive_api_runCancel(self, req):
         r = PKDict(state=job.CANCELED)
         if (
-            self._req_is_valid(req)
+            not self._req_is_valid(req)
             or self.db.status not in _RUNNING_PENDING
         ):
             # job is not relevant, but let the user know it isn't running
             return r
-        c = False
-        for o in self.ops:
-            if self.db.isParallel and o.opName == job.OP_ANALYSIS:
-                continue
-            o.set_canceled()
-            if o.opName == job.OP_RUN and o.driver.op_was_sent(o):
-                c = True
-        o = self._create_op(job.OP_CANCEL, req)
+        o = None
         try:
-            if c:
+            if self.run_op:
+#TODO(robnagler) cancel run_op, not just by jid, which is insufficient (hash)
+                o = self._create_op(job.OP_CANCEL, req)
                 await o.prepare_send()
+            for x in self.ops:
+                if not (self.db.isParallel and o.opName == job.OP_ANALYSIS):
+                    x.set_canceled()
             self.db.status = job.CANCELED
             self.__db_write()
-            if c:
+            if self.run_op:
                 o.send()
-            return await o.reply_ready()
+                await o.reply_get()
         finally:
-            op.destroy()
+            if o:
+                o.destroy()
         return r
 
     async def _receive_api_runSimulation(self, req):
@@ -333,6 +333,7 @@ need to check if ready in with send allocation
         )
         try:
             await o.prepare_send()
+            self.run_op = o
             self.__db_init(req, prev_db=self.db)
             self.db.computeJobSerial = int(time.time())
             self.db.pkupdate(status=job.PENDING)
@@ -340,48 +341,19 @@ need to check if ready in with send allocation
             o.make_lib_dir_symlink()
             o.send()
             o.task = None
-            tornado.ioloop.IOLoop.current().add_callback(self._run, req, o)
+            r = self._status_reply(req)
+            assert r
+            tornado.ioloop.IOLoop.current().add_callback(self._run, o)
+            return r
         except Exception:
             # _run destroys in the happy path (never got to _run here)
-            if o:
-                o.destroy()
-TODO: the ready next op that is in the queue that has not been sent
+            o.destroy()
             raise
 
     async def _receive_api_runStatus(self, req):
-        def res(**kwargs):
-            r = PKDict(**kwargs)
-            if self.db.error:
-                r.error = self.db.error
-            if self.db.isParallel:
-                r.update(self.db.parallelStatus)
-                r.computeJobHash = self.db.computeJobHash
-                r.computeJobSerial = self.db.computeJobSerial
-                r.elapsedTime = r.lastUpdateTime - self.db.computeJobStart
-            if self.db.status in _RUNNING_PENDING:
-                c = req.content
-                r.update(
-                    nextRequestSeconds=self.db.nextRequestSeconds,
-                    nextRequest=PKDict(
-                        computeJobHash=self.db.computeJobHash,
-                        computeJobSerial=self.db.computeJobSerial,
-                        computeJobStart=self.db.computeJobStart,
-                        report=c.analysisModel,
-                        simulationId=self.db.simulationId,
-                        simulationType=self.db.simulationType,
-                    ),
-                )
+        r = self._status_reply(req)
+        if r:
             return r
-        if self.db.computeJobHash != req.content.computeJobHash:
-            return PKDict(state=job.MISSING, reason='computeJobHash-mismatch')
-        if (
-            req.content.computeJobSerial and
-            self.db.computeJobSerial != req.content.computeJobSerial
-        ):
-            return PKDict(state=job.MISSING, reason='computeJobSerial-mismatch')
-        if self.db.isParallel or self.db.status != job.COMPLETED:
-            return res(state=self.db.status)
-        await self.driver_ready()
         return await self._send_with_single_reply(
             job.OP_ANALYSIS,
             req,
@@ -392,59 +364,13 @@ TODO: the ready next op that is in the queue that has not been sent
         return await self._send_with_single_reply(job.OP_SBATCH_LOGIN, req)
 
     async def _receive_api_simulationFrame(self, req):
-#TODO(robnagler) not found
-        assert self.db.computeJobHash == req.content.computeJobHash, \
-            'expected computeJobHash={} but got={}'.format(
-                self.db.computeJobHash,
-                req.content.computeJobHash,
-            )
-        # there has to be a computeJobSerial
-        assert self.db.computeJobSerial == req.content.computeJobSerial, \
-            'expected computeJobSerial={} but got={}'.format(
-                self.db.computeJobSerial,
-                req.content.computeJobSerial,
-            )
+        if not self._req_is_valid(req):
+            sirepo.util.raise_not_found('invalid {}', req)
         return await self._send_with_single_reply(
             job.OP_ANALYSIS,
             req,
             jobCmd='get_simulation_frame'
         )
-
-    async def _run(self, req, op):
-        try:
-            op.task = asyncio.current_task()
-            while True:
-                try:
-                    await self.driver_ready()
-                    await op.ready_send()
-                    r = await op.reply_ready()
-                    self.db.status = r.state
-                    if self.db.status == job.ERROR:
-                        self.db.error = r.get('error', '<unknown error>')
-                    if 'computeJobStart' in r:
-                        self.db.computeJobStart = r.computeJobStart
-                    if 'parallelStatus' in r:
-                        self.db.parallelStatus.update(r.parallelStatus)
-                        self.db.lastUpdateTime = r.parallelStatus.lastUpdateTime
-                    else:
-                        # sequential jobs don't send this
-                        self.db.lastUpdateTime = int(time.time())
-#TODO(robnagler) will need final frame count
-                    self.__db_write()
-                    if r.state in job.EXIT_STATUSES:
-                        break
-                except Awaited:
-                    pass
-                except asyncio.CancelledError:
-                    break
-            except Exception as e:
-                pkdlog('error={} stack={}', e, pkdexc())
-we do not own this necessarily own the job at this point
-                self.db.status = job.ERROR
-                self.db.error = e
-        finally:
-todo: run scheduler
-            op.destroy()
 
     def _create_op(self, opName, req, **kwargs):
 #TODO(robnagler) kind should be set earlier in the queuing process.
@@ -486,14 +412,88 @@ todo: run scheduler
             self.db.computeJobSerial == req.content.computeJobSerial
         )
 
+    async def _run(self, op):
+        try:
+            while True:
+                try:
+                    if op != self.run_op:
+                        return
+                    op.task = asyncio.current_task()
+                    await op.prepare_send()
+                    op.send()
+                    r = await op.reply_get()
+                    self.db.status = r.state
+                    if self.db.status == job.ERROR:
+                        self.db.error = r.get('error', '<unknown error>')
+                    if 'computeJobStart' in r:
+                        self.db.computeJobStart = r.computeJobStart
+                    if 'parallelStatus' in r:
+                        self.db.parallelStatus.update(r.parallelStatus)
+                        self.db.lastUpdateTime = r.parallelStatus.lastUpdateTime
+                    else:
+                        # sequential jobs don't send this
+                        self.db.lastUpdateTime = int(time.time())
+#TODO(robnagler) will need final frame count
+                    self.__db_write()
+                    if r.state in job.EXIT_STATUSES:
+                        break
+                except Awaited:
+                    pass
+                except asyncio.CancelledError:
+                    return
+            except Exception as e:
+                pkdlog('error={} stack={}', e, pkdexc())
+                if op == run_op:
+                    self.db.status = job.ERROR
+                    self.db.error = e
+                    self.__db_write()
+        finally:
+            op.destroy()
+
     async def _send_with_single_reply(self, opName, req, **kwargs):
         o = self._create_op(opName, req, **kwargs)
         try:
             await o.prepare_send()
             o.send()
-            return await o.reply_ready()
+            return await o.reply_get()
         finally:
             op.destroy()
+
+    def _status_reply(self, req):
+        def res(**kwargs):
+            r = PKDict(**kwargs)
+            if self.db.error:
+                r.error = self.db.error
+            if self.db.isParallel:
+                r.update(self.db.parallelStatus)
+                r.computeJobHash = self.db.computeJobHash
+                r.computeJobSerial = self.db.computeJobSerial
+                r.elapsedTime = r.lastUpdateTime - self.db.computeJobStart
+            if self.db.status in _RUNNING_PENDING:
+                c = req.content
+                r.update(
+                    nextRequestSeconds=self.db.nextRequestSeconds,
+                    nextRequest=PKDict(
+                        computeJobHash=self.db.computeJobHash,
+                        computeJobSerial=self.db.computeJobSerial,
+                        computeJobStart=self.db.computeJobStart,
+                        report=c.analysisModel,
+                        simulationId=self.db.simulationId,
+                        simulationType=self.db.simulationType,
+                    ),
+                )
+            return r
+        if self.db.computeJobHash != req.content.computeJobHash:
+            return PKDict(state=job.MISSING, reason='computeJobHash-mismatch')
+        if (
+            req.content.computeJobSerial and
+            self.db.computeJobSerial != req.content.computeJobSerial
+        ):
+            return PKDict(state=job.MISSING, reason='computeJobSerial-mismatch')
+        if self.db.isParallel or self.db.status != job.COMPLETED:
+            return res(state=self.db.status)
+        return None
+
 
 
 class _Op(PKDict):
@@ -503,12 +503,12 @@ class _Op(PKDict):
         self.update(
             do_not_send=False,
             opId=job.unique_key(),
-            send_ready=tornado.locks.Event(),
             _reply_q=tornado.queues.Queue(),
         )
         self.msg.update(opId=self.opId, opName=self.opName)
 
     def destroy(self, error=None):
+        self.task = None
         if 'timer' in self:
             tornado.ioloop.IOLoop.current().remove_timeout(self.timer)
         if 'lib_dir_symlink' in self:
@@ -523,7 +523,7 @@ class _Op(PKDict):
     def reply_put(self, reply):
         self._reply_q.put_nowait(reply)
 
-    async def reply_ready(self):
+    async def reply_get(self):
         # If we get an exception (cancelled), task is not done.
         # Had to look at the implementation of Queue to see that
         # task_done should only be called if get actually removes
@@ -539,7 +539,8 @@ class _Op(PKDict):
         self.set_canceled()
 
     def set_canceled(self):
-        self.task.cancel()
+        if self.task:
+            self.task.cancel()
 
     async def send(self):
         return await self.driver.send(self)
@@ -547,4 +548,7 @@ class _Op(PKDict):
     def start_timer(self):
         if not self.maxRunSecs:
             return
-        self.timer = tornado.ioloop.IOLoop.current().call_later(self.maxRunSecs, self.run_timeout)
+        self.timer = tornado.ioloop.IOLoop.current().call_later(
+            self.maxRunSecs,
+            self.run_timeout,
+        )
