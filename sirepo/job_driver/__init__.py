@@ -46,6 +46,7 @@ class DriverBase(PKDict):
         super().__init__(
             _agentId=job.unique_key(),
             _agent_starting=False,
+            _agent_start_lock=tornado.locks.Lock(),
             kind=req.kind,
             ops=PKDict(),
             slot_alloc_time=None,
@@ -68,6 +69,7 @@ class DriverBase(PKDict):
 
     async def driver_ready(self):
         if not self.websocket:
+todo: need to not wait forever
             await self.websocket_ready.wait()
             raise job_supervisor.Awaited()
         await self.slot_ready()
@@ -157,8 +159,9 @@ class DriverBase(PKDict):
         Returns:
             bool: True if the op was actually sent
         """
-        if not self.websocket:
-            await self._agent_start(op.msg)
+        if not self.websocket_ready.is_set():
+            await self._agent_start(op)
+            await self.websocket_ready.wait()
             raise job_supervisor.Awaited()
         if self.run_scheduler(try_op=op):
             raise job_supervisor.Awaited()
@@ -204,10 +207,52 @@ class DriverBase(PKDict):
             self._websocket_free()
             self.run_scheduler()
         except Exception as e:
-            pkdlog('self={} error={} stack={}', self, e, pkdexc())
+            pkdlog('job_driver={} error={} stack={}', self, e, pkdexc())
 
     def websocket_on_close(self):
         self.websocket_free()
+
+    def _agent_cmd_stdin_env(self, **kwargs):
+        return job.agent_cmd_stdin_env(
+            ('sirepo', 'job_agent', 'start'),
+            env=self._agent_env(),
+            **kwargs,
+        )
+
+    def _agent_env(self, env=None):
+        return job.agent_env(
+            env=(env or PKDict()).pksetdefault(
+                PYKERN_PKDEBUG_WANT_PID_TIME='1',
+                SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
+                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.get_supervisor_uri().replace(
+#TODO(robnagler) figure out why we need ws (wss, implicit)
+                    'http',
+                    'ws',
+                    1,
+                ) + job.AGENT_URI
+            ),
+            uid=self.uid,
+        )
+
+    async def _agent_start(self, op):
+        async with self._agent_start_lock:
+            if self._agent_starting or self.websocket_ready.is_set():
+                return
+            pkdlog('starting agentId={} uid={} opId={}', self._agentId, self.uid, op.opId)
+            try:
+                self._agent_starting = True
+                # TODO(e-carlin): We need a timeout on agent starts. If an agent
+                # is started but never connects we will be in the '_agent_starting'
+                # state forever. After a timeout we should kill the misbehaving
+                # agent and start a new one.
+                await self.kill()
+                # this starts the process, but _receive_alive sets it to false
+                # when the agent fully starts.
+                await self._do_agent_start(op)
+            except Exception as e:
+                pkdlog('agentId={} exception={}', self._agentId, e)
+                self._agent_starting = False
+                raise
 
     def _has_remote_agent(self):
         return False
@@ -235,10 +280,6 @@ class DriverBase(PKDict):
 # todo only a few ops fit this category (receive_alive)
             getattr(self, '_receive_' + c.opName)(msg)
 
-    def _receive_error(self, msg):
-#TODO(robnagler) what does this mean? Just a way of logging? Document this.
-        pkdlog('agentId={} msg={}', self._agentId, msg)
-
     def _receive_alive(self, msg):
         """Receive an ALIVE message from our agent
 
@@ -252,56 +293,14 @@ class DriverBase(PKDict):
                 return
             self.websocket_free()
         self.websocket = msg.handler
-        self._agent_starting = False
         self.websocket_ready.set()
         self.websocket.sr_driver_set(self)
 #TODO(robnagler) do we want to run_scheduler on alive in all cases?
         self.run_scheduler()
 
-    def _agent_cmd_stdin_env(self, **kwargs):
-        return job.agent_cmd_stdin_env(
-            ('sirepo', 'job_agent', 'start'),
-            env=self._agent_env(),
-            **kwargs,
-        )
-
-    def _agent_env(self, env=None):
-        return job.agent_env(
-            env=(env or PKDict()).pksetdefault(
-                PYKERN_PKDEBUG_WANT_PID_TIME='1',
-                SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.get_supervisor_uri().replace(
-#TODO(robnagler) figure out why we need ws (wss, implicit)
-                    'http',
-                    'ws',
-                    1,
-                ) + job.AGENT_URI
-            ),
-            uid=self.uid,
-        )
-
-    async def _agent_start(self, msg):
-        # this is a mutex
-        if self._agent_starting:
-todo: need to queue here and wait
-            return
-        pkdlog('starting agentId={} uid={}', self._agentId, self.uid)
-        try:
-            # TODO(e-carlin): We need a timeout on agent starts. If an agent
-            # is started but never connects we will be in the '_agent_starting'
-            # state forever. After a timeout we should kill the misbehaving
-            # agent and start a new one.
-            self._agent_starting = True
-            await self.kill()
-            # this starts the process, but _receive_alive sets it to false
-            # when the agent fully starts.
-            await self._do_agent_start(msg)
-        except Exception as e:
-            self._agent_starting = False
-            pkdlog('agentId={} exception={}', self._agentId, e)
-            raise
-        raise job_supervisor.Awaited()
-
+    def _receive_error(self, msg):
+#TODO(robnagler) what does this mean? Just a way of logging? Document this.
+        pkdlog('agentId={} msg={}', self._agentId, msg)
 
     def _websocket_free(self):
         pass

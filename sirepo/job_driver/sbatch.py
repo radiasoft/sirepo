@@ -98,7 +98,7 @@ class SbatchDriver(job_driver.DriverBase):
             )
         )
 
-    async def _do_agent_start(self, msg):
+    async def _do_agent_start(self, op):
         log_file = 'job_agent.log'
         agent_start_dir = self._srdb_root
         script = f'''#!/bin/bash
@@ -112,7 +112,7 @@ disown
 '''
 
         def write_to_log(stdout, stderr, filename):
-            p = pkio.py_path(msg.userDir).join('log')
+            p = pkio.py_path(op.msg.userDir).join('log')
             pkio.mkdir_parent(p)
             pkjson.dump_pretty(
                 PKDict(stdout=stdout, stderr=stderr),
@@ -150,7 +150,7 @@ disown
         except Exception as e:
             if isinstance(e, asyncssh.misc.PermissionDenied):
                 self._srdb_root = None
-                self._raise_sbatch_login_srexception('invalid-creds', msg)
+                self._raise_sbatch_login_srexception('invalid-creds', op.msg)
             raise
 
     def _agent_start_dev(self):

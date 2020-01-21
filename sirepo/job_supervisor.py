@@ -520,8 +520,8 @@ class _Op(PKDict):
     def make_lib_dir_symlink(self):
         self.driver.make_lib_dir_symlink(self)
 
-    def reply_put(self, reply):
-        self._reply_q.put_nowait(reply)
+    async def prepare_send(self):
+        await self.driver.prepare_send(self)
 
     async def reply_get(self):
         # If we get an exception (cancelled), task is not done.
@@ -531,6 +531,9 @@ class _Op(PKDict):
         r = await self._reply_q.get()
         self._reply_q.task_done()
         return r
+
+    def reply_put(self, reply):
+        self._reply_q.put_nowait(reply)
 
     def run_timeout(self):
         if self.do_not_send:

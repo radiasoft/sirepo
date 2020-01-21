@@ -104,7 +104,7 @@ class LocalDriver(job_driver.DriverBase):
         pkdlog('agentId={} returncode={}', self._agentId, returncode)
         self._agentExecDir.remove(rec=True, ignore_errors=True)
 
-    async def _do_agent_start(self, msg):
+    async def _do_agent_start(self, op):
         stdin = None
         try:
             cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agentExecDir)

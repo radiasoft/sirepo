@@ -97,7 +97,7 @@ class DockerDriver(job_driver.DriverBase):
     def slot_peers(self):
         return self.host.drivers[self.kind]:
 
-    async def _do_agent_start(self, msg):
+    async def _do_agent_start(self, op):
         cmd, stdin, env = self._agent_cmd_stdin_env()
         c = cfg[self.kind]
         p = (
