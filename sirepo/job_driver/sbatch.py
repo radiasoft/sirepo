@@ -47,14 +47,6 @@ class SbatchDriver(job_driver.DriverBase):
     def init_class(cls):
         return cls
 
-    async def kill(self):
-        if not self.websocket:
-            # if there is no websocket then we don't know about the agent
-            # so we can't do anything
-            return
-        # hopefully the agent is nice and listens to the kill
-        self.websocket.write_message(PKDict(opName=job.OP_KILL))
-
     async def slot_ready(self):
         """We allow as many users as the sbatch system allows"""
         pass
@@ -64,8 +56,6 @@ class SbatchDriver(job_driver.DriverBase):
         try:
             self._creds = m.pkdel('sbatchCredentials')
             if self._srdb_root is None:
-                assert not self.websocket, \
-                    'expected no agent if _srdb_root not set msg={}'.format(m)
                 if not self._creds or 'username' not in self._creds:
                     self._raise_sbatch_login_srexception('no-creds', m)
                 self._srdb_root = cfg.srdb_root.format(

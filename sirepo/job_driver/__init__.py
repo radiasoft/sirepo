@@ -74,40 +74,13 @@ todo: need to not wait forever
             raise job_supervisor.Awaited()
         await self.slot_ready()
 
-    def slot_free(self):
-        if not self.slot_num:
+    async def kill(self):
+        if not self.websocket:
+            # if there is no websocket then we don't know about the agent
+            # so we can't do anything
             return
-        self.slot_q.task_done()
-        self.slot_q.put_nowait(self.slot_num)
-        self.slot_num = None
-        self._slot_alloc_time = None
-
-    async def slot_free_one(self):
-        if self.slot_q.qsize > 0:
-            # available slots, don't need to free
-            return
-        # least recently used, if any
-        d = sorted(
-            filter(
-                lambda x: bool(x.slot_num and not x.ops),
-                self.slot_peers(),
-            ),
-            key=lambda x: x._slot_alloc_time,
-        )
-        if d:
-            d[0].slot_free()
-
-    async def slot_ready(self):
-        if self.slot_num:
-            return
-        try:
-            self.slot_num = self.slot_q.get_nowait()
-        except tornado.queues.QueueEmpty:
-            self.slot_free_one()
-            self.slot_num = await self.slot_q.get()
-            raise job_supervisor.Awaited()
-        finally:
-            self._slot_alloc_time = time.time()
+        # hopefully the agent is nice and listens to the kill
+        self.websocket.write_message(PKDict(opName=job.OP_KILL))
 
     def get_supervisor_uri(self):
         return inspect.getmodule(self).cfg.supervisor_uri
@@ -177,6 +150,41 @@ todo: need to not wait forever
         op.start_timer()
         self.websocket.write_message(pkjson.dump_bytes(op.msg))
         self.ops.append(op)
+
+    def slot_free(self):
+        if not self.slot_num:
+            return
+        self.slot_q.task_done()
+        self.slot_q.put_nowait(self.slot_num)
+        self.slot_num = None
+        self._slot_alloc_time = None
+
+    async def slot_free_one(self):
+        if self.slot_q.qsize > 0:
+            # available slots, don't need to free
+            return
+        # least recently used, if any
+        d = sorted(
+            filter(
+                lambda x: bool(x.slot_num and not x.ops),
+                self.slot_peers(),
+            ),
+            key=lambda x: x._slot_alloc_time,
+        )
+        if d:
+            d[0].slot_free()
+
+    async def slot_ready(self):
+        if self.slot_num:
+            return
+        try:
+            self.slot_num = self.slot_q.get_nowait()
+        except tornado.queues.QueueEmpty:
+            self.slot_free_one()
+            self.slot_num = await self.slot_q.get()
+            raise job_supervisor.Awaited()
+        finally:
+            self._slot_alloc_time = time.time()
 
     @classmethod
     async def terminate(cls):
