@@ -40,7 +40,7 @@ def _parent_file(cfg_dir, filename):
 
 
 def _run_dose_calculation(data, cfg_dir):
-    if not feature_config.cfg.rs4pi_dose_calc:
+    if not feature_config.cfg().rs4pi_dose_calc:
         dicom_dose = _run_dose_calculation_fake(data, cfg_dir)
     else:
         with pkio.save_chdir(cfg_dir):

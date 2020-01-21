@@ -2,7 +2,6 @@
     "models": {
         "beamEvolutionAnimation": {
             "notes": "",
-            "startTime": 1548952493,
             "y1": "xemit",
             "y2": "yemit",
             "y3": "none"
@@ -238,7 +237,6 @@
             "isRunning": 0,
             "notes": "",
             "plotRangeType": "fit",
-            "startTime": 1548952493,
             "verticalOffset": 0,
             "verticalSize": 0.1,
             "x": "x",
@@ -2021,12 +2019,12 @@
         },
         "simulation": {
             "activeBeamlineId": 1,
-            "folder": "/",
-            "isExample": false,
+            "documentationUrl": "",
+            "folder": "/Examples",
+            "isExample": true,
             "name": "IOTA 6-6 with NLINSERT",
+            "notes": "",
             "outOfSessionSimulationId": "",
-            "simulationId": "8gUd5KGu",
-            "simulationSerial": 1548952644379489,
             "visualizationBeamlineId": 1
         },
         "simulationSettings": {
@@ -2037,11 +2035,9 @@
             "steps_per_element": 5,
             "turn_count": 5
         },
-        "simulationStatus": {},
         "turnComparisonAnimation": {
             "includeLattice": "0",
             "notes": "",
-            "startTime": 1548952493,
             "turn1": "1",
             "turn2": "3",
             "y": "xstd"
@@ -2061,6 +2057,5 @@
             "y3": "D_x"
         }
     },
-    "simulationType": "synergia",
-    "version": "20190125.225202"
+    "simulationType": "synergia"
 }

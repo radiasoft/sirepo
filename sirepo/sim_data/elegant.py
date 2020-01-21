@@ -41,7 +41,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                     b[f] /= 1e9
             if b.sigma_s and not isinstance(b.sigma_s, basestring):
                 b.sigma_s /= 1e6
-            c = _find_first_bunch_command(data)
+            c = cls.__find_first_bunch_command(data)
             # first_bunch_command may not exist if the elegant sim has no bunched_beam command
             if c:
                 c.symmetrize = str(c.symmetrize)
@@ -49,7 +49,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                     if f not in b and f in c:
                         b[f] = c[f]
             else:
-                bunch.centroid = '0,0,0,0,0,0'
+                dm.bunch.centroid = '0,0,0,0,0,0'
         for m in dm.commands:
             cls.update_model_defaults(m, 'command_{}'.format(m._type))
         cls._organize_example(data)
@@ -67,24 +67,25 @@ class SimData(sirepo.sim_data.SimDataBase):
         return max_id
 
     @classmethod
-    def resource_files(cls):
-        return cls.resource_glob('*.sdds')
-
-    @classmethod
-    def _compute_job_fields(cls, data):
-        r = data.report
+    def _compute_job_fields(cls, data, r, compute_model):
         res = []
-        if r == 'twissReport' or 'bunchReport' in r:
+        if compute_model in ('twissReport', 'bunchReport'):
             res += ['bunch', 'bunchSource', 'bunchFile']
         if r == 'twissReport':
             res += ['elements', 'beamlines', 'commands', 'simulation.activeBeamlineId']
         return res
 
     @classmethod
-    def _lib_files(cls, data):
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if 'bunchReport' in analysis_model:
+            return 'bunchReport'
+        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
+
+    @classmethod
+    def _lib_file_basenames(cls, data):
         res = LatticeUtil(data, cls.schema()).iterate_models(lattice.InputFileIterator(cls)).result
         if data.models.bunchFile.sourceFile:
-            res.append('{}-{}.{}'.format('bunchFile', 'sourceFile', data.models.bunchFile.sourceFile))
+            res.append(cls.lib_file_name_with_model_field('bunchFile', 'sourceFile', data.models.bunchFile.sourceFile))
         return res
 
     @classmethod
@@ -155,3 +156,10 @@ class SimData(sirepo.sim_data.SimDataBase):
             x._id = i
             res.append(cls.__create_command(m, x))
         return res
+
+    @classmethod
+    def __find_first_bunch_command(cls, data):
+        for m in data.models.commands:
+            if m._type == 'bunched_beam':
+                return m
+        return None

@@ -6,36 +6,19 @@ u"""Test simulationSerial
 """
 from __future__ import absolute_import, division, print_function
 import pytest
-pytest.importorskip('srwl_bl')
+
 
 #: Used for a sanity check on serial numbers
 _MIN_SERIAL = 10000000
 
 
-def test_1_serial_stomp():
+def test_srw_serial_stomp(fc):
     from pykern.pkdebug import pkdp, pkdpretty
     from pykern.pkunit import pkfail, pkok
     from pykern.pkcollections import PKDict
-    from sirepo import srunit
     import copy
 
-    fc = srunit.flask_client(sim_types='srw:myapp')
-    sim_type = 'srw'
-    fc.sr_login_as_guest(sim_type)
-    data = fc.sr_post('listSimulations', {'simulationType': sim_type})
-    for youngs in data:
-        if youngs['name'] == "Young's Double Slit Experiment":
-            break
-    else:
-        pkfail("{}: Young's not found", pkdpretty(data))
-    data = fc.sr_get_json(
-        'simulationData',
-        PKDict(
-            simulation_type=sim_type,
-            pretty='0',
-            simulation_id=youngs.simulationId,
-        ),
-    )
+    data = fc.sr_sim_data("Young's Double Slit Experiment")
     prev_serial = data.models.simulation.simulationSerial
     prev_data = copy.deepcopy(data)
     pkok(
@@ -71,13 +54,12 @@ def test_1_serial_stomp():
         curr_serial,
     )
 
+def test_elegant_server_upgraded(fc):
+    from pykern.pkdebug import pkdp, pkdpretty
+    from pykern.pkunit import pkexcept
+    from pykern.pkcollections import PKDict
 
-def test_missing_cookies():
-    from pykern.pkunit import pkeq, pkre
-    from sirepo import srunit
-    import json
-    fc = srunit.flask_client(sim_types='srw:myapp')
-    sim_type = 'srw'
-    resp = fc.post('/simulation-list', data=json.dumps({'simulationType': sim_type}), content_type='application/json')
-    pkeq(400, resp.status_code)
-    pkre('missingCookies', resp.data)
+    d = fc.sr_sim_data('Backtracking')
+    d.version = d.version[:-1] + str(int(d.version[-1]) - 1)
+    with pkexcept('serverupgraded'):
+        fc.sr_post('saveSimulationData', d)

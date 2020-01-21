@@ -13,12 +13,6 @@ import sirepo.sim_data
 class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
-    def animation_name(data):
-        if data['modelName'] == 'correctorSettingAnimation':
-            return data['modelName']
-        return 'animation'
-
-    @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
         for m in cls.schema().model:
@@ -46,17 +40,14 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def webcon_analysis_data_file(cls, data):
-        return cls.lib_file_name('analysisData', 'file', data.models.analysisData.file)
+        return cls.lib_file_name_with_model_field('analysisData', 'file', data.models.analysisData.file)
 
     @classmethod
     def webcon_analysis_report_name_for_fft(cls, data):
         return data.models[data.report].get('analysisReport', 'analysisReport')
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data['report']
-        if r == 'epicsServerAnimation':
-            return []
+    def _compute_job_fields(cls, data, r, compute_model):
         res = [
             r,
             'analysisData',
@@ -70,7 +61,13 @@ class SimData(sirepo.sim_data.SimDataBase):
         return res
 
     @classmethod
-    def _lib_files(cls, data):
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if analysis_model == 'epicsServerAnimation':
+            return analysis_model
+        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
+
+    @classmethod
+    def _lib_file_basenames(cls, data):
         res = []
         r = data.get('report')
         if r == 'epicsServerAnimation':

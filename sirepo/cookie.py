@@ -29,9 +29,6 @@ _COOKIE_SENTINEL_VALUE = 'z'
 
 _SERIALIZER_SEP = ' '
 
-#: Convert older cookies?
-_try_beaker_compat = True
-
 def get_value(key):
     return _state()[key]
 
@@ -52,8 +49,6 @@ def init_mock():
 
 
 def process_header(unit_test=None):
-    if not unit_test:
-        assert not 'sirepo_cookie' in flask.g
     _State(unit_test or flask.request.environ.get('HTTP_COOKIE', ''))
 
 
@@ -134,6 +129,8 @@ class _State(dict):
             max_age=_MAX_AGE_SECONDS,
             httponly=True,
             secure=cfg.is_secure,
+            #TODO(pjm): enabling this causes self-extracting simulations to break
+            #samesite='Strict',
         )
 
     def _crypto(self):
@@ -148,7 +145,9 @@ class _State(dict):
         return self.crypto
 
     def _decrypt(self, value):
-        return self._crypto().decrypt(base64.urlsafe_b64decode(value))
+        d = self._crypto().decrypt(base64.urlsafe_b64decode(value))
+        pkdc(d)
+        return d
 
     def _deserialize(self, value):
         v = value.split(_SERIALIZER_SEP)
@@ -161,8 +160,6 @@ class _State(dict):
         return base64.urlsafe_b64encode(self._crypto().encrypt(text))
 
     def _from_cookie_header(self, header):
-        global _try_beaker_compat
-
         s = None
         err = None
         try:
@@ -179,21 +176,6 @@ class _State(dict):
                 e = type(e)
             err = e
             pkdc(pkdexc())
-            # wait for decoding errors until after beaker attempt
-        if not self.get(_COOKIE_SENTINEL) and _try_beaker_compat:
-            try:
-                import sirepo.beaker_compat
-
-                res = sirepo.beaker_compat.from_cookie_header(header)
-                if res is not None:
-                    self.clear()
-                    self.set_sentinel()
-                    self.update(auth_hook_from_header(res))
-                    err = None
-            except AssertionError:
-                pkdlog('Unconfiguring beaker_compat: {}', pkdexc())
-                _try_beaker_compat = False
-
         if err:
             pkdlog('Cookie decoding failed: {} value={}', err, s)
 

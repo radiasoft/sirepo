@@ -45,41 +45,63 @@ class SimData(sirepo.sim_data.SimDataBase):
         # move spntrk from simulationSettings (older) or bunch if present
         for m in 'simulationSettings', 'bunch':
             if 'spntrk' in dm:
-                data.models.SPNTRK.KSO = dm[m].spntrk
+                dm.SPNTRK.KSO = dm[m].spntrk
                 del dm[m]['spntrk']
                 for f in 'S_X', 'S_Y', 'S_Z':
                     if f in dm[m]:
-                        df.SPNTRK[f] = dm[m][f]
+                        dm.SPNTRK[f] = dm[m][f]
                         del dm[m][f]
         for e in dm.elements:
             cls.update_model_defaults(e, e.type)
         cls._organize_example(data)
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data.report
-        if r == cls.animation_name(data):
-            return []
-        if r == 'tunesReport':
-            return [r, 'bunchAnimation.startTime']
+    def zgoubi_lib_files_with_zip():
+        """Return sorted list of zip files
+
+        Only works locally
+
+        Args:
+            ext (str): does not include suffix
+        Returns:
+            list: list of absolute paths to lib files
+        """
+        return cls._lib_file_list('*.zip')
+
+    @classmethod
+    def _compute_job_fields(cls, data, r, compute_model):
+        if compute_model == 'tunesReport':
+            return [r]
         res = ['particle', 'bunch']
-        if 'bunchReport' in r:
+        if compute_model == 'bunchReport':
             if data.models.bunch.match_twiss_parameters == '1':
                 res.append('simulation.visualizationBeamlineId')
         res += [
             'beamlines',
             'elements',
         ]
-        if r == 'twissReport':
+        if compute_model == 'twissReport':
             res.append('simulation.activeBeamlineId')
-        if r == 'twissReport2' or 'opticsReport' in r or r == 'twissSummaryReport':
+        if compute_model == 'twissReport2':
             res.append('simulation.visualizationBeamlineId')
         return res
 
     @classmethod
-    def _lib_files(cls, data):
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if 'bunchReport' in analysis_model:
+            return 'bunchReport'
+        if 'opticsReport' in analysis_model or analysis_model in ('twissReport2', 'twissSummaryReport'):
+            return 'twissReport2'
+        if 'tunesReport' == analysis_model:
+            return 'twissReport'
+        if 'twissReport' == analysis_model:
+            return 'twissReport'
+        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
+
+    @classmethod
+    def _lib_file_basenames(cls, data):
         res = []
         for el in data.models.elements:
             if el.type == 'TOSCA' and el.magnetFile:
-                res.append(cls.lib_file_name('TOSCA', 'magnetFile', el.magnetFile))
+                res.append(cls.lib_file_name_with_model_field('TOSCA', 'magnetFile', el.magnetFile))
         return res

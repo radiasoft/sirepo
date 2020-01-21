@@ -2,7 +2,6 @@
     "models": {
         "beamEvolutionAnimation": {
             "notes": "",
-            "startTime": 1528473345,
             "y1": "xemit",
             "y2": "yemit",
             "y3": "none"
@@ -244,9 +243,14 @@
             }
         ],
         "bunch": {
+            "alpha_x": 0,
+            "alpha_y": 0,
             "beam_definition": "gamma",
             "beta": 0.0728540816,
+            "beta_x": 0,
+            "beta_y": 0,
             "charge": "1",
+            "distribution": "lattice",
             "dpop": 0,
             "emit_x": 2.5,
             "emit_y": 2.5,
@@ -254,9 +258,13 @@
             "gamma": 1.00266447,
             "mass": 0.938272046,
             "momentum": 0.0685390833,
+            "nonlinear_c": 0.01,
+            "nonlinear_cutoff": 4,
+            "nonlinear_t": 0.1,
             "num_macro_particles": 10000,
             "num_real_particles": 100000000000,
             "particle": "proton",
+            "particleFile": "",
             "rms_z": 0,
             "seed": 349250524,
             "z_period_length": 0
@@ -270,17 +278,38 @@
             "isRunning": 0,
             "notes": "",
             "plotRangeType": "fit",
-            "startTime": 1528473345,
             "verticalOffset": -0.0001876645851909501,
             "verticalSize": 0.01936536597967303,
             "x": "x",
             "y": "xp"
         },
-        "bunchReport": {
-            "colorMap": "afmhot",
+        "bunchReport1": {
+            "colorMap": "viridis",
             "histogramBins": 200,
+            "notes": "",
+            "x": "x",
+            "y": "xp"
+        },
+        "bunchReport2": {
+            "colorMap": "viridis",
+            "histogramBins": 200,
+            "notes": "",
+            "x": "y",
+            "y": "yp"
+        },
+        "bunchReport3": {
+            "colorMap": "viridis",
+            "histogramBins": 200,
+            "notes": "",
             "x": "x",
             "y": "y"
+        },
+        "bunchReport4": {
+            "colorMap": "viridis",
+            "histogramBins": 200,
+            "notes": "",
+            "x": "z",
+            "y": "zp"
         },
         "bunchTwiss": {
             "alpha_x": 1.62911e-05,
@@ -2217,11 +2246,11 @@
         ],
         "simulation": {
             "activeBeamlineId": 1,
-            "folder": "/",
+            "documentationUrl": "",
+            "folder": "/Examples",
             "isExample": true,
             "name": "IOTA 6-6 with NL Element",
-            "simulationId": "NX1Phutv",
-            "simulationSerial": 1528473475205308,
+            "notes": "",
             "visualizationBeamlineId": 1
         },
         "simulationSettings": {
@@ -2233,25 +2262,26 @@
             "turn_count": 50
         },
         "turnComparisonAnimation": {
+            "includeLattice": "0",
             "notes": "",
-            "startTime": 1528473345,
             "turn1": "1",
             "turn2": "50",
             "y": "xstd"
         },
         "twissReport": {
+            "includeLattice": "1",
             "notes": "",
             "y1": "beta_x",
             "y2": "beta_y",
             "y3": "D_x"
         },
         "twissReport2": {
+            "includeLattice": "1",
             "notes": "",
             "y1": "beta_x",
             "y2": "beta_y",
             "y3": "D_x"
         }
     },
-    "simulationType": "synergia",
-    "version": "20180605.000001"
+    "simulationType": "synergia"
 }

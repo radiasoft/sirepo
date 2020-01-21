@@ -18,6 +18,7 @@ from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 import ast
+import copy
 import glob
 import math
 import numpy as np
@@ -99,7 +100,7 @@ class OutputFileIterator(lattice.ModelIterator):
         self.result = PKDict(
             keys_in_order=[],
         )
-        self.model_index = {}
+        self.model_index = PKDict()
 
     def field(self, model, field_schema, field):
         self.field_index += 1
@@ -164,59 +165,11 @@ def background_percent_complete(report, run_dir, is_running):
 
 def copy_related_files(data, source_path, target_path):
     # copy any simulation output
-    if os.path.isdir(str(py.path.local(source_path).join(_SIM_DATA.animation_name(data)))):
-        animation_dir = py.path.local(target_path).join(_SIM_DATA.animation_name(data))
+    if os.path.isdir(str(py.path.local(source_path).join(_SIM_DATA.compute_model(data)))):
+        animation_dir = py.path.local(target_path).join(_SIM_DATA.compute_model(data))
         pkio.mkdir_parent(str(animation_dir))
-        for f in glob.glob(str(py.path.local(source_path).join(_SIM_DATA.animation_name(data), '*'))):
+        for f in glob.glob(str(py.path.local(source_path).join(_SIM_DATA.compute_model(data), '*'))):
             py.path.local(f).copy(animation_dir)
-
-
-def extract_report_data(xFilename, data, page_index, page_count=0):
-    xfield = data.x if 'x' in data else data[_X_FIELD]
-    # x, column_names, x_def, err
-    x_col = sdds_util.extract_sdds_column(xFilename, xfield, page_index)
-    if x_col['err']:
-        return x_col['err']
-    x = x_col['values']
-    if not _is_histogram_file(xFilename, x_col['column_names']):
-        # parameter plot
-        plots = []
-        filename = PKDict(
-            y1=xFilename,
-            #TODO(pjm): y2Filename, y3Filename are not currently used. Would require rescaling x value across files.
-            y2=xFilename,
-            y3=xFilename,
-        )
-        for f in ('y1', 'y2', 'y3'):
-            if re.search(r'^none$', data[f], re.IGNORECASE) or data[f] == ' ':
-                continue
-            yfield = data[f]
-            y_col = sdds_util.extract_sdds_column(filename[f], yfield, page_index)
-            if y_col['err']:
-                return y_col['err']
-            y = y_col['values']
-            plots.append(PKDict(
-                field=yfield,
-                points=y,
-                label=_field_label(yfield, y_col['column_def'][1]),
-            ))
-        title = ''
-        if page_count > 1:
-            title = 'Plot {} of {}'.format(page_index + 1, page_count)
-        return template_common.parameter_plot(x, plots, data, PKDict(
-            title=title,
-            y_label='',
-            x_label=_field_label(xfield, x_col['column_def'][1]),
-        ))
-    yfield = data['y1'] if 'y1' in data else data['y']
-    y_col = sdds_util.extract_sdds_column(xFilename, yfield, page_index)
-    if y_col['err']:
-        return y_col['err']
-    return template_common.heatmap([x, y_col['values']], data, PKDict(
-        x_label=_field_label(xfield, x_col['column_def'][1]),
-        y_label=_field_label(yfield, y_col['column_def'][1]),
-        title=_plot_title(xfield, yfield, page_index, page_count),
-    ))
 
 
 def generate_parameters_file(data, is_parallel=False):
@@ -233,7 +186,7 @@ def generate_parameters_file(data, is_parallel=False):
     return res + _generate_bunch_simulation(data, v)
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data.method == 'get_beam_input_type':
         if data.input_file:
             data.input_type = _sdds_beam_type_from_file(data.input_file)
@@ -264,33 +217,7 @@ def _file_name_from_id(file_id, model_data, run_dir):
         _get_filename_for_element_id(file_id.split(_FILE_ID_SEP), model_data)))
 
 
-def get_simulation_frame(run_dir, data, model_data):
-    frame_index = int(data.frameIndex)
-    frame_data = template_common.parse_animation_args(
-        data,
-        PKDict({
-            '1': ['x', 'y', 'histogramBins', 'xFileId', 'startTime'],
-            '2': ['x', 'y', 'histogramBins', 'xFileId', 'yFileId', 'startTime'],
-            '3': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'y2FileId', 'y3FileId', 'startTime'],
-            '4': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'startTime'],
-            '': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'startTime'],
-        }),
-    )
-    page_count = 0
-    for info in _output_info(run_dir):
-        if info.modelKey == data.modelName:
-            page_count = info.pageCount
-            frame_data.fieldRange = info.fieldRange
-    frame_data.y = frame_data.y1
-    return extract_report_data(
-        _file_name_from_id(frame_data.xFileId, model_data, run_dir),
-        frame_data,
-        frame_index,
-        page_count=page_count,
-    )
-
-
-def get_data_file(run_dir, model, frame, options=None):
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
     def _sdds(filename):
         path = run_dir.join(filename)
         assert path.check(file=True, exists=True), \
@@ -311,7 +238,7 @@ def get_data_file(run_dir, model, frame, options=None):
         i = re.sub(r'elementAnimation', '', model).split(_FILE_ID_SEP)
         return _sdds(_get_filename_for_element_id(i, data))
 
-    if model == _SIM_DATA.animation_name(None):
+    if model == _SIM_DATA.compute_model(None):
         path = run_dir.join(ELEGANT_LOG_FILE)
         if not path.exists():
             return 'elegant-output.txt', '', 'text/plain'
@@ -326,23 +253,21 @@ def get_data_file(run_dir, model, frame, options=None):
     return _sdds(_report_output_filename('bunchReport'))
 
 
-def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
+def import_file(req, test_data=None, **kwargs):
     # input_data is passed by test cases only
-    f = request.files['file']
-    filename = werkzeug.secure_filename(f.filename)
     input_data = test_data
 
-    if 'simulationId' in request.form:
-        input_data = simulation_db.read_simulation_json(elegant_common.SIM_TYPE, sid=request.form['simulationId'])
-    if re.search(r'.ele$', filename, re.IGNORECASE):
-        data = elegant_command_importer.import_file(f.read())
-    elif re.search(r'.lte$', filename, re.IGNORECASE):
-        data = elegant_lattice_importer.import_file(f.read(), input_data)
+    if 'simulationId' in req:
+        input_data = simulation_db.read_simulation_json(elegant_common.SIM_TYPE, sid=req.simulationId)
+    if re.search(r'.ele$', req.filename, re.IGNORECASE):
+        data = elegant_command_importer.import_file(req.file_stream.read())
+    elif re.search(r'.lte$', req.filename, re.IGNORECASE):
+        data = elegant_lattice_importer.import_file(req.file_stream.read(), input_data)
         if input_data:
             _map_commands_to_lattice(data)
     else:
         raise IOError('invalid file extension, expecting .ele or .lte')
-    data.models.simulation.name = re.sub(r'\.(lte|ele)$', '', filename, flags=re.IGNORECASE)
+    data.models.simulation.name = re.sub(r'\.(lte|ele)$', '', req.filename, flags=re.IGNORECASE)
     if input_data and not test_data:
         simulation_db.delete_simulation(elegant_common.SIM_TYPE, input_data.models.simulation.simulationId)
     return data
@@ -426,27 +351,42 @@ def remove_last_frame(run_dir):
 
 
 def save_report_data(data, run_dir):
-    report = data.models[data.report]
-    if data.report == 'twissReport':
-        report.x = 's'
-        report.y = report.y1
+    a = copy.deepcopy(data.models[data.report])
+    a.frameReport = data.report
+    if a.frameReport == 'twissReport':
+        a.x = 's'
+        a.y = a.y1
+    a.frameIndex = 0
     simulation_db.write_result(
-        extract_report_data(str(run_dir.join(_report_output_filename(data.report))), report, 0),
+        _extract_report_data(str(run_dir.join(_report_output_filename(a.frameReport))), a),
         run_dir=run_dir,
     )
 
 
-def simulation_dir_name(report_name):
-    if 'bunchReport' in report_name:
-        return 'bunchReport'
-    return report_name
+def sim_frame(frame_args):
+    r = frame_args.frameReport
+    page_count = 0
+    for info in _output_info(frame_args.run_dir):
+        if info.modelKey == r:
+            page_count = info.pageCount
+            frame_args.fieldRange = info.fieldRange
+    frame_args.y = frame_args.y1
+    return _extract_report_data(
+        _file_name_from_id(
+            frame_args.xFileId,
+            frame_args.sim_in,
+            frame_args.run_dir,
+        ),
+        frame_args,
+        page_count=page_count,
+    )
 
 
 def validate_file(file_type, path):
     err = None
     if file_type == 'bunchFile-sourceFile':
         err = 'expecting sdds file with (x, xp, y, yp, t, p) or (r, pr, pz, t, pphi) columns'
-        if sdds.sddsdata.InitializeInput(_SDDS_INDEX, path) == 1:
+        if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(path)) == 1:
             beam_type = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
             if beam_type in ('elegant', 'spiffe'):
                 sdds.sddsdata.ReadPage(_SDDS_INDEX)
@@ -456,6 +396,12 @@ def validate_file(file_type, path):
                     err = 'sdds file contains no rows'
         sdds.sddsdata.Terminate(_SDDS_INDEX)
     return err
+
+
+def webcon_generate_lattice(data):
+    # Used by Webcon
+    util = LatticeUtil(data, _SCHEMA)
+    return _generate_lattice(_build_filename_map_from_util(util), util)
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -473,8 +419,7 @@ def write_parameters(data, run_dir, is_parallel):
             is_parallel,
         ),
     )
-    for f in _SIM_DATA.lib_files(data):
-        b = f.basename
+    for b in _SIM_DATA.lib_file_basenames(data):
         if re.search(r'SCRIPT-commandFile', b):
             os.chmod(str(run_dir.join(b)), stat.S_IRUSR | stat.S_IXUSR)
 
@@ -527,7 +472,11 @@ def _ast_dump(node, annotate_fields=True, include_attributes=False, indent='  ')
 
 
 def _build_filename_map(data):
-    return LatticeUtil(data, _SCHEMA).iterate_models(OutputFileIterator()).result
+    return _build_filename_map_from_util(LatticeUtil(data, _SCHEMA))
+
+
+def _build_filename_map_from_util(util):
+    return util.iterate_models(OutputFileIterator()).result
 
 
 def _command_file_extension(model):
@@ -568,6 +517,55 @@ def _correct_halo_gaussian_distribution_type(m):
     # the halo(gaussian) value will get validated/escaped to halogaussian, change it back
     if 'distribution_type' in m and 'halogaussian' in m.distribution_type:
         m.distribution_type = m.distribution_type.replace('halogaussian', 'halo(gaussian)')
+
+
+def _extract_report_data(xFilename, frame_args, page_count=0):
+    page_index = frame_args.frameIndex
+    xfield = frame_args.x if 'x' in frame_args else frame_args[_X_FIELD]
+    # x, column_names, x_def, err
+    x_col = sdds_util.extract_sdds_column(xFilename, xfield, page_index)
+    if x_col['err']:
+        return x_col['err']
+    x = x_col['values']
+    if not _is_histogram_file(xFilename, x_col['column_names']):
+        # parameter plot
+        plots = []
+        filename = PKDict(
+            y1=xFilename,
+            #TODO(pjm): y2Filename, y3Filename are not currently used. Would require rescaling x value across files.
+            y2=xFilename,
+            y3=xFilename,
+        )
+        for f in ('y1', 'y2', 'y3'):
+            if re.search(r'^none$', frame_args[f], re.IGNORECASE) or frame_args[f] == ' ':
+                continue
+            yfield = frame_args[f]
+            y_col = sdds_util.extract_sdds_column(filename[f], yfield, page_index)
+            if y_col['err']:
+                return y_col['err']
+            y = y_col['values']
+            plots.append(PKDict(
+                field=yfield,
+                points=y,
+                label=_field_label(yfield, y_col['column_def'][1]),
+            ))
+        title = ''
+        if page_count > 1:
+            title = 'Plot {} of {}'.format(page_index + 1, page_count)
+        return template_common.parameter_plot(x, plots, frame_args, PKDict(
+            title=title,
+            y_label='',
+            x_label=_field_label(xfield, x_col['column_def'][1]),
+        ))
+    yfield = frame_args['y1'] if 'y1' in frame_args else frame_args['y']
+    y_col = sdds_util.extract_sdds_column(xFilename, yfield, page_index)
+    if y_col['err']:
+        return y_col['err']
+    return template_common.heatmap([x, y_col['values']], frame_args, PKDict(
+        x_label=_field_label(xfield, x_col['column_def'][1]),
+        y_label=_field_label(yfield, y_col['column_def'][1]),
+        title=_plot_title(xfield, yfield, page_index, page_count),
+    ))
 
 
 def _field_label(field, units):
@@ -658,10 +656,6 @@ def _find_first_command(data, command_type):
     return None
 
 
-def _find_first_bunch_command(data):
-    return _find_first_command(data, 'bunched_beam')
-
-
 def _format_field_value(state, model, field, el_type):
     value = model[field]
     if el_type.endswith('StringArray'):
@@ -671,7 +665,7 @@ def _format_field_value(state, model, field, el_type):
     elif el_type == 'OutputFile':
         value = state.filename_map[_file_id(model._id, state.field_index)]
     elif el_type.startswith('InputFile'):
-        value = _SIM_DATA.lib_file_name(LatticeUtil.model_name_for_data(model), field, value)
+        value = _SIM_DATA.lib_file_name_with_model_field(LatticeUtil.model_name_for_data(model), field, value)
         if el_type == 'InputFileXY':
             value += '={}+{}'.format(model[field + 'X'], model[field + 'Y'])
     elif el_type == 'BeamInputFile':
@@ -686,7 +680,7 @@ def _format_field_value(state, model, field, el_type):
     elif field == 'command' and LatticeUtil.model_name_for_data(model) == 'SCRIPT':
         for f in ('commandFile', 'commandInputFile'):
             if f in model and model[f]:
-                fn = _SIM_DATA.lib_file_name(model.type, f, model[f])
+                fn = _SIM_DATA.lib_file_name_with_model_field(model.type, f, model[f])
                 value = re.sub(r'\b' + re.escape(model[f]) + r'\b', fn, value)
         if model.commandFile:
             value = './' + value
@@ -731,8 +725,13 @@ def _generate_bunch_simulation(data, v):
         v.bunch_alpha_x = 0
         v.bunch_alpha_x = 0
         if v.bunchFile_sourceFile and v.bunchFile_sourceFile != 'None':
-            v.bunchInputFile = _SIM_DATA.lib_file_name('bunchFile', 'sourceFile', v.bunchFile_sourceFile)
+            v.bunchInputFile = _SIM_DATA.lib_file_name_with_model_field('bunchFile', 'sourceFile', v.bunchFile_sourceFile)
             v.bunchFileType = _sdds_beam_type_from_file(v.bunchInputFile)
+    if str(data.models.bunch.p_central_mev) == '0':
+        run_setup = _find_first_command(data, 'run_setup')
+        if run_setup and run_setup.expand_for:
+            v.bunchExpandForFile = 'expand_for = "{}",'.format(
+                _SIM_DATA.lib_file_name_with_model_field('command_run_setup', 'expand_for', run_setup.expand_for))
     v.bunchOutputFile = _report_output_filename('bunchReport')
     return template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
 
@@ -751,8 +750,10 @@ def _generate_commands(filename_map, util):
 
 
 def _generate_full_simulation(data, v):
-    filename_map = _build_filename_map(data)
     util = LatticeUtil(data, _SCHEMA)
+    if data.models.simulation.backtracking == '1':
+        _setup_backtracking(util)
+    filename_map = _build_filename_map_from_util(util)
     v.update(dict(
         commands=_generate_commands(filename_map, util),
         lattice=_generate_lattice(filename_map, util),
@@ -971,6 +972,37 @@ def _safe_sdds_value(v):
     return v
 
 
+def _setup_backtracking(util):
+
+    def _negative(el, fields):
+        for f in fields:
+            if f in el and el[f]:
+                v = str(el[f])
+                if re.search(r'^-', v):
+                    v = v[1:]
+                else:
+                    v = '-' + v
+                el[f] = v
+                break
+
+    util.data = copy.deepcopy(util.data)
+    types = PKDict(
+        bend=[
+            'BRAT', 'BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'FTABLE', 'KPOLY', 'KSBEND',
+            'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
+        mirror=['LMIRROR'],
+    )
+    for el in util.data.models.elements:
+        # change signs on length and angle fields
+        _negative(el, ('l', 'xmax'))
+        _negative(el, ('volt', 'voltage', 'initial_v', 'static_voltage'))
+        if el.type in types.bend:
+            _negative(el, ('angle', 'kick', 'hkick'))
+        if el.type in types.mirror:
+            _negative(el, ('theta', ))
+    util.select_beamline()['items'].reverse()
+
+
 def _sdds_beam_type(column_names):
     if _contains_columns(column_names, ['x', 'xp', 'y', 'yp', 't', 'p']):
         return 'elegant'
@@ -981,7 +1013,7 @@ def _sdds_beam_type(column_names):
 
 def _sdds_beam_type_from_file(filename):
     res = ''
-    path = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(filename))
+    path = str(_SIM_DATA.lib_file_abspath(filename))
     if sdds.sddsdata.InitializeInput(_SDDS_INDEX, path) == 1:
         res = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
     sdds.sddsdata.Terminate(_SDDS_INDEX)

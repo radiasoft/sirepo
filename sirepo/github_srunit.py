@@ -27,17 +27,16 @@ class MockOAuthClient(object):
 
     def authorize(self, callback, state):
         from sirepo.auth import github
-        import flask
+        import sirepo.http_reply
 
         self.values.callback = callback
         self.values.state = state
-        return flask.redirect(
+        return sirepo.http_reply.gen_redirect(
             'https://github.com/login/oauth/oauthorize?response_type=code&client_id={}&redirect_uri={}&state={}'.format(
                 github.cfg.key,
                 github.cfg.callback_uri,
                 state,
             ),
-            code=302,
         )
 
     def authorized_response(self, *args, **kwargs):

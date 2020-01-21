@@ -95,17 +95,19 @@
         "homePage": "/en/*<path_info>",
         "homePageOld": "/old",
         "importArchive": "/import-archive",
-        "importFile": "/import-file/?<simulation_type>",
+        "importFile": "/import-file/<simulation_type>",
+        "jobSupervisorPing": "/job-supervisor-ping",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
-        "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<report>",
+        "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
         "robotsTxt": "/robots.txt",
         "root": "/<simulation_type>",
         "runCancel": "/run-cancel",
         "runSimulation": "/run-simulation",
         "runStatus": "/run-status",
+        "sbatchLogin": "/sbatch-login",
         "saveSimulationData": "/save-simulation",
         "serverStatus": "/server-status",
         "simulationData": "/simulation/<simulation_type>/<simulation_id>/<pretty>/?<section>",
@@ -162,7 +164,6 @@
                     "bootstrap-3.3.7.min.js",
                     "bootstrap-toggle.min.js",
                     "ngDraggable.js",
-                    "stacktrace-0.6.4.js",
                     "colorbar.js",
                     "canvg-and-dependencies.js",
                     "FileSaver.js",
@@ -209,6 +210,9 @@
                 ["jet", "jet"],
                 ["contrast", "high contrast"]
             ],
+            "JobRunMode": [
+                ["parallel", "initialized by simulation_db.init_by_job_api"]
+            ],
             "FramesPerSecond": [
                 ["1", "1"],
                 ["2", "2"],
@@ -227,7 +231,14 @@
             "completeRegistration": {
                 "route": "/complete-registration",
                 "config": {
+                  "controller": "LoginConfirmController as loginConfirm",
                   "templateUrl": "/static/html/complete-registration.html"
+                }
+            },
+            "error": {
+                "route": "/error",
+                "config": {
+                    "templateUrl": "/static/html/server-error.html"
                 }
             },
             "forbidden": {
@@ -241,13 +252,6 @@
                 "config": {
                     "controller": "FindByNameController as findByName",
                     "templateUrl": "/static/html/find-by-name.html"
-                }
-            },
-            "login": {
-                "route": "/login",
-                "config": {
-                  "controller": "LoginController as login",
-                  "templateUrl": "/static/html/login.html"
                 }
             },
             "login": {
@@ -271,6 +275,13 @@
                   "templateUrl": "/static/html/login-with.html"
                 }
             },
+            "loginWithEmailConfirm": {
+                "route": "/login-with-email-confirm/:token/:needCompleteRegistration",
+                "config": {
+                  "controller": "LoginConfirmController as loginConfirm",
+                  "templateUrl": "/static/html/login-with-email-confirm.html"
+                }
+            },
             "missingCookies": {
                 "route": "/missing-cookies",
                 "config": {
@@ -288,6 +299,20 @@
                 "config": {
                   "controller": "NotFoundCopyController as notFoundCopy",
                   "templateUrl": "/static/html/copy-session.html"
+                }
+            },
+            "sbatchLogin": {
+                "route": "/sbatch-login/:isModal/:reason/:simulationType/:simulationId/:report/:host",
+                "config": {
+                  "controller": "SbatchLoginController as sbatchLogin",
+                  "templateUrl": "/static/html/sbatch-login.html"
+                }
+            },
+            "serverUpgraded": {
+                "route": "/server-upgraded",
+                "config": {
+                  "controller": "ServerUpgradedController as serverUpgraded",
+                  "templateUrl": "/static/html/server-upgraded.html"
                 }
             },
             "simulations": {
@@ -316,7 +341,7 @@
             },
             "simulation": {
                 "name": ["Name", "SimulationName"],
-                "folder": ["Folder", "UserFolder"],
+                "folder": ["Folder", "UserFolder", "/"],
                 "documentationUrl": ["Documentation URL", "OptionalString", ""],
                 "notes": ["Notes", "Text", ""]
             }
@@ -394,15 +419,18 @@
         },
         "422": {
             "url": "srw-magnet-file-error.html",
-            "msg": "Invalid Magnet File"
+            "msg": "Invalid Magnet File",
+            "route": "error"
         },
         "500": {
             "url": "server-error.html",
-            "msg": "Server Error"
+            "msg": "Server Error",
+            "route": "error"
         },
         "502": {
             "url": "server-error.html",
-            "msg": "Proxy Error"
+            "msg": "Proxy Error",
+            "route": "error"
         }
     }
 }

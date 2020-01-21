@@ -97,7 +97,7 @@ def run(cfg_dir):
                 'points': ticket['histogram'].T.tolist(),
                 'frameCount': 1,
             }
-            #pkdp('range amount: {}', res['x_range'][1] - res['x_range'][0])
+            #pkdlog('range amount: {}', res['x_range'][1] - res['x_range'][0])
             #1.55431223448e-15
             dist = res['x_range'][1] - res['x_range'][0]
             #TODO(pjm): only rebalance range if outside of 0

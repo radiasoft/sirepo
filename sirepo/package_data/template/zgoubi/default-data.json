@@ -1,18 +1,97 @@
 {
     "models": {
+        "SPNTRK": {
+            "KSO": "0",
+            "S_X": 0,
+            "S_Y": 0,
+            "S_Z": 1
+        },
+        "SRLOSS": {
+            "KSR": "0",
+            "applyToAll": "0",
+            "keyword": "BEND"
+        },
         "beamlines": [],
-        "bunch": {},
+        "bunch": {
+            "D0": 1.0,
+            "DP": 0.0,
+            "DT": 0.0,
+            "DY": 0.0,
+            "DZ": 0.0,
+            "KD": "2",
+            "KP": "2",
+            "KT": "2",
+            "KX": "2",
+            "KY": "2",
+            "KZ": "2",
+            "P0": 0.0,
+            "T0": 0.0,
+            "X0": 0.0,
+            "Y0": 0.0,
+            "Z0": 0.0,
+            "alpha_X": 0.0,
+            "alpha_Y": 0.0,
+            "alpha_Z": 0.0,
+            "beta_X": 1.0,
+            "beta_Y": 1.0,
+            "beta_Z": 1.0,
+            "coordinates": [
+                {
+                    "D": 1.0,
+                    "P": 0.0,
+                    "T": 0.0,
+                    "X": 0.0,
+                    "Y": 0.0,
+                    "Z": 0.0
+                }
+            ],
+            "emit_X": 1e-06,
+            "emit_Y": 1e-06,
+            "emit_Z": 1e-06,
+            "match_twiss_parameters": "0",
+            "method": "MCOBJET3",
+            "n_cutoff2_X": 0.0,
+            "n_cutoff2_Y": 0.0,
+            "n_cutoff2_Z": 0.0,
+            "n_cutoff_X": 3.0,
+            "n_cutoff_Y": 3.0,
+            "n_cutoff_Z": 3.0,
+            "particleCount": 1000,
+            "particleCount2": 1,
+            "particleSelector": "1",
+            "rigidity": 1000.0
+        },
         "bunchAnimation": {
+            "aspectRatio": "1",
+            "colorMap": "contrast",
             "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0,
             "notes": "",
+            "particleSelector": "all",
+            "plotRangeType": "fit",
+            "plotType": "3d",
+            "showAllFrames": "0",
+            "verticalOffset": 0.0,
+            "verticalSize": 0,
             "x": "Y",
             "y": "T"
         },
         "bunchAnimation2": {
+            "aspectRatio": "1",
+            "colorMap": "contrast",
             "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0,
             "notes": "",
+            "particleSelector": "all",
+            "plotRangeType": "fit",
+            "plotType": "3d",
+            "showAllFrames": "0",
+            "verticalOffset": 0.0,
+            "verticalSize": 0,
             "x": "Z",
             "y": "P"
         },
@@ -40,7 +119,41 @@
             "x": "S",
             "y": "D1"
         },
+        "elementStepAnimation": {
+            "aspectRatio": "0.5625",
+            "colorMap": "contrast",
+            "framesPerSecond": "2",
+            "histogramBins": 200,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0,
+            "notes": "",
+            "particleSelector": "all",
+            "plotRangeType": "none",
+            "plotType": "particle",
+            "showAllFrames": "0",
+            "verticalOffset": 0.0,
+            "verticalSize": 0,
+            "x": "X",
+            "y": "YDY"
+        },
         "elements": [],
+        "energyAnimation": {
+            "aspectRatio": "1",
+            "colorMap": "contrast",
+            "framesPerSecond": "2",
+            "histogramBins": 200,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0,
+            "notes": "",
+            "particleSelector": "all",
+            "plotRangeType": "none",
+            "plotType": "heatmap",
+            "showAllFrames": "0",
+            "verticalOffset": 0.0,
+            "verticalSize": 0,
+            "x": "ENERG",
+            "y": "time"
+        },
         "opticsReport": {
             "includeLattice": "1",
             "notes": "",
@@ -55,13 +168,41 @@
             "Tau": 1e+99,
             "particleType": "ELECTRON"
         },
+        "particleAnimation": {
+            "aspectRatio": "0.75",
+            "notes": "",
+            "particleSelector": "all"
+        },
+        "particleCoordinate": {
+            "D": 1.0,
+            "P": 0.0,
+            "T": 0.0,
+            "X": 0.0,
+            "Y": 0.0,
+            "Z": 0.0
+        },
         "simulation": {
+            "documentationUrl": "",
             "folder": "/",
             "name": "default",
-            "simulationId": "NE4pnakI",
-            "simulationSerial": 1542066443718959
+            "notes": "",
+            "visualizationBeamlineId": ""
         },
-        "simulationSettings": {},
+        "simulationSettings": {
+            "ip": 1,
+            "npass": 10
+        },
+        "tunesReport": {
+            "aspectRatio": "0.75",
+            "notes": "",
+            "nuMax": 0.5,
+            "nuMin": 0.0,
+            "particleSelector": "all",
+            "plotAxis": "x",
+            "plotScale": "linear",
+            "turnCount": 10000,
+            "turnStart": 0
+        },
         "twissReport": {
             "includeLattice": "1",
             "notes": "",
@@ -75,8 +216,8 @@
             "y1": "btx",
             "y2": "bty",
             "y3": "Dx"
-        }
+        },
+        "twissSummaryReport": {}
     },
-    "simulationType": "zgoubi",
-    "version": "20181109.173737"
+    "simulationType": "zgoubi"
 }

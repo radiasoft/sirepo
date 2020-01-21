@@ -57,7 +57,7 @@ _FIELD_ALIAS = {
 _WIGGLER_TRAJECTOR_FILENAME = 'xshwig.sha'
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'validate_material':
         name = data['material_name']
         try:
@@ -97,10 +97,6 @@ Shadow.ShadowTools.plotxy(beam, 1, 3, nbins=100, nolost=1)
 
 
 def remove_last_frame(run_dir):
-    pass
-
-
-def validate_file(file_type, path):
     pass
 
 

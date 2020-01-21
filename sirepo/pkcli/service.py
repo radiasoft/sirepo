@@ -11,16 +11,14 @@ from flower import command
 from pykern import pkcli
 from pykern import pkcollections
 from pykern import pkconfig
-from pykern import pkinspect
 from pykern import pkio
 from pykern import pkjinja
 from pykern import pksubprocess
 from pykern.pkdebug import pkdc, pkdexc, pkdp
-import json
-import os
 import py
+import re
+import sirepo.srdb
 import socket
-import sys
 
 
 def celery():
@@ -171,7 +169,7 @@ def _run_dir():
     from sirepo import server
 
     if not isinstance(cfg.run_dir, type(py.path.local())):
-        cfg.run_dir = pkio.mkdir_parent(cfg.run_dir) if cfg.run_dir else server.cfg.db_dir.new()
+        cfg.run_dir = pkio.mkdir_parent(cfg.run_dir) if cfg.run_dir else sirepo.srdb.root()
     return cfg.run_dir
 
 
