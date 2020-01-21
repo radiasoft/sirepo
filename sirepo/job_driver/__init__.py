@@ -52,8 +52,8 @@ class DriverBase(PKDict):
             ops=PKDict(),
             slot_num=None,
             uid=req.content.uid,
-            websocket=None,
-            websocket_ready=tornado.locks.Event(),
+            _websocket=None,
+            _websocket_ready=tornado.locks.Event(),
 #TODO(robnagler) https://github.com/radiasoft/sirepo/issues/2195
         )
         # Agents persist for the life of the program so they are never removed
@@ -68,19 +68,19 @@ class DriverBase(PKDict):
         self.ops.pkdel(op.opId)
 
     async def driver_ready(self):
-        if not self.websocket:
+        if not self._websocket:
 todo: need to not wait forever
-            await self.websocket_ready.wait()
+            await self._websocket_ready.wait()
             raise job_supervisor.Awaited()
         await self.slot_ready()
 
     async def kill(self):
-        if not self.websocket:
+        if not self._websocket:
             # if there is no websocket then we don't know about the agent
             # so we can't do anything
             return
         # hopefully the agent is nice and listens to the kill
-        self.websocket.write_message(PKDict(opName=job.OP_KILL))
+        self._websocket.write_message(PKDict(opName=job.OP_KILL))
 
     def get_supervisor_uri(self):
         return inspect.getmodule(self).cfg.supervisor_uri
@@ -132,9 +132,9 @@ todo: need to not wait forever
         Returns:
             bool: True if the op was actually sent
         """
-        if not self.websocket_ready.is_set():
+        if not self._websocket_ready.is_set():
             await self._agent_start(op)
-            await self.websocket_ready.wait()
+            await self._websocket_ready.wait()
             raise job_supervisor.Awaited()
         if self.run_scheduler(try_op=op):
             raise job_supervisor.Awaited()
@@ -148,7 +148,7 @@ todo: need to not wait forever
             op.msg.get('runDir')
         )
         op.start_timer()
-        self.websocket.write_message(pkjson.dump_bytes(op.msg))
+        self._websocket.write_message(pkjson.dump_bytes(op.msg))
         self.ops.append(op)
 
     def slot_free(self):
@@ -203,9 +203,9 @@ todo: need to not wait forever
         pkdlog('self={}', self)
         try:
             self._agent_starting = False
-            self.websocket_ready.clear()
-            w = self.websocket
-            self.websocket = None
+            self._websocket_ready.clear()
+            w = self._websocket
+            self._websocket = None
             if w:
                 # Will not call websocket_on_close()
                 w.sr_close()
@@ -244,7 +244,7 @@ todo: need to not wait forever
 
     async def _agent_start(self, op):
         async with self._agent_start_lock:
-            if self._agent_starting or self.websocket_ready.is_set():
+            if self._agent_starting or self._websocket_ready.is_set():
                 return
             pkdlog('starting agentId={} uid={} opId={}', self._agentId, self.uid, op.opId)
             try:
@@ -293,16 +293,16 @@ todo: need to not wait forever
 
         Save the websocket and register self with the websocket
         """
-        if self.websocket:
-            if self.websocket == msg.handler:
+        if self._websocket:
+            if self._websocket == msg.handler:
 #TODO(robnagler) do we want to run_scheduler on alive in all cases?
 #                self.run_scheduler()
                 # random alive message
                 return
             self.websocket_free()
-        self.websocket = msg.handler
-        self.websocket_ready.set()
-        self.websocket.sr_driver_set(self)
+        self._websocket = msg.handler
+        self._websocket_ready.set()
+        self._websocket.sr_driver_set(self)
 #TODO(robnagler) do we want to run_scheduler on alive in all cases?
         self.run_scheduler()
 
