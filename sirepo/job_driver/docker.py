@@ -37,9 +37,9 @@ _MAX_OPEN_FILES = 1024
 
 class DockerDriver(job_driver.DriverBase):
 
-    __instances = PKDict()
-
     __hosts = PKDict()
+
+    __users = PKDict()
 
     def __init__(self, req, host):
         super().__init__(req)
@@ -49,27 +49,25 @@ class DockerDriver(job_driver.DriverBase):
             _userDir=req.content.userDir,
             host=host,
         )
-        host.drivers[self.kind].append(self)
+        host.instances[self.kind].append(self)
         self.slot_q = host.slot_q
-        self.__instances[self.kind].append(self)
+        self.__users.setdefault(self.uid, PKDict())[self.kind] = self
 
     @classmethod
     def get_instance(cls, req):
-        h = None
-        for d in list(itertools.chain(*cls.__instances.values())):
-            # SECURITY: must only return instances for authorized user
-            if d.uid == req.content.uid:
-                if d.kind == req.kind:
-                    return d
-                # jobs of different kinds for the same user need to go to the
-                # same host. Ex. sequential analysis jobs for parallel compute
-                # jobs need to go to the same host to avoid NFS caching problems
-#TODO(robnagler) what if there's already a driver of this kind later in the chain?
-#  it seems like this needs to wait till the end.
-                h = d.host
-        if not h:
+        # SECURITY: must only return instances for authorized user
+        u = cls.__users.get(req.content.uid)
+        if u:
+            d = u.get(req.kind)
+            if d:
+                return d
+            # jobs of different kinds for the same user need to go to the
+            # same host. Ex. sequential analysis jobs for parallel compute
+            # jobs need to go to the same host to avoid NFS caching problems
+            h = list(d.values())[0].host
+        else:
             # least used host
-            h = min(cls.__hosts.values(), key=lambda h: len(h.drivers[req.kind]))
+            h = min(cls.__hosts.values(), key=lambda h: len(h.instances[req.kind]))
         return cls(req, h)
 
     @classmethod
@@ -77,8 +75,6 @@ class DockerDriver(job_driver.DriverBase):
         if not cfg.tls_dir or not cfg.hosts:
             cls._init_dev_hosts()
         cls._init_hosts()
-        for k in job.KINDS:
-            cls.__instances[k] = []
         return cls
 
     async def kill(self):
@@ -97,7 +93,7 @@ class DockerDriver(job_driver.DriverBase):
         return await super().prepare_send(op)
 
     def slot_peers(self):
-        return self.host.drivers[self.kind]:
+        return self.host.instances[self.kind]:
 
     @classmethod
     def _cmd_prefix(host, tls_d):
@@ -209,13 +205,13 @@ class DockerDriver(job_driver.DriverBase):
             d = cfg.tls_dir.join(h)
             x = cls.__hosts[h] = PKDict(
                 cmd_prefix=_cmd_prefix(h, d),
-                drivers=PKDict(),
+                instances=PKDict(),
                 name=h,
                 slots=PKDict(),
             )
             for k in job.KINDS:
-                x.slot_q[k] = job_driver.init_slot_q(maxsize=cfg[k].slots_per_host)
-                x.drivers[k] = []
+                x.slot_q[k] = cls.init_slot_q(cfg[k].slots_per_host)
+                x.instances[k] = []
         assert len(cls.__hosts) > 0, \
             '{}: no docker hosts found in directory'.format(cfg.tls_d)
 

@@ -67,6 +67,13 @@ class DriverBase(PKDict):
     def destroy_op(self, op):
         self.ops.pkdel(op.opId)
 
+    @classmethod
+    def init_slot_q(cls, maxsize):
+        res = tornado.queues.Queue(maxsize=maxsize)
+        for i in range(1, maxsize + 1):
+            res.put_nowait(i)
+        return res
+
     async def kill(self):
         if not self._websocket:
             # if there is no websocket then we don't know about the agent
@@ -181,7 +188,7 @@ class DriverBase(PKDict):
 
     @classmethod
     async def terminate(cls):
-        for d in list(DriverBase.__instances.values()):
+        for d in list(cls.__instances.values()):
             try:
 #TODO(robnagler) need timeout
                 await d.kill()
@@ -309,13 +316,6 @@ def get_instance(req, jobRunMode):
     if jobRunMode == job.SBATCH:
         return _CLASSES[job.SBATCH].get_instance(req)
     return _DEFAULT_CLASS.get_instance(req)
-
-
-def init_slot_q(maxsize):
-    res = tornado.queues.Queue(maxsize=maxsize)
-    for i in range(1, maxsize + 1):
-        res.put_nowait(i)
-    return res
 
 
 def init():

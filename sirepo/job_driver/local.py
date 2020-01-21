@@ -70,9 +70,7 @@ class LocalDriver(job_driver.DriverBase):
     def init_class(cls):
         for k in job.KINDS:
             cls.__instances[k] = []
-            y = cls.slot_q[k] = tornado.queues.Queue(maxsize=cfg.slots[k])
-            for i in range(1, y.maxsize + 1):
-                y.put_nowait(i)
+            cls.slot_q[k] = cls.init_slot_q(cfg.slots[k])
         return cls
 
     async def kill(self):
