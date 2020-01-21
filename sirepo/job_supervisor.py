@@ -146,7 +146,14 @@ class _ComputeJob(PKDict):
     instances = PKDict()
 
     def __init__(self, req, **kwargs):
-        super().__init__(ops=[], run_op=None, **kwargs)
+        super().__init__(
+            ops=[],
+            run_op=None,
+            run_dir_ready=tornado.locks.Event(),
+            **kwargs,
+        )
+        # At start we don't know anything about the run_dir so assume ready
+        self.run_dir_ready.set()
         self.pksetdefault(db=lambda: self.__db_init(req))
 
     def destroy_op(self, op):
@@ -275,6 +282,7 @@ class _ComputeJob(PKDict):
             if c:
                 c.send()
                 await c.reply_get()
+            self.run_dir_ready.set()
         finally:
             if c:
                 c.destroy(cancel=False)
@@ -306,6 +314,7 @@ class _ComputeJob(PKDict):
         )
         try:
             await o.prepare_send()
+            self.run_dir_ready.clear()
             self.run_op = o
             self.__db_init(req, prev_db=self.db)
             self.db.computeJobSerial = int(time.time())
@@ -400,6 +409,7 @@ class _ComputeJob(PKDict):
                     r = await op.reply_get()
                     if op != self.run_op:
                         return
+                    self.run_dir_ready.set()
                     self.db.status = r.state
                     if self.db.status == job.ERROR:
                         self.db.error = r.get('error', '<unknown error>')
@@ -431,6 +441,9 @@ class _ComputeJob(PKDict):
     async def _send_with_single_reply(self, opName, req, **kwargs):
         o = self._create_op(opName, req, **kwargs)
         try:
+            if opName == job.OP_ANALYSIS and not self.run_dir_ready.is_set():
+                await self.run_dir_ready.wait()
+                raise Awaited()
             await o.prepare_send()
             o.send()
             return await o.reply_get()
@@ -508,32 +521,6 @@ class _Op(PKDict):
         To maintain consistency, do not modify global state before
         calling this method.
         """
-        n = self.opName
-        self.computeJob
-        def get_ops_pending_done_types():
-            d = collections.defaultdict(int)
-            for v in self.ops_pending_done.values():
-                d[v.msg.opName] += 1
-            return d
-
-        if there is a cancel or analysis:
-            pass
-        is_set
-             op
-        need to check if ready in with send allocation
-        r = []
-        t = get_ops_pending_done_types()
-        for o in self.ops_pending_send:
-            if t.get(o.msg.opName, 0) > 0:
-                continue
-            that are not just ready to send
-                o.send_ready.set()
-            assert o.opId not in self.ops_pending_done
-            t[o.msg.opName] += 1
-            r.append(o)
-        return r
-
-
         await self.driver.prepare_send(self)
 
     async def reply_get(self):

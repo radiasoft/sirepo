@@ -38,7 +38,6 @@ class LocalDriver(job_driver.DriverBase):
                 'agent-local', self._agentId),
             _agent_exit=tornado.locks.Event(),
         )
-        self.slot_num = None
         self.__instances[self.kind].append(self)
 
     @classmethod
@@ -70,7 +69,7 @@ class LocalDriver(job_driver.DriverBase):
     def init_class(cls):
         for k in job.KINDS:
             cls.__instances[k] = []
-            cls.slot_q[k] = cls.init_slot_q(cfg.slots[k])
+            cls.slot_q[k] = cls.init_q(cfg.slots[k])
         return cls
 
     async def kill(self):

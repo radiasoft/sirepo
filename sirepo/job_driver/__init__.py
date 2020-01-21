@@ -50,7 +50,14 @@ class DriverBase(PKDict):
             _slot_alloc_time=None,
             kind=req.kind,
             ops=PKDict(),
-            slot_num=None,
+            op_q=PKDict({
+                #TODO(robnagler) sbatch could override OP_RUN, but not OP_ANALYSIS
+                # because OP_ANALYSIS touches the directory sometimes. Reasonably
+                # there should only be one OP_ANALYSIS running on an agent at one time.
+                job.OP_RUN: self.init_q(1),
+                job.OP_ANALYSIS: self.init_q(1),
+            }),
+            cpu_slot=None,
             uid=req.content.uid,
             _websocket=None,
             _websocket_ready=tornado.locks.Event(),
@@ -68,11 +75,20 @@ class DriverBase(PKDict):
         """Clear our op and (possibly) free slot"""
         self.ops.pkdel(op.opId)
         if not self.ops:
-            # free up our slot
+            # might free our slot if no other ops
             self.slot_free_one()
+        if op.op_slot:
+            q = self.op_q[op.opName]
+            q.task_done()
+            q.put_nowait(op.op_slot)
+            op.op_slot = None
+
+    def get_supervisor_uri(self):
+        #TODO(robnagler) set cfg on self in __init__
+        return inspect.getmodule(self).cfg.supervisor_uri
 
     @classmethod
-    def init_slot_q(cls, maxsize):
+    def init_q(cls, maxsize):
         res = tornado.queues.Queue(maxsize=maxsize)
         for i in range(1, maxsize + 1):
             res.put_nowait(i)
@@ -85,9 +101,6 @@ class DriverBase(PKDict):
             return
         # hopefully the agent is nice and listens to the kill
         self._websocket.write_message(PKDict(opName=job.OP_KILL))
-
-    def get_supervisor_uri(self):
-        return inspect.getmodule(self).cfg.supervisor_uri
 
     def make_lib_dir_symlink(self, op):
         if not self._has_remote_agent():
@@ -107,15 +120,29 @@ class DriverBase(PKDict):
             libFileList=[f.basename for f in d.listdir()],
         )
 
-    def op_was_sent(self, op):
-        """Is the op in ops
+    async def op_ready(self, op):
+        """Only one op of each type allowed
 
-        Args:
-            op (job_supervisor._Op): what to check
-        Returns:
-            bool: true if in ops
         """
-        return op in self.ops
+        try:
+            n = op.opName
+            if n in (job.OP_CANCEL, job.OP_KILL):
+                return
+            if n == job.OP_SBATCH_LOGIN:
+                assert not self._websocket, \
+                    'received SBATCH_LOGIN op={} but have websocket'.format(op)
+                return
+            if op.op_slot:
+                return
+            q = self.op_q[n]
+            try:
+                op.op_slot = q.get_nowait()
+            except tornado.queues.QueueEmpty:
+                op.op_slot = await q.get()
+                raise job_supervisor.Awaited()
+        finally:
+            # may be redundant, but need to track here
+            self.ops[op.opId] = op
 
     async def prepare_send(self, op):
         """Sends the op
@@ -128,6 +155,10 @@ class DriverBase(PKDict):
             await self._websocket_ready.wait()
             raise job_supervisor.Awaited()
         await self.slot_ready()
+        # must be last, because reserves queue position of op
+        # relative to other ops even it throws Awaited when the
+        # op_slot is assigned.
+        await self.op_ready()
 
     @classmethod
     def receive(cls, msg):
@@ -153,11 +184,11 @@ class DriverBase(PKDict):
         self._websocket.write_message(pkjson.dump_bytes(op.msg))
 
     def slot_free(self):
-        if not self.slot_num:
+        if not self.cpu_slot:
             return
         self.slot_q.task_done()
-        self.slot_q.put_nowait(self.slot_num)
-        self.slot_num = None
+        self.slot_q.put_nowait(self.cpu_slot)
+        self.cpu_slot = None
         self._slot_alloc_time = None
 
     def slot_free_one(self):
@@ -167,7 +198,7 @@ class DriverBase(PKDict):
         # least recently used and not in use
         d = sorted(
             filter(
-                lambda x: bool(x.slot_num and not x.ops),
+                lambda x: bool(x.cpu_slot and not x.ops),
                 self.slot_peers(),
             ),
             key=lambda x: x._slot_alloc_time,
@@ -176,13 +207,13 @@ class DriverBase(PKDict):
             d[0].slot_free()
 
     async def slot_ready(self):
-        if self.slot_num:
+        if self.cpu_slot:
             return
         try:
-            self.slot_num = self.slot_q.get_nowait()
+            self.cpu_slot = self.slot_q.get_nowait()
         except tornado.queues.QueueEmpty:
             self.slot_free_one()
-            self.slot_num = await self.slot_q.get()
+            self.cpu_slot = await self.slot_q.get()
             raise job_supervisor.Awaited()
         finally:
             self._slot_alloc_time = time.time()
@@ -327,7 +358,7 @@ def get_instance(req, jobRunMode, op):
             res.db.uid,
             req.content.computeJid,
         )
-    res.ops[op.opId] = op
+    op.op_slot = None
     return res
 
 

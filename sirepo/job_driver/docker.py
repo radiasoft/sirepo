@@ -210,7 +210,7 @@ class DockerDriver(job_driver.DriverBase):
                 slots=PKDict(),
             )
             for k in job.KINDS:
-                x.slot_q[k] = cls.init_slot_q(cfg[k].slots_per_host)
+                x.slot_q[k] = cls.init_q(cfg[k].slots_per_host)
                 x.instances[k] = []
         assert len(cls.__hosts) > 0, \
             '{}: no docker hosts found in directory'.format(cfg.tls_d)
