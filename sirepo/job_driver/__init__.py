@@ -47,9 +47,9 @@ class DriverBase(PKDict):
             _agentId=job.unique_key(),
             _agent_starting=False,
             _agent_start_lock=tornado.locks.Lock(),
+            _slot_alloc_time=None,
             kind=req.kind,
             ops=PKDict(),
-            slot_alloc_time=None,
             slot_num=None,
             uid=req.content.uid,
             websocket=None,
@@ -80,7 +80,7 @@ todo: need to not wait forever
         self.slot_q.task_done()
         self.slot_q.put_nowait(self.slot_num)
         self.slot_num = None
-        self.slot_alloc_time = None
+        self._slot_alloc_time = None
 
     async def slot_free_one(self):
         if self.slot_q.qsize > 0:
@@ -92,7 +92,7 @@ todo: need to not wait forever
                 lambda x: bool(x.slot_num and not x.ops),
                 self.slot_peers(),
             ),
-            key=lambda x: x.slot_alloc_time,
+            key=lambda x: x._slot_alloc_time,
         )
         if d:
             d[0].slot_free()
@@ -107,7 +107,7 @@ todo: need to not wait forever
             self.slot_num = await self.slot_q.get()
             raise job_supervisor.Awaited()
         finally:
-            self.slot_alloc_time = time.time()
+            self._slot_alloc_time = time.time()
 
     def get_supervisor_uri(self):
         return inspect.getmodule(self).cfg.supervisor_uri
