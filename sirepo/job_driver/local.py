@@ -27,7 +27,7 @@ cfg = None
 
 class LocalDriver(job_driver.DriverBase):
 
-    instances = PKDict()
+    __instances = PKDict()
 
     slot_q = None
 
@@ -39,7 +39,7 @@ class LocalDriver(job_driver.DriverBase):
             _agent_exit=tornado.locks.Event(),
         )
         self.slot_num = None
-        self.instances[self.kind].append(self)
+        self.__instances[self.kind].append(self)
 
     @classmethod
     def get_instance(cls, req):
@@ -60,7 +60,7 @@ class LocalDriver(job_driver.DriverBase):
         # need to have an allocation per user, e.g. 2 sequential and one 1 parallel.
         # _Slot() may have to understand this, because related to parking. However,
         # we are parking a driver so maybe that's a (local) driver mechanism
-        for d in cls.instances[req.kind]:
+        for d in cls.__instances[req.kind]:
             # SECURITY: must only return instances for authorized user
             if d.uid == req.content.uid:
                 return d
@@ -69,7 +69,7 @@ class LocalDriver(job_driver.DriverBase):
     @classmethod
     def init_class(cls):
         for k in job.KINDS:
-            cls.instances[k] = []
+            cls.__instances[k] = []
             y = cls.slot_q[k] = tornado.queues.Queue(maxsize=cfg.slots[k])
             for i in range(1, y.maxsize + 1):
                 y.put_nowait(i)
@@ -93,7 +93,7 @@ class LocalDriver(job_driver.DriverBase):
         return await super().prepare_send(op)
 
     def slot_peers(self):
-        return self.instances[self.kind]:
+        return self.__instances[self.kind]:
 
     def _agent_on_exit(self, returncode):
         self._agent_exit.set()

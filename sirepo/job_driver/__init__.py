@@ -40,7 +40,7 @@ class AgentMsg(PKDict):
 
 class DriverBase(PKDict):
 
-    agents = PKDict()
+    __instances = PKDict()
 
     def __init__(self, req):
         super().__init__(
@@ -56,8 +56,8 @@ class DriverBase(PKDict):
             _websocket_ready=tornado.locks.Event(),
 #TODO(robnagler) https://github.com/radiasoft/sirepo/issues/2195
         )
-        # Agents persist for the life of the program so they are never removed
-        self.agents[self._agentId] = self
+        # Drivers persist for the life of the program so they are never removed
+        self.__instances[self._agentId] = self
         pkdlog(
             'class={} agentId={_agentId} kind={kind} uid={uid}',
             self.__class__.__name__,
@@ -66,13 +66,6 @@ class DriverBase(PKDict):
 
     def destroy_op(self, op):
         self.ops.pkdel(op.opId)
-
-    async def driver_ready(self):
-        if not self._websocket:
-todo: need to not wait forever
-            await self._websocket_ready.wait()
-            raise job_supervisor.Awaited()
-        await self.slot_ready()
 
     async def kill(self):
         if not self._websocket:
@@ -116,7 +109,7 @@ todo: need to not wait forever
     @classmethod
     def receive(cls, msg):
         """Receive message from agent"""
-        a = cls.agents.get(msg.content.agentId)
+        a = cls.__instances.get(msg.content.agentId)
         if a:
             a._receive(msg)
             return
@@ -188,7 +181,7 @@ todo: need to not wait forever
 
     @classmethod
     async def terminate(cls):
-        for d in list(DriverBase.agents.values()):
+        for d in list(DriverBase.__instances.values()):
             try:
 #TODO(robnagler) need timeout
                 await d.kill()
@@ -285,7 +278,6 @@ todo: need to not wait forever
             else:
                 pkdlog('agentId={} not pending opId={} opName={}', self._agentId, i, c.opName)
         else:
-# todo only a few ops fit this category (receive_alive)
             getattr(self, '_receive_' + c.opName)(msg)
 
     def _receive_alive(self, msg):
@@ -338,7 +330,7 @@ def init():
         m = importlib.import_module(pkinspect.module_name_join((p, n)))
         _CLASSES[n] = m.init_class()
     _DEFAULT_CLASS = _CLASSES.get('docker') or _CLASSES.get(_DEFAULT_MODULE)
-    pkdlog('drivers={}', _CLASSES.keys())
+    pkdlog('modules={}', sorted(_CLASSES.keys()))
 
 
 async def terminate():

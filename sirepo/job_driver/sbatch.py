@@ -27,13 +27,13 @@ _KNOWN_HOSTS = None
 
 class SbatchDriver(job_driver.DriverBase):
 
-    instances = PKDict()
+    __instances = PKDict()
 
     def __init__(self, req):
         super().__init__(req)
 #TODO(robnagler) read a db for an sbatch_user
         self._srdb_root = None
-        self.instances[self.uid] = self
+        self.__instances[self.uid] = self
 
     def free_slots(self):
         pass
@@ -41,7 +41,7 @@ class SbatchDriver(job_driver.DriverBase):
     @classmethod
     def get_instance(cls, req):
         u = req.content.uid
-        return cls.instances.pksetdefault(u, lambda: cls(req))[u]
+        return cls.__instances.pksetdefault(u, lambda: cls(req))[u]
 
     @classmethod
     def init_class(cls):
