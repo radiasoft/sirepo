@@ -513,6 +513,10 @@ class SimData(sirepo.sim_data.SimDataBase):
                     if k not in i:
                         i[k] = v
             if t == 'crystal':
+                # this is a hack for existing bad data
+                for k in ['outframevx', 'outframevy', 'outoptvx', 'outoptvy', 'outoptvz',
+                         'tvx', 'tvy']:
+                    i[k] = float(i[k])
                 if 'diffractionAngle' not in i:
                     allowed_angles = [x[0] for x in cls.schema().enum.DiffractionPlaneAngle]
                     i.diffractionAngle = cls.srw_find_closest_angle(i.grazingAngle or 0, allowed_angles)
