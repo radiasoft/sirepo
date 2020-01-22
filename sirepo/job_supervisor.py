@@ -149,11 +149,12 @@ class _ComputeJob(PKDict):
         super().__init__(
             ops=[],
             run_op=None,
-            run_dir_ready=tornado.locks.Event(),
+            run_dir_mutex=tornado.locks.Event(),
             **kwargs,
         )
         # At start we don't know anything about the run_dir so assume ready
-        self.run_dir_ready.set()
+        self.run_dir_mutex.set()
+        self.run_dir_owner = None
         self.pksetdefault(db=lambda: self.__db_init(req))
 
     def destroy_op(self, op):
@@ -161,6 +162,8 @@ class _ComputeJob(PKDict):
             self.ops.remove(op)
         if self.run_op == op:
             self.run_op = None
+        if op == self.run_dir_owner:
+            self.run_dir_release(self.run_dir_owner)
 
     @classmethod
     def get_instance(cls, req):
@@ -195,6 +198,25 @@ class _ComputeJob(PKDict):
             if isinstance(e, sirepo.util.Reply):
                 return sirepo.http_reply.gen_tornado_exception(e)
             raise
+
+    async def run_dir_acquire(self, owner):
+        e = None
+        if not self.run_dir_mutex.is_set():
+            await self.run_dir_mutex.wait()
+            e = Awaited()
+            if self.run_dir_owner:
+                # some other op acquired it before this one
+                raise e
+        self.run_dir_mutex.clear()
+        self.run_dir_owner = owner
+        if e:
+            raise e
+
+    async def run_dir_release(self, owner):
+        assert owner == self.run_dir_owner, \
+            'owner={} not same as releaser={}'.format(self.run_dir_owner, owner)
+        self.run_dir_owner = None
+        self.run_dir_mutex.set()
 
     @classmethod
     def __create(cls, req):
@@ -274,6 +296,12 @@ class _ComputeJob(PKDict):
 #TODO(robnagler) cancel run_op, not just by jid, which is insufficient (hash)
                 c = self._create_op(job.OP_CANCEL, req)
                 await c.prepare_send()
+                # out of order from OP_ANALYSIS and OP_RUN, because we
+                # want don't have to wait so block on prepare_send before
+                # modifying global state (release)
+                if self.run_dir_owner:
+                    self.run_dir_release(self.run_dir_owner)
+                await self.run_dir_acquire(c)
             for x in self.ops:
                 if not (self.db.isParallel and x.opName == job.OP_ANALYSIS):
                     x.destroy(cancel=True)
@@ -282,7 +310,6 @@ class _ComputeJob(PKDict):
             if c:
                 c.send()
                 await c.reply_get()
-            self.run_dir_ready.set()
         finally:
             if c:
                 c.destroy(cancel=False)
@@ -313,8 +340,8 @@ class _ComputeJob(PKDict):
             nextRequestSeconds=self.db.nextRequestSeconds,
         )
         try:
+            await self.run_dir_acquire(o)
             await o.prepare_send()
-            self.run_dir_ready.clear()
             self.run_op = o
             self.__db_init(req, prev_db=self.db)
             self.db.computeJobSerial = int(time.time())
@@ -409,7 +436,8 @@ class _ComputeJob(PKDict):
                     r = await op.reply_get()
                     if op != self.run_op:
                         return
-                    self.run_dir_ready.set()
+                    # run_dir is in a stable state so don't need to lock
+                    self.run_dir_release(op)
                     self.db.status = r.state
                     if self.db.status == job.ERROR:
                         self.db.error = r.get('error', '<unknown error>')
@@ -441,9 +469,8 @@ class _ComputeJob(PKDict):
     async def _send_with_single_reply(self, opName, req, **kwargs):
         o = self._create_op(opName, req, **kwargs)
         try:
-            if opName == job.OP_ANALYSIS and not self.run_dir_ready.is_set():
-                await self.run_dir_ready.wait()
-                raise Awaited()
+            if opName == job.OP_ANALYSIS:
+                await self.run_dir_acquire(op)
             await o.prepare_send()
             o.send()
             return await o.reply_get()
