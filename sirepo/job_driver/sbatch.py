@@ -47,6 +47,10 @@ class SbatchDriver(job_driver.DriverBase):
     def init_class(cls):
         return cls
 
+    def slot_free_one(self):
+        """We allow as many users as the sbatch system allows"""
+        pass
+
     async def slot_ready(self):
         """We allow as many users as the sbatch system allows"""
         pass

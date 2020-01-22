@@ -29,7 +29,7 @@ class LocalDriver(job_driver.DriverBase):
 
     __instances = PKDict()
 
-    slot_q = None
+    __slot_q = PKDict()
 
     def __init__(self, req):
         super().__init__(req)
@@ -38,6 +38,7 @@ class LocalDriver(job_driver.DriverBase):
                 'agent-local', self._agentId),
             _agent_exit=tornado.locks.Event(),
         )
+        self.slot_q = self.__slot_q[req.kind]
         self.__instances[self.kind].append(self)
 
     @classmethod
@@ -69,7 +70,7 @@ class LocalDriver(job_driver.DriverBase):
     def init_class(cls):
         for k in job.KINDS:
             cls.__instances[k] = []
-            cls.slot_q[k] = cls.init_q(cfg.slots[k])
+            cls.__slot_q[k] = cls.init_q(cfg.slots[k])
         return cls
 
     async def kill(self):
@@ -90,7 +91,7 @@ class LocalDriver(job_driver.DriverBase):
         return await super().prepare_send(op)
 
     def slot_peers(self):
-        return self.__instances[self.kind]:
+        return self.__instances[self.kind]
 
     def _agent_on_exit(self, returncode):
         self._agent_exit.set()

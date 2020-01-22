@@ -3,7 +3,7 @@
 import pytest
 
 #: Maximum time an individual test case (function) can run
-MAX_CASE_RUN_SECS = 120
+MAX_CASE_RUN_SECS = 20
 
 
 @pytest.fixture
@@ -355,7 +355,7 @@ def _job_supervisor_start(request, cfg=None):
         time.sleep(.1)
     else:
         import sirepo.job_api
-        pkunit.pkfail('could not connect to {}', sirepo.job_api.SUPERVISOR_URI)
+        pkunit.pkfail('could not connect to {}', sirepo.job_api.cfg.supervisor_uri)
     return p, fc
 
 

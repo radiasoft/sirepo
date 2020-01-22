@@ -13,9 +13,11 @@ import importlib
 import inspect
 import pykern.pkio
 import sirepo.srdb
+import time
 import tornado.gen
 import tornado.ioloop
 import tornado.locks
+import tornado.queues
 
 
 KILL_TIMEOUT_SECS = 3
@@ -158,7 +160,7 @@ class DriverBase(PKDict):
         # must be last, because reserves queue position of op
         # relative to other ops even it throws Awaited when the
         # op_slot is assigned.
-        await self.op_ready()
+        await self.op_ready(op)
 
     @classmethod
     def receive(cls, msg):
@@ -192,7 +194,7 @@ class DriverBase(PKDict):
         self._slot_alloc_time = None
 
     def slot_free_one(self):
-        if self.slot_q.qsize > 0:
+        if self.slot_q.qsize() > 0:
             # available slots, don't need to free
             return
         # least recently used and not in use
@@ -352,19 +354,20 @@ def get_instance(req, jobRunMode, op):
         res = _CLASSES[job.SBATCH].get_instance(req)
     else:
         res = _DEFAULT_CLASS.get_instance(req)
-    assert req.content.uid == res.db.uid, \
+    assert req.content.uid == res.uid, \
         'req.content.uid={} is not same as db.uid={} for jid={}'.format(
             req.content.uid,
-            res.db.uid,
+            res.uid,
             req.content.computeJid,
         )
     op.op_slot = None
     return res
 
 
-def init():
-    global cfg, _CLASSES, _DEFAULT_CLASS
+def init(job_supervisor_module):
+    global cfg, _CLASSES, _DEFAULT_CLASS, job_supervisor
     assert not cfg
+    job_supervisor = job_supervisor_module
     cfg = pkconfig.init(
         modules=((_DEFAULT_MODULE,), set, 'available job driver modules'),
     )

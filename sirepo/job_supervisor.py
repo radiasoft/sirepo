@@ -7,10 +7,11 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
+from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from sirepo import job
-from sirepo import job_driver
+import asyncio
 import contextlib
 import os
 import pykern.pkio
@@ -21,6 +22,8 @@ import sirepo.util
 import time
 import tornado.ioloop
 import tornado.locks
+import tornado.queues
+
 
 #: where supervisor state is persisted to disk
 _DB_DIR = None
@@ -56,10 +59,8 @@ cfg = None
 #: conversion of cfg.<kind>.max_hours
 _MAX_RUN_SECS = PKDict()
 
+#: how many times restart request when Awaited() raised
 _MAX_RETRIES = 10
-
-# can be anything that is globally unique
-_RETRY_FLAG = object()
 
 
 class Awaited(Exception):
@@ -68,11 +69,13 @@ class Awaited(Exception):
 
 
 def init():
-    global _DB_DIR, cfg, _NEXT_REQUEST_SECONDS
+    global _DB_DIR, cfg, _NEXT_REQUEST_SECONDS, job_driver
     if _DB_DIR:
         return
     job.init()
-    job_driver.init()
+    from sirepo import job_driver
+
+    job_driver.init(pkinspect.this_module())
     _DB_DIR = sirepo.srdb.root().join(_DB_SUBDIR)
     cfg = pkconfig.init(
         parallel=dict(
@@ -138,6 +141,8 @@ class ServerReq(PKDict):
 
 
 async def terminate():
+    from sirepo import job_driver
+
     await job_driver.terminate()
 
 
@@ -200,6 +205,9 @@ class _ComputeJob(PKDict):
             raise
 
     async def run_dir_acquire(self, owner):
+        pkdp(owner)
+        if self.run_dir_owner == owner:
+            return
         e = None
         if not self.run_dir_mutex.is_set():
             await self.run_dir_mutex.wait()
@@ -209,10 +217,12 @@ class _ComputeJob(PKDict):
                 raise e
         self.run_dir_mutex.clear()
         self.run_dir_owner = owner
+        pkdp(owner)
         if e:
             raise e
 
-    async def run_dir_release(self, owner):
+    def run_dir_release(self, owner):
+        pkdp(owner)
         assert owner == self.run_dir_owner, \
             'owner={} not same as releaser={}'.format(self.run_dir_owner, owner)
         self.run_dir_owner = None
@@ -426,18 +436,18 @@ class _ComputeJob(PKDict):
     async def _run(self, op):
         op.task = asyncio.current_task()
         op.pkdel('run_callback')
+        l = True
         try:
             while True:
                 try:
-                    if op != self.run_op:
-                        return
-                    await op.prepare_send()
-                    op.send()
                     r = await op.reply_get()
+#TODO(robnagler) is this ever true?
                     if op != self.run_op:
                         return
                     # run_dir is in a stable state so don't need to lock
-                    self.run_dir_release(op)
+                    if l:
+                        l = False
+                        self.run_dir_release(op)
                     self.db.status = r.state
                     if self.db.status == job.ERROR:
                         self.db.error = r.get('error', '<unknown error>')
@@ -459,7 +469,7 @@ class _ComputeJob(PKDict):
                     return
         except Exception as e:
             pkdlog('error={} stack={}', e, pkdexc())
-            if op == run_op:
+            if op == self.run_op:
                 self.db.status = job.ERROR
                 self.db.error = 'server error'
                 self.__db_write()
@@ -470,7 +480,7 @@ class _ComputeJob(PKDict):
         o = self._create_op(opName, req, **kwargs)
         try:
             if opName == job.OP_ANALYSIS:
-                await self.run_dir_acquire(op)
+                await self.run_dir_acquire(o)
             await o.prepare_send()
             o.send()
             return await o.reply_get()
@@ -512,6 +522,15 @@ class _ComputeJob(PKDict):
             return res(state=self.db.status)
         return None
 
+    def __str__(self):
+        d = self.get('db')
+        if not d:
+            return '_ComputeJob()'
+        return '_ComputeJob({} {} ops={})'.format(
+            d.get('computeJid'),
+            d.get('status'),
+            list(self.ops.values()),
+        )
 
 
 class _Op(PKDict):
@@ -526,6 +545,7 @@ class _Op(PKDict):
         self.msg.update(opId=self.opId, opName=self.opName)
 
     def destroy(self, cancel=True, error=None):
+        pkdp(self)
         if cancel:
             if self.task:
                 self.task.cancel()
@@ -563,7 +583,7 @@ class _Op(PKDict):
         self._reply_q.put_nowait(reply)
 
     def run_timeout(self):
-        pkdlog('opId={opId} opName={opName} maxRunSecs={maxRunSecs}', **self)
+        pkdlog('{} maxRunSecs={maxRunSecs}', self, **self)
         self.destroy(error='timeout')
 
     def send(self):
@@ -573,3 +593,6 @@ class _Op(PKDict):
                 self.run_timeout,
             )
         self.driver.send(self)
+
+    def __str__(self):
+        return f'_Op({self.opName}, {self.opId:.6})'
