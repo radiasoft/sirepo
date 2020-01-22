@@ -60,7 +60,7 @@ cfg = None
 _MAX_RUN_SECS = PKDict()
 
 #: how many times restart request when Awaited() raised
-_MAX_RETRIES = 10
+_MAX_RETRIES = 100
 
 
 class Awaited(Exception):
@@ -133,11 +133,8 @@ class ServerReq(PKDict):
     def __str__(self):
         c = self.get('content')
         if not c:
-            return 'ServerReq({})'.format(self)
-        return 'ServerReq(api={}, jid={})'.format(
-            c.get('api'),
-            c.get('computeJid'),
-        )
+            return 'ServerReq(<no content>)'
+        return f'ServerReq({c.api}, {c.computeJid})'
 
 
 async def terminate():
