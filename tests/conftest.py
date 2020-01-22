@@ -3,7 +3,7 @@
 import pytest
 
 #: Maximum time an individual test case (function) can run
-MAX_CASE_RUN_SECS = 20
+MAX_CASE_RUN_SECS = 120
 
 
 @pytest.fixture
