@@ -131,8 +131,9 @@ class DriverBase(PKDict):
             if n in (job.OP_CANCEL, job.OP_KILL):
                 return
             if n == job.OP_SBATCH_LOGIN:
-                assert not self._websocket, \
-                    'received SBATCH_LOGIN op={} but have websocket'.format(op)
+                l = [o for o in self.ops.values() if o.opId != op.opId]
+                assert not l, \
+                    'received {} but have other ops={}'.format(op, l)
                 return
             if op.op_slot:
                 return
@@ -340,6 +341,9 @@ class DriverBase(PKDict):
         self._websocket = msg.handler
         self._websocket_ready.set()
         self._websocket.sr_driver_set(self)
+
+    def __str__(self):
+        return f'{type(self).__name__}({self._agentId:.6}, {self.uid}, ops={list(self.ops.values())})'
 
     def _receive_error(self, msg):
 #TODO(robnagler) what does this mean? Just a way of logging? Document this.

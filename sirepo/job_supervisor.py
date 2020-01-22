@@ -205,7 +205,6 @@ class _ComputeJob(PKDict):
             raise
 
     async def run_dir_acquire(self, owner):
-        pkdp(owner)
         if self.run_dir_owner == owner:
             return
         e = None
@@ -217,12 +216,10 @@ class _ComputeJob(PKDict):
                 raise e
         self.run_dir_mutex.clear()
         self.run_dir_owner = owner
-        pkdp(owner)
         if e:
             raise e
 
     def run_dir_release(self, owner):
-        pkdp(owner)
         assert owner == self.run_dir_owner, \
             'owner={} not same as releaser={}'.format(self.run_dir_owner, owner)
         self.run_dir_owner = None
@@ -529,7 +526,7 @@ class _ComputeJob(PKDict):
         return '_ComputeJob({} {} ops={})'.format(
             d.get('computeJid'),
             d.get('status'),
-            list(self.ops.values()),
+            self.ops,
         )
 
 
@@ -545,7 +542,6 @@ class _Op(PKDict):
         self.msg.update(opId=self.opId, opName=self.opName)
 
     def destroy(self, cancel=True, error=None):
-        pkdp(self)
         if cancel:
             if self.task:
                 self.task.cancel()
