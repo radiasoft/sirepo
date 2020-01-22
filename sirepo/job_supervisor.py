@@ -323,7 +323,7 @@ class _ComputeJob(PKDict):
         return r
 
     async def _receive_api_runSimulation(self, req):
-        f = req.content.get('forceRun')
+        f = req.content.data.get('forceRun')
         if self.db.status == _RUNNING_PENDING:
             if f or not self._req_is_valid(req):
                 return PKDict(
@@ -493,7 +493,7 @@ class _ComputeJob(PKDict):
                 r.update(self.db.parallelStatus)
                 r.computeJobHash = self.db.computeJobHash
                 r.computeJobSerial = self.db.computeJobSerial
-                r.elapsedTime = r.lastUpdateTime - self.db.computeJobStart
+                r.elapsedTime = self.db.lastUpdateTime - self.db.computeJobStart
             if self.db.status in _RUNNING_PENDING:
                 c = req.content
                 r.update(
