@@ -6,6 +6,7 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -16,6 +17,7 @@ import py.path
 import scipy.optimize
 import signal
 import sirepo.template.webcon as template
+import sirepo.util
 import socket
 import subprocess
 import time
@@ -31,17 +33,20 @@ class AbortOptimizationException(Exception):
 
 def run(cfg_dir):
     with pkio.save_chdir(cfg_dir):
-        data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-        if 'analysisReport' in data.report:
-            res = template.get_analysis_report(py.path.local(cfg_dir), data)
-        elif 'fftReport' in data.report:
-            res = template.get_fft(py.path.local(cfg_dir), data)
-        elif 'correctorSettingReport' in data.report:
-            res = template.get_settings_report(py.path.local(cfg_dir), data)
-        elif 'beamPositionReport' in data.report:
-            res = template.get_beam_pos_report(py.path.local(cfg_dir), data)
-        else:
-            assert False, 'unknown report: {}'.format(data.report)
+        try:
+            data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+            if 'analysisReport' in data.report:
+                res = template.get_analysis_report(py.path.local(cfg_dir), data)
+            elif 'fftReport' in data.report:
+                res = template.get_fft(py.path.local(cfg_dir), data)
+            elif 'correctorSettingReport' in data.report:
+                res = template.get_settings_report(py.path.local(cfg_dir), data)
+            elif 'beamPositionReport' in data.report:
+                res = template.get_beam_pos_report(py.path.local(cfg_dir), data)
+            else:
+                raise sirepo.util.UserAlert('unknown report: {}'.format(data.report))
+        except sirepo.util.UserAlert as e:
+            res = PKDict(error=e.sr_args.error)
         simulation_db.write_result(res)
 
 

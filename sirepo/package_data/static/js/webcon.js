@@ -105,6 +105,10 @@ SIREPO.app.factory('webconService', function(appState, panelState) {
         return parameterValues;
     };
 
+    self.computeModel = function(analysisModel) {
+        return 'epicsServerAnimation';
+    };
+
     self.getSubreports = function() {
         // subreports are kept on a report which is never shown.
         // This avoids refreshing all reports when a subreport is added or removed.
@@ -139,6 +143,8 @@ SIREPO.app.factory('webconService', function(appState, panelState) {
             return t.length > 0;
         });
     };
+
+    appState.setAppService(self);
 
     return self;
 });
@@ -254,7 +260,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
             }
         });
         if (! model) {
-            throw 'model not found for id: ' + id;
+            throw new Error('model not found for id: ' + id);
         }
         return model;
     }
@@ -456,7 +462,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
         }
         var epicsField = kickerModelNames().indexOf(name) + 1;
         if (! epicsField) {
-            throw 'invalid kicker name: ' + name;
+            throw new Error('invalid kicker name: ' + name);
         }
         requestSender.getApplicationData(
             {
@@ -558,7 +564,11 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
         });
     });
 
-    self.simState = persistentSimulation.initSimulationState($scope, 'epicsServerAnimation', handleStatus, {});
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        webconService.computeModel(),
+        handleStatus
+    );
 
     return self;
 });
@@ -1218,7 +1228,7 @@ SIREPO.app.directive('validVariableOrParam', function(webconService) {
             function isUnique (val, arr) {
                 var i = arr.indexOf(val);
                 if (i < 0) {
-                    throw val + ': Value not in array';
+                    throw new Error(val + ': Value not in array');
                 }
                 return i === arr.lastIndexOf(val);
             }

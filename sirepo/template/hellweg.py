@@ -6,8 +6,8 @@ u"""Hellweg execution template.
 """
 
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkio
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from rslinac import solver
 from sirepo import simulation_db
@@ -38,144 +38,32 @@ _HELLWEG_PARSED_FILE = 'PARSED.TXT'
 
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
-        return {
-            'percentComplete': 0,
-            'frameCount': 0,
-        }
+        return PKDict(
+            percentComplete=0,
+            frameCount=0,
+        )
     dump_file = _dump_file(run_dir)
     if os.path.exists(dump_file):
         beam_header = hellweg_dump_reader.beam_header(dump_file)
         last_update_time = int(os.path.getmtime(dump_file))
         frame_count = beam_header.NPoints
-        return {
-            'lastUpdateTime': last_update_time,
-            'percentComplete': 100,
-            'frameCount': frame_count,
-            'summaryData': _summary_text(run_dir),
-        }
-    return {
-        'percentComplete': 100,
-        'frameCount': 0,
-        'error': _parse_error_message(run_dir)
-    }
+        return PKDict(
+            lastUpdateTime=last_update_time,
+            percentComplete=100,
+            frameCount=frame_count,
+            summaryData=_summary_text(run_dir),
+        )
+    return PKDict(
+        percentComplete=100,
+        frameCount=0,
+        error=_parse_error_message(run_dir)
+    )
 
 
-def extract_beam_histrogram(report, run_dir, frame):
-    beam_info = hellweg_dump_reader.beam_info(_dump_file(run_dir), frame)
-    points = hellweg_dump_reader.get_points(beam_info, report.reportType)
-    hist, edges = np.histogram(points, template_common.histogram_bins(report.histogramBins))
-    return {
-        'title': _report_title(report.reportType, 'BeamHistogramReportType', beam_info),
-        'x_range': [edges[0], edges[-1]],
-        'y_label': 'Number of Particles',
-        'x_label': hellweg_dump_reader.get_label(report.reportType),
-        'points': hist.T.tolist(),
-    }
-
-
-def extract_beam_report(report, run_dir, frame):
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    model = data.models.beamAnimation
-    model.update(report)
-    beam_info = hellweg_dump_reader.beam_info(_dump_file(run_dir), frame)
-    x, y = report.reportType.split('-')
-    values = [
-        hellweg_dump_reader.get_points(beam_info, x),
-        hellweg_dump_reader.get_points(beam_info, y),
-    ]
-    model['x'] = x
-    model['y'] = y
-    # see issue #872
-    if not np.any(values):
-        values = [[], []]
-    return template_common.heatmap(values, model, {
-        'x_label': hellweg_dump_reader.get_label(x),
-        'y_label': hellweg_dump_reader.get_label(y),
-        'title': _report_title(report.reportType, 'BeamReportType', beam_info),
-        'z_label': 'Number of Particles',
-        'summaryData': _summary_text(run_dir),
-    })
-
-
-def extract_parameter_report(report, run_dir):
-    s = solver.BeamSolver(
-        os.path.join(str(run_dir), HELLWEG_INI_FILE),
-        os.path.join(str(run_dir), HELLWEG_INPUT_FILE))
-    s.load_bin(os.path.join(str(run_dir), HELLWEG_DUMP_FILE))
-    y1_var, y2_var = report.reportType.split('-')
-    x_field = 'z'
-    x = s.get_structure_parameters(_parameter_index(x_field))
-    y1 = s.get_structure_parameters(_parameter_index(y1_var))
-    y1_extent = [np.min(y1), np.max(y1)]
-    y2 = s.get_structure_parameters(_parameter_index(y2_var))
-    y2_extent = [np.min(y2), np.max(y2)]
-    return {
-        'title': _enum_text('ParameterReportType', report.reportType),
-        'x_range': [x[0], x[-1]],
-        'y_label': hellweg_dump_reader.get_parameter_label(y1_var),
-        'x_label': hellweg_dump_reader.get_parameter_label(x_field),
-        'x_points': x,
-        'points': [
-            y1,
-            y2,
-        ],
-        'y_range': [min(y1_extent[0], y2_extent[0]), max(y1_extent[1], y2_extent[1])],
-        'y1_title': hellweg_dump_reader.get_parameter_title(y1_var),
-        'y2_title': hellweg_dump_reader.get_parameter_title(y2_var),
-    }
-
-
-def extract_particle_report(report, run_dir):
-    x_field = 'z0'
-    particle_info = hellweg_dump_reader.particle_info(_dump_file(run_dir), report.reportType, int(report.renderCount))
-    x = particle_info['z_values']
-    return {
-        'title': _enum_text('ParticleReportType', report.reportType),
-        'x_range': [np.min(x), np.max(x)],
-        'y_label': hellweg_dump_reader.get_label(report.reportType),
-        'x_label': hellweg_dump_reader.get_label(x_field),
-        'x_points': x,
-        'points': particle_info['y_values'],
-        'y_range': particle_info['y_range'],
-    }
-
-
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_files)
     assert False, 'unknown application data method: {}'.format(data['method'])
-
-
-def get_simulation_frame(run_dir, data, model_data):
-    frame_index = int(data['frameIndex'])
-    if data['modelName'] == 'beamAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {
-                '1': ['reportType', 'histogramBins', 'startTime'],
-                '': ['reportType', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
-            },
-        )
-        return extract_beam_report(args, run_dir, frame_index)
-    elif data['modelName'] == 'beamHistogramAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {'': ['reportType', 'histogramBins', 'startTime']},
-        )
-        return extract_beam_histrogram(args, run_dir, frame_index)
-    elif data['modelName'] == 'particleAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {'': ['reportType', 'renderCount', 'startTime']},
-        )
-        return extract_particle_report(args, run_dir)
-    elif data['modelName'] == 'parameterAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {'': ['reportType', 'startTime']},
-        )
-        return extract_parameter_report(args, run_dir)
-    raise RuntimeError('unknown animation model: {}'.format(data['modelName']))
 
 
 def python_source_for_model(data, model):
@@ -198,6 +86,86 @@ s.save_output('output.txt')
 
 def remove_last_frame(run_dir):
     pass
+
+
+def sim_frame_beamAnimation(frame_args):
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    model = data.models.beamAnimation
+    model.update(frame_args)
+    beam_info = hellweg_dump_reader.beam_info(_dump_file(run_dir), frame_args.frameIndex)
+    x, y = frame_args.reportType.split('-')
+    values = [
+        hellweg_dump_reader.get_points(beam_info, x),
+        hellweg_dump_reader.get_points(beam_info, y),
+    ]
+    model['x'] = x
+    model['y'] = y
+    # see issue #872
+    if not np.any(values):
+        values = [[], []]
+    return template_common.heatmap(values, model, {
+        'x_label': hellweg_dump_reader.get_label(x),
+        'y_label': hellweg_dump_reader.get_label(y),
+        'title': _report_title(frame_args.reportType, 'BeamReportType', beam_info),
+        'z_label': 'Number of Particles',
+        'summaryData': _summary_text(run_dir),
+    })
+
+
+def sim_frame_beamHistogramAnimation(frame_args):
+    beam_info = hellweg_dump_reader.beam_info(_dump_file(run_dir))
+    points = hellweg_dump_reader.get_points(beam_info, frame_args.reportType)
+    hist, edges = np.histogram(points, template_common.histogram_bins(frame_args.histogramBins))
+    return {
+        'title': _report_title(frame_args.reportType, 'BeamHistogramReportType', beam_info),
+        'x_range': [edges[0], edges[-1]],
+        'y_label': 'Number of Particles',
+        'x_label': hellweg_dump_reader.get_label(frame_args.reportType),
+        'points': hist.T.tolist(),
+    }
+
+
+def sim_frame_parameterAnimation(frame_args):
+    s = solver.BeamSolver(
+        os.path.join(str(run_dir), HELLWEG_INI_FILE),
+        os.path.join(str(run_dir), HELLWEG_INPUT_FILE))
+    s.load_bin(os.path.join(str(run_dir), HELLWEG_DUMP_FILE))
+    y1_var, y2_var = frame_args.reportType.split('-')
+    x_field = 'z'
+    x = s.get_structure_parameters(_parameter_index(x_field))
+    y1 = s.get_structure_parameters(_parameter_index(y1_var))
+    y1_extent = [np.min(y1), np.max(y1)]
+    y2 = s.get_structure_parameters(_parameter_index(y2_var))
+    y2_extent = [np.min(y2), np.max(y2)]
+    return {
+        'title': _enum_text('ParameterReportType', frame_args.reportType),
+        'x_range': [x[0], x[-1]],
+        'y_label': hellweg_dump_reader.get_parameter_label(y1_var),
+        'x_label': hellweg_dump_reader.get_parameter_label(x_field),
+        'x_points': x,
+        'points': [
+            y1,
+            y2,
+        ],
+        'y_range': [min(y1_extent[0], y2_extent[0]), max(y1_extent[1], y2_extent[1])],
+        'y1_title': hellweg_dump_reader.get_parameter_title(y1_var),
+        'y2_title': hellweg_dump_reader.get_parameter_title(y2_var),
+    }
+
+
+def sim_frame_particleAnimation(frame_args):
+    x_field = 'z0'
+    particle_info = hellweg_dump_reader.particle_info(_dump_file(run_dir), frame_args.reportType, int(frame_args.renderCount))
+    x = particle_info['z_values']
+    return {
+        'title': _enum_text('ParticleReportType', frame_args.reportType),
+        'x_range': [np.min(x), np.max(x)],
+        'y_label': hellweg_dump_reader.get_label(frame_args.reportType),
+        'x_label': hellweg_dump_reader.get_label(x_field),
+        'x_points': x,
+        'points': particle_info['y_values'],
+        'y_range': particle_info['y_range'],
+    }
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -261,12 +229,12 @@ def _generate_beam(models):
         return 'BEAM {} {}'.format(_generate_transverse_dist(models), _generate_longitude_dist(models))
     if beam_def == 'cst_pit':
         return 'BEAM CST_PIT {} {}'.format(
-            _SIM_DATA.lib_file_name('beam', 'cstFile', models.beam.cstFile),
+            _SIM_DATA.lib_file_name_with_model_field('beam', 'cstFile', models.beam.cstFile),
             'COMPRESS' if models.beam.cstCompress else '',
         )
     if beam_def == 'cst_pid':
         return 'BEAM CST_PID {} {}'.format(
-            _SIM_DATA.lib_file_name('beam', 'cstFile', models.beam.cstFile),
+            _SIM_DATA.lib_file_name_with_model_field('beam', 'cstFile', models.beam.cstFile),
             _generate_energy_phase_distribution(models.energyPhaseDistribution),
         )
     raise RuntimeError('invalid beam def: {}'.format(beam_def))
@@ -333,11 +301,11 @@ def _generate_longitude_dist(models):
         raise RuntimeError('unknown longitudinal distribution type: {}'.format(models.longitudinalDistribution.distributionType))
     if dist_type == 'file1d':
         return 'FILE1D {} {}'.format(
-            _SIM_DATA.lib_file_name('beam', 'longitudinalFile1d', models.beam.longitudinalFile1d),
+            _SIM_DATA.lib_file_name_with_model_field('beam', 'longitudinalFile1d', models.beam.longitudinalFile1d),
             _generate_energy_phase_distribution(models.energyPhaseDistribution),
         )
     if dist_type == 'file2d':
-        return 'FILE2D {}'.format(_SIM_DATA.lib_file_name('beam', 'transversalFile2d', beam.transversalFile2d))
+        return 'FILE2D {}'.format(_SIM_DATA.lib_file_name_with_model_field('beam', 'transversalFile2d', beam.transversalFile2d))
 
     raise RuntimeError('unknown longitudinal distribution: {}'.format(models.beam.longitudinalDistribution))
 
@@ -373,7 +341,7 @@ def _generate_solenoid(models):
             solenoid.fieldStrength, solenoid.length, solenoid.z0)
     if solenoid.sourceDefinition == 'file':
         return 'SOLENOID {}'.format(
-            _SIM_DATA.lib_file_name('solenoid', 'solenoidFile', solenoid.solenoidFile))
+            _SIM_DATA.lib_file_name_with_model_field('solenoid', 'solenoidFile', solenoid.solenoidFile))
     raise RuntimeError('unknown solenoidDefinition: {}'.format(solenoid.sourceDefinition))
 
 
@@ -394,9 +362,9 @@ def _generate_transverse_dist(models):
         return 'ELL2D {} {} {} {}'.format(dist.aX, dist.bY, dist.rotationAngle, dist.rmsDeviationFactor)
     beam = models.beam
     if dist_type == 'file2d':
-        return 'FILE2D {}'.format(_SIM_DATA.lib_file_name('beam', 'transversalFile2d', beam.transversalFile2d))
+        return 'FILE2D {}'.format(_SIM_DATA.lib_file_name_with_model_field('beam', 'transversalFile2d', beam.transversalFile2d))
     if dist_type == 'file4d':
-        return 'FILE4D {}'.format(_SIM_DATA.lib_file_name('beam', 'transversalFile4d', beam.transversalFile4d))
+        return 'FILE4D {}'.format(_SIM_DATA.lib_file_name_with_model_field('beam', 'transversalFile4d', beam.transversalFile4d))
     raise RuntimeError('unknown transverse distribution: {}'.format(dist_type))
 
 

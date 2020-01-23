@@ -7,11 +7,11 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkinspect
 from pykern import pkio
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
-import py.path
 import sirepo.template
 
 
@@ -24,29 +24,22 @@ def run(cfg_dir):
     template = sirepo.template.import_module(pkinspect.module_basename(run))
     with pkio.save_chdir(cfg_dir):
         _run_code()
-        data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-        data_file = template.open_data_file(py.path.local())
-        model = data['models'][data['report']]
-
-        if data['report'] == 'laserPreviewReport':
-            field = model['field']
-            coordinate = model['coordinate']
-            mode = model['mode']
-            if mode != 'all':
-                mode = int(mode)
-            res = template.extract_field_report(field, coordinate, mode, data_file)
-        elif data['report'] == 'beamPreviewReport':
-            res = template.extract_particle_report(
-                model,
-                'beam',
-                cfg_dir,
-                data_file,
-            )
-
+        a = PKDict(
+            # see template.warppba.open_data_file (opens last frame)
+            frameIndex=None,
+            run_dir=pkio.py_path(cfg_dir),
+            sim_in=simulation_db.read_json(template_common.INPUT_BASE_NAME),
+        )
+        a.frameReport = a.sim_in.report
+        a.update(a.sim_in.models[a.frameReport])
+        if a.frameReport == 'laserPreviewReport':
+            res = template.sim_frame_fieldAnimation(a)
+        elif a.frameReport == 'beamPreviewReport':
+            res = template.sim_frame_beamAnimation(a)
         simulation_db.write_result(res)
 
 
-def run_background(cfg_dir):
+def run_background(cfg_dir, sbatch=False):
     """Run code in ``cfg_dir`` with mpi
 
     Args:
@@ -55,6 +48,15 @@ def run_background(cfg_dir):
     with pkio.save_chdir(cfg_dir):
         mpi.run_script(_script())
         simulation_db.write_result({})
+
+
+def sbatch_script(path):
+    """Write script to path
+
+    Args:
+        path (str): where to write file
+    """
+    pkio.write_text(path, _script())
 
 
 def _run_code():

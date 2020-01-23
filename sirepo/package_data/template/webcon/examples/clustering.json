@@ -393,13 +393,47 @@
             "folder": "/Examples",
             "isExample": true,
             "name": "Clustering Demo",
-            "notes": "",
-            "simulationId": "0dhwsPz2",
-            "simulationSerial": 1559250681953361
+            "notes": ""
         },
-        "simulationStatus": {},
-        "watchpointReport": {}
+        "watchpointReport": {
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0.003,
+            "plotRangeType": "fixed",
+            "verticalOffset": 0.0,
+            "verticalSize": 0.003
+        },
+        "watchpointReport27": {
+            "_id": 27,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0.003,
+            "plotRangeType": "fixed",
+            "verticalOffset": 0.0,
+            "verticalSize": 0.003
+        },
+        "watchpointReport28": {
+            "_id": 28,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0.003,
+            "plotRangeType": "fixed",
+            "verticalOffset": 0.0,
+            "verticalSize": 0.003
+        },
+        "watchpointReport29": {
+            "_id": 29,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0.003,
+            "plotRangeType": "fixed",
+            "verticalOffset": 0.0,
+            "verticalSize": 0.003
+        },
+        "watchpointReport9": {
+            "_id": 9,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0.003,
+            "plotRangeType": "fixed",
+            "verticalOffset": 0.0,
+            "verticalSize": 0.003
+        }
     },
-    "simulationType": "webcon",
-    "version": "20190529.225417"
+    "simulationType": "webcon"
 }

@@ -13,12 +13,63 @@ from sirepo import util
 import re
 
 
+_NAME_ILLEGALS = r':/\*|?'
+_NAME_ILLEGALS_RE = re.compile(r'^[^' + re.escape(_NAME_ILLEGALS) + ']+$')
+
+
 def get_enums(schema, name):
     enum_dict = pkcollections.Dict()
     for info in schema.enum[name]:
         enum_name = info[0]
         enum_dict[enum_name] = enum_name
     return enum_dict
+
+
+def parse_folder(folder):
+    """Verifies syntax of folder is correct
+
+    Args:
+        folder (str): what to validate
+    Returns:
+        str: cleaned up folder name
+    """
+    if folder is None or len(folder) == 0:
+        raise util.Error('blank folder')
+    res = []
+    for f in folder.split('/'):
+        if len(f):
+            res.append(parse_name(f))
+    return '/' + '/'.join(res)
+
+
+def parse_name(name):
+    """Verifies syntax of simulation is correct
+
+    Args:
+        folder (str): what to validate
+    Returns:
+        str: cleaned up folder name
+    """
+    if name is None:
+        name = ''
+    else:
+        # ignore leading and trailing spaces
+        name = name.strip()
+    if len(name) == 0:
+        raise util.Error('blank name')
+    if not _NAME_ILLEGALS_RE.search(name):
+        raise util.Error(
+            '"{}" contains an illegal character (one of "{}"'.format(name, _NAME_ILLEGALS),
+        )
+    if name.startswith('.'):
+        raise util.Error(
+            '"{}" may not start with a dot (".")'.format(name),
+        )
+    if name.endswith('.'):
+        raise util.Error(
+            '"{}" may not end with a dot (".")'.format(name),
+        )
+    return name
 
 
 def validate_fields(data, schema):

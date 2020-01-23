@@ -40,11 +40,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data.report
-        if r == cls.animation_name(None):
-            return []
-        return _cls._non_analysis_fields(data, r) + [
+    def _compute_job_fields(cls, data, r, compute_model):
+        return cls._non_analysis_fields(data, r) + [
             'beam',
             'ellipticalDistribution',
             'energyPhaseDistribution',
@@ -54,21 +51,27 @@ class SimData(sirepo.sim_data.SimDataBase):
         ]
 
     @classmethod
-    def _lib_files(cls, data):
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if 'bunchReport' in analysis_model:
+            return 'bunchReport'
+        return super()._compute_model(analysis_model, *args, **kwargs)
+
+    @classmethod
+    def _lib_file_basenames(cls, data):
         res = []
         s = data.models.solenoid
         if s.sourceDefinition == 'file' and s.solenoidFile:
-            res.append(cls.lib_file_name('solenoid', 'solenoidFile', s.solenoidFile))
+            res.append(cls.lib_file_name_with_model_field('solenoid', 'solenoidFile', s.solenoidFile))
         beam = data.models.beam
         if beam.beamDefinition == 'cst_pit' or beam.beamDefinition == 'cst_pid':
-            res.append(cls.lib_file_name('beam', 'cstFile', beam.cstFile))
+            res.append(cls.lib_file_name_with_model_field('beam', 'cstFile', beam.cstFile))
         if beam.beamDefinition == 'transverse_longitude':
             if beam.transversalDistribution == 'file2d':
-                res.append(cls.lib_file_name('beam', 'transversalFile2d', beam.transversalFile2d))
+                res.append(cls.lib_file_name_with_model_field('beam', 'transversalFile2d', beam.transversalFile2d))
             elif beam.transversalDistribution == 'file4d':
-                res.append(cls.lib_file_name('beam', 'transversalFile4d', beam.transversalFile4d))
+                res.append(cls.lib_file_name_with_model_field('beam', 'transversalFile4d', beam.transversalFile4d))
             if beam.longitudinalDistribution == 'file1d':
-                res.append(cls.lib_file_name('beam', 'longitudinalFile1d', beam.longitudinalFile1d))
+                res.append(cls.lib_file_name_with_model_field('beam', 'longitudinalFile1d', beam.longitudinalFile1d))
             if beam.longitudinalDistribution == 'file2d':
-                res.append(cls.lib_file_name('beam', 'longitudinalFile2d', beam.longitudinalFile2d))
+                res.append(cls.lib_file_name_with_model_field('beam', 'longitudinalFile2d', beam.longitudinalFile2d))
         return res

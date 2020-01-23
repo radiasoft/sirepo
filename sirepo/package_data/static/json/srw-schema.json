@@ -1,37 +1,4 @@
 {
-    "dynamicFiles": {
-        "externalLibs": {
-            "js": [
-                "dom-to-image.min.js",
-                "vtk.js"
-            ]
-        },
-        "sirepoLibs": {
-            "js": [
-                "srw.js",
-                "sirepo-beamline.js"
-            ],
-            "css": [
-                 "srw.css"
-            ]
-        }
-    },
-    "localRoutes": {
-        "source": {
-            "config": {
-                "controller": "SRWSourceController as source",
-                "templateUrl": "/static/html/srw-source.html"
-            }
-        },
-        "beamline": {
-            "route": "/beamline/:simulationId",
-            "config": {
-                "controller": "SRWBeamlineController as beamline",
-                "templateUrl": "/static/html/srw-beamline.html",
-                "reloadOnSearch": true
-            }
-        }
-    },
     "appModes": {
         "calculator": {
             "localRoute": "source",
@@ -348,6 +315,45 @@
             ["u_t", "Tabulated"]
         ]
     },
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "dom-to-image.min.js",
+                "vtk.js"
+            ]
+        },
+        "sirepoLibs": {
+            "js": [
+                "srw.js",
+                "sirepo-beamline.js"
+            ],
+            "css": [
+                 "srw.css"
+            ]
+        }
+    },
+    "frameIdFields": {
+        "coherenceXAnimation": ["intensityPlotsWidth", "rotateAngle", "rotateReshape"],
+        "coherenceYAnimation": ["intensityPlotsWidth", "rotateAngle", "rotateReshape"],
+        "fluxAnimation": [],
+        "multiElectronAnimation": ["intensityPlotsWidth", "rotateAngle", "rotateReshape"]
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SRWSourceController as source",
+                "templateUrl": "/static/html/srw-source.html"
+            }
+        },
+        "beamline": {
+            "route": "/beamline/:simulationId",
+            "config": {
+                "controller": "SRWBeamlineController as beamline",
+                "templateUrl": "/static/html/srw-beamline.html",
+                "reloadOnSearch": true
+            }
+        }
+    },
     "model": {
         "aperture": {
             "title": ["Element Name", "String", "Aperture"],
@@ -418,29 +424,29 @@
             "h": ["h", "MillerIndicesRange", "1"],
             "k": ["k", "MillerIndicesRange", "1"],
             "l": ["l", "MillerIndicesRange", "1"],
-            "energyAvg": ["Average photon energy the crystal should be oriented for [eV]", "Float", 9000],
+            "energy": ["Average photon energy the crystal should be oriented for [eV]", "Float", 9000],
 	        "useCase": ["Geometry type", "GeometryType", "1"],
-            "rollAngle": ["Diffraction plane (roll) angle [rad]", "DiffractionPlaneAngle", "0"],
+            "diffractionAngle": ["Diffraction plane (roll) angle [rad]", "DiffractionPlaneAngle", "0"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 0.0],
             "asymmetryAngle": ["Asymmetry angle [rad]", "Float", 0.0],
             "crystalThickness": ["Crystal thickness [m]", "Float", 0.01],
-            "dSpacing": ["Crystal reflecting planes d-spacing [A]", "Float", ""],
-            "psi0r": ["0-th Fourier component", "Float", ""],
-            "psi0i": ["0-th Fourier component", "Float", ""],
-            "psiHr": ["H-th Fourier component", "Float", ""],
-            "psiHi": ["H-th Fourier component", "Float", ""],
-            "psiHBr": ["-H-th Fourier component", "Float", ""],
-            "psiHBi": ["-H-th Fourier component", "Float", ""],
-            "nvx": ["Horizontal coordinate", "Float", ""],
-            "nvy": ["Vertical coordinate", "Float", ""],
-            "nvz": ["Longitudinal coordinate", "Float", ""],
-            "tvx": ["Horizontal coordinate", "Float", ""],
-            "tvy": ["Vertical coordinate", "Float", ""],
-            "outoptvx": ["Horizontal", "Float", ""],
-            "outoptvy": ["Vertical", "Float", ""],
-            "outoptvz": ["Longitudinal", "Float", ""],
-            "outframevx": ["Horizontal", "Float", ""],
-            "outframevy": ["Vertical", "Float", ""],
+            "dSpacing": ["Crystal reflecting planes d-spacing [A]", "Float", 0],
+            "psi0r": ["0-th Fourier component", "Float", 0],
+            "psi0i": ["0-th Fourier component", "Float", 0],
+            "psiHr": ["H-th Fourier component", "Float", 0],
+            "psiHi": ["H-th Fourier component", "Float", 0],
+            "psiHBr": ["-H-th Fourier component", "Float", 0],
+            "psiHBi": ["-H-th Fourier component", "Float", 0],
+            "nvx": ["Horizontal coordinate", "Float", 0],
+            "nvy": ["Vertical coordinate", "Float", 0],
+            "nvz": ["Longitudinal coordinate", "Float", 0],
+            "tvx": ["Horizontal coordinate", "Float", 0],
+            "tvy": ["Vertical coordinate", "Float", 0],
+            "outoptvx": ["Horizontal", "Float", 0],
+            "outoptvy": ["Vertical", "Float", 0],
+            "outoptvz": ["Longitudinal", "Float", 0],
+            "outframevx": ["Horizontal", "Float", 0],
+            "outframevy": ["Vertical", "Float", 0],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
             "heightAmplification": ["Height Amplification Coefficient", "Float", 1]
@@ -579,22 +585,22 @@
             "position": ["Nominal Position [m]", "Float"],
             "tangentialSize": ["Tangential Size [m]", "Float", 0.2],
             "sagittalSize": ["Sagittal Size [m]", "Float", 0.02],
-            "grazingAngle": ["Grazing Angle [mrad]", "Float", 34.490133675],
-            "nvx": ["Horizontal", "Float", -5.3558e-8],
-            "nvy": ["Vertical", "Float", -0.999405274299],
-            "nvz": ["Longitudinal", "Float", -0.034483296014],
-            "tvx": ["Horizontal", "Float", -1.848e-9],
-            "tvy": ["Vertical", "Float", -0.034483296014],
-            "outoptvx": ["Horizontal", "Float", -4.616e-9],
-            "outoptvy": ["Vertical", "Float", -0.086131317477],
-            "outoptvz": ["Longitudinal", "Float", 0.996283792977],
-            "outframevx": ["Horizontal", "Float", 1],
-            "outframevy": ["Vertical", "Float", -1.99e-10],
-            "energyAvg": ["Average photon energy the grating should be oriented for [eV]", "Float", 250],
+            "grazingAngle": ["Grazing Angle [mrad]", "Float", 0],
+            "nvx": ["Horizontal", "Float", 0],
+            "nvy": ["Vertical", "Float", 0],
+            "nvz": ["Longitudinal", "Float", 0],
+            "tvx": ["Horizontal", "Float", 0],
+            "tvy": ["Vertical", "Float", 0],
+            "outoptvx": ["Horizontal", "Float", 0],
+            "outoptvy": ["Vertical", "Float", 0],
+            "outoptvz": ["Longitudinal", "Float", 0],
+            "outframevx": ["Horizontal", "Float", 0],
+            "outframevy": ["Vertical", "Float", 0],
+            "energyAvg": ["Average photon energy the grating should be oriented for [eV]", "Float", 0],
 	        "cff": ["Cff Parameter (cos(beta)/cos(alpha))", "Float", 1.5],
             "rollAngle": ["Roll Angle [rad]", "Float", 3.1415926],
             "diffractionOrder": ["Diffraction Order", "Float", 1],
-            "grooveDensity0": ["a₀ [lines/mm]", "Float", 150],
+            "grooveDensity0": ["a₀ [lines/mm]", "Float", 0],
             "grooveDensity1": ["a₁ [lines/mm²]", "Float", 0],
             "grooveDensity2": ["a₂ [lines/mm³]", "Float", 0],
             "grooveDensity3": ["a₃ [lines/mm⁴]", "Float", 0],
@@ -602,9 +608,9 @@
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
-            "computeParametersFrom": ["Compute Parameters from", "computeParametersFrom", "1"],
+            "computeParametersFrom": ["Compute Parameters from", "computeParametersFrom", "2"],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
-            "heightAmplification": ["Height Amplification Coefficient", "Float", 1]	    
+            "heightAmplification": ["Height Amplification Coefficient", "Float", 0.001]
         },
         "initialIntensityReport": {
             "polarization": ["Polarization Component to Extract", "Polarization"],
@@ -681,6 +687,9 @@
             "notes": ["Notes", "Text", ""]
         },
         "multiElectronAnimation": {
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "sbatchCores": ["Cores", "Integer", 128],
+            "sbatchHours": ["Hours", "Float", 0.4],
             "stokesParameter": ["Representation of Stokes Parameters", "StokesParameter", "0"],
             "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", 100000, "Number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation"],
             "integrationMethod": ["Multi-electron Integration Approximation Method", "MultiElectronIntegrationMethod", "0"],
@@ -1082,9 +1091,9 @@
                     ]
                 ]],
                 ["Geometry", [
-                    "energyAvg",
+                    "energy",
 		            "useCase",
-                    "rollAngle",
+                    "diffractionAngle",
                     "asymmetryAngle",
                     "crystalThickness",
                     "dSpacing",

@@ -19,29 +19,9 @@ _DEFAULT_ROOT = 'run'
 #: Configured root either by server_set_root or cfg
 _root = None
 
-#: Any directory in the database whose name ends with this suffix will be
-#: automatically removed after some time.
-TMP_DIR_SUFFIX = '.tmp'
-
-#: Every TMP_DIR_CLEANUP_TIME seconds, we scan through the run database, and
-#: any directories that are named '*.tmp', and whose mtime is
-#: >TMP_DIR_CLEANUP_TIME in the past, are deleted.
-TMP_DIR_CLEANUP_TIME = 24 * 60 * 60  # 24 hours
-
 
 def root():
-    if not _root:
-        _init_root()
-    return _root
-
-
-def runner_socket_path():
-    return root() / 'runner.sock'
-
-
-def server_init_root(value):
-    _init_root(value)
-    return root()
+    return _root or _init_root()
 
 
 @pkconfig.parse_none
@@ -50,16 +30,11 @@ def _cfg_root(value):
     return value
 
 
-def _init_root(*args):
-    global _root
-
-    if args:
-        assert not cfg.root, \
-            'Cannot set both SIREPO_SRDB_ROOT ({}) and SIREPO_SERVER_DB_DIR ({})'.format(
-                cfg.root,
-                args[0],
-            )
-        cfg.root = args[0]
+def _init_root():
+    global cfg, _root
+    cfg = pkconfig.init(
+        root=(None, _cfg_root, 'where database resides'),
+    )
     v = cfg.root
     if v:
         assert os.path.isabs(v), \
@@ -79,8 +54,4 @@ def _init_root(*args):
             root = pkio.py_path('.')
         v = pkio.mkdir_parent(root.join(_DEFAULT_ROOT))
     _root = v
-
-
-cfg = pkconfig.init(
-    root=(None, _cfg_root, 'where database resides'),
-)
+    return v

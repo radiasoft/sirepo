@@ -44,7 +44,3 @@ def init_apis(*args, **kwargs):
         uid=pkconfig.Required(_cfg_uid, 'single user allowed to login with basic auth'),
         password=pkconfig.Required(str, 'password for uid'),
     )
-
-
-def validate_login(*args, **kwargs):
-    return None

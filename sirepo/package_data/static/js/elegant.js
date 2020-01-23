@@ -273,6 +273,10 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
         }
     }
 
+    self.computeModel = function(analysisModel) {
+        return 'animation';
+    };
+
     self.dataFileURL = function(model, index) {
         if (! appState.isLoaded()) {
             return '';
@@ -306,6 +310,8 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
         }
         return null;
     };
+
+    appState.setAppService(self);
 
     appState.whenModelsLoaded($rootScope, function() {
         if (rootScopeListener) {
@@ -447,7 +453,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
     self.panelState = panelState;
     self.outputFiles = [];
     self.outputFileMap = {};
-    self.statusModel = 'simulationStatus';
 
     function cleanFilename(fn) {
         return fn.replace(/\.(?:sdds|output_file|filename)/g, '');
@@ -467,7 +472,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         self.simulationErrors = data.errors || '';
         if (data.frameCount) {
             frameCache.setFrameCount(parseInt(data.frameCount));
-            loadElementReports(data.outputInfo, data.startTime);
+            loadElementReports(data.outputInfo);
         }
         if (self.simState.isStopped()) {
             if (! data.frameCount) {
@@ -487,10 +492,9 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         return SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName + ' ' + (self.simulationErrors.toLowerCase().indexOf('error') >= 0 ? 'Errors:' : 'Warnings:');
     };
 
-    function loadElementReports(outputInfo, startTime) {
+    function loadElementReports(outputInfo) {
         self.outputFiles = [];
         self.outputFileMap = {};
-        var animationArgs = {};
         var similarRowCounts = {};
 
         outputInfo.forEach(function (info) {
@@ -523,25 +527,9 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         self.outputFiles.forEach(function (outputFile, i) {
             var info = outputFile.info;
             var modelKey = outputFile.modelAccess.modelKey;
-            animationArgs[modelKey] = [
-                SIREPO.ANIMATION_ARGS_VERSION + '5',
-                'x',
-                'y1',
-                'y2',
-                'y3',
-                'histogramBins',
-                'xFileId',
-                'plotRangeType',
-                'horizontalSize',
-                'horizontalOffset',
-                'verticalSize',
-                'verticalOffset',
-                'startTime',
-            ];
             var m = null;
             if (appState.models[modelKey]) {
                 m = appState.models[modelKey];
-                m.startTime = startTime;
                 m.xFileId = info.id;
                 m.xFile = info.filename;
                 m.y1File = info.filename;
@@ -558,7 +546,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                     y1File: info.filename,
                     x: info.plottableColumns[0],
                     xFileId: info.id,
-                    startTime: startTime,
                 };
                 // Only display the first outputFile
                 if (i > 0 && ! panelState.isHidden(modelKey)) {
@@ -589,7 +576,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 });
         });
         $rootScope.$broadcast('elementAnimation.outputInfo', outputInfo);
-        frameCache.setAnimationArgs(animationArgs);
     }
 
     function yFileUpdate(modelKey) {
@@ -623,11 +609,30 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         return elegantService.dataFileURL(self.simState.model, -1);
     };
 
+    self.runningStatusText = function() {
+        if (appState.isLoaded()) {
+            var res = self.simState.stateAsText();
+            var sim = appState.applicationState().simulation;
+            if (sim.backtracking == '1') {
+                res += ' Backtrace';
+            }
+            if (sim.simulationMode == 'parallel') {
+                res += ' in Parallel';
+            }
+            return res + self.simState.dots;
+        }
+        return '';
+    };
+
     self.startSimulation = function() {
         self.simState.saveAndRunSimulation('simulation');
     };
 
-    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {});
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        elegantService.computeModel(),
+        handleStatus
+    );
 
     // override persistentSimulation settings
     self.simState.isInitializing = function() {
@@ -1537,22 +1542,6 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
                 return value.toString();
             });
         }
-    };
-});
-
-SIREPO.app.directive('runSimulationFields', function() {
-    return {
-        template: [
-            '<div>',
-              '<div class="col-sm-12" style="margin-bottom: 15px"><div class="row">',
-                '<div data-model-field="\'simulationMode\'" data-model-name="\'simulation\'" data-label-size="2"></div>',
-              '</div></div>',
-              '<div data-model-field="\'visualizationBeamlineId\'" data-model-name="\'simulation\'" data-label-size="2"></div>',
-              '<div class="col-sm-5" data-ng-show="visualization.simState.isStopped()">',
-                '<button class="btn btn-default" data-ng-click="visualization.startSimulation()">Start New Simulation</button>',
-              '</div>',
-            '</div>',
-        ].join(''),
     };
 });
 

@@ -191,7 +191,7 @@ class DockerJob(runner.JobBase):
         res = []
         for c in self.cmd:
             assert not "'" in c, \
-                '{}: sh_cmd contains a single quote'.format(cmd)
+                '{}: sh_cmd contains a single quote'.format(self.cmd)
             res.append("'{}'".format(c))
         return ' '.join(res)
 
@@ -210,7 +210,7 @@ class DockerJob(runner.JobBase):
 
         if pkconfig.channel_in('dev'):
             for v in '~/src', '~/.pyenv':
-                v = pkio.py_path('~/src')
+                v = pkio.py_path(v)
                 # pyenv and src shouldn't be writable, only rundir
                 _res(v, v + ':ro')
         _res(self.run_dir, self.run_dir)
@@ -242,7 +242,7 @@ def init_class(app, *args, **kwargs):
         )
         _init_host(h)
     assert len(_hosts) > 0, \
-        '{}: no docker hosts found in directory'.format(_tls_d)
+        '{}: no docker hosts found in directory'.format(cfg.tls_d)
     _init_hosts_slots_balance()
     _init_slots()
     _init_parse_jobs()

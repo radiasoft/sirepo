@@ -16,16 +16,16 @@ class SimData(sirepo.sim_data.SimDataBase):
     RS4PI_BEAMLIST_FILENAME = 'beamlist_72deg.txt'
 
     @classmethod
-    def animation_name(cls, data):
-        if data['modelName'].startswith('dicomAnimation'):
+    def _compute_model(cls, analysis_model, data):
+        if analysis_model.startswith('dicomAnimation'):
             return 'dicomAnimation'
-        if data['modelName'] == 'dicomDose':
+        if analysis_model == 'dicomDose' or analysis_model == 'doseCalculation':
             # if the doseCalculation has been run, use that directory for work
             # otherwise, it is an imported dose file
-            if simulation_db.simulation_dir(SIM_TYPE, data.simulationId).join('doseCalculation').exists():
+            if simulation_db.simulation_dir(cls.sim_type(), data.simulationId).join('doseCalculation').exists():
                 return 'doseCalculation'
             return 'dicomAnimation'
-        return data['modelName']
+        return analysis_model
 
 
     @classmethod
@@ -54,12 +54,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
 
     @classmethod
-    def resource_files(cls):
-        return cls.resource_glob('beamlist*.txt')
-
-    @classmethod
-    def _compute_job_fields(cls, data):
-        r = data.report
+    def _compute_job_fields(cls, data, r, compute_model):
         if r == 'doseCalculation':
             return []
         if r == 'dvhReport':
@@ -67,5 +62,5 @@ class SimData(sirepo.sim_data.SimDataBase):
         return [r]
 
     @classmethod
-    def _lib_files(cls, data):
+    def _lib_file_basenames(cls, data):
         return [cls.RS4PI_BEAMLIST_FILENAME]

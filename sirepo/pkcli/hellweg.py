@@ -12,6 +12,7 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import py.path
 import sirepo.template.hellweg as template
+import copy
 
 def run(cfg_dir):
     """Run Hellweg in ``cfg_dir``
@@ -20,16 +21,17 @@ def run(cfg_dir):
         cfg_dir (str): directory to run hellweg in
     """
     _run_hellweg(cfg_dir)
-    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    report = data['models'][data['report']]
-    res = None
-    if data['report'] == 'beamReport':
-        res = template.extract_beam_report(report, py.path.local(cfg_dir), 0)
-    elif data['report'] == 'beamHistogramReport':
-        res = template.extract_beam_histrogram(report, py.path.local(cfg_dir), 0)
-    else:
-        raise RuntimeError('unknown report: {}'.format(data['report']))
-    simulation_db.write_result(res)
+    sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    r = sim_in.report.replace
+    simulation_db.write_result(
+        template_common.sim_frame_dispatch(
+            copy.deepcopy(sim_in.models[r]).pkupdate(
+                frameReport=r.replace('Report', 'Animation'),
+                run_dir=pkio.py_path(cfg_dir),
+                sim_in=sim_in,
+            ),
+        ),
+    )
 
 
 def run_background(cfg_dir):

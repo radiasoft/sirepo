@@ -89,7 +89,7 @@ def CalcFluxUnd(Ib,kx,kz,phix,phiz,n,nPer,enDetPar,relEnSpr):
             res = genFact
         else:
             relarg = auxMult*dEperE
-            res = math.exp(relArg)*genFact
+            res = math.exp(relarg)*genFact
         return res
 
     C0=4.5546497e13 #convConstFlux = alpha dw/w /e (dw/w = 0.001)

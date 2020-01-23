@@ -4,49 +4,6 @@
             "localRoute": "lattice"
         }
     },
-    "dynamicFiles": {
-        "externalLibs": {
-            "js": [
-                "split-1.3.5.min.js",
-                "vtk.js"
-            ]
-        },
-        "sirepoLibs": {
-            "js": [
-                "opal.js",
-                "sirepo-command.js",
-                "sirepo-lattice.js"
-            ],
-            "css": [
-                "lattice.css",
-                "command.css",
-                "vtk.css"
-            ]
-        }
-    },
-    "localRoutes": {
-        "lattice": {
-            "route": "/lattice/:simulationId",
-            "config": {
-                "controller": "LatticeController as lattice",
-                "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
-            }
-        },
-        "control": {
-            "route": "/control/:simulationId",
-            "config": {
-              "controller": "CommandController as control",
-              "template": "<div data-command-tab=\"\" data-controller=\"control\"></div>"
-            }
-        },
-        "visualization": {
-            "route": "/visualization/:simulationId",
-            "config": {
-              "controller": "VisualizationController as visualization",
-              "templateUrl": "/static/html/opal-visualization.html"
-            }
-        }
-    },
     "enum": {
         "PhaseSpaceCoordinate": [
             ["x", "x"],
@@ -117,6 +74,63 @@
             ["minX z", "minX z"],
             ["none", "None"]
         ]
+    },
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "split-1.3.5.min.js",
+                "vtk.js"
+            ]
+        },
+        "sirepoLibs": {
+            "js": [
+                "opal.js",
+                "sirepo-command.js",
+                "sirepo-lattice.js"
+            ],
+            "css": [
+                "lattice.css",
+                "command.css",
+                "vtk.css"
+            ]
+        }
+    },
+    "frameIdFields": {
+        "bunchAnimation": [
+            "x",
+            "y",
+            "histogramBins",
+            "plotRangeType",
+            "horizontalSize",
+            "horizontalOffset",
+            "verticalSize",
+            "verticalOffset",
+            "isRunning"
+        ],
+        "plotAnimation": ["x", "y1", "y2", "y3"]
+    },
+    "localRoutes": {
+        "lattice": {
+            "route": "/lattice/:simulationId",
+            "config": {
+                "controller": "LatticeController as lattice",
+                "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
+            }
+        },
+        "control": {
+            "route": "/control/:simulationId",
+            "config": {
+              "controller": "CommandController as control",
+              "template": "<div data-command-tab=\"\" data-controller=\"control\"></div>"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+              "controller": "VisualizationController as visualization",
+              "templateUrl": "/static/html/opal-visualization.html"
+            }
+        }
     },
     "model": {
         "beamline": {

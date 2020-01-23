@@ -52,7 +52,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
             $scope.description = viewInfo.description;
             $scope.advancedFields = viewInfo[$scope.fieldDef || 'advanced'];
             if (! $scope.advancedFields) {
-                throw $scope.modelName + ' view is missing ' + ($scope.fieldDef || 'advanced') + ' fields';
+                throw new Error($scope.modelName + ' view is missing ' + ($scope.fieldDef || 'advanced') + ' fields');
             }
             $scope.isColumnField = function(f) {
                 return typeof(f) == 'string' ? false : true;
@@ -217,7 +217,7 @@ SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
         controller: function($scope) {
             var viewInfo = appState.viewInfo($scope.viewName);
             if (! viewInfo) {
-                throw 'unknown viewName: ' + $scope.viewName;
+                throw new Error('unknown viewName: ' + $scope.viewName);
             }
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.modelKey = $scope.modelData
@@ -537,12 +537,11 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 }
                 return true;
             }
-
             $scope.enum = SIREPO.APP_SCHEMA.enum;
             // field def: [label, type]
             $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
             if (! $scope.info) {
-                throw 'invalid model field: ' + $scope.modelName + '.' + $scope.field;
+                throw new Error('invalid model field: ' + $scope.modelName + '.' + $scope.field);
             }
             $scope.fieldProps = appState.fieldProperties($scope.modelName, $scope.field);
 
@@ -719,15 +718,12 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
                 if ($scope.selectionRequired && $scope.form) {
                     $scope.form.$valid = false;
                 }
-                if ($scope.fileType && $scope.model) {
-                    var f = $scope.model[$scope.fileField];
-                    var list = requestSender.getAuxiliaryData($scope.fileType);
-                    if (f && list && list.indexOf(f) >= 0) {
-                        if($scope.form) {
-                            $scope.form.$valid = true;
-                        }
-                        return true;
+                if ($scope.fileType && $scope.model && $scope.model[$scope.fileField]) {
+                    // assume the file is valid if selected
+                    if ($scope.form) {
+                        $scope.form.$valid = true;
                     }
+                    return true;
                 }
                 return false;
             };
@@ -1085,7 +1081,7 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
             }
             var viewInfo = appState.viewInfo($scope.viewName);
             if (! viewInfo) {
-                throw 'missing view in schema: ' + $scope.viewName;
+                throw new Error('missing view in schema: ' + $scope.viewName);
             }
             $scope.helpTopic = viewInfo.title;
             //TODO(pjm): cobbled-together to allow a view to refer to a model by name, ex. SRW simulationGrid view
@@ -1372,7 +1368,7 @@ SIREPO.app.directive('colorMapMenu', function(appState, plotting) {
             function init() {
                 var info = appState.modelInfo($scope.modelName)[$scope.field];
                 if (! info) {
-                    throw 'invalid model field: ' + $scope.modelName + '.' + $scope.field;
+                    throw new Error('invalid model field: ' + $scope.modelName + '.' + $scope.field);
                 }
                 enumName = info[SIREPO.INFO_INDEX_TYPE];
                 defaultMapName = info[SIREPO.INFO_INDEX_DEFAULT_VALUE];
@@ -1573,6 +1569,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                         '<model>': $scope.modelKey,
                         '<frame>': appState.isAnimationModelName($scope.modelKey)
                             ? frameCache.getCurrentFrame($scope.modelKey)
+                            // any value is fine (ignored)
                             : -1,
                     };
                     if (suffix) {
@@ -2283,10 +2280,9 @@ SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, 
     };
 });
 
-SIREPO.app.directive('completeRegistration', function($window, requestSender, authState, errorService) {
+SIREPO.app.directive('completeRegistration', function($window, requestSender, errorService) {
     return {
         restrict: 'A',
-        scope: {},
         template: [
             '<div class="row text-center">',
             '<p>Please enter your full name to complete your Sirepo registration.</p>',
@@ -2295,49 +2291,15 @@ SIREPO.app.directive('completeRegistration', function($window, requestSender, au
               '<div class="row text-center">',
                 '<label class="col-sm-3 control-label">Your full name</label>',
                 '<div class="col-sm-7">',
-                  '<input name="guestName" class="form-control" data-ng-model="data.displayName" required/>',
-                  '<div class="sr-input-warning" data-ng-show="showWarning">{{ warningText }}</div>',
+                  '<input name="displayName" class="form-control" data-ng-model="loginConfirm.data.displayName" required/>',
+                  '<div class="sr-input-warning" data-ng-show="showWarning">{{ loginConfirm.warningText }}</div>',
                 '</div>',
               '</div>',
               '<div class="row text-center" style="margin-top: 10px">',
-                 '<button data-ng-click="submit()" class="btn btn-primary" data-ng-disabled="! data.displayName">Submit</button>',
+                 '<button data-ng-click="loginConfirm.submit()" class="btn btn-primary" data-ng-disabled="! loginConfirm.data.displayName">Submit</button>',
               '</div>',
             '</form>',
         ].join(''),
-        controller: function($scope) {
-            if (! authState.isLoggedIn) {
-                requestSender.localRedirect('login');
-                return;
-            }
-            if (! authState.needCompleteRegistration) {
-                requestSender.localRedirect('simulations');
-                return;
-            }
-            function handleResponse(data) {
-                if (data.state === 'ok') {
-                    $scope.showWarning = false;
-                    $window.location.href = requestSender.formatUrl(
-                        'root',
-                        {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
-                    );
-                    return;
-                }
-                $scope.showWarning = true;
-                $scope.warningText = 'Server reported an error, please contact support@radiasoft.net.';
-            }
-            $scope.data = {};
-            $scope.submit = function() {
-                //TODO(robnagler): change button to sending
-                requestSender.sendRequest(
-                    'authCompleteRegistration',
-                    handleResponse,
-                    {
-                        displayName: $scope.data.displayName,
-                        simulationType: SIREPO.APP_NAME
-                    }
-                );
-            };
-        },
     };
 });
 
@@ -2407,6 +2369,23 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
     };
 });
 
+SIREPO.app.directive('emailLoginConfirm', function(requestSender, $route) {
+    return {
+        restrict: 'A',
+        template: [
+            '<div class="row text-center">',
+              '<p>Please click the button below to complete the login process.</p>',
+            '</div>',
+            '<div class="sr-input-warning" data-ng-show="showWarning">{{ loginConfirm.warningText }}</div>',
+            '<form class="form-horizontal" autocomplete="off" novalidate>',
+              '<div class="row text-center" style="margin-top: 10px">',
+                 '<button data-ng-click="loginConfirm.submit()" class="btn btn-primary">Confirm</button>',
+              '</div>',
+            '</form>',
+        ].join(''),
+    };
+});
+
 SIREPO.app.directive('commonFooter', function() {
     return {
         restrict: 'A',
@@ -2417,6 +2396,7 @@ SIREPO.app.directive('commonFooter', function() {
             '<div data-delete-simulation-modal="nav"></div>',
             '<div data-reset-simulation-modal="nav"></div>',
             '<div data-modal-editor="" view-name="simulation"></div>',
+            '<div data-sbatch-login-modal=""></div>',
         ].join(''),
     };
 });
@@ -2808,6 +2788,123 @@ SIREPO.app.directive('3dSliceWidget', function(appState, panelState) {
     };
 });
 
+SIREPO.app.directive('sbatchLoginModal', function() {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div id="sbatch-login-modal" class="modal fade" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog" role="document">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-warning">',
+                    '<span class="lead modal-title text-info">Login to {{ host }}</span>',
+                    '<button  type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '</div>',
+                    '<div class="modal-body">',
+                        '<form name="sbatchLoginModalForm">',
+                            '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
+                            '<div class="form-group">',
+                                '<input type="text" class="form-control" name="username" placeholder="username" data-ng-model="username" />',
+                            '</div>',
+                            '<div class="form-group">',
+                                '<input type="password" class="form-control" name="password" placeholder="password" data-ng-model="password" />',
+                            '</div>',
+                            '<div class="form-group">',
+                                '<input type="password" class="form-control" name="otp" placeholder="one time password" data-ng-show="showOtp" data-ng-model="otp"/>',
+                            '</div>',
+                            '<button  data-ng-click="submit()" class="btn btn-primary" data-ng-disabled="submitDisabled()">Submit</button>',
+                            ' <button  data-dismiss="modal" class="btn btn-default">Cancel</button>',
+                        '<form>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function(requestSender, $scope) {
+            $scope.otp = '';
+            $scope.password = '';
+            $scope.username = '';
+            var awaitingSendResponse = false;
+            var el = $('#sbatch-login-modal');
+            var onHidden = null;
+
+            el.on('hidden.bs.modal', function() {
+                $scope.otp = '';
+                $scope.password = '';
+                $scope.username = '';
+                $scope.sbatchLoginModalForm.$setPristine();
+                onHidden({'state': 'error', 'error': 'Please try again.'});
+                onHidden = null;
+                $scope.$apply();
+            });
+
+            function handleResponse(data) {
+                el.modal('hide');
+            }
+
+            $scope.$on('showSbatchLoginModal', function(e, data) {
+                // When a user enters invalid login creds 'showSbatchLoginModal' is
+                // broadcast again. onHidden keeps a references to the
+                // errorCallback of only the first broadcast's errorCallback
+                if (onHidden === null) {
+                    onHidden = data.errorCallback;
+                }
+                $scope.otp = '';
+                $scope.password = '';
+                awaitingSendResponse = false;
+                $scope.host = data.host;
+                $scope.showOtp = data.host.includes('nersc');
+                $scope.showWarning = data.reason === 'invalid-creds';
+                $scope.warningText = 'Your credentials were invalid. Please try again.';
+                $scope.submit = function() {
+                    awaitingSendResponse = true;
+                    requestSender.sendRequest(
+                        'sbatchLogin',
+                        handleResponse,
+                        {
+                            otp: $scope.otp,
+                            password: $scope.password,
+                            report: data.report,
+                            simulationId: data.simulationId,
+                            simulationType: data.simulationType,
+                            username: $scope.username,
+                        }
+                    );
+                };
+                el.modal('show');
+            });
+
+            $scope.submitDisabled = function() {
+                return $scope.password.length < 1 || $scope.username.length < 1 || awaitingSendResponse;
+            };
+        },
+    };
+
+});
+
+SIREPO.app.directive('sbatchCoresAndHours', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            simState: '=sbatchCoresAndHours',
+        },
+        template: [
+            '<div data-ng-show="showCoresAndHours()">',
+                '<div data-model-field="\'sbatchHours\'" data-model-name="simState.model"></div>',
+                '<div data-model-field="\'sbatchCores\'" data-model-name="simState.model"></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+
+            $scope.showCoresAndHours = function() {
+                var m = appState.models[$scope.simState.model];
+                return m && m.jobRunMode === 'sbatch';
+            };
+        }
+    };
+});
+
 SIREPO.app.directive('simSections', function(utilities) {
 
     return {
@@ -2824,7 +2921,7 @@ SIREPO.app.directive('simSections', function(utilities) {
     };
 });
 
-SIREPO.app.directive('simStatusPanel', function() {
+SIREPO.app.directive('simStatusPanel', function(appState) {
     return {
         restrict: 'A',
         scope: {
@@ -2854,8 +2951,14 @@ SIREPO.app.directive('simStatusPanel', function() {
               '<div data-ng-show="simState.isStateError()">',
                 '<div class="col-sm-12">{{ simState.stateAsText() }}</div>',
               '</div>',
+              '<div data-ng-if="simState.showJobSettings()">',
+                '<div class="form-group form-group-sm">',
+                  '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model"></div>',
+                  '<div data-sbatch-cores-and-hours="simState"></div>',
+                '</div>',
+              '</div>',
               '<div class="col-sm-6 pull-right">',
-                '<button class="btn btn-default" data-ng-click="simState.runSimulation()">Start New Simulation</button>',
+                '<button class="btn btn-default" data-ng-click="start()">Start New Simulation</button>',
               '</div>',
             '</form>',
             '<div class="clearfix"></div>',
@@ -2884,6 +2987,10 @@ SIREPO.app.directive('simStatusPanel', function() {
                 }
                 return callSimState('notRunningMessage')
                     || 'Simulation ' + $scope.simState.stateAsText() + ': ' + $scope.simState.getFrameCount() + ' animation frames';
+            };
+            $scope.start = function() {
+                appState.saveChanges($scope.simState.model);
+                $scope.simState.runSimulation();
             };
         },
     };
@@ -3062,7 +3169,7 @@ SIREPO.app.service('mathRendering', function() {
             i = text.search(/\S\$/);
             if (i == -1) {
                 // should never get here
-                throw 'invalid math expression';
+                throw new Error('invalid math expression');
             }
             parts.push(katex.renderToString(text.slice(0, i + 1), options));
             text = text.slice(i + 2);

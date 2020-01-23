@@ -1,13 +1,36 @@
 {
     "models": {
         "beamlines": [],
+        "bunchAnimation": {
+            "aspectRatio": "1",
+            "colorMap": "viridis",
+            "framesPerSecond": "2",
+            "histogramBins": 200,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0,
+            "notes": "",
+            "plotRangeType": "fit",
+            "verticalOffset": 0.0,
+            "verticalSize": 0,
+            "x": "x",
+            "y": "px"
+        },
         "commands": [],
         "elements": [],
+        "plotAnimation": {
+            "aspectRatio": "1",
+            "notes": "",
+            "x": "SPOS",
+            "y1": "#varepsilon x",
+            "y2": "#varepsilon y",
+            "y3": "none"
+        },
         "simulation": {
+            "documentationUrl": "",
             "folder": "/",
             "name": "default",
-            "simulationId": "NE4pnakI",
-            "simulationSerial": 1542066443718959
+            "notes": "",
+            "visualizationBeamlineId": ""
         },
         "twissReport": {
             "includeLattice": "1",
@@ -17,6 +40,5 @@
             "y3": "Dx"
         }
     },
-    "simulationType": "opal",
-    "version": "20181109.173737"
+    "simulationType": "opal"
 }

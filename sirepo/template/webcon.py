@@ -26,6 +26,7 @@ import scipy.fftpack
 import scipy.optimize
 import scipy.signal
 import sirepo.sim_data
+import sirepo.util
 import sklearn.cluster
 import sklearn.metrics.pairwise
 import sklearn.mixture
@@ -109,7 +110,7 @@ def background_percent_complete(report, run_dir, is_running):
                 ),
             )
     if report == 'correctorSettingAnimation':
-        #pkdp('background_percent_complete for correctorSettingAnimation')
+        #pkdlog('background_percent_complete for correctorSettingAnimation')
         monitor_file = run_dir.join(MONITOR_LOGFILE)
         if monitor_file.exists():
             values, count, start_time = _read_monitor_file(monitor_file, True)
@@ -174,7 +175,7 @@ def get_analysis_report(run_dir, data):
     )
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'column_info':
         data = PKDict(
             models=PKDict(
@@ -183,7 +184,8 @@ def get_application_data(data):
         )
         return PKDict(
             columnInfo=_column_info(
-                _analysis_data_path(simulation_db.simulation_lib_dir(SIM_TYPE), data)),
+                str(_SIM_DATA.lib_file_abspath(_analysis_data_path(data))),
+            ),
         )
     if data['method'] == 'update_kicker':
         return _update_epics_kicker(data)
@@ -196,12 +198,19 @@ def get_application_data(data):
 
 def get_beam_pos_report(run_dir, data):
     monitor_file = run_dir.join('../epicsServerAnimation/').join(MONITOR_LOGFILE)
-    assert monitor_file.exists(), 'no beam position history'
+    if not monitor_file.exists():
+        raise sirepo.util.UserAlert(
+            'no beam position history',
+            'monitor file={} does not exist',
+            monitor_file,
+        )
     history, num_records, start_time = _read_monitor_file(monitor_file, True)
-    assert len(history) > 0, 'no beam position history'
+    if len(history) <= 0:
+        raise sirepo.util.UserAlert('no beam position history', 'history length <= 0')
     x_label = 'z [m]'
     x, plots, colors = _beam_pos_plots(data, history, start_time)
-    assert len(plots), 'no beam position history'
+    if not len(plots):
+        raise sirepo.util.UserAlert('no beam position history', 'no plots')
     return template_common.parameter_plot(
         x.tolist(),
         plots,
@@ -216,10 +225,10 @@ def get_beam_pos_report(run_dir, data):
     )
 
 
-def get_data_file(run_dir, model, frame, options=None):
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     report = data.models[data.report]
-    path = _analysis_data_path(run_dir, data)
+    path = str(run_dir.join(_analysis_data_path(data)))
     col_info = _column_info(path)
     plot_data = _load_file_with_history(report, path, col_info)
     buf = StringIO.StringIO()
@@ -245,7 +254,10 @@ def get_fft(run_dir, data):
     # should all be the same - this will normalize the frequencies
     sample_period = abs(t_vals[1] - t_vals[0])
     if sample_period == 0:
-        assert False, 'FFT sample period could not be determined from data. Ensure x has equally spaced values'
+        raise sirepo.util.UserAlert(
+            'Data error',
+            'FFT sample period could not be determined from data. Ensure x has equally spaced values',
+        )
     #sample_period = np.mean(np.diff(t_vals))
 
     # the first half of the fft data (taking abs() folds in the imaginary part)
@@ -265,7 +277,7 @@ def get_fft(run_dir, data):
     coefs = (2.0 / num_samples) * np.abs(fft_out[0:half_num_samples])
     peaks, props = scipy.signal.find_peaks(coefs)
     found_freqs = zip(peaks, np.around(w[peaks], 3))
-    #pkdp('!FOUND {} FREQS {}, S2N {}, MEAN {}', len(found_freqs), found_freqs, s2n, m)
+    #pkdlog('!FOUND {} FREQS {}, S2N {}, MEAN {}', len(found_freqs), found_freqs, s2n, m)
 
     # focus in on the peaks?
     # maybe better in browser
@@ -311,7 +323,8 @@ def get_fft(run_dir, data):
 
 def get_settings_report(run_dir, data):
     monitor_file = run_dir.join('../epicsServerAnimation/').join(MONITOR_LOGFILE)
-    assert monitor_file.exists(), 'no settings history'
+    if not monitor_file.exists():
+        raise sirepo.util.UserAlert('no settings history', 'monitor file')
     history, num_records, start_time = _read_monitor_file(monitor_file, True)
     o = data.models.correctorSettingReport.plotOrder
     plot_order = o if o is not None else 'time'
@@ -321,7 +334,8 @@ def get_settings_report(run_dir, data):
     else:
         x, plots, colors = _setting_plots_by_position(data, history, start_time)
         x_label = 'z [m]'
-    assert len(plots), 'no settings history'
+    if not len(plots):
+        raise sirepo.util.UserAlert('no settings history', 'no plots')
     return template_common.parameter_plot(
         x.tolist(),
         plots,
@@ -336,12 +350,13 @@ def get_settings_report(run_dir, data):
     )
 
 
-def get_simulation_frame(run_dir, data, model_data):
-    frame_index = int(data['frameIndex'])
-    if data['modelName'] == 'correctorSettingAnimation':
-        #data_file = open_data_file(run_dir, data['modelName'], frame_index)
-        return get_settings_report(run_dir, data)
-    raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
+#TODO(robnagler) not supported
+#def get_simulation_frame(run_dir, data, model_data):
+#    frame_index = int(data['frameIndex'])
+#    if data['modelName'] == 'correctorSettingAnimation':
+#        #data_file = open_data_file(run_dir, data['modelName'], frame_index)
+#        return get_settings_report(run_dir, data)
+#    raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
 def python_source_for_model(data, model):
@@ -354,7 +369,7 @@ def read_epics_values(server_address, fields):
     if not output:
         return None
     res = np.array(re.split(r'\s+', output)[1::2]).astype('float').tolist()
-    #pkdp(' got result: {}', res)
+    #pkdlog(' got result: {}', res)
     return res
 
 
@@ -408,8 +423,8 @@ def write_epics_values(server_address, fields, values):
     return True
 
 
-def _analysis_data_path(run_dir, data):
-    return str(run_dir.join(_SIM_DATA.webcon_analysis_data_file(data)))
+def _analysis_data_path(data):
+    return _SIM_DATA.webcon_analysis_data_file(data)
 
 
 def _beam_pos_plots(data, history, start_time):
@@ -601,11 +616,13 @@ def _column_info(path):
 def _compute_clusters(report, plot_data, col_info):
     cols = []
     if 'clusterFields' not in report:
-        assert len(cols) > 1, 'At least two cluster fields must be selected'
+        if len(cols) <= 1:
+            raise sirepo.util.UserAlert('At least two cluster fields must be selected', 'only one cols')
     for idx in range(len(report.clusterFields)):
         if report.clusterFields[idx] and idx < len(col_info['names']):
             cols.append(idx)
-    assert len(cols) > 1, 'At least two cluster fields must be selected'
+    if len(cols) <= 1:
+        raise sirepo.util.UserAlert('At least two cluster fields must be selected', 'only one cols')
     plot_data = plot_data[:, cols]
     min_max_scaler = sklearn.preprocessing.MinMaxScaler(
         feature_range=[
@@ -761,7 +778,7 @@ def _generate_parameters_file(run_dir, data):
     #TODO(pjm): calling private template.elegant._build_beamline_map()
     data.models.commands = []
     v['currentFile'] = CURRENT_FILE
-    v['fodoLattice'] = elegant.generate_lattice(data, elegant._build_filename_map(data), elegant._build_beamline_map(data), v)
+    v['fodoLattice'] = elegant.webcon_generate_lattice(data)
     v['BPM_FIELDS'] = BPM_FIELDS
     v['CURRENT_FIELDS'] = CURRENT_FIELDS
     return res + template_common.render_jinja(SIM_TYPE, v)
@@ -940,7 +957,7 @@ def _read_monitor_file(monitor_path, history=False):
 
 def _report_info(run_dir, data):
     report = data.models[data.report]
-    path = _analysis_data_path(run_dir, data)
+    path = str(run_dir.join(_analysis_data_path(data)))
     col_info = _column_info(path)
     plot_data = _load_file_with_history(report, path, col_info)
     return report, col_info, plot_data

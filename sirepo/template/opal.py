@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkcollections import PKDict
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import lattice
@@ -17,6 +18,7 @@ import h5py
 import numpy as np
 import re
 import sirepo.sim_data
+
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
@@ -38,34 +40,26 @@ class OpalElementIterator(lattice.ElementIterator):
 
 
 def background_percent_complete(report, run_dir, is_running):
-    res = {
-        'percentComplete': 0,
-        'frameCount': 0,
-    }
+    res = PKDict(
+        percentComplete=0,
+        frameCount=0,
+    )
     if is_running:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         #TODO(pjm): determine total frame count and set percentComplete
-        res['frameCount'] = _read_frame_count(run_dir) - 1
+        res.frameCount = _read_frame_count(run_dir) - 1
         return res
     if run_dir.join('{}.json'.format(template_common.INPUT_BASE_NAME)).exists():
-        res['frameCount'] = _read_frame_count(run_dir)
-        if res['frameCount'] > 0:
-            res['percentComplete'] = 100
+        res.frameCount = _read_frame_count(run_dir)
+        if res.frameCount > 0:
+            res.percentComplete = 100
     return res
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data.method == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_frames)
     assert False, 'unknown get_application_data: {}'.format(data)
-
-
-def get_simulation_frame(run_dir, data, model_data):
-    if data.modelName == 'bunchAnimation':
-        return _extract_bunch(run_dir, data, model_data)
-    if data.modelName == 'plotAnimation':
-        return _extract_plot(run_dir, data, model_data)
-    assert False, '{}: unknown simulation frame model'.format(data.modelName)
 
 
 def python_source_for_model(data, model):
@@ -92,37 +86,31 @@ def _compute_range_across_frames(run_dir, data):
                         res[field][1] = max1
                 else:
                     res[field] = [min1, max1]
-    res = {}
+    res = PKDict()
     for v in _SCHEMA.enum.PhaseSpaceCoordinate:
         res[v[0]] = None
     return _iterate_hdf5_steps(run_dir.join(_OPAL_H5_FILE), _walk_file, res)
 
 
-def _extract_bunch(run_dir, data, model_data):
-    model = model_data.models.bunchAnimation
-    model.update(template_common.parse_animation_args(
-        data,
-        {
-            '': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset',
-                 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
-
-        },
-    ))
+def sim_frame_bunchAnimation(frame_args):
+    a = frame_args.sim_in.models.bunchAnimation
+    a.update(frame_args)
     res = PKDict()
-    with h5py.File(str(run_dir.join(_OPAL_H5_FILE)), 'r') as f:
+    with h5py.File(str(a.run_dir.join(_OPAL_H5_FILE)), 'r') as f:
         for field in ('x', 'y'):
             res[field] = PKDict(
-                name=model[field],
-                points=np.array(f['/Step#{}/{}'.format(data.frameIndex, model[field])]),
+                name=a[field],
+                points=np.array(f['/Step#{}/{}'.format(a.frameIndex, a[field])]),
             )
             _units_from_hdf5(f, res[field])
-    return template_common.heatmap([res.x.points, res.y.points], model, PKDict(
+    return template_common.heatmap([res.x.points, res.y.points], a, PKDict(
         x_label=res.x.label,
         y_label=res.y.label,
     ))
 
 
-def _extract_plot(run_dir, data, model_data):
+def sim_frame_plotAnimation(frame_args):
+
     def _walk_file(h5file, key, step, res):
         if key:
             for field in res.values():
@@ -130,15 +118,10 @@ def _extract_plot(run_dir, data, model_data):
         else:
             for field in res.values():
                 _units_from_hdf5(h5file, field)
-    args = template_common.parse_animation_args(
-        data,
-        {
-            '': ['x', 'y1', 'y2', 'y3', 'startTime'],
-        },
-    )
+
     res = PKDict()
-    for dim in ('x', 'y1', 'y2', 'y3'):
-        parts = args[dim].split(' ')
+    for dim in 'x', 'y1', 'y2', 'y3':
+        parts = frame_args[dim].split(' ')
         if parts[0] == 'none':
             continue
         res[dim] = PKDict(
@@ -151,15 +134,20 @@ def _extract_plot(run_dir, data, model_data):
     plots = []
     for field in res.values():
         if field.dim != 'x':
-            plots.append({
-                'label': field.label,
-                'points': field.points,
-            })
-    return template_common.parameter_plot(res.x.points, plots, {}, {
-        'title': '',
-        'y_label': '',
-        'x_label': res.x.label,
-    })
+            plots.append(PKDict(
+                label=field.label,
+                points=field.points,
+            ))
+    return template_common.parameter_plot(
+        res.x.points,
+        plots,
+        PKDict(),
+        PKDict(
+            title='',
+            y_label='',
+            x_label=res.x.label,
+        ),
+    )
 
 
 def _format_field_value(state, model, field, el_type):
@@ -189,7 +177,7 @@ def _generate_lattice(util):
         ).result,
         want_semicolon=True) + '\n'
     beamline_id = util.select_beamline().id
-    count_by_name = {}
+    count_by_name = PKDict()
     names = []
     res += _generate_beamline(util, count_by_name, beamline_id, 0, names)[0]
     res += '{}: LINE=({});\n'.format(

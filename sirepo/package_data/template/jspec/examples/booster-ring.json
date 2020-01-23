@@ -1,5 +1,11 @@
 {
     "models": {
+        "beamEvolutionAnimation": {
+            "notes": "",
+            "y1": "emitx",
+            "y2": "emity",
+            "y3": "none"
+        },
         "cooler": {
             "alpha_x": 0,
             "alpha_y": 0,
@@ -13,30 +19,31 @@
             "magnetic_field": 0.039,
             "section_number": 1
         },
+        "coolingRatesAnimation": {
+            "notes": "",
+            "y1": "rx",
+            "y2": "ry",
+            "y3": "rs"
+        },
         "electronBeam": {
+            "beam_type": "continuous",
             "current": 2,
-            "e_number": 0,
+            "e_number": 100000000.0,
             "gamma": 9.52631219945,
-            "length": 0,
+            "length": 0.2,
             "radius": 0.004,
+            "rh": 0.004,
+            "rv": 0.004,
             "shape": "dc_uniform",
-            "sigma_x": 0,
-            "sigma_y": 0,
-            "sigma_z": 0,
+            "sigma_x": 0.015,
+            "sigma_y": 0.015,
+            "sigma_z": 0.02,
             "tmp_l": 0.01,
             "tmp_tr": 0.1
         },
         "electronCoolingRate": {
             "force_formula": "parkhomchuk",
             "sample_number": 10000
-        },
-        "beamEvolutionAnimation": {
-            "histogramBins": 100,
-            "startTime": 1517617255,
-            "x": "t",
-            "y1": "emitx",
-            "y2": "emity",
-            "y3": "none"
         },
         "intrabeamScatteringRate": {
             "coupling": 0,
@@ -47,6 +54,7 @@
             "nz": 40
         },
         "ionBeam": {
+            "beam_type": "bunched",
             "charge_number": 1,
             "kinetic_energy": 8000,
             "mass": 938.272,
@@ -61,32 +69,55 @@
         },
         "particleAnimation": {
             "colorMap": "viridis",
+            "colorMax": 10,
+            "colorMin": 0,
+            "colorRangeType": "none",
             "framesPerSecond": "2",
             "histogramBins": 200,
-            "startTime": 1517617255,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0,
+            "plotRangeType": "fit",
+            "verticalOffset": 0.0,
+            "verticalSize": 0,
             "x": "x",
             "y": "xp"
         },
         "rateCalculationReport": {},
         "ring": {
-            "lattice": "Booster.tfs"
+            "lattice": "Booster.tfs",
+            "latticeSource": "madx"
         },
         "runSettings": {},
         "simulation": {
-            "folder": "/",
+            "documentationUrl": "",
+            "folder": "/Examples",
+            "isExample": true,
             "name": "Booster Ring",
-            "simulationId": "42JhyQcY",
-            "simulationSerial": 1517617539677771
+            "notes": ""
         },
         "simulationSettings": {
-            "model": "model_beam",
+            "e_cool": "1",
+            "ibs": "1",
+            "model": "particle",
             "output_interval": 1,
+            "ref_alf_x": 0,
+            "ref_alf_y": 0,
+            "ref_bet_x": 10,
+            "ref_bet_y": 10,
+            "ref_disp_dx": 0,
+            "ref_disp_dy": 0,
+            "ref_disp_x": 0,
+            "ref_disp_y": 0,
             "sample_number": 100000,
             "save_particle_interval": 100,
             "step_number": 600,
             "time": 600
+        },
+        "twissReport": {
+            "y1": "betx",
+            "y2": "bety",
+            "y3": "dx"
         }
     },
-    "simulationType": "jspec",
-    "version": "20180129.000001"
+    "simulationType": "jspec"
 }

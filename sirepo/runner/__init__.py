@@ -11,6 +11,7 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkio
 from pykern import pkjinja
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -20,11 +21,14 @@ import importlib
 import os
 import re
 import signal
+import sirepo.auth
+import sirepo.sim_data
+import sirepo.mpi
+import sirepo.srdb
 import subprocess
 import sys
 import threading
 import time
-import uuid
 
 #: Configuration
 cfg = None
@@ -58,9 +62,9 @@ MAX_OPEN_FILES = 1024
 _job_class = None
 
 
-def init(app, use_reloader):
+def init_by_server(app):
     """Initialize module"""
-    if use_reloader and os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+    if app.sirepo_use_reloader and os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         # avoid first call to init() when using reloader
         return
     global _job_class
@@ -81,6 +85,10 @@ def init(app, use_reloader):
         )),
     )
     _job_class = m.init_class(app)
+    from sirepo import runner_api
+    from sirepo import uri_router
+
+    uri_router.register_api_module(runner_api)
 
 
 def job_is_processing(jid):
@@ -96,7 +104,7 @@ def job_kill(jid):
     """Terminate job
 
     Args:
-        jid (str): see `simulation_db.job_id`
+        jid (str): job id
     """
     with _job_map_lock:
         try:
@@ -112,7 +120,7 @@ def job_race_condition_reap(jid):
 
 def job_start(data):
     with _job_map_lock:
-        jid = simulation_db.job_id(data)
+        jid = sirepo.sim_data.get_class(data).parse_jid(data)
         if jid in _job_map:
 #TODO(robnagler) assumes external check of is_processing,
 # which server._simulation_run_status does do, but this
@@ -131,6 +139,11 @@ class JobBase(object):
         self.jid = jid
         self.lock = threading.RLock()
         self.set_state(State.INIT)
+        self.subprocess_env = PKDict(
+            SIREPO_MPI_CORES=str(sirepo.mpi.cfg.cores),
+            SIREPO_AUTH_LOGGED_IN_USER=str(sirepo.auth.logged_in_user()),
+            SIREPO_SRDB_ROOT=str(sirepo.srdb.root()),
+        )
 
     def is_processing(self):
         with self.lock:
@@ -168,7 +181,7 @@ class JobBase(object):
     def run_secs(self):
         if self.data['report'] == 'backgroundImport':
             return cfg.import_secs
-        if simulation_db.is_parallel(self.data):
+        if sirepo.sim_data.get_class(self.data).is_parallel(self.data):
             return cfg.parallel_secs
         return cfg.sequential_secs
 

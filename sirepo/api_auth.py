@@ -11,7 +11,7 @@ from pykern import pkinspect
 from sirepo import api_perm
 from sirepo import auth
 from sirepo import cookie
-from sirepo import http_reply
+import sirepo.util
 
 
 def assert_api_def(func):
@@ -31,17 +31,16 @@ def check_api_call(func):
     a = api_perm.APIPerm
     if expect in (a.REQUIRE_COOKIE_SENTINEL, a.REQUIRE_USER):
         if not cookie.has_sentinel():
-            return http_reply.gen_sr_exception('missingCookies')
+            raise sirepo.util.SRException('missingCookies', None)
         if expect == a.REQUIRE_USER:
-            return auth.require_user()
+            auth.require_user()
     elif expect == a.ALLOW_VISITOR:
         pass
     elif expect in (a.ALLOW_COOKIELESS_SET_USER, a.ALLOW_COOKIELESS_REQUIRE_USER):
         cookie.set_sentinel()
         if expect == a.ALLOW_COOKIELESS_REQUIRE_USER:
-            return auth.require_user()
+            auth.require_user()
     elif expect == a.REQUIRE_AUTH_BASIC:
-        return auth.require_auth_basic()
+        auth.require_auth_basic()
     else:
         raise AssertionError('unhandled api_perm={}'.format(expect))
-    return None

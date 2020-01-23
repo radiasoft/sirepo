@@ -1,22 +1,31 @@
 {
     "models": {
+        "animation": {
+            "jobRunMode": "parallel",
+            "sbatchCores": 4,
+            "sbatchHours": 0.4
+        },
         "beamAnimation": {
+            "colorMap": "viridis",
             "framesPerSecond": 5,
             "histogramBins": 220,
+            "notes": "",
             "x": "z",
             "y": "x"
         },
         "beamPreviewReport": {
             "histogramBins": 220,
+            "notes": "",
             "x": "x",
             "y": "y"
         },
         "electronBeam": {
+            "beamBunchLengthMethod": "s",
+            "beamRadiusMethod": "a",
             "bunchLength": 0,
             "charge": 1e-08,
             "energy": 23,
             "rmsLength": 0,
-            "rmsRadius": 0,
             "transverseEmittance": 0
         },
         "electronPlasma": {
@@ -26,15 +35,19 @@
             "length": 0.25
         },
         "fieldAnimation": {
+            "colorMap": "viridis",
             "coordinate": "x",
             "field": "E",
             "framesPerSecond": 5,
-            "mode": "1"
+            "mode": "1",
+            "notes": ""
         },
         "laserPreviewReport": {
+            "colorMap": "viridis",
             "coordinate": "x",
             "field": "E",
-            "mode": "1"
+            "mode": "1",
+            "notes": ""
         },
         "laserPulse": {
             "amplitude": 3,
@@ -47,8 +60,10 @@
             "wavelength": 0.8
         },
         "particleAnimation": {
+            "colorMap": "viridis",
             "framesPerSecond": 5,
             "histogramBins": 219,
+            "notes": "",
             "uxMax": 0,
             "uxMin": 0,
             "uyMax": 0,
@@ -65,8 +80,10 @@
             "zMin": 0
         },
         "simulation": {
+            "documentationUrl": "",
+            "folder": "/",
             "name": "basic laser",
-            "simulationId": "h3a5iMzC",
+            "notes": "",
             "sourceType": "laserPulse"
         },
         "simulationGrid": {
@@ -90,6 +107,5 @@
         }
     },
     "report": "laserPreviewReport",
-    "simulationType": "warppba",
-    "version": "20160406"
+    "simulationType": "warppba"
 }

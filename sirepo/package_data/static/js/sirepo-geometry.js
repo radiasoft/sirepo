@@ -297,7 +297,7 @@ SIREPO.app.service('geometry', function(utilities) {
             },
             dist: function (p2) {
                 if (this.dimension() != p2.dimension()) {
-                    throw 'Points in array have different dimensions: ' + this.dimension() + ' != ' + p2.dimension();
+                    throw new Error('Points in array have different dimensions: ' + this.dimension() + ' != ' + p2.dimension());
                 }
                 return Math.sqrt(
                     (p2.x - this.x) * (p2.x - this.x) +
@@ -445,7 +445,7 @@ SIREPO.app.service('geometry', function(utilities) {
     // Array is cloned first so the original is unchanged
     this.sortInDimension = function (points, dim, doReverse) {
         if (! points || ! points.length) {
-            throw svc.geomObjArrStr(points) + ': Invalid points';
+            throw new Error(svc.geomObjArrStr(points) + ': Invalid points');
         }
         return points.slice(0).sort(function (p1, p2) {
             // throws an exception if the points have different dimensions
@@ -505,25 +505,25 @@ SIREPO.app.service('geometry', function(utilities) {
 
         var l = xform.matrix.length;
         if (l > 3 || l < 1) {
-            throw errMsg('Matrix has bad size (' + l + ')');
+            throw new Error(errMsg('Matrix has bad size (' + l + ')'));
         }
         if (! xform.matrix.reduce(function (ok, row) {
                 return ok && row.length == l;
             }, true)
         ) {
-            throw errMsg('Matrix is not square');
+            throw new Error(errMsg('Matrix is not square'));
         }
         if (det(xform.matrix) === 0) {
-            throw errMsg('Matrix is not invertable');
+            throw new Error(errMsg('Matrix is not invertable'));
         }
 
         xform.compose = function (otherXForm) {
             if (otherXForm.matrix.length !== l) {
-                throw errMsg('Matrices must be same size (' + l + ' != ' + otherXForm.matrix.length);
+                throw new Error(errMsg('Matrices must be same size (' + l + ' != ' + otherXForm.matrix.length));
             }
             return svc.transform(matrixMult(xform.matrix, otherXForm.matrix));
         };
-        
+
         xform.composeFromMatrix = function (m) {
             return xform.compose(svc.transform(m));
         };
@@ -673,5 +673,5 @@ SIREPO.app.service('geometry', function(utilities) {
         return null;
     }
 
-    
+
 });

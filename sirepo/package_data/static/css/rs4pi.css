@@ -21,7 +21,6 @@
   stroke-opacity: 0;
   fill: none;
   stroke-width: 15px;
-  pointer-events: none;
 }
 
 .sr-plot .dicom-dragpath:hover {
