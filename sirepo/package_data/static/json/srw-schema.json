@@ -610,7 +610,7 @@
             "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
             "computeParametersFrom": ["Compute Parameters from", "computeParametersFrom", "2"],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
-            "heightAmplification": ["Height Amplification Coefficient", "Float", 1]	    
+            "heightAmplification": ["Height Amplification Coefficient", "Float", 0.001]
         },
         "initialIntensityReport": {
             "polarization": ["Polarization Component to Extract", "Polarization"],
