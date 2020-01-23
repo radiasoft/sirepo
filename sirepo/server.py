@@ -703,7 +703,6 @@ def _simulation_data(res, path, data):
     """
     res.append(data)
 
-
 def _simulations_using_file(simulation_type, file_type, search_name, ignore_sim_id=None):
     res = []
     s = sirepo.sim_data.get_class(simulation_type)

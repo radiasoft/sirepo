@@ -23,16 +23,17 @@
     {{- fields(item, 'i', ('numberOfLenses',)) }}
 {% elif item.type == 'crystal' %}
     {{- fields(item, 's', ('heightProfileFile', 'orientation')) }}
-    {{- fields(item, 'f', ('dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'crystalThickness', 'asymmetryAngle', 'nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle', 'heightAmplification')) }}
+    {{- fields(item, 'f', ('dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'crystalThickness', 'useCase', 'asymmetryAngle', 'nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle', 'heightAmplification', 'energy', 'diffractionAngle')) }}
 {% elif item.type == 'drift' %}
     {{- fields(item, 'f', ('length',)) }}
 {% elif item.type == 'ellipsoidMirror' %}
-    {{- fields(item, 's', ('heightProfileFile', 'orientation')) }}
+    {{- fields(item, 's', ('heightProfileFile', 'orientation', 'heightAmplification')) }}
     {{- fields(item, 'f', ('firstFocusLength', 'focalLength', 'grazingAngle', 'heightAmplification', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'horizontalOffset', 'verticalOffset')) }}
 {% elif item.type == 'fiber' %}
     {{- fields(item, 'f', ('focalPlane', 'externalRefractiveIndex', 'coreRefractiveIndex', 'externalAttenuationLength', 'coreAttenuationLength', 'externalDiameter', 'coreDiameter', 'horizontalCenterPosition', 'verticalCenterPosition')) }}
 {% elif item.type == 'grating' %}
-    {{- fields(item, 'f', ('tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'horizontalOffset', 'verticalOffset', 'diffractionOrder', 'grooveDensity0', 'grooveDensity1', 'grooveDensity2', 'grooveDensity3', 'grooveDensity4')) }}
+    {{- fields(item, 's', ('heightProfileFile', 'orientation')) }}
+    {{- fields(item, 'f', ('tangentialSize', 'sagittalSize', 'nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'horizontalOffset', 'verticalOffset', 'diffractionOrder', 'grooveDensity0', 'grooveDensity1', 'grooveDensity2', 'grooveDensity3', 'grooveDensity4', 'energyAvg', 'cff', 'grazingAngle', 'rollAngle', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy', 'computeParametersFrom', 'heightAmplification')) }}
 {% elif item.type == 'lens' %}
     {{- fields(item, 'f', ('horizontalFocalLength', 'verticalFocalLength', 'horizontalOffset', 'verticalOffset')) }}
 {% elif item.type == 'mask' %}

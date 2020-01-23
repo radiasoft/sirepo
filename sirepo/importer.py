@@ -101,4 +101,5 @@ def read_zip(stream, sim_type=None):
     for b, src in zipped.items():
         if b in needed:
             src.copy(needed[b])
+    pkdp("imported the ziped json data, simulationType={}, lib_d={}", data.simulationType, lib_d)
     return data

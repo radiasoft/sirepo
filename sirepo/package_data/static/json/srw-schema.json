@@ -97,6 +97,11 @@
             ["5", "Re(E): Real part of Single-Electron Electric Field"],
             ["6", "Im(E): Imaginary part of Single-Electron Electric Field"]
         ],
+        "computeParametersFrom": [
+            ["1", "Cff"],
+            ["2", "Grazing Angle"],
+            ["3", "Manually"]
+        ],
         "CRLMaterial": [
             ["User-defined", "User-defined"],
             ["Al", "Al"],
@@ -172,6 +177,10 @@
             ["1", "RMS Waist"],
             ["2", "RMS Divergence"]
         ],
+	"GeometryType": [
+	    ["1", "Bragg Reflection"],
+	    ["2", "Bragg Transmission"]
+	],
         "GridShape" : [
             ["0", "Circular Grids"],
             ["1", "Rectangular Grids"],
@@ -410,23 +419,28 @@
             "k": ["k", "MillerIndicesRange", "1"],
             "l": ["l", "MillerIndicesRange", "1"],
             "energy": ["Average photon energy the crystal should be oriented for [eV]", "Float", 9000],
-            "diffractionAngle": ["Diffraction plane angle [rad]", "DiffractionPlaneAngle", "0"],
+	        "useCase": ["Geometry type", "GeometryType", "1"],
+            "diffractionAngle": ["Diffraction plane (roll) angle [rad]", "DiffractionPlaneAngle", "0"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 0.0],
             "asymmetryAngle": ["Asymmetry angle [rad]", "Float", 0.0],
-            "rotationAngle": ["Rotation angle [rad]", "Float", 0.0],
             "crystalThickness": ["Crystal thickness [m]", "Float", 0.01],
-            "dSpacing": ["Crystal reflecting planes d-spacing [A]", "Float", ""],
-            "psi0r": ["0-th Fourier component", "Float", ""],
-            "psi0i": ["0-th Fourier component", "Float", ""],
-            "psiHr": ["H-th Fourier component", "Float", ""],
-            "psiHi": ["H-th Fourier component", "Float", ""],
-            "psiHBr": ["-H-th Fourier component", "Float", ""],
-            "psiHBi": ["-H-th Fourier component", "Float", ""],
-            "nvx": ["Horizontal coordinate", "Float", ""],
-            "nvy": ["Vertical coordinate", "Float", ""],
-            "nvz": ["Longitudinal coordinate", "Float", ""],
-            "tvx": ["Horizontal coordinate", "Float", ""],
-            "tvy": ["Vertical coordinate", "Float", ""],
+            "dSpacing": ["Crystal reflecting planes d-spacing [A]", "Float", 0],
+            "psi0r": ["0-th Fourier component", "Float", 0],
+            "psi0i": ["0-th Fourier component", "Float", 0],
+            "psiHr": ["H-th Fourier component", "Float", 0],
+            "psiHi": ["H-th Fourier component", "Float", 0],
+            "psiHBr": ["-H-th Fourier component", "Float", 0],
+            "psiHBi": ["-H-th Fourier component", "Float", 0],
+            "nvx": ["Horizontal coordinate", "Float", 0],
+            "nvy": ["Vertical coordinate", "Float", 0],
+            "nvz": ["Longitudinal coordinate", "Float", 0],
+            "tvx": ["Horizontal coordinate", "Float", 0],
+            "tvy": ["Vertical coordinate", "Float", 0],
+            "outoptvx": ["Horizontal", "Float", 0],
+            "outoptvy": ["Vertical", "Float", 0],
+            "outoptvz": ["Longitudinal", "Float", 0],
+            "outframevx": ["Horizontal", "Float", 0],
+            "outframevy": ["Vertical", "Float", 0],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
             "heightAmplification": ["Height Amplification Coefficient", "Float", 1]
@@ -564,22 +578,33 @@
             "title": ["Element Name", "String", "Grating"],
             "position": ["Nominal Position [m]", "Float"],
             "tangentialSize": ["Tangential Size [m]", "Float", 0.2],
-            "sagittalSize": ["Sagittal Size [m]", "Float", 0.015],
-            "grazingAngle": ["Grazing Angle [mrad]", "Float", 12.9555790185373],
-            "autocomputeVectors": ["Auto-compute Vectors", "AutocomputeVectors", "horizontal"],
-            "normalVectorX": ["Horizontal", "Float", 0.99991607766],
-            "normalVectorY": ["Vertical", "Float", 0],
-            "normalVectorZ": ["Longitudinal", "Float", -0.0129552166147],
-            "tangentialVectorX": ["Horizontal", "Float", 0.0129552166147],
-            "tangentialVectorY": ["Vertical", "Float", 0],
+            "sagittalSize": ["Sagittal Size [m]", "Float", 0.02],
+            "grazingAngle": ["Grazing Angle [mrad]", "Float", 0],
+            "nvx": ["Horizontal", "Float", 0],
+            "nvy": ["Vertical", "Float", 0],
+            "nvz": ["Longitudinal", "Float", 0],
+            "tvx": ["Horizontal", "Float", 0],
+            "tvy": ["Vertical", "Float", 0],
+            "outoptvx": ["Horizontal", "Float", 0],
+            "outoptvy": ["Vertical", "Float", 0],
+            "outoptvz": ["Longitudinal", "Float", 0],
+            "outframevx": ["Horizontal", "Float", 0],
+            "outframevy": ["Vertical", "Float", 0],
+            "energyAvg": ["Average photon energy the grating should be oriented for [eV]", "Float", 0],
+	        "cff": ["Cff Parameter (cos(beta)/cos(alpha))", "Float", 1.5],
+            "rollAngle": ["Roll Angle [rad]", "Float", 3.1415926],
             "diffractionOrder": ["Diffraction Order", "Float", 1],
-            "grooveDensity0": ["a₀ [lines/mm]", "Float", 1800],
-            "grooveDensity1": ["a₁ [lines/mm²]", "Float", 0.08997],
-            "grooveDensity2": ["a₂ [lines/mm³]", "Float", 3.004e-6],
-            "grooveDensity3": ["a₃ [lines/mm⁴]", "Float", 9.7e-11],
+            "grooveDensity0": ["a₀ [lines/mm]", "Float", 0],
+            "grooveDensity1": ["a₁ [lines/mm²]", "Float", 0],
+            "grooveDensity2": ["a₂ [lines/mm³]", "Float", 0],
+            "grooveDensity3": ["a₃ [lines/mm⁴]", "Float", 0],
             "grooveDensity4": ["a₄ [lines/mm⁵]", "Float", 0],
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
-            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0],
+            "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
+            "computeParametersFrom": ["Compute Parameters from", "computeParametersFrom", "2"],
+            "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
+            "heightAmplification": ["Height Amplification Coefficient", "Float", 0.001]
         },
         "initialIntensityReport": {
             "polarization": ["Polarization Component to Extract", "Polarization"],
@@ -667,6 +692,8 @@
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""],
+            "horizontalPosition": ["Horizontal Center Position for Degree of Coherence Cuts [mm]", "Float", 0],
+            "verticalPosition": ["Vertical Center Position for Degree of Coherence Cuts [mm]", "Float", 0],
             "watchpointId": ["Evaluate at Watchpoint", "WatchPoint", 0],
             "calcCoherence": ["Calculate Degree of Coherence in Addition to Intensity", "Boolean", "0"]
         },
@@ -1040,25 +1067,6 @@
                         ]]
                     ]
                 ]],
-                ["Geometry", [
-                    "energy",
-                    "diffractionAngle",
-                    "asymmetryAngle",
-                    "rotationAngle",
-                    "crystalThickness",
-                    "dSpacing",
-                    [
-                        ["Outward normal vector", [
-                            "nvx",
-                            "nvy",
-                            "nvz"
-                        ]],
-                        ["Central tangential vector", [
-                            "tvx",
-                            "tvy"
-                        ]]
-                    ]
-                ]],
                 ["Polarizability", [
                     [
                         ["Real part", [
@@ -1070,6 +1078,25 @@
                             "psi0i",
                             "psiHi",
                             "psiHBi"
+                        ]]
+                    ]
+                ]],
+                ["Geometry", [
+                    "energy",
+		            "useCase",
+                    "diffractionAngle",
+                    "asymmetryAngle",
+                    "crystalThickness",
+                    "dSpacing",
+                    [
+                        ["Outward normal vector", [
+                            "nvx",
+                            "nvy",
+                            "nvz"
+                        ]],
+                        ["Central tangential vector", [
+                            "tvx",
+                            "tvy"
                         ]]
                     ]
                 ]],
@@ -1314,36 +1341,10 @@
             "title": "Grating",
             "basic": [],
             "advanced": [
-                ["Geometry", [
-                    "title",
-                    "position",
-                    "tangentialSize",
-                    "sagittalSize",
-                    "diffractionOrder",
-                    [
-                        ["Horizontal", [
-                            "horizontalOffset"
-                        ]],
-                        ["Vertical", [
-                            "verticalOffset"
-                        ]]
-                    ]
-                ]],
-                ["Orientation", [
-                    "grazingAngle",
-                    "autocomputeVectors",
-                    [
-                        ["Coordinates of Central Normal Vector", [
-                            "normalVectorX",
-                            "normalVectorY",
-                            "normalVectorZ"
-                        ]],
-                        ["Coordinates of Central Tangential Vector", [
-                            "tangentialVectorX",
-                            "tangentialVectorY"
-                        ]]
-                    ]
-                ]],
+		        ["Main", [
+		            "title",
+		            "position"
+	        	]],
                 ["Groove Parameters", [
                     "*Groove Density Polynomial:\n$a_0 + a_1 y + a_2 y^2 + a_3 y^3 + a_4 y^4$",
                     "grooveDensity0",
@@ -1351,6 +1352,40 @@
                     "grooveDensity2",
                     "grooveDensity3",
                     "grooveDensity4"
+                ]],
+                ["Geometry", [
+                    "energyAvg",
+                    "computeParametersFrom",
+                    "cff",
+                    "grazingAngle",
+                    "rollAngle",
+                    "diffractionOrder",
+                    "tangentialSize",
+                    "sagittalSize",
+                    [
+                        ["Horizontal", [
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalOffset"
+                        ]]
+                    ],
+                    [
+                        ["Outward normal vector", [
+                            "nvx",
+                            "nvy",
+                            "nvz"
+                        ]],
+                        ["Central tangential vector", [
+                            "tvx",
+                            "tvy"
+                        ]]
+                    ]
+                ]],
+                ["Height Profile", [
+                    "heightProfileFile",
+                    "orientation",
+                    "heightAmplification"
                 ]]
             ]
         },
@@ -1504,6 +1539,14 @@
                     "integrationMethod",
                     "photonEnergyBandWidth",
                     "calcCoherence",
+                    [
+                       ["Horizontal", [
+                           "horizontalPosition"
+                       ]],
+                       ["Vertical", [
+                           "verticalPosition"
+                       ]]
+                    ],
                     "notes"
                 ]],
                 ["Scale", [
