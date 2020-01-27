@@ -117,10 +117,6 @@ def init():
 
 class ServerReq(PKDict):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.task = asyncio.current_task()
-
     async def receive(self):
         s = self.content.pkdel('serverSecret')
         # no longer contains secret so ok to log
@@ -457,8 +453,6 @@ class _ComputeJob(PKDict):
                     self.__db_write()
                     if r.state in job.EXIT_STATUSES:
                         break
-                except Awaited:
-                    pass
                 except asyncio.CancelledError:
                     return
         except Exception as e:

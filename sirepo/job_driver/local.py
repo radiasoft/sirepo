@@ -29,7 +29,7 @@ class LocalDriver(job_driver.DriverBase):
 
     __instances = PKDict()
 
-    __slot_q = PKDict()
+    __cpu_slot_q = PKDict()
 
     def __init__(self, req):
         super().__init__(req)
@@ -38,8 +38,11 @@ class LocalDriver(job_driver.DriverBase):
                 'agent-local', self._agentId),
             _agent_exit=tornado.locks.Event(),
         )
-        self.slot_q = self.__slot_q[req.kind]
+        self.cpu_slot_q = self.__cpu_slot_q[req.kind]
         self.__instances[self.kind].append(self)
+
+    def cpu_slot_peers(self):
+        return self.__instances[self.kind]
 
     @classmethod
     def get_instance(cls, req):
@@ -48,7 +51,7 @@ class LocalDriver(job_driver.DriverBase):
         # _run(), this is an outstanding op, which holds the driver until the _run()
         # is complete. Same for analysis. Once all runs and analyses are compelte,
         # free the driver, but park it. Allocation then is trying to find a parked
-        # driver then a free slot. If there are no free slots, we garbage collect
+        # driver then a free cpu slot. If there are no free slots, we garbage collect
         # parked drivers. We can park more drivers than are available for compute
         # so has to connect to the max slots. Parking is only needed for resources
         # we have to manage (local, docker). For NERSC, AWS, etc. parking is not
@@ -70,7 +73,7 @@ class LocalDriver(job_driver.DriverBase):
     def init_class(cls):
         for k in job.KINDS:
             cls.__instances[k] = []
-            cls.__slot_q[k] = cls.init_q(cfg.slots[k])
+            cls.__cpu_slot_q[k] = cls.init_q(cfg.slots[k])
         return cls
 
     async def kill(self):
@@ -89,9 +92,6 @@ class LocalDriver(job_driver.DriverBase):
         if op.opName == job.OP_RUN:
             op.msg.mpiCores = sirepo.mpi.cfg.cores if op.msg.isParallel else 1
         return await super().prepare_send(op)
-
-    def slot_peers(self):
-        return self.__instances[self.kind]
 
     def _agent_on_exit(self, returncode):
         self._agent_exit.set()

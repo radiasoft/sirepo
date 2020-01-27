@@ -35,7 +35,12 @@ class SbatchDriver(job_driver.DriverBase):
         self._srdb_root = None
         self.__instances[self.uid] = self
 
-    def free_slots(self):
+    def cpu_slot_free_one(self):
+        """We allow as many users as the sbatch system allows"""
+        pass
+
+    async def cpu_slot_ready(self):
+        """We allow as many users as the sbatch system allows"""
         pass
 
     @classmethod
@@ -46,14 +51,6 @@ class SbatchDriver(job_driver.DriverBase):
     @classmethod
     def init_class(cls):
         return cls
-
-    def slot_free_one(self):
-        """We allow as many users as the sbatch system allows"""
-        pass
-
-    async def slot_ready(self):
-        """We allow as many users as the sbatch system allows"""
-        pass
 
     async def prepare_send(self, op):
         m = op.msg

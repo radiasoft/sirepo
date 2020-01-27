@@ -50,7 +50,7 @@ class DockerDriver(job_driver.DriverBase):
             host=host,
         )
         host.instances[self.kind].append(self)
-        self.slot_q = host.slot_q
+        self.cpu_slot_q = host.cpu_slot_q
         self.__users.setdefault(self.uid, PKDict())[self.kind] = self
 
     @classmethod
@@ -92,7 +92,7 @@ class DockerDriver(job_driver.DriverBase):
             op.msg.mpiCores = cfg[self.kind].get('cores', 1)
         return await super().prepare_send(op)
 
-    def slot_peers(self):
+    def cpu_slot_peers(self):
         return self.host.instances[self.kind]:
 
     @classmethod
@@ -207,10 +207,10 @@ class DockerDriver(job_driver.DriverBase):
                 cmd_prefix=_cmd_prefix(h, d),
                 instances=PKDict(),
                 name=h,
-                slots=PKDict(),
+                cpu_slots=PKDict(),
             )
             for k in job.KINDS:
-                x.slot_q[k] = cls.init_q(cfg[k].slots_per_host)
+                x.cpu_slot_q[k] = cls.init_q(cfg[k].slots_per_host)
                 x.instances[k] = []
         assert len(cls.__hosts) > 0, \
             '{}: no docker hosts found in directory'.format(cfg.tls_d)
