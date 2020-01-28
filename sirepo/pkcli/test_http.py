@@ -29,21 +29,49 @@ def run_all():
         t.join()
 
 
-def run(email, sim_type, sim_name):
+def run(email, sim_type, *sim_names):
     s = _Session(email, sim_type)
-    l = s.sr_login()
+    s.sr_login()
+    run_sequential_parallel(s)
+    '''
+    o = list(sim_names)
     for x in l:
-        if x.name == sim_name:
-            break
-    else:
-        raise AssertionError(
-            'sim_name={} not found in list={}'.format(sim_name, l),
-        )
+        if x.name in o:
+            o.remove(x.name)
+    assert not o, \
+        'sim_names={} not found in list={}'.format(o, l)
     d = s.sr_get(
         '/simulation/{}/{}/0'.format(s.sr_sim_type, x.simulationId),
     )
-    pkdp(d)
+    x = d.models.simulation
+    pkdlog('sid={} name={}', x.simulationId, x.name)
+    '''
 
+
+def run_sequential_parallel(session):
+    for r in (
+        'multiElectronAnimation',
+        'brillianceReport',
+        'fluxReport',
+        'initialIntensityReport',
+        'intensityReport',
+        'powerDensityReport',
+        'sirepo-data.json',
+        'sourceIntensityReport',
+        'trajectoryReport',
+        'watchpointReport6',
+        'watchpointReport7',
+    ):
+        d = sessions.sr_sim_data(r)
+                PKDict(
+                    models=data.models,
+                    report=r,
+                    simulationId=data.models.simulation.simulationId,
+                    simulationType=data.simulationType,
+                ).pkupdate(**post_args),
+
+
+        session.
 
 
 class _Session(requests.Session):
@@ -67,8 +95,10 @@ class _Session(requests.Session):
         )
 
     def sr_login(self):
-        self.sr_get('/' + self.sr_sim_type)
         r = self.sr_post('/simulation-list', PKDict())
+        assert r.srException.routeName == 'missingCookies'
+        r = self.sr_post('/simulation-list', PKDict())
+        assert r.srException.routeName == 'login'
         with self.__global_lock:
             self.__login_locks.pksetdefault(self.sr_email, threading.Lock)
         with self.__login_locks[self.sr_email]:
@@ -83,7 +113,10 @@ class _Session(requests.Session):
                     '/auth-complete-registration',
                     PKDict(displayName=self.sr_email),
                 )
-        return self.sr_post('/simulation-list', PKDict())
+
+        r = self.sr_post('/simulation-list', PKDict())
+        self.sr_simulations = PKDict([(x.name, x.simulationId) for x in r])
+        return r
 
     def sr_parse_response(self, resp):
         resp.raise_for_status()
@@ -100,6 +133,11 @@ class _Session(requests.Session):
                 headers=PKDict({'Content-type': 'application/json'}),
                 verify=False,
             ),
+        )
+
+    def sr_sim_data(self, sim_name, simulations):
+        return s.sr_get(
+            '/simulation/{}/{}/0'.format(self.sr_sim_type, self.self.sr_simulations[sim_name]),
         )
 
     def sr_uri(self, uri):
