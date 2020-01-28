@@ -49,8 +49,7 @@ def run(email, sim_type, *sim_names):
 
 
 def run_sequential_parallel(session):
-    for r in (
-        'multiElectronAnimation',
+    sim_run('multiElectronAnimation'
         'brillianceReport',
         'fluxReport',
         'initialIntensityReport',
@@ -63,12 +62,6 @@ def run_sequential_parallel(session):
         'watchpointReport7',
     ):
         d = sessions.sr_sim_data(r)
-                PKDict(
-                    models=data.models,
-                    report=r,
-                    simulationId=data.models.simulation.simulationId,
-                    simulationType=data.simulationType,
-                ).pkupdate(**post_args),
 
 
         session.
@@ -115,7 +108,7 @@ class _Session(requests.Session):
                 )
 
         r = self.sr_post('/simulation-list', PKDict())
-        self.sr_simulations = PKDict([(x.name, x.simulationId) for x in r])
+        self.sr_sid = PKDict([(x.name, x.simulationId) for x in r])
         return r
 
     def sr_parse_response(self, resp):
@@ -136,9 +129,28 @@ class _Session(requests.Session):
         )
 
     def sr_sim_data(self, sim_name, simulations):
-        return s.sr_get(
-            '/simulation/{}/{}/0'.format(self.sr_sim_type, self.self.sr_simulations[sim_name]),
-        )
+        return self.sr_sim_db.pksetdefault(
+            sim_name,
+            lambda: self.sr_get(
+                '/simulation/{}/{}/0'.format(self.sr_sim_type, self.sr_sid[sim_name]),
+            ),
+        )[sim_name]
+
+    def sr_sim_run(self, sim_name, report, timeout=None):
+        def _run():
+            d = self.
+            self.sr_post(
+                '/run-simulation',
+                PKDict(
+                    models=d,
+                    report=report,
+                    simulationId=data.models.simulation.simulationId,
+                simulationType=data.simulationType,
+            ).pkupdate(**post_args)
+
+        t = threading.Thread(target=_run)
+        t.start()
+        return t
 
     def sr_uri(self, uri):
         if uri.startswith('http'):
