@@ -148,6 +148,7 @@ class _Session(requests.Session):
                 simulationType=data.simulationType,
             ).pkupdate(**post_args)
 
+        new session object
         t = threading.Thread(target=_run)
         t.start()
         return t
