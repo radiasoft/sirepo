@@ -50,7 +50,7 @@ class DockerDriver(job_driver.DriverBase):
             host=host,
         )
         host.instances[self.kind].append(self)
-        self.cpu_slot_q = host.cpu_slot_q
+        self.cpu_slot_q = host.cpu_slot_q[self.kind]
         self.__users.setdefault(self.uid, PKDict())[self.kind] = self
 
     @classmethod
@@ -64,7 +64,7 @@ class DockerDriver(job_driver.DriverBase):
             # jobs of different kinds for the same user need to go to the
             # same host. Ex. sequential analysis jobs for parallel compute
             # jobs need to go to the same host to avoid NFS caching problems
-            h = list(d.values())[0].host
+            h = list(u.values())[0].host
         else:
             # least used host
             h = min(cls.__hosts.values(), key=lambda h: len(h.instances[req.kind]))
@@ -93,10 +93,10 @@ class DockerDriver(job_driver.DriverBase):
         return await super().prepare_send(op)
 
     def cpu_slot_peers(self):
-        return self.host.instances[self.kind]:
+        return self.host.instances[self.kind]
 
     @classmethod
-    def _cmd_prefix(host, tls_d):
+    def _cmd_prefix(cls, host, tls_d):
         args = [
             'docker',
             # docker TLS port is hardwired
@@ -112,8 +112,7 @@ class DockerDriver(job_driver.DriverBase):
         return tuple(args)
 
 
-    @classmethod
-    def _cname_join():
+    def _cname_join(self):
         """Create a cname or cname_prefix from kind and uid
 
         POSIT: matches _CNAME_RE
@@ -204,10 +203,11 @@ class DockerDriver(job_driver.DriverBase):
         for h in cfg.hosts:
             d = cfg.tls_dir.join(h)
             x = cls.__hosts[h] = PKDict(
-                cmd_prefix=_cmd_prefix(h, d),
+                cmd_prefix=cls._cmd_prefix(h, d),
                 instances=PKDict(),
                 name=h,
                 cpu_slots=PKDict(),
+                cpu_slot_q=PKDict(),
             )
             for k in job.KINDS:
                 x.cpu_slot_q[k] = cls.init_q(cfg[k].slots_per_host)
