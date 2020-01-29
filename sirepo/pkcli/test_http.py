@@ -51,10 +51,14 @@ def run(email, sim_type, *sim_names):
 
 
 def run_sequential_parallel(client):
-    #t = client.sim_run("Young's Double Slit Experiment", 'multiElectronAnimation')
-    t = client.sim_run("Young's Double Slit Experiment", 'intensityReport')
-    t.join()
-#        'brillianceReport',
+    s = "Young's Double Slit Experiment"
+    c = []
+    for r in 'intensityReport', 'powerDensityReport', 'sourceIntensityReport', 'multiElectronAnimation', 'fluxAnimation':
+        c.append(client.sim_run('Tabulated Undulator Example', r))
+    for x in c:
+        x.thread.join()
+    #     'multiElectronAnimation'
+    #     'brillianceReport',
     #     'fluxReport',
     #     'initialIntensityReport',
     #     'intensityReport',
@@ -64,7 +68,6 @@ def run_sequential_parallel(client):
     #     'trajectoryReport',
     #     'watchpointReport6',
     #     'watchpointReport7',
-    # ):
 
 
 
@@ -108,8 +111,7 @@ class _Client(PKDict):
                 r.url,
                 data=PKDict(token=r.url.split('/').pop(), email=self.email),
             )
-            m = re.search('location = "(/[^"]+)', r)
-            if m and 'complete' in m.group(1):
+            if r.state == 'redirect' and 'complete' in r.uri:
                 r = self.post(
                     '/auth-complete-registration',
                     PKDict(displayName=self.email),
@@ -121,9 +123,20 @@ class _Client(PKDict):
         return self
 
     def parse_response(self, resp):
+        self.resp = resp
+        self.json = None
         resp.raise_for_status()
         if 'json' in resp.headers['content-type']:
-            return pkjson.load_any(resp.content)
+            self.json = pkjson.load_any(resp.content)
+            return self.json
+        if 'html' in resp.headers['content-type']:
+            m = re.search('location = "(/[^"]+)', resp.content)
+            if m:
+                if 'error' in m.group(1):
+                    self.json = PKDict(state='error', error='server error')
+                else:
+                    self.json = PKDict(state='redirect', uri=m.group(1))
+                return self.json
         return resp.content
 
     def post(self, uri, data):
@@ -144,18 +157,21 @@ class _Client(PKDict):
             ),
         )[sim_name]
 
-    def sim_run(self, name, report, timeout=10):
+    def sim_run(self, name, report, timeout=15):
 
-        def _run(client):
+        def _run(self):
             c = None
-            i = client._sid[name]
-            r = client.post(
+            i = self._sid[name]
+            pkdlog('sid={} report={} state=start', i, report)
+            r = self.post(
                 '/run-simulation',
                 PKDict(
-                    models=client.sim_data(name).models,
+                    # works for sequential simulations, too
+                    forceRun=True,
+                    models=self.sim_data(name).models,
                     report=report,
                     simulationId=i,
-                    simulationType=client.sim_type,
+                    simulationType=self.sim_type,
                 ),
             )
             try:
@@ -163,23 +179,25 @@ class _Client(PKDict):
                     return
                 c = r.get('nextRequest')
                 for _ in range(timeout):
-                    pkdp('here')
                     if r.state in ('completed', 'error'):
                         c = None
                         break
                     r = self.post('/run-status', r.nextRequest)
-                    pkdp(r.state)
                     time.sleep(1)
                 else:
                     pkdlog('sid={} report={} timeout={}', i, report, timeout)
             finally:
                 if c:
                     self.post('/run-cancel', c)
-                pkdlog('sid={} report={} state={}', i, report, 'cancel' if c else r.state)
+                s = 'cancel' if c else r.get('state')
+                if s == 'error':
+                    s = r.get('error', '<unknown error>')
+                pkdlog('sid={} report={} state={}', i, report, s)
 
-        t = threading.Thread(target=_run, args=[self.copy()])
-        t.start()
-        return t
+        self = self.copy()
+        self.thread = threading.Thread(target=_run, args=[self])
+        self.thread.start()
+        return self
 
 
     def uri(self, uri):
