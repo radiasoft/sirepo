@@ -15,6 +15,7 @@ import requests
 import subprocess
 import threading
 import time
+import sirepo.util
 
 
 cfg = None
@@ -107,9 +108,10 @@ class _Client(PKDict):
             self.__login_locks.pksetdefault(self.email, threading.Lock)
         with self.__login_locks[self.email]:
             r = self.post('/auth-email-login', PKDict(email=self.email))
+            t = sirepo.util.create_token(self.email)
             r = self.post(
-                r.url,
-                data=PKDict(token=r.url.split('/').pop(), email=self.email),
+                self.uri('/auth-email-authorized/{}/{}'.format(self.sim_type, t)),
+                data=PKDict(token=t, email=self.email),
             )
             if r.state == 'redirect' and 'complete' in r.uri:
                 r = self.post(
