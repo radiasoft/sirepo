@@ -547,7 +547,7 @@ def prepare_for_client(data):
                 _save_user_model_list(model_name, user_model_list)
                 save = True
     if save:
-        pkdp("save simulation json with sim_data_template_fixup={}", data.get('sim_data_template_fixup', None))
+        pkdc("save simulation json with sim_data_template_fixup={}", data.get('sim_data_template_fixup', None))
         simulation_db.save_simulation_json(data)
     return data
 
