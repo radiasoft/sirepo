@@ -60,7 +60,7 @@ cfg = None
 _MAX_RUN_SECS = PKDict()
 
 #: how many times restart request when Awaited() raised
-_MAX_RETRIES = 100
+_MAX_RETRIES = 10
 
 
 class Awaited(Exception):
@@ -180,17 +180,12 @@ class _ComputeJob(PKDict):
     async def receive(cls, req):
         pkdlog('{}', req)
         try:
-            for i in range(_MAX_RETRIES):
-                try:
-                    return await getattr(
-                        cls.get_instance(req),
-                        '_receive_' + req.content.api,
-                    )(req)
-                except Awaited:
-                    pass
-                except asyncio.CancelledError:
-                    return PKDict(state=job.CANCELED)
-            raise AssertionError('too many retries {}'.format(req))
+            return await getattr(
+                cls.get_instance(req),
+                '_receive_' + req.content.api,
+            )(req)
+        except asyncio.CancelledError:
+            return PKDict(state=job.CANCELED)
         except Exception as e:
             pkdlog('{} error={} stack={}', req, e, pkdexc())
             if isinstance(e, sirepo.util.Reply):
@@ -292,28 +287,38 @@ class _ComputeJob(PKDict):
             return r
         c = None
         try:
-            if self.run_op:
-#TODO(robnagler) cancel run_op, not just by jid, which is insufficient (hash)
-                c = self._create_op(job.OP_CANCEL, req)
-                await c.prepare_send()
-                # out of order from OP_ANALYSIS and OP_RUN, because we
-                # want don't have to wait so block on prepare_send before
-                # modifying global state (release)
-                if self.run_dir_owner:
-                    self.run_dir_release(self.run_dir_owner)
-                await self.run_dir_acquire(c)
-            for x in self.ops:
-                if not (self.db.isParallel and x.opName == job.OP_ANALYSIS):
-                    x.destroy(cancel=True)
-            self.db.status = job.CANCELED
-            self.__db_write()
-            if c:
-                c.send()
-                await c.reply_get()
+            for i in range(_MAX_RETRIES):
+                try:
+                    if self.run_op:
+                        #TODO(robnagler) cancel run_op, not just by jid, which is insufficient (hash)
+                        if not c:
+                            c = self._create_op(job.OP_CANCEL, req)
+                        await c.prepare_send()
+                        # out of order from OP_ANALYSIS and OP_RUN, because we
+                        # want don't have to wait so block on prepare_send before
+                        # modifying global state (release)
+                        if self.run_dir_owner and self.run_dir_owner != c:
+                            self.run_dir_release(self.run_dir_owner)
+                        await self.run_dir_acquire(c)
+                    elif c:
+                        c.destroy()
+                        c = None
+                    for x in self.ops:
+                        if not (self.db.isParallel and x.opName == job.OP_ANALYSIS):
+                            x.destroy(cancel=True)
+                    self.db.status = job.CANCELED
+                    self.__db_write()
+                    if c:
+                        c.send()
+                        await c.reply_get()
+                    return r
+                except Awaited:
+                    pass
+            else:
+                raise AssertionError('too many retries {}'.format(req))
         finally:
             if c:
                 c.destroy(cancel=False)
-        return r
 
     async def _receive_api_runSimulation(self, req):
         f = req.content.data.get('forceRun')
@@ -340,24 +345,30 @@ class _ComputeJob(PKDict):
             nextRequestSeconds=self.db.nextRequestSeconds,
         )
         try:
-            await self.run_dir_acquire(o)
-            await o.prepare_send()
-            self.run_op = o
-            self.__db_init(req, prev_db=self.db)
-            self.db.computeJobSerial = int(time.time())
-            self.db.pkupdate(status=job.PENDING)
-            self.__db_write()
-            o.make_lib_dir_symlink()
-            o.send()
-            r = self._status_reply(req)
-            assert r
-            o.run_callback = tornado.ioloop.IOLoop.current().call_later(
-                0,
-                self._run,
-                o,
-            )
-            o = None
-            return r
+            for i in range(_MAX_RETRIES):
+                try:
+                    await self.run_dir_acquire(o)
+                    await o.prepare_send()
+                    self.run_op = o
+                    self.__db_init(req, prev_db=self.db)
+                    self.db.computeJobSerial = int(time.time())
+                    self.db.pkupdate(status=job.PENDING)
+                    self.__db_write()
+                    o.make_lib_dir_symlink()
+                    o.send()
+                    r = self._status_reply(req)
+                    assert r
+                    o.run_callback = tornado.ioloop.IOLoop.current().call_later(
+                        0,
+                        self._run,
+                        o,
+                    )
+                    o = None
+                    return r
+                except Awaited:
+                    pass
+            else:
+                raise AssertionError('too many retries {}'.format(req))
         finally:
             # _run destroys in the happy path (never got to _run here)
             if o:
@@ -431,7 +442,7 @@ class _ComputeJob(PKDict):
             while True:
                 try:
                     r = await op.reply_get()
-#TODO(robnagler) is this ever true?
+                    #TODO(robnagler) is this ever true?
                     if op != self.run_op:
                         return
                     # run_dir is in a stable state so don't need to lock
@@ -449,7 +460,7 @@ class _ComputeJob(PKDict):
                     else:
                         # sequential jobs don't send this
                         self.db.lastUpdateTime = int(time.time())
-#TODO(robnagler) will need final frame count
+                    #TODO(robnagler) will need final frame count
                     self.__db_write()
                     if r.state in job.EXIT_STATUSES:
                         break
@@ -467,11 +478,17 @@ class _ComputeJob(PKDict):
     async def _send_with_single_reply(self, opName, req, **kwargs):
         o = self._create_op(opName, req, **kwargs)
         try:
-            if opName == job.OP_ANALYSIS:
-                await self.run_dir_acquire(o)
-            await o.prepare_send()
-            o.send()
-            return await o.reply_get()
+            for i in range(_MAX_RETRIES):
+                try:
+                    if opName == job.OP_ANALYSIS:
+                        await self.run_dir_acquire(o)
+                    await o.prepare_send()
+                    o.send()
+                    return await o.reply_get()
+                except Awaited:
+                    pass
+            else:
+                raise AssertionError('too many retries {}'.format(req))
         finally:
             o.destroy(cancel=False)
 
