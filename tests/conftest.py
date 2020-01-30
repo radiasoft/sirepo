@@ -57,15 +57,17 @@ def auth_fc_module(request):
 def email_confirm(fc, resp, display_name=None):
     import re
     from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdp
 
-    fc.sr_get(resp.url)
-    m = re.search(r'/(\w+)$', resp.url)
-    assert m
+    fc.sr_get(resp.uri)
+    pkdp(resp.uri)
+    m = re.search(r'/(\w+)$', resp.uri)
+    assert bool(m)
     r = PKDict(token=m.group(1))
     if display_name:
         r.displayName = display_name
     fc.sr_post(
-        resp.url,
+        resp.uri,
         r,
         raw_response=True,
     )
@@ -213,7 +215,7 @@ def _config_sbatch_supervisor_env(env):
     h = socket.gethostname()
     k = pykern.pkio.py_path('~/.ssh/known_hosts').read()
     m = re.search('^{}.*$'.format(h), k, re.MULTILINE)
-    assert m, \
+    assert bool(m), \
         'You need to ssh into {} to get the host key'.format(h)
 
     env.pkupdate(

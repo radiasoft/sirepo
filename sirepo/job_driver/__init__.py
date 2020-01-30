@@ -49,7 +49,7 @@ class DriverBase(PKDict):
             _agentId=job.unique_key(),
             _agent_starting=False,
             _agent_start_lock=tornado.locks.Lock(),
-            _slot_alloc_time=None,
+            _cpu_slot_alloc_time=None,
             kind=req.kind,
             ops=PKDict(),
             op_q=PKDict({
@@ -73,12 +73,48 @@ class DriverBase(PKDict):
             **self
         )
 
+    def cpu_slot_free(self):
+        if not self.cpu_slot:
+            return
+        self.cpu_slot_q.task_done()
+        self.cpu_slot_q.put_nowait(self.cpu_slot)
+        self.cpu_slot = None
+        self._cpu_slot_alloc_time = None
+
+    def cpu_slot_free_one(self):
+        if self.cpu_slot_q.qsize() > 0:
+            # available slots, don't need to free
+            return
+        # This is not fair scheduling, but good enough for now.
+        # least recently used and not in use
+        d = sorted(
+            filter(
+                lambda x: bool(x.cpu_slot and not x.ops),
+                self.cpu_slot_peers(),
+            ),
+            key=lambda x: x._cpu_slot_alloc_time,
+        )
+        if d:
+            d[0].cpu_slot_free()
+
+    async def cpu_slot_ready(self):
+        if self.cpu_slot:
+            return
+        try:
+            self.cpu_slot = self.cpu_slot_q.get_nowait()
+        except tornado.queues.QueueEmpty:
+            self.cpu_slot_free_one()
+            self.cpu_slot = await self.cpu_slot_q.get()
+            raise job_supervisor.Awaited()
+        finally:
+            self._cpu_slot_alloc_time = time.time()
+
     def destroy_op(self, op):
-        """Clear our op and (possibly) free slot"""
+        """Clear our op and (possibly) free cpu slot"""
         self.ops.pkdel(op.opId)
         if not self.ops:
-            # might free our slot if no other ops
-            self.slot_free_one()
+            # might free our cpu slot if no other ops
+            self.cpu_slot_free_one()
         if op.op_slot:
             q = self.op_q[op.opName]
             q.task_done()
@@ -157,7 +193,7 @@ class DriverBase(PKDict):
             await self._agent_start(op)
             await self._websocket_ready.wait()
             raise job_supervisor.Awaited()
-        await self.slot_ready()
+        await self.cpu_slot_ready()
         # must be last, because reserves queue position of op
         # relative to other ops even it throws Awaited when the
         # op_slot is assigned.
@@ -186,41 +222,6 @@ class DriverBase(PKDict):
         )
         self._websocket.write_message(pkjson.dump_bytes(op.msg))
 
-    def slot_free(self):
-        if not self.cpu_slot:
-            return
-        self.slot_q.task_done()
-        self.slot_q.put_nowait(self.cpu_slot)
-        self.cpu_slot = None
-        self._slot_alloc_time = None
-
-    def slot_free_one(self):
-        if self.slot_q.qsize() > 0:
-            # available slots, don't need to free
-            return
-        # least recently used and not in use
-        d = sorted(
-            filter(
-                lambda x: bool(x.cpu_slot and not x.ops),
-                self.slot_peers(),
-            ),
-            key=lambda x: x._slot_alloc_time,
-        )
-        if d:
-            d[0].slot_free()
-
-    async def slot_ready(self):
-        if self.cpu_slot:
-            return
-        try:
-            self.cpu_slot = self.slot_q.get_nowait()
-        except tornado.queues.QueueEmpty:
-            self.slot_free_one()
-            self.cpu_slot = await self.slot_q.get()
-            raise job_supervisor.Awaited()
-        finally:
-            self._slot_alloc_time = time.time()
-
     @classmethod
     async def terminate(cls):
         for d in list(cls.__instances.values()):
@@ -246,7 +247,7 @@ class DriverBase(PKDict):
                 w.sr_close()
             for o in list(self.ops.values()):
                 o.destroy(error='websocket closed')
-            self.slot_free()
+            self.cpu_slot_free()
             self._websocket_free()
         except Exception as e:
             pkdlog('job_driver={} error={} stack={}', self, e, pkdexc())
