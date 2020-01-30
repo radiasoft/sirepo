@@ -3,27 +3,44 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.factory('commandService', function(appState) {
+SIREPO.app.factory('commandService', function(appState, latticeService, panelState, validationService) {
     var self = {};
     var COMMAND_PREFIX = 'command_';
 
     self.commandFileExtension = function(command) {
-        //TODO(pjm): each app will need to supply this - different for opal
+        //TODO(pjm): each app will need to supply this
+        return '';
+    };
 
-        //TODO(pjm): keep in sync with template/elegant.py _command_file_extension()
-        if (command) {
-            if (command._type == 'save_lattice') {
-                return '.lte';
-            }
-            else if (command._type == 'global_settings') {
-                return '.txt';
+    self.commandForId = function(id) {
+        for (var i = 0; i < appState.models.commands.length; i++) {
+            var c = appState.models.commands[i];
+            if (c._id == id) {
+                return c;
             }
         }
-        return '.sdds';
+        return null;
     };
 
     self.commandModelName = function(type) {
         return COMMAND_PREFIX + type;
+    };
+
+    self.editCommand = function(item) {
+        var modelName = self.commandModelName(item._type);
+        appState.models[modelName] = self.commandForId(item._id);
+        if (latticeService.includeCommandNames) {
+            latticeService.setValidator(modelName, item);
+        }
+        panelState.showModalEditor(modelName);
+    };
+
+    self.formatCommandName = function(cmd) {
+        return cmd._type;
+    };
+
+    self.formatFieldValue = function(value, type) {
+        return value;
     };
 
     self.isCommandModelName = function(name) {
@@ -33,7 +50,7 @@ SIREPO.app.factory('commandService', function(appState) {
     return self;
 });
 
-SIREPO.app.directive('commandTab', function() {
+SIREPO.app.directive('commandTab', function(latticeService) {
     return {
         restrict: 'A',
         scope: {
@@ -52,8 +69,13 @@ SIREPO.app.directive('commandTab', function() {
                 '</div>',
               '</div>',
             '</div>',
+            '<div data-var-editor=""></div>',
+            '<div data-confirmation-modal="" data-id="sr-var-in-use-dialog" data-title="Variable in Use" data-ok-text="" data-cancel-text="Close">{{ latticeService.deleteVarWarning  }} and can not be deleted.</div>',
             '<div data-element-picker="" data-controller="controller" data-title="New Command" data-id="sr-newCommand-editor" data-small-element-class="col-sm-3"></div>',
         ].join(''),
+        controller: function($scope) {
+            $scope.latticeService = latticeService;
+        },
     };
 });
 
@@ -63,7 +85,8 @@ SIREPO.app.directive('commandTable', function(appState, commandService, latticeS
         scope: {},
         template: [
             '<div class="sr-command-table">',
-              '<div class="pull-right">',
+            '<div class="pull-right">',
+                '<button data-ng-if=":: wantRpnVariables" class="btn btn-info btn-xs" data-ng-click="latticeService.showRpnVariables()"><span class="glyphicon glyphicon-list-alt"></span> Variables</button> ',
                 '<button class="btn btn-info btn-xs" data-ng-click="newCommand()" accesskey="c"><span class="glyphicon glyphicon-plus"></span> New <u>C</u>ommand</button>',
               '</div>',
               '<p class="lead text-center"><small><em>drag and drop commands or use arrows to reorder the list</em></small></p>',
@@ -72,7 +95,7 @@ SIREPO.app.directive('commandTable', function(appState, commandService, latticeS
                   '<td data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)" data-ng-drag-start="selectItem($data)">',
                     '<div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, cmd)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == commands.length - 1" data-ng-click="moveItem(1, cmd)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editCommand(cmd)">Edit</button> <button data-ng-click="expandCommand(cmd)" data-ng-disabled="isExpandDisabled(cmd)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': isExpanded(cmd), \'glyphicon-chevron-down\': ! isExpanded(cmd)}"></span></button> <button data-ng-click="deleteCommand(cmd)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
                     '<div class="sr-command-icon-holder" data-ng-drag="true" data-ng-drag-data="cmd">',
-                      '<a style="cursor: move; -moz-user-select: none; font-size: 14px" class="badge sr-badge-icon" data-ng-class="{\'sr-item-selected\': isSelected(cmd) }" href data-ng-click="selectItem(cmd)" data-ng-dblclick="editCommand(cmd)">{{ cmd._type }}</a>',
+                      '<a style="cursor: move; -moz-user-select: none; font-size: 14px" class="badge sr-badge-icon" data-ng-class="{\'sr-item-selected\': isSelected(cmd) }" href data-ng-click="selectItem(cmd)" data-ng-dblclick="editCommand(cmd)">{{ commandName(cmd) }}</a>',
                     '</div>',
                     '<div data-ng-show="! isExpanded(cmd) && cmd.description" style="margin-left: 3em; margin-right: 1em; color: #777; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ cmd.description }}</div>',
                     '<div data-ng-show="isExpanded(cmd) && cmd.description" style="color: #777; margin-left: 3em; white-space: pre-wrap">{{ cmd.description }}</div>',
@@ -89,12 +112,14 @@ SIREPO.app.directive('commandTable', function(appState, commandService, latticeS
         controller: function($scope) {
             var selectedItemId = null;
             var expanded = {};
+            $scope.latticeService = latticeService;
             $scope.commands = [];
+            $scope.wantRpnVariables = SIREPO.APP_SCHEMA.model.rpnVariable ? true : false;
 
             function commandDescription(cmd, commandIndex) {
                 var schema = SIREPO.APP_SCHEMA.model[commandService.commandModelName(cmd._type)];
                 var res = '';
-                var model = commandForId(cmd._id);
+                var model = commandService.commandForId(cmd._id);
                 var fields = Object.keys(model).sort();
                 for (var i = 0; i < fields.length; i++) {
                     var f = fields[i];
@@ -106,7 +131,10 @@ SIREPO.app.directive('commandTable', function(appState, commandService, latticeS
                                     + (commandIndex > 1 ? commandIndex : '')
                                     + '.' + f + commandService.commandFileExtension(model);
                             }
-                            else if (schema[f][1] == 'LatticeBeamlineList') {
+                            else if (schema[f][1] == 'Boolean') {
+                                res += model[f] ? 'true': 'false';
+                            }
+                            else if (schema[f][1].indexOf('LatticeBeamlineList') >= 0) {
                                 var el = latticeService.elementForId(model[f]);
                                 if (el) {
                                     res += el.name;
@@ -116,22 +144,12 @@ SIREPO.app.directive('commandTable', function(appState, commandService, latticeS
                                 }
                             }
                             else {
-                                res += model[f];
+                                res += commandService.formatFieldValue(model[f], schema[f][1]);
                             }
                         }
                     }
                 }
                 return res;
-            }
-
-            function commandForId(id) {
-                for (var i = 0; i < appState.models.commands.length; i++) {
-                    var c = appState.models.commands[i];
-                    if (c._id == id) {
-                        return c;
-                    }
-                }
-                return null;
             }
 
             function commandIndex(data) {
@@ -154,6 +172,7 @@ SIREPO.app.directive('commandTable', function(appState, commandService, latticeS
                         _type: cmd._type,
                         _id: cmd._id,
                         description: commandDescription(cmd, commandIndex[cmd._type]),
+                        name: cmd.name,
                     });
                 }
             }
@@ -161,7 +180,7 @@ SIREPO.app.directive('commandTable', function(appState, commandService, latticeS
             function saveCommands() {
                 var commands = [];
                 for (var i = 0; i < $scope.commands.length; i++) {
-                    commands.push(commandForId($scope.commands[i]._id));
+                    commands.push(commandService.commandForId($scope.commands[i]._id));
                 }
                 appState.models.commands = commands;
                 appState.saveChanges('commands');
@@ -177,6 +196,10 @@ SIREPO.app.directive('commandTable', function(appState, commandService, latticeS
                 }
                 return -1;
             }
+
+            $scope.commandName = function(cmd) {
+                return commandService.formatCommandName(cmd);
+            };
 
             $scope.deleteCommand = function(data) {
                 if (! data) {
@@ -231,9 +254,7 @@ SIREPO.app.directive('commandTable', function(appState, commandService, latticeS
             };
 
             $scope.editCommand = function(cmd) {
-                var modelName = commandService.commandModelName(cmd._type);
-                appState.models[modelName] = commandForId(cmd._id);
-                panelState.showModalEditor(modelName);
+                commandService.editCommand(cmd);
             };
 
             $scope.isExpanded = function(cmd) {
@@ -265,7 +286,7 @@ SIREPO.app.directive('commandTable', function(appState, commandService, latticeS
 
             $scope.selectedItemName = function() {
                 if (selectedItemId) {
-                    return commandForId(selectedItemId)._type;
+                    return commandService.commandForId(selectedItemId)._type;
                 }
                 return '';
             };
@@ -305,6 +326,53 @@ SIREPO.app.directive('commandTable', function(appState, commandService, latticeS
                 });
                 loadCommands();
             });
+        },
+    };
+});
+
+SIREPO.app.directive('outputFileField', function(appState, commandService) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=outputFileField',
+            model: '=',
+        },
+        template: [
+            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in items()"></select>',
+        ].join(''),
+        controller: function($scope) {
+            var items = [];
+            var filename = '';
+
+            $scope.items = function() {
+                if (! $scope.model) {
+                    return items;
+                }
+                var prefix = $scope.model.name;
+                if ($scope.model._type) {
+                    var index = 0;
+                    for (var i = 0; i < appState.models.commands.length; i++) {
+                        var m = appState.models.commands[i];
+                        if (m._type == $scope.model._type) {
+                            index++;
+                            if (m == $scope.model) {
+                                break;
+                            }
+                        }
+                    }
+                    prefix = $scope.model._type + (index > 1 ? index : '');
+                }
+                var ext = commandService.commandFileExtension($scope.model);
+                var name = prefix + '.' + $scope.field + ext;
+                if (name != filename) {
+                    filename = name;
+                    items = [
+                        ['', 'None'],
+                        ['1', name],
+                    ];
+                }
+                return items;
+            };
         },
     };
 });

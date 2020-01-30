@@ -3330,18 +3330,22 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
         }
     }
 
+    function setRunningState(name) {
+        appState.models[name].isRunning = 1;
+        if (runningModels.indexOf(name) < 0) {
+            runningModels.push(name);
+        }
+    }
+
     self.computeFieldRanges = function(controller, name, percentComplete) {
         if (controller.simState.isProcessing()) {
-            appState.models[name].isRunning = 1;
-            if (runningModels.indexOf(name) < 0) {
-                runningModels.push(name);
-            }
+            setRunningState(name);
         }
         // this assumes all models share same range parameters
         if (percentComplete == 100 && ! controller.isComputingRanges) {
             controller.fieldRange = null;
             controller.isComputingRanges = true;
-            appState.models[name].isRunning = 1;
+            setRunningState(name);
             requestSender.getApplicationData(
                 {
                     method: 'compute_particle_ranges',

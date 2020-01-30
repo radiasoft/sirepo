@@ -6,6 +6,9 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, utilities, validationService, $rootScope) {
     var self = {};
     self.activeBeamlineId = null;
+    self.deleteVarWarning = '';
+    self.includeCommandNames = false;
+    self.wantRpnVariables = SIREPO.APP_SCHEMA.model.rpnVariable ? true : false;
 
     //TODO(pjm): share with template/elegant.py _PLOT_TITLE
     var plotTitle = {
@@ -24,25 +27,13 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     }
 
     function elementNameValidator(currentName) {
-        // make a copy of the keys as of creation of the function and exclude the starting value
-        var names = Object.keys(elementsByName()).slice();
-        return function(newNameV, newNameM) {
-            var cnIndex = names.indexOf(currentName);
-            if(cnIndex >= 0) {
-                names.splice(cnIndex, 1);
+        var names = self.elementNameMap();
+        return function(newNameV) {
+            if (newNameV == currentName) {
+                return true;
             }
-            return names.indexOf(newNameV) < 0;
+            return ! names[newNameV];
         };
-    }
-
-    function elementsByName() {
-        var res = {};
-        ['elements', 'beamlines'].forEach(function(containerName) {
-            for (var j = 0; j < (appState.models[containerName] || []).length; j++) {
-                res[appState.models[containerName][j].name] = 1;
-            }
-        });
-        return res;
     }
 
     function findBeamline(id) {
@@ -106,16 +97,6 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         });
     }
 
-    function uniqueNameForType(prefix) {
-        var names = elementsByName();
-        var name = prefix;
-        var index = 1;
-        while (names[name + index]) {
-            index++;
-        }
-        return name + index;
-    }
-
     function updateModels(name, idField, containerName, sortMethod) {
         // update element/elements or beamline/beamlines
         var m = appState.models[name];
@@ -129,8 +110,8 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
             }
         }
         if (! foundIt) {
-            if (elementsByName()[m.name]) {
-                m.name = uniqueNameForType(m.name + '-');
+            if (self.elementNameMap()[m.name]) {
+                m.name = self.uniqueNameForType(m.name + '-');
             }
             appState.models[containerName].push(m);
         }
@@ -201,6 +182,21 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         panelState.showModalEditor(type);
     };
 
+    self.elementNameMap = function() {
+        var res = {};
+        var containers = ['elements', 'beamlines'];
+        if (self.includeCommandNames) {
+            containers.push('commands');
+        }
+        containers.forEach(function(containerName) {
+            var container = appState.models[containerName] || [];
+            for (var i = 0; i < container.length; i++) {
+                res[container[i].name] = 1;
+            }
+        });
+        return res;
+    };
+
     self.degreesToRadians = function(v) {
         return v * Math.PI / 180;
     };
@@ -269,7 +265,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
 
     self.getNextBeamline = function() {
         var beamline = {
-            name: uniqueNameForType('BL'),
+            name: self.uniqueNameForType('BL'),
             id: self.nextId(),
             l: 0,
             count: 0,
@@ -283,7 +279,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         return {
             _id: self.nextId(),
             type: type,
-            name: uniqueNameForType(type.charAt(0)),
+            name: self.uniqueNameForType(type.charAt(0)),
         };
     };
 
@@ -373,7 +369,17 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         appState.models.rpnVariables = appState.models.rpnVariables.sort(function(a, b) {
             return a.name.localeCompare(b.name);
         });
-        $('#elegant-rpn-variables').modal('show');
+        $('#sr-variables').modal('show');
+    };
+
+    self.uniqueNameForType = function(prefix) {
+        var names = self.elementNameMap();
+        var name = prefix;
+        var index = 1;
+        while (names[name + index]) {
+            index++;
+        }
+        return name + index;
     };
 
     //TODO(pjm): listeners should only be added for apps which have an "elegant" style beamline, need a better test
@@ -1811,14 +1817,25 @@ SIREPO.app.directive('latticeBeamlineList', function(appState) {
         scope: {
             model: '=',
             field: '=',
+            isOptional: '@',
         },
         template: [
             '<select class="form-control" data-ng-model="model[field]" data-ng-options="item.id as item.name for item in beamlineList()"></select>',
         ].join(''),
         controller: function($scope) {
+            var list = [
+                {
+                    id: '',
+                    name: 'NOT SELECTED',
+                },
+            ];
             $scope.beamlineList = function() {
                 if (! appState.isLoaded() || ! $scope.model) {
                     return null;
+                }
+                if ($scope.isOptional) {
+                    list.length = 1;
+                    return list.concat(appState.models.beamlines);
                 }
                 if (! $scope.model[$scope.field]
                     && appState.models.beamlines
@@ -2031,7 +2048,7 @@ SIREPO.app.directive('latticeElementPanels', function(latticeService) {
                     '<div class="panel-heading"><span class="sr-panel-heading">Beamline Elements</span></div>',
                     '<div class="panel-body">',
                       '<div class="pull-right">',
-                        '<button data-ng-if="wantRpnVariables" class="btn btn-info btn-xs" data-ng-click="latticeService.showRpnVariables()">RPN Variables</button> ',
+                        '<button data-ng-if=":: latticeService.wantRpnVariables" class="btn btn-info btn-xs" data-ng-click="latticeService.showRpnVariables()"><span class="glyphicon glyphicon-list-alt"></span> Variables</button> ',
                         '<button class="btn btn-info btn-xs" data-ng-click="latticeService.newElement()" accesskey="e"><span class="glyphicon glyphicon-plus"></span> New <u>E</u>lement</button>',
                       '</div>',
                       '<div data-lattice-element-table=""></div>',
@@ -2043,7 +2060,6 @@ SIREPO.app.directive('latticeElementPanels', function(latticeService) {
         ].join(''),
         controller: function($scope) {
             $scope.latticeService = latticeService;
-            $scope.wantRpnVariables = SIREPO.APP_SCHEMA.model.rpnVariable ? true : false;
         },
     };
 });
@@ -2227,7 +2243,10 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, utilitie
             '<div data-element-picker="" data-controller="controller" data-title="New Beamline Element" data-id="sr-newBeamlineElement-editor" data-small-element-class="col-sm-2"></div>',
             '<div data-confirmation-modal="" data-id="sr-element-in-use-dialog" data-title="{{ latticeService.deleteWarning.typeName }} {{ latticeService.deleteWarning.name }}" data-ok-text="" data-cancel-text="Close">The {{ latticeService.deleteWarning.typeName }} <strong>{{ latticeService.deleteWarning.name }}</strong> is used by the <strong>{{ latticeService.deleteWarning.beamlineName }}</strong> and can not be deleted.</div>',
             '<div data-confirmation-modal="" data-id="sr-delete-element-dialog" data-title="{{ latticeService.deleteWarning.typeName }} {{ latticeService.deleteWarning.name }}" data-ok-text="Delete" data-ok-clicked="latticeService.deleteElement()">Delete {{ latticeService.deleteWarning.typeName }} <strong>{{ latticeService.deleteWarning.name }}</strong>?</div>',
-            '<div data-rpn-editor=""></div>',
+
+            '<div data-confirmation-modal="" data-id="sr-var-in-use-dialog" data-title="Variable in Use" data-ok-text="" data-cancel-text="Close">{{ latticeService.deleteVarWarning  }} and can not be deleted.</div>',
+
+            '<div data-ng-if=":: latticeService.wantRpnVariables" data-var-editor=""></div>',
             '<div class="modal fade" id="sr-lattice-twiss-plot" tabindex="-1" role="dialog">',
               '<div class="modal-dialog modal-lg">',
                 '<div class="modal-content">',
@@ -2285,6 +2304,265 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, utilitie
             $scope.showTwissEditor = function() {
                 panelState.showModalEditor('twissReport');
             };
+        },
+    };
+});
+
+SIREPO.app.directive('rpnBoolean', function(rpnService) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in elegantRpnBooleanValues()"></select>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.elegantRpnBooleanValues = function() {
+                return rpnService.getRpnBooleanForField($scope.model, $scope.field);
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('rpnStatic', function(rpnService) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<div class="form-control-static pull-right">{{ elegantComputedRpnValue(); }}</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.elegantComputedRpnValue = function() {
+                return rpnService.getRpnValueForField($scope.model, $scope.field);
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('rpnValue', function(appState, rpnService) {
+    var requestIndex = 0;
+    return {
+        restrict: 'A',
+        require: 'ngModel',
+        link: function(scope, element, attrs, ngModel) {
+            var rpnVariableName = scope.modelName == 'rpnVariable' ? scope.model.name : null;
+            var range = {
+                min: scope.info[4],
+                max: scope.info[5],
+            };
+
+            scope.isRequired = function() {
+                if (appState.isLoaded()) {
+                    if (scope.model && scope.model.isOptional) {
+                        return false;
+                    }
+                }
+                return true;
+            };
+
+            ngModel.$parsers.push(function(value) {
+                requestIndex++;
+                var currentRequestIndex = requestIndex;
+                if (ngModel.$isEmpty(value)) {
+                    return null;
+                }
+                if (SIREPO.NUMBER_REGEXP.test(value)) {
+                    var v = parseFloat(value);
+                    if (rpnVariableName) {
+                        rpnService.recomputeCache(rpnVariableName, v);
+                    }
+                    if (range.min != undefined && v < range.min) {
+                        return undefined;
+                    }
+                    if (range.max != undefined && v > range.max) {
+                        return undefined;
+                    }
+                    ngModel.$setValidity('', true);
+                    return v;
+                }
+                rpnService.computeRpnValue(value, function(v, err) {
+                    // check for a stale request
+                    if (requestIndex != currentRequestIndex) {
+                        return;
+                    }
+                    ngModel.$setValidity('', err ? false : true);
+                    if (rpnVariableName && ! err) {
+                        rpnService.recomputeCache(rpnVariableName, v);
+                    }
+                });
+                return value;
+            });
+            ngModel.$formatters.push(function(value) {
+                if (ngModel.$isEmpty(value)) {
+                    return value;
+                }
+                return value.toString();
+            });
+        }
+    };
+});
+
+SIREPO.app.directive('varEditor', function(appState, latticeService, requestSender) {
+    return {
+        scope: {},
+        template: [
+            '<div class="modal fade" data-backdrop="static" id="sr-variables" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-info">',
+                    '<button type="button" class="close" data-ng-click="cancelChanges()"><span>&times;</span></button>',
+                    '<span class="lead modal-title text-info">Variables</span>',
+                  '</div>',
+                  '<div class="modal-body">',
+                    '<div class="container-fluid">',
+                      '<form name="form" class="form-horizontal" autocomplete="off">',
+                        '<div class="form-group form-group-sm">',
+                          '<table class="table table-striped table-condensed">',
+                            '<colgroup>',
+                              '<col style="width: 25%">',
+                              '<col style="width: 50%">',
+                              '<col style="width: 25%">',
+                              '<col>',
+                            '</colgroup>',
+                            '<thead>',
+                              '<tr>',
+                                '<th>Variable Name</th>',
+                                '<th>Value</th>',
+                                '<th> </th>',
+                                '<th> </th>',
+                              '</tr>',
+                            '</thead>',
+                            '<tbody>',
+                              '<tr data-ng-repeat="var in appState.models.rpnVariables">',
+                                '<td>{{ var.name }}</td>',
+                                '<td><div class="row" data-field-editor="\'value\'" data-field-size="12" data-label-size="0" data-model-name="\'rpnVariable\'" data-model="var"></div></td>',
+                                '<td><div data-rpn-static="" data-model="var" data-field="\'value\'"></div></td>',
+                                '<td style="vertical-align: middle">',
+                                  '<button class="btn btn-danger btn-xs" data-ng-click="deleteVar($index)" title="Delete Variable"><span class="glyphicon glyphicon-remove"></span></button>',
+                                '</td>',
+                              '</tr>',
+                              '<tr>',
+                                '<td>',
+                                  '<div class="row"><div class="col-sm-12">',
+                                    '<input class="form-control" data-ng-model="newVar.name" data-ng-keydown="nameKeyDown($event)" />',
+                                  '</div></div>',
+                                '</td>',
+                                '<td>',
+                                  '<div class="row" data-field-editor="\'value\'" data-field-size="12" data-label-size="0" data-model-name="\'rpnVariable\'" data-model="newVar"></div>',
+                                '</td>',
+                                '<td><div data-rpn-static="" data-model="newVar" data-field="\'value\'"></div></td>',
+                                '<td>',
+                                  '<button class="btn btn-primary btn-xs" data-ng-disabled="! hasNewVar()" data-ng-click="addVar()" title="Add Variable"><span class="glyphicon glyphicon-plus"></span></button>',
+                                '</td>',
+                              '</tr>',
+                            '</tbody>',
+                          '</table>',
+                        '</div>',
+                        '<div class="row">',
+                          '<div class="col-sm-6 pull-right">',
+                            '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> ',
+                            '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
+                          '</div>',
+                        '</div>',
+                      '</form>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            $scope.appState = appState;
+
+            function initNewVar() {
+                $scope.newVar = {
+                    isOptional: true,
+                };
+                if ($scope.form) {
+                    $scope.form.$setPristine();
+                }
+            }
+
+            function nameExists(name) {
+                return appState.models.rpnVariables.map(function(v) {
+                    return v.name;
+                }).indexOf(name) >= 0;
+            }
+
+            $scope.addVar = function() {
+                if ($scope.hasNewVar()) {
+                    var name = $scope.newVar.name;
+                    if (nameExists(name)) {
+                        $scope.newVar.name = appState.uniqueName(
+                            appState.models.rpnVariables, 'name', name + '{}');
+                    }
+                    appState.models.rpnVariables.push({
+                        name: $scope.newVar.name,
+                        value: $scope.newVar.value,
+                    });
+                    initNewVar();
+                }
+            };
+
+            $scope.cancelChanges = function() {
+                $('#sr-variables').modal('hide');
+                appState.cancelChanges('rpnVariables');
+                appState.cancelChanges('rpnCache');
+                initNewVar();
+            };
+
+            $scope.deleteVar = function(idx) {
+                var v = appState.models.rpnVariables[idx];
+                requestSender.getApplicationData(
+                    {
+                        method: 'validate_rpn_delete',
+                        name: v.name,
+                        variables: appState.models.rpnVariables,
+                        simulationId: appState.models.simulation.simulationId,
+                    },
+                    function(data) {
+                        latticeService.deleteVarWarning = '';
+                        if (! appState.isLoaded()) {
+                            return;
+                        }
+                        if (data.error) {
+                            latticeService.deleteVarWarning = data.error;
+                            $('#sr-var-in-use-dialog').modal('show');
+                        }
+                        else if (v == appState.models.rpnVariables[idx]) {
+                            appState.models.rpnVariables.splice(idx, 1);
+                        }
+                    });
+            };
+
+            $scope.hasNewVar = function() {
+                return 'name' in $scope.newVar
+                    && 'value' in $scope.newVar
+                    && $scope.newVar.name !== ''
+                    && $scope.newVar.value !== '';
+            };
+
+            $scope.nameKeyDown = function($event) {
+                if ($event.key.match(/\s|\-/)) {
+                    $event.preventDefault();
+                }
+            };
+
+            $scope.saveChanges = function() {
+                $('#sr-variables').modal('hide');
+                if ($scope.hasNewVar()) {
+                    $scope.addVar();
+                }
+                appState.saveChanges(['rpnVariables', 'rpnCache']);
+                initNewVar();
+            };
+
+            initNewVar();
         },
     };
 });

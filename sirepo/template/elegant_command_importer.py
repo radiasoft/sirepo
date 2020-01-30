@@ -40,7 +40,7 @@ def import_file(text):
         cmd_type = cmd['_type']
         if not cmd_type in _ELEGANT_TYPES:
             raise IOError('unknown command: {}'.format(cmd_type))
-        elegant_lattice_importer.validate_fields(cmd, PKDict(), PKDict())
+        elegant_lattice_importer.validate_fields(cmd, PKDict())
     data = simulation_db.default_data(SIM_TYPE)
     #TODO(pjm) javascript needs to set bunch, bunchSource, bunchFile values from commands
     data.models.commands = commands
