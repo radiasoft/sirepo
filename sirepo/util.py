@@ -151,7 +151,7 @@ def create_token(value):
 
     if pkconfig.channel_in_internal_test() and cfg.create_token_secret:
         return base64.b32encode(
-            hashlib.sha256(value + cfg.create_token_secret).digest(),
+            hashlib.sha256((value + cfg.create_token_secret).encode()).digest(), # TODO(e-carlin): fix py2/3
         )[:TOKEN_SIZE]
     return sirepo.util.random_base62(TOKEN_SIZE)
 
