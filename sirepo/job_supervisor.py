@@ -351,6 +351,8 @@ class _ComputeJob(PKDict):
                     await o.prepare_send()
                     self.run_op = o
                     self.__db_init(req, prev_db=self.db)
+                    # run mode can change between runs so we must update the db
+                    self.db.jobRunMode = req.content.jobRunMode
                     self.db.computeJobSerial = int(time.time())
                     self.db.pkupdate(status=job.PENDING)
                     self.__db_write()
@@ -401,20 +403,23 @@ class _ComputeJob(PKDict):
         req.kind = job.PARALLEL if self.db.isParallel and opName != job.OP_ANALYSIS \
             else job.SEQUENTIAL
         req.simulationType = self.db.simulationType
-        # TODO(e-carlin): We need to be able to cancel requests waiting in this
-        # state. Currently we assume that all requests get a driver and the
-        # code does not block.
+        # run mode can change between runs so use req.content.jobRunMode
+        # not self.db.jobRunmode
+        r = req.content.get(
+            'jobRunMode',
+            self.db.jobRunMode,
+        )
         o = _Op(
 #TODO(robnagler) don't like the camelcase. It doesn't actually work right because
 # these values are never sent directly, only msg which can be camelcase
             computeJob=self,
             kind=req.kind,
             maxRunSecs=0 if opName in _UNTIMED_OPS else _MAX_RUN_SECS[req.kind],
-            msg=PKDict(req.content).pksetdefault(jobRunMode=self.db.jobRunMode),
+            msg=PKDict(req.content).pksetdefault(jobRunMode=r),
             opName=opName,
             task=asyncio.current_task(),
         )
-        o.driver = job_driver.get_instance(req, self.db.jobRunMode, o)
+        o.driver = job_driver.get_instance(req, r, o)
         if 'dataFileKey' in kwargs:
             kwargs['dataFileUri'] = job.supervisor_file_uri(
                 o.driver.get_supervisor_uri(),

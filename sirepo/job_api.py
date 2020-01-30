@@ -138,7 +138,9 @@ def api_simulationFrame(frame_id):
 
 @api_perm.require_user
 def api_sbatchLogin():
-    r = _request_content(PKDict(computeJobHash='unused'))
+    r = _request_content(
+        PKDict(computeJobHash='unused', jobRunMode=sirepo.job.SBATCH),
+    )
     r.sbatchCredentials = r.pkdel('data')
     return _request(_request_content=r)
 
