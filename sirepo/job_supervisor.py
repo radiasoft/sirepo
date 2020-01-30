@@ -414,7 +414,9 @@ class _ComputeJob(PKDict):
 # these values are never sent directly, only msg which can be camelcase
             computeJob=self,
             kind=req.kind,
-            maxRunSecs=0 if opName in _UNTIMED_OPS else _MAX_RUN_SECS[req.kind],
+            maxRunSecs=(0 if opName in _UNTIMED_OPS
+                        or (r == sirepo.job.SBATCH and opName == job.OP_RUN)
+                        else _MAX_RUN_SECS[req.kind]),
             msg=PKDict(req.content).pksetdefault(jobRunMode=r),
             opName=opName,
             task=asyncio.current_task(),
