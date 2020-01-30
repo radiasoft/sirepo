@@ -12,7 +12,7 @@ import pytest
 
 pytestmark = pytest.mark.skipif(
     os.environ.get('SIREPO_FEATURE_CONFIG_JOB') != '1',
-    reason="SIREPO_FEATURE_CONFIG_JOB != 1"
+    reason='SIREPO_FEATURE_CONFIG_JOB != 1'
 )
 
 
