@@ -57,38 +57,24 @@ def auth_fc_module(request):
 def email_confirm(fc, resp, display_name=None):
     import re
     from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdp
 
-    fc.sr_get(resp.url)
-    m = re.search(r'/(\w+)$', resp.url)
-    assert m
+    fc.sr_get(resp.uri)
+    pkdp(resp.uri)
+    m = re.search(r'/(\w+)$', resp.uri)
+    assert bool(m)
     r = PKDict(token=m.group(1))
     if display_name:
         r.displayName = display_name
     fc.sr_post(
-        resp.url,
+        resp.uri,
         r,
         raw_response=True,
     )
 
 @pytest.fixture(scope='function')
-def fc(request, fc_module, new_user=False):
-    """Flask client based logged in to specific code of test
-
-    Defaults to myapp.
-    """
-    import sirepo.srunit
-
-    if fc_module.sr_uid and new_user:
-        fc_module.sr_logout()
-
-    c = _sim_type(request)
-    if fc_module.sr_uid:
-        if fc_module.sr_sim_type != c:
-            fc_module.sr_get_root(sim_type=c)
-    else:
-        fc_module.sr_login_as_guest(sim_type=c)
-    return fc_module
-
+def fc(request, fc_module):
+    return _fc(request, fc_module)
 
 @pytest.fixture(scope='module')
 def fc_module(request, cfg=None):
@@ -125,7 +111,7 @@ def import_req(request):
 
 @pytest.fixture(scope='function')
 def new_user_fc(request, fc_module):
-    return fc(request, fc_module, new_user=True)
+    return _fc(request, fc_module, new_user=True)
 
 
 def pytest_collection_modifyitems(session, config, items):
@@ -229,7 +215,7 @@ def _config_sbatch_supervisor_env(env):
     h = socket.gethostname()
     k = pykern.pkio.py_path('~/.ssh/known_hosts').read()
     m = re.search('^{}.*$'.format(h), k, re.MULTILINE)
-    assert m, \
+    assert bool(m), \
         'You need to ssh into {} to get the host key'.format(h)
 
     env.pkupdate(
@@ -281,6 +267,25 @@ def _job_supervisor_check(env):
         )
     finally:
         s.close()
+
+
+def _fc(request, fc_module, new_user=False):
+    """Flask client based logged in to specific code of test
+
+    Defaults to myapp.
+    """
+    import sirepo.srunit
+
+    if fc_module.sr_uid and new_user:
+        fc_module.sr_logout()
+
+    c = _sim_type(request)
+    if fc_module.sr_uid:
+        if fc_module.sr_sim_type != c:
+            fc_module.sr_get_root(sim_type=c)
+    else:
+        fc_module.sr_login_as_guest(sim_type=c)
+    return fc_module
 
 
 def _job_supervisor_setup(request, cfg=None):
@@ -352,7 +357,7 @@ def _job_supervisor_start(request, cfg=None):
         time.sleep(.1)
     else:
         import sirepo.job_api
-        pkunit.pkfail('could not connect to {}', sirepo.job_api.SUPERVISOR_URI)
+        pkunit.pkfail('could not connect to {}', sirepo.job_api.cfg.supervisor_uri)
     return p, fc
 
 

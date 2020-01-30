@@ -149,9 +149,10 @@ class SimData(sirepo.sim_data.SimDataBase):
                 if f in e:
                     del e[f]
         cls.__fixup_old_data_beamline(data)
-        if 'horizontalDeflectingParameter' not in dm.undulator:
-            cls.__fixup_old_data_by_template(data)
-            dm = data.models
+        # if 'horizontalDeflectingParameter' not in dm.undulator:
+        #     cls.__fixup_old_data_by_template(data)
+        #     dm = data.models
+        cls.__fixup_old_data_by_template(data)
         hv = ('horizontalPosition', 'horizontalRange', 'verticalPosition', 'verticalRange')
         if 'samplingMethod' not in dm.simulation:
             simulation = dm.simulation
@@ -442,41 +443,46 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def __fixup_old_data_by_template(cls, data):
-        import pykern.pkcompat
-        import pykern.pkjson
-        import sirepo.simulation_db
-        import subprocess
-        import os
-        import sys
+        # import pykern.pkcompat
+        # import pykern.pkjson
+        # import sirepo.simulation_db
+        # import subprocess
+        # import os
+        # import sys
 
-        with sirepo.simulation_db.tmp_dir() as d:
-            f = d.join('in.json')
-            pykern.pkjson.dump_pretty(data, filename=f, pretty=False)
-            try:
-                #TODO(robnagler) find a better way to do this
-                e = PKDict(os.environ).pkupdate(
-                    SIREPO_SRDB_ROOT=str(sirepo.srdb.root()),
-                )
-                d = sirepo.simulation_db.cfg.tmp_dir
-                if d:
-                    e.SIREPO_SIMULATION_DB_TMP_DIR = str(d)
-                    e.SIREPO_SIM_DATA_LIB_FILE_RESOURCE_ONLY = '1'
-                else:
-                    e.SIREPO_AUTH_LOGGED_IN_USER = str(sirepo.auth.logged_in_user())
-                n = subprocess.check_output(
-                    ['sirepo', 'srw', 'fixup_old_data', str(f)],
-                    stderr=subprocess.STDOUT,
-                    env=e,
-                )
-            except subprocess.CalledProcessError as e:
-                pkdlog('sirepo.pkcli.srw.fixup_old_data failed: {}', e.output)
-                raise
-            data.clear()
-            try:
-                data.update(pykern.pkjson.load_any(n))
-            except Exception as e:
-                pkdlog('unable to parse json={}', n)
-                raise
+        # with sirepo.simulation_db.tmp_dir() as d:
+        #     f = d.join('in.json')
+        #     pykern.pkjson.dump_pretty(data, filename=f, pretty=False)
+        #     try:
+        #         #TODO(robnagler) find a better way to do this
+        #         e = PKDict(os.environ).pkupdate(
+        #             SIREPO_SRDB_ROOT=str(sirepo.srdb.root()),
+        #         )
+        #         d = sirepo.simulation_db.cfg.tmp_dir
+        #         if d:
+        #             e.SIREPO_SIMULATION_DB_TMP_DIR = str(d)
+        #             e.SIREPO_SIM_DATA_LIB_FILE_RESOURCE_ONLY = '1'
+        #         else:
+        #             e.SIREPO_AUTH_LOGGED_IN_USER = str(sirepo.auth.logged_in_user())
+        #         n = subprocess.check_output(
+        #             ['sirepo', 'srw', 'fixup_old_data', str(f)],
+        #             stderr=subprocess.STDOUT,
+        #             env=e,
+        #         )
+        #     except subprocess.CalledProcessError as e:
+        #         pkdlog('sirepo.pkcli.srw.fixup_old_data failed: {}', e.output)
+        #         raise
+        #     data.clear()
+        #     try:
+        #         data.update(pykern.pkjson.load_any(n))
+        #     except Exception as e:
+        #         pkdlog('unable to parse json={}', n)
+        #         raise
+
+        import sirepo.template.srw_fixup
+        import sirepo.template.srw
+        sirepo.template.srw_fixup.do(sirepo.template.srw, data)
+
 
     @classmethod
     def __fixup_old_data_beamline(cls, data):

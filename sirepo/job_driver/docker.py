@@ -37,94 +37,90 @@ _MAX_OPEN_FILES = 1024
 
 class DockerDriver(job_driver.DriverBase):
 
-    instances = PKDict()
+    __hosts = PKDict()
 
-    hosts = PKDict()
+    __users = PKDict()
 
     def __init__(self, req, host):
         super().__init__(req)
         self.update(
-            _cname=_cname_join(self.kind, self.uid),
+            _cname=self._cname_join(),
             _image=self._get_image(),
-            _uid=req.content.uid,
             _userDir=req.content.userDir,
             host=host,
         )
-        self.has_slot = False
-        self.host.drivers[self.kind].append(self)
-        self.instances[self.kind].append(self)
+        host.instances[self.kind].append(self)
+        self.cpu_slot_q = host.cpu_slot_q[self.kind]
+        self.__users.setdefault(self.uid, PKDict())[self.kind] = self
 
     @classmethod
-    async def get_instance(cls, req):
-        h = None
-        for d in list(itertools.chain(*cls.instances.values())):
-            # SECURITY: must only return instances for authorized user
-            if d.uid == req.content.uid:
-                if d.kind == req.kind:
-                    return d
-                # jobs of different kinds for the same user need to go to the
-                # same host. Ex. sequential analysis jobs for parallel compute
-                # jobs need to go to the same host to avoid NFS caching problems
-#TODO(robnagler) what if there's already a driver of this kind later in the chain?
-#  it seems like this needs to wait till the end.
-                h = d.host
-        if not h:
-            h = min(cls.hosts.values(), key=lambda h: len(h.drivers[req.kind]))
+    def get_instance(cls, req):
+        # SECURITY: must only return instances for authorized user
+        u = cls.__users.get(req.content.uid)
+        if u:
+            d = u.get(req.kind)
+            if d:
+                return d
+            # jobs of different kinds for the same user need to go to the
+            # same host. Ex. sequential analysis jobs for parallel compute
+            # jobs need to go to the same host to avoid NFS caching problems
+            h = list(u.values())[0].host
+        else:
+            # least used host
+            h = min(cls.__hosts.values(), key=lambda h: len(h.instances[req.kind]))
         return cls(req, h)
-
-    def free_slots(self):
-        for d in self.host.drivers[self.kind]:
-            if d.has_slot and not d.ops_pending_done:
-                d.slot_free()
 
     @classmethod
     def init_class(cls):
-        for k in job.KINDS:
-            cls.instances[k] = []
+        if not cfg.tls_dir or not cfg.hosts:
+            cls._init_dev_hosts()
+        cls._init_hosts()
         return cls
 
-    def run_scheduler(self, exclude_self=False):
-        self.free_slots()
-#TODO(robnagler) might want to try all hosts, just so run_scheduler is generic
-# it makes run_scheduler more of an auditor, and more robust if certain cases
-# slip through this host-specific algorithm.
-        h = self.host
-        i = h.drivers[self.kind].index(self)
-        # start iteration from index of current self to enable fair scheduling
-        for d in h.drivers[self.kind][i:] + h.drivers[self.kind][:i]:
-            if exclude_self and d == self:
-                continue
-            for o in d.get_ops_with_send_allocation():
-                if not d.has_slot:
-                    if h.slots[self.kind].in_use >= h.slots[self.kind].total:
-                        continue
-                    d.has_slot = True
-                    h.slots[self.kind].in_use += 1
-                assert o.opId not in d.ops_pending_done
-                d.ops_pending_send.remove(o)
-                d.ops_pending_done[o.opId] = o
-                o.send_ready.set()
-
     async def kill(self):
-        if '_cid' not in self:
+        c = self.get('_cid')
+        if not c:
             return
-        pkdlog('uid={} cid={}', self.get('uid'), self.get('_cid'))
-        await self._cmd(
-            ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), self._cid),
-        )
         self._cid = None
+        pkdlog('uid={} cid={}', self.get('uid'), c)
+        await self._cmd(
+            ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), c),
+        )
 
-    async def send(self, op):
+    async def prepare_send(self, op):
         if op.opName == job.OP_RUN:
             op.msg.mpiCores = cfg[self.kind].get('cores', 1)
-        return await super().send(op)
+        return await super().prepare_send(op)
 
-    def slot_free(self):
-        if self.has_slot:
-            self.host.slots[self.kind].in_use -= 1
-            self.has_slot = False
+    def cpu_slot_peers(self):
+        return self.host.instances[self.kind]
 
-    async def _do_agent_start(self, msg):
+    @classmethod
+    def _cmd_prefix(cls, host, tls_d):
+        args = [
+            'docker',
+            # docker TLS port is hardwired
+            '--host=tcp://{}:2376'.format(host),
+            '--tlsverify',
+        ]
+        # POSIT: rsconf.component.docker creates {cacert,cert,key}.pem
+        for x in 'cacert', 'cert', 'key':
+            f = tls_d.join(x + '.pem')
+            assert f.check(), \
+                'tls file does not exist for host={} file={}'.format(host, f)
+            args.append('--tls{}={}'.format(x, f))
+        return tuple(args)
+
+
+    def _cname_join(self):
+        """Create a cname or cname_prefix from kind and uid
+
+        POSIT: matches _CNAME_RE
+        """
+        return _CNAME_SEP.join([_CNAME_PREFIX, self.kind[0], self.uid])
+
+
+    async def _do_agent_start(self, op):
         cmd, stdin, env = self._agent_cmd_stdin_env()
         c = cfg[self.kind]
         p = (
@@ -149,7 +145,7 @@ class DockerDriver(job_driver.DriverBase):
         pkdlog('cname={} cid={}', self._cname, self._cid)
 
     async def _cmd(self, cmd, stdin=subprocess.DEVNULL, env=None):
-        c = DockerDriver.hosts[self.host.name].cmd_prefix + cmd
+        c = self.__hosts[self.host.name].cmd_prefix + cmd
         pkdc('Running: {}', ' '.join(c))
         try:
             p = tornado.process.Subprocess(
@@ -178,6 +174,47 @@ class DockerDriver(job_driver.DriverBase):
             return res
         return res + ':' + pkconfig.cfg.channel
 
+    @classmethod
+    def _init_dev_hosts(cls):
+        assert pkconfig.channel_in('dev')
+
+        from sirepo import srdb
+        assert not (cfg.tls_dir or cfg.hosts), \
+            'neither cfg.tls_dir and cfg.hosts nor must be set to get auto-config'
+        # dev mode only; see _cfg_tls_dir and _cfg_hosts
+        cfg.tls_dir = srdb.root().join('docker_tls')
+        cfg.hosts = ('localhost.localdomain',)
+        d = cfg.tls_dir.join(cfg.hosts[0])
+        if d.check(dir=True):
+            return
+        pkdlog('initializing docker dev env; initial docker pull will take a few minutes...')
+        d.ensure(dir=True)
+        for f in 'key.pem', 'cert.pem':
+            o = subprocess.check_output(['sudo', 'cat', '/etc/docker/tls/' + f]).decode('utf-8')
+            assert o.startswith('-----BEGIN'), \
+                'incorrect tls file={} content={}'.format(f, o)
+            d.join(f).write(o)
+        # we just reuse the same cert as the docker server since it's local host
+        d.join('cacert.pem').write(o)
+
+
+    @classmethod
+    def _init_hosts(cls):
+        for h in cfg.hosts:
+            d = cfg.tls_dir.join(h)
+            x = cls.__hosts[h] = PKDict(
+                cmd_prefix=cls._cmd_prefix(h, d),
+                instances=PKDict(),
+                name=h,
+                cpu_slots=PKDict(),
+                cpu_slot_q=PKDict(),
+            )
+            for k in job.KINDS:
+                x.cpu_slot_q[k] = cls.init_q(cfg[k].slots_per_host)
+                x.instances[k] = []
+        assert len(cls.__hosts) > 0, \
+            '{}: no docker hosts found in directory'.format(cfg.tls_d)
+
     def _volumes(self):
         res = []
         def _res(src, tgt):
@@ -193,10 +230,6 @@ class DockerDriver(job_driver.DriverBase):
         # SECURITY: Must only mount the user's directory
         _res(self._userDir, self._userDir)
         return tuple(res)
-
-    def _websocket_free(self):
-        self.slot_free()
-        self.run_scheduler(exclude_self=True)
 
 
 def init_class():
@@ -218,9 +251,6 @@ def init_class():
         supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
         tls_dir=pkconfig.RequiredUnlessDev(None, _cfg_tls_dir, 'directory containing host certs'),
     )
-    if not cfg.tls_dir or not cfg.hosts:
-        _init_dev_hosts()
-    _init_hosts()
     return DockerDriver.init_class()
 
 
@@ -229,69 +259,3 @@ def _cfg_tls_dir(value):
     assert res.check(dir=True), \
         'directory does not exist; value={}'.format(value)
     return res
-
-
-def _cmd_prefix(host, tls_d):
-    args = [
-        'docker',
-        # docker TLS port is hardwired
-        '--host=tcp://{}:2376'.format(host),
-        '--tlsverify',
-    ]
-    # POSIT: rsconf.component.docker creates {cacert,cert,key}.pem
-    for x in 'cacert', 'cert', 'key':
-        f = tls_d.join(x + '.pem')
-        assert f.check(), \
-            'tls file does not exist for host={} file={}'.format(host, f)
-        args.append('--tls{}={}'.format(x, f))
-    return tuple(args)
-
-
-def _cname_join(kind, uid):
-    """Create a cname or cname_prefix from kind and uid
-
-    POSIT: matches _CNAME_RE
-    """
-    return _CNAME_SEP.join([_CNAME_PREFIX, kind[0], uid])
-
-
-def _init_dev_hosts():
-    assert pkconfig.channel_in('dev')
-
-    from sirepo import srdb
-    assert not (cfg.tls_dir or cfg.hosts), \
-        'neither cfg.tls_dir and cfg.hosts nor must be set to get auto-config'
-    # dev mode only; see _cfg_tls_dir and _cfg_hosts
-    cfg.tls_dir = srdb.root().join('docker_tls')
-    cfg.hosts = ('localhost.localdomain',)
-    d = cfg.tls_dir.join(cfg.hosts[0])
-    if d.check(dir=True):
-        return
-    pkdlog('initializing docker dev env; initial docker pull will take a few minutes...')
-    d.ensure(dir=True)
-    for f in 'key.pem', 'cert.pem':
-        o = subprocess.check_output(['sudo', 'cat', '/etc/docker/tls/' + f]).decode('utf-8')
-        assert o.startswith('-----BEGIN'), \
-            'incorrect tls file={} content={}'.format(f, o)
-        d.join(f).write(o)
-    # we just reuse the same cert as the docker server since it's local host
-    d.join('cacert.pem').write(o)
-
-
-def _init_hosts():
-    for h in cfg.hosts:
-        d = cfg.tls_dir.join(h)
-        DockerDriver.hosts[h] = PKDict(
-            cmd_prefix=_cmd_prefix(h, d),
-            drivers=PKDict(),
-            name=h,
-            slots=PKDict(),
-        )
-        for k in job.KINDS:
-            DockerDriver.hosts[h].slots[k] = PKDict(
-                in_use=0,
-                total=cfg[k].slots_per_host,
-            )
-            DockerDriver.hosts[h].drivers[k] = []
-    assert len(DockerDriver.hosts) > 0, \
-        '{}: no docker hosts found in directory'.format(cfg.tls_d)

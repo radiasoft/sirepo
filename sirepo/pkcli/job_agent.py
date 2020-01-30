@@ -109,9 +109,8 @@ def start_sbatch():
     try:
         start()
     finally:
+#TODO(robnagler) https://github.com/radiasoft/sirepo/issues/2195
         pkio.unchecked_remove(_PID_FILE)
-
-
 
 
 class _Dispatcher(PKDict):
@@ -368,6 +367,7 @@ export PYENV_ROOT=/home/vagrant/.pyenv
 export HOME=/home/vagrant
 source /home/vagrant/.bashrc
 eval export HOME=~$USER
+/usr/bin/env
 {self._job_cmd_source_bashrc_dev()}
 '''
 

@@ -15,7 +15,49 @@
             "x": "x",
             "y": "px"
         },
-        "commands": [],
+        "commands": [
+            {
+                "_id": 2,
+                "_type": "option",
+                "asciidump": "0",
+                "autophase": 6,
+                "beamhaloboundary": 0,
+                "boundpdestroyfq": 10,
+                "clotuneonly": "0",
+                "csrdump": "0",
+                "czero": "0",
+                "ebdump": "0",
+                "echo": "0",
+                "enablehdf5": "1",
+                "idealized": "0",
+                "info": "1",
+                "logbendtrajectory": "0",
+                "memorydump": "0",
+                "mtssubsteps": 1,
+                "name": "OP1",
+                "nlhs": 1,
+                "numblocks": 0,
+                "ppdebug": "0",
+                "psdumpeachturn": "0",
+                "psdumpframe": "GLOBAL",
+                "psdumpfreq": 10,
+                "rebinfreq": 100,
+                "recycleblocks": 0,
+                "remotepartdel": 0,
+                "repartfreq": 10,
+                "rhodump": "0",
+                "rngtype": "RANDOM",
+                "scsolvefreq": 1,
+                "seed": 123456789,
+                "sptdumpfreq": 1,
+                "statdumpfreq": 10,
+                "surfdumpfreq": -1,
+                "tell": "0",
+                "trace": "0",
+                "version": 10900,
+                "warn": "1"
+            }
+        ],
         "elements": [],
         "plotAnimation": {
             "aspectRatio": "1",
@@ -31,13 +73,6 @@
             "name": "default",
             "notes": "",
             "visualizationBeamlineId": ""
-        },
-        "twissReport": {
-            "includeLattice": "1",
-            "notes": "",
-            "y1": "btx",
-            "y2": "bty",
-            "y3": "Dx"
         }
     },
     "simulationType": "opal"

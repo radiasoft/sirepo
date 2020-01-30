@@ -31,15 +31,11 @@ angular.element(document).ready(function() {
 
     function loadDynamicModules() {
         var mods = [];
-        for(var type in SIREPO.APP_SCHEMA.dynamicModules) {
+        for (var type in SIREPO.APP_SCHEMA.dynamicModules) {
             mods = mods.concat(SIREPO.APP_SCHEMA.dynamicModules[type] || []);
         }
         mods = mods.concat(SIREPO.APP_SCHEMA.dynamicFiles.libURLs || []);
-        return $.map(
-            mods,
-            function(src) {
-                return loadDynamicModule(src);
-            });
+        return $.map(mods, loadDynamicModule);
     }
 
     $.ajax({

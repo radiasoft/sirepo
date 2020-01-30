@@ -7,12 +7,14 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdlog
+from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from sirepo import job
 from sirepo import job_driver
 from sirepo import util
 import asyncssh
+import datetime
 import sirepo.simulation_db
 import sirepo.srdb
 import tornado.ioloop
@@ -25,50 +27,36 @@ _KNOWN_HOSTS = None
 
 class SbatchDriver(job_driver.DriverBase):
 
-    instances = PKDict()
+    __instances = PKDict()
 
     def __init__(self, req):
         super().__init__(req)
 #TODO(robnagler) read a db for an sbatch_user
         self._srdb_root = None
-        self.instances[self.uid] = self
+        self.__instances[self.uid] = self
+
+    def cpu_slot_free_one(self):
+        """We allow as many users as the sbatch system allows"""
+        pass
+
+    async def cpu_slot_ready(self):
+        """We allow as many users as the sbatch system allows"""
+        pass
 
     @classmethod
-    async def get_instance(cls, req):
+    def get_instance(cls, req):
         u = req.content.uid
-        return cls.instances.pksetdefault(u, lambda: cls(req))[u]
+        return cls.__instances.pksetdefault(u, lambda: cls(req))[u]
 
     @classmethod
     def init_class(cls):
         return cls
 
-    async def kill(self):
-        if not self.websocket:
-            # if there is no websocket then we don't know about the agent
-            # so we can't do anything
-            return
-        # hopefully the agent is nice and listens to the kill
-        self.websocket.write_message(PKDict(opName=job.OP_KILL))
-
-    def run_scheduler(self, exclude_self=False):
-        for d in self.instances.values():
-            if exclude_self and d == self:
-                continue
-            for o in d.get_ops_with_send_allocation():
-                assert o.opId not in d.ops_pending_done
-                d.ops_pending_send.remove(o)
-                d.ops_pending_done[o.opId] = o
-#TODO(robnagler) encapsulation is incorrect. Superclass should make
-# decisions about send_ready.
-                o.send_ready.set()
-
-    async def send(self, op):
+    async def prepare_send(self, op):
         m = op.msg
         try:
             self._creds = m.pkdel('sbatchCredentials')
             if self._srdb_root is None:
-                assert not self.websocket, \
-                    'expected no agent if _srdb_root not set msg={}'.format(m)
                 if not self._creds or 'username' not in self._creds:
                     self._raise_sbatch_login_srexception('no-creds', m)
                 self._srdb_root = cfg.srdb_root.format(
@@ -85,12 +73,12 @@ class SbatchDriver(job_driver.DriverBase):
             if op.opName == job.OP_RUN:
                 assert m.sbatchHours
                 if cfg.cores:
-                    m.sbatchCores = min(m.mpiCores, cfg.cores)
+                    m.sbatchCores = min(m.sbatchCores, cfg.cores)
                 m.mpiCores = m.sbatchCores
                 if op.kind == job.PARALLEL:
                     op.maxRunSecs = 0
             m.shifterImage = cfg.shifter_image
-            return await super().send(op)
+            return await super().prepare_send(op)
         finally:
             self.pkdel('_creds')
 
@@ -101,7 +89,35 @@ class SbatchDriver(job_driver.DriverBase):
             )
         )
 
-    async def _do_agent_start(self, msg):
+    async def _do_agent_start(self, op):
+        log_file = 'job_agent.log'
+        agent_start_dir = self._srdb_root
+        script = f'''#!/bin/bash
+{self._agent_start_dev()}
+set -e
+mkdir -p '{agent_start_dir}'
+cd '{self._srdb_root}'
+{self._agent_env()}
+(/usr/bin/env; setsid {cfg.sirepo_cmd} job_agent start_sbatch) >& {log_file} &
+disown
+'''
+
+        def write_to_log(stdout, stderr, filename):
+            p = pkio.py_path(op.msg.userDir).join('log')
+            pkio.mkdir_parent(p)
+            pkjson.dump_pretty(
+                PKDict(stdout=stdout, stderr=stderr),
+                p.join(f'{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}-{filename}.log'),
+            )
+
+        async def get_agent_log(connection):
+            await tornado.gen.sleep(cfg.agent_log_read_sleep)
+            async with connection.create_process(
+                f'/bin/cat {agent_start_dir}/{log_file}'
+            ) as p:
+                o, e = await p.communicate()
+                write_to_log(o, e, 'remote-job-agent-log')
+
         try:
             async with asyncssh.connect(
                 cfg.host,
@@ -109,29 +125,23 @@ class SbatchDriver(job_driver.DriverBase):
                 password=self._creds.password + self._creds.otp if 'nersc' in cfg.host else self._creds.password,
                 known_hosts=_KNOWN_HOSTS,
             ) as c:
-                script = f'''#!/bin/bash
-{self._agent_start_dev()}
-set -e
-mkdir -p '{self._srdb_root}'
-cd '{self._srdb_root}'
-{self._agent_env()}
-setsid {cfg.sirepo_cmd} job_agent start_sbatch >& job_agent.log &
-disown
-'''
-                async with c.create_process('/bin/bash') as p:
-                    o, e = await p.communicate(input=script)
-                    if o or e:
-                        raise AssertionError(
-                            'agentId={} stdout={} stderr={}'.format(
-                                self._agentId,
-                                o,
-                                e
-                            )
-                        )
+                try:
+                    async with c.create_process('/bin/bash --noprofile --norc -l') as p:
+                        o, e = await p.communicate(input=script)
+                        if o or e:
+                            write_to_log(o, e, 'job-agent-start-sbatch')
+                    await get_agent_log(c)
+                except Exception as e:
+                    pkdlog(
+                        'agentId={} e={} stack={}',
+                        self._agentId,
+                        e,
+                        pkdexc(),
+                    )
         except Exception as e:
             if isinstance(e, asyncssh.misc.PermissionDenied):
                 self._srdb_root = None
-                self._raise_sbatch_login_srexception('invalid-creds', msg)
+                self._raise_sbatch_login_srexception('invalid-creds', op.msg)
             raise
 
     def _agent_start_dev(self):
@@ -165,13 +175,17 @@ scancel -u $USER >& /dev/null || true
 
     def _websocket_free(self):
         self._srdb_root = None
-        self.run_scheduler(exclude_self=True)
 
 
 def init_class():
     global cfg, _KNOWN_HOSTS
 
     cfg = pkconfig.init(
+        agent_log_read_sleep=(
+            5,
+            int,
+            'how long to wait before reading the agent log on start',
+        ),
         cores=(None, int, 'dev cores config'),
         host=pkconfig.Required(str, 'host name for slum controller'),
         host_key=pkconfig.Required(str, 'host key'),
