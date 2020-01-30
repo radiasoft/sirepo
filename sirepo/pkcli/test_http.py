@@ -16,6 +16,7 @@ import subprocess
 import threading
 import time
 import sirepo.util
+import sirepo.sim_data
 
 
 cfg = None
@@ -121,7 +122,8 @@ class _Client(PKDict):
 
         r = self.post('/simulation-list', PKDict())
         self._sid = PKDict([(x.name, x.simulationId) for x in r])
-        self._sim_data = PKDict()
+        self._sim_db = PKDict()
+        self._sim_data = sirepo.sim_data.get_class(self.sim_type)
         return self
 
     def parse_response(self, resp):
@@ -151,31 +153,33 @@ class _Client(PKDict):
             ),
         )
 
-    def sim_data(self, sim_name):
-        return self._sim_data.pksetdefault(
+    def sim_db(self, sim_name):
+        return self._sim_db.pksetdefault(
             sim_name,
             lambda: self.get(
                 '/simulation/{}/{}/0'.format(self.sim_type, self._sid[sim_name]),
             ),
         )[sim_name]
 
-    def sim_run(self, name, report, timeout=15):
+    def sim_run(self, name, report, timeout=120):
 
         def _run(self):
             c = None
             i = self._sid[name]
+            d = self.sim_db(name)
             pkdlog('sid={} report={} state=start', i, report)
             r = self.post(
                 '/run-simulation',
                 PKDict(
                     # works for sequential simulations, too
                     forceRun=True,
-                    models=self.sim_data(name).models,
+                    models=d.models,
                     report=report,
                     simulationId=i,
                     simulationType=self.sim_type,
                 ),
             )
+            p = self._sim_data.is_parallel(report)
             try:
                 if r.state == 'completed':
                     return
@@ -195,6 +199,30 @@ class _Client(PKDict):
                 if s == 'error':
                     s = r.get('error', '<unknown error>')
                 pkdlog('sid={} report={} state={}', i, report, s)
+            if p:
+                g = self._sim_data.frame_id(d, r, report, 0)
+                f = self.get('/simulation-frame/' + g)
+                assert 'title' in f, \
+                    'no title in frame={}'.format(f)
+                c = None
+                try:
+                    c = self.post(
+                        '/run-simulation',
+                        PKDict(
+                            # works for sequential simulations, too
+                            forceRun=True,
+                            models=d.models,
+                            report=report,
+                            simulationId=i,
+                            simulationType=self.sim_type,
+                        ),
+                    )
+                    f = self.get('/simulation-frame/' + g)
+                    assert f.state == 'error', \
+                        'expecting error instead of frame={}'.format(f)
+                finally:
+                    if c:
+                        self.post('/run-cancel', c.get('nextRequest'))
 
         self = self.copy()
         self.thread = threading.Thread(target=_run, args=[self])
