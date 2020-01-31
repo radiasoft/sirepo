@@ -238,6 +238,9 @@ def clean_run_dir(run_dir):
 def extract_report_data(filename, sim_in):
     r = sim_in.report
     m = sim_in.models
+    # special case for 3d beamline report
+    if r == 'beamline3DReport':
+        return _extract_beamline_orientation(filename)
     #TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
     if re.search(r'/res_int_pr_me_dc.\.dat', filename):
         _fix_file_header(filename)
