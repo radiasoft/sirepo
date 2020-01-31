@@ -4,6 +4,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdexc, pkdlog
 import asyncio
 import copy
+import contextlib
 import re
 import sirepo.sim_data
 import sirepo.util
@@ -11,6 +12,7 @@ import tornado.httpclient
 import tornado.ioloop
 import tornado.gen
 import tornado.locks
+import time
 
 cfg = None
 
@@ -61,13 +63,14 @@ class _Client(PKDict):
         return n
 
     async def get(self, uri):
-        return self.parse_response(
-            await self._client.fetch(
-                self._uri(uri),
-                headers=self._headers,
-                method='GET',
+        with _timer(uri):
+            return self.parse_response(
+                await self._client.fetch(
+                    self._uri(uri),
+                    headers=self._headers,
+                    method='GET',
+                )
             )
-        )
 
     async def login(self):
         r = await self.post('/simulation-list', PKDict())
@@ -116,17 +119,18 @@ class _Client(PKDict):
 
     async def post(self, uri, data):
         data.simulationType = self.sim_type
-        return self.parse_response(
-            await self._client.fetch(
-                self._uri(uri),
-                body=pkjson.dump_bytes(data),
-                headers=self._headers.pksetdefault(
-                    'Content-type',  'application/json'
+        with _timer(uri):
+            return self.parse_response(
+                await self._client.fetch(
+                    self._uri(uri),
+                    body=pkjson.dump_bytes(data),
+                    headers=self._headers.pksetdefault(
+                        'Content-type',  'application/json'
+                    ),
+                    method='POST',
+                    request_timeout=180,
                 ),
-                method='POST',
-                request_timeout=180,
             )
-        )
 
     async def sim_db(self, sim_name):
         try:
@@ -218,3 +222,10 @@ def _init():
     cfg = pkconfig.init(
         server_uri=('http://127.0.0.1:8000', str, 'where to send requests'),
     )
+
+
+@contextlib.contextmanager
+def _timer(description):
+    s = time.time()
+    yield
+    pkdp('{} elapsed_time={}', description, time.time() - s)
