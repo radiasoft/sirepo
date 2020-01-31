@@ -67,7 +67,7 @@ class _Client(PKDict):
             r = await self.post('/auth-email-login', PKDict(email=self.email))
             t = sirepo.util.create_token(
                 self.email,
-            ).decode('utf-8')  #TODO(e-carlin): py2/3
+            ).decode()
             r = await self.post(
                 self._uri('/auth-email-authorized/{}/{}'.format(self.sim_type, t)),
                 data=PKDict(token=t, email=self.email),
@@ -92,7 +92,7 @@ class _Client(PKDict):
         if 'json' in resp.headers['content-type']:
             self.json = pkjson.load_any(resp.body)
             return self.json
-        b = resp.body.decode('utf-8')
+        b = resp.body.decode()
         if 'html' in resp.headers['content-type']:
             m = re.search('location = "(/[^"]+)', b)
             if m:
