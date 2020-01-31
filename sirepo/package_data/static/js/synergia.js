@@ -3,50 +3,36 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation'];
-SIREPO.appFieldEditors = [
-    '<div data-ng-switch-when="TurnCount" data-ng-class="fieldClass">',
-      '<div data-turn-count-field="" field="field" data-model="model"></div>',
-    '</div>',
-    //TODO(pjm): standard lattice directives
-    '<div data-ng-switch-when="RPNBoolean" data-ng-class="fieldClass">',
-      '<div data-rpn-boolean="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="RPNValue">',
-      '<div data-ng-class="fieldClass">',
-        '<input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="isRequired()" />',
-      '</div>',
-      //TODO(pjm): fragile - hide rpnStaic value when in column mode, need better detection this case
-      '<div data-ng-hide="{{ fieldSize && fieldSize != \'2\' }}" class="col-sm-2">',
-        '<div data-rpn-static="" data-model="model" data-field="field"></div>',
-      '</div>',
-    '</div>',
-    '<div data-ng-switch-when="LatticeBeamlineList" data-ng-class="fieldClass">',
-      '<div data-lattice-beamline-list="" data-model="model" data-field="field"></div>',
-    '</div>',
-].join('');
-SIREPO.appImportText = 'Import a MAD-X or elegant Lattice';
-SIREPO.FILE_UPLOAD_TYPE = {
-    'bunch-particleFile': '.h5,.hdf5',
-};
-SIREPO.lattice = {
-    elementColor: {
-        QUADRUPOLE: 'red',
-        SEXTUPOLE: 'lightgreen',
-        VKICKER: 'blue',
-        NLINSERT: 'green',
-    },
-    elementPic: {
-        aperture: ['ECOLLIMATOR', 'RCOLLIMATOR'],
-        bend: ['HKICKER', 'KICKER', 'RBEND', 'SBEND'],
-        drift: ['DRIFT'],
-        magnet: ['NLINSERT', 'QUADRUPOLE', 'SEXTUPOLE', 'VKICKER'],
-        rf: ['RFCAVITY'],
-        solenoid: ['SOLENOID'],
-        watch: ['HMONITOR', 'MARKER', 'MONITOR', 'VMONITOR'],
-        zeroLength: ['DIPEDGE', 'MULTIPOLE', 'NLLENS', 'SROTATION'],
-    },
-};
+SIREPO.app.config(function() {
+    SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation'];
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="TurnCount" data-ng-class="fieldClass">',
+          '<div data-turn-count-field="" field="field" data-model="model"></div>',
+        '</div>',
+    ].join('');
+    SIREPO.appImportText = 'Import a MAD-X or elegant Lattice';
+    SIREPO.FILE_UPLOAD_TYPE = {
+        'bunch-particleFile': '.h5,.hdf5',
+    };
+    SIREPO.lattice = {
+        elementColor: {
+            QUADRUPOLE: 'red',
+            SEXTUPOLE: 'lightgreen',
+            VKICKER: 'blue',
+            NLINSERT: 'green',
+        },
+        elementPic: {
+            aperture: ['ECOLLIMATOR', 'RCOLLIMATOR'],
+            bend: ['HKICKER', 'KICKER', 'RBEND', 'SBEND'],
+            drift: ['DRIFT'],
+            magnet: ['NLINSERT', 'QUADRUPOLE', 'SEXTUPOLE', 'VKICKER'],
+            rf: ['RFCAVITY'],
+            solenoid: ['SOLENOID'],
+            watch: ['HMONITOR', 'MARKER', 'MONITOR', 'VMONITOR'],
+            zeroLength: ['DIPEDGE', 'MULTIPOLE', 'NLLENS', 'SROTATION'],
+        },
+    };
+});
 
 SIREPO.app.factory('synergiaService', function(appState) {
     var self = {};

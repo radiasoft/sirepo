@@ -3,73 +3,53 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.SINGLE_FRAME_ANIMATION = ['plotAnimation', 'plot2Animation'];
-SIREPO.appFieldEditors = [
-    '<div data-ng-switch-when="OutputFile" data-ng-class="fieldClass">',
-      '<div data-output-file-field="field" data-model="model"></div>',
-    '</div>',
-    //TODO(pjm): standard lattice directives
-    '<div data-ng-switch-when="RPNBoolean" data-ng-class="fieldClass">',
-      '<div data-rpn-boolean="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="RPNValue">',
-      '<div data-ng-class="fieldClass">',
-        '<input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="isRequired()" />',
-      '</div>',
-      //TODO(pjm): fragile - hide rpnStaic value when in column mode, need better detection this case
-      '<div data-ng-hide="{{ fieldSize && fieldSize != \'2\' }}" class="col-sm-2">',
-        '<div data-rpn-static="" data-model="model" data-field="field"></div>',
-      '</div>',
-    '</div>',
-    '<div data-ng-switch-when="LatticeBeamlineList" data-ng-class="fieldClass">',
-      '<div data-lattice-beamline-list="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="OptionalLatticeBeamlineList" data-ng-class="fieldClass">',
-      '<div data-lattice-beamline-list="" data-model="model" data-field="field" data-is-optional="true"></div>',
-    '</div>',
-    '<div data-ng-switch-when="BeamList" data-ng-class="fieldClass">',
-      '<div data-command-list="" data-model="model" data-field="field" data-command-type="beam"></div>',
-    '</div>',
-    '<div data-ng-switch-when="FieldsolverList" data-ng-class="fieldClass">',
-      '<div data-command-list="" data-model="model" data-field="field" data-command-type="fieldsolver"></div>',
-    '</div>',
-    '<div data-ng-switch-when="DistributionList" data-ng-class="fieldClass">',
-      '<div data-command-list="" data-model="model" data-field="field" data-command-type="distribution"></div>',
-    '</div>',
-    '<div data-ng-switch-when="ParticlematterinteractionList" data-ng-class="fieldClass">',
-      '<div data-command-list="" data-model="model" data-field="field" data-command-type="particlematterinteraction"></div>',
-    '</div>',
-    '<div data-ng-switch-when="WakeList" data-ng-class="fieldClass">',
-      '<div data-command-list="" data-model="model" data-field="field" data-command-type="wake"></div>',
-    '</div>',
-    '<div data-ng-switch-when="GeometryList" data-ng-class="fieldClass">',
-      '<div data-command-list="" data-model="model" data-field="field" data-command-type="geometry"></div>',
-    '</div>',
-].join('');
-SIREPO.lattice = {
-    elementColor: {
-        CCOLLIMATOR: 'magenta',
-    },
-    elementPic: {
-        alpha: [],
-        aperture: ['ECOLLIMATOR', 'FLEXIBLECOLLIMATOR', 'PEPPERPOT', 'RCOLLIMATOR', 'SLIT'],
-        bend: ['RBEND', 'RBEND3D', 'SBEND', 'SBEND3D', 'SEPTUM'],
-        drift: ['DRIFT'],
-        lens: [],
-        magnet: ['CCOLLIMATOR', 'CYCLOTRON', 'CYCLOTRONVALLEY', 'DEGRADER',
-                 'HKICKER', 'KICKER', 'MULTIPOLE', 'MULTIPOLET', 'MULTIPOLETCURVEDCONSTRADIUS',
-                 'MULTIPOLETCURVEDVARRADIUS', 'MULTIPOLETSTRAIGHT', 'OCTUPOLE',
-                 'QUADRUPOLE', 'RINGDEFINITION', 'SCALINGFFAMAGNET', 'SEXTUPOLE',
-                 'SOLENOID', 'STRIPPER', 'TRIMCOIL', 'VKICKER', 'WIRE'],
-        malign: [],
-        mirror: [],
-        rf: ['PARALLELPLATE', 'RFCAVITY', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD'],
-        solenoid: [],
-        undulator: [],
-        watch: ['HMONITOR', 'INSTRUMENT', 'MARKER', 'MONITOR', 'PROBE', 'VMONITOR'],
-        zeroLength: ['PATCH', 'SEPARATOR', 'SOURCE', 'SROT', 'TRAVELINGWAVE', 'YROT'],
-    },
-};
+SIREPO.app.config(function() {
+    SIREPO.SINGLE_FRAME_ANIMATION = ['plotAnimation', 'plot2Animation'];
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="BeamList" data-ng-class="fieldClass">',
+          '<div data-command-list="" data-model="model" data-field="field" data-command-type="beam"></div>',
+        '</div>',
+        '<div data-ng-switch-when="FieldsolverList" data-ng-class="fieldClass">',
+          '<div data-command-list="" data-model="model" data-field="field" data-command-type="fieldsolver"></div>',
+        '</div>',
+        '<div data-ng-switch-when="DistributionList" data-ng-class="fieldClass">',
+          '<div data-command-list="" data-model="model" data-field="field" data-command-type="distribution"></div>',
+        '</div>',
+        '<div data-ng-switch-when="ParticlematterinteractionList" data-ng-class="fieldClass">',
+          '<div data-command-list="" data-model="model" data-field="field" data-command-type="particlematterinteraction"></div>',
+        '</div>',
+        '<div data-ng-switch-when="WakeList" data-ng-class="fieldClass">',
+          '<div data-command-list="" data-model="model" data-field="field" data-command-type="wake"></div>',
+        '</div>',
+        '<div data-ng-switch-when="GeometryList" data-ng-class="fieldClass">',
+          '<div data-command-list="" data-model="model" data-field="field" data-command-type="geometry"></div>',
+        '</div>',
+    ].join('');
+    SIREPO.lattice = {
+        elementColor: {
+            CCOLLIMATOR: 'magenta',
+        },
+        elementPic: {
+            alpha: [],
+            aperture: ['ECOLLIMATOR', 'FLEXIBLECOLLIMATOR', 'PEPPERPOT', 'RCOLLIMATOR', 'SLIT'],
+            bend: ['RBEND', 'RBEND3D', 'SBEND', 'SBEND3D', 'SEPTUM'],
+            drift: ['DRIFT'],
+            lens: [],
+            magnet: ['CCOLLIMATOR', 'CYCLOTRON', 'CYCLOTRONVALLEY', 'DEGRADER',
+                     'HKICKER', 'KICKER', 'MULTIPOLE', 'MULTIPOLET', 'MULTIPOLETCURVEDCONSTRADIUS',
+                     'MULTIPOLETCURVEDVARRADIUS', 'MULTIPOLETSTRAIGHT', 'OCTUPOLE',
+                     'QUADRUPOLE', 'RINGDEFINITION', 'SCALINGFFAMAGNET', 'SEXTUPOLE',
+                     'SOLENOID', 'STRIPPER', 'TRIMCOIL', 'VKICKER', 'WIRE'],
+            malign: [],
+            mirror: [],
+            rf: ['PARALLELPLATE', 'RFCAVITY', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD'],
+            solenoid: [],
+            undulator: [],
+            watch: ['HMONITOR', 'INSTRUMENT', 'MARKER', 'MONITOR', 'PROBE', 'VMONITOR'],
+            zeroLength: ['PATCH', 'SEPARATOR', 'SOURCE', 'SROT', 'TRAVELINGWAVE', 'YROT'],
+        },
+    };
+});
 
 SIREPO.app.factory('opalService', function(appState, commandService, latticeService) {
     var self = {};

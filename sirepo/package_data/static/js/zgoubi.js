@@ -3,59 +3,45 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.USER_MANUAL_URL = 'https://zgoubi.sourceforge.io/ZGOUBI_DOCS/Zgoubi.pdf';
-SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
-SIREPO.appFieldEditors = [
-    '<div data-ng-switch-when="FileNameArray" data-ng-class="fieldClass">',
-      '<div data-magnet-files="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="Changref2Array" class="col-sm-7">',
-      '<div data-changref2-fields="" data-model="model" data-field="field"></div>',
-    '</div>',
-    //TODO(pjm): standard lattice directives
-    '<div data-ng-switch-when="RPNBoolean" data-ng-class="fieldClass">',
-      '<div data-rpn-boolean="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="RPNValue">',
-      '<div data-ng-class="fieldClass">',
-        '<input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="isRequired()" />',
-      '</div>',
-      //TODO(pjm): fragile - hide rpnStaic value when in column mode, need better detection this case
-      '<div data-ng-hide="{{ fieldSize && fieldSize != \'2\' }}" class="col-sm-2">',
-        '<div data-rpn-static="" data-model="model" data-field="field"></div>',
-      '</div>',
-    '</div>',
-    '<div data-ng-switch-when="LatticeBeamlineList" data-ng-class="fieldClass">',
-      '<div data-lattice-beamline-list="" data-model="model" data-field="field"></div>',
-    '</div>',
-].join('');
-SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot"></div>',
-].join('');
-SIREPO.appDownloadLinks = [
-    '<li data-export-zgoubi-link="" data-report-title="{{ reportTitle() }}"></li>',
-].join('');
-SIREPO.appImportText = 'Import a zgoubi.dat datafile';
-SIREPO.lattice = {
-    invalidElementName: /[#*'",]/g,
-    elementColor: {
-        CHANGREF: 'orange',
-        CHANGREF_VALUE: 'orange',
-        QUADRUPO: 'tomato',
-        SEXTUPOL: 'lightgreen',
-        TOSCA: 'cornflowerblue',
-    },
-    elementPic: {
-        aperture: [],
-        bend: ['AUTOREF', 'BEND', 'CHANGREF', 'CHANGREF_VALUE', 'FFA', 'FFA_SPI', 'MULTIPOL'],
-        drift: ['DRIFT'],
-        magnet: ['QUADRUPO', 'SEXTUPOL', 'TOSCA'],
-        rf: ['CAVITE'],
-        solenoid: ['SOLENOID'],
-        watch: ['MARKER'],
-        zeroLength: ['SCALING', 'SPINR', 'YMY'],
-    },
-};
+SIREPO.app.config(function() {
+    SIREPO.USER_MANUAL_URL = 'https://zgoubi.sourceforge.io/ZGOUBI_DOCS/Zgoubi.pdf';
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="FileNameArray" data-ng-class="fieldClass">',
+          '<div data-magnet-files="" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="Changref2Array" class="col-sm-7">',
+          '<div data-changref2-fields="" data-model="model" data-field="field"></div>',
+        '</div>',
+    ].join('');
+    SIREPO.appReportTypes = [
+        '<div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot"></div>',
+    ].join('');
+    SIREPO.appDownloadLinks = [
+        '<li data-export-zgoubi-link="" data-report-title="{{ reportTitle() }}"></li>',
+    ].join('');
+    SIREPO.appImportText = 'Import a zgoubi.dat datafile';
+    SIREPO.lattice = {
+        invalidElementName: /[#*'",]/g,
+        elementColor: {
+            CHANGREF: 'orange',
+            CHANGREF_VALUE: 'orange',
+            QUADRUPO: 'tomato',
+            SEXTUPOL: 'lightgreen',
+            TOSCA: 'cornflowerblue',
+        },
+        elementPic: {
+            aperture: [],
+            bend: ['AUTOREF', 'BEND', 'CHANGREF', 'CHANGREF_VALUE', 'FFA', 'FFA_SPI', 'MULTIPOL'],
+            drift: ['DRIFT'],
+            magnet: ['QUADRUPO', 'SEXTUPOL', 'TOSCA'],
+            rf: ['CAVITE'],
+            solenoid: ['SOLENOID'],
+            watch: ['MARKER'],
+            zeroLength: ['SCALING', 'SPINR', 'YMY'],
+        },
+    };
+});
 
 SIREPO.app.directive('appFooter', function() {
     return {

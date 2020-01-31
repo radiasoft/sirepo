@@ -3,9 +3,11 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appDefaultSimulationValues.simulation.flashType = 'RTFlame';
-SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
-SIREPO.SINGLE_FRAME_ANIMATION = ['gridEvolutionAnimation'];
+SIREPO.app.config(function() {
+    SIREPO.appDefaultSimulationValues.simulation.flashType = 'RTFlame';
+    SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
+    SIREPO.SINGLE_FRAME_ANIMATION = ['gridEvolutionAnimation'];
+});
 
 SIREPO.app.factory('flashService', function(appState) {
     var self = {};
