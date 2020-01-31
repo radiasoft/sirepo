@@ -1245,10 +1245,11 @@ SIREPO.app.directive('panelLayout', function(appState, utilities, $window) {
 
 SIREPO.app.directive('safePath', function() {
 
-    var unsafe_path_chars = '\\/|&:+?\'"<>'.split('');
-    var unsafe_path_warn = ' must not include any of the following: ' +
-        unsafe_path_chars.join(' ');
-    var unsafe_path_regexp = new RegExp('[\\' + unsafe_path_chars.join('\\') + ']');
+    // keep in sync with sirepo.srschem.py _NAME_ILLEGALS
+    var unsafePathChars = '\\/|&:+?\'*"<>'.split('');
+    var unsafePathWarn = ' must not include: ' +
+        unsafePathChars.join(' ');
+    var unsafePathRegexp = new RegExp('[\\' + unsafePathChars.join('\\') + ']');
 
     return {
         restrict: 'A',
@@ -1256,15 +1257,23 @@ SIREPO.app.directive('safePath', function() {
         link: function(scope, element, attrs, ngModel) {
             scope.showWarning = false;
             scope.warningText = '';
+
+            function setWarningText(text) {
+                scope.warningText = (scope.info ? scope.info[0] : 'Value') + text;
+            }
+
             ngModel.$parsers.push(function (v) {
-                scope.showWarning = unsafe_path_regexp.test(v);
+                scope.showWarning = unsafePathRegexp.test(v);
                 if (scope.showWarning) {
-                    scope.warningText = (scope.info ? scope.info[0] : 'Value') + unsafe_path_warn;
-                    ngModel.$setValidity('size', false);
+                    setWarningText(unsafePathWarn);
                 }
                 else {
-                    ngModel.$setValidity('size', true);
+                    scope.showWarning = /^\.|\.$/.test(v);
+                    if (scope.showWarning) {
+                        setWarningText(' must not start or end with a "."');
+                    }
                 }
+                ngModel.$setValidity('size', ! scope.showWarning);
                 return v;
             });
 
