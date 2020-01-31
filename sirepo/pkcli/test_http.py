@@ -1,46 +1,30 @@
+# -*- coding: utf-8 -*-
+u"""async requests to server over http
+
+:copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
+:license: http://www.apache.org/licenses/LICENSE-2.0.html
+"""
+from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdexc, pkdlog
-import asyncio
-import copy
 import contextlib
+import copy
 import re
 import sirepo.sim_data
 import sirepo.util
+import time
+import tornado.gen
 import tornado.httpclient
 import tornado.ioloop
-import tornado.gen
 import tornado.locks
-import time
 
 cfg = None
 
 
-def main():
-    tornado.ioloop.IOLoop.current().run_sync(run_all)
-
-
-async def run_all():
-    l = []
-    for a in (
-#        ('a@b.c', 'myapp', 'Scooby Doo'),
-        ('a@b.c', 'srw', "Young's Double Slit Experiment"),
-    ):
-        l.append(run(*a))
-    await tornado.gen.multi(l)
-
-
-async def run(email, sim_type, *sim_names):
-    c = await _Client(email=email, sim_type=sim_type).login()
-    await run_sequential_parallel(c)
-
-
-async def run_sequential_parallel(client):
-    c = []
-    for r in 'intensityReport', 'powerDensityReport', 'sourceIntensityReport', 'multiElectronAnimation', 'fluxAnimation':
-        c.append(client.sim_run('Tabulated Undulator Example', r))
-    await tornado.gen.multi(c)
+def default_command():
+    tornado.ioloop.IOLoop.current().run_sync(_run_all)
 
 
 class _Client(PKDict):
@@ -81,7 +65,9 @@ class _Client(PKDict):
             self._login_locks.pksetdefault(self.email, tornado.locks.Lock())
         async with self._login_locks[self.email]:
             r = await self.post('/auth-email-login', PKDict(email=self.email))
-            t = sirepo.util.create_token(self.email).decode()  #TODO(e-carlin): py2/3
+            t = sirepo.util.create_token(
+                self.email,
+            ).decode('utf-8')  #TODO(e-carlin): py2/3
             r = await self.post(
                 self._uri('/auth-email-authorized/{}/{}'.format(self.sim_type, t)),
                 data=PKDict(token=t, email=self.email),
@@ -224,8 +210,31 @@ def _init():
     )
 
 
+async def _run(email, sim_type, *sim_names):
+    await _run_sequential_parallel(
+        await _Client(email=email, sim_type=sim_type).login(),
+    )
+
+
+async def _run_all():
+    l = []
+    for a in (
+#        ('a@b.c', 'myapp', 'Scooby Doo'),
+        ('a@b.c', 'srw', "Young's Double Slit Experiment"),
+    ):
+        l.append(_run(*a))
+    await tornado.gen.multi(l)
+
+
+async def _run_sequential_parallel(client):
+    c = []
+    for r in 'intensityReport', 'powerDensityReport', 'sourceIntensityReport', 'multiElectronAnimation', 'fluxAnimation':
+        c.append(client.sim_run('Tabulated Undulator Example', r))
+    await tornado.gen.multi(c)
+
+
 @contextlib.contextmanager
 def _timer(description):
     s = time.time()
     yield
-    pkdp('{} elapsed_time={}', description, time.time() - s)
+    pkdlog('{} elapsed_time={}', description, time.time() - s)
