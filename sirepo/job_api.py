@@ -238,17 +238,16 @@ def _run_mode(request_content):
             else sirepo.job.SEQUENTIAL
         return request_content
     s = sirepo.sim_data.get_class(request_content.simulationType)
-    for r in s.schema().common.enum.JobRunMode:
-        if r[0] == j:
-            return request_content.pkupdate(
-                jobRunMode=j,
-                sbatchCores=m.sbatchCores,
-                sbatchHours=m.sbatchHours,
+    if j not in simulation_db.JOB_RUN_MODE_MAP:
+        raise sirepo.util.Error(
+            'invalid jobRunMode={} computeModel={} computeJid={}'.format(
+                j,
+                request_content.computeModel,
+                request_content.computeJid,
             )
-    raise sirepo.util.Error(
-        'jobRunMode={} computeModel={} computeJid={}'.format(
-            j,
-            request_content.computeModel,
-            request_content.computeJid,
         )
+    return request_content.pkupdate(
+        jobRunMode=j,
+        sbatchCores=m.sbatchCores,
+        sbatchHours=m.sbatchHours,
     )
