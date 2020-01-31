@@ -10,6 +10,7 @@ import sirepo.util
 import tornado.httpclient
 import tornado.ioloop
 import tornado.gen
+import tornado.locks
 
 cfg = None
 
@@ -41,19 +42,21 @@ async def run_sequential_parallel(client):
 
 
 class _Client(PKDict):
+    _global_lock = tornado.locks.Lock()
+    _login_locks = PKDict()
+
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        _init()
-        # TODO(e-carlin): assign as part of pkdict super creation
-        self._client = tornado.httpclient.AsyncHTTPClient()
-        self._headers = PKDict(
-            {'User-Agent': 'Tornado'},
+        super().__init__(
+            _client=tornado.httpclient.AsyncHTTPClient(),
+            _headers=PKDict({'User-Agent': 'Tornado'}),
+            **kwargs,
         )
+        _init()
 
     def copy(self):
         n = type(self)()
         for k, v in self.items():
-            if k not in n or k == '_headers':
+            if k != '_client':
                 n[k] = copy.deepcopy(v)
         return n
 
@@ -71,21 +74,21 @@ class _Client(PKDict):
         assert r.srException.routeName == 'missingCookies'
         r = await self.post('/simulation-list', PKDict())
         assert r.srException.routeName == 'login'
-        # # with self.__global_lock:
-        # #     self.__login_locks.pksetdefault(self.email, threading.Lock)
-        # # with self.__login_locks[self.email]:
-        r = await self.post('/auth-email-login', PKDict(email=self.email))
-        t = sirepo.util.create_token(self.email).decode()  # TODO(e-carlin): py2/3
-        r = await self.post(
-            self._uri('/auth-email-authorized/{}/{}'.format(self.sim_type, t)),
-            data=PKDict(token=t, email=self.email),
-        )
-        assert r.state != 'srException', 'r={}'.format(r)
-        if r.state == 'redirect' and 'complete' in r.uri:
+        async with self._global_lock:
+            self._login_locks.pksetdefault(self.email, tornado.locks.Lock())
+        async with self._login_locks[self.email]:
+            r = await self.post('/auth-email-login', PKDict(email=self.email))
+            t = sirepo.util.create_token(self.email).decode()  #TODO(e-carlin): py2/3
             r = await self.post(
-                '/auth-complete-registration',
-                PKDict(displayName=self.email),
+                self._uri('/auth-email-authorized/{}/{}'.format(self.sim_type, t)),
+                data=PKDict(token=t, email=self.email),
             )
+            assert r.state != 'srException', 'r={}'.format(r)
+            if r.state == 'redirect' and 'complete' in r.uri:
+                r = await self.post(
+                    '/auth-complete-registration',
+                    PKDict(displayName=self.email),
+                )
         r = await self.post('/simulation-list', PKDict())
         self._sid = PKDict([(x.name, x.simulationId) for x in r])
         self._sim_db = PKDict()
