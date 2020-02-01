@@ -9,32 +9,35 @@ from pykern import pkconfig
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdexc, pkdlog
+import asyncio
 import contextlib
 import copy
 import re
 import sirepo.sim_data
 import sirepo.util
 import time
-import tornado.gen
+# import tornado.gen
 import tornado.httpclient
-import tornado.ioloop
-import tornado.locks
+# import tornado.ioloop
+# import tornado.locks
+import tornado.concurrent
 
 cfg = None
 
 
 def default_command():
-    tornado.ioloop.IOLoop.current().run_sync(_run_all)
+    asyncio.run(_run_all())
+    # tornado.ioloop.IOLoop.current().run_sync(_run_all)
 
 
 class _Client(PKDict):
-    _global_lock = tornado.locks.Lock()
+    _global_lock = asyncio.Lock()
     _login_locks = PKDict()
 
     def __init__(self, **kwargs):
         super().__init__(
             _client=tornado.httpclient.AsyncHTTPClient(),
-            _headers=PKDict({'User-Agent': 'Tornado'}),
+            _headers=PKDict({'User-Agent': 'test_http'}),
             **kwargs,
         )
         _init()
@@ -62,7 +65,7 @@ class _Client(PKDict):
         r = await self.post('/simulation-list', PKDict())
         assert r.srException.routeName == 'login'
         async with self._global_lock:
-            self._login_locks.pksetdefault(self.email, tornado.locks.Lock())
+            self._login_locks.pksetdefault(self.email, asyncio.Lock())
         async with self._login_locks[self.email]:
             r = await self.post('/auth-email-login', PKDict(email=self.email))
             t = sirepo.util.create_token(
@@ -148,8 +151,8 @@ class _Client(PKDict):
                     simulationType=self.sim_type,
                 ),
             )
-            p = self._sim_data.is_parallel(report)
             try:
+                p = self._sim_data.is_parallel(report)
                 if r.state == 'completed':
                     return
                 c = r.get('nextRequest')
@@ -158,11 +161,16 @@ class _Client(PKDict):
                         c = None
                         break
                     r = await self.post('/run-status', r.nextRequest)
-                    await tornado.gen.sleep(1)
+                    await asyncio.sleep(1)
                 else:
                     pkdlog('sid={} report={} timeout={}', i, report, timeout)
+            except tornado.concurrent.futures._base.CancelledError:
+                pkdp('44444444444444444444444444444444444444444444444444444')
+            except asyncio.CancelledError:
+                pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
             finally:
                 if c:
+                    pkdp('111111111111111111111111111111111111111111')
                     await self.post('/run-cancel', c)
                 s = 'cancel' if c else r.get('state')
                 if s == 'error':
@@ -189,8 +197,13 @@ class _Client(PKDict):
                     f = await self.get('/simulation-frame/' + g)
                     assert f.state == 'error', \
                         'expecting error instead of frame={}'.format(f)
+                except tornado.concurrent.futures._base.CancelledError:
+                    pkdp('55555555555555555555555')
+                except asyncio.CancelledError:
+                    pkdp('eeeeeeeeeeeeeeeeeeeeeeee')
                 finally:
                     if c:
+                        pkdp('222222222222222222222222222222222222222222')
                         await self.post('/run-cancel', c.get('nextRequest'))
         return await _run(self.copy())
 
@@ -223,14 +236,23 @@ async def _run_all():
         ('a@b.c', 'srw', "Young's Double Slit Experiment"),
     ):
         l.append(_run(*a))
-    await tornado.gen.multi(l)
+    await _cancel_on_exception(asyncio.gather(*l))
 
 
 async def _run_sequential_parallel(client):
     c = []
     for r in 'intensityReport', 'powerDensityReport', 'sourceIntensityReport', 'multiElectronAnimation', 'fluxAnimation':
         c.append(client.sim_run('Tabulated Undulator Example', r))
-    await tornado.gen.multi(c)
+    await _cancel_on_exception(asyncio.gather(*c))
+
+async def _cancel_on_exception(task):
+    try:
+        await task
+    except Exception as e:
+        # pkdlog('exc={} stack={}', e, pkdexc())
+        pkdp('ccccccccccccccccccccccccccccccccccccccccccccc')
+        task.cancel()
+
 
 
 @contextlib.contextmanager
