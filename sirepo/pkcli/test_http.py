@@ -20,7 +20,8 @@ import time
 import tornado.httpclient
 # import tornado.ioloop
 # import tornado.locks
-import tornado.concurrent
+# import tornado.concurrent
+import concurrent.futures
 
 cfg = None
 
@@ -164,9 +165,7 @@ class _Client(PKDict):
                     await asyncio.sleep(1)
                 else:
                     pkdlog('sid={} report={} timeout={}', i, report, timeout)
-            except tornado.concurrent.futures._base.CancelledError:
-                pkdp('44444444444444444444444444444444444444444444444444444')
-            except asyncio.CancelledError:
+            except (asyncio.CancelledError, concurrent.futures.CancelledError):
                 pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
             finally:
                 if c:
@@ -197,9 +196,7 @@ class _Client(PKDict):
                     f = await self.get('/simulation-frame/' + g)
                     assert f.state == 'error', \
                         'expecting error instead of frame={}'.format(f)
-                except tornado.concurrent.futures._base.CancelledError:
-                    pkdp('55555555555555555555555')
-                except asyncio.CancelledError:
+                except (asyncio.CancelledError, concurrent.futures.CancelledError):
                     pkdp('eeeeeeeeeeeeeeeeeeeeeeee')
                 finally:
                     if c:
