@@ -139,6 +139,11 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
             }
         );
     }
+    SIREPO.APP_SCHEMA.enum.JobRunMode = SIREPO.APP_SCHEMA.enum.JobRunMode.map(
+        function (x) {
+            return [x[0], self.jobRunModeMap[x[0]]];
+        }
+    );
     return self;
 });
 
@@ -2069,7 +2074,7 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
 });
 
 
-SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, frameCache) {
+SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, authState, frameCache) {
     var self = {};
 
     self.initSimulationState = function($scope, model, handleStatusCallback) {
@@ -2230,7 +2235,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, f
         };
 
         state.showJobSettings = function () {
-            return SIREPO.APP_SCHEMA.common.enum.JobRunMode.length >= 3
+            return authState.jobRunModeMap.sbatch
                 && appState.models[model] && appState.models[model].jobRunMode
                 ? 1 : 0;
         };
