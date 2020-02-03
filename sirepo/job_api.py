@@ -237,7 +237,6 @@ def _run_mode(request_content):
         request_content.jobRunMode = sirepo.job.PARALLEL if request_content.isParallel \
             else sirepo.job.SEQUENTIAL
         return request_content
-    s = sirepo.sim_data.get_class(request_content.simulationType)
     if j not in simulation_db.JOB_RUN_MODE_MAP:
         raise sirepo.util.Error(
             'invalid jobRunMode={} computeModel={} computeJid={}'.format(
