@@ -197,7 +197,7 @@
             "xxprY": 0
         },
         "electronBeamPosition": {
-            "drift": 0,
+            "drift": -1.0234,
             "driftCalculationMethod": "auto",
             "horizontalAngle": 0,
             "horizontalPosition": 0,
