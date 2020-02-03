@@ -87,7 +87,7 @@ def api_authState():
         isGuestUser=False,
         isLoggedIn=_is_logged_in(s),
         isLoginExpired=False,
-        jobRunModeMap =simulation_db.JOB_RUN_MODE_MAP,
+        jobRunModeMap=simulation_db.JOB_RUN_MODE_MAP,
         method=cookie.unchecked_get_value(_COOKIE_METHOD),
         needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
         userName=None,
