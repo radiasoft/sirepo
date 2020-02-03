@@ -38,7 +38,7 @@ class _Client(PKDict):
         super().__init__(
             _client=tornado.httpclient.AsyncHTTPClient(),
             _headers=PKDict({'User-Agent': 'test_http'}),
-            **kwargs,
+            **kwargs
         )
         _init()
 
