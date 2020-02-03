@@ -490,7 +490,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                '<div data-ng-switch-when="Range" data-ng-class="fieldClass">',
                   '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field" data-field-delegate="fieldDelegate"></div>',
                '</div>',
-              SIREPO.appFieldEditors || '',
+              SIREPO.appFieldEditors,
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
                 '<div data-ng-if="wantEnumButtons" class="btn-group">',
@@ -3330,18 +3330,22 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
         }
     }
 
+    function setRunningState(name) {
+        appState.models[name].isRunning = 1;
+        if (runningModels.indexOf(name) < 0) {
+            runningModels.push(name);
+        }
+    }
+
     self.computeFieldRanges = function(controller, name, percentComplete) {
         if (controller.simState.isProcessing()) {
-            appState.models[name].isRunning = 1;
-            if (runningModels.indexOf(name) < 0) {
-                runningModels.push(name);
-            }
+            setRunningState(name);
         }
         // this assumes all models share same range parameters
         if (percentComplete == 100 && ! controller.isComputingRanges) {
             controller.fieldRange = null;
             controller.isComputingRanges = true;
-            appState.models[name].isRunning = 1;
+            setRunningState(name);
             requestSender.getApplicationData(
                 {
                     method: 'compute_particle_ranges',

@@ -36,6 +36,10 @@ import sirepo.template
 import threading
 import time
 
+#: Names to display to use for jobRunMode
+
+JOB_RUN_MODE_MAP = None
+
 #: Json files
 JSON_SUFFIX = '.json'
 
@@ -935,7 +939,9 @@ def _find_user_simulation_copy(simulation_type, sid):
 
 
 def _init():
-    global SCHEMA_COMMON, cfg
+    import sirepo.mpi
+
+    global SCHEMA_COMMON, cfg, JOB_RUN_MODE_MAP
     cfg = pkconfig.init(
         nfs_tries=(10, int, 'How many times to poll in hack_nfs_write_status'),
         nfs_sleep=(0.5, float, 'Seconds sleep per hack_nfs_write_status poll'),
@@ -946,21 +952,14 @@ def _init():
     with open(str(fn)) as f:
         SCHEMA_COMMON = json_load(f)
     # In development, you can touch schema-common to get a new version
-    SCHEMA_COMMON.version = _timestamp(fn.mtime()) if pkconfig.channel_in('dev') else sirepo.__version__
-    SCHEMA_COMMON.common.enum.JobRunMode = _init_JobRunMode()
-
-
-def _init_JobRunMode():
-    import sirepo.mpi
-
-#TODO(robnagler) import sequential, parallel, sbatch from job.*
-    res = [
-        ['sequential', 'Serial'],
-        ['parallel', '{} cores (SMP)'.format(sirepo.mpi.cfg.cores)],
-    ]
+    SCHEMA_COMMON.version = _timestamp(fn.mtime()) if pkconfig.channel_in('dev') \
+        else sirepo.__version__
+    JOB_RUN_MODE_MAP = PKDict(
+        sequential='Serial',
+        parallel='{} cores (SMP)'.format(sirepo.mpi.cfg.cores),
+    )
     if cfg.sbatch_display:
-        res.append(['sbatch', cfg.sbatch_display])
-    return res
+        JOB_RUN_MODE_MAP.sbatch = cfg.sbatch_display
 
 
 def _merge_dicts(base, derived, depth=-1):
