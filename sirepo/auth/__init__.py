@@ -79,43 +79,7 @@ def api_authCompleteRegistration():
 
 @api_perm.allow_visitor
 def api_authState():
-    s = cookie.unchecked_get_value(_COOKIE_STATE)
-    v = pkcollections.Dict(
-        avatarUrl=None,
-        displayName=None,
-        guestIsOnlyMethod=not non_guest_methods,
-        isGuestUser=False,
-        isLoggedIn=_is_logged_in(s),
-        isLoginExpired=False,
-        jobRunModeMap=simulation_db.JOB_RUN_MODE_MAP,
-        method=cookie.unchecked_get_value(_COOKIE_METHOD),
-        needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
-        userName=None,
-        visibleMethods=visible_methods,
-    )
-    u = cookie.unchecked_get_value(_COOKIE_USER)
-    if v.isLoggedIn:
-        if v.method == METHOD_GUEST:
-            # currently only method to expire login
-            v.displayName = _GUEST_USER_DISPLAY_NAME
-            v.isGuestUser = True
-            v.isLoginExpired = _METHOD_MODULES[METHOD_GUEST].is_login_expired()
-            v.needCompleteRegistration = False
-            v.visibleMethods = non_guest_methods
-        else:
-            r = auth_db.UserRegistration.search_by(uid=u)
-            if r:
-                v.displayName = r.display_name
-        _method_auth_state(v, u)
-    if pkconfig.channel_in('dev'):
-        # useful for testing/debugging
-        v.uid = u
-    pkdc('state={}', v)
-    return http_reply.render_static(
-        'auth-state',
-        'js',
-        pkcollections.Dict(auth_state=v),
-    )
+    return http_reply.render_static('auth-state', 'js', PKDict(auth_state=_auth_state()))
 
 
 @api_perm.allow_visitor
@@ -291,6 +255,9 @@ def login_success_redirect(sim_type):
             complete_registration()
         else:
             r = 'completeRegistration'
+    raise pkdp(sirepo.util.Response(
+        response=http_reply.gen_json_ok(PKDict(authState=_auth_state())),
+    ))
     raise sirepo.util.SRException(r, PKDict(sim_type=sim_type, reload_js=True))
 
 
@@ -493,6 +460,42 @@ def _auth_hook_from_header(values):
     cookie.set_sentinel(values)
     pkdlog('migrated cookie={}', values)
     return values
+
+
+def _auth_state():
+    s = cookie.unchecked_get_value(_COOKIE_STATE)
+    v = pkcollections.Dict(
+        avatarUrl=None,
+        displayName=None,
+        guestIsOnlyMethod=not non_guest_methods,
+        isGuestUser=False,
+        isLoggedIn=_is_logged_in(s),
+        isLoginExpired=False,
+        jobRunModeMap=simulation_db.JOB_RUN_MODE_MAP,
+        method=cookie.unchecked_get_value(_COOKIE_METHOD),
+        needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
+        userName=None,
+        visibleMethods=visible_methods,
+    )
+    u = cookie.unchecked_get_value(_COOKIE_USER)
+    if v.isLoggedIn:
+        if v.method == METHOD_GUEST:
+            # currently only method to expire login
+            v.displayName = _GUEST_USER_DISPLAY_NAME
+            v.isGuestUser = True
+            v.isLoginExpired = _METHOD_MODULES[METHOD_GUEST].is_login_expired()
+            v.needCompleteRegistration = False
+            v.visibleMethods = non_guest_methods
+        else:
+            r = auth_db.UserRegistration.search_by(uid=u)
+            if r:
+                v.displayName = r.display_name
+        _method_auth_state(v, u)
+    if pkconfig.channel_in('dev'):
+        # useful for testing/debugging
+        v.uid = u
+    pkdc('state={}', v)
+    return v
 
 
 def _get_user():

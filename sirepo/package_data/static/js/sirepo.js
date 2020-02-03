@@ -144,6 +144,10 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
             return [x[0], self.jobRunModeMap[x[0]]];
         }
     );
+    self.login = function (data) {
+        SIREPO.authState = data.authState;
+        Object.assign(self, SIREPO.authState);
+    }
     return self;
 });
 
@@ -1456,7 +1460,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(cookieService, errorService, localRoutes, $http, $location, $interval, $q, $rootScope, $window) {
+SIREPO.app.factory('requestSender', function(cookieService, errorService, localRoutes, $http, $location, $interval, $q, $rootScope, $window, $route) {
     var self = {};
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -1647,18 +1651,22 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
 //        }
     };
 
-    self.globalRedirectRoot = function() {
+    self.globalRedirectRoot = function(reload) {
         self.globalRedirect(
             'root',
             {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType},
-            true
+            reload
         );
     };
 
     self.handleSRException = function(data, errorCallback) {
         var e = data.srException;
         var u = $location.url();
+        srdbg($route.current);
+        srdbg(e);
         if (e.routeName == LOGIN_ROUTE_NAME && u != LOGIN_URI) {
+
+            srdbg(u);
             saveCookieRedirect(u);
         }
         if (e.params && e.params.isModal && e.routeName.includes('sbatch')) {
@@ -1748,6 +1756,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
             ? $http.post(url, data, t)
             : $http.get(url, t);
         var thisErrorCallback = function(response) {
+            srdbg($route.current);
             var data = response.data;
             var status = response.status;
             $interval.cancel(interval);
@@ -1802,6 +1811,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                 data.state = 'error';
             }
             if (data.state == 'srException') {
+                srdbg($route.current);
+                srdbg(data);
                 self.handleSRException(data, errorCallback);
                 return;
             }
@@ -2832,11 +2843,35 @@ SIREPO.app.controller('LoginController', function (authService, authState, reque
     }
 });
 
-SIREPO.app.controller('LoginWithController', function ($route, $window, errorService, appState, requestSender) {
+SIREPO.app.controller('LoginWithController', function ($route, $window, errorService, appState, authState, requestSender) {
     var self = this;
     var m = $route.current.params.method || '';
     self.method = m;
-    if (m == 'guest' || m == 'github') {
+    if (m == 'guest') {
+        //TODO: already logged in would be in SIREPO.authState(?)
+        self.msg = 'Creating your account. Please wait...';
+        function handleLogin(data) {
+            if (data.state === 'ok') {
+                srdbg(data);
+                if (data.authState) {
+                    authState.login(data);
+                }
+                requestSender.globalRedirectRoot(false);
+            }
+            self.showWarning = true;
+            self.warningText = 'Server reported an error, please contact support@radiasoft.net.';
+        }
+        requestSender.sendRequest(
+            {
+                routeName: 'authGuestLogin',
+                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType
+            },
+            handleLogin,
+            {}
+        );
+        return;
+    }
+    else if (m == 'github') {
         self.msg = 'Logging in via ' + m + '. Please wait...';
         requestSender.globalRedirect(
             'auth' + appState.ucfirst(m) + 'Login',
@@ -2855,7 +2890,7 @@ SIREPO.app.controller('LoginWithController', function ($route, $window, errorSer
     }
 });
 
-SIREPO.app.controller('LoginConfirmController', function ($route, $window, requestSender) {
+SIREPO.app.controller('LoginConfirmController', function ($route, $window, authState, requestSender) {
     var self = this;
     var p = $route.current.params;
     self.data = {};
@@ -2864,7 +2899,10 @@ SIREPO.app.controller('LoginConfirmController', function ($route, $window, reque
 
     function handleResponse(data) {
         if (data.state === 'ok') {
-            requestSender.globalRedirectRoot();
+            if (data.authState) {
+                authState.login(data);
+            }
+            requestSender.globalRedirectRoot(false);
             return;
         }
         self.showWarning = true;
@@ -2963,7 +3001,7 @@ SIREPO.app.controller('ServerUpgradedController', function (errorService, reques
     var self = this;
 
     errorService.alertText('Sirepo has been upgraded, and your application has been restarted');
-    requestSender.globalRedirectRoot();
+    requestSender.globalRedirectRoot(true);
 });
 
 SIREPO.app.controller('SimulationsController', function (appState, cookieService, errorService, fileManager, notificationService, panelState, requestSender, $location, $rootScope, $sce, $scope, $window) {
