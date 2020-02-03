@@ -3,6 +3,29 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
+SIREPO.app.config(function() {
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="LatticeBeamlineList" data-ng-class="fieldClass">',
+          '<div data-lattice-beamline-list="" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="OptionalLatticeBeamlineList" data-ng-class="fieldClass">',
+          '<div data-lattice-beamline-list="" data-model="model" data-field="field" data-is-optional="true"></div>',
+        '</div>',
+        '<div data-ng-switch-when="RPNBoolean" data-ng-class="fieldClass">',
+          '<div data-rpn-boolean="" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="RPNValue">',
+          '<div data-ng-class="fieldClass">',
+            '<input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="isRequired()" />',
+          '</div>',
+          //TODO(pjm): fragile - hide rpnStaic value when in column mode, need better detection this case
+          '<div data-ng-hide="{{ fieldSize && fieldSize != \'2\' }}" class="col-sm-2">',
+            '<div data-rpn-static="" data-model="model" data-field="field"></div>',
+          '</div>',
+        '</div>',
+    ].join('');
+});
+
 SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, utilities, validationService, $rootScope) {
     var self = {};
     self.activeBeamlineId = null;

@@ -3,53 +3,54 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
-SIREPO.INCLUDE_EXAMPLE_FOLDERS = true;
-SIREPO.SINGLE_FRAME_ANIMATION = ['coherenceXAnimation', 'coherenceYAnimation', 'fluxAnimation', 'multiElectronAnimation'];
-SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
-SIREPO.PLOTTING_SHOW_FWHM = true;
-//TODO(pjm): provide API for this, keyed by field type
-SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
-];
-SIREPO.appFieldEditors = [
-    '<div data-ng-switch-when="BeamList">',
-      '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
-    '</div>',
-    '<div data-ng-switch-when="UndulatorList">',
-      '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
-    '</div>',
-    '<div data-ng-switch-when="ImageFile" class="col-sm-7">',
-      '<div data-image-file-field="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="MagneticZipFile" class="col-sm-7">',
-      '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
-    '</div>',
-    '<div data-ng-switch-when="ArbitraryFieldFile" class="col-sm-7">',
-      '<div data-file-field="field" data-file-type="arbitraryField" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Data File"></div>',
-    '</div>',
-    '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
-      '<div data-mirror-file-field="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
-    '</div>',
-    '<div data-ng-switch-when="WatchPoint" data-ng-class="fieldClass">',
-        '<div data-watch-point-list="" data-model="model" data-field="field" data-model-name="modelName"></div>',
-    '</div>',
-].join('');
-SIREPO.appDownloadLinks = [
-    '<li data-lineout-csv-link="x"></li>',
-    '<li data-lineout-csv-link="y"></li>',
-    '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
-].join('');
-SIREPO.appPanelHeadingButtons = [
-    '<div data-ng-if="isReport && ! hasData()" class="dropdown" style="display: inline-block">',
-      '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
-      '<ul class="dropdown-menu dropdown-menu-right">',
+SIREPO.app.config(function() {
+    SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
+    SIREPO.INCLUDE_EXAMPLE_FOLDERS = true;
+    SIREPO.SINGLE_FRAME_ANIMATION = ['coherenceXAnimation', 'coherenceYAnimation', 'fluxAnimation', 'multiElectronAnimation'];
+    SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
+    SIREPO.PLOTTING_SHOW_FWHM = true;
+    SIREPO.appReportTypes = [
+        '<div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
+    ].join('');
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="BeamList">',
+          '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
+        '</div>',
+        '<div data-ng-switch-when="UndulatorList">',
+          '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
+        '</div>',
+        '<div data-ng-switch-when="ImageFile" class="col-sm-7">',
+          '<div data-image-file-field="" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="MagneticZipFile" class="col-sm-7">',
+          '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
+        '</div>',
+        '<div data-ng-switch-when="ArbitraryFieldFile" class="col-sm-7">',
+          '<div data-file-field="field" data-file-type="arbitraryField" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Data File"></div>',
+        '</div>',
+        '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
+          '<div data-mirror-file-field="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
+        '</div>',
+        '<div data-ng-switch-when="WatchPoint" data-ng-class="fieldClass">',
+          '<div data-watch-point-list="" data-model="model" data-field="field" data-model-name="modelName"></div>',
+        '</div>',
+    ].join('');
+    SIREPO.appDownloadLinks = [
+        '<li data-lineout-csv-link="x"></li>',
+        '<li data-lineout-csv-link="y"></li>',
         '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
-      '</ul>',
-    '</div>',
-].join('');
+    ].join('');
+    SIREPO.appPanelHeadingButtons = [
+        '<div data-ng-if="isReport && ! hasData()" class="dropdown" style="display: inline-block">',
+        '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
+        '<ul class="dropdown-menu dropdown-menu-right">',
+        '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
+        '</ul>',
+        '</div>',
+    ].join('');
 
-SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
+    SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
+});
 
 SIREPO.app.factory('srwService', function(activeSection, appDataService, appState, beamlineService, panelState, requestSender, $location, $rootScope, $route) {
     var FORMAT_DECIMALS = 8;

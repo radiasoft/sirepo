@@ -3,6 +3,14 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
+SIREPO.app.config(function() {
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="OutputFile" data-ng-class="fieldClass">',
+          '<div data-output-file-field="field" data-model="model"></div>',
+        '</div>',
+    ].join('');
+});
+
 SIREPO.app.factory('commandService', function(appState, latticeService, panelState, validationService) {
     var self = {};
     var COMMAND_PREFIX = 'command_';

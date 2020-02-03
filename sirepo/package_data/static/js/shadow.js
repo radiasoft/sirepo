@@ -3,17 +3,19 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
-SIREPO.PLOTTING_SHOW_FWHM = true;
-SIREPO.appFieldEditors = [
-    '<div data-ng-switch-when="ReflectivityMaterial" data-ng-class="fieldClass">',
-      '<input data-reflectivity-material="" data-ng-model="model[field]" class="form-control" required />',
-    '</div>',
-].join('');
-SIREPO.appDownloadLinks = [
-    '<li data-lineout-csv-link="x"></li>',
-    '<li data-lineout-csv-link="y"></li>',
-].join('');
+SIREPO.app.config(function() {
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
+    SIREPO.PLOTTING_SHOW_FWHM = true;
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="ReflectivityMaterial" data-ng-class="fieldClass">',
+          '<input data-reflectivity-material="" data-ng-model="model[field]" class="form-control" required />',
+        '</div>',
+    ].join('');
+    SIREPO.appDownloadLinks = [
+        '<li data-lineout-csv-link="x"></li>',
+        '<li data-lineout-csv-link="y"></li>',
+    ].join('');
+});
 
 SIREPO.app.factory('shadowService', function(appState, beamlineService, panelState) {
     // ColumnValue enum values which are in mm
