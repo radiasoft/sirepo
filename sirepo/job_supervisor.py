@@ -577,7 +577,7 @@ class _Op(PKDict):
         self.driver.make_lib_dir_symlink(self)
 
     def pkdebug_str(self):
-        return pkdformat('_Op({opName}, {opId:.6})', **self)
+        return pkdformat('_Op({}, {:.6})', self.opName, self.opId)
 
     async def prepare_send(self):
         """Ensures resources are available for sending to agent
