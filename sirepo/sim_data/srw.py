@@ -73,6 +73,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     def fixup_old_data(cls, data):
         """Fixup data to match the most recent schema."""
         dm = data.models
+        has_electron_beam_position = 'electronBeamPosition' in dm
         x = (
             'arbitraryMagField',
             'beamline3DReport',
@@ -137,14 +138,15 @@ class SimData(sirepo.sim_data.SimDataBase):
                 verticalRange=m.verticalRange,
             )
         cls.update_model_defaults(dm.multiElectronAnimation, 'multiElectronAnimation')
-        if 'horizontalPosition' in dm.electronBeam:
-            e = dm.electronBeam
+        e = dm.electronBeam
+        if not has_electron_beam_position:
             dm.electronBeamPosition.update(dict(
                 horizontalPosition=e.horizontalPosition,
                 verticalPosition=e.verticalPosition,
                 driftCalculationMethod=e.get('driftCalculationMethod', 'auto'),
                 drift=e.get('drift', 0),
             ))
+        if 'horizontalPosition' in e:
             for f in 'horizontalPosition', 'verticalPosition', 'driftCalculationMethod', 'drift':
                 if f in e:
                     del e[f]
