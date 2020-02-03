@@ -732,6 +732,9 @@ SIREPO.app.factory('notificationService', function(cookieService, $sce) {
         if (! cookieService.cleanExpiredCookie(cookieDef(notification))) {
             var vcd = SIREPO.APP_SCHEMA.cookies.firstVisit;
             var vc = cookieService.getCookie(vcd);
+            if (! vc) {
+                return false;
+            }
             var lstVisitDays = vc.t - cookieService.timeoutOrDefault(vcd);
             // we need millisecond comparison here
             return now.getTime() > (lstVisitDays + (notification.delay || 0)) * SIREPO.APP_SCHEMA.constants.oneDayMillis;
