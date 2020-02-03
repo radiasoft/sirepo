@@ -154,7 +154,6 @@ def agent_env(env=None, uid=None):
         **pkconfig.to_environ((
             'pykern.*',
             'sirepo.feature_config.job',
-            'sirepo.simulation_db.sbatch_display',
         ))
     ).pksetdefault(
         PYTHONPATH='',

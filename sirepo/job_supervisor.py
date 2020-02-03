@@ -9,7 +9,7 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
+from pykern.pkdebug import pkdp, pkdc, pkdformat, pkdlog, pkdexc
 from sirepo import job
 import asyncio
 import contextlib
@@ -117,6 +117,12 @@ def init():
 
 class ServerReq(PKDict):
 
+    def pkdebug_str(self):
+        c = self.get('content')
+        if not c:
+            return 'ServerReq(<no content>)'
+        return pkdformat('ServerReq({api}, {computeJid})', **c)
+
     async def receive(self):
         s = self.content.pkdel('serverSecret')
         # no longer contains secret so ok to log
@@ -125,12 +131,6 @@ class ServerReq(PKDict):
         assert s == sirepo.job.cfg.server_secret, \
             'server_secret did not match'.format(self.content)
         self.handler.write(await _ComputeJob.receive(self))
-
-    def __str__(self):
-        c = self.get('content')
-        if not c:
-            return 'ServerReq(<no content>)'
-        return f'ServerReq({c.api}, {c.computeJid})'
 
 
 async def terminate():
@@ -175,6 +175,17 @@ class _ComputeJob(PKDict):
                 j,
             )
         return self
+
+    def pkdebug_str(self):
+        d = self.get('db')
+        if not d:
+            return '_ComputeJob()'
+        return pkdformat(
+            '_ComputeJob({} {} ops={})',
+            d.get('computeJid'),
+            d.get('status'),
+            self.ops,
+        )
 
     @classmethod
     async def receive(cls, req):
@@ -405,18 +416,20 @@ class _ComputeJob(PKDict):
         req.simulationType = self.db.simulationType
         # run mode can change between runs so use req.content.jobRunMode
         # not self.db.jobRunmode
-        r = req.content.get(
-            'jobRunMode',
-            self.db.jobRunMode,
-        )
+        r = req.content.get('jobRunMode', self.db.jobRunMode)
+        if r not in sirepo.simulation_db.JOB_RUN_MODE_MAP:
+            # happens only when config changes, and only when sbatch is missing
+            sirepo.util.raise_not_found('invalid jobRunMode={} req={}', r, req)
         o = _Op(
 #TODO(robnagler) don't like the camelcase. It doesn't actually work right because
 # these values are never sent directly, only msg which can be camelcase
             computeJob=self,
             kind=req.kind,
-            maxRunSecs=(0 if opName in _UNTIMED_OPS
-                        or (r == sirepo.job.SBATCH and opName == job.OP_RUN)
-                        else _MAX_RUN_SECS[req.kind]),
+            maxRunSecs=(
+                0 if opName in _UNTIMED_OPS
+                or (r == sirepo.job.SBATCH and opName == job.OP_RUN)
+                else _MAX_RUN_SECS[req.kind]
+            ),
             msg=PKDict(req.content).pksetdefault(jobRunMode=r),
             opName=opName,
             task=asyncio.current_task(),
@@ -534,16 +547,6 @@ class _ComputeJob(PKDict):
             return res(state=self.db.status)
         return None
 
-    def __str__(self):
-        d = self.get('db')
-        if not d:
-            return '_ComputeJob()'
-        return '_ComputeJob({} {} ops={})'.format(
-            d.get('computeJid'),
-            d.get('status'),
-            self.ops,
-        )
-
 
 class _Op(PKDict):
 
@@ -572,6 +575,9 @@ class _Op(PKDict):
 
     def make_lib_dir_symlink(self):
         self.driver.make_lib_dir_symlink(self)
+
+    def pkdebug_str(self):
+        return pkdformat('_Op({opName}, {opId:.6})', **self)
 
     async def prepare_send(self):
         """Ensures resources are available for sending to agent
@@ -604,6 +610,3 @@ class _Op(PKDict):
                 self.run_timeout,
             )
         self.driver.send(self)
-
-    def __str__(self):
-        return f'_Op({self.opName}, {self.opId:.6})'
