@@ -16,19 +16,21 @@ import re
 import sirepo.sim_data
 import sirepo.util
 import time
-# import tornado.gen
 import tornado.httpclient
-# import tornado.ioloop
-# import tornado.locks
-# import tornado.concurrent
-import concurrent.futures
 
 cfg = None
 
 
 def default_command():
     asyncio.run(_run_all())
-    # tornado.ioloop.IOLoop.current().run_sync(_run_all)
+
+
+async def _cancel_on_exception(task):
+    try:
+        await task
+    except Exception as e:
+        task.cancel()
+        raise
 
 
 class _Client(PKDict):
@@ -165,16 +167,19 @@ class _Client(PKDict):
                     await asyncio.sleep(1)
                 else:
                     pkdlog('sid={} report={} timeout={}', i, report, timeout)
-            except (asyncio.CancelledError, concurrent.futures.CancelledError):
-                pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
+            except asyncio.CancelledError:
+                return
             finally:
                 if c:
-                    pkdp('111111111111111111111111111111111111111111')
                     await self.post('/run-cancel', c)
                 s = 'cancel' if c else r.get('state')
+                e = False
                 if s == 'error':
+                    e = True
                     s = r.get('error', '<unknown error>')
                 pkdlog('sid={} report={} state={}', i, report, s)
+                assert not e, \
+                    'unexpected error state, error={} sid={}, report={}'.format(s, i, report)
             if p:
                 g = self._sim_data.frame_id(d, r, report, 0)
                 f = await self.get('/simulation-frame/' + g)
@@ -196,11 +201,10 @@ class _Client(PKDict):
                     f = await self.get('/simulation-frame/' + g)
                     assert f.state == 'error', \
                         'expecting error instead of frame={}'.format(f)
-                except (asyncio.CancelledError, concurrent.futures.CancelledError):
-                    pkdp('eeeeeeeeeeeeeeeeeeeeeeee')
+                except asyncio.CancelledError:
+                    return
                 finally:
                     if c:
-                        pkdp('222222222222222222222222222222222222222222')
                         await self.post('/run-cancel', c.get('nextRequest'))
         return await _run(self.copy())
 
@@ -242,18 +246,10 @@ async def _run_sequential_parallel(client):
         c.append(client.sim_run('Tabulated Undulator Example', r))
     await _cancel_on_exception(asyncio.gather(*c))
 
-async def _cancel_on_exception(task):
-    try:
-        await task
-    except Exception as e:
-        # pkdlog('exc={} stack={}', e, pkdexc())
-        pkdp('ccccccccccccccccccccccccccccccccccccccccccccc')
-        task.cancel()
-
-
 
 @contextlib.contextmanager
 def _timer(description):
     s = time.time()
     yield
-    pkdlog('{} elapsed_time={}', description, time.time() - s)
+    if 'run-status' not in description:
+        pkdlog('{} elapsed_time={}', description, time.time() - s)
