@@ -229,7 +229,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
     if sim_type:
         if guest_uid and guest_uid != uid:
             simulation_db.move_user_simulations(guest_uid, uid)
-        login_success_redirect(sim_type)
+        login_success_response(sim_type)
     assert not module.AUTH_METHOD_VISIBLE
 
 
@@ -248,18 +248,16 @@ def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js=False
     )
 
 
-def login_success_redirect(sim_type):
+def login_success_response(sim_type):
     r = None
     if cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION:
         if cookie.get_value(_COOKIE_METHOD) == METHOD_GUEST:
             complete_registration()
         else:
             r = 'completeRegistration'
-    raise pkdp(sirepo.util.Response(
+    raise sirepo.util.Response(
         response=http_reply.gen_json_ok(PKDict(authState=_auth_state())),
-    ))
-    raise sirepo.util.SRException(r, PKDict(sim_type=sim_type, reload_js=True))
-
+    )
 
 def need_complete_registration(model):
     """Does unauthenticated user need to complete registration?
