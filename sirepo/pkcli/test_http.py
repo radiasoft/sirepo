@@ -17,11 +17,29 @@ import sirepo.sim_data
 import sirepo.util
 import time
 import tornado.httpclient
+import random
+
+CODES = PKDict(
+    srw=[
+        PKDict(
+            name='Tabulated Undulator Example',
+            reports=[
+                'fluxAnimation',
+                'intensityReport',
+                'multiElectronAnimation',
+                'powerDensityReport',
+                'sourceIntensityReport',
+            ],
+        ),
+    ],
+)
 
 cfg = None
 
 
 def default_command():
+    _init()
+    random.seed()
     asyncio.run(_run_all())
 
 
@@ -43,7 +61,6 @@ class _Client(PKDict):
             _headers=PKDict({'User-Agent': 'test_http'}),
             **kwargs
         )
-        _init()
 
     def copy(self):
         n = type(self)()
@@ -129,7 +146,7 @@ class _Client(PKDict):
                         'Content-type',  'application/json'
                     ),
                     method='POST',
-                    request_timeout=180,
+                    request_timeout=1000000,
                 ),
             )
 
@@ -241,7 +258,7 @@ def _init():
     )
 
 
-async def _run(email, sim_type, *sim_names):
+async def _run(email, sim_type):
     await _run_sequential_parallel(
         await _Client(email=email, sim_type=sim_type).login(),
     )
@@ -250,8 +267,8 @@ async def _run(email, sim_type, *sim_names):
 async def _run_all():
     l = []
     for a in (
-#        ('a@b.c', 'myapp', 'Scooby Doo'),
-        ('a@b.c', 'srw', "Young's Double Slit Experiment"),
+#        ('a@b.c', 'myapp'),
+        ('a@b.c', 'srw',),
     ):
         l.append(_run(*a))
     await _cancel_on_exception(asyncio.gather(*l))
@@ -259,8 +276,11 @@ async def _run_all():
 
 async def _run_sequential_parallel(client):
     c = []
-    for r in 'intensityReport', 'powerDensityReport', 'sourceIntensityReport', 'multiElectronAnimation', 'fluxAnimation':
-        c.append(client.sim_run('Tabulated Undulator Example', r))
+    s = CODES[client.sim_type]
+    e = s[random.randrange(len(s))]
+    random.shuffle(e.reports)
+    for r in e.reports:
+        c.append(client.sim_run(e.name, r))
     await _cancel_on_exception(asyncio.gather(*c))
 
 
