@@ -1883,7 +1883,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
               '</div>',
             '</form>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, appState, authState) {
             var clientFields = ['colorMap', 'aspectRatio', 'plotScale'];
             var serverFields = ['intensityPlotsWidth', 'rotateAngle', 'rotateReshape'];
             var oldModel = null;
@@ -1950,6 +1950,14 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             };
 
             $scope.startSimulation = function() {
+                // The available jobRunModes can change. Default to parallel if
+                // the current jobRunMode doesn't exist
+                if (
+                    appState.models[$scope.simState.model].jobRunMode
+                        in authState.jobRunModeMap === false
+                ) {
+                    appState.models[$scope.simState.model].jobRunMode = 'parallel';
+                }
                 if ($scope.model == 'multiElectronAnimation') {
                     appState.saveChanges($scope.simState.model);
                     appState.models.simulation.multiElectronAnimationTitle = beamlineService.getReportTitle($scope.model);
