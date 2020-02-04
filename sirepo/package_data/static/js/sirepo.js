@@ -155,7 +155,7 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
         }
         controller.showWarning = true;
         controller.warningText = 'Server reported an error, please contact support@radiasoft.net.';
-    }
+    };
     return self;
 });
 
