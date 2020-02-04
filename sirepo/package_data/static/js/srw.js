@@ -1952,10 +1952,8 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             $scope.startSimulation = function() {
                 // The available jobRunModes can change. Default to parallel if
                 // the current jobRunMode doesn't exist
-                if (
-                    appState.models[$scope.simState.model].jobRunMode
-                        in authState.jobRunModeMap === false
-                ) {
+                var j = appState.models[$scope.simState.model].jobRunMode;
+                if (j && j in authState.jobRunModeMap === false) {
                     appState.models[$scope.simState.model].jobRunMode = 'parallel';
                 }
                 if ($scope.model == 'multiElectronAnimation') {
