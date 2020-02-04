@@ -1950,6 +1950,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             };
 
             $scope.startSimulation = function() {
+                frameCache.setFrameCount(0);
                 if ($scope.model == 'multiElectronAnimation') {
                     appState.saveChanges($scope.simState.model);
                     appState.models.simulation.multiElectronAnimationTitle = beamlineService.getReportTitle($scope.model);

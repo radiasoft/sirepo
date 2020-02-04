@@ -2238,6 +2238,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             if (state.isProcessing()) {
                 return;
             }
+            frameCache.setFrameCount(0);
             simulationStatus().state = 'pending';
             appState.saveChanges(models, state.runSimulation);
         };
