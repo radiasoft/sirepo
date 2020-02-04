@@ -1,0 +1,33 @@
+{
+    "enum": {
+    },
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": ["mpmd.js"]
+        }
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "MPMDSourceController as source",
+                "templateUrl": "/static/html/mpmd-source.html"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "MPMDVisualizationController as viz",
+                "templateUrl": "/static/html/mpmd-visualization.html"
+            }
+        }
+    },
+    "model": {
+
+    },
+    "view": {
+        "report": {
+            "title": "Report",
+            "advanced": []
+        }
+    }
+}

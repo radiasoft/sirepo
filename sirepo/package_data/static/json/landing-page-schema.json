@@ -47,6 +47,14 @@
                 "url":""
             }
         },
+        "mpmd": {
+            "url": "/static/html/landing-page-mpmd.html",
+            "infoPanelTitle": "MPMD",
+            "mediaConfig": {
+                "title": "MPMD Sirepo",
+                "url":""
+            }
+        },
         "opal": {
             "url": "/static/html/landing-page-opal.html",
             "infoPanelTitle": "OPAL",

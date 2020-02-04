@@ -1,0 +1,14 @@
+{
+    "models": {
+        "simFolder": {},
+        "simulation": {
+            "documentationUrl": "",
+            "folder": "/",
+            "isExample": true,
+            "name": "Example 5",
+            "notes": "",
+            "outOfSessionSimulationId": ""
+        }
+    },
+    "simulationType": "mpmd"
+}

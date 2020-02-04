@@ -24,6 +24,7 @@ NON_ALPHA_CODES = frozenset((
 ALPHA_CODES = frozenset((
     'adm',
     'flash',
+    'mpmd',
     'myapp',
     'rs4pi',
     'opal',
