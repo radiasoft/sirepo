@@ -93,6 +93,7 @@ class _Client(PKDict):
 
     def parse_response(self, resp):
         self.resp = resp
+        assert self.resp.code == 200, 'resp={}'.format(resp)
         self.json = None
         if 'Set-Cookie' in resp.headers:
             self._headers.Cookie = resp.headers['Set-Cookie']
@@ -193,6 +194,14 @@ class _Client(PKDict):
                 f = await self.get('/simulation-frame/' + g)
                 assert 'title' in f, \
                     'no title in frame={}'.format(f)
+                await self.get(
+                    '/download-data-file/{}/{}/{}/{}'.format(
+                        self.sim_type,
+                        i,
+                        report,
+                        0,
+                    ),
+                )
                 c = None
                 try:
                     c = await self.post(
