@@ -20,6 +20,15 @@ import tornado.httpclient
 import random
 
 CODES = PKDict(
+    elegant=[
+        PKDict(
+            name='bunchComp - fourDipoleCSR',
+            reports=[
+                'bunchReport1',
+                'elementAnimation10-5',
+            ],
+        ),
+    ],
     srw=[
         PKDict(
             name='Tabulated Undulator Example',
@@ -29,6 +38,25 @@ CODES = PKDict(
                 'multiElectronAnimation',
                 'powerDensityReport',
                 'sourceIntensityReport',
+            ],
+        ),
+        PKDict(
+            name='Bending Magnet Radiation',
+            reports=[
+                'beamline3DReport',
+                'brillianceReport',
+                'coherenceXAnimation',
+                'coherenceYAnimation',
+                'electronBeam',
+                'fluxAnimation',
+                'fluxReport',
+                'initialIntensityReport',
+                'intensityReport',
+                'mirrorReport',
+                'multiElectronAnimation',
+                'powerDensityReport',
+                'sourceIntensityReport',
+                'trajectoryReport',
             ],
         ),
     ],
@@ -117,7 +145,11 @@ class _Client(PKDict):
         if 'json' in resp.headers['content-type']:
             self.json = pkjson.load_any(resp.body)
             return self.json
-        b = resp.body.decode()
+        try:
+            b = resp.body.decode()
+        except UnicodeDecodeError:
+            # Binary data files can't be decoded
+            return
         if 'html' in resp.headers['content-type']:
             m = re.search('location = "(/[^"]+)', b)
             if m:
@@ -146,6 +178,7 @@ class _Client(PKDict):
                         'Content-type',  'application/json'
                     ),
                     method='POST',
+                    connect_timeout=1000000,
                     request_timeout=1000000,
                 ),
             )
@@ -195,6 +228,9 @@ class _Client(PKDict):
                     pkdlog('sid={} report={} timeout={}', i, report, timeout)
             except asyncio.CancelledError:
                 return
+            except Exception:
+                pkdlog('r={}', r)
+                raise
             finally:
                 if c:
                     await self.post('/run-cancel', c)
@@ -267,8 +303,8 @@ async def _run(email, sim_type):
 async def _run_all():
     l = []
     for a in (
-#        ('a@b.c', 'myapp'),
         ('a@b.c', 'srw',),
+        ('a@b.c', 'elegant'),
     ):
         l.append(_run(*a))
     await _cancel_on_exception(asyncio.gather(*l))
