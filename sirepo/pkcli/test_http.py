@@ -53,10 +53,11 @@ class _Client(PKDict):
         return n
 
     async def get(self, uri):
+        uri = self._uri(uri)
         with _timer(uri):
             return self.parse_response(
                 await self._client.fetch(
-                    self._uri(uri),
+                    uri,
                     headers=self._headers,
                     method='GET',
                 )
@@ -111,10 +112,17 @@ class _Client(PKDict):
 
     async def post(self, uri, data):
         data.simulationType = self.sim_type
-        with _timer(uri):
+        uri = self._uri(uri)
+        with _timer(
+                'uri={} sim_type={} report={}'.format(
+                    uri,
+                    data.simulationType,
+                    data.get('report')
+                ),
+        ):
             return self.parse_response(
                 await self._client.fetch(
-                    self._uri(uri),
+                    uri,
                     body=pkjson.dump_bytes(data),
                     headers=self._headers.pksetdefault(
                         'Content-type',  'application/json'
