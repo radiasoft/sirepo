@@ -138,12 +138,16 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def copy_related_files(data, source_path, target_path):
-    # copy any simulation output
-    if os.path.isdir(str(py.path.local(source_path).join(_SIM_DATA.compute_model(data)))):
-        animation_dir = py.path.local(target_path).join(_SIM_DATA.compute_model(data))
-        pkio.mkdir_parent(str(animation_dir))
-        for f in glob.glob(str(py.path.local(source_path).join(_SIM_DATA.compute_model(data), '*'))):
-            py.path.local(f).copy(animation_dir)
+    # copy results and log for the long-running simulations
+    for m in ('animation',):
+        # copy any simulation output
+        s = pkio.py_path(source_path).join(m)
+        if not s.exists():
+            continue
+        t = pkio.py_path(target_path).join(m)
+        pkio.mkdir_parent(str(t))
+        for f in pkio.sorted_glob('*'):
+            f.copy(t)
 
 
 def generate_parameters_file(data, is_parallel=False):
