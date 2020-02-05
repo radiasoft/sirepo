@@ -240,8 +240,8 @@ def import_file(req, test_data=None, **kwargs):
     # input_data is passed by test cases only
     input_data = test_data
 
-    if 'simulationId' in req:
-        input_data = simulation_db.read_simulation_json(elegant_common.SIM_TYPE, sid=req.simulationId)
+    if 'simulationId' in req.req_data:
+        input_data = simulation_db.read_simulation_json(elegant_common.SIM_TYPE, sid=req.req_data.simulationId)
     if re.search(r'.ele$', req.filename, re.IGNORECASE):
         data = elegant_command_importer.import_file(req.file_stream.read())
     elif re.search(r'.lte$', req.filename, re.IGNORECASE):
