@@ -28,16 +28,24 @@ CODES = PKDict(
                 'elementAnimation10-5',
             ],
         ),
+        PKDict(
+            name='SPEAR3',
+            reports=[
+                'bunchReport2',
+                'elementAnimation62-3',
+            ],
+        ),
     ],
-    # jspec=[ does not work
-    #     PKDict(
-    #         name='Booster Ring',
-    #         reports=[
-    #             'beamEvolutionAnimation',
-    #             'rateCalculationReport',
-    #         ],
-    #     ),
-    # ],
+    # TODO(e-carlin): FIXME: particleAnimation is returning 'completed' before the sim has run
+    jspec=[
+        PKDict(
+            name='Booster Ring',
+            reports=[
+                'particleAnimation'
+                # 'rateCalculationReport',
+            ],
+        ),
+    ],
     srw=[
         PKDict(
             name='Tabulated Undulator Example',
@@ -52,17 +60,8 @@ CODES = PKDict(
         PKDict(
             name='Bending Magnet Radiation',
             reports=[
-                'beamline3DReport',
-                'brillianceReport',
-                'coherenceXAnimation',
-                'coherenceYAnimation',
-                'electronBeam',
-                'fluxAnimation',
-                'fluxReport',
                 'initialIntensityReport',
                 'intensityReport',
-                'mirrorReport',
-                'multiElectronAnimation',
                 'powerDensityReport',
                 'sourceIntensityReport',
                 'trajectoryReport',
@@ -87,14 +86,14 @@ CODES = PKDict(
             ],
         ),
     ],
-    # warpvnd=[ does not work
-    #     PKDict(
-    #         name='EGun Example',
-    #         reports=[
-    #             'egunCurrentAnimation',
-    #         ],
-    #     ),
-    # ],
+    warpvnd=[
+        PKDict(
+            name='EGun Example',
+            reports=[
+                'egunCurrentAnimation',
+            ],
+        ),
+    ],
 )
 
 cfg = None
@@ -278,7 +277,20 @@ class _Client(PKDict):
                 assert not e, \
                     'unexpected error state, error={} sid={}, report={}'.format(s, i, report)
             if p:
-                g = self._sim_data.frame_id(d, r, report, 0)
+                try:
+                    g = self._sim_data.frame_id(d, r, report, 0)
+                except Exception as e:
+                    pkdp('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+                    pkdp(d)
+                    pkdp(r)
+                    pkdp(report)
+                    pkdp(e)
+                    pkdp('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+                    assert 0
+                # Elegant frame_id's sometimes have spaces in them so need to
+                # make them url safe. But, the * in the url should not be made
+                # url safe
+                g = g.replace(' ', '%20')
                 f = await self.get('/simulation-frame/' + g)
                 assert 'title' in f, \
                     'no title in frame={}'.format(f)
@@ -338,12 +350,12 @@ async def _run(email, sim_type):
 async def _run_all():
     l = []
     for a in (
-        # ('a@b.c', 'srw',),
         # ('a@b.c', 'elegant'),
-        # ('a@b.c', 'warpvnd'), no work
-        # ('a@b.c', 'jspec'), no work
+        # ('a@b.c', 'jspec'), # TODO(e-carlin):   no work
+        ('a@b.c', 'srw',),
         # ('a@b.c', 'synergia'),
-        ('a@b.c', 'warppba'),
+        # ('a@b.c', 'warppba'),
+        # ('a@b.c', 'warpvnd'), # TODO(e-carlin):  no work
     ):
         l.append(_run(*a))
     await _cancel_on_exception(asyncio.gather(*l))
