@@ -102,12 +102,12 @@ def _do_compute(msg, template):
         return PKDict(state=job.COMPLETED)
 
 
-def _do_continuous(msg, template):
+def _do_fastcgi(msg, template):
     import socket
 
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    # relative file name (see job_agent.continuous_op)
-    s.connect(msg.continuousFile)
+    # relative file name (see job_agent.fastcgi_op)
+    s.connect(msg.fastcgiFile)
     while True:
         try:
             m = pkjson.load_any(s.recv(int(1e8)))

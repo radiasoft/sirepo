@@ -116,7 +116,7 @@ def start_sbatch():
 
 class _Dispatcher(PKDict):
     def __init__(self):
-        super().__init__(cmds=[], continuous_cmd=None)
+        super().__init__(cmds=[], _fastcgi_cmd=None)
 
     def format_op(self, msg, opName, **kwargs):
         if msg:
@@ -217,13 +217,52 @@ class _Dispatcher(PKDict):
             self.format_op(msg, job.OP_OK, reply=PKDict(loginSuccess=True)),
         )
 
-    def continuous_accept(self, connection, *args, **kwargs):
-        tornado.ioloop.IOLoop.current().add_callback(self.continuous_read, connection)
+    async def _cmd(self, msg):
+        if msg.opName == job.OP_ANALYSIS and msg.jobCmd != 'fastcgi':
+            return await self._fastcgi_op(msg)
+        c = _Cmd
+        if msg.jobRunMode == job.SBATCH:
+            c = _SbatchRun if msg.isParallel else _SbatchCmd
+        p = c(msg=msg, dispatcher=self)
+        if msg.jobCmd == 'fastcgi':
+            self._fastcgi_cmd = p
+        self.cmds.append(p)
+        await p.start()
+        return None
 
-    async def continuous_read(self, connection):
+    def _fastcgi_accept(self, connection, *args, **kwargs):
+        # Impedence mismatch: _fastcgi_accept cannot be async, because
+        # bind_unix_socket doesn't await the callable.
+        tornado.ioloop.IOLoop.current().add_callback(self._fastcgi_read, connection)
+
+    async def _fastcgi_op(self, msg):
+        if not self._fastcgi_cmd:
+            m = msg.copy()
+            m.jobCmd = 'fastcgi'
+            m.opId = None
+            self._fastcgi_file = 'fastcgi.sock'
+            self._fastcgi_msg_q = tornado.queues.Queue()
+            pkio.unchecked_remove(self._fastcgi_file)
+            # Avoid OSError: AF_UNIX path too long (max=100)
+            m.fastcgiFile = self._fastcgi_file
+            # Runs in a agent's directory, but chdir's to real runDirs
+            m.runDir = pkio.py_path()
+            # Kind of backwards, but it makes sense since we need to listen
+            # so _do_fastcgi can connect
+            self._fastcgi_handler = tornado.netutil.add_accept_handler(
+                tornado.netutil.bind_unix_socket(self._fastcgi_file),
+                self._fastcgi_accept,
+            )
+            # last thing, because of await
+            await self._cmd(m)
+        # rely on a single analysis command at a time
+        self._fastcgi_msg_q.put(msg)
+        return None
+
+    async def _fastcgi_read(self, connection):
         s = tornado.iostream.IOStream(connection)
         while True:
-            m = await self.continuous_msg_q.get()
+            m = await self._fastcgi_msg_q.get()
             await s.write(pkjson.dump_bytes(m) + b'\n')
             r = await s.read_until(b'\n', 1e8)
             await self.send(
@@ -234,39 +273,6 @@ class _Dispatcher(PKDict):
                 )
             )
         s.close()
-
-    async def continuous_op(self, msg):
-        if not self.continuous_cmd:
-            m = msg.copy()
-            m.jobCmd = 'continuous'
-            m.opId = None
-            self.continuous_file = 'continuous.sock'
-            self.continuous_msg_q = tornado.queues.Queue()
-            pkio.unchecked_remove(self.continuous_file)
-            # Avoid OSError: AF_UNIX path too long (max=100)
-            m.continuousFile = self.continuous_file
-            m.runDir = pkio.py_path()
-            await self._cmd(m)
-            self.continuous_handler = tornado.netutil.add_accept_handler(
-                tornado.netutil.bind_unix_socket(self.continuous_file),
-                self.continuous_accept,
-            )
-        # rely on a single analysis command at a time
-        self.continuous_msg_q.put(msg)
-        return None
-
-    async def _cmd(self, msg):
-        if msg.opName == job.OP_ANALYSIS and msg.jobCmd != 'continuous':
-            return await self.continuous_op(msg)
-        c = _Cmd
-        if msg.jobRunMode == job.SBATCH:
-            c = _SbatchRun if msg.isParallel else _SbatchCmd
-        p = c(msg=msg, dispatcher=self)
-        if msg.jobCmd == 'continuous':
-            self.continuous_cmd = p
-        self.cmds.append(p)
-        await p.start()
-        return None
 
 
 class _Cmd(PKDict):
@@ -282,7 +288,6 @@ class _Cmd(PKDict):
         self._process = _Process(self)
         self._terminating = False
         self._start_time = int(time.time())
-        self.is_continuous = False
         self.jid = self.msg.computeJid
 
     def destroy(self):
