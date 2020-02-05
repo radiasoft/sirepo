@@ -81,8 +81,8 @@ CODES = PKDict(
         PKDict(
             name='Laser Pulse',
             reports=[
-                'animation',
-                # 'laserPreviewReport',
+                'fieldAnimation',
+                'laserPreviewReport',
             ],
         ),
     ],
@@ -350,12 +350,12 @@ async def _run(email, sim_type):
 async def _run_all():
     l = []
     for a in (
-        # ('a@b.c', 'elegant'),
-        # ('a@b.c', 'jspec'), # TODO(e-carlin):   no work
-        # ('a@b.c', 'srw',),
-        ('a@b.c', 'synergia'),
-        # ('a@b.c', 'warppba'),
-        # ('a@b.c', 'warpvnd'), # TODO(e-carlin):  no work
+            # ('a@b.c', 'elegant'),
+            # ('a@b.c', 'jspec'), # TODO(e-carlin):   no work
+            # ('a@b.c', 'srw',),
+            # ('a@b.c', 'synergia'),
+            ('a@b.c', 'warppba'),
+            # ('a@b.c', 'warpvnd'), # TODO(e-carlin):  no work
     ):
         l.append(_run(*a))
     await _cancel_on_exception(asyncio.gather(*l))
