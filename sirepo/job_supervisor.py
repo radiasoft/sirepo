@@ -121,7 +121,7 @@ class ServerReq(PKDict):
         c = self.get('content')
         if not c:
             return 'ServerReq(<no content>)'
-        return pkdformat('ServerReq({api}, {computeJid})', **c)
+        return pkdformat('ServerReq({}, {})', c.api, c.computeJid)
 
     async def receive(self):
         s = self.content.pkdel('serverSecret')

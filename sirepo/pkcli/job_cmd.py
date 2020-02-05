@@ -102,6 +102,31 @@ def _do_compute(msg, template):
         return PKDict(state=job.COMPLETED)
 
 
+def _do_continuous(msg, template):
+    import socket
+
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    # relative file name (see job_agent.continuous_op)
+    s.connect(msg.continuousFile)
+    while True:
+        try:
+            m = pkjson.load_any(s.recv(int(1e8)))
+            m.runDir = pkio.py_path(m.runDir)
+            with pkio.save_chdir(m.runDir):
+                r = globals()['_do_' + m.jobCmd](
+                    m,
+                    sirepo.template.import_module(m.simulationType)
+                )
+            r = PKDict(r).pksetdefault(state=job.COMPLETED)
+        except Exception as e:
+            r = PKDict(
+                state=job.ERROR,
+                error=e.sr_args.error if isinstance(e, sirepo.util.UserAlert) else str(e),
+                stack=pkdexc(),
+            )
+        s.sendall(pkjson.dump_bytes(r) + b'\n')
+
+
 def _do_get_simulation_frame(msg, template):
     return template_common.sim_frame_dispatch(
         msg.data.copy().pkupdate(run_dir=msg.runDir),
@@ -123,7 +148,7 @@ def _do_get_data_file(msg, template):
         ).raise_for_status()
         return PKDict()
     except Exception as e:
-        return PKDict(error=e, stack=pkdexc())
+        return PKDict(state=job.ERROR, error=e, stack=pkdexc())
 
 
 def _do_prepare_simulation(msg, template):

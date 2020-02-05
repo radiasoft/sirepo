@@ -28,6 +28,7 @@ import tornado.iostream
 import tornado.locks
 import tornado.process
 import tornado.websocket
+import tornado.netutil
 
 
 #: Long enough for job_cmd to write result in run_dir
@@ -115,8 +116,7 @@ def start_sbatch():
 
 class _Dispatcher(PKDict):
     def __init__(self):
-        super().__init__()
-        self.cmds = []
+        super().__init__(cmds=[], continuous_cmd=None)
 
     def format_op(self, msg, opName, **kwargs):
         if msg:
@@ -217,11 +217,53 @@ class _Dispatcher(PKDict):
             self.format_op(msg, job.OP_OK, reply=PKDict(loginSuccess=True)),
         )
 
+    def continuous_accept(self, connection, *args, **kwargs):
+        tornado.ioloop.IOLoop.current().add_callback(self.continuous_read, connection)
+
+    async def continuous_read(self, connection):
+        s = tornado.iostream.IOStream(connection)
+        while True:
+            m = await self.continuous_msg_q.get()
+            await s.write(pkjson.dump_bytes(m) + b'\n')
+            r = await s.read_until(b'\n', 1e8)
+            await self.send(
+                self.format_op(
+                    m,
+                    job.OP_ANALYSIS,
+                    reply=pkjson.load_any(r),
+                )
+            )
+        s.close()
+
+    async def continuous_op(self, msg):
+        if not self.continuous_cmd:
+            m = msg.copy()
+            m.jobCmd = 'continuous'
+            m.opId = None
+            self.continuous_file = 'continuous.sock'
+            self.continuous_msg_q = tornado.queues.Queue()
+            pkio.unchecked_remove(self.continuous_file)
+            # Avoid OSError: AF_UNIX path too long (max=100)
+            m.continuousFile = self.continuous_file
+            m.runDir = pkio.py_path()
+            await self._cmd(m)
+            self.continuous_handler = tornado.netutil.add_accept_handler(
+                tornado.netutil.bind_unix_socket(self.continuous_file),
+                self.continuous_accept,
+            )
+        # rely on a single analysis command at a time
+        self.continuous_msg_q.put(msg)
+        return None
+
     async def _cmd(self, msg):
+        if msg.opName == job.OP_ANALYSIS and msg.jobCmd != 'continuous':
+            return await self.continuous_op(msg)
         c = _Cmd
         if msg.jobRunMode == job.SBATCH:
             c = _SbatchRun if msg.isParallel else _SbatchCmd
         p = c(msg=msg, dispatcher=self)
+        if msg.jobCmd == 'continuous':
+            self.continuous_cmd = p
         self.cmds.append(p)
         await p.start()
         return None
@@ -240,6 +282,7 @@ class _Cmd(PKDict):
         self._process = _Process(self)
         self._terminating = False
         self._start_time = int(time.time())
+        self.is_continuous = False
         self.jid = self.msg.computeJid
 
     def destroy(self):
