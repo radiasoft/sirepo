@@ -2973,7 +2973,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             '<div class="clearfix"></div>',
             '<div data-ng-if="errorMessage()"><div class="text-danger"><strong>{{ ::appName }} Error:</strong></div><pre>{{ errorMessage() }}</pre></div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, appState, authState) {
             $scope.appName = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName;
 
             function callSimState(method) {
@@ -2998,6 +2998,12 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                     || 'Simulation ' + $scope.simState.stateAsText() + ': ' + $scope.simState.getFrameCount() + ' animation frames';
             };
             $scope.start = function() {
+                // The available jobRunModes can change. Default to parallel if
+                // the current jobRunMode doesn't exist
+                var j = appState.models[$scope.simState.model].jobRunMode;
+                if (j && j in authState.jobRunModeMap === false) {
+                    appState.models[$scope.simState.model].jobRunMode = 'parallel';
+                }
                 appState.saveChanges($scope.simState.model);
                 $scope.simState.runSimulation();
             };
