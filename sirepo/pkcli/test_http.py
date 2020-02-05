@@ -352,8 +352,8 @@ async def _run_all():
     for a in (
         # ('a@b.c', 'elegant'),
         # ('a@b.c', 'jspec'), # TODO(e-carlin):   no work
-        ('a@b.c', 'srw',),
-        # ('a@b.c', 'synergia'),
+        # ('a@b.c', 'srw',),
+        ('a@b.c', 'synergia'),
         # ('a@b.c', 'warppba'),
         # ('a@b.c', 'warpvnd'), # TODO(e-carlin):  no work
     ):
