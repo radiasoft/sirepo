@@ -29,6 +29,15 @@ CODES = PKDict(
             ],
         ),
     ],
+    # jspec=[ does not work
+    #     PKDict(
+    #         name='Booster Ring',
+    #         reports=[
+    #             'beamEvolutionAnimation',
+    #             'rateCalculationReport',
+    #         ],
+    #     ),
+    # ],
     srw=[
         PKDict(
             name='Tabulated Undulator Example',
@@ -60,6 +69,32 @@ CODES = PKDict(
             ],
         ),
     ],
+    synergia=[
+        PKDict(
+            name='IOTA 6-6 Bare',
+            reports=[
+                'beamEvolutionAnimation',
+                'bunchReport1',
+            ],
+        ),
+    ],
+    warppba=[
+        PKDict(
+            name='Laser Pulse',
+            reports=[
+                'animation',
+                # 'laserPreviewReport',
+            ],
+        ),
+    ],
+    # warpvnd=[ does not work
+    #     PKDict(
+    #         name='EGun Example',
+    #         reports=[
+    #             'egunCurrentAnimation',
+    #         ],
+    #     ),
+    # ],
 )
 
 cfg = None
@@ -303,8 +338,12 @@ async def _run(email, sim_type):
 async def _run_all():
     l = []
     for a in (
-        ('a@b.c', 'srw',),
-        ('a@b.c', 'elegant'),
+        # ('a@b.c', 'srw',),
+        # ('a@b.c', 'elegant'),
+        # ('a@b.c', 'warpvnd'), no work
+        # ('a@b.c', 'jspec'), no work
+        # ('a@b.c', 'synergia'),
+        ('a@b.c', 'warppba'),
     ):
         l.append(_run(*a))
     await _cancel_on_exception(asyncio.gather(*l))
