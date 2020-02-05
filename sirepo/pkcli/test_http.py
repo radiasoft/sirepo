@@ -90,7 +90,8 @@ CODES = PKDict(
         PKDict(
             name='EGun Example',
             reports=[
-                'egunCurrentAnimation',
+                'fieldCalcAnimation',
+                'fieldAnimation',
             ],
         ),
     ],
@@ -354,8 +355,8 @@ async def _run_all():
             # ('a@b.c', 'jspec'), # TODO(e-carlin):   no work
             # ('a@b.c', 'srw',),
             # ('a@b.c', 'synergia'),
-            ('a@b.c', 'warppba'),
-            # ('a@b.c', 'warpvnd'), # TODO(e-carlin):  no work
+            # ('a@b.c', 'warppba'),
+            ('a@b.c', 'warpvnd'), # TODO(e-carlin):  no work
     ):
         l.append(_run(*a))
     await _cancel_on_exception(asyncio.gather(*l))
