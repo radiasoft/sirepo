@@ -9,6 +9,7 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkconst
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import flask
@@ -133,14 +134,15 @@ def gen_redirect(uri):
     Returns:
         flask.Response: reply object
     """
-    return gen_redirect_for_anchor(uri=uri)
+    return gen_redirect_for_anchor(uri)
 
 
 def gen_redirect_for_anchor(uri, **kwargs):
     """Redirect uri with an anchor using javascript
 
     Safari browser doesn't support redirects with anchors so we do this
-    in all cases.
+    in all cases. It also allows us to return sr_exception to the app
+    when we don't know if we can.
 
     Args:
         uri (str): where to redirect to
@@ -150,7 +152,7 @@ def gen_redirect_for_anchor(uri, **kwargs):
     return render_static(
         'javascript-redirect',
         'html',
-        pkcollections.Dict(redirect_uri=uri),
+        pkcollections.Dict(redirect_uri=uri, **kwargs),
     )
 
 
@@ -165,7 +167,7 @@ def gen_redirect_for_app_root(sim_type):
     return gen_redirect_for_anchor(sirepo.uri.app_root(sim_type))
 
 
-def gen_redirect_for_local_route(sim_type=None, route=None, params=None, query=None):
+def gen_redirect_for_local_route(sim_type=None, route=None, params=None, query=None, **kwargs):
     """Generate a javascript redirect to sim_type/route/params
 
     Default route (None) only supported for ``default``
@@ -181,6 +183,7 @@ def gen_redirect_for_local_route(sim_type=None, route=None, params=None, query=N
     """
     return gen_redirect_for_anchor(
         sirepo.uri.local_route(sim_type, route, params, query),
+        **kwargs
     )
 
 
@@ -320,7 +323,12 @@ def _gen_exception_reply_SRException(args):
             }),
         )
     pkdc('redirect to route={} params={}  type={}', r, p, t)
-    return gen_redirect_for_local_route(t, route=r, params=p)
+    return gen_redirect_for_local_route(
+        t,
+        route=r,
+        params=p,
+        sr_exception=pkjson.dump_pretty(args, pretty=False),
+    )
 
 
 def _gen_exception_reply_UserAlert(args):

@@ -79,43 +79,7 @@ def api_authCompleteRegistration():
 
 @api_perm.allow_visitor
 def api_authState():
-    s = cookie.unchecked_get_value(_COOKIE_STATE)
-    v = pkcollections.Dict(
-        avatarUrl=None,
-        displayName=None,
-        guestIsOnlyMethod=not non_guest_methods,
-        isGuestUser=False,
-        isLoggedIn=_is_logged_in(s),
-        isLoginExpired=False,
-        jobRunModeMap=simulation_db.JOB_RUN_MODE_MAP,
-        method=cookie.unchecked_get_value(_COOKIE_METHOD),
-        needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
-        userName=None,
-        visibleMethods=visible_methods,
-    )
-    u = cookie.unchecked_get_value(_COOKIE_USER)
-    if v.isLoggedIn:
-        if v.method == METHOD_GUEST:
-            # currently only method to expire login
-            v.displayName = _GUEST_USER_DISPLAY_NAME
-            v.isGuestUser = True
-            v.isLoginExpired = _METHOD_MODULES[METHOD_GUEST].is_login_expired()
-            v.needCompleteRegistration = False
-            v.visibleMethods = non_guest_methods
-        else:
-            r = auth_db.UserRegistration.search_by(uid=u)
-            if r:
-                v.displayName = r.display_name
-        _method_auth_state(v, u)
-    if pkconfig.channel_in('dev'):
-        # useful for testing/debugging
-        v.uid = u
-    pkdc('state={}', v)
-    return http_reply.render_static(
-        'auth-state',
-        'js',
-        pkcollections.Dict(auth_state=v),
-    )
+    return http_reply.render_static('auth-state', 'js', PKDict(auth_state=_auth_state()))
 
 
 @api_perm.allow_visitor
@@ -265,7 +229,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
     if sim_type:
         if guest_uid and guest_uid != uid:
             simulation_db.move_user_simulations(guest_uid, uid)
-        login_success_redirect(sim_type)
+        login_success_response(sim_type)
     assert not module.AUTH_METHOD_VISIBLE
 
 
@@ -284,15 +248,16 @@ def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js=False
     )
 
 
-def login_success_redirect(sim_type):
+def login_success_response(sim_type):
     r = None
     if cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION:
         if cookie.get_value(_COOKIE_METHOD) == METHOD_GUEST:
             complete_registration()
         else:
             r = 'completeRegistration'
-    raise sirepo.util.SRException(r, PKDict(sim_type=sim_type, reload_js=True))
-
+    raise sirepo.util.Response(
+        response=http_reply.gen_json_ok(PKDict(authState=_auth_state())),
+    )
 
 def need_complete_registration(model):
     """Does unauthenticated user need to complete registration?
@@ -493,6 +458,42 @@ def _auth_hook_from_header(values):
     cookie.set_sentinel(values)
     pkdlog('migrated cookie={}', values)
     return values
+
+
+def _auth_state():
+    s = cookie.unchecked_get_value(_COOKIE_STATE)
+    v = pkcollections.Dict(
+        avatarUrl=None,
+        displayName=None,
+        guestIsOnlyMethod=not non_guest_methods,
+        isGuestUser=False,
+        isLoggedIn=_is_logged_in(s),
+        isLoginExpired=False,
+        jobRunModeMap=simulation_db.JOB_RUN_MODE_MAP,
+        method=cookie.unchecked_get_value(_COOKIE_METHOD),
+        needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
+        userName=None,
+        visibleMethods=visible_methods,
+    )
+    u = cookie.unchecked_get_value(_COOKIE_USER)
+    if v.isLoggedIn:
+        if v.method == METHOD_GUEST:
+            # currently only method to expire login
+            v.displayName = _GUEST_USER_DISPLAY_NAME
+            v.isGuestUser = True
+            v.isLoginExpired = _METHOD_MODULES[METHOD_GUEST].is_login_expired()
+            v.needCompleteRegistration = False
+            v.visibleMethods = non_guest_methods
+        else:
+            r = auth_db.UserRegistration.search_by(uid=u)
+            if r:
+                v.displayName = r.display_name
+        _method_auth_state(v, u)
+    if pkconfig.channel_in('dev'):
+        # useful for testing/debugging
+        v.uid = u
+    pkdc('state={}', v)
+    return v
 
 
 def _get_user():
