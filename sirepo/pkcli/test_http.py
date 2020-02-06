@@ -36,13 +36,12 @@ CODES = PKDict(
             ],
         ),
     ],
-    # TODO(e-carlin): FIXME: particleAnimation is returning 'completed' before the sim has run
     jspec=[
         PKDict(
             name='Booster Ring',
             reports=[
-                'particleAnimation'
-                # 'rateCalculationReport',
+                'particleAnimation',
+                'rateCalculationReport',
             ],
         ),
     ],
@@ -50,23 +49,23 @@ CODES = PKDict(
         PKDict(
             name='Tabulated Undulator Example',
             reports=[
-                'fluxAnimation',
                 'intensityReport',
+                'trajectoryReport',
                 'multiElectronAnimation',
                 'powerDensityReport',
                 'sourceIntensityReport',
             ],
         ),
-        PKDict(
-            name='Bending Magnet Radiation',
-            reports=[
-                'initialIntensityReport',
-                'intensityReport',
-                'powerDensityReport',
-                'sourceIntensityReport',
-                'trajectoryReport',
-            ],
-        ),
+        # PKDict(
+        #     name='Bending Magnet Radiation',
+        #     reports=[
+        #         'initialIntensityReport',
+        #         'intensityReport',
+        #         'powerDensityReport',
+        #         'sourceIntensityReport',
+        #         'trajectoryReport',
+        #     ],
+        # ),
     ],
     synergia=[
         PKDict(
@@ -90,7 +89,6 @@ CODES = PKDict(
         PKDict(
             name='EGun Example',
             reports=[
-                'fieldCalcAnimation',
                 'fieldAnimation',
             ],
         ),
@@ -237,17 +235,7 @@ class _Client(PKDict):
             i = self._sid[name]
             d = await self.sim_db(name)
             pkdlog('sid={} report={} state=start', i, report)
-            r = await self.post(
-                '/run-simulation',
-                PKDict(
-                    # works for sequential simulations, too
-                    forceRun=True,
-                    models=d.models,
-                    report=report,
-                    simulationId=i,
-                    simulationType=self.sim_type,
-                ),
-            )
+            r = await self._run_simulation(d, i, report)
             try:
                 p = self._sim_data.is_parallel(report)
                 if r.state == 'completed':
@@ -257,6 +245,8 @@ class _Client(PKDict):
                     if r.state in ('completed', 'error'):
                         c = None
                         break
+                    assert 'nextRequest' in r, \
+                        'expected "nextRequest" in response={}'.format(r)
                     r = await self.post('/run-status', r.nextRequest)
                     await asyncio.sleep(1)
                 else:
@@ -278,20 +268,7 @@ class _Client(PKDict):
                 assert not e, \
                     'unexpected error state, error={} sid={}, report={}'.format(s, i, report)
             if p:
-                try:
-                    g = self._sim_data.frame_id(d, r, report, 0)
-                except Exception as e:
-                    pkdp('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
-                    pkdp(d)
-                    pkdp(r)
-                    pkdp(report)
-                    pkdp(e)
-                    pkdp('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
-                    assert 0
-                # Elegant frame_id's sometimes have spaces in them so need to
-                # make them url safe. But, the * in the url should not be made
-                # url safe
-                g = g.replace(' ', '%20')
+                g = self._sim_data.frame_id(d, r, report, 0)
                 f = await self.get('/simulation-frame/' + g)
                 assert 'title' in f, \
                     'no title in frame={}'.format(f)
@@ -305,17 +282,7 @@ class _Client(PKDict):
                 )
                 c = None
                 try:
-                    c = await self.post(
-                        '/run-simulation',
-                        PKDict(
-                            # works for sequential simulations, too
-                            forceRun=True,
-                            models=d.models,
-                            report=report,
-                            simulationId=i,
-                            simulationType=self.sim_type,
-                        ),
-                    )
+                    c = await self._run_simulation(d, i, report)
                     f = await self.get('/simulation-frame/' + g)
                     assert f.state == 'error', \
                         'expecting error instead of frame={}'.format(f)
@@ -326,11 +293,30 @@ class _Client(PKDict):
                         await self.post('/run-cancel', c.get('nextRequest'))
         return await _run(self.copy())
 
+    async def _run_simulation(self, data, simulation_id, report):
+        # TODO(e-carlin): why is this true?
+        if 'animation' in report.lower() and self.sim_type != 'srw':
+            report = 'animation'
+        return await self.post(
+                '/run-simulation',
+                PKDict(
+                    # works for sequential simulations, too
+                    forceRun=True,
+                    models=data.models,
+                    report=report,
+                    simulationId=simulation_id,
+                    simulationType=self.sim_type,
+                ),
+            )
+
     def _uri(self, uri):
         if uri.startswith('http'):
             return uri
         assert uri.startswith('/')
-        return cfg.server_uri + uri
+        # Elegant frame_id's sometimes have spaces in them so need to
+        # make them url safe. But, the * in the url should not be made
+        # url safe
+        return cfg.server_uri + uri.replace(' ', '%20')
 
 
 def _init():
@@ -352,11 +338,11 @@ async def _run_all():
     l = []
     for a in (
             # ('a@b.c', 'elegant'),
-            # ('a@b.c', 'jspec'), # TODO(e-carlin):   no work
-            # ('a@b.c', 'srw',),
+            # ('a@b.c', 'jspec'),
+            ('a@b.c', 'srw',),
             # ('a@b.c', 'synergia'),
             # ('a@b.c', 'warppba'),
-            ('a@b.c', 'warpvnd'), # TODO(e-carlin):  no work
+            # ('a@b.c', 'warpvnd'),
     ):
         l.append(_run(*a))
     await _cancel_on_exception(asyncio.gather(*l))
