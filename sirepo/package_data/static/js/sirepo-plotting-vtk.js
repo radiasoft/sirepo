@@ -124,7 +124,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 });
 
                 var ab = actorBundle(ps);
-                ab.actor.getProperty().setColor(colorArray[0], colorArray[1], colorArray[2]);
+                ab.actor.getProperty().setColor(...(colorArray || [1, 1, 1]));
                 ab.actor.getProperty().setLighting(false);
                 return ab;
             },
@@ -691,9 +691,25 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
 });
 
 // General-purpose vtk display
-SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender, frameCache, geometry, plotting, vtkManager, vtkPlotting, layoutService, plotToPNG, utilities) {
+SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender, frameCache, geometry, plotting, vtkPlotting, layoutService, plotToPNG, utilities) {
 
     return {
+        // override these event handlers
+
+        handleDblClick: function(e) {
+            srdbg('DBL');
+        },
+        handlePtrDown: function(e) {
+            srdbg('handlePtrDown');
+        },
+        handlePtrMove: function(e) {
+        },
+        handlePtrUp: function(e) {
+        },
+        handleWheel: function(e) {
+        },
+
+
         restrict: 'A',
         //transclude: {
         //    visabilityControlSlot: '?visabilityControl',
@@ -704,12 +720,102 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
         },
         templateUrl: '/static/html/vtk-display.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {
+
+            //srdbg('vtkDisplay', $scope.modelName);
+
+            //$scope.renderer = null;
+
+            // common
+            const api = {
+                setCam: setCam,
+            };
+
+            const display = this;
             //TODO (mvk): fill in with common vtk stuff
+            let cam = null;
+            let canvas3d = null;
+            let fsRenderer = null;
+            let renderer = null;
+            let renderWindow = null;
+            let snapshotCtx = null;
+
+            function setCam(pos, vu) {
+                if (! fsRenderer) {
+                    return;
+                }
+                let cam = renderer.get().activeCamera;
+                cam.setPosition(...(pos || [1, 0, 0]));
+                cam.setFocalPoint(0, 0, 0);
+                cam.setViewUp(...(vu || [0, 0, 1]));
+                renderer.resetCamera();
+                renderWindow.render();
+            }
+
+
+            $scope.init = function() {
+                const rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
+                fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
+                    background: [1, 1, 1, 1],
+                    container: rw,
+                    listenWindowResize: false,
+                });
+                renderer = fsRenderer.getRenderer();
+                //$scope.renderer = renderer;
+                renderer.getLights()[0].setLightTypeToSceneLight();
+                renderWindow = fsRenderer.getRenderWindow();
+                const interactor = renderWindow.getInteractor();
+                const mainView = renderWindow.getViews()[0];
+
+                cam = renderer.get().activeCamera;
+
+                rw.addEventListener('dblclick', display.handleDblClick);
+
+                let worldCoord = vtk.Rendering.Core.vtkCoordinate.newInstance({
+                    renderer: renderer
+                });
+                worldCoord.setCoordinateSystemToWorld();
+
+                // not working...
+                rw.onpointerdown = this.handlePtrDown;
+                rw.onpointermove = this.handlePtrMove;
+                rw.onpointerup = this.handlePtrUp;
+                rw.onwheel = this.handleWheel;
+
+                canvas3d = $($element).find('canvas')[0];
+
+                // this canvas is used to store snapshots of the 3d canvas
+                const snapshotCanvas = document.createElement('canvas');
+                snapshotCtx = snapshotCanvas.getContext('2d');
+                plotToPNG.addCanvas(snapshotCanvas, $scope.reportId);
+
+                // allow ancestor scopes aceess to the renderer etc.
+                $scope.$emit('vtk-init', {
+                    api: api,
+                    objects: {
+                        camera: cam,
+                        renderer: renderer,
+                        window: renderWindow,
+                    }
+                });
+            };
+
+            $scope.vtkCanvasGeometry = function() {
+                var vtkCanvasHolder = $($element).find('.vtk-canvas-holder')[0];
+                return {
+                    pos: $(vtkCanvasHolder).position(),
+                    size: {
+                        width: $(vtkCanvasHolder).width(),
+                        height: $(vtkCanvasHolder).height()
+                    }
+                };
+            };
+
+            $scope.init();
         },
 
-        link: function link(scope, element) {
-            vtkPlotting.vtkPlot(scope, element);
-        },
+        //link: function link(scope, element) {
+        //    vtkPlotting.vtkPlot(scope, element);
+        //},
     };
 });
 

@@ -1,7 +1,34 @@
 {
     "enum": {
+        "FieldType": [
+            ["M", "M"],
+            ["B", "B"],
+            ["A", "A"],
+            ["H", "H"],
+            ["J", "J"]
+
+        ],
+        "PathType": [
+            ["line", "Line"],
+            ["circle", "Circle"],
+            ["manual", "Manual"],
+            ["file", "File"]
+        ],
+        "SolveMethod": [
+            ["0", "0"],
+            ["3", "3"],
+            ["4", "4"],
+            ["5", "5"]
+        ],
+        "ViewType": [
+            ["objects", "Objects"],
+            ["fields", "Fields"]
+        ]
     },
     "dynamicFiles": {
+        "externalLibs": {
+            "js": ["vtk.js"]
+        },
         "sirepoLibs": {
             "js": ["mpmd.js"]
         }
@@ -22,12 +49,79 @@
         }
     },
     "model": {
-
+        "circlePath": {
+            "ctr": ["x", "Float", "0.0"],
+            "ctrY": ["y", "Float", "0.0"],
+            "ctrZ": ["z", "Float", "0.0"],
+            "radius": ["Radius", "Float", "0.0"],
+            "theta": ["\uD835\uDFB1", "Float", "0.0", "Euler 2", "-3.14159", "3.14159"],
+            "phi": ["\uD835\uDFBF", "Float", "0.0", "Euler 3", "0.0", "6.2832"],
+            "numPoints": ["Num Points", "Integer", "10", "", "2"]
+        },
+        "filePath": {
+            "fileName": ["File", "String", ""]
+        },
+        "geometry": {
+            "name": ["Name", "String", ""],
+            "radiaRef": ["", "Integer", "0", "", "0"]
+        },
+        "linePath": {
+            "beginX": ["x", "Float", "0.0"],
+            "beginY": ["y", "Float", "0.0"],
+            "beginZ": ["z", "Float", "0.0"],
+            "endX": ["x", "Float", "0.0"],
+            "endY": ["y", "Float", "0.0"],
+            "endZ": ["z", "Float", "0.0"],
+            "numPoints": ["Num Points", "Integer", "10", "", "2"]
+        },
+        "magnet": {
+            "_super": ["_", "model", "geometry"]
+        },
+        "magnetDisplay": {
+            "pathType": ["Path", "PathType", "line"],
+            "viewType": ["View", "ViewType", "objects"]
+        },
+        "manualPath": {
+            "ptX": ["x", "Float", "0.0"],
+            "ptY": ["y", "Float", "0.0"],
+            "ptZ": ["z", "Float", "0.0"],
+            "numPoints": ["Num Points", "Integer", "10", "", "2"]
+        },
+        "simulation": {
+        },
+        "solver":  {
+            "fieldType": ["Field", "FieldType", "M"],
+            "maxIterations": ["Max iterations", "Integer", "1500", "", "1"],
+            "method": ["Method", "SolveMethod", "0"],
+            "precision": ["Precision (T)", "Float", "0.00010", "", ""]
+        }
     },
     "view": {
-        "report": {
-            "title": "Report",
-            "advanced": []
+        "magnetDisplay": {
+            "title": "Magnet Viewer",
+            "basic": [
+                "viewType",
+                "solver.fieldType",
+                "pathType",
+                "solver.precision",
+                "solver.maxIterations",
+                "solver.method"
+            ],
+            "advanced": [
+                [
+                    ["Begin", [
+                        "linePath.beginX",
+                        "linePath.beginY",
+                        "linePath.beginZ"
+                    ]],
+                    ["End", [
+                        "linePath.endX",
+                        "linePath.endY",
+                        "linePath.endZ"
+                    ]]
+                ],
+                "linePath.numPoints"
+            ]
         }
     }
 }
