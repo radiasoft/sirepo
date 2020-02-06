@@ -337,12 +337,12 @@ async def _run(email, sim_type):
 async def _run_all():
     l = []
     for a in (
-            # ('a@b.c', 'elegant'),
-            # ('a@b.c', 'jspec'),
+            ('a@b.c', 'elegant'),
+            ('a@b.c', 'jspec'),
             ('a@b.c', 'srw',),
-            # ('a@b.c', 'synergia'),
-            # ('a@b.c', 'warppba'),
-            # ('a@b.c', 'warpvnd'),
+            ('a@b.c', 'synergia'),
+            ('a@b.c', 'warppba'),
+            ('a@b.c', 'warpvnd'),
     ):
         l.append(_run(*a))
     await _cancel_on_exception(asyncio.gather(*l))
