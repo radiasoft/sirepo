@@ -2,6 +2,8 @@ q: charge,total=1e-9
 linA10: rfca,freq=2856e6,l=0.3,volt="48e6 10 /",phase="90 28 -",change_p0=1
 zwake: wake,inputfile="knsl45.liwake.sdds",factor="86 10 /",&
         tColumn="t",wColumn="W",n_bins=1024,interpolate=1
+zwake2: wake,inputfile="WAKE-inputfile.knsl45.liwake.sdds",factor="86 10 /",&
+        tColumn="t",wColumn="W",n_bins=1024,interpolate=1
 linB10: rfca,freq=2856e6,l=0.3,volt="48e6 10 /",phase="90 6 +",change_p0=1
 B1: csrcsbend,angle=0.146607657167524,l=0.200718260855179,e1=0,e2=0.146607657167524,&
  nonlinear=1,n_kicks=100,integration_order=4,&
