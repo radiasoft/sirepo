@@ -31,6 +31,8 @@ import tornado.websocket
 import tornado.netutil
 
 
+
+
 #: Long enough for job_cmd to write result in run_dir
 _TERMINATE_SECS = 3
 
@@ -39,6 +41,7 @@ _RETRY_SECS = 1
 _IN_FILE = 'in-{}.json'
 
 _PID_FILE = 'job_agent.pid'
+
 
 cfg = None
 
@@ -115,8 +118,14 @@ def start_sbatch():
 
 
 class _Dispatcher(PKDict):
+    _MAX_FASTCGI_MSG_Q_READ_SECS = 3
+
     def __init__(self):
-        super().__init__(cmds=[], _fastcgi_cmd=None)
+        super().__init__(
+            cmds=[],
+            _fastcgi_cmd=None,
+            _fastcgi_msg_q_read_timer=None,
+        )
 
     def format_op(self, msg, opName, **kwargs):
         if msg:
@@ -224,6 +233,7 @@ class _Dispatcher(PKDict):
         if msg.jobRunMode == job.SBATCH:
             c = _SbatchRun if msg.isParallel else _SbatchCmd
         p = c(msg=msg, dispatcher=self)
+
         if msg.jobCmd == 'fastcgi':
             self._fastcgi_cmd = p
         self.cmds.append(p)
@@ -240,8 +250,16 @@ class _Dispatcher(PKDict):
             m = msg.copy()
             m.jobCmd = 'fastcgi'
             m.opId = None
-            self._fastcgi_file = 'fastcgi.sock'
-            self._fastcgi_msg_q = tornado.queues.Queue()
+            # TODO(e-carlin): Is this necessary? I've implemented it to make sure that
+            # that 2 job_cmds could never be bound to the same socket and when we call
+            # self._remove_fastcgi_handler that the handler that comes after will
+            # be bound to a new socket.
+            # I think the very nature of sockets (file descriptors) may handle the
+            # uniqueness for me
+            self._fastcgi_file = 'fastcgi-{}.sock'.format(
+                sirepo.job.unique_key(),
+            )
+            self._fastcgi_msg_q = tornado.queues.Queue(1)
             pkio.unchecked_remove(self._fastcgi_file)
             # Avoid OSError: AF_UNIX path too long (max=100)
             m.fastcgiFile = self._fastcgi_file
@@ -249,30 +267,80 @@ class _Dispatcher(PKDict):
             m.runDir = pkio.py_path()
             # Kind of backwards, but it makes sense since we need to listen
             # so _do_fastcgi can connect
-            self._fastcgi_handler = tornado.netutil.add_accept_handler(
+            self._remove_fastcgi_handler = tornado.netutil.add_accept_handler(
                 tornado.netutil.bind_unix_socket(self._fastcgi_file),
                 self._fastcgi_accept,
             )
             # last thing, because of await
             await self._cmd(m)
-        # rely on a single analysis command at a time
-        self._fastcgi_msg_q.put(msg)
+        self._fastcgi_msg_q_read_timer = tornado.ioloop.IOLoop.current().call_later(
+            self._MAX_FASTCGI_MSG_Q_READ_SECS,
+            self._handle_fastcgi_error,
+            'timeout={} met while waiting for message to be read from fastci_msg_q'.format(
+                self._MAX_FASTCGI_MSG_Q_READ_SECS,
+            ),
+            msg,
+        )
+        self._fastcgi_msg_q.put_nowait(msg)
         return None
 
-    async def _fastcgi_read(self, connection):
-        s = tornado.iostream.IOStream(connection)
-        while True:
-            m = await self._fastcgi_msg_q.get()
-            await s.write(pkjson.dump_bytes(m) + b'\n')
-            r = await s.read_until(b'\n', 1e8)
-            await self.send(
-                self.format_op(
-                    m,
-                    job.OP_ANALYSIS,
-                    reply=pkjson.load_any(r),
-                )
+    async def _handle_fastcgi_error(self, error, msg):
+        def _remove_timeout():
+            self._fastcgi_msg_q_read_timer and tornado.ioloop.IOLoop.current().remove_timeout(
+                self._fastcgi_msg_q_read_timer,
             )
-        s.close()
+            self._fastcgi_msg_q_read_timer = None
+
+        async def _reply_error(error, msg):
+            try:
+                await self.send(
+                    self.format_op(
+                        msg,
+                        job.OP_ERROR,
+                        error=error,
+                        reply=PKDict(
+                            state=job.ERROR,
+                            error='Error with request',
+                        ),
+                    )
+                )
+            except Exception as e:
+                pkdlog('error={} stack={}', error, pkdexc())
+
+        _remove_timeout()
+        await _reply_error(error, msg)
+        # These 2 operations must happen last (after any awaits)
+        self._fastcgi_cmd = None
+        self._remove_fastcgi_handler()
+
+    async def _fastcgi_read(self, connection):
+        def _remove_timeout():
+            tornado.ioloop.IOLoop.current().remove_timeout(
+                self._fastcgi_msg_q_read_timer,
+            )
+            self._fastcgi_msg_q_read_timer = None
+
+        s = None
+        m = None
+        try:
+            s = tornado.iostream.IOStream(connection)
+            while True:
+                m = await self._fastcgi_msg_q.get()
+                _remove_timeout()
+                await s.write(pkjson.dump_bytes(m) + b'\n')
+                r = await s.read_until(b'\n', 1e8)
+                await self.send(
+                    self.format_op(
+                        m,
+                        job.OP_ANALYSIS,
+                        reply=pkjson.load_any(r),
+                    )
+                )
+                self._fastcgi_msg_q.task_done()
+        except Exception as e:
+            pkdlog('error={} stack={}', e, pkdexc())
+            s and s.close()
+            await self._handle_fastcgi_error(e, m)
 
 
 class _Cmd(PKDict):
