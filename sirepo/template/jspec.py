@@ -287,8 +287,7 @@ def _compute_range_across_files(run_dir, data):
     return res
 
 
-def _compute_sdds_range(res):
-    sdds_index = 0
+def _compute_sdds_range(res, sdds_index=0):
     column_names = sdds.sddsdata.GetColumnNames(sdds_index)
     for field in res:
         values = sdds.sddsdata.GetColumn(sdds_index, column_names.index(field))
@@ -361,7 +360,7 @@ def _ion_files(run_dir):
         m = re.match(r'^.*?(\d+)\.txt$', f)
         if m:
             res.append([f, int(m.group(1))])
-    return map(lambda v: v[0], sorted(res, key=lambda v: v[1]))
+    return [v[0] for v in sorted(res, key=lambda v: v[1])]
 
 
 def _map_field_name(f):

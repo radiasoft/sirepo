@@ -117,7 +117,7 @@ def _run_jspec(data):
     _elegant_to_madx(data['models']['ring'])
     exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
     jspec_filename = template.JSPEC_INPUT_FILENAME
-    pkio.write_text(jspec_filename, jspec_file)
+    pkio.write_text(jspec_filename, locals()['jspec_file'])
     pksubprocess.check_call_with_signals(['jspec', jspec_filename], msg=pkdlog, output=template.JSPEC_LOG_FILE)
     return pkio.read_text(template.JSPEC_LOG_FILE)
 
