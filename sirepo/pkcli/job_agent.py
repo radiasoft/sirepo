@@ -133,7 +133,7 @@ class _Dispatcher(PKDict):
             op_name = job.OP_ERROR
             r = PKDict(
                 state=job.ERROR,
-                error=f'unable to parse response',
+                error=f'unable to parse job_cmd output',
                 stdout=text,
             )
         try:
@@ -460,6 +460,9 @@ class _Cmd(PKDict):
 
 class _SbatchCmd(_Cmd):
 
+    async def exited(self):
+        await self._process.exit_ready()
+
     def job_cmd_source_bashrc(self):
         if not self.msg.get('shifterImage'):
             return super().job_cmd_source_bashrc()
@@ -469,10 +472,8 @@ unset PYTHONPATH
 unset PYTHONSTARTUP
 export PYENV_ROOT=/home/vagrant/.pyenv
 export HOME=/home/vagrant
-source /home/vagrant/.bashrc
+source /home/vagrant/.bashrc >& /dev/null
 eval export HOME=~$USER
-o/usr/bin/env
-{self._job_cmd_source_bashrc_dev()}
 '''
 
     def job_cmd_cmd_stdin_env(self, *args, **kwargs):
@@ -481,13 +482,12 @@ o/usr/bin/env
             c = ('shifter', f'--image={self.msg.shifterImage}', '/bin/bash', '--norc', '--noprofile', '-l')
         return c, s, e
 
-    async def exited(self):
-        await self._process.exit_ready()
-
-    def _job_cmd_source_bashrc_dev(self):
-        if not pkconfig.channel_in('dev'):
-            return ''
-        return 'export PYTHONPATH=$HOME/src/radiasoft/sirepo:$HOME/src/radiasoft/pykern'
+    def job_cmd_env(self):
+        e = PKDict()
+        if pkconfig.channel_in('dev'):
+            h = pkio.py_path('~/src/radiasoft')
+            e.PYTHONPATH = '{}:{}'.format(h.join('sirepo'), h.join('pykern'))
+        return super().job_cmd_env(e)
 
 
 class _SbatchRun(_SbatchCmd):
@@ -609,6 +609,7 @@ if [[ ! $LD_LIBRARY_PATH =~ /usr/lib64/mpich/lib ]]; then
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64/mpich/lib
 fi
 #TODO(robnagler) need to get command from prepare_simulation
+
 exec python {template_common.PARAMETERS_PYTHON_FILE}
 EOF
 exec srun {s} /bin/bash bash.stdin
