@@ -31,8 +31,6 @@ import tornado.websocket
 import tornado.netutil
 
 
-
-
 #: Long enough for job_cmd to write result in run_dir
 _TERMINATE_SECS = 3
 
@@ -41,7 +39,6 @@ _RETRY_SECS = 1
 _IN_FILE = 'in-{}.json'
 
 _PID_FILE = 'job_agent.pid'
-
 
 cfg = None
 
@@ -233,7 +230,6 @@ class _Dispatcher(PKDict):
         if msg.jobRunMode == job.SBATCH:
             c = _SbatchRun if msg.isParallel else _SbatchCmd
         p = c(msg=msg, dispatcher=self)
-
         if msg.jobCmd == 'fastcgi':
             self._fastcgi_cmd = p
         self.cmds.append(p)
