@@ -258,11 +258,12 @@ def _job_supervisor_check(env):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
-        s.bind((sirepo.job.DEFAULT_IP, int(sirepo.job.DEFAULT_PORT)))
+        s.bind((env.SIREPO_PKCLI_JOB_SUPERVISOR_IP, int(env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT)))
     except Exception:
         raise AssertionError(
-            'job_supervisor still running on port={}'.format(
-                sirepo.job.DEFAULT_PORT
+            'job_supervisor still running on ip={} port={}'.format(
+                env.SIREPO_PKCLI_JOB_SUPERVISOR_IP,
+                env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT,
             ),
         )
     finally:
