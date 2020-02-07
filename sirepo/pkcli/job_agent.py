@@ -275,7 +275,7 @@ class _Dispatcher(PKDict):
             m = msg.copy()
             m.jobCmd = 'fastcgi'
             m.opId = None
-            self._fastcgi_file = '/tmp/job_cmd_fastcgi.sock'
+            self._fastcgi_file = 'job_cmd_fastcgi.sock'
             self._fastcgi_msg_q = tornado.queues.Queue(1)
             pkio.unchecked_remove(self._fastcgi_file)
             # Avoid OSError: AF_UNIX path too long (max=100)
