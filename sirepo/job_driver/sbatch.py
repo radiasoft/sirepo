@@ -31,8 +31,11 @@ class SbatchDriver(job_driver.DriverBase):
 
     def __init__(self, req):
         super().__init__(req)
-#TODO(robnagler) read a db for an sbatch_user
-        self._srdb_root = None
+        self.pkupdate(
+            # before it is overwritten by prepare_send
+            _local_user_dir=pkio.py_path(req.content.userDir),
+            _srdb_root=None,
+        )
         self.__instances[self.uid] = self
 
     def cpu_slot_free_one(self):
@@ -103,7 +106,7 @@ disown
 '''
 
         def write_to_log(stdout, stderr, filename):
-            p = pkio.py_path(op.msg.userDir).join('log')
+            p = pkio.py_path(self._local_user_dir).join('agent-sbatch', cfg.host)
             pkio.mkdir_parent(p)
             pkjson.dump_pretty(
                 PKDict(stdout=stdout, stderr=stderr),
@@ -116,7 +119,7 @@ disown
                 f'/bin/cat {agent_start_dir}/{log_file}'
             ) as p:
                 o, e = await p.communicate()
-                write_to_log(o, e, 'remote-job-agent-log')
+                write_to_log(o, e, 'remote')
 
         try:
             async with asyncssh.connect(
@@ -129,7 +132,7 @@ disown
                     async with c.create_process('/bin/bash --noprofile --norc -l') as p:
                         o, e = await p.communicate(input=script)
                         if o or e:
-                            write_to_log(o, e, 'job-agent-start-sbatch')
+                            write_to_log(o, e, 'start')
                     await get_agent_log(c)
                 except Exception as e:
                     pkdlog(
