@@ -519,4 +519,4 @@ def _units(twiss_field):
 
 
 def _units_from_hdf5(h5file, field):
-    return _field_units(h5file.attrs['{}Unit'.format(field.name)], field)
+    return _field_units(str(h5file.attrs['{}Unit'.format(field.name)]), field)

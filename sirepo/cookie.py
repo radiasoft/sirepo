@@ -145,9 +145,9 @@ class _State(dict):
         return self.crypto
 
     def _decrypt(self, value):
-        d = self._crypto().decrypt(base64.urlsafe_b64decode(value))
+        d = self._crypto().decrypt(base64.urlsafe_b64decode(util.b(value)))
         pkdc(d)
-        return d
+        return util.s(d)
 
     def _deserialize(self, value):
         v = value.split(_SERIALIZER_SEP)
@@ -157,7 +157,7 @@ class _State(dict):
         return v
 
     def _encrypt(self, text):
-        return base64.urlsafe_b64encode(self._crypto().encrypt(text))
+        return base64.urlsafe_b64encode(self._crypto().encrypt(util.b(text)))
 
     def _from_cookie_header(self, header):
         s = None

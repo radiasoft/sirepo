@@ -49,7 +49,7 @@ def process_sdds_page(filename, page_index, callback, *args, **kwargs):
             err = _sdds_error('Output file is not yet available.')
         else:
             #TODO(robnagler) SDDS_GotoPage not in sddsdata, why?
-            for _ in xrange(page_index + 1):
+            for _ in range(page_index + 1):
                 if sdds.sddsdata.ReadPage(_SDDS_INDEX) <= 0:
                     #TODO(robnagler) is this an error?
                     break
@@ -103,7 +103,7 @@ def _sdds_column(field):
         column_names.index(field),
     )
     return PKDict(
-        values=map(lambda v: _safe_sdds_value(v), values),
+        values=[_safe_sdds_value(v) for v in values],
         column_names=column_names,
         column_def=column_def,
         err=None,

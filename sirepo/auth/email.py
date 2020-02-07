@@ -120,7 +120,7 @@ def api_authEmailLogin():
 
 def avatar_uri(model, size):
     return 'https://www.gravatar.com/avatar/{}?d=mp&s={}'.format(
-        hashlib.md5(model.user_name).hexdigest(),
+        hashlib.md5(sirepo.util.b(model.user_name)).hexdigest(),
         size,
     )
 

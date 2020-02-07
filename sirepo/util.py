@@ -14,6 +14,7 @@ import pykern.pkinspect
 import pykern.pkio
 import pykern.pkjson
 import random
+import sys
 import werkzeug.exceptions
 
 
@@ -130,6 +131,18 @@ class UserAlert(Reply):
             **kwargs
         )
 
+# python 2/3 string and bytes compatibility
+if sys.version_info < (3,):
+    def b(x):
+        return x
+    def s(x):
+        return x
+else:
+    def b(x):
+        return bytes(x, 'utf-8')
+    def s(x):
+        return x.decode('utf-8')
+
 
 def convert_exception(exception, display_text='unexpected error'):
     """Convert exception so can be raised
@@ -150,9 +163,8 @@ def create_token(value):
     import base64
 
     if pkconfig.channel_in_internal_test() and cfg.create_token_secret:
-        return base64.b32encode(
-            hashlib.sha256(value + cfg.create_token_secret).digest(),
-        )[:TOKEN_SIZE]
+        v = base64.b32encode(hashlib.sha256(b(value + cfg.create_token_secret)).digest())
+        return s(v[:TOKEN_SIZE])
     return sirepo.util.random_base62(TOKEN_SIZE)
 
 
