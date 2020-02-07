@@ -115,7 +115,6 @@ def start_sbatch():
 
 
 class _Dispatcher(PKDict):
-    _MAX_FASTCGI_MSG_Q_READ_SECS = 3
 
     def __init__(self):
         super().__init__(cmds=[], _fastcgi_cmd=None)
@@ -124,8 +123,25 @@ class _Dispatcher(PKDict):
         if msg:
             kwargs['opId'] = msg.get('opId')
         return pkjson.dump_bytes(
-            PKDict(agentId=cfg.agent_id, opName=opName, **kwargs),
+            PKDict(agentId=cfg.agent_id, opName=opName).pksetdefault(**kwargs),
         )
+
+    async def job_cmd_reply(self, msg, op_name, text):
+        try:
+            r = pkjson.load_any(text)
+        except Exception as e:
+            op_name = job.OP_ERROR
+            r = PKDict(
+                state=job.ERROR,
+                error=f'unable to parse response',
+                stdout=text,
+            )
+        try:
+            await self.send(self.format_op(msg, op_name, reply=r))
+        except Exception as e:
+            pkdlog('reply={} error={} stack={}', r, e, pkdexc())
+            # something is really wrong, because format_op is messed up
+            raise
 
     async def loop(self):
         while True:
@@ -181,8 +197,8 @@ class _Dispatcher(PKDict):
         m = None
         try:
             m = pkjson.load_any(msg)
-            pkdlog('op={} opId={} shifterImage={}', m.opName, m.get('opId'), m.get('shifterImage'))
-            pkdc('m={}', job.LogFormatter(m))
+            pkdlog('op={} opId={} runDir={}', m.opName, m.get('opId'), m.get('runDir'))
+            pkdc('m={}', m)
             return await getattr(self, '_op_' + m.opName)(m)
         except Exception as e:
             err = 'exception=' + str(e)
@@ -305,13 +321,10 @@ class _Dispatcher(PKDict):
                 # so not an issue to call before work is done.
                 self._fastcgi_msg_q.task_done()
                 await s.write(pkjson.dump_bytes(m) + b'\n')
-                r = await s.read_until(b'\n', 1e8)
-                await self.send(
-                    self.format_op(
-                        m,
-                        job.OP_ANALYSIS,
-                        reply=pkjson.load_any(r),
-                    )
+                await self.job_cmd_reply(
+                    m,
+                    job.OP_ANALYSIS,
+                    await s.read_until(b'\n', 1e8),
                 )
         except Exception as e:
             await self._fastcgi_handle_error(m, e, pkdexc())
@@ -374,12 +387,10 @@ class _Cmd(PKDict):
         if self._terminating or not self.msg.opId:
             return
         try:
-            await self.dispatcher.send(
-                self.dispatcher.format_op(
-                    self.msg,
-                    job.OP_RUN if self._is_compute else job.OP_ANALYSIS,
-                    reply=pkjson.load_any(text),
-                )
+            await self.dispatcher.job_cmd_reply(
+                self.msg,
+                job.OP_RUN if self._is_compute else job.OP_ANALYSIS,
+                text,
             )
         except Exception as exc:
             pkdlog('text={} error={} stack={}', text, exc, pkdexc())
@@ -460,7 +471,7 @@ export PYENV_ROOT=/home/vagrant/.pyenv
 export HOME=/home/vagrant
 source /home/vagrant/.bashrc
 eval export HOME=~$USER
-/usr/bin/env
+o/usr/bin/env
 {self._job_cmd_source_bashrc_dev()}
 '''
 
