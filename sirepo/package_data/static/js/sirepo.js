@@ -1664,6 +1664,14 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
             $rootScope.$broadcast('showSbatchLoginModal', e.params);
             return;
         }
+        if (e.routeName == 'login') {
+            // if redirecting to login, but the app thinks it is already logged in,
+            // then force a logout to avoid a login loop
+            if (SIREPO.authState.isLoggedIn) {
+                self.globalRedirect('authLogout');
+                return;
+            }
+        }
         self.localRedirect(e.routeName, e.params);
         return;
     };
