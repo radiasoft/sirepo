@@ -20,7 +20,7 @@ from sirepo import auth_db
 from sirepo import util
 import flask
 import flask.sessions
-import flask_oauthlib.client
+import authlib.flask.client
 import sirepo.template
 
 AUTH_METHOD = 'github'
@@ -147,7 +147,7 @@ def _init_model(db, base):
 
 
 def _oauth_client():
-    return flask_oauthlib.client.OAuth(flask.current_app).remote_app(
+    return authlib.flask.client.OAuth(flask.current_app).remote_app(
         'github',
         consumer_key=cfg.key,
         consumer_secret=cfg.secret,

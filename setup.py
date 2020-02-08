@@ -13,7 +13,7 @@ pykern.pksetup.setup(
     install_requires=[
         # some "concrete" dependencies in requirements.txt
         'Flask>=1.1',
-        'Flask-OAuthlib; python_version < "3"',
+#        'Flask-OAuthlib; python_version < "3"',
         'Flask-Mail; python_version < "3"',
         'Flask_SQLAlchemy',
         'SQLAlchemy; python_version < "3"',
