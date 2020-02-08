@@ -57,6 +57,7 @@ def test_srw(fc):
                 expect_title='E=4240 eV',
             ),
         ),
+        timeout=20,
         expect_completed=False,
     )
 
@@ -100,6 +101,7 @@ def test_warppba(fc):
                 expect_y_range='-2.064.*e-05, 2.064.*e-05, 66',
             ),
         ),
+        timeout=20,
         expect_completed=False,
     )
 
@@ -114,7 +116,7 @@ def test_warpvnd_1(fc):
                 expect_y_range='-1e-07, 1e-07, 23',
             ),
         ),
-        timeout=10,
+        timeout=20,
     )
 
 
@@ -133,7 +135,7 @@ def test_warpvnd_2(fc):
             ),
         ),
         expect_completed=False,
-        timeout=15,
+        timeout=20,
     )
 
 
