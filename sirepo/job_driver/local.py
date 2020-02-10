@@ -27,6 +27,8 @@ cfg = None
 
 class LocalDriver(job_driver.DriverBase):
 
+    _RECEIVE_ALIVE_TIMEOUT_SECS = 5
+
     __instances = PKDict()
 
     __cpu_slot_q = PKDict()

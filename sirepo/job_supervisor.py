@@ -560,7 +560,7 @@ class _Op(PKDict):
         )
         self.msg.update(opId=self.opId, opName=self.opName)
 
-    def destroy(self, cancel=True, error=None):
+    def destroy(self, cancel=True):
         if cancel:
             if self.task:
                 self.task.cancel()
@@ -603,7 +603,7 @@ class _Op(PKDict):
 
     def run_timeout(self):
         pkdlog('{} maxRunSecs={maxRunSecs}', self, **self)
-        self.destroy(error='timeout')
+        self.destroy()
 
     def send(self):
         if self.maxRunSecs:
