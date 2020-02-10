@@ -163,6 +163,7 @@
                 "sigma_s": 0.00065,
                 "symmetrize": "1",
                 "time_start": "0.0",
+                "use_moments_output_values": "0",
                 "use_twiss_command_values": "0"
             },
             {
@@ -188,7 +189,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "run_setup.output",
-            "startTime": 1515457073,
             "valueList": {
                 "x": [
                     "x",
@@ -224,7 +224,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "run_setup.sigma",
-            "startTime": 1515457056,
             "valueList": {
                 "x": [
                     "s",
@@ -387,7 +386,6 @@
             "framesPerSecond": 2,
             "histogramBins": 200,
             "panelTitle": "run_setup.centroid",
-            "startTime": 1515457073,
             "valueList": {
                 "x": [
                     "s",
@@ -430,8 +428,8 @@
             "fileId": "4-13",
             "framesPerSecond": 2,
             "histogramBins": 200,
+            "includeLattice": "1",
             "panelTitle": "twiss_output",
-            "startTime": 1515457012,
             "valueList": {
                 "x": [
                     "s",
@@ -478,8 +476,7 @@
             "xFileId": "4-13",
             "y": "betax",
             "yFile": "twiss_output.filename.sdds",
-            "yFileId": "4-13",
-            "includeLattice": "1"
+            "yFileId": "4-13"
         },
         "elements": [
             {
@@ -495,6 +492,7 @@
                 "command": "combine.py %i beam.sdds %o",
                 "commandFile": "combine.py",
                 "commandInputFile": "beam.sdds",
+                "determine_losses_from_pid": "1",
                 "directory": "",
                 "drift_matrix": "0",
                 "end_pass": "-1",
@@ -511,10 +509,22 @@
                 "np4": "0.0",
                 "np5": "0.0",
                 "np6": "0.0",
+                "np7": "0.0",
+                "np8": "0.0",
+                "np9": "0.0",
                 "on_pass": "-1",
                 "output_extension": "out",
                 "pass_interval": "-1",
                 "rootname": "",
+                "sp0": "",
+                "sp1": "",
+                "sp2": "",
+                "sp3": "",
+                "sp4": "",
+                "sp5": "",
+                "sp6": "",
+                "sp7": "",
+                "sp8": "",
                 "sp9": "",
                 "start_pass": "-1",
                 "type": "SCRIPT",
@@ -547,15 +557,22 @@
         "rpnVariables": [],
         "simulation": {
             "activeBeamlineId": 7,
-            "folder": "/",
+            "backtracking": "0",
+            "documentationUrl": "",
+            "folder": "/Examples",
+            "isExample": true,
             "name": "Script Element Example",
-            "simulationId": "fRqNPNkl",
+            "notes": "",
             "simulationMode": "serial",
-            "simulationSerial": 1515457075661689,
             "visualizationBeamlineId": 7
+        },
+        "twissReport": {
+            "includeLattice": "1",
+            "y1": "betax",
+            "y2": "betay",
+            "y3": "etax"
         }
     },
     "report": "bunchReport4",
-    "simulationType": "elegant",
-    "version": "20180108.000000"
+    "simulationType": "elegant"
 }

@@ -1,17 +1,24 @@
 # -*- coding: utf-8 -*-
-u"""Support routines and classes, mostly around errors.
+u"""Support routines and classes, mostly around errors and I/O.
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkconfig
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdlog, pkdp
+from pykern.pkdebug import pkdlog, pkdp, pkdexc
 import inspect
 import numconv
 import pykern.pkinspect
+import pykern.pkio
+import pykern.pkjson
 import random
 import werkzeug.exceptions
+
+
+#: length of string returned by create_token
+TOKEN_SIZE = 16
 
 
 class Reply(Exception):
@@ -45,11 +52,14 @@ class Error(Reply):
     """Raised to send an error response
 
     Args:
-        values (dict): values to put in the reply
+        values (dict or str): values to put in the reply or just the error
     """
     def __init__(self, values, *args, **kwargs):
-        assert values.get('error'), \
-            'values={} must contain "error"'.format(values)
+        if isinstance(values, pkconfig.STRING_TYPES):
+            values = PKDict(error=values)
+        else:
+            assert values.get('error'), \
+                'values={} must contain "error"'.format(values)
         super(Error, self).__init__(
             values,
             *args,
@@ -121,8 +131,51 @@ class UserAlert(Reply):
         )
 
 
+def convert_exception(exception, display_text='unexpected error'):
+    """Convert exception so can be raised
+
+    Args:
+        exception (Exception): Reply or other exception
+        display_text (str): what to send back to the client
+    Returns:
+        Exception: to raise
+    """
+    if isinstance(exception, Reply):
+        return exception
+    return UserAlert(display_text, 'exception={} str={} stack={}', type(exception), exception, pkdexc())
+
+
+def create_token(value):
+    import hashlib
+    import base64
+
+    if pkconfig.channel_in_internal_test() and cfg.create_token_secret:
+        return base64.b32encode(
+            hashlib.sha256(value + cfg.create_token_secret).digest(),
+        )[:TOKEN_SIZE]
+    return sirepo.util.random_base62(TOKEN_SIZE)
+
+
 def err(obj, fmt='', *args, **kwargs):
     return '{}: '.format(obj) + fmt.format(*args, **kwargs)
+
+
+def json_dump(obj, path=None, pretty=False, **kwargs):
+    """Formats as json as string, and writing atomically to disk
+
+    Args:
+        obj (object): any Python object
+        path (py.path): where to write (atomic) [None]
+        pretty (bool): pretty print [False]
+        kwargs (object): other arguments to `json.dumps`
+
+    Returns:
+        str: sorted and formatted JSON
+    """
+    res = pykern.pkjson.dump_pretty(obj, pretty=pretty, allow_nan=False, **kwargs)
+    if path:
+        pykern.pkio.atomic_write(path, res)
+    return res
 
 
 def raise_bad_request(*args, **kwargs):
@@ -163,3 +216,8 @@ def _raise(exc, fmt, *args, **kwargs):
     kwargs['pkdebug_frame'] = inspect.currentframe().f_back.f_back
     pkdlog(fmt, *args, **kwargs)
     raise getattr(werkzeug.exceptions, exc)()
+
+
+cfg = pkconfig.init(
+    create_token_secret=('oh so secret!', str, 'used for internal test only'),
+)

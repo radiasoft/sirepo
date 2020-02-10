@@ -490,7 +490,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                '<div data-ng-switch-when="Range" data-ng-class="fieldClass">',
                   '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field" data-field-delegate="fieldDelegate"></div>',
                '</div>',
-              SIREPO.appFieldEditors || '',
+              SIREPO.appFieldEditors,
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
                 '<div data-ng-if="wantEnumButtons" class="btn-group">',
@@ -537,7 +537,6 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 }
                 return true;
             }
-
             $scope.enum = SIREPO.APP_SCHEMA.enum;
             // field def: [label, type]
             $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
@@ -1246,10 +1245,11 @@ SIREPO.app.directive('panelLayout', function(appState, utilities, $window) {
 
 SIREPO.app.directive('safePath', function() {
 
-    var unsafe_path_chars = '\\/|&:+?\'"<>'.split('');
-    var unsafe_path_warn = ' must not include any of the following: ' +
-        unsafe_path_chars.join(' ');
-    var unsafe_path_regexp = new RegExp('[\\' + unsafe_path_chars.join('\\') + ']');
+    // keep in sync with sirepo.srschem.py _NAME_ILLEGALS
+    var unsafePathChars = '\\/|&:+?\'*"<>'.split('');
+    var unsafePathWarn = ' must not include: ' +
+        unsafePathChars.join(' ');
+    var unsafePathRegexp = new RegExp('[\\' + unsafePathChars.join('\\') + ']');
 
     return {
         restrict: 'A',
@@ -1257,15 +1257,23 @@ SIREPO.app.directive('safePath', function() {
         link: function(scope, element, attrs, ngModel) {
             scope.showWarning = false;
             scope.warningText = '';
+
+            function setWarningText(text) {
+                scope.warningText = (scope.info ? scope.info[0] : 'Value') + text;
+            }
+
             ngModel.$parsers.push(function (v) {
-                scope.showWarning = unsafe_path_regexp.test(v);
+                scope.showWarning = unsafePathRegexp.test(v);
                 if (scope.showWarning) {
-                    scope.warningText = (scope.info ? scope.info[0] : 'Value') + unsafe_path_warn;
-                    ngModel.$setValidity('size', false);
+                    setWarningText(unsafePathWarn);
                 }
                 else {
-                    ngModel.$setValidity('size', true);
+                    scope.showWarning = /^\.|\.$/.test(v);
+                    if (scope.showWarning) {
+                        setWarningText(' must not start or end with a "."');
+                    }
                 }
+                ngModel.$setValidity('size', ! scope.showWarning);
                 return v;
             });
 
@@ -2397,6 +2405,7 @@ SIREPO.app.directive('commonFooter', function() {
             '<div data-delete-simulation-modal="nav"></div>',
             '<div data-reset-simulation-modal="nav"></div>',
             '<div data-modal-editor="" view-name="simulation"></div>',
+            '<div data-sbatch-login-modal=""></div>',
         ].join(''),
     };
 });
@@ -2788,6 +2797,123 @@ SIREPO.app.directive('3dSliceWidget', function(appState, panelState) {
     };
 });
 
+SIREPO.app.directive('sbatchLoginModal', function() {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div id="sbatch-login-modal" class="modal fade" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog" role="document">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-warning">',
+                    '<span class="lead modal-title text-info">Login to {{ host }}</span>',
+                    '<button  type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '</div>',
+                    '<div class="modal-body">',
+                        '<form name="sbatchLoginModalForm">',
+                            '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
+                            '<div class="form-group">',
+                                '<input type="text" class="form-control" name="username" placeholder="username" data-ng-model="username" />',
+                            '</div>',
+                            '<div class="form-group">',
+                                '<input type="password" class="form-control" name="password" placeholder="password" data-ng-model="password" />',
+                            '</div>',
+                            '<div class="form-group">',
+                                '<input type="password" class="form-control" name="otp" placeholder="one time password" data-ng-show="showOtp" data-ng-model="otp"/>',
+                            '</div>',
+                            '<button  data-ng-click="submit()" class="btn btn-primary" data-ng-disabled="submitDisabled()">Submit</button>',
+                            ' <button  data-dismiss="modal" class="btn btn-default">Cancel</button>',
+                        '<form>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function(requestSender, $scope) {
+            $scope.otp = '';
+            $scope.password = '';
+            $scope.username = '';
+            var awaitingSendResponse = false;
+            var el = $('#sbatch-login-modal');
+            var onHidden = null;
+
+            el.on('hidden.bs.modal', function() {
+                $scope.otp = '';
+                $scope.password = '';
+                $scope.username = '';
+                $scope.sbatchLoginModalForm.$setPristine();
+                onHidden({'state': 'error', 'error': 'Please try again.'});
+                onHidden = null;
+                $scope.$apply();
+            });
+
+            function handleResponse(data) {
+                el.modal('hide');
+            }
+
+            $scope.$on('showSbatchLoginModal', function(e, data) {
+                // When a user enters invalid login creds 'showSbatchLoginModal' is
+                // broadcast again. onHidden keeps a references to the
+                // errorCallback of only the first broadcast's errorCallback
+                if (onHidden === null) {
+                    onHidden = data.errorCallback;
+                }
+                $scope.otp = '';
+                $scope.password = '';
+                awaitingSendResponse = false;
+                $scope.host = data.host;
+                $scope.showOtp = data.host.includes('nersc');
+                $scope.showWarning = data.reason === 'invalid-creds';
+                $scope.warningText = 'Your credentials were invalid. Please try again.';
+                $scope.submit = function() {
+                    awaitingSendResponse = true;
+                    requestSender.sendRequest(
+                        'sbatchLogin',
+                        handleResponse,
+                        {
+                            otp: $scope.otp,
+                            password: $scope.password,
+                            report: data.report,
+                            simulationId: data.simulationId,
+                            simulationType: data.simulationType,
+                            username: $scope.username,
+                        }
+                    );
+                };
+                el.modal('show');
+            });
+
+            $scope.submitDisabled = function() {
+                return $scope.password.length < 1 || $scope.username.length < 1 || awaitingSendResponse;
+            };
+        },
+    };
+
+});
+
+SIREPO.app.directive('sbatchCoresAndHours', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            simState: '=sbatchCoresAndHours',
+        },
+        template: [
+            '<div data-ng-show="showCoresAndHours()">',
+                '<div data-model-field="\'sbatchHours\'" data-model-name="simState.model"></div>',
+                '<div data-model-field="\'sbatchCores\'" data-model-name="simState.model"></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+
+            $scope.showCoresAndHours = function() {
+                var m = appState.models[$scope.simState.model];
+                return m && m.jobRunMode === 'sbatch';
+            };
+        }
+    };
+});
+
 SIREPO.app.directive('simSections', function(utilities) {
 
     return {
@@ -2804,7 +2930,7 @@ SIREPO.app.directive('simSections', function(utilities) {
     };
 });
 
-SIREPO.app.directive('simStatusPanel', function() {
+SIREPO.app.directive('simStatusPanel', function(appState) {
     return {
         restrict: 'A',
         scope: {
@@ -2834,14 +2960,20 @@ SIREPO.app.directive('simStatusPanel', function() {
               '<div data-ng-show="simState.isStateError()">',
                 '<div class="col-sm-12">{{ simState.stateAsText() }}</div>',
               '</div>',
+              '<div data-ng-if="simState.showJobSettings()">',
+                '<div class="form-group form-group-sm">',
+                  '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model"></div>',
+                  '<div data-sbatch-cores-and-hours="simState"></div>',
+                '</div>',
+              '</div>',
               '<div class="col-sm-6 pull-right">',
-                '<button class="btn btn-default" data-ng-click="simState.runSimulation()">Start New Simulation</button>',
+                '<button class="btn btn-default" data-ng-click="start()">Start New Simulation</button>',
               '</div>',
             '</form>',
             '<div class="clearfix"></div>',
             '<div data-ng-if="errorMessage()"><div class="text-danger"><strong>{{ ::appName }} Error:</strong></div><pre>{{ errorMessage() }}</pre></div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, appState, authState) {
             $scope.appName = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName;
 
             function callSimState(method) {
@@ -2864,6 +2996,16 @@ SIREPO.app.directive('simStatusPanel', function() {
                 }
                 return callSimState('notRunningMessage')
                     || 'Simulation ' + $scope.simState.stateAsText() + ': ' + $scope.simState.getFrameCount() + ' animation frames';
+            };
+            $scope.start = function() {
+                // The available jobRunModes can change. Default to parallel if
+                // the current jobRunMode doesn't exist
+                var j = appState.models[$scope.simState.model];
+                if (j && j.jobRunMode && j.jobRunMode in authState.jobRunModeMap === false) {
+                    j.jobRunMode = 'parallel';
+                }
+                appState.saveChanges($scope.simState.model);
+                $scope.simState.runSimulation();
             };
         },
     };
@@ -3203,18 +3345,22 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
         }
     }
 
+    function setRunningState(name) {
+        appState.models[name].isRunning = 1;
+        if (runningModels.indexOf(name) < 0) {
+            runningModels.push(name);
+        }
+    }
+
     self.computeFieldRanges = function(controller, name, percentComplete) {
         if (controller.simState.isProcessing()) {
-            appState.models[name].isRunning = 1;
-            if (runningModels.indexOf(name) < 0) {
-                runningModels.push(name);
-            }
+            setRunningState(name);
         }
         // this assumes all models share same range parameters
         if (percentComplete == 100 && ! controller.isComputingRanges) {
             controller.fieldRange = null;
             controller.isComputingRanges = true;
-            appState.models[name].isRunning = 1;
+            setRunningState(name);
             requestSender.getApplicationData(
                 {
                     method: 'compute_particle_ranges',

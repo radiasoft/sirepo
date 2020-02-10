@@ -10,8 +10,7 @@ import pytest
 
 
 def test_elegant(fc):
-    _r(
-        fc,
+    fc.sr_animation_run(
         'Compact Storage Ring',
         'animation',
         PKDict({
@@ -32,24 +31,23 @@ def test_elegant(fc):
 
 
 def test_jspec(fc):
-    _r(
-        fc,
+    fc.sr_animation_run(
         'DC Cooling Example',
         'animation',
         PKDict(
             beamEvolutionAnimation=PKDict(
-                expect_y_range=r'^.2.04.*e-07, 2.15e-06',
+                expect_y_range=r'^.2.0.*e-07, 2.15e-06',
             ),
             coolingRatesAnimation=PKDict(
                 expect_y_range=r'-0.04.*, 0.00[4-7]',
             ),
         ),
+        timeout=20,
     )
 
 
 def test_srw(fc):
-    _r(
-        fc,
+    fc.sr_animation_run(
         "Young's Double Slit Experiment",
         'multiElectronAnimation',
         PKDict(
@@ -59,13 +57,13 @@ def test_srw(fc):
                 expect_title='E=4240 eV',
             ),
         ),
+        timeout=20,
         expect_completed=False,
     )
 
 
 def test_synergia(fc):
-    _r(
-        fc,
+    fc.sr_animation_run(
         'Simple FODO',
         'animation',
         PKDict(
@@ -90,8 +88,7 @@ def test_synergia(fc):
 
 
 def test_warppba(fc):
-    _r(
-        fc,
+    fc.sr_animation_run(
         'Laser Pulse',
         'animation',
         PKDict(
@@ -104,40 +101,65 @@ def test_warppba(fc):
                 expect_y_range='-2.064.*e-05, 2.064.*e-05, 66',
             ),
         ),
+        timeout=20,
         expect_completed=False,
     )
 
 
-def test_warpvnd(fc):
-    _r(
-        fc,
+def test_warpvnd_1(fc):
+    fc.sr_animation_run(
         'Two Poles',
         'fieldCalculationAnimation',
         PKDict(
             fieldCalcAnimation=PKDict(
+                frame_index=0,
                 expect_y_range='-1e-07, 1e-07, 23',
             ),
         ),
+        timeout=20,
     )
-    _r(
-        fc,
+
+
+def test_warpvnd_2(fc):
+    fc.sr_animation_run(
         'Two Poles',
         'animation',
         PKDict(
             currentAnimation=PKDict(
+                frame_index=0,
                 expect_y_range='0.0, 3.*e-05',
             ),
             fieldAnimation=PKDict(
+                frame_index=0,
                 expect_y_range='-1e-07, 1e-07, 23',
             ),
         ),
         expect_completed=False,
+        timeout=20,
+    )
+
+
+def test_webcon(fc):
+    fc.sr_animation_run(
+        'Clustering Demo',
+        'epicsServerAnimation',
+        PKDict(
+            beamPositionReport=PKDict(
+                runSimulation=True,
+                expect_y_range='^.0.0.*, 0.0',
+            ),
+            correctorSettingReport=PKDict(
+                runSimulation=True,
+                expect_y_range=r'^.0.0.*, 0.0',
+            ),
+        ),
+        expect_completed=False,
+        timeout=10,
     )
 
 
 def test_zgoubi(fc):
-    _r(
-        fc,
+    fc.sr_animation_run(
         'EMMA',
         'animation',
         PKDict(
@@ -159,75 +181,3 @@ def test_zgoubi(fc):
             ),
         ),
     )
-
-
-def _r(fc, sim_name, compute_model, reports, expect_completed=True):
-    from pykern import pkconfig
-    from pykern import pkunit
-    from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdp, pkdlog
-    from sirepo import srunit
-    import re
-    import time
-
-    data = fc.sr_sim_data(sim_name)
-    cancel = None
-    try:
-        run = fc.sr_post(
-            'runSimulation',
-            PKDict(
-                forceRun=True,
-                models=data.models,
-                report=compute_model,
-                simulationId=data.models.simulation.simulationId,
-                simulationType=data.simulationType,
-            ),
-        )
-        import sirepo.sim_data
-
-        s = sirepo.sim_data.get_class(fc.sr_sim_type)
-        pkunit.pkeq('pending', run.state, 'not pending, run={}', run)
-        cancel = run.nextRequest
-        for _ in range(15):
-            if run.state in ('completed', 'error'):
-                cancel = None
-                break
-            run = fc.sr_post('runStatus', run.nextRequest)
-            time.sleep(1)
-        else:
-            pkunit.pkok(
-                not expect_completed,
-                'did not complete: runStatus={}',
-                run,
-            )
-        if expect_completed:
-            pkunit.pkeq('completed', run.state)
-        for r, a in reports.items():
-            if 'frame_index' in a:
-                c = [a.get('frame_index')]
-            else:
-                c = range(run.get(a.get('frame_count_key', 'frameCount')))
-                assert c, \
-                    'frame_count_key={} or frameCount={} is zero'.format(
-                        a.get('frame_count_key'), a.get('frameCount'),
-                    )
-            pkdlog('frameReport={} count={}', r, c)
-            for i in c:
-                pkdlog('frameIndex={}', i)
-                f = fc.sr_get_json(
-                    'simulationFrame',
-                    PKDict(frame_id=s.frame_id(data, run, r, i)),
-                )
-                for k, v in a.items():
-                    m = re.search('^expect_(.+)', k)
-                    if m:
-                        pkunit.pkre(
-                            v(i) if callable(v) else v,
-                            str(f.get(m.group(1))),
-                        )
-    finally:
-        try:
-            if cancel:
-                fc.sr_post('runCancel', cancel)
-        except Exception:
-            pass

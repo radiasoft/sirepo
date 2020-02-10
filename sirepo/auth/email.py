@@ -53,7 +53,6 @@ _EXPIRES_MINUTES = 8 * 60
 #: for adding to now
 _EXPIRES_DELTA = datetime.timedelta(minutes=_EXPIRES_MINUTES)
 
-
 @api_perm.allow_cookieless_set_user
 def api_authEmailAuthorized(simulation_type, token):
     """Clicked by user in an email
@@ -62,11 +61,11 @@ def api_authEmailAuthorized(simulation_type, token):
     """
     if http_request.is_spider():
         sirepo.util.raise_forbidden('robots not allowed')
-    sim = http_request.parse_params(type=simulation_type)
+    req = http_request.parse_params(type=simulation_type)
     with auth_db.thread_lock:
         u = AuthEmailUser.search_by(token=token)
         if u and u.expires >= srtime.utc_now():
-            n = _verify_confirm(sim.type, token, auth.need_complete_registration(u))
+            n = _verify_confirm(req.type, token, auth.need_complete_registration(u))
             u.query.filter(
                 (AuthEmailUser.user_name == u.unverified_email),
                 AuthEmailUser.unverified_email != u.unverified_email,
@@ -75,7 +74,7 @@ def api_authEmailAuthorized(simulation_type, token):
             u.token = None
             u.expires = None
             u.save()
-            auth.login(this_module, sim_type=sim.type, model=u, display_name=n)
+            auth.login(this_module, sim_type=req.type, model=u, display_name=n)
             raise AssertionError('auth.login returned unexpectedly')
         if not u:
             pkdlog('login with invalid token={}', token)
@@ -92,8 +91,8 @@ def api_authEmailAuthorized(simulation_type, token):
                 token,
                 auth.logged_in_user(),
             )
-            raise sirepo.util.Redirect(sirepo.uri.local_route(sim.type))
-        auth.login_fail_redirect(sim.type, this_module, 'email-token')
+            raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
+        auth.login_fail_redirect(req.type, this_module, 'email-token')
 
 
 @api_perm.require_cookie_sentinel
@@ -102,19 +101,19 @@ def api_authEmailLogin():
 
     User has sent an email, which needs to be verified.
     """
-    sim = http_request.parse_post()
-    email = _parse_email(sim.req_data)
+    req = http_request.parse_post()
+    email = _parse_email(req.req_data)
     with auth_db.thread_lock:
         u = AuthEmailUser.search_by(unverified_email=email)
         if not u:
             u = AuthEmailUser(unverified_email=email)
-        u.token = u.create_token()
+        u.create_token()
         u.save()
     return _send_login_email(
         u,
         uri_router.uri_for_api(
             'authEmailAuthorized',
-            dict(simulation_type=sim.type, token=u.token),
+            dict(simulation_type=req.type, token=u.token),
         ),
     )
 
@@ -161,19 +160,16 @@ def _init_model(db, base):
     # display_name is prompted after first login
     class AuthEmailUser(base, db.Model):
         EMAIL_SIZE = 255
-        TOKEN_SIZE = 16
         __tablename__ = 'auth_email_user_t'
         unverified_email = db.Column(db.String(EMAIL_SIZE), primary_key=True)
         uid = db.Column(db.String(8), unique=True)
         user_name = db.Column(db.String(EMAIL_SIZE), unique=True)
-        token = db.Column(db.String(TOKEN_SIZE), unique=True)
+        token = db.Column(db.String(sirepo.util.TOKEN_SIZE), unique=True)
         expires = db.Column(db.DateTime())
 
         def create_token(self):
-            token = sirepo.util.random_base62(self.TOKEN_SIZE)
             self.expires = datetime.datetime.utcnow() + _EXPIRES_DELTA
-            self.token = token
-            return token
+            self.token = sirepo.util.create_token(self.unverified_email)
 
     UserModel = AuthEmailUser
 
@@ -185,11 +181,11 @@ def _parse_email(data):
     return res
 
 
-def _send_login_email(user, url):
+def _send_login_email(user, uri):
     if not _smtp:
         assert pkconfig.channel_in('dev')
-        pkdlog('{}', url)
-        return http_reply.gen_json_ok({'url': url})
+        pkdlog('{}', uri)
+        return http_reply.gen_json_ok({'uri': uri})
     login_text = u'sign in to' if user.user_name else \
         u'confirm your email and finish creating'
     msg = flask_mail.Message(
@@ -202,7 +198,7 @@ Click the link below to {} your Sirepo account.
 This link will expire in {} hours and can only be used once.
 
 {}
-'''.format(login_text, _EXPIRES_MINUTES / 60, url)
+'''.format(login_text, _EXPIRES_MINUTES / 60, uri)
     )
     _smtp.send(msg)
     return http_reply.gen_json_ok()

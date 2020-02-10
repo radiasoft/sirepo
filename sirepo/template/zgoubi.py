@@ -5,9 +5,9 @@ u"""zgoubi execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import lattice, template_common, zgoubi_importer, zgoubi_parser
@@ -285,7 +285,7 @@ _TWISS_SUMMARY_LABELS = {
 
 
 def background_percent_complete(report, run_dir, is_running):
-    errors = ''
+    error = ''
     if not is_running:
         out_file = run_dir.join('{}.json'.format(template_common.OUTPUT_BASE_NAME))
         show_tunes_report = False
@@ -303,21 +303,21 @@ def background_percent_complete(report, run_dir, is_running):
             count = read_frame_count(run_dir)
         if count:
             plt_file = run_dir.join(_ZGOUBI_PLT_DATA_FILE)
-            return {
-                'hasPlotFile': plt_file.exists(),
-                'percentComplete': 100,
-                'frameCount': count,
-                'showTunesReport': show_tunes_report,
-                'showSpin3d': show_spin_3d,
-            }
+            return PKDict(
+                hasPlotFile=plt_file.exists(),
+                percentComplete=100,
+                frameCount=count,
+                showTunesReport=show_tunes_report,
+                showSpin3d=show_spin_3d,
+            )
         else:
-            errors = _parse_zgoubi_log(run_dir)
-    res = {
-        'percentComplete': 0,
-        'frameCount': 0,
-    }
-    if errors:
-        res['errors'] = errors
+            error = _parse_zgoubi_log(run_dir)
+    res = PKDict(
+        percentComplete=0,
+        frameCount=0,
+    )
+    if error:
+        res.error = error
     return res
 
 
@@ -394,14 +394,14 @@ def extract_tunes_report(run_dir, data):
     }, plot_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'])
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_frames)
     if data['method'] == 'tosca_info':
         return zgoubi_importer.tosca_info(data['tosca'])
 
 
-def get_data_file(run_dir, model, frame, options=None):
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
     filename = _ZGOUBI_FAI_DATA_FILE
     if options and options['suffix'] == _ZGOUBI_COMMAND_FILE:
         if model == 'tunesReport':
@@ -432,15 +432,8 @@ def sim_frame(frame_args):
     return None
 
 
-def import_file(request, lib_dir=None, tmp_dir=None, unit_test_mode=False):
-    f = request.files['file']
-    filename = werkzeug.secure_filename(f.filename)
-    data = zgoubi_importer.import_file(f.read(), unit_test_mode=unit_test_mode)
-    return data
-
-
-def parse_error_log(run_dir):
-    return None
+def import_file(req, unit_test_mode=False, **kwargs):
+    return zgoubi_importer.import_file(req.file_stream.read(), unit_test_mode=unit_test_mode)
 
 
 def python_source_for_model(data, model=None):
@@ -527,14 +520,6 @@ def save_report_data(data, run_dir):
     )
 
 
-def simulation_dir_name(report_name):
-    if 'bunchReport' in report_name:
-        return 'bunchReport'
-    if 'opticsReport' in report_name or report_name == 'twissSummaryReport':
-        return 'twissReport2'
-    return report_name
-
-
 def write_parameters(data, run_dir, is_parallel, python_file=template_common.PARAMETERS_PYTHON_FILE):
     pkio.write_text(
         run_dir.join(python_file),
@@ -544,7 +529,7 @@ def write_parameters(data, run_dir, is_parallel, python_file=template_common.PAR
     for el in data.models.elements:
         if el.type != 'TOSCA':
             continue
-        filename = str(run_dir.join(_SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el.magnetFile)))
+        filename = str(run_dir.join(_SIM_DATA.lib_file_name_with_model_field('TOSCA', 'magnetFile', el.magnetFile)))
         if zgoubi_importer.is_zip_file(filename):
             with zipfile.ZipFile(filename, 'r') as z:
                 for info in z.infolist():
@@ -867,6 +852,13 @@ def _parse_zgoubi_log(run_dir):
             num = match.group(1)
             if num in element_by_num:
                 res += '  element # {}: {}\n'.format(num, element_by_num[num])
+    path = run_dir.join(template_common.RUN_LOG)
+    if res == '' and path.exists():
+        text = pkio.read_text(str(path))
+        for line in text.split("\n"):
+            match = re.search(r'Fortran runtime error: (.*)', line)
+            if match:
+                res += '{}\n'.format(match.group(1))
     return res
 
 
@@ -895,9 +887,9 @@ def _prepare_tosca_element(el):
     file_count = zgoubi_parser.tosca_file_count(el)
     el['fileNames'] = el['fileNames'][:file_count]
 
-    filename = _SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el.magnetFile)
+    filename = _SIM_DATA.lib_file_name_with_model_field('TOSCA', 'magnetFile', el.magnetFile)
     if file_count == 1 and not zgoubi_importer.is_zip_file(filename):
-        el['fileNames'][0] = _SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el['fileNames'][0])
+        el['fileNames'][0] = _SIM_DATA.lib_file_name_with_model_field('TOSCA', 'magnetFile', el['fileNames'][0])
 
 
 def _read_data_file(path, mode='title'):

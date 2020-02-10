@@ -177,7 +177,6 @@
             "notes": "",
             "panelTitle": "run_setup.output",
             "plotRangeType": "none",
-            "startTime": 1573059142,
             "valueList": {
                 "x": [
                     "x",
@@ -258,7 +257,6 @@
             "notes": "",
             "panelTitle": "run_setup.sigma",
             "plotRangeType": "none",
-            "startTime": 1573059142,
             "valueList": {
                 "x": [
                     "s",
@@ -591,7 +589,6 @@
             "notes": "",
             "panelTitle": "run_setup.centroid",
             "plotRangeType": "none",
-            "startTime": 1573059142,
             "valueList": {
                 "x": [
                     "s",
@@ -688,7 +685,6 @@
             "notes": "",
             "panelTitle": "F1",
             "plotRangeType": "none",
-            "startTime": 1573059142,
             "valueList": {
                 "x": [
                     "x",
@@ -927,14 +923,12 @@
             "activeBeamlineId": 25,
             "backtracking": "1",
             "documentationUrl": "",
-            "folder": "/",
+            "folder": "/Examples",
             "isExample": true,
             "name": "Backtracking",
             "notes": "",
             "outOfSessionSimulationId": "",
-            "simulationId": "XAq0wkvZ",
             "simulationMode": "serial",
-            "simulationSerial": 1573059236398636,
             "visualizationBeamlineId": 25
         },
         "twissReport": {
@@ -945,6 +939,5 @@
         }
     },
     "report": "bunchReport4",
-    "simulationType": "elegant",
-    "version": "20191104.233754"
+    "simulationType": "elegant"
 }

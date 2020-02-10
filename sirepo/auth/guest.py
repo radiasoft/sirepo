@@ -35,11 +35,11 @@ _ONE_DAY = datetime.timedelta(days=1)
 @api_perm.require_cookie_sentinel
 def api_authGuestLogin(simulation_type):
     """You have to be an anonymous or logged in user at this point"""
-    sim = http_request.parse_params(type=simulation_type)
+    req = http_request.parse_params(type=simulation_type)
     # if already logged in as guest, just redirect
     if auth.user_if_logged_in(AUTH_METHOD):
-        auth.login_success_redirect(sim.type)
-    auth.login(this_module, sim_type=sim.type)
+        auth.login_success_response(req.type)
+    auth.login(this_module, sim_type=req.type)
     raise AssertionError('auth.login returned unexpectedly')
 
 

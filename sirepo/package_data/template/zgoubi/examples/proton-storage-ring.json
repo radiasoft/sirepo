@@ -1,5 +1,16 @@
 {
     "models": {
+        "SPNTRK": {
+            "KSO": "0",
+            "S_X": 0,
+            "S_Y": 0,
+            "S_Z": 1
+        },
+        "SRLOSS": {
+            "KSR": "0",
+            "applyToAll": "0",
+            "keyword": "BEND"
+        },
         "beamlines": [
             {
                 "angle": 0.6283185307179586,
@@ -131,10 +142,21 @@
             "beta_X": 1,
             "beta_Y": 6.069341,
             "beta_Z": 6.633772,
+            "coordinates": [
+                {
+                    "D": 1.0,
+                    "P": 0.0,
+                    "T": 0.0,
+                    "X": 0.0,
+                    "Y": 0.0,
+                    "Z": 0.0
+                }
+            ],
             "emit_X": 2e-14,
             "emit_Y": 4.6e-08,
             "emit_Z": 4.6e-08,
             "match_twiss_parameters": "1",
+            "method": "MCOBJET3",
             "n_cutoff2_X": 0,
             "n_cutoff2_Y": 0,
             "n_cutoff2_Z": 0,
@@ -142,23 +164,41 @@
             "n_cutoff_Y": 3,
             "n_cutoff_Z": 3,
             "particleCount": 1000,
+            "particleCount2": 1,
+            "particleSelector": "1",
             "rigidity": 4869.14813176
         },
         "bunchAnimation": {
+            "aspectRatio": "1",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0,
             "notes": "",
-            "startTime": 1542140859,
+            "particleSelector": "all",
+            "plotRangeType": "fit",
+            "plotType": "3d",
+            "showAllFrames": "0",
+            "verticalOffset": 0.0,
+            "verticalSize": 0,
             "x": "Y",
             "y": "T"
         },
         "bunchAnimation2": {
+            "aspectRatio": "1",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0,
             "notes": "",
-            "startTime": 1542140859,
+            "particleSelector": "all",
+            "plotRangeType": "fit",
+            "plotType": "3d",
+            "showAllFrames": "0",
+            "verticalOffset": 0.0,
+            "verticalSize": 0,
             "x": "Y",
             "y": "Z"
         },
@@ -189,6 +229,23 @@
             "notes": "",
             "x": "S",
             "y": "D1"
+        },
+        "elementStepAnimation": {
+            "aspectRatio": "0.5625",
+            "colorMap": "contrast",
+            "framesPerSecond": "2",
+            "histogramBins": 200,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0,
+            "notes": "",
+            "particleSelector": "all",
+            "plotRangeType": "none",
+            "plotType": "particle",
+            "showAllFrames": "0",
+            "verticalOffset": 0.0,
+            "verticalSize": 0,
+            "x": "X",
+            "y": "YDY"
         },
         "elements": [
             {
@@ -550,6 +607,23 @@
                 "type": "MULTIPOL"
             }
         ],
+        "energyAnimation": {
+            "aspectRatio": "1",
+            "colorMap": "contrast",
+            "framesPerSecond": "2",
+            "histogramBins": 200,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0,
+            "notes": "",
+            "particleSelector": "all",
+            "plotRangeType": "none",
+            "plotType": "heatmap",
+            "showAllFrames": "0",
+            "verticalOffset": 0.0,
+            "verticalSize": 0,
+            "x": "ENERG",
+            "y": "time"
+        },
         "opticsReport": {
             "includeLattice": "1",
             "notes": "",
@@ -567,19 +641,44 @@
             "Tau": 1e+99,
             "particleType": "PROTON"
         },
+        "particleAnimation": {
+            "aspectRatio": "0.75",
+            "notes": "",
+            "particleSelector": "all"
+        },
+        "particleCoordinate": {
+            "D": 1.0,
+            "P": 0.0,
+            "T": 0.0,
+            "X": 0.0,
+            "Y": 0.0,
+            "Z": 0.0
+        },
         "simulation": {
             "activeBeamlineId": 18,
-            "folder": "/",
+            "documentationUrl": "",
+            "folder": "/Examples",
             "isExample": true,
             "name": "Los Alamos Proton Storage Ring",
+            "notes": "",
             "outOfSessionSimulationId": "",
-            "simulationId": "97DomciI",
-            "simulationSerial": 1542140892359235,
             "visualizationBeamlineId": 18
         },
         "simulationSettings": {
+            "ip": 1,
             "npass": 10,
             "particleCount": 1000
+        },
+        "tunesReport": {
+            "aspectRatio": "0.75",
+            "notes": "",
+            "nuMax": 0.5,
+            "nuMin": 0.0,
+            "particleSelector": "all",
+            "plotAxis": "x",
+            "plotScale": "linear",
+            "turnCount": 10000,
+            "turnStart": 0
         },
         "twissReport": {
             "includeLattice": "1",
@@ -594,8 +693,8 @@
             "y1": "btx",
             "y2": "bty",
             "y3": "Dx"
-        }
+        },
+        "twissSummaryReport": {}
     },
-    "simulationType": "zgoubi",
-    "version": "20181109.173737"
+    "simulationType": "zgoubi"
 }

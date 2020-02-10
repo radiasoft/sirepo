@@ -65,41 +65,7 @@ def _r(fc, sim_name, analysis_model, shared_model=None):
     import time
 
     data = fc.sr_sim_data(sim_name)
-    cancel = None
-    try:
-        run = fc.sr_post(
-            'runSimulation',
-            PKDict(
-                forceRun=False,
-                models=data.models,
-                report=analysis_model,
-                simulationId=data.models.simulation.simulationId,
-                simulationType=data.simulationType,
-            ),
-        )
-        import sirepo.sim_data
-
-        s = sirepo.sim_data.get_class(fc.sr_sim_type)
-        pkunit.pkeq('pending', run.state, 'not pending, run={}', run)
-        cancel = next_request = run.nextRequest
-        for _ in range(7):
-            if run.state in ('completed', 'error'):
-                cancel = None
-                break
-            run = fc.sr_post('runStatus', run.nextRequest)
-            time.sleep(1)
-        else:
-            pkunit.pkfail('did not complete: runStatus={}', run)
-        pkunit.pkeq('completed', run.state)
-
-        if shared_model:
-            next_request.report = shared_model
-            run = fc.sr_post('runStatus', next_request)
-            pkunit.pkeq('completed',  run.state)
-
-    finally:
-        try:
-            if cancel:
-                fc.sr_post('runCancel', cancel)
-        except Exception:
-            pass
+    r = fc.sr_run_sim(data, analysis_model)
+    if shared_model:
+        r = fc.sr_run_sim(data, shared_model, timeout=1, forceRun=False)
+        pkunit.pkeq('completed',  r.state)

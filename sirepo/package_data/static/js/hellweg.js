@@ -3,7 +3,9 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
+SIREPO.app.config(function() {
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
+});
 
 SIREPO.app.factory('hellwegService', function(appState) {
     var self = {};

@@ -4,8 +4,9 @@ build_vars() {
     export sirepo_db_dir=/sirepo
     export sirepo_port=8000
     : ${build_image_base:=radiasoft/beamsim}
-    export build_passenv=TRAVIS_BRANCH
+    export build_passenv='TRAVIS_BRANCH TRAVIS_COMMIT'
     : ${TRAVIS_BRANCH:=}
+    : ${TRAVIS_COMMIT:=}
     local boot_dir=$build_run_user_home/.radia-run
     sirepo_tini_file=$boot_dir/tini
     sirepo_boot=$boot_dir/start
@@ -50,7 +51,7 @@ build_as_run_user() {
         pip install .
     done
 
-    SIREPO_PYTEST_SKIP=job_test bash test.sh
+    PYKERN_PKDEBUG_WANT_PID_TIME=1 SIREPO_PYTEST_SKIP=job_test:animation_test:report_test bash test.sh
     cd ..
     build_run_user_home_chmod_public
 }

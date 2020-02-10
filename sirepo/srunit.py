@@ -9,7 +9,11 @@ import flask
 import flask.testing
 import json
 import re
+from pykern.pkcollections import PKDict
 
+
+#: Default "app"
+MYAPP = 'myapp'
 
 #: import sirepo.server
 server = None
@@ -24,7 +28,7 @@ _JAVASCRIPT_REDIRECT_RE = re.compile(r'window.location = "([^"]+)"')
 CONFTEST_ALL_CODES = None
 
 
-def flask_client(cfg=None, sim_types=None):
+def flask_client(cfg=None, sim_types=None, job_run_mode=None):
     """Return FlaskClient with easy access methods.
 
     Creates a new run directory every test file so can assume
@@ -43,9 +47,11 @@ def flask_client(cfg=None, sim_types=None):
 
     a = 'srunit_flask_client'
     if not cfg:
-        cfg = {}
+        cfg = PKDict()
     t = sim_types or CONFTEST_ALL_CODES
     if t:
+        if isinstance(t, (tuple, list)):
+            t = ':'.join(t)
         cfg['SIREPO_FEATURE_CONFIG_SIM_TYPES'] = t
     if not (server and hasattr(app, a)):
         from pykern import pkconfig
@@ -64,29 +70,18 @@ def flask_client(cfg=None, sim_types=None):
             app = server.init()
             app.config['TESTING'] = True
             app.test_client_class = _TestClient
-            setattr(app, a, app.test_client())
+            setattr(app, a, app.test_client(job_run_mode=job_run_mode))
     return getattr(app, a)
 
 
 def init_auth_db():
     """Force a request that creates a user in db with just myapp"""
-    fc = flask_client(sim_types='myapp')
+    fc = flask_client(sim_types=MYAPP)
     fc.sr_login_as_guest()
     return fc, fc.sr_post('listSimulations', {'simulationType': fc.sr_sim_type})
 
 
-def file_as_stream(filename):
-    """Returns the file contents as a (text, stream) pair.
-    """
-    try:
-        import StringIO
-    except:
-        from io import StringIO
-    res = filename.read(mode='rb')
-    return res, StringIO.StringIO(res)
-
-
-def sim_data(sim_name, sim_type=None, sim_types=CONFTEST_ALL_CODES):
+def sim_data(sim_name=None, sim_type=None, sim_types=CONFTEST_ALL_CODES, cfg=None):
     """Get simulation data
 
     Args:
@@ -97,36 +92,43 @@ def sim_data(sim_name, sim_type=None, sim_types=CONFTEST_ALL_CODES):
         PKDict: simulation data
         object: flask client
     """
-    fc = flask_client(sim_types=sim_types or sim_type or 'myapp')
+    fc = flask_client(sim_types=sim_types or [sim_type or MYAPP], cfg=cfg)
     fc.sr_login_as_guest()
-    return fc.sr_sim_data(sim_name), fc
+    return fc.sr_sim_data(sim_name=sim_name, sim_type=sim_type), fc
 
 
-def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie=True, **kwargs):
+def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie=True, want_user=True, **kwargs):
     fc = flask_client(cfg, **kwargs)
     try:
         from pykern import pkunit
-        from pykern.pkcollections import PKDict
+        from pykern import pkcollections
 
         if before_request:
             before_request(fc)
         setattr(
             server._app,
             server.SRUNIT_TEST_IN_REQUEST,
-            PKDict(op=op, want_cookie=want_cookie),
+            PKDict(op=op, want_cookie=want_cookie, want_user=want_user),
         )
         from sirepo import uri_router
-        resp = fc.get(
+        r = fc.get(
             uri_router.srunit_uri,
             headers=headers,
         )
-        pkunit.pkeq(200, resp.status_code, 'FAIL: resp={}', resp.status)
+        pkunit.pkeq(200, r.status_code, 'FAIL: unexpected status={}', r.status)
+        if r.mimetype == 'text/html':
+            m = _JAVASCRIPT_REDIRECT_RE.search(r.data)
+            if m:
+                pkunit.pkfail('unexpected redirect={}', m.group(1))
+            pkunit.pkfail('unexpected html response={}', r.data)
+        d = pkcollections.json_load_any(r.data)
+        pkunit.pkeq('ok', d.get('state'), 'FAIL: expecting state=ok, but got data={}', d)
     finally:
         try:
             delattr(server._app, server.SRUNIT_TEST_IN_REQUEST)
         except AttributeError:
             pass
-    return resp
+    return r
 
 
 def wrap_in_request(*args, **kwargs):
@@ -158,6 +160,60 @@ def wrap_in_request(*args, **kwargs):
 
 
 class _TestClient(flask.testing.FlaskClient):
+
+    SR_SIM_TYPE_DEFAULT = MYAPP
+
+    def __init__(self, *args, **kwargs):
+        self.sr_job_run_mode = kwargs.pop('job_run_mode')
+        super(_TestClient, self).__init__(*args, **kwargs)
+        self.sr_sbatch_logged_in = False
+        self.sr_sim_type = None
+        self.sr_uid = None
+
+    def sr_animation_run(self, sim_name, compute_model, reports, **kwargs):
+        from pykern import pkunit
+        from pykern.pkcollections import PKDict
+        from pykern.pkdebug import pkdp, pkdlog
+        import re
+
+        data = self.sr_sim_data(sim_name)
+        run = self.sr_run_sim(data, compute_model, **kwargs)
+        for r, a in reports.items():
+            if 'runSimulation' in a:
+                f = self.sr_run_sim(data, r)
+                for k, v in a.items():
+                    m = re.search('^expect_(.+)', k)
+                    if m:
+                        pkunit.pkre(
+                            v(i) if callable(v) else v,
+                            str(f.get(m.group(1))),
+                        )
+                continue
+            if 'frame_index' in a:
+                c = [a.get('frame_index')]
+            else:
+                c = range(run.get(a.get('frame_count_key', 'frameCount')))
+                assert c, \
+                    'frame_count_key={} or frameCount={} is zero'.format(
+                        a.get('frame_count_key'), a.get('frameCount'),
+                    )
+            pkdlog('frameReport={} count={}', r, c)
+            import sirepo.sim_data
+
+            s = sirepo.sim_data.get_class(self.sr_sim_type)
+            for i in c:
+                pkdlog('frameIndex={} frameCount={}', i, run.get('frameCount'))
+                f = self.sr_get_json(
+                    'simulationFrame',
+                    PKDict(frame_id=s.frame_id(data, run, r, i)),
+                )
+                for k, v in a.items():
+                    m = re.search('^expect_(.+)', k)
+                    if m:
+                        pkunit.pkre(
+                            v(i) if callable(v) else v,
+                            str(f.get(m.group(1))),
+                        )
 
     def sr_auth_state(self, **kwargs):
         """Gets authState and prases
@@ -233,7 +289,7 @@ class _TestClient(flask.testing.FlaskClient):
         )
 
     def sr_login_as_guest(self, sim_type=None):
-        """Setups up a guest login
+        """Sets up a guest login
 
         Args:
             sim_type (str): simulation type ['myapp']
@@ -246,7 +302,19 @@ class _TestClient(flask.testing.FlaskClient):
         # Get a cookie
         self.sr_get('authState')
         self.sr_get('authGuestLogin', {'simulation_type': self.sr_sim_type})
-        return self.sr_auth_state(needCompleteRegistration=False, isLoggedIn=True).uid
+        self.sr_uid = self.sr_auth_state(needCompleteRegistration=False, isLoggedIn=True).uid
+        return self.sr_uid
+
+
+    def sr_logout(self):
+        """Logout but leave cookie in place
+
+        Returns:
+            object: self
+        """
+        self.sr_uid = None
+        self.sr_get('authLogout', PKDict(simulation_type=self.sr_sim_type))
+        return self
 
 
     def sr_post(self, route_or_uri, data, params=None, raw_response=False, **kwargs):
@@ -265,49 +333,148 @@ class _TestClient(flask.testing.FlaskClient):
         op = lambda r: self.post(r, data=json.dumps(data), content_type='application/json')
         return self.__req(route_or_uri, params, {}, op, raw_response=raw_response, **kwargs)
 
-    def sr_post_form(self, route_or_uri, data, params=None, raw_response=False, **kwargs):
+    def sr_post_form(self, route_or_uri, data, params=None, raw_response=False, file=None, **kwargs):
         """Posts form data to route_or_uri to server with data
 
         Args:
             route_or_uri (str): identifies route in schema-common.json
             data (dict): will be formatted as JSON
             params (dict): optional params to route_or_uri
+            file (object): if str, will look in data_dir, else assumed py.path
 
         Returns:
             object: Parsed JSON result
         """
-        op = lambda r: self.post(r, data=data)
-        return self.__req(route_or_uri, params, {}, op, raw_response=raw_response, **kwargs)
+        from pykern import pkunit, pkconfig
 
-    def sr_sim_data(self, sim_name='Scooby Doo', sim_type=None):
+        if file:
+            p = file
+            if isinstance(p, pkconfig.STRING_TYPES):
+                p = pkunit.data_dir().join(p)
+            data.file = (open(str(p), 'rb'), p.basename)
+        return self.__req(
+            route_or_uri,
+            params,
+            PKDict(),
+            lambda r: self.post(r, data=data),
+            raw_response=raw_response,
+            **kwargs
+        )
+
+    def sr_run_sim(
+            self,
+            data,
+            model,
+            expect_completed=True,
+            timeout=10,
+            **post_args
+    ):
+        from pykern import pkunit
+        from pykern.pkdebug import pkdlog, pkdexc
+        import time
+
+        if self.sr_job_run_mode:
+            data.models[model].jobRunMode = self.sr_job_run_mode
+
+        cancel = None
+        try:
+            r = self.sr_post(
+                'runSimulation',
+                PKDict(
+                    models=data.models,
+                    report=model,
+                    simulationId=data.models.simulation.simulationId,
+                    simulationType=data.simulationType,
+                ).pkupdate(**post_args),
+            )
+            if r.state == 'completed':
+                return r
+            cancel = r.get('nextRequest')
+            for _ in range(timeout):
+                if r.state in ('completed', 'error'):
+                    pkdlog(r.state)
+                    cancel = None
+                    break
+                r = self.sr_post('runStatus', r.nextRequest)
+                time.sleep(1)
+            else:
+                pkunit.pkok(not expect_completed, 'did not complete: runStatus={}', r)
+            if expect_completed:
+                pkunit.pkeq('completed', r.state)
+            return r
+        finally:
+            if cancel:
+                pkdlog('runCancel')
+                self.sr_post('runCancel', cancel)
+            import subprocess
+            o = subprocess.check_output(['ps', 'axww'], stderr=subprocess.STDOUT)
+            o = filter(lambda x: 'mpiexec' in x, o.split('\n'))
+            if o:
+                pkdlog('found "mpiexec" after cancel in ps={}', '\n'.join(o))
+                # this exception won't be seen because in finally
+                raise AssertionError('cancel failed')
+
+    def sr_sbatch_animation_run(self, sim_name, compute_model, reports, **kwargs):
+        from pykern.pkunit import pkexcept
+
+        d = self.sr_sim_data(sim_name)
+        if not self.sr_sbatch_logged_in:
+            with pkexcept('SRException.*no-creds'):
+                # Must try to run sim first to seed job_supervisor.db
+                self.sr_run_sim(d, compute_model, expect_completed=False)
+            self.sr_sbatch_login(compute_model, d)
+            self.sr_sbatch_logged_in = True
+        self.sr_animation_run(sim_name, compute_model, reports, **kwargs)
+
+    def sr_sbatch_login(self, compute_model, data):
+        import getpass
+
+        p = getpass.getuser()
+        self.sr_post(
+            'sbatchLogin',
+            PKDict(
+                password=p,
+                report=compute_model,
+                simulationId=data.models.simulation.simulationId,
+                simulationType=data.simulationType,
+                username=p,
+            )
+        )
+
+    def sr_sim_data(self, sim_name=None, sim_type=None):
         """Return simulation data by name
 
         Args:
-            sim_name (str): case sensitive name
-            sim_type (str): app [defaults to myapp]
+            sim_name (str): case sensitive name ['Scooby Doo']
+            sim_type (str): app ['myapp']
 
         Returns:
             dict: data
         """
-        from pykern.pkcollections import PKDict
         from pykern import pkunit
         from pykern.pkdebug import pkdpretty
 
         self.sr_sim_type_set(sim_type)
+
+        if not sim_name:
+            sim_name = 'Scooby Doo'
         d = self.sr_post(
             'listSimulations',
             PKDict(
                 simulationType=self.sr_sim_type,
                 search=PKDict({'simulation.name': sim_name}),
             )
-        )[0].simulation
+        )
+        assert 1 == len(d), \
+            'listSimulations name={} returned count={}'.format(sim_name, len(d))
+        d = d[0].simulation
         res = self.sr_get_json(
             'simulationData',
-            {
-                'simulation_type': self.sr_sim_type,
-                'pretty': '0',
-                'simulation_id': d['simulationId'],
-            },
+            PKDict(
+                simulation_type=self.sr_sim_type,
+                pretty='0',
+                simulation_id=d.simulationId,
+            ),
         )
         pkunit.pkeq(sim_name, res.models.simulation.name)
         return res
@@ -320,7 +487,7 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             object: self
         """
-        self.sr_sim_type = sim_type or getattr(self, 'sr_sim_type', 'myapp')
+        self.sr_sim_type = sim_type or self.sr_sim_type or self.SR_SIM_TYPE_DEFAULT
         return self
 
     def __req(self, route_or_uri, params, query, op, raw_response, **kwargs):
@@ -334,8 +501,8 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             object: parsed JSON result
         """
-        import pykern.pkcollections
         from pykern.pkdebug import pkdlog, pkdexc, pkdc, pkdp
+        import pykern.pkjson
         import sirepo.http_reply
         import sirepo.uri
         import sirepo.util
@@ -350,11 +517,19 @@ class _TestClient(flask.testing.FlaskClient):
             u = sirepo.uri.server_route(route_or_uri, params, query)
             pkdc('uri={}', u)
             r = op(u)
-            pkdc('status={} data={}', r.status_code, r.data)
+            pkdc(
+                'status={} data={}',
+                r.status_code,
+                '<snip-file>' if 'download-data-file' in u else r.data,
+            )
             # Emulate code in sirepo.js to deal with redirects
             if r.status_code == 200 and r.mimetype == 'text/html':
                 m = _JAVASCRIPT_REDIRECT_RE.search(r.data)
                 if m:
+                    if m.group(1).endswith('#/error'):
+                        raise sirepo.util.Error(
+                            PKDict(error='server error uri={}'.format(m.group(1))),
+                        )
                     if kwargs.get('redirect', True):
                         # Execute the redirect
                         return self.__req(
@@ -381,7 +556,7 @@ class _TestClient(flask.testing.FlaskClient):
             if raw_response:
                 return r
             # Treat SRException as a real exception (so we don't ignore them)
-            d = pykern.pkcollections.json_load_any(r.data)
+            d = pykern.pkjson.load_any(r.data)
             if (
                 isinstance(d, dict)
                 and d.get('state') == sirepo.http_reply.SR_EXCEPTION_STATE
@@ -392,7 +567,7 @@ class _TestClient(flask.testing.FlaskClient):
                 )
             return d
         except Exception as e:
-            if not isinstance(e, sirepo.util.SRException):
+            if not isinstance(e, (sirepo.util.Reply)):
                 pkdlog(
                     'Exception: {}: msg={} uri={} status={} data={} stack={}',
                     type(e),

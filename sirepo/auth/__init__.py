@@ -79,42 +79,7 @@ def api_authCompleteRegistration():
 
 @api_perm.allow_visitor
 def api_authState():
-    s = cookie.unchecked_get_value(_COOKIE_STATE)
-    v = pkcollections.Dict(
-        avatarUrl=None,
-        displayName=None,
-        guestIsOnlyMethod=not non_guest_methods,
-        isGuestUser=False,
-        isLoggedIn=_is_logged_in(s),
-        isLoginExpired=False,
-        method=cookie.unchecked_get_value(_COOKIE_METHOD),
-        needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
-        userName=None,
-        visibleMethods=visible_methods,
-    )
-    u = cookie.unchecked_get_value(_COOKIE_USER)
-    if v.isLoggedIn:
-        if v.method == METHOD_GUEST:
-            # currently only method to expire login
-            v.displayName = _GUEST_USER_DISPLAY_NAME
-            v.isGuestUser = True
-            v.isLoginExpired = _METHOD_MODULES[METHOD_GUEST].is_login_expired()
-            v.needCompleteRegistration = False
-            v.visibleMethods = non_guest_methods
-        else:
-            r = auth_db.UserRegistration.search_by(uid=u)
-            if r:
-                v.displayName = r.display_name
-        _method_auth_state(v, u)
-    if pkconfig.channel_in('dev'):
-        # useful for testing/debugging
-        v.uid = u
-    pkdc('state={}', v)
-    return http_reply.render_static(
-        'auth-state',
-        'js',
-        pkcollections.Dict(auth_state=v),
-    )
+    return http_reply.render_static('auth-state', 'js', PKDict(auth_state=_auth_state()))
 
 
 @api_perm.allow_visitor
@@ -123,16 +88,16 @@ def api_authLogout(simulation_type=None):
 
     Redirects to root simulation page.
     """
-    sim = None
+    req = None
     if simulation_type:
         try:
-            sim = http_request.parse_params(type=simulation_type)
+            req = http_request.parse_params(type=simulation_type)
         except AssertionError:
             pass
     if _is_logged_in():
         cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         _set_log_user()
-    return http_reply.gen_redirect_for_app_root(sim and sim.type)
+    return http_reply.gen_redirect_for_app_root(req and req.type)
 
 
 def complete_registration(name=None):
@@ -156,13 +121,11 @@ def guest_uids():
 
 
 def init_apis(app, *args, **kwargs):
-    global uri_router, simulation_db, _app, cfg, visible_methods, valid_methods, non_guest_methods
+    global uri_router, simulation_db, _app, visible_methods, valid_methods, non_guest_methods
     assert not _METHOD_MODULES
 
-    cfg = pkconfig.init(
-        methods=((METHOD_GUEST,), set, 'for logging in'),
-        deprecated_methods=(set(), set, 'for migrating to methods'),
-    )
+    assert not cfg.logged_in_user, \
+        'Do not set $SIREPO_AUTH_LOGGED_IN_USER in server'
     uri_router = importlib.import_module('sirepo.uri_router')
     simulation_db = importlib.import_module('sirepo.simulation_db')
     auth_db.init(app)
@@ -181,12 +144,14 @@ def init_apis(app, *args, **kwargs):
     cookie.auth_hook_from_header = _auth_hook_from_header
 
 
-def init_mock(uid):
+def init_mock(uid=None, sim_type=None):
     """A mock user for pkcli"""
     cookie.init_mock()
+    import sirepo.auth.guest
     if uid:
-        import sirepo.auth.guest
         _login_user(sirepo.auth.guest, uid)
+    else:
+        login(sirepo.auth.guest, is_mock=True)
 
 
 def logged_in_user():
@@ -210,7 +175,7 @@ def logged_in_user():
     return res
 
 
-def login(module, uid=None, model=None, sim_type=None, display_name=None):
+def login(module, uid=None, model=None, sim_type=None, display_name=None, is_mock=False):
     """Login the user
 
     Raises an exception if successful, except in the case of methods
@@ -259,10 +224,12 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None):
             model.save()
     if display_name:
         complete_registration(_parse_display_name(display_name))
+    if is_mock:
+        return
     if sim_type:
         if guest_uid and guest_uid != uid:
             simulation_db.move_user_simulations(guest_uid, uid)
-        login_success_redirect(sim_type)
+        login_success_response(sim_type)
     assert not module.AUTH_METHOD_VISIBLE
 
 
@@ -276,18 +243,21 @@ def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js=False
             sim_type=sim_type,
         ),
         'login failed: reason={} method={}',
+        reason,
+        module.AUTH_METHOD,
     )
 
 
-def login_success_redirect(sim_type):
+def login_success_response(sim_type):
     r = None
     if cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION:
         if cookie.get_value(_COOKIE_METHOD) == METHOD_GUEST:
             complete_registration()
         else:
             r = 'completeRegistration'
-    raise sirepo.util.SRException(r, PKDict(sim_type=sim_type, reload_js=True))
-
+    raise sirepo.util.Response(
+        response=http_reply.gen_json_ok(PKDict(authState=_auth_state())),
+    )
 
 def need_complete_registration(model):
     """Does unauthenticated user need to complete registration?
@@ -379,7 +349,7 @@ def reset_state():
     _set_log_user()
 
 
-def user_dir_not_found(uid):
+def user_dir_not_found(user_dir, uid):
     """Called by simulation_db when user_dir is not found
 
     Deletes any user records
@@ -399,7 +369,8 @@ def user_dir_not_found(uid):
     raise util.SRException(
         'login',
         PKDict(reload_js=True),
-        'simulation_db dir not found, deleted uid={}',
+        'simulation_db dir={} not found, deleted uid={}',
+        user_dir,
         uid,
     )
 
@@ -489,8 +460,67 @@ def _auth_hook_from_header(values):
     return values
 
 
+def _auth_state():
+    s = cookie.unchecked_get_value(_COOKIE_STATE)
+    v = pkcollections.Dict(
+        avatarUrl=None,
+        displayName=None,
+        guestIsOnlyMethod=not non_guest_methods,
+        isGuestUser=False,
+        isLoggedIn=_is_logged_in(s),
+        isLoginExpired=False,
+        jobRunModeMap=simulation_db.JOB_RUN_MODE_MAP,
+        method=cookie.unchecked_get_value(_COOKIE_METHOD),
+        needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
+        userName=None,
+        visibleMethods=visible_methods,
+    )
+    u = cookie.unchecked_get_value(_COOKIE_USER)
+    if v.isLoggedIn:
+        if v.method == METHOD_GUEST:
+            # currently only method to expire login
+            v.displayName = _GUEST_USER_DISPLAY_NAME
+            v.isGuestUser = True
+            v.isLoginExpired = _METHOD_MODULES[METHOD_GUEST].is_login_expired()
+            v.needCompleteRegistration = False
+            v.visibleMethods = non_guest_methods
+        else:
+            r = auth_db.UserRegistration.search_by(uid=u)
+            if r:
+                v.displayName = r.display_name
+        _method_auth_state(v, u)
+    if pkconfig.channel_in('dev'):
+        # useful for testing/debugging
+        v.uid = u
+    pkdc('state={}', v)
+    return v
+
+
 def _get_user():
     return cookie.unchecked_get_value(_COOKIE_USER)
+
+
+def _init():
+    global cfg
+
+    cfg = pkconfig.init(
+        methods=((METHOD_GUEST,), set, 'for logging in'),
+        deprecated_methods=(set(), set, 'for migrating to methods'),
+        logged_in_user=(None, str, 'Only for sirepo.job_supervisor'),
+    )
+    if not cfg.logged_in_user:
+        return
+    global logged_in_user, user_dir_not_found
+
+    def logged_in_user():
+        return cfg.logged_in_user
+
+    def user_dir_not_found(d, u):
+        # can't raise in a lambda so do something like this
+        raise AssertionError('user_dir={} not found'.format(d))
+
+    cfg.deprecated_methods = set()
+    cfg.methods = set((METHOD_GUEST,))
 
 
 def _is_logged_in(state=None):
@@ -574,3 +604,6 @@ def _validate_method(module, sim_type=None):
         return None
     pkdlog('invalid auth method={}'.format(module.AUTH_METHOD))
     login_fail_redirect(sim_type, module, 'invalid-method', reload_js=True)
+
+
+_init()

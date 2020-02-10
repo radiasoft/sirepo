@@ -99,7 +99,8 @@
         "homePage": "/en/*<path_info>",
         "homePageOld": "/old",
         "importArchive": "/import-archive",
-        "importFile": "/import-file/?<simulation_type>",
+        "importFile": "/import-file/<simulation_type>",
+        "jobSupervisorPing": "/job-supervisor-ping",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",
@@ -110,6 +111,7 @@
         "runCancel": "/run-cancel",
         "runSimulation": "/run-simulation",
         "runStatus": "/run-status",
+        "sbatchLogin": "/sbatch-login",
         "saveSimulationData": "/save-simulation",
         "serverStatus": "/server-status",
         "simulationData": "/simulation/<simulation_type>/<simulation_id>/<pretty>/?<section>",
@@ -212,6 +214,11 @@
                 ["jet", "jet"],
                 ["contrast", "high contrast"]
             ],
+            "JobRunMode": [
+                ["sequential", "sequential"],
+                ["parallel", "parallel"],
+                ["sbatch", "sbatch"]
+            ],
             "FramesPerSecond": [
                 ["1", "1"],
                 ["2", "2"],
@@ -300,6 +307,13 @@
                   "templateUrl": "/static/html/copy-session.html"
                 }
             },
+            "sbatchLogin": {
+                "route": "/sbatch-login/:isModal/:reason/:simulationType/:simulationId/:report/:host",
+                "config": {
+                  "controller": "SbatchLoginController as sbatchLogin",
+                  "templateUrl": "/static/html/sbatch-login.html"
+                }
+            },
             "serverUpgraded": {
                 "route": "/server-upgraded",
                 "config": {
@@ -333,7 +347,7 @@
             },
             "simulation": {
                 "name": ["Name", "SimulationName"],
-                "folder": ["Folder", "UserFolder"],
+                "folder": ["Folder", "UserFolder", "/"],
                 "documentationUrl": ["Documentation URL", "OptionalString", ""],
                 "notes": ["Notes", "Text", ""]
             }

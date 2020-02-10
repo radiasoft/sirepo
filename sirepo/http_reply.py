@@ -7,9 +7,13 @@ u"""response generation
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
+from pykern import pkconst
+from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import flask
+import mimetypes
 import pykern.pkinspect
 import re
 import sirepo.http_request
@@ -31,12 +35,16 @@ _STATE = 'state'
 #: Default response
 _RESPONSE_OK = PKDict({_STATE: 'ok'})
 
-
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\n|$)', flags=re.IGNORECASE)
 
 #: routes that will require a reload
 _RELOAD_JS_ROUTES = None
+
+def as_attachment(resp, content_type, filename):
+    resp.mimetype = content_type
+    resp.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
+    return resp
 
 
 def gen_exception(exc):
@@ -52,6 +60,36 @@ def gen_exception(exc):
     if isinstance(exc, werkzeug.exceptions.HTTPException):
         return _gen_exception_werkzeug(exc)
     return _gen_exception_error(exc)
+
+
+def gen_file_as_attachment(content_or_path, filename=None, content_type=None):
+    """Generate a flask file attachment response
+
+    Args:
+        content_or_path (bytes or py.path): File contents
+        filename (str): Name of file [content_or_path.basename]
+        content_type (str): MIMETYPE of file [guessed]
+
+    Returns:
+        flask.Response: reply object
+    """
+    def f():
+        if isinstance(content_or_path, pkconst.PY_PATH_LOCAL_TYPE):
+            return flask.send_file(str(content_or_path))
+        return flask.current_app.response_class(content_or_path)
+
+    if filename is None:
+        # dies if content_or_path is not a path
+        filename = content_or_path.basename
+    if content_type is None:
+        content_type, _ = mimetypes.guess_type(filename)
+        if content_type is None:
+            content_type = 'application/octet-stream'
+        # overrule mimetypes for this case
+        elif content_type == 'text/x-python':
+            content_type = 'text/plain'
+    return headers_for_no_cache(
+        as_attachment(f(), content_type, filename))
 
 
 def gen_json(value, pretty=False, response_kwargs=None):
@@ -96,14 +134,15 @@ def gen_redirect(uri):
     Returns:
         flask.Response: reply object
     """
-    return gen_redirect_for_anchor(uri=uri)
+    return gen_redirect_for_anchor(uri)
 
 
 def gen_redirect_for_anchor(uri, **kwargs):
     """Redirect uri with an anchor using javascript
 
     Safari browser doesn't support redirects with anchors so we do this
-    in all cases.
+    in all cases. It also allows us to return sr_exception to the app
+    when we don't know if we can.
 
     Args:
         uri (str): where to redirect to
@@ -113,7 +152,7 @@ def gen_redirect_for_anchor(uri, **kwargs):
     return render_static(
         'javascript-redirect',
         'html',
-        pkcollections.Dict(redirect_uri=uri),
+        pkcollections.Dict(redirect_uri=uri, **kwargs),
     )
 
 
@@ -128,7 +167,7 @@ def gen_redirect_for_app_root(sim_type):
     return gen_redirect_for_anchor(sirepo.uri.app_root(sim_type))
 
 
-def gen_redirect_for_local_route(sim_type=None, route=None, params=None, query=None):
+def gen_redirect_for_local_route(sim_type=None, route=None, params=None, query=None, **kwargs):
     """Generate a javascript redirect to sim_type/route/params
 
     Default route (None) only supported for ``default``
@@ -144,7 +183,15 @@ def gen_redirect_for_local_route(sim_type=None, route=None, params=None, query=N
     """
     return gen_redirect_for_anchor(
         sirepo.uri.local_route(sim_type, route, params, query),
+        **kwargs
     )
+
+
+def gen_tornado_exception(exc):
+    return PKDict({
+       _STATE: SR_EXCEPTION_STATE,
+       SR_EXCEPTION_STATE: exc.sr_args,
+    })
 
 
 def headers_for_no_cache(resp):
@@ -193,7 +240,7 @@ def render_static(base, ext, j2_ctx, cache_ok=False):
 
 
 def _gen_exception_error(exc):
-    pkdlog('unsupported exception={}', exc)
+    pkdlog('unsupported exception={} msg={}', type(exc), exc)
     return gen_redirect_for_local_route(None, route='error')
 
 
@@ -276,7 +323,12 @@ def _gen_exception_reply_SRException(args):
             }),
         )
     pkdc('redirect to route={} params={}  type={}', r, p, t)
-    return gen_redirect_for_local_route(t, route=r, params=p)
+    return gen_redirect_for_local_route(
+        t,
+        route=r,
+        params=p,
+        sr_exception=pkjson.dump_pretty(args, pretty=False),
+    )
 
 
 def _gen_exception_reply_UserAlert(args):

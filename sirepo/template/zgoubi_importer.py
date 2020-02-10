@@ -56,14 +56,15 @@ def tosca_info(tosca):
     # determine the list of available files (from zip if necessary)
     # compute the tosca length from datafile
     #TODO(pjm): keep a cache on the tosca model?
-    datafile = simulation_db.simulation_lib_dir(SIM_TYPE).join(_SIM_DATA.lib_file_name('TOSCA', 'magnetFile', tosca['magnetFile']))
-    if not datafile.exists():
+    n = _SIM_DATA.lib_file_name_with_model_field('TOSCA', 'magnetFile', tosca['magnetFile'])
+    if not _SIM_DATA.lib_file_exists(n):
         return PKDict(
             error='missing or invalid file: {}'.format(tosca['magnetFile']),
         )
     error = None
     length = None
-    if is_zip_file(datafile):
+    datafile = _SIM_DATA.lib_file_abspath(n)
+    if is_zip_file(n):
         with zipfile.ZipFile(str(datafile), 'r') as z:
             filenames = []
             if 'fileNames' not in tosca or not tosca['fileNames']:
@@ -422,13 +423,13 @@ def _validate_file_names(model, file_names):
     magnet_file = None
     if len(file_names) == 1:
         name = file_names[0]
-        target = _SIM_DATA.lib_file_name(model['type'], 'magnetFile', name)
-        if os.path.exists(str(simulation_db.simulation_lib_dir(SIM_TYPE).join(target))):
+        target = _SIM_DATA.lib_file_name_with_model_field(model['type'], 'magnetFile', name)
+        if _SIM_DATA.lib_file_exists(target):
             magnet_file = name
-    for f in glob.glob(str(simulation_db.simulation_lib_dir(SIM_TYPE).join('*.zip'))):
+    for f in _SIM_DATA.zgoubi_lib_files_with_zip():
         zip_has_files = True
         zip_names = []
-        with zipfile.ZipFile(f, 'r') as z:
+        with zipfile.ZipFile(str(f), 'r') as z:
             for info in z.infolist():
                 zip_names.append(info.filename)
         for name in file_names:

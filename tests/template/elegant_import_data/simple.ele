@@ -1,0 +1,25 @@
+
+! test input file renaming - should strip sirepo prefix if present
+
+
+&run_setup
+  lattice = "elegant.lte",
+  p_central = 85,
+  use_beamline = "bl",
+&end
+
+&sdds_beam
+  input = "PCG.sdds",
+&end
+
+&sdds_beam
+  input = "bunchFile-sourceFile.PCG.sdds",
+&end
+
+&load_parameters
+  filename = "tessamatch1.paramOpt",
+&end
+
+&load_parameters
+  filename = "command_load_parameters-filename.tessamatch1.paramOpt",
+&end

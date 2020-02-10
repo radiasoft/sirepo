@@ -88,7 +88,6 @@
             "plotRangeType": "fit",
             "plotType": "3d",
             "showAllFrames": "1",
-            "startTime": 1563225550,
             "verticalOffset": 0.012061596907009423,
             "verticalSize": 0.024637755717395564,
             "x": "Y",
@@ -107,7 +106,6 @@
             "plotRangeType": "fit",
             "plotType": "3d",
             "showAllFrames": "1",
-            "startTime": 1563225550,
             "verticalOffset": 0,
             "verticalSize": 0,
             "x": "Z",
@@ -150,7 +148,6 @@
             "plotRangeType": "none",
             "plotType": "particle",
             "showAllFrames": "1",
-            "startTime": 1563225550,
             "verticalOffset": 0,
             "verticalSize": 0,
             "x": "X",
@@ -234,7 +231,6 @@
             "plotRangeType": "none",
             "plotType": "heatmap",
             "showAllFrames": "1",
-            "startTime": 1563225550,
             "verticalOffset": 0,
             "verticalSize": 0,
             "x": "time",
@@ -255,6 +251,11 @@
             "particleType": "PROTON",
             "type": "particle"
         },
+        "particleAnimation": {
+            "aspectRatio": "0.75",
+            "notes": "",
+            "particleSelector": "all"
+        },
         "particleCoordinate": {
             "D": 1,
             "P": 0,
@@ -266,10 +267,11 @@
         },
         "simulation": {
             "activeBeamlineId": 1,
-            "folder": "/",
+            "documentationUrl": "",
+            "folder": "/Examples",
+            "isExample": true,
             "name": "Spiral FFA on Closed Orbit",
-            "simulationId": "gARwUrwR",
-            "simulationSerial": 1563225618299642,
+            "notes": "",
             "visualizationBeamlineId": 1
         },
         "simulationSettings": {
@@ -277,7 +279,6 @@
             "npass": 50,
             "type": "simulationSettings"
         },
-        "simulationStatus": {},
         "tunesReport": {
             "aspectRatio": "0.75",
             "notes": "",
@@ -285,6 +286,7 @@
             "nuMin": 0,
             "particleSelector": "1",
             "plotAxis": "x",
+            "plotScale": "linear",
             "showTunesReport": true,
             "turnCount": 10000,
             "turnStart": 0
@@ -305,6 +307,5 @@
         },
         "twissSummaryReport": {}
     },
-    "simulationType": "zgoubi",
-    "version": "20190712.201852"
+    "simulationType": "zgoubi"
 }

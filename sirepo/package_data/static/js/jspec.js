@@ -3,23 +3,25 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.USER_MANUAL_URL = 'https://github.com/zhanghe9704/electroncooling/blob/master/JSPEC%20User%20manual.md';
-SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
-SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation', 'coolingRatesAnimation'];
-SIREPO.FILE_UPLOAD_TYPE = {
-    'ring-lattice': '.tfs,.txt',
-};
-SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="rateCalculation" data-rate-calculation-panel="" class="sr-plot"></div>',
-].join('');
-SIREPO.appFieldEditors = [
-    '<div data-ng-switch-when="ElegantSimList" data-ng-class="fieldClass">',
-      '<div data-elegant-sim-list="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="TwissFile" class="col-sm-7">',
-      '<div data-twiss-file-field="" data-model="model" data-field="field" data-model-name="modelName"></div>',
-    '</div>',
-].join('');
+SIREPO.app.config(function() {
+    SIREPO.USER_MANUAL_URL = 'https://github.com/zhanghe9704/electroncooling/blob/master/JSPEC%20User%20manual.md';
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
+    SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation', 'coolingRatesAnimation'];
+    SIREPO.FILE_UPLOAD_TYPE = {
+        'ring-lattice': '.tfs,.txt',
+    };
+    SIREPO.appReportTypes = [
+        '<div data-ng-switch-when="rateCalculation" data-rate-calculation-panel="" class="sr-plot"></div>',
+    ].join('');
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="ElegantSimList" data-ng-class="fieldClass">',
+          '<div data-elegant-sim-list="" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="TwissFile" class="col-sm-7">',
+          '<div data-twiss-file-field="" data-model="model" data-field="field" data-model-name="modelName"></div>',
+        '</div>',
+    ].join('');
+});
 
 SIREPO.app.factory('jspecService', function(appState) {
     var self = {};
@@ -90,6 +92,12 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         panelState.enableField('electronBeam', 'gamma', false);
     }
 
+    function processIntrabeamScatteringMethod() {
+        var method = appState.models.intrabeamScatteringRate.longitudinalMethod;
+        panelState.showField('intrabeamScatteringRate', 'nz', method == 'nz');
+        panelState.showField('intrabeamScatteringRate', 'log_c', method == 'log_c');
+    }
+
     function processIonBeamType() {
         panelState.showField('ionBeam', 'rms_bunch_length', appState.models.ionBeam.beam_type == 'bunched');
     }
@@ -101,13 +109,11 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         panelState.showField('ring', 'elegantSirepo', latticeSource == 'elegant-sirepo');
     }
 
-    self.handleModalShown = function(name) {
-        if (name == 'rateCalculationReport') {
-            if (! SIREPO.APP_SCHEMA.feature_config.derbenevskrinsky_force_formula) {
-                panelState.showEnum('electronCoolingRate', 'force_formula', 'derbenevskrinsky', false);
-            }
+    function updateForceFormulas() {
+        if (! SIREPO.APP_SCHEMA.feature_config.derbenevskrinsky_force_formula) {
+            panelState.showEnum('electronCoolingRate', 'force_formula', 'derbenevskrinsky', false);
         }
-    };
+    }
 
     self.showTwissEditor = function() {
         panelState.showModalEditor('twissReport');
@@ -119,11 +125,15 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         processElectronBeamShape();
         processLatticeSource();
         processGamma();
+        updateForceFormulas();
         appState.watchModelFields($scope, ['ionBeam.beam_type'], processIonBeamType);
         appState.watchModelFields($scope, ['electronBeam.shape', 'electronBeam.beam_type'], processElectronBeamShape);
         appState.watchModelFields($scope, ['electronBeam.beam_type'], processElectronBeamType);
         appState.watchModelFields($scope, ['ring.latticeSource'], processLatticeSource);
         appState.watchModelFields($scope, ['ionBeam.mass', 'ionBeam.kinetic_energy'], processGamma);
+        $scope.$on('sr-tabSelected', processIntrabeamScatteringMethod);
+        $scope.$on('sr-tabSelected', updateForceFormulas);
+        appState.watchModelFields($scope, ['intrabeamScatteringRate.longitudinalMethod'], processIntrabeamScatteringMethod);
     });
 });
 
@@ -319,28 +329,6 @@ SIREPO.app.directive('rateCalculationPanel', function(appState, plotting) {
         },
     };
 });
-
-SIREPO.app.directive('srRatecalculationreportEditor', function(appState, panelState) {
-    return {
-        restrict: 'A',
-        controller: function($scope) {
-            function processIntrabeamScatteringMethod() {
-                var method = appState.models.intrabeamScatteringRate.longitudinalMethod;
-                panelState.showField('intrabeamScatteringRate', 'nz', method == 'nz');
-                panelState.showField('intrabeamScatteringRate', 'log_c', method == 'log_c');
-            }
-
-            $scope.$on('sr-tabSelected', processIntrabeamScatteringMethod);
-
-            appState.whenModelsLoaded($scope, function() {
-                appState.watchModelFields(
-                    $scope, ['intrabeamScatteringRate.longitudinalMethod'],
-                    processIntrabeamScatteringMethod);
-            });
-        },
-    };
-});
-
 
 SIREPO.app.directive('twissFileField', function(appState, panelState) {
     return {

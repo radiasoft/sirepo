@@ -34,7 +34,10 @@ test_main() {
     if [[ -x ./node_modules/karma/bin/karma ]]; then
        ./node_modules/karma/bin/karma start etc/karma-conf.js
     fi
-    py.test tests
+    echo SIREPO_FEATURE_CONFIG_JOB=1 pykern test
+    SIREPO_FEATURE_CONFIG_JOB=1 pykern test
+    echo SIREPO_FEATURE_CONFIG_JOB= pykern test
+    SIREPO_FEATURE_CONFIG_JOB= pykern test
     if [[ -n ${PKSETUP_PYPI_PASSWORD:+hide-secret} ]]; then
         python setup.py pkdeploy
     fi

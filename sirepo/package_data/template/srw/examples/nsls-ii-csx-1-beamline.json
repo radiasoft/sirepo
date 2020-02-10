@@ -138,6 +138,13 @@
                 "type": "watch"
             }
         ],
+        "beamline3DReport": {
+            "condenseBeamline": "1",
+            "includeSource": "1",
+            "projection": "parallel",
+            "showLabels": "1",
+            "showPosition": "1"
+        },
         "brillianceReport": {
             "brightnessComponent": "k-tuning",
             "detuning": 0,
@@ -148,13 +155,25 @@
             "initialHarmonic": 1,
             "minDeflection": 0.2,
             "notes": "",
+            "plotScale": "linear",
             "reportType": "0"
+        },
+        "coherenceXAnimation": {
+            "aspectRatio": "1",
+            "colorMap": "grayscale",
+            "intensityPlotsWidth": "0",
+            "plotScale": "linear"
+        },
+        "coherenceYAnimation": {
+            "aspectRatio": "1",
+            "colorMap": "grayscale",
+            "intensityPlotsWidth": "0",
+            "plotScale": "linear"
         },
         "electronBeam": {
             "beamDefinition": "t",
             "beamSelector": "NSLS-II Low Beta (with all IDs)",
             "current": 0.5,
-            "drift": 0,
             "energy": 3,
             "energyDeviation": 0,
             "horizontalAlpha": 0,
@@ -162,7 +181,6 @@
             "horizontalDispersion": 0,
             "horizontalDispersionDerivative": 0,
             "horizontalEmittance": 0.76,
-            "horizontalPosition": 0,
             "id": "FwX3XBCE 1",
             "name": "NSLS-II Low Beta (with all IDs)",
             "rmsDivergX": 20.32347112,
@@ -175,13 +193,12 @@
             "verticalDispersion": 0,
             "verticalDispersionDerivative": 0,
             "verticalEmittance": 0.008,
-            "verticalPosition": 0,
             "xxprX": 0,
             "xxprY": 0
         },
         "electronBeamPosition": {
             "drift": -1.0234,
-            "driftCalculationMethod": "auto",
+            "driftCalculationMethod": "manual",
             "horizontalAngle": 0,
             "horizontalPosition": 0,
             "verticalAngle": 0,
@@ -203,6 +220,7 @@
             "notes": "",
             "numberOfMacroElectrons": 100000,
             "photonEnergyPointCount": 1000,
+            "plotScale": "linear",
             "polarization": 6,
             "precision": 0.01,
             "verticalApertureSize": "1",
@@ -224,6 +242,7 @@
             "notes": "",
             "numberOfMacroElectrons": 1,
             "photonEnergyPointCount": 2000,
+            "plotScale": "linear",
             "polarization": 6,
             "precision": 0.01,
             "verticalApertureSize": 3,
@@ -251,11 +270,13 @@
             "colorMap": "grayscale",
             "copyCharacteristic": "0",
             "fieldUnits": 1,
-            "intensityPlotsScale": "linear",
             "intensityPlotsWidth": "0",
             "notes": "",
+            "plotScale": "linear",
             "polarization": 6,
-            "precision": 0.01
+            "precision": 0.01,
+            "rotateAngle": 0,
+            "rotateReshape": "1"
         },
         "intensityReport": {
             "distanceFromSource": 29,
@@ -267,26 +288,34 @@
             "method": "1",
             "notes": "",
             "photonEnergyPointCount": 2000,
+            "plotScale": "linear",
             "polarization": 6,
             "precision": 0.01,
             "verticalPosition": 0
         },
         "mirrorReport": {
-            "intensityPlotsScale": "linear",
             "intensityPlotsWidth": "0",
-            "notes": ""
+            "notes": "",
+            "plotScale": "linear"
         },
         "multiElectronAnimation": {
             "aspectRatio": "1",
+            "calcCoherence": "0",
             "colorMap": "grayscale",
             "horizontalPosition": 0,
             "horizontalRange": "0.4",
             "integrationMethod": "0",
             "intensityPlotsScale": "linear",
             "intensityPlotsWidth": "0",
+            "jobRunMode": "parallel",
             "notes": "",
             "numberOfMacroElectrons": 30000,
             "photonEnergyBandWidth": 1,
+            "plotScale": "linear",
+            "rotateAngle": 0,
+            "rotateReshape": "1",
+            "sbatchCores": 128,
+            "sbatchHours": 0.4,
             "stokesParameter": "0",
             "verticalPosition": 0,
             "verticalRange": "0.6",
@@ -329,11 +358,13 @@
             "horizontalPointCount": 100,
             "horizontalPosition": "0",
             "horizontalRange": 30,
-            "intensityPlotsScale": "linear",
             "intensityPlotsWidth": "0",
             "method": 1,
             "notes": "",
+            "plotScale": "linear",
             "precision": "1",
+            "rotateAngle": 0,
+            "rotateReshape": "1",
             "verticalPointCount": 100,
             "verticalPosition": 0,
             "verticalRange": 30
@@ -827,6 +858,7 @@
             "horizontalPointCount": 100,
             "horizontalPosition": 0,
             "horizontalRange": 4,
+            "isExample": true,
             "multiElectronAnimationTitle": "Partially Coherent Intensity Report, 55.5m",
             "name": "NSLS-II CSX-1 beamline",
             "notes": "",
@@ -834,14 +866,11 @@
             "photonEnergy": 750,
             "sampleFactor": 0.3,
             "samplingMethod": 1,
-            "simulationId": "FwX3XBCE",
-            "simulationSerial": 1562101423985301,
             "sourceType": "u",
             "verticalPointCount": 100,
             "verticalPosition": 0,
             "verticalRange": 4
         },
-        "simulationStatus": {},
         "sourceIntensityReport": {
             "aspectRatio": "1",
             "characteristic": "1",
@@ -853,14 +882,16 @@
             "horizontalPosition": 0,
             "horizontalRange": 8,
             "initialPosition": 0,
-            "intensityPlotsScale": "linear",
             "intensityPlotsWidth": "0",
             "magneticField": 1,
             "method": "1",
             "notes": "",
             "photonEnergy": 750,
+            "plotScale": "linear",
             "polarization": 6,
             "precision": 0.01,
+            "rotateAngle": 0,
+            "rotateReshape": "1",
             "sampleFactor": 1,
             "samplingMethod": "2",
             "verticalPointCount": 100,
@@ -911,8 +942,11 @@
             "intensityPlotsScale": "linear",
             "intensityPlotsWidth": "0",
             "notes": "",
+            "plotScale": "linear",
             "polarization": 6,
-            "precision": 0.01
+            "precision": 0.01,
+            "rotateAngle": 0,
+            "rotateReshape": "1"
         },
         "watchpointReport12": {
             "aspectRatio": "1",
@@ -923,8 +957,11 @@
             "intensityPlotsScale": "linear",
             "intensityPlotsWidth": "0",
             "notes": "",
+            "plotScale": "linear",
             "polarization": 6,
-            "precision": 0.01
+            "precision": 0.01,
+            "rotateAngle": 0,
+            "rotateReshape": "1"
         },
         "watchpointReport4": {
             "aspectRatio": "1",
@@ -935,8 +972,11 @@
             "intensityPlotsScale": "linear",
             "intensityPlotsWidth": "0",
             "notes": "",
+            "plotScale": "linear",
             "polarization": 6,
-            "precision": 0.01
+            "precision": 0.01,
+            "rotateAngle": 0,
+            "rotateReshape": "1"
         },
         "watchpointReport7": {
             "aspectRatio": "1",
@@ -947,8 +987,11 @@
             "intensityPlotsScale": "linear",
             "intensityPlotsWidth": "0",
             "notes": "",
+            "plotScale": "linear",
             "polarization": 6,
-            "precision": 0.01
+            "precision": 0.01,
+            "rotateAngle": 0,
+            "rotateReshape": "1"
         },
         "watchpointReport9": {
             "aspectRatio": "1",
@@ -959,10 +1002,12 @@
             "intensityPlotsScale": "linear",
             "intensityPlotsWidth": "0",
             "notes": "",
+            "plotScale": "linear",
             "polarization": 6,
-            "precision": 0.01
+            "precision": 0.01,
+            "rotateAngle": 0,
+            "rotateReshape": "1"
         }
     },
-    "simulationType": "srw",
-    "version": "20190627.222812"
+    "simulationType": "srw"
 }

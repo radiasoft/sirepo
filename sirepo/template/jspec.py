@@ -60,42 +60,42 @@ def background_percent_complete(report, run_dir, is_running):
             # the most recent file may not yet be fully written
             if count > 0:
                 count -= 1
-            return {
-                'percentComplete': percent_complete,
-                'frameCount': count,
-                'hasParticles': True,
-                'hasRates': has_rates,
-            }
+            return PKDict(
+                percentComplete=percent_complete,
+                frameCount=count,
+                hasParticles=True,
+                hasRates=has_rates,
+            )
         else:
             # estimate the percent complete from the simulation time in sdds file
             if run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME).exists():
                 return _beam_evolution_status(run_dir, settings, has_rates)
-            return {
-                'percentComplete': 0,
-                'frameCount': 0,
-            }
+            return PKDict(
+                percentComplete=0,
+                frameCount=0,
+            )
     if run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME).exists():
         count, settings, has_rates = _background_task_info(run_dir)
         if count:
-            return {
-                'percentComplete': 100,
-                'frameCount': count,
-                'hasParticles': True,
-                'hasRates': has_rates,
-            }
+            return PKDict(
+                percentComplete=100,
+                frameCount=count,
+                hasParticles=True,
+                hasRates=has_rates,
+            )
         else:
-            return {
-                'percentComplete': 100,
-                'frameCount': 1,
-                'hasRates': has_rates,
-            }
-    return {
-        'percentComplete': 0,
-        'frameCount': 0,
-    }
+            return PKDict(
+                percentComplete=100,
+                frameCount=1,
+                hasRates=has_rates,
+            )
+    return PKDict(
+        percentComplete=0,
+        frameCount=0,
+    )
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'get_elegant_sim_list':
         tp = _SIM_DATA.jspec_elegant_twiss_path()
         res = []
@@ -120,7 +120,7 @@ def get_application_data(data):
     raise AssertionError('unknown application data method={}'.format(data.method))
 
 
-def get_data_file(run_dir, model, frame, options=None):
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if model in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
         path = run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)
     else:
@@ -133,7 +133,7 @@ def python_source_for_model(data, model):
     ring = data['models']['ring']
     elegant_twiss_file = None
     if ring['latticeSource'] == 'elegant':
-        elegant_twiss_file = _SIM_DATA.lib_file_name('ring', 'elegantTwiss', ring['elegantTwiss'])
+        elegant_twiss_file = _SIM_DATA.lib_file_name_with_model_field('ring', 'elegantTwiss', ring['elegantTwiss'])
     elif  ring['latticeSource'] == 'elegant-sirepo':
         elegant_twiss_file = _SIM_DATA.JSPEC_ELEGANT_TWISS_FILENAME
     convert_twiss_to_tfs = ''
@@ -344,7 +344,7 @@ def _generate_parameters_file(data):
     v['runSimulation'] = report is None or report == _SIM_DATA.compute_model(None)
     v['runRateCalculation'] = report is None or report == 'rateCalculationReport'
     if data['models']['ring']['latticeSource'] == 'madx':
-        v['latticeFilename'] = _SIM_DATA.lib_file_name('ring', 'lattice', v['ring_lattice'])
+        v['latticeFilename'] = _SIM_DATA.lib_file_name_with_model_field('ring', 'lattice', v['ring_lattice'])
     else:
         v['latticeFilename'] = JSPEC_TWISS_FILENAME
     if v['ionBeam_beam_type'] == 'continuous':

@@ -48,12 +48,10 @@
             }
         ],
         "currentAnimation": {
-            "framesPerSecond": "2",
-            "startTime": 1570033174
+            "framesPerSecond": "2"
         },
         "egunCurrentAnimation": {
-            "framesPerSecond": "2",
-            "startTime": 1570033174
+            "framesPerSecond": "2"
         },
         "fieldAnimation": {
             "axes": "xz",
@@ -63,7 +61,6 @@
             "framesPerSecond": "2",
             "notes": "",
             "slice": 0,
-            "startTime": 1570033174,
             "units": "\u00b5m"
         },
         "fieldCalcAnimation": {
@@ -72,7 +69,6 @@
             "colorMap": "viridis",
             "notes": "",
             "slice": 0,
-            "startTime": 1570033107,
             "units": "\u00b5m"
         },
         "fieldCalculationAnimation": {},
@@ -80,7 +76,6 @@
             "_super": "fieldComparisonReport",
             "dimension": "z",
             "notes": "",
-            "startTime": 1570033107,
             "xCell1": 0,
             "xCell2": 5,
             "xCell3": 11,
@@ -112,8 +107,7 @@
         },
         "impactDensityAnimation": {
             "colorMap": "coolwarm",
-            "notes": "",
-            "startTime": 1570033174
+            "notes": ""
         },
         "optimizer": {
             "constraints": [],
@@ -139,12 +133,10 @@
         "particle3d": {
             "colorMap": "viridis",
             "impactColorMap": "coolwarm",
-            "renderCount": "100",
-            "startTime": 1570033174
+            "renderCount": "100"
         },
         "particleAnimation": {
-            "renderCount": "100",
-            "startTime": 1570033174
+            "renderCount": "100"
         },
         "simulation": {
             "conductorFile": "lattice_gate.stl",
@@ -157,8 +149,6 @@
             "name": "Lattice Gate 3D",
             "notes": "",
             "outOfSessionSimulationId": "",
-            "simulationId": "NBdPT0jN",
-            "simulationSerial": 1570034667210327,
             "useConductorFile": "0"
         },
         "simulationGrid": {
@@ -173,9 +163,7 @@
             "simulation_mode": "3d",
             "trace_period": 1,
             "z_particle_min": 0.0048828125
-        },
-        "simulationStatus": {}
+        }
     },
-    "simulationType": "warpvnd",
-    "version": "20191001.225555"
+    "simulationType": "warpvnd"
 }

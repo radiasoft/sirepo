@@ -10,6 +10,7 @@ from pykern import pkresource
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
+from sirepo.template import code_variable
 from sirepo.template import elegant_command_importer
 from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_importer
@@ -17,11 +18,9 @@ from sirepo.template import lattice
 from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
-import ast
 import copy
 import glob
 import math
-import numpy as np
 import os
 import os.path
 import py.path
@@ -29,7 +28,6 @@ import re
 import sdds
 import sirepo.sim_data
 import stat
-import werkzeug
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
@@ -53,18 +51,6 @@ _FIELD_LABEL = PKDict(
 )
 
 _FILE_ID_SEP = '-'
-
-_INFIX_TO_RPN = PKDict({
-    ast.Add: '+',
-    ast.Div: '/',
-    ast.Invert: '!',
-    ast.Mult: '*',
-    ast.Not: '!',
-    ast.Pow: 'pow',
-    ast.Sub: '-',
-    ast.UAdd: '+',
-    ast.USub: '+',
-})
 
 _OUTPUT_INFO_FILE = 'outputInfo.json'
 
@@ -100,7 +86,7 @@ class OutputFileIterator(lattice.ModelIterator):
         self.result = PKDict(
             keys_in_order=[],
         )
-        self.model_index = {}
+        self.model_index = PKDict()
 
     def field(self, model, field_schema, field):
         self.field_index += 1
@@ -125,18 +111,6 @@ class OutputFileIterator(lattice.ModelIterator):
             self.model_index[self.model_name] += 1
         else:
             self.model_index[self.model_name] = 1
-
-class RPNValueIterator(lattice.ModelIterator):
-    def __init__(self, rpn_variables):
-        self.result = PKDict()
-        self.rpn_variables = rpn_variables
-
-    def field(self, model, field_schema, field):
-        if field_schema[1] == 'RPNValue' and elegant_lattice_importer.is_rpn_value(model[field]):
-            if model[field] not in self.result:
-                v, err = _parse_expr(model[field], self.rpn_variables)
-                if not err:
-                    self.result[model[field]] = v
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -164,12 +138,16 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def copy_related_files(data, source_path, target_path):
-    # copy any simulation output
-    if os.path.isdir(str(py.path.local(source_path).join(_SIM_DATA.compute_model(data)))):
-        animation_dir = py.path.local(target_path).join(_SIM_DATA.compute_model(data))
-        pkio.mkdir_parent(str(animation_dir))
-        for f in glob.glob(str(py.path.local(source_path).join(_SIM_DATA.compute_model(data), '*'))):
-            py.path.local(f).copy(animation_dir)
+    # copy results and log for the long-running simulations
+    for m in ('animation',):
+        # copy any simulation output
+        s = pkio.py_path(source_path).join(m)
+        if not s.exists():
+            continue
+        t = pkio.py_path(target_path).join(m)
+        pkio.mkdir_parent(str(t))
+        for f in pkio.sorted_glob('*'):
+            f.copy(t)
 
 
 def generate_parameters_file(data, is_parallel=False):
@@ -186,26 +164,31 @@ def generate_parameters_file(data, is_parallel=False):
     return res + _generate_bunch_simulation(data, v)
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data.method == 'get_beam_input_type':
         if data.input_file:
             data.input_type = _sdds_beam_type_from_file(data.input_file)
         return data
     if data.method == 'rpn_value':
-        value, error = _parse_expr(data.value, _variables_to_postfix(data.variables))
-        if error:
-            data.error = error
+        v, err = _code_var(data.variables).eval_var(data.value)
+        if err:
+            data.error = err
         else:
-            data.result = value
+            data.result = v
         return data
     if data.method == 'recompute_rpn_cache_values':
-        variables = _variables_to_postfix(data.variables)
-        for k in data.cache:
-            value, error = _parse_expr(k, variables)
-            if not error:
-                data.cache[k] = value
+        _code_var(data.variables).recompute_cache(data.cache)
+        return data
+    if data.method == 'validate_rpn_delete':
+        model_data = simulation_db.read_json(
+            simulation_db.sim_data_file(SIM_TYPE, data.simulationId))
+        data.error = _code_var(data.variables).validate_var_delete(data.name, model_data, _SCHEMA)
         return data
     raise RuntimeError('unknown application data method: {}'.format(data.method))
+
+
+def _code_var(variables):
+    return elegant_lattice_importer.elegant_code_var(variables)
 
 
 def _file_id(model_id, field_index):
@@ -217,7 +200,7 @@ def _file_name_from_id(file_id, model_data, run_dir):
         _get_filename_for_element_id(file_id.split(_FILE_ID_SEP), model_data)))
 
 
-def get_data_file(run_dir, model, frame, options=None):
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
     def _sdds(filename):
         path = run_dir.join(filename)
         assert path.check(file=True, exists=True), \
@@ -253,23 +236,21 @@ def get_data_file(run_dir, model, frame, options=None):
     return _sdds(_report_output_filename('bunchReport'))
 
 
-def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
+def import_file(req, test_data=None, **kwargs):
     # input_data is passed by test cases only
-    f = request.files['file']
-    filename = werkzeug.secure_filename(f.filename)
     input_data = test_data
 
-    if 'simulationId' in request.form:
-        input_data = simulation_db.read_simulation_json(elegant_common.SIM_TYPE, sid=request.form['simulationId'])
-    if re.search(r'.ele$', filename, re.IGNORECASE):
-        data = elegant_command_importer.import_file(f.read())
-    elif re.search(r'.lte$', filename, re.IGNORECASE):
-        data = elegant_lattice_importer.import_file(f.read(), input_data)
+    if 'simulationId' in req.req_data:
+        input_data = simulation_db.read_simulation_json(elegant_common.SIM_TYPE, sid=req.req_data.simulationId)
+    if re.search(r'.ele$', req.filename, re.IGNORECASE):
+        data = elegant_command_importer.import_file(req.file_stream.read())
+    elif re.search(r'.lte$', req.filename, re.IGNORECASE):
+        data = elegant_lattice_importer.import_file(req.file_stream.read(), input_data)
         if input_data:
             _map_commands_to_lattice(data)
     else:
         raise IOError('invalid file extension, expecting .ele or .lte')
-    data.models.simulation.name = re.sub(r'\.(lte|ele)$', '', filename, flags=re.IGNORECASE)
+    data.models.simulation.name = re.sub(r'\.(lte|ele)$', '', req.filename, flags=re.IGNORECASE)
     if input_data and not test_data:
         simulation_db.delete_simulation(elegant_common.SIM_TYPE, input_data.models.simulation.simulationId)
     return data
@@ -312,16 +293,7 @@ def parse_elegant_log(run_dir):
 def prepare_for_client(data):
     if 'models' not in data:
         return data
-    # evaluate rpn values into model.rpnCache
-    variables = _variables_to_postfix(data.models.rpnVariables)
-    cache = LatticeUtil(data, _SCHEMA).iterate_models(RPNValueIterator(variables)).result
-    data.models.rpnCache = cache
-    for rpn_var in data.models.rpnVariables:
-        v, err = _parse_expr(rpn_var.value, variables)
-        if not err:
-            cache[rpn_var.name] = v
-            if elegant_lattice_importer.is_rpn_value(rpn_var.value):
-                cache[rpn_var.value] = v
+    data.models.rpnCache = _code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
     return data
 
 
@@ -421,8 +393,7 @@ def write_parameters(data, run_dir, is_parallel):
             is_parallel,
         ),
     )
-    for f in _SIM_DATA.lib_files(data, simulation_db.lib_dir_from_sim_dir(run_dir)):
-        b = f.basename
+    for b in _SIM_DATA.lib_file_basenames(data):
         if re.search(r'SCRIPT-commandFile', b):
             os.chmod(str(run_dir.join(b)), stat.S_IRUSR | stat.S_IXUSR)
 
@@ -668,7 +639,7 @@ def _format_field_value(state, model, field, el_type):
     elif el_type == 'OutputFile':
         value = state.filename_map[_file_id(model._id, state.field_index)]
     elif el_type.startswith('InputFile'):
-        value = _SIM_DATA.lib_file_name(LatticeUtil.model_name_for_data(model), field, value)
+        value = _SIM_DATA.lib_file_name_with_model_field(LatticeUtil.model_name_for_data(model), field, value)
         if el_type == 'InputFileXY':
             value += '={}+{}'.format(model[field + 'X'], model[field + 'Y'])
     elif el_type == 'BeamInputFile':
@@ -683,7 +654,7 @@ def _format_field_value(state, model, field, el_type):
     elif field == 'command' and LatticeUtil.model_name_for_data(model) == 'SCRIPT':
         for f in ('commandFile', 'commandInputFile'):
             if f in model and model[f]:
-                fn = _SIM_DATA.lib_file_name(model.type, f, model[f])
+                fn = _SIM_DATA.lib_file_name_with_model_field(model.type, f, model[f])
                 value = re.sub(r'\b' + re.escape(model[f]) + r'\b', fn, value)
         if model.commandFile:
             value = './' + value
@@ -693,8 +664,8 @@ def _format_field_value(state, model, field, el_type):
 
 
 def _format_rpn_value(value, is_command=False):
-    if elegant_lattice_importer.is_rpn_value(value):
-        value = _infix_to_postfix(value)
+    if code_variable.CodeVar.is_var_value(value):
+        value = code_variable.CodeVar.infix_to_postfix(value)
         if is_command:
             return '({})'.format(value)
     return value
@@ -728,13 +699,13 @@ def _generate_bunch_simulation(data, v):
         v.bunch_alpha_x = 0
         v.bunch_alpha_x = 0
         if v.bunchFile_sourceFile and v.bunchFile_sourceFile != 'None':
-            v.bunchInputFile = _SIM_DATA.lib_file_name('bunchFile', 'sourceFile', v.bunchFile_sourceFile)
+            v.bunchInputFile = _SIM_DATA.lib_file_name_with_model_field('bunchFile', 'sourceFile', v.bunchFile_sourceFile)
             v.bunchFileType = _sdds_beam_type_from_file(v.bunchInputFile)
     if str(data.models.bunch.p_central_mev) == '0':
         run_setup = _find_first_command(data, 'run_setup')
         if run_setup and run_setup.expand_for:
             v.bunchExpandForFile = 'expand_for = "{}",'.format(
-                _SIM_DATA.lib_file_name('command_run_setup', 'expand_for', run_setup.expand_for))
+                _SIM_DATA.lib_file_name_with_model_field('command_run_setup', 'expand_for', run_setup.expand_for))
     v.bunchOutputFile = _report_output_filename('bunchReport')
     return template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
 
@@ -807,26 +778,17 @@ def _generate_variable(name, variables, visited):
 def _generate_variables(data):
     res = ''
     visited = PKDict()
-    variables = PKDict({x.name: x.value for x in data.models.rpnVariables})
+    code_var = _code_var(data.models.rpnVariables)
 
-    for name in sorted(variables):
-        for dependency in elegant_lattice_importer.build_variable_dependency(variables[name], variables, []):
-            res += _generate_variable(dependency, variables, visited)
-        res += _generate_variable(name, variables, visited)
+    for name in sorted(code_var.postfix_variables):
+        for dependency in code_var.get_expr_dependencies(code_var.postfix_variables[name]):
+            res += _generate_variable(dependency, code_var.postfix_variables, visited)
+        res += _generate_variable(name, code_var.postfix_variables, visited)
     return res
 
 
 def _get_filename_for_element_id(id, data):
     return _build_filename_map(data)['{}{}{}'.format(id[0], _FILE_ID_SEP, id[1])]
-
-
-def _infix_to_postfix(expr):
-    try:
-        rpn = _parse_expr_infix(expr)
-        expr = rpn
-    except Exception as e:
-        pass
-    return expr
 
 
 def _is_error_text(text):
@@ -906,51 +868,6 @@ def _parameter_definitions(parameters):
     return res
 
 
-def _parse_expr(expr, variables):
-    """If not infix, default to rpn"""
-    return elegant_lattice_importer.parse_rpn_value(_infix_to_postfix(expr), variables)
-
-
-def _parse_expr_infix(expr):
-    """Use Python parser (ast) and return depth first (RPN) tree"""
-
-    # https://bitbucket.org/takluyver/greentreesnakes/src/587ad72894bc7595bc30e33affaa238ac32f0740/astpp.py?at=default&fileviewer=file-view-default
-
-    def _do(n):
-        # http://greentreesnakes.readthedocs.io/en/latest/nodes.html
-        if isinstance(n, ast.Str):
-            assert not re.search('^[^\'"]*$', n.s), \
-                '{}: invalid string'.format(n.s)
-            return ['"{}"'.format(n.s)]
-        elif isinstance(n, ast.Name):
-            return [str(n.id)]
-        elif isinstance(n, ast.Num):
-            return [str(n.n)]
-        elif isinstance(n, ast.Expression):
-            return _do(n.body)
-        elif isinstance(n, ast.Call):
-            res = []
-            for x in n.args:
-                res.extend(_do(x))
-            return res + [n.func.id]
-        elif isinstance(n, ast.BinOp):
-            return _do(n.left) + _do(n.right) + _do(n.op)
-        elif isinstance(n, ast.UnaryOp):
-            return _do(n.operand) + _do(n.op)
-        elif isinstance(n, ast.IfExp):
-            return _do(n.test) + ['?'] + _do(n.body) + [':'] + _do(n.orelse) + ['$']
-        else:
-            x = _INFIX_TO_RPN.get(type(n), None)
-            if x:
-                return [x]
-        raise ValueError('{}: invalid node'._ast_dump(n))
-
-    tree = ast.parse(expr, filename='eval', mode='eval')
-    assert isinstance(tree, ast.Expression), \
-        '{}: must be an expression'.format(tree)
-    return ' '.join(_do(tree))
-
-
 def _plot_title(xfield, yfield, page_index, page_count):
     title_key = xfield + '-' + yfield
     title = ''
@@ -1016,7 +933,7 @@ def _sdds_beam_type(column_names):
 
 def _sdds_beam_type_from_file(filename):
     res = ''
-    path = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(filename))
+    path = str(_SIM_DATA.lib_file_abspath(filename))
     if sdds.sddsdata.InitializeInput(_SDDS_INDEX, path) == 1:
         res = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
     sdds.sddsdata.Terminate(_SDDS_INDEX)
@@ -1031,19 +948,6 @@ def _validate_data(data, schema):
         for m in data.models[model_type]:
             template_common.validate_model(m, schema.model[LatticeUtil.model_name_for_data(m)], enum_info)
             _correct_halo_gaussian_distribution_type(m)
-
-
-def _variables_to_postfix(rpn_variables):
-    res = []
-    for v in rpn_variables:
-        if 'value' not in v:
-            pkdlog('rpn var missing value: {}', v['name'])
-            v.value = '0'
-        res.append(PKDict(
-            name=v.name,
-            value=_infix_to_postfix(v.value),
-        ))
-    return res
 
 
 def _walk_beamline(beamline, index, elements, beamlines, beamline_map):

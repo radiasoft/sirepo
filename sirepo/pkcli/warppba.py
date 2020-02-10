@@ -39,7 +39,7 @@ def run(cfg_dir):
         simulation_db.write_result(res)
 
 
-def run_background(cfg_dir):
+def run_background(cfg_dir, sbatch=False):
     """Run code in ``cfg_dir`` with mpi
 
     Args:
@@ -48,6 +48,15 @@ def run_background(cfg_dir):
     with pkio.save_chdir(cfg_dir):
         mpi.run_script(_script())
         simulation_db.write_result({})
+
+
+def sbatch_script(path):
+    """Write script to path
+
+    Args:
+        path (str): where to write file
+    """
+    pkio.write_text(path, _script())
 
 
 def _run_code():

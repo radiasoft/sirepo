@@ -1,5 +1,6 @@
 <div class="container-fluid">
   <div class="row">
+    <div class="sr-input-warning" data-ng-show="showWarning">{{ loginWith.warningText }}</div>
     <div ng-switch="::loginWith.method" class="col-sm-6 col-sm-offset-3">
       <div ng-switch-when="email" data-email-login=""></div>
       <div ng-switch-default class="well text-center">{{ loginWith.msg }}</div>

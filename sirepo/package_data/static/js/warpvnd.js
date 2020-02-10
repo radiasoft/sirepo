@@ -3,33 +3,36 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.PLOT_3D_CONFIG = {
-    'coordMatrix': [[0, 0, 1], [1, 0, 0], [0, -1, 0]]
-};
-SIREPO.SINGLE_FRAME_ANIMATION = ['optimizerAnimation', 'fieldCalcAnimation', 'fieldComparisonAnimation'];
-SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
-    '<div data-ng-switch-when="impactDensity" data-impact-density-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-    '<div data-ng-switch-when="optimizerPath" data-optimizer-path-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-].join('');
-SIREPO.appFieldEditors = [
-    '<div data-ng-switch-when="XCell" data-ng-class="fieldClass">',
-      '<div data-cell-selector=""></div>',
-    '</div>',
-    '<div data-ng-switch-when="YCell" data-ng-class="fieldClass">',
-      '<div data-cell-selector=""></div>',
-    '</div>',
-    '<div data-ng-switch-when="ZCell" data-ng-class="fieldClass">',
-      '<div data-cell-selector=""></div>',
-    '</div>',
-    '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
-      '<div data-color-picker="" data-color="model.color" data-default-color="model.isConductor === \'0\' ? \'#f3d4c8\' : \'#6992ff\'"></div>',
-    '</div>',
-    '<div data-ng-switch-when="OptimizationField" data-ng-class="fieldClass">',
-      '<div data-optimization-field-picker="" field="field" data-model="model"></div>',
-    '</div>',
-].join('');
-SIREPO.appImportText = 'Import an stl file';
+SIREPO.app.config(function() {
+    SIREPO.PLOT_3D_CONFIG = {
+        'coordMatrix': [[0, 0, 1], [1, 0, 0], [0, -1, 0]]
+    };
+    SIREPO.SINGLE_FRAME_ANIMATION = ['optimizerAnimation', 'fieldCalcAnimation', 'fieldComparisonAnimation'];
+    SIREPO.appReportTypes = [
+        '<div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
+        '<div data-ng-switch-when="impactDensity" data-impact-density-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+        '<div data-ng-switch-when="optimizerPath" data-optimizer-path-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+    ].join('');
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="XCell" data-ng-class="fieldClass">',
+          '<div data-cell-selector=""></div>',
+        '</div>',
+        '<div data-ng-switch-when="YCell" data-ng-class="fieldClass">',
+          '<div data-cell-selector=""></div>',
+        '</div>',
+        '<div data-ng-switch-when="ZCell" data-ng-class="fieldClass">',
+          '<div data-cell-selector=""></div>',
+        '</div>',
+        '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
+          '<div data-color-picker="" data-color="model.color" data-default-color="model.isConductor === \'0\' ? \'#f3d4c8\' : \'#6992ff\'"></div>',
+        '</div>',
+        '<div data-ng-switch-when="OptimizationField" data-ng-class="fieldClass">',
+          '<div data-optimization-field-picker="" field="field" data-model="model"></div>',
+        '</div>',
+    ].join('');
+    SIREPO.appImportText = 'Import an stl file';
+});
+
 SIREPO.app.factory('warpvndService', function(appState, errorService, panelState, plotting, requestSender, vtkPlotting, $rootScope) {
     var self = {};
     var plateSpacing = 0;
@@ -155,14 +158,24 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
     };
 
     self.computeModel = function(analysisModel) {
+        if ([
+            'currentAnimation',
+            'egunCurrentAnimation',
+            'fieldAnimation',
+            'impactDensityAnimation',
+            'particle3d',
+            'particleAnimation'
+        ].indexOf(analysisModel) >= 0) {
+            return 'animation';
+        }
         if (analysisModel == 'optimizerAnimation') {
             return analysisModel;
         }
-        if (
-            analysisModel == 'fieldCalcAnimation'
-            || analysisModel == 'fieldComparisonAnimation'
-            || analysisModel == 'fieldCalculationAnimation'
-        ) {
+        if ([
+            'fieldCalcAnimation',
+            'fieldComparisonAnimation',
+            'fieldCalculationAnimation'
+        ].indexOf(analysisModel) >=0) {
             return 'fieldCalculationAnimation';
         }
         return 'animation';

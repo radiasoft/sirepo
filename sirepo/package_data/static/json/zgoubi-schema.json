@@ -961,7 +961,7 @@
             "YN": ["Y Coordinate Unit Conversion Coefficient", "Float", 1.0, "YN"],
             "ZN": ["Z Coordinate Unit Conversion Coefficient", "Float", 1.0, "ZN"],
             "flipX": ["Flip X Field Map", "Boolean", "0"],
-            "headerLineCount": ["Header Line Count", "Integer", 0],
+            "headerLineCount": ["Header Line Count", "Integer", 0, "Maximum header line count is 9", 0, 9],
             "zeroBXY": ["Zero Bx, By where Z=0", "Boolean", "0"],
             "normalizeHelix": ["Normalize BNORM to Helix Current", "Boolean", "0"],
             "IX": ["X Number of Mesh Nodes", "Integer", 1, "IX, IY, IZ", 1],

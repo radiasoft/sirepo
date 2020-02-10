@@ -3,18 +3,20 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="dicom" data-dicom-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-].join('');
-SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
-SIREPO.appFieldEditors = [
-    '<div data-ng-switch-when="ROI" class="col-sm-7">',
-        '<div data-roi-selector="" data-field="model[field]"></div>',
-    '</div>',
-    '<div data-ng-switch-when="ROIArray" class="col-sm-7">',
-        '<div data-roi-selection-list="" data-field="model[field]" data-model-name="modelName"></div>',
-    '</div>',
-].join('');
+SIREPO.app.config(function() {
+    SIREPO.appReportTypes = [
+        '<div data-ng-switch-when="dicom" data-dicom-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+    ].join('');
+    SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="ROI" class="col-sm-7">',
+          '<div data-roi-selector="" data-field="model[field]"></div>',
+        '</div>',
+        '<div data-ng-switch-when="ROIArray" class="col-sm-7">',
+          '<div data-roi-selection-list="" data-field="model[field]" data-model-name="modelName"></div>',
+        '</div>',
+    ].join('');
+});
 
 SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender, $rootScope) {
     var self = {};
@@ -188,6 +190,19 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
         self.isEditing = ! self.isEditing;
     };
 
+    self.updateDicomAndDoseFrame = function(waitForDose) {
+        if (! waitForDose) {
+            frameCache.setFrameCount(1);
+            return;
+        }
+        var status = appState.models.simulationStatus;
+        if (status.dicomAnimation && status.dicomAnimation.state != 'missing'
+            && status.doseCalculation && status.doseCalculation.state != 'missing') {
+            // wait for both dicomAnimation and doseCalculation status
+            frameCache.setFrameCount(1);
+        }
+    };
+
     self.updateROIPoints = function(editedContours) {
         requestSender.getApplicationData(
             {
@@ -212,8 +227,7 @@ SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, pan
                 appState.models.dicomDose = data.dicomDose;
                 appState.saveChanges('dicomDose');
             }
-            // actual frame count is stored on dicomDose metadata
-            frameCache.setFrameCount(1);
+            rs4piService.updateDicomAndDoseFrame(true);
         }
     }
 
@@ -314,6 +328,7 @@ SIREPO.app.directive('dicomFrames', function(frameCache, persistentSimulation, r
         restrict: 'A',
         scope: {
             model: '@dicomFrames',
+            waitForDose: '@',
         },
         controller: function($scope) {
             function handleStatus(data) {
@@ -321,8 +336,7 @@ SIREPO.app.directive('dicomFrames', function(frameCache, persistentSimulation, r
                     $scope.simState.runSimulation();
                     return;
                 }
-                // actual frame counts are stored in dicomSeries metadata
-                frameCache.setFrameCount(1);
+                rs4piService.updateDicomAndDoseFrame($scope.waitForDose);
             }
 
             $scope.simState = persistentSimulation.initSimulationState(

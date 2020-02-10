@@ -87,10 +87,10 @@ def call_api(func_or_name, kwargs=None, data=None):
             if data:
                 sirepo.http_request.set_post(p)
     except Exception as e:
-        if not isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
-            pkdlog('api={} exception={} stack={}', func_or_name, e, pkdexc())
-        else:
+        if isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
             pkdc('api={} exception={} stack={}', func_or_name, e, pkdexc())
+        else:
+            pkdlog('api={} exception={} stack={}', func_or_name, e, pkdexc())
         r = sirepo.http_reply.gen_exception(e)
     finally:
         # http_request tries to keep a valid sim_type so
@@ -206,7 +206,7 @@ def _dispatch(path):
             route = _uri_to_route[parts[0]]
             parts.pop(0)
         except KeyError:
-            pkdlog('uri={} not found, using default route', path)
+            # sim_types (applications)
             route = _default_route
         kwargs = pkcollections.Dict()
         for p in route.params:
@@ -223,7 +223,7 @@ def _dispatch(path):
             raise sirepo.util.raise_not_found('{}: unknown parameters in uri ({})', parts, path)
         return call_api(route.func, kwargs)
     except Exception as e:
-        pkdlog('exception={} path={} stack={}', path, e, pkdexc())
+        pkdlog('exception={} path={} stack={}', e, path, pkdexc())
         raise
 
 
