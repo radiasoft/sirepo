@@ -3536,3 +3536,37 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
         },
     };
 });
+
+// use this to display a raw SVG string
+SIREPO.app.directive('svgPlot', function(appState, focusPointService, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            reportId: '<',
+            modelName: '@',
+            reportCfg: '<',
+        },
+        template: [
+            '<div class="sr-svg-plot">',
+            '</div>'
+        ].join(''),
+        controller: function($scope, $element) {
+
+            function load() {
+                panelState.requestData($scope.modelName, function(data) {
+                    //srdbg('el', $($element).width(), $scope.reportCfg);
+                    let newsvg = data.svg;
+                    if ($scope.reportCfg && $scope.reportCfg.svgFormatter) {
+                        newsvg = $scope.reportCfg.svgFormatter(newsvg);
+                    }
+                    $($element).find('.sr-svg-plot').append(newsvg);
+                });
+            }
+
+            appState.whenModelsLoaded($scope, function() {
+                load();
+            });
+
+        },
+    };
+});

@@ -28,6 +28,7 @@ pykern.pksetup.setup(
         'numpy',
         'asyncssh; python_version >= "3"',
         'pillow',
+        'pydot',
         'pyIsEmail',
         'pykern',
         'pytz==2015.7',

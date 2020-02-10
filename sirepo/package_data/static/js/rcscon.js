@@ -31,6 +31,7 @@ SIREPO.app.directive('appFooter', function() {
 	},
         template: [
             '<div data-common-footer="nav"></div>',
+            '<div data-import-dialog=""></div>',
 	].join(''),
     };
 });
@@ -55,16 +56,24 @@ SIREPO.app.directive('appHeader', function() {
 		//  '<div>App-specific setting item</div>',
               '</app-settings>',
               '<app-header-right-sim-list>',
+                '<ul class="nav navbar-nav sr-navbar-right">',
+                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+                '</ul>',
               '</app-header-right-sim-list>',
             '</div>',
 	].join(''),
         controller: function($scope) {
             //TODO(pjm): hide machine learning tab if no files selected.
+
+            $scope.showImportModal = function() {
+                $('#srw-simulation-import').modal('show');
+            };
+
         },
     };
 });
 
-SIREPO.app.controller('MLController', function (appState, frameCache, persistentSimulation, rcsconService, $scope) {
+SIREPO.app.controller('MLController', function (appState, frameCache, persistentSimulation, rcsconService, utilities, $scope) {
     var self = this;
 
     function addFitAnimations() {
@@ -96,6 +105,22 @@ SIREPO.app.controller('MLController', function (appState, frameCache, persistent
         frameCache.setFrameCount(data.frameCount || 0);
     }
 
+    self.display = function() {
+        if (utilities.isFullscreen()) {
+            utilities.exitFullscreenFn().call(document);
+        }
+        const el = $('#sr-ml-model-plot');
+        el.modal('show');
+        el.on('shown.bs.modal', function() {
+            $scope.mlModelShown = true;
+            $scope.$digest();
+        });
+        el.on('hidden.bs.modal', function() {
+            $scope.mlModelShown = false;
+            el.off();
+        });
+    };
+
     self.startSimulation = function() {
         self.simState.saveAndRunSimulation('simulation');
     };
@@ -109,6 +134,50 @@ SIREPO.app.controller('MLController', function (appState, frameCache, persistent
         rcsconService.computeModel(),
         handleStatus
     );
+});
+
+SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+            reportId: '<',
+        },
+        template: [
+            '<div data-report-content="rawSVG" data-model-key="mlModelGraph" data-report-cfg="reportCfg">',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+
+            //srdbg($scope.modelName, $($element).width());
+            const scale = 0.75;
+            $scope.reportCfg = {
+                svgFormatter: function(str) {
+
+                    // for some reason the viewbox and size do not always match
+                    const svg = $(str);
+                    let w = utilities.fontSizeFromString(svg.attr('width'));
+                    let h = utilities.fontSizeFromString(svg.attr('height'));
+
+                    // jquery considers viewBox a property, not an attribute
+                    let vb = svg.prop('viewBox').baseVal;
+
+                    // fix the viewBox or the plot will be cut off
+                    vb.width = w;
+                    vb.height = h;
+                    // resize
+                    svg.attr('width', scale * w);
+                    svg.attr('height', scale * h);
+
+                    // re-center
+                    svg.attr('transform', 'translate(' + (scale * w / 2) + ', 0)');
+
+                    srdbg('formatted svg', svg);
+                    return svg;
+                },
+            };
+        },
+    };
 });
 
 SIREPO.app.controller('VisualizationController', function (appState, requestSender, rcsconService, $scope) {

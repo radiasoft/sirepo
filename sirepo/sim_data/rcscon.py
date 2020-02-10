@@ -28,6 +28,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'epochAnimation',
                 'files',
                 'mlModel',
+                'mlModelGraph',
                 'neuralNet',
                 'neuralNetLayer',
                 'partition',

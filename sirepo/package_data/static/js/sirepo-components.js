@@ -1668,6 +1668,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
         scope: {
             reportId: '<',
             reportContent: '@',
+            reportCfg: '<',
             modelKey: '@',
         },
         template: [
@@ -1683,6 +1684,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
                 '<div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
+                '<div data-ng-switch-when="rawSVG" data-svg-plot="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId" data-report-cfg="reportCfg"></div>',
                 SIREPO.appReportTypes || '',
               '</div>',
               '<div data-ng-transclude=""></div>',
@@ -3428,7 +3430,15 @@ SIREPO.app.service('utilities', function($window, $interval) {
         if (! fsString) {
             return 0;
         }
-        return parseFloat(fsString.substring(0, fsString.indexOf('px')));
+        const units = ['px', 'pt'];
+        for (let uIdx in units) {
+            let unit = units[uIdx];
+            let fs = parseFloat(fsString.substring(0, fsString.indexOf(unit)));
+            if (! isNaN(fs)) {
+                return fs;
+            }
+        }
+        return NaN;
     };
 
     this.wordSplits = function(str) {

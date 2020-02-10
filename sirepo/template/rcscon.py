@@ -41,6 +41,10 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def extract_report_data(run_dir, sim_in):
+    if 'mlModelGraph' in sim_in.report:
+        svg = pkio.read_text('modelGraph.svg')
+        simulation_db.write_result(PKDict(svg=svg), run_dir=run_dir)
+        return
     idx = sim_in.models[sim_in.report].columnNumber
     x, y, col_name, source_name = _extract_column(run_dir, sim_in, idx)
     simulation_db.write_result(
@@ -151,7 +155,12 @@ def _generate_parameters_file(data):
         outputsFileName=_SIM_DATA.rcscon_filename(data, 'files', 'outputs'),
         layerImplementationNames=_layer_implementation_list(data),
         neuralNetLayers=data.models.neuralNet.layers,
+        inputDim=data.models.files.inputsCount,
     ).update(_OUTPUT_FILE))
+    res += template_common.render_jinja(SIM_TYPE, v, 'build-model.py')
+    if 'mlModelGraph' in report:
+        res += template_common.render_jinja(SIM_TYPE, v, 'graph.py')
+        return res
     res += template_common.render_jinja(SIM_TYPE, v, 'scale.py')
     if 'fileColumnReport' in report:
         return res

@@ -131,6 +131,10 @@
         "mlModel": {
             "mlModule": ["Model Type", "MLModule", "neuralnet"]
         },
+        "mlModelGraph": {
+            "inProgressText": ["", "String", "Building Graph"],
+            "svg": ["", "String", ""]
+        },
         "neuralNet": {
             "optimizer": ["Optimizer", "NeuralNetOptimizer", "adam"],
             "losses": ["Losses", "NeuralNetLosses", "mean_squared_error"],
