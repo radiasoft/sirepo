@@ -6,7 +6,7 @@
 """
 from pykern import pkconfig, pkio, pkinspect, pkcollections, pkconfig, pkjson
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdlog, pkdc, pkdexc
+from pykern.pkdebug import pkdp, pkdlog, pkdc, pkdexc, pkdformat
 from sirepo import job
 import collections
 import importlib
@@ -104,6 +104,7 @@ class DriverBase(PKDict):
             self.cpu_slot = self.cpu_slot_q.get_nowait()
         except tornado.queues.QueueEmpty:
             self.cpu_slot_free_one()
+            pkdlog('self={} await cpu_slot_q.get()', self)
             self.cpu_slot = await self.cpu_slot_q.get()
             raise job_supervisor.Awaited()
         finally:
@@ -177,11 +178,22 @@ class DriverBase(PKDict):
             try:
                 op.op_slot = q.get_nowait()
             except tornado.queues.QueueEmpty:
+                pkdlog('self={} op={} await op_q.get()', self, op)
                 op.op_slot = await q.get()
                 raise job_supervisor.Awaited()
         finally:
             # may be redundant, but need to track here
             self.ops[op.opId] = op
+
+    def pkdebug_str(self):
+        return pkdformat(
+            '{}(agentId={}, kind={}, uid={}, ops={})',
+            self.__class__.__name__,
+            self._agentId,
+            self.kind,
+            self.uid,
+            self.ops,
+        )
 
     async def prepare_send(self, op):
         """Sends the op
@@ -191,6 +203,7 @@ class DriverBase(PKDict):
         """
         if not self._websocket_ready.is_set():
             await self._agent_start(op)
+            pkdlog('self={} op={} await _websocket_ready', self, op)
             await self._websocket_ready.wait()
             raise job_supervisor.Awaited()
         await self.cpu_slot_ready()
@@ -293,6 +306,7 @@ class DriverBase(PKDict):
                 await self.kill()
                 # this starts the process, but _receive_alive sets it to false
                 # when the agent fully starts.
+                pkdlog('self={} op={} await _do_agent_start', self, op)
                 await self._do_agent_start(op)
             except Exception as e:
                 pkdlog('agentId={} exception={}', self._agentId, e)
@@ -310,6 +324,9 @@ class DriverBase(PKDict):
             or ('reply' in c and c.reply.get('state') == job.ERROR)
         ):
             pkdlog('error agentId={} msg={}', self._agentId, c)
+        elif c.opName == job.OP_JOB_CMD_STDERR:
+            pkdlog('stderr from job_cmd agentId={} msg={}', self._agentId, c)
+            return
         else:
             pkdlog('opName={} agentId={} opId={}', c.opName, self._agentId, i)
         if i:

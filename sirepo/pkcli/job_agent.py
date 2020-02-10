@@ -285,7 +285,6 @@ class _Dispatcher(PKDict):
             await _reply_error(q.get_nowait())
             q.task_done()
 
-
     async def _fastcgi_op(self, msg):
         if not self._fastcgi_cmd:
             m = msg.copy()
@@ -382,6 +381,18 @@ class _Cmd(PKDict):
 
     def job_cmd_source_bashrc(self):
         return 'source $HOME/.bashrc'
+
+    async def on_stderr_read(self, text):
+        try:
+            await self.dispatcher.send(
+                self.dispatcher.format_op(
+                    self.msg,
+                    job.OP_JOB_CMD_STDERR,
+                    error=text.decode('utf-8', errors='ignore'),
+                )
+            )
+        except Exception as exc:
+            pkdlog('text={} error={} stack={}', text, exc, pkdexc())
 
     async def on_stdout_read(self, text):
         if self._terminating or not self.msg.opId:
@@ -730,7 +741,7 @@ class _Process(PKDict):
         )
         s.close()
         self.stdout = _ReadJsonlStream(self._subprocess.stdout, self.cmd)
-        self.stderr = _ReadUntilCloseStream(self._subprocess.stderr)
+        self.stderr = _ReadUntilCloseStream(self._subprocess.stderr, self.cmd)
         self._subprocess.set_exit_callback(self._on_exit)
         return self
 
@@ -742,8 +753,9 @@ class _Process(PKDict):
 class _Stream(PKDict):
     _MAX = int(1e8)
 
-    def __init__(self, stream):
+    def __init__(self, stream, cmd):
         super().__init__(
+            cmd=cmd,
             stream_closed=tornado.locks.Event(),
             text=bytearray(),
             _stream=stream,
@@ -765,11 +777,10 @@ class _Stream(PKDict):
 
 
 class _ReadJsonlStream(_Stream):
-    def __init__(self, stream, cmd):
+    def __init__(self, *args):
         self.proceed_with_read = tornado.locks.Condition()
         self.read_occurred = tornado.locks.Condition()
-        self.cmd = cmd
-        super().__init__(stream)
+        super().__init__(*args)
 
     async def _read_stream(self):
         self.text = await self._stream.read_until(b'\n', self._MAX)
@@ -778,8 +789,8 @@ class _ReadJsonlStream(_Stream):
 
 
 class _ReadUntilCloseStream(_Stream):
-    def __init__(self, stream):
-        super().__init__(stream)
+    def __init__(self, *args):
+        super().__init__(*args)
 
     async def _read_stream(self):
         t = await self._stream.read_bytes(
@@ -787,9 +798,10 @@ class _ReadUntilCloseStream(_Stream):
             partial=True,
         )
         pkdc('stderr={}', t)
+        await self.cmd.on_stderr_read(t)
         l = len(self.text) + len(t)
         assert l < self._MAX, \
-            'len(bytes)={} greater than _MAX={}'.format(l, _MAX)
+            'len(bytes)={} greater than _MAX={}'.format(l, self._MAX)
         self.text.extend(t)
 
 
