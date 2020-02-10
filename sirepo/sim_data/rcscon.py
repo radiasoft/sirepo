@@ -35,7 +35,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def rcscon_filename(cls, data, model, field):
-        return cls.lib_file_name(model, field, data.models[model][field])
+        return cls.lib_file_name_with_model_field(model, field, data.models[model][field])
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
@@ -44,7 +44,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return []
 
     @classmethod
-    def _lib_files(cls, data):
+    def _lib_file_basenames(cls, data):
         res = []
         files = data.models.files
         if files.inputs:
