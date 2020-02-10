@@ -46,12 +46,18 @@ class DockerDriver(job_driver.DriverBase):
         self.update(
             _cname=self._cname_join(),
             _image=self._get_image(),
-            _userDir=req.content.userDir,
+            _user_dir=pkio.py_path(req.content.userDir),
             host=host,
         )
         host.instances[self.kind].append(self)
         self.cpu_slot_q = host.cpu_slot_q[self.kind]
         self.__users.setdefault(self.uid, PKDict())[self.kind] = self
+        self._agent_exec_dir = self._user_dir.join(
+            'agent-docker',
+            self.host.name,
+            self._cname,
+        )
+        pkio.unchecked_remove(self._agent_exec_dir)
 
     @classmethod
     def get_instance(cls, req):
@@ -121,7 +127,9 @@ class DockerDriver(job_driver.DriverBase):
 
 
     async def _do_agent_start(self, op):
-        cmd, stdin, env = self._agent_cmd_stdin_env()
+        cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agent_exec_dir)
+        pkdlog('dir={}', self._agent_exec_dir)
+        pkio.mkdir_parent(self._agent_exec_dir)
         c = cfg[self.kind]
         p = (
             'run',
@@ -155,6 +163,8 @@ class DockerDriver(job_driver.DriverBase):
                 stderr=subprocess.STDOUT,
                 env=env,
             )
+        except Exception as e:
+            pkdlog('error={} cmd={} stack={}', e, c, pkdexc())
         finally:
             assert isinstance(stdin, io.BufferedRandom) or isinstance(stdin, int), \
                 'type(stdin)={} expected io.BufferedRandom or int'.format(type(stdin))
@@ -228,7 +238,7 @@ class DockerDriver(job_driver.DriverBase):
                 # pyenv and src shouldn't be writable, only rundir
                 _res(v, v + ':ro')
         # SECURITY: Must only mount the user's directory
-        _res(self._userDir, self._userDir)
+        _res(self._user_dir, self._user_dir)
         return tuple(res)
 
 

@@ -3001,7 +3001,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                 // The available jobRunModes can change. Default to parallel if
                 // the current jobRunMode doesn't exist
                 var j = appState.models[$scope.simState.model];
-                if (j && j.jobRunMode && j in authState.jobRunModeMap === false) {
+                if (j && j.jobRunMode && j.jobRunMode in authState.jobRunModeMap === false) {
                     j.jobRunMode = 'parallel';
                 }
                 appState.saveChanges($scope.simState.model);

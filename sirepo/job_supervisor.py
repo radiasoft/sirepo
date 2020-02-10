@@ -121,7 +121,7 @@ class ServerReq(PKDict):
         c = self.get('content')
         if not c:
             return 'ServerReq(<no content>)'
-        return pkdformat('ServerReq({api}, {computeJid})', **c)
+        return pkdformat('ServerReq({}, {})', c.api, c.computeJid)
 
     async def receive(self):
         s = self.content.pkdel('serverSecret')
@@ -208,6 +208,7 @@ class _ComputeJob(PKDict):
             return
         e = None
         if not self.run_dir_mutex.is_set():
+            pkdlog('self={} await self.run_dir_mutex', self)
             await self.run_dir_mutex.wait()
             e = Awaited()
             if self.run_dir_owner:
@@ -592,6 +593,7 @@ class _Op(PKDict):
         # Had to look at the implementation of Queue to see that
         # task_done should only be called if get actually removes
         # the item from the queue.
+        pkdlog('self={} await _reply_q.get()', self)
         r = await self._reply_q.get()
         self._reply_q.task_done()
         return r
