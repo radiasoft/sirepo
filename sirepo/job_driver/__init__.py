@@ -221,7 +221,6 @@ class DriverBase(PKDict):
         Returns:
             bool: True if the op was actually sent
         """
-        # TODO(e-carlin): s/self.ops/self._ops (across all drivers)
         self.ops[op.opId] = op
         if not self._websocket_ready.is_set():
             await self._agent_start(op)
