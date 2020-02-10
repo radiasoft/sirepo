@@ -139,7 +139,7 @@ def init_apis(app, *args, **kwargs):
         _METHOD_MODULES[n] = m
         if m.AUTH_METHOD_VISIBLE and n in cfg.methods:
             visible_methods.append(n)
-    visible_methods = tuple(visible_methods)
+    visible_methods = tuple(sorted(visible_methods))
     non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
     cookie.auth_hook_from_header = _auth_hook_from_header
 
