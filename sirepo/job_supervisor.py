@@ -208,7 +208,7 @@ class _ComputeJob(PKDict):
             return
         e = None
         if not self.run_dir_mutex.is_set():
-            pkdlog('computeJid={} await self.run_dir_mutex', self.db.computeJid)
+            pkdlog('self={} await self.run_dir_mutex', self)
             await self.run_dir_mutex.wait()
             e = Awaited()
             if self.run_dir_owner:
