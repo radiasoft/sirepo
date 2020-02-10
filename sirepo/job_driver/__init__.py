@@ -104,6 +104,7 @@ class DriverBase(PKDict):
             self.cpu_slot = self.cpu_slot_q.get_nowait()
         except tornado.queues.QueueEmpty:
             self.cpu_slot_free_one()
+            pkdlog('self={} await cpu_slot_q.get()', self)
             self.cpu_slot = await self.cpu_slot_q.get()
             raise job_supervisor.Awaited()
         finally:
@@ -177,6 +178,7 @@ class DriverBase(PKDict):
             try:
                 op.op_slot = q.get_nowait()
             except tornado.queues.QueueEmpty:
+                pkdlog('op={} await op_q.get()', op)
                 op.op_slot = await q.get()
                 raise job_supervisor.Awaited()
         finally:
@@ -191,6 +193,7 @@ class DriverBase(PKDict):
         """
         if not self._websocket_ready.is_set():
             await self._agent_start(op)
+            pkdlog('op={} await _websocket_ready', op)
             await self._websocket_ready.wait()
             raise job_supervisor.Awaited()
         await self.cpu_slot_ready()
@@ -293,6 +296,7 @@ class DriverBase(PKDict):
                 await self.kill()
                 # this starts the process, but _receive_alive sets it to false
                 # when the agent fully starts.
+                pkdlog('op={} await _do_agent_start', op)
                 await self._do_agent_start(op)
             except Exception as e:
                 pkdlog('agentId={} exception={}', self._agentId, e)
