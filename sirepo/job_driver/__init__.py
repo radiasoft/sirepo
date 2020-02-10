@@ -314,6 +314,9 @@ class DriverBase(PKDict):
             or ('reply' in c and c.reply.get('state') == job.ERROR)
         ):
             pkdlog('error agentId={} msg={}', self._agentId, c)
+        elif c.opName == job.OP_JOB_CMD_STDERR:
+            pkdlog('stderr from job_cmd agentId={} msg={}', self._agentId, c)
+            return
         else:
             pkdlog('opName={} agentId={} opId={}', c.opName, self._agentId, i)
         if i:
