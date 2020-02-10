@@ -147,7 +147,7 @@ def _init_model(db, base):
 
 
 def _oauth_client():
-    return authlib.flask.client.OAuth(flask.current_app).remote_app(
+    return authlib.integrations.flask_client.OAuth(flask.current_app).remote_app(
         'github',
         consumer_key=cfg.key,
         consumer_secret=cfg.secret,
