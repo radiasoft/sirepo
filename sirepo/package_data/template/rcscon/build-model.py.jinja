@@ -1,0 +1,25 @@
+from __future__ import absolute_import, division, print_function
+from keras.models import Sequential
+{% for name in layerImplementationNames %}
+from keras.layers import {{ name }}
+{% endfor %}
+
+model = Sequential()
+{% for layer in neuralNetLayers %}
+model.add({{ layer.layer }}(
+    {%- if layer.layer == 'Activation' -%}
+    "{{ layer.activationActivation }}"
+    {%- elif layer.layer == 'AlphaDropout' -%}
+    {{ layer.alphaDropoutRate }}
+    {%- elif layer.layer == 'Dense' -%}
+    {{ layer.denseDimensionality }}, activation="{{ layer.denseActivation }}"
+    {%- elif layer.layer == 'Dropout' -%}
+    {{ layer.dropoutRate }}
+    {%- elif layer.layer == 'Flatten' -%}
+    {%- elif layer.layer == 'GaussianDropout' -%}
+    {{ layer.gaussianDropoutRate }}
+    {%- elif layer.layer == 'GaussianNoise' -%}
+    {{ layer.gaussianNoiseStddev }}
+    {%- endif -%}
+    {%- if loop.index0 == 0 -%}, input_dim={{ inputDim }} {%- endif -%}))
+{% endfor %}
