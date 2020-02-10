@@ -277,7 +277,7 @@ class _Dispatcher(PKDict):
         self._fastcgi_remove_handler()
         q = self._fastcgi_msg_q
         self._fastcgi_msg_q = None
-        self._fastcgi_cmd._destroy()
+        self._fastcgi_cmd.destroy()
         self._fastcgi_cmd = None
         if msg:
             await _reply_error(msg)
