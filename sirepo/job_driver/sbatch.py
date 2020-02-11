@@ -27,6 +27,8 @@ _KNOWN_HOSTS = None
 
 class SbatchDriver(job_driver.DriverBase):
 
+    _AGENT_STARTING_TIMEOUT_SECS = 15
+
     __instances = PKDict()
 
     def __init__(self, req):
