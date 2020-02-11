@@ -5,6 +5,8 @@ u"""support for oauth test
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
+
 
 class MockOAuthClient(object):
 
@@ -29,7 +31,7 @@ class MockOAuthClient(object):
         from sirepo.auth import github
         import sirepo.http_reply
 
-        self.values.callback = callback
+        self.values.redirect_uri = redirect_uri
         self.values.state = state
         return sirepo.http_reply.gen_redirect(
             'https://github.com/login/oauth/oauthorize?response_type=code&client_id={}&redirect_uri={}&state={}'.format(
