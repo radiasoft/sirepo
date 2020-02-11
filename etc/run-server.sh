@@ -1,6 +1,4 @@
 #!/bin/bash
-export PYKERN_PKDEBUG_CONTROL=
-export PYKERN_PKDEBUG_OUTPUT=
 export PYKERN_PKDEBUG_WANT_PID_TIME=1
 export SIREPO_AUTH_EMAIL_FROM_EMAIL='support@radiasoft.net'
 export SIREPO_AUTH_EMAIL_FROM_NAME='RadiaSoft Support'

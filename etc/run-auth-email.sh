@@ -1,6 +1,4 @@
 #!/bin/bash
-export PYKERN_PKDEBUG_CONTROL=
-export PYKERN_PKDEBUG_OUTPUT=
 export SIREPO_AUTH_EMAIL_FROM_EMAIL='support@radiasoft.net'
 export SIREPO_AUTH_EMAIL_FROM_NAME='RadiaSoft Support'
 export SIREPO_AUTH_EMAIL_SMTP_PASSWORD='n/a'

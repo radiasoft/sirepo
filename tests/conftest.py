@@ -258,11 +258,12 @@ def _job_supervisor_check(env):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
-        s.bind((sirepo.job.DEFAULT_IP, int(sirepo.job.DEFAULT_PORT)))
+        s.bind((env.SIREPO_PKCLI_JOB_SUPERVISOR_IP, int(env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT)))
     except Exception:
         raise AssertionError(
-            'job_supervisor still running on port={}'.format(
-                sirepo.job.DEFAULT_PORT
+            'job_supervisor still running on ip={} port={}'.format(
+                env.SIREPO_PKCLI_JOB_SUPERVISOR_IP,
+                env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT,
             ),
         )
     finally:
@@ -306,10 +307,17 @@ def _job_supervisor_setup(request, cfg=None):
         env[k] = v
     if not cfg:
         cfg = PKDict()
+    i = '127.0.0.1'
+    # different port than default so can run tests when supervisor running
+    p = '8002'
     cfg.pkupdate(
         PYKERN_PKDEBUG_WANT_PID_TIME='1',
         SIREPO_FEATURE_CONFIG_JOB='1',
+        SIREPO_PKCLI_JOB_SUPERVISOR_IP=i,
+        SIREPO_PKCLI_JOB_SUPERVISOR_PORT=p,
     )
+    for x in 'DRIVER_LOCAL', 'DRIVER_DOCKER', 'API', 'DRIVER_SBATCH':
+        cfg['SIREPO_JOB_{}_SUPERVISOR_URI'.format(x)] = 'http://{}:{}'.format(i, p)
     if sbatch_module:
         cfg.pkupdate(SIREPO_SIMULATION_DB_SBATCH_DISPLAY='testing@123')
     env.pkupdate(
@@ -357,6 +365,8 @@ def _job_supervisor_start(request, cfg=None):
         time.sleep(.1)
     else:
         import sirepo.job_api
+        from pykern.pkdebug import pkdp
+        pkdp(sirepo.job_api.cfg.supervisor_uri)
         pkunit.pkfail('could not connect to {}', sirepo.job_api.cfg.supervisor_uri)
     return p, fc
 

@@ -15,6 +15,13 @@ pytestmark = pytest.mark.skipif(
     reason='SIREPO_FEATURE_CONFIG_JOB != 1'
 )
 
+# If you see: _timeout MAX_CASE_RUN_SECS=120 exceeded
+# Run sinfo to see if slurmd is down for this node.
+# https://github.com/radiasoft/sirepo/issues/2136
+# sudo scontrol <<EOF
+# update NodeName=debug State=DOWN Reason=undraining
+# update NodeName=debug State=RESUME
+# EOF
 
 def test_warppba_no_creds(new_user_fc):
     from pykern.pkunit import pkexcept

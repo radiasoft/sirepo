@@ -46,12 +46,18 @@ class DockerDriver(job_driver.DriverBase):
         self.update(
             _cname=self._cname_join(),
             _image=self._get_image(),
-            _userDir=req.content.userDir,
+            _user_dir=pkio.py_path(req.content.userDir),
             host=host,
         )
         host.instances[self.kind].append(self)
         self.cpu_slot_q = host.cpu_slot_q[self.kind]
         self.__users.setdefault(self.uid, PKDict())[self.kind] = self
+        self._agent_exec_dir = self._user_dir.join(
+            'agent-docker',
+            self.host.name,
+            self._cname,
+        )
+        pkio.unchecked_remove(self._agent_exec_dir)
 
     @classmethod
     def get_instance(cls, req):
@@ -83,9 +89,12 @@ class DockerDriver(job_driver.DriverBase):
             return
         self._cid = None
         pkdlog('uid={} cid={}', self.get('uid'), c)
-        await self._cmd(
-            ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), c),
-        )
+        try:
+            await self._cmd(
+                ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), c),
+            )
+        except Exception as e:
+            pkdlog('error={} stack={}', e, pkdexc())
 
     async def prepare_send(self, op):
         if op.opName == job.OP_RUN:
@@ -111,7 +120,6 @@ class DockerDriver(job_driver.DriverBase):
             args.append('--tls{}={}'.format(x, f))
         return tuple(args)
 
-
     def _cname_join(self):
         """Create a cname or cname_prefix from kind and uid
 
@@ -119,9 +127,10 @@ class DockerDriver(job_driver.DriverBase):
         """
         return _CNAME_SEP.join([_CNAME_PREFIX, self.kind[0], self.uid])
 
-
     async def _do_agent_start(self, op):
-        cmd, stdin, env = self._agent_cmd_stdin_env()
+        cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agent_exec_dir)
+        pkdlog('dir={}', self._agent_exec_dir)
+        pkio.mkdir_parent(self._agent_exec_dir)
         c = cfg[self.kind]
         p = (
             'run',
@@ -155,6 +164,8 @@ class DockerDriver(job_driver.DriverBase):
                 stderr=subprocess.STDOUT,
                 env=env,
             )
+        except Exception as e:
+            pkdlog('error={} cmd={} stack={}', e, c, pkdexc())
         finally:
             assert isinstance(stdin, io.BufferedRandom) or isinstance(stdin, int), \
                 'type(stdin)={} expected io.BufferedRandom or int'.format(type(stdin))
@@ -197,7 +208,6 @@ class DockerDriver(job_driver.DriverBase):
         # we just reuse the same cert as the docker server since it's local host
         d.join('cacert.pem').write(o)
 
-
     @classmethod
     def _init_hosts(cls):
         for h in cfg.hosts:
@@ -228,7 +238,7 @@ class DockerDriver(job_driver.DriverBase):
                 # pyenv and src shouldn't be writable, only rundir
                 _res(v, v + ':ro')
         # SECURITY: Must only mount the user's directory
-        _res(self._userDir, self._userDir)
+        _res(self._user_dir, self._user_dir)
         return tuple(res)
 
 

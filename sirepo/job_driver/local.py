@@ -34,8 +34,10 @@ class LocalDriver(job_driver.DriverBase):
     def __init__(self, req):
         super().__init__(req)
         self.update(
-            _agentExecDir=pkio.py_path(req.content.userDir).join(
-                'agent-local', self._agentId),
+            _agent_exec_dir=pkio.py_path(req.content.userDir).join(
+                'agent-local',
+                self._agentId,
+            ),
             _agent_exit=tornado.locks.Event(),
         )
         self.cpu_slot_q = self.__cpu_slot_q[req.kind]
@@ -100,15 +102,15 @@ class LocalDriver(job_driver.DriverBase):
         if k:
             tornado.ioloop.IOLoop.current().remove_timeout(k)
         pkdlog('agentId={} returncode={}', self._agentId, returncode)
-        self._agentExecDir.remove(rec=True, ignore_errors=True)
+        self._agent_exec_dir.remove(rec=True, ignore_errors=True)
 
     async def _do_agent_start(self, op):
         stdin = None
         try:
-            cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agentExecDir)
-            pkdlog('dir={}', self._agentExecDir)
+            cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agent_exec_dir)
+            pkdlog('dir={}', self._agent_exec_dir)
             # since this is local, we can make the directory; useful for debugging
-            pkio.mkdir_parent(self._agentExecDir)
+            pkio.mkdir_parent(self._agent_exec_dir)
             self.subprocess = tornado.process.Subprocess(
                 cmd,
                 env=env,

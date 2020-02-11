@@ -1,0 +1,23 @@
+
+&run_setup
+  semaphore_file = run_setup.semaphore,
+  lattice = "elegant.lte",
+  p_central = 85,
+  use_beamline = "bl",
+&end
+
+&sdds_beam
+  input = "bunchFile-sourceFile.PCG.sdds",
+&end
+
+&sdds_beam
+  input = "bunchFile-sourceFile.PCG.sdds",
+&end
+
+&load_parameters
+  filename = "command_load_parameters-filename.tessamatch1.paramOpt",
+&end
+
+&load_parameters
+  filename = "command_load_parameters-filename.tessamatch1.paramOpt",
+&end
