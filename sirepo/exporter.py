@@ -33,7 +33,7 @@ def create_archive(sim):
         )
     with simulation_db.tmp_dir() as d:
         want_zip = sim.filename.endswith('zip')
-        f, c = _create_zip(sim, want_python=want_zip, out_dir=d)
+        f, c = create_zip(sim, want_python=want_zip, path=d.join(sim.id + '.zip'))
         if want_zip:
             t = 'application/zip'
         else:
@@ -43,6 +43,35 @@ def create_archive(sim):
             content_type=t,
             filename=sim.filename,
         )
+
+
+def create_zip(sim, want_python, path=None):
+    """Zip up the json file and its dependencies
+
+    Args:
+        sim (req): simulation
+        want_python (bool): include template's python source?
+        path (py.path): absoulte path of zip file to write files to
+
+    Returns:
+        py.path.Local: zip file name
+    """
+    data = simulation_db.open_json_file(sim.type, sid=sim.id)
+    data.pkdel('report')
+    simulation_db.update_rsmanifest(data)
+    files = sim_data.get_class(data).lib_files_for_export(data)
+    files.insert(0, simulation_db.sim_data_file(sim.type, sim.id))
+    if want_python:
+        files.append(_python(data))
+    with zipfile.ZipFile(
+        str(path),
+        mode='w',
+        compression=zipfile.ZIP_DEFLATED,
+        allowZip64=True,
+    ) as z:
+        for f in files:
+            z.write(str(f), f.basename)
+    return path, data
 
 
 def _create_html(zip_path, data):
@@ -65,38 +94,9 @@ def _create_html(zip_path, data):
     values.productLongName = sc.productInfo.longName
     values.productShortName = sc.productInfo.shortName
     values.zip = zip_path.read().encode('base64')
-    with open(str(fp), 'wb') as f:
+    with open(str(fp), 'wb'):
         fp.write(pkjinja.render_resource('archive.html', values))
     return fp, 'text/html'
-
-
-def _create_zip(sim, want_python, out_dir):
-    """Zip up the json file and its dependencies
-
-    Args:
-        sim (req): simulation
-        want_python (bool): include template's python source?
-        out_dir (py.path): where to write to
-
-    Returns:
-        py.path.Local: zip file name
-    """
-    path = out_dir.join(sim.id + '.zip')
-    data = simulation_db.open_json_file(sim.type, sid=sim.id)
-    data.pkdel('report')
-    files = sim_data.get_class(data).lib_files_for_export(data)
-    files.insert(0, simulation_db.sim_data_file(sim.type, sim.id))
-    if want_python:
-        files.append(_python(data))
-    with zipfile.ZipFile(
-        str(path),
-        mode='w',
-        compression=zipfile.ZIP_DEFLATED,
-        allowZip64=True,
-    ) as z:
-        for f in files:
-            z.write(str(f), f.basename)
-    return path, data
 
 
 def _python(data):

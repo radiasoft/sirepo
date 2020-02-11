@@ -2072,6 +2072,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                     //  App-specific settings are transcluded here
                     '<li class="sr-settings-submenu" data-ng-transclude="appSettingsSlot"></li>',
                     '<li><a href data-ng-if="nav.modeIsDefault()" data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
+                    '<li><a href data-ng-click="archiveSimulation()"><span class="glyphicon glyphicon-hdd"></span> Archive Simulation</a></li>',
                     '<li><a href data-ng-click="exportArchive(\'zip\')"><span class="glyphicon glyphicon-cloud-download"></span> Export as ZIP</a></li>',
                     '<li><a href data-ng-click="pythonSource()"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Python Source</a></li>',
                     '<li data-ng-if="canCopy()"><a href data-ng-click="copyItem()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>',
@@ -2102,6 +2103,16 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                 '</div>',
             ].join('');
             $scope.doneLoadingSimList = false;
+            $scope.archiveSimulation = function() {
+                requestSender.sendRequest(
+                    'archiveSimulation',
+                    function(){},
+                    {
+                        simulationId: $scope.simulationId(),
+                        simulationType: SIREPO.APP_SCHEMA.simulationType,
+                    }
+                );
+            };
 
             $scope.simulationId = function () {
                 if (appState.isLoaded()) {

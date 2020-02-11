@@ -50,6 +50,14 @@ _ROBOTS_TXT = None
 #: Global app value (only here so instance not lost)
 _app = None
 
+
+@api_perm.require_user
+def api_archiveSimulation():
+    req = http_request.parse_post(id=True, type=True)
+    simulation_db.archive_simulation(req)
+    return http_reply.gen_json_ok()
+
+
 @api_perm.require_user
 def api_copyNonSessionSimulation():
     req = http_request.parse_post(id=True, template=True)

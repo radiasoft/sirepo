@@ -127,6 +127,27 @@ def app_version():
     return SCHEMA_COMMON.version
 
 
+def archive_simulation(data):
+    """Archives simulation in db so it can be reproduced later
+
+    Args:
+        data (dict): simulation parameters
+
+    Returns:
+        None
+    """
+    import sirepo.exporter
+    p = pkio.py_path(
+        simulation_dir(data.type, data.id),
+    ).join('archive', '{}-{}.zip'.format(data.id, _timestamp()))
+    pkio.mkdir_parent_only(p)
+    sirepo.exporter.create_zip(
+        data,
+        True,
+        path=p,
+    )
+
+
 def assert_sid(sid):
     assert _ID_RE.search(sid), 'invalid sid='.format(sid)
     return sid
@@ -491,7 +512,7 @@ def prepare_simulation(data, run_dir=None):
     template = sirepo.template.import_module(data)
     s = sirepo.sim_data.get_class(sim_type)
     s.lib_files_to_run_dir(data, run_dir)
-    _update_rsmanifest(data)
+    update_rsmanifest(data)
     write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
     is_p = s.is_parallel(data)
@@ -781,6 +802,15 @@ def uid_from_dir_name(dir_name):
             r.pattern,
         )
     return m.group(1)
+
+
+def update_rsmanifest(data):
+    try:
+        data.rsmanifest = read_json(_RSMANIFEST_PATH)
+    except Exception as e:
+        if pkio.exception_is_not_found(e):
+            return
+        raise
 
 
 def user_create(login_callback):
@@ -1113,15 +1143,6 @@ def _timestamp(time=None):
     elif not isinstance(time, datetime.datetime):
         time = datetime.datetime.fromtimestamp(time)
     return time.strftime('%Y%m%d.%H%M%S')
-
-
-def _update_rsmanifest(data):
-    try:
-        data.rsmanifest = read_json(_RSMANIFEST_PATH)
-    except Exception as e:
-        if pkio.exception_is_not_found(e):
-            return
-        raise
 
 
 def _user_dir():

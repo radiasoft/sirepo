@@ -66,6 +66,7 @@
         "longName": "Sirepo"
     },
     "route": {
+        "archiveSimulation": "/archive-simulation",
         "adjustTime": "/adjust-time/?<days>",
         "blueskyAuth": "/bluesky-auth",
         "comsol": "/comsol",
