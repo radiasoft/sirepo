@@ -77,7 +77,7 @@ def api_authGithubAuthorized():
         else:
             u = AuthGithubUser(oauth_id=d['id'], user_name=d['login'])
         u.save()
-        auth.login(this_module, model=u, sim_type=t)
+        auth.login(this_module, model=u, sim_type=t, want_redirect=True)
         raise AssertionError('auth.login returned unexpectedly')
 
 
@@ -153,8 +153,7 @@ def _init_model(db, base):
 
 
 def _oauth_client():
-    authlib.integrations.requests_client.OAuth2Session
-    r = authlib.integrations.flask_client.OAuth(app, cache=_OAuthCache)
+    r = authlib.integrations.flask_client.OAuth(_app)
     r.register(
         access_token_params=None,
         access_token_url='https://github.com/login/oauth/access_token',
