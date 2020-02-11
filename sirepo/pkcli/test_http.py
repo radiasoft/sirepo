@@ -56,16 +56,16 @@ CODES = PKDict(
                 'sourceIntensityReport',
             ],
         ),
-        # PKDict(
-        #     name='Bending Magnet Radiation',
-        #     reports=[
-        #         'initialIntensityReport',
-        #         'intensityReport',
-        #         'powerDensityReport',
-        #         'sourceIntensityReport',
-        #         'trajectoryReport',
-        #     ],
-        # ),
+        PKDict(
+            name='Bending Magnet Radiation',
+            reports=[
+                'initialIntensityReport',
+                'intensityReport',
+                'powerDensityReport',
+                'sourceIntensityReport',
+                'trajectoryReport',
+            ],
+        ),
     ],
     synergia=[
         PKDict(
@@ -138,6 +138,8 @@ class _Client(PKDict):
                     uri,
                     headers=self._headers,
                     method='GET',
+                    connect_timeout=1e8,
+                    request_timeout=1e8,
                 )
             )
 
@@ -158,7 +160,7 @@ class _Client(PKDict):
                 data=PKDict(token=t, email=self.email),
             )
             assert r.state != 'srException', 'r={}'.format(r)
-            if r.state == 'redirect' and 'complete' in r.uri:
+            if r.authState.needCompleteRegistration:
                 r = await self.post(
                     '/auth-complete-registration',
                     PKDict(displayName=self.email),
@@ -197,9 +199,10 @@ class _Client(PKDict):
         data.simulationType = self.sim_type
         uri = self._uri(uri)
         with _timer(
-                'uri={} sim_type={} report={}'.format(
+                'uri={} email={} simulationId={} report={}'.format(
                     uri,
-                    data.simulationType,
+                    self.email,
+                    data.get('simulationId'),
                     data.get('report')
                 ),
         ):
@@ -211,8 +214,8 @@ class _Client(PKDict):
                         'Content-type',  'application/json'
                     ),
                     method='POST',
-                    connect_timeout=1000000,
-                    request_timeout=1000000,
+                    connect_timeout=1e8,
+                    request_timeout=1e8,
                 ),
             )
 
@@ -337,12 +340,24 @@ async def _run(email, sim_type):
 async def _run_all():
     l = []
     for a in (
-            ('a@b.c', 'elegant'),
-            ('a@b.c', 'jspec'),
-            ('a@b.c', 'srw',),
-            ('a@b.c', 'synergia'),
-            ('a@b.c', 'warppba'),
-            ('a@b.c', 'warpvnd'),
+            ('one@b.c', 'elegant'),
+            ('one@b.c', 'jspec'),
+            ('one@b.c', 'srw',),
+            ('one@b.c', 'synergia'),
+            ('one@b.c', 'warppba'),
+            ('one@b.c', 'warpvnd'),
+            ('two@b.c', 'elegant'),
+            ('two@b.c', 'jspec'),
+            ('two@b.c', 'srw',),
+            ('two@b.c', 'synergia'),
+            ('two@b.c', 'warppba'),
+            ('two@b.c', 'warpvnd'),
+            ('three@b.c', 'elegant'),
+            ('three@b.c', 'jspec'),
+            ('three@b.c', 'srw',),
+            ('three@b.c', 'synergia'),
+            ('three@b.c', 'warppba'),
+            ('three@b.c', 'warpvnd'),
     ):
         l.append(_run(*a))
     await _cancel_on_exception(asyncio.gather(*l))
