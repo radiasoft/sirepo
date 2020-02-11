@@ -27,7 +27,7 @@ _KNOWN_HOSTS = None
 
 class SbatchDriver(job_driver.DriverBase):
 
-    _RECEIVE_ALIVE_TIMEOUT_SECS = 10
+    _AGENT_STARTING_TIMEOUT_SECS = 15
 
     __instances = PKDict()
 

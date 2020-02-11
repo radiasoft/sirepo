@@ -44,10 +44,13 @@ class DriverBase(PKDict):
 
     __instances = PKDict()
 
+    _AGENT_STARTING_TIMEOUT_SECS = 5
+
     def __init__(self, req):
         super().__init__(
             _agentId=job.unique_key(),
             _agent_starting=False,
+            _agent_starting_timeout=None,
             _agent_start_lock=tornado.locks.Lock(),
             _cpu_slot_alloc_time=None,
             kind=req.kind,
@@ -61,7 +64,6 @@ class DriverBase(PKDict):
             }),
             cpu_slot=None,
             uid=req.content.uid,
-            _receive_alive_timer=None,
             _websocket=None,
             _websocket_ready=tornado.locks.Event(),
 #TODO(robnagler) https://github.com/radiasoft/sirepo/issues/2195
@@ -127,7 +129,7 @@ class DriverBase(PKDict):
         """Remove holds on all resources and remove self from data structures"""
         pkdlog('self={}', self)
         try:
-            self._agent_starting = False
+            self._agent_starting_done()
             self._websocket_ready.clear()
             w = self._websocket
             self._websocket = None
@@ -138,11 +140,6 @@ class DriverBase(PKDict):
                 o.destroy()
             self.cpu_slot_free()
             self._websocket_free()
-            if self._receive_alive_timer:
-                tornado.ioloop.IOLoop.current().remove_timeout(
-                    self._receive_alive_timer,
-                )
-                self._receive_alive_timer = None
         except Exception as e:
             pkdlog('job_driver={} error={} stack={}', self, e, pkdexc())
 
@@ -310,15 +307,28 @@ class DriverBase(PKDict):
                 # this starts the process, but _receive_alive sets it to false
                 # when the agent fully starts.
                 pkdlog('self={} op={} await _do_agent_start', self, op)
-                self._receive_alive_timer = tornado.ioloop.IOLoop.current().call_later(
-                    self._RECEIVE_ALIVE_TIMEOUT_SECS,
-                    self._receive_alive_timeout,
+                self._agent_starting_timeout = tornado.ioloop.IOLoop.current().call_later(
+                    self._AGENT_STARTING_TIMEOUT_SECS,
+                    self._agent_starting_timeout_handler,
                 )
                 await self._do_agent_start(op)
             except Exception as e:
                 pkdlog('agentId={} exception={}', self._agentId, e)
-                self._agent_starting = False
+                self._agent_starting_done()
                 raise
+
+    def _agent_starting_done(self):
+        self._agent_starting = False
+        if self._agent_starting_timeout:
+            tornado.ioloop.IOLoop.current().remove_timeout(
+                self._agent_starting_timeout
+            )
+            self._agent_starting_timeout = None
+
+
+    async def _agent_starting_timeout_handler(self):
+        pkdlog('self={}', self)
+        self.free_resources()
 
     def _has_remote_agent(self):
         return False
@@ -358,22 +368,14 @@ class DriverBase(PKDict):
 
         Save the websocket and register self with the websocket
         """
-        self._agent_starting = False
+        self._agent_starting_done()
         if self._websocket:
             if self._websocket != msg.handler:
                 # New _websocket so bind
                 self.free_resources()
-        if self._receive_alive_timer:
-            tornado.ioloop.IOLoop.current().remove_timeout(
-                self._receive_alive_timer,
-            )
         self._websocket = msg.handler
         self._websocket_ready.set()
         self._websocket.sr_driver_set(self)
-
-    async def _receive_alive_timeout(self):
-        pkdlog('self={}', self)
-        self.free_resources()
 
     def __str__(self):
         return f'{type(self).__name__}({self._agentId:.6}, {self.uid}, ops={list(self.ops.values())})'

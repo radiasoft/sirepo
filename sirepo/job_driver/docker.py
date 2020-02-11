@@ -37,8 +37,6 @@ _MAX_OPEN_FILES = 1024
 
 class DockerDriver(job_driver.DriverBase):
 
-    _RECEIVE_ALIVE_TIMEOUT_SECS = 5
-
     __hosts = PKDict()
 
     __users = PKDict()
