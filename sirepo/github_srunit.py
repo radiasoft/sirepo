@@ -14,7 +14,7 @@ class MockOAuthClient(object):
 
         self.values = pkcollections.Dict(
             access_token='xyzzy',
-            data=pkcollections.Dict(
+            user=pkcollections.Dict(
                 # don't really care about id as long as it is bound to login
                 id=user_name,
                 login=user_name,
@@ -25,7 +25,7 @@ class MockOAuthClient(object):
     def __call__(self, *args, **kwargs):
         return self
 
-    def authorize(self, callback, state):
+    def authorize_redirect(self, redirect_uri, state):
         from sirepo.auth import github
         import sirepo.http_reply
 
@@ -39,8 +39,14 @@ class MockOAuthClient(object):
             ),
         )
 
-    def authorized_response(self, *args, **kwargs):
+    def authorize_access_token(self, *args, **kwargs):
         return self.values
 
     def get(self, *args, **kwargs):
-        return self.values
+        return _JSON(self.values[args[0]])
+
+
+class _JSON(PKDict):
+
+    def json(self):
+        return self

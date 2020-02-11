@@ -20,8 +20,9 @@ from sirepo import auth_db
 from sirepo import util
 import flask
 import flask.sessions
-import authlib.flask.client
+import authlib.integrations.flask_client
 import sirepo.template
+
 
 AUTH_METHOD = 'github'
 
@@ -37,9 +38,13 @@ UserModel = None
 #: module handle
 this_module = pkinspect.this_module()
 
-# cookie keys for github (prefix is "srag")
+#: cookie keys for github (prefix is "srag")
 _COOKIE_NONCE = 'sragn'
 _COOKIE_SIM_TYPE = 'srags'
+
+
+#: cached for _oauth_client
+_app = None
 
 
 @api_perm.allow_cookieless_set_user
@@ -52,8 +57,7 @@ def api_authGithubAuthorized():
     expect = cookie.unchecked_remove(_COOKIE_NONCE) or '<missing-nonce>'
     t = cookie.unchecked_remove(_COOKIE_SIM_TYPE)
     oc = _oauth_client()
-    resp = oc.authorized_response()
-    if not resp:
+    if not oc.authorize_access_token():
         util.raise_forbidden('missing oauth response')
     got = flask.request.args.get('state', '<missing-state>')
     if expect != got:
@@ -64,7 +68,7 @@ def api_authGithubAuthorized():
         )
         auth.login_fail_redirect(t, this_module, 'oauth-state', reload_js=True)
         raise AssertionError('auth.login_fail_redirect returned unexpectedly')
-    d = oc.get('user', token=(resp['access_token'], '')).data
+    d = oc.get('user').json()
     with auth_db.thread_lock:
         u = AuthGithubUser.search_by(oauth_id=d['id'])
         if u:
@@ -88,7 +92,7 @@ def api_authGithubLogin(simulation_type):
         # must be executed in an app and request context so can't
         # initialize earlier.
         cfg.callback_uri = uri_router.uri_for_api('authGithubAuthorized')
-    return _oauth_client().authorize(callback=cfg.callback_uri, state=s)
+    return _oauth_client().authorize_redirect(redirect_uri=cfg.callback_uri, state=s)
 
 
 @api_perm.allow_cookieless_set_user
@@ -105,14 +109,15 @@ def avatar_uri(model, size):
 
 
 def init_apis(app, *args, **kwargs):
-    global cfg
+    global cfg, _app
     cfg = pkconfig.init(
         key=pkconfig.Required(str, 'Github key'),
         secret=pkconfig.Required(str, 'Github secret'),
         callback_uri=(None, str, 'Github callback URI (defaults to api_authGithubAuthorized)'),
     )
-    app.session_interface = _FlaskSessionInterface()
     auth_db.init_model(app, _init_model)
+    app.session_interface = _FlaskSessionInterface()
+    _app = app
 
 
 class _FlaskSession(dict, flask.sessions.SessionMixin):
@@ -120,6 +125,7 @@ class _FlaskSession(dict, flask.sessions.SessionMixin):
 
 
 class _FlaskSessionInterface(flask.sessions.SessionInterface):
+
     """Emphemeral session for oauthlib.client state
 
     Without this class, Flask creates a NullSession which can't
@@ -147,13 +153,17 @@ def _init_model(db, base):
 
 
 def _oauth_client():
-    return authlib.integrations.flask_client.OAuth(flask.current_app).remote_app(
-        'github',
-        consumer_key=cfg.key,
-        consumer_secret=cfg.secret,
-        base_url='https://api.github.com/',
-        request_token_url=None,
-        access_token_method='POST',
+    authlib.integrations.requests_client.OAuth2Session
+    r = authlib.integrations.flask_client.OAuth(app, cache=_OAuthCache)
+    r.register(
+        access_token_params=None,
         access_token_url='https://github.com/login/oauth/access_token',
+        api_base_url='https://api.github.com/',
+        authorize_params=None,
         authorize_url='https://github.com/login/oauth/authorize',
+        client_id=cfg.key,
+        client_kwargs={'scope': 'user:email'},
+        client_secret=cfg.secret,
+        name='github',
     )
+    return r.create_client('github')
