@@ -1018,7 +1018,7 @@ SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
             axis: '@lineoutCsvLink',
         },
         template: [
-            '<a href data-ng-show=":: is3dPlot()" data-ng-click="exportLineout()">CSV - {{:: axisName }} Cut</a>',
+            '<a href data-ng-show=":: is3dPlot()" data-ng-click="exportLineout()">CSV - {{:: axisName }}</a>',
         ].join(''),
         controller: function($scope) {
 
@@ -1030,7 +1030,11 @@ SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
                 return s;
             }
 
-            $scope.axisName = $scope.axis == 'x' ? 'Horizontal' : 'Vertical';
+            $scope.axisName = $scope.axis == 'x'
+                ? 'Horizontal Cut'
+                : $scope.axis == 'y'
+                    ? 'Vertical Cut'
+                    : 'Full Plot';
 
             $scope.exportLineout = function() {
                 findReportPanelScope().$broadcast(SIREPO.PLOTTING_LINE_CSV_EVENT, $scope.axis);
