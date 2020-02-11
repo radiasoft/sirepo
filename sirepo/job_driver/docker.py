@@ -89,9 +89,12 @@ class DockerDriver(job_driver.DriverBase):
             return
         self._cid = None
         pkdlog('uid={} cid={}', self.get('uid'), c)
-        await self._cmd(
-            ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), c),
-        )
+        try:
+            await self._cmd(
+                ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), c),
+            )
+        except Exception as e:
+            pkdlog('error={} stack={}', e, pkdexc())
 
     async def prepare_send(self, op):
         if op.opName == job.OP_RUN:
@@ -117,14 +120,12 @@ class DockerDriver(job_driver.DriverBase):
             args.append('--tls{}={}'.format(x, f))
         return tuple(args)
 
-
     def _cname_join(self):
         """Create a cname or cname_prefix from kind and uid
 
         POSIT: matches _CNAME_RE
         """
         return _CNAME_SEP.join([_CNAME_PREFIX, self.kind[0], self.uid])
-
 
     async def _do_agent_start(self, op):
         cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agent_exec_dir)
@@ -206,7 +207,6 @@ class DockerDriver(job_driver.DriverBase):
             d.join(f).write(o)
         # we just reuse the same cert as the docker server since it's local host
         d.join('cacert.pem').write(o)
-
 
     @classmethod
     def _init_hosts(cls):
