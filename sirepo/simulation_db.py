@@ -146,6 +146,7 @@ def archive_simulation(data):
         True,
         path=p,
     )
+    return p
 
 
 def assert_sid(sid):

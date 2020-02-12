@@ -54,8 +54,8 @@ _app = None
 @api_perm.require_user
 def api_archiveSimulation():
     req = http_request.parse_post(id=True, type=True)
-    simulation_db.archive_simulation(req)
-    return http_reply.gen_json_ok()
+    # return PKDict(path=simulation_db.archive_simulation(req))
+    return http_reply.gen_json(PKDict(path=simulation_db.archive_simulation(req)))
 
 
 @api_perm.require_user
@@ -167,6 +167,21 @@ def api_exportArchive(simulation_type, simulation_id, filename):
     )
     from sirepo import exporter
     return exporter.create_archive(req)
+
+
+@api_perm.require_user
+def api_extractArchive():
+    req = http_request.parse_post(id=True, type=True)
+    pkdp(req.req_data.path)
+    p = pkio.py_path( # TODO(e-carlin): just make str. don't need py_path
+        simulation_db.simulation_dir(req.type),
+    ).join('archive', '{}.zip'.format(req.req_data.path.split('/')[-1]))
+    import sirepo.importer  # TODO(e-carlin): used elsewhere in this file. move to top
+    data = sirepo.importer.read_zip(str(p), sim_type=req.type)
+    # TODO(e-carlin): repetition with  importFile
+    data.models.simulation.folder = '/Archives'
+    data.models.simulation.isExample = False
+    return _save_new_and_reply(data)
 
 
 @api_perm.allow_visitor
