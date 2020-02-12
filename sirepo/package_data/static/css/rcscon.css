@@ -4,11 +4,16 @@
 .rcscon-layer-activation {
   fill: #5dd45d;
 }
+.rcscon-activation-txt {
+  font-weight: normal;
+  fill: #000000;
+}
+
 .rcscon-layer-alpha-dropout {
   fill: #f55f5f;
 }
 .rcscon-layer-dense {
-  fill: #777df7;
+  fill: #9091f7;
 }
 .rcscon-layer-dropout {
   fill: #f53b3b;

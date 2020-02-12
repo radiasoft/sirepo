@@ -186,14 +186,18 @@ SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
 
                     // apply colors
                     const baseClass = 'rcscon-layer';
-                    const nodes = svg.find('g.node');
 
                     // keras adds text to the node boxes formatted as:
                     //     <layer_type>_<index>: <Layer Type>
-                    nodes.each(function (idx) {
-                        let txt = $(this).find('text').text();
+                    const layers = appState.models.neuralNet.layers;
+                    svg.find('g.node').each(function (idx) {
+                        let node = $(this);
+
+                        let txtEl = node.find('text').eq(0);
+                        let txt = txtEl.text();
+
                         let cName = txt.substring(0, txt.indexOf(':'));
-                        let p = $(this).find('polygon');
+                        let p = node.find('polygon');
                         p.addClass(baseClass);
                         // input is named differently
                         if (cName.indexOf('_input') >= 0) {
@@ -202,6 +206,22 @@ SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
                         }
                         cName = cName.substring(0, cName.lastIndexOf('_')).replace('_', '-');
                         p.addClass(baseClass + '-' + cName);
+
+
+                        // the input box is added by keras, and does not correspond to a layer
+                        let layer = layers[idx - 1];
+                        let lType = txt.substring(txt.indexOf(':') + 1).trim();
+                        if (! layer || (lType !== 'Activation' && lType !== 'Dense')) {
+                            return;
+                        }
+
+                        // add activation function if appropriate
+                        // regroup text into tspans - we must use html() or the svg will not render correctly
+                        txtEl.text('');
+                        const afType = lType.toLowerCase() + 'Activation';
+                        const ts = '<tspan>' + txt + '</tspan>' +
+                            ('<tspan x="' + txtEl.attr('x') + '" dy="16" class="rcscon-activation-txt">' + layer[afType] + '</tspan>');
+                        txtEl.html(ts);
                     });
                     return svg;
                 },
