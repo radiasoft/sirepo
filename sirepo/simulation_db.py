@@ -139,7 +139,7 @@ def archive_simulation(data):
     import sirepo.exporter
     p = pkio.py_path(
         simulation_dir(data.type, data.id),
-    ).join('archive', '{}-{}.zip'.format(data.id, _timestamp()))
+    ).join('archive', '{}-{}'.format(data.id, _timestamp()))
     pkio.mkdir_parent_only(p)
     sirepo.exporter.create_zip(
         data,

@@ -33,7 +33,7 @@ def create_archive(sim):
         )
     with simulation_db.tmp_dir() as d:
         want_zip = sim.filename.endswith('zip')
-        f, c = create_zip(sim, want_python=want_zip, path=d.join(sim.id + '.zip'))
+        f, c = create_zip(sim, want_python=want_zip, path=d.join(sim.id))
         if want_zip:
             t = 'application/zip'
         else:
@@ -51,11 +51,12 @@ def create_zip(sim, want_python, path=None):
     Args:
         sim (req): simulation
         want_python (bool): include template's python source?
-        path (py.path): absoulte path of zip file to write files to
+        path (py.path): path of file to write to
 
     Returns:
         py.path.Local: zip file name
     """
+    path = path.new(ext='zip')
     data = simulation_db.open_json_file(sim.type, sid=sim.id)
     data.pkdel('report')
     simulation_db.update_rsmanifest(data)
