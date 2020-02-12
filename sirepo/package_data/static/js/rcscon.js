@@ -162,6 +162,7 @@ SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
 
                     // for some reason the viewbox and size do not always match
                     const svg = $(str);
+                    const width = $($element).width();
                     let w = utilities.fontSizeFromString(svg.attr('width'));
                     let h = utilities.fontSizeFromString(svg.attr('height'));
 
@@ -177,14 +178,18 @@ SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
                     svg.attr('height', scale * h);
 
                     // re-center
-                    //svg.attr('transform', 'translate(' + (scale * w / 2) + ', 0)');
+                    const pd = utilities.fontSizeFromString(
+                        $($element).find('div.panel-body').css('padding')
+                    );
+
+                    svg.attr('transform', 'translate(' + ((width - scale * w) / 2 - pd) + ', 0)');
 
                     // apply colors
                     const baseClass = 'rcscon-layer';
                     const nodes = svg.find('g.node');
 
                     // keras adds text to the node boxes formatted as:
-                    //     <layer)_type>_<index>: <Layer Type>
+                    //     <layer_type>_<index>: <Layer Type>
                     nodes.each(function (idx) {
                         let txt = $(this).find('text').text();
                         let cName = txt.substring(0, txt.indexOf(':'));
