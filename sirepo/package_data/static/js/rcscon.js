@@ -129,6 +129,10 @@ SIREPO.app.controller('MLController', function (appState, frameCache, persistent
         return frameCache.hasFrames();
     };
 
+    self.hasLayers = function() {
+        return ((appState.models.neuralNet || {}).layers || []).length > 0;
+    };
+
     self.simState = persistentSimulation.initSimulationState(
         $scope,
         rcsconService.computeModel(),
@@ -149,10 +153,12 @@ SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
         ].join(''),
         controller: function($scope, $element) {
 
-            //srdbg($scope.modelName, $($element).width());
             const scale = 0.75;
             $scope.reportCfg = {
-                svgFormatter: function(str) {
+                reload: function () {
+                    return true;
+                },
+                process: function(str) {
 
                     // for some reason the viewbox and size do not always match
                     const svg = $(str);
@@ -165,18 +171,38 @@ SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
                     // fix the viewBox or the plot will be cut off
                     vb.width = w;
                     vb.height = h;
+
                     // resize
                     svg.attr('width', scale * w);
                     svg.attr('height', scale * h);
 
                     // re-center
-                    svg.attr('transform', 'translate(' + (scale * w / 2) + ', 0)');
+                    //svg.attr('transform', 'translate(' + (scale * w / 2) + ', 0)');
 
-                    srdbg('formatted svg', svg);
+                    // apply colors
+                    const baseClass = 'rcscon-layer';
+                    const nodes = svg.find('g.node');
+
+                    // keras adds text to the node boxes formatted as:
+                    //     <layer)_type>_<index>: <Layer Type>
+                    nodes.each(function (idx) {
+                        let txt = $(this).find('text').text();
+                        let cName = txt.substring(0, txt.indexOf(':'));
+                        let p = $(this).find('polygon');
+                        p.addClass(baseClass);
+                        // input is named differently
+                        if (cName.indexOf('_input') >= 0) {
+                            p.addClass(baseClass + '-input');
+                            return;
+                        }
+                        cName = cName.substring(0, cName.lastIndexOf('_')).replace('_', '-');
+                        p.addClass(baseClass + '-' + cName);
+                    });
                     return svg;
                 },
             };
-        },
+
+       },
     };
 });
 
