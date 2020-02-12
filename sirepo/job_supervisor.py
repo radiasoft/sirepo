@@ -246,12 +246,19 @@ class _ComputeJob(PKDict):
         return _DB_DIR.join(computeJid + '.json')
 
     def __db_init(self, req, prev_db=None):
+        def _get_container_image(content):
+            if 'rsmanifest' in content.data:
+                i = content.data.rsmanifest.image
+                return '{}:{}'.format(i.name, i.version)
+            return None
+
         c = req.content
         self.db = PKDict(
             computeJid=c.computeJid,
             computeJobHash=c.computeJobHash,
             computeJobSerial=0,
             computeJobStart=0,
+            containerImage=_get_container_image(c),
             error=None,
             history=self.__db_init_history(prev_db),
             isParallel=c.isParallel,

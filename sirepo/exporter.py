@@ -58,8 +58,9 @@ def create_zip(sim, want_python, path=None):
     """
     path = path.new(ext='zip')
     data = simulation_db.open_json_file(sim.type, sid=sim.id)
+
     data.pkdel('report')
-    simulation_db.update_rsmanifest(data)
+    simulation_db.save_simulation_json(data, add_rsmanifest=True) # TODO(e-carlin): meh lame api
     files = sim_data.get_class(data).lib_files_for_export(data)
     files.insert(0, simulation_db.sim_data_file(sim.type, sim.id))
     if want_python:

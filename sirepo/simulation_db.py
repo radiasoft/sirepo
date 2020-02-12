@@ -625,7 +625,7 @@ def save_new_simulation(data, do_validate=True):
     return save_simulation_json(data, do_validate=do_validate)
 
 
-def save_simulation_json(data, do_validate=True):
+def save_simulation_json(data, do_validate=True, add_rsmanifest=False):
     """Prepare data and save to json db
 
     Args:
@@ -661,6 +661,8 @@ def save_simulation_json(data, do_validate=True):
         s.simulationSerial = _serial_new()
         # Do not write simulationStatus or computeJobCacheKey
         d = copy.deepcopy(data)
+        if add_rsmanifest:
+           update_rsmanifest(d)
         pkcollections.unchecked_del(d.models, 'simulationStatus', 'computeJobCacheKey')
         write_json(fn, d)
     return data
