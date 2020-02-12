@@ -170,6 +170,7 @@ def agent_env(env=None, uid=None):
 def init():
     global cfg
 
+
     cfg = pkconfig.init(
         server_secret=(
             'a very secret, secret',

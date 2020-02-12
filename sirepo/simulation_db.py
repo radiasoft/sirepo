@@ -138,8 +138,8 @@ def archive_simulation(data):
     """
     import sirepo.exporter
     p = pkio.py_path(
-        simulation_dir(data.type, data.id),
-    ).join('archive', '{}-{}'.format(data.id, _timestamp()))
+        simulation_dir(data.type),
+    ).join('archive', '{}-{}'.format(data.id, _timestamp(separator='-')))
     pkio.mkdir_parent_only(p)
     sirepo.exporter.create_zip(
         data,
@@ -1137,12 +1137,12 @@ def _sim_from_path(path):
     raise AssertionError('path={} is not valid simulation'.format(path))
 
 
-def _timestamp(time=None):
+def _timestamp(time=None, separator='.'):
     if not time:
         time = datetime.datetime.utcnow()
     elif not isinstance(time, datetime.datetime):
         time = datetime.datetime.fromtimestamp(time)
-    return time.strftime('%Y%m%d.%H%M%S')
+    return time.strftime('%Y%m%d{}%H%M%S'.format(separator))
 
 
 def _user_dir():

@@ -2104,12 +2104,18 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
             ].join('');
             $scope.doneLoadingSimList = false;
             $scope.archiveSimulation = function() {
+                // TODO(e-carlin): handle success and error. Add something like a toast?
                 requestSender.sendRequest(
                     'archiveSimulation',
-                    function(){},
+                    function(){
+                        srdbg('ssssssssssssssssssssssss');
+                    },
                     {
                         simulationId: $scope.simulationId(),
                         simulationType: SIREPO.APP_SCHEMA.simulationType,
+                    },
+                    function(){
+                        srdbg('eeeeeeeeeeeeeeeeeeeee');
                     }
                 );
             };
