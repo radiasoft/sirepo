@@ -100,8 +100,10 @@ class DockerDriver(job_driver.DriverBase):
             await self._cmd(
                 ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), c),
             )
-        except Exception as e:
-            pkdlog('error={} stack={}', e, pkdexc())
+        except Exception:
+            # the container may already be stopped and removed
+            # Ex. if it died unexpectedly without our doing
+            pass
 
     async def prepare_send(self, op):
         if op.opName == job.OP_RUN:
