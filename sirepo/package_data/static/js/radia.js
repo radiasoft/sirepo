@@ -58,19 +58,25 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             function init() {
                 srdbg('init...');
+                appState.watchModelFields($scope, watchFields, updateViewer);
                 if (! renderer) {
                     throw new Error('No renderer!');
                 }
-                srdbg(appState.models.simulation);
+                //srdbg(appState.models.simulation);
                 //renderer.getLights()[0].setLightTypeToSceneLight();
                 const b = cm.buildSphere(null, null, [1, 0, 0]);
                 b.actor.getProperty().setEdgeVisibility(true);
                 vtkPlotting.addActor(renderer, b.actor);
-                vtkAPI.setCam();
+                updateViewer();
             }
 
             function updateViewer() {
-                //srdbg('updateViewer', $scope);
+                srdbg('updateViewer');
+                //panelState.requestData('display', function (d) {
+                 //   srdbg('got display', d);
+                //}, true);
+                panelState.requestData('geometry');
+                vtkAPI.setCam();
             }
 
             $scope.solve = function() {
@@ -78,12 +84,12 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                // panelState.requestData('');
             };
 
-            appState.watchModelFields($scope, watchFields, updateViewer);
+            //appState.watchModelFields($scope, watchFields, updateViewer);
 
             appState.whenModelsLoaded($scope, function () {
                 srdbg('radia models loaded');
-                appState.watchModelFields($scope, watchFields, updateViewer);
-                updateViewer();
+                //appState.watchModelFields($scope, watchFields, updateViewer);
+                //updateViewer();
             });
 
             // or keep stuff on vtk viewer scope?

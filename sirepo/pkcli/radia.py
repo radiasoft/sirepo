@@ -11,7 +11,7 @@ from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
 import py.path
-import sirepo.template.warpvnd as template
+import sirepo.template.radia as template
 
 
 def run(cfg_dir):
@@ -36,4 +36,5 @@ def run_background(cfg_dir):
 
 
 def _run_simulation():
+    pkdp('RUN SIM')
     exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
