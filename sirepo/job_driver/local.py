@@ -47,7 +47,7 @@ class LocalDriver(job_driver.DriverBase):
         return self.__instances[self.kind]
 
     @classmethod
-    def get_instance(cls, req):
+    def get_instance(cls, req, op):
         # TODO(robnagler) need to introduce concept of parked drivers for reallocation.
         # a driver is freed as soon as it completes all its outstanding ops. For
         # _run(), this is an outstanding op, which holds the driver until the _run()

@@ -392,7 +392,7 @@ def get_instance(req, jobRunMode, op):
     if jobRunMode == job.SBATCH:
         res = _CLASSES[job.SBATCH].get_instance(req)
     else:
-        res = _DEFAULT_CLASS.get_instance(req)
+        res = _DEFAULT_CLASS.get_instance(req, op)
     assert req.content.uid == res.uid, \
         'req.content.uid={} is not same as db.uid={} for jid={}'.format(
             req.content.uid,

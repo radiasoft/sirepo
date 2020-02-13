@@ -247,7 +247,8 @@ class _ComputeJob(PKDict):
 
     def __db_init(self, req, prev_db=None):
         def _get_container_image(content):
-            if 'rsmanifest' in content.data:
+            # TODO(e-carlin): think about this more
+            if content.data.rsmanifest:
                 i = content.data.rsmanifest.image
                 return '{}:{}'.format(i.name, i.version)
             return None
@@ -440,6 +441,7 @@ class _ComputeJob(PKDict):
             ),
             msg=PKDict(req.content).pksetdefault(jobRunMode=r),
             opName=opName,
+            containerImage=self.db.containerImage,
             task=asyncio.current_task(),
         )
         o.driver = job_driver.get_instance(req, r, o)

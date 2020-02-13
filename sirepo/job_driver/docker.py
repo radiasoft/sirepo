@@ -41,13 +41,20 @@ class DockerDriver(job_driver.DriverBase):
 
     __users = PKDict()
 
-    def __init__(self, req, host):
+    def __init__(self, req, host, containerImage):
+        def _get_container_image():
+            if containerImage:
+                return containerImage
+            if ':' in cfg.image:
+                return cfg.image
+            return cfg.image + ':' + pkconfig.cfg.channel
         super().__init__(req)
         self.update(
             _cname=self._cname_join(),
-            _image=self._get_image(),
+            _image=_get_container_image(),
             _user_dir=pkio.py_path(req.content.userDir),
             host=host,
+            containerImage=None,
         )
         host.instances[self.kind].append(self)
         self.cpu_slot_q = host.cpu_slot_q[self.kind]
@@ -60,7 +67,7 @@ class DockerDriver(job_driver.DriverBase):
         pkio.unchecked_remove(self._agent_exec_dir)
 
     @classmethod
-    def get_instance(cls, req):
+    def get_instance(cls, req, op):
         # SECURITY: must only return instances for authorized user
         u = cls.__users.get(req.content.uid)
         if u:
@@ -74,7 +81,7 @@ class DockerDriver(job_driver.DriverBase):
         else:
             # least used host
             h = min(cls.__hosts.values(), key=lambda h: len(h.instances[req.kind]))
-        return cls(req, h)
+        return cls(req, h, op.containerImage)
 
     @classmethod
     def init_class(cls):
@@ -99,6 +106,12 @@ class DockerDriver(job_driver.DriverBase):
     async def prepare_send(self, op):
         if op.opName == job.OP_RUN:
             op.msg.mpiCores = cfg[self.kind].get('cores', 1)
+        if op.containerImage != self._image:
+            import sirepo.job_supervisor # TODO(e-carlin): is this ok? Rob has it imported oddly init __init__
+            self._image = op.containerImage
+            await self.kill()
+            pkdp('kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk')
+            raise sirepo.job_supervisor.Awaited()
         return await super().prepare_send(op)
 
     def cpu_slot_peers(self):
@@ -178,12 +191,6 @@ class DockerDriver(job_driver.DriverBase):
             '{}: failed: exit={} output={}'.format(c, r, o)
         return o
 
-    #TODO(robnagler) probably should push this to pykern also in rsconf
-    def _get_image(self):
-        res = cfg.image
-        if ':' in res:
-            return res
-        return res + ':' + pkconfig.cfg.channel
 
     @classmethod
     def _init_dev_hosts(cls):
