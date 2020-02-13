@@ -211,16 +211,28 @@ SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
                         // the input box is added by keras, and does not correspond to a layer
                         let layer = layers[idx - 1];
                         let lType = txt.substring(txt.indexOf(':') + 1).trim();
-                        if (! layer || (lType !== 'Activation' && lType !== 'Dense')) {
+                        let pName = SIREPO.APP_SCHEMA.constants.layerGraphParams[lType];
+                        if (! layer || ! pName) {
                             return;
                         }
 
-                        // add activation function if appropriate
-                        // regroup text into tspans - we must use html() or the svg will not render correctly
+                        // add other params
+                        // regroup text into tspans
                         txtEl.text('');
-                        const afType = lType.toLowerCase() + 'Activation';
-                        const ts = '<tspan>' + txt + '</tspan>' +
-                            ('<tspan x="' + txtEl.attr('x') + '" dy="16" class="rcscon-activation-txt">' + layer[afType] + '</tspan>');
+                        let ts = '<tspan>' + txt + '</tspan>';
+                        ts +=  ('<tspan x="' + txtEl.attr('x') + '" dy="16" class="rcscon-activation-txt">');
+                        if (pName.toLowerCase().indexOf('activation') >= 0) {
+                             ts += layer[pName];
+                        }
+                        if (pName.toLowerCase().indexOf('dropout') >= 0) {
+                             ts += ('Rate = ' + layer[pName]);
+                        }
+                        if (pName.toLowerCase().indexOf('gaussiannoise') >= 0) {
+                             ts += ('𝞼 = ' + layer[pName]);
+                        }
+                        ts += '</tspan>';
+
+                        // we must use html() not append() or the svg will not render correctly
                         txtEl.html(ts);
                     });
                     return svg;
