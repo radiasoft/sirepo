@@ -47,11 +47,11 @@
                 "url":""
             }
         },
-        "mpmd": {
-            "url": "/static/html/landing-page-mpmd.html",
-            "infoPanelTitle": "MPMD",
+        "radia": {
+            "url": "/static/html/landing-page-radia.html",
+            "infoPanelTitle": "Radia",
             "mediaConfig": {
-                "title": "MPMD Sirepo",
+                "title": "Radia Sirepo",
                 "url":""
             }
         },

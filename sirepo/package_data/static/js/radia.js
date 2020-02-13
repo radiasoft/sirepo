@@ -3,29 +3,29 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.controller('MPMDSourceController', function (appState, panelState, $scope) {
+SIREPO.app.controller('RadiaSourceController', function (appState, panelState, $scope) {
     const self = this;
 
     appState.whenModelsLoaded($scope, function() {
         // initial setup
         //appState.watchModelFields($scope, ['model.field'], function() {
         //});
-        //srdbg('MPMDSourceController');
+        //srdbg('RadiaSourceController');
     });
 });
 
-SIREPO.app.controller('MPMDVisualizationController', function (appState, panelState, $scope) {
+SIREPO.app.controller('RadiaVisualizationController', function (appState, panelState, $scope) {
     const self = this;
 
     appState.whenModelsLoaded($scope, function() {
         // initial setup
        // appState.watchModelFields($scope, ['model.field'], function() {
         //});
-        //srdbg('MPMDVisualizationController', appState.models);
+        //srdbg('RadiaVisualizationController', appState.models);
     });
 });
 
-SIREPO.app.directive('mpmdViewer', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, requestSender, utilities, vtkPlotting, $timeout) {
+SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, requestSender, utilities, vtkPlotting, $timeout) {
 
     return {
         restrict: 'A',
@@ -35,6 +35,7 @@ SIREPO.app.directive('mpmdViewer', function(appState, errorService, frameCache, 
         template: [
             '<div class="col-md-6">',
                 '<div data-basic-editor-panel="" data-view-name="{{modelName}}">',
+                    '<button class="btn btn-default col-sm-2 col-sm-offset-5" data-ng-click="solve()">Solve</button>',
                     '<div data-vtk-display="" data-model-name=""></div>',
                 '</div>',
             '</div>',
@@ -55,10 +56,12 @@ SIREPO.app.directive('mpmdViewer', function(appState, errorService, frameCache, 
             ];
 
 
-            function  init() {
+            function init() {
+                srdbg('init...');
                 if (! renderer) {
                     throw new Error('No renderer!');
                 }
+                srdbg(appState.models.simulation);
                 //renderer.getLights()[0].setLightTypeToSceneLight();
                 const b = cm.buildSphere(null, null, [1, 0, 0]);
                 b.actor.getProperty().setEdgeVisibility(true);
@@ -70,10 +73,15 @@ SIREPO.app.directive('mpmdViewer', function(appState, errorService, frameCache, 
                 //srdbg('updateViewer', $scope);
             }
 
+            $scope.solve = function() {
+                srdbg('SOLVE');
+               // panelState.requestData('');
+            };
+
             appState.watchModelFields($scope, watchFields, updateViewer);
 
             appState.whenModelsLoaded($scope, function () {
-                //srdbg(appState.models);
+                srdbg('radia models loaded');
                 appState.watchModelFields($scope, watchFields, updateViewer);
                 updateViewer();
             });
@@ -81,7 +89,7 @@ SIREPO.app.directive('mpmdViewer', function(appState, errorService, frameCache, 
             // or keep stuff on vtk viewer scope?
             // start using custom javascript events to break away from angular?
             $scope.$on('vtk-init', function (e, d) {
-                //srdbg('VTK INIT', e, d);
+                srdbg('VTK INIT', e, d);
                 renderer = d.objects.renderer;
                 renderWindow = d.objects.window;
                 vtkAPI = d.api;
@@ -117,8 +125,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
                 '<div data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-flash"></span> Visualization</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
                 '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',

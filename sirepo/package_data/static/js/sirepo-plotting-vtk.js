@@ -810,7 +810,11 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
                 };
             };
 
-            $scope.init();
+            appState.whenModelsLoaded($scope, function () {
+                srdbg('vtk display models loaded');
+                $scope.init();
+            });
+            //$scope.init();
         },
 
         //link: function link(scope, element) {

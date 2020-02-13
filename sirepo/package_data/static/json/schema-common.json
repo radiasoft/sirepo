@@ -24,13 +24,13 @@
             "longName": "JSPEC",
             "shortName": "JSPEC"
         },
-        "mpmd": {
-            "longName": "Massively Parallel Magnet Design",
-            "shortName": "MPMD"
-        },
         "opal": {
             "longName": "OPAL",
             "shortName": "OPAL"
+        },
+        "radia": {
+            "longName": "Radia",
+            "shortName": "Radia"
         },
         "rs4pi": {
             "longName": "RS4PI",

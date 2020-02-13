@@ -5,10 +5,10 @@
             "documentationUrl": "",
             "folder": "/",
             "isExample": true,
-            "name": "Example 5",
+            "name": "Dipole",
             "notes": "",
             "outOfSessionSimulationId": ""
         }
     },
-    "simulationType": "mpmd"
+    "simulationType": "radia"
 }

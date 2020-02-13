@@ -1,4 +1,9 @@
 {
+    "appModes": {
+       "default": {
+            "localRoute": "visualization"
+        }
+    },
     "enum": {
         "FieldType": [
             ["M", "M"],
@@ -30,21 +35,15 @@
             "js": ["vtk.js"]
         },
         "sirepoLibs": {
-            "js": ["mpmd.js"]
+            "js": ["radia.js"]
         }
     },
     "localRoutes": {
-        "source": {
-            "config": {
-                "controller": "MPMDSourceController as source",
-                "templateUrl": "/static/html/mpmd-source.html"
-            }
-        },
         "visualization": {
             "route": "/visualization/:simulationId",
             "config": {
-                "controller": "MPMDVisualizationController as viz",
-                "templateUrl": "/static/html/mpmd-visualization.html"
+                "controller": "RadiaVisualizationController as viz",
+                "templateUrl": "/static/html/radia-visualization.html"
             }
         }
     },
