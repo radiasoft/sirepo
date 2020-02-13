@@ -69,11 +69,10 @@ class DockerDriver(job_driver.DriverBase):
 
     def free_resources(self, destroy_ops=True):
         if self._image_change.in_progress():
-            # TODO(e-carlin): meh, this is not the best api. Necessary because
-            # the kill that needs to happen to change images results in a
-            # websocket_free which calls free_resources. free_resources destroys
-            # all ops, even the ones that are waiting to run on the container
-            # with the new image
+            # We are freeing the resources of the container with the old image.
+            # The op for the new container (as well as any old ops that didn't
+            # get the chance to run) are in self.ops and we do not want them
+            # to be destroyed
             destroy_ops = False
         super().free_resources(destroy_ops)
 
@@ -243,7 +242,6 @@ class DockerDriver(job_driver.DriverBase):
                 stdin.close()
         o = (await p.stdout.read_until_close()).decode('utf-8').rstrip()
         r = await p.wait_for_exit(raise_error=False)
-        # TODO(e-carlin): more robust handling
         assert r == 0, \
             '{}: failed: exit={} output={}'.format(c, r, o)
         return o
