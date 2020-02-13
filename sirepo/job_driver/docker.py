@@ -106,7 +106,7 @@ class DockerDriver(job_driver.DriverBase):
     async def prepare_send(self, op):
         if op.opName == job.OP_RUN:
             op.msg.mpiCores = cfg[self.kind].get('cores', 1)
-        if op.containerImage != self._image:
+        if op.containerImage and op.containerImage != self._image:
             import sirepo.job_supervisor # TODO(e-carlin): is this ok? Rob has it imported oddly init __init__
             self._image = op.containerImage
             await self.kill()
