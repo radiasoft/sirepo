@@ -247,10 +247,10 @@ class _ComputeJob(PKDict):
 
     def __db_init(self, req, prev_db=None):
         def _get_container_image(content):
-            # TODO(e-carlin): think about this more
-            if content.data.rsmanifest:
-                i = content.data.rsmanifest.image
-                return '{}:{}'.format(i.name, i.version)
+            r = content.data.pkdel('rsmanifest')
+            if r:
+                content.data.pkdel('rsmanifest')
+                return '{}:{}'.format(r.image.name, r.image.version)
             return None
 
         c = req.content
