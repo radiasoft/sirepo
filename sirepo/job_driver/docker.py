@@ -46,7 +46,7 @@ class DockerDriver(job_driver.DriverBase):
         super().__init__(req)
         self.update(
             _cname=self._cname_join(),
-            _image=self._get_container_image(),
+            _image=self._get_container_image(containerImage),
             _image_change_in_progress=tornado.locks.Event(),
             _user_dir=pkio.py_path(req.content.userDir),
             host=host,
@@ -61,6 +61,16 @@ class DockerDriver(job_driver.DriverBase):
             self._cname,
         )
         pkio.unchecked_remove(self._agent_exec_dir)
+
+    def free_resources(self, destroy_ops=True):
+        if self._image_change_in_progress.is_set():
+            # TODO(e-carlin): meh, this is not the best api. Necessary because
+            # the kill that needs to happen to change images results in a
+            # websocket_free which calls free_resources. free_resources destroys
+            # all ops, even the ones that are waiting to run on the container
+            # with the new image
+            destroy_ops = False
+        super().free_resources(destroy_ops)
 
     @classmethod
     def get_instance(cls, req, op):
@@ -115,25 +125,39 @@ class DockerDriver(job_driver.DriverBase):
         # This prevents multiple ops from starting the image change process
         # which could result in a deadlock.
         if self._image_change_in_progress.is_set():
+            if op.op_slot:
+                # Prevents deadlock. Another op x has set
+                # self._image_change_in_progress. It will clear
+                # self._image_change_in_progress once it gets all resources
+                # This op has a resource op x wants but will be blocked by
+                # self._image_change_in_progress and not be able to give it up.
+                self.op_q[op.opName].put_nowait(op.op_slot)
+                op.op_slot = None
+            pkdlog('op={} waiting on _image_change_in_progress', op)
             await self._image_change_in_progress.wait()
             raise sirepo.job_supervisor.Awaited()
-
-        if op.containerImage != self._image:
+        i = self._get_container_image(op.containerImage)
+        if i != self._image:
             self._image_change_in_progress.set()
-            i = PKDict()
+            pkdlog(
+                'op={} gathering all resources to change image={} to image={}',
+                op,
+                self._image,
+                op.containerImage,
+            )
+            r = PKDict()
             try:
                 # TODO(e-carlin): This feels like an area ripe for deadlock. We are trying
                 # to gather all resources in a somewhat random order.
                 for k in self.op_q.keys():
-                    while i.setdefault(k, 0) < self.op_q[k].maxsize:
+                    while r.setdefault(k, 0) < self.op_q[k].maxsize:
                         # TODO(e-carlin): don't always wait try to get w/o waiting and set
                         # flag if we had to wait
                         await self.op_q[k].get()
-                        i[k] += 1
+                        r[k] += 1
                 # TODO(e-carlin): only kill if we have to (use _websocket as sentinel?)
                 await self.kill()
-                pkdp('kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk')
-                self._image = self._get_container_image(op.containerImage)
+                self._image = i
                 await self._agent_start(op)
                 # TODO(e-carlin): We don't always need to raise awaited if we don't have to wait
                 # TODO(e-carlin): It is possible we did all this work and then the first op
@@ -149,8 +173,10 @@ class DockerDriver(job_driver.DriverBase):
         await super()._acquire_op_slot(op)
 
     def _agent_starting_done(self):
+        # TODO(e-carlin): Is this right? How can we be sure that this new
+        # connection is from a container running our desired image
         self._image_change_in_progress.clear()
-        super()._agent_starting_done
+        super()._agent_starting_done()
 
     @classmethod
     def _cmd_prefix(cls, host, tls_d):
@@ -226,7 +252,7 @@ class DockerDriver(job_driver.DriverBase):
             '{}: failed: exit={} output={}'.format(c, r, o)
         return o
 
-    def _get_container_image(image):
+    def _get_container_image(self, image):
         if image:
             return image
         if ':' in cfg.image:

@@ -125,7 +125,7 @@ class DriverBase(PKDict):
             q.put_nowait(op.op_slot)
             op.op_slot = None
 
-    def free_resources(self):
+    def free_resources(self, destroy_ops=True):
         """Remove holds on all resources and remove self from data structures"""
         pkdlog('self={}', self)
         try:
@@ -136,8 +136,9 @@ class DriverBase(PKDict):
             if w:
                 # Will not call websocket_on_close()
                 w.sr_close()
-            for o in list(self.ops.values()):
-                o.destroy()
+            if destroy_ops:
+                for o in list(self.ops.values()):
+                    o.destroy()
             self.cpu_slot_free()
             self._websocket_free()
         except Exception as e:
@@ -250,10 +251,9 @@ class DriverBase(PKDict):
 
     def send(self, op):
         pkdlog(
-            'op={} agentId={} opId={} runDir={}',
-            op.opName,
+            'op={} agentId={} runDir={}',
+            op,
             self._agentId,
-            op.opId,
             op.msg.get('runDir')
         )
         self._websocket.write_message(pkjson.dump_bytes(op.msg))
@@ -271,6 +271,7 @@ class DriverBase(PKDict):
                 pkdlog('error={} stack={}', e, pkdexc())
 
     def websocket_on_close(self):
+        pkdlog('self={}', self)
         self.free_resources()
 
     def _agent_cmd_stdin_env(self, **kwargs):
