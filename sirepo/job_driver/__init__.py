@@ -194,6 +194,11 @@ class DriverBase(PKDict):
             return
         if op.op_slot:
             return
+        # POSIT: Will throw Awaited if we await
+        await self._acquire_op_slot(op)
+
+    async def _acquire_op_slot(self, op):
+        n = op.opName
         q = self.op_q[n]
         try:
             op.op_slot = q.get_nowait()
@@ -299,10 +304,6 @@ class DriverBase(PKDict):
             pkdlog('agentId={} uid={} opId={}', self._agentId, self.uid, op.opId)
             try:
                 self._agent_starting = True
-                # TODO(e-carlin): We need a timeout on agent starts. If an agent
-                # is started but never connects we will be in the '_agent_starting'
-                # state forever. After a timeout we should kill the misbehaving
-                # agent and start a new one.
                 await self.kill()
                 # this starts the process, but _receive_alive sets it to false
                 # when the agent fully starts.
@@ -324,7 +325,6 @@ class DriverBase(PKDict):
                 self._agent_starting_timeout
             )
             self._agent_starting_timeout = None
-
 
     async def _agent_starting_timeout_handler(self):
         pkdlog('self={}', self)

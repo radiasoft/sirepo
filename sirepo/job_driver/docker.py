@@ -18,6 +18,7 @@ import os
 import re
 import subprocess
 import tornado.ioloop
+import tornado.locks
 import tornado.process
 
 cfg = None
@@ -42,16 +43,11 @@ class DockerDriver(job_driver.DriverBase):
     __users = PKDict()
 
     def __init__(self, req, host, containerImage):
-        def _get_container_image():
-            if containerImage:
-                return containerImage
-            if ':' in cfg.image:
-                return cfg.image
-            return cfg.image + ':' + pkconfig.cfg.channel
         super().__init__(req)
         self.update(
             _cname=self._cname_join(),
-            _image=_get_container_image(),
+            _image=self._get_container_image(),
+            _image_change_in_progress=tornado.locks.Event(),
             _user_dir=pkio.py_path(req.content.userDir),
             host=host,
             containerImage=None,
@@ -108,16 +104,53 @@ class DockerDriver(job_driver.DriverBase):
     async def prepare_send(self, op):
         if op.opName == job.OP_RUN:
             op.msg.mpiCores = cfg[self.kind].get('cores', 1)
-        if op.containerImage and op.containerImage != self._image:
-            import sirepo.job_supervisor # TODO(e-carlin): is this ok? Rob has it imported oddly init __init__
-            self._image = op.containerImage
-            await self.kill()
-            pkdp('kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk')
-            raise sirepo.job_supervisor.Awaited()
         return await super().prepare_send(op)
 
     def cpu_slot_peers(self):
         return self.host.instances[self.kind]
+
+    async def _acquire_op_slot(self, op):
+        import sirepo.job_supervisor  # TODO(e-carlin): is this ok? Rob has it imported oddly init __init__
+
+        # This prevents multiple ops from starting the image change process
+        # which could result in a deadlock.
+        if self._image_change_in_progress.is_set():
+            await self._image_change_in_progress.wait()
+            raise sirepo.job_supervisor.Awaited()
+
+        if op.containerImage != self._image:
+            self._image_change_in_progress.set()
+            i = PKDict()
+            try:
+                # TODO(e-carlin): This feels like an area ripe for deadlock. We are trying
+                # to gather all resources in a somewhat random order.
+                for k in self.op_q.keys():
+                    while i.setdefault(k, 0) < self.op_q[k].maxsize:
+                        # TODO(e-carlin): don't always wait try to get w/o waiting and set
+                        # flag if we had to wait
+                        await self.op_q[k].get()
+                        i[k] += 1
+                # TODO(e-carlin): only kill if we have to (use _websocket as sentinel?)
+                await self.kill()
+                pkdp('kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk')
+                self._image = self._get_container_image(op.containerImage)
+                await self._agent_start(op)
+                # TODO(e-carlin): We don't always need to raise awaited if we don't have to wait
+                # TODO(e-carlin): It is possible we did all this work and then the first op
+                # to get through is one with a different container and we will have to do this all
+                # again. Maybe call super._acquire_op_slot() and pass a flag to make it raise awaited
+                # This image switch code seems prone to thrashing.
+                raise sirepo.job_supervisor.Awaited()
+            finally:
+                for k in self.op_q.keys():
+                    # TODO(e-carlin): Do we need to put items back on the q in the same
+                    # order we took them off? The q ordering is important.
+                    self.op_q[k] = self.init_q(self.op_q[k].maxsize)
+        await super()._acquire_op_slot(op)
+
+    def _agent_starting_done(self):
+        self._image_change_in_progress.clear()
+        super()._agent_starting_done
 
     @classmethod
     def _cmd_prefix(cls, host, tls_d):
@@ -193,6 +226,12 @@ class DockerDriver(job_driver.DriverBase):
             '{}: failed: exit={} output={}'.format(c, r, o)
         return o
 
+    def _get_container_image(image):
+        if image:
+            return image
+        if ':' in cfg.image:
+            return cfg.image
+        return cfg.image + ':' + pkconfig.cfg.channel
 
     @classmethod
     def _init_dev_hosts(cls):
