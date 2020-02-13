@@ -1,9 +1,13 @@
 {
     "models": {
+        "geometry": {
+            "name": "Magnet",
+            "radiaRef": -1
+        },
         "simFolder": {},
         "simulation": {
             "documentationUrl": "",
-            "folder": "/",
+            "folder": "/Examples",
             "isExample": true,
             "name": "Dipole",
             "notes": "",

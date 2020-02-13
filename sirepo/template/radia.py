@@ -44,8 +44,11 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _generate_parameters_file(data):
+    report = data.get('report', '')
     res, v = template_common.generate_parameters_file(data)
-    #v = copy.deepcopy(data['models'], pkcollections.Dict())
+    pkdp('GEN PARAMS {} V {}', data, v)
+    if 'geometry' in report:
+        pkdp('GEOM {}', data.models.geometry)
     # add parameters
     return template_common.render_jinja(
         SIM_TYPE,
