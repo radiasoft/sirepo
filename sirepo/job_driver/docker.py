@@ -47,7 +47,7 @@ class DockerDriver(job_driver.DriverBase):
         self.update(
             _cname=self._cname_join(),
             _image=self._get_container_image(containerImage),
-            _image_change_in_progress=tornado.locks.Event(),
+            _image_change=_ImageChange(),
             _user_dir=pkio.py_path(req.content.userDir),
             host=host,
             containerImage=None,
@@ -62,8 +62,13 @@ class DockerDriver(job_driver.DriverBase):
         )
         pkio.unchecked_remove(self._agent_exec_dir)
 
+    def destroy_op(self, op):
+        if op == self._image_change.op:
+            self._image_change.set_destroyed()
+        super().destroy_op(op)
+
     def free_resources(self, destroy_ops=True):
-        if self._image_change_in_progress.is_set():
+        if self._image_change.in_progress():
             # TODO(e-carlin): meh, this is not the best api. Necessary because
             # the kill that needs to happen to change images results in a
             # websocket_free which calls free_resources. free_resources destroys
@@ -120,25 +125,25 @@ class DockerDriver(job_driver.DriverBase):
         return self.host.instances[self.kind]
 
     async def _acquire_op_slot(self, op):
-        import sirepo.job_supervisor  # TODO(e-carlin): is this ok? Rob has it imported oddly init __init__
+        # TODO(e-carlin): is this ok? Rob has it imported oddly job_driver.__init__
+        import sirepo.job_supervisor
 
-        # This prevents multiple ops from starting the image change process
-        # which could result in a deadlock.
-        if self._image_change_in_progress.is_set():
+        if self._image_change.in_progress():
             if op.op_slot:
-                # Prevents deadlock. Another op x has set
-                # self._image_change_in_progress. It will clear
-                # self._image_change_in_progress once it gets all resources
-                # This op has a resource op x wants but will be blocked by
-                # self._image_change_in_progress and not be able to give it up.
+                # Prevents deadlock. Another op, x, has set
+                # self._image_change.in_progress. It will clear
+                # self._image_change.in_progress once it gets all resources
+                # This op has a resource op x wants but would otherwise be
+                # blocked by self._image_change.in_progress and not be able to
+                # give it up.
                 self.op_q[op.opName].put_nowait(op.op_slot)
                 op.op_slot = None
-            pkdlog('op={} waiting on _image_change_in_progress', op)
-            await self._image_change_in_progress.wait()
+            pkdlog('op={} waiting on _image_change.complete()', op)
+            await self._image_change.complete()
             raise sirepo.job_supervisor.Awaited()
         i = self._get_container_image(op.containerImage)
         if i != self._image:
-            self._image_change_in_progress.set()
+            self._image_change.set_in_progress(op)
             pkdlog(
                 'op={} gathering all resources to change image={} to image={}',
                 op,
@@ -147,35 +152,26 @@ class DockerDriver(job_driver.DriverBase):
             )
             r = PKDict()
             try:
-                # TODO(e-carlin): This feels like an area ripe for deadlock. We are trying
-                # to gather all resources in a somewhat random order.
                 for k in self.op_q.keys():
-                    while r.setdefault(k, 0) < self.op_q[k].maxsize:
-                        # TODO(e-carlin): don't always wait try to get w/o waiting and set
-                        # flag if we had to wait
-                        await self.op_q[k].get()
-                        r[k] += 1
-                # TODO(e-carlin): only kill if we have to (use _websocket as sentinel?)
+                    r.setdefault(k, [])
+                    while len(r[k]) < self.op_q[k].maxsize:
+                        r[k].append(await self.op_q[k].get())
                 await self.kill()
                 self._image = i
                 await self._agent_start(op)
-                # TODO(e-carlin): We don't always need to raise awaited if we don't have to wait
-                # TODO(e-carlin): It is possible we did all this work and then the first op
-                # to get through is one with a different container and we will have to do this all
-                # again. Maybe call super._acquire_op_slot() and pass a flag to make it raise awaited
-                # This image switch code seems prone to thrashing.
+                # TODO(e-carlin): Possible source of thrashing. We start a
+                # container with a new image but the first op through has a
+                # different image so we start over again
                 raise sirepo.job_supervisor.Awaited()
             finally:
-                for k in self.op_q.keys():
-                    # TODO(e-carlin): Do we need to put items back on the q in the same
-                    # order we took them off? The q ordering is important.
-                    self.op_q[k] = self.init_q(self.op_q[k].maxsize)
+                for k in r.keys():
+                    # We may have been canceled so only put back slots we got
+                    for e in r[k]:
+                        self.op_q[k].put_nowait(e)
         await super()._acquire_op_slot(op)
 
     def _agent_starting_done(self):
-        # TODO(e-carlin): Is this right? How can we be sure that this new
-        # connection is from a container running our desired image
-        self._image_change_in_progress.clear()
+        self._image_change.set_complete()
         super()._agent_starting_done()
 
     @classmethod
@@ -343,3 +339,29 @@ def _cfg_tls_dir(value):
     assert res.check(dir=True), \
         'directory does not exist; value={}'.format(value)
     return res
+
+
+class _ImageChange(PKDict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._in_progress = False
+        self._event = tornado.locks.Event()
+
+    async def complete(self):
+        await self._event.wait()
+
+    def in_progress(self):
+        return self._in_progress
+
+    def set_complete(self):
+        self._in_progress = False
+        self._event.set()
+        self._event.clear()
+        self.op = None
+
+    def set_destroyed(self):
+        self.set_complete()
+
+    def set_in_progress(self, op):
+        self._in_progress = True
+        self.op = op
