@@ -2089,7 +2089,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                 '</li>',
               '</ul>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, errorService) {
 
             var currentSimulationId = null;
 
@@ -2108,6 +2108,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                 requestSender.sendRequest(
                     'archiveSimulation',
                     function(){
+                        // TODO(e-carlin): pjm reccomended the notificationService on success. Figure out how to use it.
                         srdbg('ssssssssssssssssssssssss');
                     },
                     {
@@ -2115,7 +2116,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                         simulationType: SIREPO.APP_SCHEMA.simulationType,
                     },
                     function(){
-                        srdbg('eeeeeeeeeeeeeeeeeeeee');
+                        errorService.alertText('Error: We were unable to archive your simulation. Please Try again.');
                     }
                 );
             };
