@@ -128,7 +128,7 @@ def app_version():
 
 
 def archive_simulation(data):
-    """Archives simulation in db so it can be reproduced later
+    """Creates a zip archive of a simulation so it can be reproduced later
 
     Args:
         data (dict): simulation parameters
@@ -662,8 +662,12 @@ def save_simulation_json(data, do_validate=True, add_rsmanifest=False):
         # Do not write simulationStatus or computeJobCacheKey
         d = copy.deepcopy(data)
         if add_rsmanifest:
-           update_rsmanifest(d)
-        pkcollections.unchecked_del(d.models, 'simulationStatus', 'computeJobCacheKey')
+            update_rsmanifest(d)
+        pkcollections.unchecked_del(
+            d.models,
+            'simulationStatus',
+            'computeJobCacheKey',
+        )
         write_json(fn, d)
     return data
 

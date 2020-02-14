@@ -54,7 +54,6 @@ _app = None
 @api_perm.require_user
 def api_archiveSimulation():
     req = http_request.parse_post(id=True, type=True)
-    # return PKDict(path=simulation_db.archive_simulation(req))
     return http_reply.gen_json(PKDict(path=simulation_db.archive_simulation(req)))
 
 
