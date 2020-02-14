@@ -1,6 +1,7 @@
 # This avoids a plugin dependency issue with pytest-forked/xdist:
 # https://github.com/pytest-dev/pytest/issues/935
 import pytest
+import subprocess
 
 #: Maximum time an individual test case (function) can run
 MAX_CASE_RUN_SECS = 120
@@ -121,6 +122,9 @@ def pytest_collection_modifyitems(session, config, items):
     from pykern.pkcollections import PKDict
     import os
 
+    def _mark_skip(test, reason):
+        test.add_marker(pytest.mark.skip(reason=reason))
+
     s = PKDict(
         elegant='sdds',
         srw='srwl_bl',
@@ -131,15 +135,19 @@ def pytest_collection_modifyitems(session, config, items):
     all_codes = set(sirepo.feature_config.ALL_CODES)
     codes = set()
     import_fail = PKDict()
-    res = set()
     skip_list = os.environ.get('SIREPO_PYTEST_SKIP', '').split(':')
-    slurm_not_installed = _slurm_not_installed()
+    slurm_not_installed = _check_installed('sbatch')
+    docker_not_installed = _check_installed('docker')
     for i in items:
-        if i.fspath.purebasename in skip_list:
-            i.add_marker(pytest.mark.skip(reason="SIREPO_PYTEST_SKIP"))
+        b = i.fspath.purebasename
+        if b in skip_list:
+            _mark_skip(i, 'SIREPO_PYTEST_SKIP')
             continue
-        if 'sbatch' in i.fspath.basename and slurm_not_installed:
-            i.add_marker(pytest.mark.skip(reason="slurm not installed"))
+        if 'sbatch' in b and slurm_not_installed:
+            _mark_skip(i, 'slurm not installed')
+            continue
+        if 'docker' in b and docker_not_installed:
+            _mark_skip(i, 'docker not installed')
             continue
         c = [x for x in all_codes if x in i.name]
         if not c:
@@ -149,10 +157,9 @@ def pytest_collection_modifyitems(session, config, items):
             i.add_marker(import_fail[c])
             continue
         if c not in all_codes:
-            i.add_marker(
-                pytest.mark.skip(
-                    reason='skipping code={} not in codes={}'.format(c, all_codes),
-                ),
+            _mark_skip(
+                i,
+                'skipping code={} not in codes={}'.format(c, all_codes),
             )
             continue
         try:
@@ -203,6 +210,14 @@ def pytest_configure(config):
     )
 
 
+def _check_installed(program):
+    try:
+        subprocess.check_output((program, '--help'))
+    except OSError:
+        return True
+    return False
+
+
 def _config_sbatch_supervisor_env(env):
     from pykern.pkcollections import PKDict
     import os
@@ -219,7 +234,6 @@ def _config_sbatch_supervisor_env(env):
         'You need to ssh into {} to get the host key'.format(h)
 
     env.pkupdate(
-        SIREPO_JOB_DRIVER_MODULES='local:sbatch',
         SIREPO_JOB_DRIVER_SBATCH_CORES=os.getenv(
             'SIREPO_JOB_DRIVER_SBATCH_CORES',
             '2',
@@ -293,7 +307,6 @@ def _job_supervisor_setup(request, cfg=None):
     """setup the supervisor"""
     import os
     from pykern.pkcollections import PKDict
-    sbatch_module = 'sbatch' in request.module.__name__
     env = PKDict()
     for k, v in os.environ.items():
         if ('PYENV' in k or 'PYTHON' in k):
@@ -318,8 +331,20 @@ def _job_supervisor_setup(request, cfg=None):
     )
     for x in 'DRIVER_LOCAL', 'DRIVER_DOCKER', 'API', 'DRIVER_SBATCH':
         cfg['SIREPO_JOB_{}_SUPERVISOR_URI'.format(x)] = 'http://{}:{}'.format(i, p)
-    if sbatch_module:
+    for i in ('docker', 'sbatch'):
+        if i in request.module.__name__:
+            m = i
+            break
+
+    m = None
+    if 'sbatch' in request.module.__name__:
+        m = 'sbatch'
         cfg.pkupdate(SIREPO_SIMULATION_DB_SBATCH_DISPLAY='testing@123')
+        env.pkupdate(SIREPO_JOB_DRIVER_MODULES='local:sbatch')
+    elif 'docker' in request.module.__name__:
+        m = 'docker'
+        env.pkupdate(SIREPO_JOB_DRIVER_MODULES='docker')
+
     env.pkupdate(
         PYENV_VERSION='py3',
         PYTHONUNBUFFERED='1',
@@ -329,10 +354,10 @@ def _job_supervisor_setup(request, cfg=None):
     import sirepo.srunit
     fc = sirepo.srunit.flask_client(
         cfg=cfg,
-        job_run_mode='sbatch' if sbatch_module else None,
+        job_run_mode=m if m == 'sbatch' else None,
     )
 
-    if sbatch_module:
+    if m == 'sbatch':
         # must be performed after fc initialized so work_dir is configured
         _config_sbatch_supervisor_env(env)
 
@@ -378,12 +403,3 @@ def _sim_type(request):
         if c in request.function.func_name or c in str(request.fspath):
             return c
     return 'myapp'
-
-
-def _slurm_not_installed():
-    import subprocess
-    try:
-        subprocess.check_output(('sbatch', '--help'))
-    except OSError:
-        return True
-    return False
