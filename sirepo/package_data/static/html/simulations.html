@@ -62,6 +62,12 @@
                 <li data-ng-if="! item.isFolder"><a href data-ng-click="simulations.exportArchive(item, 'zip')"><span class="glyphicon glyphicon-save-file sr-nav-icon"></span> Export as Zip</a></li>
                 <li data-ng-if="! item.isFolder"><a href data-ng-click="simulations.exportArchive(item, 'html')"><span class="glyphicon glyphicon-export sr-nav-icon"></span> Self-Extracting Simulation</a></li>
                 <li data-ng-if="! item.isFolder"><a href data-ng-click="simulations.pythonSource(item)"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Python Source</a></li>
+                <li data-ng-if="item.archives.length > 0" class="sr-dropdown-submenu">
+                  <a href><span class="glyphicon glyphicon-menu-left"></span> Archives</a>
+                  <ul class="dropdown-menu">
+                  <li data-ng-repeat="archive in item.archives"><a href data-ng-click="simulations.openArchive(archive)">{{ archive.name }}</a></li>
+                  </ul>
+                </li>
                 <li data-ng-if="simulations.canDelete(item)" class="divider"></li>
                 <li data-ng-if="simulations.canDelete(item)"><a href data-ng-click="simulations.deleteItem(item)"><span class="glyphicon glyphicon-trash"></span> Delete</a></li>
               </ul>

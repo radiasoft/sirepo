@@ -138,7 +138,7 @@ def archive_simulation(data):
     """
     import sirepo.exporter
     p = pkio.py_path(
-        simulation_dir(data.type),
+        simulation_dir(data.type, data.id),
     ).join('archive', '{}-{}'.format(data.id, _timestamp(separator='-')))
     pkio.mkdir_parent_only(p)
     sirepo.exporter.create_zip(
@@ -532,8 +532,21 @@ def prepare_simulation(data, run_dir=None):
 
 
 def process_simulation_list(res, path, data):
+    def _get_archives(path):
+        def _o(path):
+            return PKDict(
+                name=p.basename,
+                simulationId='TODO',
+                simulation='TODO',
+            )
+        d = pkio.py_path(path.dirname).join('archive')
+        if d.check():
+            return [_o(p) for p in d.listdir(sort=True)]
+        return []
+
     sim = data['models']['simulation']
     res.append(PKDict(
+        archives=_get_archives(path),
         simulationId=_sim_from_path(path)[0],
         name=sim['name'],
         folder=sim['folder'],

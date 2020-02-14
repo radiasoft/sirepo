@@ -9,7 +9,7 @@ from pykern import pkconfig
 from pykern import pkconst
 from pykern import pkio
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from pykern.pkdebug import pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import feature_config
 from sirepo import http_reply
@@ -18,22 +18,18 @@ from sirepo import simulation_db
 from sirepo import srschema
 from sirepo import uri_router
 from sirepo.template import adm
-from sirepo.template import template_common
-import datetime
 import flask
 import importlib
 import re
+import sirepo.importer
 import sirepo.sim_data
 import sirepo.srdb
 import sirepo.template
 import sirepo.uri
 import sirepo.util
-import time
 import urllib
-import uuid
 import werkzeug
 import werkzeug.exceptions
-
 
 #TODO(pjm): this import is required to work-around template loading in listSimulations, see #1151
 if any(k in feature_config.cfg().sim_types for k in ('flash', 'rs4pi', 'synergia', 'warppba', 'warpvnd')):
@@ -171,14 +167,11 @@ def api_exportArchive(simulation_type, simulation_id, filename):
 @api_perm.require_user
 def api_extractArchive():
     req = http_request.parse_post(id=True, type=True)
-    p = pkio.py_path( # TODO(e-carlin): just make str. don't need py_path
-        simulation_db.simulation_dir(req.type),
-    ).join('archive', '{}.zip'.format(req.req_data.path.split('/')[-1]))
-    import sirepo.importer  # TODO(e-carlin): used elsewhere in this file. move to top
-    data = sirepo.importer.read_zip(str(p), sim_type=req.type)
-    # TODO(e-carlin): repetition with  importFile
-    data.models.simulation.folder = '/Archives'
-    data.models.simulation.isExample = False
+    data = sirepo.importer.read_zip(
+        req.req_data.path + '.zip',
+        sim_type=req.type,
+    )
+    data.models.simulation.isExample = False  # TODO(e-carlin): ???
     return _save_new_and_reply(data)
 
 
@@ -282,7 +275,6 @@ def api_importArchive():
     Params:
         data: what to import
     """
-    import sirepo.importer
     # special http_request parsing here
     data = sirepo.importer.do_form(flask.request.form)
     m = simulation_db.get_schema(data.simulationType).appModes.default
@@ -302,8 +294,6 @@ def api_importFile(simulation_type):
         file: file data
         folder: where to import to
     """
-    import sirepo.importer
-
     error = None
     f = None
 

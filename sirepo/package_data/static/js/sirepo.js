@@ -2597,11 +2597,12 @@ SIREPO.app.factory('fileManager', function(requestSender) {
             }
 
             newItem = {
-                parent: currentFolder,
-                name: item.name,
-                simulationId: item.simulationId,
-                lastModified: item.last_modified,
+                archives: item.archives,
                 isExample: item.isExample,
+                lastModified: item.last_modified,
+                name: item.name,
+                parent: currentFolder,
+                simulationId: item.simulationId,
             };
             currentFolder.children.push(newItem);
         }
@@ -3189,6 +3190,11 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
                 reparentSelectedItem(parent);
             });
         }
+    };
+
+    // TODO(e-carlin): implement
+    self.openArchive = function(archive) {
+        srdbg('xxxxxxxxxxxxx Implement Me');
     };
 
     self.openItem = function(item) {
