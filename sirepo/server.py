@@ -172,7 +172,6 @@ def api_exportArchive(simulation_type, simulation_id, filename):
 @api_perm.require_user
 def api_extractArchive():
     req = http_request.parse_post(id=True, type=True)
-    pkdp(req.req_data.path)
     p = pkio.py_path( # TODO(e-carlin): just make str. don't need py_path
         simulation_db.simulation_dir(req.type),
     ).join('archive', '{}.zip'.format(req.req_data.path.split('/')[-1]))
