@@ -37,6 +37,8 @@ _MAX_OPEN_FILES = 1024
 
 class DockerDriver(job_driver.DriverBase):
 
+    _IMAGE_CHANGE_AGENT_STARTING_TIMEOUT_SECS = 5 * 60
+
     __hosts = PKDict()
 
     __users = PKDict()
@@ -161,7 +163,10 @@ class DockerDriver(job_driver.DriverBase):
                     r[k].append(await self.op_q[k].get())
             await self.kill()
             self._image = image
-            await self._agent_start(op)
+            await self._agent_start(
+                op,
+                self._IMAGE_CHANGE_AGENT_STARTING_TIMEOUT_SECS,
+            )
             # TODO(e-carlin): Possible source of thrashing. We start a
             # container with a new image but the first op through could
             # have a different image so we start over again

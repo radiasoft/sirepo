@@ -296,7 +296,7 @@ class DriverBase(PKDict):
             uid=self.uid,
         )
 
-    async def _agent_start(self, op):
+    async def _agent_start(self, op, timeout=None):
         if self._agent_starting:
             return
         async with self._agent_start_lock:
@@ -310,7 +310,7 @@ class DriverBase(PKDict):
                 # when the agent fully starts.
                 pkdlog('self={} op={} await _do_agent_start', self, op)
                 self._agent_starting_timeout = tornado.ioloop.IOLoop.current().call_later(
-                    self._AGENT_STARTING_TIMEOUT_SECS,
+                    timeout if timeout else self._AGENT_STARTING_TIMEOUT_SECS,
                     self._agent_starting_timeout_handler,
                 )
                 await self._do_agent_start(op)
