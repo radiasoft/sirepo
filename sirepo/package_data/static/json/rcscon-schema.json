@@ -4,6 +4,16 @@
             "localRoute": "visualization"
         }
     },
+    "constants": {
+        "layerGraphParams": {
+            "Activation": "activationActivation",
+            "AlphaDropout": "alphaDropoutRate",
+            "Dense": "denseActivation",
+            "Dropout": "dropoutRate",
+            "GaussianDropout": "gaussianDropoutRate",
+            "GaussianNoise": "gaussianNoiseStddev"
+        }
+    },
     "enum": {
         "MLModule": [
             ["neuralnet", "Neural Network"]
@@ -81,6 +91,9 @@
         "sirepoLibs": {
             "js": [
                 "rcscon.js"
+            ],
+            "css": [
+                "rcscon.css"
             ]
         }
     },
@@ -134,7 +147,7 @@
             "mlModule": ["Model Type", "MLModule", "neuralnet"]
         },
         "mlModelGraph": {
-            "inProgressText": ["", "String", "Building Graph"],
+            "inProgressText": ["", "String", "Building"],
             "svg": ["", "String", ""]
         },
         "neuralNet": {

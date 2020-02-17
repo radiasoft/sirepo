@@ -164,6 +164,10 @@ SIREPO.app.controller('MLController', function (appState, frameCache, persistent
         return frameCache.hasFrames();
     };
 
+    self.hasLayers = function() {
+        return ((appState.models.neuralNet || {}).layers || []).length > 0;
+    };
+
     self.simState = persistentSimulation.initSimulationState(
         $scope,
         rcsconService.computeModel('fitAnimation'),
@@ -184,13 +188,16 @@ SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
         ].join(''),
         controller: function($scope, $element) {
 
-            //srdbg($scope.modelName, $($element).width());
             const scale = 0.75;
             $scope.reportCfg = {
-                svgFormatter: function(str) {
+                reload: function () {
+                    return true;
+                },
+                process: function(str) {
 
                     // for some reason the viewbox and size do not always match
                     const svg = $(str);
+                    const width = $($element).width();
                     let w = utilities.fontSizeFromString(svg.attr('width'));
                     let h = utilities.fontSizeFromString(svg.attr('height'));
 
@@ -200,18 +207,73 @@ SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
                     // fix the viewBox or the plot will be cut off
                     vb.width = w;
                     vb.height = h;
+
                     // resize
                     svg.attr('width', scale * w);
                     svg.attr('height', scale * h);
 
                     // re-center
-                    svg.attr('transform', 'translate(' + (scale * w / 2) + ', 0)');
+                    const pd = utilities.fontSizeFromString(
+                        $($element).find('div.panel-body').css('padding')
+                    );
 
-                    //srdbg('formatted svg', svg);
+                    svg.attr('transform', 'translate(' + ((width - scale * w) / 2 - pd) + ', 0)');
+
+                    // apply colors
+                    const baseClass = 'rcscon-layer';
+
+                    // keras adds text to the node boxes formatted as:
+                    //     <layer_type>_<index>: <Layer Type>
+                    const layers = appState.models.neuralNet.layers;
+                    svg.find('g.node').each(function (idx) {
+                        let node = $(this);
+
+                        let txtEl = node.find('text').eq(0);
+                        let txt = txtEl.text();
+
+                        let cName = txt.substring(0, txt.indexOf(':'));
+                        let p = node.find('polygon');
+                        p.addClass(baseClass);
+                        // input is named differently
+                        if (cName.indexOf('_input') >= 0) {
+                            p.addClass(baseClass + '-input');
+                            return;
+                        }
+                        cName = cName.substring(0, cName.lastIndexOf('_')).replace('_', '-');
+                        p.addClass(baseClass + '-' + cName);
+
+
+                        // the input box is added by keras, and does not correspond to a layer
+                        let layer = layers[idx - 1];
+                        let lType = txt.substring(txt.indexOf(':') + 1).trim();
+                        let pName = SIREPO.APP_SCHEMA.constants.layerGraphParams[lType];
+                        if (! layer || ! pName) {
+                            return;
+                        }
+
+                        // add other params
+                        // regroup text into tspans
+                        txtEl.text('');
+                        let ts = '<tspan>' + txt + '</tspan>';
+                        ts +=  ('<tspan x="' + txtEl.attr('x') + '" dy="16" class="rcscon-activation-txt">');
+                        if (pName.toLowerCase().indexOf('activation') >= 0) {
+                             ts += layer[pName];
+                        }
+                        if (pName.toLowerCase().indexOf('dropout') >= 0) {
+                             ts += ('Rate = ' + layer[pName]);
+                        }
+                        if (pName.toLowerCase().indexOf('gaussiannoise') >= 0) {
+                             ts += ('𝞼 = ' + layer[pName]);
+                        }
+                        ts += '</tspan>';
+
+                        txtEl.html(ts);
+                    });
                     return svg;
                 },
             };
-        },
+
+       },
     };
 });
 

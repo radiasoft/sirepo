@@ -3550,19 +3550,20 @@ SIREPO.app.directive('svgPlot', function(appState, focusPointService, panelState
         },
         template: [
             '<div class="sr-svg-plot">',
+                '<svg></svg>',
             '</div>'
         ].join(''),
         controller: function($scope, $element) {
 
             function load() {
+                const reload = (($scope.reportCfg || {}).reload || function() {return true;})();
                 panelState.requestData($scope.modelName, function(data) {
-                    //srdbg('el', $($element).width(), $scope.reportCfg);
-                    let newsvg = data.svg;
-                    if ($scope.reportCfg && $scope.reportCfg.svgFormatter) {
-                        newsvg = $scope.reportCfg.svgFormatter(newsvg);
+                    let svg = data.svg;
+                    if ($scope.reportCfg && $scope.reportCfg.process) {
+                        svg = $scope.reportCfg.process(svg);
                     }
-                    $($element).find('.sr-svg-plot').append(newsvg);
-                });
+                    $($element).find('.sr-svg-plot > svg').replaceWith(svg);
+                }, reload);
             }
 
             appState.whenModelsLoaded($scope, function() {

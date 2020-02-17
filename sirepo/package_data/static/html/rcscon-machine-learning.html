@@ -4,7 +4,7 @@
       <div class="row">
         <div class="col-sm-12">
           <div data-basic-editor-panel="" data-view-name="mlModel">
-              <button class="btn btn-default" data-ng-click="ml.display()">Display Model</button>
+              <button data-ng-disabled="! ml.hasLayers()" class="btn btn-default" data-ng-click="ml.display()">Display Graph</button>
           </div>
         </div>
         <div class="col-sm-12">
@@ -21,12 +21,12 @@
         <div class="modal-content">
           <div class="modal-header bg-warning">
             <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-            <span class="lead modal-title text-info">{{ 'MODEL' }}</span>
+            <span class="lead modal-title text-info">Model Graph</span>
           </div>
           <div class="modal-body">
             <div class="container-fluid">
               <div class="row">
-                <div class="col-sm-6 col-sm-offset-3" data-ng-if="mlModelShown">
+                <div class="col-sm-12" data-ng-if="mlModelShown">
                   <div data-ml-model-graph="" data-model-name="mlModel" data-report-id="reportId"></div>
                 </div>
               </div>
