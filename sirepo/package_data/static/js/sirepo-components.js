@@ -2104,19 +2104,18 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
             ].join('');
             $scope.doneLoadingSimList = false;
             $scope.archiveSimulation = function() {
-                // TODO(e-carlin): handle success and error. Add something like a toast?
                 requestSender.sendRequest(
                     'archiveSimulation',
                     function(){
-                        // TODO(e-carlin): pjm reccomended the notificationService on success. Figure out how to use it.
-                        srdbg('ssssssssssssssssssssssss');
+                        // TODO(e-carlin): This isn't an error
+                        errorService.alertText('Success archiving your simulation');
                     },
                     {
                         simulationId: $scope.simulationId(),
                         simulationType: SIREPO.APP_SCHEMA.simulationType,
                     },
                     function(){
-                        errorService.alertText('Error: We were unable to archive your simulation. Please Try again.');
+                        errorService.alertText('We were unable to archive your simulation. Please Try again.');
                     }
                 );
             };

@@ -3192,7 +3192,6 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
         }
     };
 
-    // TODO(e-carlin): implement
     self.openArchive = function(archive) {
         requestSender.sendRequest(
             'extractArchive',
@@ -3200,9 +3199,8 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
                 requestSender.localRedirectHome(data.models.simulation.simulationId);
             },
             archive,
-            function(data) {
-                srdbg('xxxxxxxxxxxxx implement me');
-                srdbg(data);
+            function() {
+                errorService.alertText('There was a problem extracting the archive. Please try again.');
             }
         )
 
