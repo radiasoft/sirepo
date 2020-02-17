@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""test running of animations through sbatch
+u"""test running of animations through docker
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html

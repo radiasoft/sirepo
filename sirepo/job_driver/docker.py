@@ -7,15 +7,13 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
-import pykern.pkcollections
-from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc, pkdpretty
+from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 from sirepo import job
 from sirepo import job_driver
-from sirepo import mpi
 import io
-import itertools
 import os
 import re
+import sirepo.job_supervisor  # TODO(e-carlin): is this ok? Rob has it imported oddly job_driver.__init__
 import subprocess
 import tornado.ioloop
 import tornado.locks
@@ -35,6 +33,7 @@ _CNAME_RE = re.compile(_CNAME_SEP.join(('^' + _CNAME_PREFIX, r'([a-z]+)', '(.+)'
 # default is unlimited so put some real constraint
 # TODO(e-carlin): max open files for local or nersc?
 _MAX_OPEN_FILES = 1024
+
 
 class DockerDriver(job_driver.DriverBase):
 
@@ -124,9 +123,6 @@ class DockerDriver(job_driver.DriverBase):
         return self.host.instances[self.kind]
 
     async def _acquire_op_slot(self, op):
-        # TODO(e-carlin): is this ok? Rob has it imported oddly job_driver.__init__
-        import sirepo.job_supervisor
-
         if self._image_change.in_progress():
             if op.op_slot:
                 # Prevents deadlock. Another op, x, has set
@@ -142,36 +138,39 @@ class DockerDriver(job_driver.DriverBase):
             raise sirepo.job_supervisor.Awaited()
         i = self._get_container_image(op.containerImage)
         if i != self._image:
-            self._image_change.set_in_progress(op)
-            pkdlog(
-                'op={} gathering all resources to change image={} to image={}',
-                op,
-                self._image,
-                op.containerImage,
-            )
-            r = PKDict()
-            try:
-                for k in self.op_q.keys():
-                    r.setdefault(k, [])
-                    while len(r[k]) < self.op_q[k].maxsize:
-                        r[k].append(await self.op_q[k].get())
-                await self.kill()
-                self._image = i
-                await self._agent_start(op)
-                # TODO(e-carlin): Possible source of thrashing. We start a
-                # container with a new image but the first op through has a
-                # different image so we start over again
-                raise sirepo.job_supervisor.Awaited()
-            finally:
-                for k in r.keys():
-                    # We may have been canceled so only put back slots we got
-                    for e in r[k]:
-                        self.op_q[k].put_nowait(e)
+            await self._change_image(op, i)
         await super()._acquire_op_slot(op)
 
     def _agent_starting_done(self):
         self._image_change.set_complete()
         super()._agent_starting_done()
+
+    async def _change_image(self, op, image):
+        self._image_change.set_in_progress(op)
+        pkdlog(
+            'op={} gathering all resources to change image={} to image={}',
+            op,
+            self._image,
+            op.containerImage,
+        )
+        r = PKDict()
+        try:
+            for k in self.op_q.keys():
+                r.setdefault(k, [])
+                while len(r[k]) < self.op_q[k].maxsize:
+                    r[k].append(await self.op_q[k].get())
+            await self.kill()
+            self._image = image
+            await self._agent_start(op)
+            # TODO(e-carlin): Possible source of thrashing. We start a
+            # container with a new image but the first op through could
+            # have a different image so we start over again
+            raise sirepo.job_supervisor.Awaited()
+        finally:
+            for k in r.keys():
+                # We may have been canceled so only put back slots we got
+                for e in r[k]:
+                    self.op_q[k].put_nowait(e)
 
     @classmethod
     def _cmd_prefix(cls, host, tls_d):
@@ -361,5 +360,9 @@ class _ImageChange(PKDict):
         self.set_complete()
 
     def set_in_progress(self, op):
+        assert not self._in_progress, \
+            'op={} tyring to set image change in progress but op={} already in progress'.format(
+                self.op
+            )
         self._in_progress = True
         self.op = op
