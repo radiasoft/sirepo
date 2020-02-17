@@ -1018,7 +1018,7 @@ SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
             axis: '@lineoutCsvLink',
         },
         template: [
-            '<a href data-ng-show=":: is3dPlot()" data-ng-click="exportLineout()">CSV - {{:: axisName }} Cut</a>',
+            '<a href data-ng-show=":: is3dPlot()" data-ng-click="exportLineout()">CSV - {{:: axisName }}</a>',
         ].join(''),
         controller: function($scope) {
 
@@ -1030,7 +1030,11 @@ SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
                 return s;
             }
 
-            $scope.axisName = $scope.axis == 'x' ? 'Horizontal' : 'Vertical';
+            $scope.axisName = $scope.axis == 'x'
+                ? 'Horizontal Cut'
+                : $scope.axis == 'y'
+                    ? 'Vertical Cut'
+                    : 'Full Plot';
 
             $scope.exportLineout = function() {
                 findReportPanelScope().$broadcast(SIREPO.PLOTTING_LINE_CSV_EVENT, $scope.axis);
@@ -2910,9 +2914,10 @@ SIREPO.app.directive('sbatchCoresAndHours', function(appState) {
             simState: '=sbatchCoresAndHours',
         },
         template: [
-            '<div data-ng-show="showCoresAndHours()">',
-                '<div data-model-field="\'sbatchHours\'" data-model-name="simState.model"></div>',
-                '<div data-model-field="\'sbatchCores\'" data-model-name="simState.model"></div>',
+            '<div class="clearfix"></div>',
+            '<div style="margin-top: 10px" data-ng-show="showCoresAndHours()">',
+                '<div data-model-field="\'sbatchHours\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>',
+                '<div data-model-field="\'sbatchCores\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
@@ -2973,7 +2978,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               '</div>',
               '<div data-ng-if="simState.showJobSettings()">',
                 '<div class="form-group form-group-sm">',
-                  '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model"></div>',
+                  '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>',
                   '<div data-sbatch-cores-and-hours="simState"></div>',
                 '</div>',
               '</div>',

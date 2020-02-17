@@ -85,6 +85,9 @@ _OLDEST_VERSION = '20140101.000001'
 #: Matches cancelation errors in run_log: KeyboardInterrupt probably only happens in dev
 _RUN_LOG_CANCEL_RE = re.compile(r'^KeyboardInterrupt$', flags=re.MULTILINE)
 
+#: Absolute path of rsmanifest file
+_RSMANIFEST_PATH = pkio.py_path('/rsmanifest' + JSON_SUFFIX)
+
 #: Cache of schemas keyed by app name
 _SCHEMA_CACHE = PKDict()
 
@@ -488,6 +491,7 @@ def prepare_simulation(data, run_dir=None):
     template = sirepo.template.import_module(data)
     s = sirepo.sim_data.get_class(sim_type)
     s.lib_files_to_run_dir(data, run_dir)
+    _update_rsmanifest(data)
     write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
     is_p = s.is_parallel(data)
@@ -1109,6 +1113,15 @@ def _timestamp(time=None):
     elif not isinstance(time, datetime.datetime):
         time = datetime.datetime.fromtimestamp(time)
     return time.strftime('%Y%m%d.%H%M%S')
+
+
+def _update_rsmanifest(data):
+    try:
+        data.rsmanifest = read_json(_RSMANIFEST_PATH)
+    except Exception as e:
+        if pkio.exception_is_not_found(e):
+            return
+        raise
 
 
 def _user_dir():
