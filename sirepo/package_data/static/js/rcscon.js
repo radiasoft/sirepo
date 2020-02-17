@@ -242,7 +242,6 @@ SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
                         cName = cName.substring(0, cName.lastIndexOf('_')).replace('_', '-');
                         p.addClass(baseClass + '-' + cName);
 
-
                         // the input box is added by keras, and does not correspond to a layer
                         let layer = layers[idx - 1];
                         let lType = txt.substring(txt.indexOf(':') + 1).trim();
@@ -267,6 +266,7 @@ SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
                         }
                         ts += '</tspan>';
 
+                        // we must use html() not append() or the svg will not render correctly
                         txtEl.html(ts);
                     });
                     return svg;
