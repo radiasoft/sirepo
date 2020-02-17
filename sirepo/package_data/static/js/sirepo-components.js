@@ -1657,6 +1657,15 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
         },
         link: function(scope, element) {
             scope.panel = element.next();
+            panelState.waitForUI(function() {
+                var view = appState.viewInfo(scope.viewName || scope.modelKey);
+                if (! view) {
+                    var editorId = '#' + panelState.modalId(scope.modelKey);
+                    if (! $(editorId).length) {
+                        scope.hasEditor = false;
+                    }
+                }
+            });
         },
     };
 });

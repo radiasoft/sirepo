@@ -56,6 +56,15 @@
             ["adamax", "Adamax"],
             ["nadam", "Nesterov Adam"]
         ],
+        "PartitionSection": [
+            ["train", "Training"],
+            ["test", "Testing"],
+            ["validate", "Valiation"]
+        ],
+        "PlotScale": [
+            ["linear", "Linear"],
+            ["log10", "Base-10 Logarithm"]
+        ],
         "Scaler": [
             ["MaxAbsScaler", "Max-Abs Scaler"],
             ["MinMaxScaler", "Min-Max Scaler"],
@@ -83,6 +92,13 @@
                 "templateUrl": "/static/html/rcscon-visualization.html"
             }
         },
+        "partition": {
+            "route": "/partition/:simulationId",
+            "config": {
+                "controller": "PartitionController as partition",
+                "templateUrl": "/static/html/rcscon-partition.html"
+            }
+        },
         "machine-learning": {
             "route": "/machine-learning/:simulationId",
             "config": {
@@ -92,30 +108,14 @@
         }
     },
     "frameIdFields": {
-        "epochAnimation": [],
-        "fitAnimation0": ["columnNumber"],
-        "fitAnimation1": ["columnNumber"],
-        "fitAnimation2": ["columnNumber"],
-        "fitAnimation3": ["columnNumber"],
-        "fitAnimation4": ["columnNumber"],
-        "fitAnimation5": ["columnNumber"],
-        "fitAnimation6": ["columnNumber"],
-        "fitAnimation7": ["columnNumber"],
-        "fitAnimation8": ["columnNumber"],
-        "fitAnimation9": ["columnNumber"],
-        "fitAnimation10": ["columnNumber"],
-        "fitAnimation11": ["columnNumber"],
-        "fitAnimation12": ["columnNumber"],
-        "fitAnimation13": ["columnNumber"],
-        "fitAnimation14": ["columnNumber"],
-        "fitAnimation15": ["columnNumber"],
-        "fitAnimation16": ["columnNumber"],
-        "fitAnimation17": ["columnNumber"],
-        "fitAnimation18": ["columnNumber"],
-        "fitAnimation19": ["columnNumber"]
+        "animation": ["columnNumber"],
+        "partitionAnimation": ["columnNumber"],
+        "epochAnimation": []
     },
     "model": {
-        "epochAnimation": {},
+        "epochAnimation": {
+            "plotScale": ["Plot Scale", "PlotScale", "linear"]
+        },
         "files": {
             "inputs": ["Inputs File", "InputFile"],
             "outputs": ["Outputs File", "InputFile"],
@@ -126,7 +126,9 @@
             "columnNumber": ["Column Number", "Integer", 0]
         },
         "fitAnimation": {
-            "columnNumber": ["Column Number", "Integer", 0]
+            "columnNumber": ["Column Number", "Integer", 0],
+            "histogramBins": ["Histogram Bins", "Integer", 30],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "mlModel": {
             "mlModule": ["Model Type", "MLModule", "neuralnet"]
@@ -153,18 +155,30 @@
             "gaussianNoiseStddev": ["Standard Deviation", "Float", 0.01]
         },
         "partition": {
-            "training": ["Training %", "Float", 75],
-            "testing": ["Testing %", "Float", 12.5],
+            "training": ["Training %", "Float", 75, "", 1, 98],
+            "testing": ["Testing %", "Float", 12.5, "", 1, 98],
             "validation": ["Validation %", "Float", 12.5],
-            "method": ["Split Method", "SplitMethod", "random"],
-            "random_state": ["Random Seed", "Integer", 42]
+            "method": ["Split Method", "SplitMethod"],
+            "random_state": ["Random Seed", "Integer", 42],
+            "section0": ["Section 0", "PartitionSection", "test"],
+            "section1": ["Section 1", "PartitionSection", "train"],
+            "section2": ["Section 2", "PartitionSection", "validate"],
+            "cutoff0": ["Cutoff 0", "Integer"],
+            "cutoff1": ["Cutoff 1", "Integer"]
+        },
+        "partitionSelectionReport": {
+        },
+        "partitionAnimation": {
+            "columnNumber": ["Column Number", "Integer", 0]
         },
         "simulationStatus": {}
     },
     "view": {
         "epochAnimation": {
             "title": "Training Error",
-            "advanced": []
+            "advanced": [
+                "plotScale"
+            ]
         },
         "files": {
             "title": "Files",
@@ -209,14 +223,22 @@
         "partition": {
             "title": "Partition",
             "basic": [
+                "method",
                 "training",
                 "testing",
-                "validation",
-                "method"
+                "validation"
             ],
             "advanced": [
                 "random_state"
             ]
+        },
+        "partitionAnimation": {
+            "title": "Column",
+            "advanced": []
+        },
+        "partitionSelectionReport": {
+            "title": "Partition Selection",
+            "advanced": []
         },
         "simulationStatus": {
             "title": "Execution Status",

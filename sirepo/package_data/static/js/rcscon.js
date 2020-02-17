@@ -3,11 +3,45 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.SINGLE_FRAME_ANIMATION = ['epochAnimation'];
+SIREPO.app.config(function() {
+    SIREPO.SINGLE_FRAME_ANIMATION = ['epochAnimation'];
+});
 
-SIREPO.app.factory('rcsconService', function(appState) {
+SIREPO.app.factory('rcsconService', function(appState, panelState, frameCache) {
     var self = {};
+
+    self.addAnimations = function(modelName, titlePrefix, countField, countOffset) {
+        countOffset = countOffset || 0;
+        var res = [];
+        var files = appState.applicationState().files;
+        for (var i = 0; i < files[countField]; i++) {
+            var modelKey = modelName + (i + countOffset);
+            if (! appState.models[modelKey]) {
+                appState.models[modelKey] = {
+                    columnNumber: i + countOffset,
+                };
+                if (modelName == 'partitionAnimation' && i >= 4) {
+                    panelState.toggleHidden(modelKey);
+                }
+                appState.saveQuietly(modelKey);
+            }
+            res.push(self.reportInfo(modelKey, titlePrefix + ' ' + (i + 1)));
+            if (SIREPO.SINGLE_FRAME_ANIMATION.indexOf(modelKey) < 0) {
+                SIREPO.SINGLE_FRAME_ANIMATION.push(modelKey);
+            }
+            frameCache.setFrameCount(1, modelKey);
+            if (i % 4 == 3) {
+                res[res.length - 1].break = true;
+            }
+        }
+        res[res.length - 1].break = true;
+        return res;
+    };
+
     self.computeModel = function(analysisModel) {
+        if (analysisModel.indexOf('partitionAnimation') >= 0) {
+            return 'partitionAnimation';
+        }
         return 'animation';
     };
     self.reportInfo = function(modelKey, title) {
@@ -36,7 +70,7 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-SIREPO.app.directive('appHeader', function() {
+SIREPO.app.directive('appHeader', function(appState) {
     return {
 	restrict: 'A',
 	scope: {
@@ -49,7 +83,8 @@ SIREPO.app.directive('appHeader', function() {
               '<app-header-right-sim-loaded>',
   	        '<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'machine-learning\')}"><a href data-ng-click="nav.openSection(\'machine-learning\')"><span class="glyphicon glyphicon-qrcode"></span> Machine Learning</a></li>',
+                  '<li class="sim-section" data-ng-if="hasFiles()" data-ng-class="{active: nav.isActive(\'partition\')}"><a href data-ng-click="nav.openSection(\'partition\')"><span class="glyphicon glyphicon-scissors"></span> Partition</a></li>',
+                  '<li class="sim-section" data-ng-if="hasFilesAndPartition()" data-ng-class="{active: nav.isActive(\'machine-learning\')}"><a href data-ng-click="nav.openSection(\'machine-learning\')"><span class="glyphicon glyphicon-qrcode"></span> Machine Learning</a></li>',
 		'</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
@@ -63,12 +98,24 @@ SIREPO.app.directive('appHeader', function() {
             '</div>',
 	].join(''),
         controller: function($scope) {
-            //TODO(pjm): hide machine learning tab if no files selected.
+            $scope.hasFiles = function() {
+                if (appState.isLoaded()) {
+                    var files = appState.applicationState().files;
+                    return files.inputs && files.outputs;
+                }
+                return false;
+            };
+
+            $scope.hasFilesAndPartition = function() {
+                if (! $scope.hasFiles()) {
+                    return false;
+                }
+                return appState.applicationState().partition.method;
+            };
 
             $scope.showImportModal = function() {
                 $('#srw-simulation-import').modal('show');
             };
-
         },
     };
 });
@@ -76,30 +123,11 @@ SIREPO.app.directive('appHeader', function() {
 SIREPO.app.controller('MLController', function (appState, frameCache, persistentSimulation, rcsconService, utilities, $scope) {
     var self = this;
 
-    function addFitAnimations() {
-        self.reports = [];
-        var files = appState.applicationState().files;
-        for (var i = 0; i < files.outputsCount; i++) {
-            var modelKey = 'fitAnimation' + i;
-            if (! appState.models[modelKey]) {
-                appState.models[modelKey] = {
-                    columnNumber: i,
-                };
-                appState.saveQuietly(modelKey);
-            }
-            self.reports.push(rcsconService.reportInfo(modelKey, 'Fit ' + (i + 1)));
-            if (SIREPO.SINGLE_FRAME_ANIMATION.indexOf(modelKey) < 0) {
-                SIREPO.SINGLE_FRAME_ANIMATION.push(modelKey);
-            }
-            frameCache.setFrameCount(1, modelKey);
-        }
-    }
-
     function handleStatus(data) {
         self.reports = null;
         if ('percentComplete' in data && ! data.error) {
             if (data.percentComplete === 100 && ! self.simState.isProcessing()) {
-                addFitAnimations();
+                self.reports = rcsconService.addAnimations('fitAnimation', 'Fit', 'outputsCount');
             }
         }
         frameCache.setFrameCount(data.frameCount || 0);
@@ -121,6 +149,13 @@ SIREPO.app.controller('MLController', function (appState, frameCache, persistent
         });
     };
 
+    self.hasModel = function() {
+        if (appState.isLoaded()) {
+            return appState.applicationState().neuralNet.layers.length;
+        }
+        return false;
+    };
+
     self.startSimulation = function() {
         self.simState.saveAndRunSimulation('simulation');
     };
@@ -131,7 +166,7 @@ SIREPO.app.controller('MLController', function (appState, frameCache, persistent
 
     self.simState = persistentSimulation.initSimulationState(
         $scope,
-        rcsconService.computeModel(),
+        rcsconService.computeModel('fitAnimation'),
         handleStatus
     );
 });
@@ -172,12 +207,269 @@ SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
                     // re-center
                     svg.attr('transform', 'translate(' + (scale * w / 2) + ', 0)');
 
-                    srdbg('formatted svg', svg);
+                    //srdbg('formatted svg', svg);
                     return svg;
                 },
             };
         },
     };
+});
+
+SIREPO.app.directive('partitionSelection', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<form name="form" class="form-horizontal" data-ng-style="formStyle">',
+              '<div class="form-group">',
+                '<div data-ng-repeat="field in fields track by $index" data-model-field="field" data-model-name="modelName" data-label-size="0" data-field-size="4"></div>',
+                '<div data-ng-repeat="field in fields track by $index" class="col-sm-4">',
+                  '<p class="form-control-static text-center">{{ selectedRange(field) }}</p>',
+                '</div>',
+              '</div>',
+              '<div class="col-sm-12 text-center" data-buttons="" data-model-name="modelName" data-fields="allFields"></div>',
+            '</form>',
+        ].join(''),
+        controller: function($scope) {
+            var dragCarat, plotRefresh, plotScope;
+            $scope.modelName = 'partition';
+            $scope.fields = ['section0', 'section1', 'section2'];
+            $scope.allFields = $scope.fields.concat(['cutoff0', 'cutoff1']);
+            $scope.formStyle = {};
+
+            function setDefaultCutoff(partition) {
+                var axis = plotScope.axes.x;
+                partition.cutoff0 = 0.125 * axis.domain[1];
+                partition.cutoff1 = (1 - 0.125) * axis.domain[1];
+            }
+
+            function validateCutoff(p) {
+                var axis = plotScope.axes.x;
+                if (p <= axis.domain[0]) {
+                    p = axis.domain[0] + 2;
+                }
+                if (p >= axis.domain[1]) {
+                    p = axis.domain[1] - 2;
+                }
+                return parseInt(p);
+            }
+
+            function d3DragCarat(d) {
+                /*jshint validthis: true*/
+                var axis = plotScope.axes.x;
+                var p = axis.scale.invert(d3.event.x);
+                appState.models.partition[d] = validateCutoff(p);
+                d3.select(this).call(updateCarat);
+                $scope.$applyAsync();
+            }
+
+            function d3DragEndCarat(d) {
+                var partition = appState.models.partition;
+                if (partition.cutoff0 > partition.cutoff1) {
+                    var c = partition.cutoff0;
+                    partition.cutoff0 = partition.cutoff1;
+                    partition.cutoff1 = c;
+                }
+                $scope.$applyAsync();
+            }
+
+            function drawCarats(parts) {
+                var viewport = plotScope.select('.plot-viewport');
+                viewport.selectAll('.rcscon-cell-selector').remove();
+                viewport.selectAll('.rcscon-cell-selector')
+                    .data(parts)
+                    .enter().append('path')
+                    .attr('class', 'rcscon-cell-selector')
+                    .attr('d', 'M-2,-28L-2,-3000 2,-3000 2,-28 14,0 -14,0Z')
+                    .style('cursor', 'ew-resize')
+                    .style('fill-opacity', 0.8)
+                    .style('stroke', '#000')
+                    .style('stroke-width', '1.5px')
+                    .style('fill', '#666')
+                    .call(updateCarat)
+                    .call(dragCarat);
+            }
+
+            function init(targetScope) {
+                plotScope = targetScope;
+                plotRefresh = plotScope.refresh;
+                plotScope.refresh = refresh;
+                dragCarat = d3.behavior.drag()
+                    .on('drag', d3DragCarat)
+                    .on('dragstart', function() {
+                        d3.event.sourceEvent.stopPropagation();
+                    })
+                    .on('dragend', d3DragEndCarat);
+            }
+
+            function refresh() {
+                $scope.formStyle['margin-left'] = plotScope.margin.left + 'px';
+                $scope.formStyle['margin-right'] = plotScope.margin.right + 'px';
+                plotScope.select('svg').selectAll('.overlay').classed('disabled-overlay', true);
+                plotRefresh();
+                var partition = appState.models.partition;
+                if (! partition.cutoff0 || ! partition.cutoff1) {
+                    setDefaultCutoff(partition);
+                }
+                drawCarats(['cutoff0', 'cutoff1']);
+            }
+
+            function updateCarat(selection) {
+                var axes = plotScope.axes;
+                selection.attr('transform', function(d) {
+                    var x = appState.models.partition[d];
+                    return 'translate('
+                        + axes.x.scale(x) + ',' + axes.y.scale(axes.y.scale.domain()[0])
+                        + ')';
+                });
+            }
+
+            function processSection(field) {
+                // ensure all three values are selected
+                var partition = appState.models.partition;
+                var currentValue, missingValue;
+                ['train', 'test', 'validate'].some(function(v) {
+                    var hasValue = false;
+                    $scope.fields.forEach(function(f) {
+                        if (field == 'partition.' + f) {
+                            currentValue = partition[f];
+                        }
+                        if (partition[f] == v) {
+                            hasValue = true;
+                        }
+                    });
+                    if (! hasValue) {
+                        missingValue = v;
+                    }
+                });
+                if (missingValue) {
+                    $scope.fields.forEach(function(f) {
+                        if (field != 'partition.' + f
+                            && partition[f] == currentValue) {
+                            partition[f] = missingValue;
+                        }
+                    });
+                }
+            }
+
+            $scope.selectedRange = function(field) {
+                if (! appState.isLoaded() || ! plotScope || ! plotScope.axes.x.domain) {
+                    return;
+                }
+                var partition = appState.models.partition;
+                if (field == 'section0') {
+                    return '0 - ' + (partition.cutoff0 - 1);
+                }
+                if (field == 'section1') {
+                    return partition.cutoff0 + ' - ' + (partition.cutoff1 - 1);
+                }
+                return partition.cutoff1 + ' - ' + (plotScope.axes.x.domain[1] - 1);
+            };
+
+            $scope.$parent.$parent.$parent.$on('sr-plotLinked', function(event) {
+                init(event.targetScope);
+            });
+
+            $scope.$on('cancelChanges', refresh);
+
+            appState.watchModelFields(
+                $scope, ['partition.section0', 'partition.section1', 'partition.section2'],
+                processSection);
+        },
+    };
+});
+
+SIREPO.app.directive('partitionSimState', function(appState, frameCache, panelState, persistentSimulation, rcsconService) {
+    return {
+        restrict: 'A',
+        scope: {
+            controller: '=',
+        },
+        template: [
+            '{{ statusText }}',
+            '<div class="progress" data-ng-if="simState.isProcessing()" >',
+              '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: 100%"></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+
+            function handleStatus(data) {
+                if (! appState.isLoaded()) {
+                    return;
+                }
+                if (! appState.models.partition.method) {
+                    // first time visiting this page, the form should appear dirty
+                    appState.models.partition.method = 'random';
+                }
+                $scope.statusText = '';
+                var reports = null;
+                if (data.error) {
+                    $scope.statusText = 'Error partitioning data: ' + data.error;
+                }
+                else {
+                    if (data.percentComplete == 100) {
+                        reports = rcsconService.addAnimations('partitionAnimation', 'Input', 'inputsCount');
+                        reports = reports.concat(rcsconService.addAnimations(
+                            'partitionAnimation', 'Output', 'outputsCount',
+                            appState.models.files.inputsCount));
+                    }
+                    else {
+                        if ($scope.simState.isProcessing()) {
+                            $scope.statusText = 'Partitioning data ...';
+                        }
+                    }
+                }
+                $scope.controller.reports = reports;
+                frameCache.setFrameCount(data.frameCount || 0);
+            }
+
+            $scope.simState = persistentSimulation.initSimulationState(
+                $scope,
+                rcsconService.computeModel('partitionAnimation'),
+                handleStatus
+            );
+
+            appState.whenModelsLoaded($scope, function() {
+                $scope.$on('partition.changed', $scope.simState.runSimulation);
+            });
+        },
+    };
+});
+
+SIREPO.app.controller('PartitionController', function (appState, panelState, $scope) {
+    var self = this;
+
+    function updatePartitionMethod() {
+        var partition = appState.models.partition;
+        ['training', 'testing', 'validation'].forEach(function(f) {
+            panelState.showField('partition', f, partition.method == 'random');
+        });
+    }
+
+    function updatePercents() {
+        var partition = appState.models.partition;
+        if (partition.training && partition.testing) {
+            var validation = 100 - (partition.training + partition.testing);
+            if (validation > 0) {
+                partition.validation = validation.toFixed(2);
+            }
+        }
+        panelState.enableField('partition', 'validation', false);
+    }
+
+    $scope.showPartitionSelection = function() {
+        if (appState.isLoaded()) {
+            return appState.models.partition.method == 'selection';
+        }
+        return false;
+    };
+
+    appState.whenModelsLoaded($scope, function() {
+        appState.watchModelFields($scope, ['partition.training', 'partition.testing'], updatePercents);
+        appState.watchModelFields($scope, ['partition.method'], updatePartitionMethod);
+        updatePercents();
+        updatePartitionMethod();
+    });
 });
 
 SIREPO.app.controller('VisualizationController', function (appState, requestSender, rcsconService, $scope) {
@@ -195,10 +487,14 @@ SIREPO.app.controller('VisualizationController', function (appState, requestSend
                 appState.saveQuietly(modelKey);
             }
             var title = 'Input ' + (i + 1);
+            var wantBreak = (i == files.inputsCount - 1) || i % 4 == 3;
             if (i >= files.inputsCount) {
                 title = 'Output ' + (i - files.inputsCount + 1);
+                wantBreak = (i - files.inputsCount) % 4 == 3;
             }
-            self.reports.push(rcsconService.reportInfo(modelKey, title));
+            var report = rcsconService.reportInfo(modelKey, title);
+            report.break = wantBreak;
+            self.reports.push(report);
         }
     }
 

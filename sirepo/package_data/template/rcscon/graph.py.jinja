@@ -1,0 +1,18 @@
+
+import re
+from keras.utils import model_to_dot
+from pykern import pkio
+from pykern.pkdebug import pkdp, pkdc, pkdlog
+
+#ml_model_graph = model_to_dot(model).create(prog='dot', format='dot')
+ml_model_graph = model_to_dot(model).create(prog='dot', format='svg')
+#print('graph {} (dot)'.format(ml_model_graph))
+# the string comes back as a full XML doc - get rid of some of the nonsense
+s1 = ml_model_graph.index('<svg')
+#ml_model_graph = re.sub('(<!--.*?-->)', '', ml_model_graph[s1:], flags=re.DOTALL)
+ml_model_graph = ml_model_graph[s1:]
+
+#pkdp('graph {}', ml_model_graph)
+#print('graph {}'.format(ml_model_graph))
+
+pkio.write_text('modelGraph.svg', ml_model_graph)

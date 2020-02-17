@@ -28,6 +28,11 @@ def background_percent_complete(report, run_dir, is_running):
         percentComplete=0,
         frameCount=0,
     )
+    if report == 'partitionAnimation':
+        if not is_running and run_dir.join('x-train.csv').exists():
+            res.percentComplete = 100
+            res.frameCount = 1;
+        return res
     csv_file = run_dir.join(_OUTPUT_FILE.fitOutputFile)
     if csv_file.exists():
         line = _read_last_line(csv_file)
@@ -45,6 +50,12 @@ def extract_report_data(run_dir, sim_in):
         svg = pkio.read_text('modelGraph.svg')
         simulation_db.write_result(PKDict(svg=svg), run_dir=run_dir)
         return
+    if sim_in.report == 'partitionSelectionReport':
+        simulation_db.write_result(
+            _extract_partition_selection(run_dir, sim_in),
+            run_dir=run_dir,
+        )
+        return
     idx = sim_in.models[sim_in.report].columnNumber
     x, y, col_name, source_name = _extract_column(run_dir, sim_in, idx)
     simulation_db.write_result(
@@ -61,7 +72,7 @@ def extract_report_data(run_dir, sim_in):
     )
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data.method == 'compute_column_count':
         return _compute_column_count(data)
     assert False, 'unknown get_application_data: {}'.format(data)
@@ -83,6 +94,8 @@ def python_source_for_model(data, model):
 def sim_frame(frame_args):
     if frame_args.frameReport == 'epochAnimation':
         return _epoch_animation(frame_args)
+    if 'partitionAnimation' in frame_args.frameReport:
+        return _partition_animation(frame_args)
     return _fit_animation(frame_args)
 
 
@@ -97,23 +110,12 @@ def _compute_column_count(data):
     lib_dir = simulation_db.simulation_lib_dir(SIM_TYPE)
     count = 0
     for field in ('inputs', 'outputs'):
-        filename = _SIM_DATA.lib_file_name('files', field, data.files[field])
+        filename = _SIM_DATA.lib_file_name_with_model_field('files', field, data.files[field])
         header = _read_csv_header_columns(lib_dir.join(filename))
         count += len(header)
         data.files['{}Count'.format(field)] = len(header)
     data.files.columnCount = count
     return data.files
-
-
-def _extract_column(run_dir, sim_in, idx):
-    source = 'inputs'
-    if idx >= sim_in.models.files.inputsCount:
-        source = 'outputs'
-        idx -= sim_in.models.files.inputsCount
-    header, v = _read_file(run_dir, _SIM_DATA.rcscon_filename(sim_in, 'files', source))
-    y = v[:, idx]
-    x = np.arange(0, len(y))
-    return x, y, header[idx], source
 
 
 def _epoch_animation(frame_args):
@@ -129,27 +131,57 @@ def _epoch_animation(frame_args):
     ))
 
 
+def _extract_column(run_dir, sim_in, idx):
+    source = 'inputs'
+    if idx >= sim_in.models.files.inputsCount:
+        source = 'outputs'
+        idx -= sim_in.models.files.inputsCount
+    header, v = _read_file(run_dir, _SIM_DATA.rcscon_filename(sim_in, 'files', source))
+    y = v[:, idx]
+    x = np.arange(0, len(y))
+    return x, y, header[idx], source
+
+
+def _extract_partition_selection(run_dir, sim_in):
+    # return report with input0 and output0
+    x, in0, in_col, _ = _extract_column(run_dir, sim_in, 0)
+    _, out0, out_col, _ = _extract_column(run_dir, sim_in, sim_in.models.files.inputsCount)
+    return _plot_info(
+        x,
+        [
+            PKDict(
+                points=in0.tolist(),
+                label=in_col,
+            ),
+            PKDict(
+                points=out0.tolist(),
+                label=out_col,
+            ),
+        ],
+    )
+
+
 def _fit_animation(frame_args):
     idx = int(frame_args.columnNumber)
     header, v = _read_file(frame_args.run_dir, _OUTPUT_FILE.predictOutputFile)
     _, y = _read_file(frame_args.run_dir, _OUTPUT_FILE.testOutputFile)
-    return _plot_info(
-        y[:, idx],
-        [
-            PKDict(
-                points=v[:, idx].tolist(),
-                label=header[idx],
-                style='scatter',
-            ),
-        ],
-    ).update(PKDict(
-        aspectRatio=1,
-    ))
+    frame_args.histogramBins = 30
+    return template_common.heatmap(
+        [v[:, idx], y[:, idx]],
+        frame_args,
+        PKDict(
+            x_label='',
+            y_label=header[idx],
+            title='',
+            hideColorBar=True,
+        ),
+    )
 
 
 def _generate_parameters_file(data):
     report = data.get('report', '')
     res, v = template_common.generate_parameters_file(data)
+    res += 'from __future__ import absolute_import, division, print_function\n'
     v.update(PKDict(
         inputsFileName=_SIM_DATA.rcscon_filename(data, 'files', 'inputs'),
         outputsFileName=_SIM_DATA.rcscon_filename(data, 'files', 'outputs'),
@@ -157,15 +189,19 @@ def _generate_parameters_file(data):
         neuralNetLayers=data.models.neuralNet.layers,
         inputDim=data.models.files.inputsCount,
     ).update(_OUTPUT_FILE))
-    res += template_common.render_jinja(SIM_TYPE, v, 'build-model.py')
     if 'mlModelGraph' in report:
+        res += template_common.render_jinja(SIM_TYPE, v, 'build-model.py')
         res += template_common.render_jinja(SIM_TYPE, v, 'graph.py')
         return res
     res += template_common.render_jinja(SIM_TYPE, v, 'scale.py')
-    if 'fileColumnReport' in report:
+    if 'fileColumnReport' in report or report == 'partitionSelectionReport':
         return res
-    res += template_common.render_jinja(SIM_TYPE, v, 'partition.py') \
-        + template_common.render_jinja(SIM_TYPE, v, 'train.py')
+    res += template_common.render_jinja(SIM_TYPE, v, 'partition.py')
+    if 'partitionAnimation' in report:
+        res += template_common.render_jinja(SIM_TYPE, v, 'save-partition.py')
+        return res
+    res += template_common.render_jinja(SIM_TYPE, v, 'build-model.py')
+    res += template_common.render_jinja(SIM_TYPE, v, 'train.py')
     return res
 
 
@@ -176,9 +212,66 @@ def _layer_implementation_list(data):
     return res.keys()
 
 
-def _plot_info(x, plots):
+def _histogram_plot(values, vrange):
+    hist = np.histogram(values, bins=20, range=vrange)
+    x = []
+    y = []
+    for i in range(len(hist[0])):
+        x.append(hist[1][i])
+        x.append(hist[1][i + 1])
+        y.append(hist[0][i])
+        y.append(hist[0][i])
+    x.insert(0, x[0])
+    y.insert(0, 0)
+    return x, y
+
+
+def _update_range(vrange, values):
+    minv = min(values)
+    maxv = max(values)
+    if not len(vrange):
+        vrange.append(minv)
+        vrange.append(maxv)
+        return
+    if vrange[0] > minv:
+        vrange[0] = minv
+    if vrange[1] < maxv:
+        vrange[1] = maxv
+
+
+def _partition_animation(frame_args):
+    sim_in = frame_args.sim_in
+    idx = int(frame_args.columnNumber)
+    source = 'x'
+    if idx >= sim_in.models.files.inputsCount:
+        source = 'y'
+        idx -= sim_in.models.files.inputsCount
+    header, train = _read_file(frame_args.run_dir, '{}-train.csv'.format(source))
+    _, test = _read_file(frame_args.run_dir, '{}-test.csv'.format(source))
+    _, validate = _read_file(frame_args.run_dir, '{}-validate.csv'.format(source))
+    d = PKDict(
+        train=train[:, idx],
+        test=test[:, idx],
+        validate=validate[:, idx],
+    )
+    plots = []
+    r = []
+    for name in ('train', 'test', 'validate'):
+        _update_range(r, d[name])
+    for name in ('train', 'test', 'validate'):
+        x, y = _histogram_plot(d[name], r)
+        plots.append(
+            PKDict(
+                points=y,
+                label=name,
+            ),
+        )
+    return _plot_info(np.array(x), plots, title=header[idx])
+
+
+def _plot_info(x, plots, title=''):
     return PKDict(
-        title='',
+        title=title,
         x_range=[min(x), max(x)],
         y_label='',
         x_label='',
