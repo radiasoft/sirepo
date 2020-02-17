@@ -16,7 +16,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_elegant(fc):
+def xtest_elegant(fc):
     from pykern import pkunit
     n = 'Compact Storage Ring'
     m = 'twissReport'
@@ -40,14 +40,14 @@ def test_elegant_archive_simulation(fc):
             simulationType=fc.sr_sim_type,
         ),
     )
-    pkunit.pkok('path' in r, "expected key 'path' in {}", r)
-    r = fc.sr_post(
-        'extractArchive',
-        PKDict(
-            simulationId=data.models.simulation.simulationId,
-            simulationType=fc.sr_sim_type,
-            path=r.path,
-        ),
-    )
-    r = fc.sr_run_sim(r, m)
+    pkunit.pkok('ok' in r.state, "expected state.ok r={}", r)
+    r = fc.sr_post('/simulation-list', {'simulationType': fc.sr_sim_type})
+    f = False
+    for i, e in enumerate(r):
+        if len(r[int(i)].archives) > 0:
+            pkunit.pkok(not f, 'expecting only one simulation with archives r={}', r)
+            f = True
+            d = fc.sr_post('extractArchive', PKDict(r[i].archives[0]))
+    pkunit.pkok(f, 'no archives found in r={}', r)
+    r = fc.sr_run_sim(d, m)
     pkunit.pkeq('completed',  r.state)
