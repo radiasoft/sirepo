@@ -55,16 +55,15 @@ def for_sim_type(sim_type):
         sim_type (str): srw, warppba, etc.
 
     Returns:
-        dict: application specific config
+        dict: merged gui global and application specific config
     """
     import pykern.pkcollections
 
     c = cfg()
-    if sim_type not in c:
-        return pykern.pkcollections.PKDict()
-    return pykern.pkcollections.PKDict(
-        pykern.pkcollections.map_items(c[sim_type]),
-    )
+    r = pykern.pkcollections.PKDict(**c.gui_global)
+    if sim_type in c:
+        r.update(pykern.pkcollections.map_items(c[sim_type]))
+    return r
 
 
 def _init():
@@ -90,6 +89,9 @@ def _init():
 
     _cfg = pkconfig.init(
         api_modules=((), set, 'optional api modules, e.g. status'),
+        gui_global=dict(
+            archive_simulation=(pkconfig.channel_in_internal_test(), bool, 'Display archive simulation button')
+        ),
         job=(False, bool, '[new] job execution architecture (replaces runner)'),
         jspec=dict(
             derbenevskrinsky_force_formula=(pkconfig.channel_in_internal_test(), bool, 'Include Derbenev-Skrinsky force forumla'),
