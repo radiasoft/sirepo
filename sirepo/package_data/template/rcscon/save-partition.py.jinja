@@ -1,0 +1,11 @@
+
+def save_file(filename, data):
+    header = x_header if filename[0] == 'x' else y_header
+    np.savetxt(filename, data, delimiter=',', header=','.join(header), comments='')
+
+save_file('x-train.csv', x_train)
+save_file('x-test.csv', x_test)
+save_file('x-validate.csv', x_validate)
+save_file('y-train.csv', y_train)
+save_file('y-test.csv', y_test)
+save_file('y-validate.csv', y_validate)

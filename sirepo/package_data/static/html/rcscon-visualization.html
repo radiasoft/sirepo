@@ -1,24 +1,14 @@
 <div class="container-fluid">
   <div class="row">
     <div class="col-md-4">
-      <div class="row">
-        <div class="col-sm-12">
-          <div data-basic-editor-panel="" data-view-name="files"></div>
-        </div>
-        <div class="col-sm-12">
-          <div data-basic-editor-panel="" data-view-name="partition"></div>
-        </div>
-      </div>
+      <div data-basic-editor-panel="" data-view-name="files"></div>
     </div>
-    <div class="col-md-8">
-      <div class="row">
+    <div class="clearfix"></div>
         <div data-ng-repeat="report in visualization.reports">
-          <div class="col-sm-4">
+          <div class="col-sm-3">
             <div data-report-panel="parameter" data-model-name="fileColumnReport" data-model-data="report" data-panel-title="{{ report.title }}"></div>
           </div>
-          <div data-ng-if="$index % 3 == 2" class="clearfix"></div>
+          <div data-ng-if="report.break" class="clearfix"></div>
         </div>
-      </div>
-    </div>
   </div>
 </div>

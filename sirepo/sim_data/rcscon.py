@@ -12,14 +12,6 @@ import sirepo.sim_data
 class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
-    def _compute_model(cls, analysis_model, *args, **kwargs):
-        if 'fileColumnReport' in analysis_model:
-            return 'fileColumnReport'
-        if analysis_model == 'epochAnimation' or 'fitAnimation' in analysis_model:
-            return 'animation'
-        return analysis_model
-
-    @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
         cls._init_models(
@@ -32,6 +24,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'neuralNet',
                 'neuralNetLayer',
                 'partition',
+                'partitionSelectionReport',
             ))
 
     @classmethod
@@ -40,9 +33,19 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-        if 'fileColumnReport' in r:
+        if 'fileColumnReport' in r or r == 'partitionSelectionReport':
             return ['files']
         return []
+
+    @classmethod
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if 'fileColumnReport' in analysis_model:
+            return 'fileColumnReport'
+        if analysis_model == 'epochAnimation' or 'fitAnimation' in analysis_model:
+            return 'animation'
+        if 'partitionAnimation' in analysis_model:
+            return 'partitionAnimation'
+        return analysis_model
 
     @classmethod
     def _lib_file_basenames(cls, data):

@@ -663,11 +663,10 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         $scope.appState = self;
         modelFields.forEach(function(f) {
             // elegant uses '-' in modelKey
-            f = propertyToIndexForm(f);
-            $scope.$watch('appState.models' + f, function (newValue, oldValue) {
+            $scope.$watch('appState.models' + propertyToIndexForm(f), function (newValue, oldValue) {
                 if (self.isLoaded() && newValue !== null && newValue !== undefined && newValue !== oldValue) {
                     // call in next cycle to allow UI to change layout first
-                    $interval(callback, 1, 1);
+                    $interval(callback, 1, 1, true, f);
                 }
             });
         });
@@ -1695,7 +1694,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         if (u.indexOf('/') < 0) {
             u = self.formatUrlLocal(u, params);
         }
-        if (u.startsWith('#')) {
+        //if (u.startsWith('#')) {
+        if (u.indexOf('#') == 0) {
             u = u.slice(1);
         }
         $location.path(u);
