@@ -65,7 +65,7 @@
                 <li data-ng-if="item.archives.length > 0" class="sr-dropdown-submenu">
                   <a href><span class="glyphicon glyphicon-menu-left"></span> Archives</a>
                   <ul class="dropdown-menu">
-                  <li data-ng-repeat="archive in item.archives"><a href data-ng-click="simulations.openArchive(archive)">{{ archive.name }}</a></li>
+                  <li data-ng-repeat="archive in item.archives"><a href data-ng-click="simulations.openArchive(archive)">{{ archive.displayName }}</a></li>
                   </ul>
                 </li>
                 <li data-ng-if="simulations.canDelete(item)" class="divider"></li>

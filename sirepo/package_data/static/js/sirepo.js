@@ -3194,7 +3194,18 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
 
     // TODO(e-carlin): implement
     self.openArchive = function(archive) {
-        srdbg('xxxxxxxxxxxxx Implement Me');
+        requestSender.sendRequest(
+            'extractArchive',
+            function(data) {
+                requestSender.localRedirectHome(data.models.simulation.simulationId);
+            },
+            archive,
+            function(data) {
+                srdbg('xxxxxxxxxxxxx implement me');
+                srdbg(data);
+            }
+        )
+
     };
 
     self.openItem = function(item) {

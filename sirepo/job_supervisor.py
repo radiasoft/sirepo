@@ -247,7 +247,10 @@ class _ComputeJob(PKDict):
 
     def __db_init(self, req, prev_db=None):
         def _get_container_image(content):
-            r = content.data.get('rsmanifest')
+            # Once set containerImage never changes
+            if 'db' in self and self.db.get('containerImage'):
+                return self.db.containerImage
+            r = content.get('rsmanifest')
             if r:
                 return '{}:{}'.format(r.image.name, r.image.version)
             return None
@@ -440,7 +443,7 @@ class _ComputeJob(PKDict):
             ),
             msg=PKDict(req.content).pksetdefault(jobRunMode=r),
             opName=opName,
-            containerImage=self.db.containerImage,
+            containerImage=self.db.containerImage, # TODO(e-carlin): this is only relevant for Docker
             task=asyncio.current_task(),
         )
         o.driver = job_driver.get_instance(req, r, o)

@@ -112,6 +112,17 @@ def api_runCancel():
 @api_perm.require_user
 def api_runSimulation():
     r = _request_content(PKDict(fixup_old_data=True))
+    # TODO(e-carlin): I'm not sure where the best place to put this data on the request is
+    # Some options:
+    # 1. Put it on here
+    # 2. The GUI could put it on.
+    # 3. The job_supervisor could read sirepo-data.json and put it on if need be.
+    #    I like this option the best but the supervisor operates outside of the
+    #    flask context so it is not easy to get at a user's data
+    r.rsmanifest = sirepo.simulation_db.open_json_file(
+        r.simulationType,
+        sid=r.simulationId,
+    ).get('rsmanifest')
     # TODO(e-carlin): This should really be done in job_supervisor._lib_dir_symlink()
     # but that is outside of the Flask context so it won't work
     r.simulation_lib_dir = sirepo.simulation_db.simulation_lib_dir(r.simulationType)

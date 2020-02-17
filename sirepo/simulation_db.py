@@ -137,16 +137,16 @@ def archive_simulation(data):
         None
     """
     import sirepo.exporter
+    # TODO(e-carlin): I think this is already a py.path no need to create one again
     p = pkio.py_path(
         simulation_dir(data.type, data.id),
-    ).join('archive', '{}-{}'.format(data.id, _timestamp(separator='-')))
+    ).join('archives', '{}-{}'.format(data.id, _timestamp(separator='-')))
     pkio.mkdir_parent_only(p)
     sirepo.exporter.create_zip(
         data,
         True,
         path=p,
     )
-    return p
 
 
 def assert_sid(sid):
@@ -532,22 +532,27 @@ def prepare_simulation(data, run_dir=None):
 
 
 def process_simulation_list(res, path, data):
-    def _get_archives(path):
+    def _get_archives(path, simulation_id, simulation_type):
         def _o(path):
             return PKDict(
-                name=p.basename,
-                simulationId='TODO',
-                simulation='TODO',
+                displayName=datetime.datetime.strptime(
+                    '-'.join(path.purebasename.split('-')[1:]),
+                    '%Y%m%d-%H%M%S',
+                ).strftime('%Y-%m-%d %H:%M:%S UTC'),
+                filename=path.basename,
+                simulationId=simulation_id,
+                simulationType=simulation_type,
             )
-        d = pkio.py_path(path.dirname).join('archive')
+        d = pkio.py_path(path.dirname).join('archives')
         if d.check():
             return [_o(p) for p in d.listdir(sort=True)]
         return []
 
     sim = data['models']['simulation']
+    i = _sim_from_path(path)[0]
     res.append(PKDict(
-        archives=_get_archives(path),
-        simulationId=_sim_from_path(path)[0],
+        archives=_get_archives(path, i, data.simulationType),
+        simulationId=i,
         name=sim['name'],
         folder=sim['folder'],
         last_modified=datetime.datetime.fromtimestamp(
