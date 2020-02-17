@@ -3202,7 +3202,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
             function() {
                 errorService.alertText('There was a problem extracting the archive. Please try again.');
             }
-        )
+        );
 
     };
 
