@@ -122,8 +122,10 @@ SIREPO.app.directive('appHeader', function(appState) {
 
 SIREPO.app.controller('MLController', function (appState, frameCache, persistentSimulation, rcsconService, utilities, $scope) {
     var self = this;
+    var errorMessage = '';
 
     function handleStatus(data) {
+        errorMessage = data.error;
         self.reports = null;
         if ('percentComplete' in data && ! data.error) {
             if (data.percentComplete === 100 && ! self.simState.isProcessing()) {
@@ -137,7 +139,7 @@ SIREPO.app.controller('MLController', function (appState, frameCache, persistent
         if (utilities.isFullscreen()) {
             utilities.exitFullscreenFn().call(document);
         }
-        const el = $('#sr-ml-model-plot');
+        var el = $('#sr-ml-model-plot');
         el.modal('show');
         el.on('shown.bs.modal', function() {
             $scope.mlModelShown = true;
@@ -164,15 +166,15 @@ SIREPO.app.controller('MLController', function (appState, frameCache, persistent
         return frameCache.hasFrames();
     };
 
-    self.hasLayers = function() {
-        return ((appState.models.neuralNet || {}).layers || []).length > 0;
-    };
-
     self.simState = persistentSimulation.initSimulationState(
         $scope,
         rcsconService.computeModel('fitAnimation'),
         handleStatus
     );
+
+    self.simState.errorMessage = function() {
+        return errorMessage;
+    };
 });
 
 SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
@@ -188,7 +190,7 @@ SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
         ].join(''),
         controller: function($scope, $element) {
 
-            const scale = 0.75;
+            var scale = 0.75;
             $scope.reportCfg = {
                 reload: function () {
                     return true;
@@ -196,13 +198,13 @@ SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
                 process: function(str) {
 
                     // for some reason the viewbox and size do not always match
-                    const svg = $(str);
-                    const width = $($element).width();
-                    let w = utilities.fontSizeFromString(svg.attr('width'));
-                    let h = utilities.fontSizeFromString(svg.attr('height'));
+                    var svg = $(str);
+                    var width = $($element).width();
+                    var w = utilities.fontSizeFromString(svg.attr('width'));
+                    var h = utilities.fontSizeFromString(svg.attr('height'));
 
                     // jquery considers viewBox a property, not an attribute
-                    let vb = svg.prop('viewBox').baseVal;
+                    var vb = svg.prop('viewBox').baseVal;
 
                     // fix the viewBox or the plot will be cut off
                     vb.width = w;
@@ -213,26 +215,26 @@ SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
                     svg.attr('height', scale * h);
 
                     // re-center
-                    const pd = utilities.fontSizeFromString(
+                    var pd = utilities.fontSizeFromString(
                         $($element).find('div.panel-body').css('padding')
                     );
 
                     svg.attr('transform', 'translate(' + ((width - scale * w) / 2 - pd) + ', 0)');
 
                     // apply colors
-                    const baseClass = 'rcscon-layer';
+                    var baseClass = 'rcscon-layer';
 
                     // keras adds text to the node boxes formatted as:
                     //     <layer_type>_<index>: <Layer Type>
-                    const layers = appState.models.neuralNet.layers;
+                    var layers = appState.models.neuralNet.layers;
                     svg.find('g.node').each(function (idx) {
-                        let node = $(this);
+                        var node = $(this);
 
-                        let txtEl = node.find('text').eq(0);
-                        let txt = txtEl.text();
+                        var txtEl = node.find('text').eq(0);
+                        var txt = txtEl.text();
 
-                        let cName = txt.substring(0, txt.indexOf(':'));
-                        let p = node.find('polygon');
+                        var cName = txt.substring(0, txt.indexOf(':'));
+                        var p = node.find('polygon');
                         p.addClass(baseClass);
                         // input is named differently
                         if (cName.indexOf('_input') >= 0) {
@@ -243,9 +245,9 @@ SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
                         p.addClass(baseClass + '-' + cName);
 
                         // the input box is added by keras, and does not correspond to a layer
-                        let layer = layers[idx - 1];
-                        let lType = txt.substring(txt.indexOf(':') + 1).trim();
-                        let pName = SIREPO.APP_SCHEMA.constants.layerGraphParams[lType];
+                        var layer = layers[idx - 1];
+                        var lType = txt.substring(txt.indexOf(':') + 1).trim();
+                        var pName = SIREPO.APP_SCHEMA.constants.layerGraphParams[lType];
                         if (! layer || ! pName) {
                             return;
                         }
@@ -253,7 +255,7 @@ SIREPO.app.directive('mlModelGraph', function(appState, utilities) {
                         // add other params
                         // regroup text into tspans
                         txtEl.text('');
-                        let ts = '<tspan>' + txt + '</tspan>';
+                        var ts = '<tspan>' + txt + '</tspan>';
                         ts +=  ('<tspan x="' + txtEl.attr('x') + '" dy="16" class="rcscon-activation-txt">');
                         if (pName.toLowerCase().indexOf('activation') >= 0) {
                              ts += layer[pName];
@@ -301,8 +303,8 @@ SIREPO.app.directive('partitionSelection', function(appState) {
 
             function setDefaultCutoff(partition) {
                 var axis = plotScope.axes.x;
-                partition.cutoff0 = 0.125 * axis.domain[1];
-                partition.cutoff1 = (1 - 0.125) * axis.domain[1];
+                partition.cutoff0 = parseInt(0.125 * axis.domain[1]);
+                partition.cutoff1 = parseInt((1 - 0.125) * axis.domain[1]);
             }
 
             function validateCutoff(p) {

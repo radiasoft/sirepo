@@ -3556,9 +3556,9 @@ SIREPO.app.directive('svgPlot', function(appState, focusPointService, panelState
         controller: function($scope, $element) {
 
             function load() {
-                const reload = (($scope.reportCfg || {}).reload || function() {return true;})();
+                var reload = (($scope.reportCfg || {}).reload || function() {return true;})();
                 panelState.requestData($scope.modelName, function(data) {
-                    let svg = data.svg;
+                    var svg = data.svg;
                     if ($scope.reportCfg && $scope.reportCfg.process) {
                         svg = $scope.reportCfg.process(svg);
                     }

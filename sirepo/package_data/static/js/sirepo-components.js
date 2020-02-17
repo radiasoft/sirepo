@@ -3439,10 +3439,10 @@ SIREPO.app.service('utilities', function($window, $interval) {
         if (! fsString) {
             return 0;
         }
-        const units = ['px', 'pt'];
-        for (let uIdx in units) {
-            let unit = units[uIdx];
-            let fs = parseFloat(fsString.substring(0, fsString.indexOf(unit)));
+        var units = ['px', 'pt'];
+        for (var uIdx in units) {
+            var unit = units[uIdx];
+            var fs = parseFloat(fsString.substring(0, fsString.indexOf(unit)));
             if (! isNaN(fs)) {
                 return fs;
             }

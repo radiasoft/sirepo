@@ -6,6 +6,7 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -21,9 +22,13 @@ def run(cfg_dir):
 
 
 def run_background(cfg_dir):
+    res = PKDict()
     with pkio.save_chdir(cfg_dir):
-        _run_simulation()
-        simulation_db.write_result({})
+        try:
+            _run_simulation()
+        except Exception as e:
+            res.error = str(e)
+    simulation_db.write_result(res)
 
 
 def _run_simulation():
