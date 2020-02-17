@@ -148,7 +148,7 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
         if (data.state === 'ok') {
             if (data.authState) {
                 SIREPO.authState = data.authState;
-                Object.assign(self, SIREPO.authState);
+                $.extend(self, SIREPO.authState);
             }
             requestSender.globalRedirectRoot();
             return;
@@ -1692,7 +1692,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         if (u.indexOf('/') < 0) {
             u = self.formatUrlLocal(u, params);
         }
-        if (u.startsWith('#')) {
+        if (u.charAt(0) == '#') {
             u = u.slice(1);
         }
         $location.path(u);
