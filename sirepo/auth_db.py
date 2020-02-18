@@ -75,6 +75,11 @@ def init(app):
         created = _db.Column(_db.DateTime(), nullable=False)
         display_name = _db.Column(_db.String(100))
 
+    class UserRole(UserDbBase, _db.Model):
+        __tablename__ = 'user_role_t'
+        uid = _db.Column(_db.String(8), primary_key=True)
+        role = _db.Column(_db.String(100), primary_key=True)
+
     # only creates tables that don't already exist
     _db.create_all()
 
