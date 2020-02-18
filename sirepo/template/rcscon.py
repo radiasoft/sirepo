@@ -78,6 +78,37 @@ def get_application_data(data, **kwargs):
     assert False, 'unknown get_application_data: {}'.format(data)
 
 
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
+    name = None
+    filename = None
+    sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    if 'fileColumnReport' in model:
+        idx = int(re.search(r'(\d+)$', model).group(1))
+        source, idx = _input_or_output(sim_in, idx, 'inputs', 'outputs')
+        if source == 'inputs':
+            name = sim_in.models.files.inputs
+        else:
+            name = sim_in.models.files.outputs
+        filename = _SIM_DATA.lib_file_name_with_model_field('files', source, name)
+    if model == 'partitionSelectionReport' or 'partitionAnimation' in model:
+        name = sim_in.models.files.inputs
+        filename = _SIM_DATA.lib_file_name_with_model_field('files', 'inputs', name)
+    if model == 'epochAnimation':
+        name = _OUTPUT_FILE.fitOutputFile
+        filename = name
+    if filename:
+        with open(str(run_dir.join(filename)), 'r') as f:
+            return name, f.read(), 'application/octet-stream'
+    if 'fitAnimation' in model:
+        filename = _OUTPUT_FILE.testOutputFile
+        with open(str(run_dir.join(filename)), 'r') as f:
+            res = f.read()
+        filename = _OUTPUT_FILE.predictOutputFile
+        with open(str(run_dir.join(filename)), 'r') as f:
+            return 'test-and-predict.csv', res + f.read(), 'application/octet-stream'
+    assert False, 'unknown model: {}'.format(model)
+
+
 def prepare_output_file(run_dir, sim_in):
     if 'fileColumnReport' not in sim_in.report:
         return
@@ -132,10 +163,7 @@ def _epoch_animation(frame_args):
 
 
 def _extract_column(run_dir, sim_in, idx):
-    source = 'inputs'
-    if idx >= sim_in.models.files.inputsCount:
-        source = 'outputs'
-        idx -= sim_in.models.files.inputsCount
+    source, idx = _input_or_output(sim_in, idx, 'inputs', 'outputs')
     header, v = _read_file(run_dir, _SIM_DATA.rcscon_filename(sim_in, 'files', source))
     y = v[:, idx]
     x = np.arange(0, len(y))
@@ -205,6 +233,14 @@ def _generate_parameters_file(data):
     return res
 
 
+def _input_or_output(sim_in, idx, input_field, output_field):
+    res = input_field
+    if idx >= sim_in.models.files.inputsCount:
+        res = output_field
+        idx -= sim_in.models.files.inputsCount
+    return res, idx
+
+
 def _layer_implementation_list(data):
     res = {}
     for layer in data.models.neuralNet.layers:
@@ -242,10 +278,7 @@ def _update_range(vrange, values):
 def _partition_animation(frame_args):
     sim_in = frame_args.sim_in
     idx = int(frame_args.columnNumber)
-    source = 'x'
-    if idx >= sim_in.models.files.inputsCount:
-        source = 'y'
-        idx -= sim_in.models.files.inputsCount
+    source, idx = _input_or_output(sim_in, idx, 'x', 'y')
     header, train = _read_file(frame_args.run_dir, '{}-train.csv'.format(source))
     _, test = _read_file(frame_args.run_dir, '{}-test.csv'.format(source))
     _, validate = _read_file(frame_args.run_dir, '{}-validate.csv'.format(source))
