@@ -47,7 +47,7 @@
                 "url":""
             }
         },
-        "radia": {
+        "rsradia": {
             "url": "/static/html/landing-page-radia.html",
             "infoPanelTitle": "Radia",
             "mediaConfig": {

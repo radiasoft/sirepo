@@ -31,6 +31,21 @@ FIELD_UNITS = PKDict({
 class RadiaGeomMgr():
     """Manager for multiple geometries (Radia objects)"""
 
+    @classmethod
+    def geom_id_to_data(cls, geom, name=None, divide=True):
+        d_arr = []
+        if not divide:
+            d_arr.append(template_common.to_pkdict(radia.ObjDrwVTK(geom, 'Axes->No')))
+        else:
+            for g in radia.ObjCntStuf(geom):
+            # for fully recursive array
+            # for g in self._get_all_geom(geom):
+                d_arr.append(template_common.to_pkdict(radia.ObjDrwVTK(g, 'Axes->No')))
+
+        n = name if name is not None else str(geom)
+        return PKDict(name=name + '.Geom', id=geom, data=d_arr)
+
+
     def _get_all_geom(self, geom):
         g_arr = []
         for g in radia.ObjCntStuf(geom):
@@ -96,16 +111,17 @@ class RadiaGeomMgr():
 
     def geom_to_data(self, name, divide=True):
         geom = self.get_geom(name)
-        d_arr = []
-        if not divide:
-            d_arr.append(template_common.to_pkdict(radia.ObjDrwVTK(geom, 'Axes->No')))
-        else:
-            for g in radia.ObjCntStuf(geom):
-            # for fully recursive array
-            # for g in self._get_all_geom(geom):
-                d_arr.append(template_common.to_pkdict(radia.ObjDrwVTK(g, 'Axes->No')))
+        #d_arr = []
+        #if not divide:
+        #    d_arr.append(template_common.to_pkdict(radia.ObjDrwVTK(geom, 'Axes->No')))
+        #else:
+        #    for g in radia.ObjCntStuf(geom):
+        #    # for fully recursive array
+        #    # for g in self._get_all_geom(geom):
+        #        d_arr.append(template_common.to_pkdict(radia.ObjDrwVTK(g, 'Axes->No')))
 
-        return PKDict(name=name + '.Geom', id=geom, data=d_arr)
+        return RadiaGeomMgr.geom_id_to_data(geom, name, divide)
+        #return PKDict(name=name + '.Geom', id=geom, data=d_arr)
 
     def get_geom(self, name):
         return self._geoms[name].g

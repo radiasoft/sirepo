@@ -11,7 +11,7 @@ from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
 import py.path
-import sirepo.template.radia as template
+import sirepo.template.rsradia as template
 
 
 def run(cfg_dir):

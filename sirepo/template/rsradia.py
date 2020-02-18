@@ -21,14 +21,13 @@ import sirepo.util
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
+GEOM_FILE = 'geom.json'
+
 GEOM_PYTHON_FILE = 'geom.py'
-
-geom_mgr = radia_tk.RadiaGeomMgr()
-
 
 def extract_report_data(run_dir, sim_in):
     if 'geometry' in sim_in.report:
-        simulation_db.write_result(pkio.read_text('geometry.json'), run_dir=run_dir)
+        simulation_db.write_result(simulation_db.read_json(GEOM_FILE), run_dir=run_dir)
         return
     simulation_db.write_result(PKDict(), run_dir=run_dir)
 
@@ -47,6 +46,7 @@ def _generate_parameters_file(data):
     report = data.get('report', '')
     res, v = template_common.generate_parameters_file(data)
     pkdp('GEN PARAMS {} V {}', data, v)
+    v['geomFile'] = GEOM_FILE
     if 'geometry' in report:
         pkdp('GEOM {}', data.models.geometry)
     # add parameters

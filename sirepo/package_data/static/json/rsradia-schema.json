@@ -35,7 +35,7 @@
             "js": ["vtk.js"]
         },
         "sirepoLibs": {
-            "js": ["radia.js"]
+            "js": ["rsradia.js"]
         }
     },
     "localRoutes": {

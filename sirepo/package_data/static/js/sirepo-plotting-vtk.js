@@ -627,7 +627,10 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
     };
 
     self.removeActors = function(renderer, actorArr) {
-        if (! actorArr ) {
+        if (! actorArr) {
+            renderer.getActors().forEach(function(actor) {
+                renderer.removeActor(actor);
+            });
             return;
         }
         actorArr.forEach(function(actor) {
@@ -694,27 +697,12 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
 SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender, frameCache, geometry, plotting, vtkPlotting, layoutService, plotToPNG, utilities) {
 
     return {
-        // override these event handlers
-
-        handleDblClick: function(e) {
-            srdbg('DBL');
-        },
-        handlePtrDown: function(e) {
-            srdbg('handlePtrDown');
-        },
-        handlePtrMove: function(e) {
-        },
-        handlePtrUp: function(e) {
-        },
-        handleWheel: function(e) {
-        },
-
-
         restrict: 'A',
         //transclude: {
         //    visabilityControlSlot: '?visabilityControl',
         //},
         scope: {
+            eventHandlers: '<',
             modelName: '@',
             reportId: '<',
         },
@@ -739,6 +727,19 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
             let renderWindow = null;
             let snapshotCtx = null;
 
+            // override these event handlers
+
+            function handleDblClick(e) {
+            }
+            function handlePtrDown(e) {
+            }
+            function handlePtrMove(e) {
+            }
+            function handlePtrUp(e) {
+            }
+            function handleWheel(e) {
+            }
+
             function setCam(pos, vu) {
                 if (! fsRenderer) {
                     return;
@@ -752,6 +753,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
             }
 
 
+            
             $scope.init = function() {
                 const rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
                 fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
@@ -761,21 +763,20 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
                 });
                 renderer = fsRenderer.getRenderer();
                 //$scope.renderer = renderer;
-                renderer.getLights()[0].setLightTypeToSceneLight();
                 renderWindow = fsRenderer.getRenderWindow();
                 const interactor = renderWindow.getInteractor();
                 const mainView = renderWindow.getViews()[0];
 
                 cam = renderer.get().activeCamera;
 
-                rw.addEventListener('dblclick', display.handleDblClick);
+                rw.addEventListener('dblclick', ($scope.eventHandlers || {}).handleDblClick || handleDblClick);
 
                 let worldCoord = vtk.Rendering.Core.vtkCoordinate.newInstance({
                     renderer: renderer
                 });
                 worldCoord.setCoordinateSystemToWorld();
 
-                // not working...
+                // not working...(controller is empty at this point)
                 rw.onpointerdown = this.handlePtrDown;
                 rw.onpointermove = this.handlePtrMove;
                 rw.onpointerup = this.handlePtrUp;
@@ -788,7 +789,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
                 snapshotCtx = snapshotCanvas.getContext('2d');
                 plotToPNG.addCanvas(snapshotCanvas, $scope.reportId);
 
-                // allow ancestor scopes aceess to the renderer etc.
+                // allow ancestor scopes access to the renderer etc.
                 $scope.$emit('vtk-init', {
                     api: api,
                     objects: {

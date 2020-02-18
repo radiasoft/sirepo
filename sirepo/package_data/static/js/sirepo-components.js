@@ -3486,6 +3486,12 @@ SIREPO.app.service('utilities', function($window, $interval) {
         };
     };
 
+    this.indexArray = function(size) {
+        var res = [];
+        for (var i = 0; i < size; res.push(i++)) {}
+        return res;
+    };
+
     // Sequentially applies a function to an array - useful for large arrays which
     // can exceed the stack limit
     this.seqApply = function(fn, array, initVal) {

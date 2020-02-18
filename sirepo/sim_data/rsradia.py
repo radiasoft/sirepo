@@ -14,6 +14,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         cls._init_models(data.models)
+        cls._organize_example(data)
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):
