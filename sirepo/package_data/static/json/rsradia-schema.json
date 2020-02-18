@@ -30,6 +30,9 @@
             ["fields", "Fields"]
         ]
     },
+    "constants": {
+        "defaultGeomColor": "#ffffff"
+    },
     "dynamicFiles": {
         "externalLibs": {
             "js": ["vtk.js"]
@@ -61,8 +64,9 @@
             "fileName": ["File", "String", ""]
         },
         "geometry": {
-            "name": ["Name", "String", ""],
-            "radiaRef": ["", "Integer", "0", "", "0"]
+            "alpha": ["Alpha", "Float", "1.0", "", "0.0", "1.0"],
+            "color": ["Color", "String", "#cccccc"],
+            "name": ["Name", "String", ""]
         },
         "linePath": {
             "beginX": ["x", "Float", "0.0"],
@@ -99,6 +103,7 @@
         "magnetDisplay": {
             "title": "Magnet Viewer",
             "basic": [
+                "geometry.name",
                 "viewType",
                 "solver.fieldType",
                 "pathType",

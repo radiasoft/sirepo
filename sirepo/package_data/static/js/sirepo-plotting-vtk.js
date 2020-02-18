@@ -728,7 +728,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
             let snapshotCtx = null;
 
             // override these event handlers
-
             function handleDblClick(e) {
             }
             function handlePtrDown(e) {
@@ -753,7 +752,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
             }
 
 
-            
+
             $scope.init = function() {
                 const rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
                 fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({

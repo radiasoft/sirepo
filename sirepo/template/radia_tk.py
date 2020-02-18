@@ -28,8 +28,10 @@ FIELD_UNITS = PKDict({
 })
 
 
-class RadiaGeomMgr():
+class RadiaGeomMgr:
     """Manager for multiple geometries (Radia objects)"""
+
+    mgr = None
 
     @classmethod
     def geom_id_to_data(cls, geom, name=None, divide=True):
@@ -45,6 +47,18 @@ class RadiaGeomMgr():
         n = name if name is not None else str(geom)
         return PKDict(name=name + '.Geom', id=geom, data=d_arr)
 
+    @classmethod
+    def new_geom_object(cls):
+        return PKDict(
+            lines=PKDict(colors=[], lengths=[], vertices=[]),
+            polygons=PKDict(colors=[], lengths=[], vertices=[]),
+            vectors=PKDict(directions=[], magnitudes=[], vertices=[]),
+        )
+
+    @classmethod
+    def solve(cls, geom, prec, max_iter, solve_method):
+        pkdp('SOLVE g {} p {} i {} m {}', geom, prec, max_iter, solve_method)
+        return radia.Solve(geom, prec, max_iter, solve_method)
 
     def _get_all_geom(self, geom):
         g_arr = []
@@ -81,7 +95,7 @@ class RadiaGeomMgr():
         # format is [[[px, py, pz], [vx, vy, vx]], ...]
         # convert to webGL object
 
-        v_data = self.new_geom_object()
+        v_data = RadiaGeomMgr.new_geom_object()
         v_data.vectors.lengths = []
         v_data.vectors.colors = []
         v_max = 0.
@@ -111,20 +125,10 @@ class RadiaGeomMgr():
 
     def geom_to_data(self, name, divide=True):
         geom = self.get_geom(name)
-        #d_arr = []
-        #if not divide:
-        #    d_arr.append(template_common.to_pkdict(radia.ObjDrwVTK(geom, 'Axes->No')))
-        #else:
-        #    for g in radia.ObjCntStuf(geom):
-        #    # for fully recursive array
-        #    # for g in self._get_all_geom(geom):
-        #        d_arr.append(template_common.to_pkdict(radia.ObjDrwVTK(g, 'Axes->No')))
-
         return RadiaGeomMgr.geom_id_to_data(geom, name, divide)
-        #return PKDict(name=name + '.Geom', id=geom, data=d_arr)
 
     def get_geom(self, name):
-        return self._geoms[name].g
+        return self._geoms[name].g if name in self._geoms else None
 
     def get_geom_list(self):
         return [n for n in self._geoms]
@@ -142,12 +146,9 @@ class RadiaGeomMgr():
             g = self.get_geom(g_name)
             ctr['geoms'].append(g)
 
-    def new_geom_object(self):
-        return PKDict(
-            lines=PKDict(colors=[], lengths=[], vertices=[]),
-            polygons=PKDict(colors=[], lengths=[], vertices=[]),
-            vectors=PKDict(directions=[], magnitudes=[], vertices=[]),
-        )
+    def solve_geom(self, g_name, prec, max_iter, solve_method):
+        pkdp('SOLVE g {} p {} i {} m {}', g_name, prec, max_iter, solve_method)
+        return RadiaGeomMgr.solve(self.get_geom(g_name), float(prec), int(max_iter), int(solve_method))
 
     def __init__(self):
         self._geoms = PKDict({})

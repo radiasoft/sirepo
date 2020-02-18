@@ -36,5 +36,4 @@ def run_background(cfg_dir):
 
 
 def _run_simulation():
-    pkdp('RUN SIM')
     exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())

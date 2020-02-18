@@ -59,6 +59,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             function buildScene(sceneData) {
                 var name = sceneData.name;
                 var id = sceneData.id;
+                appState.models.geometry.doSolve = false;
+                appState.saveQuietly('geometry');
                 var data = sceneData.data;
                 //rsUtils.rsdbg('got data', data, 'for', name, id);
 
@@ -135,17 +137,20 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 //var b = cm.buildSphere(null, null, [1, 0, 0]);
                 //b.actor.getProperty().setEdgeVisibility(true);
                 //vtkPlotting.addActor(renderer, b.actor);
-                updateViewer();
+                updateViewer(true);
             }
 
-            function updateViewer() {
+            function updateViewer(doReset) {
                 srdbg('updateViewer');
+                if (doReset) {
+                    appState.models.geometry.radiaRef = -1;
+                    appState.models.geometry.doSolve = false;
+                    appState.saveQuietly('geometry');
+                }
                 panelState.requestData('geometry', function (d) {
                     //srdbg('got display', d);
                     buildScene(d);
                 }, true);
-                //panelState.requestData('geometry');
-                //vtkAPI.setCam();
             }
 
             $scope.eventHandlers = {
@@ -156,6 +161,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             $scope.solve = function() {
                 srdbg('SOLVE');
+                appState.models.geometry.doSolve = true;
+                appState.saveQuietly('geometry');
+                updateViewer();
                // panelState.requestData('');
             };
 

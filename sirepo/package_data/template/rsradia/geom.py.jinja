@@ -6,9 +6,11 @@ from sirepo.template import radia_tk
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdp
 
-pkdp('BUILD GEOM')
-#mgr = radia_tk.RadiaGeomMgr()
+# can we even use this?
 
+print('ENTER N {{ geomName }} ID {{ geomId }}')
+{#  if geomId is not defined or geomId < 0 #}
+{% if False %}
 # Geometry Parameters
 gap = 10 #(mm)
 thick = 50
@@ -141,13 +143,24 @@ def Geom(circ):
     radia.TrfZerPara(g, [0, 0, 0], [0, 0, 1])
     return t
 
-
 # Define full magnet
-magnet = Geom(1)
-#mgr.add_geom('Magnet', magnet)
+g_id = Geom(1)
+{% else %}
+g_id = {{ geomId }}
+{% endif %}
 
-g_json = radia_tk.RadiaGeomMgr.geom_id_to_data(magnet, 'Magnet')
-#print('JSON {}'.format(g_json))
 
+print('EXIT N {{ geomName }} ID {}'.format(g_id))
+
+{% if False %}
+{#  if doSolve  #}
+
+res = radia_tk.RadiaGeomMgr.solve(g_id, {{ precision }}, {{ maxIterations }}, {{ method }})
+print('SOLVED {}'.format(res))
+{% endif %}
+
+{#
+g_json = radia_tk.RadiaGeomMgr.geom_id_to_data(g_id, '{{ geomName }}')
 simulation_db.write_json('{{ geomFile }}', g_json)
-#pkio.write_text('{{ geomFile }}', g_json)
+#}
+simulation_db.write_json('{{ geomFile }}', {{ geomData }})
