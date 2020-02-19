@@ -78,6 +78,7 @@ def init():
     job_driver.init(pkinspect.this_module())
     _DB_DIR = sirepo.srdb.root().join(_DB_SUBDIR)
     cfg = pkconfig.init(
+        job_cache_secs=(300, int, 'when to re-read job state from disk'),
         parallel=dict(
             max_hours=(1, float, 'maximum run-time for parallel job (except sbatch)'),
         ),
@@ -154,6 +155,19 @@ class _ComputeJob(PKDict):
         self.run_dir_mutex.set()
         self.run_dir_owner = None
         self.pksetdefault(db=lambda: self.__db_init(req))
+        self.cache_timeout_set()
+
+    def cache_timeout(self):
+        if self.ops or init:
+            self.cache_timeout_set()
+        else:
+            del self.instances[self.db.computeJid]
+
+    def cache_timeout_set(self):
+        self.timer = tornado.ioloop.IOLoop.current().call_later(
+            cfg.job_cache_secs,
+            self.cache_timeout,
+        )
 
     def destroy_op(self, op):
         if op in self.ops:
@@ -231,7 +245,7 @@ class _ComputeJob(PKDict):
             d = pkcollections.json_load_any(
                 cls.__db_file(req.content.computeJid),
             )
-#TODO(robnagler) when we reconnet with running processes at startup,
+#TODO(robnagler) when we reconnect with running processes at startup,
 #  we'll need to change this
             if d.status in _RUNNING_PENDING:
                 d.status = job.CANCELED
