@@ -218,8 +218,9 @@ class _Dispatcher(PKDict):
         await self.send(
             self.format_op(msg, job.OP_OK, reply=PKDict(state=job.CANCELED)),
         )
-        for c in self.cmds:
-            if c.jid == msg.computeJid:
+        for c in list(self.cmds):
+            if c.msg.opId in msg.opIdsToCancel:
+                pkdlog('opId={}', c.msg.opId)
                 c.destroy()
         return None
 
@@ -353,8 +354,8 @@ class _Cmd(PKDict):
             pkio.unchecked_remove(self.pkdel('_in_file'))
         self._process.kill()
         try:
-            self.cmds.remove(cmd)
-        except Exception:
+            self.dispatcher.cmds.remove(self)
+        except ValueError:
             pass
 
     def job_cmd_cmd(self):
@@ -718,7 +719,7 @@ class _Process(PKDict):
         try:
             p = self.pkdel('_subprocess').proc.pid
             os.killpg(p, signal.SIGKILL)
-        except ProcessLookupError as e:
+        except ProcessLookupError:
             pass
         except Exception as e:
             pkdlog('kill pid={} exception={}', p, e)

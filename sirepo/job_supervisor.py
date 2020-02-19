@@ -12,6 +12,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdformat, pkdlog, pkdexc
 from sirepo import job
 import asyncio
+import copy
 import contextlib
 import os
 import pykern.pkio
@@ -117,6 +118,9 @@ def init():
 
 
 class ServerReq(PKDict):
+
+    def copy_content(self):
+        return copy.deepcopy(self.content)
 
     def pkdebug_str(self):
         c = self.get('content')
@@ -303,7 +307,30 @@ class _ComputeJob(PKDict):
             dataFileKey=req.content.pop('dataFileKey')
         )
 
-    async def _receive_api_runCancel(self, req):
+    async def _receive_api_runCancel(self, req, op=None):
+        """Cancel a run and related ops
+
+        Analysis ops that are for a parallel run (ex. sim frames) will not
+        be cancelled.
+
+        Args:
+            req (ServerReq): The cancel request
+            op (_Op, optional): An additional op (that can be an analysis for a
+                parallel run) to be cancelled
+        Returns:
+            PKDict: Message with state=cancelled
+        """
+
+        def _ops_to_cancel():
+            o = [
+                o for o in self.ops
+                # Do not cancel sim frames. Allow them to come back for a cancelled run
+                if not (self.db.isParallel and o.opName == job.OP_ANALYSIS)
+            ]
+            if op and op in self.ops:
+                o.append(op)
+            return o
+
         r = PKDict(state=job.CANCELED)
         if (
             not self._req_is_valid(req)
@@ -312,29 +339,34 @@ class _ComputeJob(PKDict):
             # job is not relevant, but let the user know it isn't running
             return r
         c = None
+        o = []
         try:
             for i in range(_MAX_RETRIES):
                 try:
-                    if self.run_op:
+                    if _ops_to_cancel():
                         #TODO(robnagler) cancel run_op, not just by jid, which is insufficient (hash)
                         if not c:
                             c = self._create_op(job.OP_CANCEL, req)
+                        # do not need to run_dir_acquire. OP_ANALYSIS may be in
+                        # process, and it will have run_dir_mutex. That's ok,
+                        # because an OP_RUN will wait for run_dir_mutex, and
+                        # we'll destroy the OP_RUN below (never getting to the
+                        # run_dir_mutex). The opposite case is trickier, but
+                        # relies on the fact that we don't preempt below after
+                        # the destroy (which may release run_dir_mutex) until the
+                        # reply_get await (after the send).
                         await c.prepare_send()
-                        # out of order from OP_ANALYSIS and OP_RUN, because we
-                        # want don't have to wait so block on prepare_send before
-                        # modifying global state (release)
-                        if self.run_dir_owner and self.run_dir_owner != c:
-                            self.run_dir_release(self.run_dir_owner)
-                        await self.run_dir_acquire(c)
+                        o = _ops_to_cancel()
                     elif c:
                         c.destroy()
                         c = None
-                    for x in self.ops:
-                        if not (self.db.isParallel and x.opName == job.OP_ANALYSIS):
-                            x.destroy(cancel=True)
+                    pkdlog('self.ops={} cancel={}', self.ops, o)
+                    for x in o:
+                        x.destroy(cancel=True)
                     self.db.status = job.CANCELED
                     self.__db_write()
                     if c:
+                        c.msg.opIdsToCancel = [x.opId for x in o]
                         c.send()
                         await c.reply_get()
                     return r
@@ -447,6 +479,7 @@ class _ComputeJob(PKDict):
             ),
             msg=PKDict(req.content).pksetdefault(jobRunMode=r),
             opName=opName,
+            req_content=req.copy_content(),
             task=asyncio.current_task(),
         )
         o.driver = job_driver.get_instance(req, r, o)
@@ -615,9 +648,12 @@ class _Op(PKDict):
     def reply_put(self, reply):
         self._reply_q.put_nowait(reply)
 
-    def run_timeout(self):
-        pkdlog('{} maxRunSecs={maxRunSecs}', self, **self)
-        self.destroy()
+    async def run_timeout(self):
+        """Can be any op that's timed"""
+        pkdlog('{} maxRunSecs={}', self, self.maxRunSecs)
+        await self.computeJob._receive_api_runCancel(
+            ServerReq(content=self.req_content),
+        )
 
     def send(self):
         if self.maxRunSecs:
