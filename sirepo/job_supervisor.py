@@ -306,6 +306,15 @@ class _ComputeJob(PKDict):
         Returns:
             PKDict: Message with state=cancelled
         """
+        def _ops_to_cancel():
+            o = [
+                o for o in self.ops
+                # Do not cancel sim frames. Allow them to come back for a cancelled run
+                if not (self.db.isParallel and o.opName == job.OP_ANALYSIS)
+            ]
+            if op:
+                o.append(op)
+            return o
         r = PKDict(state=job.CANCELED)
         if (
             not self._req_is_valid(req)
@@ -314,21 +323,12 @@ class _ComputeJob(PKDict):
             # job is not relevant, but let the user know it isn't running
             return r
         c = None
-        o = [
-            o for o in self.ops
-            # Do not cancel sim frames. Allow them to come back for a cancelled run
-            if not (self.db.isParallel and o.opName == job.OP_ANALYSIS)
-        ]
-        if op:
-            o.append(op)
-        pkdlog('self.ops={} ops to cancel={}', self.ops, o)
         try:
             for i in range(_MAX_RETRIES):
                 try:
                     if self.run_op:
                         #TODO(robnagler) cancel run_op, not just by jid, which is insufficient (hash)
                         if not c:
-                            req.content.opIdsToCancel = [x.opId for x in o]
                             c = self._create_op(job.OP_CANCEL, req)
                         await c.prepare_send()
                         # out of order from OP_ANALYSIS and OP_RUN, because we
@@ -340,11 +340,14 @@ class _ComputeJob(PKDict):
                     elif c:
                         c.destroy()
                         c = None
+                    o = _ops_to_cancel()
+                    pkdlog('self.ops={} cancel={}', self.ops, o)
                     for x in o:
                         x.destroy(cancel=True)
                     self.db.status = job.CANCELED
                     self.__db_write()
                     if c:
+                        c.msg.opIdsToCancel = [x.opId for x in o]
                         c.send()
                         await c.reply_get()
                     return r
