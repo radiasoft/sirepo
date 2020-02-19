@@ -134,8 +134,9 @@ def parse_post(**kwargs):
         'unexpected kwargs={}'.format(kwargs)
     a = sirepo.api_perm.APIPerm
     if flask.g.get(_API_PERM_ATTR) not in (
-            a.ALLOW_VISITOR,
+            a.REQUIRE_COOKIE_SENTINEL,
             a.ALLOW_COOKIELESS_SET_USER,
+            a.ALLOW_VISITOR,
     ):
         _check_permissions(res.type)
     return res
