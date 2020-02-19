@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import flask
+import sirepo.api_perm
 import sirepo.sim_data
 import sirepo.template
 import sirepo.util
@@ -15,9 +16,13 @@ import sirepo.srschema
 import user_agents
 import werkzeug
 
+_API_PERM_ATTR = 'sirepo_http_request_api_perm'
+
 _SIM_TYPE_ATTR = 'sirepo_http_request_sim_type'
 
 _POST_ATTR = 'sirepo_http_request_post'
+
+_PROTECTED_CODES = ('flash', 'elegant') # TODO(e-carlin): rm elegant
 
 
 def init(**imports):
@@ -127,16 +132,20 @@ def parse_post(**kwargs):
         sirepo.util.raise_not_found('type={} sid={} does not exist', res.type, res.id)
     assert not kwargs, \
         'unexpected kwargs={}'.format(kwargs)
+    if flask.g.get(_API_PERM_ATTR) == sirepo.api_perm.APIPerm.REQUIRE_USER:
+    # if flask.g.get(_API_PERM_ATTR) != sirepo.api_perm.APIPerm.ALLOW_VISITOR:
+        _check_permissions(res.type)
     return res
+
+
+def set_api_perm(perm):
+    """Interface for uri_router"""
+    return _set_flask_g(_API_PERM_ATTR, perm)
 
 
 def set_post(data=None):
     """Interface for uri_router"""
-    # Always remove data (if there)
-    res = flask.g.pop(_POST_ATTR, None)
-    if data is not None:
-        flask.g.setdefault(_POST_ATTR, data)
-    return res
+    return _set_flask_g(_POST_ATTR, data)
 
 
 def set_sim_type(sim_type):
@@ -160,3 +169,24 @@ def sim_type(value=None):
     if value:
         return sirepo.template.assert_sim_type(value)
     return flask.g.get(_SIM_TYPE_ATTR)
+
+
+def _check_permissions(simulation_type):
+    import sirepo.auth
+    import sirepo.auth_db
+    if simulation_type in _PROTECTED_CODES and \
+       simulation_type not in sirepo.auth_db.UserRole.search_all_for_column(
+           'role',
+           uid=sirepo.auth.logged_in_user(),
+       ):
+        sirepo.util.raise_forbidden(
+            'you do not have permission to use {}'.format(simulation_type),
+        )
+
+
+def _set_flask_g(key, value):
+    # Always remove data (if there)
+    res = flask.g.pop(key, None)
+    if value is not None:
+        flask.g.setdefault(key, value)
+    return res

@@ -219,6 +219,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
             _login_user(module, uid)
         else:
             uid = simulation_db.user_create(lambda u: _login_user(module, u))
+            _init_roles(uid, module.AUTH_METHOD)
         if model:
             model.uid = uid
             model.save()
@@ -521,6 +522,11 @@ def _init():
 
     cfg.deprecated_methods = set()
     cfg.methods = set((METHOD_GUEST,))
+
+
+def _init_roles(uid, method):
+    if pkconfig.channel_in('dev') and method == METHOD_GUEST:
+        auth_db.UserRole.add_roles(uid, auth_db.ALL_ROLES)
 
 
 def _is_logged_in(state=None):
