@@ -45,15 +45,31 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             $scope.model = appState.models[$scope.modelName];
 
-            var GEOM_OBJ_TYPES = [
-                SIREPO.APP_SCHEMA.constants.geomTypes.lines,
-                SIREPO.APP_SCHEMA.constants.geomTypes.polys
+            var LINEAR_SCALE_ARRAY = 'linear';
+            var LOG_SCALE_ARRAY = 'log';
+            var ORIENTATION_ARRAY = 'orientation';
+            var FIELD_ATTR_ARRAYS = [LINEAR_SCALE_ARRAY, LOG_SCALE_ARRAY, ORIENTATION_ARRAY];
+
+            var GEOM_TYPES =  [
+                { type: 'lines', isObject: true, isPickable: false },
+                { type: 'polys', isObject: true, isPickable: true },
+                { type: 'vects', isObject: false, isPickable: true },
             ];
-            var GEOM_TYPES = Object.values(SIREPO.APP_SCHEMA.constants.geomTypes);
-            var PICKABLE_TYPES = [
-                SIREPO.APP_SCHEMA.constants.geomTypes.polys,
-                SIREPO.APP_SCHEMA.constants.geomTypes.vects
-            ];
+
+            var GEOM_OBJ_TYPES = GEOM_TYPES.filter(function (t) {
+                return t.isObject;
+            });
+
+            var PICKABLE_TYPES = GEOM_TYPES.filter(function (t) {
+                return t.isPickable;
+            });
+
+            var POINT_FIELD_TYPES = SIREPO.APP_SCHEMA.enum.FieldType.slice(1).map(function (tArr) {
+                return tArr[0];
+            });
+            srdbg('pft', POINT_FIELD_TYPES);
+
+            var SCALAR_ARRAY = 'scalars';
 
             var cm = vtkPlotting.coordMapper();
             var renderer = null;
@@ -62,7 +78,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             var watchFields = [
                  'magnetDisplay.pathType',
                  'magnetDisplay.viewType',
-                 'solver.fieldType',
+                 'magnetDisplay.fieldType',
             ];
 
             // these objects are used to set various vector properties
@@ -73,13 +89,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             // to be set by parent widget
             var vectOutArrays = [{
                     location: vtk.Common.DataModel.vtkDataSet.FieldDataTypes.POINT,
-                    name: SIREPO.APP_SCHEMA.constants.scalarArray,
+                    name: SCALAR_ARRAY,
                     dataType: 'Uint8Array',
                     attribute: vtk.Common.DataModel.vtkDataSetAttributes.AttributeTypes.SCALARS,
                     numberOfComponents: 3,
                 },
             ];
-            Object.values(SIREPO.APP_SCHEMA.constants.scaleArrays).forEach(function (n) {
+            FIELD_ATTR_ARRAYS.forEach(function (n) {
                 vectOutArrays.push({
                     location: vtk.Common.DataModel.vtkDataSet.FieldDataTypes.POINT,
                     name: n,
@@ -127,7 +143,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
                             let s = vtk.Filters.Sources.vtkArrowSource.newInstance();
                             mapper.setInputConnection(s.getOutputPort(), 1);
-                            mapper.setOrientationArray(SIREPO.APP_SCHEMA.constants.scaleArrays.orientation);
+                            mapper.setOrientationArray(ORIENTATION_ARRAY);
 
                             // this scales by a constant - the default is to use scalar data
                             //TODO(mvk): set based on bounds size?
@@ -195,10 +211,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             return d.getData();
                         });
                         // note these arrays already have the correct length, so we need to set elements, not append
-                        var orientation = o[getVectOutIndex(SIREPO.APP_SCHEMA.constants.scaleArrays.orientation)];
-                        var linScale = o[getVectOutIndex(SIREPO.APP_SCHEMA.constants.scaleArrays.linear)].fill(1.0);
-                        var logScale = o[getVectOutIndex(SIREPO.APP_SCHEMA.constants.scaleArrays.log)].fill(1.0);
-                        var scalars = o[getVectOutIndex(SIREPO.APP_SCHEMA.constants.scalarArray)];
+                        var orientation = o[getVectOutIndex(ORIENTATION_ARRAY)];
+                        var linScale = o[getVectOutIndex(LINEAR_SCALE_ARRAY)].fill(1.0);
+                        var logScale = o[getVectOutIndex(LOG_SCALE_ARRAY)].fill(1.0);
+                        var scalars = o[getVectOutIndex(SCALAR_ARRAY)];
 
                         for (var i = 0; i < coords.length / 3; i += 1) {
                             var c = [0, 0, 0];
@@ -247,6 +263,21 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 //b.actor.getProperty().setEdgeVisibility(true);
                 //vtkPlotting.addActor(renderer, b.actor);
                 updateViewer(true);
+                updateLayout();
+            }
+
+            function updateLayout() {
+                srdbg('updateLayout', appState.models.magnetDisplay.viewType);
+                panelState.showField(
+                    'magnetDisplay',
+                    'fieldType',
+                    appState.models.magnetDisplay.viewType === 'fields'
+                );
+                panelState.showField(
+                    'magnetDisplay',
+                    'pathType',
+                    POINT_FIELD_TYPES.indexOf(appState.models.magnetDisplay.fieldType) >= 0
+                );
             }
 
             function updateViewer(doReset) {
@@ -256,7 +287,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     appState.saveQuietly('geometry');
                 }
                 panelState.requestData('geometry', function (d) {
-                    //srdbg('got display', d);
                     buildScene(d);
                 }, true);
             }
@@ -279,6 +309,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             appState.whenModelsLoaded($scope, function () {
                 srdbg('radia models loaded');
+                appState.watchModelFields($scope, watchFields, updateLayout);
                 //appState.watchModelFields($scope, watchFields, updateViewer);
                 //updateViewer();
             });

@@ -33,7 +33,8 @@ mgr = radia_tk.RadiaGeomMgr()
 
 
 def extract_report_data(run_dir, sim_in):
-    # change to do calcs here?  Does not seem to be a place for jinja
+    # change to do calcs here?  Does not seem to be a place for jinja, which appears
+    # stateless
     if 'geometry' in sim_in.report:
         simulation_db.write_result(simulation_db.read_json(GEOM_FILE), run_dir=run_dir)
         return

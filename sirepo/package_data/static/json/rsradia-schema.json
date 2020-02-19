@@ -4,14 +4,29 @@
             "localRoute": "visualization"
         }
     },
+    "constants": {
+        "defaultGeomColor": "#ffffff"
+    },
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": ["vtk.js"]
+        },
+        "sirepoLibs": {
+            "js": ["rsradia.js"]
+        }
+    },
     "enum": {
+        "FieldScaling": [
+            ["uniform", "Uniform"],
+            ["linear", "Linear"],
+            ["log", "Log"]
+        ],
         "FieldType": [
             ["M", "M"],
             ["B", "B"],
             ["A", "A"],
             ["H", "H"],
             ["J", "J"]
-
         ],
         "PathType": [
             ["line", "Line"],
@@ -29,28 +44,6 @@
             ["objects", "Objects"],
             ["fields", "Fields"]
         ]
-    },
-    "constants": {
-        "defaultGeomColor": "#ffffff",
-        "geomTypes": {
-            "lines": "lines",
-            "polys": "polygons",
-            "vects": "vectors"
-        },
-        "scaleArrays": {
-            "linear": "linScale",
-            "log": "logScale",
-            "orientation": "orientation"
-        },
-        "scalarArray": "scalars"
-    },
-    "dynamicFiles": {
-        "externalLibs": {
-            "js": ["vtk.js"]
-        },
-        "sirepoLibs": {
-            "js": ["rsradia.js"]
-        }
     },
     "localRoutes": {
         "visualization": {
@@ -70,6 +63,10 @@
             "theta": ["\uD835\uDFB1", "Float", "0.0", "Euler 2", "-3.14159", "3.14159"],
             "phi": ["\uD835\uDFBF", "Float", "0.0", "Euler 3", "0.0", "6.2832"],
             "numPoints": ["Num Points", "Integer", "10", "", "2"]
+        },
+        "fieldDisplay": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "scaling": ["Scaling", "FieldScaling", "uniform"]
         },
         "filePath": {
             "fileName": ["File", "String", ""]
@@ -117,6 +114,8 @@
                 "geometry.name",
                 "viewType",
                 "fieldType",
+                "fieldDisplay.colorMap",
+                "fieldDisplay.scaling",
                 "pathType",
                 "solver.precision",
                 "solver.maxIterations",
@@ -136,6 +135,14 @@
                     ]]
                 ],
                 "linePath.numPoints"
+            ]
+        },
+        "solver": {
+            "title": "Solver",
+            "basic": [
+                "precision",
+                "maxIterations",
+                "method"
             ]
         }
     }
