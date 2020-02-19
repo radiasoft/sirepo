@@ -218,7 +218,7 @@ class _Dispatcher(PKDict):
         await self.send(
             self.format_op(msg, job.OP_OK, reply=PKDict(state=job.CANCELED)),
         )
-        for c in self.cmds:
+        for c in list(self.cmds):
             if c.jid == msg.computeJid:
                 c.destroy()
         return None
@@ -353,8 +353,8 @@ class _Cmd(PKDict):
             pkio.unchecked_remove(self.pkdel('_in_file'))
         self._process.kill()
         try:
-            self.cmds.remove(cmd)
-        except Exception:
+            self.dispatcher.cmds.remove(self)
+        except ValueError:
             pass
 
     def job_cmd_cmd(self):

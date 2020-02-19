@@ -12,6 +12,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdformat, pkdlog, pkdexc
 from sirepo import job
 import asyncio
+import copy
 import contextlib
 import os
 import pykern.pkio
@@ -116,6 +117,9 @@ def init():
 
 
 class ServerReq(PKDict):
+
+    def copy_content(self):
+        return copy.deepcopy(self.content)
 
     def pkdebug_str(self):
         c = self.get('content')
@@ -433,6 +437,7 @@ class _ComputeJob(PKDict):
             ),
             msg=PKDict(req.content).pksetdefault(jobRunMode=r),
             opName=opName,
+            req_content=req.copy_content(),
             task=asyncio.current_task(),
         )
         o.driver = job_driver.get_instance(req, r, o)
@@ -601,8 +606,10 @@ class _Op(PKDict):
     def reply_put(self, reply):
         self._reply_q.put_nowait(reply)
 
-    def run_timeout(self):
+    async def run_timeout(self):
         pkdlog('{} maxRunSecs={maxRunSecs}', self, **self)
+        if self.computeJob.run_op == self:
+            await self.computeJob._receive_api_runCancel(self.req_content)
         self.destroy()
 
     def send(self):
