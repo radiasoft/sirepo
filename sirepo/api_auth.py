@@ -44,5 +44,4 @@ def check_api_call(func):
         auth.require_auth_basic()
     else:
         raise AssertionError('unhandled api_perm={}'.format(expect))
-    pkdp('xxxxxxxxxxxxxxxx {}', expect) # TODO(e-carlin): rm
     return expect

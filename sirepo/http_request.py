@@ -132,8 +132,11 @@ def parse_post(**kwargs):
         sirepo.util.raise_not_found('type={} sid={} does not exist', res.type, res.id)
     assert not kwargs, \
         'unexpected kwargs={}'.format(kwargs)
-    if flask.g.get(_API_PERM_ATTR) == sirepo.api_perm.APIPerm.REQUIRE_USER:
-    # if flask.g.get(_API_PERM_ATTR) != sirepo.api_perm.APIPerm.ALLOW_VISITOR:
+    a = sirepo.api_perm.APIPerm
+    if flask.g.get(_API_PERM_ATTR) not in (
+            a.ALLOW_VISITOR,
+            a.ALLOW_COOKIELESS_SET_USER,
+    ):
         _check_permissions(res.type)
     return res
 
