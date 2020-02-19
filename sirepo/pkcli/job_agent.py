@@ -219,7 +219,7 @@ class _Dispatcher(PKDict):
             self.format_op(msg, job.OP_OK, reply=PKDict(state=job.CANCELED)),
         )
         for c in list(self.cmds):
-            if c.jid == msg.computeJid:
+            if c.msg.opId in msg.ops_to_cancel:
                 c.destroy()
         return None
 
@@ -718,7 +718,7 @@ class _Process(PKDict):
         try:
             p = self.pkdel('_subprocess').proc.pid
             os.killpg(p, signal.SIGKILL)
-        except ProcessLookupError as e:
+        except ProcessLookupError:
             pass
         except Exception as e:
             pkdlog('kill pid={} exception={}', p, e)

@@ -302,12 +302,18 @@ class _ComputeJob(PKDict):
             # job is not relevant, but let the user know it isn't running
             return r
         c = None
+        o = [
+            o.opId for o in self.ops
+            if not self.db.isParallel
+            and o.opName == job.OP_ANALYSIS
+        ]
         try:
             for i in range(_MAX_RETRIES):
                 try:
                     if self.run_op:
                         #TODO(robnagler) cancel run_op, not just by jid, which is insufficient (hash)
                         if not c:
+                            req.content.ops_to_cancel = o
                             c = self._create_op(job.OP_CANCEL, req)
                         await c.prepare_send()
                         # out of order from OP_ANALYSIS and OP_RUN, because we
@@ -319,9 +325,8 @@ class _ComputeJob(PKDict):
                     elif c:
                         c.destroy()
                         c = None
-                    for x in self.ops:
-                        if not (self.db.isParallel and x.opName == job.OP_ANALYSIS):
-                            x.destroy(cancel=True)
+                    for x in o:
+                        x.destroy(cancel=True)
                     self.db.status = job.CANCELED
                     self.__db_write()
                     if c:
