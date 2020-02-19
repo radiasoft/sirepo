@@ -50,4 +50,4 @@ def test_srw(fc):
         o = filter(lambda x: 'mpiexec' in x, o.split('\n'))
         if o:
             pkdlog('found "mpiexec" after cancel in ps={}', '\n'.join(o))
-            # raise AssertionError('cancel failed')
+            raise AssertionError('cancel failed')

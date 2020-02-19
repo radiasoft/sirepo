@@ -219,7 +219,8 @@ class _Dispatcher(PKDict):
             self.format_op(msg, job.OP_OK, reply=PKDict(state=job.CANCELED)),
         )
         for c in list(self.cmds):
-            if c.msg.opId in msg.ops_to_cancel:
+            if c.msg.opId in msg.opIdsToCancel:
+                pkdlog('opId={}', c.msg.opId)
                 c.destroy()
         return None
 

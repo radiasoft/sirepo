@@ -293,7 +293,19 @@ class _ComputeJob(PKDict):
             dataFileKey=req.content.pop('dataFileKey')
         )
 
-    async def _receive_api_runCancel(self, req):
+    async def _receive_api_runCancel(self, req, op=None):
+        """Cancel a run and related ops
+
+        Analysis ops that are for a parallel run (ex. sim frames) will not
+        be cancelled.
+
+        Args:
+            req (ServerReq): The cancel request
+            op (_Op, optional): An additional op (that can be an analysis for a
+                parallel run) to be cancelled
+        Returns:
+            PKDict: Message with state=cancelled
+        """
         r = PKDict(state=job.CANCELED)
         if (
             not self._req_is_valid(req)
@@ -303,17 +315,20 @@ class _ComputeJob(PKDict):
             return r
         c = None
         o = [
-            o.opId for o in self.ops
-            if not self.db.isParallel
-            and o.opName == job.OP_ANALYSIS
+            o for o in self.ops
+            # Do not cancel sim frames. Allow them to come back for a cancelled run
+            if not (self.db.isParallel and o.opName == job.OP_ANALYSIS)
         ]
+        if op:
+            o.append(op)
+        pkdlog('self.ops={} ops to cancel={}', self.ops, o)
         try:
             for i in range(_MAX_RETRIES):
                 try:
                     if self.run_op:
                         #TODO(robnagler) cancel run_op, not just by jid, which is insufficient (hash)
                         if not c:
-                            req.content.ops_to_cancel = o
+                            req.content.opIdsToCancel = [x.opId for x in o]
                             c = self._create_op(job.OP_CANCEL, req)
                         await c.prepare_send()
                         # out of order from OP_ANALYSIS and OP_RUN, because we
@@ -614,8 +629,9 @@ class _Op(PKDict):
     async def run_timeout(self):
         pkdlog('{} maxRunSecs={maxRunSecs}', self, **self)
         if self.computeJob.run_op == self:
-            await self.computeJob._receive_api_runCancel(self.req_content)
-        self.destroy()
+            await self.computeJob._receive_api_runCancel(
+                ServerReq(content=self.req_content),
+            )
 
     def send(self):
         if self.maxRunSecs:
