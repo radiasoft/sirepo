@@ -306,15 +306,17 @@ class _ComputeJob(PKDict):
         Returns:
             PKDict: Message with state=cancelled
         """
+
         def _ops_to_cancel():
             o = [
                 o for o in self.ops
                 # Do not cancel sim frames. Allow them to come back for a cancelled run
                 if not (self.db.isParallel and o.opName == job.OP_ANALYSIS)
             ]
-            if op:
+            if op and op in self.ops:
                 o.append(op)
             return o
+
         r = PKDict(state=job.CANCELED)
         if (
             not self._req_is_valid(req)
@@ -323,24 +325,27 @@ class _ComputeJob(PKDict):
             # job is not relevant, but let the user know it isn't running
             return r
         c = None
+        o = []
         try:
             for i in range(_MAX_RETRIES):
                 try:
-                    if self.run_op:
+                    if _ops_to_cancel():
                         #TODO(robnagler) cancel run_op, not just by jid, which is insufficient (hash)
                         if not c:
                             c = self._create_op(job.OP_CANCEL, req)
+                        # do not need to run_dir_acquire. OP_ANALYSIS may be in
+                        # process, and it will have run_dir_mutex. That's ok,
+                        # because an OP_RUN will wait for run_dir_mutex, and
+                        # we'll destroy the OP_RUN below (never getting to the
+                        # run_dir_mutex). The opposite case is trickier, but
+                        # relies on the fact that we don't preempt below after
+                        # the destroy (which may release run_dir_mutex) until the
+                        # reply_get await (after the send).
                         await c.prepare_send()
-                        # out of order from OP_ANALYSIS and OP_RUN, because we
-                        # want don't have to wait so block on prepare_send before
-                        # modifying global state (release)
-                        if self.run_dir_owner and self.run_dir_owner != c:
-                            self.run_dir_release(self.run_dir_owner)
-                        await self.run_dir_acquire(c)
+                        o = _ops_to_cancel()
                     elif c:
                         c.destroy()
                         c = None
-                    o = _ops_to_cancel()
                     pkdlog('self.ops={} cancel={}', self.ops, o)
                     for x in o:
                         x.destroy(cancel=True)
@@ -630,11 +635,11 @@ class _Op(PKDict):
         self._reply_q.put_nowait(reply)
 
     async def run_timeout(self):
-        pkdlog('{} maxRunSecs={maxRunSecs}', self, **self)
-        if self.computeJob.run_op == self:
-            await self.computeJob._receive_api_runCancel(
-                ServerReq(content=self.req_content),
-            )
+        """Can be any op that's timed"""
+        pkdlog('{} maxRunSecs={}', self, self.maxRunSecs)
+        await self.computeJob._receive_api_runCancel(
+            ServerReq(content=self.req_content),
+        )
 
     def send(self):
         if self.maxRunSecs:

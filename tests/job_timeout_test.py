@@ -11,7 +11,10 @@ import pytest
 
 
 def setup_module(module):
-    os.environ['SIREPO_JOB_SUPERVISOR_PARALLEL_MAX_HOURS'] = '0.002'
+    os.environ.update(
+        SIREPO_JOB_SUPERVISOR_PARALLEL_MAX_HOURS='0.002',
+        SIREPO_FEATURE_CONFIG_JOB='1',
+    )
 
 
 def test_srw(fc):
@@ -43,7 +46,6 @@ def test_srw(fc):
             pkunit.pkfail('did not cancel in time')
     finally:
         if cancel:
-            pkdlog('runCancel')
             fc.sr_post('runCancel', cancel)
         import subprocess
         o = subprocess.check_output(['ps', 'axww'], stderr=subprocess.STDOUT)
