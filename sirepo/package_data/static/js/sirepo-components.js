@@ -3492,6 +3492,16 @@ SIREPO.app.service('utilities', function($window, $interval) {
         return res;
     };
 
+    this.normalize = function(seq) {
+        var sMax = Math.max.apply(null, seq);
+        var sMin = Math.min.apply(null, seq);
+        var sRange = sMax - sMin;
+        sRange = sRange > 0 ? sRange : 1.0;
+        return seq.map(function (v) {
+            return (v - sMin) / sRange;
+        });
+    };
+
     // Sequentially applies a function to an array - useful for large arrays which
     // can exceed the stack limit
     this.seqApply = function(fn, array, initVal) {

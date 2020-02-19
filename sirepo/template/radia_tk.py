@@ -31,8 +31,6 @@ FIELD_UNITS = PKDict({
 class RadiaGeomMgr:
     """Manager for multiple geometries (Radia objects)"""
 
-    mgr = None
-
     @classmethod
     def geom_id_to_data(cls, geom, name=None, divide=True):
         d_arr = []
@@ -57,7 +55,7 @@ class RadiaGeomMgr:
 
     @classmethod
     def solve(cls, geom, prec, max_iter, solve_method):
-        pkdp('SOLVE g {} p {} i {} m {}', geom, prec, max_iter, solve_method)
+        #pkdp('SOLVE g {} p {} i {} m {}', geom, prec, max_iter, solve_method)
         return radia.Solve(geom, prec, max_iter, solve_method)
 
     def _get_all_geom(self, geom):
@@ -147,7 +145,7 @@ class RadiaGeomMgr:
             ctr['geoms'].append(g)
 
     def solve_geom(self, g_name, prec, max_iter, solve_method):
-        pkdp('SOLVE g {} p {} i {} m {}', g_name, prec, max_iter, solve_method)
+        #pkdp('SOLVE g {} p {} i {} m {}', g_name, prec, max_iter, solve_method)
         return RadiaGeomMgr.solve(self.get_geom(g_name), float(prec), int(max_iter), int(solve_method))
 
     def __init__(self):

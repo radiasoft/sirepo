@@ -31,7 +31,18 @@
         ]
     },
     "constants": {
-        "defaultGeomColor": "#ffffff"
+        "defaultGeomColor": "#ffffff",
+        "geomTypes": {
+            "lines": "lines",
+            "polys": "polygons",
+            "vects": "vectors"
+        },
+        "scaleArrays": {
+            "linear": "linScale",
+            "log": "logScale",
+            "orientation": "orientation"
+        },
+        "scalarArray": "scalars"
     },
     "dynamicFiles": {
         "externalLibs": {
@@ -81,6 +92,7 @@
             "_super": ["_", "model", "geometry"]
         },
         "magnetDisplay": {
+            "fieldType": ["Field", "FieldType", "M"],
             "pathType": ["Path", "PathType", "line"],
             "viewType": ["View", "ViewType", "objects"]
         },
@@ -93,7 +105,6 @@
         "simulation": {
         },
         "solver":  {
-            "fieldType": ["Field", "FieldType", "M"],
             "maxIterations": ["Max iterations", "Integer", "1500", "", "1"],
             "method": ["Method", "SolveMethod", "0"],
             "precision": ["Precision (T)", "Float", "0.00010", "", ""]
@@ -105,7 +116,7 @@
             "basic": [
                 "geometry.name",
                 "viewType",
-                "solver.fieldType",
+                "fieldType",
                 "pathType",
                 "solver.precision",
                 "solver.maxIterations",

@@ -24,13 +24,16 @@ import sirepo.util
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 GEOM_FILE = 'geom.json'
-
 GEOM_PYTHON_FILE = 'geom.py'
+VIEW_TYPE_OBJ = 'objects'
+VIEW_TYPE_FIELD = 'fields'
+VIEW_TYPES = [VIEW_TYPE_OBJ, VIEW_TYPE_FIELD]
 
 mgr = radia_tk.RadiaGeomMgr()
 
 
 def extract_report_data(run_dir, sim_in):
+    # change to do calcs here?  Does not seem to be a place for jinja
     if 'geometry' in sim_in.report:
         simulation_db.write_result(simulation_db.read_json(GEOM_FILE), run_dir=run_dir)
         return
@@ -61,20 +64,51 @@ def _generate_parameters_file(data):
     report = data.get('report', '')
     res, v = template_common.generate_parameters_file(data)
     #pkdp('GEN PARAMS {} V {}', data, v)
-    v['geomFile'] = GEOM_FILE
+    #pkdp('GEN PARAMS M {}', data.models)
+    #v['geomFile'] = GEOM_FILE
     if 'geometry' in report:
+        disp = data.models.magnetDisplay
+        v_type = disp.viewType
+        if v_type not in VIEW_TYPES:
+            raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
+
         g = data.models.geometry
         g_id = mgr.get_geom(g.name)
         if g_id is None:
-            pkdp('NO GEOM {}, BUILDING', g.name)
+            #pkdp('NO GEOM {}, BUILDING', g.name)
             g_id = _build_geom(data)
             mgr.add_geom(g.name, g_id)
         if 'doSolve' in g and g.doSolve:
             s = data.models.solver
-            mgr.solve_geom(g.name, s.precision, s.maxIterations, s.method)
+            res = mgr.solve_geom(g.name, s.precision, s.maxIterations, s.method)
+            pkdp('SOLVE RES {}', res)
         v['geomName'] = g.name
         v['geomId'] = g_id
-        v['geomData'] = mgr.geom_to_data(g.name)
+        v['dataFile'] = GEOM_FILE
+
+        if v_type == VIEW_TYPE_OBJ:
+            v['geomData'] = mgr.geom_to_data(g.name)
+        elif v_type == VIEW_TYPE_FIELD:
+            f_type = disp.fieldType
+            if f_type not in radia_tk.FIELD_TYPES:
+                raise ValueError(
+                    'Invalid field {} ({})'.format(f_type, radia_tk.FIELD_TYPES)
+                )
+            if True:  #f_type == radia_tk.FIELD_TYPE_MAG_M:
+                solve_res = mgr.get_magnetization(g.name)
+            #elif f_type in radia_tk.POINT_FIELD_TYPES:
+            #    solve_res = mgr.get_field(
+            #        g.name,
+            #        f_type,
+            #        get_field_points()
+            #    )
+            v['geomData'] = mgr.vector_field_to_data(
+                g.name,
+                solve_res,
+                radia_tk.FIELD_UNITS[f_type]
+            )
+
+        #v['geomData'] = mgr.geom_to_data(g.name)
 
     # add parameters (???)
     return template_common.render_jinja(

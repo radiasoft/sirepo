@@ -45,6 +45,16 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             $scope.model = appState.models[$scope.modelName];
 
+            var GEOM_OBJ_TYPES = [
+                SIREPO.APP_SCHEMA.constants.geomTypes.lines,
+                SIREPO.APP_SCHEMA.constants.geomTypes.polys
+            ];
+            var GEOM_TYPES = Object.values(SIREPO.APP_SCHEMA.constants.geomTypes);
+            var PICKABLE_TYPES = [
+                SIREPO.APP_SCHEMA.constants.geomTypes.polys,
+                SIREPO.APP_SCHEMA.constants.geomTypes.vects
+            ];
+
             var cm = vtkPlotting.coordMapper();
             var renderer = null;
             var renderWindow = null;
@@ -55,6 +65,28 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                  'solver.fieldType',
             ];
 
+            // these objects are used to set various vector properties
+            var vectInArrays = [{
+                location: vtk.Common.DataModel.vtkDataSet.FieldDataTypes.COORDINATE,
+            }];
+
+            // to be set by parent widget
+            var vectOutArrays = [{
+                    location: vtk.Common.DataModel.vtkDataSet.FieldDataTypes.POINT,
+                    name: SIREPO.APP_SCHEMA.constants.scalarArray,
+                    dataType: 'Uint8Array',
+                    attribute: vtk.Common.DataModel.vtkDataSetAttributes.AttributeTypes.SCALARS,
+                    numberOfComponents: 3,
+                },
+            ];
+            Object.values(SIREPO.APP_SCHEMA.constants.scaleArrays).forEach(function (n) {
+                vectOutArrays.push({
+                    location: vtk.Common.DataModel.vtkDataSet.FieldDataTypes.POINT,
+                    name: n,
+                    dataType: 'Float32Array',
+                    numberOfComponents: 3,
+                });
+            });
 
             function buildScene(sceneData) {
                 var name = sceneData.name;
@@ -86,27 +118,25 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             bundle.mapper.setInputData(pData);
                         }
                         else {
-                            srdbg('VECTORS LATER');
-                            /*
                             let vectorCalc = vtk.Filters.General.vtkCalculator.newInstance();
-                            vectorCalc.setFormula(getVectFormula(d, view.model.get('vector_color_map_name')));
+                            vectorCalc.setFormula(getVectFormula(d, ''));
                             vectorCalc.setInputData(pData);
 
-                            mapper = vtk.Rendering.Core.vtkGlyph3DMapper.newInstance();
+                            var mapper = vtk.Rendering.Core.vtkGlyph3DMapper.newInstance();
                             mapper.setInputConnection(vectorCalc.getOutputPort(), 0);
 
                             let s = vtk.Filters.Sources.vtkArrowSource.newInstance();
                             mapper.setInputConnection(s.getOutputPort(), 1);
-                            mapper.setOrientationArray(ORIENTATION_ARRAY);
+                            mapper.setOrientationArray(SIREPO.APP_SCHEMA.constants.scaleArrays.orientation);
 
                             // this scales by a constant - the default is to use scalar data
-                            //TODO(mvk): set based on bounds size
+                            //TODO(mvk): set based on bounds size?
                             mapper.setScaleFactor(8.0);
                             mapper.setScaleModeToScaleByConstant();
                             mapper.setColorModeToDefault();
-                             */
+                            bundle = cm.buildActorBundle();
+                            bundle.setMapper(mapper);
                         }
-                        //actor.setMapper(mapper);
                         bundle.actor.getProperty().setEdgeVisibility(isPoly);
                         bundle.actor.getProperty().setLighting(isPoly);
                         const gname = name + '.' + i;
@@ -126,6 +156,85 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 vtkAPI.setCam();
             }
 
+            var vectArrays = {
+                input: vectInArrays,
+                output: vectOutArrays,
+            };
+
+            // used to create array of arrows (or other objects) for vector fields
+            // change to use magnitudes and color locally
+            // to be set by parent widget
+            function getVectFormula(vectors, colorMapName) {
+
+                //const cmap = colorMapName ? guiUtils.getColorMap(colorMapName) : [];
+                var norms = utilities.normalize(vectors.magnitudes);
+                var logMags = vectors.magnitudes.map(function (n) {
+                    return Math.log(n);
+                });
+
+                // get log values back into the original range, so that the extremes have the same
+                // size as a linear scale
+                var minLogMag = Math.min.apply(null, logMags);
+                var maxLogMag = Math.max.apply(null, logMags);
+                var minMag = Math.min.apply(null, vectors.magnitudes);
+                var maxMag = Math.max.apply(null, vectors.magnitudes);
+
+                logMags = logMags.map(function (n) {
+                    return minMag + (n - minLogMag) * (maxMag - minMag) / (maxLogMag - minLogMag);
+                });
+
+                return {
+                    getArrays: function(inputDataSets) {
+                        return vectArrays;
+                    },
+                    evaluate: function (arraysIn, arraysOut) {
+                        var coords = arraysIn.map(function (d) {
+                            return d.getData();
+                        })[0];
+                        var o = arraysOut.map(function (d) {
+                            return d.getData();
+                        });
+                        // note these arrays already have the correct length, so we need to set elements, not append
+                        var orientation = o[getVectOutIndex(SIREPO.APP_SCHEMA.constants.scaleArrays.orientation)];
+                        var linScale = o[getVectOutIndex(SIREPO.APP_SCHEMA.constants.scaleArrays.linear)].fill(1.0);
+                        var logScale = o[getVectOutIndex(SIREPO.APP_SCHEMA.constants.scaleArrays.log)].fill(1.0);
+                        var scalars = o[getVectOutIndex(SIREPO.APP_SCHEMA.constants.scalarArray)];
+
+                        for (var i = 0; i < coords.length / 3; i += 1) {
+                            var c = [0, 0, 0];
+                            //if (cmap.length) {
+                            //    var cIdx = Math.floor(norms[i] * (cmap.length - 1));
+                            //    c = guiUtils.rgbFromColor(cmap[cIdx], 1.0);
+                            //}
+                            // scale arrow length (object-local x-direction) only
+                            // this can stretch/squish the arrowhead though so the actor may have to adjust the ratio
+                            linScale[3 * i] = vectors.magnitudes[i];
+                            logScale[3 * i] = logMags[i];
+                            for (var j = 0; j < 3; ++j) {
+                                const k = 3 * i + j;
+                                orientation[k] = vectors.directions[k];
+                                scalars[k] = c[j];
+                            }
+                        }
+
+                        // Mark the output vtkDataArray as modified
+                        arraysOut.forEach(function (x) {
+                            x.modified();
+                        });
+                    },
+                };
+            }
+
+            function getVectOutIndex(name) {
+                for (let vIdx in vectArrays.output) {
+                    if (vectArrays.output[vIdx].name === name) {
+                        return vIdx;
+                    }
+                }
+                srdbg('No vector array named ' + name, vectArrays.output);
+                throw new Error('No vector array named ' + name + ': ' + vectArrays.output);
+            }
+
             function init() {
                 srdbg('init...');
                 appState.watchModelFields($scope, watchFields, updateViewer);
@@ -143,7 +252,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             function updateViewer(doReset) {
                 srdbg('updateViewer');
                 if (doReset) {
-                    appState.models.geometry.radiaRef = -1;
                     appState.models.geometry.doSolve = false;
                     appState.saveQuietly('geometry');
                 }

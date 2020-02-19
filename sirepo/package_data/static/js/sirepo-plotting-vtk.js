@@ -49,6 +49,10 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                     actor.setMapper(this.m);
                     this.actor = actor;
                 },
+                setMapper: function (mapper) {
+                    this.mapper = mapper;
+                    this.actor.setMapper(mapper);
+                },
                 setSource: function (source) {
                     this.mapper.setInputConnection(source.getOutputPort());
                     this.source = source;
