@@ -51,6 +51,9 @@ class SimData(sirepo.sim_data.SimDataBase):
                     if f in dm[m]:
                         dm.SPNTRK[f] = dm[m][f]
                         del dm[m][f]
+        if dm.elementStepAnimation.x == 'Y-DY':
+            # fixup bad AGS booster example data
+            dm.elementStepAnimation.x = 'YDY'
         for e in dm.elements:
             cls.update_model_defaults(e, e.type)
         cls._organize_example(data)

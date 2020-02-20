@@ -266,6 +266,7 @@ class DriverBase(PKDict):
                 pkdlog('error={} stack={}', e, pkdexc())
 
     def websocket_on_close(self):
+        pkdlog('self={}', self)
         self.free_resources()
 
     def _agent_cmd_stdin_env(self, **kwargs):
@@ -370,6 +371,7 @@ class DriverBase(PKDict):
         self._agent_starting_done()
         if self._websocket:
             if self._websocket != msg.handler:
+                pkdlog('new websocket self={}', self)
                 # New _websocket so bind
                 self.free_resources()
         self._websocket = msg.handler
