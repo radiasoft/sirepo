@@ -117,7 +117,7 @@ def start_sbatch():
 class _Dispatcher(PKDict):
 
     def __init__(self):
-        super().__init__(cmds=[], _fastcgi_cmd=None)
+        super().__init__(cmds=[], fastcgi_cmd=None)
 
     def format_op(self, msg, opName, **kwargs):
         if msg:
@@ -129,7 +129,7 @@ class _Dispatcher(PKDict):
     async def job_cmd_reply(self, msg, op_name, text):
         try:
             r = pkjson.load_any(text)
-        except Exception as e:
+        except Exception:
             op_name = job.OP_ERROR
             r = PKDict(
                 state=job.ERROR,
@@ -221,8 +221,8 @@ class _Dispatcher(PKDict):
             self.format_op(msg, job.OP_OK, reply=PKDict(state=job.CANCELED)),
         )
         for c in list(self.cmds):
-            if c.msg.opId in msg.opIdsToCancel:
-                pkdlog('opId={}', c.msg.opId)
+            if c.op_id in msg.opIdsToCancel:
+                pkdlog('op_id={}', c.op_id)
                 c.destroy()
         return None
 
@@ -238,15 +238,17 @@ class _Dispatcher(PKDict):
             self.format_op(msg, job.OP_OK, reply=PKDict(loginSuccess=True)),
         )
 
-    async def _cmd(self, msg):
+    async def _cmd(self, msg, **kwargs):
         if msg.opName == job.OP_ANALYSIS and msg.jobCmd != 'fastcgi':
             return await self._fastcgi_op(msg)
         c = _Cmd
         if msg.jobRunMode == job.SBATCH:
             c = _SbatchRun if msg.isParallel else _SbatchCmd
-        p = c(msg=msg, dispatcher=self)
         if msg.jobCmd == 'fastcgi':
-            self._fastcgi_cmd = p
+            c = _FastCgiCmd
+        p = c(msg=msg, dispatcher=self, op_id=msg.opId, **kwargs)
+        if msg.jobCmd == 'fastcgi':
+            self.fastcgi_cmd = p
         self.cmds.append(p)
         await p.start()
         return None
@@ -273,26 +275,25 @@ class _Dispatcher(PKDict):
                 )
             except Exception as e:
                 pkdlog('msg={} error={} stack={}', msg, e, pkdexc())
-
-        pkdlog('msg={} error={} stack={}', msg, error, stack)
-        # destroy _fastcgi state first, then send replies to avoid
-        # asynchronous modification of _fastcgi state.
-        self._fastcgi_remove_handler()
-        q = self._fastcgi_msg_q
-        self._fastcgi_msg_q = None
-        self._fastcgi_cmd.destroy()
-        self._fastcgi_cmd = None
-        if msg:
-            await _reply_error(msg)
-        while q.qsize() > 0:
-            await _reply_error(q.get_nowait())
-            q.task_done()
+        # If self.fastcgi_cmd is None we initiated the kill so not an error
+        if self.fastcgi_cmd:
+            pkdlog('msg={} error={} stack={}', msg, error, stack)
+            # destroy _fastcgi state first, then send replies to avoid
+            # asynchronous modification of _fastcgi state.
+            self._fastcgi_remove_handler()
+            q = self._fastcgi_msg_q
+            self._fastcgi_msg_q = None
+            self.fastcgi_cmd.destroy()
+            if msg:
+                await _reply_error(msg)
+            while q.qsize() > 0:
+                await _reply_error(q.get_nowait())
+                q.task_done()
 
     async def _fastcgi_op(self, msg):
-        if not self._fastcgi_cmd:
+        if not self.fastcgi_cmd:
             m = msg.copy()
             m.jobCmd = 'fastcgi'
-            m.opId = None
             self._fastcgi_file = 'job_cmd_fastcgi.sock'
             self._fastcgi_msg_q = tornado.queues.Queue(1)
             pkio.unchecked_remove(self._fastcgi_file)
@@ -308,8 +309,9 @@ class _Dispatcher(PKDict):
                 self._fastcgi_accept,
             )
             # last thing, because of await: start fastcgi process
-            await self._cmd(m)
+            await self._cmd(m, send_reply=False)
         self._fastcgi_msg_q.put_nowait(msg)
+        self.fastcgi_cmd.op_id = msg.opId
         return None
 
     async def _fastcgi_read(self, connection):
@@ -337,8 +339,8 @@ class _Dispatcher(PKDict):
 
 class _Cmd(PKDict):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, send_reply=True, **kwargs):
+        super().__init__(*args, send_reply=send_reply, **kwargs)
         self.run_dir = pkio.py_path(self.msg.runDir)
         self._is_compute = self.msg.jobCmd == 'compute'
         if self._is_compute:
@@ -398,7 +400,7 @@ class _Cmd(PKDict):
             pkdlog('text={} error={} stack={}', text, exc, pkdexc())
 
     async def on_stdout_read(self, text):
-        if self._terminating or not self.msg.opId:
+        if self._terminating or not self.send_reply:
             return
         try:
             await self.dispatcher.job_cmd_reply(
@@ -470,6 +472,12 @@ class _Cmd(PKDict):
         )
         pkjson.dump_pretty(self.msg, filename=f, pretty=False)
         return f
+
+
+class _FastCgiCmd(_Cmd):
+    def destroy(self):
+        self.dispatcher.fastcgi_cmd = None
+        super().destroy()
 
 
 class _SbatchCmd(_Cmd):
@@ -575,8 +583,8 @@ class _SbatchRun(_SbatchCmd):
             return
         self._in_file = self._create_in_file()
         pkdlog(
-            'opId={} sbatchId={} starting jobCmd={}',
-            self.msg.opId,
+            'op_id={} sbatch_id={} starting jobCmd={}',
+            self.op_id,
             self._sbatch_id,
             self.msg.jobCmd,
         )
@@ -587,11 +595,10 @@ class _SbatchRun(_SbatchCmd):
             dispatcher=self.dispatcher,
             msg=self.msg.copy().pkupdate(
                 jobCmd='prepare_simulation',
-                # needed so replies not sent back to supervisor
-                opId=None,
                 # sequential job
                 opName=job.OP_ANALYSIS,
             ),
+            send_reply=False,
         )
         await c.start()
         await c._await_exit()
@@ -653,8 +660,8 @@ exec srun {s} /bin/bash bash.stdin
         r = re.search(r'(?<=JobState=)(\S+)(?= Reason)', p.stdout)
         if not r:
             pkdlog(
-                'opId={} failed to find JobState in sderr={} stdout={}',
-                self.msg.opId,
+                'op_id={} failed to find JobState in sderr={} stdout={}',
+                self.op_id,
                 p.stderr,
                 p.stdout,
             )

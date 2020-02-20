@@ -41,8 +41,6 @@ def main():
     if params['name'] == 'srunit_long_run':
         time.sleep(100)
 
-    time.sleep(100)
-
     max_age = _max_age(params['weight'])
     years = numpy.linspace(0, max_age, int(max_age) + 1).tolist()
     heights = _points_size(params['height'], years)

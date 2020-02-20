@@ -78,11 +78,9 @@ def init():
     cfg = pkconfig.init(
         job_cache_secs=(300, int, 'when to re-read job state from disk'),
         max_hours=dict(
-            analysis=(.002, float, 'maximum run-time for sequential job'),
-            # parallel=(1, float, 'maximum run-time for parallel job (except sbatch)'),
-            parallel=(0.001, float, 'maximum run-time for parallel job (except sbatch)'),
-            # sequential=(.1, float, 'maximum run-time for sequential job')
-            sequential=(.001, float, 'maximum run-time for sequential job')
+            analysis=(.04, float, 'maximum run-time for sequential job'),
+            parallel=(1, float, 'maximum run-time for parallel job (except sbatch)'),
+            sequential=(.1, float, 'maximum run-time for sequential job')
         ),
         sbatch_poll_secs=(60, int, 'how often to poll squeue and parallel status'),
     )
@@ -329,14 +327,19 @@ class _ComputeJob(PKDict):
 
         r = PKDict(state=job.CANCELED)
         if (
-            not self._req_is_valid(req)
+# TODO(e-carlin): the 'and not op' check is not quite right. The problem is if
+# we are calling api_runCancel from run_timeout and the op that timed out was
+# an analysis op that is not normally checked for request validity. Ex
+# api_downloadDataFile does not check for a valid request because a data file
+# request is not valid (it has not computeJobHash for example). But we still
+# need to cancel downloadDataFile ops. We know we are called from run_timeout
+# if op is not None so that is how we are getting around the problem. This
+# could result in odd UX. Ex a running simulation being cancelled due to a
+# downloadDataFile request timeout in another browser window (only the
+# computJids must match between the two requests).
+            (not self._req_is_valid(req) and not op)
             or (self.db.status not in _RUNNING_PENDING and not self.ops)
         ):
-            pkdp('xxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
-            pkdp(self._req_is_valid(req))
-            pkdp(self.db.status)
-            pkdp(self.ops)
-            pkdp('xxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
             # job is not relevant, but let the user know it isn't running
             return r
         c = None
@@ -362,7 +365,7 @@ class _ComputeJob(PKDict):
                         c.destroy()
                         c = None
                     pkdlog('self.ops={} cancel={}', self.ops, o)
-                    for x in o:
+                    for x in filter(lambda e: e != c, o):
                         x.destroy(cancel=True)
                     self.db.status = job.CANCELED
                     self.__db_write()
@@ -491,7 +494,6 @@ class _ComputeJob(PKDict):
         return o
 
     def _get_max_run_secs(self, op_name, kind, run_mode):
-        pkdp('{} {} {}', op_name, kind, run_mode)
         if op_name in _UNTIMED_OPS or \
             (run_mode == sirepo.job.SBATCH and op_name == job.OP_RUN):
             return 0
@@ -501,13 +503,6 @@ class _ComputeJob(PKDict):
         return t * 3600
 
     def _req_is_valid(self, req):
-        pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
-        pkdp(self.db.computeJobSerial)
-        pkdp(self.db.computeJobHash)
-        pkdp('-----------')
-        pkdp(req)
-        pkdp(req.content)
-        pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
         return (
             self.db.computeJobHash == req.content.computeJobHash
             and (

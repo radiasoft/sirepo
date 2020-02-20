@@ -72,7 +72,6 @@ def test_myapp_analysis(fc):
             suffix='sr_long_analysis',
         ),
     )
-    pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
-    pkdp(r)
-    pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
-    assert 0
+    # TODO(e-carlin): This should be something more helpful than a 404
+    # The request was cancelled due to a timeout. This is more like a 500
+    pkunit.pkok(r.status_code == 404, 'r={}', r)
