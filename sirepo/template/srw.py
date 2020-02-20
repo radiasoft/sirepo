@@ -43,6 +43,8 @@ WANT_BROWSER_FRAME_CACHE = False
 
 PARSED_DATA_ATTR = 'srwParsedData'
 
+_CANVAS_MAX_SIZE = 16384
+
 _BRILLIANCE_OUTPUT_FILE = 'res_brilliance.dat'
 
 _MIRROR_OUTPUT_FILE = 'res_mirror.dat'
@@ -1372,7 +1374,9 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rota
     totLen = int(x_range[2] * y_range[2])
     n = len(ar2d) if totLen > len(ar2d) else totLen
     ar2d = np.reshape(ar2d[0:n], (y_range[2], x_range[2]))
-
+    if not width_pixels:
+        # upper limit is browser's max html canvas size
+        width_pixels = _CANVAS_MAX_SIZE
     # rescale width and height to maximum of width_pixels
     if width_pixels and (width_pixels < x_range[2] or width_pixels < y_range[2]):
         x_resize = 1.0

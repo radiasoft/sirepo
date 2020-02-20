@@ -223,7 +223,7 @@ def _dispatch(path):
             raise sirepo.util.raise_not_found('{}: unknown parameters in uri ({})', parts, path)
         return call_api(route.func, kwargs)
     except Exception as e:
-        pkdlog('exception={} path={} stack={}', path, e, pkdexc())
+        pkdlog('exception={} path={} stack={}', e, path, pkdexc())
         raise
 
 

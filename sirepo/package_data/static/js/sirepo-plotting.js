@@ -410,13 +410,20 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         },
 
         exportCSV: function(fileName, heading, points) {
-            fileName = fileName.replace(/\s+$/, '').replace(/(\_|\W|\s)+/g, '-') + '.csv';
-            // format csv heading values within quotes
-            var res = '"' + heading.map(function(v) {
-                return v.replace(/"/g, '');
-            }).join('","') + '"' + "\n";
+            fileName = fileName.replace(/\[.*\]/, '')
+                .replace(/\s+$/, '')
+                .replace(/(\_|\W|\s)+/g, '-') + '.csv';
+            var res = heading.map(function(v) {
+                v = v.replace(/"/g, '');
+                if (v.indexOf(',') >= 0) {
+                    v = '"' + v + '"';
+                }
+                return v;
+            }).join(',') + "\n";
             points.forEach(function(row) {
-                res += row[0].toExponential(9) + ',' + row[1].toExponential(9) + "\n";
+                res += row.map(function(v) {
+                    return v.toExponential(9);
+                }).join(',') + "\n";
             });
             saveAs(new Blob([res], {type: "text/csv;charset=utf-8"}), fileName);
         },
@@ -2617,13 +2624,40 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
             };
 
             $scope.$on(SIREPO.PLOTTING_LINE_CSV_EVENT, function(evt, axisName) {
-                var keys = Object.keys(lineOuts[axisName]);
-                var points = lineOuts[axisName][keys[0]][0];
-                var xHeading = select('.' + axisName + '-axis-label').text();
-                plotting.exportCSV(
-                    xHeading,
-                    [xHeading + ' [' + $scope.xunits +']', select('.z-axis-label').text()],
-                    points);
+                var title = $($scope.element).closest('.panel-body')
+                        .parent().parent().find('.sr-panel-heading').text();
+                var heading, points;
+                if (axisName == 'x' || axisName == 'y') {
+                    var axisText = axes[axisName].label + ' [' + axes[axisName].units + ']';
+                    heading = [axisText, select('.z-axis-label').text()];
+                    title += ' - ' + axisText;
+                    var keys = Object.keys(lineOuts[axisName]);
+                    points = lineOuts[axisName][keys[0]][0];
+                }
+                else {
+                    // full plot to csv
+                    heading = [
+                        title + ': ' + select('.z-axis-label').text()
+                            + ' vs ' + axes.x.label + ' [' + axes.x.units
+                            + '] and ' + axes.y.label + ' [' + axes.y.units
+                            + ']. The ' + axes.x.label + 's are given in the first column, '
+                            +  axes.y.label + 's in the first row.'
+                    ];
+                    axes.y.values.forEach(function(v) {
+                        heading.push('' + v.toExponential(9));
+                    });
+                    var width = axes.x.values.length;
+                    var height = axes.y.values.length;
+                    points = [];
+                    axes.x.values.forEach(function(v, idx) {
+                        var row = [v];
+                        for (var i = 0; i < height; i++) {
+                            row.push(heatmap[height - i - 1][idx]);
+                        }
+                        points.push(row);
+                    });
+                }
+                plotting.exportCSV(title, heading, points);
             });
         },
         link: function link(scope, element) {
