@@ -15,6 +15,7 @@ import copy
 import sirepo.sim_data
 import re
 import sirepo.util
+import time
 
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
@@ -25,6 +26,9 @@ OUTPUT_NAME = 'hundli.csv'
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
+    if 'suffix' in options and options.suffix == 'sr_long_analysis':
+        pkdp('ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss')
+        time.sleep(100)
     f = run_dir.join(OUTPUT_NAME)
     return f.basename, f.read(), 'text/csv'
 
