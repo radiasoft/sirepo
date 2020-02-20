@@ -78,7 +78,7 @@ def init():
     cfg = pkconfig.init(
         job_cache_secs=(300, int, 'when to re-read job state from disk'),
         max_hours=dict(
-            analysis=(.04, float, 'maximum run-time for sequential job'),
+            analysis=(.04, float, 'maximum run-time for analysis job'),
             parallel=(1, float, 'maximum run-time for parallel job (except sbatch)'),
             sequential=(.1, float, 'maximum run-time for sequential job')
         ),
@@ -497,7 +497,7 @@ class _ComputeJob(PKDict):
         if op_name in _UNTIMED_OPS or \
             (run_mode == sirepo.job.SBATCH and op_name == job.OP_RUN):
             return 0
-        t = cfg.max_hours[run_mode]
+        t = cfg.max_hours[kind]
         if op_name == sirepo.job.OP_ANALYSIS:
             t = cfg.max_hours.analysis
         return t * 3600
