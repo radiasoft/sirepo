@@ -25,6 +25,9 @@ OUTPUT_NAME = 'hundli.csv'
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
+    # if 'suffix' in options and options.suffix == 'sr_long_analysis':
+    pkdp('dddddddddddddddddddddddddddddddddddddddddddddd')
+    time.sleep(100)
     f = run_dir.join(OUTPUT_NAME)
     return f.basename, f.read(), 'text/csv'
 

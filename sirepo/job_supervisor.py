@@ -327,15 +327,20 @@ class _ComputeJob(PKDict):
                 # Do not cancel sim frames. Allow them to come back for a cancelled run
                 if not (self.db.isParallel and o.opName == job.OP_ANALYSIS)
             ]
-            if op and op in self.ops:
+            if op and op in self.ops and op not in o:
                 o.append(op)
             return o
 
         r = PKDict(state=job.CANCELED)
         if (
             not self._req_is_valid(req)
-            or self.db.status not in _RUNNING_PENDING
+            or not (self.db.status in _RUNNING_PENDING and self.ops)
         ):
+            pkdp('xxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+            pkdp(self._req_is_valid(req))
+            pkdp(self.db.status)
+            pkdp(self.ops)
+            pkdp('xxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
             # job is not relevant, but let the user know it isn't running
             return r
         c = None
@@ -494,6 +499,13 @@ class _ComputeJob(PKDict):
         return o
 
     def _req_is_valid(self, req):
+        pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
+        pkdp(self.db.computeJobSerial)
+        pkdp(self.db.computeJobHash)
+        pkdp('-----------')
+        pkdp(req)
+        pkdp(req.content)
+        pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
         return (
             self.db.computeJobHash == req.content.computeJobHash
             and (
@@ -653,6 +665,7 @@ class _Op(PKDict):
         pkdlog('{} maxRunSecs={}', self, self.maxRunSecs)
         await self.computeJob._receive_api_runCancel(
             ServerReq(content=self.req_content),
+            op=self,
         )
 
     def send(self):

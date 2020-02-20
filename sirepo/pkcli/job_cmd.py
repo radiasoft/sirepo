@@ -179,12 +179,15 @@ def _do_sbatch_status(msg, template):
 
 def _do_sequential_result(msg, template):
     r = simulation_db.read_result(msg.runDir)
+    msg.data.models = 'x' # TODO(e-carlin): rm
     # Read this first: https://github.com/radiasoft/sirepo/issues/2007
     if (r.state != job.ERROR and hasattr(template, 'prepare_output_file')
         and 'models' in msg.data
     ):
+        pkdp('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
         template.prepare_output_file(msg.runDir, msg.data)
         r = simulation_db.read_result(msg.runDir)
+    assert 0
     return r
 
 
