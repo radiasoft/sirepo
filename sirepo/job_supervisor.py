@@ -81,8 +81,8 @@ def init():
             analysis=(.002, float, 'maximum run-time for sequential job'),
             # parallel=(1, float, 'maximum run-time for parallel job (except sbatch)'),
             parallel=(0.001, float, 'maximum run-time for parallel job (except sbatch)'),
-            sequential=(.1, float, 'maximum run-time for sequential job')
-            # sequential=(.001, float, 'maximum run-time for sequential job')
+            # sequential=(.1, float, 'maximum run-time for sequential job')
+            sequential=(.001, float, 'maximum run-time for sequential job')
         ),
         sbatch_poll_secs=(60, int, 'how often to poll squeue and parallel status'),
     )
