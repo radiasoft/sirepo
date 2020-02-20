@@ -57,9 +57,6 @@ _PARALLEL_STATUS_FIELDS = frozenset((
 _UNTIMED_OPS = frozenset((job.OP_ALIVE, job.OP_CANCEL, job.OP_ERROR, job.OP_KILL, job.OP_OK))
 cfg = None
 
-#: conversion of cfg.<kind>.max_hours
-_MAX_RUN_SECS = PKDict()
-
 #: how many times restart request when Awaited() raised
 _MAX_RETRIES = 10
 
@@ -80,16 +77,13 @@ def init():
     _DB_DIR = sirepo.srdb.root().join(_DB_SUBDIR)
     cfg = pkconfig.init(
         job_cache_secs=(300, int, 'when to re-read job state from disk'),
-        parallel=dict(
-            max_hours=(1, float, 'maximum run-time for parallel job (except sbatch)'),
+        max_hours=dict(
+            analysis=(.05, float, 'maximum run-time for sequential job'),
+            parallel=(1, float, 'maximum run-time for parallel job (except sbatch)'),
+            sequential=(.1, float, 'maximum run-time for sequential job')
         ),
         sbatch_poll_secs=(60, int, 'how often to poll squeue and parallel status'),
-        sequential=dict(
-            max_hours=(.1, float, 'maximum run-time for sequential job'),
-        ),
     )
-    for k in job.KINDS:
-        _MAX_RUN_SECS[k] = int(cfg[k].max_hours * 3600)
     _NEXT_REQUEST_SECONDS = PKDict({
         job.PARALLEL: 2,
         job.SBATCH: cfg.sbatch_poll_secs,
@@ -477,11 +471,7 @@ class _ComputeJob(PKDict):
 # these values are never sent directly, only msg which can be camelcase
             computeJob=self,
             kind=req.kind,
-            maxRunSecs=(
-                0 if opName in _UNTIMED_OPS
-                or (r == sirepo.job.SBATCH and opName == job.OP_RUN)
-                else _MAX_RUN_SECS[req.kind]
-            ),
+            maxRunSecs=self._get_max_run_secs(opName, req.kind, r),
             msg=PKDict(req.content).pksetdefault(jobRunMode=r),
             opName=opName,
             req_content=req.copy_content(),
@@ -497,6 +487,15 @@ class _ComputeJob(PKDict):
         o.msg.pkupdate(**kwargs)
         self.ops.append(o)
         return o
+
+    def _get_max_run_secs(self, op_name, kind, run_mode):
+        if op_name in _UNTIMED_OPS or \
+            (run_mode == sirepo.job.SBATCH and op_name == job.OP_RUN):
+            return 0
+        t = cfg.max_hours[run_mode]
+        if op_name == sirepo.job.OP_ANALYSIS:
+            t = cfg.max_hours.analysis
+        return t * 3600
 
     def _req_is_valid(self, req):
         pkdp('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
