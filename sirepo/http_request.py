@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import flask
-import sirepo.api_perm
 import sirepo.sim_data
 import sirepo.template
 import sirepo.util
@@ -16,17 +15,15 @@ import sirepo.srschema
 import user_agents
 import werkzeug
 
-_API_PERM_ATTR = 'sirepo_http_request_api_perm'
-
 _SIM_TYPE_ATTR = 'sirepo_http_request_sim_type'
 
 _POST_ATTR = 'sirepo_http_request_post'
 
-_PROTECTED_CODES = ('flash', 'elegant') # TODO(e-carlin): rm elegant
-
 
 def init(**imports):
+    global sirepo
     sirepo.util.setattr_imports(imports)
+    import sirepo.auth
 
 
 def is_spider():
@@ -132,19 +129,8 @@ def parse_post(**kwargs):
         sirepo.util.raise_not_found('type={} sid={} does not exist', res.type, res.id)
     assert not kwargs, \
         'unexpected kwargs={}'.format(kwargs)
-    a = sirepo.api_perm.APIPerm
-    if flask.g.get(_API_PERM_ATTR) not in (
-            a.REQUIRE_COOKIE_SENTINEL,
-            a.ALLOW_COOKIELESS_SET_USER,
-            a.ALLOW_VISITOR,
-    ):
-        _check_permissions(res.type)
+    sirepo.auth.require_sim_type(res.type)
     return res
-
-
-def set_api_perm(perm):
-    """Interface for uri_router"""
-    return _set_flask_g(_API_PERM_ATTR, perm)
 
 
 def set_post(data=None):
@@ -173,19 +159,6 @@ def sim_type(value=None):
     if value:
         return sirepo.template.assert_sim_type(value)
     return flask.g.get(_SIM_TYPE_ATTR)
-
-
-def _check_permissions(simulation_type):
-    import sirepo.auth
-    import sirepo.auth_db
-    if simulation_type in _PROTECTED_CODES and \
-       simulation_type not in sirepo.auth_db.UserRole.search_all_for_column(
-           'role',
-           uid=sirepo.auth.logged_in_user(),
-       ):
-        sirepo.util.raise_forbidden(
-            'you do not have permission to use {}'.format(simulation_type),
-        )
 
 
 def _set_flask_g(key, value):

@@ -70,7 +70,6 @@ def call_api(func_or_name, kwargs=None, data=None):
     """
     p = None
     s = None
-    x = None
     try:
         # must be first so exceptions have access to sim_type
         if kwargs:
@@ -79,17 +78,14 @@ def call_api(func_or_name, kwargs=None, data=None):
             s = sirepo.http_request.set_sim_type(kwargs.get('simulation_type'))
         f = func_or_name if callable(func_or_name) \
             else _api_to_route[func_or_name].func
-        a = sirepo.api_auth.check_api_call(f)
+        sirepo.api_auth.check_api_call(f)
         try:
             if data:
                 p = sirepo.http_request.set_post(data)
-            x = sirepo.http_request.set_api_perm(a)
             r = flask.make_response(f(**kwargs) if kwargs else f())
         finally:
             if data:
                 sirepo.http_request.set_post(p)
-            if x:
-                sirepo.http_request.set_api_perm(x)
     except Exception as e:
         if isinstance(e, (sirepo.util.Reply, werkzeug.exceptions.HTTPException)):
             pkdc('api={} exception={} stack={}', func_or_name, e, pkdexc())

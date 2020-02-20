@@ -29,10 +29,6 @@ UserRole = None
 #: Locking of _db calls
 thread_lock = threading.RLock()
 
-ROLE_FLASH = 'flash'
-
-ALL_ROLES = ('flash',)
-
 
 def init(app):
     global _db, UserDbBase, UserRegistration, UserRole
@@ -89,8 +85,9 @@ def init(app):
 
         @classmethod
         def add_roles(cls, uid, roles):
-            for r in roles:
-                UserRole(uid=uid, role=r).save()
+            with thread_lock:
+                for r in roles:
+                    UserRole(uid=uid, role=r).save()
 
     # only creates tables that don't already exist
     _db.create_all()

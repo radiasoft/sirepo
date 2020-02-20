@@ -44,4 +44,3 @@ def check_api_call(func):
         auth.require_auth_basic()
     else:
         raise AssertionError('unhandled api_perm={}'.format(expect))
-    return expect
