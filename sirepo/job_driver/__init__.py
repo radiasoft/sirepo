@@ -325,7 +325,6 @@ class DriverBase(PKDict):
             )
             self._agent_starting_timeout = None
 
-
     async def _agent_starting_timeout_handler(self):
         pkdlog('self={}', self)
         self.free_resources()
