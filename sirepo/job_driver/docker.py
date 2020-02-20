@@ -241,7 +241,7 @@ class DockerDriver(job_driver.DriverBase):
 
         if not self._idle_timer:
             self._idle_timer = tornado.ioloop.IOLoop.current().call_later(
-                cfg.idle_check_mins * 60,
+                cfg.idle_check_secs,
                 _kill_if_idle,
             )
 
@@ -268,7 +268,7 @@ def init_class():
     cfg = pkconfig.init(
         dev_volumes=(pkconfig.channel_in('dev'), bool, 'mount ~/.pyenv, ~/.local and ~/src for development'),
         hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, 'execution hosts'),
-        idle_check_mins=(30, int, 'how many minutes to wait between checks'),
+        idle_check_secs=(1800, int, 'how many minutes to wait between checks'),
         image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
         parallel=dict(
             cores=(2, int, 'cores per parallel job'),
