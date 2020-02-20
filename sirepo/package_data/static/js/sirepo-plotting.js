@@ -636,7 +636,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
 
         // takes a 24-bit color integer and returns an rgb array with values 0 -> <range>
         // (typically 256 or 1.0)
-        rgbFromColorInt: function(c, range=256.0)  {
+        rgbFromInt: function(c, range=256.0)  {
             let b = range * ((c % 256) / 256.0);
             let g = range * ((((c - b) / 256) % 256) / 256.0);
             let r = range * (((c - b - 256 * g) / (256 * 256)) / 256.0);

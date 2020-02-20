@@ -369,7 +369,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             if (cmap.length) {
                                 var cIdx = Math.floor(norms[i] * (cmap.length - 1));
                                 var h = parseInt(cmap[cIdx].substring(1), 16);
-                                c = plotting.rgbFromColorInt(h);
+                                c = plotting.rgbFromInt(h);
                             }
                             // scale arrow length (object-local x-direction) only
                             // this can stretch/squish the arrowhead though so the actor may have to adjust the ratio
