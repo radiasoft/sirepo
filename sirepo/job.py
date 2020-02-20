@@ -16,6 +16,8 @@ import sirepo.util
 import re
 
 
+MAX_MESSAGE_SIZE = int(1e8)
+
 OP_ANALYSIS = 'analysis'
 OP_CANCEL = 'cancel'
 OP_ERROR = 'error'
