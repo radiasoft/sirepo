@@ -78,9 +78,11 @@ def init():
     cfg = pkconfig.init(
         job_cache_secs=(300, int, 'when to re-read job state from disk'),
         max_hours=dict(
-            analysis=(.05, float, 'maximum run-time for sequential job'),
-            parallel=(1, float, 'maximum run-time for parallel job (except sbatch)'),
+            analysis=(.002, float, 'maximum run-time for sequential job'),
+            # parallel=(1, float, 'maximum run-time for parallel job (except sbatch)'),
+            parallel=(0.001, float, 'maximum run-time for parallel job (except sbatch)'),
             sequential=(.1, float, 'maximum run-time for sequential job')
+            # sequential=(.001, float, 'maximum run-time for sequential job')
         ),
         sbatch_poll_secs=(60, int, 'how often to poll squeue and parallel status'),
     )
@@ -328,7 +330,7 @@ class _ComputeJob(PKDict):
         r = PKDict(state=job.CANCELED)
         if (
             not self._req_is_valid(req)
-            or self.db.status not in _RUNNING_PENDING
+            or (self.db.status not in _RUNNING_PENDING and not self.ops)
         ):
             # job is not relevant, but let the user know it isn't running
             return r
@@ -484,6 +486,7 @@ class _ComputeJob(PKDict):
         return o
 
     def _get_max_run_secs(self, op_name, kind, run_mode):
+        pkdp('{} {} {}', op_name, kind, run_mode)
         if op_name in _UNTIMED_OPS or \
             (run_mode == sirepo.job.SBATCH and op_name == job.OP_RUN):
             return 0
