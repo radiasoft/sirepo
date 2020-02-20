@@ -3,6 +3,15 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
+SIREPO.app.config(function() {
+    SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];
+});
+
+SIREPO.app.factory('radiaService', function(appState, requestSender, $rootScope) {
+    var self = {};
+    return self;
+});
+
 SIREPO.app.controller('RadiaSourceController', function (appState, panelState, $scope) {
     const self = this;
 
@@ -14,7 +23,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, $
     });
 });
 
-SIREPO.app.controller('RadiaVisualizationController', function (appState, panelState, $scope) {
+SIREPO.app.controller('RadiaVisualizationController', function (appState, panelState, persistentSimulation, radiaService, $scope) {
     const self = this;
 
     appState.whenModelsLoaded($scope, function() {
@@ -23,6 +32,80 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, panelS
         //});
         //srdbg('RadiaVisualizationController', appState.models);
     });
+});
+
+SIREPO.app.directive('radiaFieldPaths', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, requestSender, utilities, vtkPlotting, vtkUtils) {
+
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+        },
+        template: [
+            '<div class="col-md-6">',
+                //'<div data-basic-editor-panel="" data-view-name="{{modelName}}">',
+                //    '<button class="btn btn-default col-sm-2 col-sm-offset-5" data-ng-click="addPath()">+</button>',
+                //'</div>',
+                '<div class="panel panel-info">',
+                    '<div class="panel-heading"><span class="sr-panel-heading">Field Paths</span></div>',
+                    '<div class="panel-body">',
+                      //'<div data-field-path-table=""></div>',
+                        '<div data-field-editor="\'path\'", data-model-name="modelName", data-model="model"></div>',
+                        //'<div data-report-content="" data-model-key="linePath"><div data-ng-transclude=""></div></div>',
+                        '<button class="btn btn-default col-sm-2 col-sm-offset-5" data-ng-click="addPath()">+</button>',
+                    '</div>',
+                '</div>',
+            '</div>',
+
+        ].join(''),
+        controller: function($scope, $element) {
+            $scope.model = appState.models[$scope.modelName];
+            //$scope.pathField = $scope.model.path;
+
+            $scope.addPath = function() {
+                srdbg('ADD PATH');
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, requestSender, utilities, vtkPlotting, vtkUtils) {
+
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+        },
+        template: [
+            '<div class="col-md-6">',
+                '<div data-basic-editor-panel="" data-view-name="{{modelName}}">',
+                    '<button class="btn btn-default col-sm-2 col-sm-offset-5" data-ng-click="solve()">Solve</button>',
+                '</div>',
+            '</div>',
+
+        ].join(''),
+        controller: function($scope, $element) {
+
+            $scope.model = appState.models[$scope.modelName];
+
+            $scope.solve = function() {
+                srdbg('SOLVE');
+                appState.models.solver.lastSolved = Date.now();
+                appState.models.solver.result = "";
+                appState.saveChanges('solver');
+                panelState.requestData('solver', function (d) {
+                    srdbg('SOLVED', d);
+                    appState.models.solver.result = d;
+                }, true);
+            };
+
+            appState.whenModelsLoaded($scope, function () {
+
+            });
+
+
+        },
+    };
 });
 
 SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, requestSender, utilities, vtkPlotting, vtkUtils) {
@@ -35,7 +118,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
         template: [
             '<div class="col-md-6">',
                 '<div data-basic-editor-panel="" data-view-name="{{modelName}}">',
-                    '<button class="btn btn-default col-sm-2 col-sm-offset-5" data-ng-click="solve()">Solve</button>',
                     '<div data-vtk-display="" data-model-name="" data-event-handlers="eventHandlers"></div>',
                 '</div>',
             '</div>',
@@ -50,43 +132,34 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             var ORIENTATION_ARRAY = 'orientation';
             var FIELD_ATTR_ARRAYS = [LINEAR_SCALE_ARRAY, LOG_SCALE_ARRAY, ORIENTATION_ARRAY];
 
-            var GEOM_TYPES =  [
-                { type: 'lines', isObject: true, isPickable: false },
-                { type: 'polys', isObject: true, isPickable: true },
-                { type: 'vects', isObject: false, isPickable: true },
-            ];
-
-            var GEOM_OBJ_TYPES = GEOM_TYPES.filter(function (t) {
-                return t.isObject;
-            });
-
-            var PICKABLE_TYPES = GEOM_TYPES.filter(function (t) {
-                return t.isPickable;
-            });
-
+            var PICKABLE_TYPES = [vtkUtils.GEOM_TYPE_POLYS, vtkUtils.GEOM_TYPE_VECTS];
             var POINT_FIELD_TYPES = SIREPO.APP_SCHEMA.enum.FieldType.slice(1).map(function (tArr) {
                 return tArr[0];
             });
-            srdbg('pft', POINT_FIELD_TYPES);
 
             var SCALAR_ARRAY = 'scalars';
 
+            var actorInfo = {};
             var cm = vtkPlotting.coordMapper();
-            var renderer = null;
-            var renderWindow = null;
-            var vtkAPI = {};
-            var watchFields = [
+            var displayFields = [
                  'magnetDisplay.pathType',
                  'magnetDisplay.viewType',
                  'magnetDisplay.fieldType',
             ];
+            var fieldDisplayFields = [
+                 'fieldDisplay.colorMap',
+                 'fieldDisplay.scaling',
+            ];
+
+            var renderer = null;
+            var renderWindow = null;
+            var sceneData = {};
 
             // these objects are used to set various vector properties
             var vectInArrays = [{
                 location: vtk.Common.DataModel.vtkDataSet.FieldDataTypes.COORDINATE,
             }];
 
-            // to be set by parent widget
             var vectOutArrays = [{
                     location: vtk.Common.DataModel.vtkDataSet.FieldDataTypes.POINT,
                     name: SCALAR_ARRAY,
@@ -95,6 +168,15 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     numberOfComponents: 3,
                 },
             ];
+            var vectArrays = {
+                input: vectInArrays,
+                output: vectOutArrays,
+            };
+
+            var vtkAPI = {};
+
+            var watchFields = displayFields.concat(fieldDisplayFields);
+
             FIELD_ATTR_ARRAYS.forEach(function (n) {
                 vectOutArrays.push({
                     location: vtk.Common.DataModel.vtkDataSet.FieldDataTypes.POINT,
@@ -104,10 +186,38 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 });
             });
 
-            function buildScene(sceneData) {
+            // stash the actor and associated info to avoid recalculation
+            function addActor(name, group, actor, type, pickable) {
+
+                const pData = actor.getMapper().getInputData();
+                const info = {
+                    actor: actor,
+                    colorIndices: [],
+                    group: group || 0,
+                    name: name,
+                    pData: pData,
+                    scalars: pData.getCellData().getScalars(),
+                    type: type,
+                };
+
+                if (info.scalars) {
+                    info.colorIndices = utilities.indexArray(numColors(pData, type))
+                        .map(function (i) {
+                            return 4 * i;
+                        });
+                }
+                actorInfo[name] = info;
+
+                vtkPlotting.addActor(renderer, actor);
+                if (pickable) {
+                    //this.ptPicker.addPickList(actor);
+                    //this.cPicker.addPickList(actor);
+                }
+            }
+
+            function buildScene() {
                 var name = sceneData.name;
                 var id = sceneData.id;
-                appState.models.geometry.doSolve = false;
                 appState.saveQuietly('geometry');
                 var data = sceneData.data;
                 //rsUtils.rsdbg('got data', data, 'for', name, id);
@@ -134,14 +244,14 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             bundle.mapper.setInputData(pData);
                         }
                         else {
-                            let vectorCalc = vtk.Filters.General.vtkCalculator.newInstance();
+                            var vectorCalc = vtk.Filters.General.vtkCalculator.newInstance();
                             vectorCalc.setFormula(getVectFormula(d, ''));
                             vectorCalc.setInputData(pData);
 
                             var mapper = vtk.Rendering.Core.vtkGlyph3DMapper.newInstance();
                             mapper.setInputConnection(vectorCalc.getOutputPort(), 0);
 
-                            let s = vtk.Filters.Sources.vtkArrowSource.newInstance();
+                            var s = vtk.Filters.Sources.vtkArrowSource.newInstance();
                             mapper.setInputConnection(s.getOutputPort(), 1);
                             mapper.setOrientationArray(ORIENTATION_ARRAY);
 
@@ -155,10 +265,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         }
                         bundle.actor.getProperty().setEdgeVisibility(isPoly);
                         bundle.actor.getProperty().setLighting(isPoly);
-                        const gname = name + '.' + i;
-                        const aname = gname + '.' + t;
-                        vtkPlotting.addActor(renderer, bundle.actor);
-                        //view.addActor(aname, gname, actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
+                        var gname = name + '.' + i;
+                        var aname = gname + '.' + t;
+                        addActor(aname, gname, bundle.actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
                     });
 
                     /*
@@ -170,19 +279,58 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                      */
                 }
                 vtkAPI.setCam();
+                enableWatchFields(true);
             }
 
-            var vectArrays = {
-                input: vectInArrays,
-                output: vectOutArrays,
-            };
+            function enableWatchFields(doEnable) {
+                watchFields.forEach(function (wf) {
+                    var mf = appState.parseModelField(wf);
+                    panelState.enableField(mf[0], mf[1], doEnable);
+                });
+            }
+
+            function getActor(name) {
+                return (getActorInfo(name) || {}).actor;
+            }
+
+            function getActorInfo(name) {
+                return actorInfo[name];
+            }
+
+            function getActorInfoOfType(typeName) {
+                return Object.keys(actorInfo)
+                    .filter(function (name) {
+                        return getActorInfo(name).type === typeName;
+                    })
+                    .map(function (name) {
+                        return getActorInfo(name);
+                    });
+            }
+
+            function getActorsOfType(typeName) {
+                return getActorInfoOfType(typeName).map(function (info) {
+                    return info.actor;
+                });
+            }
+
+            function getInfoForActor(actor) {
+                for (var n in actorInfo) {
+                    if (getActor(n) === actor) {
+                        return getActorInfo(n);
+                    }
+                }
+            }
 
             // used to create array of arrows (or other objects) for vector fields
             // change to use magnitudes and color locally
             // to be set by parent widget
             function getVectFormula(vectors, colorMapName) {
 
-                //const cmap = colorMapName ? guiUtils.getColorMap(colorMapName) : [];
+                var cmap = plotting.colorMapOrDefault(
+                    colorMapName,
+                    appState.modelInfo('fieldDisplay').colorMap[SIREPO.INFO_INDEX_DEFAULT_VALUE]
+                );
+                //srdbg('v', vectors, 'cm', cmap);
                 var norms = utilities.normalize(vectors.magnitudes);
                 var logMags = vectors.magnitudes.map(function (n) {
                     return Math.log(n);
@@ -218,10 +366,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
                         for (var i = 0; i < coords.length / 3; i += 1) {
                             var c = [0, 0, 0];
-                            //if (cmap.length) {
-                            //    var cIdx = Math.floor(norms[i] * (cmap.length - 1));
-                            //    c = guiUtils.rgbFromColor(cmap[cIdx], 1.0);
-                            //}
+                            if (cmap.length) {
+                                var cIdx = Math.floor(norms[i] * (cmap.length - 1));
+                                var h = parseInt(cmap[cIdx].substring(1), 16);
+                                c = plotting.rgbFromColorInt(h);
+                            }
                             // scale arrow length (object-local x-direction) only
                             // this can stretch/squish the arrowhead though so the actor may have to adjust the ratio
                             linScale[3 * i] = vectors.magnitudes[i];
@@ -248,46 +397,97 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     }
                 }
                 srdbg('No vector array named ' + name, vectArrays.output);
-                throw new Error('No vector array named ' + name + ': ' + vectArrays.output);
+                throw new Error('No vector array named ' + name  + ': ' + vectArrays.output);
             }
 
             function init() {
                 srdbg('init...');
-                appState.watchModelFields($scope, watchFields, updateViewer);
+                //appState.watchModelFields($scope, watchFields, updateViewer);
                 if (! renderer) {
                     throw new Error('No renderer!');
                 }
-                //srdbg(appState.models.simulation);
-                //renderer.getLights()[0].setLightTypeToSceneLight();
-                //var b = cm.buildSphere(null, null, [1, 0, 0]);
-                //b.actor.getProperty().setEdgeVisibility(true);
-                //vtkPlotting.addActor(renderer, b.actor);
                 updateViewer(true);
                 updateLayout();
             }
 
+            function numColors(polyData, type) {
+                if (vtkUtils.GEOM_OBJ_TYPES.indexOf(type) < 0) {
+                    return 0;
+                }
+                if (type === 'lines') {
+                    return numDataColors(polyData.getLines().getData());
+                }
+                if (type === 'polys') {
+                    return numDataColors(polyData.getPolys().getData());
+                }
+            }
+
+            // lines and poly data arrays look like:
+            //    [<num vertices for obj 0>, <vertex 0, 0>, ...,]
+            function numDataColors(data) {
+                let i = 0;
+                let j = 0;
+                while (i < data.length) {
+                    i += (data[i] + 1);
+                    ++j;
+                }
+                return j;
+            }
+
+            function setColorMap() {
+                getActorsOfType(vtkUtils.GEOM_TYPE_VECTS).forEach(function (actor) {
+                    var mapName = appState.models.fieldDisplay.colorMap;
+                    actor.getMapper().getInputConnection(0).filter
+                        .setFormula(getVectFormula(sceneData.data[0].vectors, mapName));  // which data? all? at what index?
+                });
+                renderWindow.render();
+            }
+
+            function setScaling() {
+                getActorsOfType(vtkUtils.GEOM_TYPE_VECTS).forEach(function (actor) {
+                    var mapper = actor.getMapper();
+                    mapper.setScaleFactor(8.0);
+                    var vs = appState.models.fieldDisplay.scaling;
+                    if (vs === 'uniform') {
+                        mapper.setScaleModeToScaleByConstant();
+                    }
+                    if (vs === 'linear') {
+                        mapper.setScaleArray(LINEAR_SCALE_ARRAY);
+                        mapper.setScaleModeToScaleByComponents();
+                    }
+                    if (vs === 'log') {
+                        mapper.setScaleArray(LOG_SCALE_ARRAY);
+                        mapper.setScaleModeToScaleByComponents();
+                    }
+                });
+                renderWindow.render();
+            }
+
             function updateLayout() {
-                srdbg('updateLayout', appState.models.magnetDisplay.viewType);
+                //srdbg('updateLayout', appState.models.magnetDisplay.viewType);
                 panelState.showField(
                     'magnetDisplay',
                     'fieldType',
                     appState.models.magnetDisplay.viewType === 'fields'
                 );
-                panelState.showField(
-                    'magnetDisplay',
-                    'pathType',
-                    POINT_FIELD_TYPES.indexOf(appState.models.magnetDisplay.fieldType) >= 0
-                );
+                fieldDisplayFields.forEach(function (f) {
+                    var mf = appState.parseModelField(f);
+                    panelState.showField(mf[0], mf[1], appState.models.magnetDisplay.viewType === 'fields');
+                });
+                setColorMap();
+                setScaling();
             }
 
             function updateViewer(doReset) {
                 srdbg('updateViewer');
                 if (doReset) {
-                    appState.models.geometry.doSolve = false;
                     appState.saveQuietly('geometry');
                 }
+                sceneData = {};
+                enableWatchFields(false);
                 panelState.requestData('geometry', function (d) {
-                    buildScene(d);
+                    sceneData = d;
+                    buildScene();
                 }, true);
             }
 
@@ -297,27 +497,16 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
             };
 
-            $scope.solve = function() {
-                srdbg('SOLVE');
-                appState.models.geometry.doSolve = true;
-                appState.saveQuietly('geometry');
-                updateViewer();
-               // panelState.requestData('');
-            };
-
-            //appState.watchModelFields($scope, watchFields, updateViewer);
-
             appState.whenModelsLoaded($scope, function () {
                 srdbg('radia models loaded');
                 appState.watchModelFields($scope, watchFields, updateLayout);
-                //appState.watchModelFields($scope, watchFields, updateViewer);
-                //updateViewer();
+                panelState.enableField('geometry', 'name', ! appState.models.simulation.isExample);
             });
 
             // or keep stuff on vtk viewer scope?
             // start using custom javascript events to break away from angular?
             $scope.$on('vtk-init', function (e, d) {
-                srdbg('VTK INIT', e, d);
+                //srdbg('VTK INIT', e, d);
                 renderer = d.objects.renderer;
                 renderWindow = d.objects.window;
                 vtkAPI = d.api;

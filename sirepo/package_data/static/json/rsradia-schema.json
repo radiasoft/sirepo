@@ -68,6 +68,9 @@
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "scaling": ["Scaling", "FieldScaling", "uniform"]
         },
+        "fieldPaths": {
+            "path": ["Path", "PathType", "line"]
+        },
         "filePath": {
             "fileName": ["File", "String", ""]
         },
@@ -102,12 +105,21 @@
         "simulation": {
         },
         "solver":  {
+            "lastSolved": ["", "Integer", "-1"],
             "maxIterations": ["Max iterations", "Integer", "1500", "", "1"],
             "method": ["Method", "SolveMethod", "0"],
-            "precision": ["Precision (T)", "Float", "0.00010", "", ""]
+            "precision": ["Precision (T)", "Float", "0.00010", "", ""],
+            "result": ["Result", "String", ""]
         }
     },
     "view": {
+        "fieldPaths": {
+            "title": "Field Paths",
+            "basic": [
+                "path"
+            ],
+            "advanced": []
+        },
         "magnetDisplay": {
             "title": "Magnet Viewer",
             "basic": [
@@ -115,27 +127,9 @@
                 "viewType",
                 "fieldType",
                 "fieldDisplay.colorMap",
-                "fieldDisplay.scaling",
-                "pathType",
-                "solver.precision",
-                "solver.maxIterations",
-                "solver.method"
+                "fieldDisplay.scaling"
             ],
-            "advanced": [
-                [
-                    ["Begin", [
-                        "linePath.beginX",
-                        "linePath.beginY",
-                        "linePath.beginZ"
-                    ]],
-                    ["End", [
-                        "linePath.endX",
-                        "linePath.endY",
-                        "linePath.endZ"
-                    ]]
-                ],
-                "linePath.numPoints"
-            ]
+            "advanced": []
         },
         "solver": {
             "title": "Solver",
@@ -143,7 +137,8 @@
                 "precision",
                 "maxIterations",
                 "method"
-            ]
+            ],
+            "advanced": []
         }
     }
 }

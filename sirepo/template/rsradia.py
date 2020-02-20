@@ -63,26 +63,22 @@ def _build_geom(data):
 
 def _generate_parameters_file(data):
     report = data.get('report', '')
+    pkdp('RPT {}', report)
     res, v = template_common.generate_parameters_file(data)
     #pkdp('GEN PARAMS {} V {}', data, v)
     #pkdp('GEN PARAMS M {}', data.models)
-    #v['geomFile'] = GEOM_FILE
+    g = data.models.geometry
     if 'geometry' in report:
         disp = data.models.magnetDisplay
         v_type = disp.viewType
         if v_type not in VIEW_TYPES:
             raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
 
-        g = data.models.geometry
         g_id = mgr.get_geom(g.name)
         if g_id is None:
             #pkdp('NO GEOM {}, BUILDING', g.name)
             g_id = _build_geom(data)
             mgr.add_geom(g.name, g_id)
-        if 'doSolve' in g and g.doSolve:
-            s = data.models.solver
-            res = mgr.solve_geom(g.name, s.precision, s.maxIterations, s.method)
-            pkdp('SOLVE RES {}', res)
         v['geomName'] = g.name
         v['geomId'] = g_id
         v['dataFile'] = GEOM_FILE
@@ -96,7 +92,7 @@ def _generate_parameters_file(data):
                     'Invalid field {} ({})'.format(f_type, radia_tk.FIELD_TYPES)
                 )
             if True:  #f_type == radia_tk.FIELD_TYPE_MAG_M:
-                solve_res = mgr.get_magnetization(g.name)
+                f = mgr.get_magnetization(g.name)
             #elif f_type in radia_tk.POINT_FIELD_TYPES:
             #    solve_res = mgr.get_field(
             #        g.name,
@@ -105,11 +101,14 @@ def _generate_parameters_file(data):
             #    )
             v['geomData'] = mgr.vector_field_to_data(
                 g.name,
-                solve_res,
+                f,
                 radia_tk.FIELD_UNITS[f_type]
             )
-
-        #v['geomData'] = mgr.geom_to_data(g.name)
+    if 'solver' in report:
+        s = data.models.solver
+        res = mgr.solve_geom(g.name, s.precision, s.maxIterations, s.method)
+        pkdp('SOLVE RES {}', res)
+        v['geomData'] = mgr.geom_to_data(g.name)
 
     # add parameters (???)
     return template_common.render_jinja(
