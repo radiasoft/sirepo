@@ -24,7 +24,7 @@ INPUT_NAME = 'hundli.yml'
 OUTPUT_NAME = 'hundli.csv'
 
 
-def get_data_file(run_dir, model, frame, options=None):
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
     f = run_dir.join(OUTPUT_NAME)
     return f.basename, f.read(), 'text/csv'
 

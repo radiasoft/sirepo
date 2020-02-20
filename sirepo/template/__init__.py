@@ -25,6 +25,18 @@ def import_module(type_or_data):
     return importlib.import_module('.' + assert_sim_type(type_or_data), __name__)
 
 
+def is_sim_type(sim_type):
+    """Validate simulation type
+
+    Args:
+        sim_type (str): to check
+
+    Returns:
+        bool: true if is a sim_type
+    """
+    return sim_type in feature_config.cfg().sim_types
+
+
 def assert_sim_type(sim_type):
     """Validate simulation type
 
@@ -32,8 +44,7 @@ def assert_sim_type(sim_type):
         sim_type (str): to check
 
     Returns:
-        str: sim_type
+        str: validated sim_type
     """
-    assert sim_type in feature_config.cfg.sim_types, \
-        '{}: invalid simulation type'.format(sim_type)
+    assert is_sim_type(sim_type), 'invalid simulation type={}'.format(sim_type)
     return sim_type

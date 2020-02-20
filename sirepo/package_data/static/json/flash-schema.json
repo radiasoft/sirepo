@@ -1,31 +1,4 @@
 {
-    "dynamicFiles": {
-        "sirepoLibs": {
-            "js": ["flash.js"]
-        }
-    },
-    "localRoutes": {
-        "source": {
-            "config": {
-                "controller": "SourceController as source",
-                "templateUrl": "/static/html/flash-source.html"
-            }
-        },
-        "physics": {
-            "route": "/physics/:simulationId",
-            "config": {
-                "controller": "PhysicsController as physics",
-                "templateUrl": "/static/html/flash-physics.html"
-            }
-        },
-        "visualization": {
-            "route": "/visualization/:simulationId",
-            "config": {
-              "controller": "VisualizationController as visualization",
-              "templateUrl": "/static/html/flash-visualization.html"
-            }
-        }
-    },
     "enum": {
         "flashType": [
             ["CapLaser", "CapLaser"],
@@ -504,6 +477,37 @@
             ["3", "3"],
             ["4", "4"]
         ]
+    },
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": ["flash.js"]
+        }
+    },
+    "frameIdFields": {
+        "gridEvolutionAnimation": ["y1", "y2", "y3"],
+        "varAnimation": ["var"]
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/flash-source.html"
+            }
+        },
+        "physics": {
+            "route": "/physics/:simulationId",
+            "config": {
+                "controller": "PhysicsController as physics",
+                "templateUrl": "/static/html/flash-physics.html"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+              "controller": "VisualizationController as visualization",
+              "templateUrl": "/static/html/flash-visualization.html"
+            }
+        }
     },
     "model": {
         "simulation": {

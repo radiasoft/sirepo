@@ -26,12 +26,12 @@ def run(cfg_dir):
                 exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
             template.save_report_data(data, py.path.local(cfg_dir))
         except Exception as e:
-            res = template.parse_error_log(py.path.local(cfg_dir)) or {
+            res = template.parse_synergia_log(py.path.local(cfg_dir)) or {
                 'error': str(e),
             }
             simulation_db.write_result(res)
     else:
-        raise RuntimeError('unknown report: {}'.format(report))
+        assert False, 'unknown report: {}'.format(report)
 
 
 def run_background(cfg_dir):
@@ -52,7 +52,7 @@ def run_background(cfg_dir):
         }
     if run_with_mpi and 'error' in res:
         text = pkio.read_text('mpi_run.out')
-        m = re.search(r'^Traceback .*?^\w*Error: (.*?)\n\n', text, re.MULTILINE|re.DOTALL)
+        m = re.search(r'^Traceback .*?^\w*Error: (.*?)\n', text, re.MULTILINE|re.DOTALL)
         if m:
             res['error'] = m.group(1)
             # remove output file - write_result() will not overwrite an existing error output

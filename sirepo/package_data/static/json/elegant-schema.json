@@ -1,4 +1,7 @@
 {
+    "constant": {
+        "ELEGANT_ME_EV": 0.51099906
+    },
     "dynamicFiles": {
         "externalLibs": {
             "js": [
@@ -8,45 +11,15 @@
         "sirepoLibs": {
             "js": [
                 "elegant.js",
+                "sirepo-command.js",
                 "sirepo-lattice.js"
             ],
              "css": [
                  "elegant.css",
+                 "command.css",
                  "lattice.css"
             ]
        }
-    },
-    "localRoutes": {
-        "source": {
-          "config": {
-            "controller": "ElegantSourceController as source",
-            "templateUrl": "/static/html/elegant-source.html"
-          }
-        },
-        "lattice": {
-            "route": "/lattice/:simulationId",
-            "config": {
-            "controller": "LatticeController as lattice",
-            "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
-          }
-        },
-        "control": {
-            "route": "/control/:simulationId",
-            "config": {
-              "controller": "CommandController as control",
-              "templateUrl": "/static/html/elegant-control.html"
-            }
-        },
-        "visualization": {
-            "route": "/visualization/:simulationId",
-            "config": {
-              "controller": "VisualizationController as visualization",
-              "templateUrl": "/static/html/elegant-visualization.html"
-            }
-        }
-    },
-    "constant": {
-        "ELEGANT_ME_EV": 0.51099906
     },
     "enum": {
         "BunchInputSource": [
@@ -419,6 +392,50 @@
             ["fft uniform", "fft uniform"]
         ]
     },
+    "frameIdFields": {
+        "animation": [
+            "x",
+            "y1",
+            "y2",
+            "y3",
+            "histogramBins",
+            "xFileId",
+            "plotRangeType",
+            "horizontalSize",
+            "horizontalOffset",
+            "verticalSize",
+            "verticalOffset"
+        ]
+    },
+    "localRoutes": {
+        "source": {
+          "config": {
+            "controller": "ElegantSourceController as source",
+            "templateUrl": "/static/html/elegant-source.html"
+          }
+        },
+        "lattice": {
+            "route": "/lattice/:simulationId",
+            "config": {
+            "controller": "LatticeController as lattice",
+            "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
+          }
+        },
+        "control": {
+            "route": "/control/:simulationId",
+            "config": {
+              "controller": "CommandController as control",
+              "template": "<div data-command-tab=\"\" data-controller=\"control\"></div>"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+              "controller": "VisualizationController as visualization",
+              "templateUrl": "/static/html/elegant-visualization.html"
+            }
+        }
+    },
     "model": {
         "beamline": {
             "name": ["Name", "ValidatedString"]
@@ -430,7 +447,7 @@
             "inputSource": ["Bunch Source", "BunchInputSource", "bunched_beam"]
         },
         "bunch": {
-            "p_central_mev": ["Central momentum of the beamline [MeV/c]", "RPNValue", "", "Central momentum of the beamline in MeV/c, about which expansions are done. This corresponds to p_central_mev field of the run_setup command.", 1e-99],
+            "p_central_mev": ["Central momentum of the beamline [MeV/c]", "RPNValue", "", "Central momentum of the beamline in MeV/c, about which expansions are done. This corresponds to p_central_mev field of the run_setup command.", 0],
             "n_particles_per_bunch": ["Particles Per Bunch", "Integer", 1, "Number of particles in each bunch (max 10,000,000)", 1, 10000000],
             "symmetrize": ["Symmetrize", "RPNBoolean", "0", "If non-zero, the distribution is symmetric under changes of sign in the coordinates. Automatically results in a zero centroid for all coordinates."],
             "centroid": ["Centroid", "Float6StringArray", "0, 0, 0, 0, 0, 0", "Centroid offsets for each of the six coordinates.", "X, X', Y, Y', T, P"],
@@ -505,7 +522,8 @@
         },
         "simulation": {
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""],
-            "simulationMode": ["Execution", "SimulationMode", "serial"]
+            "simulationMode": ["Execution", "SimulationMode", "serial"],
+            "backtracking": ["Backtracking", "Boolean", "0", "Run the particles through the lattice from back to front, reversing the element length, angle and voltage parameters."]
         },
         "simulationStatus": {},
         "twissReport": {
@@ -4118,7 +4136,14 @@
         },
         "simulationStatus": {
             "title": "Simulation Status",
-            "advanced": []
+            "basic": [
+                "simulation.visualizationBeamlineId"
+            ],
+            "advanced": [
+                "simulation.simulationMode",
+                "simulation.backtracking",
+                "simulation.visualizationBeamlineId"
+            ]
         },
         "twissReport": {
             "title": "Twiss Parameters",

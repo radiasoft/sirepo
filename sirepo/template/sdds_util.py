@@ -7,6 +7,7 @@ u"""SDDS utilities.
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pksubprocess
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo.template import elegant_common
 import math
@@ -101,16 +102,16 @@ def _sdds_column(field):
         _SDDS_INDEX,
         column_names.index(field),
     )
-    return {
-        'values': map(lambda v: _safe_sdds_value(v), values),
-        'column_names': column_names,
-        'column_def': column_def,
-        'err': None,
-    }
+    return PKDict(
+        values=map(lambda v: _safe_sdds_value(v), values),
+        column_names=column_names,
+        column_def=column_def,
+        err=None,
+    )
 
 
 def _sdds_error(error_text='invalid data file'):
     sdds.sddsdata.Terminate(_SDDS_INDEX)
-    return {
-        'error': error_text,
-    }
+    return PKDict(
+        error=error_text,
+    )

@@ -50,9 +50,9 @@ def run_background(cfg_dir):
 def _elegant_to_madx(ring):
     # if the lattice source is an elegant twiss file, convert it to MAD-X format
     if ring['latticeSource'] == 'madx':
-        return template_common.lib_file_name('ring', 'lattice', ring['lattice'])
+        return _SIM_DATA.lib_file_name_with_model_field('ring', 'lattice', ring['lattice'])
     if ring['latticeSource'] == 'elegant':
-        elegant_twiss_file = template_common.lib_file_name('ring', 'elegantTwiss', ring['elegantTwiss'])
+        elegant_twiss_file = _SIM_DATA.lib_file_name_with_model_field('ring', 'elegantTwiss', ring['elegantTwiss'])
     else: # elegant-sirepo
         if 'elegantSirepo' not in ring or not ring['elegantSirepo']:
             raise RuntimeError('elegant simulation not selected')

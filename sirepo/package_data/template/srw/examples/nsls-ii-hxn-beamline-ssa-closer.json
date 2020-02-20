@@ -1,5 +1,10 @@
 {
     "models": {
+        "arbitraryMagField": {
+            "interpolationOrder": 1,
+            "longitudinalPosition": 0,
+            "magneticFile": "ivu21_srx_g6_2c.dat"
+        },
         "beamline": [
             {
                 "horizontalOffset": 0,
@@ -13,9 +18,11 @@
                 "verticalSize": 0.7
             },
             {
+                "autocomputeVectors": "horizontal",
                 "grazingAngle": 3.2,
                 "heightAmplification": 1,
                 "heightProfileFile": null,
+                "horizontalOffset": 0,
                 "id": 4,
                 "normalVectorX": 0.9999948800043691,
                 "normalVectorY": 0,
@@ -28,14 +35,16 @@
                 "tangentialVectorX": 0.003199994538669463,
                 "tangentialVectorY": 0,
                 "title": "HCM",
-                "type": "sphericalMirror"
+                "type": "sphericalMirror",
+                "verticalOffset": 0
             },
             {
                 "asymmetryAngle": 0,
                 "crystalThickness": 0.01,
                 "dSpacing": 3.1355713563754857,
+                "diffractionAngle": "1.57079632",
                 "energy": 8000,
-                "grazingAngle": 1.5707963,
+                "grazingAngle": 249.7517176345311,
                 "h": "1",
                 "heightAmplification": 1,
                 "heightProfileFile": "",
@@ -64,8 +73,9 @@
                 "asymmetryAngle": 0,
                 "crystalThickness": 0.01,
                 "dSpacing": 3.1355713563754857,
+                "diffractionAngle": "-1.57079632",
                 "energy": 8000,
-                "grazingAngle": -1.5707963,
+                "grazingAngle": 249.7517176345311,
                 "h": "1",
                 "heightAmplification": 1,
                 "heightProfileFile": "",
@@ -91,9 +101,11 @@
                 "type": "crystal"
             },
             {
+                "autocomputeVectors": "horizontal",
                 "grazingAngle": 3.2,
                 "heightAmplification": 1,
                 "heightProfileFile": null,
+                "horizontalOffset": 0,
                 "id": 7,
                 "normalVectorX": -0.9999948800043691,
                 "normalVectorY": 0,
@@ -106,7 +118,8 @@
                 "tangentialVectorX": -0.003199994538669463,
                 "tangentialVectorY": 0,
                 "title": "HFM",
-                "type": "sphericalMirror"
+                "type": "sphericalMirror",
+                "verticalOffset": 0
             },
             {
                 "id": 15,
@@ -120,6 +133,7 @@
                 "focalDistance": "23.4678",
                 "focalPlane": "2",
                 "horizontalApertureSize": 3,
+                "horizontalOffset": 0,
                 "id": 8,
                 "material": "Be",
                 "method": "server",
@@ -133,6 +147,7 @@
                 "title": "CRL1",
                 "type": "crl",
                 "verticalApertureSize": 1.5,
+                "verticalOffset": 0,
                 "wallThickness": 8e-05
             },
             {
@@ -141,6 +156,7 @@
                 "focalDistance": "46.9355",
                 "focalPlane": "2",
                 "horizontalApertureSize": 3,
+                "horizontalOffset": 0,
                 "id": 9,
                 "material": "Be",
                 "method": "server",
@@ -154,6 +170,7 @@
                 "title": "CRL2",
                 "type": "crl",
                 "verticalApertureSize": 1.5,
+                "verticalOffset": 0,
                 "wallThickness": 8e-05
             },
             {
@@ -207,11 +224,42 @@
                 "type": "watch"
             }
         ],
+        "beamline3DReport": {
+            "condenseBeamline": "1",
+            "includeSource": "1",
+            "projection": "parallel",
+            "showLabels": "1",
+            "showPosition": "1"
+        },
+        "brillianceReport": {
+            "brightnessComponent": "k-tuning",
+            "detuning": 0,
+            "energyDelta": 10,
+            "energyPointCount": 100,
+            "finalHarmonic": 5,
+            "harmonic": "5",
+            "initialHarmonic": 1,
+            "minDeflection": 0.2,
+            "notes": "",
+            "plotScale": "linear",
+            "reportType": "0"
+        },
+        "coherenceXAnimation": {
+            "aspectRatio": "1",
+            "colorMap": "grayscale",
+            "intensityPlotsWidth": "0",
+            "plotScale": "linear"
+        },
+        "coherenceYAnimation": {
+            "aspectRatio": "1",
+            "colorMap": "grayscale",
+            "intensityPlotsWidth": "0",
+            "plotScale": "linear"
+        },
         "electronBeam": {
             "beamDefinition": "t",
             "beamSelector": "NSLS-II Low Beta Day 1",
             "current": 0.5,
-            "drift": 0,
             "energy": 3,
             "energyDeviation": 0,
             "horizontalAlpha": 0,
@@ -219,7 +267,6 @@
             "horizontalDispersion": 0,
             "horizontalDispersionDerivative": 0,
             "horizontalEmittance": 0.9,
-            "horizontalPosition": 0,
             "isReadOnly": true,
             "name": "NSLS-II Low Beta Day 1",
             "rmsDivergX": 22.11629342,
@@ -232,7 +279,6 @@
             "verticalDispersion": 0,
             "verticalDispersionDerivative": 0,
             "verticalEmittance": 0.008,
-            "verticalPosition": 0,
             "xxprX": 0,
             "xxprY": 0
         },
@@ -257,8 +303,10 @@
             "longitudinalPrecision": 1,
             "magneticField": 2,
             "method": 1,
+            "notes": "",
             "numberOfMacroElectrons": 100000,
             "photonEnergyPointCount": 4000,
+            "plotScale": "linear",
             "polarization": 6,
             "precision": 0.01,
             "verticalApertureSize": 1,
@@ -277,8 +325,10 @@
             "longitudinalPrecision": 1,
             "magneticField": 1,
             "method": -1,
+            "notes": "",
             "numberOfMacroElectrons": 1,
             "photonEnergyPointCount": 10000,
+            "plotScale": "linear",
             "polarization": 6,
             "precision": 0.01,
             "verticalApertureSize": "1",
@@ -286,6 +336,7 @@
         },
         "gaussianBeam": {
             "energyPerPulse": "0.001",
+            "photonEnergy": 8000,
             "polarization": 1,
             "rmsDivergenceX": 0,
             "rmsDivergenceY": 0,
@@ -300,12 +351,18 @@
             "waistZ": 0
         },
         "initialIntensityReport": {
+            "aspectRatio": "1",
             "characteristic": 0,
+            "colorMap": "grayscale",
+            "copyCharacteristic": "0",
             "fieldUnits": 1,
-            "intensityPlotsScale": "linear",
             "intensityPlotsWidth": "0",
+            "notes": "",
+            "plotScale": "linear",
             "polarization": 6,
-            "precision": 0.01
+            "precision": 0.01,
+            "rotateAngle": 0,
+            "rotateReshape": "1"
         },
         "intensityReport": {
             "distanceFromSource": 26.62,
@@ -315,20 +372,40 @@
             "initialEnergy": "100",
             "magneticField": 2,
             "method": "1",
+            "notes": "",
             "photonEnergyPointCount": 10000,
+            "plotScale": "linear",
             "polarization": 6,
             "precision": 0.01,
             "verticalPosition": 0
         },
+        "mirrorReport": {
+            "intensityPlotsWidth": "0",
+            "notes": "",
+            "plotScale": "linear"
+        },
         "multiElectronAnimation": {
+            "aspectRatio": "1",
+            "calcCoherence": "0",
+            "colorMap": "grayscale",
             "horizontalPosition": 0,
             "horizontalRange": "0.4",
+            "integrationMethod": "0",
             "intensityPlotsScale": "linear",
             "intensityPlotsWidth": "0",
+            "jobRunMode": "parallel",
+            "notes": "",
             "numberOfMacroElectrons": 100000,
+            "photonEnergyBandWidth": 0,
+            "plotScale": "linear",
+            "rotateAngle": 0,
+            "rotateReshape": "1",
+            "sbatchCores": 128,
+            "sbatchHours": 0.4,
             "stokesParameter": "0",
             "verticalPosition": 0,
-            "verticalRange": "0.6"
+            "verticalRange": "0.6",
+            "watchpointId": 0
         },
         "multipole": {
             "distribution": "n",
@@ -348,17 +425,30 @@
             "1",
             "1",
             "1",
-            "1"
+            "1",
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
         ],
         "powerDensityReport": {
+            "aspectRatio": "1",
+            "colorMap": "grayscale",
             "distanceFromSource": 26.62,
             "horizontalPointCount": 100,
             "horizontalPosition": "0",
             "horizontalRange": 25,
-            "intensityPlotsScale": "linear",
             "intensityPlotsWidth": "0",
             "method": 1,
+            "notes": "",
+            "plotScale": "linear",
             "precision": "1",
+            "rotateAngle": 0,
+            "rotateReshape": "1",
             "verticalPointCount": 100,
             "verticalPosition": 0,
             "verticalRange": "15"
@@ -374,7 +464,15 @@
                     1,
                     "1",
                     1,
-                    "1"
+                    "1",
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ],
                 [
                     0,
@@ -385,7 +483,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ],
             "11": [
@@ -398,7 +504,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ],
                 [
                     0,
@@ -409,7 +523,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ],
             "12": [
@@ -422,7 +544,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ],
                 [
                     0,
@@ -433,7 +563,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ],
             "13": [
@@ -446,7 +584,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ],
                 [
                     0,
@@ -457,7 +603,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ],
             "14": [
@@ -470,7 +624,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ],
                 [
                     0,
@@ -481,7 +643,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ],
             "15": [
@@ -494,7 +664,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ],
                 [
                     0,
@@ -505,7 +683,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ],
             "2": [
@@ -518,7 +704,15 @@
                     "1.2",
                     "2.5",
                     "1.2",
-                    "10"
+                    "10",
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ],
                 [
                     0,
@@ -529,7 +723,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ],
             "3": [
@@ -542,7 +744,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ],
                 [
                     0,
@@ -553,7 +763,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ],
             "4": [
@@ -566,7 +784,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ],
                 [
                     0,
@@ -577,7 +803,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ],
             "5": [
@@ -590,7 +824,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ],
                 [
                     0,
@@ -601,7 +843,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ],
             "6": [
@@ -614,7 +864,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ],
                 [
                     0,
@@ -625,7 +883,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ],
             "7": [
@@ -638,7 +904,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ],
                 [
                     0,
@@ -649,7 +923,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ],
             "8": [
@@ -662,7 +944,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ],
                 [
                     0,
@@ -673,7 +963,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ],
             "9": [
@@ -686,7 +984,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ],
                 [
                     0,
@@ -697,43 +1003,58 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ]
         },
         "simulation": {
+            "distanceFromSource": 20,
             "documentationUrl": "https://www.bnl.gov/ps/beamlines/beamline.php?r=3-ID",
-            "facility": "",
             "folder": "/Light Source Facilities/NSLS-II/NSLS-II HXN beamline",
             "horizontalPointCount": 100,
             "horizontalPosition": 0,
             "horizontalRange": 3,
-            "isExample": false,
+            "isExample": true,
             "name": "NSLS-II HXN beamline: SSA closer",
+            "notes": "",
             "outOfSessionSimulationId": "MHsRCPr4",
             "photonEnergy": 8000,
             "sampleFactor": 0.1,
             "samplingMethod": "1",
-            "simulationId": "kA8UvEyy",
-            "simulationSerial": 1486165235015978,
             "sourceType": "t",
             "verticalPointCount": 100,
             "verticalPosition": 0,
             "verticalRange": 0.7
         },
         "sourceIntensityReport": {
+            "aspectRatio": "1",
             "characteristic": "1",
+            "colorMap": "grayscale",
             "distanceFromSource": 26.62,
             "fieldUnits": 1,
+            "finalPosition": 0.0,
             "horizontalPointCount": 100,
             "horizontalPosition": 0,
             "horizontalRange": 3,
-            "intensityPlotsScale": "linear",
+            "initialPosition": 0.0,
             "intensityPlotsWidth": "0",
             "magneticField": 2,
+            "method": "1",
+            "notes": "",
             "photonEnergy": 8000,
+            "plotScale": "linear",
             "polarization": 6,
             "precision": 0.01,
+            "rotateAngle": 0,
+            "rotateReshape": "1",
             "sampleFactor": 0.1,
             "samplingMethod": "1",
             "verticalPointCount": 100,
@@ -744,7 +1065,6 @@
             "gap": 5.622,
             "id": "w73e5iTp 1",
             "indexFileName": "",
-            "length": 4.865095,
             "magneticFile": "magn_meas_u20_hxn.zip",
             "name": "U20 HXN",
             "phase": 0,
@@ -767,6 +1087,7 @@
             "finalTimeMoment": 0,
             "initialTimeMoment": 0,
             "magneticField": 2,
+            "notes": "",
             "numberOfPoints": 10000,
             "plotAxis": "x",
             "plotAxisX": "Z",
@@ -775,51 +1096,77 @@
             "timeMomentEstimation": "auto"
         },
         "undulator": {
+            "effectiveDeflectingParameter": 1.65776086,
             "horizontalAmplitude": "0",
+            "horizontalDeflectingParameter": 0.0,
             "horizontalInitialPhase": 0,
             "horizontalSymmetry": 1,
-            "length": 3,
+            "length": 4.865095,
             "longitudinalPosition": 0,
             "period": "20",
             "undulatorParameter": 1.65776086,
             "verticalAmplitude": "0.88770981",
+            "verticalDeflectingParameter": 1.65776086,
             "verticalInitialPhase": 0,
             "verticalSymmetry": -1
         },
         "watchpointReport11": {
+            "aspectRatio": "1",
             "characteristic": "0",
+            "colorMap": "grayscale",
             "fieldUnits": 1,
             "intensityPlotsScale": "linear",
             "intensityPlotsWidth": "0",
+            "notes": "",
+            "plotScale": "linear",
             "polarization": 6,
-            "precision": 0.01
+            "precision": 0.01,
+            "rotateAngle": 0,
+            "rotateReshape": "1"
         },
         "watchpointReport14": {
+            "aspectRatio": "1",
             "characteristic": 0,
+            "colorMap": "grayscale",
             "fieldUnits": 1,
             "intensityPlotsScale": "linear",
             "intensityPlotsWidth": "0",
+            "notes": "",
+            "plotScale": "linear",
             "polarization": 6,
-            "precision": 0.01
+            "precision": 0.01,
+            "rotateAngle": 0,
+            "rotateReshape": "1"
         },
         "watchpointReport15": {
+            "aspectRatio": "1",
             "characteristic": 0,
+            "colorMap": "grayscale",
             "fieldUnits": 1,
             "intensityPlotsScale": "linear",
             "intensityPlotsWidth": "0",
+            "notes": "",
+            "plotScale": "linear",
             "polarization": 6,
-            "precision": 0.01
+            "precision": 0.01,
+            "rotateAngle": 0,
+            "rotateReshape": "1"
         },
         "watchpointReport3": {
+            "aspectRatio": "1",
             "characteristic": "0",
+            "colorMap": "grayscale",
             "fieldUnits": 1,
             "intensityPlotsScale": "linear",
             "intensityPlotsWidth": "0",
+            "notes": "",
+            "plotScale": "linear",
             "polarization": 6,
-            "precision": 0.01
+            "precision": 0.01,
+            "rotateAngle": 0,
+            "rotateReshape": "1"
         }
     },
     "report": "initialIntensityReport",
-    "simulationType": "srw",
-    "version": "20170202.000000"
+    "simulationType": "srw"
 }

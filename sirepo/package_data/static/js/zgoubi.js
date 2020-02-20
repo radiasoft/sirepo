@@ -3,46 +3,45 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.USER_MANUAL_URL = 'https://zgoubi.sourceforge.io/ZGOUBI_DOCS/Zgoubi.pdf';
-SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
-SIREPO.appFieldEditors = [
-    '<div data-ng-switch-when="LatticeBeamlineList" data-ng-class="fieldClass">',
-      '<div data-lattice-beamline-list="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="FileNameArray" data-ng-class="fieldClass">',
-      '<div data-magnet-files="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="Changref2Array" class="col-sm-7">',
-      '<div data-changref2-fields="" data-model="model" data-field="field"></div>',
-    '</div>',
-].join('');
-SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot"></div>',
-].join('');
-SIREPO.appDownloadLinks = [
-    '<li data-export-zgoubi-link="" data-report-title="{{ reportTitle() }}"></li>',
-].join('');
-SIREPO.appImportText = 'Import a zgoubi.dat datafile';
-SIREPO.lattice = {
-    invalidElementName: /[#*'",]/g,
-    elementColor: {
-        CHANGREF: 'orange',
-        CHANGREF_VALUE: 'orange',
-        QUADRUPO: 'tomato',
-        SEXTUPOL: 'lightgreen',
-        TOSCA: 'cornflowerblue',
-    },
-    elementPic: {
-        aperture: [],
-        bend: ['AUTOREF', 'BEND', 'CHANGREF', 'CHANGREF_VALUE', 'FFA', 'FFA_SPI', 'MULTIPOL'],
-        drift: ['DRIFT'],
-        magnet: ['QUADRUPO', 'SEXTUPOL', 'TOSCA'],
-        rf: ['CAVITE'],
-        solenoid: ['SOLENOID'],
-        watch: ['MARKER'],
-        zeroLength: ['SCALING', 'SPINR', 'YMY'],
-    },
-};
+SIREPO.app.config(function() {
+    SIREPO.USER_MANUAL_URL = 'https://zgoubi.sourceforge.io/ZGOUBI_DOCS/Zgoubi.pdf';
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="FileNameArray" data-ng-class="fieldClass">',
+          '<div data-magnet-files="" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="Changref2Array" class="col-sm-7">',
+          '<div data-changref2-fields="" data-model="model" data-field="field"></div>',
+        '</div>',
+    ].join('');
+    SIREPO.appReportTypes = [
+        '<div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot"></div>',
+    ].join('');
+    SIREPO.appDownloadLinks = [
+        '<li data-export-zgoubi-link="" data-report-title="{{ reportTitle() }}"></li>',
+    ].join('');
+    SIREPO.appImportText = 'Import a zgoubi.dat datafile';
+    SIREPO.lattice = {
+        invalidElementName: /[#*'",]/g,
+        elementColor: {
+            CHANGREF: 'orange',
+            CHANGREF_VALUE: 'orange',
+            QUADRUPO: 'tomato',
+            SEXTUPOL: 'lightgreen',
+            TOSCA: 'cornflowerblue',
+        },
+        elementPic: {
+            aperture: [],
+            bend: ['AUTOREF', 'BEND', 'CHANGREF', 'CHANGREF_VALUE', 'FFA', 'FFA_SPI', 'MULTIPOL'],
+            drift: ['DRIFT'],
+            magnet: ['QUADRUPO', 'SEXTUPOL', 'TOSCA'],
+            rf: ['CAVITE'],
+            solenoid: ['SOLENOID'],
+            watch: ['MARKER'],
+            zeroLength: ['SCALING', 'SPINR', 'YMY'],
+        },
+    };
+});
 
 SIREPO.app.directive('appFooter', function() {
     return {
@@ -346,17 +345,16 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
 
     function handleStatus(data) {
         self.errorMessage = data.error;
-        if (data.startTime && ! data.error) {
+        if ('percentComplete' in data && ! data.error) {
             ['bunchAnimation', 'bunchAnimation2', 'energyAnimation', 'elementStepAnimation', 'particleAnimation'].forEach(function(m) {
                 plotRangeService.computeFieldRanges(self, m, data.percentComplete);
-                appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
             });
             if (data.frameCount) {
                 frameCache.setFrameCount(data.frameCount - 1, 'energyAnimation');
                 frameCache.setFrameCount(data.frameCount - 1, 'elementStepAnimation');
                 frameCache.setFrameCount(data.frameCount - 1, 'particleAnimation');
-                updateTunesReport(data.startTime, data.showTunesReport);
+                updateTunesReport(data.showTunesReport);
             }
             self.hasPlotFile = data.hasPlotFile;
             self.showSpin3d = data.showSpin3d;
@@ -382,17 +380,14 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
                 || (model.showAllFrames == '1' && zgoubiService.showParticleSelector()));
     }
 
-    function updateTunesReport(startTime, showTunesReport) {
+    function updateTunesReport(showTunesReport) {
         // tunesReport is tied to the current animation data
         // only show if particle count is <= 10 and number of turnes is >= 10
-        var tunesReport = appState.models.tunesReport;
-        if (tunesReport.startTime != startTime) {
-            tunesReport.showTunesReport = showTunesReport;
-            // need to wait for report to become visible so it can respond to changes
-            panelState.waitForUI(function() {
-                appState.saveChanges('tunesReport');
-            });
-        }
+        appState.models.tunesReport.showTunesReport = showTunesReport;
+        // need to wait for report to become visible so it can respond to changes
+        panelState.waitForUI(function() {
+            appState.saveChanges('tunesReport');
+        });
     }
 
     self.bunchReportHeading = function(name) {
@@ -423,14 +418,11 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         self.simState.saveAndRunSimulation('simulation');
     };
 
-    var animationArgs = [SIREPO.ANIMATION_ARGS_VERSION + '4', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'showAllFrames', 'particleSelector', 'plotType', 'startTime'];
-    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        bunchAnimation: animationArgs,
-        bunchAnimation2: animationArgs,
-        energyAnimation: animationArgs,
-        elementStepAnimation: animationArgs,
-        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'isRunning', 'particleSelector', 'startTime'],
-    });
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        zgoubiService.computeModel(),
+        handleStatus
+    );
 
     self.simState.errorMessage = function() {
         return self.errorMessage;
@@ -492,7 +484,7 @@ SIREPO.app.factory('magnetService', function() {
         if (magnetType == '3d-mf-1v') {
             return model.IZ;
         }
-        throw 'unhandled magnetType: ' + magnetType;
+        throw new Error('unhandled magnetType: ' + magnetType);
     };
 
     self.magnetTypesForMesh = function(model) {
@@ -527,6 +519,10 @@ SIREPO.app.factory('zgoubiService', function(appState, panelState) {
         return bunch.particleCount2;
     }
 
+    self.computeModel = function(analysisModel) {
+        return 'animation';
+    };
+
     self.showParticleSelector = function() {
         return particleCount() <= MAX_FILTER_PLOT_PARTICLES;
     };
@@ -538,6 +534,8 @@ SIREPO.app.factory('zgoubiService', function(appState, panelState) {
             panelState.showEnum(model, 'particleSelector', value, parseInt(value) <= count);
         });
     };
+
+    appState.setAppService(self);
 
     return self;
 });
@@ -734,6 +732,9 @@ SIREPO.app.directive('srToscaEditor', function(appState, magnetService, panelSta
                                 }
                                 tosca.l = data.toscaInfo.toscaLength;
                                 tosca.allFileNames = data.toscaInfo.fileList;
+                                if (tosca.allFileNames.length == 1) {
+                                    tosca.fileNames = [tosca.allFileNames[0]];
+                                }
                             }
                         });
                     updateMagnetFiles(tosca);
@@ -908,14 +909,17 @@ SIREPO.app.directive('exportZgoubiLink', function(appState, panelState, requestS
         restrict: 'A',
         scope: {},
         template: [
-            '<a data-ng-href="{{ zgoubiDataUrl() }}" target="_blank">zgoubi.dat</a>',
+            '<a data-ng-show="showLink" data-ng-href="{{ zgoubiDataUrl() }}" target="_blank">zgoubi.dat</a>',
         ].join(''),
         controller: function($scope) {
+            $scope.showLink = false;
+
             $scope.zgoubiDataUrl = function() {
                 if (! appState.isLoaded()) {
                     return null;
                 }
                 var modelKey = panelState.findParentAttribute($scope, 'modelKey');
+                $scope.showLink = modelKey != 'beamlineReport';
                 return requestSender.formatUrl('downloadDataFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,

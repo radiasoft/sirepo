@@ -1,28 +1,26 @@
 # -*- coding: utf-8 -*-
-u"""SRW execution template.
+u"""Common execution template.
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
-from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjinja
-from pykern import pkresource
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdlog, pkdp
-import hashlib
-import json
+from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 import math
-import numpy as np
+import numpy
 import os.path
-import py.path
 import re
+import sirepo.http_reply
+import sirepo.http_request
 import sirepo.sim_data
 import sirepo.template
+import sirepo.util
 import subprocess
 import types
+
 
 ANIMATION_ARGS_VERSION_RE = re.compile(r'v(\d+)$')
 
@@ -43,7 +41,6 @@ RUN_LOG = 'run.log'
 _HISTOGRAM_BINS_MAX = 500
 
 _PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
-
 
 class ModelUnits(object):
     """Convert model fields from native to sirepo format, or from sirepo to native format.
@@ -210,9 +207,49 @@ def flatten_data(d, res, prefix=''):
 
 
 def generate_parameters_file(data):
-    v = flatten_data(data['models'], pkcollections.Dict())
+    v = flatten_data(data['models'], PKDict())
     v['notes'] = _get_notes(v)
     return render_jinja(None, v, name='common-header.py'), v
+
+
+def sim_frame(frame_id, op):
+    f, s = sirepo.sim_data.parse_frame_id(frame_id)
+    # document parsing the request
+    sirepo.http_request.parse_post(req_data=f, id=True, check_sim_exists=True)
+    try:
+        x = op(f)
+    except Exception as e:
+        pkdlog('error generating report frame_id={} stack={}', frame_id, pkdexc())
+        raise sirepo.util.convert_exception(e, display_text='Report not generated')
+    r = sirepo.http_reply.gen_json(x)
+    if 'error' not in x and s.want_browser_frame_cache():
+        r.headers['Cache-Control'] = 'private, max-age=31536000'
+    else:
+        sirepo.http_reply.headers_for_no_cache(r)
+    return r
+
+
+def sim_frame_dispatch(frame_args):
+    from sirepo import simulation_db
+
+    frame_args.pksetdefault(
+        run_dir=lambda: simulation_db.simulation_run_dir(frame_args),
+    ).pksetdefault(
+        sim_in=lambda: simulation_db.read_json(
+            frame_args.run_dir.join(INPUT_BASE_NAME),
+        ),
+    )
+    t = sirepo.template.import_module(frame_args.simulationType)
+    o = getattr(t, 'sim_frame', None) \
+        or getattr(t, 'sim_frame_' + frame_args.frameReport)
+    try:
+        res = o(frame_args)
+    except Exception as e:
+        pkdlog('error generating report frame_args={} stack={}', frame_args, pkdexc())
+        raise sirepo.util.convert_exception(e, display_text='Report not generated')
+    if res is None:
+        raise RuntimeError('unsupported simulation_frame model={}'.format(frame_args.frameReport))
+    return res
 
 
 def h5_to_dict(hf, path=None):
@@ -251,7 +288,7 @@ def heatmap(values, model, plot_fields=None):
             range = [_plot_range(model, 'horizontal'), _plot_range(model, 'vertical')]
         elif model['plotRangeType'] == 'fit' and 'fieldRange' in model:
             range = [model.fieldRange[model['x']], model.fieldRange[model['y']]]
-    hist, edges = np.histogramdd(values, histogram_bins(model['histogramBins']), range=range)
+    hist, edges = numpy.histogramdd(values, histogram_bins(model['histogramBins']), range=range)
     res = PKDict(
         x_range=[float(edges[0][0]), float(edges[0][-1]), len(hist)],
         y_range=[float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
@@ -296,31 +333,6 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
     return res
 
 
-def parse_animation_args(data, key_map):
-    """Parse animation args according to key_map
-
-    Args:
-        data (dict): contains animationArgs
-        key_map (dict): version to keys mapping, default is ''
-    Returns:
-        Dict: mapped animationArgs with version
-    """
-    a = data['animationArgs'].split('_')
-    m = ANIMATION_ARGS_VERSION_RE.search(a[0])
-    if m:
-        a.pop(0)
-        v = int(m.group(1))
-    else:
-        v = 1
-    try:
-        keys = key_map[v]
-    except KeyError:
-        keys = key_map['']
-    res = pkcollections.Dict(zip(keys, a))
-    res.version = v
-    return res
-
-
 def parse_enums(enum_schema):
     """Returns a list of enum values, keyed by enum name."""
     res = PKDict()
@@ -341,7 +353,7 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE):
         str: source text
     """
     d = sirepo.sim_data.get_class(sim_type).resource_dir() if sim_type \
-        else sirepo.sim_data.RESOURCE_DIR
+        else sirepo.sim_data.resource_dir()
     return pkjinja.render_file(
         # append .jinja, because file may already have an extension
         d.join(name) + '.jinja',

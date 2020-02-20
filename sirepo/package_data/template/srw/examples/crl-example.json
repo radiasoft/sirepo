@@ -1,5 +1,10 @@
 {
     "models": {
+        "arbitraryMagField": {
+            "interpolationOrder": 1,
+            "longitudinalPosition": 0,
+            "magneticFile": "ivu21_srx_g6_2c.dat"
+        },
         "beamline": [
             {
                 "absoluteFocusPosition": "36.0767",
@@ -7,6 +12,7 @@
                 "focalDistance": "8.9125",
                 "focalPlane": "3",
                 "horizontalApertureSize": 1,
+                "horizontalOffset": 0,
                 "id": 2,
                 "material": "Be",
                 "method": "server",
@@ -15,9 +21,12 @@
                 "radius": 0.0015,
                 "refractiveIndex": "4.207570e-6",
                 "shape": "1",
+                "tipRadius": 1500.0,
+                "tipWallThickness": 80.0,
                 "title": "CRL",
                 "type": "crl",
                 "verticalApertureSize": 1,
+                "verticalOffset": 0,
                 "wallThickness": 8e-05
             },
             {
@@ -27,12 +36,42 @@
                 "type": "watch"
             }
         ],
+        "beamline3DReport": {
+            "condenseBeamline": "1",
+            "includeSource": "1",
+            "projection": "parallel",
+            "showLabels": "1",
+            "showPosition": "1"
+        },
+        "brillianceReport": {
+            "brightnessComponent": "k-tuning",
+            "detuning": 0,
+            "energyDelta": 10,
+            "energyPointCount": 100,
+            "finalHarmonic": 5,
+            "harmonic": "5",
+            "initialHarmonic": 1,
+            "minDeflection": 0.2,
+            "notes": "",
+            "plotScale": "linear",
+            "reportType": "0"
+        },
+        "coherenceXAnimation": {
+            "aspectRatio": "1",
+            "colorMap": "grayscale",
+            "intensityPlotsWidth": "0",
+            "plotScale": "linear"
+        },
+        "coherenceYAnimation": {
+            "aspectRatio": "1",
+            "colorMap": "grayscale",
+            "intensityPlotsWidth": "0",
+            "plotScale": "linear"
+        },
         "electronBeam": {
             "beamDefinition": "t",
             "beamSelector": "NSLS-II Low Beta Final",
             "current": 0.5,
-            "drift": -1.54,
-            "driftCalculationMethod": "auto",
             "energy": 3,
             "energyDeviation": 0,
             "horizontalAlpha": 0,
@@ -40,7 +79,6 @@
             "horizontalDispersion": 0,
             "horizontalDispersionDerivative": 0,
             "horizontalEmittance": 0.55,
-            "horizontalPosition": 0,
             "isReadOnly": true,
             "name": "NSLS-II Low Beta Final",
             "rmsDivergX": 16.50082506188016,
@@ -53,11 +91,17 @@
             "verticalDispersion": 0,
             "verticalDispersionDerivative": 0,
             "verticalEmittance": 0.008,
-            "verticalPosition": 0,
             "xxprX": 0,
             "xxprY": 0
         },
-        "electronBeams": [],
+        "electronBeamPosition": {
+            "drift": -1.54,
+            "driftCalculationMethod": "auto",
+            "horizontalAngle": 0,
+            "horizontalPosition": 0,
+            "verticalAngle": 0,
+            "verticalPosition": 0
+        },
         "fluxAnimation": {
             "azimuthalPrecision": 1,
             "distanceFromSource": 20,
@@ -71,7 +115,10 @@
             "longitudinalPrecision": 1,
             "magneticField": 2,
             "method": 1,
+            "notes": "",
+            "numberOfMacroElectrons": 100000,
             "photonEnergyPointCount": 1000,
+            "plotScale": "linear",
             "polarization": 6,
             "precision": 0.01,
             "verticalApertureSize": "1",
@@ -90,7 +137,10 @@
             "longitudinalPrecision": 1,
             "magneticField": 1,
             "method": -1,
+            "notes": "",
+            "numberOfMacroElectrons": 1,
             "photonEnergyPointCount": 10000,
+            "plotScale": "linear",
             "polarization": 6,
             "precision": 0.01,
             "verticalApertureSize": "1",
@@ -98,10 +148,14 @@
         },
         "gaussianBeam": {
             "energyPerPulse": "0.001",
+            "photonEnergy": "9000",
             "polarization": 1,
+            "rmsDivergenceX": 0,
+            "rmsDivergenceY": 0,
             "rmsPulseDuration": 0.1,
             "rmsSizeX": "9.78723",
             "rmsSizeY": "9.78723",
+            "sizeDefinition": "1",
             "waistAngleX": 0,
             "waistAngleY": 0,
             "waistX": 0,
@@ -109,10 +163,18 @@
             "waistZ": 0
         },
         "initialIntensityReport": {
+            "aspectRatio": "1",
             "characteristic": 0,
+            "colorMap": "grayscale",
+            "copyCharacteristic": "0",
             "fieldUnits": 1,
+            "intensityPlotsWidth": "0",
+            "notes": "",
+            "plotScale": "linear",
             "polarization": 6,
-            "precision": 0.01
+            "precision": 0.01,
+            "rotateAngle": 0,
+            "rotateReshape": "1"
         },
         "intensityReport": {
             "distanceFromSource": 20,
@@ -122,17 +184,39 @@
             "initialEnergy": "100",
             "magneticField": "1",
             "method": "1",
+            "notes": "",
             "photonEnergyPointCount": 10000,
+            "plotScale": "linear",
             "polarization": 6,
             "precision": 0.01,
             "verticalPosition": 0
         },
+        "mirrorReport": {
+            "intensityPlotsWidth": "0",
+            "notes": "",
+            "plotScale": "linear"
+        },
         "multiElectronAnimation": {
+            "aspectRatio": "1",
+            "calcCoherence": "0",
+            "colorMap": "grayscale",
             "horizontalPosition": 0,
             "horizontalRange": "0.4",
+            "integrationMethod": "0",
+            "intensityPlotsWidth": "0",
+            "jobRunMode": "parallel",
+            "notes": "",
+            "numberOfMacroElectrons": 100000,
+            "photonEnergyBandWidth": 0,
+            "plotScale": "linear",
+            "rotateAngle": 0,
+            "rotateReshape": "1",
+            "sbatchCores": 128,
+            "sbatchHours": 0.4,
             "stokesParameter": "0",
             "verticalPosition": 0,
-            "verticalRange": "0.6"
+            "verticalRange": "0.6",
+            "watchpointId": 0
         },
         "multipole": {
             "distribution": "n",
@@ -149,15 +233,30 @@
             "1",
             "1",
             "1",
-            "1"
+            "1",
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
         ],
         "powerDensityReport": {
+            "aspectRatio": "1",
+            "colorMap": "grayscale",
             "distanceFromSource": 20,
             "horizontalPointCount": 100,
             "horizontalPosition": "0",
             "horizontalRange": "15",
+            "intensityPlotsWidth": "0",
             "method": 1,
+            "notes": "",
+            "plotScale": "linear",
             "precision": "1",
+            "rotateAngle": 0,
+            "rotateReshape": "1",
             "verticalPointCount": 100,
             "verticalPosition": 0,
             "verticalRange": "15"
@@ -173,7 +272,15 @@
                     "1",
                     "1",
                     "1",
-                    "1"
+                    "1",
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ],
                 [
                     0,
@@ -184,7 +291,15 @@
                     "1",
                     "1",
                     "1",
-                    "1"
+                    "1",
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ],
             "3": [
@@ -197,7 +312,15 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ],
                 [
                     0,
@@ -208,55 +331,88 @@
                     1,
                     1,
                     1,
-                    1
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ]
         },
         "simulation": {
+            "distanceFromSource": 20,
             "documentationUrl": "",
-            "facility": "",
             "folder": "/Examples",
             "horizontalPointCount": 100,
             "horizontalPosition": 0,
             "horizontalRange": 0.4,
-            "isExample": "1",
+            "isExample": true,
             "name": "Compound Refractive Lens (CRL)",
+            "notes": "",
             "outOfSessionSimulationId": "",
             "photonEnergy": "9000",
             "sampleFactor": 3,
             "samplingMethod": 1,
-            "simulationId": "Y2NkGu9C",
             "sourceType": "u",
             "verticalPointCount": 100,
             "verticalPosition": 0,
             "verticalRange": 0.4
         },
         "sourceIntensityReport": {
+            "aspectRatio": "1",
             "characteristic": 0,
+            "colorMap": "grayscale",
             "distanceFromSource": 20,
             "fieldUnits": 1,
+            "finalPosition": 0.0,
+            "horizontalPointCount": 100,
+            "horizontalPosition": 0,
+            "horizontalRange": 0.4,
+            "initialPosition": 0.0,
+            "intensityPlotsWidth": "0",
+            "method": "1",
+            "notes": "",
+            "photonEnergy": "9000",
+            "plotScale": "linear",
             "polarization": 6,
-            "precision": 0.01
+            "precision": 0.01,
+            "rotateAngle": 0,
+            "rotateReshape": "1",
+            "sampleFactor": 3,
+            "samplingMethod": 1,
+            "verticalPointCount": 100,
+            "verticalPosition": 0,
+            "verticalRange": 0.4
         },
         "tabulatedUndulator": {
             "gap": 6.72,
-            "horizontalAmplitude": 0,
-            "horizontalInitialPhase": 0,
-            "horizontalSymmetry": 1,
+            "id": "Y2NkGu9C 1",
             "indexFileName": "",
-            "length": 1.5,
-            "longitudinalPosition": 1.305,
             "magneticFile": "magnetic_measurements.zip",
-            "period": 21,
+            "name": "Undulator",
             "phase": 0,
-            "undulatorParameter": 1.56866479,
-            "undulatorType": "u_t",
-            "verticalAmplitude": 0.8,
-            "verticalInitialPhase": 0,
-            "verticalSymmetry": -1
+            "undulatorSelector": "Undulator",
+            "undulatorType": "u_t"
+        },
+        "trajectoryReport": {
+            "finalTimeMoment": 0.0,
+            "initialTimeMoment": 0.0,
+            "magneticField": "2",
+            "notes": "",
+            "numberOfPoints": 10000,
+            "plotAxisX": "Z",
+            "plotAxisY": "X",
+            "plotAxisY2": "None",
+            "timeMomentEstimation": "auto"
         },
         "undulator": {
+            "effectiveDeflectingParameter": 1.65776086,
             "horizontalAmplitude": "0",
+            "horizontalDeflectingParameter": 0.0,
             "horizontalInitialPhase": 0,
             "horizontalSymmetry": 1,
             "length": 3,
@@ -264,17 +420,24 @@
             "period": "20",
             "undulatorParameter": 1.65776086,
             "verticalAmplitude": "0.88770981",
+            "verticalDeflectingParameter": 1.65776086,
             "verticalInitialPhase": 0,
             "verticalSymmetry": -1
         },
         "watchpointReport3": {
+            "aspectRatio": "1",
             "characteristic": 0,
+            "colorMap": "grayscale",
             "fieldUnits": 1,
+            "intensityPlotsWidth": "0",
+            "notes": "",
+            "plotScale": "linear",
             "polarization": 6,
-            "precision": 0.01
+            "precision": 0.01,
+            "rotateAngle": 0,
+            "rotateReshape": "1"
         }
     },
     "report": "watchpointReport3",
-    "simulationType": "srw",
-    "version": "20160719"
+    "simulationType": "srw"
 }

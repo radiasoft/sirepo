@@ -5,6 +5,7 @@ u"""Test for sirepo.template.elegant
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
 import pytest
 
 pytest.importorskip('sdds')
@@ -25,17 +26,30 @@ def test_get_application_data():
     _expr('sin(sqrt((1+1*2.0)*3)+.14)+13', 13)
 
 
-def _expr(expr, expect, variables=None):
-    from pykern.pkunit import pkok, pkfail
-    global elegant
+def test_file_iterator():
+    from sirepo.template import lattice
+    from sirepo.template.lattice import LatticeUtil
+    from pykern.pkunit import pkeq
+    data = _find_example('bunchComp - fourDipoleCSR')
+    v = LatticeUtil(data, _elegant()._SCHEMA).iterate_models(
+        lattice.InputFileIterator(_elegant()._SIM_DATA)).result
+    pkeq(v, ['WAKE-inputfile.knsl45.liwake.sdds'])
 
+
+def _elegant():
+    global elegant
     if not elegant:
         import sirepo.template
         elegant = sirepo.template.import_module('elegant')
-    res = elegant.get_application_data(dict(
+    return elegant
+
+
+def _expr(expr, expect, variables=None):
+    from pykern.pkunit import pkok, pkfail
+    res = _elegant().get_application_data(PKDict(
         method='rpn_value',
         value=expr,
-        variables=(variables or {}),
+        variables=variables or {},
     ))
     if not 'result' in res:
         pkfail('{}: no result for {}', res, expr)
@@ -48,3 +62,11 @@ def _expr(expr, expect, variables=None):
         float(res['result']),
         expr,
     )
+
+
+def _find_example(name):
+    from sirepo import simulation_db
+    for ex in simulation_db.examples(_elegant().SIM_TYPE):
+        if ex.models.simulation.name == name:
+            return simulation_db.fixup_old_data(ex)[0]
+    assert False, 'no example named: {}'.format(name)

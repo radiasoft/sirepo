@@ -53,6 +53,15 @@ SIREPO.APP_SCHEMA = {
             "timeout": 1
         }
     },
+    "localRoutes": {
+        "login": {
+            "route": "/login",
+            "config": {
+              "controller": "LoginController as login",
+              "templateUrl": "/static/html/login.html"
+            }
+        }
+    },
     "route": {
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",

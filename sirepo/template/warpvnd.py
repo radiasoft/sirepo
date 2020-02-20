@@ -8,6 +8,7 @@ u"""Warp VND/WARP execution template.
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from rswarp.cathode import sources
 from rswarp.utilities.file_utils import readparticles
@@ -28,7 +29,6 @@ COMPARISON_STEP_SIZE = 100
 WANT_BROWSER_FRAME_CACHE = True
 MPI_SUMMARY_FILE = 'mpi-info.json'
 
-_FIELD_ANIMATIONS = ['fieldCalcAnimation', 'fieldComparisonAnimation']
 _FIELD_ESTIMATE_FILE = 'estimates.json'
 _COMPARISON_FILE = 'diags/fields/electric/data00{}.h5'.format(COMPARISON_STEP_SIZE)
 _CULL_PARTICLE_SLOPE = 1e-4
@@ -49,6 +49,60 @@ def background_percent_complete(report, run_dir, is_running):
     if report == 'optimizerAnimation':
         return _optimizer_percent_complete(run_dir, is_running)
     return _simulation_percent_complete(report, run_dir, is_running)
+
+
+def sim_frame_currentAnimation(frame_args):
+    return _extract_current(
+        frame_args.sim_in,
+        open_data_file(frame_args.run_dir, frame_args.frameReport, frame_args.frameIndex),
+    )
+
+
+def sim_frame_egunCurrentAnimation(frame_args):
+    return _extract_egun_current(
+        frame_args.sim_in,
+        frame_args.run_dir.join(_EGUN_CURRENT_FILE),
+        frame_args.frameIndex,
+    )
+
+
+def sim_frame_fieldAnimation(frame_args):
+    return _extract_field(
+        frame_args.field,
+        frame_args.sim_in,
+        open_data_file(frame_args.run_dir, frame_args.frameReport, frame_args.frameIndex),
+        frame_args,
+    )
+
+
+def sim_frame_fieldCalcAnimation(frame_args):
+    return generate_field_report(frame_args.sim_in, frame_args.run_dir, args=frame_args)
+
+
+def sim_frame_fieldComparisonAnimation(frame_args):
+    return generate_field_comparison_report(
+        frame_args.sim_in,
+        frame_args.run_dir,
+        args=frame_args,
+    )
+
+def sim_frame_impactDensityAnimation(frame_args):
+    return _extract_impact_density(frame_args.run_dir, frame_args.sim_in)
+
+
+def sim_frame_optimizerAnimation(frame_args):
+    return _extract_optimization_results(frame_args.run_dir, frame_args.sim_in, frame_args)
+
+
+def sim_frame_particleAnimation(frame_args):
+    return _extract_particle(
+        frame_args.run_dir,
+        frame_args.frameReport,
+        frame_args.sim_in,
+        frame_args,
+    )
+
+sim_frame_particle3d = sim_frame_particleAnimation
 
 
 def generate_field_comparison_report(data, run_dir, args=None):
@@ -115,16 +169,7 @@ def generate_field_report(data, run_dir, args=None):
     return res
 
 
-# use concept of "runner" animation?
-def _SIM_DATA.animation_name(data):
-    if data['modelName'] == 'optimizerAnimation':
-        return data['modelName']
-    if data['modelName'] in _FIELD_ANIMATIONS:
-        return 'fieldCalculationAnimation'
-    return 'animation'
-
-
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if 'method' in data and data['method'] == 'compute_simulation_steps':
         field_file = simulation_db.simulation_dir(SIM_TYPE, data['simulationId']) \
             .join('fieldCalculationAnimation').join(_FIELD_ESTIMATE_FILE)
@@ -178,34 +223,6 @@ def get_zcurrent_new(particle_array, momenta, mesh, particle_weight, dz):
         current[int(bucket)] += velocity[index]
 
     return current * constants.elementary_charge / dz
-
-
-def get_simulation_frame(run_dir, data, model_data):
-    md = pkcollections.Dict(model_data)
-    frame_index = int(data['frameIndex'])
-    model_name = data['modelName']
-    anim_args = _SCHEMA.animationArgs[model_name] if model_name in _SCHEMA.animationArgs else []
-    args = template_common.parse_animation_args(data, {'': anim_args})
-    if model_name == 'currentAnimation':
-        data_file = open_data_file(run_dir, model_name, frame_index)
-        return _extract_current(model_data, data_file)
-    if model_name == 'fieldAnimation':
-        data_file = open_data_file(run_dir, model_name, frame_index)
-        return _extract_field(args.field, model_data, data_file, args)
-    if model_name == 'particleAnimation' or model_name == 'particle3d':
-        return _extract_particle(run_dir, model_name, model_data, args)
-    if model_name == 'egunCurrentAnimation':
-        return _extract_egun_current(model_data, run_dir.join(_EGUN_CURRENT_FILE), frame_index)
-    if model_name == 'impactDensityAnimation':
-        return _extract_impact_density(run_dir, model_data)
-    if model_name == 'optimizerAnimation':
-        args = template_common.parse_animation_args(data, {'': ['x', 'y']})
-        return _extract_optimization_results(run_dir, model_data, args)
-    if model_name == 'fieldCalcAnimation':
-        return generate_field_report(md, run_dir, args=args)
-    if model_name == 'fieldComparisonAnimation':
-        return generate_field_comparison_report(md, run_dir, args=args)
-    raise RuntimeError('{}: unknown simulation frame model'.format(model_name))
 
 
 def new_simulation(data, new_simulation_data):
@@ -693,7 +710,7 @@ def _field_plot(values, axes, grid, is3d):
     xr.append(len(values[0]))
     yr.append(len(values))
 
-    return pkcollections.Dict({
+    return PKDict({
         'aspectRatio': ar,
         'x_range': xr,
         'y_range': yr,
@@ -774,7 +791,9 @@ def _generate_parameters_file(data):
         if c.conductor_type.type == 'stl':
             # if any conductor is STL then don't save the intercept
             v['saveIntercept'] = False
-            v['polyFile'] = _stl_polygon_file(c.conductor_type.name)
+            v['polyFile'] = _SIM_DATA.lib_file_abspath(
+                _stl_polygon_file(c.conductor_type.name),
+            )
             break
         if c.conductor_type.isReflector:
             v['saveIntercept'] = True
@@ -808,10 +827,6 @@ def _h5_file_list(run_dir, model_name):
     )
 
 
-def _is_opt_field(field_name):
-    return re.search(r'\_opt$', field_name)
-
-
 def _max_conductor_voltage(data):
     res = data.models.beam.anode_voltage
     for c in data.models.conductors:
@@ -835,20 +850,12 @@ def _mpi_core_count(run_dir):
     return 0
 
 
-def _non_opt_fields_to_array(model):
-    res = []
-    for f in model:
-        if not _is_opt_field(f) and f not in _SIM_DATA.ANALYSIS_ONLY_FIELDS:
-            res.append(model[f])
-    return res
-
-
 def _optimizer_percent_complete(run_dir, is_running):
     if not run_dir.exists():
-        return {
-            'percentComplete': 0,
-            'frameCount': 0,
-        }
+        return PKDict(
+            percentComplete=0,
+            frameCount=0,
+        )
     res, best_row = _read_optimizer_output(run_dir)
     summary_data = None
     frame_count = 0
@@ -886,23 +893,23 @@ def _optimizer_percent_complete(run_dir, is_running):
             except ValueError:
                 pass
     if summary_data:
-        return {
-            'percentComplete': 0 if is_running else 100,
-            'frameCount': frame_count,
-            'summary': summary_data,
-        }
+        return PKDict(
+            percentComplete=0 if is_running else 100,
+            frameCount=frame_count,
+            summary=summary_data,
+        )
     if is_running:
-        return {
-            'percentComplete': 0,
-            'frameCount': 0,
-        }
+        return PKDict(
+            percentComplete=0,
+            frameCount=0,
+        )
     #TODO(pjm): determine optimization error
-    return {
-        'percentComplete': 0,
-        'frameCount': 0,
-        'error': 'optimizer produced no data',
-        'state': 'error',
-    }
+    return PKDict(
+        percentComplete=0,
+        frameCount=0,
+        error='optimizer produced no data',
+        state='error',
+    )
 
 
 def _parse_optimize_field(text):
@@ -927,16 +934,13 @@ def _prepare_conductors(data):
         if ct is None:
             continue
         type_by_id[ct.id] = ct
-        #pkdp('!PREP CONDS {}', ct)
+        #pkdlog('!PREP CONDS {}', ct)
         for f in ('xLength', 'yLength', 'zLength'):
             ct[f] = _meters(ct[f])
         if not _SIM_DATA.warpvnd_is_3d(data):
             ct.yLength = 1
         ct.permittivity = ct.permittivity if ct.isConductor == '0' else 'None'
-        ct.file = _SIM_DATA.lib_file_abspath(
-            [_stl_file(ct)],
-            simulation_db.simulation_lib_dir(data.simulationType)
-        )[0] if 'file' in ct else 'None'
+        ct.file = _SIM_DATA.lib_file_abspath(_stl_file(ct)) if 'file' in ct else 'None'
         ct.isReflector = ct.isReflector == '1' if 'isReflector' in ct else False
     for c in data.models.conductors:
         if c.conductorTypeId not in type_by_id:
@@ -1014,33 +1018,33 @@ def _replace_optimize_variables(data, v):
 def _simulation_percent_complete(report, run_dir, is_running):
     if report == 'fieldCalculationAnimation':
         if run_dir.join(_POTENTIAL_FILE).exists():
-            return pkcollections.Dict({
+            return PKDict({
                 'percentComplete': 100,
                 'frameCount': 1,
             })
-        return pkcollections.Dict({
+        return PKDict({
             'percentComplete': 0,
             'frameCount': 0,
         })
     files = _h5_file_list(run_dir, 'currentAnimation')
     if (is_running and len(files) < 2) or (not run_dir.exists()):
-        return {
-            'mpiCores': _mpi_core_count(run_dir),
-            'percentComplete': 0,
-            'frameCount': 0,
-        }
+        return PKDict(
+            mpiCores=_mpi_core_count(run_dir),
+            percentComplete=0,
+            frameCount=0,
+        )
     if len(files) == 0:
-        return {
-            'percentComplete': 100,
-            'frameCount': 0,
-            'error': 'simulation produced no frames',
-            'state': 'error',
-        }
+        return PKDict(
+            percentComplete=100,
+            frameCount=0,
+            error='simulation produced no frames',
+            state='error',
+        )
     file_index = len(files) - 1
-    res = {
-        'mpiCores': _mpi_core_count(run_dir),
-        'lastUpdateTime': int(os.path.getmtime(str(files[file_index]))),
-    }
+    res = PKDict(
+        mpiCores=_mpi_core_count(run_dir),
+        lastUpdateTime=int(os.path.getmtime(str(files[file_index]))),
+    )
     # look at 2nd to last file if running, last one may be incomplete
     if is_running:
         file_index -= 1
@@ -1056,16 +1060,16 @@ def _simulation_percent_complete(report, run_dir, is_running):
         egun_current_file = run_dir.join(_EGUN_CURRENT_FILE)
         if egun_current_file.exists():
             v = np.load(str(egun_current_file), allow_pickle=True)
-            res['egunCurrentFrameCount'] = len(v)
+            res.egunCurrentFrameCount = len(v)
     else:
         percent_complete = (file_index + 1.0) * _PARTICLE_PERIOD / data.models.simulationGrid.num_steps
-    percent_complete /= 2.0
+        percent_complete /= 2.0
     if percent_complete < 0:
         percent_complete = 0
     elif percent_complete > 1.0:
         percent_complete = 1.0
-    res['percentComplete'] = percent_complete * 100
-    res['frameCount'] = file_index + 1
+    res.percentComplete = percent_complete * 100
+    res.frameCount = file_index + 1
     return res
 
 
@@ -1077,19 +1081,16 @@ def _slope(x1, y1, x2, y2):
 
 
 def _stl_file(conductor_type):
-    return _SIM_DATA.lib_file_name('stl', 'file', conductor_type.file)
+    return _SIM_DATA.lib_file_name_with_model_field('stl', 'file', conductor_type.file)
 
 
 def _stl_polygon_file(filename):
-    return _SIM_DATA.lib_file_abspath(
-        [_SIM_DATA.lib_file_name('stl', filename, _STL_POLY_FILE)],
-        simulation_db.simulation_lib_dir(SIM_TYPE)
-    )[0]
+    return _SIM_DATA.lib_file_name_with_model_field('stl', filename, _STL_POLY_FILE)
 
 
 def _save_stl_polys(data):
     try:
-        with h5py.File(_stl_polygon_file(data.file)) as hf:
+        with h5py.File(str(_SIM_DATA.lib_file_write_path(_stl_polygon_file(data.file)))) as hf:
             template_common.dict_to_h5(data, hf, path='/')
     except Exception as e:
         pkdlog('!save_stl_polys FAIL: {}', e)

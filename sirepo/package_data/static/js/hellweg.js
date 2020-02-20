@@ -3,7 +3,21 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
+SIREPO.app.config(function() {
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
+});
+
+SIREPO.app.factory('hellwegService', function(appState) {
+    var self = {};
+
+    self.computeModel = function(analysisModel) {
+        return 'animation';
+    };
+
+    appState.setAppService(self);
+
+    return self;
+});
 
 SIREPO.app.controller('HellwegLatticeController', function (appState, panelState, $scope) {
     var self = this;
@@ -267,15 +281,14 @@ SIREPO.app.controller('HellwegSourceController', function (appState, panelState,
     appState.whenModelsLoaded($scope, updateAllFields);
 });
 
-SIREPO.app.controller('HellwegVisualizationController', function (appState, frameCache, panelState, persistentSimulation, plotRangeService, $scope, $rootScope) {
+SIREPO.app.controller('HellwegVisualizationController', function (appState, frameCache, panelState, persistentSimulation, plotRangeService, hellwegService, $scope, $rootScope) {
     var self = this;
     self.panelState = panelState;
 
     function handleStatus(data) {
-        if (data.startTime && ! data.error) {
+        if ('percentComplete' in data && ! data.error) {
             plotRangeService.computeFieldRanges(self, 'beamAnimation', data.percentComplete);
             ['beamAnimation', 'beamHistogramAnimation', 'particleAnimation', 'parameterAnimation'].forEach(function(modelName) {
-                appState.models[modelName].startTime = data.startTime;
                 appState.saveQuietly(modelName);
             });
             $rootScope.$broadcast('animation.summaryData', data.summaryData);
@@ -299,12 +312,11 @@ SIREPO.app.controller('HellwegVisualizationController', function (appState, fram
         });
     });
 
-    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        beamAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'reportType', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
-        beamHistogramAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'histogramBins', 'startTime'],
-        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'renderCount', 'startTime'],
-        parameterAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'startTime'],
-    });
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        hellwegService.computeModel(),
+        handleStatus
+    );
 });
 
 SIREPO.app.directive('appFooter', function() {

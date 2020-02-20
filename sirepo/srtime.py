@@ -12,11 +12,11 @@ import datetime
 import time
 
 
+#: POSIX epoch as object
+EPOCH = datetime.datetime.utcfromtimestamp(0)
+
 #: Adjustment of system time
 _timedelta = None
-
-#: POSIX epoch as object
-_epoch = datetime.datetime.utcfromtimestamp(0)
 
 def adjust_time(days):
     """Shift the system time by days
@@ -33,7 +33,7 @@ def adjust_time(days):
             _timedelta = datetime.timedelta(days=d)
     except Exception:
         pass
-    
+
 
 @api_perm.allow_visitor
 def api_adjustTime(days=None):
@@ -53,6 +53,18 @@ def api_adjustTime(days=None):
 
 def init_apis(*args, **kwargs):
     pass
+
+
+def to_timestamp(dt):
+    """Convert datetime into float seconds from epoch
+
+    Args:
+        dt (datetime): datetime object
+
+    Returns:
+        float: seconds since epoch
+    """
+    return (dt - EPOCH).total_seconds()
 
 
 def utc_now():
@@ -76,8 +88,7 @@ def utc_now_as_float():
     assert pkconfig.channel_in_internal_test()
     if _timedelta is None:
         return time.time()
-    res = utc_now() - _epoch;
-    return res.total_seconds()
+    return to_timestamp(utc_now())
 
 
 def _init():

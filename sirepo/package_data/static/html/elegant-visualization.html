@@ -2,19 +2,7 @@
   <div class="row">
     <div class="col-md-6 col-xl-4">
 
-      <div class="panel panel-info">
-        <div class="panel-heading clearfix">
-          <div data-simple-heading="Simulation Status" data-model-key="visualization.statusModel">
-            <div class="dropdown" style="display: inline-block">
-              <a data-ng-if="visualization.simState.isStopped()" href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
-              <ul class="dropdown-menu dropdown-menu-right">
-                <li class="dropdown-header">Download</li>
-                <li><a href data-ng-href="{{ visualization.logFileURL() }}" target="_blank">Elegant Log File</a></li>
-              </ul>
-            </div>
-          </div>
-        </div>
-        <div class="panel-body" data-ng-hide="visualization.panelState.isHidden(visualization.statusModel)">
+      <div data-basic-editor-panel="" data-view-name="simulationStatus" data-want-buttons="">
           <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="visualization.simState.isProcessing()">
             <div class="col-sm-12" data-ng-show="visualization.simState.isStatePending()">
               <div>
@@ -23,7 +11,7 @@
             </div>
             <div class="col-sm-12" data-ng-show="visualization.simState.isStateRunning()">
               <div>
-                {{ visualization.simState.stateAsText() }}  {{ visualization.simState.dots }}
+                {{ visualization.runningStatusText() }}
                 <div data-simulation-status-timer="visualization.simState.timeData"></div>
               </div>
               <div class="progress">
@@ -42,16 +30,20 @@
               <span data-simulation-status-timer="visualization.simState.timeData"></span>
               </span>
               <br><br>
-              <div data-ng-if="visualization.simulationErrors" class="well well-lg">
-                <div class="text-warning"><strong>{{ visualization.errorHeader() }}</strong></div>
+              <div class="well well-lg" data-ng-show="visualization.simulationErrors || visualization.simState.hasFrames()">
+                <div data-ng-if="visualization.simulationErrors">
+                  <div class="text-warning"><strong>{{ visualization.errorHeader() }}</strong></div>
                   <p class="elegant-error-box">{{ visualization.simulationErrors }}</p>
                   <br>
-                  <a data-ng-href="{{ visualization.logFileURL() }}" target="_blank">View elegant log</a>
+                </div>
+                <a data-ng-href="{{ visualization.logFileURL() }}" target="_blank">View elegant log</a>
               </div>
             </div>
-            <div data-run-simulation-fields=""></div>
+            <!--<div data-run-simulation-fields=""></div>-->
+            <div class="col-sm-6 pull-right" data-ng-show="visualization.simState.isStopped()">
+              <button class="btn btn-default" data-ng-click="visualization.startSimulation()">Start New Simulation</button>
+            </div>
           </form>
-        </div>
       </div>
     </div>
 

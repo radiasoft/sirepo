@@ -25,15 +25,7 @@ def run(cfg_dir):
         cfg_dir (str): directory to run elegant in
     """
     with pkio.save_chdir(cfg_dir):
-        try:
-            _run_elegant(bunch_report=True)
-        except Exception as e:
-            err = parse_elegant_log(py.path.local(cfg_dir))
-            if not err:
-                err = ['A server error occurred']
-            simulation_db.write_result({
-                'error': err[0],
-            })
+        _run_elegant(bunch_report=True)
         save_report_data(simulation_db.read_json(template_common.INPUT_BASE_NAME), py.path.local(cfg_dir))
 
 

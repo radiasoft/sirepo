@@ -29,12 +29,16 @@ test_main() {
     test_no_prints '\s(pkdp|print)\(' "${pyfiles[@]}"
     local jsfiles=( sirepo/package_data/static/js/*.js )
     test_no_prints '\s(srdbg|console.log)\(' "${jsfiles[@]}"
+    test_no_prints '(startsWith|Object\.assign)\(' "${jsfiles[@]}"
     test_no_h5py
     test_jshint
     if [[ -x ./node_modules/karma/bin/karma ]]; then
        ./node_modules/karma/bin/karma start etc/karma-conf.js
     fi
-    py.test tests
+    echo SIREPO_FEATURE_CONFIG_JOB=1 pykern test
+    SIREPO_FEATURE_CONFIG_JOB=1 pykern test
+    echo SIREPO_FEATURE_CONFIG_JOB= pykern test
+    SIREPO_FEATURE_CONFIG_JOB= pykern test
     if [[ -n ${PKSETUP_PYPI_PASSWORD:+hide-secret} ]]; then
         python setup.py pkdeploy
     fi
@@ -45,7 +49,7 @@ test_msg() {
 }
 
 test_no_h5py() {
-    local f=( $(find sirepo -name \*.py | egrep -v '/(package_data|flash|rs4pi|synergia|warp|server.py)') )
+    local f=( $(find sirepo -name \*.py | egrep -v '/(package_data|flash|opal|rs4pi|synergia|warp|server.py)') )
     local r=$(grep -l 'import.*h5py' "${f[@]}")
     if [[ $r ]]; then
         test_err "import h5py found in: $r"

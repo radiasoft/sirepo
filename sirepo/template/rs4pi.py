@@ -6,7 +6,7 @@ u"""RS4PI execution template.
 """
 
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
+from pykern.pkcollections import PKDict
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
@@ -22,6 +22,8 @@ import os
 import os.path
 import py.path
 import re
+import sirepo.sim_data
+import sirepo.util
 import struct
 import time
 import werkzeug
@@ -32,10 +34,11 @@ try:
 except ImportError:
     import dicom
 
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+
 RTSTRUCT_EXPORT_FILENAME = 'rtstruct.dcm'
 RTDOSE_EXPORT_FILENAME = 'dose.dcm'
 PRESCRIPTION_FILENAME = 'prescription.json'
-SIM_TYPE = 'rs4pi'
 WANT_BROWSER_FRAME_CACHE = True
 DOSE_CALC_SH = 'dose_calc.sh'
 DOSE_CALC_OUTPUT = 'Full_Dose.h5'
@@ -64,16 +67,16 @@ _ZIP_FILE_NAME = 'input.zip'
 def background_percent_complete(report, run_dir, is_running):
     data_path = run_dir.join(template_common.INPUT_BASE_NAME)
     if not os.path.exists(str(simulation_db.json_filename(data_path))):
-        return {
-            'percentComplete': 0,
-            'frameCount': 0,
-        }
-    return {
-        'percentComplete': 100,
+        return PKDict(
+            percentComplete=0,
+            frameCount=0,
+        )
+    return PKDict(
+        percentComplete=100,
         # real frame count depends on the series selected
-        'frameCount': 1,
-        'errors': '',
-    }
+        frameCount=1,
+        errors='',
+    )
 
 
 def copy_related_files(data, source_path, target_path):
@@ -91,7 +94,7 @@ def copy_related_files(data, source_path, target_path):
 def generate_rtdose_file(data, run_dir):
     dose_hd5 = str(run_dir.join(DOSE_CALC_OUTPUT))
     dicom_series = data['models']['dicomSeries']
-    frame = pkcollections.Dict(
+    frame = PKDict(
         StudyInstanceUID=dicom_series['studyInstanceUID'],
         shape=np.array([
             dicom_series['planes']['t']['frameCount'],
@@ -144,19 +147,7 @@ def generate_rtdose_file(data, run_dir):
         return _summarize_rt_dose(None, ds, run_dir=run_dir)
 
 
-def _SIM_DATA.animation_name(data):
-    if data['modelName'].startswith('dicomAnimation'):
-        return 'dicomAnimation'
-    if data['modelName'] == 'dicomDose':
-        # if the doseCalculation has been run, use that directory for work
-        # otherwise, it is an imported dose file
-        if simulation_db.simulation_dir(SIM_TYPE, data.simulationId).join('doseCalculation').exists():
-            return 'doseCalculation'
-        return 'dicomAnimation'
-    return data['modelName']
-
-
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'roi_points':
         return _read_roi_file(data['simulationId'])
     elif data['method'] == 'update_roi_points':
@@ -169,40 +160,25 @@ def get_data_file(run_dir, model, frame, **kwargs):
     if model == 'dicomAnimation4':
         with open(_parent_file(run_dir, _DOSE_DICOM_FILE)) as f:
             return RTDOSE_EXPORT_FILENAME, f.read(), 'application/octet-stream'
-    tmp_dir = simulation_db.tmp_dir()
-    filename, _ = _generate_rtstruct_file(_parent_dir(run_dir), tmp_dir)
+    filename, _ = _generate_rtstruct_file(_parent_dir(run_dir), kwargs['tmp_dir'])
     with open (filename, 'rb') as f:
         dicom_data = f.read()
-    pkio.unchecked_remove(tmp_dir)
     return RTSTRUCT_EXPORT_FILENAME, dicom_data, 'application/octet-stream'
 
 
-def get_simulation_frame(run_dir, data, model_data):
-    frame_index = int(data['frameIndex'])
-    args = data['animationArgs'].split('_')
-    if data['modelName'].startswith('dicomAnimation'):
-        plane = args[0]
-        res = simulation_db.read_json(_dicom_path(model_data['models']['simulation'], plane, frame_index))
-        res['pixel_array'] = _read_pixel_plane(plane, frame_index, model_data)
-        return res
-    if data['modelName'] == 'dicomDose':
-        return {
-            'dose_array': _read_dose_frame(frame_index, model_data)
-        }
-    raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
-
-
-def import_file(request, lib_dir=None, tmp_dir=None):
-    f = request.files['file']
-    filename = werkzeug.secure_filename(f.filename)
-    if not pkio.has_file_extension(str(filename), 'zip'):
-        raise RuntimeError('unsupported import filename: {}'.format(filename))
-    filepath = str(tmp_dir.join(_ZIP_FILE_NAME))
-    f.save(filepath)
+def import_file(req, tmp_dir=None, **kwargs):
+    if not pkio.has_file_extension(req.filename, 'zip'):
+        raise sirepo.util.UserAlert('unsupported import filename: {}'.format(filename))
+    #TODO(pjm): writing to simulation lib for now, tmp_dir will get removed after this request
+    filepath = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(_ZIP_FILE_NAME))
+    pkio.mkdir_parent_only(filepath)
+    with open(filepath, 'wb') as f:
+        f.write(req.file_stream.read())
     data = simulation_db.default_data(SIM_TYPE)
-    data['models']['simulation']['name'] = filename
+    data['models']['simulation']['name'] = req.filename
     data['models']['simulation'][_TMP_INPUT_FILE_FIELD] = filepath
-    # more processing occurs below in prepare_for_client() after simulation dir is prepared
+    # more processing occurs in prepare_for_client() via:
+    # import_file => _save_new_and_reply => api_simulationData => prepare_for_client
     return data
 
 
@@ -214,6 +190,21 @@ def prepare_for_client(data):
 
 def remove_last_frame(run_dir):
     pass
+
+
+def sim_frame(frame_args):
+    frame_index = frame_args.frameIndex
+    model_data = frame_args.sim_in
+    if frame_args.frameReport.startswith('dicomAnimation'):
+        plane = frame_args.dicomPlane
+        res = simulation_db.read_json(_dicom_path(model_data['models']['simulation'], plane, frame_index))
+        res['pixel_array'] = _read_pixel_plane(plane, frame_index, model_data)
+        return res
+    if frame_args.frameReport == 'dicomDose':
+        return {
+            'dose_array': _read_dose_frame(frame_index, model_data)
+        }
+    assert False, '{}: unknown simulation frame model'.format(frame_args.frameReport)
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -521,7 +512,6 @@ def _move_import_file(data):
     if os.path.exists(path):
         zip_path = _sim_file(sim['simulationId'], _ZIP_FILE_NAME)
         os.rename(path, zip_path)
-        pkio.unchecked_remove(os.path.dirname(path))
         tmp_dir = _sim_file(sim['simulationId'], _TMP_ZIP_DIR)
         zipfile.ZipFile(zip_path).extractall(tmp_dir)
         _summarize_dicom_files(data, tmp_dir)

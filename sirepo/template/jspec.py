@@ -60,42 +60,42 @@ def background_percent_complete(report, run_dir, is_running):
             # the most recent file may not yet be fully written
             if count > 0:
                 count -= 1
-            return {
-                'percentComplete': percent_complete,
-                'frameCount': count,
-                'hasParticles': True,
-                'hasRates': has_rates,
-            }
+            return PKDict(
+                percentComplete=percent_complete,
+                frameCount=count,
+                hasParticles=True,
+                hasRates=has_rates,
+            )
         else:
             # estimate the percent complete from the simulation time in sdds file
             if run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME).exists():
                 return _beam_evolution_status(run_dir, settings, has_rates)
-            return {
-                'percentComplete': 0,
-                'frameCount': 0,
-            }
+            return PKDict(
+                percentComplete=0,
+                frameCount=0,
+            )
     if run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME).exists():
         count, settings, has_rates = _background_task_info(run_dir)
         if count:
-            return {
-                'percentComplete': 100,
-                'frameCount': count,
-                'hasParticles': True,
-                'hasRates': has_rates,
-            }
+            return PKDict(
+                percentComplete=100,
+                frameCount=count,
+                hasParticles=True,
+                hasRates=has_rates,
+            )
         else:
-            return {
-                'percentComplete': 100,
-                'frameCount': 1,
-                'hasRates': has_rates,
-            }
-    return {
-        'percentComplete': 0,
-        'frameCount': 0,
-    }
+            return PKDict(
+                percentComplete=100,
+                frameCount=1,
+                hasRates=has_rates,
+            )
+    return PKDict(
+        percentComplete=0,
+        frameCount=0,
+    )
 
 
-def get_application_data(data):
+def get_application_data(data, **kwargs):
     if data['method'] == 'get_elegant_sim_list':
         tp = _SIM_DATA.jspec_elegant_twiss_path()
         res = []
@@ -120,8 +120,8 @@ def get_application_data(data):
     raise AssertionError('unknown application data method={}'.format(data.method))
 
 
-def get_data_file(run_dir, model, frame, options=None):
-    if model == 'beamEvolutionAnimation':
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
+    if model in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
         path = run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)
     else:
         path = py.path.local(_ion_files(run_dir)[frame])
@@ -129,34 +129,11 @@ def get_data_file(run_dir, model, frame, options=None):
         return path.basename, f.read(), 'application/octet-stream'
 
 
-def get_simulation_frame(run_dir, data, model_data):
-    frame_index = int(data['frameIndex'])
-    if data['modelName'] in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
-        args = template_common.parse_animation_args(
-            data,
-            {
-                '1': ['x', 'y1', 'y2', 'y3', 'startTime'],
-                '': ['y1', 'y2', 'y3', 'startTime'],
-            },
-        )
-        return _extract_evolution_plot(args, run_dir)
-    elif data['modelName'] == 'particleAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {
-                '1': ['x', 'y', 'histogramBins', 'startTime'],
-                '': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
-            },
-        )
-        return _extract_particle_plot(args, run_dir, frame_index)
-    raise RuntimeError('unknown animation model: {}'.format(data['modelName']))
-
-
 def python_source_for_model(data, model):
     ring = data['models']['ring']
     elegant_twiss_file = None
     if ring['latticeSource'] == 'elegant':
-        elegant_twiss_file = _SIM_DATA.lib_file_name('ring', 'elegantTwiss', ring['elegantTwiss'])
+        elegant_twiss_file = _SIM_DATA.lib_file_name_with_model_field('ring', 'elegantTwiss', ring['elegantTwiss'])
     elif  ring['latticeSource'] == 'elegant-sirepo':
         elegant_twiss_file = _SIM_DATA.JSPEC_ELEGANT_TWISS_FILENAME
     convert_twiss_to_tfs = ''
@@ -180,6 +157,69 @@ os.system('jspec {}')
 
 def remove_last_frame(run_dir):
     pass
+
+
+def sim_frame_beamEvolutionAnimation(frame_args):
+    filename = str(frame_args.run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))
+    x_col = sdds_util.extract_sdds_column(filename, _X_FIELD, 0)
+    if x_col['err']:
+        return x_col['err']
+    x = x_col['values']
+    plots = []
+    for f in ('y1', 'y2', 'y3'):
+        if frame_args[f] == 'none':
+            continue
+        yfield = _map_field_name(frame_args[f])
+        y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
+        if y_col['err']:
+            return y_col['err']
+        plots.append({
+            'points': y_col['values'],
+            'label': '{}{}'.format(
+                _field_label(yfield, y_col['column_def']),
+                _field_description(yfield, frame_args.sim_in),
+            ),
+        })
+    return {
+        'title': '',
+        'x_range': [min(x), max(x)],
+        'y_label': '',
+        'x_label': _field_label(_X_FIELD, x_col['column_def']),
+        'x_points': x,
+        'plots': plots,
+        'y_range': template_common.compute_plot_color_and_range(plots),
+    }
+
+
+sim_frame_coolingRatesAnimation = sim_frame_beamEvolutionAnimation
+
+def sim_frame_particleAnimation(frame_args):
+    page_index = frame_args.frameIndex
+    xfield = _map_field_name(frame_args.x)
+    yfield = _map_field_name(frame_args.y)
+    filename = _ion_files(frame_args.run_dir)[page_index]
+    data = frame_args.sim_in
+    settings = data.models.simulationSettings
+    time = settings.time / settings.step_number * settings.save_particle_interval * page_index
+    if time > settings.time:
+        time = settings.time
+    x_col = sdds_util.extract_sdds_column(filename, xfield, 0)
+    if x_col['err']:
+        return x_col['err']
+    x = x_col['values']
+    y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
+    if y_col['err']:
+        return y_col['err']
+    y = y_col['values']
+    model = data.models.particleAnimation
+    model.update(frame_args)
+    model['x'] = xfield
+    model['y'] = yfield
+    return template_common.heatmap([x, y], model, {
+        'x_label': _field_label(xfield, x_col['column_def']),
+        'y_label': _field_label(yfield, y_col['column_def']),
+        'title': 'Ions at time {:.2f} [s]'.format(time),
+    })
 
 
 def validate_file(file_type, path):
@@ -259,64 +299,6 @@ def _compute_sdds_range(res):
             res[field] = [_safe_sdds_value(min(values)), _safe_sdds_value(max(values))]
 
 
-def _extract_evolution_plot(report, run_dir):
-    filename = str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    x_col = sdds_util.extract_sdds_column(filename, _X_FIELD, 0)
-    if x_col['err']:
-        return x_col['err']
-    x = x_col['values']
-    plots = []
-    for f in ('y1', 'y2', 'y3'):
-        if report[f] == 'none':
-            continue
-        yfield = _map_field_name(report[f])
-        y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
-        if y_col['err']:
-            return y_col['err']
-        plots.append({
-            'points': y_col['values'],
-            'label': '{}{}'.format(_field_label(yfield, y_col['column_def']), _field_description(yfield, data)),
-        })
-    return {
-        'title': '',
-        'x_range': [min(x), max(x)],
-        'y_label': '',
-        'x_label': _field_label(_X_FIELD, x_col['column_def']),
-        'x_points': x,
-        'plots': plots,
-        'y_range': template_common.compute_plot_color_and_range(plots),
-    }
-
-
-def _extract_particle_plot(report, run_dir, page_index):
-    xfield = _map_field_name(report['x'])
-    yfield = _map_field_name(report['y'])
-    filename = _ion_files(run_dir)[page_index]
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    settings = data.models.simulationSettings
-    time = settings.time / settings.step_number * settings.save_particle_interval * page_index
-    if time > settings.time:
-        time = settings.time
-    x_col = sdds_util.extract_sdds_column(filename, xfield, 0)
-    if x_col['err']:
-        return x_col['err']
-    x = x_col['values']
-    y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
-    if y_col['err']:
-        return y_col['err']
-    y = y_col['values']
-    model = data.models.particleAnimation
-    model.update(report)
-    model['x'] = xfield
-    model['y'] = yfield
-    return template_common.heatmap([x, y], model, {
-        'x_label': _field_label(xfield, x_col['column_def']),
-        'y_label': _field_label(yfield, y_col['column_def']),
-        'title': 'Ions at time {:.2f} [s]'.format(time),
-    })
-
-
 def _field_description(field, data):
     if not re.search(r'rx|ry|rs', field):
         return ''
@@ -359,10 +341,10 @@ def _generate_parameters_file(data):
     template_common.validate_models(data, simulation_db.get_schema(SIM_TYPE))
     v = template_common.flatten_data(data['models'], {})
     v['beamEvolutionOutputFilename'] = _BEAM_EVOLUTION_OUTPUT_FILENAME
-    v['runSimulation'] = report is None or report == _SIM_DATA.animation_name()
+    v['runSimulation'] = report is None or report == _SIM_DATA.compute_model(None)
     v['runRateCalculation'] = report is None or report == 'rateCalculationReport'
     if data['models']['ring']['latticeSource'] == 'madx':
-        v['latticeFilename'] = _SIM_DATA.lib_file_name('ring', 'lattice', v['ring_lattice'])
+        v['latticeFilename'] = _SIM_DATA.lib_file_name_with_model_field('ring', 'lattice', v['ring_lattice'])
     else:
         v['latticeFilename'] = JSPEC_TWISS_FILENAME
     if v['ionBeam_beam_type'] == 'continuous':

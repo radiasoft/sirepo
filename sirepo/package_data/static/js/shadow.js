@@ -3,23 +3,29 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
-SIREPO.PLOTTING_SHOW_FWHM = true;
-SIREPO.appFieldEditors = [
-    '<div data-ng-switch-when="ReflectivityMaterial" data-ng-class="fieldClass">',
-      '<input data-reflectivity-material="" data-ng-model="model[field]" class="form-control" required />',
-    '</div>',
-].join('');
-SIREPO.appDownloadLinks = [
-    '<li data-lineout-csv-link="x"></li>',
-    '<li data-lineout-csv-link="y"></li>',
-].join('');
+SIREPO.app.config(function() {
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
+    SIREPO.PLOTTING_SHOW_FWHM = true;
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="ReflectivityMaterial" data-ng-class="fieldClass">',
+          '<input data-reflectivity-material="" data-ng-model="model[field]" class="form-control" required />',
+        '</div>',
+    ].join('');
+    SIREPO.appDownloadLinks = [
+        '<li data-lineout-csv-link="x"></li>',
+        '<li data-lineout-csv-link="y"></li>',
+    ].join('');
+});
 
 SIREPO.app.factory('shadowService', function(appState, beamlineService, panelState) {
     // ColumnValue enum values which are in mm
     var MM_COLUMN_VALUES = ['1', '2', '3'];
     var self = {};
     self.getReportTitle = beamlineService.getReportTitle;
+
+    self.computeModel = function(analysisModel) {
+        return 'animation';
+    };
 
     self.updatePlotSizeFields = function(modelKey, modelName) {
         var m = appState.models[modelKey];
@@ -36,6 +42,9 @@ SIREPO.app.factory('shadowService', function(appState, beamlineService, panelSta
             self.updatePlotSizeFields(modelKey, modelName);
         });
     };
+
+    appState.setAppService(self);
+
     return self;
 });
 

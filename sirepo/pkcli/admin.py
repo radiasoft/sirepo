@@ -27,12 +27,12 @@ def create_examples():
     """
     server.init()
 
-    for d in pkio.sorted_glob(simulation_db.user_dir_name('*')):
+    for d in pkio.sorted_glob(simulation_db.user_dir_name().join('*')):
         if _is_src_dir(d):
             continue;
         uid = simulation_db.uid_from_dir_name(d)
         auth.init_mock(uid)
-        for sim_type in feature_config.cfg.sim_types:
+        for sim_type in feature_config.cfg().sim_types:
             simulation_db.verify_app_directory(sim_type)
             names = map(
                 lambda x: x['name'],
@@ -99,7 +99,7 @@ def purge_guest_users(days=180, confirm=False):
     now = srtime.utc_now()
     dirs_and_uids = {}
 
-    for d in pkio.sorted_glob(simulation_db.user_dir_name('*')):
+    for d in pkio.sorted_glob(simulation_db.user_dir_name().join('*')):
         uid = simulation_db.uid_from_dir_name(d)
         if _is_src_dir(d):
             continue

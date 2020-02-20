@@ -10,38 +10,27 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 import pytest
 
 
-def test_basic(monkeypatch):
+def test_basic(auth_fc, monkeypatch):
     from pykern import pkconfig
     from pykern.pkunit import pkeq
     from sirepo import srunit
     import base64
-    p = 'pass'
-    fc = srunit.flask_client(
-        cfg=PKDict(
-            SIREPO_AUTH_BASIC_PASSWORD=p,
-            SIREPO_AUTH_BASIC_UID='dev-no-validate',
-            SIREPO_AUTH_METHODS='basic:guest',
-            SIREPO_FEATURE_CONFIG_API_MODULES='status',
-        ),
-        sim_types='myapp'
-    )
     import sirepo.auth.basic
 
-    u = fc.sr_login_as_guest()
+    u = auth_fc.sr_login_as_guest()
     sirepo.auth.basic.cfg.uid = u
     import sirepo.status
 
-    fc.cookie_jar.clear()
+    auth_fc.cookie_jar.clear()
     # monkeypatch so status doesn't take so long
     sirepo.status._SIM_TYPE = 'myapp'
     sirepo.status._SIM_NAME = 'Scooby Doo'
     sirepo.status._SIM_REPORT = 'heightWeightReport'
-    pkeq(401, fc.sr_get('serverStatus').status_code)
-    r = fc.sr_get_json(
+    pkeq(401, auth_fc.sr_get('serverStatus').status_code)
+    r = auth_fc.sr_get_json(
         'serverStatus',
         headers=PKDict(
-            Authorization='Basic ' + base64.b64encode(u + ':' + p),
+            Authorization='Basic ' + base64.b64encode(u + ':' + 'pass'),
         ),
     )
-    pkdp(r)
     pkeq('ok', r.state)

@@ -14,12 +14,6 @@ import os
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals('elegant')
 
 
-def sort_elements_and_beamlines(data):
-    m = data['models']
-    m.elements = sorted(m.elements, key=lambda e: (e.type, e.name.lower()))
-    m.beamlines = sorted(m.beamlines, key=lambda e: e.name.lower())
-
-
 def subprocess_env():
     """Adds RPN_DEFNS to os.environ
 

@@ -1,16 +1,6 @@
 .elegant-download-button {
   background-color: white;
 }
-.elegant-cmd-table table tr td.drag-enter {
-  background-color: #d9edf7;
-}
-.elegant-cmd-table table tr td.drag-enter div.elegant-cmd-icon-holder {
-  transition: padding 0.5s ease 0s;
-  padding-top: 2em;
-}
-.elegant-cmd-table table tr td.drag-enter div.dragging {
-  padding-top: 0;
-}
 .elegant-error-box {
   white-space: pre-wrap;
   overflow: auto;

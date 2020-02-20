@@ -62,7 +62,8 @@ def api_authGithubAuthorized():
             expect,
             got,
         )
-        return auth.login_fail_redirect(t, this_module, 'oauth-state')
+        auth.login_fail_redirect(t, this_module, 'oauth-state', reload_js=True)
+        raise AssertionError('auth.login_fail_redirect returned unexpectedly')
     d = oc.get('user', token=(resp['access_token'], '')).data
     with auth_db.thread_lock:
         u = AuthGithubUser.search_by(oauth_id=d['id'])
@@ -72,21 +73,17 @@ def api_authGithubAuthorized():
         else:
             u = AuthGithubUser(oauth_id=d['id'], user_name=d['login'])
         u.save()
-        return auth.login(
-            this_module,
-            model=u,
-            sim_type=t,
-            data=d,
-        )
+        auth.login(this_module, model=u, sim_type=t)
+        raise AssertionError('auth.login returned unexpectedly')
 
 
 @api_perm.require_cookie_sentinel
 def api_authGithubLogin(simulation_type):
     """Redirects to Github"""
-    t = sirepo.template.assert_sim_type(simulation_type)
+    req = http_request.parse_params(type=simulation_type)
     s = util.random_base62()
     cookie.set_value(_COOKIE_NONCE, s)
-    cookie.set_value(_COOKIE_SIM_TYPE, t)
+    cookie.set_value(_COOKIE_SIM_TYPE, req.type)
     if not cfg.callback_uri:
         # must be executed in an app and request context so can't
         # initialize earlier.
@@ -116,10 +113,6 @@ def init_apis(app, *args, **kwargs):
     )
     app.session_interface = _FlaskSessionInterface()
     auth_db.init_model(app, _init_model)
-
-
-def validate_login(*args, **kwargs):
-    return None
 
 
 class _FlaskSession(dict, flask.sessions.SessionMixin):

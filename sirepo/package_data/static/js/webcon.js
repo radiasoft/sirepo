@@ -3,47 +3,49 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appFieldEditors = [
-    '<div data-ng-switch-when="MiniFloat" class="col-sm-7">',
-      '<input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',
-    '</div>',
-    '<div data-ng-switch-when="AnalysisParameter" class="col-sm-5">',
-      '<div data-analysis-parameter="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="AnalysisOptionalParameter" class="col-sm-5">',
-      '<div data-analysis-parameter="" data-model="model" data-field="field" data-is-optional="true"></div>',
-    '</div>',
-    '<div data-ng-switch-when="Equation" class="col-sm-7">',
-      '<div data-equation="equation" data-model="model" data-field="field" data-form="form"></div>',
-      '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
-    '</div>',
-    '<div data-ng-switch-when="EquationVariables" class="col-sm-7">',
-      '<div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="true"></div>',
-    '</div>',
-    '<div data-ng-switch-when="EquationParameters" class="col-sm-7">',
-      '<div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="false"></div>',
-    '</div>',
-    '<div data-ng-switch-when="ClusterFields" class="col-sm-7">',
-      '<div data-cluster-fields="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="PlotActionButtons" class="col-sm-12">',
-      '<div data-plot-action-buttons="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="TrimButton" class="col-sm-5">',
-      '<div data-trim-button="" data-model-name="modelName" data-model="model" data-field="field"></div>',
-    '</div>',
-].join('');
-SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="bpmMonitor" data-bpm-monitor-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-];
-SIREPO.lattice = {
-    elementColor: {},
-    elementPic: {
-        drift: ['DRIF'],
-        magnet: ['KICKER', 'QUAD'],
-        watch: ['WATCH'],
-    },
-};
+SIREPO.app.config(function() {
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="MiniFloat" class="col-sm-7">',
+          '<input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',
+        '</div>',
+        '<div data-ng-switch-when="AnalysisParameter" class="col-sm-5">',
+          '<div data-analysis-parameter="" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="AnalysisOptionalParameter" class="col-sm-5">',
+          '<div data-analysis-parameter="" data-model="model" data-field="field" data-is-optional="true"></div>',
+        '</div>',
+        '<div data-ng-switch-when="Equation" class="col-sm-7">',
+          '<div data-equation="equation" data-model="model" data-field="field" data-form="form"></div>',
+          '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
+        '</div>',
+        '<div data-ng-switch-when="EquationVariables" class="col-sm-7">',
+          '<div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="true"></div>',
+        '</div>',
+        '<div data-ng-switch-when="EquationParameters" class="col-sm-7">',
+          '<div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="false"></div>',
+        '</div>',
+        '<div data-ng-switch-when="ClusterFields" class="col-sm-7">',
+          '<div data-cluster-fields="" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="PlotActionButtons" class="col-sm-12">',
+          '<div data-plot-action-buttons="" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="TrimButton" class="col-sm-5">',
+          '<div data-trim-button="" data-model-name="modelName" data-model="model" data-field="field"></div>',
+        '</div>',
+    ].join('');
+    SIREPO.appReportTypes = [
+        '<div data-ng-switch-when="bpmMonitor" data-bpm-monitor-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+    ].join('');
+    SIREPO.lattice = {
+        elementColor: {},
+        elementPic: {
+            drift: ['DRIF'],
+            magnet: ['KICKER', 'QUAD'],
+            watch: ['WATCH'],
+        },
+    };
+});
 
 SIREPO.app.factory('webconService', function(appState, panelState) {
     var self = {};
@@ -105,6 +107,10 @@ SIREPO.app.factory('webconService', function(appState, panelState) {
         return parameterValues;
     };
 
+    self.computeModel = function(analysisModel) {
+        return 'epicsServerAnimation';
+    };
+
     self.getSubreports = function() {
         // subreports are kept on a report which is never shown.
         // This avoids refreshing all reports when a subreport is added or removed.
@@ -139,6 +145,8 @@ SIREPO.app.factory('webconService', function(appState, panelState) {
             return t.length > 0;
         });
     };
+
+    appState.setAppService(self);
 
     return self;
 });
@@ -254,7 +262,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
             }
         });
         if (! model) {
-            throw 'model not found for id: ' + id;
+            throw new Error('model not found for id: ' + id);
         }
         return model;
     }
@@ -456,7 +464,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
         }
         var epicsField = kickerModelNames().indexOf(name) + 1;
         if (! epicsField) {
-            throw 'invalid kicker name: ' + name;
+            throw new Error('invalid kicker name: ' + name);
         }
         requestSender.getApplicationData(
             {
@@ -558,7 +566,11 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
         });
     });
 
-    self.simState = persistentSimulation.initSimulationState($scope, 'epicsServerAnimation', handleStatus, {});
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        webconService.computeModel(),
+        handleStatus
+    );
 
     return self;
 });
@@ -1218,7 +1230,7 @@ SIREPO.app.directive('validVariableOrParam', function(webconService) {
             function isUnique (val, arr) {
                 var i = arr.indexOf(val);
                 if (i < 0) {
-                    throw val + ': Value not in array';
+                    throw new Error(val + ': Value not in array');
                 }
                 return i === arr.lastIndexOf(val);
             }

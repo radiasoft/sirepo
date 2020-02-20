@@ -182,6 +182,7 @@
                 "sigma_s": 0.00065,
                 "symmetrize": "1",
                 "time_start": "0.0",
+                "use_moments_output_values": "0",
                 "use_twiss_command_values": "0"
             },
             {
@@ -206,15 +207,21 @@
         "rpnCache": {},
         "rpnVariables": [],
         "simulation": {
+            "backtracking": "0",
+            "documentationUrl": "",
             "folder": "/",
             "name": "Example",
-            "simulationId": "pAuOjl0s",
+            "notes": "",
             "simulationMode": "serial",
-            "simulationSerial": 1504732820846010,
             "visualizationBeamlineId": ""
+        },
+        "twissReport": {
+            "includeLattice": "1",
+            "y1": "betax",
+            "y2": "betay",
+            "y3": "etax"
         }
     },
     "report": "bunchReport4",
-    "simulationType": "elegant",
-    "version": "20170901"
+    "simulationType": "elegant"
 }

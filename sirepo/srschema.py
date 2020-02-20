@@ -13,12 +13,57 @@ from sirepo import util
 import re
 
 
+# keep sirepo-components.js "safePath" in sync with these values
+_NAME_ILLEGALS = r'\/|&:+?\'*"<>'
+_NAME_ILLEGALS_RE = re.compile(r'[' + re.escape(_NAME_ILLEGALS) + ']')
+_NAME_ILLEGAL_PERIOD = re.compile(r'^\.|\.$')
+
+
 def get_enums(schema, name):
     enum_dict = pkcollections.Dict()
     for info in schema.enum[name]:
         enum_name = info[0]
         enum_dict[enum_name] = enum_name
     return enum_dict
+
+
+def parse_folder(folder):
+    """Verifies syntax of folder is correct
+
+    Args:
+        folder (str): what to validate
+    Returns:
+        str: cleaned up folder name
+    """
+    if folder is None or len(folder) == 0:
+        raise util.Error('blank folder')
+    res = []
+    for f in folder.split('/'):
+        if len(f):
+            res.append(parse_name(f))
+    return '/' + '/'.join(res)
+
+
+def parse_name(name):
+    """Verifies syntax of simulation is correct
+
+    Args:
+        folder (str): what to validate
+    Returns:
+        str: cleaned up folder name
+    """
+    if name is None:
+        name = ''
+    else:
+        # ignore leading and trailing spaces
+        name = name.strip()
+    # don't raise an error on invalid name - the client is not looking for them
+    # instead, remove illegal characters and throw an error if nothing is left
+    name = re.sub(_NAME_ILLEGALS_RE, '', name)
+    name = re.sub(_NAME_ILLEGAL_PERIOD, '', name)
+    if len(name) == 0:
+        raise util.Error('blank name')
+    return name
 
 
 def validate_fields(data, schema):

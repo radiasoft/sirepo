@@ -1,5 +1,16 @@
 {
     "models": {
+        "SPNTRK": {
+            "KSO": "0",
+            "S_X": 0,
+            "S_Y": 0,
+            "S_Z": 1
+        },
+        "SRLOSS": {
+            "KSR": "0",
+            "applyToAll": "0",
+            "keyword": "BEND"
+        },
         "beamlines": [
             {
                 "angle": 0.4487989505176148,
@@ -61,10 +72,21 @@
             "beta_X": 3,
             "beta_Y": 0.20483548,
             "beta_Z": 0.26638474,
+            "coordinates": [
+                {
+                    "D": 1.0,
+                    "P": 0.0,
+                    "T": 0.0,
+                    "X": 0.0,
+                    "Y": 0.0,
+                    "Z": 0.0
+                }
+            ],
             "emit_X": 0.0002,
             "emit_Y": 1.5e-05,
             "emit_Z": 1e-67,
             "match_twiss_parameters": "1",
+            "method": "MCOBJET3",
             "n_cutoff2_X": 0.7,
             "n_cutoff2_Y": 0,
             "n_cutoff2_Z": 0,
@@ -72,10 +94,13 @@
             "n_cutoff_Y": 2,
             "n_cutoff_Z": 2,
             "particleCount": 1000,
+            "particleCount2": 1,
+            "particleSelector": "1",
             "rigidity": 51.71103865921708,
             "type": "bunch"
         },
         "bunchAnimation": {
+            "aspectRatio": "1",
             "colorMap": "viridis",
             "framesPerSecond": "2",
             "histogramBins": 200,
@@ -83,14 +108,17 @@
             "horizontalSize": 0,
             "isRunning": 0,
             "notes": "",
+            "particleSelector": "all",
             "plotRangeType": "fit",
-            "startTime": 1551896884,
+            "plotType": "3d",
+            "showAllFrames": "0",
             "verticalOffset": 0,
             "verticalSize": 0,
             "x": "Y",
             "y": "T"
         },
         "bunchAnimation2": {
+            "aspectRatio": "1",
             "colorMap": "viridis",
             "framesPerSecond": "2",
             "histogramBins": 200,
@@ -98,8 +126,10 @@
             "horizontalSize": 4.876586573318459e-34,
             "isRunning": 0,
             "notes": "",
+            "particleSelector": "all",
             "plotRangeType": "fit",
-            "startTime": 1551896884,
+            "plotType": "3d",
+            "showAllFrames": "0",
             "verticalOffset": 4.3520054091999086e-35,
             "verticalSize": 1.3514795061839982e-33,
             "x": "Z",
@@ -132,6 +162,23 @@
             "notes": "",
             "x": "S",
             "y": "D1"
+        },
+        "elementStepAnimation": {
+            "aspectRatio": "0.5625",
+            "colorMap": "contrast",
+            "framesPerSecond": "2",
+            "histogramBins": 200,
+            "horizontalOffset": 0.0,
+            "horizontalSize": 0,
+            "notes": "",
+            "particleSelector": "all",
+            "plotRangeType": "none",
+            "plotType": "particle",
+            "showAllFrames": "0",
+            "verticalOffset": 0.0,
+            "verticalSize": 0,
+            "x": "X",
+            "y": "YDY"
         },
         "elements": [
             {
@@ -360,9 +407,10 @@
             "horizontalSize": 0.5574069786776144,
             "isRunning": 0,
             "notes": "",
+            "particleSelector": "all",
             "plotRangeType": "fit",
+            "plotType": "heatmap",
             "showAllFrames": "1",
-            "startTime": 1551896884,
             "verticalOffset": 14875931.755,
             "verticalSize": 10634400.09,
             "x": "RET",
@@ -383,21 +431,44 @@
             "particleType": "Other",
             "type": "particle"
         },
+        "particleAnimation": {
+            "aspectRatio": "0.75",
+            "notes": "",
+            "particleSelector": "all"
+        },
+        "particleCoordinate": {
+            "D": 1.0,
+            "P": 0.0,
+            "T": 0.0,
+            "X": 0.0,
+            "Y": 0.0,
+            "Z": 0.0
+        },
         "simulation": {
             "activeBeamlineId": 21,
-            "folder": "/",
-            "isExample": false,
+            "documentationUrl": "",
+            "folder": "/Examples",
+            "isExample": true,
             "name": "EMMA with CAVITE",
+            "notes": "",
             "outOfSessionSimulationId": "",
-            "simulationId": "Cohox8LT",
-            "simulationSerial": 1551896895631574,
             "visualizationBeamlineId": 21
         },
         "simulationSettings": {
             "ip": 25,
             "npass": 151
         },
-        "simulationStatus": {},
+        "tunesReport": {
+            "aspectRatio": "0.75",
+            "notes": "",
+            "nuMax": 0.5,
+            "nuMin": 0.0,
+            "particleSelector": "all",
+            "plotAxis": "x",
+            "plotScale": "linear",
+            "turnCount": 10000,
+            "turnStart": 0
+        },
         "twissReport": {
             "includeLattice": "1",
             "notes": "",
@@ -414,6 +485,5 @@
         },
         "twissSummaryReport": {}
     },
-    "simulationType": "zgoubi",
-    "version": "20190304.171906"
+    "simulationType": "zgoubi"
 }

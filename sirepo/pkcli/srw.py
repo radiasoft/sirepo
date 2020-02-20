@@ -13,12 +13,12 @@ from pykern.pkdebug import pkdp, pkdc
 from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
-from sirepo.template.srw import extract_report_data, get_filename_for_model
+import sirepo.template.srw
 import copy
 import numpy as np
 
 
-def create_predefined():
+def create_predefined(out_dir=None):
     from sirepo.template import srw_common
     import sirepo.sim_data
     import srwl_uti_src
@@ -54,14 +54,14 @@ def create_predefined():
         )
 
     def f(file_type):
-        return sim_data._files_for_type(
+        return sim_data.srw_lib_file_paths_for_type(
             file_type,
             lambda f: PKDict(fileName=f.basename),
-            dir_path=sim_data.resource_dir(),
-            extensions=sim_data.SRW_FILE_TYPE_EXTENSIONS[file_type],
+            want_user_lib_dir=False,
         )
 
-    p = sim_data.resource_path(srw_common.PREDEFINED_JSON)
+    p = srw_common.PREDEFINED_JSON
+    p = pkio.py_path(out_dir).join(p) if out_dir else sim_data.resource_path(p)
     pykern.pkjson.dump_pretty(
         PKDict(
             beams=beams,
@@ -74,6 +74,19 @@ def create_predefined():
     return 'Created {}'.format(p)
 
 
+def fixup_old_data(in_json):
+    import pykern.pkio
+    import pykern.pkjson
+    import sirepo.template
+
+    return pykern.pkjson.dump_pretty(
+        sirepo.template.import_module('srw').fixup_old_data(
+            pykern.pkjson.load_any(pykern.pkio.py_path(in_json)),
+        ),
+        pretty=False,
+    )
+
+
 def python_to_json(run_dir='.', in_py='in.py', out_json='out.json'):
     """Run importer in run_dir trying to import py_file
 
@@ -83,6 +96,7 @@ def python_to_json(run_dir='.', in_py='in.py', out_json='out.json'):
         out_json (str): valid json matching SRW schema
     """
     from sirepo.template import srw_importer
+
     with pkio.save_chdir(run_dir):
         out = srw_importer.python_to_json(in_py)
         with open(out_json, 'w') as f:
@@ -107,39 +121,26 @@ def run_background(cfg_dir):
         cfg_dir (str): directory to run srw in
     """
     with pkio.save_chdir(cfg_dir):
-        script = pkio.read_text(template_common.PARAMETERS_PYTHON_FILE)
-        p = dict(pkcollections.map_items(cfg))
-        if pkconfig.channel_in('dev'):
-            p['particles_per_core'] = 5
-        p['cores'] = mpi.cfg.cores
-        script += '''
-    v.wm_na = v.sm_na = {particles_per_core}
-    # Number of "iterations" per save is best set to num processes
-    v.wm_ns = v.sm_ns = {cores}
-    srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
-
-main()
-'''.format(**p)
-        mpi.run_script(script)
+        mpi.run_script(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE))
         simulation_db.write_result({})
 
 def _run_srw():
     #TODO(pjm): need to properly escape data values, untrusted from client
-    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
-    locals()['main']()
     # special case for importing python code
-    if data['report'] == 'backgroundImport':
-        sim_id = data['models']['simulation']['simulationId']
-        parsed_data['models']['simulation']['simulationId'] = sim_id
-        #TODO(pjm): assumes the parent directory contains the simulation data,
-        # can't call simulation_db.save_simulation_json() because user isn't set for pkcli commands
-        simulation_db.write_json('../{}'.format(simulation_db.SIMULATION_DATA_FILE), parsed_data)
+    r = sim_in.report
+    if r == 'backgroundImport':
         simulation_db.write_result({
-            'simulationId': sim_id,
+            sirepo.template.srw.PARSED_DATA_ATTR: parsed_data,
         })
     else:
-        simulation_db.write_result(extract_report_data(get_filename_for_model(data['report']), data))
+        simulation_db.write_result(
+            sirepo.template.srw.extract_report_data(
+                sirepo.template.srw.get_filename_for_model(r),
+                sim_in,
+            ),
+        )
 
 
 def _cfg_int(lower, upper):
@@ -149,8 +150,3 @@ def _cfg_int(lower, upper):
             'value must be from {} to {}'.format(lower, upper)
         return v
     return wrapper
-
-
-cfg = pkconfig.init(
-    particles_per_core=(5, int, 'particles for each core to process'),
-)

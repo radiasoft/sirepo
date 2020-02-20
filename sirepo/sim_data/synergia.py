@@ -43,26 +43,27 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
-    def synergia_beamline_id_for_report(cls, report):
-        return 'activeBeamlineId' if report == 'twissReport' else 'visualizationBeamlineId'
-
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if 'bunchReport' in analysis_model:
+            return 'bunchReport'
+        # twissReport2 and twissReport are compute_models
+        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data.report
-        if r == cls.animation_name():
-            return []
+    def _compute_job_fields(cls, data, r, compute_model):
         res = ['beamlines', 'elements']
         if 'bunchReport' in r:
             res += ['bunch', 'simulation.visualizationBeamlineId']
+        elif r == 'twissReport':
+            res += ['simulation.activeBeamlineId']
         elif 'twissReport' in r:
-            res += ['simulation.{}'.format(cls.synergia_beamline_id_for_report(r))]
+            res += ['simulation.visualizationBeamlineId']
         return res
 
     @classmethod
-    def _lib_files(cls, data):
+    def _lib_file_basenames(cls, data):
         res = []
         b = data.models.bunch
         if b.distribution == 'file':
-            res.append(cls.lib_file_name('bunch', 'particleFile', b.particleFile))
+            res.append(cls.lib_file_name_with_model_field('bunch', 'particleFile', b.particleFile))
         return res

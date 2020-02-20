@@ -3,18 +3,26 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appDefaultSimulationValues.simulation.flashType = 'RTFlame';
-SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
-SIREPO.SINGLE_FRAME_ANIMATION = ['gridEvolutionAnimation'];
+SIREPO.app.config(function() {
+    SIREPO.appDefaultSimulationValues.simulation.flashType = 'RTFlame';
+    SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
+    SIREPO.SINGLE_FRAME_ANIMATION = ['gridEvolutionAnimation'];
+});
 
 SIREPO.app.factory('flashService', function(appState) {
     var self = {};
+
+    self.computeModel = function(analysisModel) {
+        return 'animation';
+    };
 
     self.isFlashType = function(simType) {
         if (appState.isLoaded()) {
             return simType == appState.models.simulation.flashType;
         }
     };
+
+    appState.setAppService(self);
 
     return self;
 });
@@ -37,9 +45,8 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
 
     function handleStatus(data) {
         self.errorMessage = data.error;
-        if (data.startTime && ! data.error) {
+        if ('frameCount' in data && ! data.error) {
             ['varAnimation', 'gridEvolutionAnimation'].forEach(function(m) {
-                appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
                 frameCache.setFrameCount(data.frameCount, m);
             });
@@ -47,10 +54,11 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
         frameCache.setFrameCount(data.frameCount || 0);
     }
 
-    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        gridEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'y1', 'y2', 'y3', 'startTime'],
-        varAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'var', 'startTime'],
-    });
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        flashService.computeModel(),
+        handleStatus
+    );
 
     appState.whenModelsLoaded($scope, function() {
         $scope.$on('varAnimation.summaryData', function(e, data) {

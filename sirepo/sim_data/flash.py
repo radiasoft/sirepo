@@ -21,14 +21,11 @@ class SimData(sirepo.sim_data.SimDataBase):
             )
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data['report']
-        if r == cls.animation_name(data):
-            return []
+    def _compute_job_fields(cls, data, r, compute_model):
         return [r]
 
     @classmethod
-    def _lib_files(cls, data):
+    def _lib_file_basenames(cls, data):
         t = data.models.simulation.flashType
         #return ['flash.par', 'al-imx-004.cn4', 'h-imx-004.cn4']
         #return ['flash.par', 'helm_table.dat']

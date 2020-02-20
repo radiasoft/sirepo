@@ -1,24 +1,4 @@
 {
-    "dynamicFiles": {
-        "sirepoLibs": {
-            "js": ["jspec.js"]
-        }
-    },
-    "localRoutes": {
-        "source": {
-            "config": {
-                "controller": "SourceController as source",
-                "templateUrl": "/static/html/jspec-source.html"
-            }
-        },
-        "visualization": {
-            "route": "/visualization/:simulationId",
-            "config": {
-                "controller": "VisualizationController as visualization",
-                "templateUrl": "/static/html/jspec-visualization.html"
-            }
-        }
-    },
     "enum": {
         "ElectronBeamShape": [
             ["dc_uniform", "Cylindrical"],
@@ -77,7 +57,8 @@
             ["none", "None"]
         ],
         "ForceFormula": [
-            ["parkhomchuk", "Parkhomchuk"]
+            ["parkhomchuk", "Parkhomchuk"],
+            ["derbenevskrinsky", "Derbenev-Skrinsky"]
         ],
         "FramesPerSecond": [
             ["1", "1"],
@@ -127,6 +108,41 @@
             ["none", "None"]
         ]
     },
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": ["jspec.js"]
+        }
+    },
+    "frameIdFields": {
+        "beamEvolutionAnimation": ["y1", "y2", "y3"],
+        "coolingRatesAnimation": ["y1", "y2", "y3"],
+        "particleAnimation": [
+            "x",
+            "y",
+            "histogramBins",
+            "plotRangeType",
+            "horizontalSize",
+            "horizontalOffset",
+            "verticalSize",
+            "verticalOffset",
+            "isRunning"
+        ]
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/jspec-source.html"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "VisualizationController as visualization",
+                "templateUrl": "/static/html/jspec-visualization.html"
+            }
+        }
+    },
     "model": {
         "beamEvolutionAnimation": {
             "y1": ["Y1 Value", "BeamColumn", "emitx"],
@@ -171,7 +187,7 @@
         },
         "electronCoolingRate": {
             "sample_number": ["Number of Sample Ions", "Float", 1e5, "", 1],
-            "force_formula": ["Force Formula", "ForceFormula"]
+            "force_formula": ["Force Formula", "ForceFormula", "parkhomchuk"]
         },
         "intrabeamScatteringRate": {
             "nu": ["Horizontal Grid Size", "Integer", 100, "Set the grid number in horizontal direction for the 3D integration.", 1],
@@ -354,10 +370,13 @@
                 ]]
             ]
         },
-        "rateCalculationReport": {
-            "title": "Rate Calculation Report",
-            "basic": [],
-            "advanced": [
+        "coolingAndIBS": {
+            "title": "Cooling and Intrabeam Scattering",
+            "basic": [
+                ["Electron Cooling", [
+                    "electronCoolingRate.sample_number",
+                    "electronCoolingRate.force_formula"
+                ]],
                 ["Intrabeam Scattering", [
                     "intrabeamScatteringRate.nu",
                     "intrabeamScatteringRate.nv",
@@ -365,12 +384,13 @@
                     "intrabeamScatteringRate.nz",
                     "intrabeamScatteringRate.log_c",
                     "intrabeamScatteringRate.coupling"
-                ]],
-                ["Electron Cooling", [
-                    "electronCoolingRate.sample_number",
-                    "electronCoolingRate.force_formula"
                 ]]
-            ]
+            ],
+            "advanced": []
+        },
+        "rateCalculationReport": {
+            "title": "Rate Calculation Report",
+            "advanced": []
         },
         "ring": {
             "title": "Ring",

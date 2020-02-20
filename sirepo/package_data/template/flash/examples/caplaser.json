@@ -277,8 +277,8 @@
             "plot_var_41": "none",
             "plot_var_42": "none",
             "plot_var_43": "none",
-            "plot_var_5": "none",
-            "plot_var_6": "none",
+            "plot_var_5": "magz",
+            "plot_var_6": "depo",
             "plot_var_7": "none",
             "plot_var_8": "none",
             "plot_var_9": "none",
@@ -402,7 +402,6 @@
         },
         "gridEvolutionAnimation": {
             "notes": "",
-            "startTime": 1554822495,
             "y1": "x-momentum",
             "y2": "y-momentum",
             "y3": "E_kinetic"
@@ -781,32 +780,16 @@
             "documentationUrl": "",
             "flashType": "CapLaser",
             "folder": "/Examples",
+            "isExample": true,
             "name": "Cap Laser",
-            "notes": "",
-            "simulationId": "oB3UeXbN",
-            "simulationSerial": 1554822497414419
-        },
-        "simulationStatus": {
-            "animation": {
-                "elapsedTime": 0,
-                "error": "",
-                "frameCount": 0,
-                "lastUpdateTime": 1554822495,
-                "parametersChanged": false,
-                "percentComplete": 100,
-                "report": "animation",
-                "startTime": 1554822495,
-                "state": "stopped"
-            }
+            "notes": ""
         },
         "varAnimation": {
             "colorMap": "coolwarm",
             "framesPerSecond": "2",
             "notes": "",
-            "startTime": 1554822495,
             "var": "tele"
         }
     },
-    "simulationType": "flash",
-    "version": "20190408.214515"
+    "simulationType": "flash"
 }

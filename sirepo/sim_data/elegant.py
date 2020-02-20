@@ -7,6 +7,8 @@ u"""simulation data operations
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+from sirepo.template import lattice
+from sirepo.template.lattice import LatticeUtil
 import sirepo.sim_data
 
 
@@ -16,17 +18,13 @@ class SimData(sirepo.sim_data.SimDataBase):
     def fixup_old_data(cls, data):
         s = cls.schema()
         dm = data.models
-        cls._init_models(dm, ('bunchSource', 'twissReport'))
+        cls._init_models(dm, ('bunchSource', 'simulation', 'twissReport'))
         dm.setdefault('bunchFile', PKDict(sourceFile=None))
-        dm.simulation.setdefault(
-            'folder', '/',
-            'simulationMode', 'parallel',
-        )
         dm.setdefault('rpnVariables', [])
         if 'commands' not in dm:
             dm.commands = cls.__create_commands(data)
             for m in dm.elements:
-                model_schema = s.model[m['type']]
+                model_schema = s.model[m.type]
                 for k in m:
                     if k in model_schema and model_schema[k][1] == 'OutputFile' and m[k]:
                         m[k] = "1"
@@ -43,7 +41,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                     b[f] /= 1e9
             if b.sigma_s and not isinstance(b.sigma_s, basestring):
                 b.sigma_s /= 1e6
-            c = _find_first_bunch_command(data)
+            c = cls.__find_first_bunch_command(data)
             # first_bunch_command may not exist if the elegant sim has no bunched_beam command
             if c:
                 c.symmetrize = str(c.symmetrize)
@@ -51,21 +49,10 @@ class SimData(sirepo.sim_data.SimDataBase):
                     if f not in b and f in c:
                         b[f] = c[f]
             else:
-                bunch.centroid = '0,0,0,0,0,0'
+                dm.bunch.centroid = '0,0,0,0,0,0'
         for m in dm.commands:
             cls.update_model_defaults(m, 'command_{}'.format(m._type))
         cls._organize_example(data)
-
-    @classmethod
-    def elegant_iterator(cls, data, state, callback):
-        s = cls.schema()
-        for t in 'commands', 'elements':
-            for m in data.models[t]:
-                e = s.model[cls.elegant_model_name(m)]
-                callback(state, m)
-                for k in sorted(m):
-                    if k in e:
-                        callback(state, m, e[k], k)
 
     @classmethod
     def elegant_max_id(cls, data):
@@ -80,33 +67,25 @@ class SimData(sirepo.sim_data.SimDataBase):
         return max_id
 
     @classmethod
-    def elegant_model_name(cls, model):
-        return 'command_{}'.format(model._type) if '_type' in model else model.type
-
-    @classmethod
-    def resource_files(cls):
-        return cls.resource_glob('*.sdds')
-
-    @classmethod
-    def _compute_job_fields(cls, data):
-        r = data.report
+    def _compute_job_fields(cls, data, r, compute_model):
         res = []
-        if r == 'twissReport' or 'bunchReport' in r:
+        if compute_model in ('twissReport', 'bunchReport'):
             res += ['bunch', 'bunchSource', 'bunchFile']
         if r == 'twissReport':
             res += ['elements', 'beamlines', 'commands', 'simulation.activeBeamlineId']
         return res
 
     @classmethod
-    def _lib_files(cls, data):
-        res = []
-        cls.elegant_iterator(data, res, cls.__iterator_input_files)
-        if data['models']['bunchFile']['sourceFile']:
-            res.append('{}-{}.{}'.format(
-                'bunchFile',
-                'sourceFile',
-                data['models']['bunchFile']['sourceFile'],
-            ))
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if 'bunchReport' in analysis_model:
+            return 'bunchReport'
+        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
+
+    @classmethod
+    def _lib_file_basenames(cls, data):
+        res = LatticeUtil(data, cls.schema()).iterate_models(lattice.InputFileIterator(cls)).result
+        if data.models.bunchFile.sourceFile:
+            res.append(cls.lib_file_name_with_model_field('bunchFile', 'sourceFile', data.models.bunchFile.sourceFile))
         return res
 
     @classmethod
@@ -179,7 +158,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         return res
 
     @classmethod
-    def __iterator_input_files(cls, state, model, element_schema=None, field_name=None):
-        if element_schema:
-            if model[field_name] and element_schema[1].startswith('InputFile'):
-                state.append(cls.lib_file_name(cls.elegant_model_name(model), field_name, model[field_name]))
+    def __find_first_bunch_command(cls, data):
+        for m in data.models.commands:
+            if m._type == 'bunched_beam':
+                return m
+        return None

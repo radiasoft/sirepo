@@ -3,53 +3,55 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
-SIREPO.INCLUDE_EXAMPLE_FOLDERS = true;
-SIREPO.SINGLE_FRAME_ANIMATION = ['coherenceXAnimation', 'coherenceYAnimation', 'fluxAnimation', 'multiElectronAnimation'];
-SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
-SIREPO.PLOTTING_SHOW_FWHM = true;
-//TODO(pjm): provide API for this, keyed by field type
-SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
-];
-SIREPO.appFieldEditors = [
-    '<div data-ng-switch-when="BeamList">',
-      '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
-    '</div>',
-    '<div data-ng-switch-when="UndulatorList">',
-      '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
-    '</div>',
-    '<div data-ng-switch-when="ImageFile" class="col-sm-7">',
-      '<div data-image-file-field="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="MagneticZipFile" class="col-sm-7">',
-      '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
-    '</div>',
-    '<div data-ng-switch-when="ArbitraryFieldFile" class="col-sm-7">',
-      '<div data-file-field="field" data-file-type="arbitraryField" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Data File"></div>',
-    '</div>',
-    '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
-      '<div data-mirror-file-field="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
-    '</div>',
-    '<div data-ng-switch-when="WatchPoint" data-ng-class="fieldClass">',
-        '<div data-watch-point-list="" data-model="model" data-field="field" data-model-name="modelName"></div>',
-    '</div>',
-].join('');
-SIREPO.appDownloadLinks = [
-    '<li data-lineout-csv-link="x"></li>',
-    '<li data-lineout-csv-link="y"></li>',
-    '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
-].join('');
-SIREPO.appPanelHeadingButtons = [
-    '<div data-ng-if="isReport && ! hasData()" class="dropdown" style="display: inline-block">',
-      '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
-      '<ul class="dropdown-menu dropdown-menu-right">',
+SIREPO.app.config(function() {
+    SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
+    SIREPO.INCLUDE_EXAMPLE_FOLDERS = true;
+    SIREPO.SINGLE_FRAME_ANIMATION = ['coherenceXAnimation', 'coherenceYAnimation', 'fluxAnimation', 'multiElectronAnimation'];
+    SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
+    SIREPO.PLOTTING_SHOW_FWHM = true;
+    SIREPO.appReportTypes = [
+        '<div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
+    ].join('');
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="BeamList">',
+          '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
+        '</div>',
+        '<div data-ng-switch-when="UndulatorList">',
+          '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
+        '</div>',
+        '<div data-ng-switch-when="ImageFile" class="col-sm-7">',
+          '<div data-image-file-field="" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="MagneticZipFile" class="col-sm-7">',
+          '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
+        '</div>',
+        '<div data-ng-switch-when="ArbitraryFieldFile" class="col-sm-7">',
+          '<div data-file-field="field" data-file-type="arbitraryField" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Data File"></div>',
+        '</div>',
+        '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
+          '<div data-mirror-file-field="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
+        '</div>',
+        '<div data-ng-switch-when="WatchPoint" data-ng-class="fieldClass">',
+          '<div data-watch-point-list="" data-model="model" data-field="field" data-model-name="modelName"></div>',
+        '</div>',
+    ].join('');
+    SIREPO.appDownloadLinks = [
+        '<li data-lineout-csv-link="x"></li>',
+        '<li data-lineout-csv-link="y"></li>',
+        '<li data-lineout-csv-link="full"></li>',
         '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
-      '</ul>',
-    '</div>',
-].join('');
+    ].join('');
+    SIREPO.appPanelHeadingButtons = [
+        '<div data-ng-if="isReport && ! hasData()" class="dropdown" style="display: inline-block">',
+        '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
+        '<ul class="dropdown-menu dropdown-menu-right">',
+        '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
+        '</ul>',
+        '</div>',
+    ].join('');
 
-SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
+    SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
+});
 
 SIREPO.app.factory('srwService', function(activeSection, appDataService, appState, beamlineService, panelState, requestSender, $location, $rootScope, $route) {
     var FORMAT_DECIMALS = 8;
@@ -94,6 +96,13 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         return false;
     }
 
+    self.computeModel = function(analysisModel) {
+        if (analysisModel === 'coherenceYAnimation' || analysisModel === 'coherenceXAnimation') {
+            return 'multiElectronAnimation';
+        }
+        return analysisModel;
+    };
+
     self.disableReloadOnSearch = function() {
         if ($route.current && $route.current.$$route) {
             $route.current.$$route.reloadOnSearch = false;
@@ -102,6 +111,20 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
 
     self.formatFloat = function(v) {
         return +parseFloat(v).toFixed(FORMAT_DECIMALS);
+    };
+
+    self.getReportTitle = function(modelName, itemId) {
+        if (! appState.isLoaded()) {
+            return '';
+        }
+        if (modelName == 'multiElectronAnimation') {
+            // multiElectronAnimation title is cached on the simulation model
+            var title = appState.models.simulation.multiElectronAnimationTitle;
+            if (title) {
+                return title;
+            }
+        }
+        return beamlineService.getReportTitle(modelName, itemId);
     };
 
     self.isApplicationMode = function(name) {
@@ -204,6 +227,8 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         }
     });
 
+    appState.setAppService(self);
+
     appState.whenModelsLoaded($rootScope, function() {
         initCharacteristic();
         // don't show multi-electron values in certain cases
@@ -212,19 +237,6 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
             : self.originalCharacteristicEnum;
     });
 
-    self.getReportTitle = function(modelName, itemId) {
-        if (! appState.isLoaded()) {
-            return '';
-        }
-        if (modelName == 'multiElectronAnimation') {
-            // multiElectronAnimation title is cached on the simulation model
-            var title = appState.models.simulation.multiElectronAnimationTitle;
-            if (title) {
-                return title;
-            }
-        }
-        return beamlineService.getReportTitle(modelName, itemId);
-    };
     return self;
 });
 
@@ -467,10 +479,15 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
             else if (name === 'fiber' || name === 'zonePlate') {
                 updateDualFields(item);
             }
-            if (name === 'mask' || name === 'sample') {
+            else if (name === 'mask' || name === 'sample') {
                 updateMaterialFields(item);
                 if (name == 'sample') {
                     updateSampleFields(item);
+                }
+            }
+            else if (name == 'crystal') {
+                if (item.materal != 'Unknown' && ! item.nvz) {
+                    computeCrystalInit(item);
                 }
             }
             if (grazingAngleElements.indexOf(name) >= 0) {
@@ -1342,25 +1359,6 @@ SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload,
             $scope.isUploading = false;
             $scope.title = 'Import Python or JSON Simulation File';
 
-            function handleStatus(data) {
-                $scope.isUploading = false;
-                if (data.error) {
-                    $scope.fileUploadError = data.error;
-                    appState.deleteSimulation(appState.models.simulation.simulationId, function() {});
-                }
-                appState.clearModels();
-                if (data.simulationId) {
-                    hideAndRedirect(data.simulationId);
-                }
-            }
-
-            function hideAndRedirect(simId) {
-                $('#srw-simulation-import').modal('hide');
-                requestSender.localRedirect('source', {
-                    ':simulationId': simId,
-                });
-            }
-
             $scope.fileType = function(pythonFile) {
                 var importArgs = $('.srw-python-file-import-args');
                 if (pythonFile && pythonFile.name.indexOf('.py') >= 0) {
@@ -1385,23 +1383,18 @@ SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload,
                         'importFile',
                         {
                             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        }),
+                        }
+                    ),
                     function(data) {
                         $scope.isUploading = false;
                         if (data.error) {
                             $scope.fileUploadError = data.error;
                         }
-                        else if (data.models.backgroundImport) {
-                            $scope.isUploading = true;
-                            appState.loadModels(data.models.simulation.simulationId, function() {
-                                simulationQueue.addTransientItem(
-                                    'backgroundImport',
-                                    appState.applicationState(),
-                                    handleStatus);
-                            });
-                        }
                         else {
-                            hideAndRedirect(data.models.simulation.simulationId);
+                            $('#srw-simulation-import').modal('hide');
+                            requestSender.localRedirect('source', {
+                                ':simulationId': data.models.simulation.simulationId
+                            });
                         }
                     });
             };
@@ -1438,7 +1431,7 @@ SIREPO.app.directive('imageFileField', function(appState, requestSender, $http, 
                 }
                 var m = $scope.model.imageFile.match(/(([^\/]+)\.\w+)$/);
                 if (!m) {
-                    throw $scope.model.imageFile + ': invalid imageFile name';
+                    throw new Error($scope.model.imageFile + ': invalid imageFile name');
                 }
                 var fn = m[2] + '_processed.' + $scope.model.outputImageFormat;
 
@@ -1879,17 +1872,24 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     '<div data-simulation-status-timer="simState.timeData"></div>',
                   '</div>',
                 '</div>',
+            //TODO(pjm): share with simStatusPanel directive in sirepo-components.js
+                '<div data-ng-if="simState.showJobSettings()">',
+                  '<div class="form-group form-group-sm">',
+                    '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>',
+                    '<div data-sbatch-cores-and-hours="simState"></div>',
+                  '</div>',
+                '</div>',
                 '<div class="col-sm-6 pull-right">',
                   '<button class="btn btn-default" data-ng-click="startSimulation()">Start New Simulation</button>',
                 '</div>',
               '</div>',
             '</form>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, appState, authState) {
             var clientFields = ['colorMap', 'aspectRatio', 'plotScale'];
             var serverFields = ['intensityPlotsWidth', 'rotateAngle', 'rotateReshape'];
             var oldModel = null;
-            $scope.frameCount = 1;
+            $scope.frameCount = 0;
 
             function copyModel() {
                 oldModel = appState.cloneModel($scope.model);
@@ -1906,19 +1906,20 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 if (data.method && data.method != appState.models.fluxAnimation.method) {
                     // the output file on the server was generated with a different flux method
                     $scope.simState.timeData = {};
-                    frameCache.setFrameCount(0);
+                    $scope.frameCount = 0;
+                    frameCache.setFrameCount($scope.frameCount);
                     return;
                 }
                 if (data.percentComplete) {
                     $scope.particleNumber = data.particleNumber;
                     $scope.particleCount = data.particleCount;
                 }
-                if (data.frameId) {
-                    if (data.frameId != $scope.frameId) {
-                        $scope.frameId = data.frameId;
-                        $scope.frameCount++;
+                if (data.frameCount) {
+                    if (data.frameCount != $scope.frameCount) {
+                        $scope.frameCount = data.frameCount;
+                        $scope.frameIndex = data.frameIndex;
                         frameCache.setFrameCount($scope.frameCount);
-                        frameCache.setCurrentFrame($scope.model, $scope.frameCount - 1);
+                        frameCache.setCurrentFrame($scope.model, $scope.frameIndex);
                     }
                     srwService.setShowCalcCoherence(data.calcCoherence);
                 }
@@ -1951,7 +1952,15 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             };
 
             $scope.startSimulation = function() {
+                // The available jobRunModes can change. Default to parallel if
+                // the current jobRunMode doesn't exist
+                var j = appState.models[$scope.simState.model];
+                if (j && j.jobRunMode && j.jobRunMode in authState.jobRunModeMap === false) {
+                    j.jobRunMode = 'parallel';
+                }
+                frameCache.setFrameCount(0);
                 if ($scope.model == 'multiElectronAnimation') {
+                    appState.saveChanges($scope.simState.model);
                     appState.models.simulation.multiElectronAnimationTitle = beamlineService.getReportTitle($scope.model);
                 }
                 $scope.simState.saveAndRunSimulation('simulation');
@@ -1961,7 +1970,8 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 $scope.$on($scope.model + '.changed', function() {
                     if ($scope.simState.isReadyForModelChanges && hasReportParameterChanged()) {
                         $scope.cancelPersistentSimulation();
-                        frameCache.setFrameCount(0);
+                        $scope.frameCount = 0;
+                        frameCache.setFrameCount($scope.frameCount);
                         $scope.percentComplete = 0;
                         $scope.particleNumber = 0;
                     }
@@ -1969,13 +1979,11 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 copyModel();
             });
 
-            var coherentArgs = $.merge([SIREPO.ANIMATION_ARGS_VERSION + '3'], serverFields);
-            $scope.simState = persistentSimulation.initSimulationState($scope, $scope.model, handleStatus, {
-                multiElectronAnimation: coherentArgs,
-                fluxAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1'],
-                coherenceXAnimation: coherentArgs,
-                coherenceYAnimation: coherentArgs,
-            });
+            $scope.simState = persistentSimulation.initSimulationState(
+                $scope,
+                srwService.computeModel($scope.model),
+                handleStatus
+            );
        },
     };
 });
@@ -2453,7 +2461,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                     point2[idx] += labelHeight * Math.sin(angle);
                     return [origin, point1, point2];
                 }
-                throw 'no plane for alignment: ' + $scope.viewDirection[dir] + dir;
+                throw new Error('no plane for alignment: ' + $scope.viewDirection[dir] + dir);
             }
 
             function maxTextDimensions() {

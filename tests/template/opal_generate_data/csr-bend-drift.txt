@@ -1,0 +1,44 @@
+
+REAL BEAM_BUNCH_CHARGE = 1e-09;
+REAL CSR_SG_NLEFT = 5;
+REAL CSR_SG_NRIGHT = 4;
+REAL CSR_SG_POLYORDER = 4;
+REAL FS_SC1_X_BINS = 8;
+REAL FS_SC1_Y_BINS = 8;
+REAL FS_SC1_Z_BINS = 64;
+REAL NUMBER_OF_PARTICLES = 5000;
+REAL bend_energy = 6.50762633;
+REAL gamma = (bend_energy * 1e-3 + EMASS) / EMASS;
+REAL beta = sqrt(1 - (1/pow(gamma, 2)));
+REAL P0 = gamma * beta * EMASS;
+REAL PS_DUMP_FREQUENCY = 20;
+REAL RF_FREQUENCY = 100000000;
+REAL RF_WAVELENGTH = CLIGHT / RF_FREQUENCY;
+REAL STAT_DUMP_FREQUENCY = 1;
+REAL TIME_STEP_1 = 4.37345628029e-12;
+REAL bend_angle = 0.523598775598;
+REAL bend_length = 0.129409522551;
+REAL drift_before_bend = 0.1;
+REAL gambet = gamma * beta;
+
+
+OP1: option,autophase=1,csrdump=true,info=false,psdumpfreq=PS_DUMP_FREQUENCY,statdumpfreq=STAT_DUMP_FREQUENCY,version=10900;
+SG_FILTER: filter,nleft=CSR_SG_NLEFT,npoints=CSR_SG_NLEFT + CSR_SG_NRIGHT + 1,nright=CSR_SG_NRIGHT,polyorder=CSR_SG_POLYORDER,type="Savitzky-Golay";
+FS_CSR_WAKE: wake,filters="SG_FILTER",type="1D-CSR";
+
+D1: DRIFT,l=drift_before_bend;
+D2: DRIFT,l=0.4,wakef=FS_CSR_WAKE;
+S1: SBEND,angle=bend_angle,designenergy=bend_energy,e1=0.0872664625997,e2=0.0872664625997,gap=0.02,l=bend_length,wakef=FS_CSR_WAKE;
+
+"D1#0": D1,elemedge=0;
+"S1#0": S1,elemedge=0.1;
+"D2#0": D2,elemedge=0.229409522551;
+BL1: LINE=("D1#0","S1#0","D2#0");
+
+
+FS_SC1: fieldsolver,fstype="NONE",mt=FS_SC1_Z_BINS,mx=FS_SC1_X_BINS,my=FS_SC1_Y_BINS,parfftx=true,parffty=true;
+DI1: distribution,sigmapx=0.0025,sigmapy=0.0025,sigmapz=0.01,sigmax=0.00025,sigmay=0.00025,sigmaz=5e-05,type="GAUSS";
+BEAM1: beam,bcurrent=BEAM_BUNCH_CHARGE * RF_FREQUENCY,bfreq=RF_FREQUENCY * 1e-6,npart=NUMBER_OF_PARTICLES,particle="ELECTRON",pc=P0;
+TR1: track,beam=beam1,dt=TIME_STEP_1,line=BL1,maxsteps=2000,zstop=0.6316;
+ run, beam=beam1,distribution=DI1,fieldsolver=FS_SC1,method="PARALLEL-T";
+endtrack;

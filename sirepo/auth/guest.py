@@ -5,17 +5,17 @@ u"""Guest login
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import auth
 from sirepo import cookie
-from sirepo import http_reply
+from sirepo import http_request
 from sirepo import srtime
 import datetime
-import sirepo.template
+import sirepo.util
 
 
 AUTH_METHOD = auth.METHOD_GUEST
@@ -35,11 +35,12 @@ _ONE_DAY = datetime.timedelta(days=1)
 @api_perm.require_cookie_sentinel
 def api_authGuestLogin(simulation_type):
     """You have to be an anonymous or logged in user at this point"""
-    t = sirepo.template.assert_sim_type(simulation_type)
+    req = http_request.parse_params(type=simulation_type)
     # if already logged in as guest, just redirect
     if auth.user_if_logged_in(AUTH_METHOD):
-        return auth.login_success_redirect(t)
-    return auth.login(this_module, sim_type=t)
+        auth.login_success_response(req.type)
+    auth.login(this_module, sim_type=req.type)
+    raise AssertionError('auth.login returned unexpectedly')
 
 
 def init_apis(*args, **kwargs):
@@ -91,17 +92,14 @@ def validate_login():
     Returns:
         object: if valid, None, otherwise flask.Response.
     """
-    r = pkcollections.Dict()
-    if is_login_expired(r):
-        pkdlog('expired uid={uid}, expiry={expiry} now={now}', **r)
-        return http_reply.gen_sr_exception(
+    msg = PKDict()
+    if is_login_expired(msg):
+        raise sirepo.util.SRException(
             'loginFail',
-            {
-                ':method': 'guest',
-                ':reason': 'guest-expired',
-            },
+            PKDict({':method': 'guest', ':reason': 'guest-expired'}),
+            'expired uid={uid}, expiry={expiry} now={now}',
+            **msg
         )
-    return None
 
 
 def _cfg_login_days(value):

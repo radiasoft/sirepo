@@ -26,6 +26,7 @@ def test_guest_merge(monkeypatch):
             simulationId=d.simulationId,
             simulationType=sim_type,
             name='guest-sim',
+            folder='/',
         ),
     )
     guest_uid = fc.sr_auth_state().uid
@@ -41,17 +42,14 @@ def test_guest_merge(monkeypatch):
             'simulationType': sim_type,
         },
     )
-    d = fc.sr_post(
-        'listSimulations',
-        {'simulationType': sim_type, 'search': {'simulationName': 'Scooby Doo'}},
-    )
-    d = d[0].simulation
+    d = fc.sr_sim_data(sim_type=sim_type)
     d = fc.sr_post(
         'copySimulation',
         dict(
-            simulationId=d.simulationId,
+            simulationId=d.models.simulation.simulationId,
             simulationType=sim_type,
             name='oauth-sim',
+            folder='/',
         ),
     )
     fc.sr_get('authLogout', {'simulation_type': sim_type})
@@ -67,23 +65,23 @@ def test_guest_merge(monkeypatch):
 
 def test_happy_path(monkeypatch):
     from pykern.pkdebug import pkdp
-    from pykern.pkunit import pkfail, pkok, pkeq, pkre
+    from pykern import pkjson
+    from pykern.pkunit import pkfail, pkok, pkeq, pkre, pkexcept
 
     fc, sim_type, oc = _fc(monkeypatch, 'happy')
     fc.sr_auth_state(isLoggedIn=False)
-    r = fc.sr_get('authGithubLogin', {'simulation_type': sim_type})
-    d = fc.sr_post('listSimulations', {'simulationType': sim_type})
-    pkeq('srException', d.state)
-    pkeq('login', d.srException.routeName)
-    state = oc.values.state
+    r = fc.sr_get('authGithubLogin', {'simulation_type': sim_type}, redirect=False)
     pkeq(302, r.status_code)
+    with pkexcept('SRException.*routeName=login'):
+        d = fc.sr_post('listSimulations', {'simulationType': sim_type})
+    state = oc.values.state
     pkre(state, r.headers['location'])
     fc.sr_auth_state(displayName=None, isLoggedIn=False, uid=None, userName=None)
-    r = fc.sr_get('authGithubAuthorized', query={'state': state})
-    pkre('location = "/{}#/complete-registration"'.format(sim_type), r.data)
-    d = fc.sr_post('listSimulations', {'simulationType': sim_type})
-    pkeq('srException', d.state)
-    pkeq('completeRegistration', d.srException.routeName)
+    r = fc.sr_get('authGithubAuthorized', query={'state': state}, redirect=False)
+    d = pkjson.load_any(r.data)
+    pkeq(True, d.authState.isLoggedIn)
+    with pkexcept('SRException.*routeName=completeRegistration'):
+        fc.sr_post('listSimulations', {'simulationType': sim_type})
     fc.sr_post(
         'authCompleteRegistration',
         {
@@ -98,7 +96,7 @@ def test_happy_path(monkeypatch):
         userName='happy',
     )
     uid = s.uid
-    r = fc.sr_get('authLogout', {'simulation_type': sim_type})
+    r = fc.sr_get('authLogout', {'simulation_type': sim_type}, redirect=False)
     pkre('/{}$'.format(sim_type), r.headers['Location'])
     fc.sr_auth_state(
         avatarUrl=None,
