@@ -147,21 +147,23 @@ class _Dispatcher(PKDict):
         while True:
             self._websocket = None
             try:
-#TODO(robnagler) connect_timeout, max_message_size, ping_interval, ping_timeout
+#TODO(robnagler) connect_timeout, ping_interval, ping_timeout
                 self._websocket = await tornado.websocket.websocket_connect(
                     tornado.httpclient.HTTPRequest(
                         url=cfg.supervisor_uri,
                         validate_cert=sirepo.job.cfg.verify_tls,
                     ),
+                    max_message_size=job.MAX_MESSAGE_SIZE,
                 )
-                m = self.format_op(None, job.OP_ALIVE)
+                s = self.format_op(None, job.OP_ALIVE)
                 while True:
-                    if m and not await self.send(m):
+                    if s and not await self.send(s):
                         break
-                    m = await self._websocket.read_message()
-                    if m is None:
-                        raise ValueError('response from supervisor was None')
-                    m = await self._op(m)
+                    r = await self._websocket.read_message()
+                    if r is None:
+                        pkdlog('websocket closed in response to len={} send={}', s and len(s), s)
+                        raise tornado.iostream.StreamClosedError()
+                    s = await self._op(r)
             except Exception as e:
                 pkdlog('error={} stack={}', e, pkdexc())
                 # TODO(e-carlin): exponential backoff?
@@ -324,7 +326,7 @@ class _Dispatcher(PKDict):
                 await self.job_cmd_reply(
                     m,
                     job.OP_ANALYSIS,
-                    await s.read_until(b'\n', 1e8),
+                    await s.read_until(b'\n', job.MAX_MESSAGE_SIZE),
                 )
         except Exception as e:
             await self._fastcgi_handle_error(m, e, pkdexc())
@@ -752,7 +754,6 @@ class _Process(PKDict):
 
 
 class _Stream(PKDict):
-    _MAX = int(1e8)
 
     def __init__(self, stream, cmd):
         super().__init__(
@@ -784,7 +785,7 @@ class _ReadJsonlStream(_Stream):
         super().__init__(*args)
 
     async def _read_stream(self):
-        self.text = await self._stream.read_until(b'\n', self._MAX)
+        self.text = await self._stream.read_until(b'\n', job.MAX_MESSAGE_SIZE)
         pkdc('stdout={}', self.text[:1000])
         await self.cmd.on_stdout_read(self.text)
 
@@ -795,14 +796,14 @@ class _ReadUntilCloseStream(_Stream):
 
     async def _read_stream(self):
         t = await self._stream.read_bytes(
-            self._MAX - len(self.text),
+            job.MAX_MESSAGE_SIZE - len(self.text),
             partial=True,
         )
         pkdc('stderr={}', t)
         await self.cmd.on_stderr_read(t)
         l = len(self.text) + len(t)
-        assert l < self._MAX, \
-            'len(bytes)={} greater than _MAX={}'.format(l, self._MAX)
+        assert l < job.MAX_MESSAGE_SIZE, \
+            'len(bytes)={} greater than MAX_MESSAGE_SIZE={}'.format(l, job.MAX_MESSAGE_SIZE)
         self.text.extend(t)
 
 
