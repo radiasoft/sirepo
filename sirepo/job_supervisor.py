@@ -334,7 +334,7 @@ class _ComputeJob(PKDict):
         r = PKDict(state=job.CANCELED)
         if (
             not self._req_is_valid(req)
-            or (self.db.status not in _RUNNING_PENDING and not self.ops)
+            or self.db.status not in _RUNNING_PENDING
         ):
             # job is not relevant, but let the user know it isn't running
             return r
