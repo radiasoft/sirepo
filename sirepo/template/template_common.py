@@ -361,7 +361,6 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE):
     )
 
 
-#TODO(mvk): validate_model is obsolete except for SRW examples. Fix those and remove this
 def validate_model(model_data, model_schema, enum_info):
 
     """Ensure the value is valid for the field type. Scales values as needed."""
@@ -373,22 +372,20 @@ def validate_model(model_data, model_schema, enum_info):
         elif len(model_schema[k]) > 2:
             value = model_schema[k][2]
         else:
-            raise AssertionError(
-                'no value for field "{}" and no default value in schema'.format(k)
-            )
+            raise Exception('no value for field "{}" and no default value in schema'.format(k))
         if field_type in enum_info:
-            assert value is not None, 'value required for enum {}'.format(k)
             if str(value) not in enum_info[field_type]:
                 # Check a comma-delimited string against the enumeration
-                for item in re.split(r'\s*,\s*', str(value).strip()):
-                    assert item in enum_info[field_type], \
-                        '{}: invalid enum "{}" value for field "{}"'.format(
-                            item, field_type, k
-                        )
+                for item in re.split(r'\s*,\s*', str(value)):
+                    if item not in enum_info[field_type]:
+                        assert item in enum_info[field_type], \
+                            '{}: invalid enum "{}" value for field "{}"'.format(item, field_type, k)
         elif field_type == 'Float':
-            v = 0. if not value else float(value)
+            if not value:
+                value = 0
+            v = float(value)
             if re.search('\[m(m|rad)\]', label) or re.search('\[Lines/mm', label):
-                v /= 1000.
+                v /= 1000
             elif re.search('\[n(m|rad)\]', label) or re.search('\[nm/pixel\]', label):
                 v /= 1e09
             elif re.search('\[ps]', label):
@@ -396,7 +393,7 @@ def validate_model(model_data, model_schema, enum_info):
             #TODO(pjm): need to handle unicode in label better (mu)
             elif re.search('\[\xb5(m|rad)\]', label) or re.search('\[mm-mrad\]', label):
                 v /= 1e6
-            model_data[k] = v
+            model_data[k] = float(v)
         elif field_type == 'Integer':
             if not value:
                 value = 0
