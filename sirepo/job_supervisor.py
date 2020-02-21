@@ -193,15 +193,16 @@ class _ComputeJob(PKDict):
         if not d:
             return '_ComputeJob()'
         return pkdformat(
-            '_ComputeJob({} {} ops={})',
+            '_ComputeJob(jid={} uid={} status={} ops={})',
             d.get('computeJid'),
+            d.get('uid'),
             d.get('status'),
             self.ops,
         )
 
     @classmethod
     async def receive(cls, req):
-        pkdlog('{}', req)
+        pkdlog('{}', req) # TODO(e-carlin): don't log run status
         try:
             return await getattr(
                 cls.get_instance(req),
@@ -363,7 +364,7 @@ class _ComputeJob(PKDict):
                     elif c:
                         c.destroy()
                         c = None
-                    pkdlog('self.ops={} cancel={}', self.ops, o)
+                    pkdlog('self={} cancel={}', self, o)
                     for x in filter(lambda e: e != c, o):
                         x.destroy(cancel=True)
                     self.db.status = job.CANCELED
@@ -614,6 +615,7 @@ class _Op(PKDict):
             _reply_q=tornado.queues.Queue(),
         )
         self.msg.update(opId=self.opId, opName=self.opName)
+        pkdlog('self={} runDir={}', self, self.msg.get('runDir'))
 
     def destroy(self, cancel=True):
         if cancel:
@@ -658,7 +660,7 @@ class _Op(PKDict):
 
     async def run_timeout(self):
         """Can be any op that's timed"""
-        pkdlog('{} maxRunSecs={}', self, self.maxRunSecs)
+        pkdlog('self={} maxRunSecs={}', self, self.maxRunSecs)
         await self.computeJob._receive_api_runCancel(
             ServerReq(content=self.req_content),
             timed_out_op=self,

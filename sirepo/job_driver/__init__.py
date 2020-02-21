@@ -70,11 +70,7 @@ class DriverBase(PKDict):
         )
         # Drivers persist for the life of the program so they are never removed
         self.__instances[self._agentId] = self
-        pkdlog(
-            'class={} agentId={_agentId} kind={kind} uid={uid}',
-            self.__class__.__name__,
-            **self
-        )
+        pkdlog('self={}', self)
 
     def cpu_slot_free(self):
         if not self.cpu_slot:
@@ -141,7 +137,7 @@ class DriverBase(PKDict):
             self.cpu_slot_free()
             self._websocket_free()
         except Exception as e:
-            pkdlog('job_driver={} error={} stack={}', self, e, pkdexc())
+            pkdlog('self={} error={} stack={}', self, e, pkdexc())
 
     @classmethod
     def init_q(cls, maxsize):
@@ -200,12 +196,12 @@ class DriverBase(PKDict):
 
     def pkdebug_str(self):
         return pkdformat(
-            '{}(agentId={}, kind={}, uid={}, ops={})',
+            '{}(agentId={:.6} kind={} uid={}2 ops={})',
             self.__class__.__name__,
             self._agentId,
             self.kind,
             self.uid,
-            self.ops,
+            list(self.ops.values()),
         )
 
     async def prepare_send(self, op):
@@ -241,10 +237,9 @@ class DriverBase(PKDict):
 
     def send(self, op):
         pkdlog(
-            'op={} agentId={} opId={} runDir={}',
-            op.opName,
-            self._agentId,
-            op.opId,
+            'self={} op={} runDir={}',
+            self,
+            op,
             op.msg.get('runDir')
         )
         self._websocket.write_message(pkjson.dump_bytes(op.msg))
@@ -293,7 +288,6 @@ class DriverBase(PKDict):
         async with self._agent_start_lock:
             if self._agent_starting or self._websocket_ready.is_set():
                 return
-            pkdlog('agentId={} uid={} opId={}', self._agentId, self.uid, op.opId)
             try:
                 self._agent_starting = True
                 # TODO(e-carlin): We need a timeout on agent starts. If an agent
@@ -310,7 +304,7 @@ class DriverBase(PKDict):
                 )
                 await self._do_agent_start(op)
             except Exception as e:
-                pkdlog('agentId={} exception={}', self._agentId, e)
+                pkdlog('self={} exception={}', self, e)
                 self._agent_starting_done()
                 raise
 
@@ -336,23 +330,23 @@ class DriverBase(PKDict):
             ('opName' not in c or c.opName == job.OP_ERROR)
             or ('reply' in c and c.reply.get('state') == job.ERROR)
         ):
-            pkdlog('error agentId={} msg={}', self._agentId, c)
+            pkdlog('self={} error msg={}', self, c)
         elif c.opName == job.OP_JOB_CMD_STDERR:
-            pkdlog('stderr from job_cmd agentId={} msg={}', self._agentId, c)
+            pkdlog('self={} stderr from job_cmd msg={}', self, c)
             return
         else:
-            pkdlog('opName={} agentId={} opId={}', c.opName, self._agentId, i)
+            pkdlog('self={} opName={} opId={}', self, c.opName, i)
         if i:
             if 'reply' not in c:
-                pkdlog('agentId={} No reply={}', self._agentId, c)
+                pkdlog('self={} no reply={}', self, c)
                 c.reply = PKDict(state='error', error='no reply')
             if i in self.ops:
                 #SECURITY: only ops known to this driver can be replied to
                 self.ops[i].reply_put(c.reply)
             else:
                 pkdlog(
-                    'agentId={} not pending opId={} opName={}',
-                    self._agentId,
+                    'self={} not pending opId={} opName={}',
+                    self,
                     i,
                     c.opName,
                 )
@@ -367,7 +361,7 @@ class DriverBase(PKDict):
         self._agent_starting_done()
         if self._websocket:
             if self._websocket != msg.handler:
-                pkdlog('new websocket self={}', self)
+                pkdlog('self={} new websocket', self)
                 # New _websocket so bind
                 self.free_resources()
         self._websocket = msg.handler
@@ -379,7 +373,7 @@ class DriverBase(PKDict):
 
     def _receive_error(self, msg):
 #TODO(robnagler) what does this mean? Just a way of logging? Document this.
-        pkdlog('agentId={} msg={}', self._agentId, msg)
+        pkdlog('self={} msg={}', self, msg)
 
     def _websocket_free(self):
         pass
