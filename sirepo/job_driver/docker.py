@@ -20,7 +20,6 @@ import subprocess
 import tornado.ioloop
 import tornado.process
 
-cfg = None
 
 #: prefix all container names. Full format looks like: srj-p-uid
 _CNAME_PREFIX = 'srj'
@@ -35,7 +34,10 @@ _CNAME_RE = re.compile(_CNAME_SEP.join(('^' + _CNAME_PREFIX, r'([a-z]+)', '(.+)'
 # TODO(e-carlin): max open files for local or nersc?
 _MAX_OPEN_FILES = 1024
 
+
 class DockerDriver(job_driver.DriverBase):
+
+    cfg = None
 
     __hosts = PKDict()
 
@@ -45,6 +47,7 @@ class DockerDriver(job_driver.DriverBase):
         super().__init__(req)
         self.update(
             _cname=self._cname_join(),
+            _idle_timer=None,
             _image=self._get_image(),
             _user_dir=pkio.py_path(req.content.userDir),
             host=host,
@@ -58,6 +61,9 @@ class DockerDriver(job_driver.DriverBase):
             self._cname,
         )
         pkio.unchecked_remove(self._agent_exec_dir)
+
+    def cpu_slot_peers(self):
+        return self.host.instances[self.kind]
 
     @classmethod
     def get_instance(cls, req):
@@ -78,7 +84,29 @@ class DockerDriver(job_driver.DriverBase):
 
     @classmethod
     def init_class(cls):
-        if not cfg.tls_dir or not cfg.hosts:
+        cls.cfg = pkconfig.init(
+            agent_starting_secs=(
+                cls._AGENT_STARTING_SECS,
+                int,
+                'how long to wait for agent start',
+            ),
+            dev_volumes=(pkconfig.channel_in('dev'), bool, 'mount ~/.pyenv, ~/.local and ~/src for development'),
+            hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, 'execution hosts'),
+            idle_check_secs=(1800, int, 'how many minutes to wait between checks'),
+            image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
+            parallel=dict(
+                cores=(2, int, 'cores per parallel job'),
+                gigabytes=(1, int, 'gigabytes per parallel job'),
+                slots_per_host=(1, int, 'parallel slots per node'),
+            ),
+            sequential=dict(
+                gigabytes=(1, int, 'gigabytes per sequential job'),
+                slots_per_host=(1, int, 'sequential slots per node'),
+            ),
+            supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
+            tls_dir=pkconfig.RequiredUnlessDev(None, _cfg_tls_dir, 'directory containing host certs'),
+        )
+        if not cls.cfg.tls_dir or not cls.cfg.hosts:
             cls._init_dev_hosts()
         cls._init_hosts()
         return cls
@@ -98,11 +126,8 @@ class DockerDriver(job_driver.DriverBase):
 
     async def prepare_send(self, op):
         if op.opName == job.OP_RUN:
-            op.msg.mpiCores = cfg[self.kind].get('cores', 1)
+            op.msg.mpiCores = self.cfg[self.kind].get('cores', 1)
         return await super().prepare_send(op)
-
-    def cpu_slot_peers(self):
-        return self.host.instances[self.kind]
 
     @classmethod
     def _cmd_prefix(cls, host, tls_d):
@@ -131,7 +156,7 @@ class DockerDriver(job_driver.DriverBase):
         cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agent_exec_dir)
         pkdlog('dir={}', self._agent_exec_dir)
         pkio.mkdir_parent(self._agent_exec_dir)
-        c = cfg[self.kind]
+        c = self.cfg[self.kind]
         p = (
             'run',
             # attach to stdin for writing
@@ -180,7 +205,7 @@ class DockerDriver(job_driver.DriverBase):
 
     #TODO(robnagler) probably should push this to pykern also in rsconf
     def _get_image(self):
-        res = cfg.image
+        res = self.cfg.image
         if ':' in res:
             return res
         return res + ':' + pkconfig.cfg.channel
@@ -190,12 +215,12 @@ class DockerDriver(job_driver.DriverBase):
         assert pkconfig.channel_in('dev')
 
         from sirepo import srdb
-        assert not (cfg.tls_dir or cfg.hosts), \
+        assert not (cls.cfg.tls_dir or cls.cfg.hosts), \
             'neither cfg.tls_dir and cfg.hosts nor must be set to get auto-config'
         # dev mode only; see _cfg_tls_dir and _cfg_hosts
-        cfg.tls_dir = srdb.root().join('docker_tls')
-        cfg.hosts = ('localhost.localdomain',)
-        d = cfg.tls_dir.join(cfg.hosts[0])
+        cls.cfg.tls_dir = srdb.root().join('docker_tls')
+        cls.cfg.hosts = ('localhost.localdomain',)
+        d = cls.cfg.tls_dir.join(cls.cfg.hosts[0])
         if d.check(dir=True):
             return
         pkdlog('initializing docker dev env; initial docker pull will take a few minutes...')
@@ -210,8 +235,8 @@ class DockerDriver(job_driver.DriverBase):
 
     @classmethod
     def _init_hosts(cls):
-        for h in cfg.hosts:
-            d = cfg.tls_dir.join(h)
+        for h in cls.cfg.hosts:
+            d = cls.cfg.tls_dir.join(h)
             x = cls.__hosts[h] = PKDict(
                 cmd_prefix=cls._cmd_prefix(h, d),
                 instances=PKDict(),
@@ -220,17 +245,36 @@ class DockerDriver(job_driver.DriverBase):
                 cpu_slot_q=PKDict(),
             )
             for k in job.KINDS:
-                x.cpu_slot_q[k] = cls.init_q(cfg[k].slots_per_host)
+                x.cpu_slot_q[k] = cls.init_q(cls.cfg[k].slots_per_host)
                 x.instances[k] = []
         assert len(cls.__hosts) > 0, \
-            '{}: no docker hosts found in directory'.format(cfg.tls_d)
+            '{}: no docker hosts found in directory'.format(cls.cfg.tls_d)
+
+    def _receive_alive(self, msg):
+        self._start_idle_timeout()
+        super()._receive_alive(msg)
+
+    def _start_idle_timeout(self):
+        async def _kill_if_idle():
+            if not self.ops:
+                pkdlog('self={}', self)
+                self._idle_timer = None
+                await self.kill()
+            else:
+                self._start_idle_timeout()
+
+        if not self._idle_timer:
+            self._idle_timer = tornado.ioloop.IOLoop.current().call_later(
+                self.cfg.idle_check_secs,
+                _kill_if_idle,
+            )
 
     def _volumes(self):
         res = []
         def _res(src, tgt):
             res.append('--volume={}:{}'.format(src, tgt))
 
-        if cfg.dev_volumes:
+        if cls.cfg.dev_volumes:
             # POSIT: radiasoft/download/installers/rpm-code/codes.sh
             #   these are all the local environ directories.
             for v in '~/src', '~/.pyenv', '~/.local':
@@ -243,24 +287,6 @@ class DockerDriver(job_driver.DriverBase):
 
 
 def init_class():
-    global cfg
-
-    cfg = pkconfig.init(
-        dev_volumes=(pkconfig.channel_in('dev'), bool, 'mount ~/.pyenv, ~/.local and ~/src for development'),
-        hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, 'execution hosts'),
-        image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
-        parallel=dict(
-            cores=(2, int, 'cores per parallel job'),
-            gigabytes=(1, int, 'gigabytes per parallel job'),
-            slots_per_host=(1, int, 'parallel slots per node'),
-        ),
-        sequential=dict(
-            gigabytes=(1, int, 'gigabytes per sequential job'),
-            slots_per_host=(1, int, 'sequential slots per node'),
-        ),
-        supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
-        tls_dir=pkconfig.RequiredUnlessDev(None, _cfg_tls_dir, 'directory containing host certs'),
-    )
     return DockerDriver.init_class()
 
 
