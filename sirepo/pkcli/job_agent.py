@@ -153,7 +153,9 @@ class _Dispatcher(PKDict):
                         url=cfg.supervisor_uri,
                         validate_cert=sirepo.job.cfg.verify_tls,
                     ),
-                    max_message_size=job.MAX_MESSAGE_SIZE,
+                    max_message_size=job.cfg.max_message_size,
+                    ping_interval=job.cfg.ping_interval_secs,
+                    ping_timeout=job.cfg.ping_timeout_secs,
                 )
                 s = self.format_op(None, job.OP_ALIVE)
                 while True:
@@ -326,7 +328,7 @@ class _Dispatcher(PKDict):
                 await self.job_cmd_reply(
                     m,
                     job.OP_ANALYSIS,
-                    await s.read_until(b'\n', job.MAX_MESSAGE_SIZE),
+                    await s.read_until(b'\n', job.cfg.max_message_size),
                 )
         except Exception as e:
             await self._fastcgi_handle_error(m, e, pkdexc())
@@ -785,7 +787,7 @@ class _ReadJsonlStream(_Stream):
         super().__init__(*args)
 
     async def _read_stream(self):
-        self.text = await self._stream.read_until(b'\n', job.MAX_MESSAGE_SIZE)
+        self.text = await self._stream.read_until(b'\n', job.cfg.max_message_size)
         pkdc('stdout={}', self.text[:1000])
         await self.cmd.on_stdout_read(self.text)
 
@@ -796,14 +798,17 @@ class _ReadUntilCloseStream(_Stream):
 
     async def _read_stream(self):
         t = await self._stream.read_bytes(
-            job.MAX_MESSAGE_SIZE - len(self.text),
+            job.cfg.max_message_size - len(self.text),
             partial=True,
         )
         pkdc('stderr={}', t)
         await self.cmd.on_stderr_read(t)
         l = len(self.text) + len(t)
-        assert l < job.MAX_MESSAGE_SIZE, \
-            'len(bytes)={} greater than MAX_MESSAGE_SIZE={}'.format(l, job.MAX_MESSAGE_SIZE)
+        assert l < job.cfg.max_message_size, \
+            'len(bytes)={} greater than max_message_size={}'.format(
+                l,
+                job.cfg.max_message_size,
+            )
         self.text.extend(t)
 
 

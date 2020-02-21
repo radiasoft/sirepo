@@ -16,8 +16,6 @@ import sirepo.util
 import re
 
 
-MAX_MESSAGE_SIZE = int(1e8)
-
 OP_ANALYSIS = 'analysis'
 OP_CANCEL = 'cancel'
 OP_ERROR = 'error'
@@ -164,6 +162,9 @@ def agent_env(env=None, uid=None):
         PYTHONUNBUFFERED='1',
         SIREPO_AUTH_LOGGED_IN_USER=lambda: uid or sirepo.auth.logged_in_user(),
         SIREPO_JOB_VERIFY_TLS=cfg.verify_tls,
+        SIREPO_JOB_MAX_MESSAGE_SIZE=cfg.max_message_size,
+        SIREPO_JOB_PING_INTERVAL_SECS=cfg.ping_interval_secs,
+        SIREPO_JOB_PING_TIMEOUT_SECS=cfg.ping_timeout_secs,
         SIREPO_SRDB_ROOT=lambda: sirepo.srdb.root(),
     )
     return '\n'.join(("export {}='{}'".format(k, v) for k, v in env.items()))
@@ -173,6 +174,9 @@ def init():
     global cfg
 
     cfg = pkconfig.init(
+        max_message_size=(int(1e8), int, 'maximum websocket message size'),
+        ping_interval_secs=(2*60, int, 'how long to wait between sending keep alive pings'),
+        ping_timeout_secs=(4*60, int, 'how long to wait for a ping response'),
         server_secret=(
             'a very secret, secret',
             str,
