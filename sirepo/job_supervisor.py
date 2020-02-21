@@ -485,7 +485,7 @@ class _ComputeJob(PKDict):
         o.driver = job_driver.get_instance(req, r, o)
         if 'dataFileKey' in kwargs:
             kwargs['dataFileUri'] = job.supervisor_file_uri(
-                o.driver.get_supervisor_uri(),
+                o.driver.cfg.supervisor_uri,
                 job.DATA_FILE_URI,
                 kwargs.pop('dataFileKey'),
             )
