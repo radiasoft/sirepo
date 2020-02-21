@@ -45,6 +45,7 @@ class DockerDriver(job_driver.DriverBase):
         super().__init__(req)
         self.update(
             _cname=self._cname_join(),
+            _idle_timer=None,
             _image=self._get_image(),
             _user_dir=pkio.py_path(req.content.userDir),
             host=host,
@@ -103,6 +104,10 @@ class DockerDriver(job_driver.DriverBase):
 
     def cpu_slot_peers(self):
         return self.host.instances[self.kind]
+
+    def _receive_alive(self, msg):
+        self._start_idle_timeout()
+        super()._receive_alive(msg)
 
     @classmethod
     def _cmd_prefix(cls, host, tls_d):
@@ -225,6 +230,21 @@ class DockerDriver(job_driver.DriverBase):
         assert len(cls.__hosts) > 0, \
             '{}: no docker hosts found in directory'.format(cfg.tls_d)
 
+    def _start_idle_timeout(self):
+        async def _kill_if_idle():
+            if not self.ops:
+                pkdlog('self={}', self)
+                self._idle_timer = None
+                await self.kill()
+            else:
+                self._start_idle_timeout()
+
+        if not self._idle_timer:
+            self._idle_timer = tornado.ioloop.IOLoop.current().call_later(
+                cfg.idle_check_secs,
+                _kill_if_idle,
+            )
+
     def _volumes(self):
         res = []
         def _res(src, tgt):
@@ -248,6 +268,7 @@ def init_class():
     cfg = pkconfig.init(
         dev_volumes=(pkconfig.channel_in('dev'), bool, 'mount ~/.pyenv, ~/.local and ~/src for development'),
         hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, 'execution hosts'),
+        idle_check_secs=(1800, int, 'how many minutes to wait between checks'),
         image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
         parallel=dict(
             cores=(2, int, 'cores per parallel job'),
