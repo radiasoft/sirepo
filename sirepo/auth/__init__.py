@@ -16,6 +16,7 @@ from sirepo import http_reply
 from sirepo import http_request
 from sirepo import auth_db
 from sirepo import util
+import sirepo.feature_config
 import sirepo.template
 import datetime
 import importlib
@@ -219,6 +220,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
             _login_user(module, uid)
         else:
             uid = simulation_db.user_create(lambda u: _login_user(module, u))
+            _create_roles_for_user(uid, module.AUTH_METHOD)
         if model:
             model.uid = uid
             model.save()
@@ -295,6 +297,22 @@ def require_auth_basic():
         )
     cookie.set_sentinel()
     login(m, uid=uid)
+
+
+def require_sim_type(sim_type):
+    if sim_type not in sirepo.feature_config.cfg().proprietary_sim_types:
+        # only check role for proprietary_sim_types
+        return
+    if not _is_logged_in():
+        # If a user is not logged in, we allow any sim_type, because
+        # the GUI has to be able to get access to certain APIs before
+        # logging in.
+        return
+    r = _role_for_sim_type(sim_type)
+    u = _get_user()
+    with auth_db.thread_lock:
+        if not sirepo.auth_db.UserRole.search_by(role=r, uid=u):
+            util.raise_forbidden('uid={} role={} not found'.format(u, r))
 
 
 def require_user():
@@ -496,6 +514,15 @@ def _auth_state():
     return v
 
 
+def _create_roles_for_user(uid, method):
+    if not (pkconfig.channel_in('dev') and method == METHOD_GUEST):
+        return
+    auth_db.UserRole.add_roles(
+        uid,
+        [_role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types],
+    )
+
+
 def _get_user():
     return cookie.unchecked_get_value(_COOKIE_USER)
 
@@ -581,6 +608,10 @@ def _parse_display_name(value):
     assert len(res), \
         'invalid post data: displayName={}'.format(value)
     return res
+
+
+def _role_for_sim_type(sim_type):
+    return 'sim_type_' + sim_type
 
 
 def _set_log_user():
