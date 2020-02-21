@@ -202,7 +202,8 @@ class _ComputeJob(PKDict):
 
     @classmethod
     async def receive(cls, req):
-        pkdlog('{}', req) # TODO(e-carlin): don't log run status
+        if req.content.get('api') != 'api_runStatus':
+            pkdlog('{}', req)
         try:
             return await getattr(
                 cls.get_instance(req),

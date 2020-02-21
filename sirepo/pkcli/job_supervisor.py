@@ -166,11 +166,12 @@ async def _incoming(content, handler):
         c = content
         if not isinstance(content, dict):
             c = pkjson.load_any(content)
-        pkdc(
-            'class={} content={}',
-            handler.sr_class,
-            c,
-        )
+        if c.get('api') != 'api_runStatus':
+            pkdc(
+                'class={} content={}',
+                handler.sr_class,
+                c,
+            )
         await handler.sr_class(handler=handler, content=c).receive()
     except Exception as e:
         pkdlog(
