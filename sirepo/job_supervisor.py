@@ -301,7 +301,7 @@ class _ComputeJob(PKDict):
             dataFileKey=req.content.pop('dataFileKey')
         )
 
-    async def _receive_api_runCancel(self, req, op=None):
+    async def _receive_api_runCancel(self, req, timed_out_op=None):
         """Cancel a run and related ops
 
         Analysis ops that are for a parallel run (ex. sim frames) will not
@@ -309,35 +309,34 @@ class _ComputeJob(PKDict):
 
         Args:
             req (ServerReq): The cancel request
-            op (_Op, optional): An additional op (that can be an analysis for a
-                parallel run) to be cancelled
+            timed_out_op (_Op, Optional): the op that was timed out, which
+                needs to be canceled
         Returns:
             PKDict: Message with state=cancelled
         """
 
         def _ops_to_cancel():
-            o = [
+            r = {
                 o for o in self.ops
                 # Do not cancel sim frames. Allow them to come back for a cancelled run
                 if not (self.db.isParallel and o.opName == job.OP_ANALYSIS)
-            ]
-            if op and op in self.ops and op not in o:
-                o.append(op)
-            return o
+            }
+            if timed_out_op in self.ops:
+                r.add(timed_out_op)
+            return list(r)
 
         r = PKDict(state=job.CANCELED)
         if (
-# TODO(e-carlin): the 'and not op' check is not quite right. The problem is if
-# we are calling api_runCancel from run_timeout and the op that timed out was
-# an analysis op that is not normally checked for request validity. Ex
-# api_downloadDataFile does not check for a valid request because a data file
-# request is not valid (it has not computeJobHash for example). But we still
-# need to cancel downloadDataFile ops. We know we are called from run_timeout
-# if op is not None so that is how we are getting around the problem. This
-# could result in odd UX. Ex a running simulation being cancelled due to a
-# downloadDataFile request timeout in another browser window (only the
-# computJids must match between the two requests).
-            (not self._req_is_valid(req) and not op)
+            # a running simulation may be cancelled due to a
+            # downloadDataFile request timeout in another browser window (only the
+            # computJids must match between the two requests). This might be
+            # a weird UX but it's important to do, because no op should take
+            # longer than its timeout.
+            #
+            # timed_out_op might not be a valid request, because a new compute
+            # may have been started so either we are canceling a compute by
+            # user directive (left) or timing out an op (and canceling all).
+            (not self._req_is_valid(req) and not timed_out_op)
             or (self.db.status not in _RUNNING_PENDING and not self.ops)
         ):
             # job is not relevant, but let the user know it isn't running
@@ -662,7 +661,7 @@ class _Op(PKDict):
         pkdlog('{} maxRunSecs={}', self, self.maxRunSecs)
         await self.computeJob._receive_api_runCancel(
             ServerReq(content=self.req_content),
-            op=self,
+            timed_out_op=self,
         )
 
     def send(self):
