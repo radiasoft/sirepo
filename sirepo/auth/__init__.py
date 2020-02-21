@@ -259,7 +259,10 @@ def login_success_response(sim_type, want_redirect=False):
     ):
         complete_registration()
     if want_redirect:
-        raise sirepo.util.Redirect(sirepo.uri.app_root(sim_type))
+        r = 'completeRegistration' if (
+            cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION
+        ) else None
+        raise sirepo.util.Redirect(sirepo.uri.local_route(sim_type, route_name=r))
     raise sirepo.util.Response(
         response=http_reply.gen_json_ok(PKDict(authState=_auth_state())),
     )
