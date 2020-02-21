@@ -44,7 +44,7 @@ class DriverBase(PKDict):
 
     __instances = PKDict()
 
-    _AGENT_STARTING_TIMEOUT_SECS = 5
+    _AGENT_STARTING_SECS = 5
 
     def __init__(self, req):
         super().__init__(
@@ -143,10 +143,6 @@ class DriverBase(PKDict):
         except Exception as e:
             pkdlog('job_driver={} error={} stack={}', self, e, pkdexc())
 
-    def get_supervisor_uri(self):
-        #TODO(robnagler) set cfg on self in __init__
-        return inspect.getmodule(self).cfg.supervisor_uri
-
     @classmethod
     def init_q(cls, maxsize):
         res = tornado.queues.Queue(maxsize=maxsize)
@@ -173,7 +169,7 @@ class DriverBase(PKDict):
         op.lib_dir_symlink.mksymlinkto(d, absolute=True)
         m.pkupdate(
             libFileUri=job.supervisor_file_uri(
-                self.get_supervisor_uri(),
+                self.cfg.supervisor_uri,
                 job.LIB_FILE_URI,
                 op.lib_dir_symlink.basename,
             ),
@@ -281,7 +277,7 @@ class DriverBase(PKDict):
             env=(env or PKDict()).pksetdefault(
                 PYKERN_PKDEBUG_WANT_PID_TIME='1',
                 SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.get_supervisor_uri().replace(
+                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.cfg.supervisor_uri.replace(
 #TODO(robnagler) figure out why we need ws (wss, implicit)
                     'http',
                     'ws',
@@ -309,7 +305,7 @@ class DriverBase(PKDict):
                 # when the agent fully starts.
                 pkdlog('self={} op={} await _do_agent_start', self, op)
                 self._agent_starting_timeout = tornado.ioloop.IOLoop.current().call_later(
-                    self._AGENT_STARTING_TIMEOUT_SECS,
+                    self._AGENT_STARTING_SECS,
                     self._agent_starting_timeout_handler,
                 )
                 await self._do_agent_start(op)
