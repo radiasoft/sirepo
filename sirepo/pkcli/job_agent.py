@@ -244,7 +244,7 @@ class _Dispatcher(PKDict):
         c = _Cmd
         if msg.jobRunMode == job.SBATCH:
             c = _SbatchRun if msg.isParallel else _SbatchCmd
-        if msg.jobCmd == 'fastcgi':
+        elif msg.jobCmd == 'fastcgi':
             c = _FastCgiCmd
         p = c(msg=msg, dispatcher=self, op_id=msg.opId, **kwargs)
         if msg.jobCmd == 'fastcgi':
@@ -275,20 +275,17 @@ class _Dispatcher(PKDict):
                 )
             except Exception as e:
                 pkdlog('msg={} error={} stack={}', msg, e, pkdexc())
-        # If self.fastcgi_cmd is None we initiated the kill so not an error
-        if self.fastcgi_cmd:
-            pkdlog('msg={} error={} stack={}', msg, error, stack)
-            # destroy _fastcgi state first, then send replies to avoid
-            # asynchronous modification of _fastcgi state.
-            self._fastcgi_remove_handler()
-            q = self._fastcgi_msg_q
-            self._fastcgi_msg_q = None
-            self.fastcgi_cmd.destroy()
-            if msg:
-                await _reply_error(msg)
-            while q.qsize() > 0:
-                await _reply_error(q.get_nowait())
-                q.task_done()
+        # destroy _fastcgi state first, then send replies to avoid
+        # asynchronous modification of _fastcgi state.
+        self._fastcgi_remove_handler()
+        q = self._fastcgi_msg_q
+        self._fastcgi_msg_q = None
+        self.fastcgi_cmd.destroy()
+        if msg:
+            await _reply_error(msg)
+        while q.qsize() > 0:
+            await _reply_error(q.get_nowait())
+            q.task_done()
 
     async def _fastcgi_op(self, msg):
         if not self.fastcgi_cmd:
@@ -331,6 +328,10 @@ class _Dispatcher(PKDict):
                     await s.read_until(b'\n', job.MAX_MESSAGE_SIZE),
                 )
         except Exception as e:
+            pkdlog('msg={} error={} stack={}', msg, error, stack)
+            # If self.fastcgi_cmd is None we initiated the kill so not an error
+            if not self.fastcgi_cmd:
+                return
             await self._fastcgi_handle_error(m, e, pkdexc())
         finally:
             if s:
