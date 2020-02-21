@@ -274,7 +274,7 @@ class DockerDriver(job_driver.DriverBase):
         def _res(src, tgt):
             res.append('--volume={}:{}'.format(src, tgt))
 
-        if cls.cfg.dev_volumes:
+        if self.cfg.dev_volumes:
             # POSIT: radiasoft/download/installers/rpm-code/codes.sh
             #   these are all the local environ directories.
             for v in '~/src', '~/.pyenv', '~/.local':
