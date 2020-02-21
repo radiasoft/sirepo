@@ -12,7 +12,8 @@ import pytest
 
 def setup_module(module):
     os.environ.update(
-        SIREPO_JOB_SUPERVISOR_PARALLEL_MAX_HOURS='0.002',
+        SIREPO_JOB_SUPERVISOR_MAX_HOURS_PARALLEL='0.002',
+        SIREPO_JOB_SUPERVISOR_MAX_HOURS_ANALYSIS='0.001',
         SIREPO_FEATURE_CONFIG_JOB='1',
     )
 
@@ -53,3 +54,22 @@ def test_srw(fc):
         if o:
             pkdlog('found "mpiexec" after cancel in ps={}', '\n'.join(o))
             raise AssertionError('cancel failed')
+
+
+def test_myapp_analysis(fc):
+    from pykern import pkunit
+    from pykern.pkdebug import pkdp
+
+    d = fc.sr_sim_data()
+    r = fc.sr_run_sim(d, 'heightWeightReport', expect_completed=True)
+    r = fc.sr_get(
+        'downloadDataFile',
+        PKDict(
+            simulation_type=d.simulationType,
+            simulation_id=d.models.simulation.simulationId,
+            model='heightWeightReport',
+            frame='-1',
+            suffix='sr_long_analysis',
+        ),
+    )
+    pkunit.pkok(r.status_code == 404, 'r={}', r)
