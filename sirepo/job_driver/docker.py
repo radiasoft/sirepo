@@ -180,7 +180,7 @@ class DockerDriver(job_driver.DriverBase):
 
     async def _cmd(self, cmd, stdin=subprocess.DEVNULL, env=None):
         c = self.__hosts[self.host.name].cmd_prefix + cmd
-        pkdc('Running: {}', ' '.join(c))
+        pkdc('self={} running: {}', self, ' '.join(c))
         try:
             p = tornado.process.Subprocess(
                 c,
