@@ -115,7 +115,6 @@ def start_sbatch():
 
 
 class _Dispatcher(PKDict):
-    _MAX_FASTCGI_MSG_Q_READ_SECS = 3
 
     def __init__(self):
         super().__init__(cmds=[], _fastcgi_cmd=None)
@@ -124,28 +123,47 @@ class _Dispatcher(PKDict):
         if msg:
             kwargs['opId'] = msg.get('opId')
         return pkjson.dump_bytes(
-            PKDict(agentId=cfg.agent_id, opName=opName, **kwargs),
+            PKDict(agentId=cfg.agent_id, opName=opName).pksetdefault(**kwargs),
         )
+
+    async def job_cmd_reply(self, msg, op_name, text):
+        try:
+            r = pkjson.load_any(text)
+        except Exception as e:
+            op_name = job.OP_ERROR
+            r = PKDict(
+                state=job.ERROR,
+                error=f'unable to parse job_cmd output',
+                stdout=text,
+            )
+        try:
+            await self.send(self.format_op(msg, op_name, reply=r))
+        except Exception as e:
+            pkdlog('reply={} error={} stack={}', r, e, pkdexc())
+            # something is really wrong, because format_op is messed up
+            raise
 
     async def loop(self):
         while True:
             self._websocket = None
             try:
-#TODO(robnagler) connect_timeout, max_message_size, ping_interval, ping_timeout
+#TODO(robnagler) connect_timeout, ping_interval, ping_timeout
                 self._websocket = await tornado.websocket.websocket_connect(
                     tornado.httpclient.HTTPRequest(
                         url=cfg.supervisor_uri,
                         validate_cert=sirepo.job.cfg.verify_tls,
                     ),
+                    max_message_size=job.MAX_MESSAGE_SIZE,
                 )
-                m = self.format_op(None, job.OP_ALIVE)
+                s = self.format_op(None, job.OP_ALIVE)
                 while True:
-                    if m and not await self.send(m):
+                    if s and not await self.send(s):
                         break
-                    m = await self._websocket.read_message()
-                    if m is None:
-                        raise ValueError('response from supervisor was None')
-                    m = await self._op(m)
+                    r = await self._websocket.read_message()
+                    if r is None:
+                        pkdlog('websocket closed in response to len={} send={}', s and len(s), s)
+                        raise tornado.iostream.StreamClosedError()
+                    s = await self._op(r)
             except Exception as e:
                 pkdlog('error={} stack={}', e, pkdexc())
                 # TODO(e-carlin): exponential backoff?
@@ -181,8 +199,8 @@ class _Dispatcher(PKDict):
         m = None
         try:
             m = pkjson.load_any(msg)
-            pkdlog('op={} opId={} shifterImage={}', m.opName, m.get('opId'), m.get('shifterImage'))
-            pkdc('m={}', job.LogFormatter(m))
+            pkdlog('op={} opId={} runDir={}', m.opName, m.get('opId'), m.get('runDir'))
+            pkdc('m={}', m)
             return await getattr(self, '_op_' + m.opName)(m)
         except Exception as e:
             err = 'exception=' + str(e)
@@ -202,8 +220,9 @@ class _Dispatcher(PKDict):
         await self.send(
             self.format_op(msg, job.OP_OK, reply=PKDict(state=job.CANCELED)),
         )
-        for c in self.cmds:
-            if c.jid == msg.computeJid:
+        for c in list(self.cmds):
+            if c.msg.opId in msg.opIdsToCancel:
+                pkdlog('opId={}', c.msg.opId)
                 c.destroy()
         return None
 
@@ -261,14 +280,13 @@ class _Dispatcher(PKDict):
         self._fastcgi_remove_handler()
         q = self._fastcgi_msg_q
         self._fastcgi_msg_q = None
-        self._fastcgi_cmd._destroy()
+        self._fastcgi_cmd.destroy()
         self._fastcgi_cmd = None
         if msg:
             await _reply_error(msg)
         while q.qsize() > 0:
             await _reply_error(q.get_nowait())
             q.task_done()
-
 
     async def _fastcgi_op(self, msg):
         if not self._fastcgi_cmd:
@@ -305,13 +323,10 @@ class _Dispatcher(PKDict):
                 # so not an issue to call before work is done.
                 self._fastcgi_msg_q.task_done()
                 await s.write(pkjson.dump_bytes(m) + b'\n')
-                r = await s.read_until(b'\n', 1e8)
-                await self.send(
-                    self.format_op(
-                        m,
-                        job.OP_ANALYSIS,
-                        reply=pkjson.load_any(r),
-                    )
+                await self.job_cmd_reply(
+                    m,
+                    job.OP_ANALYSIS,
+                    await s.read_until(b'\n', job.MAX_MESSAGE_SIZE),
                 )
         except Exception as e:
             await self._fastcgi_handle_error(m, e, pkdexc())
@@ -341,8 +356,8 @@ class _Cmd(PKDict):
             pkio.unchecked_remove(self.pkdel('_in_file'))
         self._process.kill()
         try:
-            self.cmds.remove(cmd)
-        except Exception:
+            self.dispatcher.cmds.remove(self)
+        except ValueError:
             pass
 
     def job_cmd_cmd(self):
@@ -370,16 +385,26 @@ class _Cmd(PKDict):
     def job_cmd_source_bashrc(self):
         return 'source $HOME/.bashrc'
 
-    async def on_stdout_read(self, text):
-        if self._terminating or not self.msg.opId:
-            return
+    async def on_stderr_read(self, text):
         try:
             await self.dispatcher.send(
                 self.dispatcher.format_op(
                     self.msg,
-                    job.OP_RUN if self._is_compute else job.OP_ANALYSIS,
-                    reply=pkjson.load_any(text),
+                    job.OP_JOB_CMD_STDERR,
+                    error=text.decode('utf-8', errors='ignore'),
                 )
+            )
+        except Exception as exc:
+            pkdlog('text={} error={} stack={}', text, exc, pkdexc())
+
+    async def on_stdout_read(self, text):
+        if self._terminating or not self.msg.opId:
+            return
+        try:
+            await self.dispatcher.job_cmd_reply(
+                self.msg,
+                job.OP_RUN if self._is_compute else job.OP_ANALYSIS,
+                text,
             )
         except Exception as exc:
             pkdlog('text={} error={} stack={}', text, exc, pkdexc())
@@ -449,6 +474,9 @@ class _Cmd(PKDict):
 
 class _SbatchCmd(_Cmd):
 
+    async def exited(self):
+        await self._process.exit_ready()
+
     def job_cmd_source_bashrc(self):
         if not self.msg.get('shifterImage'):
             return super().job_cmd_source_bashrc()
@@ -458,10 +486,8 @@ unset PYTHONPATH
 unset PYTHONSTARTUP
 export PYENV_ROOT=/home/vagrant/.pyenv
 export HOME=/home/vagrant
-source /home/vagrant/.bashrc
+source /home/vagrant/.bashrc >& /dev/null
 eval export HOME=~$USER
-/usr/bin/env
-{self._job_cmd_source_bashrc_dev()}
 '''
 
     def job_cmd_cmd_stdin_env(self, *args, **kwargs):
@@ -470,13 +496,12 @@ eval export HOME=~$USER
             c = ('shifter', f'--image={self.msg.shifterImage}', '/bin/bash', '--norc', '--noprofile', '-l')
         return c, s, e
 
-    async def exited(self):
-        await self._process.exit_ready()
-
-    def _job_cmd_source_bashrc_dev(self):
-        if not pkconfig.channel_in('dev'):
-            return ''
-        return 'export PYTHONPATH=$HOME/src/radiasoft/sirepo:$HOME/src/radiasoft/pykern'
+    def job_cmd_env(self):
+        e = PKDict()
+        if pkconfig.channel_in('dev'):
+            h = pkio.py_path('~/src/radiasoft')
+            e.PYTHONPATH = '{}:{}'.format(h.join('sirepo'), h.join('pykern'))
+        return super().job_cmd_env(e)
 
 
 class _SbatchRun(_SbatchCmd):
@@ -598,6 +623,7 @@ if [[ ! $LD_LIBRARY_PATH =~ /usr/lib64/mpich/lib ]]; then
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64/mpich/lib
 fi
 #TODO(robnagler) need to get command from prepare_simulation
+
 exec python {template_common.PARAMETERS_PYTHON_FILE}
 EOF
 exec srun {s} /bin/bash bash.stdin
@@ -695,7 +721,7 @@ class _Process(PKDict):
         try:
             p = self.pkdel('_subprocess').proc.pid
             os.killpg(p, signal.SIGKILL)
-        except ProcessLookupError as e:
+        except ProcessLookupError:
             pass
         except Exception as e:
             pkdlog('kill pid={} exception={}', p, e)
@@ -718,7 +744,7 @@ class _Process(PKDict):
         )
         s.close()
         self.stdout = _ReadJsonlStream(self._subprocess.stdout, self.cmd)
-        self.stderr = _ReadUntilCloseStream(self._subprocess.stderr)
+        self.stderr = _ReadUntilCloseStream(self._subprocess.stderr, self.cmd)
         self._subprocess.set_exit_callback(self._on_exit)
         return self
 
@@ -728,10 +754,10 @@ class _Process(PKDict):
 
 
 class _Stream(PKDict):
-    _MAX = int(1e8)
 
-    def __init__(self, stream):
+    def __init__(self, stream, cmd):
         super().__init__(
+            cmd=cmd,
             stream_closed=tornado.locks.Event(),
             text=bytearray(),
             _stream=stream,
@@ -753,31 +779,31 @@ class _Stream(PKDict):
 
 
 class _ReadJsonlStream(_Stream):
-    def __init__(self, stream, cmd):
+    def __init__(self, *args):
         self.proceed_with_read = tornado.locks.Condition()
         self.read_occurred = tornado.locks.Condition()
-        self.cmd = cmd
-        super().__init__(stream)
+        super().__init__(*args)
 
     async def _read_stream(self):
-        self.text = await self._stream.read_until(b'\n', self._MAX)
+        self.text = await self._stream.read_until(b'\n', job.MAX_MESSAGE_SIZE)
         pkdc('stdout={}', self.text[:1000])
         await self.cmd.on_stdout_read(self.text)
 
 
 class _ReadUntilCloseStream(_Stream):
-    def __init__(self, stream):
-        super().__init__(stream)
+    def __init__(self, *args):
+        super().__init__(*args)
 
     async def _read_stream(self):
         t = await self._stream.read_bytes(
-            self._MAX - len(self.text),
+            job.MAX_MESSAGE_SIZE - len(self.text),
             partial=True,
         )
         pkdc('stderr={}', t)
+        await self.cmd.on_stderr_read(t)
         l = len(self.text) + len(t)
-        assert l < self._MAX, \
-            'len(bytes)={} greater than _MAX={}'.format(l, _MAX)
+        assert l < job.MAX_MESSAGE_SIZE, \
+            'len(bytes)={} greater than MAX_MESSAGE_SIZE={}'.format(l, job.MAX_MESSAGE_SIZE)
         self.text.extend(t)
 
 

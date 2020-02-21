@@ -148,7 +148,7 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
         if (data.state === 'ok') {
             if (data.authState) {
                 SIREPO.authState = data.authState;
-                Object.assign(self, SIREPO.authState);
+                $.extend(self, SIREPO.authState);
             }
             requestSender.globalRedirectRoot();
             return;
@@ -206,6 +206,16 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         $rootScope.$broadcast('modelsLoaded');
     }
 
+    function deepEqualsNoSimulationStatus(models1, models2) {
+        var status = [models1.simulationStatus, models2.simulationStatus];
+        delete models1.simulationStatus;
+        delete models2.simulationStatus;
+        var res = self.deepEquals(models1, models2);
+        models1.simulationStatus = status[0];
+        models2.simulationStatus = status[1];
+        return res;
+    }
+
     function propertyToIndexForm(key) {
         return key.split('.').map(function (x) {
             return "['" + x + "']";
@@ -250,7 +260,8 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
 
     self.autoSave = function(callback, errorCallback) {
         if (! self.isLoaded() ||
-            lastAutoSaveData && self.deepEquals(lastAutoSaveData.models, savedModelValues)
+            lastAutoSaveData && deepEqualsNoSimulationStatus(
+                lastAutoSaveData.models, savedModelValues)
         ) {
             // no changes
             if ($.isFunction(callback)) {
@@ -1686,7 +1697,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         if (u.indexOf('/') < 0) {
             u = self.formatUrlLocal(u, params);
         }
-        if (u.startsWith('#')) {
+        if (u.charAt(0) == '#') {
             u = u.slice(1);
         }
         $location.path(u);
