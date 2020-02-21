@@ -57,9 +57,6 @@ _PARALLEL_STATUS_FIELDS = frozenset((
 _UNTIMED_OPS = frozenset((job.OP_ALIVE, job.OP_CANCEL, job.OP_ERROR, job.OP_KILL, job.OP_OK))
 cfg = None
 
-#: conversion of cfg.<kind>.max_hours
-_MAX_RUN_SECS = PKDict()
-
 #: how many times restart request when Awaited() raised
 _MAX_RETRIES = 10
 
@@ -80,16 +77,13 @@ def init():
     _DB_DIR = sirepo.srdb.root().join(_DB_SUBDIR)
     cfg = pkconfig.init(
         job_cache_secs=(300, int, 'when to re-read job state from disk'),
-        parallel=dict(
-            max_hours=(1, float, 'maximum run-time for parallel job (except sbatch)'),
+        max_hours=dict(
+            analysis=(.04, float, 'maximum run-time for analysis job'),
+            parallel=(1, float, 'maximum run-time for parallel job (except sbatch)'),
+            sequential=(.1, float, 'maximum run-time for sequential job')
         ),
         sbatch_poll_secs=(60, int, 'how often to poll squeue and parallel status'),
-        sequential=dict(
-            max_hours=(.1, float, 'maximum run-time for sequential job'),
-        ),
     )
-    for k in job.KINDS:
-        _MAX_RUN_SECS[k] = int(cfg[k].max_hours * 3600)
     _NEXT_REQUEST_SECONDS = PKDict({
         job.PARALLEL: 2,
         job.SBATCH: cfg.sbatch_poll_secs,
@@ -307,7 +301,7 @@ class _ComputeJob(PKDict):
             dataFileKey=req.content.pop('dataFileKey')
         )
 
-    async def _receive_api_runCancel(self, req, op=None):
+    async def _receive_api_runCancel(self, req, timed_out_op=None):
         """Cancel a run and related ops
 
         Analysis ops that are for a parallel run (ex. sim frames) will not
@@ -315,26 +309,35 @@ class _ComputeJob(PKDict):
 
         Args:
             req (ServerReq): The cancel request
-            op (_Op, optional): An additional op (that can be an analysis for a
-                parallel run) to be cancelled
+            timed_out_op (_Op, Optional): the op that was timed out, which
+                needs to be canceled
         Returns:
             PKDict: Message with state=cancelled
         """
 
         def _ops_to_cancel():
-            o = [
+            r = {
                 o for o in self.ops
                 # Do not cancel sim frames. Allow them to come back for a cancelled run
                 if not (self.db.isParallel and o.opName == job.OP_ANALYSIS)
-            ]
-            if op and op in self.ops:
-                o.append(op)
-            return o
+            }
+            if timed_out_op in self.ops:
+                r.add(timed_out_op)
+            return list(r)
 
         r = PKDict(state=job.CANCELED)
         if (
-            not self._req_is_valid(req)
-            or self.db.status not in _RUNNING_PENDING
+            # a running simulation may be cancelled due to a
+            # downloadDataFile request timeout in another browser window (only the
+            # computJids must match between the two requests). This might be
+            # a weird UX but it's important to do, because no op should take
+            # longer than its timeout.
+            #
+            # timed_out_op might not be a valid request, because a new compute
+            # may have been started so either we are canceling a compute by
+            # user directive (left) or timing out an op (and canceling all).
+            (not self._req_is_valid(req) and not timed_out_op)
+            or (self.db.status not in _RUNNING_PENDING and not self.ops)
         ):
             # job is not relevant, but let the user know it isn't running
             return r
@@ -361,7 +364,7 @@ class _ComputeJob(PKDict):
                         c.destroy()
                         c = None
                     pkdlog('self.ops={} cancel={}', self.ops, o)
-                    for x in o:
+                    for x in filter(lambda e: e != c, o):
                         x.destroy(cancel=True)
                     self.db.status = job.CANCELED
                     self.__db_write()
@@ -472,11 +475,7 @@ class _ComputeJob(PKDict):
 # these values are never sent directly, only msg which can be camelcase
             computeJob=self,
             kind=req.kind,
-            maxRunSecs=(
-                0 if opName in _UNTIMED_OPS
-                or (r == sirepo.job.SBATCH and opName == job.OP_RUN)
-                else _MAX_RUN_SECS[req.kind]
-            ),
+            maxRunSecs=self._get_max_run_secs(opName, req.kind, r),
             msg=PKDict(req.content).pksetdefault(jobRunMode=r),
             opName=opName,
             req_content=req.copy_content(),
@@ -485,13 +484,22 @@ class _ComputeJob(PKDict):
         o.driver = job_driver.get_instance(req, r, o)
         if 'dataFileKey' in kwargs:
             kwargs['dataFileUri'] = job.supervisor_file_uri(
-                o.driver.get_supervisor_uri(),
+                o.driver.cfg.supervisor_uri,
                 job.DATA_FILE_URI,
                 kwargs.pop('dataFileKey'),
             )
         o.msg.pkupdate(**kwargs)
         self.ops.append(o)
         return o
+
+    def _get_max_run_secs(self, op_name, kind, run_mode):
+        if op_name in _UNTIMED_OPS or \
+            (run_mode == sirepo.job.SBATCH and op_name == job.OP_RUN):
+            return 0
+        t = cfg.max_hours[kind]
+        if op_name == sirepo.job.OP_ANALYSIS:
+            t = cfg.max_hours.analysis
+        return t * 3600
 
     def _req_is_valid(self, req):
         return (
@@ -653,6 +661,7 @@ class _Op(PKDict):
         pkdlog('{} maxRunSecs={}', self, self.maxRunSecs)
         await self.computeJob._receive_api_runCancel(
             ServerReq(content=self.req_content),
+            timed_out_op=self,
         )
 
     def send(self):

@@ -22,10 +22,9 @@ import tornado.process
 import tornado.queues
 
 
-cfg = None
-
-
 class LocalDriver(job_driver.DriverBase):
+
+    cfg = None
 
     __instances = PKDict()
 
@@ -73,9 +72,21 @@ class LocalDriver(job_driver.DriverBase):
 
     @classmethod
     def init_class(cls):
+        cls.cfg = pkconfig.init(
+            agent_starting_secs=(
+                cls._AGENT_STARTING_SECS,
+                int,
+                'how long to wait for agent start',
+            ),
+            slots=dict(
+                parallel=(1, int, 'max parallel slots'),
+                sequential=(1, int, 'max sequential slots'),
+            ),
+            supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
+        )
         for k in job.KINDS:
             cls.__instances[k] = []
-            cls.__cpu_slot_q[k] = cls.init_q(cfg.slots[k])
+            cls.__cpu_slot_q[k] = cls.init_q(cls.cfg.slots[k])
         return cls
 
     async def kill(self):
@@ -124,13 +135,4 @@ class LocalDriver(job_driver.DriverBase):
 
 
 def init_class():
-    global cfg
-
-    cfg = pkconfig.init(
-        slots=dict(
-            parallel=(1, int, 'max parallel slots'),
-            sequential=(1, int, 'max sequential slots'),
-        ),
-        supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
-    )
     return LocalDriver.init_class()

@@ -16,6 +16,8 @@ from sirepo import http_reply
 from sirepo import http_request
 from sirepo import auth_db
 from sirepo import util
+import sirepo.uri
+import sirepo.feature_config
 import sirepo.template
 import datetime
 import importlib
@@ -175,7 +177,7 @@ def logged_in_user():
     return res
 
 
-def login(module, uid=None, model=None, sim_type=None, display_name=None, is_mock=False):
+def login(module, uid=None, model=None, sim_type=None, display_name=None, is_mock=False, want_redirect=False):
     """Login the user
 
     Raises an exception if successful, except in the case of methods
@@ -219,6 +221,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
             _login_user(module, uid)
         else:
             uid = simulation_db.user_create(lambda u: _login_user(module, u))
+            _create_roles_for_user(uid, module.AUTH_METHOD)
         if model:
             model.uid = uid
             model.save()
@@ -229,7 +232,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
     if sim_type:
         if guest_uid and guest_uid != uid:
             simulation_db.move_user_simulations(guest_uid, uid)
-        login_success_response(sim_type)
+        login_success_response(sim_type, want_redirect)
     assert not module.AUTH_METHOD_VISIBLE
 
 
@@ -248,16 +251,19 @@ def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js=False
     )
 
 
-def login_success_response(sim_type):
+def login_success_response(sim_type, want_redirect=False):
     r = None
-    if cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION:
-        if cookie.get_value(_COOKIE_METHOD) == METHOD_GUEST:
-            complete_registration()
-        else:
-            r = 'completeRegistration'
+    if (
+        cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION
+        and cookie.get_value(_COOKIE_METHOD) == METHOD_GUEST
+    ):
+        complete_registration()
+    if want_redirect:
+        raise sirepo.util.Redirect(sirepo.uri.app_root(sim_type))
     raise sirepo.util.Response(
         response=http_reply.gen_json_ok(PKDict(authState=_auth_state())),
     )
+
 
 def need_complete_registration(model):
     """Does unauthenticated user need to complete registration?
@@ -295,6 +301,22 @@ def require_auth_basic():
         )
     cookie.set_sentinel()
     login(m, uid=uid)
+
+
+def require_sim_type(sim_type):
+    if sim_type not in sirepo.feature_config.cfg().proprietary_sim_types:
+        # only check role for proprietary_sim_types
+        return
+    if not _is_logged_in():
+        # If a user is not logged in, we allow any sim_type, because
+        # the GUI has to be able to get access to certain APIs before
+        # logging in.
+        return
+    r = _role_for_sim_type(sim_type)
+    u = _get_user()
+    with auth_db.thread_lock:
+        if not sirepo.auth_db.UserRole.search_by(role=r, uid=u):
+            util.raise_forbidden('uid={} role={} not found'.format(u, r))
 
 
 def require_user():
@@ -496,6 +518,15 @@ def _auth_state():
     return v
 
 
+def _create_roles_for_user(uid, method):
+    if not (pkconfig.channel_in('dev') and method == METHOD_GUEST):
+        return
+    auth_db.UserRole.add_roles(
+        uid,
+        [_role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types],
+    )
+
+
 def _get_user():
     return cookie.unchecked_get_value(_COOKIE_USER)
 
@@ -581,6 +612,10 @@ def _parse_display_name(value):
     assert len(res), \
         'invalid post data: displayName={}'.format(value)
     return res
+
+
+def _role_for_sim_type(sim_type):
+    return 'sim_type_' + sim_type
 
 
 def _set_log_user():

@@ -23,12 +23,15 @@ UserDbBase = None
 #: base for user models
 UserRegistration = None
 
+#: roles for each user
+UserRole = None
+
 #: Locking of _db calls
 thread_lock = threading.RLock()
 
 
 def init(app):
-    global _db, UserDbBase, UserRegistration
+    global _db, UserDbBase, UserRegistration, UserRole
     assert not _db
 
     f = _db_filename(app)
@@ -74,6 +77,17 @@ def init(app):
         uid = _db.Column(_db.String(8), primary_key=True)
         created = _db.Column(_db.DateTime(), nullable=False)
         display_name = _db.Column(_db.String(100))
+
+    class UserRole(UserDbBase, _db.Model):
+        __tablename__ = 'user_role_t'
+        uid = _db.Column(_db.String(8), primary_key=True)
+        role = _db.Column(_db.String(100), primary_key=True)
+
+        @classmethod
+        def add_roles(cls, uid, roles):
+            with thread_lock:
+                for r in roles:
+                    UserRole(uid=uid, role=r).save()
 
     # only creates tables that don't already exist
     _db.create_all()
