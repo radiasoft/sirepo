@@ -62,6 +62,9 @@ class DockerDriver(job_driver.DriverBase):
         )
         pkio.unchecked_remove(self._agent_exec_dir)
 
+    def cpu_slot_peers(self):
+        return self.host.instances[self.kind]
+
     @classmethod
     def get_instance(cls, req):
         # SECURITY: must only return instances for authorized user
@@ -125,13 +128,6 @@ class DockerDriver(job_driver.DriverBase):
         if op.opName == job.OP_RUN:
             op.msg.mpiCores = self.cfg[self.kind].get('cores', 1)
         return await super().prepare_send(op)
-
-    def cpu_slot_peers(self):
-        return self.host.instances[self.kind]
-
-    def _receive_alive(self, msg):
-        self._start_idle_timeout()
-        super()._receive_alive(msg)
 
     @classmethod
     def _cmd_prefix(cls, host, tls_d):
@@ -253,6 +249,10 @@ class DockerDriver(job_driver.DriverBase):
                 x.instances[k] = []
         assert len(cls.__hosts) > 0, \
             '{}: no docker hosts found in directory'.format(cls.cfg.tls_d)
+
+    def _receive_alive(self, msg):
+        self._start_idle_timeout()
+        super()._receive_alive(msg)
 
     def _start_idle_timeout(self):
         async def _kill_if_idle():
