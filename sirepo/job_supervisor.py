@@ -316,11 +316,11 @@ class _ComputeJob(PKDict):
         """
 
         def _ops_to_cancel():
-            r = {
+            r = set(
                 o for o in self.ops
                 # Do not cancel sim frames. Allow them to come back for a cancelled run
                 if not (self.db.isParallel and o.opName == job.OP_ANALYSIS)
-            }
+            )
             if timed_out_op in self.ops:
                 r.add(timed_out_op)
             return list(r)
@@ -671,3 +671,6 @@ class _Op(PKDict):
                 self.run_timeout,
             )
         self.driver.send(self)
+
+    def __hash__(self):
+        return hash((self.opId,))
