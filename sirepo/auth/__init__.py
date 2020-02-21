@@ -16,6 +16,7 @@ from sirepo import http_reply
 from sirepo import http_request
 from sirepo import auth_db
 from sirepo import util
+import sirepo.uri
 import sirepo.feature_config
 import sirepo.template
 import datetime
@@ -176,7 +177,7 @@ def logged_in_user():
     return res
 
 
-def login(module, uid=None, model=None, sim_type=None, display_name=None, is_mock=False):
+def login(module, uid=None, model=None, sim_type=None, display_name=None, is_mock=False, want_redirect=False):
     """Login the user
 
     Raises an exception if successful, except in the case of methods
@@ -231,7 +232,7 @@ def login(module, uid=None, model=None, sim_type=None, display_name=None, is_moc
     if sim_type:
         if guest_uid and guest_uid != uid:
             simulation_db.move_user_simulations(guest_uid, uid)
-        login_success_response(sim_type)
+        login_success_response(sim_type, want_redirect)
     assert not module.AUTH_METHOD_VISIBLE
 
 
@@ -250,16 +251,19 @@ def login_fail_redirect(sim_type=None, module=None, reason=None, reload_js=False
     )
 
 
-def login_success_response(sim_type):
+def login_success_response(sim_type, want_redirect=False):
     r = None
-    if cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION:
-        if cookie.get_value(_COOKIE_METHOD) == METHOD_GUEST:
-            complete_registration()
-        else:
-            r = 'completeRegistration'
+    if (
+        cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION
+        and cookie.get_value(_COOKIE_METHOD) == METHOD_GUEST
+    ):
+        complete_registration()
+    if want_redirect:
+        raise sirepo.util.Redirect(sirepo.uri.app_root(sim_type))
     raise sirepo.util.Response(
         response=http_reply.gen_json_ok(PKDict(authState=_auth_state())),
     )
+
 
 def need_complete_registration(model):
     """Does unauthenticated user need to complete registration?
