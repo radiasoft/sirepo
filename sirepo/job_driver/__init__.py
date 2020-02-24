@@ -196,7 +196,7 @@ class DriverBase(PKDict):
 
     def pkdebug_str(self):
         return pkdformat(
-            '{}(agentId={:.6} kind={} uid={}2 ops={})',
+            '{}(agentId={:.6} kind={} uid={} ops={})',
             self.__class__.__name__,
             self._agentId,
             self.kind,
@@ -335,7 +335,7 @@ class DriverBase(PKDict):
             pkdlog('self={} stderr from job_cmd msg={}', self, c)
             return
         else:
-            pkdlog('self={} opName={} opId={}', self, c.opName, i)
+            pkdlog('self={} opName={} opId={:.6}', self, c.opName, i)
         if i:
             if 'reply' not in c:
                 pkdlog('self={} no reply={}', self, c)
@@ -345,7 +345,7 @@ class DriverBase(PKDict):
                 self.ops[i].reply_put(c.reply)
             else:
                 pkdlog(
-                    'self={} not pending opId={} opName={}',
+                    'self={} not pending opId={:.6} opName={}',
                     self,
                     i,
                     c.opName,
