@@ -205,15 +205,16 @@ class _Dispatcher(PKDict):
         m = None
         try:
             m = pkjson.load_any(msg)
-            pkdlog('op={} opId={:.6} runDir={}', m.opName, m.get('opId'), m.get('runDir'))
+            pkdlog('op={} opId={:.4} runDir={}', m.opName, m.get('opId'), m.get('runDir'))
             pkdc('m={}', m)
             return await getattr(self, '_op_' + m.opName)(m)
         except Exception as e:
             err = 'exception=' + str(e)
             stack = pkdexc()
             pkdlog(
-                'opId={:.6} exception={} stack={}',
+                'opId={:.4} opName={} exception={} stack={}',
                 m and m.get('opId'),
+                m and m.get('opName'),
                 e,
                 stack,
             )
@@ -404,7 +405,7 @@ class _Cmd(PKDict):
                 )
             )
         except Exception as exc:
-            pkdlog('self={} text={} error={} stack={}', self, text, exc, pkdexc())
+            pkdlog('{} text={} error={} stack={}', self, text, exc, pkdexc())
 
     async def on_stdout_read(self, text):
         if self._terminating or not self.send_reply:
@@ -416,7 +417,7 @@ class _Cmd(PKDict):
                 text,
             )
         except Exception as e:
-            pkdlog('self={} text={} error={} stack={}', self, text, e, pkdexc())
+            pkdlog('{} text={} error={} stack={}', self, text, e, pkdexc())
 
     async def start(self):
         if self._is_compute and self._start_time:
@@ -432,7 +433,7 @@ class _Cmd(PKDict):
 
     def pkdebug_str(self):
         return pkdformat(
-            '{}(jid={} op_id={:.6} job_cmd={} run_dir={})',
+            '{}(jid={} op_id={:.4} job_cmd={} run_dir={})',
             self.__class__.__name__,
             self.jid,
             self.op_id,
@@ -447,7 +448,7 @@ class _Cmd(PKDict):
                 return
             e = self._process.stderr.text.decode('utf-8', errors='ignore')
             if e:
-                pkdlog('self={} exit={} stderr={}', self, self._process.returncode, e)
+                pkdlog('{} exit={} stderr={}', self, self._process.returncode, e)
             if self._process.returncode != 0:
                 await self.dispatcher.send(
                     self.dispatcher.format_op(
@@ -463,7 +464,7 @@ class _Cmd(PKDict):
 
         except Exception as exc:
             pkdlog(
-                'self={} error={} returncode={} stack={}',
+                '{} error={} returncode={} stack={}',
                 self,
                 exc,
                 self._process.returncode,
@@ -560,7 +561,7 @@ class _SbatchRun(_SbatchCmd):
             )
             if p.returncode != 0:
                 pkdlog(
-                    'self={} cancel error exit={} sbatch={} stderr={} stdout={}',
+                    '{} cancel error exit={} sbatch={} stderr={} stdout={}',
                     self,
                     p.returncode,
                     i,
@@ -601,7 +602,7 @@ class _SbatchRun(_SbatchCmd):
             return
         self._in_file = self._create_in_file()
         pkdlog(
-            'self={} sbatch_id={} starting jobCmd={}',
+            '{} sbatch_id={} starting jobCmd={}',
             self,
             self._sbatch_id,
             self.msg.jobCmd,
@@ -668,7 +669,7 @@ exec srun {s} /bin/bash bash.stdin
         )
         if p.returncode != 0:
             pkdlog(
-                'self={} scontrol error exit={} sbatch={} stderr={} stdout={}',
+                '{} scontrol error exit={} sbatch={} stderr={} stdout={}',
                 self,
                 p.returncode,
                 self._sbatch_id,
@@ -679,7 +680,7 @@ exec srun {s} /bin/bash bash.stdin
         r = re.search(r'(?<=JobState=)(\S+)(?= Reason)', p.stdout)
         if not r:
             pkdlog(
-                'self={} failed to find JobState in sderr={} stdout={}',
+                '{} failed to find JobState in sderr={} stdout={}',
                 self,
                 p.stderr,
                 p.stdout,
@@ -700,7 +701,7 @@ exec srun {s} /bin/bash bash.stdin
             # because have to await before calling destroy
             self._terminating = True
             pkdlog(
-                'self={} sbatch_id={} unexpected state={}',
+                '{} sbatch_id={} unexpected state={}',
                 self,
                 self._sbatch_id,
                 self._status,

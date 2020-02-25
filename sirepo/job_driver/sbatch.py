@@ -158,7 +158,7 @@ disown
                     await get_agent_log(c)
                 except Exception as e:
                     pkdlog(
-                        'self={} e={} stack={}',
+                        '{} e={} stack={}',
                         self,
                         e,
                         pkdexc(),

@@ -193,7 +193,7 @@ class _ComputeJob(PKDict):
         if not d:
             return '_ComputeJob()'
         return pkdformat(
-            '_ComputeJob(jid={} uid={} status={} ops={})',
+            '_ComputeJob(jid={} status={} ops={})',
             d.get('computeJid'),
             d.get('uid'),
             d.get('status'),
@@ -222,7 +222,7 @@ class _ComputeJob(PKDict):
             return
         e = None
         if not self.run_dir_mutex.is_set():
-            pkdlog('self={} await self.run_dir_mutex', self)
+            pkdlog('{} await self.run_dir_mutex', self)
             await self.run_dir_mutex.wait()
             e = Awaited()
             if self.run_dir_owner:
@@ -365,7 +365,7 @@ class _ComputeJob(PKDict):
                     elif c:
                         c.destroy()
                         c = None
-                    pkdlog('self={} cancel={}', self, o)
+                    pkdlog('{} cancel={}', self, o)
                     for x in filter(lambda e: e != c, o):
                         x.destroy(cancel=True)
                     self.db.status = job.CANCELED
@@ -616,7 +616,7 @@ class _Op(PKDict):
             _reply_q=tornado.queues.Queue(),
         )
         self.msg.update(opId=self.opId, opName=self.opName)
-        pkdlog('self={} runDir={}', self, self.msg.get('runDir'))
+        pkdlog('{} runDir={}', self, self.msg.get('runDir'))
 
     def destroy(self, cancel=True):
         if cancel:
@@ -636,7 +636,7 @@ class _Op(PKDict):
         self.driver.make_lib_dir_symlink(self)
 
     def pkdebug_str(self):
-        return pkdformat('_Op({}, {:.6})', self.opName, self.opId)
+        return pkdformat('_Op({}, {:.4})', self.opName, self.opId)
 
     async def prepare_send(self):
         """Ensures resources are available for sending to agent
@@ -651,7 +651,7 @@ class _Op(PKDict):
         # Had to look at the implementation of Queue to see that
         # task_done should only be called if get actually removes
         # the item from the queue.
-        pkdlog('self={} await _reply_q.get()', self)
+        pkdlog('{} await _reply_q.get()', self)
         r = await self._reply_q.get()
         self._reply_q.task_done()
         return r
@@ -661,7 +661,7 @@ class _Op(PKDict):
 
     async def run_timeout(self):
         """Can be any op that's timed"""
-        pkdlog('self={} maxRunSecs={}', self, self.maxRunSecs)
+        pkdlog('{} maxRunSecs={}', self, self.maxRunSecs)
         await self.computeJob._receive_api_runCancel(
             ServerReq(content=self.req_content),
             timed_out_op=self,
