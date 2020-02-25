@@ -16,7 +16,7 @@ import sirepo.template.rsradia as template
 
 def run(cfg_dir):
     with pkio.save_chdir(cfg_dir):
-        _run_simulation()
+        exec(_script(), locals(), locals())
         data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
         template.extract_report_data(py.path.local(cfg_dir), data)
 
@@ -31,9 +31,9 @@ def run_background(cfg_dir):
         simulation_db.write_json(py.path.local(cfg_dir).join(template.MPI_SUMMARY_FILE), {
             'mpiCores': mpi.cfg.cores,
         })
-        mpi.run_script(_run_simulation())
+        mpi.run_script(_script())
         simulation_db.write_result({})
 
 
-def _run_simulation():
-    exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
+def _script():
+    return pkio.read_text(template_common.PARAMETERS_PYTHON_FILE)

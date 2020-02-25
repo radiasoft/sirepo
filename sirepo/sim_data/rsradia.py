@@ -10,6 +10,16 @@ import sirepo.sim_data
 
 
 class SimData(sirepo.sim_data.SimDataBase):
+    ANALYSIS_ONLY_FIELDS = frozenset(('colorMap', 'notes',))
+    GEOM_FILE = 'geom.h5'
+
+    @classmethod
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if analysis_model in (
+            'solver',
+        ):
+            return 'animation'
+        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -23,5 +33,5 @@ class SimData(sirepo.sim_data.SimDataBase):
         ]
 
     @classmethod
-    def _lib_file_basenames(cls, *args, **kwargs):
+    def _lib_file_basenames(cls, data):
         return []

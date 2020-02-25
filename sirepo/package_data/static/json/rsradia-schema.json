@@ -45,6 +45,10 @@
             ["fields", "Fields"]
         ]
     },
+    "frameIdFields": {
+        "solver": [],
+        "magnetViewer": []
+    },
     "localRoutes": {
         "visualization": {
             "route": "/visualization/:simulationId",
@@ -101,6 +105,8 @@
             "ptY": ["y", "Float", "0.0"],
             "ptZ": ["z", "Float", "0.0"],
             "numPoints": ["Num Points", "Integer", "10", "", "2"]
+        },
+        "reset": {
         },
         "simulation": {
         },

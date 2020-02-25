@@ -9,6 +9,12 @@ SIREPO.app.config(function() {
 
 SIREPO.app.factory('radiaService', function(appState, requestSender, $rootScope) {
     var self = {};
+
+    // why is this here?
+    self.computeModel = function(analysisModel) {
+        return 'solver';
+    };
+
     return self;
 });
 
@@ -23,8 +29,43 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, $
     });
 });
 
-SIREPO.app.controller('RadiaVisualizationController', function (appState, panelState, persistentSimulation, radiaService, $scope) {
+SIREPO.app.controller('RadiaVisualizationController', function (appState, errorService, frameCache, panelState, persistentSimulation, radiaService, $scope) {
+
     const self = this;
+
+    var SINGLE_PLOTS = ['magnetViewer'];
+    $scope.mpiCores = 0;
+    $scope.panelState = panelState;
+
+    function handleStatus(data) {
+        srdbg('SIM STATUS', data);
+        if (data.error) {
+            throw new Error('Solver failed: ' + data.error);
+        }
+        //$scope.mpiCores = data.mpiCores > 1 ? data.mpiCores : 0;
+        SINGLE_PLOTS.forEach(function(name) {
+            frameCache.setFrameCount(0, name);
+        });
+        if ('percentComplete' in data && ! data.error) {
+            if (data.percentComplete === 100 && ! self.simState.isProcessing()) {
+                SINGLE_PLOTS.forEach(function(name) {
+                    frameCache.setFrameCount(1, name);
+                });
+            }
+        }
+        frameCache.setFrameCount(data.frameCount);
+    }
+
+    self.startSimulation = function() {
+        $scope.$broadcast('solveStarted', self.simState);
+        self.simState.saveAndRunSimulation('simulation');
+    };
+
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        radiaService.computeModel(),
+        handleStatus
+    );
 
     appState.whenModelsLoaded($scope, function() {
         // initial setup
@@ -62,6 +103,10 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, errorService, frameCa
             $scope.model = appState.models[$scope.modelName];
             //$scope.pathField = $scope.model.path;
 
+            var POINT_FIELD_TYPES = SIREPO.APP_SCHEMA.enum.FieldType.slice(1).map(function (tArr) {
+                return tArr[0];
+            });
+
             $scope.addPath = function() {
                 srdbg('ADD PATH');
             };
@@ -69,17 +114,22 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, errorService, frameCa
     };
 });
 
-SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, requestSender, utilities, vtkPlotting, vtkUtils) {
+// does not need to be its own directive?  everything in viz and service? (and move template to html)
+SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache, geometry, layoutService, panelState) {
 
     return {
         restrict: 'A',
         scope: {
+            viz: '<',
             modelName: '@',
         },
         template: [
             '<div class="col-md-6">',
-                '<div data-basic-editor-panel="" data-view-name="{{modelName}}">',
-                    '<button class="btn btn-default col-sm-2 col-sm-offset-5" data-ng-click="solve()">Solve</button>',
+                '<div data-basic-editor-panel="" data-view-name="solver">',
+                    '<div class="col-sm-6 col-sm-offset-5">',
+                    '<button class="btn btn-default" data-ng-click="solve()">Solve</button>',
+                    '<button class="btn btn-default" data-ng-click="reset()">Reset</button>',
+                    '</div>',
                 '</div>',
             '</div>',
 
@@ -90,12 +140,18 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
 
             $scope.solve = function() {
                 srdbg('SOLVE');
-                appState.models.solver.lastSolved = Date.now();
-                appState.models.solver.result = "";
-                appState.saveChanges('solver');
-                panelState.requestData('solver', function (d) {
-                    srdbg('SOLVED', d);
-                    appState.models.solver.result = d;
+                appState.models.geometry.lastBuilt = Date.now();
+                appState.saveQuietly('geometry');
+                $scope.viz.startSimulation();
+            };
+
+            // not sure how to do this - want Radia to keep geom defs but forget the fields...???
+            $scope.reset = function() {
+                srdbg('RESET');
+                appState.models.geometry.lastBuilt = Date.now();
+                appState.saveQuietly('geometry');
+                panelState.requestData('reset', function (d) {
+                    srdbg('RESET DONE', d);
                 }, true);
             };
 
@@ -133,9 +189,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             var FIELD_ATTR_ARRAYS = [LINEAR_SCALE_ARRAY, LOG_SCALE_ARRAY, ORIENTATION_ARRAY];
 
             var PICKABLE_TYPES = [vtkUtils.GEOM_TYPE_POLYS, vtkUtils.GEOM_TYPE_VECTS];
-            var POINT_FIELD_TYPES = SIREPO.APP_SCHEMA.enum.FieldType.slice(1).map(function (tArr) {
-                return tArr[0];
-            });
 
             var SCALAR_ARRAY = 'scalars';
 
@@ -151,6 +204,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                  'fieldDisplay.scaling',
             ];
 
+            var initDone = false;
             var renderer = null;
             var renderWindow = null;
             var sceneData = {};
@@ -218,9 +272,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             function buildScene() {
                 var name = sceneData.name;
                 var id = sceneData.id;
-                appState.saveQuietly('geometry');
+                //appState.saveQuietly('geometry');
                 var data = sceneData.data;
-                //rsUtils.rsdbg('got data', data, 'for', name, id);
+                srdbg('got data', data, 'for', name, id);
 
                 vtkPlotting.removeActors(renderer);
                 for (var i = 0; i < data.length; ++i) {
@@ -402,11 +456,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             function init() {
                 srdbg('init...');
-                //appState.watchModelFields($scope, watchFields, updateViewer);
                 if (! renderer) {
                     throw new Error('No renderer!');
                 }
-                updateViewer(true);
+                updateViewer();
                 updateLayout();
             }
 
@@ -478,16 +531,17 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 setScaling();
             }
 
-            function updateViewer(doReset) {
+            function updateViewer() {
                 srdbg('updateViewer');
-                if (doReset) {
-                    appState.saveQuietly('geometry');
-                }
                 sceneData = {};
                 enableWatchFields(false);
                 panelState.requestData('geometry', function (d) {
+                    //srdbg('got geom data', d);
                     sceneData = d;
                     buildScene();
+                    if (! initDone) {
+                        initDone = true;
+                    }
                 }, true);
             }
 
@@ -511,6 +565,19 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 renderWindow = d.objects.window;
                 vtkAPI = d.api;
                 init();
+            });
+
+            $scope.$on('framesLoaded', function (e, d) {
+                srdbg('F', e, d);
+                if (! initDone) {
+                    srdbg('init in progress, ignore');
+                    return;
+                }
+                updateViewer();
+            });
+
+            $scope.$on('solveStarted', function (e, d) {
+                srdbg('S', e, d);
             });
 
         },

@@ -28,35 +28,76 @@ FIELD_UNITS = PKDict({
 })
 
 
-class RadiaGeomMgr:
-    """Manager for multiple geometries (Radia objects)"""
-
-    @classmethod
-    def geom_id_to_data(cls, geom, name=None, divide=True):
-        d_arr = []
-        if not divide:
-            d_arr.append(template_common.to_pkdict(radia.ObjDrwVTK(geom, 'Axes->No')))
-        else:
-            for g in radia.ObjCntStuf(geom):
+def geom_to_data(geom, name=None, divide=True):
+    d_arr = []
+    if not divide:
+        d_arr.append(template_common.to_pkdict(radia.ObjDrwVTK(geom, 'Axes->No')))
+    else:
+        for g in radia.ObjCntStuf(geom):
             # for fully recursive array
             # for g in self._get_all_geom(geom):
-                d_arr.append(template_common.to_pkdict(radia.ObjDrwVTK(g, 'Axes->No')))
+            d_arr.append(template_common.to_pkdict(radia.ObjDrwVTK(g, 'Axes->No')))
 
-        n = name if name is not None else str(geom)
-        return PKDict(name=name + '.Geom', id=geom, data=d_arr)
+    n = name if name is not None else str(geom)
+    return PKDict(name=n + '.Geom', id=geom, data=d_arr)
 
-    @classmethod
-    def new_geom_object(cls):
-        return PKDict(
-            lines=PKDict(colors=[], lengths=[], vertices=[]),
-            polygons=PKDict(colors=[], lengths=[], vertices=[]),
-            vectors=PKDict(directions=[], magnitudes=[], vertices=[]),
-        )
 
-    @classmethod
-    def solve(cls, geom, prec, max_iter, solve_method):
-        #pkdp('SOLVE g {} p {} i {} m {}', geom, prec, max_iter, solve_method)
-        return radia.Solve(geom, prec, max_iter, solve_method)
+def get_magnetization(geom):
+    return radia.ObjM(geom)
+
+
+def new_geom_object():
+    return PKDict(
+        lines=PKDict(colors=[], lengths=[], vertices=[]),
+        polygons=PKDict(colors=[], lengths=[], vertices=[]),
+        vectors=PKDict(directions=[], magnitudes=[], vertices=[]),
+    )
+
+
+def reset():
+    return radia.UtiDelAll()
+
+
+def solve(geom, prec, max_iter, solve_method):
+    pkdp('SOLVE g {} p {} i {} m {}', geom, prec, max_iter, solve_method)
+    return radia.Solve(geom, prec, max_iter, solve_method)
+
+
+def vector_field_to_data(geom, name, pv_arr, units):
+    # format is [[[px, py, pz], [vx, vy, vx]], ...]
+    # convert to webGL object
+
+    v_data = new_geom_object()  # RadiaGeomMgr.new_geom_object()
+    v_data.vectors.lengths = []
+    v_data.vectors.colors = []
+    v_max = 0.
+    v_min = sys.float_info.max
+    for i in range(len(pv_arr)):
+        p = pv_arr[i][0]
+        v = pv_arr[i][1]
+        n = linalg.norm(v)
+        v_max = max(v_max, n)
+        v_min = min(v_min, n)
+        nv = (numpy.array(v) / (n if n > 0 else 1.)).tolist()
+        v_data.vectors.vertices.extend(p)
+        v_data.vectors.directions.extend(nv)
+        v_data.vectors.magnitudes.append(n)
+    v_data.vectors.range = [v_min, v_max]
+    v_data.vectors.units = units
+
+    l_data = geom_to_data(geom, name, divide=False).data[0]
+    # temp color set - will move to client
+    for c_idx, c in enumerate(l_data.lines.colors):
+        l_data.lines.colors[c_idx] = 0.85
+    v_data.lines.vertices.extend(l_data.lines.vertices)
+    v_data.lines.lengths.extend(l_data.lines.lengths)
+    v_data.lines.colors.extend(l_data.lines.colors)
+
+    return PKDict(name=name + '.Field', id=geom, data=[v_data])
+
+
+class RadiaGeomMgr:
+    """Manager for multiple geometries (Radia objects)"""
 
     def _get_all_geom(self, geom):
         g_arr = []
@@ -93,7 +134,7 @@ class RadiaGeomMgr:
         # format is [[[px, py, pz], [vx, vy, vx]], ...]
         # convert to webGL object
 
-        v_data = RadiaGeomMgr.new_geom_object()
+        v_data = new_geom_object()  #RadiaGeomMgr.new_geom_object()
         v_data.vectors.lengths = []
         v_data.vectors.colors = []
         v_max = 0.
@@ -123,7 +164,7 @@ class RadiaGeomMgr:
 
     def geom_to_data(self, name, divide=True):
         geom = self.get_geom(name)
-        return RadiaGeomMgr.geom_id_to_data(geom, name, divide)
+        return geom_to_data(geom, name, divide)  #RadiaGeomMgr.geom_id_to_data(geom, name, divide)
 
     def get_geom(self, name):
         return self._geoms[name].g if name in self._geoms else None
@@ -144,9 +185,19 @@ class RadiaGeomMgr:
             g = self.get_geom(g_name)
             ctr['geoms'].append(g)
 
+    # ??? will this work? NO - will probably have to delete and rebuild model
+    def reset_geom(self, g_name):
+        pkdp('RESET g {} id {}', g_name, self.get_geom(g_name))
+        self.remove_geom(g_name)
+        return radia.UtiDelAll()
+
+    def remove_geom(self, g_name):
+        del self._geoms[g_name]
+
     def solve_geom(self, g_name, prec, max_iter, solve_method):
-        #pkdp('SOLVE g {} p {} i {} m {}', g_name, prec, max_iter, solve_method)
-        return RadiaGeomMgr.solve(self.get_geom(g_name), float(prec), int(max_iter), int(solve_method))
+        pkdp('SOLVE g {} p {} i {} m {}', g_name, prec, max_iter, solve_method)
+        return solve(self.get_geom(g_name), float(prec), int(max_iter), int(solve_method))
+        #return RadiaGeomMgr.solve(self.get_geom(g_name), float(prec), int(max_iter), int(solve_method))
 
     def __init__(self):
         self._geoms = PKDict({})
