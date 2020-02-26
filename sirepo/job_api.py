@@ -32,6 +32,7 @@ _MAX_FRAME_SEARCH_DEPTH = 6
 
 @api_perm.require_user
 def api_admJobs():
+    sirepo.auth.check_user_has_role(sirepo.auth.ROLE_ADM)
     return _request(_request_content=PKDict())
 
 

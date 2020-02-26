@@ -317,11 +317,14 @@ def require_sim_type(sim_type):
         # the GUI has to be able to get access to certain APIs before
         # logging in.
         return
-    r = _role_for_sim_type(sim_type)
+    check_user_has_role(_role_for_sim_type(sim_type))
+
+
+def check_user_has_role(role):
     u = _get_user()
     with auth_db.thread_lock:
-        if not sirepo.auth_db.UserRole.search_by(role=r, uid=u):
-            util.raise_forbidden('uid={} role={} not found'.format(u, r))
+        if not sirepo.auth_db.UserRole.search_by(role=role, uid=u):
+            util.raise_forbidden('uid={} role={} not found'.format(u, role))
 
 
 def require_user():
