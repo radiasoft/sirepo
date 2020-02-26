@@ -10,7 +10,6 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import api_perm
 from sirepo import http_reply
 from sirepo import simulation_db
-from sirepo.template import adm
 from sirepo.template import template_common
 import inspect
 import pykern.pkconfig
@@ -33,7 +32,7 @@ _MAX_FRAME_SEARCH_DEPTH = 6
 
 @api_perm.require_user
 def api_admJobs():
-    return http_reply.gen_json(adm.get_running_jobs())
+    return _request(_request_content=PKDict())
 
 
 @api_perm.require_user
@@ -178,7 +177,7 @@ def _request(**kwargs):
             )
     k = PKDict(kwargs)
     u = k.pkdel('_request_uri') or cfg.supervisor_uri + sirepo.job.SERVER_URI
-    c = k.pkdel('_request_content') or _request_content(k)
+    c = k.pkdel('_request_content') if '_request_content' in k else _request_content(k)
     c.pkupdate(
         api=get_api_name(),
         serverSecret=sirepo.job.cfg.server_secret,

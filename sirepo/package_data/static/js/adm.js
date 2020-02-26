@@ -35,7 +35,8 @@ SIREPO.app.directive('serverDataList', function(requestSender) {
                     '<th data-ng-repeat="c in data.columns">{{ c }}</th>',
                 '</tr>',
                 '<tr data-ng-repeat="r in data.data">',
-                    '<td data-ng-repeat="c in r">',
+                    // must 'track by $index' because start and last update can be the same
+                    '<td data-ng-repeat="c in r track by $index">',
                         '<span>{{ c }}</span>',
                     '</td>',
                 '</tr>',

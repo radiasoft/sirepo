@@ -57,12 +57,6 @@ SUPERVISOR_SRV_SUBDIR = 'supervisor-srv'
 #: how jobs request files (absolute)
 SUPERVISOR_SRV_ROOT = None
 
-#: where job db is stored (absolute)
-SUPERVISOR_DB_DIR = None
-
-#: where job db is stored  (relative to `srdb.root`)
-_SUPERVISOR_JOB_SUBDIR = 'supervisor-job'
-
 #: address where supervisor binds to
 DEFAULT_IP = '127.0.0.1'
 
@@ -190,10 +184,8 @@ def init():
         ),
         verify_tls=(not pkconfig.channel_in('dev'), bool, 'do not validate (self-signed) certs'),
     )
-    global SUPERVISOR_DB_DIR, SUPERVISOR_SRV_ROOT, LIB_FILE_ROOT, \
-        DATA_FILE_ROOT
+    global SUPERVISOR_SRV_ROOT, LIB_FILE_ROOT, DATA_FILE_ROOT
 
-    SUPERVISOR_DB_DIR = sirepo.srdb.root().join(_SUPERVISOR_JOB_SUBDIR)
     SUPERVISOR_SRV_ROOT = sirepo.srdb.root().join(SUPERVISOR_SRV_SUBDIR)
     LIB_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(LIB_FILE_URI[1:])
     DATA_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(DATA_FILE_URI[1:])

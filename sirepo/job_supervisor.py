@@ -13,7 +13,7 @@ from pykern.pkdebug import pkdp, pkdc, pkdformat, pkdlog, pkdexc
 from sirepo import job
 import asyncio
 import copy
-import contextlib
+import datetime
 import os
 import pykern.pkio
 import sirepo.http_reply
@@ -25,6 +25,11 @@ import tornado.ioloop
 import tornado.locks
 import tornado.queues
 
+#: where supervisor state is persisted to disk
+_DB_DIR = None
+
+#: where job db is stored under srdb.root
+_DB_SUBDIR = 'supervisor-job'
 
 _NEXT_REQUEST_SECONDS = None
 
@@ -37,6 +42,7 @@ _HISTORY_FIELDS = frozenset((
     'error',
     'jobRunMode',
     'lastUpdateTime',
+    'computeModel'
     'status',
 ))
 
@@ -45,6 +51,7 @@ _PARALLEL_STATUS_FIELDS = frozenset((
     'elapsedTime',
     'frameCount',
     'lastUpdateTime',
+    'computeModel'
     'percentComplete',
     'computeJobStart',
 ))
@@ -62,16 +69,16 @@ class Awaited(Exception):
 
 
 def init():
-    global cfg, _NEXT_REQUEST_SECONDS, job_driver
+    global _DB_DIR, cfg, _NEXT_REQUEST_SECONDS, job_driver
 
-    # TODO(e-carlin): why was this necessary?
-    # if _DB_DIR:
-    #     return
+    if _DB_DIR:
+        return
 
     job.init()
     from sirepo import job_driver
 
     job_driver.init(pkinspect.this_module())
+    _DB_DIR = sirepo.srdb.root().join(_DB_SUBDIR)
     cfg = pkconfig.init(
         job_cache_secs=(300, int, 'when to re-read job state from disk'),
         max_hours=dict(
@@ -87,11 +94,8 @@ def init():
         job.SEQUENTIAL: 1,
     })
     if sirepo.simulation_db.user_dir_name().exists():
-        if not job.SUPERVISOR_DB_DIR.exists():
-            pkdlog(
-                'calling upgrade_runner_to_job_db path={}',
-                job.SUPERVISOR_DB_DIR,
-            )
+        if not _DB_DIR.exists():
+            pkdlog('calling upgrade_runner_to_job_db path={}', _DB_DIR)
             import subprocess
             subprocess.check_call(
                 (
@@ -100,7 +104,7 @@ def init():
                     'sirepo',
                     'db',
                     'upgrade_runner_to_job_db',
-                    job.SUPERVISOR_DB_DIR,
+                    _DB_DIR,
                 ),
                 env=PKDict(os.environ).pkupdate(
                     PYENV_VERSION='py2',
@@ -108,7 +112,7 @@ def init():
                 ),
             )
     else:
-        pykern.pkio.mkdir_parent(job.SUPERVISOR_DB_DIR)
+        pykern.pkio.mkdir_parent(_DB_DIR)
 
 
 class ServerReq(PKDict):
@@ -120,7 +124,7 @@ class ServerReq(PKDict):
         c = self.get('content')
         if not c:
             return 'ServerReq(<no content>)'
-        return pkdformat('ServerReq({}, {})', c.api, c.computeJid)
+        return pkdformat('ServerReq({}, {})', c.api, c.get('computeJid'))
 
     async def receive(self):
         s = self.content.pkdel('serverSecret')
@@ -177,7 +181,10 @@ class _ComputeJob(PKDict):
 
     @classmethod
     def get_instance(cls, req):
-        j = req.content.computeJid
+        try:
+            j = req.content.computeJid
+        except AttributeError:
+            return None
         self = cls.instances.pksetdefault(j, lambda: cls.__create(req))[j]
         # SECURITY: must only return instances for authorized user
         assert req.content.uid == self.db.uid, \
@@ -203,8 +210,11 @@ class _ComputeJob(PKDict):
     async def receive(cls, req):
         pkdlog('{}', req)
         try:
+            o = cls.get_instance(req)
+            if not o:
+                o = cls
             return await getattr(
-                cls.get_instance(req),
+                o,
                 '_receive_' + req.content.api,
             )(req)
         except asyncio.CancelledError:
@@ -255,7 +265,7 @@ class _ComputeJob(PKDict):
 
     @classmethod
     def __db_file(cls, computeJid):
-        return job.SUPERVISOR_DB_DIR.join(computeJid + '.json')
+        return _DB_DIR.join(computeJid + '.json')
 
     def __db_init(self, req, prev_db=None):
         c = req.content
@@ -293,6 +303,47 @@ class _ComputeJob(PKDict):
     def __db_write(self):
         sirepo.util.json_dump(self.db, path=self.__db_file(self.db.computeJid))
         return self
+
+    @classmethod
+    async def _receive_api_admJobs(cls, req):
+        def _get_running_jobs():
+            def _strftime(epoch):
+                return datetime.datetime.utcfromtimestamp(
+                    int(epoch),
+                ).strftime('%Y-%m-%d %H:%M:%S')
+
+            o = []
+            for i in filter(
+                    lambda x: x.db.status == job.RUNNING,
+                    cls.instances.values(),
+            ):
+                d = i.db
+                s = int(d.computeJobStart)
+                l = int(d.lastUpdateTime)
+                o.append(
+                    [
+                        d.uid,
+                        d.simulationType,
+                        d.simulationId,
+                        _strftime(s),
+                        _strftime(l),
+                        round((l - s) / 60.0, 2),
+                        ' | '.join(sorted(d.driverDetails.values()))
+                    ],
+                )
+            return o
+        return PKDict(
+            columns=[
+                'User id',
+                'App',
+                'Simulation id',
+                'Start (UTC)',
+                'Last update (UTC)',
+                'Elapsed (mins.)',
+                'Driver Details'
+            ],
+            data=_get_running_jobs(),
+        )
 
     async def _receive_api_downloadDataFile(self, req):
         return await self._send_with_single_reply(
@@ -418,6 +469,7 @@ class _ComputeJob(PKDict):
                         driverDetails=o.driver.driver_details,
                         # run mode can change between runs so we must update the db
                         jobRunMode=req.content.jobRunMode,
+                        computeModel=req.content.computeModel,
                         status=job.PENDING,
                     )
                     self.__db_write()
