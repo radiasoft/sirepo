@@ -48,11 +48,8 @@ class DriverBase(PKDict):
 
     def __init__(self, req):
         super().__init__(
-            _agentId=job.unique_key(),
-            _agent_starting=False,
-            _agent_starting_timeout=None,
-            _agent_start_lock=tornado.locks.Lock(),
-            _cpu_slot_alloc_time=None,
+            cpu_slot=None,
+            driver_details=PKDict({'type': self.__class__.__name__}),
             kind=req.kind,
             ops=PKDict(),
             op_q=PKDict({
@@ -62,8 +59,12 @@ class DriverBase(PKDict):
                 job.OP_RUN: self.init_q(1),
                 job.OP_ANALYSIS: self.init_q(1),
             }),
-            cpu_slot=None,
             uid=req.content.uid,
+            _agentId=job.unique_key(),
+            _agent_start_lock=tornado.locks.Lock(),
+            _agent_starting=False,
+            _agent_starting_timeout=None,
+            _cpu_slot_alloc_time=None,
             _websocket=None,
             _websocket_ready=tornado.locks.Event(),
 #TODO(robnagler) https://github.com/radiasoft/sirepo/issues/2195

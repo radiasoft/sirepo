@@ -176,6 +176,7 @@ class DockerDriver(job_driver.DriverBase):
             '--user={}'.format(os.getuid()),
         ) + self._volumes() + (self._image,)
         self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
+        self.driver_details.pkupdate(host=self.host.name)
         pkdlog('cname={} cid={}', self._cname, self._cid)
 
     async def _cmd(self, cmd, stdin=subprocess.DEVNULL, env=None):

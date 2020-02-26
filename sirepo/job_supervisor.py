@@ -33,6 +33,7 @@ _RUNNING_PENDING = (job.RUNNING, job.PENDING)
 _HISTORY_FIELDS = frozenset((
     'computeJobSerial',
     'computeJobStart',
+    'driverDetails',
     'error',
     'jobRunMode',
     'lastUpdateTime',
@@ -263,6 +264,7 @@ class _ComputeJob(PKDict):
             computeJobHash=c.computeJobHash,
             computeJobSerial=0,
             computeJobStart=0,
+            driverDetails=PKDict(),
             error=None,
             history=self.__db_init_history(prev_db),
             isParallel=c.isParallel,
@@ -411,10 +413,13 @@ class _ComputeJob(PKDict):
                     await o.prepare_send()
                     self.run_op = o
                     self.__db_init(req, prev_db=self.db)
-                    # run mode can change between runs so we must update the db
-                    self.db.jobRunMode = req.content.jobRunMode
-                    self.db.computeJobSerial = int(time.time())
-                    self.db.pkupdate(status=job.PENDING)
+                    self.db.pkupdate(
+                        computeJobSerial=int(time.time()),
+                        driverDetails=o.driver.driver_details,
+                        # run mode can change between runs so we must update the db
+                        jobRunMode=req.content.jobRunMode,
+                        status=job.PENDING,
+                    )
                     self.__db_write()
                     o.make_lib_dir_symlink()
                     o.send()
