@@ -29,7 +29,7 @@ LOGIN_ROUTE_NAME = 'login'
 #: Guest is a special method
 METHOD_GUEST = 'guest'
 
-ROLE_ADMIN = 'admin'
+ROLE_ADM = 'adm'
 
 #: key for auth method for login state
 _COOKIE_METHOD = 'sram'
@@ -529,7 +529,7 @@ def _create_roles_for_user(uid, method):
     if not (pkconfig.channel_in('dev') and method == METHOD_GUEST):
         return
     r = [_role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types]
-    r.append(ROLE_ADMIN)
+    r.append(ROLE_ADM)
     auth_db.UserRole.add_roles(uid, r)
 
 
