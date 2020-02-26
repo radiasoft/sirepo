@@ -466,14 +466,8 @@ def api_listSimulations():
     )
 
 @api_perm.require_user
-def api_getServerData():
-    input = http_request.parse_json()
-#TODO(robnagler) validate
-    id = input.id if 'id' in input else None
-    d = adm.get_server_data(id)
-    if d == None or len(d) == 0:
-        raise sirepo.util.UserAlert('Data error', 'no data supplied')
-    return http_reply.gen_json(d)
+def api_admJobs():
+    return http_reply.gen_json(adm.get_running_jobs())
 
 
 # visitor rather than user because error pages are rendered by the application

@@ -26,12 +26,6 @@ import tornado.locks
 import tornado.queues
 
 
-#: where supervisor state is persisted to disk
-_DB_DIR = None
-
-#: where job db is stored under srdb.root
-_DB_SUBDIR = 'supervisor-job'
-
 _NEXT_REQUEST_SECONDS = None
 
 _RUNNING_PENDING = (job.RUNNING, job.PENDING)
@@ -67,14 +61,16 @@ class Awaited(Exception):
 
 
 def init():
-    global _DB_DIR, cfg, _NEXT_REQUEST_SECONDS, job_driver
-    if _DB_DIR:
-        return
+    global cfg, _NEXT_REQUEST_SECONDS, job_driver
+
+    # TODO(e-carlin): why was this necessary?
+    # if _DB_DIR:
+    #     return
+
     job.init()
     from sirepo import job_driver
 
     job_driver.init(pkinspect.this_module())
-    _DB_DIR = sirepo.srdb.root().join(_DB_SUBDIR)
     cfg = pkconfig.init(
         job_cache_secs=(300, int, 'when to re-read job state from disk'),
         max_hours=dict(
@@ -90,8 +86,11 @@ def init():
         job.SEQUENTIAL: 1,
     })
     if sirepo.simulation_db.user_dir_name().exists():
-        if not _DB_DIR.exists():
-            pkdlog('calling upgrade_runner_to_job_db path={}', _DB_DIR)
+        if not job.SUPERVISOR_DB_DIR.exists():
+            pkdlog(
+                'calling upgrade_runner_to_job_db path={}',
+                job.SUPERVISOR_DB_DIR,
+            )
             import subprocess
             subprocess.check_call(
                 (
@@ -100,7 +99,7 @@ def init():
                     'sirepo',
                     'db',
                     'upgrade_runner_to_job_db',
-                    _DB_DIR,
+                    job.SUPERVISOR_DB_DIR,
                 ),
                 env=PKDict(os.environ).pkupdate(
                     PYENV_VERSION='py2',
@@ -108,7 +107,7 @@ def init():
                 ),
             )
     else:
-        pykern.pkio.mkdir_parent(_DB_DIR)
+        pykern.pkio.mkdir_parent(job.SUPERVISOR_DB_DIR)
 
 
 class ServerReq(PKDict):
@@ -255,7 +254,7 @@ class _ComputeJob(PKDict):
 
     @classmethod
     def __db_file(cls, computeJid):
-        return _DB_DIR.join(computeJid + '.json')
+        return job.SUPERVISOR_DB_DIR.join(computeJid + '.json')
 
     def __db_init(self, req, prev_db=None):
         c = req.content

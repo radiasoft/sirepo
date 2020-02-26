@@ -32,30 +32,28 @@ SIREPO.app.directive('serverDataList', function(requestSender) {
             '<div>',
                 '<table class="table">',
                 '<tr>',
-                    '<th data-ng-repeat="col in data[0]">{{ col }}</th>',
+                    '<th data-ng-repeat="c in data.columns">{{ c }}</th>',
                 '</tr>',
-                '<tr data-ng-repeat="row in data" data-ng-if="$index > 0">',
-                    '<td data-ng-repeat="col in row">',
-                        //'<a data-ng-if="$index == 0" href="" data-ng-click="getServerData(col)">{{ col }}</a>',
-                        //'<span data-ng-if="$index > 0">{{ col }}</span>',
-                        '<span>{{ col }}</span>',
+                '<tr data-ng-repeat="r in data.data">',
+                    '<td data-ng-repeat="c in r">',
+                        '<span>{{ c }}</span>',
                     '</td>',
                 '</tr>',
                 '</table>',
-                '<button class="btn btn-default" data-ng-click="getServerData()">Refresh</button>',
+                '<button class="btn btn-default" data-ng-click="getAdmJobs()">Refresh</button>',
             '</div>',
         ].join(''),
         controller: function($scope) {
 
-            $scope.getServerData = function (id) {
+            $scope.getAdmJobs = function (id) {
                 requestSender.sendRequest(
-                    'getServerData',
+                    'admJobs',
                     dataLoaded,
                     {
                         id: id,
                     });
             };
-            $scope.getServerData();
+            $scope.getAdmJobs();
 
 
             function dataLoaded(data, status) {
@@ -64,4 +62,3 @@ SIREPO.app.directive('serverDataList', function(requestSender) {
         },
     };
 });
-
