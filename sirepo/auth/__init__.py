@@ -29,6 +29,8 @@ LOGIN_ROUTE_NAME = 'login'
 #: Guest is a special method
 METHOD_GUEST = 'guest'
 
+ROLE_ADMIN = 'admin'
+
 #: key for auth method for login state
 _COOKIE_METHOD = 'sram'
 
@@ -497,6 +499,7 @@ def _auth_state():
         jobRunModeMap=simulation_db.JOB_RUN_MODE_MAP,
         method=cookie.unchecked_get_value(_COOKIE_METHOD),
         needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
+        roles=[],
         userName=None,
         visibleMethods=visible_methods,
     )
@@ -513,6 +516,7 @@ def _auth_state():
             r = auth_db.UserRegistration.search_by(uid=u)
             if r:
                 v.displayName = r.display_name
+        v.roles = auth_db.UserRole.search_all_for_column('role', uid=u)
         _method_auth_state(v, u)
     if pkconfig.channel_in('dev'):
         # useful for testing/debugging
@@ -524,10 +528,9 @@ def _auth_state():
 def _create_roles_for_user(uid, method):
     if not (pkconfig.channel_in('dev') and method == METHOD_GUEST):
         return
-    auth_db.UserRole.add_roles(
-        uid,
-        [_role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types],
-    )
+    r = [_role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types]
+    r.append(ROLE_ADMIN)
+    auth_db.UserRole.add_roles(uid, r)
 
 
 def _get_user():

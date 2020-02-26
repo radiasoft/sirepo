@@ -7,34 +7,48 @@ u"""Myapp execution template.
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
+import sirepo.job
+import pykern.pkjson
+import datetime
 
 
 SIM_TYPE = 'adm'
 
 
 def get_running_jobs():
-    pkdp('xxxxxxxxxxx')
-    _get_running_jobs()
-    pkdp('xxxxxxxxxxx')
-
     return PKDict(
         columns=[
             'User id',
-            'Sim type',
-            'Sim id',
-            'Start time',
-            'Last update time',
+            'Simulation type',
+            'Simulation id',
+            'Start time (UTC)',
+            'Last update time (UTC)',
             'Elapsed time',
         ],
-        data=[
-            ['uid1', 'simType1', 'simId1', 'startTime1', 'lastUpdatTime1', 'elapsedTime1'],
-        ]
+        data=_get_running_jobs(),
     )
 
 
 def _get_running_jobs():
-    import sirepo.job_supervisor
-    import glob
+    def _strftime(epoch):
+        return datetime.datetime.utcfromtimestamp(
+            int(epoch),
+        ).strftime('%Y-%m-%d %H:%M:%S')
 
-    for f in glob.glob(sirepo.job_supervisor._DB_DIR):
-        pkdp(f)
+    o = []
+    for f in sirepo.job.SUPERVISOR_DB_DIR.listdir(sort=True):
+        d = pykern.pkjson.load_any(f)
+        if d.status == sirepo.job.RUNNING:
+            s = int(d.computeJobStart)
+            l = int(d.lastUpdateTime)
+            o.append(
+                [
+                    d.uid,
+                    d.simulationType,
+                    d.simulationId,
+                    _strftime(s),
+                    _strftime(l),
+                    l - s,
+                ],
+            )
+    return o

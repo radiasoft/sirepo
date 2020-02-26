@@ -8,7 +8,9 @@ from pykern import pkinspect, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import api_perm
+from sirepo import http_reply
 from sirepo import simulation_db
+from sirepo.template import adm
 from sirepo.template import template_common
 import inspect
 import pykern.pkconfig
@@ -23,11 +25,16 @@ import sirepo.mpi
 import sirepo.sim_data
 import sirepo.util
 
-
 cfg = None
 
 #: how many call frames to search backwards to find the api_.* caller
 _MAX_FRAME_SEARCH_DEPTH = 6
+
+
+@api_perm.require_user
+def api_admJobs():
+    return http_reply.gen_json(adm.get_running_jobs())
+
 
 @api_perm.require_user
 def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
