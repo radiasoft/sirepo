@@ -116,13 +116,13 @@ class DockerDriver(job_driver.DriverBase):
         if not c:
             return
         self._cid = None
-        pkdlog('uid={} cid={}', self.get('uid'), c)
+        pkdlog('{} cid={:.12}', self, c)
         try:
             await self._cmd(
                 ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), c),
             )
         except Exception as e:
-            pkdlog('error={} stack={}', e, pkdexc())
+            pkdlog('{} error={} stack={}', self, e, pkdexc())
 
     async def prepare_send(self, op):
         if op.opName == job.OP_RUN:
@@ -154,7 +154,7 @@ class DockerDriver(job_driver.DriverBase):
 
     async def _do_agent_start(self, op):
         cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agent_exec_dir)
-        pkdlog('dir={}', self._agent_exec_dir)
+        pkdlog('{} agent_exec_dir={}', self, self._agent_exec_dir)
         pkio.mkdir_parent(self._agent_exec_dir)
         c = self.cfg[self.kind]
         p = (
@@ -176,11 +176,11 @@ class DockerDriver(job_driver.DriverBase):
             '--user={}'.format(os.getuid()),
         ) + self._volumes() + (self._image,)
         self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
-        pkdlog('cname={} cid={}', self._cname, self._cid)
+        pkdlog('{} cname={} cid={:.12}', self, self._cname, self._cid)
 
     async def _cmd(self, cmd, stdin=subprocess.DEVNULL, env=None):
         c = self.__hosts[self.host.name].cmd_prefix + cmd
-        pkdc('Running: {}', ' '.join(c))
+        pkdc('{} running: {}', self, ' '.join(c))
         try:
             p = tornado.process.Subprocess(
                 c,
@@ -190,7 +190,7 @@ class DockerDriver(job_driver.DriverBase):
                 env=env,
             )
         except Exception as e:
-            pkdlog('error={} cmd={} stack={}', e, c, pkdexc())
+            pkdlog('{} error={} cmd={} stack={}', self, e, c, pkdexc())
         finally:
             assert isinstance(stdin, io.BufferedRandom) or isinstance(stdin, int), \
                 'type(stdin)={} expected io.BufferedRandom or int'.format(type(stdin))
@@ -257,7 +257,7 @@ class DockerDriver(job_driver.DriverBase):
     def _start_idle_timeout(self):
         async def _kill_if_idle():
             if not self.ops:
-                pkdlog('self={}', self)
+                pkdlog('{}', self)
                 self._idle_timer = None
                 await self.kill()
             else:
