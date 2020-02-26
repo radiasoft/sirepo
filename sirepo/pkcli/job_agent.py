@@ -205,16 +205,16 @@ class _Dispatcher(PKDict):
         m = None
         try:
             m = pkjson.load_any(msg)
-            pkdlog('op={} opId={:.4} runDir={}', m.opName, m.get('opId'), m.get('runDir'))
+            pkdlog('opName={} o={:.4} runDir={}', m.opName, m.get('opId'), m.get('runDir'))
             pkdc('m={}', m)
             return await getattr(self, '_op_' + m.opName)(m)
         except Exception as e:
             err = 'exception=' + str(e)
             stack = pkdexc()
             pkdlog(
-                'opId={:.4} opName={} exception={} stack={}',
-                m and m.get('opId'),
+                'opName={} o={:.4} exception={} stack={}',
                 m and m.get('opName'),
+                m and m.get('opId'),
                 e,
                 stack,
             )
@@ -433,7 +433,7 @@ class _Cmd(PKDict):
 
     def pkdebug_str(self):
         return pkdformat(
-            '{}(jid={} op_id={:.4} job_cmd={} run_dir={})',
+            '{}(jid={} o={:.4} job_cmd={} run_dir={})',
             self.__class__.__name__,
             self.jid,
             self.op_id,

@@ -116,7 +116,7 @@ class DockerDriver(job_driver.DriverBase):
         if not c:
             return
         self._cid = None
-        pkdlog('{} cid={}', self, c)
+        pkdlog('{} cid={:.12}', self, c)
         try:
             await self._cmd(
                 ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), c),
@@ -176,7 +176,7 @@ class DockerDriver(job_driver.DriverBase):
             '--user={}'.format(os.getuid()),
         ) + self._volumes() + (self._image,)
         self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
-        pkdlog('{} cname={} cid={}', self, self._cname, self._cid)
+        pkdlog('{} cname={} cid={:.12}', self, self._cname, self._cid)
 
     async def _cmd(self, cmd, stdin=subprocess.DEVNULL, env=None):
         c = self.__hosts[self.host.name].cmd_prefix + cmd

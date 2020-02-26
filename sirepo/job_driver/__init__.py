@@ -196,7 +196,7 @@ class DriverBase(PKDict):
 
     def pkdebug_str(self):
         return pkdformat(
-            '{}(agentId={:.4} {} uid={} {})',
+            '{}(a={:.4} k={} u={:.4} {})',
             self.__class__.__name__,
             self._agentId,
             self.kind,
@@ -335,7 +335,7 @@ class DriverBase(PKDict):
             pkdlog('{} stderr from job_cmd msg={}', self, c)
             return
         else:
-            pkdlog('{} opName={} opId={:.4}', self, c.opName, i)
+            pkdlog('{} opName={} o={:.4}', self, c.opName, i)
         if i:
             if 'reply' not in c:
                 pkdlog('{} no reply={}', self, c)
@@ -345,7 +345,7 @@ class DriverBase(PKDict):
                 self.ops[i].reply_put(c.reply)
             else:
                 pkdlog(
-                    '{} not pending opId={:.4} opName={}',
+                    '{} not pending opName={} o={:.4}',
                     self,
                     i,
                     c.opName,
@@ -369,7 +369,7 @@ class DriverBase(PKDict):
         self._websocket.sr_driver_set(self)
 
     def __str__(self):
-        return f'{type(self).__name__}({self._agentId:.4}, {self.uid}, ops={list(self.ops.values())})'
+        return f'{type(self).__name__}({self._agentId:.4}, {self.uid:.4}, ops={list(self.ops.values())})'
 
     def _receive_error(self, msg):
 #TODO(robnagler) what does this mean? Just a way of logging? Document this.

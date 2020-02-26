@@ -193,7 +193,7 @@ class _ComputeJob(PKDict):
         if not d:
             return '_ComputeJob()'
         return pkdformat(
-            '_ComputeJob(jid={} status={} ops={})',
+            '_ComputeJob({} u={} {} {})',
             d.get('computeJid'),
             d.get('uid'),
             d.get('status'),
