@@ -340,7 +340,7 @@ def require_user():
         if m in cfg.methods:
             f = getattr(_METHOD_MODULES[m], 'validate_login', None)
             if f:
-                pkdc('validate_login method={}', m);
+                pkdc('validate_login method={}', m)
                 f()
             return
         if m in cfg.deprecated_methods:
