@@ -3,23 +3,25 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.USER_MANUAL_URL = 'https://github.com/zhanghe9704/electroncooling/blob/master/JSPEC%20User%20manual.md';
-SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
-SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation', 'coolingRatesAnimation'];
-SIREPO.FILE_UPLOAD_TYPE = {
-    'ring-lattice': '.tfs,.txt',
-};
-SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="rateCalculation" data-rate-calculation-panel="" class="sr-plot"></div>',
-].join('');
-SIREPO.appFieldEditors = [
-    '<div data-ng-switch-when="ElegantSimList" data-ng-class="fieldClass">',
-      '<div data-elegant-sim-list="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="TwissFile" class="col-sm-7">',
-      '<div data-twiss-file-field="" data-model="model" data-field="field" data-model-name="modelName"></div>',
-    '</div>',
-].join('');
+SIREPO.app.config(function() {
+    SIREPO.USER_MANUAL_URL = 'https://github.com/zhanghe9704/electroncooling/blob/master/JSPEC%20User%20manual.md';
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
+    SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation', 'coolingRatesAnimation'];
+    SIREPO.FILE_UPLOAD_TYPE = {
+        'ring-lattice': '.tfs,.txt',
+    };
+    SIREPO.appReportTypes = [
+        '<div data-ng-switch-when="rateCalculation" data-rate-calculation-panel="" class="sr-plot"></div>',
+    ].join('');
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="ElegantSimList" data-ng-class="fieldClass">',
+          '<div data-elegant-sim-list="" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="TwissFile" class="col-sm-7">',
+          '<div data-twiss-file-field="" data-model="model" data-field="field" data-model-name="modelName"></div>',
+        '</div>',
+    ].join('');
+});
 
 SIREPO.app.factory('jspecService', function(appState) {
     var self = {};

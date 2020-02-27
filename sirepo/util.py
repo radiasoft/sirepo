@@ -17,6 +17,10 @@ import random
 import werkzeug.exceptions
 
 
+#: length of string returned by create_token
+TOKEN_SIZE = 16
+
+
 class Reply(Exception):
     """Raised to end the request.
 
@@ -141,6 +145,17 @@ def convert_exception(exception, display_text='unexpected error'):
     return UserAlert(display_text, 'exception={} str={} stack={}', type(exception), exception, pkdexc())
 
 
+def create_token(value):
+    import hashlib
+    import base64
+
+    if pkconfig.channel_in_internal_test() and cfg.create_token_secret:
+        return base64.b32encode(
+            hashlib.sha256(value + cfg.create_token_secret).digest(),
+        )[:TOKEN_SIZE]
+    return sirepo.util.random_base62(TOKEN_SIZE)
+
+
 def err(obj, fmt='', *args, **kwargs):
     return '{}: '.format(obj) + fmt.format(*args, **kwargs)
 
@@ -201,3 +216,8 @@ def _raise(exc, fmt, *args, **kwargs):
     kwargs['pkdebug_frame'] = inspect.currentframe().f_back.f_back
     pkdlog(fmt, *args, **kwargs)
     raise getattr(werkzeug.exceptions, exc)()
+
+
+cfg = pkconfig.init(
+    create_token_secret=('oh so secret!', str, 'used for internal test only'),
+)

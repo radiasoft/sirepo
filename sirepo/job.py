@@ -19,6 +19,7 @@ import re
 OP_ANALYSIS = 'analysis'
 OP_CANCEL = 'cancel'
 OP_ERROR = 'error'
+OP_JOB_CMD_STDERR = 'job_cmd_stderr'
 OP_KILL = 'kill'
 OP_OK = 'ok'
 #: Agent indicates it is ready
@@ -154,7 +155,6 @@ def agent_env(env=None, uid=None):
         **pkconfig.to_environ((
             'pykern.*',
             'sirepo.feature_config.job',
-            'sirepo.simulation_db.sbatch_display',
         ))
     ).pksetdefault(
         PYTHONPATH='',

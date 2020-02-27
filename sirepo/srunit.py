@@ -115,14 +115,14 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
             uri_router.srunit_uri,
             headers=headers,
         )
-        pkunit.pkeq(200, r.status_code, 'FAIL: status={}', r.status)
+        pkunit.pkeq(200, r.status_code, 'FAIL: unexpected status={}', r.status)
         if r.mimetype == 'text/html':
             m = _JAVASCRIPT_REDIRECT_RE.search(r.data)
             if m:
-                pkunit.pkfail('redirect={}', m.group(1))
-            pkunit.pkfail('other html response={}', r.data)
+                pkunit.pkfail('unexpected redirect={}', m.group(1))
+            pkunit.pkfail('unexpected html response={}', r.data)
         d = pkcollections.json_load_any(r.data)
-        pkunit.pkeq('ok', d.get('state'), 'FAIL: data={}', d)
+        pkunit.pkeq('ok', d.get('state'), 'FAIL: expecting state=ok, but got data={}', d)
     finally:
         try:
             delattr(server._app, server.SRUNIT_TEST_IN_REQUEST)

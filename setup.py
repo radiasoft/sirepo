@@ -39,7 +39,7 @@ pykern.pksetup.setup(
         'sympy; python_version < "3"',
         'user-agents',
         'uwsgi',
-        'werkzeug',
+        'werkzeug==0.15.4',
         'tornado >= 6; python_version >= "3"',
    ],
     license='http://www.apache.org/licenses/LICENSE-2.0.html',

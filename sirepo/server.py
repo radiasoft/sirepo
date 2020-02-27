@@ -73,8 +73,10 @@ def api_copyNonSessionSimulation():
         simulation_db.lib_dir_from_sim_dir(src),
     )
     target = simulation_db.simulation_dir(req.type, data.models.simulation.simulationId)
-    if hasattr(req.template, 'copy_related_files'):
-        req.template.copy_related_files(data, str(src), str(target))
+    #TODO(robnagler) does not work, supervisor needs to be notified to
+    # copy the simulation state.
+    # if hasattr(req.template, 'copy_related_files'):
+    #     req.template.copy_related_files(data, str(src), str(target))
     return res
 
 

@@ -3,53 +3,55 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
-SIREPO.INCLUDE_EXAMPLE_FOLDERS = true;
-SIREPO.SINGLE_FRAME_ANIMATION = ['coherenceXAnimation', 'coherenceYAnimation', 'fluxAnimation', 'multiElectronAnimation'];
-SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
-SIREPO.PLOTTING_SHOW_FWHM = true;
-//TODO(pjm): provide API for this, keyed by field type
-SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
-];
-SIREPO.appFieldEditors = [
-    '<div data-ng-switch-when="BeamList">',
-      '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
-    '</div>',
-    '<div data-ng-switch-when="UndulatorList">',
-      '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
-    '</div>',
-    '<div data-ng-switch-when="ImageFile" class="col-sm-7">',
-      '<div data-image-file-field="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="MagneticZipFile" class="col-sm-7">',
-      '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
-    '</div>',
-    '<div data-ng-switch-when="ArbitraryFieldFile" class="col-sm-7">',
-      '<div data-file-field="field" data-file-type="arbitraryField" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Data File"></div>',
-    '</div>',
-    '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
-      '<div data-mirror-file-field="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
-    '</div>',
-    '<div data-ng-switch-when="WatchPoint" data-ng-class="fieldClass">',
-        '<div data-watch-point-list="" data-model="model" data-field="field" data-model-name="modelName"></div>',
-    '</div>',
-].join('');
-SIREPO.appDownloadLinks = [
-    '<li data-lineout-csv-link="x"></li>',
-    '<li data-lineout-csv-link="y"></li>',
-    '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
-].join('');
-SIREPO.appPanelHeadingButtons = [
-    '<div data-ng-if="isReport && ! hasData()" class="dropdown" style="display: inline-block">',
-      '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
-      '<ul class="dropdown-menu dropdown-menu-right">',
+SIREPO.app.config(function() {
+    SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
+    SIREPO.INCLUDE_EXAMPLE_FOLDERS = true;
+    SIREPO.SINGLE_FRAME_ANIMATION = ['coherenceXAnimation', 'coherenceYAnimation', 'fluxAnimation', 'multiElectronAnimation'];
+    SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
+    SIREPO.PLOTTING_SHOW_FWHM = true;
+    SIREPO.appReportTypes = [
+        '<div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
+    ].join('');
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="BeamList">',
+          '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
+        '</div>',
+        '<div data-ng-switch-when="UndulatorList">',
+          '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
+        '</div>',
+        '<div data-ng-switch-when="ImageFile" class="col-sm-7">',
+          '<div data-image-file-field="" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="MagneticZipFile" class="col-sm-7">',
+          '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
+        '</div>',
+        '<div data-ng-switch-when="ArbitraryFieldFile" class="col-sm-7">',
+          '<div data-file-field="field" data-file-type="arbitraryField" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Data File"></div>',
+        '</div>',
+        '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
+          '<div data-mirror-file-field="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
+        '</div>',
+        '<div data-ng-switch-when="WatchPoint" data-ng-class="fieldClass">',
+          '<div data-watch-point-list="" data-model="model" data-field="field" data-model-name="modelName"></div>',
+        '</div>',
+    ].join('');
+    SIREPO.appDownloadLinks = [
+        '<li data-lineout-csv-link="x"></li>',
+        '<li data-lineout-csv-link="y"></li>',
+        '<li data-lineout-csv-link="full"></li>',
         '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
-      '</ul>',
-    '</div>',
-].join('');
+    ].join('');
+    SIREPO.appPanelHeadingButtons = [
+        '<div data-ng-if="isReport && ! hasData()" class="dropdown" style="display: inline-block">',
+        '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
+        '<ul class="dropdown-menu dropdown-menu-right">',
+        '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
+        '</ul>',
+        '</div>',
+    ].join('');
 
-SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
+    SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
+});
 
 SIREPO.app.factory('srwService', function(activeSection, appDataService, appState, beamlineService, panelState, requestSender, $location, $rootScope, $route) {
     var FORMAT_DECIMALS = 8;
@@ -1952,9 +1954,10 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     '<div data-simulation-status-timer="simState.timeData"></div>',
                   '</div>',
                 '</div>',
+            //TODO(pjm): share with simStatusPanel directive in sirepo-components.js
                 '<div data-ng-if="simState.showJobSettings()">',
                   '<div class="form-group form-group-sm">',
-                    '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model"></div>',
+                    '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>',
                     '<div data-sbatch-cores-and-hours="simState"></div>',
                   '</div>',
                 '</div>',
@@ -1964,7 +1967,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
               '</div>',
             '</form>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, appState, authState) {
             var clientFields = ['colorMap', 'aspectRatio', 'plotScale'];
             var serverFields = ['intensityPlotsWidth', 'rotateAngle', 'rotateReshape'];
             var oldModel = null;
@@ -2031,6 +2034,13 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             };
 
             $scope.startSimulation = function() {
+                // The available jobRunModes can change. Default to parallel if
+                // the current jobRunMode doesn't exist
+                var j = appState.models[$scope.simState.model];
+                if (j && j.jobRunMode && j.jobRunMode in authState.jobRunModeMap === false) {
+                    j.jobRunMode = 'parallel';
+                }
+                frameCache.setFrameCount(0);
                 if ($scope.model == 'multiElectronAnimation') {
                     appState.saveChanges($scope.simState.model);
                     appState.models.simulation.multiElectronAnimationTitle = beamlineService.getReportTitle($scope.model);

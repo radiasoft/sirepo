@@ -490,7 +490,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                '<div data-ng-switch-when="Range" data-ng-class="fieldClass">',
                   '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field" data-field-delegate="fieldDelegate"></div>',
                '</div>',
-              SIREPO.appFieldEditors || '',
+              SIREPO.appFieldEditors,
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
                 '<div data-ng-if="wantEnumButtons" class="btn-group">',
@@ -1018,7 +1018,7 @@ SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
             axis: '@lineoutCsvLink',
         },
         template: [
-            '<a href data-ng-show=":: is3dPlot()" data-ng-click="exportLineout()">CSV - {{:: axisName }} Cut</a>',
+            '<a href data-ng-show=":: is3dPlot()" data-ng-click="exportLineout()">CSV - {{:: axisName }}</a>',
         ].join(''),
         controller: function($scope) {
 
@@ -1030,7 +1030,11 @@ SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
                 return s;
             }
 
-            $scope.axisName = $scope.axis == 'x' ? 'Horizontal' : 'Vertical';
+            $scope.axisName = $scope.axis == 'x'
+                ? 'Horizontal Cut'
+                : $scope.axis == 'y'
+                    ? 'Vertical Cut'
+                    : 'Full Plot';
 
             $scope.exportLineout = function() {
                 findReportPanelScope().$broadcast(SIREPO.PLOTTING_LINE_CSV_EVENT, $scope.axis);
@@ -1245,10 +1249,11 @@ SIREPO.app.directive('panelLayout', function(appState, utilities, $window) {
 
 SIREPO.app.directive('safePath', function() {
 
-    var unsafe_path_chars = '\\/|&:+?\'"<>'.split('');
-    var unsafe_path_warn = ' must not include any of the following: ' +
-        unsafe_path_chars.join(' ');
-    var unsafe_path_regexp = new RegExp('[\\' + unsafe_path_chars.join('\\') + ']');
+    // keep in sync with sirepo.srschem.py _NAME_ILLEGALS
+    var unsafePathChars = '\\/|&:+?\'*"<>'.split('');
+    var unsafePathWarn = ' must not include: ' +
+        unsafePathChars.join(' ');
+    var unsafePathRegexp = new RegExp('[\\' + unsafePathChars.join('\\') + ']');
 
     return {
         restrict: 'A',
@@ -1256,15 +1261,23 @@ SIREPO.app.directive('safePath', function() {
         link: function(scope, element, attrs, ngModel) {
             scope.showWarning = false;
             scope.warningText = '';
+
+            function setWarningText(text) {
+                scope.warningText = (scope.info ? scope.info[0] : 'Value') + text;
+            }
+
             ngModel.$parsers.push(function (v) {
-                scope.showWarning = unsafe_path_regexp.test(v);
+                scope.showWarning = unsafePathRegexp.test(v);
                 if (scope.showWarning) {
-                    scope.warningText = (scope.info ? scope.info[0] : 'Value') + unsafe_path_warn;
-                    ngModel.$setValidity('size', false);
+                    setWarningText(unsafePathWarn);
                 }
                 else {
-                    ngModel.$setValidity('size', true);
+                    scope.showWarning = /^\.|\.$/.test(v);
+                    if (scope.showWarning) {
+                        setWarningText(' must not start or end with a "."');
+                    }
                 }
+                ngModel.$setValidity('size', ! scope.showWarning);
                 return v;
             });
 
@@ -2890,9 +2903,10 @@ SIREPO.app.directive('sbatchCoresAndHours', function(appState) {
             simState: '=sbatchCoresAndHours',
         },
         template: [
-            '<div data-ng-show="showCoresAndHours()">',
-                '<div data-model-field="\'sbatchHours\'" data-model-name="simState.model"></div>',
-                '<div data-model-field="\'sbatchCores\'" data-model-name="simState.model"></div>',
+            '<div class="clearfix"></div>',
+            '<div style="margin-top: 10px" data-ng-show="showCoresAndHours()">',
+                '<div data-model-field="\'sbatchHours\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>',
+                '<div data-model-field="\'sbatchCores\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
@@ -2953,7 +2967,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               '</div>',
               '<div data-ng-if="simState.showJobSettings()">',
                 '<div class="form-group form-group-sm">',
-                  '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model"></div>',
+                  '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>',
                   '<div data-sbatch-cores-and-hours="simState"></div>',
                 '</div>',
               '</div>',
@@ -2964,7 +2978,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             '<div class="clearfix"></div>',
             '<div data-ng-if="errorMessage()"><div class="text-danger"><strong>{{ ::appName }} Error:</strong></div><pre>{{ errorMessage() }}</pre></div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, appState, authState) {
             $scope.appName = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName;
 
             function callSimState(method) {
@@ -2989,6 +3003,12 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                     || 'Simulation ' + $scope.simState.stateAsText() + ': ' + $scope.simState.getFrameCount() + ' animation frames';
             };
             $scope.start = function() {
+                // The available jobRunModes can change. Default to parallel if
+                // the current jobRunMode doesn't exist
+                var j = appState.models[$scope.simState.model];
+                if (j && j.jobRunMode && j.jobRunMode in authState.jobRunModeMap === false) {
+                    j.jobRunMode = 'parallel';
+                }
                 appState.saveChanges($scope.simState.model);
                 $scope.simState.runSimulation();
             };
@@ -3330,18 +3350,22 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
         }
     }
 
+    function setRunningState(name) {
+        appState.models[name].isRunning = 1;
+        if (runningModels.indexOf(name) < 0) {
+            runningModels.push(name);
+        }
+    }
+
     self.computeFieldRanges = function(controller, name, percentComplete) {
         if (controller.simState.isProcessing()) {
-            appState.models[name].isRunning = 1;
-            if (runningModels.indexOf(name) < 0) {
-                runningModels.push(name);
-            }
+            setRunningState(name);
         }
         // this assumes all models share same range parameters
         if (percentComplete == 100 && ! controller.isComputingRanges) {
             controller.fieldRange = null;
             controller.isComputingRanges = true;
-            appState.models[name].isRunning = 1;
+            setRunningState(name);
             requestSender.getApplicationData(
                 {
                     method: 'compute_particle_ranges',

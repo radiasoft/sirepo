@@ -1,4 +1,0 @@
-tests/run_sim_test.py FAIL tests/run_sim_test.log
-tests/server2_test.py FAIL tests/server2_test.log
-tests/server_test.py FAIL tests/server_test.log
-tests/status_test.py FAIL tests/status_test.log

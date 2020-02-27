@@ -22,6 +22,6 @@ def test_token_reuse(auth_fc):
     fc.sr_email_confirm(fc, r)
     s = fc.sr_auth_state(userName='reuse@b.c')
     fc.sr_get('authLogout', {'simulation_type': fc.sr_sim_type})
-    r = fc.sr_get(r.url, redirect=False)
+    r = fc.sr_get(r.uri, redirect=False)
     pkre('/login-fail/email', r.headers['Location'])
     fc.sr_auth_state(isLoggedIn=False)

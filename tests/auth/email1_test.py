@@ -53,14 +53,14 @@ def test_follow_email_auth_link_twice(auth_fc):
     )
     # The link comes back in dev mode so we don't have to check email
     s = fc.sr_auth_state(isLoggedIn=False)
-    fc.get(r.url)
+    fc.get(r.uri)
     # get the url twice - should still be logged in
-    d = fc.sr_get(r.url)
+    d = fc.sr_get(r.uri)
     assert not re.search(r'login-fail', d.data)
     fc.sr_email_confirm(fc, r)
     fc.sr_get('authLogout', {'simulation_type': fc.sr_sim_type})
     # now logged out, should see login fail for bad link
-    pkre('login-fail', fc.get(r.url).data)
+    pkre('login-fail', fc.get(r.uri).data)
 
 
 def test_force_login(auth_fc):
@@ -75,7 +75,7 @@ def test_force_login(auth_fc):
 
     # login as a new user, not in db
     r = fc.sr_post('authEmailLogin', {'email': 'force@b.c', 'simulationType': fc.sr_sim_type})
-    fc.get(r.url)
+    fc.get(r.uri)
     fc.sr_get('authLogout', {'simulation_type': fc.sr_sim_type})
     with pkexcept('SRException.*routeName.*login'):
         fc.sr_post('listSimulations', {'simulationType': fc.sr_sim_type})
@@ -229,7 +229,7 @@ def test_token_expired(auth_fc):
         'authEmailLogin',
         {'email': 'expired@b.c', 'simulationType': fc.sr_sim_type},
     )
-    login_url = r.url
+    login_url = r.uri
     srtime.adjust_time(1)
     r = fc.get(login_url)
     s = fc.sr_auth_state(isLoggedIn=False)
