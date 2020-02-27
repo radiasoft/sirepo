@@ -452,7 +452,7 @@
         },
         "plot2Animation": {
             "aspectRatio": "1",
-            "includeLattice": "1",
+            "includeLattice": "0",
             "isRunning": 0,
             "notes": "",
             "startTime": 1572306100,

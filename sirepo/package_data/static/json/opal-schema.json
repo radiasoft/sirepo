@@ -14,6 +14,15 @@
             ["pz", "Pz"],
             ["q", "q"]
         ],
+        "PhaseSpaceCoordinate2": [
+            ["x", "x"],
+            ["px", "Px"],
+            ["y", "y"],
+            ["py", "Py"],
+            ["z", "z"],
+            ["pz", "Pz"],
+            ["time", "time"]
+        ],
         "PlotField": [
             ["#sigma", "sigma"],
             ["#varepsilon x", "epsilon x"],
@@ -183,8 +192,7 @@
             ["BINOMIAL", "BINOMIAL"],
             ["FLATTOP", "FLATTOP"],
             ["GUNGAUSSFLATTOPTH", "GUNGAUSSFLATTOPTH"],
-            ["ASTRAFLATTOPTH", "ASTRAFLATTOPTH"],
-            ["GAUSSMATCHED", "GAUSSMATCHED"]
+            ["ASTRAFLATTOPTH", "ASTRAFLATTOPTH"]
         ],
         "FieldsolverBcfftt": [
             ["OPEN", "OPEN"],
@@ -251,6 +259,10 @@
             ["X", "X"],
             ["Y", "Y"],
             ["BOTH", "BOTH"]
+        ],
+        "MonitorMonitor_type": [
+            ["TEMPORAL", "TEMPORAL"],
+            ["SPATIAL", "SPATIAL"]
         ],
         "OptionPsdumpframe": [
             ["GLOBAL", "GLOBAL"],
@@ -368,10 +380,27 @@
             "verticalOffset",
             "isRunning"
         ],
+        "animation": [
+            "x",
+            "y",
+            "histogramBins",
+            "plotRangeType",
+            "horizontalSize",
+            "horizontalOffset",
+            "verticalSize",
+            "verticalOffset",
+            "isRunning"
+        ],
         "plotAnimation": ["x", "y1", "y2", "y3"],
         "plot2Animation": ["x", "y1", "y2", "y3"]
     },
     "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/opal-source.html"
+            }
+        },
         "lattice": {
             "route": "/lattice/:simulationId",
             "config": {
@@ -400,6 +429,13 @@
         },
         "beamlineReport": {
         },
+        "bunchReport": {
+            "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "x"],
+            "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "y"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
+        },
         "bunchAnimation": {
             "x": ["X Value", "PhaseSpaceCoordinate", "x"],
             "y": ["Y Value", "PhaseSpaceCoordinate", "px"],
@@ -414,11 +450,26 @@
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
+        "elementAnimation": {
+            "x": ["X Value", "PhaseSpaceCoordinate2", "x"],
+            "y": ["Y Value", "PhaseSpaceCoordinate2", "px"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "plotRangeType": ["Range", "PlotRangeType", "none"],
+            "horizontalSize": ["Horizontal Size", "Float", 0],
+            "verticalSize": ["Vertical Size", "Float", 0],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "notes": ["Notes", "Text", ""]
+        },
         "plotAnimation": {
             "x": ["Horizontal Value to Plot", "PlotField", "SPOS"],
             "y1": ["Vertical Value to Plot", "PlotField", "#varepsilon x"],
             "y2": ["Vertical Value to Plot", "PlotField", "#varepsilon y"],
             "y3": ["Vertical Value to Plot", "PlotField", "none"],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "0"],
             "notes": ["Notes", "Text", ""]
         },
         "plot2Animation": {
@@ -426,6 +477,7 @@
             "y1": ["Vertical Value to Plot", "Plot2Field", "rms x"],
             "y2": ["Vertical Value to Plot", "Plot2Field", "rms y"],
             "y3": ["Vertical Value to Plot", "Plot2Field", "rms s"],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "0"],
             "notes": ["Notes", "Text", ""]
         },
         "rpnVariable": {
@@ -676,8 +728,9 @@
         },
         "MONITOR": {
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "l": ["L [m]", "RPNValue", 0.01, "The element length"],
             "outfn": ["OUTFN", "OutputFile", "", "Monitor output filename"],
+            "monitor_type": ["TYPE", "MonitorMonitor_type", "SPATIAL", ""],
             "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
             "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
             "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
@@ -694,10 +747,10 @@
         "MULTIPOLE": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "kn": ["KN [m^(-k)]", "RPNValue", 0, "Normalised multipole strengths (normal)"],
-            "dkn": ["DKN [m^(-k)]", "RPNValue", 0, "Normalised multipole strengths errors(normal)"],
-            "ks": ["KS [m^(-k)]", "RPNValue", 0, "Normalised multipole strengths (skew)"],
-            "dks": ["DKS [m^(-k)]", "RPNValue", 0, "Normalised multipole strength errors (skew)"],
+            "kn": ["KN [$\\bf m^{-k}$]", "RPNValue", 0, "Normalised multipole strengths (normal)"],
+            "dkn": ["DKN [$\\bf m^{-k}$]", "RPNValue", 0, "Normalised multipole strengths errors(normal)"],
+            "ks": ["KS [$\\bf m^{-k}$]", "RPNValue", 0, "Normalised multipole strengths (skew)"],
+            "dks": ["DKS [$\\bf m^{-k}$]", "RPNValue", 0, "Normalised multipole strength errors (skew)"],
             "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
             "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
             "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
@@ -714,7 +767,7 @@
         "MULTIPOLET": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "tp": ["TP [m^(-k)]", "RPNValue", 0, "Transverse Profile derivatives"],
+            "tp": ["TP [$\\bf m^{-k}$]", "RPNValue", 0, "Transverse Profile derivatives"],
             "lfringe": ["LFRINGE [m]", "RPNValue", 0, "The length of the left end field"],
             "rfringe": ["RFRINGE [m]", "RPNValue", 0, "The length of the right end field"],
             "hapert": ["HAPERT [m]", "RPNValue", 0, "The aperture width"],
@@ -741,10 +794,10 @@
         "OCTUPOLE": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "k3": ["K3 [m^(-4)]", "RPNValue", 0, "Normalised upright octupole coefficient"],
-            "dk3": ["DK3 [m^(-4)]", "RPNValue", 0, "Normalised upright octupole coefficient error"],
-            "k3s": ["K3S [m^(-4)]", "RPNValue", 0, "Normalised skew octupole coefficient"],
-            "dk3s": ["DK3S [m^(-4)]", "RPNValue", 0, "Normalised skew octupole coefficient error"],
+            "k3": ["K3 [$\\bf m^{-4}$]", "RPNValue", 0, "Normalised upright octupole coefficient"],
+            "dk3": ["DK3 [$\\bf m^{-4}$]", "RPNValue", 0, "Normalised upright octupole coefficient error"],
+            "k3s": ["K3S [$\\bf m^{-4}$]", "RPNValue", 0, "Normalised skew octupole coefficient"],
+            "dk3s": ["DK3S [$\\bf m^{-4}$]", "RPNValue", 0, "Normalised skew octupole coefficient error"],
             "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
             "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
             "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
@@ -847,10 +900,10 @@
         "QUADRUPOLE": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "k1": ["K1 [m^(-2)]", "RPNValue", 0, "Normalised upright quadrupole coefficient"],
-            "dk1": ["DK1 [m^(-2)]", "RPNValue", 0, "Normalised upright quadrupole coefficient error"],
-            "k1s": ["K1S [m^(-2)]", "RPNValue", 0, "Normalised skew quadrupole coefficient"],
-            "dk1s": ["DK1S [m^(-2)]", "RPNValue", 0, "Normalised skew quadrupole coefficient error"],
+            "k1": ["K1 [$\\bf m^{-2}$]", "RPNValue", 0, "Normalised upright quadrupole coefficient"],
+            "dk1": ["DK1 [$\\bf m^{-2}$]", "RPNValue", 0, "Normalised upright quadrupole coefficient error"],
+            "k1s": ["K1S [$\\bf m^{-2}$]", "RPNValue", 0, "Normalised skew quadrupole coefficient"],
+            "dk1s": ["DK1S [$\\bf m^{-2}$]", "RPNValue", 0, "Normalised skew quadrupole coefficient error"],
             "nslices": ["NSLICES", "RPNValue", 1, "The number of slices/ steps for this element in Map Tracking"],
             "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
             "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
@@ -868,19 +921,19 @@
         "RBEND": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "angle": ["ANGLE [m^(-1)]", "RPNValue", 0, "Upright dipole coefficient"],
-            "k0": ["K0 [m^(-1)]", "RPNValue", 0, "Normal dipole coefficient"],
-            "k0s": ["K0S [m^(-1)]", "RPNValue", 0, "Skew dipole coefficient"],
-            "k1": ["K1 [m^(-2)]", "RPNValue", 0, "Upright quadrupole coefficient"],
-            "k1s": ["K1S [m^(-2)]", "RPNValue", 0, "Skew quadrupole coefficient"],
-            "k2": ["K2 [m^(-3)]", "RPNValue", 0, "Upright sextupole coefficient"],
-            "k2s": ["K2S [m^(-3)]", "RPNValue", 0, "Skew sextupole coefficient"],
-            "k3": ["K3 [m^(-4)]", "RPNValue", 0, "Upright octupole coefficient"],
-            "k3s": ["K3S [m^(-4)]", "RPNValue", 0, "Skew octupole coefficient"],
+            "angle": ["ANGLE [$\\bf m^{-1}$]", "RPNValue", 0, "Upright dipole coefficient"],
+            "k0": ["K0 [$\\bf m^{-1}$]", "RPNValue", 0, "Normal dipole coefficient"],
+            "k0s": ["K0S [$\\bf m^{-1}$]", "RPNValue", 0, "Skew dipole coefficient"],
+            "k1": ["K1 [$\\bf m^{-2}$]", "RPNValue", 0, "Upright quadrupole coefficient"],
+            "k1s": ["K1S [$\\bf m^{-2}$]", "RPNValue", 0, "Skew quadrupole coefficient"],
+            "k2": ["K2 [$\\bf m^{-3}$]", "RPNValue", 0, "Upright sextupole coefficient"],
+            "k2s": ["K2S [$\\bf m^{-3}$]", "RPNValue", 0, "Skew sextupole coefficient"],
+            "k3": ["K3 [$\\bf m^{-4}$]", "RPNValue", 0, "Upright octupole coefficient"],
+            "k3s": ["K3S [$\\bf m^{-4}$]", "RPNValue", 0, "Skew octupole coefficient"],
             "e1": ["E1 [rad]", "RPNValue", 0, "Entry pole face angle"],
             "e2": ["E2 [rad]", "RPNValue", 0, "Exit pole face angle"],
-            "h1": ["H1 [m^(-1)]", "RPNValue", 0, "Entry pole face curvature"],
-            "h2": ["H2 [m^(-1)]", "RPNValue", 0, "Exit pole face curvature"],
+            "h1": ["H1 [$\\bf m^{-1}$]", "RPNValue", 0, "Entry pole face curvature"],
+            "h2": ["H2 [$\\bf m^{-1}$]", "RPNValue", 0, "Exit pole face curvature"],
             "hgap": ["HGAP", "RPNValue", 0, "Half gap width m"],
             "fint": ["FINT", "RPNValue", 0.5, "Field integral (no dimension)"],
             "slices": ["SLICES", "RPNValue", 1, "Number of slices to use"],
@@ -906,9 +959,9 @@
         "RBEND3D": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "angle": ["ANGLE [m^(-1)]", "RPNValue", 0, "Upright dipole coefficient"],
-            "k0": ["K0 [m^(-1)]", "RPNValue", 0, "Normal dipole coefficient"],
-            "k0s": ["K0S [m^(-1)]", "RPNValue", 0, "Skew dipole coefficient"],
+            "angle": ["ANGLE [$\\bf m^{-1}$]", "RPNValue", 0, "Upright dipole coefficient"],
+            "k0": ["K0 [$\\bf m^{-1}$]", "RPNValue", 0, "Normal dipole coefficient"],
+            "k0s": ["K0S [$\\bf m^{-1}$]", "RPNValue", 0, "Skew dipole coefficient"],
             "e1": ["E1 [rad]", "RPNValue", 0, "Entry pole face angle"],
             "fmapfn": ["FMAPFN", "InputFile", "", "Filename for the fieldmap"],
             "gap": ["GAP [m]", "RPNValue", 0, "Full gap height of the magnet"],
@@ -973,7 +1026,7 @@
             "phase_model": ["PHASE_MODEL", "OptionalString", "", "The name of the phase time dependence model."],
             "amplitude_model": ["AMPLITUDE_MODEL", "OptionalString", "", "The name of the amplitude time dependence model."],
             "frequency_model": ["FREQUENCY_MODEL", "OptionalString", "", "The name of the frequency time dependence model."],
-            "rfcavity_type": ["TYPE", "RfcavityRfcavity_type", "", "The element design type (the project name)"],
+            "rfcavity_type": ["TYPE", "RfcavityRfcavity_type", "", ""],
             "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
             "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
             "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
@@ -1019,19 +1072,19 @@
         "SBEND": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "angle": ["ANGLE [m^(-1)]", "RPNValue", 0, "Upright dipole coefficient"],
-            "k0": ["K0 [m^(-1)]", "RPNValue", 0, "Normal dipole coefficient"],
-            "k0s": ["K0S [m^(-1)]", "RPNValue", 0, "Skew dipole coefficient"],
-            "k1": ["K1 [m^(-2)]", "RPNValue", 0, "Upright quadrupole coefficient"],
-            "k1s": ["K1S [m^(-2)]", "RPNValue", 0, "Skew quadrupole coefficient"],
-            "k2": ["K2 [m^(-3)]", "RPNValue", 0, "Upright sextupole coefficient"],
-            "k2s": ["K2S [m^(-3)]", "RPNValue", 0, "Skew sextupole coefficient"],
-            "k3": ["K3 [m^(-4)]", "RPNValue", 0, "Upright octupole coefficient"],
-            "k3s": ["K3S [m^(-4)]", "RPNValue", 0, "Skew octupole coefficient"],
+            "angle": ["ANGLE [$\\bf m^{-1}$]", "RPNValue", 0, "Upright dipole coefficient"],
+            "k0": ["K0 [$\\bf m^{-1}$]", "RPNValue", 0, "Normal dipole coefficient"],
+            "k0s": ["K0S [$\\bf m^{-1}$]", "RPNValue", 0, "Skew dipole coefficient"],
+            "k1": ["K1 [$\\bf m^{-2}$]", "RPNValue", 0, "Upright quadrupole coefficient"],
+            "k1s": ["K1S [$\\bf m^{-2}$]", "RPNValue", 0, "Skew quadrupole coefficient"],
+            "k2": ["K2 [$\\bf m^{-3}$]", "RPNValue", 0, "Upright sextupole coefficient"],
+            "k2s": ["K2S [$\\bf m^{-3}$]", "RPNValue", 0, "Skew sextupole coefficient"],
+            "k3": ["K3 [$\\bf m^{-4}$]", "RPNValue", 0, "Upright octupole coefficient"],
+            "k3s": ["K3S [$\\bf m^{-4}$]", "RPNValue", 0, "Skew octupole coefficient"],
             "e1": ["E1 [rad]", "RPNValue", 0, "Entry pole face angle"],
             "e2": ["E2 [rad]", "RPNValue", 0, "Exit pole face angle"],
-            "h1": ["H1 [m^(-1)]", "RPNValue", 0, "Entry pole face curvature"],
-            "h2": ["H2 [m^(-1)]", "RPNValue", 0, "Exit pole face curvature"],
+            "h1": ["H1 [$\\bf m^{-1}$]", "RPNValue", 0, "Entry pole face curvature"],
+            "h2": ["H2 [$\\bf m^{-1}$]", "RPNValue", 0, "Exit pole face curvature"],
             "hgap": ["HGAP", "RPNValue", 0, "Half gap width m"],
             "fint": ["FINT", "RPNValue", 0.5, "Field integral (no dimension)"],
             "slices": ["SLICES", "RPNValue", 1, "Number of slices to use"],
@@ -1144,10 +1197,10 @@
         "SEXTUPOLE": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "k2": ["K2 [m^(-3)]", "RPNValue", 0, "Normalised upright sextupole coefficient"],
-            "dk2": ["DK2 [m^(-3)]", "RPNValue", 0, "Normalised upright sextupole coefficient error"],
-            "k2s": ["K2S [m^(-3)]", "RPNValue", 0, "Normalised skew sextupole coefficient"],
-            "dk2s": ["DK2S [m^(-3)]", "RPNValue", 0, "Normalised skew sextupole coefficient error"],
+            "k2": ["K2 [$\\bf m^{-3}$]", "RPNValue", 0, "Normalised upright sextupole coefficient"],
+            "dk2": ["DK2 [$\\bf m^{-3}$]", "RPNValue", 0, "Normalised upright sextupole coefficient error"],
+            "k2s": ["K2S [$\\bf m^{-3}$]", "RPNValue", 0, "Normalised skew sextupole coefficient"],
+            "dk2s": ["DK2S [$\\bf m^{-3}$]", "RPNValue", 0, "Normalised skew sextupole coefficient error"],
             "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
             "wakef": ["WAKEF", "WakeList", "", "Defines the wake function"],
             "particlematterinteraction": ["PARTICLEMATTERINTERACTION", "ParticlematterinteractionList", "", "Defines the particle mater interaction handler"],
@@ -1183,8 +1236,8 @@
         "SOLENOID": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "ks": ["KS [m**(-1)]", "RPNValue", 0, "Normalised solenoid strength"],
-            "dks": ["DKS [m**(-1)]", "RPNValue", 0, "Normalised solenoid strength error"],
+            "ks": ["KS [$\\bf m^{-1}$]", "RPNValue", 0, "Normalised solenoid strength"],
+            "dks": ["DKS [$\\bf m^{-1}$]", "RPNValue", 0, "Normalised solenoid strength error"],
             "fmapfn": ["FMAPFN", "InputFile", "", "Solenoid field map filename"],
             "fast": ["FAST", "Boolean", "1", "Faster but less accurate"],
             "aperture": ["APERTURE", "OptionalString", "circle(1)", "The element aperture"],
@@ -1420,7 +1473,7 @@
         },
         "command_distribution": {
             "name": ["NAME", "ValidatedString", "", ""],
-            "type": ["TYPE", "DistributionType", "", "Distribution type: FROMFILE, GAUSS, BINOMIAL, FLATTOP, SURFACEEMISSION, SURFACERANDCREATE, GUNGAUSSFLATTOPTH, ASTRAFLATTOPTH, GAUSSMATCHED"],
+            "type": ["TYPE", "DistributionType", "", "Distribution type: FROMFILE, GAUSS, BINOMIAL, FLATTOP, GUNGAUSSFLATTOPTH, ASTRAFLATTOPTH"],
             "line": ["LINE", "OptionalLatticeBeamlineList", "", "Beamline that contains a cyclotron or ring"],
             "fmapfn": ["FMAPFN", "InputFile", "", "File for reading fieldmap used to create matched distribution"],
             "fmtype": ["FMTYPE", "OptionalString", "", "File format for reading fieldmap used to create matched distribution"],
@@ -1866,6 +1919,55 @@
                 ]]
             ]
         },
+        "bunchReport": {
+            "title": "Beam Phase Space",
+            "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "histogramBins",
+                "colorMap",
+                "notes"
+            ]
+        },
+        "elementAnimation": {
+            "title": "Output Report",
+            "advanced": [
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y"
+                        ]]
+                    ],
+                    "histogramBins",
+                    "framesPerSecond",
+                    "aspectRatio",
+                    "colorMap",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
         "plotAnimation": {
             "title": "Beam Variables",
             "advanced": [
@@ -1879,6 +1981,7 @@
                         "y3"
                     ]]
                 ],
+                "includeLattice",
                 "notes"
             ]
         },
@@ -1895,13 +1998,18 @@
                         "y3"
                     ]]
                 ],
+                "includeLattice",
                 "notes"
             ]
         },
         "simulationSettings": {
             "title": "Simulation Settings",
             "basic": [
-                "simulation.visualizationBeamlineId"
+                "command_track.line",
+                "command_track.dt",
+                "command_track.maxsteps",
+                "command_track.zstart",
+                "command_track.zstop"
             ],
             "advanced": []
         },
@@ -2217,8 +2325,8 @@
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
-                "l",
                 "outfn",
+                "monitor_type",
                 "aperture",
                 "wakef",
                 "particlematterinteraction",
@@ -3105,8 +3213,14 @@
             ]
         },
         "command_beam": {
-            "title": "beam",
+            "title": "Beam",
             "description": "The BEAM statement defines data for the particles in a beam.",
+            "basic": [
+                "particle",
+                "bfreq",
+                "bcurrent",
+                "npart"
+            ],
             "advanced": [
                 ["Main", [
                     "name",
@@ -3129,8 +3243,27 @@
             ]
         },
         "command_distribution": {
-            "title": "distribution",
+            "title": "Distribution",
             "description": "The DISTRIBUTION statement defines data for the 6D particle distribution.",
+            "basic": [
+                "type",
+
+                "fname",
+
+                "mx",
+                "my",
+                "mz",
+                "mt",
+
+                "sigmax",
+                "sigmay",
+                "sigmar",
+                "sigmaz",
+                "sigmat",
+                "sigmapx",
+                "sigmapy",
+                "sigmapz"
+            ],
             "advanced": [
                 ["Main", [
                     "name",

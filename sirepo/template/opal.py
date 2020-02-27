@@ -34,9 +34,10 @@ _DIM_INDEX = PKDict(
     y=1,
     z=2,
 )
+_FILE_ID_SEP = '-'
 _OPAL_H5_FILE = 'opal.h5'
 _OPAL_SDDS_FILE = 'opal.stat'
-_ELEMENTS_WITH_TYPE_FIELD = ('CYCLOTRON', 'RFCAVITY', )
+_ELEMENTS_WITH_TYPE_FIELD = ('CYCLOTRON', 'MONITOR','RFCAVITY')
 _HEADER_COMMANDS = ('option', 'filter', 'geometry', 'particlematterinteraction', 'wake')
 _TWISS_FILE_NAME = 'twiss.out'
 #TODO(pjm): parse from opal files into schema
@@ -65,6 +66,30 @@ class OpalElementIterator(lattice.ElementIterator):
     def is_ignore_field(self, field):
         return field == 'name'
 
+class OpalOutputFileIterator(lattice.ModelIterator):
+    def __init__(self):
+        self.result = PKDict(
+            keys_in_order=[],
+        )
+        self.model_index = PKDict()
+
+    def field(self, model, field_schema, field):
+        self.field_index += 1
+        # for now only interested in element outfn output files
+        if field == 'outfn' and field_schema[1] == 'OutputFile':
+            filename = '{}.{}.h5'.format(model.name, field)
+            k = _file_id(model._id, self.field_index)
+            self.result[k] = filename
+            self.result.keys_in_order.append(k)
+
+    def start(self, model):
+        self.field_index = 0
+        self.model_name = LatticeUtil.model_name_for_data(model)
+        if self.model_name in self.model_index:
+            self.model_index[self.model_name] += 1
+        else:
+            self.model_index[self.model_name] = 1
+
 
 def background_percent_complete(report, run_dir, is_running):
     res = PKDict(
@@ -80,6 +105,7 @@ def background_percent_complete(report, run_dir, is_running):
         res.frameCount = _read_frame_count(run_dir)
         if res.frameCount > 0:
             res.percentComplete = 100
+            res.outputInfo = _output_info(run_dir)
     return res
 
 
@@ -104,6 +130,19 @@ def get_application_data(data, **kwargs):
     assert False, 'unknown get_application_data: {}'.format(data)
 
 
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
+    filename = None
+    if model == 'bunchAnimation' or model == 'plotAnimation' or 'bunchReport' in model:
+        filename = _OPAL_H5_FILE
+    elif model == 'plot2Animation':
+        filename = _OPAL_SDDS_FILE
+    else:
+        assert False, 'file: {}'.format(model)
+    path = run_dir.join(filename)
+    with open(str(path)) as f:
+        return path.basename, f.read(), 'application/octet-stream'
+
+
 def prepare_for_client(data):
     if 'models' not in data:
         return data
@@ -113,7 +152,7 @@ def prepare_for_client(data):
 
 def prepare_output_file(run_dir, data):
     report = data['report']
-    if 'twissReport' in report:
+    if 'bunchReport' in report or 'twissReport' in report:
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
@@ -125,53 +164,63 @@ def python_source_for_model(data, model):
 
 
 def save_report_data(data, run_dir):
-    report = data['models'][data['report']]
-    report['x'] = 's'
-    col_names, rows = _read_data_file(run_dir.join(_TWISS_FILE_NAME))
-    x = _column_data(report['x'], col_names, rows)
-    y_range = None
-    plots = []
-    for f in ('y1', 'y2', 'y3'):
-        if report[f] == 'none':
-            continue
-        plots.append({
-            'points': _column_data(report[f], col_names, rows),
-            'label': '{} {}'.format(report[f], _units(report[f])),
-        })
-    res = {
-        'title': '',
-        'x_range': [min(x), max(x)],
-        'y_label': '',
-        'x_label': '{} {}'.format(report['x'], _units(report['x'])),
-        'x_points': x,
-        'plots': plots,
-        'y_range': template_common.compute_plot_color_and_range(plots),
-    }
+    report = data.models[data.report]
+    res = None
+    if data.report == 'twissReport':
+        report['x'] = 's'
+        col_names, rows = _read_data_file(run_dir.join(_TWISS_FILE_NAME))
+        x = _column_data(report.x, col_names, rows)
+        y_range = None
+        plots = []
+        for f in ('y1', 'y2', 'y3'):
+            if report[f] == 'none':
+                continue
+            plots.append({
+                'points': _column_data(report[f], col_names, rows),
+                'label': '{} {}'.format(report[f], _units(report[f])),
+            })
+        res = PKDict(
+            title='',
+            x_range=[min(x), max(x)],
+            y_label='',
+            x_label='{} {}'.format(report.x, _units(report.x)),
+            x_points=x,
+            plots=plots,
+            y_range=template_common.compute_plot_color_and_range(plots),
+        )
+    elif 'bunchReport' in data.report:
+        res = _bunch_plot(report, run_dir, 0)
+        res.title = ''
+    else:
+        assert False, 'unknown report: {}'.format(report)
     simulation_db.write_result(
         res,
         run_dir=run_dir,
     )
 
 
+def sim_frame(frame_args):
+    r = frame_args.frameReport
+    if r == 'bunchAnimation':
+        return sim_frame_bunchAnimation(frame_args)
+    if r == 'plotAnimation':
+        return sim_frame_plotAnimation(frame_args)
+    if r == 'plot2Animation':
+        return sim_frame_plot2Animation(frame_args)
+    # elementAnimations
+    page_count = 0
+    filename = None
+    for info in _output_info(frame_args.run_dir):
+        if info.modelKey == r:
+            filename = info.filename
+            break
+    return _bunch_plot(frame_args, frame_args.run_dir, frame_args.frameIndex, filename)
+
+
 def sim_frame_bunchAnimation(frame_args):
     a = frame_args.sim_in.models.bunchAnimation
     a.update(frame_args)
-    res = PKDict()
-    title = 'Step {}'.format(a.frameIndex)
-    with h5py.File(str(a.run_dir.join(_OPAL_H5_FILE)), 'r') as f:
-        for field in ('x', 'y'):
-            res[field] = PKDict(
-                name=a[field],
-                points=np.array(f['/Step#{}/{}'.format(a.frameIndex, a[field])]),
-                label=a[field],
-            )
-            _units_from_hdf5(f, res[field])
-        title += ', SPOS {0:.5f}m'.format(f['/Step#{}'.format(a.frameIndex)].attrs['SPOS'][0])
-    return template_common.heatmap([res.x.points, res.y.points], a, PKDict(
-        x_label=res.x.label,
-        y_label=res.y.label,
-        title=title,
-    ))
+    return _bunch_plot(a, a.run_dir, a.frameIndex)
 
 
 def sim_frame_plotAnimation(frame_args):
@@ -248,6 +297,26 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
+def _bunch_plot(report, run_dir, idx, filename=_OPAL_H5_FILE):
+    res = PKDict()
+    title = 'Step {}'.format(idx)
+    with h5py.File(str(run_dir.join(filename)), 'r') as f:
+        for field in ('x', 'y'):
+            res[field] = PKDict(
+                name=report[field],
+                points=np.array(f['/Step#{}/{}'.format(idx, report[field])]),
+                label=report[field],
+            )
+            _units_from_hdf5(f, res[field])
+        if 'SPOS' in f['/Step#{}'.format(idx)].attrs:
+            title += ', SPOS {0:.5f}m'.format(f['/Step#{}'.format(idx)].attrs['SPOS'][0])
+    return template_common.heatmap([res.x.points, res.y.points], report, PKDict(
+        x_label=res.x.label,
+        y_label=res.y.label,
+        title=title,
+    ))
+
+
 def _code_var(variables):
     return code_variable.CodeVar(
         variables,
@@ -301,6 +370,10 @@ def _field_units(units, field):
         else:
             field.label += ' [{}]'.format(units)
     field.units = units
+
+
+def _file_id(model_id, field_index):
+    return '{}{}{}'.format(model_id, _FILE_ID_SEP, field_index)
 
 
 def _find_run_method(commands):
@@ -425,18 +498,42 @@ def _generate_beamline(util, code_var, count_by_name, beamline_id, edge, names):
     return res, edge
 
 
+def _find_first_command(data, command_type):
+    for cmd in data.models.commands:
+        if cmd._type == command_type:
+            return cmd
+    assert False, 'command not found: {}'.format(command_type)
+
+
 def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     util = LatticeUtil(data, _SCHEMA)
     code_var = _code_var(data.models.rpnVariables)
+    report = data.get('report', '')
+
+    if 'bunchReport' in report:
+        # keep only first distribution and beam in command list
+        beam = _find_first_command(data, 'beam')
+        distribution = _find_first_command(data, 'distribution')
+        v.beamName = beam.name
+        v.distributionName = distribution.name
+        data.models.commands = [
+            _find_first_command(data, 'option'),
+            beam,
+            distribution,
+        ]
+    else:
+        v.lattice = _generate_lattice(util, code_var)
+        v.use_beamline = util.select_beamline().name
+
+
     v.update(dict(
         variables=_generate_variables(code_var, data),
-        lattice=_generate_lattice(util, code_var),
-        use_beamline=util.select_beamline().name,
         header_commands=_generate_commands(util, True),
         commands=_generate_commands(util, False),
     ))
-    report = data.get('report', '')
+    if 'bunchReport' in report:
+        return template_common.render_jinja(SIM_TYPE, v, 'bunch.in')
     if report == 'twissReport':
         v.twiss_file_name = _TWISS_FILE_NAME
         return template_common.render_jinja(SIM_TYPE, v, 'twiss.in')
@@ -472,6 +569,22 @@ def _iterate_hdf5_steps(path, callback, state):
             key = 'Step#{}'.format(step)
         callback(f, None, -1, state)
     return state
+
+
+def _output_info(run_dir):
+    #TODO(pjm): cache to file with version, similar to template.elegant
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    files = LatticeUtil(data, _SCHEMA).iterate_models(OpalOutputFileIterator()).result
+    res = []
+    for k in files.keys_in_order:
+        id = k.split(_FILE_ID_SEP)
+        if run_dir.join(files[k]).exists():
+            res.append(PKDict(
+                modelKey='elementAnimation{}'.format(id[0]),
+                filename=files[k],
+                isHistogram=True,
+            ))
+    return res
 
 
 def _read_data_file(path):

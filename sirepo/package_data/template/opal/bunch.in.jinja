@@ -1,0 +1,15 @@
+
+{{ variables }}
+
+{{ header_commands }}
+D1: DRIFT,l=0;
+"D1#0": D1,elemedge=0;
+BL1: LINE=("D1#0");
+
+FS1: fieldsolver,fstype="NONE",mt=32,mx=32,my=32;
+
+{{ commands }}
+
+TR1: track,beam={{ beamName }},line=BL1,maxsteps=1, dt=1e-20, zstop=0;
+ run, beam={{ beamName }},distribution={{ distributionName }},fieldsolver=FS1,method="PARALLEL-T";
+endtrack;

@@ -47,6 +47,15 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
         controller: function($scope, $element) {
             var viewInfo = appState.viewInfo($scope.viewName);
             var i;
+
+            function tabSelectedEvent() {
+                appState.whenModelsLoaded($scope, function() {
+                    panelState.waitForUI(function() {
+                        $scope.$emit('sr-tabSelected', $scope.modelName, $scope.modelData ? $scope.modelData.modelKey : null);
+                    });
+                });
+            }
+
             $scope.form = angular.element($($element).find('form').eq(0));
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.description = viewInfo.description;
@@ -72,11 +81,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
                             $scope.modelName, $scope.modelData ? $scope.modelData.modelKey : null);
                     });
                 }
-                if (appState.isLoaded()) {
-                    panelState.waitForUI(function() {
-                        $scope.$emit('sr-tabSelected', $scope.modelName, $scope.modelData ? $scope.modelData.modelKey : null);
-                    });
-                }
+                tabSelectedEvent();
             };
             // named tabs
             if ($scope.advancedFields.length && $scope.isColumnField($scope.advancedFields[0]) && ! $scope.isColumnField($scope.advancedFields[0][0])) {
@@ -121,6 +126,9 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
             }
             if ($scope.pages) {
                 $scope.setActivePage($scope.pages[0]);
+            }
+            else {
+                tabSelectedEvent();
             }
         },
         link: function(scope, element) {
