@@ -164,7 +164,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
     };
 });
 
-SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, requestSender, utilities, vtkPlotting, vtkUtils) {
+SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, requestSender, utilities, vtkPlotting, vtkUtils, $interval) {
 
     return {
         restrict: 'A',
@@ -571,7 +571,15 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             $scope.$on('magnetDisplay.changed', function (e, d) {
                 //srdbg('MD', e, d);
                 //srdbg('RAD CAUGHT BRDCST', 'magnetDisplay.changed');
-                updateViewer();
+                // does not seem the best way...
+                var interval = null;
+                interval = $interval(function() {
+                    if (interval) {
+                        $interval.cancel(interval);
+                        interval = null;
+                    }
+                    updateViewer();
+                }, 100, 1);
             });
 
             $scope.$on('framesLoaded', function (e, d) {
