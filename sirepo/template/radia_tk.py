@@ -28,6 +28,10 @@ FIELD_UNITS = PKDict({
 })
 
 
+# these methods pulled out so as not to depend on a manager
+def dump(geom):
+    return radia.UtiDmp(geom, 'asc')
+
 def geom_to_data(geom, name=None, divide=True):
     d_arr = []
     if not divide:
@@ -40,6 +44,20 @@ def geom_to_data(geom, name=None, divide=True):
 
     n = name if name is not None else str(geom)
     return PKDict(name=n + '.Geom', id=geom, data=d_arr)
+
+
+# path is *flattened* array of positions in space ([x1, y1, z1,...xn, yn, zn])
+def get_field(geom, f_type, path):
+    pv_arr = []
+    p = numpy.reshape(path, (-1, 3)).tolist()
+    b = []
+    # get every component
+    f = radia.Fld(geom, f_type, path)
+    b.extend(f)
+    b = numpy.reshape(b, (-1, 3)).tolist()
+    for p_idx, pt in enumerate(p):
+        pv_arr.append([pt, b[p_idx]])
+    return pv_arr
 
 
 def get_magnetization(geom):
@@ -59,8 +77,8 @@ def reset():
 
 
 def solve(geom, prec, max_iter, solve_method):
-    pkdp('SOLVE g {} p {} i {} m {}', geom, prec, max_iter, solve_method)
-    return radia.Solve(geom, prec, max_iter, solve_method)
+    #pkdp('SOLVE g {} p {} i {} m {}', geom, prec, max_iter, solve_method)
+    return radia.Solve(geom, float(prec), int(max_iter), int(solve_method))
 
 
 def vector_field_to_data(geom, name, pv_arr, units):
@@ -122,49 +140,19 @@ class RadiaGeomMgr:
         b = numpy.reshape(b, (-1, 3)).tolist()
         for p_idx, pt in enumerate(p):
             pv_arr.append([pt, b[p_idx]])
-        return pv_arr
+        return get_field(self.get_geom(name), name, f_type, path)
 
     def get_magnetization(self, name):
-        return radia.ObjM(self.get_geom(name))
+        return get_magnetization(self.get_geom(name))
 
     def is_geom_solved(self, name):
         return self.get_geom(name).solved
 
     def vector_field_to_data(self, name, pv_arr, units):
-        # format is [[[px, py, pz], [vx, vy, vx]], ...]
-        # convert to webGL object
-
-        v_data = new_geom_object()  #RadiaGeomMgr.new_geom_object()
-        v_data.vectors.lengths = []
-        v_data.vectors.colors = []
-        v_max = 0.
-        v_min = sys.float_info.max
-        for i in range(len(pv_arr)):
-            p = pv_arr[i][0]
-            v = pv_arr[i][1]
-            n = linalg.norm(v)
-            v_max = max(v_max, n)
-            v_min = min(v_min, n)
-            nv = (numpy.array(v) / (n if n > 0 else 1.)).tolist()
-            v_data.vectors.vertices.extend(p)
-            v_data.vectors.directions.extend(nv)
-            v_data.vectors.magnitudes.append(n)
-        v_data.vectors.range = [v_min, v_max]
-        v_data.vectors.units = units
-
-        l_data = self.geom_to_data(name, divide=False).data[0]
-        # temp color set - will move to client
-        for c_idx, c in enumerate(l_data.lines.colors):
-            l_data.lines.colors[c_idx] = 0.85
-        v_data.lines.vertices.extend(l_data.lines.vertices)
-        v_data.lines.lengths.extend(l_data.lines.lengths)
-        v_data.lines.colors.extend(l_data.lines.colors)
-
-        return PKDict(name=name + '.Field', id=self.get_geom(name), data=[v_data])
+        return vector_field_to_data(self.get_geom(name), name, pv_arr, units)
 
     def geom_to_data(self, name, divide=True):
-        geom = self.get_geom(name)
-        return geom_to_data(geom, name, divide)  #RadiaGeomMgr.geom_id_to_data(geom, name, divide)
+        return geom_to_data(self.get_geom(name), name, divide)
 
     def get_geom(self, name):
         return self._geoms[name].g if name in self._geoms else None
@@ -185,9 +173,7 @@ class RadiaGeomMgr:
             g = self.get_geom(g_name)
             ctr['geoms'].append(g)
 
-    # ??? will this work? NO - will probably have to delete and rebuild model
     def reset_geom(self, g_name):
-        pkdp('RESET g {} id {}', g_name, self.get_geom(g_name))
         self.remove_geom(g_name)
         return radia.UtiDelAll()
 
@@ -195,9 +181,9 @@ class RadiaGeomMgr:
         del self._geoms[g_name]
 
     def solve_geom(self, g_name, prec, max_iter, solve_method):
-        pkdp('SOLVE g {} p {} i {} m {}', g_name, prec, max_iter, solve_method)
+        #pkdp('SOLVE g {} p {} i {} m {}', g_name, prec, max_iter, solve_method)
         return solve(self.get_geom(g_name), float(prec), int(max_iter), int(solve_method))
-        #return RadiaGeomMgr.solve(self.get_geom(g_name), float(prec), int(max_iter), int(solve_method))
+
 
     def __init__(self):
         self._geoms = PKDict({})

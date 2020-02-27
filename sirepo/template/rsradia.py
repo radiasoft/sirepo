@@ -54,17 +54,19 @@ def background_percent_complete(report, run_dir, is_running):
         errors='',  #errors,
     )
 
+
 def extract_report_data(run_dir, sim_in):
-    # change to do calcs here?  Does not seem to be a place for jinja, which appears
-    # stateless
     if 'geometry' in sim_in.report:
-        #simulation_db.write_result(simulation_db.read_json(GEOM_FILE), run_dir=run_dir)
         with h5py.File(_geom_file(), 'r') as hf:
-        #with h5py.File(str(_SIM_DATA.lib_file_abspath(_SIM_DATA.GEOM_FILE)), 'r') as hf:
             g = template_common.h5_to_dict(hf, path='geometry')
             simulation_db.write_result(g, run_dir=run_dir)
         return
     simulation_db.write_result(PKDict(), run_dir=run_dir)
+
+
+def get_application_data(data, **kwargs):
+    pkdp('RAD GET APP DATA')
+    return data
 
 
 def python_source_for_model(data, model):
@@ -92,59 +94,34 @@ def _generate_parameters_file(data):
     pkdp('RPT {}', report)
     res, v = template_common.generate_parameters_file(data)
     g = data.models.geometry
-    #g_id = _build_geom(data)
+
     v['dataFile'] = _geom_file()
-    if 'geometry' in report:
-        disp = data.models.magnetDisplay
-        v_type = disp.viewType
-        if v_type not in VIEW_TYPES:
-            raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
-
-        g_id = mgr.get_geom(g.name)
-        if g_id is None:
-            pkdp('NO GEOM {}, BUILDING', g.name)
-            g_id = _build_geom(data)
-            mgr.add_geom(g.name, g_id)
-        v['geomName'] = g.name
-        v['geomId'] = g_id
-
-        if v_type == VIEW_TYPE_OBJ:
-            v['geomData'] = mgr.geom_to_data(g.name)
-            #v['geomData'] = radia_tk.geom_id_to_data(g_id, name=g.name)
-        elif v_type == VIEW_TYPE_FIELD:
-            f_type = disp.fieldType
-            if f_type not in radia_tk.FIELD_TYPES:
-                raise ValueError(
-                    'Invalid field {} ({})'.format(f_type, radia_tk.FIELD_TYPES)
-                )
-            if True:  #f_type == radia_tk.FIELD_TYPE_MAG_M:
-                f = mgr.get_magnetization(g.name)
-                #f = radia_tk.get_magnetization(g_id)
-            #elif f_type in radia_tk.POINT_FIELD_TYPES:
-            #    solve_res = mgr.get_field(
-            #        g.name,
-            #        f_type,
-            #        get_field_points()
-            #    )
-            v['geomData'] = mgr.vector_field_to_data(
-                g.name,
-                f,
-                radia_tk.FIELD_UNITS[f_type]
+    v['isExample'] = data.models.simulation.isExample
+    v['geomName'] = g.name
+    disp = data.models.magnetDisplay
+    v_type = disp.viewType
+    if v_type not in VIEW_TYPES:
+        raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
+    v['viewType'] = v_type
+    if v_type == VIEW_TYPE_FIELD:
+        f_type = disp.fieldType
+        if f_type not in radia_tk.FIELD_TYPES:
+            raise ValueError(
+                'Invalid field {} ({})'.format(f_type, radia_tk.FIELD_TYPES)
             )
+        v['fieldType'] = f_type
     if 'solver' in report:
+        v['doSolve'] = True
         s = data.models.solver
-        res = mgr.solve_geom(g.name, s.precision, s.maxIterations, s.method)
-        #res = radia_tk.solve(g_id, s.precision, s.maxIterations, s.method)
-        pkdp('SOLVE RES {}', res)
-        v['geomData'] = mgr.geom_to_data(g.name)
-        #v['geomData'] = radia_tk.geom_to_data(g_id, name=g.name)
+        v['solvePrec'] = s.precision
+        v['solveMaxIter'] = s.maxIterations
+        v['solveMethod'] = s.method
     if 'reset' in report:
         res = mgr.reset_geom(g.name) #radia_tk.reset()
         pkdp('RESET RES {}', res)
         data.report = 'geometry'
         return _generate_parameters_file(data)
 
-    # add parameters (???)
     return template_common.render_jinja(
         SIM_TYPE,
         v,

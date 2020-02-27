@@ -1,14 +1,38 @@
 from __future__ import absolute_import, division, print_function
 
 import h5py
-from sirepo import simulation_db
+from sirepo.template import radia_tk
+from sirepo.template import rsradia_examples
 from sirepo.template import template_common
-from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdp
 
-d = PKDict({{ geomData }})
+VIEW_TYPE_OBJ = 'objects'
+VIEW_TYPE_FIELD = 'fields'
+
+{% if isExample %}
+g_id = rsradia_examples.build('{{ geomName }}')
+{% else %}
+g_id = -1
+{% endif %}
+
+if '{{ viewType }}' == VIEW_TYPE_OBJ:
+    g_data = radia_tk.geom_to_data(g_id, name='{{ geomName }}')
+else:
+{% if doSolve %}
+    res = radia_tk.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
+    print('SOLVE RES {}'.format(res))
+    print('DMP {}'.format(radia_tk.dump(g_id)))
+{% endif %}
+    if True:  #f_type == radia_tk.FIELD_TYPE_MAG_M:
+        f = radia_tk.get_magnetization(g_id)
+    #elif f_type in radia_tk.POINT_FIELD_TYPES:
+    #    solve_res = mgr.get_field(
+    #        g.name,
+    #        f_type,
+    #        get_field_points()
+    #    )
+    g_data = radia_tk.vector_field_to_data(g_id, '{{ geomName }}', f, radia_tk.FIELD_UNITS['{{ fieldType }}'])
+
 
 with h5py.File('{{ dataFile }}', 'w') as hf:
-    template_common.dict_to_h5(d, hf, path='geometry')
+    template_common.dict_to_h5(g_data, hf, path='geometry')
 
-#simulation_db.write_json('{{ dataFile }}', {{ geomData }})

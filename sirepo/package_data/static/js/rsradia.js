@@ -38,7 +38,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     $scope.panelState = panelState;
 
     function handleStatus(data) {
-        srdbg('SIM STATUS', data);
+        //srdbg('SIM STATUS', data);
         if (data.error) {
             throw new Error('Solver failed: ' + data.error);
         }
@@ -150,7 +150,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                 srdbg('RESET');
                 appState.models.geometry.lastBuilt = Date.now();
                 appState.saveQuietly('geometry');
-                panelState.requestData('reset', function (d) {
+                panelState.requestData('geometry', function (d) {
                     srdbg('RESET DONE', d);
                 }, true);
             };
@@ -532,9 +532,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function updateViewer() {
-                srdbg('updateViewer');
+                //srdbg('updateViewer');
                 sceneData = {};
                 enableWatchFields(false);
+                panelState.clear('geometry');
                 panelState.requestData('geometry', function (d) {
                     //srdbg('got geom data', d);
                     sceneData = d;
@@ -567,17 +568,23 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 init();
             });
 
+            $scope.$on('magnetDisplay.changed', function (e, d) {
+                //srdbg('MD', e, d);
+                //srdbg('RAD CAUGHT BRDCST', 'magnetDisplay.changed');
+                updateViewer();
+            });
+
             $scope.$on('framesLoaded', function (e, d) {
-                srdbg('F', e, d);
+                //srdbg('F', e, d);
                 if (! initDone) {
-                    srdbg('init in progress, ignore');
+                    //srdbg('init in progress, ignore');
                     return;
                 }
                 updateViewer();
             });
 
             $scope.$on('solveStarted', function (e, d) {
-                srdbg('S', e, d);
+                //srdbg('S', e, d);
             });
 
         },
