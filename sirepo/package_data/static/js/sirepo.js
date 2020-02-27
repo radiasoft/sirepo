@@ -2703,11 +2703,6 @@ SIREPO.app.factory('fileManager', function(requestSender) {
     return self;
 });
 
-SIREPO.app.controller('AdmJobsController', function () {
-    var self = this;
-
-});
-
 SIREPO.app.controller('NavController', function (activeSection, appState, fileManager, requestSender, $scope, $window, $route) {
 
     var self = this;

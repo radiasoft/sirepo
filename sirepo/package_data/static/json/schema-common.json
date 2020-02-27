@@ -229,7 +229,6 @@
             "admJobs": {
                 "route": "/adm-jobs",
                 "config": {
-                  "controller": "AdmJobsController as admJobs",
                   "templateUrl": "/static/html/adm.html"
                 }
             },
