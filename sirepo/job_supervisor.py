@@ -318,8 +318,8 @@ class _ComputeJob(PKDict):
                     cls.instances.values(),
             ):
                 d = i.db
-                s = int(d.computeJobStart)
-                l = int(d.lastUpdateTime)
+                s = d.computeJobStart
+                l = d.lastUpdateTime
                 o.append(
                     [
                         d.uid,
