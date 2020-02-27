@@ -22,7 +22,6 @@ NON_ALPHA_CODES = frozenset((
 
 #: Codes on dev and alpha
 ALPHA_CODES = frozenset((
-    'adm',
     'flash',
     'myapp',
     'rs4pi',
