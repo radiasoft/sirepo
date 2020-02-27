@@ -601,7 +601,7 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
               '<ul class="dropdown-menu">',
                 '<li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>',
                 '<li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }} via {{ ::authState.method }}</li>',
-                '<li data-ng-if="::authState.roles.includes(\'adm\')"><a data-ng-click="redirectAdmJobs()">Admin</a></li>',
+                '<li data-ng-if="showAdmJobs()"><a data-ng-click="redirectAdmJobs()">Admin</a></li>',
                 '<li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
               '</ul>',
             '</li>',
@@ -612,7 +612,11 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
 
             $scope.redirectAdmJobs = function() {
                 requestSender.localRedirect('admJobs');
-            }
+            };
+
+            $scope.showAdmJobs = function() {
+                return SIREPO.APP_SCHEMA.feature_config.job && authState.roles.includes('adm');
+            };
         },
     };
 });

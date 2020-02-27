@@ -70,10 +70,8 @@ class Awaited(Exception):
 
 def init():
     global _DB_DIR, cfg, _NEXT_REQUEST_SECONDS, job_driver
-
     if _DB_DIR:
         return
-
     job.init()
     from sirepo import job_driver
 

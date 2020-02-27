@@ -265,7 +265,11 @@ def get_schema(sim_type):
     pkcollections.mapping_merge(schema, SCHEMA_COMMON)
     pkcollections.mapping_merge(
         schema,
-        PKDict(feature_config=feature_config.for_sim_type(t)),
+        PKDict(
+            feature_config=feature_config.for_sim_type(t).pkupdate(
+                job=feature_config.cfg().job,
+            ),
+        ),
     )
     schema.simulationType = t
     _SCHEMA_CACHE[t] = schema
