@@ -178,11 +178,11 @@ class _ComputeJob(PKDict):
             self.run_dir_release(self.run_dir_owner)
 
     @classmethod
-    def get_instance(cls, req):
+    def get_instance_or_class(cls, req):
         try:
             j = req.content.computeJid
         except AttributeError:
-            return None
+            return cls
         self = cls.instances.pksetdefault(j, lambda: cls.__create(req))[j]
         # SECURITY: must only return instances for authorized user
         assert req.content.uid == self.db.uid, \
@@ -210,9 +210,7 @@ class _ComputeJob(PKDict):
         if req.content.get('api') != 'api_runStatus':
             pkdlog('{}', req)
         try:
-            o = cls.get_instance(req)
-            if not o:
-                o = cls
+            o = cls.get_instance_or_class(req)
             return await getattr(
                 o,
                 '_receive_' + req.content.api,
@@ -307,9 +305,9 @@ class _ComputeJob(PKDict):
     @classmethod
     async def _receive_api_admJobs(cls, req):
         def _get_running_jobs():
-            def _strftime(epoch):
+            def _strftime(unix_time):
                 return datetime.datetime.utcfromtimestamp(
-                    int(epoch),
+                    int(unix_time),
                 ).strftime('%Y-%m-%d %H:%M:%S')
 
             o = []
