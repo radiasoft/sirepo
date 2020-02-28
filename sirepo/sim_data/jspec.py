@@ -95,6 +95,4 @@ class SimData(sirepo.sim_data.SimDataBase):
             res.append(cls.lib_file_name_with_model_field('ring', 'lattice', r['lattice']))
         elif s == 'elegant':
             res.append(cls.lib_file_name_with_model_field('ring', 'elegantTwiss', r['elegantTwiss']))
-        if s == 'elegant-sirepo' and 'elegantSirepo' in r:
-            res.append(cls.jspec_elegant_dir().join(r['elegantSirepo'], cls.jspec_elegant_twiss_path()))
         return res
