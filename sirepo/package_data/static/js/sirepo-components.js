@@ -2662,7 +2662,7 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
         controller: function($scope) {
             function dataLoaded(data, status) {
                 $scope.data = data;
-                $scope.data.data = [[1,2,3]];
+                $scope.data.data = [['myapp', 'foo name', 'Jev9kRSG']];
             };
 
             function is_adm() {
@@ -2680,13 +2680,12 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
             };
 
             $scope.getRow = function(row) {
+                var a = is_adm();
                 var o = '';
-
                 for(var i = 0; i < row.length; i++) {
                     var v = row[i];
-                    if(i === 1) {
-                       // TODO(e-carlin):  make it an <a> inside of the <td>; define href using formaturllocal
-                        v = '<a>' + v + '</a>'
+                    if(!a && i === 1) {
+                        v = '<a href=' + requestSender.formatUrlLocal('source', {':simulationId': row[2]}, row[0])  + '>' + v + '</a>'
                     }
                     o = o + '<td>' + v + '</td>';
                 }
