@@ -278,6 +278,7 @@ class _ComputeJob(PKDict):
             isParallel=c.isParallel,
             jobRunMode=c.jobRunMode,
             lastUpdateTime=0,
+            name=None,
             nextRequestSeconds=_NEXT_REQUEST_SECONDS[c.jobRunMode],
             simulationId=c.simulationId,
             simulationType=c.simulationType,
@@ -336,6 +337,8 @@ class _ComputeJob(PKDict):
                 ]
                 if want_adm:
                     r.insert(0, d.uid)
+                else:
+                    r.insert(1, d.name)
                 o.append(r)
             return o
         a = req.content.adm
@@ -349,6 +352,8 @@ class _ComputeJob(PKDict):
         ]
         if a:
             c.insert(0, 'User id')
+        else:
+            c.insert(1, 'Name')
         return PKDict(
             columns=c,
             data=_get_running_jobs(a),
@@ -467,10 +472,11 @@ class _ComputeJob(PKDict):
                     self.__db_init(req, prev_db=self.db)
                     self.db.pkupdate(
                         computeJobSerial=int(time.time()),
+                        computeModel=req.content.computeModel,
                         driverDetails=o.driver.driver_details,
                         # run mode can change between runs so we must update the db
                         jobRunMode=req.content.jobRunMode,
-                        computeModel=req.content.computeModel,
+                        name=req.content.data.models.simulation.name,
                         status=job.PENDING,
                     )
                     self.__db_write()
