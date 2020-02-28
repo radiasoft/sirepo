@@ -67,7 +67,7 @@
                 "bcffty": "OPEN",
                 "bcfftz": "OPEN",
                 "epsilon": 0,
-                "fstype": "",
+                "fstype": "NONE",
                 "geometry": "",
                 "greensf": "INTEGRATED",
                 "interpl": "LINEAR",
