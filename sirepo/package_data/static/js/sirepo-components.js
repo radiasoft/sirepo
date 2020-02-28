@@ -2645,7 +2645,7 @@ SIREPO.app.directive('bootstrapToggle', function() {
 });
 
 
-SIREPO.app.directive('jobsList', function(requestSender, appState, $location) {
+SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $sce) {
     return {
         restrict: 'A',
         template: [
@@ -2654,12 +2654,7 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location) {
                 '<tr>',
                     '<th data-ng-repeat="c in data.columns">{{ c }}</th>',
                 '</tr>',
-                '<tr data-ng-repeat="r in data.data">',
-                    // must 'track by $index' because start and last update can be the same
-                    '<td data-ng-repeat="c in r track by $index">',
-                        '<span>{{ c }}</span>',
-                    '</td>',
-                '</tr>',
+            '<tr data-ng-repeat="r in data.data track by $index" ng-bind-html="getRow(r)"></tr>',
                 '</table>',
                 '<button class="btn btn-default" data-ng-click="getJobs()">Refresh</button>',
             '</div>',
@@ -2667,18 +2662,30 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location) {
         controller: function($scope) {
             function dataLoaded(data, status) {
                 $scope.data = data;
+                $scope.data.data = [[1,2,3]];
             };
+
+            function is_adm() {
+                return $location.path().includes('adm');
+            }
 
             $scope.getJobs = function () {
                 requestSender.sendRequest(
                     'jobs',
                     dataLoaded,
                     {
-                        adm: $location.path().includes('adm'),
+                        adm: is_adm(),
                         simulationType: SIREPO.APP_SCHEMA.simulationType,
                     });
             };
 
+            $scope.getRow = function(row) {
+                var o = '';
+                for(var c in row) {
+                    o = o + '<td>' + c + '</td>';
+                }
+                return $sce.trustAsHtml(o);
+            }
             appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
             $scope.getJobs();
 
