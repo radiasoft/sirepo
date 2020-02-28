@@ -2680,7 +2680,7 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location) {
             };
 
             appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
-            $scope.getAdmJobs();
+            $scope.getJobs();
 
         },
     };
