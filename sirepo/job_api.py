@@ -32,12 +32,6 @@ _MAX_FRAME_SEARCH_DEPTH = 6
 
 
 @api_perm.require_user
-def api_admJobs():
-    sirepo.auth.check_user_has_role(sirepo.auth.ROLE_ADM)
-    return _request(_request_content=PKDict())
-
-
-@api_perm.require_user
 def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
 #TODO(robnagler) validate suffix and frame
     req = sirepo.http_request.parse_params(
@@ -75,6 +69,14 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         raise sirepo.util.raise_not_found(
             'frame={} not found {id} {type}'.format(frame, **req)
         )
+
+
+@api_perm.require_user
+def api_jobs():
+    req = sirepo.http_request.parse_post().req_data
+    if req.adm:
+        sirepo.auth.check_user_has_role(sirepo.auth.ROLE_ADM)
+    return _request(_request_content=PKDict(**req))
 
 
 @api_perm.allow_visitor

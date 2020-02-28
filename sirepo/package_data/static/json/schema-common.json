@@ -62,7 +62,6 @@
         "longName": "Sirepo"
     },
     "route": {
-        "admJobs": "/adm-jobs",
         "adjustTime": "/adjust-time/?<days>",
         "blueskyAuth": "/bluesky-auth",
         "comsol": "/comsol",
@@ -92,6 +91,7 @@
         "homePageOld": "/old",
         "importArchive": "/import-archive",
         "importFile": "/import-file/<simulation_type>",
+        "jobs": "/jobs",
         "jobSupervisorPing": "/job-supervisor-ping",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
@@ -229,7 +229,13 @@
             "admJobs": {
                 "route": "/adm-jobs",
                 "config": {
-                  "templateUrl": "/static/html/adm.html"
+                  "templateUrl": "/static/html/jobs.html"
+                }
+            },
+            "jobs": {
+                "route": "/jobs",
+                "config": {
+                  "templateUrl": "/static/html/jobs.html"
                 }
             },
             "completeRegistration": {

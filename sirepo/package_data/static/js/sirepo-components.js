@@ -601,7 +601,8 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
               '<ul class="dropdown-menu">',
                 '<li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>',
                 '<li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }} via {{ ::authState.method }}</li>',
-                '<li data-ng-if="showAdmJobs()"><a data-ng-click="redirectAdmJobs()">Admin</a></li>',
+                '<li data-ng-if="showAdmJobs()"><a data-ng-click="redirect(\'admJobs\')">Admin</a></li>',
+                '<li><a data-ng-click="redirect(\'jobs\')">Jobs</a></li>',
                 '<li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
               '</ul>',
             '</li>',
@@ -610,8 +611,8 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
             $scope.authState = authState;
             $scope.authService = authService;
 
-            $scope.redirectAdmJobs = function() {
-                requestSender.localRedirect('admJobs');
+            $scope.redirect = function(route) {
+                requestSender.localRedirect(route);
             };
 
             $scope.showAdmJobs = function() {
@@ -2644,7 +2645,7 @@ SIREPO.app.directive('bootstrapToggle', function() {
 });
 
 
-SIREPO.app.directive('jobsList', function(requestSender) {
+SIREPO.app.directive('jobsList', function(requestSender, $location) {
     return {
         restrict: 'A',
         template: [
@@ -2660,17 +2661,18 @@ SIREPO.app.directive('jobsList', function(requestSender) {
                     '</td>',
                 '</tr>',
                 '</table>',
-                '<button class="btn btn-default" data-ng-click="getAdmJobs()">Refresh</button>',
+                '<button class="btn btn-default" data-ng-click="getJobs()">Refresh</button>',
             '</div>',
         ].join(''),
         controller: function($scope) {
 
-            $scope.getAdmJobs = function (id) {
+            $scope.getAdmJobs = function () {
                 requestSender.sendRequest(
-                    'admJobs',
+                    'jobs',
                     dataLoaded,
                     {
-                        id: id,
+                        adm: $location.path().includes('adm'),
+                        simulationType: SIREPO.APP_SCHEMA.simulationType,
                     });
             };
             $scope.getAdmJobs();
@@ -2678,7 +2680,7 @@ SIREPO.app.directive('jobsList', function(requestSender) {
 
             function dataLoaded(data, status) {
                 $scope.data = data;
-            }
+            };
         },
     };
 });

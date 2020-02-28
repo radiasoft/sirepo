@@ -304,9 +304,17 @@ class _ComputeJob(PKDict):
         sirepo.util.json_dump(self.db, path=self.__db_file(self.db.computeJid))
         return self
 
+    async def _receive_api_downloadDataFile(self, req):
+        return await self._send_with_single_reply(
+            job.OP_ANALYSIS,
+            req,
+            jobCmd='get_data_file',
+            dataFileKey=req.content.pop('dataFileKey')
+        )
+
     @classmethod
-    async def _receive_api_admJobs(cls, req):
-        def _get_running_jobs():
+    async def _receive_api_jobs(cls, req):
+        def _get_running_jobs(want_adm):
             def _strftime(epoch):
                 return datetime.datetime.utcfromtimestamp(
                     int(epoch),
@@ -320,37 +328,32 @@ class _ComputeJob(PKDict):
                 d = i.db
                 s = d.computeJobStart
                 l = d.lastUpdateTime
-                o.append(
-                    [
-                        d.uid,
-                        d.simulationType,
-                        d.simulationId,
-                        _strftime(s),
-                        _strftime(l),
-                        round((l - s) / 60.0, 2),
-                        ' | '.join(sorted(d.driverDetails.values()))
-                    ],
-                )
+                r = [
+                    d.simulationType,
+                    d.simulationId,
+                    _strftime(s),
+                    _strftime(l),
+                    round((l - s) / 60.0, 2),
+                    ' | '.join(sorted(d.driverDetails.values()))
+                ]
+                if want_adm:
+                    r.insert(0, d.uid)
+                o.append(r)
             return o
+        a = req.content.adm
+        c = [
+            'App',
+            'Simulation id',
+            'Start (UTC)',
+            'Last update (UTC)',
+            'Elapsed (mins.)',
+            'Driver Details'
+        ]
+        if a:
+            c.insert(0, 'User id')
         return PKDict(
-            columns=[
-                'User id',
-                'App',
-                'Simulation id',
-                'Start (UTC)',
-                'Last update (UTC)',
-                'Elapsed (mins.)',
-                'Driver Details'
-            ],
-            data=_get_running_jobs(),
-        )
-
-    async def _receive_api_downloadDataFile(self, req):
-        return await self._send_with_single_reply(
-            job.OP_ANALYSIS,
-            req,
-            jobCmd='get_data_file',
-            dataFileKey=req.content.pop('dataFileKey')
+            columns=c,
+            data=_get_running_jobs(a),
         )
 
     async def _receive_api_runCancel(self, req, timed_out_op=None):
