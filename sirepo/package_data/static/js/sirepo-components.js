@@ -2645,7 +2645,7 @@ SIREPO.app.directive('bootstrapToggle', function() {
 });
 
 
-SIREPO.app.directive('jobsList', function(requestSender, $location) {
+SIREPO.app.directive('jobsList', function(requestSender, appState, $location) {
     return {
         restrict: 'A',
         template: [
@@ -2665,8 +2665,11 @@ SIREPO.app.directive('jobsList', function(requestSender, $location) {
             '</div>',
         ].join(''),
         controller: function($scope) {
+            function dataLoaded(data, status) {
+                $scope.data = data;
+            };
 
-            $scope.getAdmJobs = function () {
+            $scope.getJobs = function () {
                 requestSender.sendRequest(
                     'jobs',
                     dataLoaded,
@@ -2675,12 +2678,10 @@ SIREPO.app.directive('jobsList', function(requestSender, $location) {
                         simulationType: SIREPO.APP_SCHEMA.simulationType,
                     });
             };
+
+            appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
             $scope.getAdmJobs();
 
-
-            function dataLoaded(data, status) {
-                $scope.data = data;
-            };
         },
     };
 });
