@@ -2681,8 +2681,14 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
 
             $scope.getRow = function(row) {
                 var o = '';
-                for(var c in row) {
-                    o = o + '<td>' + c + '</td>';
+
+                for(var i = 0; i < row.length; i++) {
+                    var v = row[i];
+                    if(i === 1) {
+                       // TODO(e-carlin):  make it an <a> inside of the <td>; define href using formaturllocal
+                        v = '<a>' + v + '</a>'
+                    }
+                    o = o + '<td>' + v + '</td>';
                 }
                 return $sce.trustAsHtml(o);
             }
