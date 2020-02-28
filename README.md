@@ -52,6 +52,6 @@ The `-v "$PWD:/sirepo"` creates a `db` subdirectory, which is where the database
 
 License: http://www.apache.org/licenses/LICENSE-2.0.html
 
-Copyright (c) 2015-2018 [RadiaSoft LLC](http://radiasoft.net/open-source).  All Rights Reserved.
+Copyright (c) 2015–2020 [RadiaSoft LLC](http://radiasoft.net/open-source).  All Rights Reserved.
 
 ![RadiaSoft](https://github.com/radiasoft/images/blob/master/corporate/RadiaSoftLogoTransparent.png)
