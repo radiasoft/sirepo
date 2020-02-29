@@ -144,13 +144,9 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
 
     function handleStatus(data) {
         if ('percentComplete' in data && ! data.error) {
+            self.hasParticles = data.hasParticles;
+            self.hasRates = data.hasRates;
             plotRangeService.computeFieldRanges(self, 'particleAnimation', data.percentComplete);
-            ['beamEvolutionAnimation', 'coolingRatesAnimation', 'particleAnimation'].forEach(function(m) {
-                appState.saveQuietly(m);
-                self.hasParticles = data.hasParticles;
-                self.hasRates = data.hasRates;
-                frameCache.setFrameCount(data.frameCount, m);
-            });
         }
         frameCache.setFrameCount(data.frameCount || 0);
     }
@@ -168,19 +164,25 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         panelState.showField('electronCoolingRate', 'sample_number', settings.model == 'particle');
     }
 
-    self.handleModalShown = function(name) {
-        if (name == 'particleAnimation') {
-            processColorRange();
-            plotRangeService.processPlotRange(self, name);
-        }
-    };
-
     appState.whenModelsLoaded($scope, function() {
         processModel();
         appState.watchModelFields($scope, ['simulationSettings.model', 'simulationSettings.e_cool'], processModel);
         appState.watchModelFields($scope, ['particleAnimation.colorRangeType'], processColorRange);
-        appState.watchModelFields($scope, ['particleAnimation.plotRangeType'], function() {
-            plotRangeService.processPlotRange(self, 'particleAnimation');
+        ['particleAnimation', 'beamEvolutionAnimation', 'coolingRatesAnimation'].forEach(function(m) {
+            appState.watchModelFields($scope, [m + '.plotRangeType'], function() {
+                plotRangeService.processPlotRange(self, m);
+            });
+        });
+        $scope.$on('sr-tabSelected', function(evt, name) {
+            if (name == 'particleAnimation') {
+                processColorRange();
+                plotRangeService.processPlotRange(self, name);
+            }
+            else if (name == 'beamEvolutionAnimation' || name == 'coolingRatesAnimation') {
+                //TODO(pjm): plots have fixed x field 't', should set in template.jspec, see _X_FIELD
+                appState.models[name].x = 't';
+                plotRangeService.processPlotRange(self, name);
+            }
         });
     });
 

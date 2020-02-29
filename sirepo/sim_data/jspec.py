@@ -20,11 +20,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        cls._init_models(dm, ('ring', 'particleAnimation', 'twissReport'))
-        if 'coolingRatesAnimation' not in dm:
-            for m in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
-                dm[m] = PKDict()
-                cls.update_model_defaults(dm[m], m)
+        cls._init_models(dm, ('ring', 'particleAnimation', 'twissReport', 'beamEvolutionAnimation', 'coolingRatesAnimation'))
         if 'beam_type' not in dm.ionBeam:
             dm.ionBeam.setdefault(
                 'beam_type',

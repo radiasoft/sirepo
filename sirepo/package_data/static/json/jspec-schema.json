@@ -114,8 +114,28 @@
         }
     },
     "frameIdFields": {
-        "beamEvolutionAnimation": ["y1", "y2", "y3"],
-        "coolingRatesAnimation": ["y1", "y2", "y3"],
+        "beamEvolutionAnimation": [
+            "y1",
+            "y2",
+            "y3",
+            "plotRangeType",
+            "horizontalSize",
+            "horizontalOffset",
+            "verticalSize",
+            "verticalOffset",
+            "isRunning"
+        ],
+        "coolingRatesAnimation": [
+            "y1",
+            "y2",
+            "y3",
+            "plotRangeType",
+            "horizontalSize",
+            "horizontalOffset",
+            "verticalSize",
+            "verticalOffset",
+            "isRunning"
+        ],
         "particleAnimation": [
             "x",
             "y",
@@ -148,6 +168,11 @@
             "y1": ["Y1 Value", "BeamColumn", "emitx"],
             "y2": ["Y2 Value", "BeamOptionalColumn", "emity"],
             "y3": ["Y3 Value", "BeamOptionalColumn", "none"],
+            "plotRangeType": ["Range", "PlotRangeType", "none"],
+            "horizontalSize": ["Horizontal Size", "Float", 0],
+            "verticalSize": ["Vertical Size", "Float", 0],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0],
             "notes": ["Notes", "Text", ""]
         },
         "cooler": {
@@ -167,6 +192,11 @@
             "y1": ["Y1 Value", "CoolingRatesColumn", "rx"],
             "y2": ["Y2 Value", "CoolingRatesOptionalColumn", "ry"],
             "y3": ["Y3 Value", "CoolingRatesOptionalColumn", "rs"],
+            "plotRangeType": ["Range", "PlotRangeType", "none"],
+            "horizontalSize": ["Horizontal Size", "Float", 0],
+            "verticalSize": ["Vertical Size", "Float", 0],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0],
             "notes": ["Notes", "Text", ""]
         },
         "electronBeam": {
@@ -258,10 +288,25 @@
         "beamEvolutionAnimation": {
             "title": "RMS Ion Beam Evolution",
             "advanced": [
-                "y1",
-                "y2",
-                "y3",
-                "notes"
+                ["Main", [
+                    "y1",
+                    "y2",
+                    "y3",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "cooler": {
@@ -291,10 +336,25 @@
         "coolingRatesAnimation": {
             "title": "IBS & Cooling Rates",
             "advanced": [
-                "y1",
-                "y2",
-                "y3",
-                "notes"
+                ["Main", [
+                    "y1",
+                    "y2",
+                    "y3",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "electronBeam": {

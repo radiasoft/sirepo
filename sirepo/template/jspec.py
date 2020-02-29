@@ -117,7 +117,7 @@ def get_application_data(data, **kwargs):
         }
     elif data['method'] == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_files)
-    raise AssertionError('unknown application data method={}'.format(data.method))
+    assert False, 'unknown application data method={}'.format(data.method)
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
@@ -173,22 +173,21 @@ def sim_frame_beamEvolutionAnimation(frame_args):
         y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
         if y_col['err']:
             return y_col['err']
-        plots.append({
-            'points': y_col['values'],
-            'label': '{}{}'.format(
+        plots.append(PKDict(
+            field=frame_args[f],
+            points=y_col['values'],
+            label='{}{}'.format(
                 _field_label(yfield, y_col['column_def']),
                 _field_description(yfield, frame_args.sim_in),
             ),
-        })
-    return {
-        'title': '',
-        'x_range': [min(x), max(x)],
-        'y_label': '',
-        'x_label': _field_label(_X_FIELD, x_col['column_def']),
-        'x_points': x,
-        'plots': plots,
-        'y_range': template_common.compute_plot_color_and_range(plots),
-    }
+        ))
+    frame_args.x = _X_FIELD
+    if 'fieldRange' in frame_args.sim_in.models.particleAnimation:
+        frame_args.fieldRange = frame_args.sim_in.models.particleAnimation.fieldRange
+    return template_common.parameter_plot(x, plots, frame_args, PKDict(
+        y_label='',
+        x_label=_field_label(_X_FIELD, x_col['column_def']),
+    ))
 
 
 sim_frame_coolingRatesAnimation = sim_frame_beamEvolutionAnimation
@@ -213,8 +212,6 @@ def sim_frame_particleAnimation(frame_args):
     y = y_col['values']
     model = data.models.particleAnimation
     model.update(frame_args)
-    model['x'] = xfield
-    model['y'] = yfield
     return template_common.heatmap([x, y], model, {
         'x_label': _field_label(xfield, x_col['column_def']),
         'y_label': _field_label(yfield, y_col['column_def']),
@@ -279,11 +276,26 @@ def _beam_evolution_status(run_dir, settings, has_rates):
 
 
 def _compute_range_across_files(run_dir, data):
-    res = {}
+    res = PKDict()
     for v in _SCHEMA.enum.ParticleColumn:
         res[_map_field_name(v[0])] = []
     for filename in _ion_files(run_dir):
         sdds_util.process_sdds_page(filename, 0, _compute_sdds_range, res)
+    res2 = PKDict({
+        _X_FIELD: [],
+    })
+    for v in _SCHEMA.enum.BeamColumn:
+        res2[_map_field_name(v[0])] = []
+    for v in _SCHEMA.enum.CoolingRatesColumn:
+        res2[_map_field_name(v[0])] = []
+    sdds_util.process_sdds_page(str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)), 0, _compute_sdds_range, res2)
+    res.update(res2)
+    # reverse field mapping back to enum values
+    for k in _FIELD_MAP:
+        v = _FIELD_MAP[k]
+        if v in res:
+            res[k] = res[v]
+            del res[v]
     return res
 
 
@@ -365,9 +377,7 @@ def _ion_files(run_dir):
 
 
 def _map_field_name(f):
-    if f in _FIELD_MAP:
-        return _FIELD_MAP[f]
-    return f
+    return _FIELD_MAP.get(f, f)
 
 
 def _safe_sdds_value(v):
