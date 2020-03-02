@@ -17,9 +17,6 @@ from sirepo import http_request
 from sirepo import simulation_db
 from sirepo import srschema
 from sirepo import uri_router
-from sirepo.template import adm
-from sirepo.template import template_common
-import datetime
 import flask
 import importlib
 import re
@@ -28,9 +25,7 @@ import sirepo.srdb
 import sirepo.template
 import sirepo.uri
 import sirepo.util
-import time
 import urllib
-import uuid
 import werkzeug
 import werkzeug.exceptions
 
@@ -464,16 +459,6 @@ def api_listSimulations():
             key=lambda row: row['name'],
         )
     )
-
-@api_perm.require_user
-def api_getServerData():
-    input = http_request.parse_json()
-#TODO(robnagler) validate
-    id = input.id if 'id' in input else None
-    d = adm.get_server_data(id)
-    if d == None or len(d) == 0:
-        raise sirepo.util.UserAlert('Data error', 'no data supplied')
-    return http_reply.gen_json(d)
 
 
 # visitor rather than user because error pages are rendered by the application

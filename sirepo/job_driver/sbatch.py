@@ -155,6 +155,10 @@ disown
                         o, e = await p.communicate(input=script)
                         if o or e:
                             write_to_log(o, e, 'start')
+                    self.driver_details.pkupdate(
+                        host=self.cfg.host,
+                        username=self._creds.username,
+                    )
                     await get_agent_log(c)
                 except Exception as e:
                     pkdlog(

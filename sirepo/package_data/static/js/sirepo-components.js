@@ -609,6 +609,7 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
               '<ul class="dropdown-menu">',
                 '<li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>',
                 '<li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }} via {{ ::authState.method }}</li>',
+                '<li data-ng-if="showAdmJobs()"><a data-ng-click="redirectAdmJobs()">Admin</a></li>',
                 '<li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
               '</ul>',
             '</li>',
@@ -616,6 +617,14 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
         controller: function($scope) {
             $scope.authState = authState;
             $scope.authService = authService;
+
+            $scope.redirectAdmJobs = function() {
+                requestSender.localRedirect('admJobs');
+            };
+
+            $scope.showAdmJobs = function() {
+                return SIREPO.APP_SCHEMA.feature_config.job && authState.roles.includes('adm');
+            };
         },
     };
 });
@@ -2638,6 +2647,48 @@ SIREPO.app.directive('bootstrapToggle', function() {
                     toggle.bootstrapToggle('destroy');
                 }
             });
+        },
+    };
+});
+
+
+SIREPO.app.directive('jobsList', function(requestSender, appState) {
+    return {
+        restrict: 'A',
+        template: [
+            '<div>',
+                '<table class="table">',
+                '<tr>',
+                    '<th data-ng-repeat="c in data.columns">{{ c }}</th>',
+                '</tr>',
+                '<tr data-ng-repeat="r in data.data">',
+                    // must 'track by $index' because start and last update can be the same
+                    '<td data-ng-repeat="c in r track by $index">',
+                        '<span>{{ c }}</span>',
+                    '</td>',
+                '</tr>',
+                '</table>',
+                '<button class="btn btn-default" data-ng-click="getAdmJobs()">Refresh</button>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            function dataLoaded(data, status) {
+                $scope.data = data;
+            };
+
+            $scope.getAdmJobs = function (id) {
+                requestSender.sendRequest(
+                    'admJobs',
+                    dataLoaded,
+                    {
+                        id: id,
+                    });
+            };
+
+            appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
+            $scope.getAdmJobs();
+
+
         },
     };
 });

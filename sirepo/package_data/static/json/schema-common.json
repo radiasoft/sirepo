@@ -1,9 +1,5 @@
 {
     "appInfo": {
-       "adm": {
-           "longName": "Sirepo Admin",
-           "shortName": "Sirepo Admin"
-       },
        "myapp": {
             "longName": "MyApp",
             "shortName": "MyApp"
@@ -66,6 +62,7 @@
         "longName": "Sirepo"
     },
     "route": {
+        "admJobs": "/adm-jobs",
         "adjustTime": "/adjust-time/?<days>",
         "blueskyAuth": "/bluesky-auth",
         "comsol": "/comsol",
@@ -91,7 +88,6 @@
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "findByNameWithAuth": "/find-by-name-auth/<simulation_type>/<application_mode>/<simulation_name>",
         "getApplicationData": "/get-application-data/?<filename>",
-        "getServerData": "/get-server-data/?<id>",
         "homePage": "/en/*<path_info>",
         "homePageOld": "/old",
         "importArchive": "/import-archive",
@@ -230,6 +226,12 @@
             ]
         },
         "localRoutes": {
+            "admJobs": {
+                "route": "/adm-jobs",
+                "config": {
+                  "templateUrl": "/static/html/adm.html"
+                }
+            },
             "completeRegistration": {
                 "route": "/complete-registration",
                 "config": {

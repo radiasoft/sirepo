@@ -13,7 +13,7 @@ from pykern.pkdebug import pkdp, pkdc, pkdformat, pkdlog, pkdexc
 from sirepo import job
 import asyncio
 import copy
-import contextlib
+import datetime
 import os
 import pykern.pkio
 import sirepo.http_reply
@@ -24,7 +24,6 @@ import time
 import tornado.ioloop
 import tornado.locks
 import tornado.queues
-
 
 #: where supervisor state is persisted to disk
 _DB_DIR = None
@@ -39,9 +38,11 @@ _RUNNING_PENDING = (job.RUNNING, job.PENDING)
 _HISTORY_FIELDS = frozenset((
     'computeJobSerial',
     'computeJobStart',
+    'driverDetails',
     'error',
     'jobRunMode',
     'lastUpdateTime',
+    'computeModel'
     'status',
 ))
 
@@ -50,6 +51,7 @@ _PARALLEL_STATUS_FIELDS = frozenset((
     'elapsedTime',
     'frameCount',
     'lastUpdateTime',
+    'computeModel'
     'percentComplete',
     'computeJobStart',
 ))
@@ -120,7 +122,7 @@ class ServerReq(PKDict):
         c = self.get('content')
         if not c:
             return 'ServerReq(<no content>)'
-        return pkdformat('ServerReq({}, {})', c.api, c.computeJid)
+        return pkdformat('ServerReq({}, {})', c.api, c.get('computeJid'))
 
     async def receive(self):
         s = self.content.pkdel('serverSecret')
@@ -176,8 +178,11 @@ class _ComputeJob(PKDict):
             self.run_dir_release(self.run_dir_owner)
 
     @classmethod
-    def get_instance(cls, req):
-        j = req.content.computeJid
+    def get_instance_or_class(cls, req):
+        try:
+            j = req.content.computeJid
+        except AttributeError:
+            return cls
         self = cls.instances.pksetdefault(j, lambda: cls.__create(req))[j]
         # SECURITY: must only return instances for authorized user
         assert req.content.uid == self.db.uid, \
@@ -205,8 +210,9 @@ class _ComputeJob(PKDict):
         if req.content.get('api') != 'api_runStatus':
             pkdlog('{}', req)
         try:
+            o = cls.get_instance_or_class(req)
             return await getattr(
-                cls.get_instance(req),
+                o,
                 '_receive_' + req.content.api,
             )(req)
         except asyncio.CancelledError:
@@ -266,6 +272,7 @@ class _ComputeJob(PKDict):
             computeJobHash=c.computeJobHash,
             computeJobSerial=0,
             computeJobStart=0,
+            driverDetails=PKDict(),
             error=None,
             history=self.__db_init_history(prev_db),
             isParallel=c.isParallel,
@@ -294,6 +301,47 @@ class _ComputeJob(PKDict):
     def __db_write(self):
         sirepo.util.json_dump(self.db, path=self.__db_file(self.db.computeJid))
         return self
+
+    @classmethod
+    async def _receive_api_admJobs(cls, req):
+        def _get_running_jobs():
+            def _strftime(unix_time):
+                return datetime.datetime.utcfromtimestamp(
+                    int(unix_time),
+                ).strftime('%Y-%m-%d %H:%M:%S')
+
+            o = []
+            for i in filter(
+                    lambda x: x.db.status == job.RUNNING,
+                    cls.instances.values(),
+            ):
+                d = i.db
+                s = d.computeJobStart
+                l = d.lastUpdateTime
+                o.append(
+                    [
+                        d.uid,
+                        d.simulationType,
+                        d.simulationId,
+                        _strftime(s),
+                        _strftime(l),
+                        round((l - s) / 60.0, 2),
+                        ' | '.join(sorted(d.driverDetails.values()))
+                    ],
+                )
+            return o
+        return PKDict(
+            columns=[
+                'User id',
+                'App',
+                'Simulation id',
+                'Start (UTC)',
+                'Last update (UTC)',
+                'Elapsed (mins.)',
+                'Driver Details'
+            ],
+            data=_get_running_jobs(),
+        )
 
     async def _receive_api_downloadDataFile(self, req):
         return await self._send_with_single_reply(
@@ -414,10 +462,14 @@ class _ComputeJob(PKDict):
                     await o.prepare_send()
                     self.run_op = o
                     self.__db_init(req, prev_db=self.db)
-                    # run mode can change between runs so we must update the db
-                    self.db.jobRunMode = req.content.jobRunMode
-                    self.db.computeJobSerial = int(time.time())
-                    self.db.pkupdate(status=job.PENDING)
+                    self.db.pkupdate(
+                        computeJobSerial=int(time.time()),
+                        driverDetails=o.driver.driver_details,
+                        # run mode can change between runs so we must update the db
+                        jobRunMode=req.content.jobRunMode,
+                        computeModel=req.content.computeModel,
+                        status=job.PENDING,
+                    )
                     self.__db_write()
                     o.make_lib_dir_symlink()
                     o.send()
