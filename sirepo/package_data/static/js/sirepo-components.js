@@ -2651,10 +2651,10 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
         template: [
             '<div>',
                 '<table class="table">',
-                '<tr>',
+                '<thead>',
                     '<th data-ng-repeat="c in data.columns">{{ c }}</th>',
-                '</tr>',
-            '<tr data-ng-repeat="r in data.data track by $index" ng-bind-html="getRow(r)"></tr>',
+                '</thead>',
+                '<tbody ng-bind-html="getRows()"></tbody>',
                 '</table>',
                 '<button class="btn btn-default" data-ng-click="getJobs()">Refresh</button>',
             '</div>',
@@ -2662,12 +2662,20 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
         controller: function($scope) {
             function dataLoaded(data, status) {
                 $scope.data = data;
-                $scope.data.data = [['myapp', 'foo name', 'Jev9kRSG']];
+                $scope.data.data = [['myapp', 'foo name', 'Jev9kRSG', 1, 2, 3, 4], ['myapp2', 'foo name 2', 'Jev9kRSG', 1, 2, 3, 4]];
+            };
+
+            function getUrl(simulationId, app) {
+                return requestSender.formatUrlLocal(
+                    'source',
+                    {':simulationId': simulationId},
+                    app
+                );
             };
 
             function is_adm() {
                 return $location.path().includes('adm');
-            }
+            };
 
             $scope.getJobs = function () {
                 requestSender.sendRequest(
@@ -2679,18 +2687,26 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                     });
             };
 
-            $scope.getRow = function(row) {
+            $scope.getRows = function() {
                 var a = is_adm();
                 var o = '';
-                for(var i = 0; i < row.length; i++) {
-                    var v = row[i];
-                    if(!a && i === 1) {
-                        v = '<a href=' + requestSender.formatUrlLocal('source', {':simulationId': row[2]}, row[0])  + '>' + v + '</a>'
+                if ($scope.data) {
+                    for( var i in $scope.data.data) {
+                        var r = $scope.data.data[i];
+                        o += '<tr>';
+                        for(var j =0; j < r.length; j++ ) {
+                            var v = r[j];
+                            if(!a && j === 1) {
+                                v = '<a href=' + getUrl(r[2], r[0])  + '>' + v + '</a>'
+                            }
+                            o += '<td>' + v + '</td>';
+                        }
+                        o += '</tr>';
                     }
-                    o = o + '<td>' + v + '</td>';
+                    return $sce.trustAsHtml(o);
                 }
-                return $sce.trustAsHtml(o);
-            }
+            };
+
             appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
             $scope.getJobs();
 
