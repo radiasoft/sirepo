@@ -6,7 +6,7 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.config(function() {
     SIREPO.USER_MANUAL_URL = 'https://github.com/zhanghe9704/electroncooling/blob/master/JSPEC%20User%20manual.md';
     SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
-    SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation', 'coolingRatesAnimation'];
+    SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation', 'coolingRatesAnimation', 'forceTableAnimation'];
     SIREPO.FILE_UPLOAD_TYPE = {
         'ring-lattice': '.tfs,.txt',
     };
@@ -141,11 +141,14 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     var self = this;
     self.hasParticles = false;
     self.hasRates = false;
+    self.hasForceTable = false;
 
     function handleStatus(data) {
+        self.hasParticles = self.hasRates = self.hasForceTable = false;
         if ('percentComplete' in data && ! data.error) {
             self.hasParticles = data.hasParticles;
             self.hasRates = data.hasRates;
+            self.hasForceTable = data.hasForceTable;
             plotRangeService.computeFieldRanges(self, 'particleAnimation', data.percentComplete);
         }
         frameCache.setFrameCount(data.frameCount || 0);
@@ -168,7 +171,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         processModel();
         appState.watchModelFields($scope, ['simulationSettings.model', 'simulationSettings.e_cool'], processModel);
         appState.watchModelFields($scope, ['particleAnimation.colorRangeType'], processColorRange);
-        ['particleAnimation', 'beamEvolutionAnimation', 'coolingRatesAnimation'].forEach(function(m) {
+        ['particleAnimation', 'beamEvolutionAnimation', 'coolingRatesAnimation', 'forceTableAnimation'].forEach(function(m) {
             appState.watchModelFields($scope, [m + '.plotRangeType'], function() {
                 plotRangeService.processPlotRange(self, m);
             });
@@ -181,6 +184,9 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
             else if (name == 'beamEvolutionAnimation' || name == 'coolingRatesAnimation') {
                 //TODO(pjm): plots have fixed x field 't', should set in template.jspec, see _X_FIELD
                 appState.models[name].x = 't';
+                plotRangeService.processPlotRange(self, name);
+            }
+            else if (name == 'forceTableAnimation') {
                 plotRangeService.processPlotRange(self, name);
             }
         });

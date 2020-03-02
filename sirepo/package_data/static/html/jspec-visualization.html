@@ -15,6 +15,9 @@
     <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames() && visualization.hasRates">
       <div data-report-panel="parameter" data-model-name="coolingRatesAnimation"></div>
     </div>
+    <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames() && visualization.hasForceTable">
+      <div data-report-panel="parameter" data-model-name="forceTableAnimation"></div>
+    </div>
     <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames() && visualization.hasParticles">
       <div data-report-panel="3d" data-model-name="particleAnimation">
         <div data-ng-if="visualization.isComputingRanges" class="text-center text-info">Computing plot range across frames...</div>
