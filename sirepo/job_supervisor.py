@@ -355,8 +355,8 @@ class _ComputeJob(PKDict):
         else:
             c.insert(1, 'Name')
         return PKDict(
-            columns=c,
-            data=_get_running_jobs(a),
+            header=c,
+            rows=_get_running_jobs(a),
         )
 
     async def _receive_api_runCancel(self, req, timed_out_op=None):

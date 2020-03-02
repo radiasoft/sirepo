@@ -2652,7 +2652,7 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
             '<div>',
                 '<table class="table">',
                 '<thead>',
-                    '<th data-ng-repeat="c in data.columns">{{ c }}</th>',
+                    '<th data-ng-repeat="c in data.header">{{ c }}</th>',
                 '</thead>',
                 '<tbody ng-bind-html="getRows()"></tbody>',
                 '</table>',
@@ -2662,7 +2662,6 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
         controller: function($scope) {
             function dataLoaded(data, status) {
                 $scope.data = data;
-                $scope.data.data = [['myapp', 'foo name', 'Jev9kRSG', 1, 2, 3, 4], ['myapp2', 'foo name 2', 'Jev9kRSG', 1, 2, 3, 4]];
             };
 
             function getUrl(simulationId, app) {
@@ -2688,16 +2687,23 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
             };
 
             $scope.getRows = function() {
-                var a = is_adm();
-                var o = '';
-                if ($scope.data) {
-                    for( var i in $scope.data.data) {
-                        var r = $scope.data.data[i];
+                var d = $scope.data;
+                if (d) {
+                    var s = d.header.indexOf('Simulation id');
+                    var a = d.header.indexOf('App')
+                    if (s < 0 || a < 0) {
+                        throw new Error("'Simulation id' or 'App' not found on header=" + d.header);
+                    }
+                    var n = d.header.indexOf('Name')
+                    var m = is_adm();
+                    var o = '';
+                    for (var i in d.rows) {
+                        var r = d.rows[i];
                         o += '<tr>';
-                        for(var j =0; j < r.length; j++ ) {
+                        for (var j =0; j < r.length; j++ ) {
                             var v = r[j];
-                            if(!a && j === 1) {
-                                v = '<a href=' + getUrl(r[2], r[0])  + '>' + v + '</a>'
+                            if (!m && j === n) {
+                                v = '<a href=' + getUrl(r[s], r[a])  + '>' + v + '</a>'
                             }
                             o += '<td>' + v + '</td>';
                         }
