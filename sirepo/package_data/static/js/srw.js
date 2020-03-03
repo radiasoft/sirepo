@@ -202,7 +202,9 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     };
 
     self.updateSimulationGridFields = function() {
+        console.log("updating simulation grid fields");
         if (! appState.isLoaded()) {
+            console.log("loaded, do nothing");
             return;
         }
         ['simulation', 'sourceIntensityReport'].forEach(function(f) {
@@ -1097,6 +1099,9 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
                 processUndulatorDefinition('B', 'horizontalDeflectingParameter', 'horizontalAmplitude');
             }
         });
+        appState.watchModelFields(
+            $scope, ['sourceIntensityReport.samplingMethod'],
+            srwService.updateSimulationGridFields);
     });
 });
 
@@ -1184,6 +1189,7 @@ SIREPO.app.directive('srElectronbeamEditor', function(appState, panelState, srwS
             });
 
             appState.whenModelsLoaded($scope, function() {
+                console.log('monitoring beamDefinition');
                 appState.watchModelFields($scope, ['electronBeam.beamDefinition'], processBeamFields);
                 appState.watchModelFields($scope, ['electronBeam.beamSelector', 'electronBeamPosition.driftCalculationMethod'], function() {
                     srwService.processBeamParameters();
@@ -1259,10 +1265,12 @@ SIREPO.app.directive('srTabulatedundulatorEditor', function(appState, panelState
 });
 
 SIREPO.app.directive('srSimulationgridEditor', function(appState, srwService) {
+    console.log("model loaded");
     return {
         restrict: 'A',
         controller: function($scope) {
             appState.whenModelsLoaded($scope, function() {
+                console.log("model loaded");
                 appState.watchModelFields(
                     $scope, ['simulation.samplingMethod', 'sourceIntensityReport.samplingMethod'],
                     srwService.updateSimulationGridFields);
