@@ -111,7 +111,10 @@ def api_jobSupervisorPing():
 @api_perm.require_user
 def api_ownJobs():
     return _request(
-        _request_content=PKDict(**sirepo.http_request.parse_post()),
+        _request_content=PKDict(
+            uid=sirepo.auth.logged_in_user(),
+            **sirepo.http_request.parse_post()
+        ),
     )
 
 
