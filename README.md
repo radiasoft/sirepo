@@ -4,21 +4,18 @@
 
 ## Sirepo brings computational science to the cloud.
 
-Develop, run and share your HPC simulations.
 </p>
 
-Sirepo brings Clickable Physics(TM) to your desktop and mobile devices.
+The Sirepo gateway supports physics codes like elegant, Warp, SRW, JSPEC, Synergia, Zgoubi, and more. With it, you can configure, run, visualize, and share end-to-end HPC physical simulations on your browser. We call this Clickable Physics(TM).
 
-[Try our public Sirepo server](https://www.sirepo.com).
+[Try the Sirepo gateway](https://www.sirepo.com). All you need is an email address to access. Sirepo is completely free.
 
-No signup is required and Sirepo is completely free.
+### If you prefer, Sirepo can also be downloaded! :arrow_down:
+* [Curl Installer for Mac and Linux](#curl-installer)
+* [Manual Install with Docker](#manual-install-with-docker)
+* [Development](https://github.com/radiasoft/sirepo/wiki/Development)
 
-## If you prefer, Sirepo can also be downloaded! :arrow_down:
-1. [Curl Installer for Mac and Linux](#curl-installer)
-2. [Manual Install with Docker](#manual-install-with-docker)
-3. [Development](https://github.com/radiasoft/sirepo/wiki/Development)
-
-## Curl Installer
+### Curl Installer
 
 You can use our
 [curl installer on your Mac, PC (Cygwin only), or Linux box](https://github.com/radiasoft/download/blob/master/README.md)
@@ -34,7 +31,7 @@ For this to work, you will need to [install the prerequisites](https://github.co
 
 [API Documentation is available on Read the Docs.](http://sirepo.readthedocs.org)
 
-## Manual Install with Docker
+### Manual Install with Docker
 
 You can start Sirepo with [Docker](https://www.docker.com/).
 
@@ -48,7 +45,7 @@ Then visit: http://127.0.0.1:8000
 
 The `-v "$PWD:/sirepo"` creates a `db` subdirectory, which is where the database is stored.
 
-# License
+### License
 
 License: http://www.apache.org/licenses/LICENSE-2.0.html
 
