@@ -131,7 +131,11 @@ class ServerReq(PKDict):
             'no secret in message: {}'.format(self.content)
         assert s == sirepo.job.cfg.server_secret, \
             'server_secret did not match'.format(self.content)
-        self.handler.write(await _ComputeJob.receive(self))
+        pkdp('rrrrrrrrrrrrrrrrrrrrrrrrr')
+        r = await _ComputeJob.receive(self)
+        pkdp(r)
+        pkdp('rrrrrrrrrrrrrrrrrrrrrrrrr')
+        self.handler.write(r)
 
 
 async def terminate():
@@ -494,6 +498,7 @@ class _ComputeJob(PKDict):
             # _run destroys in the happy path (never got to _run here)
             if o:
                 o.destroy(cancel=False)
+            raise
 
     async def _receive_api_runStatus(self, req):
         r = self._status_reply(req)
