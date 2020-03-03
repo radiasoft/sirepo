@@ -130,11 +130,11 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
             $rootScope,
             function() {
                 if (appDataService.isApplicationMode('default')) {
-                    errorService.alertText(
-                        'You are accessing Sirepo as a guest. ' +
-                            'Guest sessions are regularly deleted. ' +
-                            'To ensure that your work is saved, please click on Save Your Work!.'
-                    );
+                    // errorService.alertText(
+                    //     'You are accessing Sirepo as a guest. ' +
+                    //         'Guest sessions are regularly deleted. ' +
+                    //         'To ensure that your work is saved, please click on Save Your Work!.'
+                    // );
                 }
             }
         );
