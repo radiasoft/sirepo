@@ -2674,7 +2674,7 @@ SIREPO.app.directive('jobsList', function(requestSender, appState) {
         controller: function($scope) {
             function dataLoaded(data, status) {
                 $scope.data = data;
-            };
+            }
 
             $scope.getAdmJobs = function (id) {
                 requestSender.sendRequest(
