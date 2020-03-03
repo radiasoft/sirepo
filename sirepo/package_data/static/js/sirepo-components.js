@@ -2665,24 +2665,7 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
         controller: function($scope) {
             function dataLoaded(data, status) {
                 $scope.data = data;
-            };
-
-            function getUrl(simulationId, app) {
-                return requestSender.formatUrlLocal(
-                    'source',
-                    {':simulationId': simulationId},
-                    app
-                );
-            };
-
-            $scope.getJobs = function () {
-                requestSender.sendRequest(
-                    ($scope.wantAdm ? 'adm' : 'own') + 'Jobs',
-                    dataLoaded,
-                    {
-                        simulationType: SIREPO.APP_SCHEMA.simulationType,
-                    });
-            };
+            }
 
             function getRow(row, wantAdm, nameIndex, simulationIdIndex, appIndex) {
                 var h = '';
@@ -2694,13 +2677,30 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                     h += '<td>' + v + '</td>';
                 }
                 return h;
+            }
+
+            function getUrl(simulationId, app) {
+                return requestSender.formatUrlLocal(
+                    'source',
+                    {':simulationId': simulationId},
+                    app
+                );
+            }
+
+            $scope.getJobs = function () {
+                requestSender.sendRequest(
+                    ($scope.wantAdm ? 'adm' : 'own') + 'Jobs',
+                    dataLoaded,
+                    {
+                        simulationType: SIREPO.APP_SCHEMA.simulationType,
+                    });
             };
 
             $scope.getRows = function() {
                 var d = $scope.data;
                 if (d) {
                     var s = d.header.indexOf('Simulation id');
-                    var a = d.header.indexOf('App')
+                    var a = d.header.indexOf('App');
                     if (s < 0 || a < 0) {
                         throw new Error("'Simulation id' or 'App' not found on header=" + d.header);
                     }
