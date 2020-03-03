@@ -784,10 +784,10 @@ def _compute_material_characteristics(model, photon_energy, prefix=''):
     return model
 
 def _compute_PGM_value(model):
-    if not model['energyAvg'] or not model['cff'] or not model['grazingAngle']:
-        return model
-    if model['cff'] == 1:
-        return model
+    #if not model['energyAvg'] or not model['cff'] or not model['grazingAngle']:
+    #    return model
+    #if model['cff'] == 1:
+    #    return model
     parms_list = ['energyAvg', 'cff', 'grazingAngle']
     try:
         mirror = srwlib.SRWLOptMirPl(
@@ -801,23 +801,37 @@ def _compute_PGM_value(model):
             _x=model['horizontalOffset'],
             _y=model['verticalOffset'],
         )
-        opGr = srwlib.SRWLOptG(
-            _mirSub=mirror,
-            _m=model['diffractionOrder'],
-            _grDen=model['grooveDensity0'],
-            _grDen1=model['grooveDensity1'],
-            _grDen2=model['grooveDensity2'],
-            _grDen3=model['grooveDensity3'],
-            _grDen4=model['grooveDensity4'],
-            _e_avg=model['energyAvg'],
-            _cff=model['cff'],
-            _ang_graz=model['grazingAngle'],
-            _ang_roll=model['rollAngle'],
-        )
+
         if model.computeParametersFrom == '1':
+            opGr = srwlib.SRWLOptG(
+                _mirSub=mirror,
+                _m=model['diffractionOrder'],
+                _grDen=model['grooveDensity0'],
+                _grDen1=model['grooveDensity1'],
+                _grDen2=model['grooveDensity2'],
+                _grDen3=model['grooveDensity3'],
+                _grDen4=model['grooveDensity4'],
+                _e_avg=model['energyAvg'],
+                _cff=model['cff'],
+                _ang_graz=0,
+                _ang_roll=model['rollAngle'],
+            )
             grAng, defAng = opGr.cff2ang(_en=model['energyAvg'], _cff=model['cff'])
             model['grazingAngle'] = grAng * 1000.0
         elif model.computeParametersFrom == '2':
+            opGr = srwlib.SRWLOptG(
+                _mirSub=mirror,
+                _m=model['diffractionOrder'],
+                _grDen=model['grooveDensity0'],
+                _grDen1=model['grooveDensity1'],
+                _grDen2=model['grooveDensity2'],
+                _grDen3=model['grooveDensity3'],
+                _grDen4=model['grooveDensity4'],
+                _e_avg=model['energyAvg'],
+                _cff=1.5, # model['cff'],
+                _ang_graz=model['grazingAngle'],
+                _ang_roll=model['rollAngle'],
+            )
             cff, defAng = opGr.ang2cff(_en=model['energyAvg'], _ang_graz=model['grazingAngle']/1000.0)
             model['cff'] = cff
         angroll = model['rollAngle']
@@ -827,8 +841,11 @@ def _compute_PGM_value(model):
         _compute_grating_orientation(model)
     except Exception:
         pkdlog('\n{}', traceback.format_exc())
-        for key in parms_list:
-            model[key] = None
+        if model.computeParametersFrom == '1': model['grazingAngle'] = None
+        elif model.computeParametersFrom == '2': model['cff'] = None
+
+        #for key in parms_list:
+        #    model[key] = None
     return model
 
 def _compute_grating_orientation(model):
