@@ -36,13 +36,16 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     //TODO(pjm): share with template/elegant.py _PLOT_TITLE
     var plotTitle = {
         'x-xp': 'Horizontal',
+        'x-px': 'Horizontal',
         'Y-T': 'Horizontal',
         'y-yp': 'Vertical',
+        'y-py': 'Vertical',
         'Z-P': 'Vertical',
         'x-y': 'Cross-section',
         'Y-Z': 'Cross-section',
         't-p': 'Longitudinal',
         'z-zp': 'Longitudinal',
+        'z-pz': 'Longitudinal',
     };
 
     function elementNameInvalidMsg(newName) {
@@ -2339,10 +2342,10 @@ SIREPO.app.directive('rpnBoolean', function(rpnService) {
             field: '=',
         },
         template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in elegantRpnBooleanValues()"></select>',
+            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in rpnBooleanValues()"></select>',
         ].join(''),
         controller: function($scope) {
-            $scope.elegantRpnBooleanValues = function() {
+            $scope.rpnBooleanValues = function() {
                 return rpnService.getRpnBooleanForField($scope.model, $scope.field);
             };
         },
@@ -2357,10 +2360,10 @@ SIREPO.app.directive('rpnStatic', function(rpnService) {
             field: '=',
         },
         template: [
-            '<div class="form-control-static pull-right">{{ elegantComputedRpnValue(); }}</div>',
+            '<div data-ng-attr-title="{{ computedRpnValue(); }}" class="form-control-static" style="text-overflow: ellipsis; overflow: hidden; margin-left: -15px; padding-left: 0">{{ computedRpnValue(); }}</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.elegantComputedRpnValue = function() {
+            $scope.computedRpnValue = function() {
                 return rpnService.getRpnValueForField($scope.model, $scope.field);
             };
         },
@@ -2464,7 +2467,7 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                               '<tr data-ng-repeat="var in appState.models.rpnVariables">',
                                 '<td>{{ var.name }}</td>',
                                 '<td><div class="row" data-field-editor="\'value\'" data-field-size="12" data-label-size="0" data-model-name="\'rpnVariable\'" data-model="var"></div></td>',
-                                '<td><div data-rpn-static="" data-model="var" data-field="\'value\'"></div></td>',
+                                '<td><div class="col-sm-12" data-rpn-static="" data-model="var" data-field="\'value\'"></div></td>',
                                 '<td style="vertical-align: middle">',
                                   '<button class="btn btn-danger btn-xs" data-ng-click="deleteVar($index)" title="Delete Variable"><span class="glyphicon glyphicon-remove"></span></button>',
                                 '</td>',
@@ -2478,7 +2481,7 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                                 '<td>',
                                   '<div class="row" data-field-editor="\'value\'" data-field-size="12" data-label-size="0" data-model-name="\'rpnVariable\'" data-model="newVar"></div>',
                                 '</td>',
-                                '<td><div data-rpn-static="" data-model="newVar" data-field="\'value\'"></div></td>',
+                                '<td><div class="col-sm-12" data-rpn-static="" data-model="newVar" data-field="\'value\'"></div></td>',
                                 '<td>',
                                   '<button class="btn btn-primary btn-xs" data-ng-disabled="! hasNewVar()" data-ng-click="addVar()" title="Add Variable"><span class="glyphicon glyphicon-plus"></span></button>',
                                 '</td>',

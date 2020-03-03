@@ -6,7 +6,7 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.config(function() {
     SIREPO.USER_MANUAL_URL = 'https://github.com/zhanghe9704/electroncooling/blob/master/JSPEC%20User%20manual.md';
     SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
-    SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation', 'coolingRatesAnimation'];
+    SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation', 'coolingRatesAnimation', 'forceTableAnimation'];
     SIREPO.FILE_UPLOAD_TYPE = {
         'ring-lattice': '.tfs,.txt',
     };
@@ -141,16 +141,15 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     var self = this;
     self.hasParticles = false;
     self.hasRates = false;
+    self.hasForceTable = false;
 
     function handleStatus(data) {
+        self.hasParticles = self.hasRates = self.hasForceTable = false;
         if ('percentComplete' in data && ! data.error) {
+            self.hasParticles = data.hasParticles;
+            self.hasRates = data.hasRates;
+            self.hasForceTable = data.hasForceTable;
             plotRangeService.computeFieldRanges(self, 'particleAnimation', data.percentComplete);
-            ['beamEvolutionAnimation', 'coolingRatesAnimation', 'particleAnimation'].forEach(function(m) {
-                appState.saveQuietly(m);
-                self.hasParticles = data.hasParticles;
-                self.hasRates = data.hasRates;
-                frameCache.setFrameCount(data.frameCount, m);
-            });
         }
         frameCache.setFrameCount(data.frameCount || 0);
     }
@@ -168,19 +167,28 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         panelState.showField('electronCoolingRate', 'sample_number', settings.model == 'particle');
     }
 
-    self.handleModalShown = function(name) {
-        if (name == 'particleAnimation') {
-            processColorRange();
-            plotRangeService.processPlotRange(self, name);
-        }
-    };
-
     appState.whenModelsLoaded($scope, function() {
         processModel();
         appState.watchModelFields($scope, ['simulationSettings.model', 'simulationSettings.e_cool'], processModel);
         appState.watchModelFields($scope, ['particleAnimation.colorRangeType'], processColorRange);
-        appState.watchModelFields($scope, ['particleAnimation.plotRangeType'], function() {
-            plotRangeService.processPlotRange(self, 'particleAnimation');
+        ['particleAnimation', 'beamEvolutionAnimation', 'coolingRatesAnimation', 'forceTableAnimation'].forEach(function(m) {
+            appState.watchModelFields($scope, [m + '.plotRangeType'], function() {
+                plotRangeService.processPlotRange(self, m);
+            });
+        });
+        $scope.$on('sr-tabSelected', function(evt, name) {
+            if (name == 'particleAnimation') {
+                processColorRange();
+                plotRangeService.processPlotRange(self, name);
+            }
+            else if (name == 'beamEvolutionAnimation' || name == 'coolingRatesAnimation') {
+                //TODO(pjm): plots have fixed x field 't', should set in template.jspec, see _X_FIELD
+                appState.models[name].x = 't';
+                plotRangeService.processPlotRange(self, name);
+            }
+            else if (name == 'forceTableAnimation') {
+                plotRangeService.processPlotRange(self, name);
+            }
         });
     });
 

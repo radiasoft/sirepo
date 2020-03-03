@@ -32,20 +32,36 @@ WANT_BROWSER_FRAME_CACHE = True
 
 _BEAM_EVOLUTION_OUTPUT_FILENAME = 'JSPEC.SDDS'
 
+_FORCE_TABLE_FILENAME = 'force_table.txt'
+
 _ION_FILE_PREFIX = 'ions'
 
-_FIELD_MAP = {
-    'emitx': 'emit_x',
-    'emity': 'emit_y',
-    'dpp': 'dp/p',
-    'sigmas': 'sigma_s',
-    'rxibs': 'rx_ibs',
-    'ryibs': 'ry_ibs',
-    'rsibs': 'rs_ibs',
-    'rxecool': 'rx_ecool',
-    'ryecool': 'ry_ecool',
-    'rsecool': 'rs_ecool'
-}
+_FIELD_MAP = PKDict(
+    emitx='emit_x',
+    emity='emit_y',
+    dpp='dp/p',
+    sigmas='sigma_s',
+    rxibs='rx_ibs',
+    ryibs='ry_ibs',
+    rsibs='rs_ibs',
+    rxecool='rx_ecool',
+    ryecool='ry_ecool',
+    rsecool='rs_ecool',
+    fx='f_x',
+    flong='f_long',
+    Vlong='V_long',
+    Vtrans='V_trans',
+    edensity='e_density',
+)
+
+#TODO(pjm): get this from the enum?
+_FIELD_LABEL = PKDict(
+    f_x='Transverse Force',
+    f_long='Longitudinal Force',
+    V_long='Longitudinal Velocity',
+    V_trans='Transverse Velocity',
+    e_density='Electron Density',
+)
 
 _OPTIONAL_MADX_TWISS_COLUMNS = ['NAME', 'TYPE', 'COUNT', 'DY', 'DPY']
 
@@ -76,19 +92,21 @@ def background_percent_complete(report, run_dir, is_running):
             )
     if run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME).exists():
         count, settings, has_rates = _background_task_info(run_dir)
+        has_force_table = run_dir.join(_FORCE_TABLE_FILENAME).exists()
         if count:
             return PKDict(
                 percentComplete=100,
                 frameCount=count,
                 hasParticles=True,
                 hasRates=has_rates,
+                hasForceTable=has_force_table,
             )
-        else:
-            return PKDict(
-                percentComplete=100,
-                frameCount=1,
-                hasRates=has_rates,
-            )
+        return PKDict(
+            percentComplete=100,
+            frameCount=1,
+            hasRates=has_rates,
+            hasForceTable=has_force_table,
+        )
     return PKDict(
         percentComplete=0,
         frameCount=0,
@@ -117,12 +135,14 @@ def get_application_data(data, **kwargs):
         }
     elif data['method'] == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_files)
-    raise AssertionError('unknown application data method={}'.format(data.method))
+    assert False, 'unknown application data method={}'.format(data.method)
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if model in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
         path = run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)
+    elif model == 'forceTableAnimation':
+        path = run_dir.join(_FORCE_TABLE_FILENAME)
     else:
         path = py.path.local(_ion_files(run_dir)[frame])
     with open(str(path)) as f:
@@ -160,38 +180,23 @@ def remove_last_frame(run_dir):
 
 
 def sim_frame_beamEvolutionAnimation(frame_args):
-    filename = str(frame_args.run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))
-    x_col = sdds_util.extract_sdds_column(filename, _X_FIELD, 0)
-    if x_col['err']:
-        return x_col['err']
-    x = x_col['values']
-    plots = []
-    for f in ('y1', 'y2', 'y3'):
-        if frame_args[f] == 'none':
-            continue
-        yfield = _map_field_name(frame_args[f])
-        y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
-        if y_col['err']:
-            return y_col['err']
-        plots.append({
-            'points': y_col['values'],
-            'label': '{}{}'.format(
-                _field_label(yfield, y_col['column_def']),
-                _field_description(yfield, frame_args.sim_in),
-            ),
-        })
-    return {
-        'title': '',
-        'x_range': [min(x), max(x)],
-        'y_label': '',
-        'x_label': _field_label(_X_FIELD, x_col['column_def']),
-        'x_points': x,
-        'plots': plots,
-        'y_range': template_common.compute_plot_color_and_range(plots),
-    }
+    return _sdds_report(
+        frame_args,
+        str(frame_args.run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)),
+        _X_FIELD,
+    )
 
 
 sim_frame_coolingRatesAnimation = sim_frame_beamEvolutionAnimation
+
+
+def sim_frame_forceTableAnimation(frame_args):
+    return _sdds_report(
+        frame_args,
+        str(frame_args.run_dir.join(_FORCE_TABLE_FILENAME)),
+        frame_args.x,
+    )
+
 
 def sim_frame_particleAnimation(frame_args):
     page_index = frame_args.frameIndex
@@ -213,8 +218,6 @@ def sim_frame_particleAnimation(frame_args):
     y = y_col['values']
     model = data.models.particleAnimation
     model.update(frame_args)
-    model['x'] = xfield
-    model['y'] = yfield
     return template_common.heatmap([x, y], model, {
         'x_label': _field_label(xfield, x_col['column_def']),
         'y_label': _field_label(yfield, y_col['column_def']),
@@ -279,11 +282,35 @@ def _beam_evolution_status(run_dir, settings, has_rates):
 
 
 def _compute_range_across_files(run_dir, data):
-    res = {}
-    for v in _SCHEMA.enum.ParticleColumn:
+    res = PKDict({
+        _X_FIELD: [],
+    })
+    for v in _SCHEMA.enum.BeamColumn:
         res[_map_field_name(v[0])] = []
-    for filename in _ion_files(run_dir):
-        sdds_util.process_sdds_page(filename, 0, _compute_sdds_range, res)
+    for v in _SCHEMA.enum.CoolingRatesColumn:
+        res[_map_field_name(v[0])] = []
+    sdds_util.process_sdds_page(str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)), 0, _compute_sdds_range, res)
+    if run_dir.join(_FORCE_TABLE_FILENAME).exists():
+        res2 = PKDict()
+        for v in _SCHEMA.enum.ForceTableColumn:
+            res2[_map_field_name(v[0])] = []
+            sdds_util.process_sdds_page(str(run_dir.join(_FORCE_TABLE_FILENAME)), 0, _compute_sdds_range, res2)
+        res.update(res2)
+    #TODO(pjm): particleAnimation dp/p collides with beamEvolutionAnimation dp/p
+    ion_files = _ion_files(run_dir)
+    if len(ion_files):
+        res2 = PKDict()
+        for v in _SCHEMA.enum.ParticleColumn:
+            res2[_map_field_name(v[0])] = []
+        for filename in ion_files:
+            sdds_util.process_sdds_page(filename, 0, _compute_sdds_range, res2)
+        res.update(res2)
+    # reverse field mapping back to enum values
+    for k in _FIELD_MAP:
+        v = _FIELD_MAP[k]
+        if v in res:
+            res[k] = res[v]
+            del res[v]
     return res
 
 
@@ -331,6 +358,7 @@ def _field_direction(field):
 
 def _field_label(field, field_def):
     units = field_def[1]
+    field = _FIELD_LABEL.get(field, field)
     if units == 'NULL':
         return field
     return '{} [{}]'.format(field, units)
@@ -365,12 +393,53 @@ def _ion_files(run_dir):
 
 
 def _map_field_name(f):
-    if f in _FIELD_MAP:
-        return _FIELD_MAP[f]
-    return f
+    return _FIELD_MAP.get(f, f)
 
 
 def _safe_sdds_value(v):
     if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
         return 0
     return v
+
+
+def _sdds_report(frame_args, filename, x_field):
+    xfield = _map_field_name(x_field)
+    x_col = sdds_util.extract_sdds_column(filename, xfield, 0)
+    if x_col['err']:
+        return x_col['err']
+    x = x_col['values']
+    if 'fieldRange' in frame_args.sim_in.models.particleAnimation:
+        frame_args.fieldRange = frame_args.sim_in.models.particleAnimation.fieldRange
+    plots = []
+    for f in ('y1', 'y2', 'y3'):
+        if f not in frame_args or frame_args[f] == 'none':
+            continue
+        yfield = _map_field_name(frame_args[f])
+        y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
+        if y_col['err']:
+            return y_col['err']
+        label_prefix = ''
+        #TODO(pjm): the forceScale feature makes the code unmanageable
+        # it might be simpler if this was done on the client
+        if 'forceScale' in frame_args \
+           and yfield in ('f_x', 'f_long') \
+           and frame_args.forceScale == 'negative':
+            y_col['values'] = [-v for v in y_col['values']]
+            label_prefix = '-'
+            if 'fieldRange' in frame_args:
+                r = frame_args.fieldRange[frame_args[f]]
+                frame_args.fieldRange[frame_args[f]] = [-r[1], -r[0]]
+        plots.append(PKDict(
+            field=frame_args[f],
+            points=y_col['values'],
+            label='{}{}{}'.format(
+                label_prefix,
+                _field_label(yfield, y_col['column_def']),
+                _field_description(yfield, frame_args.sim_in),
+            ),
+        ))
+    frame_args.x = x_field
+    return template_common.parameter_plot(x, plots, frame_args, PKDict(
+        y_label='',
+        x_label=_field_label(x_field, x_col['column_def']),
+    ))

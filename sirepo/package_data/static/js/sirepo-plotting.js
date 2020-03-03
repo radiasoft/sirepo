@@ -1149,7 +1149,9 @@ SIREPO.app.service('focusPointService', function(plotting) {
     };
 
     function formatDatum(label, val, units) {
-        return val || val === 0 ? label + ' = ' + plotting.formatValue(val) + (units || '') : '';
+        return val || val === 0
+            ? label + ' = ' + plotting.formatValue(val) + ' ' + (units || '')
+            : '';
     }
 
     function formatFWHM(fwhm, units) {

@@ -47,6 +47,15 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
         controller: function($scope, $element) {
             var viewInfo = appState.viewInfo($scope.viewName);
             var i;
+
+            function tabSelectedEvent() {
+                appState.whenModelsLoaded($scope, function() {
+                    panelState.waitForUI(function() {
+                        $scope.$emit('sr-tabSelected', $scope.modelName, $scope.modelData ? $scope.modelData.modelKey : null);
+                    });
+                });
+            }
+
             $scope.form = angular.element($($element).find('form').eq(0));
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.description = viewInfo.description;
@@ -72,11 +81,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
                             $scope.modelName, $scope.modelData ? $scope.modelData.modelKey : null);
                     });
                 }
-                if (appState.isLoaded()) {
-                    panelState.waitForUI(function() {
-                        $scope.$emit('sr-tabSelected', $scope.modelName, $scope.modelData ? $scope.modelData.modelKey : null);
-                    });
-                }
+                tabSelectedEvent();
             };
             // named tabs
             if ($scope.advancedFields.length && $scope.isColumnField($scope.advancedFields[0]) && ! $scope.isColumnField($scope.advancedFields[0][0])) {
@@ -121,6 +126,9 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
             }
             if ($scope.pages) {
                 $scope.setActivePage($scope.pages[0]);
+            }
+            else {
+                tabSelectedEvent();
             }
         },
         link: function(scope, element) {
@@ -3424,11 +3432,10 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
     var runningModels = [];
 
     function setFieldRange(controller, prefix, model, field) {
-        //TODO(pjm): special case for jspec, needs to get migrated to jspec.js
-        if (field == 'dpp') {
-            field = 'dp/p';
-        }
-        var range = controller.fieldRange[field];
+        setRange(model, prefix, controller.fieldRange[field]);
+    }
+
+    function setRange(model, prefix, range) {
         if (range) {
             model[prefix + 'Size'] = range[1] - range[0];
             model[prefix + 'Offset'] = (range[0] + range[1]) / 2;
@@ -3440,6 +3447,25 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
         if (runningModels.indexOf(name) < 0) {
             runningModels.push(name);
         }
+    }
+
+    function setVerticalFieldRange(controller, model) {
+        var range = null;
+        ['y1', 'y2', 'y3'].forEach(function(f) {
+            var r1 = controller.fieldRange[model[f]];
+            if (! range) {
+                range = r1;
+            }
+            else if (r1) {
+                if (r1[0] < range[0]) {
+                    range[0] = r1[0];
+                }
+                if (r1[1] > range[1]) {
+                    range[1] = r1[1];
+                }
+            }
+        });
+        setRange(model, 'vertical', range);
     }
 
     self.computeFieldRanges = function(controller, name, percentComplete) {
@@ -3491,7 +3517,12 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
             }
             else {
                 setFieldRange(controller, 'horizontal', model, model.x);
-                setFieldRange(controller, 'vertical', model, model.y || model.y1);
+                if (model.y) {
+                    setFieldRange(controller, 'vertical', model, model.y);
+                }
+                else {
+                    setVerticalFieldRange(controller, model);
+                }
             }
         }
     };

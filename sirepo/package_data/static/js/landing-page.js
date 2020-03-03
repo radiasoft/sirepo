@@ -114,7 +114,7 @@ app.directive('lpBody', function(utilities, $document, $window) {
                     '<div data-ng-transclude="lpInfoSlot">',
                         '<div data-lp-info-panel=""></div>',
                     '</div>',
-                    '<div data-ng-show="showOpps()" class="lp-opportunities main-page" data-ng-class="{\'short\': applyOverlapClass() }" data-lp-opportunities="" data-opps="opps"></div>',
+                    '<div data-ng-if="showOpps()" class="lp-opportunities main-page" data-ng-class="{\'short\': applyOverlapClass() }" data-lp-opportunities="" data-opps="opps"></div>',
                 '</div>',
                 '<div class=" lp-flex-col col-md-5 rs-blue-background">',
                     '<div data-ng-if="onMainLandingPage()" class="lp-main-header lp-show-wide">',

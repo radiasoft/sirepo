@@ -1015,6 +1015,9 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
                 processUndulatorDefinition('B', 'horizontalDeflectingParameter', 'horizontalAmplitude');
             }
         });
+        appState.watchModelFields(
+            $scope, ['sourceIntensityReport.samplingMethod'],
+            srwService.updateSimulationGridFields);
     });
 });
 

@@ -12,6 +12,7 @@ from __future__ import absolute_import, division, print_function
 NON_ALPHA_CODES = frozenset((
     'elegant',
     'jspec',
+    'opal',
     'srw',
     'synergia',
     'warppba',
@@ -25,7 +26,6 @@ ALPHA_CODES = frozenset((
     'flash',
     'myapp',
     'rs4pi',
-    'opal',
 ))
 
 #: All possible codes
