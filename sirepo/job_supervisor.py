@@ -303,22 +303,9 @@ class _ComputeJob(PKDict):
         sirepo.util.json_dump(self.db, path=self.__db_file(self.db.computeJid))
         return self
 
-    async def _receive_api_downloadDataFile(self, req):
-        return await self._send_with_single_reply(
-            job.OP_ANALYSIS,
-            req,
-            jobCmd='get_data_file',
-            dataFileKey=req.content.pop('dataFileKey')
-        )
-
     @classmethod
-    async def _receive_api_jobs(cls, req):
-        def _get_running_jobs(want_adm):
-            def _strftime(unix_time):
-                return datetime.datetime.utcfromtimestamp(
-                    int(unix_time),
-                ).strftime('%Y-%m-%d %H:%M:%S')
-
+    def _get_running_jobs(cls, want_adm=False):
+        def _get_jobs():
             o = []
             for i in filter(
                     lambda x: x.db.status == job.RUNNING,
@@ -340,8 +327,13 @@ class _ComputeJob(PKDict):
                 else:
                     r.insert(1, d.name)
                 o.append(r)
-            return o
-        a = req.content.adm
+                return o
+
+        def _strftime(unix_time):
+            return datetime.datetime.utcfromtimestamp(
+                int(unix_time),
+            ).strftime('%Y-%m-%d %H:%M:%S')
+
         c = [
             'App',
             'Simulation id',
@@ -350,14 +342,30 @@ class _ComputeJob(PKDict):
             'Elapsed (mins.)',
             'Driver Details'
         ]
-        if a:
+        if want_adm:
             c.insert(0, 'User id')
         else:
             c.insert(1, 'Name')
         return PKDict(
             header=c,
-            rows=_get_running_jobs(a),
+            rows=_get_jobs(),
         )
+
+    @classmethod
+    async def _receive_api_admJobs(cls, req):
+        return cls._get_running_jobs(want_adm=True)
+
+    async def _receive_api_downloadDataFile(self, req):
+        return await self._send_with_single_reply(
+            job.OP_ANALYSIS,
+            req,
+            jobCmd='get_data_file',
+            dataFileKey=req.content.pop('dataFileKey')
+        )
+
+    @classmethod
+    async def _receive_api_ownJobs(cls, req):
+        return cls._get_running_jobs()
 
     async def _receive_api_runCancel(self, req, timed_out_op=None):
         """Cancel a run and related ops

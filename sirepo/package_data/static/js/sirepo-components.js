@@ -601,8 +601,8 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
               '<ul class="dropdown-menu">',
                 '<li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>',
                 '<li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }} via {{ ::authState.method }}</li>',
-                '<li data-ng-if="showAdmJobs()"><a data-ng-click="redirect(\'admJobs\')">Admin</a></li>',
-                '<li><a data-ng-click="redirect(\'jobs\')">Jobs</a></li>',
+                '<li data-ng-if="showAdmJobs()"><a data-ng-href="{{ getUrl(\'admJobs\') }}">Admin</a></li>',
+                '<li><a data-ng-href="{{ getUrl(\'ownJobs\') }}">Jobs</a></li>',
                 '<li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
               '</ul>',
             '</li>',
@@ -611,8 +611,8 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
             $scope.authState = authState;
             $scope.authService = authService;
 
-            $scope.redirect = function(route) {
-                requestSender.localRedirect(route);
+            $scope.getUrl = function(route) {
+                return requestSender.formatUrlLocal(route);
             };
 
             $scope.showAdmJobs = function() {
@@ -2648,6 +2648,9 @@ SIREPO.app.directive('bootstrapToggle', function() {
 SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $sce) {
     return {
         restrict: 'A',
+        scope: {
+            wantAdm: '<',
+        },
         template: [
             '<div>',
                 '<table class="table">',
@@ -2672,18 +2675,25 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                 );
             };
 
-            function is_adm() {
-                return $location.path().includes('adm');
-            };
-
             $scope.getJobs = function () {
                 requestSender.sendRequest(
-                    'jobs',
+                    ($scope.wantAdm ? 'adm' : 'own') + 'Jobs',
                     dataLoaded,
                     {
-                        adm: is_adm(),
                         simulationType: SIREPO.APP_SCHEMA.simulationType,
                     });
+            };
+
+            function getRow(row, wantAdm, nameIndex, simulationIdIndex, appIndex) {
+                var h = '';
+                for (var i =0; i < row.length; i++ ) {
+                    var v = row[i];
+                    if (!wantAdm && i === nameIndex) {
+                        v = '<a href=' + getUrl(row[simulationIdIndex], row[appIndex])  + '>' + v + '</a>';
+                    }
+                    h += '<td>' + v + '</td>';
+                }
+                return h;
             };
 
             $scope.getRows = function() {
@@ -2694,22 +2704,11 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                     if (s < 0 || a < 0) {
                         throw new Error("'Simulation id' or 'App' not found on header=" + d.header);
                     }
-                    var n = d.header.indexOf('Name')
-                    var m = is_adm();
-                    var o = '';
+                    var h = '';
                     for (var i in d.rows) {
-                        var r = d.rows[i];
-                        o += '<tr>';
-                        for (var j =0; j < r.length; j++ ) {
-                            var v = r[j];
-                            if (!m && j === n) {
-                                v = '<a href=' + getUrl(r[s], r[a])  + '>' + v + '</a>'
-                            }
-                            o += '<td>' + v + '</td>';
-                        }
-                        o += '</tr>';
+                        h += '<tr>' + getRow(d.rows[i], $scope.wantAdm, d.header.indexOf('Name'), s, a) + '</tr>';
                     }
-                    return $sce.trustAsHtml(o);
+                    return $sce.trustAsHtml(h);
                 }
             };
 

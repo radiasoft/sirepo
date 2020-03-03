@@ -62,6 +62,7 @@
         "longName": "Sirepo"
     },
     "route": {
+        "admJobs": "/adm-jobs",
         "adjustTime": "/adjust-time/?<days>",
         "blueskyAuth": "/bluesky-auth",
         "comsol": "/comsol",
@@ -91,12 +92,12 @@
         "homePageOld": "/old",
         "importArchive": "/import-archive",
         "importFile": "/import-file/<simulation_type>",
-        "jobs": "/jobs",
         "jobSupervisorPing": "/job-supervisor-ping",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
+        "ownJobs": "/own-jobs",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
         "robotsTxt": "/robots.txt",
         "root": "/<simulation_type>",
@@ -229,13 +230,7 @@
             "admJobs": {
                 "route": "/adm-jobs",
                 "config": {
-                  "templateUrl": "/static/html/jobs.html"
-                }
-            },
-            "jobs": {
-                "route": "/jobs",
-                "config": {
-                  "templateUrl": "/static/html/jobs.html"
+                  "templateUrl": "/static/html/adm-jobs.html"
                 }
             },
             "completeRegistration": {
@@ -309,6 +304,12 @@
                 "config": {
                   "controller": "NotFoundCopyController as notFoundCopy",
                   "templateUrl": "/static/html/copy-session.html"
+                }
+            },
+            "ownJobs": {
+                "route": "/own-jobs",
+                "config": {
+                  "templateUrl": "/static/html/own-jobs.html"
                 }
             },
             "sbatchLogin": {
