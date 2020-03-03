@@ -304,62 +304,65 @@ class _ComputeJob(PKDict):
         return self
 
     @classmethod
-    def _get_job_times(cls, job_db):
+    def _get_running_pending_jobs(cls, uid=None):
+        def _filter_jobs(job):
+            if uid and job.db.uid != uid:
+                return False
+            return job.db.status in _RUNNING_PENDING
+
+        def _get_header():
+            h = [
+                'App',
+                'Simulation id',
+                'Start (UTC)',
+                'Last update (UTC)',
+                'Elapsed',
+            ]
+            if uid:
+                h.insert(2, 'Name')
+            else:
+                h.insert(2, 'User id')
+                h.extend([
+                    'Queued',
+                    'Driver details',
+                ])
+            return h
+
         def _strf_unix_time(unix_time):
             return datetime.datetime.utcfromtimestamp(
                 int(unix_time),
             ).strftime('%Y-%m-%d %H:%M:%S')
 
         def _strf_seconds(seconds):
+            # formats to [D day[s], ][H]H:MM:SS[.UUUUUU]
             return str(datetime.timedelta(seconds=seconds))
 
-        return (_strf_unix_time(job_db.computeJobStart),
-                _strf_unix_time(job_db.lastUpdateTime),
-                _strf_seconds(job_db.lastUpdateTime - job_db.computeJobStart),)
+        def _get_rows():
+            r = []
+            for i in filter(_filter_jobs, cls.instances.values()):
+                d = [
+                    i.db.simulationType,
+                    i.db.simulationId,
+                    _strf_unix_time(i.db.computeJobStart),
+                    _strf_unix_time(i.db.lastUpdateTime),
+                    _strf_seconds(i.db.lastUpdateTime - i.db.computeJobStart),
+                ]
+                if uid:
+                    d.insert(2, i.db.name)
+                else:
+                    d.insert(2, i.db.uid)
+                    d.extend([
+                        None, # TODO(e-carlin): Queued time
+                        ' | '.join(sorted(i.db.driverDetails.values())),
+                    ])
+                r.append(d)
+            return r
 
-    @classmethod
-    def _get_running_pending_jobs(cls, uid=None):
-        def _check(job):
-            if uid and job.db.uid != uid:
-                return False
-            return job.db.status in _RUNNING_PENDING
-
-        return filter(_check, cls.instances.values())
+        return PKDict(header=_get_header(), rows=_get_rows())
 
     @classmethod
     async def _receive_api_admJobs(cls, req):
-        def _get_jobs():
-            o = []
-            for i in cls._get_running_pending_jobs():
-                s, l, e = cls._get_job_times(i.db)
-                r = [
-                    i.db.uid,
-                    i.db.simulationType,
-                    i.db.simulationId,
-                    s,
-                    l,
-                    e,
-                    None, # TODO(e-carlin): Queued time
-                    ' | '.join(sorted(i.db.driverDetails.values())),
-                ]
-                o.append(r)
-            return o
-
-        return PKDict(
-            header=[
-                'User id',
-                'App',
-                'Simulation id',
-                'Start (UTC)',
-                'Last update (UTC)',
-                'Elapsed',
-                'Queued',
-                'Driver details',
-            ],
-            rows=_get_jobs(),
-        )
-
-        return cls._get_running_jobs()
+        return cls._get_running_pending_jobs()
 
     async def _receive_api_downloadDataFile(self, req):
         return await self._send_with_single_reply(
@@ -371,33 +374,7 @@ class _ComputeJob(PKDict):
 
     @classmethod
     async def _receive_api_ownJobs(cls, req):
-        def _get_jobs():
-            o = []
-            for i in cls._get_running_pending_jobs(uid=req.content.uid):
-                s, l, e = cls._get_job_times(i.db)
-                r = [
-                    i.db.simulationType,
-                    i.db.simulationId,
-                    i.db.name,
-                    s,
-                    l,
-                    e,
-                ]
-                o.append(r)
-            return o
-
-        return PKDict(
-            header=[
-                'App',
-                'Simulation id',
-                'Name',
-                'Start (UTC)',
-                'Last update (UTC)',
-                'Elapsed',
-            ],
-            rows=_get_jobs(),
-        )
-        return cls._get_running_jobs()
+        return cls._get_running_pending_jobs(uid=req.content.uid)
 
     async def _receive_api_runCancel(self, req, timed_out_op=None):
         """Cancel a run and related ops
