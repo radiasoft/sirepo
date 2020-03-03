@@ -71,13 +71,9 @@
             ["Vlong", "Longitudinal Velocity"],
             ["edensity", "Electron Density"]
         ],
-        "ForceTableOptionalColumn": [
-            ["fx", "Transverse Force"],
-            ["flong", "Longitudinal Force"],
-            ["Vtrans", "Transverse Velocity"],
-            ["Vlong", "Longitudinal Velocity"],
-            ["edensity", "Electron Density"],
-            ["none", "None"]
+        "ForceTablePlot": [
+            ["longitudinal", "Longitudinal"],
+            ["transverse", "Transverse"]
         ],
         "FramesPerSecond": [
             ["1", "1"],
@@ -158,7 +154,6 @@
         "forceTableAnimation": [
             "x",
             "y1",
-            "y2",
             "forceScale",
             "plotRangeType",
             "horizontalSize",
@@ -250,9 +245,9 @@
             "force_formula": ["Force Formula", "ForceFormula", "parkhomchuk"]
         },
         "forceTableAnimation": {
-            "x": ["X Value", "ForceTableColumn", "Vlong"],
-            "y1": ["Y1 Value", "ForceTableColumn", "flong"],
-            "y2": ["Y2 Value", "ForceTableOptionalColumn", "none"],
+            "plot": ["Plot Type", "ForceTablePlot", "transverse"],
+            "x": ["X Value", "ForceTableColumn", "Vtrans"],
+            "y1": ["Y1 Value", "ForceTableColumn", "fx"],
             "forceScale": ["Force Scale", "ForceScaleFactor", "negative"],
             "plotRangeType": ["Range", "PlotRangeType", "none"],
             "horizontalSize": ["Horizontal Size", "Float", 0],
@@ -424,9 +419,7 @@
             "title": "Friction Force",
             "advanced": [
                 ["Main", [
-                    "x",
-                    "y1",
-                    "y2",
+                    "plot",
                     "forceScale",
                     "notes"
                 ]],

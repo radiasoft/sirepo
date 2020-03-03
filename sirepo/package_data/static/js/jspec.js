@@ -160,6 +160,21 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         });
     }
 
+    function processForceTablePlot() {
+        if (! appState.isLoaded()) {
+            return;
+        }
+        var force = appState.models.forceTableAnimation;
+        if (force.plot == 'longitudinal') {
+            force.x = 'Vlong';
+            force.y1 = 'flong';
+        }
+        else {
+            force.x = 'Vtrans';
+            force.y1 = 'fx';
+        }
+    }
+
     function processModel() {
         var settings = appState.models.simulationSettings;
         panelState.showField('simulationSettings', 'save_particle_interval', settings.model == 'particle');
@@ -171,6 +186,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         processModel();
         appState.watchModelFields($scope, ['simulationSettings.model', 'simulationSettings.e_cool'], processModel);
         appState.watchModelFields($scope, ['particleAnimation.colorRangeType'], processColorRange);
+        appState.watchModelFields($scope, ['forceTableAnimation.plot'], processForceTablePlot);
         ['particleAnimation', 'beamEvolutionAnimation', 'coolingRatesAnimation', 'forceTableAnimation'].forEach(function(m) {
             appState.watchModelFields($scope, [m + '.plotRangeType'], function() {
                 plotRangeService.processPlotRange(self, m);
