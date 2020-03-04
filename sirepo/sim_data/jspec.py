@@ -68,7 +68,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def jspec_elegant_twiss_path(cls):
-        return '{}/{}'.format(cls.compute_model(None), cls.JSPEC_ELEGANT_TWISS_FILENAME)
+        return '{}/{}'.format('animation', cls.JSPEC_ELEGANT_TWISS_FILENAME)
 
     @classmethod
     def jspec_elegant_dir(cls):
