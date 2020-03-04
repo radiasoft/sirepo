@@ -96,14 +96,15 @@ def _parse_element(parser, name, type):
             if f in _FIELD_ALIAS:
                 f = _FIELD_ALIAS[f]
             el[f] = parser.parse_value()
-    # ignore end of line ';'
-    if parser.peek_char() == ';':
-        parser.assert_char(';')
     return el
 
 
 def _parse_line(parser, line, models):
     line = line.lstrip()
+    # strip comments
+    line = re.sub(r'\s!.*$', '', line)
+    # ignore end of line ';'
+    line = re.sub(r';\s*$', '', line)
     parser.set_line(line)
     name = parser.parse_value(r'[:\s,=)*]')
     if re.search(r'^\%', name):
