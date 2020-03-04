@@ -273,6 +273,7 @@ class _ComputeJob(PKDict):
             computeJobHash=c.computeJobHash,
             computeJobSerial=0,
             computeJobStart=0,
+            computeJobQueued=0,
             driverDetails=PKDict(),
             error=None,
             history=self.__db_init_history(prev_db),
