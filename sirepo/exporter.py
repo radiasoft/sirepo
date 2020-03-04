@@ -8,12 +8,13 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
+from pykern import pkjson
 from pykern.pkdebug import pkdp
 from sirepo import sim_data
 from sirepo import simulation_db
 from sirepo import uri_router
-import sirepo.http_reply
 import copy
+import sirepo.http_reply
 import sirepo.util
 import zipfile
 
@@ -83,9 +84,9 @@ def _create_zip(sim, want_python, out_dir):
     """
     path = out_dir.join(sim.id + '.zip')
     data = simulation_db.open_json_file(sim.type, sid=sim.id)
+    simulation_db.update_rsmanifest(data)
     data.pkdel('report')
     files = sim_data.get_class(data).lib_files_for_export(data)
-    files.insert(0, simulation_db.sim_data_file(sim.type, sim.id))
     if want_python:
         files.append(_python(data))
     with zipfile.ZipFile(
@@ -96,6 +97,10 @@ def _create_zip(sim, want_python, out_dir):
     ) as z:
         for f in files:
             z.write(str(f), f.basename)
+        z.writestr(
+            simulation_db.SIMULATION_DATA_FILE,
+            pkjson.dump_pretty(data, pretty=True),
+        )
     return path, data
 
 
