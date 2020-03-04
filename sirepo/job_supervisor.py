@@ -340,6 +340,11 @@ class _ComputeJob(PKDict):
             return str(datetime.timedelta(seconds=seconds))
 
         def _get_rows():
+            def _get_queued_time(db):
+                m = i.db.computeJobStart if i.db.status == job.RUNNING \
+                    else int(time.time())
+                return _strf_seconds(m - db.computeJobQueued)
+
             r = []
             for i in filter(_filter_jobs, cls.instances.values()):
                 d = [
@@ -354,7 +359,7 @@ class _ComputeJob(PKDict):
                 else:
                     d.insert(l, i.db.uid)
                     d.extend([
-                        None, # TODO(e-carlin): Queued time
+                        _get_queued_time(i.db),
                         ' | '.join(sorted(i.db.driverDetails.values())),
                     ])
                 r.append(d)
