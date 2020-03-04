@@ -16,14 +16,25 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def xtest_srw_adm_jobs(fc):
+def setup_module(module):
+    os.environ.update(
+        SIREPO_JOB_DRIVER_LOCAL_SLOTS_PARALLEL='2',
+    )
+
+
+def test_srw_adm_jobs(auth_fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdp
+
     n = "Young's Double Slit Experiment"
     m = 'multiElectronAnimation'
-    d = fc.sr_sim_data(n)
-    l = 8
+    t = 'srw'
     cancel = None
+
+    fc = auth_fc
+    fc.sr_login_as_guest(sim_type=t)
+    d = fc.sr_sim_data(n)
+
     try:
         r = fc.sr_post(
             'runSimulation',
@@ -53,14 +64,19 @@ def xtest_srw_adm_jobs(fc):
         fc.sr_post('runCancel', cancel)
 
 
-def xtest_srw_adm_jobs_forbidden(fc):
+def test_srw_adm_jobs_forbidden(auth_fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdp
 
     n = "Young's Double Slit Experiment"
     m = 'multiElectronAnimation'
-    d = fc.sr_sim_data(n)
+    t = 'srw'
     cancel = None
+
+    fc = auth_fc
+    fc.sr_login_as_guest(sim_type=t)
+    d = fc.sr_sim_data(n)
+
     try:
         r = fc.sr_post(
             'runSimulation',
@@ -91,14 +107,19 @@ def xtest_srw_adm_jobs_forbidden(fc):
         fc.sr_post('runCancel', cancel)
 
 
-def xtest_srw_get_own_jobs(fc):
+def test_srw_get_own_jobs(auth_fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdp
+
     n = "Young's Double Slit Experiment"
     m = 'multiElectronAnimation'
-    d = fc.sr_sim_data(n)
-    l = 6
+    t = 'srw'
     cancel = None
+
+    fc = auth_fc
+    fc.sr_login_as_guest(sim_type=t)
+    d = fc.sr_sim_data(n)
+
     try:
         r = fc.sr_post(
             'runSimulation',
@@ -134,15 +155,23 @@ def test_srw_user_see_only_own_jobs(auth_fc):
     import sirepo.auth_db
     import sirepo.auth
 
-    n = "Young's Double Slit Experiment"
-    m = 'multiElectronAnimation'
-    d = auth_fc.sr_sim_data(n)
+    def _cancel_job(user, cancel_req):
+        _login_as_user(user)
+        fc.sr_post('runCancel', cancel_req)
 
-    def _login_as_user(user):
-        fc.sr_post('authEmailLogin', {'email': user, 'simulationType': fc.sr_sim_type})
+    def _clear_role_db():
+        sirepo.auth_db.UserRole.query.delete()
+        r = sirepo.auth_db.UserRole.search_all_for_column('uid')
+
+    def _get_jobs(adm, job_count):
+        r = fc.sr_post(
+            'admJobs' if adm else 'ownJobs',
+            PKDict(simulationType=t)
+        )
+        pkunit.pkeq(job_count, len(r.rows), 'r={}', r)
 
     def _get_simulation_running():
-        fc.sr_post('authEmailLogin', {'email': user_b, 'simulationType': fc.sr_sim_type})
+        d = auth_fc.sr_sim_data(sim_name=n, sim_type='srw')
         r = fc.sr_post(
             'runSimulation',
             PKDict(
@@ -152,35 +181,56 @@ def test_srw_user_see_only_own_jobs(auth_fc):
                 simulationType=d.simulationType,
             )
         )
-        for _ in range(10):
-            if r.state == 'running':
-                return
-            r = fc.sr_post('runStatus', r.nextRequest)
-            time.sleep(1)
-        else:
-            pkunit.pkfail('Never entered running state')
+        try:
+            for _ in range(10):
+                if r.state == 'running':
+                    return r.nextRequest
+                r = fc.sr_post('runStatus', r.nextRequest)
+                time.sleep(1)
+            else:
+                pkunit.pkfail('Never entered running state')
+        except Exception:
+            fc.sr_post('runCancel', r.nextRequest)
+            raise
 
-    def _register_both_users():
-        r = fc.sr_post('authEmailLogin', {'email': user_a, 'simulationType': fc.sr_sim_type})
+    def _login_as_user(user):
+        fc.sr_logout()
+        r = fc.sr_post('authEmailLogin', {'email': user, 'simulationType': t})
         fc.sr_email_confirm(fc, r)
-        fc.sr_post('authCompleteRegistration', {'displayName': 'abc', 'simulationType': fc.sr_sim_type,},)
-        fc.sr_get('authLogout', {'simulation_type': fc.sr_sim_type})
-        uid = fc.sr_auth_state().uid
-        r = fc.sr_post('authEmailLogin', {'email': user_b, 'simulationType': fc.sr_sim_type})
-        fc.sr_email_confirm(fc, r, 'xyz')
+
+    def _make_user_adm(uid):
         sirepo.auth_db.UserRole.add_roles(uid, [sirepo.auth.ROLE_ADM])
         r = sirepo.auth_db.UserRole.search_all_for_column('uid')
-        pkunit.pkeq(1, len(r))
-        pkunit.pkeq(r[0], uid)
-    # t = 'srw'
-    # n = "Young's Double Slit Experiment"
-    # m = 'multiElectronAnimation'
-    # d = fc.sr_sim_data(n)
+        pkunit.pkeq(1, len(r), 'One user with role adm r={}', r)
+        pkunit.pkeq(r[0], uid, 'Expected same uid as user')
+
+    def _register_both_users():
+        r = fc.sr_post('authEmailLogin', {'email': adm_user, 'simulationType': t})
+        fc.sr_email_confirm(fc, r)
+        fc.sr_post('authCompleteRegistration', {'displayName': 'abc', 'simulationType': t},)
+        fc.sr_get('authLogout', {'simulation_type': fc.sr_sim_type})
+        _make_user_adm(fc.sr_auth_state().uid)
+        r = fc.sr_post('authEmailLogin', {'email': non_adm_user, 'simulationType': t})
+        fc.sr_email_confirm(fc, r, 'xyz')
+
     fc = auth_fc
-
-    user_a = 'diff@b.c'
-    user_b = 'x@y.z'
-
-    _register_both_users()
-    # _login_as_user(user)
-    _get_simulation_running()
+    t = 'srw'
+    n = "Young's Double Slit Experiment"
+    m = 'multiElectronAnimation'
+    adm_user = 'diff@b.c'
+    non_adm_user = 'x@y.z'
+    non_adm_job_cancel_req = adm_job_cancel_req = None
+    try:
+        _clear_role_db()
+        _register_both_users()
+        non_adm_job_cancel_req = _get_simulation_running()
+        _login_as_user(adm_user)
+        adm_job_cancel_req = _get_simulation_running()
+        _get_jobs(True, 2)
+        _login_as_user(non_adm_user)
+        _get_jobs(False, 1)
+    finally:
+        if non_adm_job_cancel_req:
+            _cancel_job(non_adm_user, non_adm_job_cancel_req)
+        if adm_job_cancel_req:
+            _cancel_job(adm_user, adm_job_cancel_req)
