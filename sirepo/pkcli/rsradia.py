@@ -15,6 +15,7 @@ import sirepo.template.rsradia as template
 
 
 def run(cfg_dir):
+    pkdp('RAD RUN')
     with pkio.save_chdir(cfg_dir):
         exec(_script(), locals(), locals())
         data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
@@ -27,6 +28,7 @@ def run_background(cfg_dir):
     Args:
         cfg_dir (str): directory to run warpvnd in
     """
+    pkdp('RAD RUN BG')
     with pkio.save_chdir(cfg_dir):
         simulation_db.write_json(py.path.local(cfg_dir).join(template.MPI_SUMMARY_FILE), {
             'mpiCores': mpi.cfg.cores,
@@ -36,4 +38,5 @@ def run_background(cfg_dir):
 
 
 def _script():
+    pkdp('RAD SCRPT')
     return pkio.read_text(template_common.PARAMETERS_PYTHON_FILE)

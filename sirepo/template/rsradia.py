@@ -65,8 +65,15 @@ def extract_report_data(run_dir, sim_in):
 
 
 def get_application_data(data, **kwargs):
-    pkdp('RAD GET APP DATA')
-    return data
+    if 'method' in data and data.method == 'get_geom':
+        geom_file = simulation_db.simulation_dir(SIM_TYPE, data.simulationId) \
+            .join('geometry').join(_GEOM_FILE)
+        try:
+            with h5py.File(geom_file, 'r') as hf:
+                return template_common.h5_to_dict(hf, path='geometry')
+        except IOError:
+            return {}
+    raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
 def python_source_for_model(data, model):

@@ -32,6 +32,11 @@ FIELD_UNITS = PKDict({
 def dump(geom):
     return radia.UtiDmp(geom, 'asc')
 
+
+def dump_bin(geom):
+    return radia.UtiDmp(geom, 'bin')
+
+
 def geom_to_data(geom, name=None, divide=True):
     d_arr = []
     if not divide:

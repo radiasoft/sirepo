@@ -14,6 +14,7 @@ g_id = rsradia_examples.build('{{ geomName }}')
 g_id = -1
 {% endif %}
 
+
 if '{{ viewType }}' == VIEW_TYPE_OBJ:
     g_data = radia_tk.geom_to_data(g_id, name='{{ geomName }}')
 else:

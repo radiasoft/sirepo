@@ -10,11 +10,19 @@ import sirepo.sim_data
 
 
 class SimData(sirepo.sim_data.SimDataBase):
-    ANALYSIS_ONLY_FIELDS = frozenset(('colorMap', 'notes',))
+    ANALYSIS_ONLY_FIELDS = frozenset(('colorMap', 'name', 'notes', 'scaling'))
     GEOM_FILE = 'geom.h5'
 
     @classmethod
+    def _compute_job_fields(cls, data, r, compute_model):
+        pkdp('RAD _compute_job_fields for {}', compute_model)
+        res = cls._non_analysis_fields(data, r) + []
+        pkdp('JOB FIELDS {}', res)
+        return res
+
+    @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
+        #pkdp('_compute_model {}', analysis_model)
         if analysis_model in (
             'solver',
         ):
@@ -26,11 +34,11 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._init_models(data.models)
         cls._organize_example(data)
 
-    @classmethod
-    def _compute_job_fields(cls, data, *args, **kwargs):
-        return [
-            data.report,
-        ]
+    #@classmethod
+    #def _compute_job_fields(cls, data, *args, **kwargs):
+    #    return [
+    #        data.report,
+    #    ]
 
     @classmethod
     def _lib_file_basenames(cls, data):

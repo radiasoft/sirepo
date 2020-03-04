@@ -97,6 +97,7 @@
         },
         "magnetDisplay": {
             "fieldType": ["Field", "FieldType", "M"],
+            "notes": ["Notes", "Text", ""],
             "pathType": ["Path", "PathType", "line"],
             "viewType": ["View", "ViewType", "objects"]
         },
@@ -135,7 +136,9 @@
                 "fieldDisplay.colorMap",
                 "fieldDisplay.scaling"
             ],
-            "advanced": []
+            "advanced": [
+                "notes"
+            ]
         },
         "solver": {
             "title": "Solver",
