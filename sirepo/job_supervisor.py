@@ -36,6 +36,7 @@ _NEXT_REQUEST_SECONDS = None
 _RUNNING_PENDING = (job.RUNNING, job.PENDING)
 
 _HISTORY_FIELDS = frozenset((
+    'computeJobQueued',
     'computeJobSerial',
     'computeJobStart',
     'driverDetails',
@@ -455,9 +456,11 @@ class _ComputeJob(PKDict):
             jobCmd='compute',
             nextRequestSeconds=self.db.nextRequestSeconds,
         )
+        t = int(time.time())
         self.__db_init(req, prev_db=self.db)
         self.db.pkupdate(
-            computeJobSerial=int(time.time()),
+            computeJobQueued=t,
+            computeJobSerial=t,
             driverDetails=o.driver.driver_details,
             # run mode can change between runs so we must update the db
             jobRunMode=req.content.jobRunMode,
