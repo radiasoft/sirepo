@@ -319,9 +319,9 @@ class _ComputeJob(PKDict):
                 'Elapsed',
             ]
             if uid:
-                h.insert(2, 'Name')
+                h.insert(l, 'Name')
             else:
-                h.insert(2, 'User id')
+                h.insert(l, 'User id')
                 h.extend([
                     'Queued',
                     'Driver details',
@@ -348,16 +348,19 @@ class _ComputeJob(PKDict):
                     _strf_seconds(i.db.lastUpdateTime - i.db.computeJobStart),
                 ]
                 if uid:
-                    d.insert(2, i.db.name)
+                    d.insert(l, i.db.name)
                 else:
-                    d.insert(2, i.db.uid)
+                    d.insert(l, i.db.uid)
                     d.extend([
                         None, # TODO(e-carlin): Queued time
                         ' | '.join(sorted(i.db.driverDetails.values())),
                     ])
                 r.append(d)
+
+            r.sort(key=lambda x: x[l])
             return r
 
+        l = 2
         return PKDict(header=_get_header(), rows=_get_rows())
 
     @classmethod

@@ -2686,6 +2686,7 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
             }
 
             function getStartIndex() {
+                // 'SimulationId' and
                 return $scope.wantAdm ? 0 : 2;
             }
 
@@ -2719,10 +2720,10 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
             $scope.getRows = function() {
                 var d = $scope.data;
                 if (d) {
-                    var s = d.header.indexOf('Simulation id');
                     var a = d.header.indexOf('App');
-                    if (s < 0 || a < 0) {
-                        throw new Error("'Simulation id' or 'App' not found on header=" + d.header);
+                    var s = d.header.indexOf('Simulation id');
+                    if (a !== 0 && s !== 1) {
+                        throw new Error("'Simulation id' or 'App' not found in known location on header=" + d.header);
                     }
                     var h = '';
                     for (var i in d.rows) {
