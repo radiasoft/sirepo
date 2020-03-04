@@ -137,10 +137,12 @@ def _run_shadow():
     """Run shadow program with isolated locals()
     """
     try:
-        exec(_script(), locals(), locals())
+        g = locals().copy()
+        l = locals().copy()
+        exec(_script(), g, l)
     except Exception:
         pkdlog('script={} error={}', _script(), pkdexc())
-    return beam
+    return l['beam']
 
 
 def _scale_ticket(ticket):
