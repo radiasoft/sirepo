@@ -36,6 +36,7 @@ _NEXT_REQUEST_SECONDS = None
 _RUNNING_PENDING = (job.RUNNING, job.PENDING)
 
 _HISTORY_FIELDS = frozenset((
+    'computeJobQueued',
     'computeJobSerial',
     'computeJobStart',
     'driverDetails',
@@ -272,12 +273,14 @@ class _ComputeJob(PKDict):
             computeJobHash=c.computeJobHash,
             computeJobSerial=0,
             computeJobStart=0,
+            computeJobQueued=0,
             driverDetails=PKDict(),
             error=None,
             history=self.__db_init_history(prev_db),
             isParallel=c.isParallel,
             jobRunMode=c.jobRunMode,
             lastUpdateTime=0,
+            simName=None,
             nextRequestSeconds=_NEXT_REQUEST_SECONDS[c.jobRunMode],
             simulationId=c.simulationId,
             simulationType=c.simulationType,
@@ -303,45 +306,73 @@ class _ComputeJob(PKDict):
         return self
 
     @classmethod
-    async def _receive_api_admJobs(cls, req):
-        def _get_running_jobs():
-            def _strftime(unix_time):
-                return datetime.datetime.utcfromtimestamp(
-                    int(unix_time),
-                ).strftime('%Y-%m-%d %H:%M:%S')
+    def _get_running_pending_jobs(cls, uid=None):
+        def _filter_jobs(job):
+            if uid and job.db.uid != uid:
+                return False
+            return job.db.status in _RUNNING_PENDING
 
-            o = []
-            for i in filter(
-                    lambda x: x.db.status == job.RUNNING,
-                    cls.instances.values(),
-            ):
-                d = i.db
-                s = d.computeJobStart
-                l = d.lastUpdateTime
-                o.append(
-                    [
-                        d.uid,
-                        d.simulationType,
-                        d.simulationId,
-                        _strftime(s),
-                        _strftime(l),
-                        round((l - s) / 60.0, 2),
-                        ' | '.join(sorted(d.driverDetails.values()))
-                    ],
-                )
-            return o
-        return PKDict(
-            columns=[
-                'User id',
+        def _get_header():
+            h = [
                 'App',
                 'Simulation id',
                 'Start (UTC)',
                 'Last update (UTC)',
-                'Elapsed (mins.)',
-                'Driver Details'
-            ],
-            data=_get_running_jobs(),
-        )
+                'Elapsed',
+            ]
+            if uid:
+                h.insert(l, 'Name')
+            else:
+                h.insert(l, 'User id')
+                h.extend([
+                    'Queued',
+                    'Driver details',
+                ])
+            return h
+
+        def _strf_unix_time(unix_time):
+            return datetime.datetime.utcfromtimestamp(
+                int(unix_time),
+            ).strftime('%Y-%m-%d %H:%M:%S')
+
+        def _strf_seconds(seconds):
+            # formats to [D day[s], ][H]H:MM:SS[.UUUUUU]
+            return str(datetime.timedelta(seconds=seconds))
+
+        def _get_rows():
+            def _get_queued_time(db):
+                m = i.db.computeJobStart if i.db.status == job.RUNNING \
+                    else int(time.time())
+                return _strf_seconds(m - db.computeJobQueued)
+
+            r = []
+            for i in filter(_filter_jobs, cls.instances.values()):
+                d = [
+                    i.db.simulationType,
+                    i.db.simulationId,
+                    _strf_unix_time(i.db.computeJobStart),
+                    _strf_unix_time(i.db.lastUpdateTime),
+                    _strf_seconds(i.db.lastUpdateTime - i.db.computeJobStart),
+                ]
+                if uid:
+                    d.insert(l, i.db.simName)
+                else:
+                    d.insert(l, i.db.uid)
+                    d.extend([
+                        _get_queued_time(i.db),
+                        ' | '.join(sorted(i.db.driverDetails.values())),
+                    ])
+                r.append(d)
+
+            r.sort(key=lambda x: x[l])
+            return r
+
+        l = 2
+        return PKDict(header=_get_header(), rows=_get_rows())
+
+    @classmethod
+    async def _receive_api_admJobs(cls, req):
+        return cls._get_running_pending_jobs()
 
     async def _receive_api_downloadDataFile(self, req):
         return await self._send_with_single_reply(
@@ -350,6 +381,10 @@ class _ComputeJob(PKDict):
             jobCmd='get_data_file',
             dataFileKey=req.content.pop('dataFileKey')
         )
+
+    @classmethod
+    async def _receive_api_ownJobs(cls, req):
+        return cls._get_running_pending_jobs(uid=req.content.uid)
 
     async def _receive_api_runCancel(self, req, timed_out_op=None):
         """Cancel a run and related ops
@@ -379,7 +414,7 @@ class _ComputeJob(PKDict):
         if (
             # a running simulation may be cancelled due to a
             # downloadDataFile request timeout in another browser window (only the
-            # computJids must match between the two requests). This might be
+            # computeJids must match between the two requests). This might be
             # a weird UX but it's important to do, because no op should take
             # longer than its timeout.
             #
@@ -455,22 +490,25 @@ class _ComputeJob(PKDict):
             jobCmd='compute',
             nextRequestSeconds=self.db.nextRequestSeconds,
         )
+        t = int(time.time())
+        self.__db_init(req, prev_db=self.db)
+        self.db.pkupdate(
+            computeJobQueued=t,
+            computeJobSerial=t,
+            computeModel=req.content.computeModel,
+            driverDetails=o.driver.driver_details,
+            # run mode can change between runs so we must update the db
+            jobRunMode=req.content.jobRunMode,
+            simName=req.content.data.models.simulation.name,
+            status=job.PENDING,
+        )
+        self.__db_write()
         try:
             for i in range(_MAX_RETRIES):
                 try:
                     await self.run_dir_acquire(o)
                     await o.prepare_send()
                     self.run_op = o
-                    self.__db_init(req, prev_db=self.db)
-                    self.db.pkupdate(
-                        computeJobSerial=int(time.time()),
-                        driverDetails=o.driver.driver_details,
-                        # run mode can change between runs so we must update the db
-                        jobRunMode=req.content.jobRunMode,
-                        computeModel=req.content.computeModel,
-                        status=job.PENDING,
-                    )
-                    self.__db_write()
                     o.make_lib_dir_symlink()
                     o.send()
                     r = self._status_reply(req)
@@ -486,10 +524,15 @@ class _ComputeJob(PKDict):
                     pass
             else:
                 raise AssertionError('too many retries {}'.format(req))
-        finally:
+        except Exception as e:
+            self.db.pkupdate(
+                status=job.ERROR,
+                error=e,
+            )
             # _run destroys in the happy path (never got to _run here)
             if o:
                 o.destroy(cancel=False)
+            raise
 
     async def _receive_api_runStatus(self, req):
         r = self._status_reply(req)

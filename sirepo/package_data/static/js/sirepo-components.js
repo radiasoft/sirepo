@@ -609,7 +609,8 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
               '<ul class="dropdown-menu">',
                 '<li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>',
                 '<li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }} via {{ ::authState.method }}</li>',
-                '<li data-ng-if="showAdmJobs()"><a data-ng-click="redirectAdmJobs()">Admin</a></li>',
+                '<li data-ng-if="showAdmJobs()"><a data-ng-href="{{ getUrl(\'admJobs\') }}">Admin</a></li>',
+                '<li><a data-ng-href="{{ getUrl(\'ownJobs\') }}">Jobs</a></li>',
                 '<li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
               '</ul>',
             '</li>',
@@ -618,8 +619,8 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
             $scope.authState = authState;
             $scope.authService = authService;
 
-            $scope.redirectAdmJobs = function() {
-                requestSender.localRedirect('admJobs');
+            $scope.getUrl = function(route) {
+                return requestSender.formatUrlLocal(route);
             };
 
             $scope.showAdmJobs = function() {
@@ -2652,23 +2653,19 @@ SIREPO.app.directive('bootstrapToggle', function() {
 });
 
 
-SIREPO.app.directive('jobsList', function(requestSender, appState) {
+SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $sce) {
     return {
         restrict: 'A',
+        scope: {
+            wantAdm: '<',
+        },
         template: [
             '<div>',
                 '<table class="table">',
-                '<tr>',
-                    '<th data-ng-repeat="c in data.columns">{{ c }}</th>',
-                '</tr>',
-                '<tr data-ng-repeat="r in data.data">',
-                    // must 'track by $index' because start and last update can be the same
-                    '<td data-ng-repeat="c in r track by $index">',
-                        '<span>{{ c }}</span>',
-                    '</td>',
-                '</tr>',
+                    '<thead ng-bind-html="getHeader()"></thead>',
+                    '<tbody ng-bind-html="getRows()"></tbody>',
                 '</table>',
-                '<button class="btn btn-default" data-ng-click="getAdmJobs()">Refresh</button>',
+                '<button class="btn btn-default" data-ng-click="getJobs()">Refresh</button>',
             '</div>',
         ].join(''),
         controller: function($scope) {
@@ -2676,18 +2673,68 @@ SIREPO.app.directive('jobsList', function(requestSender, appState) {
                 $scope.data = data;
             }
 
-            $scope.getAdmJobs = function (id) {
+            function getRow(row, nameIndex, simulationIdIndex, appIndex) {
+                var h = '';
+                for (var i = getStartIndex(); i < row.length; i++) {
+                    var v = row[i];
+                    if (!$scope.wantAdm && i === nameIndex) {
+                        v = '<a href=' + getUrl(row[simulationIdIndex], row[appIndex])  + '>' + v + '</a>';
+                    }
+                    h += '<td>' + v + '</td>';
+                }
+                return h;
+            }
+
+            function getStartIndex() {
+                // 'SimulationId' and
+                return $scope.wantAdm ? 0 : 2;
+            }
+
+            function getUrl(simulationId, app) {
+                return requestSender.formatUrlLocal(
+                    'source',
+                    {':simulationId': simulationId},
+                    app
+                );
+            }
+
+            $scope.getHeader = function() {
+                var h = '';
+                if ($scope.data) {
+                    for (var i = getStartIndex(); i < $scope.data.header.length; i++) {
+                        h += '<th>' + $scope.data.header[i] + '</th>';
+                    }
+                    return $sce.trustAsHtml(h);
+                }
+            };
+
+            $scope.getJobs = function () {
                 requestSender.sendRequest(
-                    'admJobs',
+                    $scope.wantAdm ? 'admJobs' : 'ownJobs',
                     dataLoaded,
                     {
-                        id: id,
+                        simulationType: SIREPO.APP_SCHEMA.simulationType,
                     });
             };
 
-            appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
-            $scope.getAdmJobs();
+            $scope.getRows = function() {
+                var d = $scope.data;
+                if (d) {
+                    var a = d.header.indexOf('App');
+                    var s = d.header.indexOf('Simulation id');
+                    if (a !== 0 && s !== 1) {
+                        throw new Error("'Simulation id' or 'App' not found in known location on header=" + d.header);
+                    }
+                    var h = '';
+                    for (var i in d.rows) {
+                        h += '<tr>' + getRow(d.rows[i], d.header.indexOf('Name'), s, a) + '</tr>';
+                    }
+                    return $sce.trustAsHtml(h);
+                }
+            };
 
+            appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
+            $scope.getJobs();
 
         },
     };

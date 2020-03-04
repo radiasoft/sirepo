@@ -97,6 +97,7 @@
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
+        "ownJobs": "/own-jobs",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
         "robotsTxt": "/robots.txt",
         "root": "/<simulation_type>",
@@ -229,7 +230,7 @@
             "admJobs": {
                 "route": "/adm-jobs",
                 "config": {
-                  "templateUrl": "/static/html/adm.html"
+                  "templateUrl": "/static/html/adm-jobs.html"
                 }
             },
             "completeRegistration": {
@@ -303,6 +304,12 @@
                 "config": {
                   "controller": "NotFoundCopyController as notFoundCopy",
                   "templateUrl": "/static/html/copy-session.html"
+                }
+            },
+            "ownJobs": {
+                "route": "/own-jobs",
+                "config": {
+                  "templateUrl": "/static/html/own-jobs.html"
                 }
             },
             "sbatchLogin": {

@@ -34,7 +34,9 @@ _MAX_FRAME_SEARCH_DEPTH = 6
 @api_perm.require_user
 def api_admJobs():
     sirepo.auth.check_user_has_role(sirepo.auth.ROLE_ADM)
-    return _request(_request_content=PKDict())
+    return _request(
+        _request_content=PKDict(**sirepo.http_request.parse_post()),
+    )
 
 
 @api_perm.require_user
@@ -104,6 +106,16 @@ def api_jobSupervisorPing():
         pkdlog(e)
         e = 'unexpected exception'
     return PKDict(state='error', error=e)
+
+
+@api_perm.require_user
+def api_ownJobs():
+    return _request(
+        _request_content=PKDict(
+            uid=sirepo.auth.logged_in_user(),
+            **sirepo.http_request.parse_post()
+        ),
+    )
 
 
 @api_perm.require_user
