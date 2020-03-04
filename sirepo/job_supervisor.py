@@ -36,6 +36,7 @@ _NEXT_REQUEST_SECONDS = None
 _RUNNING_PENDING = (job.RUNNING, job.PENDING)
 
 _HISTORY_FIELDS = frozenset((
+    'computeJobQueued',
     'computeJobSerial',
     'computeJobStart',
     'driverDetails',
@@ -483,23 +484,25 @@ class _ComputeJob(PKDict):
             jobCmd='compute',
             nextRequestSeconds=self.db.nextRequestSeconds,
         )
+        t = int(time.time())
+        self.__db_init(req, prev_db=self.db)
+        self.db.pkupdate(
+            computeJobQueued=t,
+            computeJobSerial=t,
+            computeModel=req.content.computeModel,
+            driverDetails=o.driver.driver_details,
+            # run mode can change between runs so we must update the db
+            jobRunMode=req.content.jobRunMode,
+            simName=req.content.data.models.simulation.name,
+            status=job.PENDING,
+        )
+        self.__db_write()
         try:
             for i in range(_MAX_RETRIES):
                 try:
                     await self.run_dir_acquire(o)
                     await o.prepare_send()
                     self.run_op = o
-                    self.__db_init(req, prev_db=self.db)
-                    self.db.pkupdate(
-                        computeJobSerial=int(time.time()),
-                        computeModel=req.content.computeModel,
-                        driverDetails=o.driver.driver_details,
-                        # run mode can change between runs so we must update the db
-                        jobRunMode=req.content.jobRunMode,
-                        simName=req.content.data.models.simulation.name,
-                        status=job.PENDING,
-                    )
-                    self.__db_write()
                     o.make_lib_dir_symlink()
                     o.send()
                     r = self._status_reply(req)
@@ -515,10 +518,15 @@ class _ComputeJob(PKDict):
                     pass
             else:
                 raise AssertionError('too many retries {}'.format(req))
-        finally:
+        except Exception as e:
+            self.db.pkupdate(
+                status=job.ERROR,
+                error=e,
+            )
             # _run destroys in the happy path (never got to _run here)
             if o:
                 o.destroy(cancel=False)
+            raise
 
     async def _receive_api_runStatus(self, req):
         r = self._status_reply(req)
