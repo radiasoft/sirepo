@@ -278,7 +278,7 @@ class _ComputeJob(PKDict):
             isParallel=c.isParallel,
             jobRunMode=c.jobRunMode,
             lastUpdateTime=0,
-            name=None,
+            simName=None,
             nextRequestSeconds=_NEXT_REQUEST_SECONDS[c.jobRunMode],
             simulationId=c.simulationId,
             simulationType=c.simulationType,
@@ -348,7 +348,7 @@ class _ComputeJob(PKDict):
                     _strf_seconds(i.db.lastUpdateTime - i.db.computeJobStart),
                 ]
                 if uid:
-                    d.insert(l, i.db.name)
+                    d.insert(l, i.db.simName)
                 else:
                     d.insert(l, i.db.uid)
                     d.extend([
@@ -496,7 +496,7 @@ class _ComputeJob(PKDict):
                         driverDetails=o.driver.driver_details,
                         # run mode can change between runs so we must update the db
                         jobRunMode=req.content.jobRunMode,
-                        name=req.content.data.models.simulation.name,
+                        simName=req.content.data.models.simulation.name,
                         status=job.PENDING,
                     )
                     self.__db_write()
