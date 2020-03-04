@@ -390,7 +390,7 @@ class _Cmd(PKDict):
         )
 
     def job_cmd_pyenv(self):
-        return 'py2'
+        return 'py3' if self.msg.simulationType == 'shadow' else 'py2'
 
     def job_cmd_source_bashrc(self):
         return 'source $HOME/.bashrc'
