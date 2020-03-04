@@ -22,131 +22,53 @@ def setup_module(module):
     )
 
 
-def test_srw_adm_jobs(auth_fc):
+def test_adm_jobs(auth_fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdp
 
-    n = "Young's Double Slit Experiment"
-    m = 'multiElectronAnimation'
-    t = 'srw'
-    cancel = None
-
-    fc = auth_fc
-    fc.sr_login_as_guest(sim_type=t)
-    d = fc.sr_sim_data(n)
-
-    try:
+    def _op(fc, sim_type):
         r = fc.sr_post(
-            'runSimulation',
-            PKDict(
-                models=d.models,
-                report=m,
-                simulationId=d.models.simulation.simulationId,
-                simulationType=d.simulationType,
-            )
+            'admJobs',
+            PKDict(simulationType=sim_type)
         )
-        cancel = r.nextRequest
-        for _ in range(10):
-            if r.state == 'running':
-                r = fc.sr_post(
-                    'admJobs',
-                    PKDict(simulationType=d.simulationType)
-                )
-                pkunit.pkeq(8, len(r.header))
-                pkunit.pkeq(8, len(r.rows[0]))
-                pkunit.pkeq('srw', r.rows[0][0])
-                return
-            r = fc.sr_post('runStatus', r.nextRequest)
-            time.sleep(1)
-        else:
-            pkunit.pkfail('Never entered running state')
-    finally:
-        fc.sr_post('runCancel', cancel)
+        pkunit.pkeq(8, len(r.header))
+        pkunit.pkeq(8, len(r.rows[0]))
+        pkunit.pkeq('srw', r.rows[0][0])
+
+    _run_sim(auth_fc, _op)
 
 
-def test_srw_adm_jobs_forbidden(auth_fc):
+def test_adm_jobs_forbidden(auth_fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdp
 
-    n = "Young's Double Slit Experiment"
-    m = 'multiElectronAnimation'
-    t = 'srw'
-    cancel = None
-
-    fc = auth_fc
-    fc.sr_login_as_guest(sim_type=t)
-    d = fc.sr_sim_data(n)
-
-    try:
+    def _op(fc, sim_type):
+        import sirepo.auth_db
+        sirepo.auth_db.UserRole.delete_all_for_column_by_values('uid', [fc.sr_auth_state().uid, ])
         r = fc.sr_post(
-            'runSimulation',
-            PKDict(
-                models=d.models,
-                report=m,
-                simulationId=d.models.simulation.simulationId,
-                simulationType=d.simulationType,
-            )
+            'admJobs',
+            PKDict(simulationType=sim_type),
+            raw_response=True,
         )
-        cancel = r.nextRequest
-        for _ in range(10):
-            if r.state == 'running':
-                import sirepo.auth_db
-                sirepo.auth_db.UserRole.delete_all_for_column_by_values('uid', [fc.sr_auth_state().uid, ])
-                r = fc.sr_post(
-                    'admJobs',
-                    PKDict(simulationType=d.simulationType),
-                    raw_response=True,
-                )
-                pkunit.pkeq(403, r.status_code)
-                return
-            r = fc.sr_post('runStatus', r.nextRequest)
-            time.sleep(1)
-        else:
-            pkunit.pkfail('Never entered running state')
-    finally:
-        fc.sr_post('runCancel', cancel)
+        pkunit.pkeq(403, r.status_code)
+
+    _run_sim(auth_fc, _op)
 
 
 def test_srw_get_own_jobs(auth_fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdp
 
-    n = "Young's Double Slit Experiment"
-    m = 'multiElectronAnimation'
-    t = 'srw'
-    cancel = None
-
-    fc = auth_fc
-    fc.sr_login_as_guest(sim_type=t)
-    d = fc.sr_sim_data(n)
-
-    try:
+    def _op(fc, sim_type):
         r = fc.sr_post(
-            'runSimulation',
-            PKDict(
-                models=d.models,
-                report=m,
-                simulationId=d.models.simulation.simulationId,
-                simulationType=d.simulationType,
-            )
+            'admJobs',
+            PKDict(simulationType=sim_type)
         )
-        cancel = r.nextRequest
-        for _ in range(10):
-            if r.state == 'running':
-                r = fc.sr_post(
-                    'admJobs',
-                    PKDict(simulationType=d.simulationType)
-                )
-                pkunit.pkeq(8, len(r.header))
-                pkunit.pkeq(8, len(r.rows[0]))
-                pkunit.pkeq('srw', r.rows[0][0])
-                return
-            r = fc.sr_post('runStatus', r.nextRequest)
-            time.sleep(1)
-        else:
-            pkunit.pkfail('Never entered running state')
-    finally:
-        fc.sr_post('runCancel', cancel)
+        pkunit.pkeq(8, len(r.header))
+        pkunit.pkeq(8, len(r.rows[0]))
+        pkunit.pkeq('srw', r.rows[0][0])
+
+    _run_sim(auth_fc, _op)
 
 
 def test_srw_user_see_only_own_jobs(auth_fc):
@@ -161,7 +83,6 @@ def test_srw_user_see_only_own_jobs(auth_fc):
 
     def _clear_role_db():
         sirepo.auth_db.UserRole.query.delete()
-        r = sirepo.auth_db.UserRole.search_all_for_column('uid')
 
     def _get_jobs(adm, job_count):
         r = fc.sr_post(
@@ -234,3 +155,36 @@ def test_srw_user_see_only_own_jobs(auth_fc):
             _cancel_job(non_adm_user, non_adm_job_cancel_req)
         if adm_job_cancel_req:
             _cancel_job(adm_user, adm_job_cancel_req)
+
+
+def _run_sim(fc, op):
+    from pykern import pkunit
+
+    n = "Young's Double Slit Experiment"
+    m = 'multiElectronAnimation'
+    t = 'srw'
+    c = None
+
+    fc.sr_login_as_guest(sim_type=t)
+    d = fc.sr_sim_data(n)
+    try:
+        r = fc.sr_post(
+            'runSimulation',
+            PKDict(
+                models=d.models,
+                report=m,
+                simulationId=d.models.simulation.simulationId,
+                simulationType=d.simulationType,
+            )
+        )
+        c = r.nextRequest
+        for _ in range(10):
+            if r.state == 'running':
+                op(fc, t)
+                return
+            r = fc.sr_post('runStatus', r.nextRequest)
+            time.sleep(1)
+        else:
+            pkunit.pkfail('Never entered running state')
+    finally:
+        fc.sr_post('runCancel', c)
