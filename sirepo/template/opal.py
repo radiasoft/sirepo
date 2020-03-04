@@ -455,14 +455,13 @@ def _generate_commands(util, is_header):
     return '\n'.join(lines)
 
 
-def _generate_lattice(util, code_var):
+def _generate_lattice(util, code_var, beamline_id):
     res = util.render_lattice(
         util.iterate_models(
             OpalElementIterator(None, _format_field_value),
             'elements',
         ).result,
         want_semicolon=True) + '\n'
-    beamline_id = util.select_beamline().id
     count_by_name = PKDict()
     names = []
     res += _generate_beamline(util, code_var, count_by_name, beamline_id, 0, names)[0]
@@ -523,7 +522,11 @@ def _generate_parameters_file(data):
             distribution,
         ]
     else:
-        v.lattice = _generate_lattice(util, code_var)
+        if report == 'twissReport':
+            beamline_id = util.select_beamline().id
+        else:
+            beamline_id = _find_first_command(util.data, 'track').line
+        v.lattice = _generate_lattice(util, code_var, beamline_id)
         v.use_beamline = util.select_beamline().name
 
 
