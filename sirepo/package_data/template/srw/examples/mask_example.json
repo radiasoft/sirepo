@@ -530,7 +530,7 @@
             "outOfSessionSimulationId": "",
             "photonEnergy": "9000",
             "sampleFactor": 1,
-            "samplingMethod": "2",
+            "samplingMethod": "1",
             "sourceType": "g",
             "verticalPointCount": 2048,
             "verticalPosition": 0,

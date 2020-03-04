@@ -463,7 +463,7 @@
             "rotateAngle": 0,
             "rotateReshape": "1",
             "sampleFactor": 1,
-            "samplingMethod": 1,
+            "samplingMethod": 2,
             "verticalPointCount": 200,
             "verticalPosition": 0,
             "verticalRange": 8

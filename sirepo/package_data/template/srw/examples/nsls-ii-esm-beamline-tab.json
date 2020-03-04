@@ -842,18 +842,18 @@
             "folder": "/Light Source Facilities/NSLS-II/NSLS-II ESM beamline",
             "horizontalPointCount": 100,
             "horizontalPosition": 0,
-            "horizontalRange": 10,
+            "horizontalRange": 7,
             "isExample": true,
             "name": "NSLS-II ESM beamline (tabulated undulator)",
             "notes": "",
             "outOfSessionSimulationId": "",
             "photonEnergy": 695.5,
-            "sampleFactor": 0.08,
+            "sampleFactor": 0.1,
             "samplingMethod": "1",
             "sourceType": "t",
             "verticalPointCount": 100,
             "verticalPosition": 0,
-            "verticalRange": 10
+            "verticalRange": 7
         },
         "sourceIntensityReport": {
             "aspectRatio": "1",
@@ -876,8 +876,8 @@
             "precision": 0.01,
             "rotateAngle": 0,
             "rotateReshape": "1",
-            "sampleFactor": 0.08,
-            "samplingMethod": "1",
+            "sampleFactor": 1,
+            "samplingMethod": "2",
             "verticalPointCount": 100,
             "verticalPosition": 0,
             "verticalRange": 10
