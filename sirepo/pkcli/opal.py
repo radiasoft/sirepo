@@ -24,8 +24,11 @@ def run(cfg_dir):
             if 'bunchReport' in data.report or data.report == 'twissReport':
                 template.save_report_data(data, py.path.local(cfg_dir))
         else:
+            err = _parse_opal_errors()
+            if re.search(r'Singular matrix', err):
+                err = 'Twiss values could not be computed: Singular matrix'
             simulation_db.write_result(PKDict(
-                error=_parse_opal_errors(),
+                error=err,
             ))
 
 

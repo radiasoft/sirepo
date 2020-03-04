@@ -156,7 +156,11 @@ def prepare_output_file(run_dir, data):
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
-            save_report_data(data, run_dir)
+            try:
+                save_report_data(data, run_dir)
+            except IOError:
+                # the output file isn't readable
+                pass
 
 
 def python_source_for_model(data, model):
