@@ -10,7 +10,8 @@
       <div class="col-md-6 col-xl-4">
         <div data-report-panel="heatmap" data-model-name="bunchReport" data-model-data="item" data-panel-title="{{ source.bunchReportHeading(item) }}"></div>
       </div>
-      <div data-ng-if="$index == 0" class="clearfix"></div>
+      <div data-ng-if="$index == 0" class="hidden-xl clearfix"></div>
+      <div data-ng-if="$index == 1 && source.isFromFile()" class="visible-xl col-xl-4">&nbsp;</div>
     </div>
   </div>
 </div>

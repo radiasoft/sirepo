@@ -229,6 +229,13 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
         appState.saveChanges('commands');
     }
 
+    self.isFromFile = function() {
+        if (appState.isLoaded() && appState.models.command_distribution) {
+            return appState.models.command_distribution.type == 'FROMFILE';
+        }
+        return false;
+    };
+
     appState.whenModelsLoaded($scope, function() {
         ['beam', 'distribution'].forEach(function(type) {
             var cmd = commandService.findFirstCommand(type);
