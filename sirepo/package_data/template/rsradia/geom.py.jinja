@@ -37,3 +37,6 @@ else:
 with h5py.File('{{ dataFile }}', 'w') as hf:
     template_common.dict_to_h5(g_data, hf, path='geometry')
 
+
+with open('{{ dmpFile }}', 'wb') as f:
+    f.write(radia_tk.dump_bin(g_id))

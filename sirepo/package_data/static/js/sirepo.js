@@ -395,6 +395,12 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return res;
     };
 
+    self.enumVals = function(enumName) {
+        return SIREPO.APP_SCHEMA.enum[enumName].map(function (e) {
+            return e[SIREPO.ENUM_INDEX_VALUE];
+        });
+    };
+
     // intermediate method to change from arrays to objects when defining model fields
     self.fieldProperties = function(modelName, fieldName) {
         // these won't exist for beamline elements

@@ -23,6 +23,7 @@ import sirepo.util
 import time
 
 
+_DMP_FILE = 'geom.dat'
 _GEOM_DIR = 'geometry'
 _GEOM_FILE = 'geom.h5'
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
@@ -96,6 +97,10 @@ def _build_geom(data):
         return -1
 
 
+def _dmp_file():
+    return '../' + _GEOM_DIR + '/' + _DMP_FILE
+
+
 def _generate_parameters_file(data):
     report = data.get('report', '')
     pkdp('RPT {}', report)
@@ -103,6 +108,7 @@ def _generate_parameters_file(data):
     g = data.models.geometry
 
     v['dataFile'] = _geom_file()
+    v['dataFile'] = _dmp_file()
     v['isExample'] = data.models.simulation.isExample
     v['geomName'] = g.name
     disp = data.models.magnetDisplay

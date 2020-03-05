@@ -60,7 +60,8 @@
     },
     "model": {
         "circlePath": {
-            "ctr": ["x", "Float", "0.0"],
+            "_super": ["_", "model", "fieldPath"],
+            "ctrX": ["x", "Float", "0.0"],
             "ctrY": ["y", "Float", "0.0"],
             "ctrZ": ["z", "Float", "0.0"],
             "radius": ["Radius", "Float", "0.0"],
@@ -72,11 +73,16 @@
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "scaling": ["Scaling", "FieldScaling", "uniform"]
         },
+        "fieldPath": {
+            "name": ["", "String", ""],
+            "type": ["", "PathType", ""]
+        },
         "fieldPaths": {
             "path": ["Path", "PathType", "line"]
         },
         "filePath": {
-            "fileName": ["File", "String", ""]
+            "_super": ["_", "model", "fieldPath"],
+            "fileName": ["File", "PtsFile", ""]
         },
         "geometry": {
             "alpha": ["Alpha", "Float", "1.0", "", "0.0", "1.0"],
@@ -84,6 +90,7 @@
             "name": ["Name", "String", ""]
         },
         "linePath": {
+            "_super": ["_", "model", "fieldPath"],
             "beginX": ["x", "Float", "0.0"],
             "beginY": ["y", "Float", "0.0"],
             "beginZ": ["z", "Float", "0.0"],
@@ -102,10 +109,10 @@
             "viewType": ["View", "ViewType", "objects"]
         },
         "manualPath": {
+            "_super": ["_", "model", "fieldPath"],
             "ptX": ["x", "Float", "0.0"],
             "ptY": ["y", "Float", "0.0"],
-            "ptZ": ["z", "Float", "0.0"],
-            "numPoints": ["Num Points", "Integer", "10", "", "2"]
+            "ptZ": ["z", "Float", "0.0"]
         },
         "reset": {
         },
@@ -120,12 +127,42 @@
         }
     },
     "view": {
+        "circlePath": {
+            "title": "Circle",
+            "basic": [
+                "ctrX",
+                "ctrY",
+                "ctrZ",
+                "radius",
+                "theta",
+                "phi",
+                "numPoints"
+            ]
+        },
         "fieldPaths": {
             "title": "Field Paths",
             "basic": [
                 "path"
             ],
             "advanced": []
+        },
+        "filePath": {
+            "title": "File",
+            "basic": [
+                "fileName"
+            ]
+        },
+        "linePath": {
+            "title": "Line",
+            "basic": [
+                "beginX",
+                "beginY",
+                "beginZ",
+                "endX",
+                "endY",
+                "endZ",
+                "numPoints"
+            ]
         },
         "magnetDisplay": {
             "title": "Magnet Viewer",
@@ -138,6 +175,14 @@
             ],
             "advanced": [
                 "notes"
+            ]
+        },
+        "manualPath": {
+            "title": "Manual",
+            "basic": [
+                "ptX",
+                "ptY",
+                "ptZ"
             ]
         },
         "solver": {

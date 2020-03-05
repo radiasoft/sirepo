@@ -33,6 +33,7 @@ def dump(geom):
     return radia.UtiDmp(geom, 'asc')
 
 
+# does this remember all matrices etc.?
 def dump_bin(geom):
     return radia.UtiDmp(geom, 'bin')
 
@@ -67,6 +68,10 @@ def get_field(geom, f_type, path):
 
 def get_magnetization(geom):
     return radia.ObjM(geom)
+
+
+def load_bin(data):
+    return radia.UtiDmpPrs(data)
 
 
 def new_geom_object():
