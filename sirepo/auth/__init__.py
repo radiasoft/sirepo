@@ -119,6 +119,12 @@ def complete_registration(name=None):
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
 
 
+def get_all_roles():
+    r = [_role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types]
+    r.append(ROLE_ADM)
+    return r
+
+
 def guest_uids():
     """All of the uids corresponding to guest users."""
     return auth_db.UserRegistration.search_all_for_column('uid', display_name=None)
@@ -531,9 +537,7 @@ def _auth_state():
 def _create_roles_for_user(uid, method):
     if not (pkconfig.channel_in('dev') and method == METHOD_GUEST):
         return
-    r = [_role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types]
-    r.append(ROLE_ADM)
-    auth_db.UserRole.add_roles(uid, r)
+    auth_db.UserRole.add_roles(uid, get_all_roles())
 
 
 def _get_user():

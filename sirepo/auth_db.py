@@ -57,6 +57,11 @@ def init(app):
             _db.session.commit()
 
         @classmethod
+        def search_all_by(cls, **kwargs):
+            with thread_lock:
+                return cls.query.filter_by(**kwargs).all()
+
+        @classmethod
         def search_by(cls, **kwargs):
             with thread_lock:
                 return cls.query.filter_by(**kwargs).first()
@@ -69,7 +74,9 @@ def init(app):
         @classmethod
         def delete_all_for_column_by_values(cls, column, values):
             with thread_lock:
-                cls.query.filter(getattr(cls, column).in_(values)).delete(synchronize_session='fetch')
+                cls.query.filter(
+                    getattr(cls, column).in_(values),
+                ).delete(synchronize_session='fetch')
                 _db.session.commit()
 
     class UserRegistration(UserDbBase, _db.Model):
@@ -88,6 +95,16 @@ def init(app):
             with thread_lock:
                 for r in roles:
                     UserRole(uid=uid, role=r).save()
+
+        @classmethod
+        def delete_roles(cls, uid, roles):
+            with thread_lock:
+                cls.query.filter(
+                    cls.uid == uid,
+                ).filter(
+                    cls.role.in_(roles),
+                ).delete(synchronize_session='fetch')
+                _db.session.commit()
 
     # only creates tables that don't already exist
     _db.create_all()
