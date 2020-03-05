@@ -8,11 +8,12 @@ from __future__ import absolute_import, division, print_function
 # defer all imports so *_CODES is available to testing functions
 
 
-#: Codes on beta and prod; 'shadow' is unsupported on F29 for now
+#: Codes on beta and prod
 NON_ALPHA_CODES = frozenset((
     'elegant',
     'jspec',
     'opal',
+    'shadow',
     'srw',
     'synergia',
     'warppba',

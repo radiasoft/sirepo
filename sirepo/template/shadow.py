@@ -56,24 +56,6 @@ _FIELD_ALIAS = {
 _WIGGLER_TRAJECTOR_FILENAME = 'xshwig.sha'
 
 
-def get_application_data(data, **kwargs):
-
-    if data['method'] == 'validate_material':
-        import xraylib
-
-        name = data['material_name']
-        try:
-            xraylib.CompoundParser(str(name))
-            return {
-                'material_name': name,
-            }
-        except Exception:
-            return {
-                'error': 'invalid material name',
-            }
-    raise RuntimeError('unknown application data method: {}'.format(data['method']))
-
-
 def get_data_file(run_dir, model, frame, **kwargs):
     filename = _SHADOW_OUTPUT_FILE
     with open(str(run_dir.join(filename))) as f:
