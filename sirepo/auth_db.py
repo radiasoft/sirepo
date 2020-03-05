@@ -74,7 +74,9 @@ def init(app):
         @classmethod
         def delete_all_for_column_by_values(cls, column, values):
             with thread_lock:
-                cls.query.filter(getattr(cls, column).in_(values)).delete(synchronize_session='fetch')
+                cls.query.filter(
+                    getattr(cls, column).in_(values),
+                ).delete(synchronize_session='fetch')
                 _db.session.commit()
 
     class UserRegistration(UserDbBase, _db.Model):
@@ -97,7 +99,11 @@ def init(app):
         @classmethod
         def delete_roles(cls, uid, roles):
             with thread_lock:
-                cls.query.filter(cls.uid == uid).filter(cls.role.in_(roles)).delete(synchronize_session='fetch')
+                cls.query.filter(
+                    cls.uid == uid,
+                ).filter(
+                    cls.role.in_(roles),
+                ).delete(synchronize_session='fetch')
                 _db.session.commit()
 
     # only creates tables that don't already exist
