@@ -370,7 +370,7 @@ def _generate_parameters_file(data):
     template_common.validate_models(data, simulation_db.get_schema(SIM_TYPE))
     v = template_common.flatten_data(data.models, PKDict())
     v.beamEvolutionOutputFilename = _BEAM_EVOLUTION_OUTPUT_FILENAME
-    v.runSimulation = report is None or report == _SIM_DATA.compute_model(None)
+    v.runSimulation = report is None or report == 'animation'
     v.runRateCalculation = report is None or report == 'rateCalculationReport'
     if data.models.ring.latticeSource == 'madx':
         v.latticeFilename = _SIM_DATA.lib_file_name_with_model_field('ring', 'lattice', v.ring_lattice)

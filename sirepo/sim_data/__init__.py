@@ -173,10 +173,6 @@ class SimDataBase(object):
         Returns:
             str: name of compute model for report
         """
-        if model_or_data is None:
-            # Only called in a few places (jspec & elegant)
-            # and this preserves old behavior.
-            return _ANIMATION_NAME
         m = cls.parse_model(model_or_data)
         d = model_or_data if isinstance(model_or_data, dict) else None
         #TODO(robnagler) is this necesary since m is parsed?
