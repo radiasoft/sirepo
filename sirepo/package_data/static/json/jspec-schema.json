@@ -58,7 +58,8 @@
         ],
         "ForceFormula": [
             ["parkhomchuk", "Parkhomchuk"],
-            ["derbenevskrinsky", "Derbenev-Skrinsky"]
+            ["derbenevskrinsky", "Derbenev-Skrinsky"],
+            ["meshkov", "Meshkov"]
         ],
         "ForceScaleFactor": [
             ["negative", "-1"],
