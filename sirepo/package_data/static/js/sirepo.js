@@ -663,11 +663,10 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         $scope.appState = self;
         modelFields.forEach(function(f) {
             // elegant uses '-' in modelKey
-            f = propertyToIndexForm(f);
-            $scope.$watch('appState.models' + f, function (newValue, oldValue) {
+            $scope.$watch('appState.models' + propertyToIndexForm(f), function (newValue, oldValue) {
                 if (self.isLoaded() && newValue !== null && newValue !== undefined && newValue !== oldValue) {
                     // call in next cycle to allow UI to change layout first
-                    $interval(callback, 1, 1);
+                    $interval(callback, 1, 1, true, f);
                 }
             });
         });
@@ -939,6 +938,9 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         m = m[frameReport in m ? frameReport : c];
         var f = SIREPO.APP_SCHEMA.frameIdFields;
         f = f[frameReport in f ? frameReport : c];
+        if (! f) {
+            throw new Error('frameReport=' + frameReport + ' missing from schema frameIdFields');
+        }
         // POSIT: same as sirepo.sim_data._FRAME_ID_SEP
         return v.concat(
             f.map(function (a) {return m[a];})
@@ -1738,7 +1740,11 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     };
 
     self.isRouteParameter = function(routeName, paramName) {
-        return (localRoutes[routeName] || SIREPO.APP_SCHEMA.route[routeName]).indexOf(paramName) >= 0;
+        var route = localRoutes[routeName] || SIREPO.APP_SCHEMA.route[routeName];
+        if (! route) {
+            throw new Error('Invalid routeName: ' + routeName);
+        }
+        return route.indexOf(paramName) >= 0;
     };
 
     self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {

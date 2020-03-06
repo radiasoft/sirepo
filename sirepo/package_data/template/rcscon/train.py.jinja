@@ -1,0 +1,17 @@
+
+from keras.callbacks import CSVLogger
+
+model.compile(loss='{{ neuralNet_losses }}', optimizer='{{ neuralNet_optimizer }}')
+model.fit(
+    x=x_train,
+    y=y_train,
+    validation_data=(x_validate, y_validate),
+    batch_size={{ neuralNet_batch_size }},
+    shuffle={% if neuralNet_shuffle == '1' %}True{% else %}False{% endif %},
+    epochs={{ neuralNet_epochs }},
+    verbose=False,
+    callbacks=[CSVLogger('{{ fitOutputFile }}')],
+)
+
+np.savetxt('{{ testOutputFile }}', y_test, delimiter=',', header=','.join(y_header), comments='')
+np.savetxt('{{ predictOutputFile }}', model.predict(x=x_test), delimiter=',', header=','.join(y_header), comments='')

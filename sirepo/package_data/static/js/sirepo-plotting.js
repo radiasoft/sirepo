@@ -2691,7 +2691,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             var globalMin = 0.0;
             var globalMax = 1.0;
             var cacheCanvas, imageData;
-            var colorbar;
+            var colorbar, hideColorBar;
             var axes = {
                 x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
                 y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
@@ -2802,7 +2802,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             }
 
             function showColorBar() {
-                if (appState.isLoaded()) {
+                if (appState.isLoaded() && ! hideColorBar) {
                     return appState.models[$scope.modelName].colorMap != 'contrast';
                 }
                 return false;
@@ -2867,6 +2867,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 select('.z-axis-label').text(json.z_label);
                 select('.frequency-label').text(json.frequency_title);
                 setColorScale();
+                hideColorBar = json.hideColorBar || false;
 
                 var amrLines = [];
                 if (json.amr_grid) {
@@ -3005,6 +3006,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         .text(vIconText(true))
                         .on('click', function() {
                             togglePlot(i);
+                            $scope.$applyAsync();
                         });
                     itemWidth = item.node().getBBox().width;
                     if (plot.symbol) {
@@ -3569,6 +3571,41 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+// use this to display a raw SVG string
+SIREPO.app.directive('svgPlot', function(appState, focusPointService, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            reportId: '<',
+            modelName: '@',
+            reportCfg: '<',
+        },
+        template: [
+            '<div class="sr-svg-plot">',
+                '<svg></svg>',
+            '</div>'
+        ].join(''),
+        controller: function($scope, $element) {
+
+            function load() {
+                var reload = (($scope.reportCfg || {}).reload || function() {return true;})();
+                panelState.requestData($scope.modelName, function(data) {
+                    var svg = data.svg;
+                    if ($scope.reportCfg && $scope.reportCfg.process) {
+                        svg = $scope.reportCfg.process(svg);
+                    }
+                    $($element).find('.sr-svg-plot > svg').replaceWith(svg);
+                }, reload);
+            }
+
+            appState.whenModelsLoaded($scope, function() {
+                load();
+            });
+
         },
     };
 });

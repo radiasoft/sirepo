@@ -1,0 +1,33 @@
+.rcscon-layer {
+  fill: #aaaaaa;
+}
+.rcscon-layer-activation {
+  fill: #5dd45d;
+}
+.rcscon-activation-txt {
+  font-weight: normal;
+  fill: #000000;
+}
+
+.rcscon-layer-alpha-dropout {
+  fill: #f55f5f;
+}
+.rcscon-layer-dense {
+  fill: #9091f7;
+}
+.rcscon-layer-dropout {
+  fill: #f53b3b;
+}
+.rcscon-layer-flatten {
+  fill: #a1a5f7;
+}
+.rcscon-layer-gaussian-dropout {
+  fill: #f78d8d;
+}
+.rcscon-layer-gaussian-noise {
+  fill: #f7f6a1;
+}
+.rcscon-layer-input {
+  fill: #ffffff;
+}
+
