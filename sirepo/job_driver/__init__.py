@@ -6,7 +6,7 @@
 """
 from pykern import pkconfig, pkio, pkinspect, pkcollections, pkconfig, pkjson
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdlog, pkdc, pkdexc
+from pykern.pkdebug import pkdp, pkdlog, pkdc, pkdexc, pkdformat
 from sirepo import job
 import collections
 import importlib
@@ -44,12 +44,12 @@ class DriverBase(PKDict):
 
     __instances = PKDict()
 
+    _AGENT_STARTING_SECS = 5
+
     def __init__(self, req):
         super().__init__(
-            _agentId=job.unique_key(),
-            _agent_starting=False,
-            _agent_start_lock=tornado.locks.Lock(),
-            _cpu_slot_alloc_time=None,
+            cpu_slot=None,
+            driver_details=PKDict({'type': self.__class__.__name__}),
             kind=req.kind,
             ops=PKDict(),
             op_q=PKDict({
@@ -59,19 +59,19 @@ class DriverBase(PKDict):
                 job.OP_RUN: self.init_q(1),
                 job.OP_ANALYSIS: self.init_q(1),
             }),
-            cpu_slot=None,
             uid=req.content.uid,
+            _agentId=job.unique_key(),
+            _agent_start_lock=tornado.locks.Lock(),
+            _agent_starting=False,
+            _agent_starting_timeout=None,
+            _cpu_slot_alloc_time=None,
             _websocket=None,
             _websocket_ready=tornado.locks.Event(),
 #TODO(robnagler) https://github.com/radiasoft/sirepo/issues/2195
         )
         # Drivers persist for the life of the program so they are never removed
         self.__instances[self._agentId] = self
-        pkdlog(
-            'class={} agentId={_agentId} kind={kind} uid={uid}',
-            self.__class__.__name__,
-            **self
-        )
+        pkdlog('{}', self)
 
     def cpu_slot_free(self):
         if not self.cpu_slot:
@@ -104,6 +104,7 @@ class DriverBase(PKDict):
             self.cpu_slot = self.cpu_slot_q.get_nowait()
         except tornado.queues.QueueEmpty:
             self.cpu_slot_free_one()
+            pkdlog('{} await cpu_slot_q.get()', self)
             self.cpu_slot = await self.cpu_slot_q.get()
             raise job_supervisor.Awaited()
         finally:
@@ -121,9 +122,23 @@ class DriverBase(PKDict):
             q.put_nowait(op.op_slot)
             op.op_slot = None
 
-    def get_supervisor_uri(self):
-        #TODO(robnagler) set cfg on self in __init__
-        return inspect.getmodule(self).cfg.supervisor_uri
+    def free_resources(self):
+        """Remove holds on all resources and remove self from data structures"""
+        pkdlog('{}', self)
+        try:
+            self._agent_starting_done()
+            self._websocket_ready.clear()
+            w = self._websocket
+            self._websocket = None
+            if w:
+                # Will not call websocket_on_close()
+                w.sr_close()
+            for o in list(self.ops.values()):
+                o.destroy()
+            self.cpu_slot_free()
+            self._websocket_free()
+        except Exception as e:
+            pkdlog('{} error={} stack={}', self, e, pkdexc())
 
     @classmethod
     def init_q(cls, maxsize):
@@ -151,7 +166,7 @@ class DriverBase(PKDict):
         op.lib_dir_symlink.mksymlinkto(d, absolute=True)
         m.pkupdate(
             libFileUri=job.supervisor_file_uri(
-                self.get_supervisor_uri(),
+                self.cfg.supervisor_uri,
                 job.LIB_FILE_URI,
                 op.lib_dir_symlink.basename,
             ),
@@ -162,26 +177,33 @@ class DriverBase(PKDict):
         """Only one op of each type allowed
 
         """
+        n = op.opName
+        if n in (job.OP_CANCEL, job.OP_KILL):
+            return
+        if n == job.OP_SBATCH_LOGIN:
+            l = [o for o in self.ops.values() if o.opId != op.opId]
+            assert not l, \
+                'received {} but have other ops={}'.format(op, l)
+            return
+        if op.op_slot:
+            return
+        q = self.op_q[n]
         try:
-            n = op.opName
-            if n in (job.OP_CANCEL, job.OP_KILL):
-                return
-            if n == job.OP_SBATCH_LOGIN:
-                l = [o for o in self.ops.values() if o.opId != op.opId]
-                assert not l, \
-                    'received {} but have other ops={}'.format(op, l)
-                return
-            if op.op_slot:
-                return
-            q = self.op_q[n]
-            try:
-                op.op_slot = q.get_nowait()
-            except tornado.queues.QueueEmpty:
-                op.op_slot = await q.get()
-                raise job_supervisor.Awaited()
-        finally:
-            # may be redundant, but need to track here
-            self.ops[op.opId] = op
+            op.op_slot = q.get_nowait()
+        except tornado.queues.QueueEmpty:
+            pkdlog('{} {} await op_q.get()', self, op)
+            op.op_slot = await q.get()
+            raise job_supervisor.Awaited()
+
+    def pkdebug_str(self):
+        return pkdformat(
+            '{}(a={:.4} k={} u={:.4} {})',
+            self.__class__.__name__,
+            self._agentId,
+            self.kind,
+            self.uid,
+            list(self.ops.values()),
+        )
 
     async def prepare_send(self, op):
         """Sends the op
@@ -189,8 +211,10 @@ class DriverBase(PKDict):
         Returns:
             bool: True if the op was actually sent
         """
+        self.ops[op.opId] = op
         if not self._websocket_ready.is_set():
             await self._agent_start(op)
+            pkdlog('{} {} await _websocket_ready', self, op)
             await self._websocket_ready.wait()
             raise job_supervisor.Awaited()
         await self.cpu_slot_ready()
@@ -214,10 +238,9 @@ class DriverBase(PKDict):
 
     def send(self, op):
         pkdlog(
-            'op={} agentId={} opId={} runDir={}',
-            op.opName,
-            self._agentId,
-            op.opId,
+            '{} {} runDir={}',
+            self,
+            op,
             op.msg.get('runDir')
         )
         self._websocket.write_message(pkjson.dump_bytes(op.msg))
@@ -234,26 +257,9 @@ class DriverBase(PKDict):
                 # If one kill fails still try to kill the rest
                 pkdlog('error={} stack={}', e, pkdexc())
 
-    def websocket_free(self):
-        """Remove holds on all resources and remove self from data structures"""
-        pkdlog('self={}', self)
-        try:
-            self._agent_starting = False
-            self._websocket_ready.clear()
-            w = self._websocket
-            self._websocket = None
-            if w:
-                # Will not call websocket_on_close()
-                w.sr_close()
-            for o in list(self.ops.values()):
-                o.destroy(error='websocket closed')
-            self.cpu_slot_free()
-            self._websocket_free()
-        except Exception as e:
-            pkdlog('job_driver={} error={} stack={}', self, e, pkdexc())
-
     def websocket_on_close(self):
-        self.websocket_free()
+        pkdlog('{}', self)
+        self.free_resources()
 
     def _agent_cmd_stdin_env(self, **kwargs):
         return job.agent_cmd_stdin_env(
@@ -267,7 +273,7 @@ class DriverBase(PKDict):
             env=(env or PKDict()).pksetdefault(
                 PYKERN_PKDEBUG_WANT_PID_TIME='1',
                 SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.get_supervisor_uri().replace(
+                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.cfg.supervisor_uri.replace(
 #TODO(robnagler) figure out why we need ws (wss, implicit)
                     'http',
                     'ws',
@@ -283,7 +289,6 @@ class DriverBase(PKDict):
         async with self._agent_start_lock:
             if self._agent_starting or self._websocket_ready.is_set():
                 return
-            pkdlog('agentId={} uid={} opId={}', self._agentId, self.uid, op.opId)
             try:
                 self._agent_starting = True
                 # TODO(e-carlin): We need a timeout on agent starts. If an agent
@@ -293,11 +298,28 @@ class DriverBase(PKDict):
                 await self.kill()
                 # this starts the process, but _receive_alive sets it to false
                 # when the agent fully starts.
+                pkdlog('{} {} await _do_agent_start', self, op)
+                self._agent_starting_timeout = tornado.ioloop.IOLoop.current().call_later(
+                    self._AGENT_STARTING_SECS,
+                    self._agent_starting_timeout_handler,
+                )
                 await self._do_agent_start(op)
             except Exception as e:
-                pkdlog('agentId={} exception={}', self._agentId, e)
-                self._agent_starting = False
+                pkdlog('{} exception={}', self, e)
+                self._agent_starting_done()
                 raise
+
+    def _agent_starting_done(self):
+        self._agent_starting = False
+        if self._agent_starting_timeout:
+            tornado.ioloop.IOLoop.current().remove_timeout(
+                self._agent_starting_timeout
+            )
+            self._agent_starting_timeout = None
+
+    async def _agent_starting_timeout_handler(self):
+        pkdlog('{}', self)
+        self.free_resources()
 
     def _has_remote_agent(self):
         return False
@@ -309,20 +331,23 @@ class DriverBase(PKDict):
             ('opName' not in c or c.opName == job.OP_ERROR)
             or ('reply' in c and c.reply.get('state') == job.ERROR)
         ):
-            pkdlog('error agentId={} msg={}', self._agentId, c)
+            pkdlog('{} error msg={}', self, c)
+        elif c.opName == job.OP_JOB_CMD_STDERR:
+            pkdlog('{} stderr from job_cmd msg={}', self, c)
+            return
         else:
-            pkdlog('opName={} agentId={} opId={}', c.opName, self._agentId, i)
+            pkdlog('{} opName={} o={:.4}', self, c.opName, i)
         if i:
             if 'reply' not in c:
-                pkdlog('agentId={} No reply={}', self._agentId, c)
+                pkdlog('{} no reply={}', self, c)
                 c.reply = PKDict(state='error', error='no reply')
             if i in self.ops:
                 #SECURITY: only ops known to this driver can be replied to
                 self.ops[i].reply_put(c.reply)
             else:
                 pkdlog(
-                    'agentId={} not pending opId={} opName={}',
-                    self._agentId,
+                    '{} not pending opName={} o={:.4}',
+                    self,
                     i,
                     c.opName,
                 )
@@ -334,21 +359,22 @@ class DriverBase(PKDict):
 
         Save the websocket and register self with the websocket
         """
-        self._agent_starting = False
+        self._agent_starting_done()
         if self._websocket:
             if self._websocket != msg.handler:
+                pkdlog('{} new websocket', self)
                 # New _websocket so bind
-                self.websocket_free()
+                self.free_resources()
         self._websocket = msg.handler
         self._websocket_ready.set()
         self._websocket.sr_driver_set(self)
 
     def __str__(self):
-        return f'{type(self).__name__}({self._agentId:.6}, {self.uid}, ops={list(self.ops.values())})'
+        return f'{type(self).__name__}({self._agentId:.4}, {self.uid:.4}, ops={list(self.ops.values())})'
 
     def _receive_error(self, msg):
 #TODO(robnagler) what does this mean? Just a way of logging? Document this.
-        pkdlog('agentId={} msg={}', self._agentId, msg)
+        pkdlog('{} msg={}', self, msg)
 
     def _websocket_free(self):
         pass

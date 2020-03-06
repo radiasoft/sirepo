@@ -112,6 +112,7 @@ def _safe_sdds_value(v):
 
 def _sdds_column(field, sdds_index=0):
     column_names = sdds.sddsdata.GetColumnNames(sdds_index)
+    assert field in column_names, 'field not in sdds columns: {}: {}'.format(field, column_names)
     column_def = sdds.sddsdata.GetColumnDefinition(sdds_index, field)
     values = sdds.sddsdata.GetColumn(
         sdds_index,

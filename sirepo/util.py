@@ -5,6 +5,7 @@ u"""Support routines and classes, mostly around errors and I/O.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc
@@ -149,9 +150,11 @@ def create_token(value):
     import base64
 
     if pkconfig.channel_in_internal_test() and cfg.create_token_secret:
-        v = base64.b32encode(hashlib.sha256(b(value + cfg.create_token_secret)).digest())
-        return s(v[:TOKEN_SIZE])
-    return sirepo.util.random_base62(TOKEN_SIZE)
+        v = base64.b32encode(
+            hashlib.sha256(pkcompat.to_bytes(value + cfg.create_token_secret)).digest())
+        return pkcompat.from_bytes(v[:TOKEN_SIZE])
+    return random_base62(TOKEN_SIZE)
+
 
 
 def err(obj, fmt='', *args, **kwargs):
