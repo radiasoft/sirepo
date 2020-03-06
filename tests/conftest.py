@@ -57,10 +57,10 @@ def auth_fc_module(request):
 def email_confirm(fc, resp, display_name=None):
     import re
     from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdp
+    from pykern.pkdebug import pkdlog
 
     fc.sr_get(resp.uri)
-    pkdp(resp.uri)
+    pkdlog(resp.uri)
     m = re.search(r'/(\w+)$', resp.uri)
     assert bool(m)
     r = PKDict(token=m.group(1))
@@ -365,8 +365,8 @@ def _job_supervisor_start(request, cfg=None):
         time.sleep(.1)
     else:
         import sirepo.job_api
-        from pykern.pkdebug import pkdp
-        pkdp(sirepo.job_api.cfg.supervisor_uri)
+        from pykern.pkdebug import pkdlog
+        pkdlog(sirepo.job_api.cfg.supervisor_uri)
         pkunit.pkfail('could not connect to {}', sirepo.job_api.cfg.supervisor_uri)
     return p, fc
 

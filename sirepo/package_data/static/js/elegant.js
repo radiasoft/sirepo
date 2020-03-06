@@ -654,7 +654,8 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState, latticeService) {
+// elegantService is required to register with appState
+SIREPO.app.directive('appHeader', function(appState, elegantService, latticeService) {
     return {
         restrict: 'A',
         scope: {

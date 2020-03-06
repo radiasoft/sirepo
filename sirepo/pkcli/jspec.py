@@ -10,10 +10,10 @@ from pykern import pksubprocess
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import sdds_util, template_common
-import os.path
 import re
-import sirepo.template.jspec as template
+import shutil
 import sirepo.sim_data
+import sirepo.template.jspec as template
 
 _SIM_DATA = sirepo.sim_data.get_class('jspec')
 
@@ -56,9 +56,11 @@ def _elegant_to_madx(ring):
     else: # elegant-sirepo
         if 'elegantSirepo' not in ring or not ring['elegantSirepo']:
             raise RuntimeError('elegant simulation not selected')
-        elegant_twiss_file = _SIM_DATA.JSPEC_ELEGANT_TWISS_FILENAME
-        if not os.path.exists(elegant_twiss_file):
+        tf = _SIM_DATA.jspec_elegant_dir().join(ring.elegantSirepo, _SIM_DATA.jspec_elegant_twiss_path())
+        if not tf.exists():
             raise RuntimeError('elegant twiss output unavailable. Run elegant simulation.')
+        shutil.copyfile(str(tf), _SIM_DATA.JSPEC_ELEGANT_TWISS_FILENAME)
+        elegant_twiss_file = _SIM_DATA.JSPEC_ELEGANT_TWISS_FILENAME
     sdds_util.twiss_to_madx(elegant_twiss_file, template.JSPEC_TWISS_FILENAME)
     return template.JSPEC_TWISS_FILENAME
 

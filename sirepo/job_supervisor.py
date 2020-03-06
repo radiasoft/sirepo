@@ -12,7 +12,8 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdformat, pkdlog, pkdexc
 from sirepo import job
 import asyncio
-import contextlib
+import copy
+import datetime
 import os
 import pykern.pkio
 import sirepo.http_reply
@@ -23,7 +24,6 @@ import time
 import tornado.ioloop
 import tornado.locks
 import tornado.queues
-
 
 #: where supervisor state is persisted to disk
 _DB_DIR = None
@@ -36,11 +36,14 @@ _NEXT_REQUEST_SECONDS = None
 _RUNNING_PENDING = (job.RUNNING, job.PENDING)
 
 _HISTORY_FIELDS = frozenset((
+    'computeJobQueued',
     'computeJobSerial',
     'computeJobStart',
+    'driverDetails',
     'error',
     'jobRunMode',
     'lastUpdateTime',
+    'computeModel'
     'status',
 ))
 
@@ -49,15 +52,13 @@ _PARALLEL_STATUS_FIELDS = frozenset((
     'elapsedTime',
     'frameCount',
     'lastUpdateTime',
+    'computeModel'
     'percentComplete',
     'computeJobStart',
 ))
 
 _UNTIMED_OPS = frozenset((job.OP_ALIVE, job.OP_CANCEL, job.OP_ERROR, job.OP_KILL, job.OP_OK))
 cfg = None
-
-#: conversion of cfg.<kind>.max_hours
-_MAX_RUN_SECS = PKDict()
 
 #: how many times restart request when Awaited() raised
 _MAX_RETRIES = 10
@@ -78,16 +79,14 @@ def init():
     job_driver.init(pkinspect.this_module())
     _DB_DIR = sirepo.srdb.root().join(_DB_SUBDIR)
     cfg = pkconfig.init(
-        parallel=dict(
-            max_hours=(1, float, 'maximum run-time for parallel job (except sbatch)'),
+        job_cache_secs=(300, int, 'when to re-read job state from disk'),
+        max_hours=dict(
+            analysis=(.04, float, 'maximum run-time for analysis job'),
+            parallel=(1, float, 'maximum run-time for parallel job (except sbatch)'),
+            sequential=(.1, float, 'maximum run-time for sequential job')
         ),
         sbatch_poll_secs=(60, int, 'how often to poll squeue and parallel status'),
-        sequential=dict(
-            max_hours=(.1, float, 'maximum run-time for sequential job'),
-        ),
     )
-    for k in job.KINDS:
-        _MAX_RUN_SECS[k] = int(cfg[k].max_hours * 3600)
     _NEXT_REQUEST_SECONDS = PKDict({
         job.PARALLEL: 2,
         job.SBATCH: cfg.sbatch_poll_secs,
@@ -117,11 +116,14 @@ def init():
 
 class ServerReq(PKDict):
 
+    def copy_content(self):
+        return copy.deepcopy(self.content)
+
     def pkdebug_str(self):
         c = self.get('content')
         if not c:
             return 'ServerReq(<no content>)'
-        return pkdformat('ServerReq({}, {})', c.api, c.computeJid)
+        return pkdformat('ServerReq({}, {})', c.api, c.get('computeJid'))
 
     async def receive(self):
         s = self.content.pkdel('serverSecret')
@@ -154,6 +156,19 @@ class _ComputeJob(PKDict):
         self.run_dir_mutex.set()
         self.run_dir_owner = None
         self.pksetdefault(db=lambda: self.__db_init(req))
+        self.cache_timeout_set()
+
+    def cache_timeout(self):
+        if self.ops or init:
+            self.cache_timeout_set()
+        else:
+            del self.instances[self.db.computeJid]
+
+    def cache_timeout_set(self):
+        self.timer = tornado.ioloop.IOLoop.current().call_later(
+            cfg.job_cache_secs,
+            self.cache_timeout,
+        )
 
     def destroy_op(self, op):
         if op in self.ops:
@@ -164,8 +179,11 @@ class _ComputeJob(PKDict):
             self.run_dir_release(self.run_dir_owner)
 
     @classmethod
-    def get_instance(cls, req):
-        j = req.content.computeJid
+    def get_instance_or_class(cls, req):
+        try:
+            j = req.content.computeJid
+        except AttributeError:
+            return cls
         self = cls.instances.pksetdefault(j, lambda: cls.__create(req))[j]
         # SECURITY: must only return instances for authorized user
         assert req.content.uid == self.db.uid, \
@@ -181,18 +199,21 @@ class _ComputeJob(PKDict):
         if not d:
             return '_ComputeJob()'
         return pkdformat(
-            '_ComputeJob({} {} ops={})',
+            '_ComputeJob({} u={} {} {})',
             d.get('computeJid'),
+            d.get('uid'),
             d.get('status'),
             self.ops,
         )
 
     @classmethod
     async def receive(cls, req):
-        pkdlog('{}', req)
+        if req.content.get('api') != 'api_runStatus':
+            pkdlog('{}', req)
         try:
+            o = cls.get_instance_or_class(req)
             return await getattr(
-                cls.get_instance(req),
+                o,
                 '_receive_' + req.content.api,
             )(req)
         except asyncio.CancelledError:
@@ -208,7 +229,7 @@ class _ComputeJob(PKDict):
             return
         e = None
         if not self.run_dir_mutex.is_set():
-            pkdlog('self={} await self.run_dir_mutex', self)
+            pkdlog('{} await self.run_dir_mutex', self)
             await self.run_dir_mutex.wait()
             e = Awaited()
             if self.run_dir_owner:
@@ -231,7 +252,7 @@ class _ComputeJob(PKDict):
             d = pkcollections.json_load_any(
                 cls.__db_file(req.content.computeJid),
             )
-#TODO(robnagler) when we reconnet with running processes at startup,
+#TODO(robnagler) when we reconnect with running processes at startup,
 #  we'll need to change this
             if d.status in _RUNNING_PENDING:
                 d.status = job.CANCELED
@@ -252,11 +273,14 @@ class _ComputeJob(PKDict):
             computeJobHash=c.computeJobHash,
             computeJobSerial=0,
             computeJobStart=0,
+            computeJobQueued=0,
+            driverDetails=PKDict(),
             error=None,
             history=self.__db_init_history(prev_db),
             isParallel=c.isParallel,
             jobRunMode=c.jobRunMode,
             lastUpdateTime=0,
+            simName=None,
             nextRequestSeconds=_NEXT_REQUEST_SECONDS[c.jobRunMode],
             simulationId=c.simulationId,
             simulationType=c.simulationType,
@@ -281,6 +305,75 @@ class _ComputeJob(PKDict):
         sirepo.util.json_dump(self.db, path=self.__db_file(self.db.computeJid))
         return self
 
+    @classmethod
+    def _get_running_pending_jobs(cls, uid=None):
+        def _filter_jobs(job):
+            if uid and job.db.uid != uid:
+                return False
+            return job.db.status in _RUNNING_PENDING
+
+        def _get_header():
+            h = [
+                'App',
+                'Simulation id',
+                'Start (UTC)',
+                'Last update (UTC)',
+                'Elapsed',
+            ]
+            if uid:
+                h.insert(l, 'Name')
+            else:
+                h.insert(l, 'User id')
+                h.extend([
+                    'Queued',
+                    'Driver details',
+                ])
+            return h
+
+        def _strf_unix_time(unix_time):
+            return datetime.datetime.utcfromtimestamp(
+                int(unix_time),
+            ).strftime('%Y-%m-%d %H:%M:%S')
+
+        def _strf_seconds(seconds):
+            # formats to [D day[s], ][H]H:MM:SS[.UUUUUU]
+            return str(datetime.timedelta(seconds=seconds))
+
+        def _get_rows():
+            def _get_queued_time(db):
+                m = i.db.computeJobStart if i.db.status == job.RUNNING \
+                    else int(time.time())
+                return _strf_seconds(m - db.computeJobQueued)
+
+            r = []
+            for i in filter(_filter_jobs, cls.instances.values()):
+                d = [
+                    i.db.simulationType,
+                    i.db.simulationId,
+                    _strf_unix_time(i.db.computeJobStart),
+                    _strf_unix_time(i.db.lastUpdateTime),
+                    _strf_seconds(i.db.lastUpdateTime - i.db.computeJobStart),
+                ]
+                if uid:
+                    d.insert(l, i.db.simName)
+                else:
+                    d.insert(l, i.db.uid)
+                    d.extend([
+                        _get_queued_time(i.db),
+                        ' | '.join(sorted(i.db.driverDetails.values())),
+                    ])
+                r.append(d)
+
+            r.sort(key=lambda x: x[l])
+            return r
+
+        l = 2
+        return PKDict(header=_get_header(), rows=_get_rows())
+
+    @classmethod
+    async def _receive_api_admJobs(cls, req):
+        return cls._get_running_pending_jobs()
+
     async def _receive_api_downloadDataFile(self, req):
         return await self._send_with_single_reply(
             job.OP_ANALYSIS,
@@ -289,38 +382,79 @@ class _ComputeJob(PKDict):
             dataFileKey=req.content.pop('dataFileKey')
         )
 
-    async def _receive_api_runCancel(self, req):
+    @classmethod
+    async def _receive_api_ownJobs(cls, req):
+        return cls._get_running_pending_jobs(uid=req.content.uid)
+
+    async def _receive_api_runCancel(self, req, timed_out_op=None):
+        """Cancel a run and related ops
+
+        Analysis ops that are for a parallel run (ex. sim frames) will not
+        be cancelled.
+
+        Args:
+            req (ServerReq): The cancel request
+            timed_out_op (_Op, Optional): the op that was timed out, which
+                needs to be canceled
+        Returns:
+            PKDict: Message with state=cancelled
+        """
+
+        def _ops_to_cancel():
+            r = set(
+                o for o in self.ops
+                # Do not cancel sim frames. Allow them to come back for a cancelled run
+                if not (self.db.isParallel and o.opName == job.OP_ANALYSIS)
+            )
+            if timed_out_op in self.ops:
+                r.add(timed_out_op)
+            return list(r)
+
         r = PKDict(state=job.CANCELED)
         if (
-            not self._req_is_valid(req)
-            or self.db.status not in _RUNNING_PENDING
+            # a running simulation may be cancelled due to a
+            # downloadDataFile request timeout in another browser window (only the
+            # computeJids must match between the two requests). This might be
+            # a weird UX but it's important to do, because no op should take
+            # longer than its timeout.
+            #
+            # timed_out_op might not be a valid request, because a new compute
+            # may have been started so either we are canceling a compute by
+            # user directive (left) or timing out an op (and canceling all).
+            (not self._req_is_valid(req) and not timed_out_op)
+            or (self.db.status not in _RUNNING_PENDING and not self.ops)
         ):
             # job is not relevant, but let the user know it isn't running
             return r
         c = None
+        o = []
         try:
             for i in range(_MAX_RETRIES):
                 try:
-                    if self.run_op:
+                    if _ops_to_cancel():
                         #TODO(robnagler) cancel run_op, not just by jid, which is insufficient (hash)
                         if not c:
                             c = self._create_op(job.OP_CANCEL, req)
+                        # do not need to run_dir_acquire. OP_ANALYSIS may be in
+                        # process, and it will have run_dir_mutex. That's ok,
+                        # because an OP_RUN will wait for run_dir_mutex, and
+                        # we'll destroy the OP_RUN below (never getting to the
+                        # run_dir_mutex). The opposite case is trickier, but
+                        # relies on the fact that we don't preempt below after
+                        # the destroy (which may release run_dir_mutex) until the
+                        # reply_get await (after the send).
                         await c.prepare_send()
-                        # out of order from OP_ANALYSIS and OP_RUN, because we
-                        # want don't have to wait so block on prepare_send before
-                        # modifying global state (release)
-                        if self.run_dir_owner and self.run_dir_owner != c:
-                            self.run_dir_release(self.run_dir_owner)
-                        await self.run_dir_acquire(c)
+                        o = _ops_to_cancel()
                     elif c:
                         c.destroy()
                         c = None
-                    for x in self.ops:
-                        if not (self.db.isParallel and x.opName == job.OP_ANALYSIS):
-                            x.destroy(cancel=True)
+                    pkdlog('{} cancel={}', self, o)
+                    for x in filter(lambda e: e != c, o):
+                        x.destroy(cancel=True)
                     self.db.status = job.CANCELED
                     self.__db_write()
                     if c:
+                        c.msg.opIdsToCancel = [x.opId for x in o]
                         c.send()
                         await c.reply_get()
                     return r
@@ -356,18 +490,25 @@ class _ComputeJob(PKDict):
             jobCmd='compute',
             nextRequestSeconds=self.db.nextRequestSeconds,
         )
+        t = int(time.time())
+        self.__db_init(req, prev_db=self.db)
+        self.db.pkupdate(
+            computeJobQueued=t,
+            computeJobSerial=t,
+            computeModel=req.content.computeModel,
+            driverDetails=o.driver.driver_details,
+            # run mode can change between runs so we must update the db
+            jobRunMode=req.content.jobRunMode,
+            simName=req.content.data.models.simulation.name,
+            status=job.PENDING,
+        )
+        self.__db_write()
         try:
             for i in range(_MAX_RETRIES):
                 try:
                     await self.run_dir_acquire(o)
                     await o.prepare_send()
                     self.run_op = o
-                    self.__db_init(req, prev_db=self.db)
-                    # run mode can change between runs so we must update the db
-                    self.db.jobRunMode = req.content.jobRunMode
-                    self.db.computeJobSerial = int(time.time())
-                    self.db.pkupdate(status=job.PENDING)
-                    self.__db_write()
                     o.make_lib_dir_symlink()
                     o.send()
                     r = self._status_reply(req)
@@ -383,10 +524,15 @@ class _ComputeJob(PKDict):
                     pass
             else:
                 raise AssertionError('too many retries {}'.format(req))
-        finally:
+        except Exception as e:
+            self.db.pkupdate(
+                status=job.ERROR,
+                error=e,
+            )
             # _run destroys in the happy path (never got to _run here)
             if o:
                 o.destroy(cancel=False)
+            raise
 
     async def _receive_api_runStatus(self, req):
         r = self._status_reply(req)
@@ -426,25 +572,31 @@ class _ComputeJob(PKDict):
 # these values are never sent directly, only msg which can be camelcase
             computeJob=self,
             kind=req.kind,
-            maxRunSecs=(
-                0 if opName in _UNTIMED_OPS
-                or (r == sirepo.job.SBATCH and opName == job.OP_RUN)
-                else _MAX_RUN_SECS[req.kind]
-            ),
+            maxRunSecs=self._get_max_run_secs(opName, req.kind, r),
             msg=PKDict(req.content).pksetdefault(jobRunMode=r),
             opName=opName,
+            req_content=req.copy_content(),
             task=asyncio.current_task(),
         )
         o.driver = job_driver.get_instance(req, r, o)
         if 'dataFileKey' in kwargs:
             kwargs['dataFileUri'] = job.supervisor_file_uri(
-                o.driver.get_supervisor_uri(),
+                o.driver.cfg.supervisor_uri,
                 job.DATA_FILE_URI,
                 kwargs.pop('dataFileKey'),
             )
         o.msg.pkupdate(**kwargs)
         self.ops.append(o)
         return o
+
+    def _get_max_run_secs(self, op_name, kind, run_mode):
+        if op_name in _UNTIMED_OPS or \
+            (run_mode == sirepo.job.SBATCH and op_name == job.OP_RUN):
+            return 0
+        t = cfg.max_hours[kind]
+        if op_name == sirepo.job.OP_ANALYSIS:
+            t = cfg.max_hours.analysis
+        return t * 3600
 
     def _req_is_valid(self, req):
         return (
@@ -559,6 +711,7 @@ class _Op(PKDict):
             _reply_q=tornado.queues.Queue(),
         )
         self.msg.update(opId=self.opId, opName=self.opName)
+        pkdlog('{} runDir={}', self, self.msg.get('runDir'))
 
     def destroy(self, cancel=True):
         if cancel:
@@ -578,7 +731,7 @@ class _Op(PKDict):
         self.driver.make_lib_dir_symlink(self)
 
     def pkdebug_str(self):
-        return pkdformat('_Op({}, {:.6})', self.opName, self.opId)
+        return pkdformat('_Op({}, {:.4})', self.opName, self.opId)
 
     async def prepare_send(self):
         """Ensures resources are available for sending to agent
@@ -593,7 +746,7 @@ class _Op(PKDict):
         # Had to look at the implementation of Queue to see that
         # task_done should only be called if get actually removes
         # the item from the queue.
-        pkdlog('self={} await _reply_q.get()', self)
+        pkdlog('{} await _reply_q.get()', self)
         r = await self._reply_q.get()
         self._reply_q.task_done()
         return r
@@ -601,9 +754,13 @@ class _Op(PKDict):
     def reply_put(self, reply):
         self._reply_q.put_nowait(reply)
 
-    def run_timeout(self):
-        pkdlog('{} maxRunSecs={maxRunSecs}', self, **self)
-        self.destroy()
+    async def run_timeout(self):
+        """Can be any op that's timed"""
+        pkdlog('{} maxRunSecs={}', self, self.maxRunSecs)
+        await self.computeJob._receive_api_runCancel(
+            ServerReq(content=self.req_content),
+            timed_out_op=self,
+        )
 
     def send(self):
         if self.maxRunSecs:
@@ -612,3 +769,6 @@ class _Op(PKDict):
                 self.run_timeout,
             )
         self.driver.send(self)
+
+    def __hash__(self):
+        return hash((self.opId,))

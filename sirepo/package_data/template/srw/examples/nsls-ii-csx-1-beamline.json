@@ -218,7 +218,7 @@
             "magneticField": 2,
             "method": 1,
             "notes": "",
-            "numberOfMacroElectrons": 100000,
+            "numberOfMacroElectrons": 1000,
             "photonEnergyPointCount": 1000,
             "plotScale": "linear",
             "polarization": 6,

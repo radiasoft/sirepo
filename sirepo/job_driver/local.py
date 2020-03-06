@@ -22,10 +22,9 @@ import tornado.process
 import tornado.queues
 
 
-cfg = None
-
-
 class LocalDriver(job_driver.DriverBase):
+
+    cfg = None
 
     __instances = PKDict()
 
@@ -73,15 +72,27 @@ class LocalDriver(job_driver.DriverBase):
 
     @classmethod
     def init_class(cls):
+        cls.cfg = pkconfig.init(
+            agent_starting_secs=(
+                cls._AGENT_STARTING_SECS,
+                int,
+                'how long to wait for agent start',
+            ),
+            slots=dict(
+                parallel=(1, int, 'max parallel slots'),
+                sequential=(1, int, 'max sequential slots'),
+            ),
+            supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
+        )
         for k in job.KINDS:
             cls.__instances[k] = []
-            cls.__cpu_slot_q[k] = cls.init_q(cfg.slots[k])
+            cls.__cpu_slot_q[k] = cls.init_q(cls.cfg.slots[k])
         return cls
 
     async def kill(self):
         if 'subprocess' not in self:
             return
-        pkdlog(self.subprocess.proc.pid)
+        pkdlog('{} pid={}', self, self.subprocess.proc.pid)
         self.subprocess.proc.terminate()
         self.kill_timeout = tornado.ioloop.IOLoop.current().call_later(
             job_driver.KILL_TIMEOUT_SECS,
@@ -101,14 +112,14 @@ class LocalDriver(job_driver.DriverBase):
         k = self.pkdel('kill_timeout')
         if k:
             tornado.ioloop.IOLoop.current().remove_timeout(k)
-        pkdlog('agentId={} returncode={}', self._agentId, returncode)
+        pkdlog('{} returncode={}', self, returncode)
         self._agent_exec_dir.remove(rec=True, ignore_errors=True)
 
     async def _do_agent_start(self, op):
         stdin = None
         try:
             cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agent_exec_dir)
-            pkdlog('dir={}', self._agent_exec_dir)
+            pkdlog('{} agent_exec_dir={}', self, self._agent_exec_dir)
             # since this is local, we can make the directory; useful for debugging
             pkio.mkdir_parent(self._agent_exec_dir)
             self.subprocess = tornado.process.Subprocess(
@@ -124,13 +135,4 @@ class LocalDriver(job_driver.DriverBase):
 
 
 def init_class():
-    global cfg
-
-    cfg = pkconfig.init(
-        slots=dict(
-            parallel=(1, int, 'max parallel slots'),
-            sequential=(1, int, 'max sequential slots'),
-        ),
-        supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
-    )
     return LocalDriver.init_class()

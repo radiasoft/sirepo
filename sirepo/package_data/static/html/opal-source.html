@@ -1,0 +1,19 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6 col-xl-4">
+      <div data-basic-editor-panel="" data-view-name="command_beam"></div>
+      <div data-sr-commanddistribution-editor="">
+        <div data-basic-editor-panel="" data-view-name="command_distribution"></div>
+      </div>
+    </div>
+    <div data-ng-repeat="item in source.bunchReports track by item.id">
+      <div class="col-md-6 col-xl-4">
+        <div data-report-panel="heatmap" data-model-name="bunchReport" data-model-data="item" data-panel-title="{{ source.bunchReportHeading(item) }}"></div>
+      </div>
+      <div data-ng-if="$index == 0" class="hidden-xl clearfix"></div>
+      <div data-ng-if="$index == 1 && source.isFromFile()" class="visible-xl col-xl-4">&nbsp;</div>
+    </div>
+  </div>
+</div>
+
+<div data-modal-editor="" view-name="bunchReport" data-ng-repeat="item in source.bunchReports track by item.id" data-parent-controller="source" data-model-data="item"></div>

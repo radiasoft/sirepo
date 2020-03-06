@@ -30,7 +30,7 @@ def test_importer(import_req):
                 data = elegant.import_file(import_req(fn))
             except Exception as e:
                 pkdlog(pkdexc())
-                error = e.message
+                error = str(e)
             if error:
                 actual = error
             else:

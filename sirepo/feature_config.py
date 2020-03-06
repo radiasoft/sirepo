@@ -8,10 +8,12 @@ from __future__ import absolute_import, division, print_function
 # defer all imports so *_CODES is available to testing functions
 
 
-#: Codes on beta and prod; 'shadow' is unsupported on F29 for now
+#: Codes on beta and prod
 NON_ALPHA_CODES = frozenset((
     'elegant',
     'jspec',
+    'opal',
+    'shadow',
     'srw',
     'synergia',
     'warppba',
@@ -22,16 +24,18 @@ NON_ALPHA_CODES = frozenset((
 
 #: Codes on dev and alpha
 ALPHA_CODES = frozenset((
-    'adm',
     'flash',
     'myapp',
-    'opal',
     'rcscon',
     'rs4pi',
 ))
 
 #: All possible codes
 ALL_CODES = NON_ALPHA_CODES.union(ALPHA_CODES)
+
+
+_DEFAULT_PROPRIETARY_CODES = ('flash',)
+
 
 #: Configuration
 _cfg = None
@@ -95,6 +99,7 @@ def _init():
         jspec=dict(
             derbenevskrinsky_force_formula=(pkconfig.channel_in_internal_test(), bool, 'Include Derbenev-Skrinsky force forumla'),
         ),
+        proprietary_sim_types=(_DEFAULT_PROPRIETARY_CODES, set, 'codes that require authorization'),
         #TODO(robnagler) make sim_type config
         rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
         sim_types=(None, _cfg_sim_types, 'simulation types (codes) to be imported'),
@@ -107,3 +112,5 @@ def _init():
             display_test_boxes=(pkconfig.channel_in_internal_test(), bool, 'Display test boxes to visualize 3D -> 2D projections'),
         ),
     )
+    # can't check proprietary_sim_types against sim_types, because
+    # may not overlap (flash is always proprietary)

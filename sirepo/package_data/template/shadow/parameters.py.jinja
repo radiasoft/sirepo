@@ -46,7 +46,7 @@ srfunc.wiggler_cdf(
 
 source.F_BOUND_SOUR = {{rayFilter_f_bound_sour}}
 {% if rayFilter_f_bound_sour == '2' %}
-fn = 'source-aperture.dat'
+fn = b'source-aperture.dat'
 with open(fn, 'w') as f:
   f.write(' {{rayFilter_distance}} {{rayFilter_x1}} {{rayFilter_x2}} {{rayFilter_z1}} {{rayFilter_z2}}')
 source.FILE_BOUND = fn

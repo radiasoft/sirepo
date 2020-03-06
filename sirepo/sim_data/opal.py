@@ -28,27 +28,32 @@ class SimData(sirepo.sim_data.SimDataBase):
             ),
         )
 
-        # TODO(pjm): remove before check-in
-        track = None
-        commands = []
-        for cmd in dm.commands:
-            if cmd._type == 'track':
-                track = cmd
-            elif cmd._type == 'run':
-                assert track, 'missing track for run'
-                for f in cmd:
-                    if f in ('name', '_type'):
-                        continue
-                    track['run_{}'.format(f)] = cmd[f]
-                continue
-            commands.append(cmd)
-        dm.commands = commands
+        if 'bunchReport1' not in dm:
+            for i in range(1, 5):
+                m = dm['bunchReport{}'.format(i)] = PKDict()
+                cls.update_model_defaults(m, 'bunchReport')
+                if i == 1:
+                    m.y = 'px'
+                elif i == 2:
+                    m.x = 'y'
+                    m.y = 'py'
+                elif i == 4:
+                    m.x = 'z'
+                    m.y = 'pz'
 
+    @classmethod
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if 'bunchReport' in analysis_model:
+            return 'bunchReport'
+        # twissReport2 and twissReport are compute_models
+        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         if r == 'twissReport':
-            return ['beamlines', 'elements', 'commands', 'simulation.activeBeamlineId']
+            return ['beamlines', 'elements', 'commands', 'simulation.activeBeamlineId', 'rpnVariables']
+        if 'bunchReport' in r:
+            return ['commands', 'rpnVariables']
         return []
 
     @classmethod

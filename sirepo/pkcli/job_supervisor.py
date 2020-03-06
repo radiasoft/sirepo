@@ -46,6 +46,9 @@ def default_command():
         static_path=sirepo.job.SUPERVISOR_SRV_ROOT.join(sirepo.job.LIB_FILE_URI),
         # tornado expects a trailing slash
         static_url_prefix=sirepo.job.LIB_FILE_URI + '/',
+        websocket_max_message_size=sirepo.job.cfg.max_message_size,
+        websocket_ping_interval=sirepo.job.cfg.ping_interval_secs,
+        websocket_ping_timeout=sirepo.job.cfg.ping_timeout_secs,
     )
     server = tornado.httpserver.HTTPServer(app, xheaders=True)
     server.listen(cfg.port, cfg.ip)
@@ -163,11 +166,12 @@ async def _incoming(content, handler):
         c = content
         if not isinstance(content, dict):
             c = pkjson.load_any(content)
-        pkdc(
-            'class={} content={}',
-            handler.sr_class,
-            c,
-        )
+        if c.get('api') != 'api_runStatus':
+            pkdc(
+                'class={} content={}',
+                handler.sr_class,
+                c,
+            )
         await handler.sr_class(handler=handler, content=c).receive()
     except Exception as e:
         pkdlog(
