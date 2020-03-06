@@ -26,17 +26,17 @@
             ["none", "None"]
         ],
         "BeamParticle": [
-            ["Aluminum", "Aluminum"],
-            ["Copper", "Copper"],
-            ["Deuteron", "Deuteron"],
-            ["Gold", "Gold"],
-            ["Helium", "Helium"],
-            ["Lead", "Lead"],
-            ["Proton", "Proton"],
-            ["Ruthenium", "Ruthenium"],
-            ["Uranium", "Uranium"],
-            ["Zirconium", "Zirconium"],
-            ["Other", "Other"]
+            ["ALUMINUM", "Aluminum"],
+            ["COPPER", "Copper"],
+            ["DEUTERON", "Deuteron"],
+            ["GOLD", "Gold"],
+            ["HELIUM", "Helium"],
+            ["LEAD", "Lead"],
+            ["PROTON", "Proton"],
+            ["RUTHENIUM", "Ruthenium"],
+            ["URANIUM", "Uranium"],
+            ["ZIRCONIUM", "Zirconium"],
+            ["OTHER", "Other"]
         ],
         "BeamType": [
             ["bunched", "Bunched Beam"],

@@ -463,16 +463,16 @@ def _set_mass_and_charge(data):
     if not data.get('ionBeam_particle'):
         return
     v = PKDict(
-        Aluminum=(25126.4878, 13),
-        Copper=(58603.6989, 29),
-        Deuteron=(1875.612928, 1),
-        Gold=(183432.7312, 79),
-        Helium=(3755.675436, 2),
-        Lead=(193687.0203, 82),
-        Proton=(938.2720882, 1),
-        Ruthenium=(94900.76612, 44),
-        Uranium=(221695.7759, 92),
-        Zirconium=(83725.21758, 40),
-        Other=(data.ionBeam_mass, data.ionBeam_charge_number),
+        ALUMINUM=(25126.4878, 13),
+        COPPER=(58603.6989, 29),
+        DEUTERON=(1875.612928, 1),
+        GOLD=(183432.7312, 79),
+        HELIUM=(3755.675436, 2),
+        LEAD=(193687.0203, 82),
+        PROTON=(938.2720882, 1),
+        RUTHENIUM=(94900.76612, 44),
+        URANIUM=(221695.7759, 92),
+        ZIRCONIUM=(83725.21758, 40),
+        OTHER=(data.ionBeam_mass, data.ionBeam_charge_number),
     )
     data.ionBeam_mass, data.ionBeam_charge_number = v[data.ionBeam_particle]

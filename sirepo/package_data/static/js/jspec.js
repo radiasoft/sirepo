@@ -139,7 +139,7 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         appState.watchModelFields($scope, ['electronBeam.beam_type'], processElectronBeamType);
         appState.watchModelFields($scope, ['ring.latticeSource'], processLatticeSource);
         appState.watchModelFields($scope, ['ionBeam.mass', 'ionBeam.kinetic_energy'], processGamma);
-        appState.watchModelFields($scope, ['ionBeam.particle'], evan);
+        appState.watchModelFields($scope, ['ionBeam.particle'], processParticle);
         $scope.$on('sr-tabSelected', processIntrabeamScatteringMethod);
         $scope.$on('sr-tabSelected', updateForceFormulas);
         appState.watchModelFields($scope, ['intrabeamScatteringRate.longitudinalMethod'], processIntrabeamScatteringMethod);
