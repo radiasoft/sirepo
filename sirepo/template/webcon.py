@@ -13,7 +13,6 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo import util
 from sirepo.template import template_common
-import StringIO
 import copy
 import csv
 import math
@@ -32,6 +31,12 @@ import sklearn.metrics.pairwise
 import sklearn.mixture
 import sklearn.preprocessing
 import sympy
+
+try:
+    from io import StringIO
+except ImportError:
+    from StringIO import StringIO
+
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
@@ -231,7 +236,7 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
     path = str(run_dir.join(_analysis_data_path(data)))
     col_info = _column_info(path)
     plot_data = _load_file_with_history(report, path, col_info)
-    buf = StringIO.StringIO()
+    buf = StringIO()
     buf.write(','.join(col_info['names']) + '\n')
     np.savetxt(buf, plot_data, delimiter=',')
     return '{}.csv'.format(model), buf.getvalue(), 'text/csv'
@@ -368,7 +373,7 @@ def read_epics_values(server_address, fields):
     output = run_epics_command(server_address, ['caget', '-w', '5'] + fields)
     if not output:
         return None
-    res = np.array(re.split(r'\s+', output)[1::2]).astype('float').tolist()
+    res = np.array(re.split(r'\s+', str(output))[1::2]).astype('float').tolist()
     #pkdlog(' got result: {}', res)
     return res
 
@@ -931,7 +936,7 @@ def _read_monitor_file(monitor_path, history=False):
     min_time = datetime.max
     #TODO(pjm): currently reading entire file to get list of current values (most recent at bottom)
     for line in pkio.read_text(str(monitor_path)).split("\n"):
-        m = re.match(r'(\S+)(.*?)\s([\d\.\e\-\+]+)\s*$', line)
+        m = re.match(r'(\S+)(.*?)\s([\d\.e\-\+]+)\s*$', line)
         if not m:
             continue
         var_name = m.group(1)

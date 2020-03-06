@@ -7,6 +7,7 @@ u"""Email login
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern import pkcollections
+from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
@@ -120,7 +121,7 @@ def api_authEmailLogin():
 
 def avatar_uri(model, size):
     return 'https://www.gravatar.com/avatar/{}?d=mp&s={}'.format(
-        hashlib.md5(sirepo.util.b(model.user_name)).hexdigest(),
+        hashlib.md5(pkcompat.to_bytes(model.user_name)).hexdigest(),
         size,
     )
 

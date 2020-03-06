@@ -204,7 +204,7 @@ def _run_forever(server_address):
 
 def _run_simulation_loop(server_address):
     exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
-    return _wait_for_beam_steering(server_address, update_and_run_simulation)
+    return _wait_for_beam_steering(server_address, locals()['update_and_run_simulation'])
 
 
 def _subprocess(server_address, cmd):
