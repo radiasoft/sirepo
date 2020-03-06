@@ -112,7 +112,7 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
     function processParticle() {
         var n = 'ionBeam';
         ['mass', 'charge_number'].forEach(function(f) {
-            panelState.showField(n, f, appState.models[n].particle == 'OTHER');
+            panelState.showField(n, f, appState.models[n].particle === 'OTHER');
         });
     }
 
