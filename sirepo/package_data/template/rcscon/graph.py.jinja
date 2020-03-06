@@ -8,7 +8,7 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog
 # for each layer
 ml_model_graph = model_to_dot(model, show_shapes=True).create(prog='dot', format='svg')
 # the string comes back as a full XML doc - get rid of some of the nonsense
-s1 = ml_model_graph.index('<svg')
+s1 = ml_model_graph.index(b'<svg')
 #ml_model_graph = re.sub('(<!--.*?-->)', '', ml_model_graph[s1:], flags=re.DOTALL)
 ml_model_graph = ml_model_graph[s1:]
 
