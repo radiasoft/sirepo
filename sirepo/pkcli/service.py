@@ -7,7 +7,6 @@ Also supports starting nginx proxy.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from flower import command
 from pykern import pkcli
 from pykern import pkcollections
 from pykern import pkconfig
@@ -40,6 +39,7 @@ def celery():
 
 def flower():
     """Start flower"""
+    from flower import command
     assert pkconfig.channel_in('dev')
     run_dir = _run_dir().join('flower').ensure(dir=True)
     with pkio.save_chdir(run_dir):

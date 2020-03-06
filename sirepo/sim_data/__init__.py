@@ -136,11 +136,12 @@ class SimDataBase(object):
             return 'HashIsUnused'
         m = data['models']
         res = hashlib.md5()
-        for f in sorted(
-            sirepo.sim_data.get_class(
-                data.simulationType
-            )._compute_job_fields(data, data.report, c),
-        ):
+        fields = sirepo.sim_data.get_class(
+            data.simulationType
+        )._compute_job_fields(data, data.report, c)
+        # values may be string or PKDict
+        fields.sort(key=lambda x:str(x))
+        for f in fields:
             # assert isinstance(f, pkconfig.STRING_TYPES), \
             #     'value={} not a string_type'.format(f)
             #TODO(pjm): work-around for now

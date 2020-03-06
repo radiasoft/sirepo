@@ -34,11 +34,10 @@ def create_examples():
         auth.init_mock(uid)
         for sim_type in feature_config.cfg().sim_types:
             simulation_db.verify_app_directory(sim_type)
-            names = map(
-                lambda x: x['name'],
-                simulation_db.iterate_simulation_datafiles(sim_type, simulation_db.process_simulation_list, {
+            names = [x.name for x in simulation_db.iterate_simulation_datafiles(
+                sim_type, simulation_db.process_simulation_list, {
                     'simulation.isExample': True,
-                }))
+                })]
             for example in simulation_db.examples(sim_type):
                 if example.models.simulation.name not in names:
                     _create_example(example)

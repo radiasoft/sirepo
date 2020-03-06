@@ -192,7 +192,12 @@ def api_findByName(simulation_type, application_mode, simulation_name):
 def api_findByNameWithAuth(simulation_type, application_mode, simulation_name):
     req = http_request.parse_params(type=simulation_type)
     #TODO(pjm): need to unquote when redirecting from saved cookie redirect?
-    simulation_name = urllib.unquote(simulation_name)
+    if hasattr(urllib, 'unquote'):
+        # python2
+        simulation_name = urllib.unquote(simulation_name)
+    else:
+        # python3
+        simulation_name = urllib.parse.unquote(simulation_name)
     # use the existing named simulation, or copy it from the examples
     rows = simulation_db.iterate_simulation_datafiles(
         req.type,

@@ -42,16 +42,17 @@ def run_background(cfg_dir):
 
 def _run_elegant(bunch_report=False, with_mpi=False):
     exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
-    pkio.write_text('elegant.lte', lattice_file)
+    #TODO(pjm): in python3, lattice_file isn't present as a local variable after exec()
+    pkio.write_text('elegant.lte', locals()['lattice_file'])
     ele = 'elegant.ele'
-    pkio.write_text(ele, elegant_file)
+    pkio.write_text(ele, locals()['elegant_file'])
     kwargs = {
         'output': ELEGANT_LOG_FILE,
         'env': elegant_common.subprocess_env(),
     }
     try:
         #TODO(robnagler) Need to handle this specially, b/c different binary
-        if execution_mode == 'parallel' and with_mpi and mpi.cfg.cores > 1:
+        if locals()['execution_mode'] == 'parallel' and with_mpi and mpi.cfg.cores > 1:
             mpi.run_program(['Pelegant', ele], **kwargs)
         else:
             pksubprocess.check_call_with_signals(['elegant', ele], msg=pkdlog, **kwargs)
