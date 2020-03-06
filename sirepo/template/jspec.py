@@ -369,6 +369,7 @@ def _generate_parameters_file(data):
     report = data.report if 'report' in data else None
     template_common.validate_models(data, simulation_db.get_schema(SIM_TYPE))
     v = template_common.flatten_data(data.models, PKDict())
+    _set_mass_and_charge(v)
     v.beamEvolutionOutputFilename = _BEAM_EVOLUTION_OUTPUT_FILENAME
     v.runSimulation = report is None or report == 'animation'
     v.runRateCalculation = report is None or report == 'rateCalculationReport'
@@ -456,3 +457,22 @@ def _sdds_report(frame_args, filename, x_field):
         y_label='',
         x_label=_field_label(xfield, x_col.column_def),
     ))
+
+
+def _set_mass_and_charge(data):
+    if not data.get('ionBeam_particle'):
+        return
+    v = PKDict(
+        ALUMINUM=(25126.4878, 13),
+        COPPER=(58603.6989, 29),
+        DEUTERON=(1875.612928, 1),
+        GOLD=(183432.7312, 79),
+        HELIUM=(3755.675436, 2),
+        LEAD=(193687.0203, 82),
+        OTHER=(data.ionBeam_mass, data.ionBeam_charge_number),
+        PROTON=(938.2720882, 1),
+        RUTHENIUM=(94900.76612, 44),
+        URANIUM=(221695.7759, 92),
+        ZIRCONIUM=(83725.21758, 40),
+    )
+    data.ionBeam_mass, data.ionBeam_charge_number = v[data.ionBeam_particle]
