@@ -281,7 +281,7 @@ def get_fft(run_dir, data):
 
     coefs = (2.0 / num_samples) * np.abs(fft_out[0:half_num_samples])
     peaks, props = scipy.signal.find_peaks(coefs)
-    found_freqs = zip(peaks, np.around(w[peaks], 3))
+    found_freqs = [v for v in zip(peaks, np.around(w[peaks], 3))]
     #pkdlog('!FOUND {} FREQS {}, S2N {}, MEAN {}', len(found_freqs), found_freqs, s2n, m)
 
     # focus in on the peaks?
