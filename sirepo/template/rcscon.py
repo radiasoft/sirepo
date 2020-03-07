@@ -5,6 +5,7 @@ u"""RCSCON execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
@@ -153,10 +154,10 @@ def _epoch_animation(frame_args):
     header, v = _read_file(frame_args.run_dir, _OUTPUT_FILE.fitOutputFile)
     return _plot_info(
         v[:, 0],
-        map(lambda i: PKDict(
+        [PKDict(
             points=v[:, i].tolist(),
             label=header[i],
-        ), (1, 2)),
+        ) for i in (1, 2)],
     ).update(PKDict(
         x_label=header[0],
     ))
@@ -305,7 +306,7 @@ def _partition_animation(frame_args):
 def _plot_info(x, plots, title=''):
     return PKDict(
         title=title,
-        x_range=[min(x), max(x)],
+        x_range=[float(min(x)), float(max(x))],
         y_label='',
         x_label='',
         x_points=x.tolist(),
@@ -340,6 +341,6 @@ def _read_last_line(path):
             f.seek(-2, os.SEEK_END)
             while f.read(1) != b'\n':
                 f.seek(-2, os.SEEK_CUR)
-            return f.readline()
+            return pkcompat.from_bytes(f.readline())
     except IOError:
         return ''
