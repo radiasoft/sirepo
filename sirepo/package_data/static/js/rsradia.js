@@ -16,7 +16,7 @@ SIREPO.app.config(function() {
 
 });
 
-SIREPO.app.factory('radiaService', function(appState, requestSender, $rootScope) {
+SIREPO.app.factory('radiaService', function(appState, panelState, requestSender, $rootScope) {
     var self = {};
 
     var pathPts = {
@@ -31,14 +31,31 @@ SIREPO.app.factory('radiaService', function(appState, requestSender, $rootScope)
         return 'solver';
     };
 
-    //self.pointFieldTypes = SIREPO.APP_SCHEMA.enum.FieldType.slice(1).map(function (tArr) {
-    //    return tArr[0];
-    //});
-
     self.pointFieldTypes = appState.enumVals('FieldType').slice(1);
+
+    self.buildFieldPoints = function() {
+        var pts = [];
+        appState.models.fieldPaths.paths.forEach(function (p) {
+            pts.push(...self.pointsForPath(p));
+        });
+        return pts;
+    };
+
+    self.getPathType = function() {
+        srdbg('getPathType', appState.models.fieldTypes.path);
+        return (appState.models.fieldTypes || {}).path;
+    };
 
     self.newPath = function() {
         srdbg('ADD PATH');
+        var template = [
+            '<div data-modal-editor="" data-modal-title="\'Add Path\'" data-view-name="' + 'fieldPaths' + '" data-sr-' + 'fieldpaths' + '-editor=""' + '>',
+                '<div data-field-path-picker="" data-model-name="fieldPaths"></div>',
+                //'<div data-ng-repeat="type in pathTypes" data-ng-show="getPathType() == type" data-advanced-editor-pane="" data-view-name="type + \'Path\'" data-field-def="basic" data-want-buttons="false">',
+            '</div>',
+        ].join('');
+        $('#' + panelState.modalId('fieldpaths')).modal('show');
+        //panelState.showModalEditor('fieldPaths', template);
     };
 
     // to geometry?
@@ -232,7 +249,7 @@ SIREPO.app.directive('fieldPathTable', function(appState, radiaService) {
     };
 });
 
-SIREPO.app.directive('radiaFieldPaths', function(appState, radiaService) {
+SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaService) {
 
     return {
         restrict: 'A',
@@ -246,16 +263,18 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, radiaService) {
                     '<div class="panel-body">',
                         '<button class="btn btn-info btn-xs pull-right" accesskey="p" data-ng-click="radiaService.newPath()"><span class="glyphicon glyphicon-plus"></span> New <u>P</u>ath</button>',
                         '<div data-field-path-table=""></div>',
-                        '<div data-field-editor="\'path\'", data-model-name="modelName", data-model="model"></div>',
-                            '<div data-ng-if="modelsLoaded">',
-                            '<div data-ng-repeat="type in pathTypes" data-ng-show="getPathType() == type" data-advanced-editor-pane="" data-view-name="type + \'Path\'" data-field-def="basic" data-want-buttons="false">',
-                            '</div>',
-                        '</div>',
-                        '<button class="btn btn-default col-sm-2 col-sm-offset-5" data-ng-click="addPath()">+</button>',
-                        '<button class="btn btn-default col-sm-2 col-sm-offset-5" data-ng-click="clearPaths()">Clear</button>',
+                        //'<div data-field-editor="\'path\'", data-model-name="modelName", data-model="model"></div>',
+                        //    '<div data-ng-if="modelsLoaded">',
+                        //    '<div data-ng-repeat="type in pathTypes" data-ng-show="getPathType() == type" data-advanced-editor-pane="" data-view-name="type + \'Path\'" data-field-def="basic" data-want-buttons="false">',
+                        //    '</div>',
+                        //'</div>',
+                        //'<button class="btn btn-default col-sm-2 col-sm-offset-5" data-ng-click="addPath()">+</button>',
+                        '<button class="btn btn-default col-sm-2 col-sm-offset-5" data-ng-show="hasPaths()" data-ng-click="confirmClear()">Clear</button>',
                     '</div>',
                 '</div>',
             '</div>',
+            //'<div data-confirmation-modal="" data-id="sr-delete-path-confirmation" data-title="Delete Path?" data-ok-text="Delete" data-ok-clicked="deleteSelected()">Delete command &quot;{{ selectedItemName() }}&quot;?</div>',
+            '<div data-confirmation-modal="" data-id="sr-clear-paths-confirmation" data-title="Clear All Paths?" data-ok-text="OK" data-ok-clicked="clearPaths()">Clear All Paths?</div>',
 
         ].join(''),
         controller: function($scope, $element) {
@@ -267,14 +286,10 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, radiaService) {
             $scope.getPathType = function() {
                 return ($scope.model || {}).path;
             };
-            //$scope.pathField = $scope.model.path;
-
-            //var POINT_FIELD_TYPES = SIREPO.APP_SCHEMA.enum.FieldType.slice(1).map(function (tArr) {
-            //    return tArr[0];
-            //});
-
 
             $scope.addPath = function() {
+                panelState.showModalEditor($scope.modelName);
+                /*
                 var m = $scope.getPathView();
                 var p = appState.models[m];
                 var t = $scope.getPathType();
@@ -294,24 +309,117 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, radiaService) {
                         srdbg('ADDED');
                     });
                 });
+                 */
+            };
+
+            $scope.clearPaths = function() {
+                $scope.model.paths = [];
+                appState.saveChanges($scope.modelName, function (d) {
+                    srdbg('CLEARED');
+                });
+            };
+
+            $scope.confirmClear = function() {
+                srdbg('CLEAR?');
+                $('#sr-clear-paths-confirmation').modal('show');
             };
 
             $scope.getPathView = function() {
                 return ($scope.getPathType() || '') + 'Path';
             };
 
-            $scope.clearPaths = function() {
-                // open confirm dialog
-                srdbg('CLEAR?');
-                //$scope.model.paths = [];
-                //appState.saveChanges($scope.modelName, function (d) {
-                //    srdbg('CLEARED');
-                //});
+            $scope.hasPaths = function() {
+                if (! $scope.modelsLoaded) {
+                    return false;
+                }
+                return $scope.model.paths && $scope.model.paths.length;
             };
 
-            $scope.$on('fieldPaths.changed', function () {
+            function numPathsOfType(type) {
+                //srdbg('chk', $scope.model.paths);
+                if (! $scope.hasPaths()) {
+                    return 0;
+                }
+                return $scope.model.paths.filter(function (p) {
+                    return p.type === type;
+                }).length;
+            }
 
+            appState.whenModelsLoaded($scope, function () {
+                $scope.model = appState.models[$scope.modelName];
+                srdbg('loaded paths', $scope.model);
+                $scope.$on('fieldPaths.changed', function () {
+                    // do something?
+                    srdbg('fieldPaths.changed');
+                });
+                $scope.modelsLoaded = true;
             });
+        },
+    };
+});
+
+SIREPO.app.directive('fieldPathPicker', function(appState, radiaService) {
+
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+            controller: '=',
+            title: '@',
+            id: '@',
+            smallElementClass: '@',
+        },
+        template: [
+            //'<div class="col-md-6">',
+            //    '<div class="panel panel-info">',
+            //        '<div class="panel-heading"><span class="sr-panel-heading">Field Paths</span></div>',
+            //        '<div class="panel-body">',
+            //            '<div data-field-editor="\'path\'", data-model-name="modelName", data-model="model"></div>',
+            //                '<div data-ng-if="modelsLoaded">',
+            //                '<div data-ng-repeat="type in pathTypes" data-ng-show="getPathType() == type" data-advanced-editor-pane="" data-view-name="type + \'Path\'" data-field-def="basic" data-want-buttons="false">',
+            //                '</div>',
+            //            '</div>',
+            //        '</div>',
+            //    '</div>',
+            //'</div>',
+            '<div class="modal fade" data-ng-attr-id="{{ id }}" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog modal-lg">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-info">',
+                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<span class="lead modal-title text-info">{{ title }}</span>',
+                  '</div>',
+                  '<div class="modal-body">',
+                    '<div class="container-fluid">',
+                      '<div class="row">',
+                        '<div class="col-sm-12">',
+                        // PATH TYPE
+                            'PATH TYPE',
+                        '</div>',
+                      '</div>',
+                      '<br />',
+                      '<div class="row">',
+                        '<div data-ng-repeat="type in pathTypes" data-ng-show="getPathType() == type" data-advanced-editor-pane="" data-view-name="type + \'Path\'" data-field-def="basic" data-want-buttons="false">',
+                      '</div>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            $scope.modelsLoaded = false;
+            $scope.pathTypes = appState.enumVals('PathType');
+            $scope.ptsFile = null;
+            $scope.radiaService = radiaService;
+
+            $scope.getPathType = function() {
+                return ($scope.model || {}).path;
+            };
+
+            $scope.getPathView = function() {
+                return ($scope.getPathType() || '') + 'Path';
+            };
 
             function numPathsOfType(type) {
                 //srdbg('chk', $scope.model.paths);
@@ -768,7 +876,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function updateViewer(rebuild) {
-                //srdbg('updateViewer');
+                srdbg('updateViewer rebuild?', rebuild);
                 sceneData = {};
                 actorInfo = {};
                 enableWatchFields(! rebuild);
@@ -777,28 +885,30 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     panelState.requestData('geometry', setupSceneData, true);
                     return;
                 }
+                var inData = {
+                    method: 'get_geom',
+                    name: appState.models.geometry.name,
+                    viewType: appState.models.magnetDisplay.viewType,
+                    simulationId: appState.models.simulation.simulationId,
+                };
+                if (appState.models.magnetDisplay.viewType === 'fields') {
+                    inData.fieldType = appState.models.magnetDisplay.fieldType;
+                }
+                if (radiaService.pointFieldTypes.indexOf(appState.models.magnetDisplay.fieldType) >= 0 ) {
+                    inData.fieldPoints = radiaService.buildFieldPoints();
+                }
+
                 requestSender.getApplicationData(
-                    {
-                        method: 'get_geom',
-                        simulationId: appState.models.simulation.simulationId,
-                    },
+                    inData,
                     function(d) {
-                        if (d) {
+                        srdbg('got app data', d);
+                        if (d && d.data) {
                             setupSceneData(d);
                             return;
                         }
                         panelState.clear('geometry');
                         panelState.requestData('geometry', setupSceneData, true);
                     });
-                //panelState.clear('geometry');
-                //panelState.requestData('geometry', function (d) {
-                //    //srdbg('got geom data', d);
-                //    sceneData = d;
-                //    buildScene();
-                //    if (! initDone) {
-                //        initDone = true;
-                //    }
-                //}, true);
             }
 
 
@@ -840,9 +950,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 });
             });
 
-            $scope.$on('fieldDisplay.changed', function () {
-                updateViewer(false);
-            });
+           // $scope.$on('fieldDisplay.changed', function () {
+           //     srdbg('FDC');
+           //     updateViewer(false);
+            //});
 
             $scope.$on('magnetDisplay.changed', function (e, d) {
                 srdbg('MDC', e, d);
@@ -853,7 +964,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         $interval.cancel(interval);
                         interval = null;
                     }
-                    updateViewer(true);
+                    srdbg('UV from magnetDisplay.changed');
+                    //updateViewer(true);
+                    updateViewer();
                 }, 500, 1);
             });
 
@@ -863,6 +976,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     //srdbg('init in progress, ignore');
                     return;
                 }
+                srdbg('UV from framesLoaded');
                 updateViewer();
             });
 

@@ -144,7 +144,9 @@
             "basic": [
                 "path"
             ],
-            "advanced": []
+            "advanced": [
+                "path"
+            ]
         },
         "filePath": {
             "title": "File",

@@ -15,27 +15,27 @@ g_id = -1
 {% endif %}
 
 
-if '{{ viewType }}' == VIEW_TYPE_OBJ:
-    g_data = radia_tk.geom_to_data(g_id, name='{{ geomName }}')
-else:
+# always store the object
+#if '{{ viewType }}' == VIEW_TYPE_OBJ:
+g_data = radia_tk.geom_to_data(g_id, name='{{ geomName }}')
+with h5py.File('{{ dataFile }}', 'a') as hf:
+    template_common.dict_to_h5(g_data, hf, path='{{ h5ObjPath }}')
+
+#else:
+if '{{ viewType }}' == VIEW_TYPE_FIELD:
 {% if doSolve %}
     res = radia_tk.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
     print('SOLVE RES {}'.format(res))
     print('DMP {}'.format(radia_tk.dump(g_id)))
 {% endif %}
-    if True:  #f_type == radia_tk.FIELD_TYPE_MAG_M:
+    if f_type == radia_tk.FIELD_TYPE_MAG_M:
         f = radia_tk.get_magnetization(g_id)
-    #elif f_type in radia_tk.POINT_FIELD_TYPES:
-    #    solve_res = mgr.get_field(
-    #        g.name,
-    #        f_type,
-    #        get_field_points()
-    #    )
+    elif f_type in radia_tk.POINT_FIELD_TYPES:
+        f = radia_tk.get_field(g.name, f_type, {{ fieldPoints }})
     g_data = radia_tk.vector_field_to_data(g_id, '{{ geomName }}', f, radia_tk.FIELD_UNITS['{{ fieldType }}'])
 
-
-with h5py.File('{{ dataFile }}', 'w') as hf:
-    template_common.dict_to_h5(g_data, hf, path='geometry')
+    with h5py.File('{{ dataFile }}', 'a') as hf:
+        template_common.dict_to_h5(g_data, hf, path='{{ h5FieldPath }}')
 
 
 with open('{{ dmpFile }}', 'wb') as f:

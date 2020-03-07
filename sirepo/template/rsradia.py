@@ -34,7 +34,6 @@ VIEW_TYPE_OBJ = 'objects'
 VIEW_TYPE_FIELD = 'fields'
 VIEW_TYPES = [VIEW_TYPE_OBJ, VIEW_TYPE_FIELD]
 
-mgr = radia_tk.RadiaGeomMgr()
 
 def background_percent_complete(report, run_dir, is_running):
     res = PKDict(
@@ -57,23 +56,58 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def extract_report_data(run_dir, sim_in):
+    pkdp('sim_in {}', sim_in)
     if 'geometry' in sim_in.report:
-        with h5py.File(_geom_file(), 'r') as hf:
-            g = template_common.h5_to_dict(hf, path='geometry')
+        v_type = sim_in.models.magnetDisplay.viewType
+        f_type = sim_in.models.magnetDisplay.fieldType if v_type == VIEW_TYPE_FIELD\
+            else None
+        #with h5py.File(_geom_file(sim_in.simulationId, v_type), 'r') as hf:
+        with h5py.File(_geom_file(sim_in.simulationId), 'r') as hf:
+            #g = template_common.h5_to_dict(hf, path='geometry')
+            g = template_common.h5_to_dict(hf, path=_geom_h5_path(v_type, f_type))
             simulation_db.write_result(g, run_dir=run_dir)
         return
     simulation_db.write_result(PKDict(), run_dir=run_dir)
 
 
+# if the file exists but the data we seek does not, have Radia generate it here.  We
+# should only have to blow away the file after a solve (???)
 def get_application_data(data, **kwargs):
+    import binascii
     if 'method' in data and data.method == 'get_geom':
-        geom_file = simulation_db.simulation_dir(SIM_TYPE, data.simulationId) \
-            .join('geometry').join(_GEOM_FILE)
+        g_id = -1
         try:
-            with h5py.File(geom_file, 'r') as hf:
-                return template_common.h5_to_dict(hf, path='geometry')
+            with open(str(_dmp_file(data.simulationId)), 'rb') as f:
+                b = f.read()
+                #pkdp('GOT BIN {} FROM FILE', binascii.b2a_base64(b))
+                g_id = radia_tk.load_bin(b)
+                #f_arr = radia_tk.get_field(g_id, 'B', [0, 0, 0])
+                #pkdp('GOT GID {} b {} FROM FILE', g_id, f_arr)
+        except IOError as e:
+            print('ERR {} FROM FILE'.format(e))
+            pass
+        g = {}
+        f = _geom_file(data.simulationId)
+        p = _geom_h5_path(data.viewType, data.get('fieldType', None))
+        try:
+            #with h5py.File(_geom_file(data.simulationId, data.viewType), 'r') as hf:
+            with h5py.File(f, 'r') as hf:
+                g = template_common.h5_to_dict(hf, path=p)
+                return g
         except IOError:
             return {}
+        except KeyError:
+            if data.viewType == VIEW_TYPE_OBJ:
+                g = _generate_obj_data(g_id, data.name)
+            elif data.viewType == VIEW_TYPE_FIELD:
+                g = _generate_field_data(
+                    g_id, data.name, data.fieldType, data.fieldPoints
+                )
+            # write the new data to the existing file
+            with h5py.File(f, 'a') as hf:
+                template_common.dict_to_h5(g, hf, path=p)
+            return g
+
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
@@ -97,8 +131,21 @@ def _build_geom(data):
         return -1
 
 
-def _dmp_file():
-    return '../' + _GEOM_DIR + '/' + _DMP_FILE
+def _dmp_file(sim_id):
+    return simulation_db.simulation_dir(SIM_TYPE, sim_id) \
+        .join('geometry').join(_DMP_FILE)
+
+
+def _generate_field_data(g_id, name, f_type, f_pts):
+    if f_type == radia_tk.FIELD_TYPE_MAG_M:
+        f = radia_tk.get_magnetization(g_id)
+    elif f_type in radia_tk.POINT_FIELD_TYPES:
+        f = radia_tk.get_field(g_id, f_type, f_pts)
+    return radia_tk.vector_field_to_data(g_id, name, f, radia_tk.FIELD_UNITS[f_type])
+
+
+def _generate_obj_data(g_id, name):
+    return radia_tk.geom_to_data(g_id, name=name)
 
 
 def _generate_parameters_file(data):
@@ -107,15 +154,17 @@ def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     g = data.models.geometry
 
-    v['dataFile'] = _geom_file()
-    v['dataFile'] = _dmp_file()
+    v['dmpFile'] = _dmp_file(data.simulationId)
     v['isExample'] = data.models.simulation.isExample
     v['geomName'] = g.name
     disp = data.models.magnetDisplay
     v_type = disp.viewType
+    f_type = None
     if v_type not in VIEW_TYPES:
         raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
     v['viewType'] = v_type
+    #v['dataFile'] = _geom_file(data.simulationId, disp.viewType)
+    v['dataFile'] = _geom_file(data.simulationId)
     if v_type == VIEW_TYPE_FIELD:
         f_type = disp.fieldType
         if f_type not in radia_tk.FIELD_TYPES:
@@ -123,6 +172,7 @@ def _generate_parameters_file(data):
                 'Invalid field {} ({})'.format(f_type, radia_tk.FIELD_TYPES)
             )
         v['fieldType'] = f_type
+        v['fieldPoints'] = data.models.fieldPaths.fieldPoints
     if 'solver' in report:
         v['doSolve'] = True
         s = data.models.solver
@@ -130,10 +180,12 @@ def _generate_parameters_file(data):
         v['solveMaxIter'] = s.maxIterations
         v['solveMethod'] = s.method
     if 'reset' in report:
-        res = mgr.reset_geom(g.name) #radia_tk.reset()
+        res = radia_tk.reset()
         pkdp('RESET RES {}', res)
         data.report = 'geometry'
         return _generate_parameters_file(data)
+    v['h5ObjPath'] = _geom_h5_path(VIEW_TYPE_OBJ)
+    v['h5FieldPath'] = _geom_h5_path(VIEW_TYPE_FIELD, f_type)
 
     return template_common.render_jinja(
         SIM_TYPE,
@@ -141,6 +193,17 @@ def _generate_parameters_file(data):
         GEOM_PYTHON_FILE,
     )
 
+#def _geom_file(sim_id, v_type):
+def _geom_file(sim_id):
+    return simulation_db.simulation_dir(SIM_TYPE, sim_id) \
+        .join(_GEOM_DIR).join(_GEOM_FILE)
+        #.join(_GEOM_DIR).join('geom_' + v_type + '.h5')
 
-def _geom_file():
-    return '../' + _GEOM_DIR + '/' + _GEOM_FILE
+
+def _geom_h5_path(v_type, f_type=None):
+    p = 'geometry/' + v_type
+    if f_type is not None:
+        p += '/' + f_type
+    return p
+
+

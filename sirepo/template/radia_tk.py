@@ -54,6 +54,7 @@ def geom_to_data(geom, name=None, divide=True):
 
 # path is *flattened* array of positions in space ([x1, y1, z1,...xn, yn, zn])
 def get_field(geom, f_type, path):
+    pkdp('GET FIELD FOR {} TYPE {} PATH {}', geom, f_type, path)
     pv_arr = []
     p = numpy.reshape(path, (-1, 3)).tolist()
     b = []
@@ -150,7 +151,7 @@ class RadiaGeomMgr:
         b = numpy.reshape(b, (-1, 3)).tolist()
         for p_idx, pt in enumerate(p):
             pv_arr.append([pt, b[p_idx]])
-        return get_field(self.get_geom(name), name, f_type, path)
+        return get_field(self.get_geom(name), f_type, path)
 
     def get_magnetization(self, name):
         return get_magnetization(self.get_geom(name))
