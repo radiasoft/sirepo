@@ -7,6 +7,7 @@ u"""Import a single archive
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
+from pykern import pkcompat
 import base64
 import pykern.pkio
 import sirepo.http_request
@@ -28,7 +29,7 @@ def do_form(form):
 
     if not 'zip' in form:
         raise sirepo.util.raise_not_found('missing zip in form')
-    data = read_zip(six.StringIO(base64.decodestring(form['zip'])))
+    data = read_zip(six.BytesIO(base64.decodestring(pkcompat.to_bytes(form['zip']))))
     data.models.simulation.folder = '/Import'
     data.models.simulation.isExample = False
     return simulation_db.save_new_simulation(data)
