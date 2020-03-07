@@ -16,10 +16,12 @@ import pykern.pkrunpy
 
 
 def run(cfg_dir):
-    with pkio.save_chdir(cfg_dir):
+    with pkio.save_chdir(cfg_dir) as d:
         _run_simulation()
-        data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-        template.extract_report_data(pykern.pkio.py_path(cfg_dir), data)
+        template.extract_report_data(
+            d,
+            simulation_db.read_json(template_common.INPUT_BASE_NAME),
+        )
 
 
 def run_background(cfg_dir):
@@ -29,7 +31,7 @@ def run_background(cfg_dir):
             _run_simulation()
         except Exception as e:
             res.error = str(e)
-    simulation_db.write_result(res)
+        simulation_db.write_result(res)
 
 
 def _run_simulation():
