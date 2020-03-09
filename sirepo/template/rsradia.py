@@ -79,30 +79,32 @@ def get_application_data(data, **kwargs):
         try:
             with open(str(_dmp_file(data.simulationId)), 'rb') as f:
                 b = f.read()
-                #pkdp('GOT BIN {} FROM FILE', binascii.b2a_base64(b))
                 g_id = radia_tk.load_bin(b)
-                #f_arr = radia_tk.get_field(g_id, 'B', [0, 0, 0])
-                #pkdp('GOT GID {} b {} FROM FILE', g_id, f_arr)
         except IOError as e:
             print('ERR {} FROM FILE'.format(e))
             pass
         g = {}
         f = _geom_file(data.simulationId)
-        p = _geom_h5_path(data.viewType, data.get('fieldType', None))
+        f_type = data.get('fieldType', None)
+        p = _geom_h5_path(data.viewType, f_type)
+        #TODO(mvk): we always regenerate point field data - should do some kind
+        # of hash comparison so we only regenerate when the evaluation points change
+        if data.viewType == VIEW_TYPE_FIELD and f_type in radia_tk.POINT_FIELD_TYPES:
+            return _generate_data(g_id, data)
         try:
-            #with h5py.File(_geom_file(data.simulationId, data.viewType), 'r') as hf:
             with h5py.File(f, 'r') as hf:
                 g = template_common.h5_to_dict(hf, path=p)
                 return g
         except IOError:
             return {}
         except KeyError:
-            if data.viewType == VIEW_TYPE_OBJ:
-                g = _generate_obj_data(g_id, data.name)
-            elif data.viewType == VIEW_TYPE_FIELD:
-                g = _generate_field_data(
-                    g_id, data.name, data.fieldType, data.fieldPoints
-                )
+            #if data.viewType == VIEW_TYPE_OBJ:
+            #    g = _generate_obj_data(g_id, data.name)
+            #elif data.viewType == VIEW_TYPE_FIELD:
+            #    g = _generate_field_data(
+            #        g_id, data.name, data.fieldType, data.fieldPoints
+            #    )
+            g = _generate_data(g_id, data)
             # write the new data to the existing file
             with h5py.File(f, 'a') as hf:
                 template_common.dict_to_h5(g, hf, path=p)
@@ -142,6 +144,15 @@ def _generate_field_data(g_id, name, f_type, f_pts):
     elif f_type in radia_tk.POINT_FIELD_TYPES:
         f = radia_tk.get_field(g_id, f_type, f_pts)
     return radia_tk.vector_field_to_data(g_id, name, f, radia_tk.FIELD_UNITS[f_type])
+
+
+def _generate_data(g_id, in_data):
+    if in_data.viewType == VIEW_TYPE_OBJ:
+        return _generate_obj_data(g_id, in_data.name)
+    elif in_data.viewType == VIEW_TYPE_FIELD:
+        return _generate_field_data(
+            g_id, in_data.name, in_data.fieldType, in_data.fieldPoints
+        )
 
 
 def _generate_obj_data(g_id, name):

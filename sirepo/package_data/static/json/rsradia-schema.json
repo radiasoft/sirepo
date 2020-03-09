@@ -67,22 +67,23 @@
             "radius": ["Radius", "Float", "0.0"],
             "theta": ["\uD835\uDFB1", "Float", "0.0", "Euler 2", "-3.14159", "3.14159"],
             "phi": ["\uD835\uDFBF", "Float", "0.0", "Euler 3", "0.0", "6.2832"],
-            "numPoints": ["Num Points", "Integer", "10", "", "2"]
+            "numPoints": ["Num Points", "Integer", "10", "", "2"],
+            "type": ["_", "PathType", "circle"]
         },
         "fieldDisplay": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "scaling": ["Scaling", "FieldScaling", "uniform"]
         },
         "fieldPath": {
-            "name": ["", "String", ""],
-            "type": ["", "PathType", ""]
+            "name": ["Name", "String", ""]
         },
         "fieldPaths": {
             "path": ["Path", "PathType", "line"]
         },
         "filePath": {
             "_super": ["_", "model", "fieldPath"],
-            "fileName": ["File", "PtsFile", ""]
+            "fileName": ["File", "PtsFile", ""],
+            "type": ["_", "PathType", "file"]
         },
         "geometry": {
             "alpha": ["Alpha", "Float", "1.0", "", "0.0", "1.0"],
@@ -97,7 +98,8 @@
             "endX": ["x", "Float", "0.0"],
             "endY": ["y", "Float", "0.0"],
             "endZ": ["z", "Float", "0.0"],
-            "numPoints": ["Num Points", "Integer", "10", "", "2"]
+            "numPoints": ["Num Points", "Integer", "10", "", "2"],
+            "type": ["_", "PathType", "line"]
         },
         "magnet": {
             "_super": ["_", "model", "geometry"]
@@ -105,14 +107,14 @@
         "magnetDisplay": {
             "fieldType": ["Field", "FieldType", "M"],
             "notes": ["Notes", "Text", ""],
-            "pathType": ["Path", "PathType", "line"],
             "viewType": ["View", "ViewType", "objects"]
         },
         "manualPath": {
             "_super": ["_", "model", "fieldPath"],
             "ptX": ["x", "Float", "0.0"],
             "ptY": ["y", "Float", "0.0"],
-            "ptZ": ["z", "Float", "0.0"]
+            "ptZ": ["z", "Float", "0.0"],
+            "type": ["_", "PathType", "manual"]
         },
         "reset": {
         },
@@ -130,6 +132,7 @@
         "circlePath": {
             "title": "Circle",
             "basic": [
+                "name",
                 "ctrX",
                 "ctrY",
                 "ctrZ",
@@ -151,12 +154,14 @@
         "filePath": {
             "title": "File",
             "basic": [
+                "name",
                 "fileName"
             ]
         },
         "linePath": {
             "title": "Line",
             "basic": [
+                "name",
                 "beginX",
                 "beginY",
                 "beginZ",
@@ -182,6 +187,7 @@
         "manualPath": {
             "title": "Manual",
             "basic": [
+                "name",
                 "ptX",
                 "ptY",
                 "ptZ"

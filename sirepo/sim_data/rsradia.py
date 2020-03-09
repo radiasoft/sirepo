@@ -15,9 +15,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-        pkdp('RAD _compute_job_fields for {}', compute_model)
         res = cls._non_analysis_fields(data, r) + []
-        pkdp('JOB FIELDS {}', res)
         return res
 
     @classmethod
