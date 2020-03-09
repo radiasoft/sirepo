@@ -35,4 +35,4 @@ def run_background(cfg_dir):
 
 
 def _run_simulation():
-    pykern.pkrunpy.exec_script(template_common.PARAMETERS_PYTHON_FILE)
+    pykern.pkrunpy.run_path_as_module(template_common.PARAMETERS_PYTHON_FILE)

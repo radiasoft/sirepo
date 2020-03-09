@@ -156,7 +156,9 @@ def _parse_shadow_error(run_dir):
 def _run_shadow():
     """Run shadow program with isolated locals()
     """
-    return pykern.pkrunpy.exec_script(template_common.PARAMETERS_PYTHON_FILE).beam
+    return pykern.pkrunpy.run_path_as_module(
+        template_common.PARAMETERS_PYTHON_FILE,
+    ).beam
 
 
 def _scale_ticket(ticket):

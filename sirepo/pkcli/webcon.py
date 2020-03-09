@@ -204,7 +204,7 @@ def _run_forever(server_address):
 
 
 def _run_simulation_loop(server_address):
-    l = pykern.pkrunpy.exec(template_common.PARAMETERS_PYTHON_FILE)
+    l = pykern.pkrunpy.run_path_as_module(template_common.PARAMETERS_PYTHON_FILE)
     return _wait_for_beam_steering(server_address, l.update_and_run_simulation)
 
 
