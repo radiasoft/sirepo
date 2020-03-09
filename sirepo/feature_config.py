@@ -95,7 +95,7 @@ def _init():
 
     _cfg = pkconfig.init(
         api_modules=((), set, 'optional api modules, e.g. status'),
-        job=(False, bool, '[new] job execution architecture (replaces runner)'),
+        job=(True, bool, '[new] job execution architecture (replaces runner)'),
         jspec=dict(
             derbenevskrinsky_force_formula=(pkconfig.channel_in_internal_test(), bool, 'Include Derbenev-Skrinsky force forumla'),
         ),

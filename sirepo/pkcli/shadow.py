@@ -10,10 +10,12 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
-import numpy as np
+import numpy
 import py.path
+import pykern.pkrunpy
 import re
 import sirepo.template.shadow as template
+
 
 _MM_TO_CM = 0.1
 _CM_TO_M = 0.01
@@ -64,18 +66,18 @@ def run(cfg_dir):
             x_range = None
             y_range = None
             if model['overrideSize'] == '1':
-                x_range = (np.array([
+                x_range = (numpy.array([
                     model['horizontalOffset'] - model['horizontalSize'] / 2,
                     model['horizontalOffset'] + model['horizontalSize'] / 2,
                 ]) * _MM_TO_CM).tolist()
-                y_range = (np.array([
+                y_range = (numpy.array([
                     model['verticalOffset'] - model['verticalSize'] / 2,
                     model['verticalOffset'] + model['verticalSize'] / 2,
                 ]) * _MM_TO_CM).tolist()
             ticket = beam.histo2(int(model['x']), int(model['y']), nbins=template_common.histogram_bins(model['histogramBins']), ref=int(model['weight']), nolost=1, calculate_widths=0, xrange=x_range, yrange=y_range)
             _scale_ticket(ticket)
             values = ticket['histogram'].T
-            if np.isnan(values).any():
+            if numpy.isnan(values).any():
                 # something failed, look for errors in log
                 simulation_db.write_result({
                     'error': _parse_shadow_error(cfg_dir)
@@ -154,13 +156,9 @@ def _parse_shadow_error(run_dir):
 def _run_shadow():
     """Run shadow program with isolated locals()
     """
-    try:
-        g = locals().copy()
-        l = locals().copy()
-        exec(_script(), g, l)
-    except Exception:
-        pkdlog('script={} error={}', _script(), pkdexc())
-    return l['beam']
+    return pykern.pkrunpy.run_path_as_module(
+        template_common.PARAMETERS_PYTHON_FILE,
+    ).beam
 
 
 def _scale_ticket(ticket):
@@ -176,4 +174,4 @@ def _scale_ticket(ticket):
 
 
 def _script():
-    return pkio.read_text(template_common.PARAMETERS_PYTHON_FILE)
+    return pkio.read_text()

@@ -11,13 +11,13 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
-import csv
-import numpy as np
+import numpy
 import os
 import re
 import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+
 _OUTPUT_FILE = PKDict(
     fitOutputFile='fit.csv',
     predictOutputFile='predict.csv',
@@ -167,7 +167,7 @@ def _extract_column(run_dir, sim_in, idx):
     source, idx = _input_or_output(sim_in, idx, 'inputs', 'outputs')
     header, v = _read_file(run_dir, _SIM_DATA.rcscon_filename(sim_in, 'files', source))
     y = v[:, idx]
-    x = np.arange(0, len(y))
+    x = numpy.arange(0, len(y))
     return x, y, header[idx], source
 
 
@@ -250,7 +250,7 @@ def _layer_implementation_list(data):
 
 
 def _histogram_plot(values, vrange):
-    hist = np.histogram(values, bins=20, range=vrange)
+    hist = numpy.histogram(values, bins=20, range=vrange)
     x = []
     y = []
     for i in range(len(hist[0])):
@@ -300,7 +300,7 @@ def _partition_animation(frame_args):
                 label=name,
             ),
         )
-    return _plot_info(np.array(x), plots, title=header[idx])
+    return _plot_info(numpy.array(x), plots, title=header[idx])
 
 
 def _plot_info(x, plots, title=''):
@@ -316,6 +316,8 @@ def _plot_info(x, plots, title=''):
 
 
 def _read_csv_header_columns(path):
+    import csv
+
     with open(str(path)) as f:
         for row in csv.reader(f):
             return row
@@ -324,7 +326,7 @@ def _read_csv_header_columns(path):
 
 def _read_file(run_dir, filename):
     path = str(run_dir.join(filename))
-    v = np.genfromtxt(path, delimiter=',', skip_header=1)
+    v = numpy.genfromtxt(path, delimiter=',', skip_header=1)
     if len(v.shape) == 1:
         v.shape = (v.shape[0], 1)
     return _read_csv_header_columns(path), v

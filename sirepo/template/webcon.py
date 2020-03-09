@@ -11,31 +11,14 @@ from pykern import pkjinja
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
-from sirepo import util
 from sirepo.template import template_common
 import copy
-import csv
-import math
-import numpy as np
+import numpy
 import os
-import os.path
-import random
 import re
-import scipy.fftpack
-import scipy.optimize
-import scipy.signal
 import sirepo.sim_data
 import sirepo.util
-import sklearn.cluster
-import sklearn.metrics.pairwise
-import sklearn.mixture
-import sklearn.preprocessing
-import sympy
-
-try:
-    from io import StringIO
-except ImportError:
-    from StringIO import StringIO
+import six
 
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
@@ -79,8 +62,6 @@ _DIM_PLOT_COLORS = [
 ]
 
 _MONITOR_TO_MODEL_FIELDS = pkcollections.Dict()
-
-_SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 _SETTINGS_PLOT_COLORS = [
     '#ff0000',
@@ -141,6 +122,8 @@ def epics_env(server_address):
 
 
 def get_analysis_report(run_dir, data):
+    import math
+
     report, col_info, plot_data = _report_info(run_dir, data)
     clusters = None
     if 'action' in report:
@@ -236,13 +219,17 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
     path = str(run_dir.join(_analysis_data_path(data)))
     col_info = _column_info(path)
     plot_data = _load_file_with_history(report, path, col_info)
-    buf = StringIO()
+    buf = six.StringIO()
     buf.write(','.join(col_info['names']) + '\n')
-    np.savetxt(buf, plot_data, delimiter=',')
+    numpy.savetxt(buf, plot_data, delimiter=',')
     return '{}.csv'.format(model), buf.getvalue(), 'text/csv'
 
 
 def get_fft(run_dir, data):
+    import scipy.fftpack
+    import scipy.optimize
+    import scipy.signal
+
     data.report = _SIM_DATA.webcon_analysis_report_name_for_fft(data)
     report, col_info, plot_data = _report_info(run_dir, data)
     col1 = _safe_index(col_info, report.x)
@@ -263,25 +250,25 @@ def get_fft(run_dir, data):
             'Data error',
             'FFT sample period could not be determined from data. Ensure x has equally spaced values',
         )
-    #sample_period = np.mean(np.diff(t_vals))
+    #sample_period = numpy.mean(numpy.diff(t_vals))
 
     # the first half of the fft data (taking abs() folds in the imaginary part)
-    y = 2.0 / num_samples * np.abs(fft_out[0:half_num_samples])
+    y = 2.0 / num_samples * numpy.abs(fft_out[0:half_num_samples])
 
     # get the frequencies found
     # fftfreq just generates an array of equally-spaced values that represent the x-axis
     # of the fft of data of a given length.  It includes negative values
     freqs = scipy.fftpack.fftfreq(len(fft_out), d=sample_period) #/ sample_period
-    w = 2. * np.pi * freqs[0:half_num_samples]
+    w = 2. * numpy.pi * freqs[0:half_num_samples]
 
     # is signal to noise useful?
     m = y.mean()
     sd = y.std()
-    s2n = np.where(sd == 0, 0, m / sd)
+    s2n = numpy.where(sd == 0, 0, m / sd)
 
-    coefs = (2.0 / num_samples) * np.abs(fft_out[0:half_num_samples])
+    coefs = (2.0 / num_samples) * numpy.abs(fft_out[0:half_num_samples])
     peaks, props = scipy.signal.find_peaks(coefs)
-    found_freqs = [v for v in zip(peaks, np.around(w[peaks], 3))]
+    found_freqs = [v for v in zip(peaks, numpy.around(w[peaks], 3))]
     #pkdlog('!FOUND {} FREQS {}, S2N {}, MEAN {}', len(found_freqs), found_freqs, s2n, m)
 
     # focus in on the peaks?
@@ -289,10 +276,10 @@ def get_fft(run_dir, data):
     bin_spread = 10
     min_bin = max(0, peaks[0] - bin_spread)
     max_bin = min(half_num_samples, peaks[-1] + bin_spread)
-    yy = 2.0 / num_samples * np.abs(fft_out[min_bin:max_bin])
-    max_yy = np.max(yy)
+    yy = 2.0 / num_samples * numpy.abs(fft_out[min_bin:max_bin])
+    max_yy = numpy.max(yy)
     yy_norm = yy / (max_yy if max_yy != 0 else 1)
-    ww = 2. * np.pi * freqs[min_bin:max_bin]
+    ww = 2. * numpy.pi * freqs[min_bin:max_bin]
     #plots = [
     #    {
     #        'points': yy_norm.tolist(),
@@ -300,7 +287,7 @@ def get_fft(run_dir, data):
     #    },
     #]
 
-    max_y = np.max(y)
+    max_y = numpy.max(y)
     y_norm = y / (max_y if max_y != 0 else 1)
     plots = [PKDict(points=y_norm.tolist(), label='fft')]
 
@@ -373,7 +360,7 @@ def read_epics_values(server_address, fields):
     output = run_epics_command(server_address, ['caget', '-w', '5'] + fields)
     if not output:
         return None
-    res = np.array(re.split(r'\s+', str(output))[1::2]).astype('float').tolist()
+    res = numpy.array(re.split(r'\s+', str(output))[1::2]).astype('float').tolist()
     #pkdlog(' got result: {}', res)
     return res
 
@@ -390,7 +377,7 @@ def update_epics_kickers(epics_settings, sim_dir, fields, values):
         if not sim_dir.exists():
             return PKDict()
         #TODO(pjm): use save to tmp followed by mv for atomicity
-        np.save(str(sim_dir.join(CURRENT_FILE)), np.array([fields, values]))
+        numpy.save(str(sim_dir.join(CURRENT_FILE)), numpy.array([fields, values]))
 
 
 def validate_file(file_type, path):
@@ -401,14 +388,6 @@ def validate_file(file_type, path):
     except Exception as e:
         return 'Error reading file. Ensure the file is in CSV or SDDS format.'
     return None
-
-
-def validate_sympy(str):
-    try:
-        sympy.sympify(str)
-        return True
-    except:
-        return False
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -457,15 +436,15 @@ def _beam_pos_plots(data, history, start_time):
             else:
                 plot['label'] = dim
             plots.append(plot)
-    return np.array(bpms['z']), plots, c
+    return numpy.array(bpms['z']), plots, c
 
 
 # arrange historical data for ease of plotting
 def _bpm_readings_for_plots(data, history, start_time):
 
     bpms = _monitor_data_for_plots(data, history, start_time, 'WATCH')
-    all_times = np.array([])
-    z = np.array([])
+    all_times = numpy.array([])
+    z = numpy.array([])
     bpm_sorted = []
     for element_name in sorted([b for b in bpms]):
         if element_name not in [bpm[0] for bpm in bpm_sorted]:
@@ -474,7 +453,7 @@ def _bpm_readings_for_plots(data, history, start_time):
         for reading_name in sorted([r for r in b_readings]):
             pos = b_readings[reading_name]['position'][0]
             if pos not in z:
-                z = np.append(z, pos)
+                z = numpy.append(z, pos)
             bpm_sorted[-1][1].append(
                 PKDict(
                     reading=reading_name,
@@ -482,15 +461,15 @@ def _bpm_readings_for_plots(data, history, start_time):
                     times=b_readings[reading_name]['times']
                 ),
             )
-            all_times = np.append(all_times, b_readings[reading_name]['times'])
+            all_times = numpy.append(all_times, b_readings[reading_name]['times'])
 
-    all_times = np.sort(np.unique(all_times))
+    all_times = numpy.sort(numpy.unique(all_times))
 
     for bpm in bpm_sorted:
         for reading in bpm[1]:
             # fill in missing times - use previous monitor values
-            v = np.array(reading['vals'])
-            t = np.array(reading['times'])
+            v = numpy.array(reading['vals'])
+            t = numpy.array(reading['times'])
             for a_t_idx, a_t in enumerate(all_times):
                 if a_t in t:
                     continue
@@ -499,13 +478,13 @@ def _bpm_readings_for_plots(data, history, start_time):
                 if not len(deltas):
                     return None
                 prev_dt = min(deltas)
-                dt_idx = np.where(d_ts == prev_dt)[0][0] + 1
-                if dt_idx < np.alen(t):
-                    t = np.insert(t, dt_idx, a_t)
-                    v = np.insert(v, dt_idx, v[dt_idx - 1])
+                dt_idx = numpy.where(d_ts == prev_dt)[0][0] + 1
+                if dt_idx < numpy.alen(t):
+                    t = numpy.insert(t, dt_idx, a_t)
+                    v = numpy.insert(v, dt_idx, v[dt_idx - 1])
                 else:
-                    t = np.append(t, a_t)
-                    v = np.append(v, v[dt_idx - 1])
+                    t = numpy.append(t, a_t)
+                    v = numpy.append(v, v[dt_idx - 1])
             reading['vals'] = v.tolist()
 
     x = []
@@ -515,7 +494,7 @@ def _bpm_readings_for_plots(data, history, start_time):
     period = data.models.beamPositionReport.samplePeriod
     current_time = all_times[-1]
 
-    t_indexes = np.where(
+    t_indexes = numpy.where(
         ((all_times > current_time - time_window) if time_window > 0 else (all_times >= 0)) &
         (all_times % period == 0)
     )
@@ -568,8 +547,8 @@ def _build_monitor_to_model_fields(data):
 
 def _centroid_ranges(history):
     r = [
-        [np.finfo('d').max, np.finfo('d').min],
-        [np.finfo('d').max, np.finfo('d').min]
+        [numpy.finfo('d').max, numpy.finfo('d').min],
+        [numpy.finfo('d').max, numpy.finfo('d').min]
     ]
     for ch in history:
         for cz in ch:
@@ -580,6 +559,8 @@ def _centroid_ranges(history):
 
 
 def _column_info(path):
+    import csv
+
     # parse label/units from the csv header
     header = None
     with open(str(path)) as f:
@@ -619,6 +600,11 @@ def _column_info(path):
 
 
 def _compute_clusters(report, plot_data, col_info):
+    import sklearn.cluster
+    import sklearn.metrics.pairwise
+    import sklearn.mixture
+    import sklearn.preprocessing
+
     cols = []
     if 'clusterFields' not in report:
         if len(cols) <= 1:
@@ -640,7 +626,7 @@ def _compute_clusters(report, plot_data, col_info):
     if report.clusterMethod == 'kmeans':
         k_means = sklearn.cluster.KMeans(init='k-means++', n_clusters=count, n_init=report.clusterKmeansInit, random_state=report.clusterRandomSeed)
         k_means.fit(x_scale)
-        k_means_cluster_centers = np.sort(k_means.cluster_centers_, axis=0)
+        k_means_cluster_centers = numpy.sort(k_means.cluster_centers_, axis=0)
         k_means_labels = sklearn.metrics.pairwise.pairwise_distances_argmin(x_scale, k_means_cluster_centers)
         group = k_means_labels
     elif report.clusterMethod == 'gmix':
@@ -674,13 +660,13 @@ def _element_positions(data):
     d_ids = set([])
     for d in els_with_length:
         d_ids.add(d['_id'])
-    positions = np.array([])
+    positions = numpy.array([])
     for e_idx, e_id in enumerate(e_ids):
         z = 0
         for e_jdx in range(0, e_idx):
             elj = [el for el in data.models.elements if el['_id'] == e_ids[e_jdx]][0]
             z += (elj['l'] if 'l' in elj else 0)
-        positions = np.append(positions, z)
+        positions = numpy.append(positions, z)
     return positions
 
 
@@ -703,6 +689,9 @@ def _epics_dir(sim_id):
 
 
 def _fit_to_equation(x, y, equation, var, params):
+    import scipy
+    import sympy
+
     # TODO: must sanitize input - sympy uses eval
 
     # These security measures taken so far:
@@ -711,10 +700,12 @@ def _fit_to_equation(x, y, equation, var, params):
 
     eq_ops = [t for t in _tokenize_equation(equation) if t != var and t not in params]
     eq_ops_rejected = [op for op in eq_ops if op not in _SCHEMA.constants.allowedEquationOps]
-    assert len(eq_ops_rejected) == 0, util.err(eq_ops_rejected, 'operation fobidden')
-    assert _validate_eq_var(var), util.err(var, 'invalid variable name')
-    assert all([_validate_eq_var(p) for p in re.split(r'\s*,\s*', params)]),\
-        util.err(params, 'invalid parameter name(s)')
+    assert len(eq_ops_rejected) == 0, \
+        sirepo.util.err(eq_ops_rejected, 'operation fobidden')
+    assert _validate_eq_var(var), \
+        sirepo.util.err(var, 'invalid variable name')
+    assert all([_validate_eq_var(p) for p in re.split(r'\s*,\s*', params)]), \
+        sirepo.util.err(params, 'invalid parameter name(s)')
 
     sym_curve = sympy.sympify(equation)
     sym_str = var + ' ' + ' '.join(params)
@@ -723,7 +714,7 @@ def _fit_to_equation(x, y, equation, var, params):
     sym_curve_l = sympy.lambdify(syms, sym_curve, 'numpy')
 
     p_vals, pcov = scipy.optimize.curve_fit(sym_curve_l, x, y, maxfev=500000)
-    sigma = np.sqrt(np.diagonal(pcov))
+    sigma = numpy.sqrt(numpy.diagonal(pcov))
 
     p_subs = []
     p_subs_min = []
@@ -752,7 +743,7 @@ def _fit_to_equation(x, y, equation, var, params):
     latex_label = sympy.latex(y_fit_rounded, mode='inline')
     #TODO(pjm): round rather than truncate?
     latex_label = re.sub(r'(\.\d{4})\d+', r'\1', latex_label)
-    x_uniform = np.linspace(np.min(x), np.max(x), 100)
+    x_uniform = numpy.linspace(numpy.min(x), numpy.max(x), 100)
     return x_uniform, y_fit_l(x_uniform), y_fit_min_l(x_uniform), y_fit_max_l(x_uniform), p_vals, sigma, latex_label
 
 
@@ -777,7 +768,7 @@ def _generate_parameters_file(run_dir, data):
             el.hkick = '{' + 'sr_epics_corrector{}_HCurrent'.format(count) + '}'
             el.vkick = '{' + 'sr_epics_corrector{}_VCurrent'.format(count) + '}'
     if run_dir:
-        np.save(str(run_dir.join(CURRENT_FILE)), np.array([CURRENT_FIELDS, kicker_values]))
+        numpy.save(str(run_dir.join(CURRENT_FILE)), numpy.array([CURRENT_FIELDS, kicker_values]))
     res, v = template_common.generate_parameters_file(data)
     from sirepo.template import elegant
     #TODO(pjm): calling private template.elegant._build_beamline_map()
@@ -862,7 +853,7 @@ def _label(col_info, idx):
 
 
 def _load_file_with_history(report, path, col_info):
-    res = np.genfromtxt(path, delimiter=',', skip_header=col_info['header_row_count'])
+    res = numpy.genfromtxt(path, delimiter=',', skip_header=col_info['header_row_count'])
     if 'history' in report:
         for action in report.history:
             if action.action == 'trim':
@@ -873,7 +864,7 @@ def _load_file_with_history(report, path, col_info):
                 report2 = copy.deepcopy(report)
                 report2.update(action)
                 clusters = _compute_clusters(report2, res, col_info)
-                labels = np.array(clusters['group'])
+                labels = numpy.array(clusters['group'])
                 res = res[labels == action.clusterIndex,:]
     return res
 
@@ -895,7 +886,7 @@ def _monitor_data_for_plots(data, history, start_time, type):
             round(((dt.days * 86400) + dt.seconds + (dt.microseconds / 1000000))) for dt in
             [t - start_time for t in h.times]
         ]
-        pos = np.full(len(t_deltas), _position_of_element(data, el['_id']))
+        pos = numpy.full(len(t_deltas), _position_of_element(data, el['_id']))
         m_data[el_name][el_setting] = PKDict(
             vals=h.vals,
             times=t_deltas,
@@ -977,7 +968,7 @@ def _safe_index(col_info, idx):
 
 def _setting_plots_by_position(data, history, start_time):
     plots = []
-    all_z = np.array([0.0])
+    all_z = numpy.array([0.0])
     c = []
     kickers = _kicker_settings_for_plots(data, history, start_time)
     k_sorted = []
@@ -994,14 +985,14 @@ def _setting_plots_by_position(data, history, start_time):
                     times=k_s[s]['times']
                 )
             )
-            all_z = np.append(all_z, k_s[s]['position'])
+            all_z = numpy.append(all_z, k_s[s]['position'])
     time_window = data.models.correctorSettingReport.numHistory
     period = data.models.correctorSettingReport.samplePeriod
     for k_idx, k in enumerate(k_sorted):
         for s in k[1]:
-            times = np.array(s['times'])
+            times = numpy.array(s['times'])
             current_time = times[-1]
-            t_indexes = np.where(
+            t_indexes = numpy.where(
                 ((times > current_time - time_window) if time_window > 0 else (times >= 0)) &
                 (times % period == 0)
             )[0]
@@ -1012,16 +1003,16 @@ def _setting_plots_by_position(data, history, start_time):
             c_mod = _hex_color_to_rgb(c[-1])
             c_mod[3] = 0.2
             plots.append(PKDict(
-                points=np.array(s['vals'])[t_indexes].tolist(),
-                x_points=np.array(s['position'])[t_indexes].tolist(),
+                points=numpy.array(s['vals'])[t_indexes].tolist(),
+                x_points=numpy.array(s['position'])[t_indexes].tolist(),
                 label='{} {}'.format(k[0], s['setting']),
                 style='scatter',
                 symbol=_SETTINGS_KICKER_SYMBOLS[s['setting']],
                 colorModulation=c_mod,
                 modDirection=-1
             ))
-    np.append(all_z, _element_positions(data)[-1])
-    return np.array([0.0, _element_positions(data)[-1]]), plots, c
+    numpy.append(all_z, _element_positions(data)[-1])
+    return numpy.array([0.0, _element_positions(data)[-1]]), plots, c
 
 
 def _setting_plots_by_time(data, history, start_time):
@@ -1035,7 +1026,7 @@ def _setting_plots_by_time(data, history, start_time):
             k_sorted.append((k_name, []))
         k_s = kickers[k_name]
         for s in sorted([s for s in k_s]):
-            current_time = max(current_time, np.max(k_s[s]['times']))
+            current_time = max(current_time, numpy.max(k_s[s]['times']))
             k_sorted[-1][1].append(
                 PKDict(
                     setting=s,
@@ -1049,8 +1040,8 @@ def _setting_plots_by_time(data, history, start_time):
 
     for k_idx, k in enumerate(k_sorted):
         for s in k[1]:
-            times = np.array(s['times'])
-            t_indexes = np.where(
+            times = numpy.array(s['times'])
+            t_indexes = numpy.where(
                 ((times > current_time - time_window) if time_window > 0 else (times >= 0)) &
                 (times % period == 0)
             )[0]
@@ -1058,13 +1049,13 @@ def _setting_plots_by_time(data, history, start_time):
                 continue
             c.append(_SETTINGS_PLOT_COLORS[k_idx % len(_SETTINGS_PLOT_COLORS)])
             plots.append(PKDict(
-                points=np.array(s['vals'])[t_indexes].tolist(),
+                points=numpy.array(s['vals'])[t_indexes].tolist(),
                 x_points=times[t_indexes].tolist(),
                 label='{} {}'.format(k[0], s['setting']),
                 style='line',
                 symbol=_SETTINGS_KICKER_SYMBOLS[s['setting']]
             ))
-    return np.array([current_time - time_window, current_time]), plots, c
+    return numpy.array([current_time - time_window, current_time]), plots, c
 
 
 def _tokenize_equation(eq):
