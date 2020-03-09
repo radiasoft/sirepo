@@ -33,7 +33,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def shadow_simulation_files(cls, data):
         m = data.models
-        if m.simulation.sourceType == 'wiggler' && m.wiggler.b_from in ('1', '2'):
+        if m.simulation.sourceType == 'wiggler' and m.wiggler.b_from in ('1', '2'):
             return [cls.shadow_wiggler_file(m.wiggler.trajFile)]
         return []
 
@@ -63,4 +63,4 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _lib_file_basenames(cls, data, *args, **kwargs):
-        return _cls.shadow_simulation_files(data)
+        return cls.shadow_simulation_files(data)

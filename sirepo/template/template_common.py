@@ -5,6 +5,7 @@ u"""Common execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkcollections import PKDict
@@ -132,7 +133,8 @@ def compute_field_range(args, compute_range):
         if 'fieldRange' in data.models[model_name]:
             res = data.models[model_name].fieldRange
         else:
-            res = compute_range(run_dir, data)
+            #TODO(pjm): second arg was never used
+            res = compute_range(run_dir, None)
             data.models[model_name].fieldRange = res
             simulation_db.write_json(run_dir.join(INPUT_BASE_NAME), data)
     return PKDict(fieldRange=res)
@@ -320,7 +322,7 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
         if model.plotRangeType == 'fixed':
             res['x_range'] = _plot_range(model, 'horizontal')
             res['y_range'] = _plot_range(model, 'vertical')
-        elif model.plotRangeType == 'fit':
+        elif model.plotRangeType == 'fit' and 'fieldRange' in model:
             res['x_range'] = model.fieldRange[model.x]
             for i in range(len(plots)):
                 r = model.fieldRange[plots[i]['field']]
@@ -471,6 +473,7 @@ def subprocess_output(cmd, env):
         pkdlog('{}: exit={} err={}', cmd, e.returncode, err)
         return None
     if out != None and len(out):
+        out = pkcompat.from_bytes(out)
         return out.strip()
     return ''
 

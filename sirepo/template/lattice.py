@@ -185,7 +185,9 @@ class LatticeUtil(object):
             res[el._id] = el
         if 'commands' in data.models:
             for cmd in data.models.commands:
-                res[cmd._id] = cmd
+                #TODO(pjm): some old elegant sims have overlap in element and command ids
+                if cmd._id not in res:
+                    res[cmd._id] = cmd
         return res
 
     def __render_beamline(self, quote_name=False, want_semicolon=False):

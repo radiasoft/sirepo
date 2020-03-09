@@ -183,7 +183,7 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, $location
     return self;
 });
 
-SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, $document, $interval, $rootScope, $window) {
+SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, $document, $interval, $rootScope) {
     var self = {
         models: {},
     };
@@ -663,11 +663,10 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         $scope.appState = self;
         modelFields.forEach(function(f) {
             // elegant uses '-' in modelKey
-            f = propertyToIndexForm(f);
-            $scope.$watch('appState.models' + f, function (newValue, oldValue) {
+            $scope.$watch('appState.models' + propertyToIndexForm(f), function (newValue, oldValue) {
                 if (self.isLoaded() && newValue !== null && newValue !== undefined && newValue !== oldValue) {
                     // call in next cycle to allow UI to change layout first
-                    $interval(callback, 1, 1);
+                    $interval(callback, 1, 1, true, f);
                 }
             });
         });
@@ -939,6 +938,9 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         m = m[frameReport in m ? frameReport : c];
         var f = SIREPO.APP_SCHEMA.frameIdFields;
         f = f[frameReport in f ? frameReport : c];
+        if (! f) {
+            throw new Error('frameReport=' + frameReport + ' missing from schema frameIdFields');
+        }
         // POSIT: same as sirepo.sim_data._FRAME_ID_SEP
         return v.concat(
             f.map(function (a) {return m[a];})
@@ -1479,7 +1481,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(cookieService, errorService, localRoutes, $http, $location, $interval, $q, $rootScope, $window, $route) {
+SIREPO.app.factory('requestSender', function(cookieService, errorService, localRoutes, $http, $location, $interval, $q, $rootScope, $window) {
     var self = {};
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -1655,6 +1657,11 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
             $location.hash('#');
         }
         $window.location.href = u;
+        // The whole app will reload.
+        // Don't respond to additional location change events from the current app.
+        $rootScope.$on('$locationChangeStart', function (event) {
+            event.preventDefault();
+        });
     };
 
     self.globalRedirectRoot = function() {
@@ -1733,7 +1740,11 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     };
 
     self.isRouteParameter = function(routeName, paramName) {
-        return (localRoutes[routeName] || SIREPO.APP_SCHEMA.route[routeName]).indexOf(paramName) >= 0;
+        var route = localRoutes[routeName] || SIREPO.APP_SCHEMA.route[routeName];
+        if (! route) {
+            throw new Error('Invalid routeName: ' + routeName);
+        }
+        return route.indexOf(paramName) >= 0;
     };
 
     self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {
@@ -2856,7 +2867,7 @@ SIREPO.app.controller('LoginController', function (authService, authState, reque
     }
 });
 
-SIREPO.app.controller('LoginWithController', function ($route, $window, errorService, appState, authState, requestSender) {
+SIREPO.app.controller('LoginWithController', function (authState, errorService, requestSender, $route) {
     var self = this;
     var m = $route.current.params.method || '';
     self.showWarning = false;
@@ -2891,7 +2902,7 @@ SIREPO.app.controller('LoginWithController', function ($route, $window, errorSer
     }
 });
 
-SIREPO.app.controller('LoginConfirmController', function ($route, $window, authState, requestSender) {
+SIREPO.app.controller('LoginConfirmController', function (authState, requestSender, $route) {
     var self = this;
     var p = $route.current.params;
     self.data = {};
@@ -2997,7 +3008,7 @@ SIREPO.app.controller('ServerUpgradedController', function (errorService, reques
     requestSender.globalRedirectRoot();
 });
 
-SIREPO.app.controller('SimulationsController', function (appState, cookieService, errorService, fileManager, notificationService, panelState, requestSender, $location, $rootScope, $sce, $scope, $window) {
+SIREPO.app.controller('SimulationsController', function (appState, cookieService, errorService, fileManager, notificationService, panelState, requestSender, $location, $rootScope, $sce, $scope) {
     var self = this;
 
     $rootScope.$broadcast('simulationUnloaded');

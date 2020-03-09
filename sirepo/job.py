@@ -16,8 +16,6 @@ import sirepo.util
 import re
 
 
-MAX_MESSAGE_SIZE = int(1e8)
-
 OP_ANALYSIS = 'analysis'
 OP_CANCEL = 'cancel'
 OP_ERROR = 'error'
@@ -164,6 +162,9 @@ def agent_env(env=None, uid=None):
         PYTHONUNBUFFERED='1',
         SIREPO_AUTH_LOGGED_IN_USER=lambda: uid or sirepo.auth.logged_in_user(),
         SIREPO_JOB_VERIFY_TLS=cfg.verify_tls,
+        SIREPO_JOB_MAX_MESSAGE_SIZE=cfg.max_message_size,
+        SIREPO_JOB_PING_INTERVAL_SECS=cfg.ping_interval_secs,
+        SIREPO_JOB_PING_TIMEOUT_SECS=cfg.ping_timeout_secs,
         SIREPO_SRDB_ROOT=lambda: sirepo.srdb.root(),
     )
     return '\n'.join(("export {}='{}'".format(k, v) for k, v in env.items()))
@@ -173,6 +174,9 @@ def init():
     global cfg
 
     cfg = pkconfig.init(
+        max_message_size=(int(1e8), int, 'maximum websocket message size'),
+        ping_interval_secs=(2*60, int, 'how long to wait between sending keep alive pings'),
+        ping_timeout_secs=(4*60, int, 'how long to wait for a ping response'),
         server_secret=(
             'a very secret, secret',
             str,
@@ -204,43 +208,3 @@ def supervisor_file_uri(supervisor_uri, *args):
 
 def unique_key():
     return sirepo.util.random_base62(32)
-
-
-#TODO(robnagler) consider moving this into pkdebug
-class LogFormatter:
-    """Convert arbitrary objects to length-limited strings"""
-
-    #: maximum length of elements or total string
-    MAX_STR = 2000
-
-    #: maximum number of elements
-    MAX_LIST = 10
-
-    SNIP = '[...]'
-
-    def __init__(self, obj):
-        self.obj = obj
-
-    def __repr__(self):
-        def _s(s):
-            s = str(s)
-            return s[:self.MAX_STR] + (s[self.MAX_STR:] and self.SNIP)
-
-        def _j(values, delims):
-            v = list(values)
-            return delims[0] + ' '.join(
-                v[:self.MAX_LIST] + (v[self.MAX_LIST:] and [self.SNIP])
-            ) + delims[1]
-
-        if isinstance(self.obj, dict):
-            return _j(
-                (_s(k) + ': ' + _s(v) for k, v in self.obj.items() \
-                    if k not in ('result', 'arg')),
-                '{}',
-            )
-        if isinstance(self.obj, (tuple, list)):
-            return _j(
-                (_s(v) for v in self.obj),
-                '[]' if isinstance(self.obj, list) else '()',
-            )
-        return _s(self.obj)

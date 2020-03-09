@@ -1,0 +1,15 @@
+{
+    "models": {
+        "neuralNet": {
+            "layers": []
+        },
+        "simulation": {
+            "folder": "/",
+            "name": "default",
+            "simulationId": "NE4pnakI",
+            "simulationSerial": 1542066443718959
+        }
+    },
+    "simulationType": "rcscon",
+    "version": "20191109.173737"
+}

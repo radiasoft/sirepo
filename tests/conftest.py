@@ -1,5 +1,3 @@
-# This avoids a plugin dependency issue with pytest-forked/xdist:
-# https://github.com/pytest-dev/pytest/issues/935
 import pytest
 
 #: Maximum time an individual test case (function) can run
@@ -57,10 +55,10 @@ def auth_fc_module(request):
 def email_confirm(fc, resp, display_name=None):
     import re
     from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdp
+    from pykern.pkdebug import pkdlog
 
     fc.sr_get(resp.uri)
-    pkdp(resp.uri)
+    pkdlog(resp.uri)
     m = re.search(r'/(\w+)$', resp.uri)
     assert bool(m)
     r = PKDict(token=m.group(1))
@@ -345,7 +343,7 @@ def _job_supervisor_setup(request, cfg=None):
 
 def _job_supervisor_start(request, cfg=None):
     import os
-    if os.environ.get('SIREPO_FEATURE_CONFIG_JOB') != '1':
+    if os.environ.get('SIREPO_FEATURE_CONFIG_JOB', '1') != '1':
         return None, None
 
     from pykern import pkunit
@@ -365,8 +363,8 @@ def _job_supervisor_start(request, cfg=None):
         time.sleep(.1)
     else:
         import sirepo.job_api
-        from pykern.pkdebug import pkdp
-        pkdp(sirepo.job_api.cfg.supervisor_uri)
+        from pykern.pkdebug import pkdlog
+        pkdlog(sirepo.job_api.cfg.supervisor_uri)
         pkunit.pkfail('could not connect to {}', sirepo.job_api.cfg.supervisor_uri)
     return p, fc
 
@@ -375,7 +373,9 @@ def _sim_type(request):
     import sirepo.feature_config
 
     for c in sirepo.feature_config.ALL_CODES:
-        if c in request.function.func_name or c in str(request.fspath):
+        f = request.function
+        n = getattr(f, 'func_name', None) or getattr(f, '__name__')
+        if c in n or c in str(request.fspath):
             return c
     return 'myapp'
 

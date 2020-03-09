@@ -47,6 +47,15 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
         controller: function($scope, $element) {
             var viewInfo = appState.viewInfo($scope.viewName);
             var i;
+
+            function tabSelectedEvent() {
+                appState.whenModelsLoaded($scope, function() {
+                    panelState.waitForUI(function() {
+                        $scope.$emit('sr-tabSelected', $scope.modelName, $scope.modelData ? $scope.modelData.modelKey : null);
+                    });
+                });
+            }
+
             $scope.form = angular.element($($element).find('form').eq(0));
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.description = viewInfo.description;
@@ -72,11 +81,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
                             $scope.modelName, $scope.modelData ? $scope.modelData.modelKey : null);
                     });
                 }
-                if (appState.isLoaded()) {
-                    panelState.waitForUI(function() {
-                        $scope.$emit('sr-tabSelected', $scope.modelName, $scope.modelData ? $scope.modelData.modelKey : null);
-                    });
-                }
+                tabSelectedEvent();
             };
             // named tabs
             if ($scope.advancedFields.length && $scope.isColumnField($scope.advancedFields[0]) && ! $scope.isColumnField($scope.advancedFields[0][0])) {
@@ -121,6 +126,9 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
             }
             if ($scope.pages) {
                 $scope.setActivePage($scope.pages[0]);
+            }
+            else {
+                tabSelectedEvent();
             }
         },
         link: function(scope, element) {
@@ -601,6 +609,8 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
               '<ul class="dropdown-menu">',
                 '<li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>',
                 '<li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }} via {{ ::authState.method }}</li>',
+                '<li data-ng-if="showAdmJobs()"><a data-ng-href="{{ getUrl(\'admJobs\') }}">Admin</a></li>',
+                '<li><a data-ng-href="{{ getUrl(\'ownJobs\') }}">Jobs</a></li>',
                 '<li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
               '</ul>',
             '</li>',
@@ -608,6 +618,14 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
         controller: function($scope) {
             $scope.authState = authState;
             $scope.authService = authService;
+
+            $scope.getUrl = function(route) {
+                return requestSender.formatUrlLocal(route);
+            };
+
+            $scope.showAdmJobs = function() {
+                return SIREPO.APP_SCHEMA.feature_config.job && authState.roles.includes('adm');
+            };
         },
     };
 });
@@ -1661,6 +1679,15 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
         },
         link: function(scope, element) {
             scope.panel = element.next();
+            panelState.waitForUI(function() {
+                var view = appState.viewInfo(scope.viewName || scope.modelKey);
+                if (! view) {
+                    var editorId = '#' + panelState.modalId(scope.modelKey);
+                    if (! $(editorId).length) {
+                        scope.hasEditor = false;
+                    }
+                }
+            });
         },
     };
 });
@@ -1672,6 +1699,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
         scope: {
             reportId: '<',
             reportContent: '@',
+            reportCfg: '<',
             modelKey: '@',
         },
         template: [
@@ -1687,6 +1715,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
                 '<div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
+                '<div data-ng-switch-when="rawSVG" data-svg-plot="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId" data-report-cfg="reportCfg"></div>',
                 SIREPO.appReportTypes || '',
               '</div>',
               '<div data-ng-transclude=""></div>',
@@ -2634,6 +2663,94 @@ SIREPO.app.directive('bootstrapToggle', function() {
     };
 });
 
+
+SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $sce) {
+    return {
+        restrict: 'A',
+        scope: {
+            wantAdm: '<',
+        },
+        template: [
+            '<div>',
+                '<table class="table">',
+                    '<thead ng-bind-html="getHeader()"></thead>',
+                    '<tbody ng-bind-html="getRows()"></tbody>',
+                '</table>',
+                '<button class="btn btn-default" data-ng-click="getJobs()">Refresh</button>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            function dataLoaded(data, status) {
+                $scope.data = data;
+            }
+
+            function getRow(row, nameIndex, simulationIdIndex, appIndex) {
+                var h = '';
+                for (var i = getStartIndex(); i < row.length; i++) {
+                    var v = row[i];
+                    if (!$scope.wantAdm && i === nameIndex) {
+                        v = '<a href=' + getUrl(row[simulationIdIndex], row[appIndex])  + '>' + v + '</a>';
+                    }
+                    h += '<td>' + v + '</td>';
+                }
+                return h;
+            }
+
+            function getStartIndex() {
+                // 'SimulationId' and
+                return $scope.wantAdm ? 0 : 2;
+            }
+
+            function getUrl(simulationId, app) {
+                return requestSender.formatUrlLocal(
+                    'source',
+                    {':simulationId': simulationId},
+                    app
+                );
+            }
+
+            $scope.getHeader = function() {
+                var h = '';
+                if ($scope.data) {
+                    for (var i = getStartIndex(); i < $scope.data.header.length; i++) {
+                        h += '<th>' + $scope.data.header[i] + '</th>';
+                    }
+                    return $sce.trustAsHtml(h);
+                }
+            };
+
+            $scope.getJobs = function () {
+                requestSender.sendRequest(
+                    $scope.wantAdm ? 'admJobs' : 'ownJobs',
+                    dataLoaded,
+                    {
+                        simulationType: SIREPO.APP_SCHEMA.simulationType,
+                    });
+            };
+
+            $scope.getRows = function() {
+                var d = $scope.data;
+                if (d) {
+                    var a = d.header.indexOf('App');
+                    var s = d.header.indexOf('Simulation id');
+                    if (a !== 0 && s !== 1) {
+                        throw new Error("'Simulation id' or 'App' not found in known location on header=" + d.header);
+                    }
+                    var h = '';
+                    for (var i in d.rows) {
+                        h += '<tr>' + getRow(d.rows[i], d.header.indexOf('Name'), s, a) + '</tr>';
+                    }
+                    return $sce.trustAsHtml(h);
+                }
+            };
+
+            appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
+            $scope.getJobs();
+
+        },
+    };
+});
+
 SIREPO.app.directive('optimizeFloat', function(appState, panelState) {
     return {
         restrict: 'A',
@@ -3339,11 +3456,10 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
     var runningModels = [];
 
     function setFieldRange(controller, prefix, model, field) {
-        //TODO(pjm): special case for jspec, needs to get migrated to jspec.js
-        if (field == 'dpp') {
-            field = 'dp/p';
-        }
-        var range = controller.fieldRange[field];
+        setRange(model, prefix, controller.fieldRange[field]);
+    }
+
+    function setRange(model, prefix, range) {
         if (range) {
             model[prefix + 'Size'] = range[1] - range[0];
             model[prefix + 'Offset'] = (range[0] + range[1]) / 2;
@@ -3355,6 +3471,25 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
         if (runningModels.indexOf(name) < 0) {
             runningModels.push(name);
         }
+    }
+
+    function setVerticalFieldRange(controller, model) {
+        var range = null;
+        ['y1', 'y2', 'y3'].forEach(function(f) {
+            var r1 = controller.fieldRange[model[f]];
+            if (! range) {
+                range = r1;
+            }
+            else if (r1) {
+                if (r1[0] < range[0]) {
+                    range[0] = r1[0];
+                }
+                if (r1[1] > range[1]) {
+                    range[1] = r1[1];
+                }
+            }
+        });
+        setRange(model, 'vertical', range);
     }
 
     self.computeFieldRanges = function(controller, name, percentComplete) {
@@ -3406,7 +3541,12 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
             }
             else {
                 setFieldRange(controller, 'horizontal', model, model.x);
-                setFieldRange(controller, 'vertical', model, model.y || model.y1);
+                if (model.y) {
+                    setFieldRange(controller, 'vertical', model, model.y);
+                }
+                else {
+                    setVerticalFieldRange(controller, model);
+                }
             }
         }
     };
@@ -3433,7 +3573,15 @@ SIREPO.app.service('utilities', function($window, $interval) {
         if (! fsString) {
             return 0;
         }
-        return parseFloat(fsString.substring(0, fsString.indexOf('px')));
+        var units = ['px', 'pt'];
+        for (var uIdx in units) {
+            var unit = units[uIdx];
+            var fs = parseFloat(fsString.substring(0, fsString.indexOf(unit)));
+            if (! isNaN(fs)) {
+                return fs;
+            }
+        }
+        return NaN;
     };
 
     this.wordSplits = function(str) {

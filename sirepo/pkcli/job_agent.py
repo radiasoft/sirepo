@@ -9,7 +9,7 @@ from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
+from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdformat
 from sirepo import job
 from sirepo.template import template_common
 import datetime
@@ -39,6 +39,12 @@ _RETRY_SECS = 1
 _IN_FILE = 'in-{}.json'
 
 _PID_FILE = 'job_agent.pid'
+
+_PY3_CODES = frozenset((
+    'rcscon',
+    'shadow',
+    'webcon',
+))
 
 cfg = None
 
@@ -117,7 +123,7 @@ def start_sbatch():
 class _Dispatcher(PKDict):
 
     def __init__(self):
-        super().__init__(cmds=[], _fastcgi_cmd=None)
+        super().__init__(cmds=[], fastcgi_cmd=None)
 
     def format_op(self, msg, opName, **kwargs):
         if msg:
@@ -129,7 +135,7 @@ class _Dispatcher(PKDict):
     async def job_cmd_reply(self, msg, op_name, text):
         try:
             r = pkjson.load_any(text)
-        except Exception as e:
+        except Exception:
             op_name = job.OP_ERROR
             r = PKDict(
                 state=job.ERROR,
@@ -153,7 +159,9 @@ class _Dispatcher(PKDict):
                         url=cfg.supervisor_uri,
                         validate_cert=sirepo.job.cfg.verify_tls,
                     ),
-                    max_message_size=job.MAX_MESSAGE_SIZE,
+                    max_message_size=job.cfg.max_message_size,
+                    ping_interval=job.cfg.ping_interval_secs,
+                    ping_timeout=job.cfg.ping_timeout_secs,
                 )
                 s = self.format_op(None, job.OP_ALIVE)
                 while True:
@@ -161,7 +169,11 @@ class _Dispatcher(PKDict):
                         break
                     r = await self._websocket.read_message()
                     if r is None:
-                        pkdlog('websocket closed in response to len={} send={}', s and len(s), s)
+                        pkdlog(
+                            'websocket closed in response to len={} send={}',
+                            s and len(s),
+                            s,
+                        )
                         raise tornado.iostream.StreamClosedError()
                     s = await self._op(r)
             except Exception as e:
@@ -179,7 +191,7 @@ class _Dispatcher(PKDict):
             await self._websocket.write_message(msg)
             return True
         except Exception as e:
-            pkdlog('msg={} error={}', job.LogFormatter(msg), e)
+            pkdlog('msg={} error={}', msg, e)
             return False
 
     def terminate(self):
@@ -199,15 +211,16 @@ class _Dispatcher(PKDict):
         m = None
         try:
             m = pkjson.load_any(msg)
-            pkdlog('op={} opId={} runDir={}', m.opName, m.get('opId'), m.get('runDir'))
+            pkdlog('opName={} o={:.4} runDir={}', m.opName, m.get('opId'), m.get('runDir'))
             pkdc('m={}', m)
             return await getattr(self, '_op_' + m.opName)(m)
         except Exception as e:
             err = 'exception=' + str(e)
             stack = pkdexc()
             pkdlog(
-                'op={} exception={} stack={}',
+                'opName={} o={:.4} exception={} stack={}',
                 m and m.get('opName'),
+                m and m.get('opId'),
                 e,
                 stack,
             )
@@ -221,8 +234,8 @@ class _Dispatcher(PKDict):
             self.format_op(msg, job.OP_OK, reply=PKDict(state=job.CANCELED)),
         )
         for c in list(self.cmds):
-            if c.msg.opId in msg.opIdsToCancel:
-                pkdlog('opId={}', c.msg.opId)
+            if c.op_id in msg.opIdsToCancel:
+                pkdlog('cmd={}', c)
                 c.destroy()
         return None
 
@@ -238,15 +251,17 @@ class _Dispatcher(PKDict):
             self.format_op(msg, job.OP_OK, reply=PKDict(loginSuccess=True)),
         )
 
-    async def _cmd(self, msg):
+    async def _cmd(self, msg, **kwargs):
         if msg.opName == job.OP_ANALYSIS and msg.jobCmd != 'fastcgi':
             return await self._fastcgi_op(msg)
         c = _Cmd
         if msg.jobRunMode == job.SBATCH:
             c = _SbatchRun if msg.isParallel else _SbatchCmd
-        p = c(msg=msg, dispatcher=self)
+        elif msg.jobCmd == 'fastcgi':
+            c = _FastCgiCmd
+        p = c(msg=msg, dispatcher=self, op_id=msg.opId, **kwargs)
         if msg.jobCmd == 'fastcgi':
-            self._fastcgi_cmd = p
+            self.fastcgi_cmd = p
         self.cmds.append(p)
         await p.start()
         return None
@@ -273,15 +288,12 @@ class _Dispatcher(PKDict):
                 )
             except Exception as e:
                 pkdlog('msg={} error={} stack={}', msg, e, pkdexc())
-
-        pkdlog('msg={} error={} stack={}', msg, error, stack)
         # destroy _fastcgi state first, then send replies to avoid
         # asynchronous modification of _fastcgi state.
         self._fastcgi_remove_handler()
         q = self._fastcgi_msg_q
         self._fastcgi_msg_q = None
-        self._fastcgi_cmd.destroy()
-        self._fastcgi_cmd = None
+        self.fastcgi_cmd.destroy()
         if msg:
             await _reply_error(msg)
         while q.qsize() > 0:
@@ -289,10 +301,9 @@ class _Dispatcher(PKDict):
             q.task_done()
 
     async def _fastcgi_op(self, msg):
-        if not self._fastcgi_cmd:
+        if not self.fastcgi_cmd:
             m = msg.copy()
             m.jobCmd = 'fastcgi'
-            m.opId = None
             self._fastcgi_file = 'job_cmd_fastcgi.sock'
             self._fastcgi_msg_q = tornado.queues.Queue(1)
             pkio.unchecked_remove(self._fastcgi_file)
@@ -308,8 +319,9 @@ class _Dispatcher(PKDict):
                 self._fastcgi_accept,
             )
             # last thing, because of await: start fastcgi process
-            await self._cmd(m)
+            await self._cmd(m, send_reply=False)
         self._fastcgi_msg_q.put_nowait(msg)
+        self.fastcgi_cmd.op_id = msg.opId
         return None
 
     async def _fastcgi_read(self, connection):
@@ -326,9 +338,13 @@ class _Dispatcher(PKDict):
                 await self.job_cmd_reply(
                     m,
                     job.OP_ANALYSIS,
-                    await s.read_until(b'\n', job.MAX_MESSAGE_SIZE),
+                    await s.read_until(b'\n', job.cfg.max_message_size),
                 )
         except Exception as e:
+            pkdlog('msg={} error={} stack={}', m, e, pkdexc())
+            # If self.fastcgi_cmd is None we initiated the kill so not an error
+            if not self.fastcgi_cmd:
+                return
             await self._fastcgi_handle_error(m, e, pkdexc())
         finally:
             if s:
@@ -337,8 +353,8 @@ class _Dispatcher(PKDict):
 
 class _Cmd(PKDict):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, send_reply=True, **kwargs):
+        super().__init__(*args, send_reply=send_reply, **kwargs)
         self.run_dir = pkio.py_path(self.msg.runDir)
         self._is_compute = self.msg.jobCmd == 'compute'
         if self._is_compute:
@@ -380,7 +396,7 @@ class _Cmd(PKDict):
         )
 
     def job_cmd_pyenv(self):
-        return 'py2'
+        return 'py3' if self.msg.simulationType in _PY3_CODES else 'py2'
 
     def job_cmd_source_bashrc(self):
         return 'source $HOME/.bashrc'
@@ -395,10 +411,10 @@ class _Cmd(PKDict):
                 )
             )
         except Exception as exc:
-            pkdlog('text={} error={} stack={}', text, exc, pkdexc())
+            pkdlog('{} text={} error={} stack={}', self, text, exc, pkdexc())
 
     async def on_stdout_read(self, text):
-        if self._terminating or not self.msg.opId:
+        if self._terminating or not self.send_reply:
             return
         try:
             await self.dispatcher.job_cmd_reply(
@@ -406,8 +422,8 @@ class _Cmd(PKDict):
                 job.OP_RUN if self._is_compute else job.OP_ANALYSIS,
                 text,
             )
-        except Exception as exc:
-            pkdlog('text={} error={} stack={}', text, exc, pkdexc())
+        except Exception as e:
+            pkdlog('{} text={} error={} stack={}', self, text, e, pkdexc())
 
     async def start(self):
         if self._is_compute and self._start_time:
@@ -421,6 +437,16 @@ class _Cmd(PKDict):
         self._process.start()
         tornado.ioloop.IOLoop.current().add_callback(self._await_exit)
 
+    def pkdebug_str(self):
+        return pkdformat(
+            '{}(jid={} o={:.4} job_cmd={} run_dir={})',
+            self.__class__.__name__,
+            self.jid,
+            self.op_id,
+            self.msg.jobCmd,
+            self.run_dir,
+        )
+
     async def _await_exit(self):
         try:
             await self._process.exit_ready()
@@ -428,7 +454,7 @@ class _Cmd(PKDict):
                 return
             e = self._process.stderr.text.decode('utf-8', errors='ignore')
             if e:
-                pkdlog('jid={} exit={} stderr={}', self.jid, self._process.returncode, e)
+                pkdlog('{} exit={} stderr={}', self, self._process.returncode, e)
             if self._process.returncode != 0:
                 await self.dispatcher.send(
                     self.dispatcher.format_op(
@@ -444,8 +470,8 @@ class _Cmd(PKDict):
 
         except Exception as exc:
             pkdlog(
-                'jid={} error={} returncode={} stack={}',
-                self.jid,
+                '{} error={} returncode={} stack={}',
+                self,
                 exc,
                 self._process.returncode,
                 pkdexc(),
@@ -470,6 +496,12 @@ class _Cmd(PKDict):
         )
         pkjson.dump_pretty(self.msg, filename=f, pretty=False)
         return f
+
+
+class _FastCgiCmd(_Cmd):
+    def destroy(self):
+        self.dispatcher.fastcgi_cmd = None
+        super().destroy()
 
 
 class _SbatchCmd(_Cmd):
@@ -535,7 +567,8 @@ class _SbatchRun(_SbatchCmd):
             )
             if p.returncode != 0:
                 pkdlog(
-                    'cancel error exit={} sbatch={} stderr={} stdout={}',
+                    '{} cancel error exit={} sbatch={} stderr={} stdout={}',
+                    self,
                     p.returncode,
                     i,
                     p.stderr,
@@ -575,8 +608,8 @@ class _SbatchRun(_SbatchCmd):
             return
         self._in_file = self._create_in_file()
         pkdlog(
-            'opId={} sbatchId={} starting jobCmd={}',
-            self.msg.opId,
+            '{} sbatch_id={} starting jobCmd={}',
+            self,
             self._sbatch_id,
             self.msg.jobCmd,
         )
@@ -587,11 +620,10 @@ class _SbatchRun(_SbatchCmd):
             dispatcher=self.dispatcher,
             msg=self.msg.copy().pkupdate(
                 jobCmd='prepare_simulation',
-                # needed so replies not sent back to supervisor
-                opId=None,
                 # sequential job
                 opName=job.OP_ANALYSIS,
             ),
+            send_reply=False,
         )
         await c.start()
         await c._await_exit()
@@ -643,7 +675,8 @@ exec srun {s} /bin/bash bash.stdin
         )
         if p.returncode != 0:
             pkdlog(
-                'scontrol error exit={} sbatch={} stderr={} stdout={}',
+                '{} scontrol error exit={} sbatch={} stderr={} stdout={}',
+                self,
                 p.returncode,
                 self._sbatch_id,
                 p.stderr,
@@ -653,8 +686,8 @@ exec srun {s} /bin/bash bash.stdin
         r = re.search(r'(?<=JobState=)(\S+)(?= Reason)', p.stdout)
         if not r:
             pkdlog(
-                'opId={} failed to find JobState in sderr={} stdout={}',
-                self.msg.opId,
+                '{} failed to find JobState in sderr={} stdout={}',
+                self,
                 p.stderr,
                 p.stdout,
             )
@@ -674,7 +707,8 @@ exec srun {s} /bin/bash bash.stdin
             # because have to await before calling destroy
             self._terminating = True
             pkdlog(
-                'sbatch={} unexpected state={}',
+                '{} sbatch_id={} unexpected state={}',
+                self,
                 self._sbatch_id,
                 self._status,
             )
@@ -785,8 +819,8 @@ class _ReadJsonlStream(_Stream):
         super().__init__(*args)
 
     async def _read_stream(self):
-        self.text = await self._stream.read_until(b'\n', job.MAX_MESSAGE_SIZE)
-        pkdc('stdout={}', self.text[:1000])
+        self.text = await self._stream.read_until(b'\n', job.cfg.max_message_size)
+        pkdc('cmd={} stdout={}', self.cmd, self.text[:1000])
         await self.cmd.on_stdout_read(self.text)
 
 
@@ -796,14 +830,17 @@ class _ReadUntilCloseStream(_Stream):
 
     async def _read_stream(self):
         t = await self._stream.read_bytes(
-            job.MAX_MESSAGE_SIZE - len(self.text),
+            job.cfg.max_message_size - len(self.text),
             partial=True,
         )
-        pkdc('stderr={}', t)
+        pkdc('cmd={} stderr={}', self.cmd, t)
         await self.cmd.on_stderr_read(t)
         l = len(self.text) + len(t)
-        assert l < job.MAX_MESSAGE_SIZE, \
-            'len(bytes)={} greater than MAX_MESSAGE_SIZE={}'.format(l, job.MAX_MESSAGE_SIZE)
+        assert l < job.cfg.max_message_size, \
+            'len(bytes)={} greater than max_message_size={}'.format(
+                l,
+                job.cfg.max_message_size,
+            )
         self.text.extend(t)
 
 
