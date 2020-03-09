@@ -20,6 +20,7 @@ pykern.pksetup.setup(
         'numpy',
         'pykern',
         'pytz',
+        'user-agents',
 
         'asyncssh; python_version >= "3"',
         'tornado >= 6; python_version >= "3"',
@@ -29,7 +30,6 @@ pykern.pksetup.setup(
         'SQLAlchemy; python_version < "3"',
         'futures; python_version < "3"',
         'pyIsEmail; python_version < "3"',
-        'user-agents; python_version < "3"',
         'uwsgi; python_version < "3"',
         'werkzeug==0.15.4; python_version < "3"',
     ],
