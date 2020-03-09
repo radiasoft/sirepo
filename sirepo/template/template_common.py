@@ -14,8 +14,6 @@ import math
 import numpy
 import os.path
 import re
-import sirepo.http_reply
-import sirepo.http_request
 import sirepo.sim_data
 import sirepo.template
 import sirepo.util
@@ -215,6 +213,9 @@ def generate_parameters_file(data):
 
 
 def sim_frame(frame_id, op):
+    import sirepo.http_reply
+    import sirepo.http_request
+
     f, s = sirepo.sim_data.parse_frame_id(frame_id)
     # document parsing the request
     sirepo.http_request.parse_post(req_data=f, id=True, check_sim_exists=True)
