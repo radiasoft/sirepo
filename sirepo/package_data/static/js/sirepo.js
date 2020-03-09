@@ -1288,6 +1288,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return 'Waiting';
     };
 
+    self.isActiveField = function(model, field) {
+        return $(fieldClass(model, field)).find('input').is(':focus');
+    }
+
     self.isHidden = function(name) {
         if (! appState.isLoaded()) {
             return true;

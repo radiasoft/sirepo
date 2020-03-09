@@ -182,9 +182,24 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         panelState.showField('electronCoolingRate', 'sample_number', settings.model == 'particle');
     }
 
+    function processTimeStep() {
+        var s = appState.models.simulationSettings;
+        if (panelState.isActiveField('simulationSettings', 'time') || panelState.isActiveField('simulationSettings', 'step_number')) {
+            s.time_step = s.time / s.step_number;
+        }
+        else if (panelState.isActiveField('simulationSettings', 'time_step')) {
+             s.time = s.step_number * s.time_step;
+        }
+    }
+
     appState.whenModelsLoaded($scope, function() {
         processModel();
         appState.watchModelFields($scope, ['simulationSettings.model', 'simulationSettings.e_cool'], processModel);
+        appState.watchModelFields(
+            $scope,
+            ['simulationSettings.time', 'simulationSettings.step_number', 'simulationSettings.time_step'],
+            processTimeStep,
+        );
         appState.watchModelFields($scope, ['particleAnimation.colorRangeType'], processColorRange);
         appState.watchModelFields($scope, ['forceTableAnimation.plot'], processForceTablePlot);
         ['particleAnimation', 'beamEvolutionAnimation', 'coolingRatesAnimation', 'forceTableAnimation'].forEach(function(m) {
