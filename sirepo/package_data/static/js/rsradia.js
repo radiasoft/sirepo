@@ -75,7 +75,7 @@ SIREPO.app.factory('radiaService', function(appState, panelState, requestSender,
         return type + 'Path';
     };
 
-    // to geometry?
+    // to geometry?  to python?
     self.pointsForPath = function(path) {
         srdbg('pt', path.type);
         if (! path.type || Object.keys(pathPts).indexOf(path.type) < 0) {
@@ -85,9 +85,11 @@ SIREPO.app.factory('radiaService', function(appState, panelState, requestSender,
     };
 
 
-    self.showPathPicker = function(doShow) {
+    self.showPathPicker = function(doShow, isNew) {
         if (doShow) {
-            self.createPathModel();
+            if (isNew) {
+                self.createPathModel();
+            }
         }
         $('#' + panelState.modalId('fieldpaths')).modal(doShow ? 'show' : 'hide');
     };
@@ -220,22 +222,28 @@ SIREPO.app.directive('fieldPathTable', function(appState, radiaService) {
             '<table data-ng-if="hasPaths()" style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">',
               '<colgroup>',
                 '<col style="width: 20ex">',
+                '<col style="width: 10ex">',
+                '<col style="width: 10ex">',
                 '<col style="width: 100%">',
-                '<col style="width: 12ex">',
+                '<col style="width: 10ex">',
               '</colgroup>',
               '<thead>',
                 '<tr>',
                   '<th>Name</th>',
                   '<th>Type</th>',
+                  '<th>Num. points</th>',
                   '<th>Details</th>',
+                  '<th></th>',
                 '</tr>',
               '</thead>',
               '<tbody>',
                 '<tr data-ng-repeat="path in paths track by $index">',
                   '<td><div class="badge sr-badge-icon sr-lattice-icon"><span>{{ path.name }}</span></div></td>',
                   '<td><span>{{ path.type }}</span></td>',
+                  '<td><span>{{ path.numPoints }}</span></td>',
+                  '<td><span>{{ pathDetails(path) }}</span></td>',
                   '<td style="text-align: right">',
-                    '<span>STUFF</span>',
+                    //'<span>{{ pathDetails($index) }}</span>',
                     '<div class="sr-button-bar-parent">',
                         '<div class="sr-button-bar" data-ng-class="sr-button-bar-active" >',
                             '<button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyPath(path)">Copy</button>',
@@ -260,7 +268,6 @@ SIREPO.app.directive('fieldPathTable', function(appState, radiaService) {
 
             $scope.copyPath = function(path) {
                 srdbg('CPY', path);
-
             };
 
            $scope.deletePath = function(path, index) {
@@ -270,6 +277,27 @@ SIREPO.app.directive('fieldPathTable', function(appState, radiaService) {
 
            $scope.editPath = function(path) {
                 srdbg('EDIT', path);
+                appState.models[radiaService.pathTypeModel(path.type)] = path;
+                appState.models.fieldPaths.path = path.type;
+                radiaService.showPathPicker(true, false);
+           };
+
+           $scope.pathDetails = function(path) {
+               var excludeFields = ['_super', 'id', 'name', 'type', 'numPoints'];
+               var res = '';
+               var pt = radiaService.pathTypeModel(path.type);
+               var vf = appState.viewInfo(pt).basic;
+               var info = appState.modelInfo(pt);
+               //srdbg('info', pt, vf, info);
+               vf.filter(function (f) {
+                    return excludeFields.indexOf(f) < 0;
+               })
+                   .forEach(function (f) {
+                       var fi = info[f];
+                    //srdbg('f', f, p[f]);
+                    res += (fi[0] + ': ' + path[f] + '; ');
+               });
+               return res;
            };
 
            appState.whenModelsLoaded($scope, function() {
@@ -862,7 +890,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function updateViewer(rebuild) {
-                srdbg('updateViewer rebuild?', rebuild);
+                //srdbg('updateViewer rebuild?', rebuild);
                 sceneData = {};
                 actorInfo = {};
                 enableWatchFields(! rebuild);
@@ -933,13 +961,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 updateViewer();
             });
 
-           // $scope.$on('fieldDisplay.changed', function () {
-           //     srdbg('FDC');
-           //     updateViewer(false);
-            //});
-
             $scope.$on('magnetDisplay.changed', function (e, d) {
-                srdbg('MDC', e, d);
+                //srdbg('MDC', e, d);
                 // does not seem the best way...
                 var interval = null;
                 interval = $interval(function() {

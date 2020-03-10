@@ -54,7 +54,7 @@ def geom_to_data(geom, name=None, divide=True):
 
 # path is *flattened* array of positions in space ([x1, y1, z1,...xn, yn, zn])
 def get_field(geom, f_type, path):
-    pkdp('GET FIELD FOR {} TYPE {} PATH {}', geom, f_type, path)
+    #pkdp('GET FIELD FOR {} TYPE {} PATH {}', geom, f_type, path)
     pv_arr = []
     p = numpy.reshape(path, (-1, 3)).tolist()
     b = []
