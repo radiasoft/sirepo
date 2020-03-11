@@ -33,10 +33,13 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'beam_type',
                 'bunched' if dm.ionBeam.rms_bunch_length > 0 else 'continuous',
             )
+        if 'particle' not in dm.ionBeam:
+            dm.ionBeam.particle = 'OTHER'
         if 'beam_type' not in dm.electronBeam:
             x = dm.electronBeam
             x.beam_type = 'continuous' if x.shape == 'dc_uniform' else 'bunched'
             x.rh = x.rv = 0.004
+        cls._init_models(dm, ('ionBeam', 'electronBeam'))
         x = dm.simulationSettings
         if x.model == 'model_beam':
             x.model = 'particle'

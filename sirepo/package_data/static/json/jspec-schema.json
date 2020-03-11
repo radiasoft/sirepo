@@ -25,6 +25,19 @@
             ["sigmas", "sigma_s"],
             ["none", "None"]
         ],
+        "BeamParticle": [
+            ["ALUMINUM", "Aluminum"],
+            ["COPPER", "Copper"],
+            ["DEUTERON", "Deuteron"],
+            ["GOLD", "Gold"],
+            ["HELIUM", "Helium"],
+            ["LEAD", "Lead"],
+            ["PROTON", "Proton"],
+            ["RUTHENIUM", "Ruthenium"],
+            ["URANIUM", "Uranium"],
+            ["ZIRCONIUM", "Zirconium"],
+            ["OTHER", "Other"]
+        ],
         "BeamType": [
             ["bunched", "Bunched Beam"],
             ["continuous", "Continuous Beam"]
@@ -266,6 +279,7 @@
             "coupling": ["Transverse Coupling Rate", "Float", null, "Transverse coupling rate, ranging from 0 to 1.", 0, 1]
         },
         "ionBeam": {
+            "particle": ["Particle", "BeamParticle", "PROTON", "Name of particle to be used"],
             "charge_number": ["Ion Charges", "Integer", 1, "Number of the charges of the ion.", 1e-99],
             "mass": ["Mass [MeV/c²]", "Float", 938.272, "Mass of the ion.", 1e-99],
             "kinetic_energy": ["Kinetic Energy [MeV]", "Float", 8000.0, "Kinetic energy of the ion.", 1e-99],
@@ -442,6 +456,7 @@
         "ionBeam": {
             "title": "Ion Beam",
             "basic": [
+                "particle",
                 "charge_number",
                 "mass",
                 "kinetic_energy",
