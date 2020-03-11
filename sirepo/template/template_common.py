@@ -5,6 +5,7 @@ u"""Common execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkcollections import PKDict
@@ -472,6 +473,7 @@ def subprocess_output(cmd, env):
         pkdlog('{}: exit={} err={}', cmd, e.returncode, err)
         return None
     if out != None and len(out):
+        out = pkcompat.from_bytes(out)
         return out.strip()
     return ''
 

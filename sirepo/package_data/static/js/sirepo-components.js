@@ -1679,6 +1679,15 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
         },
         link: function(scope, element) {
             scope.panel = element.next();
+            panelState.waitForUI(function() {
+                var view = appState.viewInfo(scope.viewName || scope.modelKey);
+                if (! view) {
+                    var editorId = '#' + panelState.modalId(scope.modelKey);
+                    if (! $(editorId).length) {
+                        scope.hasEditor = false;
+                    }
+                }
+            });
         },
     };
 });
@@ -1690,6 +1699,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
         scope: {
             reportId: '<',
             reportContent: '@',
+            reportCfg: '<',
             modelKey: '@',
         },
         template: [
@@ -1705,6 +1715,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
                 '<div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
+                '<div data-ng-switch-when="rawSVG" data-svg-plot="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId" data-report-cfg="reportCfg"></div>',
                 SIREPO.appReportTypes || '',
               '</div>',
               '<div data-ng-transclude=""></div>',
@@ -3562,7 +3573,15 @@ SIREPO.app.service('utilities', function($window, $interval) {
         if (! fsString) {
             return 0;
         }
-        return parseFloat(fsString.substring(0, fsString.indexOf('px')));
+        var units = ['px', 'pt'];
+        for (var uIdx in units) {
+            var unit = units[uIdx];
+            var fs = parseFloat(fsString.substring(0, fsString.indexOf(unit)));
+            if (! isNaN(fs)) {
+                return fs;
+            }
+        }
+        return NaN;
     };
 
     this.wordSplits = function(str) {

@@ -7,9 +7,9 @@ u"""User state management via an HTTP cookie
 from __future__ import absolute_import, division, print_function
 
 from pykern import pkcollections
+from pykern import pkcompat
 from pykern import pkconfig
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import util
 import base64
 import cryptography.fernet
 import flask
@@ -145,9 +145,9 @@ class _State(dict):
         return self.crypto
 
     def _decrypt(self, value):
-        d = self._crypto().decrypt(base64.urlsafe_b64decode(value))
+        d = self._crypto().decrypt(base64.urlsafe_b64decode(pkcompat.to_bytes(value)))
         pkdc(d)
-        return d
+        return pkcompat.from_bytes(d)
 
     def _deserialize(self, value):
         v = value.split(_SERIALIZER_SEP)
@@ -157,7 +157,7 @@ class _State(dict):
         return v
 
     def _encrypt(self, text):
-        return base64.urlsafe_b64encode(self._crypto().encrypt(text))
+        return base64.urlsafe_b64encode(self._crypto().encrypt(pkcompat.to_bytes(text)))
 
     def _from_cookie_header(self, header):
         s = None
