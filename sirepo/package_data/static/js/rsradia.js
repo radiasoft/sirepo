@@ -47,6 +47,25 @@ SIREPO.app.factory('radiaService', function(appState, panelState, requestSender,
         });
     };
 
+    self.alphaDelegate = function() {
+        var m = 'geometry';
+        var f = 'alpha';
+        var d = panelState.getFieldDelegate(m, f);
+        d.range = function() {
+            return {
+                min: appState.modelInfo(m)[f][SIREPO.INFO_INDEX_MIN],
+                max: appState.modelInfo(m)[f][SIREPO.INFO_INDEX_MAX],
+                step: 0.01
+            };
+        };
+        d.readout = function() {
+            return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
+        };
+        d.update = function() {};
+        d.watchFields = [];
+        return d;
+    };
+
     self.buildFieldPoints = function() {
         var pts = [];
         appState.models.fieldPaths.paths.forEach(function (p) {
@@ -539,6 +558,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             var SCALAR_ARRAY = 'scalars';
 
             var actorInfo = {};
+            var alphaDelegate = null;
             var cm = vtkPlotting.coordMapper();
             var displayFields = [
                  'magnetDisplay.pathType',
@@ -682,6 +702,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                      */
                 }
                 updateLayout();
+                updateAlpha();
                 vtkAPI.setCam();
                 enableWatchFields(true);
             }
@@ -821,10 +842,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 if (vtkUtils.GEOM_OBJ_TYPES.indexOf(type) < 0) {
                     return 0;
                 }
-                if (type === 'lines') {
+                if (type === vtkUtils.GEOM_TYPE_LINES) {
                     return numDataColors(polyData.getLines().getData());
                 }
-                if (type === 'polys') {
+                if (type === vtkUtils.GEOM_TYPE_POLYS) {
                     return numDataColors(polyData.getPolys().getData());
                 }
             }
@@ -881,12 +902,61 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
             }
 
+            function updateAlpha() {
+                if (! renderer) {
+                    return;
+                }
+                var alpha = appState.models.geometry.alpha;
+                //srdbg('alpha', alpha);
+                for (var name in actorInfo) {
+                    var info = actorInfo[name];
+                    var s = info.scalars;
+                    if (! s) {
+                        info.actor.getProperty().setOpacity(alpha);
+                        continue;
+                    }
+                    updateColor(info, vtkUtils.GEOM_TYPE_POLYS, null, Math.floor(255 * alpha));
+                }
+                renderWindow.render();
+
+            }
+
+            function updateColor(info, type, color, alpha=255) {
+               // srdbg(info, 'setColor', type, color, alpha);
+                const s = info.scalars;
+                if (! s) {
+                    return;
+                }
+                if (type !== info.type) {
+                    return;
+                }
+                const colors = s.getData();
+                const nc = s.getNumberOfComponents();
+                let i = 0;
+                const inds = info.colorIndices || [];
+                for (let j = 0; j < inds.length && i < s.getNumberOfValues(); ++j) {
+                    if (color) {
+                        for (let k = 0; k < nc - 1; ++k) {
+                            colors[inds[j] + k] = color[k];
+                        }
+                    }
+                    colors[inds[j] + nc - 1] = alpha;
+                    i += nc;
+                }
+                info.pData.modified();
+            }
+
             function updateLayout() {
                 srdbg('updateLayout', appState.models.magnetDisplay.viewType);
                 panelState.showField(
                     'magnetDisplay',
                     'fieldType',
                     appState.models.magnetDisplay.viewType === 'fields'
+                );
+                panelState.showField(
+                    'geometry',
+                    'alpha',
+                    appState.models.magnetDisplay.viewType === 'objects'
                 );
                 radiaService.pointFieldTypes.forEach(function (ft) {
                     panelState.showEnum('magnetDisplay', 'fieldType', ft, hasPaths());
@@ -946,12 +1016,12 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             };
 
             appState.whenModelsLoaded($scope, function () {
+                //srdbg('whenModelsLoaded g', appState.models.geometry);
                 $scope.model = appState.models[$scope.modelName];
                 appState.watchModelFields($scope, watchFields, updateLayout);
+                alphaDelegate = radiaService.alphaDelegate();
+                alphaDelegate.update = updateAlpha;
                 panelState.enableField('geometry', 'name', ! appState.models.simulation.isExample);
-                appState.models.fieldPaths.paths.forEach(function (p) {
-                    //srdbg('pts for', p, radiaService.pointsForPath(p));
-                });
             });
 
             // or keep stuff on vtk viewer scope?

@@ -548,6 +548,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             // wait until the switch gets fully evaluated, then set event handlers for input fields
             // to disable keypress listener set by plots
             panelState.waitForUI(function () {
+                //srdbg('FE mn', $scope.modelName, 'm', $scope.model, 'frm aapdtd', appState.models[$scope.modelName]);
                 var inputElement =  $($element).find('input');
                 if(inputElement.length > 0) {
                     inputElement
@@ -2688,11 +2689,7 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
         ].join(''),
         controller: function($scope) {
             var slider;
-
-            var delegate = $scope.fieldDelegate;
-            if (! delegate || $.isEmptyObject(delegate)) {
-                delegate = panelState.getFieldDelegate($scope.modelName, $scope.field);
-            }
+            var delegate = null;
 
             function update() {
                 updateReadout();
@@ -2710,9 +2707,16 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
                 panelState.setFieldLabel($scope.modelName, $scope.field, delegate.readout());
             }
 
-            appState.watchModelFields($scope, (delegate.watchFields || []), update);
-
             appState.whenModelsLoaded($scope, function () {
+                if ($scope.model !== appState.models[$scope.modelName]) {
+                    $scope.model = appState.models[$scope.modelName];  // ???
+                }
+                delegate = $scope.fieldDelegate;
+                if (! delegate || $.isEmptyObject(delegate)) {
+                    delegate = panelState.getFieldDelegate($scope.modelName, $scope.field);
+                    $scope.fieldDelegate = delegate;
+                }
+                appState.watchModelFields($scope, (delegate.watchFields || []), update);
                 slider = $('#' + $scope.modelName + '-' + $scope.field + '-range');
                 update();
                 // on load, the slider will coerce model values to fit the basic input model of range 0-100,

@@ -86,7 +86,7 @@
             "type": ["_", "PathType", "file"]
         },
         "geometry": {
-            "alpha": ["Alpha", "Float", "1.0", "", "0.0", "1.0"],
+            "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
             "color": ["Color", "String", "#cccccc"],
             "name": ["Name", "String", ""]
         },
@@ -176,6 +176,7 @@
             "basic": [
                 "geometry.name",
                 "viewType",
+                "geometry.alpha",
                 "fieldType",
                 "fieldDisplay.colorMap",
                 "fieldDisplay.scaling"

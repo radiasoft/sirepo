@@ -72,7 +72,7 @@ def extract_report_data(run_dir, sim_in):
 # if the file exists but the data we seek does not, have Radia generate it here.  We
 # should only have to blow away the file after a solve (???)
 def get_application_data(data, **kwargs):
-    pkdp('get_application_data from {}', data)
+    # pkdp('get_application_data from {}', data)
     if 'method' in data and data.method == 'get_geom':
         g_id = -1
         try:
@@ -80,8 +80,9 @@ def get_application_data(data, **kwargs):
                 b = f.read()
                 g_id = radia_tk.load_bin(b)
         except IOError as e:
-            pkdp('ERR {} FROM FILE', e)
-            return PKDict()
+            # No Radia dump file
+            # pkdp('ERR {} FROM FILE', e)
+            return {}
         f = _geom_file(data.simulationId)
         f_type = data.get('fieldType', None)
         p = _geom_h5_path(data.viewType, f_type)
@@ -94,6 +95,7 @@ def get_application_data(data, **kwargs):
                 g = template_common.h5_to_dict(hf, path=p)
                 return g
         except IOError:
+            # No geom file
             return {}
         except KeyError:
             g = _generate_data(g_id, data)
