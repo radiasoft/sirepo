@@ -14,6 +14,7 @@ import contextlib
 import numpy as np
 import os
 import py.path
+import pykern.pkrunpy
 import scipy.optimize
 import signal
 import sirepo.template.webcon as template
@@ -203,8 +204,8 @@ def _run_forever(server_address):
 
 
 def _run_simulation_loop(server_address):
-    exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
-    return _wait_for_beam_steering(server_address, locals()['update_and_run_simulation'])
+    l = pykern.pkrunpy.run_path_as_module(template_common.PARAMETERS_PYTHON_FILE)
+    return _wait_for_beam_steering(server_address, l.update_and_run_simulation)
 
 
 def _subprocess(server_address, cmd):

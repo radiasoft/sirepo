@@ -1,5 +1,3 @@
-# This avoids a plugin dependency issue with pytest-forked/xdist:
-# https://github.com/pytest-dev/pytest/issues/935
 import pytest
 
 #: Maximum time an individual test case (function) can run
@@ -345,7 +343,7 @@ def _job_supervisor_setup(request, cfg=None):
 
 def _job_supervisor_start(request, cfg=None):
     import os
-    if os.environ.get('SIREPO_FEATURE_CONFIG_JOB') != '1':
+    if os.environ.get('SIREPO_FEATURE_CONFIG_JOB', '1') != '1':
         return None, None
 
     from pykern import pkunit
@@ -375,7 +373,9 @@ def _sim_type(request):
     import sirepo.feature_config
 
     for c in sirepo.feature_config.ALL_CODES:
-        if c in request.function.func_name or c in str(request.fspath):
+        f = request.function
+        n = getattr(f, 'func_name', None) or getattr(f, '__name__')
+        if c in n or c in str(request.fspath):
             return c
     return 'myapp'
 
