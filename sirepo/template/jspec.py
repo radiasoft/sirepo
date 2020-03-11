@@ -66,6 +66,19 @@ _FIELD_LABEL = PKDict(
 
 _OPTIONAL_MADX_TWISS_COLUMNS = ['NAME', 'TYPE', 'COUNT', 'DY', 'DPY']
 
+_SPECIES_MASS_AND_CHARGE = PKDict(
+    ALUMINUM=(25126.4878, 13),
+    COPPER=(58603.6989, 29),
+    DEUTERON=(1875.612928, 1),
+    GOLD=(183432.7312, 79),
+    HELIUM=(3755.675436, 2),
+    LEAD=(193687.0203, 82),
+    PROTON=(938.2720882, 1),
+    RUTHENIUM=(94900.76612, 44),
+    URANIUM=(221695.7759, 92),
+    ZIRCONIUM=(83725.21758, 40),
+)
+
 _X_FIELD = 't'
 
 
@@ -366,9 +379,9 @@ def _field_label(field, field_def):
 
 def _generate_parameters_file(data):
     report = data.report if 'report' in data else None
+    _set_mass_and_charge(data.models.ionBeam)
     template_common.validate_models(data, simulation_db.get_schema(SIM_TYPE))
     v = template_common.flatten_data(data.models, PKDict())
-    _set_mass_and_charge(v)
     v.beamEvolutionOutputFilename = _BEAM_EVOLUTION_OUTPUT_FILENAME
     v.runSimulation = report is None or report == 'animation'
     v.runRateCalculation = report is None or report == 'rateCalculationReport'
@@ -458,20 +471,6 @@ def _sdds_report(frame_args, filename, x_field):
     ))
 
 
-def _set_mass_and_charge(data):
-    if not data.get('ionBeam_particle'):
-        return
-    v = PKDict(
-        ALUMINUM=(25126.4878, 13),
-        COPPER=(58603.6989, 29),
-        DEUTERON=(1875.612928, 1),
-        GOLD=(183432.7312, 79),
-        HELIUM=(3755.675436, 2),
-        LEAD=(193687.0203, 82),
-        PROTON=(938.2720882, 1),
-        RUTHENIUM=(94900.76612, 44),
-        URANIUM=(221695.7759, 92),
-        ZIRCONIUM=(83725.21758, 40),
-        OTHER=(data.ionBeam_mass, data.ionBeam_charge_number),
-    )
-    data.ionBeam_mass, data.ionBeam_charge_number = v[data.ionBeam_particle]
+def _set_mass_and_charge(ion_beam):
+    if ion_beam.particle != 'OTHER':
+        ion_beam.mass, ion_beam.charge_number = _SPECIES_MASS_AND_CHARGE[ion_beam.particle]
