@@ -29,6 +29,8 @@ def run_background(cfg_dir):
         cfg_dir (str): directory to run warpvnd in
     """
     pkdp('RAD RUN BG')
+    # limit to 1 until we do parallel properly
+    mpi.cfg.cores = 1
     with pkio.save_chdir(cfg_dir):
         simulation_db.write_json(py.path.local(cfg_dir).join(template.MPI_SUMMARY_FILE), {
             'mpiCores': mpi.cfg.cores,

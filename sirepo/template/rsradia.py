@@ -110,6 +110,8 @@ def python_source_for_model(data, model):
 
 
 def write_parameters(data, run_dir, is_parallel):
+    # remove centrailzed geom files
+    pkio.unchecked_remove(_geom_file(data.simulationId), _dmp_file(data.simulationId))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),

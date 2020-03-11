@@ -18,10 +18,6 @@ g_id = -1
 # always store the object
 g_data = radia_tk.geom_to_data(g_id, name='{{ geomName }}')
 with h5py.File('{{ dataFile }}', 'a') as hf:
-    if hf['{{ h5ObjPath }}']:
-        del hf['{{ h5ObjPath }}']
-        #hf['{{ h5ObjPath }}'] = g_data
-    #else:
     template_common.dict_to_h5(g_data, hf, path='{{ h5ObjPath }}')
 
 if '{{ viewType }}' == VIEW_TYPE_FIELD:
@@ -38,8 +34,6 @@ if '{{ viewType }}' == VIEW_TYPE_FIELD:
     g_data = radia_tk.vector_field_to_data(g_id, '{{ geomName }}', f, radia_tk.FIELD_UNITS[f_type])
 
     with h5py.File('{{ dataFile }}', 'a') as hf:
-        #if hf['{{ h5FieldPath }}']:
-        #    del hf['{{ h5FieldPath }}']
         template_common.dict_to_h5(g_data, hf, path='{{ h5FieldPath }}')
 
 
