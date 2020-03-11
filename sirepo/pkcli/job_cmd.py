@@ -77,7 +77,6 @@ def _do_cancel(msg, template):
 
 
 def _do_compute(msg, template):
-
     msg.runDir = pkio.py_path(msg.runDir)
     with msg.runDir.join(template_common.RUN_LOG).open('w') as run_log:
         p = subprocess.Popen(
@@ -98,7 +97,7 @@ def _do_compute(msg, template):
             _write_parallel_status(msg, template, i)
         if i:
             continue
-        _on_do_compute_exit(r == 0, msg.isParallel, template)
+        return _on_do_compute_exit(r == 0, msg.isParallel, template, msg.runDir)
 
 
 def _do_fastcgi(msg, template):
@@ -187,9 +186,13 @@ def _do_sequential_result(msg, template):
     return r
 
 
-def _on_do_compute_exit(success_exit, is_parallel, template):
+def _on_do_compute_exit(success_exit, is_parallel, template, run_dir):
+    # locals() must be called before anything else so we only get the function
+    # arguments
+    kwargs = locals()
+
     def _failure_exit():
-        a = template.post_execution_processing(success_exit=False)
+        a = _post_processing()
         if not a:
             a = _parse_python_errors()
         return PKDict(state=job.ERROR, error=a)
@@ -200,15 +203,17 @@ def _on_do_compute_exit(success_exit, is_parallel, template):
         # TODO(e-carlin): impl
         pass
 
+    def _post_processing(): return template.post_execution_processing(**kwargs)
+
     def _success_exit():
         # is_parallel is necessary because jspec we only want to calculate the rate calculation /time step error in parallel case
         # TODO(e-carlin): impl
         return PKDict(
             state=job.COMPLETED,
-            alerts=template.post_execution_processing(is_parallel=is_parallel),
+            alerts=_post_processing(),
         )
     if success_exit:
-        return _success_exit(is_parallel)
+        return _success_exit()
     return _failure_exit()
 
 

@@ -5,7 +5,6 @@ u"""Common execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from sirepo import simulation_db
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
@@ -121,6 +120,8 @@ def compute_field_range(args, compute_range):
     Caches the value on the animation input file. compute_range() is called to
     read the simulation specific datafiles and extract the ranges by field.
     """
+    from sirepo import simulation_db
+
     run_dir = simulation_db.simulation_run_dir(PKDict(
         simulationType=args['simulationType'],
         simulationId=args['simulationId'],
@@ -242,6 +243,8 @@ def sim_frame(frame_id, op):
 
 
 def sim_frame_dispatch(frame_args):
+    from sirepo import simulation_db
+
     frame_args.pksetdefault(
         run_dir=lambda: simulation_db.simulation_run_dir(frame_args),
     ).pksetdefault(
@@ -465,6 +468,8 @@ def read_sequential_result(run_dir):
     Returns:
         dict: result
     """
+    from sirepo import simulation_db
+
     return simulation_db.read_json(
         simulation_db.json_filename(OUTPUT_BASE_NAME, run_dir),
     )
@@ -507,6 +512,8 @@ def write_sequential_result(result, run_dir=None):
         result (dict): The results of the simulation
         run_dir (py.path): Defaults to current dir
     """
+    from sirepo import simulation_db
+
     if not run_dir:
         run_dir = pkio.py_path()
     f = simulation_db.json_filename(OUTPUT_BASE_NAME, run_dir)
