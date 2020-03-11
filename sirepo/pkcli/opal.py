@@ -18,25 +18,23 @@ import sirepo.template.opal as template
 
 
 def run(cfg_dir):
-    with pkio.save_chdir(cfg_dir):
-        if _run_opal():
-            data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-            if 'bunchReport' in data.report or data.report == 'twissReport':
-                template.save_report_data(data, py.path.local(cfg_dir))
-        else:
-            err = _parse_opal_errors()
-            if re.search(r'Singular matrix', err):
-                err = 'Twiss values could not be computed: Singular matrix'
-            simulation_db.write_result(PKDict(
-                error=err,
-            ))
+    if _run_opal():
+        data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+        if 'bunchReport' in data.report or data.report == 'twissReport':
+            template.save_report_data(data, py.path.local(cfg_dir))
+    else:
+        err = _parse_opal_errors()
+        if re.search(r'Singular matrix', err):
+            err = 'Twiss values could not be computed: Singular matrix'
+        simulation_db.write_result(PKDict(
+            error=err,
+        ))
 
 
 def run_background(cfg_dir):
     res = PKDict()
-    with pkio.save_chdir(cfg_dir):
-        if not _run_opal(with_mpi=True):
-            res.error = _parse_opal_errors()
+    if not _run_opal(with_mpi=True):
+        res.error = _parse_opal_errors()
     simulation_db.write_result(res)
 
 
