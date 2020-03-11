@@ -316,7 +316,7 @@
         "simulationSettings": {
             "time": ["Total Simulation Time [s]", "Float", 60, "", 1e-99],
             "step_number": ["Total Number of Steps", "Integer", 60, "The time interval of each step is time/step_number.", 1],
-            "time_step": ["Time Step [s]", "Float", 60, "Number of steps per second", 1e-99],
+            "time_step": ["Time Step [s]", "Float", 1, "Number of steps per second", 1e-99],
             "ibs": ["Simulate the IBS Effect", "Boolean", "1"],
             "e_cool": ["Simulate Electron Cooling Effect", "Boolean", "1"],
             "model": ["Model", "SimulationModel", "particle"],

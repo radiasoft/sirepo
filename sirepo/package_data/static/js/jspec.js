@@ -207,8 +207,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         appState.watchModelFields(
             $scope,
             ['simulationSettings.time', 'simulationSettings.step_number', 'simulationSettings.time_step'],
-            processTimeStep,
-        );
+            processTimeStep);
         appState.watchModelFields($scope, ['particleAnimation.colorRangeType'], processColorRange);
         appState.watchModelFields($scope, ['forceTableAnimation.plot'], processForceTablePlot);
         ['particleAnimation', 'beamEvolutionAnimation', 'coolingRatesAnimation', 'forceTableAnimation'].forEach(function(m) {
