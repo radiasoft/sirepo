@@ -21,12 +21,12 @@ class SimData(sirepo.sim_data.SimDataBase):
     def fixup_old_data(cls, data):
         dm = data.models
         cls._init_models(dm, (
-            'ring',
-            'particleAnimation',
-            'twissReport',
             'beamEvolutionAnimation',
             'coolingRatesAnimation',
             'forceTableAnimation',
+            'particleAnimation',
+            'ring',
+            'twissReport',
         ))
         if 'beam_type' not in dm.ionBeam:
             dm.ionBeam.setdefault(
@@ -39,7 +39,9 @@ class SimData(sirepo.sim_data.SimDataBase):
             x = dm.electronBeam
             x.beam_type = 'continuous' if x.shape == 'dc_uniform' else 'bunched'
             x.rh = x.rv = 0.004
-        cls._init_models(dm, ('ionBeam', 'electronBeam'))
+        if 'time_step' not in dm.simulationSettings:
+            dm.simulationSettings.time_step = dm.simulationSettings.time / (dm.simulationSettings.step_number or 1)
+        cls._init_models(dm, ('ionBeam', 'electronBeam', 'simulationSettings'))
         x = dm.simulationSettings
         if x.model == 'model_beam':
             x.model = 'particle'

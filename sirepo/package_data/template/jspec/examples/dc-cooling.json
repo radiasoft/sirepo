@@ -112,7 +112,8 @@
             "sample_number": 40000,
             "save_particle_interval": 30,
             "step_number": 180,
-            "time": 180
+            "time": 180,
+            "time_step": 1
         },
         "twissReport": {
             "y1": "betx",
