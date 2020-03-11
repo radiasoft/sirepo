@@ -5,6 +5,7 @@ u"""Common execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from sirepo import simulation_db
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
@@ -12,7 +13,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 import math
 import numpy
-import os.path
 import pykern.pkrunpy
 import re
 import sirepo.http_reply
@@ -121,7 +121,6 @@ def compute_field_range(args, compute_range):
     Caches the value on the animation input file. compute_range() is called to
     read the simulation specific datafiles and extract the ranges by field.
     """
-    from sirepo import simulation_db
     run_dir = simulation_db.simulation_run_dir(PKDict(
         simulationType=args['simulationType'],
         simulationId=args['simulationId'],
@@ -243,8 +242,6 @@ def sim_frame(frame_id, op):
 
 
 def sim_frame_dispatch(frame_args):
-    from sirepo import simulation_db
-
     frame_args.pksetdefault(
         run_dir=lambda: simulation_db.simulation_run_dir(frame_args),
     ).pksetdefault(
@@ -456,7 +453,21 @@ def file_extension_ok(file_path, white_list=[], black_list=['py', 'pyc']):
     for ext in black_list:
         if pkio.has_file_extension(file_path, ext):
             return False
-    return  True
+    return True
+
+
+def read_sequential_result(run_dir):
+    """Read result data file from simulation
+
+    Args:
+        run_dir (py.path): where to find output
+
+    Returns:
+        dict: result
+    """
+    return simulation_db.read_json(
+        simulation_db.json_filename(OUTPUT_BASE_NAME, run_dir),
+    )
 
 
 def subprocess_output(cmd, env):
@@ -487,6 +498,31 @@ def subprocess_output(cmd, env):
         out = pkcompat.from_bytes(out)
         return out.strip()
     return ''
+
+
+def write_sequential_result(result, run_dir=None):
+    """Write the results of a sequential simulation to disk.
+
+    Args:
+        result (dict): The results of the simulation
+        run_dir (py.path): Defaults to current dir
+    """
+    if not run_dir:
+        run_dir = pkio.py_path()
+    f = simulation_db.json_filename(OUTPUT_BASE_NAME, run_dir)
+    assert not f.exists(), \
+        '{} file exists'.format(OUTPUT_BASE_NAME)
+    simulation_db.write_json(f, result)
+    t = sirepo.template.import_module(
+        simulation_db.read_json(
+            simulation_db.json_filename(
+                INPUT_BASE_NAME,
+                run_dir,
+            ),
+        ),
+    )
+    if hasattr(t, 'clean_run_dir'):
+        t.clean_run_dir(run_dir)
 
 
 def _escape(v):
