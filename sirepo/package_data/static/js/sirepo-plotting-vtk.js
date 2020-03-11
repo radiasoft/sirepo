@@ -720,6 +720,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
             // common
             const api = {
                 setCam: setCam,
+                setBg: setBgColor,
             };
 
             const display = this;
@@ -741,6 +742,10 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
             function handlePtrUp(e) {
             }
             function handleWheel(e) {
+            }
+
+            function setBgColor(hexColor) {
+                renderer.setBackground(vtk.Common.Core.vtkMath.hex2float(hexColor));
             }
 
             function setCam(pos, vu) {

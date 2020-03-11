@@ -18,6 +18,7 @@ from sirepo.template import template_common
 from sirepo.template import radia_tk
 from sirepo.template import rsradia_examples
 import h5py
+import math
 import sirepo.sim_data
 import sirepo.util
 import time
@@ -56,14 +57,12 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def extract_report_data(run_dir, sim_in):
-    pkdp('sim_in {}', sim_in)
+    pkdp('EXTRACT sim_in {}', sim_in)
     if 'geometry' in sim_in.report:
         v_type = sim_in.models.magnetDisplay.viewType
         f_type = sim_in.models.magnetDisplay.fieldType if v_type == VIEW_TYPE_FIELD\
             else None
-        #with h5py.File(_geom_file(sim_in.simulationId, v_type), 'r') as hf:
         with h5py.File(_geom_file(sim_in.simulationId), 'r') as hf:
-            #g = template_common.h5_to_dict(hf, path='geometry')
             g = template_common.h5_to_dict(hf, path=_geom_h5_path(v_type, f_type))
             simulation_db.write_result(g, run_dir=run_dir)
         return
@@ -73,7 +72,7 @@ def extract_report_data(run_dir, sim_in):
 # if the file exists but the data we seek does not, have Radia generate it here.  We
 # should only have to blow away the file after a solve (???)
 def get_application_data(data, **kwargs):
-    import binascii
+    pkdp('get_application_data from {}', data)
     if 'method' in data and data.method == 'get_geom':
         g_id = -1
         try:
@@ -81,9 +80,8 @@ def get_application_data(data, **kwargs):
                 b = f.read()
                 g_id = radia_tk.load_bin(b)
         except IOError as e:
-            print('ERR {} FROM FILE'.format(e))
-            pass
-        g = {}
+            pkdp('ERR {} FROM FILE', e)
+            return PKDict()
         f = _geom_file(data.simulationId)
         f_type = data.get('fieldType', None)
         p = _geom_h5_path(data.viewType, f_type)
@@ -98,12 +96,6 @@ def get_application_data(data, **kwargs):
         except IOError:
             return {}
         except KeyError:
-            #if data.viewType == VIEW_TYPE_OBJ:
-            #    g = _generate_obj_data(g_id, data.name)
-            #elif data.viewType == VIEW_TYPE_FIELD:
-            #    g = _generate_field_data(
-            #        g_id, data.name, data.fieldType, data.fieldPoints
-            #    )
             g = _generate_data(g_id, data)
             # write the new data to the existing file
             with h5py.File(f, 'a') as hf:
@@ -124,6 +116,88 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
+
+# have to include points for file type?
+def _build_field_file_pts(f_path):
+    if len(f_path.file_data) % 3 != 0:
+        raise ValueError('Invalid file data {}'.format(f_path.file_data))
+    return f_path.file_data
+
+
+def _build_field_points(paths):
+    res = []
+    for p in paths:
+        if p.type == 'manual':
+            res.extend([float(p.ptX), float(p.ptY), float(p.ptZ)])
+        if p.type == 'line':
+            res.extend(_build_field_line_pts(p))
+        if p.type == 'circle':
+            res.extend(_build_field_circle_pts(p))
+        if p.type == 'file':
+            res.extend(_build_field_file_pts(p))
+    return res
+
+
+def _build_field_line_pts(f_path):
+    p1 = [float(f_path.beginX), float(f_path.beginY), float(f_path.beginZ)]
+    p2 = [float(f_path.endX), float(f_path.endY), float(f_path.endZ)]
+    res = p1
+    r = range(len(p1))
+    n = int(f_path.numPoints) - 1
+    #pkdp('adding line p1 {} p2 {} N {} L {} R {}'.format(p1, p2, n + 1, len(p1), r))
+    for i in range(1, n):
+        res.extend(
+            [p1[j] + i * (p2[j] - p1[j]) / n for j in r]
+        )
+    res.extend(p2)
+    return res
+
+
+def _build_field_circle_pts(f_path):
+    ctr = [float(f_path.ctrX), float(f_path.ctrY), float(f_path.ctrZ)]
+    r = float(f_path.radius)
+    # theta is a rotation about the x-axis
+    th = float(f_path.theta)
+    # phi is a rotation about the z-axis
+    phi = float(f_path.phi)
+    n = int(f_path.numPoints)
+    #pkdp('adding circle at {} rad {} th {} phi {} ({})'.format(ctr, r, th, phi, n))
+    dpsi = 2. * math.pi / n
+    # psi is the angle in the circle's plane
+    res = []
+    for i in range(0, n):
+        psi = i * dpsi
+        # initial position of the point...
+        # a = [r * math.sin(psi), r * math.cos(psi), 0]
+        # ...rotate around x axis
+        # a' = [
+        #    a[0],
+        #    a[1] * math.cos(th) - a[2] * math.sin(th),
+        #    a[1] * math.sin(th) + a[2] * math.cos(th),
+        # ]
+        # ...rotate around z axis
+        # a'' = [
+        #    aa[0] * math.cos(phi) - aa[1] * math.cos(th),
+        #    aa[0] * math.sin(phi) + aa[1] * math.cos(phi),
+        #    aa[2]
+        # ]
+        # ...translate to final position
+        # a''' = [
+        #    ctr[0] + aaa[0],
+        #    ctr[1] + aaa[1],
+        #    ctr[2] + aaa[2],
+        # ]
+        # final position:
+        res.extend([
+            r * math.sin(psi) * math.cos(phi) -
+            r * math.cos(psi) * math.cos(th) * math.sin(phi) + ctr[0],
+            r * math.sin(psi) * math.sin(phi) -
+            r * math.cos(psi) * math.cos(th) * math.cos(phi) + ctr[1],
+            r * math.cos(psi) * math.sin(th) + ctr[2]
+        ])
+    return res
+
+
 def _build_geom(data):
     g_name = data.models.geometry.name
     if data.models.simulation.isExample:
@@ -138,11 +212,12 @@ def _dmp_file(sim_id):
         .join('geometry').join(_DMP_FILE)
 
 
-def _generate_field_data(g_id, name, f_type, f_pts):
+#def _generate_field_data(g_id, name, f_type, f_pts):
+def _generate_field_data(g_id, name, f_type, f_paths):
     if f_type == radia_tk.FIELD_TYPE_MAG_M:
         f = radia_tk.get_magnetization(g_id)
     elif f_type in radia_tk.POINT_FIELD_TYPES:
-        f = radia_tk.get_field(g_id, f_type, f_pts)
+        f = radia_tk.get_field(g_id, f_type, _build_field_points(f_paths))
     return radia_tk.vector_field_to_data(g_id, name, f, radia_tk.FIELD_UNITS[f_type])
 
 
@@ -151,7 +226,8 @@ def _generate_data(g_id, in_data):
         return _generate_obj_data(g_id, in_data.name)
     elif in_data.viewType == VIEW_TYPE_FIELD:
         return _generate_field_data(
-            g_id, in_data.name, in_data.fieldType, in_data.fieldPoints
+            g_id, in_data.name, in_data.fieldType, in_data.get('fieldPaths', None)
+            #g_id, in_data.name, in_data.fieldType, in_data.fieldPoints
         )
 
 
@@ -174,7 +250,6 @@ def _generate_parameters_file(data):
     if v_type not in VIEW_TYPES:
         raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
     v['viewType'] = v_type
-    #v['dataFile'] = _geom_file(data.simulationId, disp.viewType)
     v['dataFile'] = _geom_file(data.simulationId)
     if v_type == VIEW_TYPE_FIELD:
         f_type = disp.fieldType
@@ -183,8 +258,10 @@ def _generate_parameters_file(data):
                 'Invalid field {} ({})'.format(f_type, radia_tk.FIELD_TYPES)
             )
         v['fieldType'] = f_type
-        v['fieldPoints'] = data.models.fieldPaths.fieldPoints
+        #v['fieldPoints'] = data.models.fieldPaths.fieldPoints
+        v['fieldPoints'] = _build_field_points(data.models.fieldPaths.paths)
     if 'solver' in report:
+        pkdp('WILL SOLVE')
         v['doSolve'] = True
         s = data.models.solver
         v['solvePrec'] = s.precision
@@ -204,11 +281,10 @@ def _generate_parameters_file(data):
         GEOM_PYTHON_FILE,
     )
 
-#def _geom_file(sim_id, v_type):
+
 def _geom_file(sim_id):
     return simulation_db.simulation_dir(SIM_TYPE, sim_id) \
         .join(_GEOM_DIR).join(_GEOM_FILE)
-        #.join(_GEOM_DIR).join('geom_' + v_type + '.h5')
 
 
 def _geom_h5_path(v_type, f_type=None):
