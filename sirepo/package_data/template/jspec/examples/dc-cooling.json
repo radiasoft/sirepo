@@ -59,6 +59,7 @@
             "momentum_spread": 0.001,
             "norm_emit_x": 2.15e-06,
             "norm_emit_y": 2.15e-06,
+            "particle": "PROTON",
             "particle_number": 2800000000000,
             "rms_bunch_length": 7.0
         },
