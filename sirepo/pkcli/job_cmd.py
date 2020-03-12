@@ -203,7 +203,9 @@ def _on_do_compute_exit(success_exit, is_parallel, template, run_dir):
         # TODO(e-carlin): impl
         pass
 
-    def _post_processing(): return template.post_execution_processing(**kwargs)
+    def _post_processing():
+        if hasattr(template, 'post_execution_processing'):
+            return template.post_execution_processing(**kwargs)
 
     def _success_exit():
         # is_parallel is necessary because jspec we only want to calculate the rate calculation /time step error in parallel case
@@ -212,6 +214,7 @@ def _on_do_compute_exit(success_exit, is_parallel, template, run_dir):
             state=job.COMPLETED,
             alerts=_post_processing(),
         )
+
     if success_exit:
         return _success_exit()
     return _failure_exit()
