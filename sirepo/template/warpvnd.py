@@ -154,18 +154,14 @@ def generate_field_report(data, run_dir, args=None):
 
     vals_equal = np.isclose(np.std(values), 0., atol=1e-9)
 
-    if np.isnan(values).any():
-        return {
-            'error': 'Results could not be calculated.\n\nThe Simulation Grid may' +
-                     ' require adjustments to the Grid Points and Channel Width.',
-        }
-
+    assert not np.isnan(values).any(), \
+        ('Results could not be calculated.\n\nThe Simulation Grid may'
+         ' require adjustments to the Grid Points and Channel Width.')
     res = _field_plot(values, axes, grid, _SIM_DATA.warpvnd_is_3d(data))
     res.title= 'ϕ Across Whole Domain' + slice_text
     res.global_min = np.min(potential) if vals_equal else None
     res.global_max = np.max(potential) if vals_equal else None
     res.frequency_title = 'Volts'
-
     return res
 
 
