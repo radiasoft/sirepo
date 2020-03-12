@@ -134,7 +134,6 @@ def run_background(cfg_dir):
         cfg_dir (str): directory to run srw in
     """
     template_common.exec_parameters_with_mpi()
-    simulation_db.write_result({})
 
 
 def _cfg_int(lower, upper):
