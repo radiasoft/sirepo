@@ -29,14 +29,12 @@ _PLOT_FILE_PREFIX = 'flash_hdf5_plt_cnt_'
 
 def background_percent_complete(report, run_dir, is_running):
     files = _h5_file_list(run_dir)
-    errors = ''
     count = len(files)
     if is_running and count:
         count -= 1
     return PKDict(
         percentComplete=0 if is_running else 100,
         frameCount=count,
-        error=errors,
     )
 
 
