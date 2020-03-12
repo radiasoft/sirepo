@@ -27,11 +27,11 @@ def run(cfg_dir):
     elif data['report'] == 'dvhReport':
         _run_dvh(data, cfg_dir)
     else:
-        raise RuntimeError('unknown report: {}'.format(data['report']))
+        raise AssertionError('unknown report: {}'.format(data['report']))
 
 
 def run_background(cfg_dir):
-    simulation_db.write_result({})
+    pass
 
 
 def _parent_file(cfg_dir, filename):
