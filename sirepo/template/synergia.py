@@ -175,6 +175,24 @@ def label(field, enum_labels=None):
     return '{} [{}]'.format(res, _UNITS[field])
 
 
+def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None, **kwargs):
+    if success_exit:
+        return None
+    if not is_parallel:
+        return _parse_synergia_log(run_dir)
+    e = None
+    f = run_dir.join('mpi_run.out')
+    if f.exists():
+        m = re.search(
+            r'^Traceback .*?^\w*Error: (.*?)\n',
+            pkio.read_text(f),
+            re.MULTILINE | re.DOTALL,
+        )
+        if m:
+            e = m.group(1)
+    return e
+
+
 def prepare_output_file(run_dir, data):
     report = data.report
     if 'bunchReport' in report or 'twissReport' in report:
@@ -186,39 +204,6 @@ def prepare_output_file(run_dir, data):
 
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
-
-
-def parse_synergia_log(run_dir):
-    if not run_dir.join(template_common.RUN_LOG).exists():
-        return None
-    text = pkio.read_text(run_dir.join(template_common.RUN_LOG))
-    errors = []
-    current = ''
-    for line in text.split("\n"):
-        if not line:
-            if current:
-                errors.append(current)
-                current = ''
-            continue
-        m = re.match('\*\*\* (WARR?NING|ERROR) \*\*\*(.*)', line)
-        if m:
-            if not current:
-                error_type = m.group(1)
-                if error_type == 'WARRNING':
-                    error_type = 'WARNING'
-                current = '{}: '.format(error_type)
-            extra = m.group(2)
-            if re.search(r'\S', extra) and not re.search(r'File:|Line:|line \d+', extra):
-                current += '\n' + extra
-        elif current:
-            current += '\n' + line
-        else:
-            m = re.match('Propagator:*(.*?)Exiting', line)
-            if m:
-                errors.append(m.group(1))
-    if len(errors):
-        return {'state': 'error', 'error': '\n\n'.join(errors)}
-    return None
 
 
 def save_report_data(data, run_dir):
@@ -287,7 +272,7 @@ def sim_frame_beamEvolutionAnimation(frame_args):
             points = _plot_values(f, frame_args[yfield])
             for v in points:
                 if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
-                    return parse_synergia_log(frame_args.run_dir) or PKDict(
+                    return _parse_synergia_log(frame_args.run_dir) or PKDict(
                         error='Invalid data computed',
                     )
             plots.append(PKDict(
@@ -337,7 +322,7 @@ def sim_frame_turnComparisonAnimation(frame_args):
         points = _plot_values(f, frame_args.y)
         for v in points:
             if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
-                return parse_synergia_log(frame_args.run_dir) or {
+                return _parse_synergia_log(frame_args.run_dir) or {
                     'error': 'Invalid data computed',
                 }
         steps = (len(points) - 1) / turn_count
@@ -781,6 +766,39 @@ def _nlinsert_field_values(model, id_map):
 
 def _nlinsert_name(model, el_name):
     return '{}.NLINSERT.{}'.format(model.name, el_name).upper()
+
+
+def _parse_synergia_log(run_dir):
+    if not run_dir.join(template_common.RUN_LOG).exists():
+        return None
+    text = pkio.read_text(run_dir.join(template_common.RUN_LOG))
+    errors = []
+    current = ''
+    for line in text.split("\n"):
+        if not line:
+            if current:
+                errors.append(current)
+                current = ''
+            continue
+        m = re.match('\*\*\* (WARR?NING|ERROR) \*\*\*(.*)', line)
+        if m:
+            if not current:
+                error_type = m.group(1)
+                if error_type == 'WARRNING':
+                    error_type = 'WARNING'
+                current = '{}: '.format(error_type)
+            extra = m.group(2)
+            if re.search(r'\S', extra) and not re.search(r'File:|Line:|line \d+', extra):
+                current += '\n' + extra
+        elif current:
+            current += '\n' + line
+        else:
+            m = re.match('Propagator:*(.*?)Exiting', line)
+            if m:
+                errors.append(m.group(1))
+    if len(errors):
+        return '\n\n'.join(errors)
+    return None
 
 
 def _particle_file_list(run_dir):
