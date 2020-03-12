@@ -49,13 +49,12 @@ def run_background(cfg_dir):
     res = {}
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     _validate_estimate_output_file_size(data, res)
-    if 'error' not in res:
-        try:
-            _bunch_match_twiss(cfg_dir, data)
-            _run_zgoubi(cfg_dir)
-            res['frame_count'] = template.read_frame_count(py.path.local(cfg_dir))
-        except Exception as e:
-            res['error'] = str(e)
+    _bunch_match_twiss(cfg_dir, data)
+    _run_zgoubi(cfg_dir)
+    # TODO(e-carlin): Is this necessary? No other codes seem to do it. Why can't we
+    # just read the zgoubi_fai_data_file. It seems like a possible optimization.
+    # Maybe zgoubi_fai_data_file is big and slow to read?
+    res['frame_count'] = template.read_frame_count(py.path.local(cfg_dir))
     simulation_db.write_result(res)
 
 
@@ -121,9 +120,9 @@ def _validate_estimate_output_file_size(data, res):
     settings = data.models.simulationSettings
     line_size = 800
     fai_size = line_size * settings.npass / (settings.ip or 1) * float(count)
-    if fai_size > _MAX_OUTPUT_SIZE:
-        res['error'] = 'Estimated FAI output too large.\nReduce particle count or number of runs,\nor increase diagnostic interval.'
-        return
+    assert not fai_size > _MAX_OUTPUT_SIZE, \
+        ('Estimated FAI output too large.\nReduce particle count or number of'
+         ' runs,\nor increase diagnostic interval.')
     beamline_map = {}
     for bl in data.models.beamlines:
         beamline_map[bl.id] = bl
@@ -132,8 +131,10 @@ def _validate_estimate_output_file_size(data, res):
         element_map[el._id] = el
     steps = _beamline_steps(beamline_map, element_map, data.models.simulation.visualizationBeamlineId)
     plt_size = line_size * steps * settings.npass * float(count)
-    if plt_size > _MAX_OUTPUT_SIZE:
-        res['error'] = 'Estimated PLT output too large.\nReduce particle count, number of runs, element integration step size\nor decrease elements with plotting enabled.'
+    assert not plt_size > _MAX_OUTPUT_SIZE, \
+        ('Estimated PLT output too large.\nReduce particle count, number of'
+         ' runs, element integration step size\nor decrease elements with'
+         ' plotting enabled.')
 
 
 def _run_tunes_report(cfg_dir, data):
