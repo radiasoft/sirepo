@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkcollections import PKDict
-from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import code_variable
@@ -141,6 +140,22 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
     path = run_dir.join(filename)
     with open(str(path)) as f:
         return path.basename, f.read(), 'application/octet-stream'
+
+
+def post_execution_processing(
+        success_exit=True,
+        is_parallel=True,
+        run_dir=None,
+        **kwargs
+):
+    if success_exit:
+        return
+    if is_parallel:
+        return _parse_opal_log(run_dir)
+    e = _parse_opal_log(run_dir)
+    if re.search(r'Singular matrix', e):
+        e = 'Twiss values could not be computed: Singular matrix'
+    return e
 
 
 def prepare_for_client(data):
@@ -592,6 +607,23 @@ def _output_info(run_dir):
                 isHistogram=True,
             ))
     return res
+
+
+def _parse_opal_log(run_dir):
+    res = ''
+    with pkio.open_text(run_dir.join(OPAL_OUTPUT_FILE)) as f:
+        prev_line = ''
+        for line in f:
+            if re.search(r'^Error.*?>', line):
+                line = re.sub(r'^Error.*?>\s*\**\s*', '', line.rstrip())
+                if re.search(r'1DPROFILE1-DEFAULT', line):
+                    continue
+                if line and line != prev_line:
+                    res += line + '\n'
+                prev_line = line
+    if res:
+        return res
+    return 'An unknown error occurred'
 
 
 def _read_data_file(path):
