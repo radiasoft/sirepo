@@ -37,12 +37,11 @@ def run(cfg_dir):
                 res['rate'].append(row)
         simulation_db.write_result(res)
     else:
-        assert False, 'unknown report: {}'.format(data['report'])
+        raise AssertionError('unknown report: {}'.format(data['report']))
 
 
 def run_background(cfg_dir):
     _run_jspec(simulation_db.read_json(template_common.INPUT_BASE_NAME))
-    simulation_db.write_result({})
 
 
 def _elegant_to_madx(ring):
