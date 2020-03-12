@@ -255,9 +255,15 @@ def prepare_output_file(run_dir, data):
         if fn.exists():
             fn.remove()
             if data.report == 'fieldComparisonReport':
-                simulation_db.write_result(generate_field_comparison_report(data, run_dir), run_dir=run_dir)
+                template_common.write_sequential_result(
+                    generate_field_comparison_report(data, run_dir),
+                    run_dir=run_dir,
+                )
             else:
-                simulation_db.write_result(generate_field_report(data, run_dir), run_dir=run_dir)
+                template_common.write_sequential_result(
+                    generate_field_report(data, run_dir),
+                    run_dir=run_dir,
+                )
 
 
 def python_source_for_model(data, model):

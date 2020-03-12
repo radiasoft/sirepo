@@ -31,7 +31,7 @@ def run(cfg_dir):
         )
     else:
         raise AssertionError('unknown report: {}'.format(data.report))
-    simulation_db.write_result(res)
+    template_common.write_sequential_result(res)
 
 
 def _csv_to_cols():

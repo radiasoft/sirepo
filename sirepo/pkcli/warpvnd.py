@@ -27,7 +27,7 @@ def run(cfg_dir):
         res = template.generate_field_comparison_report(data, cfg_dir)
     else:
         raise AssertionError('unknown report: {}'.format(data['report']))
-    simulation_db.write_result(res)
+    template_common.write_sequential_result(res)
 
 
 def run_background(cfg_dir):

@@ -176,13 +176,11 @@ def _do_sbatch_status(msg, template):
 
 
 def _do_sequential_result(msg, template):
-    r = simulation_db.read_result(msg.runDir)
+    r = template_common.read_sequential_result(msg.runDir)
     # Read this first: https://github.com/radiasoft/sirepo/issues/2007
-    if (r.state != job.ERROR and hasattr(template, 'prepare_output_file')
-        and 'models' in msg.data
-    ):
+    if (hasattr(template, 'prepare_output_file') and 'models' in msg.data):
         template.prepare_output_file(msg.runDir, msg.data)
-        r = simulation_db.read_result(msg.runDir)
+        r = template_common.read_sequential_result(msg.runDir)
     return r
 
 
@@ -214,7 +212,6 @@ def _on_do_compute_exit(success_exit, is_parallel, template, run_dir):
             state=job.COMPLETED,
             alerts=_post_processing(),
         )
-
     if success_exit:
         return _success_exit()
     return _failure_exit()

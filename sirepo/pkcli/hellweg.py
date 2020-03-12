@@ -23,7 +23,7 @@ def run(cfg_dir):
     _run_hellweg(cfg_dir)
     sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     r = sim_in.report.replace
-    simulation_db.write_result(
+    template_common.write_sequential_result(
         template_common.sim_frame_dispatch(
             copy.deepcopy(sim_in.models[r]).pkupdate(
                 frameReport=r.replace('Report', 'Animation'),
@@ -36,7 +36,6 @@ def run(cfg_dir):
 
 def run_background(cfg_dir):
     _run_hellweg(cfg_dir)
-    simulation_db.write_result({})
 
 
 def _run_hellweg(cfg_dir):

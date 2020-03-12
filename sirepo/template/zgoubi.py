@@ -464,7 +464,6 @@ def remove_last_frame(run_dir):
 
 def save_report_data(data, run_dir):
     report_name = data['report']
-    error = ''
     if 'twissReport' in report_name or 'opticsReport' in report_name:
         enum_name = _REPORT_ENUM_INFO[report_name]
         report = data['models'][report_name]
@@ -474,9 +473,12 @@ def save_report_data(data, run_dir):
             if report[f] == 'none':
                 continue
             points = column_data(report[f], col_names, rows)
-            if any(map(lambda x: math.isnan(x), points)):
-                error = 'Twiss data could not be computed for {}'.format(
-                    template_common.enum_text(_SCHEMA, enum_name, report[f]))
+            # TODO(e-carlin): This used to just set the error and fall through.
+            # What is the desired behavior
+            assert not any(map(lambda x: math.isnan(x), points)), \
+                'Twiss data could not be computed for {}'.format(
+                    template_common.enum_text(_SCHEMA, enum_name, report[f]),
+                )
             plots.append({
                 'points': points,
                 'label': template_common.enum_text(_SCHEMA, enum_name, report[f]),
@@ -510,14 +512,7 @@ def save_report_data(data, run_dir):
             }
     else:
         raise RuntimeError('unknown report: {}'.format(report_name))
-    if error:
-        res = {
-            'error': error,
-        }
-    simulation_db.write_result(
-        res,
-        run_dir=run_dir,
-    )
+    template_common.write_sequential_result(res, run_dir=run_dir)
 
 
 def write_parameters(data, run_dir, is_parallel, python_file=template_common.PARAMETERS_PYTHON_FILE):

@@ -212,7 +212,7 @@ def save_report_data(data, run_dir):
         res.title = ''
     else:
         assert False, 'unknown report: {}'.format(report)
-    simulation_db.write_result(
+    template_common.write_sequential_result(
         res,
         run_dir=run_dir,
     )

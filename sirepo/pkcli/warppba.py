@@ -37,7 +37,7 @@ def run(cfg_dir):
         res = template.sim_frame_beamAnimation(a)
     else:
         raise AssertionError('invalid report: {}'.format(a.frameReport))
-    simulation_db.write_result(res)
+    template_common.write_sequential_result(res)
 
 
 def run_background(cfg_dir, sbatch=False):

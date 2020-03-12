@@ -115,11 +115,11 @@ def run(cfg_dir):
     # special case for importing python code
     m = sim_in.report
     if m == 'backgroundImport':
-        simulation_db.write_result({
-            sirepo.template.srw.PARSED_DATA_ATTR: r.parsed_data,
-        })
+        template_common.write_sequential_result(PKDict(
+            {sirepo.template.srw.PARSED_DATA_ATTR: r.parsed_data}
+        ))
     else:
-        simulation_db.write_result(
+        template_common.write_sequential_result(
             sirepo.template.srw.extract_report_data(
                 sirepo.template.srw.get_filename_for_model(m),
                 sim_in,

@@ -43,12 +43,11 @@ def run(cfg_dir):
         res = template.get_beam_pos_report(py.path.local(cfg_dir), data)
     else:
         raise AssertionError('unknown report: {}'.format(data.report))
-    simulation_db.write_result(res)
+    template_common.write_sequential_result(res)
 
 
 def run_background(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    res = {}
     if data.report == 'epicsServerAnimation':
         epics_settings = data.models.epicsServerAnimation
         if epics_settings.serverType == 'local':
@@ -64,7 +63,6 @@ def run_background(cfg_dir):
             _run_forever(server_address)
     else:
         raise AssertionError('unknown report: {}'.format(data.report))
-    simulation_db.write_result(res)
 
 
 def _check_beam_steering(is_steering):

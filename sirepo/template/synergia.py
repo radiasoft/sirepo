@@ -258,7 +258,7 @@ def save_report_data(data, run_dir):
             'x_points': x,
             'plots': plots,
         }
-    simulation_db.write_result(res, run_dir=run_dir)
+    template_common.write_sequential_result(res, run_dir=run_dir)
 
 
 def sim_frame_beamEvolutionAnimation(frame_args):

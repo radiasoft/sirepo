@@ -303,7 +303,7 @@ def save_report_data(data, run_dir):
         a.x = 's'
         a.y = a.y1
     a.frameIndex = 0
-    simulation_db.write_result(
+    template_common.write_sequential_result(
         _extract_report_data(str(run_dir.join(_report_output_filename(a.frameReport))), a),
         run_dir=run_dir,
     )

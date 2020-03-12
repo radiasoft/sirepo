@@ -107,7 +107,7 @@ def run(cfg_dir):
             #TODO(pjm): include offset range for client
             res['x_range'][0] = 0
             res['x_range'][1] = dist
-    simulation_db.write_result(res)
+    template_common.write_sequential_result(res)
 
 
 def run_background(cfg_dir):

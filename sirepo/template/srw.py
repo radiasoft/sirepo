@@ -583,7 +583,7 @@ def prepare_output_file(run_dir, sim_in):
         output_file = run_dir.join(get_filename_for_model(m))
         if output_file.exists():
             res = extract_report_data(str(output_file), sim_in)
-            simulation_db.write_result(res, run_dir=run_dir)
+            template_common.write_sequential_result(res, run_dir=run_dir)
 
 
 def process_undulator_definition(model):
