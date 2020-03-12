@@ -47,7 +47,6 @@ def run_background(cfg_dir, sbatch=False):
         cfg_dir (str): directory to run code in
     """
     template_common.exec_parameters_with_mpi()
-    simulation_db.write_result({})
 
 
 def _run_code():
