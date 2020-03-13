@@ -25,6 +25,19 @@
             ["sigmas", "sigma_s"],
             ["none", "None"]
         ],
+        "BeamParticle": [
+            ["ALUMINUM", "Aluminum"],
+            ["COPPER", "Copper"],
+            ["DEUTERON", "Deuteron"],
+            ["GOLD", "Gold"],
+            ["HELIUM", "Helium"],
+            ["LEAD", "Lead"],
+            ["PROTON", "Proton"],
+            ["RUTHENIUM", "Ruthenium"],
+            ["URANIUM", "Uranium"],
+            ["ZIRCONIUM", "Zirconium"],
+            ["OTHER", "Other"]
+        ],
         "BeamType": [
             ["bunched", "Bunched Beam"],
             ["continuous", "Continuous Beam"]
@@ -266,6 +279,7 @@
             "coupling": ["Transverse Coupling Rate", "Float", null, "Transverse coupling rate, ranging from 0 to 1.", 0, 1]
         },
         "ionBeam": {
+            "particle": ["Particle", "BeamParticle", "PROTON", "Name of particle to be used"],
             "charge_number": ["Ion Charges", "Integer", 1, "Number of the charges of the ion.", 1e-99],
             "mass": ["Mass [MeV/c²]", "Float", 938.272, "Mass of the ion.", 1e-99],
             "kinetic_energy": ["Kinetic Energy [MeV]", "Float", 8000.0, "Kinetic energy of the ion.", 1e-99],
@@ -302,6 +316,7 @@
         "simulationSettings": {
             "time": ["Total Simulation Time [s]", "Float", 60, "", 1e-99],
             "step_number": ["Total Number of Steps", "Integer", 60, "The time interval of each step is time/step_number.", 1],
+            "time_step": ["Time Step [s]", "Float", 1, "Number of steps per second", 1e-99],
             "ibs": ["Simulate the IBS Effect", "Boolean", "1"],
             "e_cool": ["Simulate Electron Cooling Effect", "Boolean", "1"],
             "model": ["Model", "SimulationModel", "particle"],
@@ -442,6 +457,7 @@
         "ionBeam": {
             "title": "Ion Beam",
             "basic": [
+                "particle",
                 "charge_number",
                 "mass",
                 "kinetic_energy",
@@ -535,6 +551,7 @@
             "basic": [
                 "time",
                 "step_number",
+                "time_step",
                 "model",
                 "save_particle_interval",
                 "electronCoolingRate.sample_number",

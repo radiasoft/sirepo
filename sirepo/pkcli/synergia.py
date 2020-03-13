@@ -22,8 +22,7 @@ def run(cfg_dir):
     report = data['report']
     if 'bunchReport' in report or report == 'twissReport' or report == 'twissReport2':
         try:
-            with pkio.save_chdir(cfg_dir):
-                exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
+            template_common.exec_parameters()
             template.save_report_data(data, py.path.local(cfg_dir))
         except Exception as e:
             res = template.parse_synergia_log(py.path.local(cfg_dir)) or {
@@ -40,12 +39,11 @@ def run_background(cfg_dir):
     distribution = data['models']['bunch']['distribution']
     run_with_mpi = distribution == 'lattice' or distribution == 'file'
     try:
-        with pkio.save_chdir(cfg_dir):
-            if run_with_mpi:
-                mpi.run_script(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE))
-            else:
-                #TODO(pjm): MPI doesn't work with rsbeams distributions yet
-                exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
+        if run_with_mpi:
+            template_common.exec_parameters_with_mpi()
+        else:
+            #TODO(pjm): MPI doesn't work with rsbeams distributions yet
+            template_common.exec_parameters()
     except Exception as e:
         res = {
             'error': str(e),

@@ -31,8 +31,7 @@ def run(cfg_dir):
 
 
 def run_background(cfg_dir):
-    with pkio.save_chdir(cfg_dir):
-        simulation_db.write_result({})
+    simulation_db.write_result({})
 
 
 def _parent_file(cfg_dir, filename):
@@ -43,9 +42,8 @@ def _run_dose_calculation(data, cfg_dir):
     if not feature_config.cfg().rs4pi_dose_calc:
         dicom_dose = _run_dose_calculation_fake(data, cfg_dir)
     else:
-        with pkio.save_chdir(cfg_dir):
-            pksubprocess.check_call_with_signals(['bash', str(cfg_dir.join(template.DOSE_CALC_SH))])
-            dicom_dose = template.generate_rtdose_file(data, cfg_dir)
+        pksubprocess.check_call_with_signals(['bash', str(cfg_dir.join(template.DOSE_CALC_SH))])
+        dicom_dose = template.generate_rtdose_file(data, cfg_dir)
     data['models']['dicomDose'] = dicom_dose
     # save results into simulation input data file, this is needed for further calls to get_simulation_frame()
     simulation_db.write_json(template_common.INPUT_BASE_NAME, data)

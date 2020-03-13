@@ -109,6 +109,13 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         panelState.showField('ring', 'elegantSirepo', latticeSource == 'elegant-sirepo');
     }
 
+    function processParticle() {
+        var n = 'ionBeam';
+        ['mass', 'charge_number'].forEach(function(f) {
+            panelState.showField(n, f, appState.models[n].particle === 'OTHER');
+        });
+    }
+
     function updateForceFormulas() {
         if (! SIREPO.APP_SCHEMA.feature_config.derbenevskrinsky_force_formula) {
             panelState.showEnum('electronCoolingRate', 'force_formula', 'derbenevskrinsky', false);
@@ -125,12 +132,14 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         processElectronBeamShape();
         processLatticeSource();
         processGamma();
+        processParticle();
         updateForceFormulas();
         appState.watchModelFields($scope, ['ionBeam.beam_type'], processIonBeamType);
         appState.watchModelFields($scope, ['electronBeam.shape', 'electronBeam.beam_type'], processElectronBeamShape);
         appState.watchModelFields($scope, ['electronBeam.beam_type'], processElectronBeamType);
         appState.watchModelFields($scope, ['ring.latticeSource'], processLatticeSource);
         appState.watchModelFields($scope, ['ionBeam.mass', 'ionBeam.kinetic_energy'], processGamma);
+        appState.watchModelFields($scope, ['ionBeam.particle'], processParticle);
         $scope.$on('sr-tabSelected', processIntrabeamScatteringMethod);
         $scope.$on('sr-tabSelected', updateForceFormulas);
         appState.watchModelFields($scope, ['intrabeamScatteringRate.longitudinalMethod'], processIntrabeamScatteringMethod);
@@ -182,9 +191,23 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         panelState.showField('electronCoolingRate', 'sample_number', settings.model == 'particle');
     }
 
+    function processTimeStep() {
+        var s = appState.models.simulationSettings;
+        if (panelState.isActiveField('simulationSettings', 'time') || panelState.isActiveField('simulationSettings', 'step_number')) {
+            s.time_step = s.time / s.step_number;
+        }
+        else if (panelState.isActiveField('simulationSettings', 'time_step')) {
+             s.time = s.step_number * s.time_step;
+        }
+    }
+
     appState.whenModelsLoaded($scope, function() {
         processModel();
         appState.watchModelFields($scope, ['simulationSettings.model', 'simulationSettings.e_cool'], processModel);
+        appState.watchModelFields(
+            $scope,
+            ['simulationSettings.time', 'simulationSettings.step_number', 'simulationSettings.time_step'],
+            processTimeStep);
         appState.watchModelFields($scope, ['particleAnimation.colorRangeType'], processColorRange);
         appState.watchModelFields($scope, ['forceTableAnimation.plot'], processForceTablePlot);
         ['particleAnimation', 'beamEvolutionAnimation', 'coolingRatesAnimation', 'forceTableAnimation'].forEach(function(m) {
