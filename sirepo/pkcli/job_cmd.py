@@ -12,6 +12,7 @@ from pykern.pkdebug import pkdp, pkdexc, pkdc, pkdlog
 from sirepo import job
 from sirepo import simulation_db
 from sirepo.template import template_common
+import re
 import requests
 import sirepo.template
 import sirepo.util
@@ -196,10 +197,18 @@ def _on_do_compute_exit(success_exit, is_parallel, template, run_dir):
         return PKDict(state=job.ERROR, error=a)
 
     def _parse_python_errors():
-        # TODO(e-carlin): parse the run.log for python errors
-        # 'non zero returncode={}'.format(returncode)
-        # TODO(e-carlin): impl
-        pass
+        f = run_dir.join(template_common.RUN_LOG)
+        if f.exists():
+            m = re.search(
+                # TODO(e-carlin): I don't actually understand why this works.
+                # Discuss with someone who might.
+                r'Traceback.*\n(\s+.*\n)*(.*?)\n*',
+                pkio.read_text(f),
+                re.MULTILINE,
+            )
+            if m:
+                return m.group(1).strip()
+        return 'non-zero exit code'
 
     def _post_processing():
         if hasattr(template, 'post_execution_processing'):
