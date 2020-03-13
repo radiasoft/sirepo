@@ -545,12 +545,6 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             }
             $scope.fieldProps = appState.fieldProperties($scope.modelName, $scope.field);
 
-            appState.whenModelsLoaded($scope, function () {
-                if($scope.modelName === 'geometry') {
-                    srdbg('FE mn', $scope.modelName, 'm', $scope.model, 'field', $scope.field, 'frm aapdtd', appState.models[$scope.modelName]);
-                }
-            });
-
             // wait until the switch gets fully evaluated, then set event handlers for input fields
             // to disable keypress listener set by plots
             panelState.waitForUI(function () {
@@ -2701,7 +2695,6 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
             var delegate = null;
 
             function update() {
-                srdbg('SLIDER UPDATE');
                 updateReadout();
                 updateSlider();
             }
@@ -2718,10 +2711,6 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
             }
 
             appState.whenModelsLoaded($scope, function () {
-                srdbg('SLIDER M', $scope.model, 'APPS', appState.models[$scope.modelName]);
-                //if ($scope.model !== appState.models[$scope.modelName]) {
-                //    $scope.model = appState.models[$scope.modelName];  // ???
-                //}
                 delegate = $scope.fieldDelegate;
                 if (! delegate || $.isEmptyObject(delegate)) {
                     delegate = panelState.getFieldDelegate($scope.modelName, $scope.field);
@@ -2740,7 +2729,6 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
 
             $scope.$on('sliderParent.ready', function (e, m) {
                 // ???
-                srdbg('SLIDER PARENT READY', m);
                 if (m) {
                     $scope.model = m;
                 }

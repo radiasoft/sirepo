@@ -215,7 +215,6 @@ def _dmp_file(sim_id):
         .join('geometry').join(_DMP_FILE)
 
 
-#def _generate_field_data(g_id, name, f_type, f_pts):
 def _generate_field_data(g_id, name, f_type, f_paths):
     if f_type == radia_tk.FIELD_TYPE_MAG_M:
         f = radia_tk.get_magnetization(g_id)
@@ -261,7 +260,6 @@ def _generate_parameters_file(data):
                 'Invalid field {} ({})'.format(f_type, radia_tk.FIELD_TYPES)
             )
         v['fieldType'] = f_type
-        #v['fieldPoints'] = data.models.fieldPaths.fieldPoints
         v['fieldPoints'] = _build_field_points(data.models.fieldPaths.paths)
     if 'solver' in report:
         pkdp('WILL SOLVE')

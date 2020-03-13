@@ -706,6 +706,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
         //    visabilityControlSlot: '?visabilityControl',
         //},
         scope: {
+            enableAxes: '@',
             eventHandlers: '<',
             modelName: '@',
             reportId: '<',
@@ -760,8 +761,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
                 renderWindow.render();
             }
 
-
-            
             $scope.init = function() {
                 const rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
                 fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
@@ -808,7 +807,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
                 });
             };
 
-            $scope.vtkCanvasGeometry = function() {
+            $scope.canvasGeometry = function() {
                 var vtkCanvasHolder = $($element).find('.vtk-canvas-holder')[0];
                 return {
                     pos: $(vtkCanvasHolder).position(),
@@ -823,7 +822,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
                 srdbg('vtk display models loaded');
                 $scope.init();
             });
-            //$scope.init();
         },
 
         //link: function link(scope, element) {
@@ -971,8 +969,7 @@ SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUplo
 
 
 // will be axis display
-SIREPO.app.directive('vtkAxes', function(appState, panelState, requestSender, frameCache, plotting, vtkManager, vtkPlotting, layoutService, utilities, plotUtilities, geometry) {
-
+SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, requestSender, plotting, vtkAxisService, vtkPlotting, layoutService, utilities, geometry) {
     return {
         restrict: 'A',
         scope: {
@@ -981,19 +978,201 @@ SIREPO.app.directive('vtkAxes', function(appState, panelState, requestSender, fr
             vtkObj: '<',
         },
         template: [
-            '<g data-ng-repeat="dim in geometry.basis" class="{{ dim }} axis"></g>',
-            '<text class="{{ dim }}-axis-label"></text>',
-            '<text class="{{ dim }} axis-end low"></text>',
-            '<text class="{{ dim }} axis-end high"></text>',
+            '<g class="vtk-axes">',
+                '<g data-ng-repeat="dim in geometry.basis" class="{{ dim }} axis">',
+                    '<text class="{{ dim }}-axis-label"></text>',
+                    '<text class="{{ dim }} axis-end low"></text>',
+                    '<text class="{{ dim }} axis-end high"></text>',
+                '</g>',
+            '</g>',
         ].join(''),
         controller: function($scope, $element) {
+            //srdbg('LOAD AXES');
+            $scope.geometry = geometry;
         },
 
     };
 });
 
 // will be axis functions
-SIREPO.app.service('vtkAxisService', function(appState, panelState, requestSender, frameCache, plotting, vtkManager, vtkPlotting, layoutService, utilities, plotUtilities, geometry) {
+SIREPO.app.service('vtkAxisService', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, geometry) {
     var svc = {};
+
+    function edgeSorter(dim, shouldReverse) {
+        return function(e1, e2) {
+            if (! e1) {
+                if (! e2) {
+                    return 0;
+                }
+                return 1;
+            }
+            if (! e2) {
+                return -1;
+            }
+            var pt1 = geometry.sortInDimension(e1.points(), dim, shouldReverse)[0];
+            var pt2 = geometry.sortInDimension(e2.points(), dim, shouldReverse)[0];
+            return (shouldReverse ? -1 : 1) * (pt2[dim] - pt1[dim]);
+        };
+    }
+
+    function shouldReverseOnScreen(dim, index, screenDim, vpObj) {
+        var currentEdge = vpObj.vpEdgesForDimension(dim)[index];
+        var currDiff = currentEdge.points()[1][screenDim] - currentEdge.points()[0][screenDim];
+        return currDiff < 0;
+    }
+
+    function select(selector, element) {
+        var e = d3.select(element);
+        return selector ? e.select(selector) : e;
+    }
+
+    svc.refresh = function(axes, axisCfg, boundRect, vpObj)  {
+
+        // If an axis is shorter than this, don't display it -- the ticks will
+        // be cramped and unreadable
+        var minAxisDisplayLen = 50;
+
+        for (var i in geometry.basis) {
+
+            var dim = geometry.basis[i];
+
+            var screenDim = axisCfg[dim].screenDim;
+            var isHorizontal = screenDim === 'x';
+            var axisEnds = isHorizontal ? ['◄', '►'] : ['▼', '▲'];
+            var perpScreenDim = isHorizontal ? 'y' : 'x';
+
+            var showAxisEnds = false;
+            var axisSelector = '.' + dim + '.axis';
+            var axisLabelSelector = '.' + dim + '-axis-label';
+
+            // sort the external edges so we'll preferentially pick the left and bottom
+            var externalEdges = vpObj.externalVpEdgesForDimension(dim)
+                .sort(edgeSorter(perpScreenDim, ! isHorizontal));
+            var seg = geometry.bestEdgeAndSectionInBounds(externalEdges, boundRect, dim, false);
+
+            if (! seg) {
+                // all possible axis ends offscreen, so try a centerline
+                var cl = vpObj.vpCenterLineForDimension(dim);
+                seg = geometry.bestEdgeAndSectionInBounds([cl], boundRect, dim, false);
+                if (! seg) {
+                    // don't draw axes
+                    select(axisSelector).style('opacity', 0.0);
+                    select(axisLabelSelector).style('opacity', 0.0);
+                    continue;
+                }
+                showAxisEnds = true;
+            }
+            select(axisSelector).style('opacity', 1.0);
+
+            var fullSeg = seg.full;
+            var clippedSeg = seg.clipped;
+            var reverseOnScreen = shouldReverseOnScreen(dim, seg.index, screenDim);
+            var sortedPts = geometry.sortInDimension(clippedSeg.points(), screenDim, false);
+            var axisLeft = sortedPts[0].x;
+            var axisTop = sortedPts[0].y;
+            var axisRight = sortedPts[1].x;
+            var axisBottom = sortedPts[1].y;
+
+            var newRange = Math.min(fullSeg.length(), clippedSeg.length());
+            var radAngle = Math.atan(clippedSeg.slope());
+            if (! isHorizontal) {
+                radAngle -= Math.PI / 2;
+                if (radAngle < -Math.PI / 2) {
+                    radAngle += Math.PI;
+                }
+            }
+            var angle = (180 * radAngle / Math.PI);
+
+            var allPts = geometry.sortInDimension(fullSeg.points().concat(clippedSeg.points()), screenDim, false);
+
+            var limits = reverseOnScreen ? [axisCfg[dim].max, axisCfg[dim].min] : [axisCfg[dim].min, axisCfg[dim].max];
+            var newDom = [axisCfg[dim].min, axisCfg[dim].max];
+            // 1st 2, last 2 points
+            for (var m = 0; m < allPts.length; m += 2) {
+                // a point may coincide with its successor
+                var d = allPts[m].dist(allPts[m+1]);
+                if (d != 0) {
+                    var j = Math.floor(m / 2);
+                    var k = reverseOnScreen ? 1 - j : j;
+                    var l1 = limits[j];
+                    var l2 = limits[1 - j];
+                    var part = (l1 - l2) * d / fullSeg.length();
+                    var newLimit = l1 - part;
+                    newDom[k] = newLimit;
+                }
+            }
+            var xform = 'translate(' + axisLeft + ',' + axisTop + ') ' +
+                'rotate(' + angle + ')';
+
+            axes[dim].scale.domain(newDom).nice();
+            axes[dim].scale.range([reverseOnScreen ? newRange : 0, reverseOnScreen ? 0 : newRange]);
+
+            // this places the axis tick labels on the appropriate side of the axis
+            var outsideCorner = geometry.sortInDimension(vpObj.vpCorners(), perpScreenDim, isHorizontal)[0];
+            var bottomOrLeft = outsideCorner.equals(sortedPts[0]) || outsideCorner.equals(sortedPts[1]);
+            if (isHorizontal) {
+                axes[dim].svgAxis.orient(bottomOrLeft ? 'bottom' : 'top');
+            }
+            else {
+                axes[dim].svgAxis.orient(bottomOrLeft ? 'left' : 'right');
+            }
+
+
+            if (showAxisEnds) {
+                axes[dim].svgAxis.ticks(0);
+                select(axisSelector).call(axes[dim].svgAxis);
+            }
+            else {
+                axes[dim].updateLabelAndTicks({
+                    width: newRange,
+                    height: newRange
+                }, select);
+            }
+
+            select(axisSelector).attr('transform', xform);
+
+            var dimLabel = axisCfg[dim].dimLabel;
+            //d3self.selectAll(axisSelector + '-end')
+            select(axisSelector + '-end')
+                .style('opacity', showAxisEnds ? 1 : 0);
+
+            var tf = axes[dim].svgAxis.tickFormat();
+            if (tf) {
+                select(axisSelector + '-end.low')
+                    .text(axisEnds[0] + ' ' + dimLabel + ' ' + tf(reverseOnScreen ? newDom[1] : newDom[0]) + axes[dim].unitSymbol + axes[dim].units)
+                    .attr('x', axisLeft)
+                    .attr('y', axisTop)
+                    .attr('transform', 'rotate(' + (angle) + ', ' + axisLeft + ', ' + axisTop + ')');
+
+                select(axisSelector + '-end.high')
+                    .attr('text-anchor', 'end')
+                    .text(tf(reverseOnScreen ? newDom[0] : newDom[1]) + axes[dim].unitSymbol + axes[dim].units + ' ' + dimLabel + ' ' + axisEnds[1])
+                    .attr('x', axisRight)
+                    .attr('y', axisBottom)
+                    .attr('transform', 'rotate(' + (angle) + ', ' + axisRight + ', ' + axisBottom + ')');
+            }
+
+            // counter-rotate the tick labels
+            //var labels = d3self.selectAll(axisSelector + ' text');
+            var labels = select(axisSelector + ' text');
+            labels.attr('transform', 'rotate(' + (-angle) + ')');
+            select(axisSelector + ' .domain').style({'stroke': 'none'});
+            select(axisSelector).style('opacity', newRange < minAxisDisplayLen ? 0 : 1);
+
+            var labelSpace = 2 * plotting.tickFontSize(select(axisSelector + '-label'));
+            var labelSpaceX = (isHorizontal ? Math.sin(radAngle) : Math.cos(radAngle)) * labelSpace;
+            var labelSpaceY = (isHorizontal ? Math.cos(radAngle) : Math.sin(radAngle)) * labelSpace;
+            var labelX = axisLeft + (bottomOrLeft ? -1 : 1) * labelSpaceX + (axisRight - axisLeft) / 2.0;
+            var labelY = axisTop + (bottomOrLeft ? 1 : -1) * labelSpaceY + (axisBottom - axisTop) / 2.0;
+            var labelXform = 'rotate(' + (isHorizontal ? 0 : -90) + ' ' + labelX + ' ' + labelY + ')';
+
+            select('.' + dim + '-axis-label')
+                .attr('x', labelX)
+                .attr('y', labelY)
+                .attr('transform', labelXform)
+                .style('opacity', (showAxisEnds || newRange < minAxisDisplayLen) ? 0 : 1);
+        }
+    };
+
     return svc;
 });

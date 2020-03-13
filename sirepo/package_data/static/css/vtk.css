@@ -1,3 +1,7 @@
+.vtk-display {
+    padding: 8px;
+}
+
 .vtk-info-overlay {
     position: absolute;
     background-color: transparent;

@@ -12,6 +12,7 @@
             "js": ["vtk.js"]
         },
         "sirepoLibs": {
+            "css": ["vtk.css"],
             "js": ["rsradia.js"]
         }
     },
@@ -166,6 +167,15 @@
             "basic": [
                 "name",
                 "fileName"
+            ]
+        },
+        "geomObject": {
+            "title": "Geometry",
+            "advanced": [
+                "name",
+                "type",
+                "material",
+                "color"
             ]
         },
         "linePath": {

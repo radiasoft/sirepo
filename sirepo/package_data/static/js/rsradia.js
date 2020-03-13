@@ -467,7 +467,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
         template: [
             '<div class="col-md-6">',
                 '<div data-basic-editor-panel="" data-view-name="{{ modelName }}">',
-                    '<div data-vtk-display="" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers"></div>',
+                    '<div data-vtk-display="" class="vtk-display" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true"></div>',
                 '</div>',
             '</div>',
 
@@ -574,7 +574,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function buildScene() {
-                srdbg('buildScene');
+                //srdbg('buildScene');
                 var name = sceneData.name;
                 var id = sceneData.id;
                 var data = sceneData.data;
@@ -806,145 +806,156 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function handlePick(callData) {
-                    if (renderer !== callData.pokedRenderer) {
-                        return;
+                if (renderer !== callData.pokedRenderer) {
+                    return;
+                }
+
+                // regular clicks happen when spinning the scene - we'll select/deselect with ctrl-click.
+                // Though one also rotates in that case, it's less common
+                if (! callData.controlKey) {
+                    return;
+                }
+
+                var pos = callData.position;
+                var point = [pos.x, pos.y, 0.0];
+                ptPicker.pick(point, renderer);
+                cPicker.pick(point, renderer);
+                var pid = ptPicker.getPointId();
+
+                // cell id is "closest cell within tolerance", meaning a single value, though
+                // we may get multiple actors
+                var cid = cPicker.getCellId();
+                srdbg('Picked pt', point);
+                srdbg('Picked pid', pid);
+                srdbg('Picked cid', cid);
+
+                // treat pickers separately rather than select one?
+                var picker = cid >= 0 ? cPicker : (pid >= 0 ? ptPicker : null);
+                if (cid < 0 && pid < 0) {
+                    srdbg('Pick failed');
+                    return;
+                }
+
+
+                var pas = picker.getActors();
+                //let posArr = view.cPicker.getPickedPositions();
+                //srdbg('pas', pas, 'positions', posArr);
+                //TODO(mvk): need to get actor closest to the "screen" based on the selected points
+
+                var selectedColor = [];
+                var selectedInfo = null;
+                var selectedValue = Number.NaN;
+                var eligibleActors = [];
+                var highlightVectColor = [255, 0, 0];
+                for (var aIdx in pas) {
+                    var actor = pas[aIdx];
+                    //let pos = posArr[aIdx];
+                    var info = getInfoForActor(actor);
+                    //srdbg('actor', actor, 'info', info);
+                    if (! info || ! info.pData) {
+                        continue;
                     }
 
-                    // regular clicks happen when spinning the scene - we'll select/deselect with ctrl-click.
-                    // Though one also rotates in that case, it's less common
-                    if (! callData.controlKey) {
-                        return;
-                    }
+                    var pts = info.pData.getPoints();
 
-                    var pos = callData.position;
-                    var point = [pos.x, pos.y, 0.0];
-                    ptPicker.pick(point, renderer);
-                    cPicker.pick(point, renderer);
-                    var pid = ptPicker.getPointId();
-
-                    // cell id is "closest cell within tolerance", meaning a single value, though
-                    // we may get multiple actors
-                    var cid = cPicker.getCellId();
-                    srdbg('Picked pt', point);
-                    srdbg('Picked pid', pid);
-                    srdbg('Picked cid', cid);
-
-                    // treat pickers separately rather than select one?
-                    var picker = cid >= 0 ? cPicker : (pid >= 0 ? ptPicker : null);
-                    if (cid < 0 && pid < 0) {
-                        srdbg('Pick failed');
-                        return;
-                    }
-
-
-                    var pas = picker.getActors();
-                    //let posArr = view.cPicker.getPickedPositions();
-                    //srdbg('pas', pas, 'positions', posArr);
-                    //TODO(mvk): need to get actor closest to the "screen" based on the selected points
-
-                    var selectedColor = [];
-                    var selectedValue = Number.NaN;
-                    var eligibleActors = [];
-                    var highlightVectColor = [255, 0, 0];
-                    for (var aIdx in pas) {
-                        var actor = pas[aIdx];
-                        //let pos = posArr[aIdx];
-                        var info = getInfoForActor(actor);
-                        //srdbg('actor', actor, 'info', info);
-                        if (! info || ! info.pData) {
+                    // TODO(mvk): attach pick functions to actor info?
+                    if (info.type === vtkUtils.GEOM_TYPE_VECTS) {
+                        var n = pts.getNumberOfComponents();
+                        var coords = pts.getData().slice(n * pid, n * (pid + 1));
+                        var f = actor.getMapper().getInputConnection(0).filter;
+                        var linArr = f.getOutputData().getPointData().getArrayByName(LINEAR_SCALE_ARRAY);
+                        if (! linArr) {
                             continue;
                         }
+                        selectedValue = linArr.getData()[pid * linArr.getNumberOfComponents()];
 
-                        var pts = info.pData.getPoints();
+                        var oArr = f.getOutputData().getPointData().getArrayByName(ORIENTATION_ARRAY);
+                        var oid = pid * oArr.getNumberOfComponents();
+                        var o = oArr.getData().slice(oid, oid + oArr.getNumberOfComponents());
+                        var v = o.map(function (dir) {
+                            return selectedValue * dir;
+                        });
 
-                        // TODO(mvk): attach pick functions to actor info?
-                        if (info.type === vtkUtils.GEOM_TYPE_VECTS) {
-                            var n = pts.getNumberOfComponents();
-                            var coords = pts.getData().slice(n * pid, n * (pid + 1));
-                            var f = actor.getMapper().getInputConnection(0).filter;
-                            var linArr = f.getOutputData().getPointData().getArrayByName(LINEAR_SCALE_ARRAY);
-                            if (! linArr) {
-                                continue;
-                            }
-                            selectedValue = linArr.getData()[pid * linArr.getNumberOfComponents()];
+                        var sArr = f.getOutputData().getPointData().getArrayByName(SCALAR_ARRAY);
+                        var ns = sArr.getNumberOfComponents();
+                        var sid = pid * ns;
+                        var sc = sArr.getData().slice(sid, sid + ns);
 
-                            var oArr = f.getOutputData().getPointData().getArrayByName(ORIENTATION_ARRAY);
-                            var oid = pid * oArr.getNumberOfComponents();
-                            var o = oArr.getData().slice(oid, oid + oArr.getNumberOfComponents());
-                            var v = o.map(function (dir) {
-                                return selectedValue * dir;
+                        // toggle color?
+                        if (view.selectedColor.length) {
+                            const ssid = view.selectedPoint * ns;
+                            view.selectedColor.forEach(function (c, i) {
+                                sArr.getData()[ssid + i] = c;
                             });
-
-                            var sArr = f.getOutputData().getPointData().getArrayByName(SCALAR_ARRAY);
-                            var ns = sArr.getNumberOfComponents();
-                            var sid = pid * ns;
-                            var sc = sArr.getData().slice(sid, sid + ns);
-
-                            // toggle color?
-                            if (view.selectedColor.length) {
-                                const ssid = view.selectedPoint * ns;
-                                view.selectedColor.forEach(function (c, i) {
-                                    sArr.getData()[ssid + i] = c;
-                                });
-                            }
-                            if (pid === view.selectedPoint) {
-                                view.selectedPoint = -1;
-                                view.selectedColor = [];
-                                selectedValue = Math.min.apply(null, linArr.getData());
-                                v = [];
-                            }
-                            else {
-                                highlightVectColor.forEach(function (c, i) {
-                                    sArr.getData()[sid + i] = c;
-                                });
-                                view.selectedPoint = pid;
-                                view.selectedColor = sc;
-                            }
-                            info.pData.modified();
-
-                            //srdbg(info.name, 'coords', coords, 'mag', selectedValue, 'orientation', o, 'color', sc);
-                            view.processPickedVector(coords, v);
-                            continue;
                         }
+                        if (pid === view.selectedPoint) {
+                            view.selectedPoint = -1;
+                            view.selectedColor = [];
+                            selectedValue = Math.min.apply(null, linArr.getData());
+                            v = [];
+                        }
+                        else {
+                            highlightVectColor.forEach(function (c, i) {
+                                sArr.getData()[sid + i] = c;
+                            });
+                            view.selectedPoint = pid;
+                            view.selectedColor = sc;
+                        }
+                        info.pData.modified();
 
-                        var colors = info.scalars.getData();
-                        var j = info.colorIndices[cid];
-                        selectedColor = colors.slice(j, j + 3);  // 4 to get alpha
-                        srdbg(info.name, 'poly tup', cid, selectedColor);
-
-                        //if (selectedColor.length > 0) {
-                        //    if (actor === view.selectedObject) {
-                        ///        view.selectedObject = null;
-                        //    }
-                        //    else {
-                        //        eligibleActors.push(actor);
-                        //        view.selectedObject = actor;
-                        //    }
-                        //    break;
-                        //}
+                        //srdbg(info.name, 'coords', coords, 'mag', selectedValue, 'orientation', o, 'color', sc);
+                        view.processPickedVector(coords, v);
+                        continue;
                     }
 
-                    //if (selectedColor.length === 0) {
-                    //    view.selectedObject = null;
-                    //    return;
-                    //}
+                    var colors = info.scalars.getData();
+                    var j = info.colorIndices[cid];
+                    selectedColor = colors.slice(j, j + 3);  // 4 to get alpha
+                    selectedInfo = info;
+                    srdbg(info.name, 'poly tup', cid, selectedColor);
 
-                    var sc = vtkUtils.rgbToFloat(selectedColor);  //[];
-                    //for (var cIdx = 0; cIdx < selectedColor.length; ++cIdx) {
-                    //    sc.push(selectedColor[cIdx] / 255.0);
+                    //if (selectedColor.length > 0) {
+                    //    if (actor === view.selectedObject) {
+                    ///        view.selectedObject = null;
+                    //    }
+                    //    else {
+                    //        eligibleActors.push(actor);
+                    //        view.selectedObject = actor;
+                    //    }
+                    //    break;
                     //}
+                }
 
-                    var highlight = selectedColor.map(function (c) {
-                        return 255 - c;
-                    });
+                //if (selectedColor.length === 0) {
+                //    view.selectedObject = null;
+                //    return;
+                //}
 
-                    //var sch = vtk.Common.Core.vtkMath.floatRGB2HexCode(sc);
-                    //view.model.set('selected_obj_color', view.selectedObject ? sch : '#ffffff');
-                    //for (var name in view.actorInfo) {
-                    //    var a = view.getActor(name);
-                    //    view.setEdgeColor(a, view.sharesGroup(a, view.selectedObject) ? highlight : [0, 0, 0]);
-                    //}
-                    //view.processPickedObject(view.getInfoForActor(view.selectedObject));
+                if (! selectedInfo) {
+                    return;
+                }
+                var g = getGeomObj(selectedInfo.name);
+                srdbg('sel o', g);
+                appState.models.geomObject = g;
+                panelState.showModalEditor('geomObject');
+                //$('#radia-edit-geom-obj').modal('show');
+
+                var sc = vtkUtils.rgbToFloat(selectedColor);  //[];
+                //for (var cIdx = 0; cIdx < selectedColor.length; ++cIdx) {
+                //    sc.push(selectedColor[cIdx] / 255.0);
+                //}
+
+                var highlight = selectedColor.map(function (c) {
+                    return 255 - c;
+                });
+
+                //var sch = vtk.Common.Core.vtkMath.floatRGB2HexCode(sc);
+                //view.model.set('selected_obj_color', view.selectedObject ? sch : '#ffffff');
+                //for (var name in view.actorInfo) {
+                //    var a = view.getActor(name);
+                //    view.setEdgeColor(a, view.sharesGroup(a, view.selectedObject) ? highlight : [0, 0, 0]);
+                //}
+                //view.processPickedObject(view.getInfoForActor(view.selectedObject));
             }
 
             function hasPaths() {
@@ -1074,7 +1085,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function updateLayout() {
-                srdbg('updateLayout', appState.models.magnetDisplay.viewType);
+                //srdbg('updateLayout', appState.models.magnetDisplay.viewType);
                 panelState.showField(
                     'magnetDisplay',
                     'fieldType',
@@ -1146,7 +1157,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             appState.whenModelsLoaded($scope, function () {
                 //srdbg('whenModelsLoaded g', appState.models.geometry);
                 $scope.model = appState.models[$scope.modelName];
-                srdbg('MAGDISP whenModelsLoaded m', $scope.model);
                 $scope.gModel = appState.models.geometry;
                 appState.watchModelFields($scope, watchFields, updateLayout);
                 appState.watchModelFields($scope, ['magnetDisplay.bgColor'], setBGColor);
@@ -1198,7 +1208,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         $interval.cancel(interval);
                         interval = null;
                     }
-                    srdbg('UV from magnetDisplay.changed');
+                    //srdbg('UV from magnetDisplay.changed');
                     //updateViewer(true);
                     updateViewer();
                 }, 500, 1);
@@ -1214,7 +1224,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     //srdbg('init in progress, ignore');
                     return;
                 }
-                srdbg('UV from framesLoaded');
+                //srdbg('UV from framesLoaded');
                 updateViewer();
             });
 

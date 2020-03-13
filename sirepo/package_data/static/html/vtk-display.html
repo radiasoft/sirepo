@@ -3,7 +3,8 @@
     <div>
         <div class="vtk-canvas-holder"></div>
     </div>
-    <div class="vtk-info-overlay">
+    <div class="vtk-info-overlay" data-ng-class="{'vtk-info-overlay-move': mode == 'move', 'vtk-info-overlay-select': mode == 'select'}" data-ng-attr-width="{{ canvasGeometry().size.width }}px" data-ng-attr-height="{{ canvasGeometry().size.height }}px" data-ng-attr-style="top:{{ canvasGeometry().pos.top }}px; left:{{ canvasGeometry().pos.left }}px;">
+        <div data-vtk-axes="" data-ng-if="enableAxes"></div>
         <div class="vtk-info-bubble">
             <svg data-popup-report="" class="popup-report" data-focus-points="focusPoints" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}" data-ng-drop="true">
             </svg>
