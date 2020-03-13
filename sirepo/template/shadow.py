@@ -69,7 +69,7 @@ def post_execution_processing(
         **kwargs
 ):
     if success_exit or is_parallel:
-        return
+        return None
     return _parse_shadow_log(run_dir)
 
 

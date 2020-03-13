@@ -275,7 +275,7 @@ def prepare_output_file(run_dir, data):
 
 def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
     if success_exit:
-        return
+        return None
     return _parse_elegant_log(run_dir)[0]
 
 

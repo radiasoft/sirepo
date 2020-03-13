@@ -149,7 +149,7 @@ def post_execution_processing(
         **kwargs
 ):
     if success_exit:
-        return
+        return None
     if is_parallel:
         return _parse_opal_log(run_dir)
     e = _parse_opal_log(run_dir)
