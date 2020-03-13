@@ -190,8 +190,8 @@ def _do_sbatch_status(msg, template):
 def _do_sequential_result(msg, template):
     r = template_common.read_sequential_result(msg.runDir)
     # Read this first: https://github.com/radiasoft/sirepo/issues/2007
-    if (hasattr(template, 'prepare_output_file') and 'models' in msg.data):
-        template.prepare_output_file(msg.runDir, msg.data)
+    if (hasattr(template, 'prepare_sequential_output_file') and 'models' in msg.data):
+        template.prepare_sequential_output_file(msg.runDir, msg.data)
         r = template_common.read_sequential_result(msg.runDir)
     return r
 

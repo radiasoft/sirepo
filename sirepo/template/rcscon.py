@@ -113,7 +113,7 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
     assert False, 'unknown model: {}'.format(model)
 
 
-def prepare_output_file(run_dir, sim_in):
+def prepare_sequential_output_file(run_dir, sim_in):
     if 'fileColumnReport' not in sim_in.report:
         return
     fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)

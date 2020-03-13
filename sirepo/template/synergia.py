@@ -193,7 +193,7 @@ def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None
     return e
 
 
-def prepare_output_file(run_dir, data):
+def prepare_sequential_output_file(run_dir, data):
     report = data.report
     if 'bunchReport' in report or 'twissReport' in report:
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)

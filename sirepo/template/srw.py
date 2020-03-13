@@ -572,7 +572,7 @@ def prepare_for_save(data):
     return data
 
 
-def prepare_output_file(run_dir, sim_in):
+def prepare_sequential_output_file(run_dir, sim_in):
     m = sim_in.report
     if m in ('brillianceReport', 'mirrorReport'):
         return

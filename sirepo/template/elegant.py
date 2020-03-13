@@ -263,7 +263,13 @@ def prepare_for_client(data):
     return data
 
 
-def prepare_output_file(run_dir, data):
+def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
+    if success_exit:
+        return None
+    return _parse_elegant_log(run_dir)[0]
+
+
+def prepare_sequential_output_file(run_dir, data):
     if data.report == 'twissReport' or 'bunchReport' in data.report:
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
@@ -271,12 +277,6 @@ def prepare_output_file(run_dir, data):
             output_file = run_dir.join(_report_output_filename(data.report))
             if output_file.exists():
                 save_sequential_report_data(data, run_dir)
-
-
-def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
-    if success_exit:
-        return None
-    return _parse_elegant_log(run_dir)[0]
 
 
 def python_source_for_model(data, model):

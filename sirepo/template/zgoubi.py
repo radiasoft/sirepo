@@ -431,17 +431,17 @@ def import_file(req, unit_test_mode=False, **kwargs):
     return zgoubi_importer.import_file(req.file_stream.read(), unit_test_mode=unit_test_mode)
 
 
-def python_source_for_model(data, model=None):
-    return _generate_parameters_file(data)
-
-
-def prepare_output_file(run_dir, data):
+def prepare_sequential_output_file(run_dir, data):
     report = data['report']
     if 'bunchReport' in report or 'twissReport' in report or 'opticsReport' in report:
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
             save_sequential_report_data(data, run_dir)
+
+
+def python_source_for_model(data, model=None):
+    return _generate_parameters_file(data)
 
 
 def read_frame_count(run_dir):

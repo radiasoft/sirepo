@@ -165,7 +165,7 @@ def prepare_for_client(data):
     return data
 
 
-def prepare_output_file(run_dir, data):
+def prepare_sequential_output_file(run_dir, data):
     report = data['report']
     if 'bunchReport' in report or 'twissReport' in report:
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
@@ -611,7 +611,10 @@ def _output_info(run_dir):
 
 def _parse_opal_log(run_dir):
     res = ''
-    with pkio.open_text(run_dir.join(OPAL_OUTPUT_FILE)) as f:
+    p = run_dir.join((OPAL_OUTPUT_FILE))
+    if not p.exists():
+        return res
+    with pkio.open_text(p) as f:
         prev_line = ''
         for line in f:
             if re.search(r'^Error.*?>', line):

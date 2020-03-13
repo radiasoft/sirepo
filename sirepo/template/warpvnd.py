@@ -252,7 +252,7 @@ def open_data_file(run_dir, model_name, file_index=None):
     return res
 
 
-def prepare_output_file(run_dir, data):
+def prepare_sequential_output_file(run_dir, data):
     if data.report == 'fieldComparisonReport' or data.report == 'fieldReport':
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
