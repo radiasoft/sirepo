@@ -57,6 +57,8 @@
         },
         "opal": {
             "url": "/static/html/landing-page-opal.html",
+            "codeURL": "/opal",
+            "codeTitle": "OPAL",
             "infoPanelTitle": "OPAL",
             "mediaConfig": {
                 "title": "OPAL Sirepo",
@@ -65,8 +67,6 @@
         },
         "rslinac": {
             "url": "/static/html/landing-page-rslinac.html",
-            "codeURL": "/hellweg",
-            "codeTitle": "RsLinac",
             "infoPanelTitle": "RsLinac",
             "mediaConfig": {
                 "title": "RsLinac on Sirepo",
@@ -75,8 +75,6 @@
         },
         "shadow": {
             "url": "/static/html/landing-page-shadow.html",
-            "codeURL": "/shadow",
-            "codeTitle": "Shadow 3",
             "infoPanelTitle": "Shadow3",
             "mediaConfig": {
                 "title": "Shadow3 on Sirepo",
@@ -157,11 +155,5 @@
             }
         }
     },
-    "opportunities": [
-        {
-            "title": "BNL Postdoc",
-            "text": "Our collaborators at Brookhaven National Laboratory have a postdoctoral position that will enable you to join a world class X&#8209;ray optics team and also become a Sirepo developer -- we encourage you to apply!",
-            "url": "https://jobs.bnl.gov/job/upton/post-doctoral-associate-simulation-of-experiments-nsls-ii/3437/9350753"
-        }
-    ]
+    "opportunities": []
 }

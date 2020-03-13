@@ -283,8 +283,8 @@
             "xxprY": 0
         },
         "electronBeamPosition": {
-            "drift": 0,
-            "driftCalculationMethod": "auto",
+            "drift": -1.8,
+            "driftCalculationMethod": "manual",
             "horizontalAngle": 0,
             "horizontalPosition": 0,
             "verticalAngle": 0,
@@ -304,7 +304,7 @@
             "magneticField": 2,
             "method": 1,
             "notes": "",
-            "numberOfMacroElectrons": 100000,
+            "numberOfMacroElectrons": 1000,
             "photonEnergyPointCount": 4000,
             "plotScale": "linear",
             "polarization": 6,
@@ -395,7 +395,7 @@
             "intensityPlotsWidth": "0",
             "jobRunMode": "parallel",
             "notes": "",
-            "numberOfMacroElectrons": 100000,
+            "numberOfMacroElectrons": 1000,
             "photonEnergyBandWidth": 0,
             "plotScale": "linear",
             "rotateAngle": 0,

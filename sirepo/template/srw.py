@@ -43,6 +43,8 @@ WANT_BROWSER_FRAME_CACHE = False
 
 PARSED_DATA_ATTR = 'srwParsedData'
 
+_CANVAS_MAX_SIZE = 16384
+
 _BRILLIANCE_OUTPUT_FILE = 'res_brilliance.dat'
 
 _MIRROR_OUTPUT_FILE = 'res_mirror.dat'
@@ -701,7 +703,7 @@ def validate_magnet_data_file(zf):
     # Compare index and zip contents
     # Does not include the index itself, nor any directories
     # also extract the filename since the index does not include path info
-    file_names_in_zip = map(lambda path: os.path.basename(path),  [f for f in zf.namelist() if not f.endswith('/') and f != index_file_name(zf)])
+    file_names_in_zip = list(map(lambda path: os.path.basename(path),  [f for f in zf.namelist() if not f.endswith('/') and f != index_file_name(zf)]))
     files_match = collections.Counter(file_names_in_index) == collections.Counter(file_names_in_zip)
     return files_match, '' if files_match else 'Files in index {} do not match files in zip {}'.format(file_names_in_index, file_names_in_zip)
 
@@ -1372,7 +1374,9 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rota
     totLen = int(x_range[2] * y_range[2])
     n = len(ar2d) if totLen > len(ar2d) else totLen
     ar2d = np.reshape(ar2d[0:n], (y_range[2], x_range[2]))
-
+    if not width_pixels:
+        # upper limit is browser's max html canvas size
+        width_pixels = _CANVAS_MAX_SIZE
     # rescale width and height to maximum of width_pixels
     if width_pixels and (width_pixels < x_range[2] or width_pixels < y_range[2]):
         x_resize = 1.0
@@ -1526,8 +1530,6 @@ def _validate_safe_zip(zip_file_name, target_dir='.', *args):
     Throws:
         AssertionError if any test fails, otherwise completes silently
     """
-    import zipfile
-    import os
 
     def path_is_sub_path(path, dir_name):
         real_dir = os.path.realpath(dir_name)
@@ -1589,8 +1591,7 @@ def _zip_path_for_file(zf, file_to_find):
     Returns:
         The first path in the zip that matches the file name, or None if no match is found
     """
-    import os
 
     # Get the base file names from the zip (directories have a basename of '')
-    file_names_in_zip = map(lambda path: os.path.basename(path),  zf.namelist())
+    file_names_in_zip = [os.path.basename(x) for x in zf.namelist()]
     return zf.namelist()[file_names_in_zip.index(file_to_find)]

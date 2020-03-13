@@ -10,41 +10,39 @@ from pykern import pksubprocess
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import sdds_util, template_common
-import os.path
 import re
-import sirepo.template.jspec as template
+import shutil
 import sirepo.sim_data
+import sirepo.template.jspec as template
 
 _SIM_DATA = sirepo.sim_data.get_class('jspec')
 
 def run(cfg_dir):
-    with pkio.save_chdir(cfg_dir):
-        data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-        if data['report'] == 'twissReport':
-            simulation_db.write_result(_extract_twiss_report(data))
-        elif data['report'] == 'rateCalculationReport':
-            text = _run_jspec(data)
-            res = {
-                #TODO(pjm): x_range is needed for sirepo-plotting.js, need a better valid-data check
-                'x_range': [],
-                'rate': [],
-            }
-            for line in text.split("\n"):
-                m = re.match(r'^(.*? rate.*?)\:\s+(\S+)\s+(\S+)\s+(\S+)', line)
-                if m:
-                    row = [m.group(1), [m.group(2), m.group(3), m.group(4)]]
-                    row[0] = re.sub('\(', '[', row[0]);
-                    row[0] = re.sub('\)', ']', row[0]);
-                    res['rate'].append(row)
-            simulation_db.write_result(res)
-        else:
-            assert False, 'unknown report: {}'.format(data['report'])
+    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    if data['report'] == 'twissReport':
+        simulation_db.write_result(_extract_twiss_report(data))
+    elif data['report'] == 'rateCalculationReport':
+        text = _run_jspec(data)
+        res = {
+            #TODO(pjm): x_range is needed for sirepo-plotting.js, need a better valid-data check
+            'x_range': [],
+            'rate': [],
+        }
+        for line in text.split("\n"):
+            m = re.match(r'^(.*? rate.*?)\:\s+(\S+)\s+(\S+)\s+(\S+)', line)
+            if m:
+                row = [m.group(1), [m.group(2), m.group(3), m.group(4)]]
+                row[0] = re.sub('\(', '[', row[0]);
+                row[0] = re.sub('\)', ']', row[0]);
+                res['rate'].append(row)
+        simulation_db.write_result(res)
+    else:
+        assert False, 'unknown report: {}'.format(data['report'])
 
 
 def run_background(cfg_dir):
-    with pkio.save_chdir(cfg_dir):
-        _run_jspec(simulation_db.read_json(template_common.INPUT_BASE_NAME))
-        simulation_db.write_result({})
+    _run_jspec(simulation_db.read_json(template_common.INPUT_BASE_NAME))
+    simulation_db.write_result({})
 
 
 def _elegant_to_madx(ring):
@@ -56,9 +54,11 @@ def _elegant_to_madx(ring):
     else: # elegant-sirepo
         if 'elegantSirepo' not in ring or not ring['elegantSirepo']:
             raise RuntimeError('elegant simulation not selected')
-        elegant_twiss_file = _SIM_DATA.JSPEC_ELEGANT_TWISS_FILENAME
-        if not os.path.exists(elegant_twiss_file):
+        tf = _SIM_DATA.jspec_elegant_dir().join(ring.elegantSirepo, _SIM_DATA.jspec_elegant_twiss_path())
+        if not tf.exists():
             raise RuntimeError('elegant twiss output unavailable. Run elegant simulation.')
+        shutil.copyfile(str(tf), _SIM_DATA.JSPEC_ELEGANT_TWISS_FILENAME)
+        elegant_twiss_file = _SIM_DATA.JSPEC_ELEGANT_TWISS_FILENAME
     sdds_util.twiss_to_madx(elegant_twiss_file, template.JSPEC_TWISS_FILENAME)
     return template.JSPEC_TWISS_FILENAME
 
@@ -115,10 +115,10 @@ def _float_list(ar):
 
 def _run_jspec(data):
     _elegant_to_madx(data['models']['ring'])
-    exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
-    jspec_filename = template.JSPEC_INPUT_FILENAME
-    pkio.write_text(jspec_filename, jspec_file)
-    pksubprocess.check_call_with_signals(['jspec', jspec_filename], msg=pkdlog, output=template.JSPEC_LOG_FILE)
+    r = template_common.exec_parameters()
+    f = template.JSPEC_INPUT_FILENAME
+    pkio.write_text(f, r.jspec_file)
+    pksubprocess.check_call_with_signals(['jspec', f], msg=pkdlog, output=template.JSPEC_LOG_FILE)
     return pkio.read_text(template.JSPEC_LOG_FILE)
 
 

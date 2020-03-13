@@ -25,6 +25,19 @@
             ["sigmas", "sigma_s"],
             ["none", "None"]
         ],
+        "BeamParticle": [
+            ["ALUMINUM", "Aluminum"],
+            ["COPPER", "Copper"],
+            ["DEUTERON", "Deuteron"],
+            ["GOLD", "Gold"],
+            ["HELIUM", "Helium"],
+            ["LEAD", "Lead"],
+            ["PROTON", "Proton"],
+            ["RUTHENIUM", "Ruthenium"],
+            ["URANIUM", "Uranium"],
+            ["ZIRCONIUM", "Zirconium"],
+            ["OTHER", "Other"]
+        ],
         "BeamType": [
             ["bunched", "Bunched Beam"],
             ["continuous", "Continuous Beam"]
@@ -58,7 +71,23 @@
         ],
         "ForceFormula": [
             ["parkhomchuk", "Parkhomchuk"],
-            ["derbenevskrinsky", "Derbenev-Skrinsky"]
+            ["derbenevskrinsky", "Derbenev-Skrinsky"],
+            ["meshkov", "Meshkov"]
+        ],
+        "ForceScaleFactor": [
+            ["negative", "-1"],
+            ["positive", "1"]
+        ],
+        "ForceTableColumn": [
+            ["fx", "Transverse Force"],
+            ["flong", "Longitudinal Force"],
+            ["Vtrans", "Transverse Velocity"],
+            ["Vlong", "Longitudinal Velocity"],
+            ["edensity", "Electron Density"]
+        ],
+        "ForceTablePlot": [
+            ["longitudinal", "Longitudinal"],
+            ["transverse", "Transverse"]
         ],
         "FramesPerSecond": [
             ["1", "1"],
@@ -114,8 +143,38 @@
         }
     },
     "frameIdFields": {
-        "beamEvolutionAnimation": ["y1", "y2", "y3"],
-        "coolingRatesAnimation": ["y1", "y2", "y3"],
+        "beamEvolutionAnimation": [
+            "y1",
+            "y2",
+            "y3",
+            "plotRangeType",
+            "horizontalSize",
+            "horizontalOffset",
+            "verticalSize",
+            "verticalOffset",
+            "isRunning"
+        ],
+        "coolingRatesAnimation": [
+            "y1",
+            "y2",
+            "y3",
+            "plotRangeType",
+            "horizontalSize",
+            "horizontalOffset",
+            "verticalSize",
+            "verticalOffset",
+            "isRunning"
+        ],
+        "forceTableAnimation": [
+            "x",
+            "y1",
+            "forceScale",
+            "plotRangeType",
+            "horizontalSize",
+            "horizontalOffset",
+            "verticalSize",
+            "verticalOffset"
+        ],
         "particleAnimation": [
             "x",
             "y",
@@ -148,6 +207,11 @@
             "y1": ["Y1 Value", "BeamColumn", "emitx"],
             "y2": ["Y2 Value", "BeamOptionalColumn", "emity"],
             "y3": ["Y3 Value", "BeamOptionalColumn", "none"],
+            "plotRangeType": ["Range", "PlotRangeType", "none"],
+            "horizontalSize": ["Horizontal Size", "Float", 0],
+            "verticalSize": ["Vertical Size", "Float", 0],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0],
             "notes": ["Notes", "Text", ""]
         },
         "cooler": {
@@ -167,6 +231,11 @@
             "y1": ["Y1 Value", "CoolingRatesColumn", "rx"],
             "y2": ["Y2 Value", "CoolingRatesOptionalColumn", "ry"],
             "y3": ["Y3 Value", "CoolingRatesOptionalColumn", "rs"],
+            "plotRangeType": ["Range", "PlotRangeType", "none"],
+            "horizontalSize": ["Horizontal Size", "Float", 0],
+            "verticalSize": ["Vertical Size", "Float", 0],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0],
             "notes": ["Notes", "Text", ""]
         },
         "electronBeam": {
@@ -189,6 +258,18 @@
             "sample_number": ["Number of Sample Ions", "Float", 1e5, "", 1],
             "force_formula": ["Force Formula", "ForceFormula", "parkhomchuk"]
         },
+        "forceTableAnimation": {
+            "plot": ["Plot Type", "ForceTablePlot", "transverse"],
+            "x": ["X Value", "ForceTableColumn", "Vtrans"],
+            "y1": ["Y1 Value", "ForceTableColumn", "fx"],
+            "forceScale": ["Force Scale", "ForceScaleFactor", "negative"],
+            "plotRangeType": ["Range", "PlotRangeType", "none"],
+            "horizontalSize": ["Horizontal Size", "Float", 0],
+            "verticalSize": ["Vertical Size", "Float", 0],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0],
+            "notes": ["Notes", "Text", ""]
+        },
         "intrabeamScatteringRate": {
             "nu": ["Horizontal Grid Size", "Integer", 100, "Set the grid number in horizontal direction for the 3D integration.", 1],
             "nv": ["Vertical Grid Size", "Integer", 100, "Set the grid number in vertical direction for the 3D integration.", 1],
@@ -198,6 +279,7 @@
             "coupling": ["Transverse Coupling Rate", "Float", null, "Transverse coupling rate, ranging from 0 to 1.", 0, 1]
         },
         "ionBeam": {
+            "particle": ["Particle", "BeamParticle", "PROTON", "Name of particle to be used"],
             "charge_number": ["Ion Charges", "Integer", 1, "Number of the charges of the ion.", 1e-99],
             "mass": ["Mass [MeV/c²]", "Float", 938.272, "Mass of the ion.", 1e-99],
             "kinetic_energy": ["Kinetic Energy [MeV]", "Float", 8000.0, "Kinetic energy of the ion.", 1e-99],
@@ -234,6 +316,7 @@
         "simulationSettings": {
             "time": ["Total Simulation Time [s]", "Float", 60, "", 1e-99],
             "step_number": ["Total Number of Steps", "Integer", 60, "The time interval of each step is time/step_number.", 1],
+            "time_step": ["Time Step [s]", "Float", 1, "Number of steps per second", 1e-99],
             "ibs": ["Simulate the IBS Effect", "Boolean", "1"],
             "e_cool": ["Simulate Electron Cooling Effect", "Boolean", "1"],
             "model": ["Model", "SimulationModel", "particle"],
@@ -258,10 +341,25 @@
         "beamEvolutionAnimation": {
             "title": "RMS Ion Beam Evolution",
             "advanced": [
-                "y1",
-                "y2",
-                "y3",
-                "notes"
+                ["Main", [
+                    "y1",
+                    "y2",
+                    "y3",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "cooler": {
@@ -291,10 +389,25 @@
         "coolingRatesAnimation": {
             "title": "IBS & Cooling Rates",
             "advanced": [
-                "y1",
-                "y2",
-                "y3",
-                "notes"
+                ["Main", [
+                    "y1",
+                    "y2",
+                    "y3",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "electronBeam": {
@@ -318,9 +431,33 @@
             "advanced": [
             ]
         },
+        "forceTableAnimation": {
+            "title": "Friction Force",
+            "advanced": [
+                ["Main", [
+                    "plot",
+                    "forceScale",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
         "ionBeam": {
             "title": "Ion Beam",
             "basic": [
+                "particle",
                 "charge_number",
                 "mass",
                 "kinetic_energy",
@@ -414,6 +551,7 @@
             "basic": [
                 "time",
                 "step_number",
+                "time_step",
                 "model",
                 "save_particle_interval",
                 "electronCoolingRate.sample_number",

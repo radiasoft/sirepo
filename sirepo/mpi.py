@@ -64,7 +64,7 @@ if MPI.COMM_WORLD.Get_rank():
     fn = 'mpi_run.py'
     pkio.write_text(fn, script)
     p = None
-    return run_program([sys.executable or 'python', fn])
+    run_program([sys.executable or 'python', fn])
 
 
 cfg = pkconfig.init(

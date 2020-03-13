@@ -8,6 +8,7 @@ from pykern import pkinspect, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import api_perm
+from sirepo import http_reply
 from sirepo import simulation_db
 from sirepo.template import template_common
 import inspect
@@ -28,6 +29,15 @@ cfg = None
 
 #: how many call frames to search backwards to find the api_.* caller
 _MAX_FRAME_SEARCH_DEPTH = 6
+
+
+@api_perm.require_user
+def api_admJobs():
+    sirepo.auth.check_user_has_role(sirepo.auth.ROLE_ADM)
+    return _request(
+        _request_content=PKDict(**sirepo.http_request.parse_post()),
+    )
+
 
 @api_perm.require_user
 def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
@@ -96,6 +106,16 @@ def api_jobSupervisorPing():
         pkdlog(e)
         e = 'unexpected exception'
     return PKDict(state='error', error=e)
+
+
+@api_perm.require_user
+def api_ownJobs():
+    return _request(
+        _request_content=PKDict(
+            uid=sirepo.auth.logged_in_user(),
+            **sirepo.http_request.parse_post()
+        ),
+    )
 
 
 @api_perm.require_user
@@ -171,7 +191,7 @@ def _request(**kwargs):
             )
     k = PKDict(kwargs)
     u = k.pkdel('_request_uri') or cfg.supervisor_uri + sirepo.job.SERVER_URI
-    c = k.pkdel('_request_content') or _request_content(k)
+    c = k.pkdel('_request_content') if '_request_content' in k else _request_content(k)
     c.pkupdate(
         api=get_api_name(),
         serverSecret=sirepo.job.cfg.server_secret,
@@ -237,7 +257,6 @@ def _run_mode(request_content):
         request_content.jobRunMode = sirepo.job.PARALLEL if request_content.isParallel \
             else sirepo.job.SEQUENTIAL
         return request_content
-    s = sirepo.sim_data.get_class(request_content.simulationType)
     if j not in simulation_db.JOB_RUN_MODE_MAP:
         raise sirepo.util.Error(
             'invalid jobRunMode={} computeModel={} computeJid={}'.format(

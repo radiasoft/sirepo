@@ -17,9 +17,6 @@ from sirepo import http_request
 from sirepo import simulation_db
 from sirepo import srschema
 from sirepo import uri_router
-from sirepo.template import adm
-from sirepo.template import template_common
-import datetime
 import flask
 import importlib
 import re
@@ -28,9 +25,7 @@ import sirepo.srdb
 import sirepo.template
 import sirepo.uri
 import sirepo.util
-import time
 import urllib
-import uuid
 import werkzeug
 import werkzeug.exceptions
 
@@ -73,8 +68,10 @@ def api_copyNonSessionSimulation():
         simulation_db.lib_dir_from_sim_dir(src),
     )
     target = simulation_db.simulation_dir(req.type, data.models.simulation.simulationId)
-    if hasattr(req.template, 'copy_related_files'):
-        req.template.copy_related_files(data, str(src), str(target))
+    #TODO(robnagler) does not work, supervisor needs to be notified to
+    # copy the simulation state.
+    # if hasattr(req.template, 'copy_related_files'):
+    #     req.template.copy_related_files(data, str(src), str(target))
     return res
 
 
@@ -195,7 +192,12 @@ def api_findByName(simulation_type, application_mode, simulation_name):
 def api_findByNameWithAuth(simulation_type, application_mode, simulation_name):
     req = http_request.parse_params(type=simulation_type)
     #TODO(pjm): need to unquote when redirecting from saved cookie redirect?
-    simulation_name = urllib.unquote(simulation_name)
+    if hasattr(urllib, 'unquote'):
+        # python2
+        simulation_name = urllib.unquote(simulation_name)
+    else:
+        # python3
+        simulation_name = urllib.parse.unquote(simulation_name)
     # use the existing named simulation, or copy it from the examples
     rows = simulation_db.iterate_simulation_datafiles(
         req.type,
@@ -462,16 +464,6 @@ def api_listSimulations():
             key=lambda row: row['name'],
         )
     )
-
-@api_perm.require_user
-def api_getServerData():
-    input = http_request.parse_json()
-#TODO(robnagler) validate
-    id = input.id if 'id' in input else None
-    d = adm.get_server_data(id)
-    if d == None or len(d) == 0:
-        raise sirepo.util.UserAlert('Data error', 'no data supplied')
-    return http_reply.gen_json(d)
 
 
 # visitor rather than user because error pages are rendered by the application

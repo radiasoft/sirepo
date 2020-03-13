@@ -20,19 +20,21 @@ import sirepo.srdb
 import tornado.ioloop
 
 
-cfg = None
-
-_KNOWN_HOSTS = None
-
-
 class SbatchDriver(job_driver.DriverBase):
+
+    cfg = None
+
+    _KNOWN_HOSTS = None
 
     __instances = PKDict()
 
     def __init__(self, req):
         super().__init__(req)
-#TODO(robnagler) read a db for an sbatch_user
-        self._srdb_root = None
+        self.pkupdate(
+            # before it is overwritten by prepare_send
+            _local_user_dir=pkio.py_path(req.content.userDir),
+            _srdb_root=None,
+        )
         self.__instances[self.uid] = self
 
     def cpu_slot_free_one(self):
@@ -50,6 +52,29 @@ class SbatchDriver(job_driver.DriverBase):
 
     @classmethod
     def init_class(cls):
+        cls.cfg = pkconfig.init(
+            agent_log_read_sleep=(
+                5,
+                int,
+                'how long to wait before reading the agent log on start',
+            ),
+            agent_starting_secs=(
+                cls._AGENT_STARTING_SECS * 3,
+                int,
+                'how long to wait for agent start',
+            ),
+            cores=(None, int, 'dev cores config'),
+            host=pkconfig.Required(str, 'host name for slum controller'),
+            host_key=pkconfig.Required(str, 'host key'),
+            shifter_image=(None, str, 'needed if using Shifter'),
+            sirepo_cmd=pkconfig.Required(str, 'how to run sirepo'),
+            srdb_root=pkconfig.Required(_cfg_srdb_root, 'where to run job_agent, must include {sbatch_user}'),
+            supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
+        )
+        cls._KNOWN_HOSTS = (
+            cls.cfg.host_key if cls.cfg.host in cls.cfg.host_key
+            else '{} {}'.format(cls.cfg.host, cls.cfg.host_key)
+        ).encode('ascii')
         return cls
 
     async def prepare_send(self, op):
@@ -59,7 +84,7 @@ class SbatchDriver(job_driver.DriverBase):
             if self._srdb_root is None:
                 if not self._creds or 'username' not in self._creds:
                     self._raise_sbatch_login_srexception('no-creds', m)
-                self._srdb_root = cfg.srdb_root.format(
+                self._srdb_root = self.cfg.srdb_root.format(
                     sbatch_user=self._creds.username,
                 )
             m.userDir = '/'.join(
@@ -72,12 +97,12 @@ class SbatchDriver(job_driver.DriverBase):
             m.runDir = '/'.join((m.userDir, m.simulationType, m.computeJid))
             if op.opName == job.OP_RUN:
                 assert m.sbatchHours
-                if cfg.cores:
-                    m.sbatchCores = min(m.sbatchCores, cfg.cores)
+                if self.cfg.cores:
+                    m.sbatchCores = min(m.sbatchCores, self.cfg.cores)
                 m.mpiCores = m.sbatchCores
                 if op.kind == job.PARALLEL:
                     op.maxRunSecs = 0
-            m.shifterImage = cfg.shifter_image
+            m.shifterImage = self.cfg.shifter_image
             return await super().prepare_send(op)
         finally:
             self.pkdel('_creds')
@@ -98,12 +123,12 @@ set -e
 mkdir -p '{agent_start_dir}'
 cd '{self._srdb_root}'
 {self._agent_env()}
-(/usr/bin/env; setsid {cfg.sirepo_cmd} job_agent start_sbatch) >& {log_file} &
+(/usr/bin/env; setsid {self.cfg.sirepo_cmd} job_agent start_sbatch) >& {log_file} &
 disown
 '''
 
         def write_to_log(stdout, stderr, filename):
-            p = pkio.py_path(op.msg.userDir).join('log')
+            p = pkio.py_path(self._local_user_dir).join('agent-sbatch', self.cfg.host)
             pkio.mkdir_parent(p)
             pkjson.dump_pretty(
                 PKDict(stdout=stdout, stderr=stderr),
@@ -111,30 +136,34 @@ disown
             )
 
         async def get_agent_log(connection):
-            await tornado.gen.sleep(cfg.agent_log_read_sleep)
+            await tornado.gen.sleep(self.cfg.agent_log_read_sleep)
             async with connection.create_process(
                 f'/bin/cat {agent_start_dir}/{log_file}'
             ) as p:
                 o, e = await p.communicate()
-                write_to_log(o, e, 'remote-job-agent-log')
+                write_to_log(o, e, 'remote')
 
         try:
             async with asyncssh.connect(
-                cfg.host,
+                self.cfg.host,
                 username=self._creds.username,
-                password=self._creds.password + self._creds.otp if 'nersc' in cfg.host else self._creds.password,
-                known_hosts=_KNOWN_HOSTS,
+                password=self._creds.password + self._creds.otp if 'nersc' in self.cfg.host else self._creds.password,
+                known_hosts=self._KNOWN_HOSTS,
             ) as c:
                 try:
                     async with c.create_process('/bin/bash --noprofile --norc -l') as p:
                         o, e = await p.communicate(input=script)
                         if o or e:
-                            write_to_log(o, e, 'job-agent-start-sbatch')
+                            write_to_log(o, e, 'start')
+                    self.driver_details.pkupdate(
+                        host=self.cfg.host,
+                        username=self._creds.username,
+                    )
                     await get_agent_log(c)
                 except Exception as e:
                     pkdlog(
-                        'agentId={} e={} stack={}',
-                        self._agentId,
+                        '{} e={} stack={}',
+                        self,
                         e,
                         pkdexc(),
                     )
@@ -150,7 +179,7 @@ disown
         res = '''
 scancel -u $USER >& /dev/null || true
 '''
-        if cfg.shifter_image:
+        if self.cfg.shifter_image:
             res += '''
 (cd ~/src/radiasoft/sirepo && git pull -q) || true
 (cd ~/src/radiasoft/pykern && git pull -q) || true
@@ -169,7 +198,7 @@ scancel -u $USER >& /dev/null || true
                 simulationId=msg.simulationId,
                 simulationType=msg.simulationType,
                 report=msg.computeModel,
-                host=cfg.host,
+                host=self.cfg.host,
             ),
         )
 
@@ -178,26 +207,6 @@ scancel -u $USER >& /dev/null || true
 
 
 def init_class():
-    global cfg, _KNOWN_HOSTS
-
-    cfg = pkconfig.init(
-        agent_log_read_sleep=(
-            5,
-            int,
-            'how long to wait before reading the agent log on start',
-        ),
-        cores=(None, int, 'dev cores config'),
-        host=pkconfig.Required(str, 'host name for slum controller'),
-        host_key=pkconfig.Required(str, 'host key'),
-        shifter_image=(None, str, 'needed if using Shifter'),
-        sirepo_cmd=pkconfig.Required(str, 'how to run sirepo'),
-        srdb_root=pkconfig.Required(_cfg_srdb_root, 'where to run job_agent, must include {sbatch_user}'),
-        supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
-    )
-    _KNOWN_HOSTS = (
-        cfg.host_key if cfg.host in cfg.host_key
-        else '{} {}'.format(cfg.host, cfg.host_key)
-    ).encode('ascii')
     return SbatchDriver.init_class()
 
 

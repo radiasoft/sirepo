@@ -1,0 +1,28 @@
+import csv
+import numpy as np
+import os
+
+{% if files_inputsScaler != 'None' %}
+from sklearn.preprocessing import {{ files_inputsScaler }}
+{% endif %}
+{% if files_outputsScaler != 'None' and files_outputsScaler != files_inputsScaler %}
+from sklearn.preprocessing import {{ files_outputsScaler }}
+{% endif %}
+
+def scale_file(path, scaler):
+    with open(path) as f:
+        reader = csv.reader(f)
+        for row in reader:
+            header = row
+            break
+    v = np.genfromtxt(path, delimiter=',', skip_header=1)
+    if len(v.shape) == 1:
+        v.shape = (v.shape[0], 1)
+    if scaler:
+        v = scaler().fit(v).transform(v)
+    os.remove(path)
+    np.savetxt(path, v, delimiter=',', header=','.join(header), comments='')
+    return v, header
+
+x_scaled, x_header = scale_file('{{ inputsFileName }}', {{ files_inputsScaler }})
+y_scaled, y_header = scale_file('{{ outputsFileName }}', {{ files_outputsScaler }})

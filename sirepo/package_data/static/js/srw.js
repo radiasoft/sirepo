@@ -38,6 +38,7 @@ SIREPO.app.config(function() {
     SIREPO.appDownloadLinks = [
         '<li data-lineout-csv-link="x"></li>',
         '<li data-lineout-csv-link="y"></li>',
+        '<li data-lineout-csv-link="full"></li>',
         '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
     ].join('');
     SIREPO.appPanelHeadingButtons = [
@@ -705,11 +706,6 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
     $scope.appState = appState;
     self.srwService = srwService;
 
-    function isActiveField(model, field) {
-        var fieldClass = '.model-' + model + '-' + field;
-        return $(fieldClass).find('input').is(':focus');
-    }
-
     function convertGBSize(field, energy) {
         var value = appState.models.gaussianBeam[field];
         var waveLength = (1239.84193 * 1e-9) / energy;  // [m]
@@ -994,26 +990,29 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         appState.watchModelFields($scope, ['brillianceReport.brightnessComponent'], processBrillianceReport);
 
         appState.watchModelFields($scope, ['undulator.horizontalDeflectingParameter', 'undulator.verticalDeflectingParameter'], function() {
-            if (isActiveField('undulator', 'horizontalDeflectingParameter')) {
+            if (panelState.isActiveField('undulator', 'horizontalDeflectingParameter')) {
                 processUndulatorDefinition('K', 'horizontalDeflectingParameter', 'horizontalAmplitude');
             }
-            else if (isActiveField('undulator', 'verticalDeflectingParameter')) {
+            else if (panelState.isActiveField('undulator', 'verticalDeflectingParameter')) {
                 processUndulatorDefinition('K', 'verticalDeflectingParameter', 'verticalAmplitude');
             }
         });
 
         appState.watchModelFields($scope, ['undulator.horizontalAmplitude', 'undulator.verticalAmplitude', 'undulator.period'], function() {
-            if (isActiveField('undulator', 'horizontalAmplitude')) {
+            if (panelState.isActiveField('undulator', 'horizontalAmplitude')) {
                 processUndulatorDefinition('B', 'horizontalDeflectingParameter', 'horizontalAmplitude');
             }
-            else if (isActiveField('undulator', 'verticalAmplitude')) {
+            else if (panelState.isActiveField('undulator', 'verticalAmplitude')) {
                 processUndulatorDefinition('B', 'verticalDeflectingParameter', 'verticalAmplitude');
             }
-            else if (isActiveField('undulator', 'period')) {
+            else if (panelState.isActiveField('undulator', 'period')) {
                 processUndulatorDefinition('B', 'verticalDeflectingParameter', 'verticalAmplitude');
                 processUndulatorDefinition('B', 'horizontalDeflectingParameter', 'horizontalAmplitude');
             }
         });
+        appState.watchModelFields(
+            $scope, ['sourceIntensityReport.samplingMethod'],
+            srwService.updateSimulationGridFields);
     });
 });
 
@@ -1871,9 +1870,10 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     '<div data-simulation-status-timer="simState.timeData"></div>',
                   '</div>',
                 '</div>',
+            //TODO(pjm): share with simStatusPanel directive in sirepo-components.js
                 '<div data-ng-if="simState.showJobSettings()">',
                   '<div class="form-group form-group-sm">',
-                    '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model"></div>',
+                    '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>',
                     '<div data-sbatch-cores-and-hours="simState"></div>',
                   '</div>',
                 '</div>',
@@ -1883,7 +1883,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
               '</div>',
             '</form>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, appState, authState) {
             var clientFields = ['colorMap', 'aspectRatio', 'plotScale'];
             var serverFields = ['intensityPlotsWidth', 'rotateAngle', 'rotateReshape'];
             var oldModel = null;
@@ -1950,6 +1950,13 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             };
 
             $scope.startSimulation = function() {
+                // The available jobRunModes can change. Default to parallel if
+                // the current jobRunMode doesn't exist
+                var j = appState.models[$scope.simState.model];
+                if (j && j.jobRunMode && j.jobRunMode in authState.jobRunModeMap === false) {
+                    j.jobRunMode = 'parallel';
+                }
+                frameCache.setFrameCount(0);
                 if ($scope.model == 'multiElectronAnimation') {
                     appState.saveChanges($scope.simState.model);
                     appState.models.simulation.multiElectronAnimationTitle = beamlineService.getReportTitle($scope.model);

@@ -13,8 +13,10 @@ from sirepo import util
 import re
 
 
-_NAME_ILLEGALS = r':/\*|?'
-_NAME_ILLEGALS_RE = re.compile(r'^[^' + re.escape(_NAME_ILLEGALS) + ']+$')
+# keep sirepo-components.js "safePath" in sync with these values
+_NAME_ILLEGALS = r'\/|&:+?\'*"<>'
+_NAME_ILLEGALS_RE = re.compile(r'[' + re.escape(_NAME_ILLEGALS) + ']')
+_NAME_ILLEGAL_PERIOD = re.compile(r'^\.|\.$')
 
 
 def get_enums(schema, name):
@@ -55,20 +57,12 @@ def parse_name(name):
     else:
         # ignore leading and trailing spaces
         name = name.strip()
+    # don't raise an error on invalid name - the client is not looking for them
+    # instead, remove illegal characters and throw an error if nothing is left
+    name = re.sub(_NAME_ILLEGALS_RE, '', name)
+    name = re.sub(_NAME_ILLEGAL_PERIOD, '', name)
     if len(name) == 0:
         raise util.Error('blank name')
-    if not _NAME_ILLEGALS_RE.search(name):
-        raise util.Error(
-            '"{}" contains an illegal character (one of "{}"'.format(name, _NAME_ILLEGALS),
-        )
-    if name.startswith('.'):
-        raise util.Error(
-            '"{}" may not start with a dot (".")'.format(name),
-        )
-    if name.endswith('.'):
-        raise util.Error(
-            '"{}" may not end with a dot (".")'.format(name),
-        )
     return name
 
 

@@ -32,44 +32,42 @@ class AbortOptimizationException(Exception):
 
 
 def run(cfg_dir):
-    with pkio.save_chdir(cfg_dir):
-        try:
-            data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-            if 'analysisReport' in data.report:
-                res = template.get_analysis_report(py.path.local(cfg_dir), data)
-            elif 'fftReport' in data.report:
-                res = template.get_fft(py.path.local(cfg_dir), data)
-            elif 'correctorSettingReport' in data.report:
-                res = template.get_settings_report(py.path.local(cfg_dir), data)
-            elif 'beamPositionReport' in data.report:
-                res = template.get_beam_pos_report(py.path.local(cfg_dir), data)
-            else:
-                raise sirepo.util.UserAlert('unknown report: {}'.format(data.report))
-        except sirepo.util.UserAlert as e:
-            res = PKDict(error=e.sr_args.error)
-        simulation_db.write_result(res)
+    try:
+        data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+        if 'analysisReport' in data.report:
+            res = template.get_analysis_report(py.path.local(cfg_dir), data)
+        elif 'fftReport' in data.report:
+            res = template.get_fft(py.path.local(cfg_dir), data)
+        elif 'correctorSettingReport' in data.report:
+            res = template.get_settings_report(py.path.local(cfg_dir), data)
+        elif 'beamPositionReport' in data.report:
+            res = template.get_beam_pos_report(py.path.local(cfg_dir), data)
+        else:
+            raise sirepo.util.UserAlert('unknown report: {}'.format(data.report))
+    except sirepo.util.UserAlert as e:
+        res = PKDict(error=e.sr_args.error)
+    simulation_db.write_result(res)
 
 
 def run_background(cfg_dir):
-    with pkio.save_chdir(cfg_dir):
-        data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-        res = {}
-        if data.report == 'epicsServerAnimation':
-            epics_settings = data.models.epicsServerAnimation
-            if epics_settings.serverType == 'local':
-                server_address = _run_epics(data)
-                epics_settings.serverAddress = server_address
-            else:
-                assert epics_settings.serverAddress, 'missing remote server address'
-                server_address = epics_settings.serverAddress
-            _run_epics_monitor(server_address)
-            if epics_settings.serverType == 'local':
-                res['error'] = _run_simulation_loop(server_address)
-            else:
-                res['error'] = _run_forever(server_address)
+    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    res = {}
+    if data.report == 'epicsServerAnimation':
+        epics_settings = data.models.epicsServerAnimation
+        if epics_settings.serverType == 'local':
+            server_address = _run_epics(data)
+            epics_settings.serverAddress = server_address
         else:
-            assert False, 'unknown report: {}'.format(data.report)
-        simulation_db.write_result(res)
+            assert epics_settings.serverAddress, 'missing remote server address'
+            server_address = epics_settings.serverAddress
+        _run_epics_monitor(server_address)
+        if epics_settings.serverType == 'local':
+            res['error'] = _run_simulation_loop(server_address)
+        else:
+            res['error'] = _run_forever(server_address)
+    else:
+        assert False, 'unknown report: {}'.format(data.report)
+    simulation_db.write_result(res)
 
 
 def _check_beam_steering(is_steering):
@@ -203,8 +201,8 @@ def _run_forever(server_address):
 
 
 def _run_simulation_loop(server_address):
-    exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
-    return _wait_for_beam_steering(server_address, update_and_run_simulation)
+    l = template_common.exec_parameters()
+    return _wait_for_beam_steering(server_address, l.update_and_run_simulation)
 
 
 def _subprocess(server_address, cmd):

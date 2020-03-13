@@ -410,13 +410,20 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         },
 
         exportCSV: function(fileName, heading, points) {
-            fileName = fileName.replace(/\s+$/, '').replace(/(\_|\W|\s)+/g, '-') + '.csv';
-            // format csv heading values within quotes
-            var res = '"' + heading.map(function(v) {
-                return v.replace(/"/g, '');
-            }).join('","') + '"' + "\n";
+            fileName = fileName.replace(/\[.*\]/, '')
+                .replace(/\s+$/, '')
+                .replace(/(\_|\W|\s)+/g, '-') + '.csv';
+            var res = heading.map(function(v) {
+                v = v.replace(/"/g, '');
+                if (v.indexOf(',') >= 0) {
+                    v = '"' + v + '"';
+                }
+                return v;
+            }).join(',') + "\n";
             points.forEach(function(row) {
-                res += row[0].toExponential(9) + ',' + row[1].toExponential(9) + "\n";
+                res += row.map(function(v) {
+                    return v.toExponential(9);
+                }).join(',') + "\n";
             });
             saveAs(new Blob([res], {type: "text/csv;charset=utf-8"}), fileName);
         },
@@ -1151,7 +1158,9 @@ SIREPO.app.service('focusPointService', function(plotting) {
     };
 
     function formatDatum(label, val, units) {
-        return val || val === 0 ? label + ' = ' + plotting.formatValue(val) + (units || '') : '';
+        return val || val === 0
+            ? label + ' = ' + plotting.formatValue(val) + ' ' + (units || '')
+            : '';
     }
 
     function formatFWHM(fwhm, units) {
@@ -2626,13 +2635,40 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
             };
 
             $scope.$on(SIREPO.PLOTTING_LINE_CSV_EVENT, function(evt, axisName) {
-                var keys = Object.keys(lineOuts[axisName]);
-                var points = lineOuts[axisName][keys[0]][0];
-                var xHeading = select('.' + axisName + '-axis-label').text();
-                plotting.exportCSV(
-                    xHeading,
-                    [xHeading + ' [' + $scope.xunits +']', select('.z-axis-label').text()],
-                    points);
+                var title = $($scope.element).closest('.panel-body')
+                        .parent().parent().find('.sr-panel-heading').text();
+                var heading, points;
+                if (axisName == 'x' || axisName == 'y') {
+                    var axisText = axes[axisName].label + ' [' + axes[axisName].units + ']';
+                    heading = [axisText, select('.z-axis-label').text()];
+                    title += ' - ' + axisText;
+                    var keys = Object.keys(lineOuts[axisName]);
+                    points = lineOuts[axisName][keys[0]][0];
+                }
+                else {
+                    // full plot to csv
+                    heading = [
+                        title + ': ' + select('.z-axis-label').text()
+                            + ' vs ' + axes.x.label + ' [' + axes.x.units
+                            + '] and ' + axes.y.label + ' [' + axes.y.units
+                            + ']. The ' + axes.x.label + 's are given in the first column, '
+                            +  axes.y.label + 's in the first row.'
+                    ];
+                    axes.y.values.forEach(function(v) {
+                        heading.push('' + v.toExponential(9));
+                    });
+                    var width = axes.x.values.length;
+                    var height = axes.y.values.length;
+                    points = [];
+                    axes.x.values.forEach(function(v, idx) {
+                        var row = [v];
+                        for (var i = 0; i < height; i++) {
+                            row.push(heatmap[height - i - 1][idx]);
+                        }
+                        points.push(row);
+                    });
+                }
+                plotting.exportCSV(title, heading, points);
             });
         },
         link: function link(scope, element) {
@@ -2664,7 +2700,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             var globalMin = 0.0;
             var globalMax = 1.0;
             var cacheCanvas, imageData;
-            var colorbar;
+            var colorbar, hideColorBar;
             var axes = {
                 x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
                 y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
@@ -2775,7 +2811,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             }
 
             function showColorBar() {
-                if (appState.isLoaded()) {
+                if (appState.isLoaded() && ! hideColorBar) {
                     return appState.models[$scope.modelName].colorMap != 'contrast';
                 }
                 return false;
@@ -2840,6 +2876,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 select('.z-axis-label').text(json.z_label);
                 select('.frequency-label').text(json.frequency_title);
                 setColorScale();
+                hideColorBar = json.hideColorBar || false;
 
                 var amrLines = [];
                 if (json.amr_grid) {
@@ -2978,6 +3015,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         .text(vIconText(true))
                         .on('click', function() {
                             togglePlot(i);
+                            $scope.$applyAsync();
                         });
                     itemWidth = item.node().getBBox().width;
                     if (plot.symbol) {
@@ -3542,6 +3580,41 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+// use this to display a raw SVG string
+SIREPO.app.directive('svgPlot', function(appState, focusPointService, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            reportId: '<',
+            modelName: '@',
+            reportCfg: '<',
+        },
+        template: [
+            '<div class="sr-svg-plot">',
+                '<svg></svg>',
+            '</div>'
+        ].join(''),
+        controller: function($scope, $element) {
+
+            function load() {
+                var reload = (($scope.reportCfg || {}).reload || function() {return true;})();
+                panelState.requestData($scope.modelName, function(data) {
+                    var svg = data.svg;
+                    if ($scope.reportCfg && $scope.reportCfg.process) {
+                        svg = $scope.reportCfg.process(svg);
+                    }
+                    $($element).find('.sr-svg-plot > svg').replaceWith(svg);
+                }, reload);
+            }
+
+            appState.whenModelsLoaded($scope, function() {
+                load();
+            });
+
         },
     };
 });

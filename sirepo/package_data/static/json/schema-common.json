@@ -1,9 +1,5 @@
 {
     "appInfo": {
-       "adm": {
-           "longName": "Sirepo Admin",
-           "shortName": "Sirepo Admin"
-       },
        "myapp": {
             "longName": "MyApp",
             "shortName": "MyApp"
@@ -31,6 +27,10 @@
         "rsradia": {
             "longName": "Radia",
             "shortName": "Radia"
+        },
+        "rcscon": {
+            "longName": "RCSCON",
+            "shortName": "RCSCON"
         },
         "rs4pi": {
             "longName": "RS4PI",
@@ -70,6 +70,7 @@
         "longName": "Sirepo"
     },
     "route": {
+        "admJobs": "/adm-jobs",
         "adjustTime": "/adjust-time/?<days>",
         "blueskyAuth": "/bluesky-auth",
         "comsol": "/comsol",
@@ -95,7 +96,6 @@
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "findByNameWithAuth": "/find-by-name-auth/<simulation_type>/<application_mode>/<simulation_name>",
         "getApplicationData": "/get-application-data/?<filename>",
-        "getServerData": "/get-server-data/?<id>",
         "homePage": "/en/*<path_info>",
         "homePageOld": "/old",
         "importArchive": "/import-archive",
@@ -105,6 +105,7 @@
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
+        "ownJobs": "/own-jobs",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
         "robotsTxt": "/robots.txt",
         "root": "/<simulation_type>",
@@ -234,6 +235,12 @@
             ]
         },
         "localRoutes": {
+            "admJobs": {
+                "route": "/adm-jobs",
+                "config": {
+                  "templateUrl": "/static/html/adm-jobs.html"
+                }
+            },
             "completeRegistration": {
                 "route": "/complete-registration",
                 "config": {
@@ -305,6 +312,12 @@
                 "config": {
                   "controller": "NotFoundCopyController as notFoundCopy",
                   "templateUrl": "/static/html/copy-session.html"
+                }
+            },
+            "ownJobs": {
+                "route": "/own-jobs",
+                "config": {
+                  "templateUrl": "/static/html/own-jobs.html"
                 }
             },
             "sbatchLogin": {

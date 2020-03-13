@@ -1,5 +1,11 @@
 /* Add bootstrap xl col class */
+.visible-xl {
+  display: none !important;
+}
 @media (min-width: 1600px) {
+  .visible-xl {
+    display: block !important;
+  }
   .hidden-xl {
     display: none !important;
   }

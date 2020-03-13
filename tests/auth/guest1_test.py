@@ -37,13 +37,15 @@ def test_timeout(auth_fc):
     fc = auth_fc
 
     from pykern import pkconfig, pkunit, pkio
-    from pykern.pkunit import pkok, pkre, pkeq, pkexcept
+    from pykern import pkjson
     from pykern.pkdebug import pkdp
+    from pykern.pkunit import pkok, pkre, pkeq, pkexcept
     import re
 
     r = fc.sr_get('authGuestLogin', {'simulation_type': fc.sr_sim_type}, redirect=False)
-    pkeq(302, r.status_code)
-    pkre(fc.sr_sim_type, r.headers['location'])
+    pkeq(200, r.status_code)
+    d = pkjson.load_any(r.data)
+    pkeq(True, d.authState.isLoggedIn)
     fc.sr_post('listSimulations', {'simulationType': fc.sr_sim_type})
     fc.sr_auth_state(
         isGuestUser=True,

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""multi-threaded requests to server over http
+u"""async requests to server over http
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -8,119 +8,164 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkjson
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
+from pykern.pkdebug import pkdp, pkdexc, pkdlog
+import asyncio
+import contextlib
 import copy
 import re
-import requests
-import subprocess
-import threading
-import time
-import sirepo.util
 import sirepo.sim_data
+import sirepo.util
+import time
+import tornado.httpclient
+import random
 
+CODES = PKDict(
+    elegant=[
+        PKDict(
+            name='bunchComp - fourDipoleCSR',
+            reports=[
+                'bunchReport1',
+                'elementAnimation10-5',
+            ],
+        ),
+        PKDict(
+            name='SPEAR3',
+            reports=[
+                'bunchReport2',
+                'elementAnimation62-3',
+            ],
+        ),
+    ],
+    jspec=[
+        PKDict(
+            name='Booster Ring',
+            reports=[
+                'particleAnimation',
+                'rateCalculationReport',
+            ],
+        ),
+    ],
+    srw=[
+        PKDict(
+            name='Tabulated Undulator Example',
+            reports=[
+                'intensityReport',
+                'trajectoryReport',
+                'multiElectronAnimation',
+                'powerDensityReport',
+                'sourceIntensityReport',
+            ],
+        ),
+        PKDict(
+            name='Bending Magnet Radiation',
+            reports=[
+                'initialIntensityReport',
+                'intensityReport',
+                'powerDensityReport',
+                'sourceIntensityReport',
+                'trajectoryReport',
+            ],
+        ),
+    ],
+    synergia=[
+        PKDict(
+            name='IOTA 6-6 Bare',
+            reports=[
+                'beamEvolutionAnimation',
+                'bunchReport1',
+            ],
+        ),
+    ],
+    warppba=[
+        PKDict(
+            name='Laser Pulse',
+            reports=[
+                'fieldAnimation',
+                'laserPreviewReport',
+            ],
+        ),
+    ],
+    warpvnd=[
+        PKDict(
+            name='EGun Example',
+            reports=[
+                'fieldAnimation',
+            ],
+        ),
+    ],
+)
 
 cfg = None
 
 
-def run_all():
-    l = []
-    for a in (
-#        ('a@b.c', 'myapp', 'Scooby Doo'),
-        ('a@b.c', 'srw', "Young's Double Slit Experiment"),
-    ):
-        t = threading.Thread(target=run, args=a)
-        l.append(t)
-        t.start()
-    for t in l:
-        t.join()
+def default_command():
+    _init()
+    random.seed()
+    asyncio.run(_run_all())
 
 
-def run(email, sim_type, *sim_names):
-    run_sequential_parallel(_Client(email=email, sim_type=sim_type).login())
-    '''
-    o = list(sim_names)
-    for x in l:
-        if x.name in o:
-            o.remove(x.name)
-    assert not o, \
-        'sim_names={} not found in list={}'.format(o, l)
-    d = s.get(
-        '/simulation/{}/{}/0'.format(s.sim_type, x.simulationId),
-    )
-    x = d.models.simulation
-    pkdlog('sid={} name={}', x.simulationId, x.name)
-    '''
-
-
-def run_sequential_parallel(client):
-    s = "Young's Double Slit Experiment"
-    c = []
-    for r in 'intensityReport', 'powerDensityReport', 'sourceIntensityReport', 'multiElectronAnimation', 'fluxAnimation':
-        c.append(client.sim_run('Tabulated Undulator Example', r))
-    for x in c:
-        x.thread.join()
-    #     'multiElectronAnimation'
-    #     'brillianceReport',
-    #     'fluxReport',
-    #     'initialIntensityReport',
-    #     'intensityReport',
-    #     'powerDensityReport',
-    #     'sirepo-data.json',
-    #     'sourceIntensityReport',
-    #     'trajectoryReport',
-    #     'watchpointReport6',
-    #     'watchpointReport7',
-
-
+async def _cancel_on_exception(task):
+    try:
+        await task
+    except Exception as e:
+        task.cancel()
+        raise
 
 
 class _Client(PKDict):
-
-    __global_lock = threading.Lock()
-
-    __login_locks = PKDict()
+    _global_lock = asyncio.Lock()
+    _login_locks = PKDict()
 
     def __init__(self, **kwargs):
-        super(_Client, self).__init__(**kwargs)
-        _init()
-        self._session = requests.Session()
-        self._session.verify = False
+        super().__init__(
+            _client=tornado.httpclient.AsyncHTTPClient(),
+            _headers=PKDict({'User-Agent': 'test_http'}),
+            **kwargs
+        )
 
     def copy(self):
         n = type(self)()
-        # reaches inside requests.Session
-        n._session.cookies = self._session.cookies.copy()
         for k, v in self.items():
-            if k not in n:
+            if k != '_client':
                 n[k] = copy.deepcopy(v)
         return n
 
-    def get(self, uri):
-        return self.parse_response(
-            self._session.get(url=self.uri(uri)),
-        )
+    async def get(self, uri):
+        uri = self._uri(uri)
+        with _timer(uri):
+            return self.parse_response(
+                await self._client.fetch(
+                    uri,
+                    headers=self._headers,
+                    method='GET',
+                    connect_timeout=1e8,
+                    request_timeout=1e8,
+                )
+            )
 
-    def login(self):
-        r = self.post('/simulation-list', PKDict())
+    async def login(self):
+        r = await self.post('/simulation-list', PKDict())
         assert r.srException.routeName == 'missingCookies'
-        r = self.post('/simulation-list', PKDict())
+        r = await self.post('/simulation-list', PKDict())
         assert r.srException.routeName == 'login'
-        with self.__global_lock:
-            self.__login_locks.pksetdefault(self.email, threading.Lock)
-        with self.__login_locks[self.email]:
-            r = self.post('/auth-email-login', PKDict(email=self.email))
-            t = sirepo.util.create_token(self.email)
-            r = self.post(
-                self.uri('/auth-email-authorized/{}/{}'.format(self.sim_type, t)),
+        async with self._global_lock:
+            self._login_locks.pksetdefault(self.email, asyncio.Lock())
+        async with self._login_locks[self.email]:
+            r = await self.post('/auth-email-login', PKDict(email=self.email))
+            t = sirepo.util.create_token(
+                self.email,
+            ).decode()
+            r = await self.post(
+                self._uri('/auth-email-authorized/{}/{}'.format(self.sim_type, t)),
                 data=PKDict(token=t, email=self.email),
             )
-            if r.state == 'redirect' and 'complete' in r.uri:
-                r = self.post(
+            assert r.state != 'srException', 'r={}'.format(r)
+            if r.authState.needCompleteRegistration:
+                r = await self.post(
                     '/auth-complete-registration',
                     PKDict(displayName=self.email),
                 )
-
-        r = self.post('/simulation-list', PKDict())
+        r = await self.post('/simulation-list', PKDict())
         self._sid = PKDict([(x.name, x.simulationId) for x in r])
         self._sim_db = PKDict()
         self._sim_data = sirepo.sim_data.get_class(self.sim_type)
@@ -128,59 +173,74 @@ class _Client(PKDict):
 
     def parse_response(self, resp):
         self.resp = resp
+        assert self.resp.code == 200, 'resp={}'.format(resp)
         self.json = None
-        resp.raise_for_status()
+        if 'Set-Cookie' in resp.headers:
+            self._headers.Cookie = resp.headers['Set-Cookie']
         if 'json' in resp.headers['content-type']:
-            self.json = pkjson.load_any(resp.content)
+            self.json = pkjson.load_any(resp.body)
             return self.json
+        try:
+            b = resp.body.decode()
+        except UnicodeDecodeError:
+            # Binary data files can't be decoded
+            return
         if 'html' in resp.headers['content-type']:
-            m = re.search('location = "(/[^"]+)', resp.content)
+            m = re.search('location = "(/[^"]+)', b)
             if m:
                 if 'error' in m.group(1):
                     self.json = PKDict(state='error', error='server error')
                 else:
                     self.json = PKDict(state='redirect', uri=m.group(1))
                 return self.json
-        return resp.content
+        return b
 
-    def post(self, uri, data):
+    async def post(self, uri, data):
         data.simulationType = self.sim_type
-        return self.parse_response(
-            self._session.post(
-                url=self.uri(uri),
-                data=pkjson.dump_bytes(data),
-                headers=PKDict({'Content-type': 'application/json'}),
-            ),
-        )
-
-    def sim_db(self, sim_name):
-        return self._sim_db.pksetdefault(
-            sim_name,
-            lambda: self.get(
-                '/simulation/{}/{}/0'.format(self.sim_type, self._sid[sim_name]),
-            ),
-        )[sim_name]
-
-    def sim_run(self, name, report, timeout=120):
-
-        def _run(self):
-            c = None
-            i = self._sid[name]
-            d = self.sim_db(name)
-            pkdlog('sid={} report={} state=start', i, report)
-            r = self.post(
-                '/run-simulation',
-                PKDict(
-                    # works for sequential simulations, too
-                    forceRun=True,
-                    models=d.models,
-                    report=report,
-                    simulationId=i,
-                    simulationType=self.sim_type,
+        uri = self._uri(uri)
+        with _timer(
+                'uri={} email={} simulationId={} report={}'.format(
+                    uri,
+                    self.email,
+                    data.get('simulationId'),
+                    data.get('report')
+                ),
+        ):
+            return self.parse_response(
+                await self._client.fetch(
+                    uri,
+                    body=pkjson.dump_bytes(data),
+                    headers=self._headers.pksetdefault(
+                        'Content-type',  'application/json'
+                    ),
+                    method='POST',
+                    connect_timeout=1e8,
+                    request_timeout=1e8,
                 ),
             )
-            p = self._sim_data.is_parallel(report)
+
+    async def sim_db(self, sim_name):
+        try:
+            return self._sim_db[sim_name]
+        except KeyError:
+            self._sim_db[sim_name] = await self.get(
+                '/simulation/{}/{}/0'.format(
+                    self.sim_type,
+                    self._sid[sim_name],
+                ),
+            )
+            return self._sim_db[sim_name]
+
+    async def sim_run(self, name, report, timeout=90):
+
+        async def _run(self):
+            c = None
+            i = self._sid[name]
+            d = await self.sim_db(name)
+            pkdlog('sid={} report={} state=start', i, report)
+            r = await self._run_simulation(d, i, report)
             try:
+                p = self._sim_data.is_parallel(report)
                 if r.state == 'completed':
                     return
                 c = r.get('nextRequest')
@@ -188,53 +248,79 @@ class _Client(PKDict):
                     if r.state in ('completed', 'error'):
                         c = None
                         break
-                    r = self.post('/run-status', r.nextRequest)
-                    time.sleep(1)
+                    assert 'nextRequest' in r, \
+                        'expected "nextRequest" in response={}'.format(r)
+                    r = await self.post('/run-status', r.nextRequest)
+                    await asyncio.sleep(1)
                 else:
                     pkdlog('sid={} report={} timeout={}', i, report, timeout)
+            except asyncio.CancelledError:
+                return
+            except Exception:
+                pkdlog('r={}', r)
+                raise
             finally:
                 if c:
-                    self.post('/run-cancel', c)
+                    await self.post('/run-cancel', c)
                 s = 'cancel' if c else r.get('state')
+                e = False
                 if s == 'error':
+                    e = True
                     s = r.get('error', '<unknown error>')
                 pkdlog('sid={} report={} state={}', i, report, s)
+                assert not e, \
+                    'unexpected error state, error={} sid={}, report={}'.format(s, i, report)
             if p:
                 g = self._sim_data.frame_id(d, r, report, 0)
-                f = self.get('/simulation-frame/' + g)
+                f = await self.get('/simulation-frame/' + g)
                 assert 'title' in f, \
                     'no title in frame={}'.format(f)
+                await self.get(
+                    '/download-data-file/{}/{}/{}/{}'.format(
+                        self.sim_type,
+                        i,
+                        report,
+                        0,
+                    ),
+                )
                 c = None
                 try:
-                    c = self.post(
-                        '/run-simulation',
-                        PKDict(
-                            # works for sequential simulations, too
-                            forceRun=True,
-                            models=d.models,
-                            report=report,
-                            simulationId=i,
-                            simulationType=self.sim_type,
-                        ),
-                    )
-                    f = self.get('/simulation-frame/' + g)
+                    c = await self._run_simulation(d, i, report)
+                    f = await self.get('/simulation-frame/' + g)
                     assert f.state == 'error', \
                         'expecting error instead of frame={}'.format(f)
+                except asyncio.CancelledError:
+                    return
                 finally:
                     if c:
-                        self.post('/run-cancel', c.get('nextRequest'))
+                        await self.post('/run-cancel', c.get('nextRequest'))
+        return await _run(self.copy())
 
-        self = self.copy()
-        self.thread = threading.Thread(target=_run, args=[self])
-        self.thread.start()
-        return self
+    async def _run_simulation(self, data, simulation_id, report):
+        # TODO(e-carlin): why is this true?
+        if 'animation' in report.lower() and self.sim_type != 'srw':
+            report = 'animation'
+        return await self.post(
+                '/run-simulation',
+                PKDict(
+                    # works for sequential simulations, too
+                    forceRun=True,
+                    models=data.models,
+                    report=report,
+                    simulationId=simulation_id,
+                    simulationType=self.sim_type,
+                ),
+            )
 
-
-    def uri(self, uri):
+    def _uri(self, uri):
         if uri.startswith('http'):
             return uri
         assert uri.startswith('/')
-        return cfg.server_uri + uri
+        # Elegant frame_id's sometimes have spaces in them so need to
+        # make them url safe. But, the * in the url should not be made
+        # url safe
+        return cfg.server_uri + uri.replace(' ', '%20')
+
 
 def _init():
     global cfg
@@ -243,3 +329,53 @@ def _init():
     cfg = pkconfig.init(
         server_uri=('http://127.0.0.1:8000', str, 'where to send requests'),
     )
+
+
+async def _run(email, sim_type):
+    await _run_sequential_parallel(
+        await _Client(email=email, sim_type=sim_type).login(),
+    )
+
+
+async def _run_all():
+    l = []
+    for a in (
+            ('one@b.c', 'elegant'),
+            ('one@b.c', 'jspec'),
+            ('one@b.c', 'srw',),
+            ('one@b.c', 'synergia'),
+            ('one@b.c', 'warppba'),
+            ('one@b.c', 'warpvnd'),
+            ('two@b.c', 'elegant'),
+            ('two@b.c', 'jspec'),
+            ('two@b.c', 'srw',),
+            ('two@b.c', 'synergia'),
+            ('two@b.c', 'warppba'),
+            ('two@b.c', 'warpvnd'),
+            ('three@b.c', 'elegant'),
+            ('three@b.c', 'jspec'),
+            ('three@b.c', 'srw',),
+            ('three@b.c', 'synergia'),
+            ('three@b.c', 'warppba'),
+            ('three@b.c', 'warpvnd'),
+    ):
+        l.append(_run(*a))
+    await _cancel_on_exception(asyncio.gather(*l))
+
+
+async def _run_sequential_parallel(client):
+    c = []
+    s = CODES[client.sim_type]
+    e = s[random.randrange(len(s))]
+    random.shuffle(e.reports)
+    for r in e.reports:
+        c.append(client.sim_run(e.name, r))
+    await _cancel_on_exception(asyncio.gather(*c))
+
+
+@contextlib.contextmanager
+def _timer(description):
+    s = time.time()
+    yield
+    if 'run-status' not in description:
+        pkdlog('{} elapsed_time={}', description, time.time() - s)
