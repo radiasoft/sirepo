@@ -16,6 +16,7 @@ import re
 import requests
 import sirepo.template
 import sirepo.util
+import sirepo.util
 import subprocess
 import sys
 import time
@@ -132,9 +133,13 @@ def _do_fastcgi(msg, template):
 
 
 def _do_get_simulation_frame(msg, template):
-    return template_common.sim_frame_dispatch(
-        msg.data.copy().pkupdate(run_dir=msg.runDir),
-    )
+    try:
+        return template_common.sim_frame_dispatch(
+            msg.data.copy().pkupdate(run_dir=msg.runDir),
+        )
+    except sirepo.util.UserAlert as e:
+        pkdp('eeeeeeeeeeeeeeeeeeeeeee {}', e)
+        return PKDict(error=e.error)
 
 
 def _do_get_data_file(msg, template):

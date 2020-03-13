@@ -59,9 +59,6 @@ def _run_dose_calculation_fake(data, cfg_dir):
 
 def _run_dvh(data, cfg_dir):
     dvh_report = data['models']['dvhReport']
-    # TODO(e-carlin): This used to just set an error and then fall through and
-    # do the rest of the calculations. Is that what we wanted? If so, we should
-    # add this check as an alert in post_processing
     assert dvh_report['roiNumbers'], 'No selection'
     y_range = None
     plots = []

@@ -76,6 +76,7 @@ def sim_frame_fieldAnimation(frame_args):
 
 
 def sim_frame_fieldCalcAnimation(frame_args):
+    raise AssertionError('frame error man')
     return generate_field_report(frame_args.sim_in, frame_args.run_dir, args=frame_args)
 
 
