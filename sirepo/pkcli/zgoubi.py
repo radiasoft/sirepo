@@ -51,11 +51,6 @@ def run_background(cfg_dir):
     _validate_estimate_output_file_size(data, res)
     _bunch_match_twiss(cfg_dir, data)
     _run_zgoubi(cfg_dir)
-    # TODO(e-carlin): Is this necessary? No other codes seem to do it. Why can't we
-    # just read the zgoubi_fai_data_file. It seems like a possible optimization.
-    # Maybe zgoubi_fai_data_file is big and slow to read?
-    res['frame_count'] = template.read_frame_count(py.path.local(cfg_dir))
-    simulation_db.write_result(res)
 
 
 def _beamline_steps(beamline_map, element_map, beamline_id):

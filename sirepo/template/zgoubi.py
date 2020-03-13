@@ -287,20 +287,15 @@ _TWISS_SUMMARY_LABELS = {
 def background_percent_complete(report, run_dir, is_running):
     error = ''
     if not is_running:
-        out_file = run_dir.join('{}.json'.format(template_common.OUTPUT_BASE_NAME))
         show_tunes_report = False
         show_spin_3d = False
-        count = 0
-        if out_file.exists():
-            out = simulation_db.read_json(out_file)
-            if 'frame_count' in out:
-                count = out.frame_count
+        in_file = run_dir.join('{}.json'.format(template_common.INPUT_BASE_NAME))
+        if in_file.exists():
             data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
             show_tunes_report = _particle_count(data) <= _MAX_FILTER_PLOT_PARTICLES \
                 and data.models.simulationSettings.npass >= 10
             show_spin_3d = data.models.SPNTRK.KSO == '1'
-        if not count:
-            count = read_frame_count(run_dir)
+        count = read_frame_count(run_dir)
         if count:
             plt_file = run_dir.join(_ZGOUBI_PLT_DATA_FILE)
             return PKDict(
