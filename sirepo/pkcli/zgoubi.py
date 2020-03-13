@@ -143,7 +143,7 @@ def _run_tunes_report(cfg_dir, data):
     #TODO(pjm): uses datafile from animation directory
     os.symlink('../animation/zgoubi.fai', 'zgoubi.fai')
     subprocess.call([_TUNES_PATH])
-    template_common.write_sequential_result(data, run_dir=cfg_dir)
+    template_common.write_sequential_result(data)
 
 
 def _run_zgoubi(cfg_dir, python_file=None):

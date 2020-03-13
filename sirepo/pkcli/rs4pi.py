@@ -117,4 +117,4 @@ def _run_dvh(data, cfg_dir):
         'y_range': y_range,
         'plots': sorted(plots, key=lambda v: v['label'].lower()),
     }
-    template_common.write_sequential_result(res, run_dir=cfg_dir)
+    template_common.write_sequential_result(res)
