@@ -21,6 +21,7 @@ import os.path
 import py.path
 import re
 import sirepo.sim_data
+import sirepo.util
 
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
@@ -76,7 +77,6 @@ def sim_frame_fieldAnimation(frame_args):
 
 
 def sim_frame_fieldCalcAnimation(frame_args):
-    raise AssertionError('frame error man')
     return generate_field_report(frame_args.sim_in, frame_args.run_dir, args=frame_args)
 
 
@@ -155,9 +155,11 @@ def generate_field_report(data, run_dir, args=None):
 
     vals_equal = np.isclose(np.std(values), 0., atol=1e-9)
 
-    assert not np.isnan(values).any(), \
-        ('Results could not be calculated.\n\nThe Simulation Grid may'
-         ' require adjustments to the Grid Points and Channel Width.')
+    if np.isnan(values).any():
+        raise sirepo.util.UserAlert(
+            'Results could not be calculated.\n\nThe Simulation Grid may'
+            ' require adjustments to the Grid Points and Channel Width.'
+        )
     res = _field_plot(values, axes, grid, _SIM_DATA.warpvnd_is_3d(data))
     res.title= 'ϕ Across Whole Domain' + slice_text
     res.global_min = np.min(potential) if vals_equal else None

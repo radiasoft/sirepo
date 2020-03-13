@@ -16,7 +16,6 @@ import re
 import requests
 import sirepo.template
 import sirepo.util
-import sirepo.util
 import subprocess
 import sys
 import time
@@ -137,9 +136,11 @@ def _do_get_simulation_frame(msg, template):
         return template_common.sim_frame_dispatch(
             msg.data.copy().pkupdate(run_dir=msg.runDir),
         )
-    except sirepo.util.UserAlert as e:
-        pkdp('eeeeeeeeeeeeeeeeeeeeeee {}', e)
-        return PKDict(error=e.error)
+    except Exception as e:
+        r = 'report not generated'
+        if isinstance(e, sirepo.util.UserAlert):
+            r = e.sr_args.error
+        return PKDict(error=r)
 
 
 def _do_get_data_file(msg, template):
