@@ -98,7 +98,12 @@ def _do_compute(msg, template):
             _write_parallel_status(msg, template, i)
         if i:
             continue
-        return _on_do_compute_exit(r == 0, msg.isParallel, template, msg.runDir)
+        return _on_do_compute_exit(
+            r == 0,
+            msg.isParallel,
+            template,
+            msg.runDir,
+        )
 
 
 def _do_fastcgi(msg, template):
@@ -215,15 +220,11 @@ def _on_do_compute_exit(success_exit, is_parallel, template, run_dir):
             return template.post_execution_processing(**kwargs)
 
     def _success_exit():
-        # is_parallel is necessary because jspec we only want to calculate the rate calculation /time step error in parallel case
-        # TODO(e-carlin): impl
         return PKDict(
             state=job.COMPLETED,
             alerts=_post_processing(),
         )
-    if success_exit:
-        return _success_exit()
-    return _failure_exit()
+    return _success_exit() if success_exit else _failure_exit()
 
 
 def _mtime_or_now(path):
