@@ -61,13 +61,13 @@
     "model": {
         "circlePath": {
             "_super": ["_", "model", "fieldPath"],
-            "ctrX": ["Center x", "Float", "0.0"],
-            "ctrY": ["Center y", "Float", "0.0"],
-            "ctrZ": ["Center z", "Float", "0.0"],
-            "radius": ["Radius", "Float", "10.0"],
-            "theta": ["\uD835\uDFB1", "Float", "0.0", "Euler 2", "-3.14159", "3.14159"],
-            "phi": ["\uD835\uDFBF", "Float", "0.0", "Euler 3", "0.0", "6.2832"],
-            "numPoints": ["Num Points", "Integer", "10", "", "2"],
+            "ctrX": ["Center x", "Float", 0.0],
+            "ctrY": ["Center y", "Float", 0.0],
+            "ctrZ": ["Center z", "Float", 0.0],
+            "radius": ["Radius", "Float", 10.0],
+            "theta": ["\uD835\uDFB1", "Float", 0.0, "Euler 2", -3.14159, 3.14159],
+            "phi": ["\uD835\uDFBF", "Float", 0.0, "Euler 3", 0.0, 6.2832],
+            "numPoints": ["Num Points", "Integer", 10, "", 2],
             "type": ["_", "PathType", "circle"]
         },
         "fieldDisplay": {
@@ -87,34 +87,44 @@
         },
         "geometry": {
             "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
-            "color": ["Color", "String", "#cccccc"],
             "name": ["Name", "String", ""]
+        },
+        "geomObject": {
+            "color": ["Color", "Color", "#cccccc"],
+            "material": ["Material", "String", ""],
+            "name": ["Name", "String", ""],
+            "type": ["Type", "String", ""]
         },
         "linePath": {
             "_super": ["_", "model", "fieldPath"],
-            "beginX": ["x1", "Float", "-10.0"],
-            "beginY": ["y1", "Float", "0.0"],
-            "beginZ": ["z1", "Float", "0.0"],
-            "endX": ["x2", "Float", "10.0"],
-            "endY": ["y2", "Float", "0.0"],
-            "endZ": ["z2", "Float", "0.0"],
-            "numPoints": ["Num Points", "Integer", "10", "", "2"],
+            "beginX": ["x1", "Float", -10.0],
+            "beginY": ["y1", "Float", 0.0],
+            "beginZ": ["z1", "Float", 0.0],
+            "endX": ["x2", "Float", 10.0],
+            "endY": ["y2", "Float", 0.0],
+            "endZ": ["z2", "Float", 0.0],
+            "numPoints": ["Num Points", "Integer", 10, "", 2],
             "type": ["_", "PathType", "line"]
         },
         "magnet": {
             "_super": ["_", "model", "geometry"]
         },
         "magnetDisplay": {
+            "bgColor": ["Background Color", "Color", "#ffffff"],
             "fieldType": ["Field", "FieldType", "M"],
             "notes": ["Notes", "Text", ""],
             "viewType": ["View", "ViewType", "objects"]
         },
         "manualPath": {
             "_super": ["_", "model", "fieldPath"],
-            "ptX": ["x", "Float", "0.0"],
-            "ptY": ["y", "Float", "0.0"],
-            "ptZ": ["z", "Float", "0.0"],
+            "ptX": ["x", "Float", 0.0],
+            "ptY": ["y", "Float", 0.0],
+            "ptZ": ["z", "Float", 0.0],
             "type": ["_", "PathType", "manual"]
+        },
+        "material": {
+            "density": ["Density", "Float", 1.0],
+            "name": ["Name", "String", ""]
         },
         "reset": {
         },
@@ -122,9 +132,9 @@
         },
         "solver":  {
             "lastSolved": ["", "Integer", "-1"],
-            "maxIterations": ["Max iterations", "Integer", "1500", "", "1"],
+            "maxIterations": ["Max iterations", "Integer", 1500, "", 1],
             "method": ["Method", "SolveMethod", "0"],
-            "precision": ["Precision (T)", "Float", "0.00010", "", ""],
+            "precision": ["Precision (T)", "Float", 0.00010, "", ""],
             "result": ["Result", "String", ""]
         }
     },
@@ -176,6 +186,7 @@
             "basic": [
                 "geometry.name",
                 "viewType",
+                "bgColor",
                 "geometry.alpha",
                 "fieldType",
                 "fieldDisplay.colorMap",

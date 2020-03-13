@@ -57,7 +57,6 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def extract_report_data(run_dir, sim_in):
-    pkdp('EXTRACT sim_in {}', sim_in)
     if 'geometry' in sim_in.report:
         v_type = sim_in.models.magnetDisplay.viewType
         f_type = sim_in.models.magnetDisplay.fieldType if v_type == VIEW_TYPE_FIELD\

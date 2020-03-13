@@ -545,10 +545,15 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             }
             $scope.fieldProps = appState.fieldProperties($scope.modelName, $scope.field);
 
+            appState.whenModelsLoaded($scope, function () {
+                if($scope.modelName === 'geometry') {
+                    srdbg('FE mn', $scope.modelName, 'm', $scope.model, 'field', $scope.field, 'frm aapdtd', appState.models[$scope.modelName]);
+                }
+            });
+
             // wait until the switch gets fully evaluated, then set event handlers for input fields
             // to disable keypress listener set by plots
             panelState.waitForUI(function () {
-                //srdbg('FE mn', $scope.modelName, 'm', $scope.model, 'frm aapdtd', appState.models[$scope.modelName]);
                 var inputElement =  $($element).find('input');
                 if(inputElement.length > 0) {
                     inputElement
@@ -1169,6 +1174,9 @@ SIREPO.app.directive('modelField', function(appState) {
             $scope.fieldName = function() {
                 return field;
             };
+            //if(modelName === 'geometry') {
+            //    srdbg('MF mn', modelName, 'm', $scope.modelForField(), 'field', $scope.field, 'frm aapdtd', appState.models[$scope.modelName]);
+            //}
         },
     };
 });
@@ -2688,10 +2696,12 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
             '<span class="valueLabel">{{ model[field] }}{{ model.units }}</span>',
         ].join(''),
         controller: function($scope) {
+
             var slider;
             var delegate = null;
 
             function update() {
+                srdbg('SLIDER UPDATE');
                 updateReadout();
                 updateSlider();
             }
@@ -2708,9 +2718,10 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
             }
 
             appState.whenModelsLoaded($scope, function () {
-                if ($scope.model !== appState.models[$scope.modelName]) {
-                    $scope.model = appState.models[$scope.modelName];  // ???
-                }
+                srdbg('SLIDER M', $scope.model, 'APPS', appState.models[$scope.modelName]);
+                //if ($scope.model !== appState.models[$scope.modelName]) {
+                //    $scope.model = appState.models[$scope.modelName];  // ???
+                //}
                 delegate = $scope.fieldDelegate;
                 if (! delegate || $.isEmptyObject(delegate)) {
                     delegate = panelState.getFieldDelegate($scope.modelName, $scope.field);
@@ -2724,6 +2735,14 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
                 var val = delegate.storedVal;
                 if ((val || val === 0) && $scope.model[$scope.field] != val) {
                     $scope.model[$scope.field] = val;
+                }
+            });
+
+            $scope.$on('sliderParent.ready', function (e, m) {
+                // ???
+                srdbg('SLIDER PARENT READY', m);
+                if (m) {
+                    $scope.model = m;
                 }
             });
         },
