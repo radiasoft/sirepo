@@ -511,7 +511,7 @@ def save_report_data(data, run_dir):
                 'bunch': simulation_db.read_json(summary_file)
             }
     else:
-        raise RuntimeError('unknown report: {}'.format(report_name))
+        raise AssertionError('unknown report: {}'.format(report_name))
     template_common.write_sequential_result(res, run_dir=run_dir)
 
 

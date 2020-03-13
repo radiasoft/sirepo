@@ -126,7 +126,7 @@ def get_application_data(data, **kwargs):
             simulation_db.sim_data_file(SIM_TYPE, data.simulationId))
         data.error = _code_var(data.variables).validate_var_delete(data.name, model_data, _SCHEMA)
         return data
-    assert False, 'unknown get_application_data: {}'.format(data)
+    raise AssertionError('unknown get_application_data: {}'.format(data))
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
@@ -211,7 +211,7 @@ def save_report_data(data, run_dir):
         res = _bunch_plot(report, run_dir, 0)
         res.title = ''
     else:
-        assert False, 'unknown report: {}'.format(report)
+        raise AssertionError('unknown report: {}'.format(report))
     template_common.write_sequential_result(
         res,
         run_dir=run_dir,
