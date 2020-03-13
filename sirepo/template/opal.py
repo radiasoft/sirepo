@@ -172,7 +172,7 @@ def prepare_output_file(run_dir, data):
         if fn.exists():
             fn.remove()
             try:
-                save_report_data(data, run_dir)
+                save_sequential_report_data(data, run_dir)
             except IOError:
                 # the output file isn't readable
                 pass
@@ -182,7 +182,7 @@ def python_source_for_model(data, model):
     return _generate_parameters_file(data)
 
 
-def save_report_data(data, run_dir):
+def save_sequential_report_data(data, run_dir):
     report = data.models[data.report]
     res = None
     if data.report == 'twissReport':

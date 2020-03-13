@@ -441,7 +441,7 @@ def prepare_output_file(run_dir, data):
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
-            save_report_data(data, run_dir)
+            save_sequential_report_data(data, run_dir)
 
 
 def read_frame_count(run_dir):
@@ -457,7 +457,7 @@ def remove_last_frame(run_dir):
     pass
 
 
-def save_report_data(data, run_dir):
+def save_sequential_report_data(data, run_dir):
     report_name = data['report']
     if 'twissReport' in report_name or 'opticsReport' in report_name:
         enum_name = _REPORT_ENUM_INFO[report_name]

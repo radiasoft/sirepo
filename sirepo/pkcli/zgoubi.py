@@ -42,7 +42,7 @@ def run(cfg_dir):
     # bunchReport, twissReport and twissReport2
     _bunch_match_twiss(cfg_dir, data)
     _run_zgoubi(cfg_dir)
-    template.save_report_data(data, py.path.local(cfg_dir))
+    template.save_sequential_report_data(data, py.path.local(cfg_dir))
 
 
 def run_background(cfg_dir):

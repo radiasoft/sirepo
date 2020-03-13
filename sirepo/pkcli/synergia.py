@@ -22,7 +22,7 @@ def run(cfg_dir):
     report = data['report']
     if 'bunchReport' in report or report == 'twissReport' or report == 'twissReport2':
         template_common.exec_parameters()
-        template.save_report_data(data, py.path.local(cfg_dir))
+        template.save_sequential_report_data(data, py.path.local(cfg_dir))
     else:
         raise AssertionError('unknown report: {}'.format(report))
 

@@ -270,7 +270,7 @@ def prepare_output_file(run_dir, data):
             fn.remove()
             output_file = run_dir.join(_report_output_filename(data.report))
             if output_file.exists():
-                save_report_data(data, run_dir)
+                save_sequential_report_data(data, run_dir)
 
 
 def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
@@ -296,7 +296,7 @@ def remove_last_frame(run_dir):
     pass
 
 
-def save_report_data(data, run_dir):
+def save_sequential_report_data(data, run_dir):
     a = copy.deepcopy(data.models[data.report])
     a.frameReport = data.report
     if a.frameReport == 'twissReport':

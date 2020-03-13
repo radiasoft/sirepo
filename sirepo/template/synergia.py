@@ -199,14 +199,14 @@ def prepare_output_file(run_dir, data):
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
-            save_report_data(data, run_dir)
+            save_sequential_report_data(data, run_dir)
 
 
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
 
 
-def save_report_data(data, run_dir):
+def save_sequential_report_data(data, run_dir):
     if 'bunchReport' in data.report:
         import synergia.bunch
         with h5py.File(str(run_dir.join(OUTPUT_FILE.twissReport)), 'r') as f:

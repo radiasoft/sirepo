@@ -13,7 +13,7 @@ from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import elegant_common
 from sirepo.template import template_common
-from sirepo.template.elegant import save_report_data, ELEGANT_LOG_FILE
+from sirepo.template.elegant import save_sequential_report_data, ELEGANT_LOG_FILE
 
 
 def run(cfg_dir):
@@ -25,7 +25,7 @@ def run(cfg_dir):
         cfg_dir (str): directory to run elegant in
     """
     _run_elegant(bunch_report=True)
-    save_report_data(
+    save_sequential_report_data(
         simulation_db.read_json(
             template_common.INPUT_BASE_NAME,
         ),

@@ -21,7 +21,7 @@ def run(cfg_dir):
     _run_opal()
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     if 'bunchReport' in data.report or data.report == 'twissReport':
-        template.save_report_data(data, py.path.local(cfg_dir))
+        template.save_sequential_report_data(data, py.path.local(cfg_dir))
 
 
 def run_background(cfg_dir):
