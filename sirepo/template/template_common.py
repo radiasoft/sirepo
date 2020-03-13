@@ -13,6 +13,7 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 import math
 import numpy
 import os.path
+import pykern.pkrunpy
 import re
 import sirepo.http_reply
 import sirepo.http_request
@@ -193,6 +194,16 @@ def enum_text(schema, name, value):
         if e[0] == value:
             return e[1]
     assert False, 'unknown {} enum value: {}'.format(name, value)
+
+
+def exec_parameters(path=None):
+    return pykern.pkrunpy.run_path_as_module(path or PARAMETERS_PYTHON_FILE)
+
+
+def exec_parameters_with_mpi():
+    import sirepo.mpi
+
+    return sirepo.mpi.run_script(pkio.read_text(PARAMETERS_PYTHON_FILE))
 
 
 def flatten_data(d, res, prefix=''):
