@@ -16,10 +16,9 @@ import sirepo.template.rsradia as template
 
 def run(cfg_dir):
     pkdp('RAD RUN')
-    with pkio.save_chdir(cfg_dir):
-        exec(_script(), locals(), locals())
-        data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-        template.extract_report_data(py.path.local(cfg_dir), data)
+    template_common.exec_parameters()
+    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    template.extract_report_data(py.path.local(cfg_dir), data)
 
 
 def run_background(cfg_dir):
@@ -31,12 +30,11 @@ def run_background(cfg_dir):
     pkdp('RAD RUN BG')
     # limit to 1 until we do parallel properly
     mpi.cfg.cores = 1
-    with pkio.save_chdir(cfg_dir):
-        simulation_db.write_json(py.path.local(cfg_dir).join(template.MPI_SUMMARY_FILE), {
-            'mpiCores': mpi.cfg.cores,
-        })
-        mpi.run_script(_script())
-        simulation_db.write_result({})
+    simulation_db.write_json(py.path.local(cfg_dir).join(template.MPI_SUMMARY_FILE), {
+        'mpiCores': mpi.cfg.cores,
+    })
+    template_common.exec_parameters_with_mpi()
+    simulation_db.write_result({})
 
 
 def _script():

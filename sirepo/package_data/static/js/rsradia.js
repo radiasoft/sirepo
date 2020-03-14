@@ -457,7 +457,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
     };
 });
 
-SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, radiaService, requestSender, utilities, vtkPlotting, vtkUtils, $interval) {
+SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, radiaService, radiaVtkUtils, requestSender, utilities, vtkPlotting, vtkUtils, $interval) {
 
     return {
         restrict: 'A',
@@ -482,7 +482,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             var ORIENTATION_ARRAY = 'orientation';
             var FIELD_ATTR_ARRAYS = [LINEAR_SCALE_ARRAY, LOG_SCALE_ARRAY, ORIENTATION_ARRAY];
 
-            var PICKABLE_TYPES = [vtkUtils.GEOM_TYPE_POLYS, vtkUtils.GEOM_TYPE_VECTS];
+            var PICKABLE_TYPES = [radiaVtkUtils.GEOM_TYPE_POLYS, radiaVtkUtils.GEOM_TYPE_VECTS];
 
             var SCALAR_ARRAY = 'scalars';
 
@@ -586,23 +586,23 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
                     var gname = name + '.' + i;
                     var sceneDatum = data[i];
-                    var bounds = vtkUtils.objBounds(sceneDatum);
+                    var bounds = radiaVtkUtils.objBounds(sceneDatum);
 
                     // trying a separation into an actor for each data type, to better facilitate selection
-                    vtkUtils.GEOM_TYPES.forEach(function (t) {
+                    radiaVtkUtils.GEOM_TYPES.forEach(function (t) {
                         var aname = gname + '.' + t;
                         var d = sceneDatum[t];
                         if (! d || ! d.vertices || ! d.vertices.length) {
                             return;
                         }
-                        var isPoly = t === vtkUtils.GEOM_TYPE_POLYS;
+                        var isPoly = t === radiaVtkUtils.GEOM_TYPE_POLYS;
                         var gObj = getGeomObj(aname) || {};
                         var gColor = gObj.color ? vtk.Common.Core.vtkMath.hex2float(gObj.color) : null;
-                        var pdti = vtkUtils.objToPolyData(sceneDatum, [t], gColor);
+                        var pdti = radiaVtkUtils.objToPolyData(sceneDatum, [t], gColor);
                         var pData = pdti.data;
                         var bundle = null;
                         var actor = null;
-                        if (vtkUtils.GEOM_OBJ_TYPES.indexOf(t) >= 0) {
+                        if (radiaVtkUtils.GEOM_OBJ_TYPES.indexOf(t) >= 0) {
                             bundle = cm.buildActorBundle();
                             bundle.mapper.setInputData(pData);
                         }
@@ -810,9 +810,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     return;
                 }
 
+                //srdbg('mode?', vtkAPI.getMode());
                 // regular clicks happen when spinning the scene - we'll select/deselect with ctrl-click.
                 // Though one also rotates in that case, it's less common
-                if (! callData.controlKey) {
+                //if (! callData.controlKey) {
+                if (vtkAPI.getMode() === vtkUtils.INTERACTION_MODE_MOVE) {
                     return;
                 }
 
@@ -859,7 +861,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     var pts = info.pData.getPoints();
 
                     // TODO(mvk): attach pick functions to actor info?
-                    if (info.type === vtkUtils.GEOM_TYPE_VECTS) {
+                    if (info.type === radiaVtkUtils.GEOM_TYPE_VECTS) {
                         var n = pts.getNumberOfComponents();
                         var coords = pts.getData().slice(n * pid, n * (pid + 1));
                         var f = actor.getMapper().getInputConnection(0).filter;
@@ -972,13 +974,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function numColors(polyData, type) {
-                if (vtkUtils.GEOM_OBJ_TYPES.indexOf(type) < 0) {
+                if (radiaVtkUtils.GEOM_OBJ_TYPES.indexOf(type) < 0) {
                     return 0;
                 }
-                if (type === vtkUtils.GEOM_TYPE_LINES) {
+                if (type === radiaVtkUtils.GEOM_TYPE_LINES) {
                     return numDataColors(polyData.getLines().getData());
                 }
-                if (type === vtkUtils.GEOM_TYPE_POLYS) {
+                if (type === radiaVtkUtils.GEOM_TYPE_POLYS) {
                     return numDataColors(polyData.getPolys().getData());
                 }
             }
@@ -1009,7 +1011,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         info.actor.getProperty().setOpacity(alpha);
                         continue;
                     }
-                    setColor(info, vtkUtils.GEOM_TYPE_POLYS, null, Math.floor(255 * alpha));
+                    setColor(info, radiaVtkUtils.GEOM_TYPE_POLYS, null, Math.floor(255 * alpha));
                 }
                 renderWindow.render();
             }
@@ -1046,9 +1048,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             function setColorMap() {
                 var mapName = appState.models.fieldDisplay.colorMap;
-                //srdbg('setColorMap', mapName);
-                getActorsOfType(vtkUtils.GEOM_TYPE_VECTS).forEach(function (actor) {
-                    //var mapName = appState.models.fieldDisplay.colorMap;
+                getActorsOfType(radiaVtkUtils.GEOM_TYPE_VECTS).forEach(function (actor) {
                     actor.getMapper().getInputConnection(0).filter
                         .setFormula(getVectFormula(sceneData.data[0].vectors, mapName));  // which data? all? at what index?
                 });
@@ -1056,7 +1056,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setScaling() {
-                getActorsOfType(vtkUtils.GEOM_TYPE_VECTS).forEach(function (actor) {
+                getActorsOfType(radiaVtkUtils.GEOM_TYPE_VECTS).forEach(function (actor) {
                     var mapper = actor.getMapper();
                     mapper.setScaleFactor(8.0);
                     var vs = appState.models.fieldDisplay.scaling;
@@ -1079,7 +1079,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 sceneData = data;
                 buildScene();
                 if (! initDone) {
-                    //vtkAPI.setCam();
                     initDone = true;
                 }
             }
@@ -1277,7 +1276,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-SIREPO.app.factory('vtkUtils', function(utilities) {
+SIREPO.app.factory('radiaVtkUtils', function(utilities) {
 
     var self = {};
 
@@ -1391,16 +1390,6 @@ SIREPO.app.factory('vtkUtils', function(utilities) {
         var pd = vtk.Common.DataModel.vtkPolyData.newInstance();
         pd.getPoints().setData(points, 3);
         return pd;
-    };
-
-    // Converts vtk colors ranging from 0 -> 255 to 0.0 -> 1.0
-    // can't map, because we will still have a UINT8 array
-    self.rgbToFloat = function (rgb) {
-        var sc = [];
-        for (var i = 0; i < rgb.length; ++i) {
-            sc.push(rgb[i] / 255.0);
-        }
-        return sc;
     };
 
     return self;

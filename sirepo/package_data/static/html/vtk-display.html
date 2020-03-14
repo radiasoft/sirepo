@@ -10,4 +10,15 @@
             </svg>
         </div>
     </div>
+        <div class=".sr-plot-legend .plot-visibility">
+        <div class="row">
+            <div class="col-sm-6">
+                <div data-toggle="tooltip" title="Select" class="btn btn-default" data-ng-class="{'btn-primary': mode == vtkUtils.INTERACTION_MODE_SELECT}" style="margin: 2px;" data-ng-click="setMode(vtkUtils.INTERACTION_MODE_SELECT)">&#x2B09;</div>
+                <div data-toggle="tooltip" title="Manipulate" class="btn btn-default" data-ng-class="{'btn-primary': mode == vtkUtils.INTERACTION_MODE_MOVE}" style="margin: 2px;" data-ng-click="setMode(vtkUtils.INTERACTION_MODE_MOVE)"><span class="glyphicon glyphicon-hand-up"></span></div>
+                <div data-toggle="tooltip" title="View along x axis" class="btn btn-default" data-ng-class="{'btn-primary': side == 'x'}" style="margin: 2px;" data-ng-click="showSide('x')">X{{ xdir == 1 ? '+' : '-' }}</div>
+                <div data-toggle="tooltip" title="View along y axis" class="btn btn-default" data-ng-class="{'btn-primary': side == 'y'}" style="margin: 2px;" data-ng-click="showSide('y')">Y{{ ydir == 1 ? '+' : '-' }}</div>
+                <div data-toggle="tooltip" title="View along z axis" class="btn btn-default" data-ng-class="{'btn-primary': side == 'z'}" style="margin: 2px;" data-ng-click="showSide('z')">Z{{ zdir == 1 ? '+' : '-' }}</div>
+            </div>
+        </div>
+    </div>
 </div>
