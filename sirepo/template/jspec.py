@@ -182,10 +182,52 @@ def get_rates(run_dir):
             o.rate.append(r)
     return o
 
-def post_execution_processing(success_exit=True, is_parallel=False, **kwargs):
+
+
+def post_execution_processing(
+        success_exit=True,
+        is_parallel=False,
+        run_dir=None,
+        **kwargs
+):
     if not success_exit or not is_parallel:
         return None
-    # TODO(e-carlin): get the rates and compare with time_step
+    return _get_time_step_warning(run_dir)
+
+
+def _get_time_step_warning(run_dir):
+    def _get_rate(rates, i, j):
+        return abs(float(rates[i][1][j]))
+
+    def _get_max_rate(rates):
+        m =  _get_rate(rates, 0, 0)
+        for i in range(2):
+            t = rates[i][0]
+            assert 'IBS rate' in t or 'Electron cooling rate' in t, \
+                'unknown rates={}'.format(rates)
+            for j in range(3):
+                m = max(m, _get_rate(rates, i, j))
+        return m
+
+    m = _get_max_rate(get_rates(run_dir).rate)
+    w = None
+    r = 0.05 / m
+    s = simulation_db.read_json(
+        run_dir.join(template_common.INPUT_BASE_NAME),
+    ).models.simulationSettings.time_step
+    if s < 0.25 * r:
+        w = (
+            'The time step is too small. This can lead to long run times.'
+            ' Please consider decreasing the total time and/or increasing'
+            ' the number of steps.'
+        )
+    elif s > 4 * r:
+        w = (
+            'The time step is too large. This can lead to innacurate results.'
+            ' Please consider increasing the total time and/or decreasing'
+            ' the number of steps.'
+        )
+    return w
 
 
 def python_source_for_model(data, model):
@@ -193,7 +235,7 @@ def python_source_for_model(data, model):
     elegant_twiss_file = None
     if ring.latticeSource == 'elegant':
         elegant_twiss_file = _SIM_DATA.lib_file_name_with_model_field('ring', 'elegantTwiss', ring.elegantTwiss)
-    elif  ring.latticeSource == 'elegant-sirepo':
+    elif ring.latticeSource == 'elegant-sirepo':
         elegant_twiss_file = _SIM_DATA.JSPEC_ELEGANT_TWISS_FILENAME
     convert_twiss_to_tfs = ''
     if elegant_twiss_file:

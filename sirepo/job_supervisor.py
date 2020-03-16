@@ -36,25 +36,26 @@ _NEXT_REQUEST_SECONDS = None
 _RUNNING_PENDING = (job.RUNNING, job.PENDING)
 
 _HISTORY_FIELDS = frozenset((
+    'alerts',
     'computeJobQueued',
     'computeJobSerial',
     'computeJobStart',
+    'computeModel'
     'driverDetails',
     'error',
     'jobRunMode',
     'lastUpdateTime',
-    'computeModel'
     'status',
 ))
 
 _PARALLEL_STATUS_FIELDS = frozenset((
     'computeJobHash',
+    'computeJobStart',
+    'computeModel',
     'elapsedTime',
     'frameCount',
     'lastUpdateTime',
-    'computeModel'
     'percentComplete',
-    'computeJobStart',
 ))
 
 _UNTIMED_OPS = frozenset((job.OP_ALIVE, job.OP_CANCEL, job.OP_ERROR, job.OP_KILL, job.OP_OK))
@@ -269,6 +270,7 @@ class _ComputeJob(PKDict):
     def __db_init(self, req, prev_db=None):
         c = req.content
         self.db = PKDict(
+            alerts=None,
             computeJid=c.computeJid,
             computeJobHash=c.computeJobHash,
             computeJobSerial=0,
@@ -623,6 +625,7 @@ class _ComputeJob(PKDict):
                         l = False
                         self.run_dir_release(op)
                     self.db.status = r.state
+                    self.db.alerts = r.get('alerts')
                     if self.db.status == job.ERROR:
                         self.db.error = r.get('error', '<unknown error>')
                     if 'computeJobStart' in r:
@@ -670,6 +673,8 @@ class _ComputeJob(PKDict):
             r = PKDict(**kwargs)
             if self.db.error:
                 r.error = self.db.error
+            if self.db.alerts:
+                r.alerts = self.db.alerts
             if self.db.isParallel:
                 r.update(self.db.parallelStatus)
                 r.computeJobHash = self.db.computeJobHash
