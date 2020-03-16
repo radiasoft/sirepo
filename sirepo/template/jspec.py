@@ -163,6 +163,25 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         return path.basename, f.read(), 'application/octet-stream'
 
 
+   # TODO(e-carlin): sort
+def get_rates(run_dir):
+    # TODO(e-carlin): single letter var name
+    f = pkio.py_path(run_dir).join(JSPEC_LOG_FILE)
+    assert f.exists(), 'non-existent log file {}'.format(f)
+    o = PKDict(
+        #TODO(pjm): x_range is needed for sirepo-plotting.js, need a better valid-data check
+        x_range=[],
+        rate=[],
+    )
+    for l in pkio.read_text(f).split("\n"):
+        m = re.match(r'^(.*? rate.*?)\:\s+(\S+)\s+(\S+)\s+(\S+)', l)
+        if m:
+            r = [m.group(1), [m.group(i) for i in range(2, 5)]]
+            r[0] = re.sub(r'\(', '[', r[0])
+            r[0] = re.sub(r'\)', ']', r[0])
+            o.rate.append(r)
+    return o
+
 def post_execution_processing(success_exit=True, is_parallel=False, **kwargs):
     if not success_exit or not is_parallel:
         return None
