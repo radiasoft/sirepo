@@ -2198,6 +2198,10 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             }
         };
 
+        state.getAlerts = function() {
+            return simulationStatus().alerts;
+        };
+
         state.getError = function() {
             return simulationStatus().error;
         };
