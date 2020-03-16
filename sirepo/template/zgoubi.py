@@ -468,8 +468,6 @@ def save_sequential_report_data(data, run_dir):
             if report[f] == 'none':
                 continue
             points = column_data(report[f], col_names, rows)
-            # TODO(e-carlin): This used to just set the error and fall through.
-            # What is the desired behavior
             assert not any(map(lambda x: math.isnan(x), points)), \
                 'Twiss data could not be computed for {}'.format(
                     template_common.enum_text(_SCHEMA, enum_name, report[f]),

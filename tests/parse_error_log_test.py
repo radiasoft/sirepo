@@ -32,4 +32,4 @@ def test_runError(fc):
         time.sleep(d.nextRequestSeconds)
         d = fc.sr_post('runStatus', d.nextRequest)
     else:
-        pkunit.pkfail('runStatus: failed to start running: {}', d)
+        pkunit.pkfail('Error never returned d={}', d)

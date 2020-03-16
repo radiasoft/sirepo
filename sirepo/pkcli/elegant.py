@@ -47,8 +47,6 @@ def _run_elegant(bunch_report=False, with_mpi=False):
     pkio.write_text('elegant.lte', r.lattice_file)
     ele = 'elegant.ele'
     pkio.write_text(ele, r.elegant_file)
-    # Needs to be python dict not PKDict
-    # TODO(e-carlin): Why?
     kwargs = {
         'output': ELEGANT_LOG_FILE,
         'env': elegant_common.subprocess_env(),
