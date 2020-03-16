@@ -170,11 +170,9 @@
             ]
         },
         "geomObject": {
-            "title": "Geometry",
+            "title": "Object",
             "advanced": [
                 "name",
-                "type",
-                "material",
                 "color"
             ]
         },
