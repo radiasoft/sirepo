@@ -3094,7 +3094,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             '</form>',
             '<div class="clearfix"></div>',
             '<div data-ng-if="errorMessage()"><div class="text-danger"><strong>{{ ::appName }} Error:</strong></div><pre>{{ errorMessage() }}</pre></div>',
-            '<div data-ng-if="alertMessages()"><div class="text-warning"><strong>{{ ::appName }} Alerts:</strong></div><pre>{{ alertMessages() }}</pre></div>',
+            '<div data-ng-if="alertMessage()"><div class="text-warning"><strong>{{ ::appName }} Alert:</strong></div><pre>{{ alertMessage() }}</pre></div>',
         ].join(''),
         controller: function($scope, appState, authState) {
             $scope.appName = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName;
@@ -3103,8 +3103,8 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                 return $scope.simState[method] && $scope.simState[method]();
             }
 
-            $scope.alertMessages = function() {
-                return callSimState('getAlerts');
+            $scope.alertMessage = function() {
+                return callSimState('getAlert');
             };
 
             $scope.errorMessage = function() {

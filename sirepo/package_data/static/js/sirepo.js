@@ -2173,7 +2173,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
                 appState.models.simulationStatus = {};
             }
             if (state.model in appState.models.simulationStatus) {
-                delete appState.models.simulationStatus[state.model].alerts;
+                delete appState.models.simulationStatus[state.model].alert;
             }
             data.report = state.model;
             appState.models.simulationStatus[state.model] = angular.extend(
@@ -2201,8 +2201,8 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             }
         };
 
-        state.getAlerts = function() {
-            return simulationStatus().alerts;
+        state.getAlert = function() {
+            return simulationStatus().alert;
         };
 
         state.getError = function() {

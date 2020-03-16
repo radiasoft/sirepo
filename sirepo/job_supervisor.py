@@ -36,7 +36,7 @@ _NEXT_REQUEST_SECONDS = None
 _RUNNING_PENDING = (job.RUNNING, job.PENDING)
 
 _HISTORY_FIELDS = frozenset((
-    'alerts',
+    'alert',
     'computeJobQueued',
     'computeJobSerial',
     'computeJobStart',
@@ -270,7 +270,7 @@ class _ComputeJob(PKDict):
     def __db_init(self, req, prev_db=None):
         c = req.content
         self.db = PKDict(
-            alerts=None,
+            alert=None,
             computeJid=c.computeJid,
             computeJobHash=c.computeJobHash,
             computeJobSerial=0,
@@ -625,7 +625,7 @@ class _ComputeJob(PKDict):
                         l = False
                         self.run_dir_release(op)
                     self.db.status = r.state
-                    self.db.alerts = r.get('alerts')
+                    self.db.alert = r.get('alert')
                     if self.db.status == job.ERROR:
                         self.db.error = r.get('error', '<unknown error>')
                     if 'computeJobStart' in r:
@@ -673,8 +673,8 @@ class _ComputeJob(PKDict):
             r = PKDict(**kwargs)
             if self.db.error:
                 r.error = self.db.error
-            if self.db.alerts:
-                r.alerts = self.db.alerts
+            if self.db.alert:
+                r.alert = self.db.alert
             if self.db.isParallel:
                 r.update(self.db.parallelStatus)
                 r.computeJobHash = self.db.computeJobHash
