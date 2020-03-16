@@ -61,6 +61,7 @@
             "momentum_spread": 0.0006,
             "norm_emit_x": 2.2e-06,
             "norm_emit_y": 2.2e-06,
+            "particle": "PROTON",
             "particle_number": 65800000000000,
             "rms_bunch_length": 7
         },
@@ -111,7 +112,8 @@
             "sample_number": 100000,
             "save_particle_interval": 100,
             "step_number": 600,
-            "time": 600
+            "time": 600,
+            "time_step": 1
         },
         "twissReport": {
             "y1": "betx",

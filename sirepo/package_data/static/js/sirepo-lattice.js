@@ -705,7 +705,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                     }
                     if (foundIt) {
                         targetIndices.unshift(i);
-                        i += ids.length;
+                        i += ids.length - 1;
                     }
                 }
                 // replaces all occurrences, targetIndices is reverse sorted

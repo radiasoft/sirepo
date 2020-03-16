@@ -544,7 +544,7 @@ def _generate_parameters_file(data):
         if report == 'twissReport':
             beamline_id = util.select_beamline().id
         else:
-            beamline_id = _find_first_command(util.data, 'track').line
+            beamline_id = _find_first_command(util.data, 'track').line or util.select_beamline().id
         v.lattice = _generate_lattice(util, code_var, beamline_id)
         v.use_beamline = util.select_beamline().name
 

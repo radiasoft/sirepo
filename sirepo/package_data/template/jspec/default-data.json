@@ -54,6 +54,7 @@
             "nz": 40
         },
         "ionBeam": {
+            "particle": "PROTON",
             "beam_type": "bunched",
             "charge_number": 1,
             "kinetic_energy": 8000,

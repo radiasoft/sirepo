@@ -706,11 +706,6 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
     $scope.appState = appState;
     self.srwService = srwService;
 
-    function isActiveField(model, field) {
-        var fieldClass = '.model-' + model + '-' + field;
-        return $(fieldClass).find('input').is(':focus');
-    }
-
     function convertGBSize(field, energy) {
         var value = appState.models.gaussianBeam[field];
         var waveLength = (1239.84193 * 1e-9) / energy;  // [m]
@@ -995,22 +990,22 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         appState.watchModelFields($scope, ['brillianceReport.brightnessComponent'], processBrillianceReport);
 
         appState.watchModelFields($scope, ['undulator.horizontalDeflectingParameter', 'undulator.verticalDeflectingParameter'], function() {
-            if (isActiveField('undulator', 'horizontalDeflectingParameter')) {
+            if (panelState.isActiveField('undulator', 'horizontalDeflectingParameter')) {
                 processUndulatorDefinition('K', 'horizontalDeflectingParameter', 'horizontalAmplitude');
             }
-            else if (isActiveField('undulator', 'verticalDeflectingParameter')) {
+            else if (panelState.isActiveField('undulator', 'verticalDeflectingParameter')) {
                 processUndulatorDefinition('K', 'verticalDeflectingParameter', 'verticalAmplitude');
             }
         });
 
         appState.watchModelFields($scope, ['undulator.horizontalAmplitude', 'undulator.verticalAmplitude', 'undulator.period'], function() {
-            if (isActiveField('undulator', 'horizontalAmplitude')) {
+            if (panelState.isActiveField('undulator', 'horizontalAmplitude')) {
                 processUndulatorDefinition('B', 'horizontalDeflectingParameter', 'horizontalAmplitude');
             }
-            else if (isActiveField('undulator', 'verticalAmplitude')) {
+            else if (panelState.isActiveField('undulator', 'verticalAmplitude')) {
                 processUndulatorDefinition('B', 'verticalDeflectingParameter', 'verticalAmplitude');
             }
-            else if (isActiveField('undulator', 'period')) {
+            else if (panelState.isActiveField('undulator', 'period')) {
                 processUndulatorDefinition('B', 'verticalDeflectingParameter', 'verticalAmplitude');
                 processUndulatorDefinition('B', 'horizontalDeflectingParameter', 'horizontalAmplitude');
             }
