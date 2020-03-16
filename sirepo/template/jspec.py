@@ -163,6 +163,12 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         return path.basename, f.read(), 'application/octet-stream'
 
 
+def post_execution_processing(success_exit=True, is_parallel=False, **kwargs):
+    if not success_exit or not is_parallel:
+        return None
+    # TODO(e-carlin): get the rates and compare with time_step
+
+
 def python_source_for_model(data, model):
     ring = data.models.ring
     elegant_twiss_file = None
