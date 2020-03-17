@@ -82,9 +82,10 @@ def init():
     cfg = pkconfig.init(
         job_cache_secs=(300, int, 'when to re-read job state from disk'),
         max_hours=dict(
-            analysis=(.04, float, 'maximum run-time for analysis job'),
+            analysis=(.04, float, 'maximum run-time for analysis job',),
             parallel=(1, float, 'maximum run-time for parallel job (except sbatch)'),
-            sequential=(.1, float, 'maximum run-time for sequential job')
+            parallel_premium=(2, float, 'maximum run-time for parallel job for premium user (except sbatch)'),
+            sequential=(.1, float, 'maximum run-time for sequential job'),
         ),
         sbatch_poll_secs=(60, int, 'how often to poll squeue and parallel status'),
     )
@@ -271,6 +272,7 @@ class _ComputeJob(PKDict):
         c = req.content
         self.db = PKDict(
             alert=None,
+            cancelledDueToTimeout=False,
             computeJid=c.computeJid,
             computeJobHash=c.computeJobHash,
             computeJobSerial=0,
@@ -280,6 +282,7 @@ class _ComputeJob(PKDict):
             error=None,
             history=self.__db_init_history(prev_db),
             isParallel=c.isParallel,
+            isPremiumUser=c.isPremiumUser,
             jobRunMode=c.jobRunMode,
             lastUpdateTime=0,
             simName=None,
@@ -329,6 +332,7 @@ class _ComputeJob(PKDict):
                 h.extend([
                     'Queued',
                     'Driver details',
+                    'Premium user'
                 ])
             return h
 
@@ -363,6 +367,7 @@ class _ComputeJob(PKDict):
                     d.extend([
                         _get_queued_time(i.db),
                         ' | '.join(sorted(i.db.driverDetails.values())),
+                        i.db.isPremiumUser,
                     ])
                 r.append(d)
 
@@ -453,6 +458,8 @@ class _ComputeJob(PKDict):
                     pkdlog('{} cancel={}', self, o)
                     for x in filter(lambda e: e != c, o):
                         x.destroy(cancel=True)
+                    if timed_out_op:
+                        self.db.cancelledDueToTimeout = True
                     self.db.status = job.CANCELED
                     self.__db_write()
                     if c:
@@ -574,7 +581,11 @@ class _ComputeJob(PKDict):
 # these values are never sent directly, only msg which can be camelcase
             computeJob=self,
             kind=req.kind,
-            maxRunSecs=self._get_max_run_secs(opName, req.kind, r),
+            maxRunSecs=self._get_max_run_secs(
+                opName,
+                r,
+                req,
+            ),
             msg=PKDict(req.content).pksetdefault(jobRunMode=r),
             opName=opName,
             req_content=req.copy_content(),
@@ -591,11 +602,13 @@ class _ComputeJob(PKDict):
         self.ops.append(o)
         return o
 
-    def _get_max_run_secs(self, op_name, kind, run_mode):
+    def _get_max_run_secs(self, op_name, run_mode, req):
         if op_name in _UNTIMED_OPS or \
             (run_mode == sirepo.job.SBATCH and op_name == job.OP_RUN):
             return 0
-        t = cfg.max_hours[kind]
+        t = cfg.max_hours[req.kind]
+        if req.kind == job.PARALLEL and req.content.isPremiumUser:
+            t = cfg.max_hours['parallel_premium']
         if op_name == sirepo.job.OP_ANALYSIS:
             t = cfg.max_hours.analysis
         return t * 3600
@@ -671,6 +684,8 @@ class _ComputeJob(PKDict):
     def _status_reply(self, req):
         def res(**kwargs):
             r = PKDict(**kwargs)
+            if self.db.get('cancelledDueToTimeout'):
+                r.cancelledDueToTimeout = True
             if self.db.error:
                 r.error = self.db.error
             if self.db.get('alert'):

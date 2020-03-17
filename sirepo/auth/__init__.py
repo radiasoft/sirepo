@@ -30,6 +30,7 @@ LOGIN_ROUTE_NAME = 'login'
 METHOD_GUEST = 'guest'
 
 ROLE_ADM = 'adm'
+ROLE_PREMIUM = 'premium'
 
 #: key for auth method for login state
 _COOKIE_METHOD = 'sram'
@@ -122,6 +123,7 @@ def complete_registration(name=None):
 def get_all_roles():
     r = [_role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types]
     r.append(ROLE_ADM)
+    r.append(ROLE_PREMIUM)
     return r
 
 

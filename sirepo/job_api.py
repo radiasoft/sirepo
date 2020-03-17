@@ -17,6 +17,7 @@ import pykern.pkio
 import re
 import requests
 import sirepo.auth
+import sirepo.auth_db
 import sirepo.http_reply
 import sirepo.http_request
 import sirepo.job
@@ -244,6 +245,13 @@ def _request_content(kwargs):
         computeJid=s.parse_jid(d, uid=b.uid),
         userDir=str(sirepo.simulation_db.user_dir_name(b.uid)),
     )
+    with sirepo.auth_db.thread_lock:
+        b.pkupdate(
+            isPremiumUser=sirepo.auth_db.UserRole.search_by(
+                role=sirepo.auth.ROLE_PREMIUM,
+                uid=b.uid,
+            ) is not None,
+        )
     return _run_mode(b)
 
 
