@@ -12,13 +12,15 @@
     </div>
         <div class=".sr-plot-legend .plot-visibility">
         <div class="row">
-            <div class="col-sm-6">
+            <div class="col-sm-12">
                 <div>{{ modeText[interactionMode] }}</div>
                 <div data-toggle="tooltip" title="Select" class="btn btn-default" data-ng-class="{'btn-primary': interactionMode == vtkUtils.INTERACTION_MODE_SELECT}" style="margin: 2px;" data-ng-click="setInteractionMode(vtkUtils.INTERACTION_MODE_SELECT)">&#x2B09;</div>
                 <div data-toggle="tooltip" title="Manipulate" class="btn btn-default" data-ng-class="{'btn-primary': interactionMode == vtkUtils.INTERACTION_MODE_MOVE}" style="margin: 2px;" data-ng-click="setInteractionMode(vtkUtils.INTERACTION_MODE_MOVE)"><span class="glyphicon glyphicon-hand-up"></span></div>
                 <div data-toggle="tooltip" title="View along x axis" class="btn btn-default" data-ng-class="{'btn-primary': side == 'x'}" style="margin: 2px;" data-ng-click="showSide('x')">X{{ axisDirs.dir == 1 ? '+' : '-' }}</div>
                 <div data-toggle="tooltip" title="View along y axis" class="btn btn-default" data-ng-class="{'btn-primary': side == 'y'}" style="margin: 2px;" data-ng-click="showSide('y')">Y{{ axisDirs.dir == 1 ? '+' : '-' }}</div>
                 <div data-toggle="tooltip" title="View along z axis" class="btn btn-default" data-ng-class="{'btn-primary': side == 'z'}" style="margin: 2px;" data-ng-click="showSide('z')">Z{{ axisDirs.dir == 1 ? '+' : '-' }}</div>
+                <!-- maybe toggling on clicking the marker itself would be better -->
+                <input type="checkbox" data-ng-if="hasMarker()" data-ng-model="markerState.enabled" data-ng-change="toggleMarker()"> Toggle Marker
             </div>
         </div>
     </div>

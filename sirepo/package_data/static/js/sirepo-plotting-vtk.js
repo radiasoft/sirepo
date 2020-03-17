@@ -1056,13 +1056,15 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             enableAxes: '@',
             eventHandlers: '<',
             modelName: '@',
-            orientation: '<',
             reportId: '<',
         },
         templateUrl: '/static/html/vtk-display.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {
 
             $scope.vtkUtils = vtkUtils;
+            $scope.markerState = {
+                enabled: true,
+            };
             $scope.modeText = {};
             $scope.modeText[vtkUtils.INTERACTION_MODE_MOVE] = 'Click and drag to rotate';
             $scope.modeText[vtkUtils.INTERACTION_MODE_SELECT] = 'Control-click an object to select';
@@ -1122,9 +1124,20 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
 
             function setMarker(m) {
                 marker = m;
-                $scope.setMarkerVisible(true);
+                setMarkerVisible(true);
             }
 
+            function setMarkerVisible(isVisible) {
+                if (! marker) {
+                    return;
+                }
+                marker.setEnabled(isVisible);
+                renderWindow.render();
+            }
+
+            $scope.hasMarker = function() {
+                return ! ! marker;
+            };
 
             $scope.init = function() {
                 const rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
@@ -1182,20 +1195,11 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
 
             $scope.interactionMode = vtkUtils.INTERACTION_MODE_MOVE;
 
-            $scope.setMarkerVisible = function(isVisible) {
-                if (! marker) {
-                    return;
-                }
-                marker.setEnabled(isVisible);
-                renderWindow.render();
-            };
-
             $scope.setInteractionMode = function(mode) {
                 //srdbg(mode);
                 $scope.interactionMode = mode;
                 //renderWindow.getInteractor().setRecognizeGestures(mode === vtkUtils.INTERACTION_MODE_MOVE);
             };
-
 
             $scope.axisDirs = {
                 dir: 1,
@@ -1221,8 +1225,12 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 setCam(cp, $scope.axisDirs[side].camViewUp);
             };
 
+            $scope.toggleMarker = function() {
+                setMarkerVisible($scope.markerState.enabled);
+            };
+
             appState.whenModelsLoaded($scope, function () {
-                srdbg('vtk display models loaded');
+                //srdbg('vtk display models loaded');
                 $scope.init();
             });
         },
