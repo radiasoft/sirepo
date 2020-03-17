@@ -62,6 +62,17 @@ def get_data_file(run_dir, model, frame, **kwargs):
         return filename, f.read(), 'application/octet-stream'
 
 
+def post_execution_processing(
+        success_exit=True,
+        is_parallel=False,
+        run_dir=None,
+        **kwargs
+):
+    if success_exit or is_parallel:
+        return None
+    return _parse_shadow_log(run_dir)
+
+
 def python_source_for_model(data, model):
     beamline = data['models']['beamline']
     watch_id = None
@@ -522,6 +533,15 @@ def _item_field(item, fields):
 
 def _is_disabled(item):
     return 'isDisabled' in item and item['isDisabled']
+
+
+def _parse_shadow_log(run_dir):
+    if run_dir.join(template_common.RUN_LOG).exists():
+        text = pkio.read_text(run_dir.join(template_common.RUN_LOG))
+        for line in text.split("\n"):
+            if re.search(r'invalid chemical formula', line):
+                return 'A mirror contains an invalid reflectivity material'
+    return 'an unknown error occurred'
 
 
 def _source_field(model, fields):

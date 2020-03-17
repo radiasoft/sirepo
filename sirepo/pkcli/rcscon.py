@@ -23,12 +23,4 @@ def run(cfg_dir):
 
 
 def run_background(cfg_dir):
-    res = PKDict()
-    try:
-        template_common.exec_parameters()
-    except Exception as e:
-        res.error = str(e)
-    simulation_db.write_result(res)
-
-
-def _run_simulation():
+    template_common.exec_parameters()

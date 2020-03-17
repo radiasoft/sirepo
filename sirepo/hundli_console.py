@@ -40,6 +40,8 @@ def main():
 
     if params['name'] == 'srunit_long_run':
         time.sleep(100)
+    elif params['name'] == 'srunit_error_run':
+        raise AssertionError('a big ugly error')
 
     max_age = _max_age(params['weight'])
     years = numpy.linspace(0, max_age, int(max_age) + 1).tolist()

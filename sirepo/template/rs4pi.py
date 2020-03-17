@@ -75,7 +75,6 @@ def background_percent_complete(report, run_dir, is_running):
         percentComplete=100,
         # real frame count depends on the series selected
         frameCount=1,
-        errors='',
     )
 
 

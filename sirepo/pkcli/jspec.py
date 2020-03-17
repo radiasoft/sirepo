@@ -20,7 +20,7 @@ _SIM_DATA = sirepo.sim_data.get_class('jspec')
 def run(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     if data['report'] == 'twissReport':
-        simulation_db.write_result(_extract_twiss_report(data))
+        template_common.write_sequential_result(_extract_twiss_report(data))
     elif data['report'] == 'rateCalculationReport':
         text = _run_jspec(data)
         res = {
@@ -35,14 +35,13 @@ def run(cfg_dir):
                 row[0] = re.sub('\(', '[', row[0]);
                 row[0] = re.sub('\)', ']', row[0]);
                 res['rate'].append(row)
-        simulation_db.write_result(res)
+        template_common.write_sequential_result(res)
     else:
-        assert False, 'unknown report: {}'.format(data['report'])
+        raise AssertionError('unknown report: {}'.format(data['report']))
 
 
 def run_background(cfg_dir):
     _run_jspec(simulation_db.read_json(template_common.INPUT_BASE_NAME))
-    simulation_db.write_result({})
 
 
 def _elegant_to_madx(ring):

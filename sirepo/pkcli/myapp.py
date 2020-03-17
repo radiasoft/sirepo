@@ -19,16 +19,9 @@ _SCHEMA = simulation_db.get_schema(template.SIM_TYPE)
 
 
 def run(cfg_dir):
-    try:
-        pksubprocess.check_call_with_signals(
-            [sys.executable, template_common.PARAMETERS_PYTHON_FILE],
-        )
-    except Exception as e:
-        pkdlog('script failed: dir={} err={}', cfg_dir, e)
-        simulation_db.write_result({
-            'error': 'program error occured',
-        })
-        return
+    pksubprocess.check_call_with_signals(
+        [sys.executable, template_common.PARAMETERS_PYTHON_FILE],
+    )
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     if data.report == 'heightWeightReport':
         res = _report(
@@ -38,7 +31,7 @@ def run(cfg_dir):
         )
     else:
         raise AssertionError('unknown report: {}'.format(data.report))
-    simulation_db.write_result(res)
+    template_common.write_sequential_result(res)
 
 
 def _csv_to_cols():
