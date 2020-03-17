@@ -27,9 +27,28 @@ def test_runError(fc):
     )
     for _ in range(10):
         if d.state == 'error':
-            pkunit.pkeq("raise AssertionError('a big ugly error')", d.error)
+            pkunit.pkeq("a big ugly error", d.error)
             return
         time.sleep(d.nextRequestSeconds)
         d = fc.sr_post('runStatus', d.nextRequest)
     else:
         pkunit.pkfail('Error never returned d={}', d)
+
+
+def test_parse_python_errors():
+    from sirepo.pkcli import job_cmd
+    from pykern.pkunit import pkeq
+    err = '''
+Traceback (most recent call last):
+  File "/home/vagrant/src/radiasoft/sirepo/sirepo/pkcli/zgoubi.py", line 120, in _validate_estimate_output_file_size
+    'Estimated FAI output too large.\n'
+AssertionError: Estimated FAI output too large.
+Reduce particle count or number of runs,
+or increase diagnostic interval.
+'''
+    pkeq(
+        job_cmd._parse_python_errors(err),
+        'Estimated FAI output too large.\n'
+        'Reduce particle count or number of runs,\n'
+        'or increase diagnostic interval.'
+    )

@@ -204,22 +204,12 @@ def _on_do_compute_exit(success_exit, is_parallel, template, run_dir):
     def _failure_exit():
         a = _post_processing()
         if not a:
-            a = _parse_python_errors()
+            f = run_dir.join(template_common.RUN_LOG)
+            if f.exists():
+                a = _parse_python_errors(pkio.read_text(f))
+        if not a:
+            a = 'non-zero exit code'
         return PKDict(state=job.ERROR, error=a)
-
-    def _parse_python_errors():
-        f = run_dir.join(template_common.RUN_LOG)
-        if f.exists():
-            m = re.search(
-                # TODO(e-carlin): I don't actually understand why this works.
-                # Discuss with someone who might.
-                r'Traceback.*\n(\s+.*\n)*(.*?)\n*',
-                pkio.read_text(f),
-                re.MULTILINE,
-            )
-            if m:
-                return m.group(1).strip()
-        return 'non-zero exit code'
 
     def _post_processing():
         if hasattr(template, 'post_execution_processing'):
@@ -246,6 +236,17 @@ def _mtime_or_now(path):
         int: modification time
     """
     return int(path.mtime() if path.exists() else time.time())
+
+
+def _parse_python_errors(text):
+    m = re.search(
+        r'^Traceback .*?^\w*(?:Error|Exception):\s*(.*)',
+        text,
+        re.MULTILINE|re.DOTALL,
+    )
+    if m:
+        return re.sub(r'\nTraceback.*$', '', m.group(1), flags=re.S).strip()
+    return ''
 
 
 def _write_parallel_status(msg, template, is_running):

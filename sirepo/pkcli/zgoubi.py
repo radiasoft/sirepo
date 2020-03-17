@@ -115,9 +115,12 @@ def _validate_estimate_output_file_size(data, res):
     settings = data.models.simulationSettings
     line_size = 800
     fai_size = line_size * settings.npass / (settings.ip or 1) * float(count)
-    assert not fai_size > _MAX_OUTPUT_SIZE, \
-        ('Estimated FAI output too large.\nReduce particle count or number of'
-         ' runs,\nor increase diagnostic interval.')
+    if fai_size > _MAX_OUTPUT_SIZE:
+        raise AssertionError(
+            'Estimated FAI output too large.\n'
+            'Reduce particle count or number of runs,\n'
+            'or increase diagnostic interval.'
+        )
     beamline_map = {}
     for bl in data.models.beamlines:
         beamline_map[bl.id] = bl
@@ -126,10 +129,12 @@ def _validate_estimate_output_file_size(data, res):
         element_map[el._id] = el
     steps = _beamline_steps(beamline_map, element_map, data.models.simulation.visualizationBeamlineId)
     plt_size = line_size * steps * settings.npass * float(count)
-    assert not plt_size > _MAX_OUTPUT_SIZE, \
-        ('Estimated PLT output too large.\nReduce particle count, number of'
-         ' runs, element integration step size\nor decrease elements with'
-         ' plotting enabled.')
+    if plt_size > _MAX_OUTPUT_SIZE:
+        raise AssertionError(
+            'Estimated PLT output too large.\n'
+            'Reduce particle count, number of runs, element integration\n'
+            'step size or decrease elements with plotting enabled.'
+        )
 
 
 def _run_tunes_report(cfg_dir, data):

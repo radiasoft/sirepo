@@ -447,15 +447,15 @@ def _get_time_step_warning(run_dir):
     ).models.simulationSettings.time_step
     if s < 0.25 * r:
         w = (
-            'The time step is too small. This can lead to long run times.'
-            ' Please consider decreasing the total time and/or increasing'
-            ' the number of steps.'
+            'The time step is too small. This can lead to long run times.\n'
+            'Please consider decreasing the total time and/or increasing\n'
+            'the number of steps.'
         )
     elif s > 4 * r:
         w = (
-            'The time step is too large. This can lead to innacurate results.'
-            ' Please consider increasing the total time and/or decreasing'
-            ' the number of steps.'
+            'The time step is too large. This can lead to innacurate results.\n'
+            'Please consider increasing the total time and/or decreasing\n'
+            'the number of steps.'
         )
     return w
 
