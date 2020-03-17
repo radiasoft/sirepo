@@ -27,6 +27,7 @@ SIREPO.app.factory('radiaService', function(appState, panelState) {
 
     self.isEditing = false;
     self.pointFieldTypes = appState.enumVals('FieldType').slice(1);
+    self.selectedObj = null;
 
     self.addOrModifyPath = function(type) {
         var p = appState.models[self.pathTypeModel(type)];
@@ -74,6 +75,10 @@ SIREPO.app.factory('radiaService', function(appState, panelState) {
         return (appState.models.fieldTypes || {}).path;
     };
 
+    self.getSelectedObj = function() {
+        return self.selectedObj;
+    };
+
     self.newPath = function() {
         self.showPathPicker(true, true);
     };
@@ -87,6 +92,10 @@ SIREPO.app.factory('radiaService', function(appState, panelState) {
 
     self.pathTypeModel = function(type) {
         return type + 'Path';
+    };
+
+    self.setSelectedObj = function(o) {
+        self.selectedObj = o;
     };
 
     self.showPathPicker = function(doShow, isNew) {
@@ -184,6 +193,123 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     });
 });
 
+
+SIREPO.app.directive('appFooter', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            nav: '=appFooter',
+        },
+        template: [
+            '<div data-common-footer="nav"></div>',
+        ].join(''),
+    };
+});
+
+SIREPO.app.directive('appHeader', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            nav: '=appHeader',
+        },
+        template: [
+            '<div data-app-header-brand="nav"></div>',
+            '<div data-app-header-left="nav"></div>',
+            '<div data-app-header-right="nav">',
+              '<app-header-right-sim-loaded>',
+                '<div data-sim-sections="">',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
+                '</div>',
+              '</app-header-right-sim-loaded>',
+              '<app-settings>',
+                //  '<div>App-specific setting item</div>',
+              '</app-settings>',
+              '<app-header-right-sim-list>',
+                '<ul class="nav navbar-nav sr-navbar-right">',
+                  '<li><a href data-ng-click=""><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+                '</ul>',
+              '</app-header-right-sim-list>',
+            '</div>',
+        ].join(''),
+    };
+});
+
+SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaService) {
+
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+            controller: '=',
+            title: '@',
+            id: '@',
+            smallElementClass: '@',
+        },
+        template: [
+            '<div class="modal fade" data-ng-attr-id="{{ id }}" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog modal-lg">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-info">',
+                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<span class="lead modal-title text-info">{{ title }}</span>',
+                  '</div>',
+                  '<div class="modal-body">',
+                    '<div class="container-fluid">',
+                      '<div class="row">',
+                        '<div data-field-editor="\'path\'" data-label-size="" data-field-size="3" style="text-align: right" data-model-name="modelName" data-model="model"></div>',
+                      '</div>',
+                      '<br />',
+                      '<div class="row">',
+                        '<div data-ng-repeat="type in pathTypes" data-ng-show="getPathType() == type" data-advanced-editor-pane="" data-view-name="radiaService.pathTypeModel(type)" data-field-def="basic" data-want-buttons="false">',
+                      '</div>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            $scope.modelsLoaded = false;
+            $scope.pathTypes = appState.enumVals('PathType');
+            $scope.pathTypeModels = $scope.pathTypes.map(radiaService.pathTypeModel);
+            $scope.ptsFile = null;
+            $scope.radiaService = radiaService;
+
+            $scope.getPathType = function() {
+                return ($scope.model || {}).path;
+            };
+
+            function numPathsOfType(type) {
+                if (! $scope.model.paths) {
+                    return 0;
+                }
+                return $scope.model.paths.filter(function (p) {
+                    return p.type === type;
+                }).length;
+            }
+
+            appState.whenModelsLoaded($scope, function () {
+                $scope.model = appState.models[$scope.modelName];
+                $scope.pathTypes.forEach(function (t) {
+                    var pt = radiaService.pathTypeModel(t);
+                    $scope.$on(pt + '.changed', function () {
+                        //srdbg(pt, 'changed');
+                        radiaService.addOrModifyPath(t);
+                    });
+                });
+                $scope.$on('cancelChanges', function(e, name) {
+                    if ($scope.pathTypeModels.indexOf(name) >= 0) {
+                        //srdbg('cancel', name);
+                        radiaService.showPathPicker(false);
+                    }
+                });
+                srdbg('loaded paths', $scope.model);
+
+                $scope.modelsLoaded = true;
+            });
+        },
+    };
+});
 
 SIREPO.app.directive('fieldPathTable', function(appState, radiaService) {
     return {
@@ -332,78 +458,23 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaServ
     };
 });
 
-SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaService) {
+SIREPO.app.directive('radiaGeomObjInfo', function(appState, panelState, radiaService) {
 
     return {
         restrict: 'A',
         scope: {
-            modelName: '@',
-            controller: '=',
-            title: '@',
-            id: '@',
-            smallElementClass: '@',
+            model: '=',
         },
         template: [
-            '<div class="modal fade" data-ng-attr-id="{{ id }}" tabindex="-1" role="dialog">',
-              '<div class="modal-dialog modal-lg">',
-                '<div class="modal-content">',
-                  '<div class="modal-header bg-info">',
-                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-                    '<span class="lead modal-title text-info">{{ title }}</span>',
-                  '</div>',
-                  '<div class="modal-body">',
-                    '<div class="container-fluid">',
-                      '<div class="row">',
-                        '<div data-field-editor="\'path\'" data-label-size="" data-field-size="3" style="text-align: right" data-model-name="modelName" data-model="model"></div>',
-                      '</div>',
-                      '<br />',
-                      '<div class="row">',
-                        '<div data-ng-repeat="type in pathTypes" data-ng-show="getPathType() == type" data-advanced-editor-pane="" data-view-name="radiaService.pathTypeModel(type)" data-field-def="basic" data-want-buttons="false">',
-                      '</div>',
-                    '</div>',
-                  '</div>',
-                '</div>',
-              '</div>',
+            '<div class="col-md-6">',
+                '<div data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ model.name }}" data-tooltip=""></div>',
+                '<div data-field-editor="\'color\'" data-model-name="geomObject" data-model="model"></div>',
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
-            $scope.modelsLoaded = false;
-            $scope.pathTypes = appState.enumVals('PathType');
-            $scope.pathTypeModels = $scope.pathTypes.map(radiaService.pathTypeModel);
-            $scope.ptsFile = null;
             $scope.radiaService = radiaService;
-
-            $scope.getPathType = function() {
-                return ($scope.model || {}).path;
-            };
-
-            function numPathsOfType(type) {
-                if (! $scope.model.paths) {
-                    return 0;
-                }
-                return $scope.model.paths.filter(function (p) {
-                    return p.type === type;
-                }).length;
-            }
-
+            srdbg('m', $scope.model);
             appState.whenModelsLoaded($scope, function () {
-                $scope.model = appState.models[$scope.modelName];
-                $scope.pathTypes.forEach(function (t) {
-                    var pt = radiaService.pathTypeModel(t);
-                    $scope.$on(pt + '.changed', function () {
-                        //srdbg(pt, 'changed');
-                        radiaService.addOrModifyPath(t);
-                    });
-                });
-                $scope.$on('cancelChanges', function(e, name) {
-                    if ($scope.pathTypeModels.indexOf(name) >= 0) {
-                        //srdbg('cancel', name);
-                        radiaService.showPathPicker(false);
-                    }
-                });
-                srdbg('loaded paths', $scope.model);
-
-                $scope.modelsLoaded = true;
             });
         },
     };
@@ -434,16 +505,13 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
             $scope.model = appState.models[$scope.modelName];
 
             $scope.solve = function() {
-                srdbg('SOLVE');
                 $scope.viz.startSimulation();
             };
 
             // not sure how to do this - want Radia to keep geom defs but forget the fields...???
             $scope.reset = function() {
-                srdbg('RESET');
                 panelState.clear('geometry');
                 panelState.requestData('reset', function (d) {
-                    srdbg('RESET DONE', d);
                     frameCache.setFrameCount(0);
                 }, true);
             };
@@ -467,7 +535,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
         template: [
             '<div class="col-md-6">',
                 '<div data-basic-editor-panel="" data-view-name="{{ modelName }}">',
-                    '<div data-vtk-display="" class="vtk-display" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true"></div>',
+                    '<div data-vtk-display="" class="vtk-display" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-orientation="orientation"></div>',
                 '</div>',
             '</div>',
 
@@ -476,6 +544,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             $scope.defaultColor = "#ff0000";
             $scope.gModel = null;
+            $scope.selectedObj = null;
 
             var LINEAR_SCALE_ARRAY = 'linear';
             var LOG_SCALE_ARRAY = 'log';
@@ -814,7 +883,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 // regular clicks happen when spinning the scene - we'll select/deselect with ctrl-click.
                 // Though one also rotates in that case, it's less common
                 //if (! callData.controlKey) {
-                if (vtkAPI.getMode() === vtkUtils.INTERACTION_MODE_MOVE) {
+                var iMode = vtkAPI.getMode();
+                if (iMode === vtkUtils.INTERACTION_MODE_MOVE ||
+                    (iMode === vtkUtils.INTERACTION_MODE_SELECT && ! callData.controlKey)
+                ) {
                     return;
                 }
 
@@ -936,11 +1008,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 if (! selectedInfo) {
                     return;
                 }
-                var g = getGeomObj(selectedInfo.name);
-                srdbg('sel o', g);
-                appState.models.geomObject = g;
-                panelState.showModalEditor('geomObject');
+                $scope.selectedObj = getGeomObj(selectedInfo.name);
+                radiaService.setSelectedObj(getGeomObj(selectedInfo.name));
+                //srdbg('sel o', $scope.selectedObj);
+                //appState.models.geomObject = g;
+                //panelState.showModalEditor('geomObject');
                 //$('#radia-edit-geom-obj').modal('show');
+                editSelectedObj(point);
 
                 var sc = vtkUtils.rgbToFloat(selectedColor);  //[];
                 //for (var cIdx = 0; cIdx < selectedColor.length; ++cIdx) {
@@ -960,6 +1034,17 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 //view.processPickedObject(view.getInfoForActor(view.selectedObject));
             }
 
+            function editSelectedObj(point) {
+                var modal = $('<div data-id="radia-edit-geom-obj" data-model="selectedObj"></div>');
+                modal.css('position', 'absolute');
+                modal.width(200);
+                modal.height(200);
+                modal.css('left', point[0]);
+                modal.css('top', point[1]);
+                srdbg('modal', modal);
+                $($element).append(modal);
+            }
+
             function hasPaths() {
                 return appState.models.fieldPaths.paths && appState.models.fieldPaths.paths.length;
             }
@@ -970,6 +1055,25 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 if (! renderer) {
                     throw new Error('No renderer!');
                 }
+                const ca = vtk.Rendering.Core.vtkAnnotatedCubeActor.newInstance();
+                vtk.Rendering.Core.vtkAnnotatedCubeActor.Presets.applyPreset('default', ca);
+                let df = ca.getDefaultStyle();
+                df.fontFamily = 'Arial';
+                df.faceRotation = 45;
+                ca.setDefaultStyle(df);
+
+                var m = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
+                    actor: ca,
+                    interactor: renderWindow.getInteractor()
+                });
+                m.setViewportCorner(
+                    vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                );
+                m.setViewportSize(0.05);
+                m.computeViewport();
+                m.setMinPixelSize(50);
+                m.setMaxPixelSize(100);
+                vtkAPI.setMarker(m);
                 updateViewer();
             }
 
@@ -1232,47 +1336,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             });
 
         },
-    };
-});
-
-
-SIREPO.app.directive('appFooter', function() {
-    return {
-        restrict: 'A',
-        scope: {
-            nav: '=appFooter',
-        },
-        template: [
-            '<div data-common-footer="nav"></div>',
-        ].join(''),
-    };
-});
-
-SIREPO.app.directive('appHeader', function(appState, panelState) {
-    return {
-        restrict: 'A',
-        scope: {
-            nav: '=appHeader',
-        },
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<div data-app-header-right="nav">',
-              '<app-header-right-sim-loaded>',
-                '<div data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-                '</div>',
-              '</app-header-right-sim-loaded>',
-              '<app-settings>',
-                //  '<div>App-specific setting item</div>',
-              '</app-settings>',
-              '<app-header-right-sim-list>',
-                '<ul class="nav navbar-nav sr-navbar-right">',
-                  '<li><a href data-ng-click=""><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
-                '</ul>',
-              '</app-header-right-sim-list>',
-            '</div>',
-        ].join(''),
     };
 });
 
