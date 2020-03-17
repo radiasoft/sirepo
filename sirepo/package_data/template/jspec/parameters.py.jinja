@@ -85,9 +85,9 @@ section_simulation
         ref_disp_dx = {{ simulationSettings_ref_disp_dx }}
         ref_disp_dy = {{ simulationSettings_ref_disp_dy }}
 section_run
-{% if runRateCalculation %}
         calculate_ibs
         calculate_ecool
+{% if runRateCalculation %}
         total_expansion_rate
 {% endif %}
 {% if runSimulation %}

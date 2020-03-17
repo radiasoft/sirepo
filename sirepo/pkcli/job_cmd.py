@@ -228,7 +228,7 @@ def _on_do_compute_exit(success_exit, is_parallel, template, run_dir):
     def _success_exit():
         return PKDict(
             state=job.COMPLETED,
-            alerts=_post_processing(),
+            alert=_post_processing(),
         )
     try:
         return _success_exit() if success_exit else _failure_exit()

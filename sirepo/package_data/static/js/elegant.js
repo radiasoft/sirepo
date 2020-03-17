@@ -467,16 +467,16 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
     }
 
     function handleStatus(data) {
-        self.simulationErrors = data.errors || '';
+        self.simulationAlerts = data.alerts || '';
         if (data.frameCount) {
             frameCache.setFrameCount(parseInt(data.frameCount));
             loadElementReports(data.outputInfo);
         }
         if (self.simState.isStopped()) {
             if (! data.frameCount) {
-                if (data.state == 'completed' && ! self.simulationErrors) {
+                if (data.state == 'completed' && ! self.simulationAlerts) {
                     // completed with no output, show link to elegant log
-                    self.simulationErrors = 'No output produced. View the ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName  + ' log for more information.';
+                    self.simulationAlerts = 'No output produced. View the ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName  + ' log for more information.';
                 }
                 self.outputFiles = [];
                 self.outputFileMap = {};
@@ -484,10 +484,10 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         }
     }
     self.errorHeader = function() {
-        if(! self.simulationErrors || self.simulationErrors == '') {
+        if(! self.simulationAlerts || self.simulationAlerts == '') {
             return '';
         }
-        return SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName + ' ' + (self.simulationErrors.toLowerCase().indexOf('error') >= 0 ? 'Errors:' : 'Warnings:');
+        return SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName + ' ' + (self.simulationAlerts.toLowerCase().indexOf('error') >= 0 ? 'Errors:' : 'Warnings:');
     };
 
     function loadElementReports(outputInfo) {
