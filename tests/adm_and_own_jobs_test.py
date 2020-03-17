@@ -11,8 +11,8 @@ from pykern.pkcollections import PKDict
 import time
 
 pytestmark = pytest.mark.skipif(
-    os.environ.get('SIREPO_FEATURE_CONFIG_JOB') != '1',
-    reason='SIREPO_FEATURE_CONFIG_JOB != 1'
+    os.environ.get('SIREPO_FEATURE_CONFIG_JOB') == '0',
+    reason='SIREPO_FEATURE_CONFIG_JOB == 0'
 )
 
 

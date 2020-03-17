@@ -11,8 +11,8 @@ import pytest
 
 
 pytestmark = pytest.mark.skipif(
-    os.environ.get('SIREPO_FEATURE_CONFIG_JOB') != '1',
-    reason='SIREPO_FEATURE_CONFIG_JOB != 1'
+    os.environ.get('SIREPO_FEATURE_CONFIG_JOB') == '0',
+    reason='SIREPO_FEATURE_CONFIG_JOB == 0'
 )
 
 # If you see: _timeout MAX_CASE_RUN_SECS=120 exceeded
