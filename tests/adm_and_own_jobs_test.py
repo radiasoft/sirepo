@@ -10,11 +10,6 @@ import os
 from pykern.pkcollections import PKDict
 import time
 
-pytestmark = pytest.mark.skipif(
-    os.environ.get('SIREPO_FEATURE_CONFIG_JOB') == '0',
-    reason='SIREPO_FEATURE_CONFIG_JOB == 0'
-)
-
 
 def setup_module(module):
     os.environ.update(
