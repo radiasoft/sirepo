@@ -6,14 +6,8 @@ u"""test running of animations through sbatch
 """
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
-import os
 import pytest
 
-
-pytestmark = pytest.mark.skipif(
-    os.environ.get('SIREPO_FEATURE_CONFIG_JOB') != '1',
-    reason='SIREPO_FEATURE_CONFIG_JOB != 1'
-)
 
 # If you see: _timeout MAX_CASE_RUN_SECS=120 exceeded
 # Run sinfo to see if slurmd is down for this node.
