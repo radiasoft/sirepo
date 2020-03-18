@@ -673,7 +673,7 @@ class _ComputeJob(PKDict):
             r = PKDict(**kwargs)
             if self.db.error:
                 r.error = self.db.error
-            if self.db.alert:
+            if self.db.get('alert'):
                 r.alert = self.db.alert
             if self.db.isParallel:
                 r.update(self.db.parallelStatus)
