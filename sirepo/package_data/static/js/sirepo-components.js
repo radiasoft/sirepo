@@ -1051,6 +1051,26 @@ SIREPO.app.directive('helpLink', function(appState) {
     };
 });
 
+SIREPO.app.directive('videoButton', function(appState, $window) {
+    return {
+        restrict: 'A',
+        scope: {
+            viewName: '@videoButton',
+        },
+        template: [
+            '<div><button class="close sr-help-icon" data-ng-click="openVideo()" title="{{ ::tooltip }}"><span class="glyphicon glyphicon-film"></span></button></div>',
+        ].join(''),
+        controller: function($scope) {
+            var viewInfo = appState.viewInfo($scope.viewName);
+            $scope.tooltip = viewInfo.title + ' Help Video';
+            $scope.openVideo = function() {
+                $window.open(
+                    viewInfo.helpVideoURL,
+                    '_blank');
+            };
+        },
+    };
+});
 
 SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
     return {
@@ -1105,6 +1125,7 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
                   '<div class="modal-header bg-info">',
   	            '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
                     '<div data-help-button="{{ helpTopic }}"></div>',
+                    '<div data-ng-if="::hasHelpVideo" data-video-button="{{ viewName }}"></div>',
 	            '<span class="lead modal-title text-info">{{ modalTitle }}</span>',
 	          '</div>',
                   '<div class="modal-body">',
@@ -1128,6 +1149,7 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
             if (! viewInfo) {
                 throw new Error('missing view in schema: ' + $scope.viewName);
             }
+            $scope.hasHelpVideo = viewInfo.helpVideoURL;
             $scope.helpTopic = viewInfo.title;
             //TODO(pjm): cobbled-together to allow a view to refer to a model by name, ex. SRW simulationGrid view
             $scope.modelName = viewInfo.model || $scope.viewName;
@@ -1917,6 +1939,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                       '<li><a href="https://github.com/radiasoft/sirepo/issues" target="_blank"><span class="glyphicon glyphicon-exclamation-sign"></span> Report a Bug</a></li>',
                       '<li data-help-link="helpUserManualURL" data-title="User Manual", data-icon="list-alt"></li>',
                       '<li data-help-link="helpUserForumURL" data-title="User Forum", data-icon="globe"></li>',
+                      '<li data-help-link="helpVideoURL" data-title="Instructional Video" data-icon="film"></li>',
                     '</ul>',
                   '</li>',
                 '</ul>',
