@@ -5,9 +5,11 @@ u"""Radia examples.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
+import math
 import radia
 import radia_tk
 
+_EXAMPLES = ['Dipole', 'Wiggler', 'Undulator']
 
 # eventually all these steps will come from the model and this will go away
 def dipole_example():
@@ -148,7 +150,198 @@ def dipole_example():
     return geom(1)
 
 
+def undulator_example():
+    mu0 = 4 * math.pi / 1e7
+
+    # ~iron type Va Permendur
+    iron_h = [
+        0.8, 1.5, 2.2, 3.6, 5.0, 6.8, 9.8, 18.0,
+        28.0, 37.5, 42.0, 55.0, 71.5, 80.0, 85.0, 88.0,
+        92.0, 100.0, 120.0, 150.0, 200.0, 300.0, 400.0, 600.0,
+        800.0, 1000.0, 2000.0, 4000.0, 6000.0, 10000.0, 25000.0, 40000.0
+    ]
+    iron_m = [
+        0.000998995, 0.00199812, 0.00299724, 0.00499548, 0.00699372, 0.00999145,
+        0.0149877, 0.0299774, 0.0499648, 0.0799529, 0.0999472, 0.199931, 0.49991,
+        0.799899, 0.999893, 1.09989, 1.19988, 1.29987, 1.41985, 1.49981, 1.59975,
+        1.72962, 1.7995, 1.89925, 1.96899, 1.99874, 2.09749, 2.19497, 2.24246, 2.27743,
+        2.28958,  2.28973
+    ]
+
+    def undulator(
+            pole_lengths, pole_props, pole_segs, block_lengths, block_props,
+            block_segs, gap_height, gap_offset, num_periods
+    ):
+        """
+        create hybrid undulator magnet
+        arguments:
+          pole_lengths = [lpx, lpy, lpz] = dimensions of the iron poles (mm)
+          pole_props = magnetic properties of the iron poles (M-H curve)
+          pole_segs = segmentation of the iron poles
+          block_lengths = [lmx, lmy, lmz] = dimensions of the magnet blocks (mm)
+          block_props = magnetic properties of the magnet blocks (remanent magnetization)
+          block_segs = segmentation of the magnet blocks
+          gap_height = undulator gap (mm)
+          gap_offset = vertical offset of the magnet blocks w/rt the poles (mm)
+          numPer = number of full periods of the undulator magnetic field
+        return: Radia representations of
+          undulator group, poles, permanent magnets
+        """
+        zero = [0, 0, 0]
+
+        # full magnet will be assembled into this Radia group
+        grp = radia.ObjCnt([])
+
+        # principal poles and magnet blocks in octant(+,+,–)
+        # -- half pole
+        y = pole_lengths[1] / 4
+        pole = radia.ObjFullMag(
+            [pole_lengths[0] / 4, y, -pole_lengths[2] / 2 - gap_height / 2],
+            [pole_lengths[0] / 2, pole_lengths[1] / 2, pole_lengths[2]],
+            zero, pole_segs, grp, pole_props, zero
+        )
+        y += pole_lengths[1] / 4
+
+        # -- magnet and pole pairs
+        m_dir = -1
+        for i in range(0, num_periods):
+            init_m = [0, m_dir, 0]
+            m_dir *= -1
+            y += block_lengths[1] / 2
+            magnet = radia.ObjFullMag(
+                [
+                    block_lengths[0] / 4,
+                    y,
+                    -block_lengths[2] / 2 - gap_height / 2 - gap_offset
+                ],
+                [
+                    block_lengths[0] / 2, block_lengths[1], block_lengths[2]
+                ],
+                init_m, block_segs, grp, block_props, zero
+            )
+            y += (block_lengths[1] + pole_lengths[1]) / 2
+            pole = radia.ObjFullMag(
+                [pole_lengths[0] / 4, y, -pole_lengths[2] / 2 - gap_height / 2],
+                [pole_lengths[0] / 2, pole_lengths[1], pole_lengths[2]],
+                zero, pole_segs, grp, pole_props, zero
+            )
+            y += pole_lengths[1] / 2
+
+        # -- end magnet block
+        init_m = [0, m_dir, 0]
+        y += block_lengths[1] / 4
+        magnet = radia.ObjFullMag(
+            [
+                block_lengths[0] / 4,
+                y,
+                -block_lengths[2] / 2 - gap_height / 2 - gap_offset
+            ],
+            [
+                block_lengths[0] / 2, block_lengths[1] / 2, block_lengths[2]
+            ],
+            init_m, block_segs, grp, block_props, zero)
+
+        # use mirror symmetry to define the full undulator
+        radia.TrfZerPerp(grp, zero, [1, 0, 0])  # reflect in the (y,z) plane
+        radia.TrfZerPara(grp, zero, [0, 0, 1])  # reflect in the (x,y) plane
+        radia.TrfZerPerp(grp, zero, [0, 1, 0])  # reflect in the (z,x) plane
+
+        return grp, pole, magnet
+
+    def materials(h, m, smat, rm):
+        """
+        define magnetic materials for the undulator poles and magnets
+        arguments:
+          H    = list of magnetic field values / (Amp/m)
+          M    = corresponding magnetization values / T
+          smat = material type string
+          rm   = remanent magnetization / T
+        return: Radia representations of ...
+          pole-tip material, magnet material
+        """
+        # -- magnetic property of poles
+        ma = [[mu0 * h[i], m[i]] for i in range(len(h))]
+        mp = radia.MatSatIsoTab(ma)
+        # -- permanent magnet material
+        mm = radia.MatStd(smat, rm)
+
+        return mp, mm
+
+    # set parameters for this undulator
+    # -- general parameters
+
+    # number of full magnetic periods
+    n_periods = 2
+
+    # period (mm)
+    period = 46
+
+    # gap height (mm)
+    gap = 20
+    offset = 1
+
+    # parameters for the iron poles
+    # dimensions (mm)
+    lp = [45, 5, 25]
+
+    # pole-tip segmentation
+    nsp = [2, 2, 5]
+    #cp = [1, 0, 0]
+    ll = period / 2 - lp[1]
+
+    # parameters for the magnet blocks
+    # dimensions (mm)
+    lm = [65, ll, 45]
+
+    # magnet-block segmentation
+    nsm = [1 ,3, 1]
+    #cm = [0, 1, 1]    # assign color
+
+    # -- magnetic materials
+    # pole tips: ~iron type Va Permendur
+    # permanent magnets: NdFeB with 1.2 Tesla remanent magnetization
+    mp, mm = materials(iron_h, iron_m, 'NdFeB', 1.2)
+
+    # then build the undulator
+    und, pl, mg = undulator(lp, mp, nsp, lm, mm, nsm, gap, offset, n_periods)
+
+    return und
+
+
+def wiggler_example():
+    # current densities in A / mm^2
+    j1 = 128
+    j2 = 256
+
+    # number of arc segments
+    n1 = 3
+    n2 = 6
+
+    # create 5 racetrack coils above the mid-plane:
+    #   lower inside, lower outside, upper inside, upper outside, and circular
+    # radia.ObjRaceTrk[ctr:[x,y,z], rad:[r1,r2], lstr:[lx,ly], ht, nseg, j]
+    rt1 = radia.ObjRaceTrk([0., 0., 38.], [9.5, 24.5], [120., 0.], 36, n1, j1)
+    rt2 = radia.ObjRaceTrk([0., 0., 38.], [24.5, 55.5], [120., 0.], 36, n1, j2)
+    rt3 = radia.ObjRaceTrk([0., 0., 76.], [10.0, 25.0], [90., 0.], 24, n1, j1)
+    rt4 = radia.ObjRaceTrk([0., 0., 76.], [25.0, 55.0], [90., 0.], 24, n1, j2)
+    rt5 = radia.ObjRaceTrk([0., 0., 60.], [150.0, 166.3], [0., 0.], 39, n2, -j2)
+
+    # assemble into a group
+    geom = radia.ObjCnt([rt1, rt2, rt3, rt4, rt5])
+
+    # and reflect in the (x,y) plane [plane through (0,0,0) with normal (0,0,1)]
+    radia.TrfZerPara(geom, [0, 0, 0], [0, 0, 1])
+
+    return geom
+
+
 def build(name):
+    if name not in _EXAMPLES:
+        raise KeyError('{}: No such example'.format(name))
     if name == 'Dipole':
         return dipole_example()
-    raise KeyError('{}: No such example'.format(name))
+    if name == 'Wiggler':
+        return wiggler_example()
+    if name == 'Undulator':
+        return undulator_example()
+

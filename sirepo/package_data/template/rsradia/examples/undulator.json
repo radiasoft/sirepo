@@ -1,0 +1,55 @@
+{
+    "models": {
+        "geometry": {
+            "name": "Undulator",
+            "objects": [
+                {
+                    "color": "#ff00ff",
+                    "material": "",
+                    "name": "Undulator.Geom.0.polygons",
+                    "type": ""
+                },
+                {
+                    "color": "#00ffff",
+                    "material": "",
+                    "name": "Undulator.Geom.1.polygons",
+                    "type": ""
+                },
+                {
+                    "color": "#ff00ff",
+                    "material": "",
+                    "name": "Undulator.Geom.2.polygons",
+                    "type": ""
+                },
+                {
+                    "color": "#00ffff",
+                    "material": "",
+                    "name": "Undulator.Geom.3.polygons",
+                    "type": ""
+                },
+                {
+                    "color": "#ff00ff",
+                    "material": "",
+                    "name": "Undulator.Geom.4.polygons",
+                    "type": ""
+                },
+                {
+                    "color": "#00ffff",
+                    "material": "",
+                    "name": "Undulator.Geom.5.polygons",
+                    "type": ""
+                }
+            ]
+        },
+        "simFolder": {},
+        "simulation": {
+            "documentationUrl": "",
+            "folder": "/Examples",
+            "isExample": true,
+            "name": "Undulator",
+            "notes": "",
+            "outOfSessionSimulationId": ""
+        }
+    },
+    "simulationType": "rsradia"
+}

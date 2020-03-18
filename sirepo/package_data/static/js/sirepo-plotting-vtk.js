@@ -1124,14 +1124,14 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
 
             function setMarker(m) {
                 marker = m;
-                setMarkerVisible(true);
+                setMarkerVisible();
             }
 
-            function setMarkerVisible(isVisible) {
+            function setMarkerVisible() {
                 if (! marker) {
                     return;
                 }
-                marker.setEnabled(isVisible);
+                marker.setEnabled($scope.markerState.enabled);
                 renderWindow.render();
             }
 
@@ -1226,7 +1226,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             };
 
             $scope.toggleMarker = function() {
-                setMarkerVisible($scope.markerState.enabled);
+                setMarkerVisible();
             };
 
             appState.whenModelsLoaded($scope, function () {

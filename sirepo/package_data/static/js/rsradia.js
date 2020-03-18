@@ -303,7 +303,7 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaServ
                         radiaService.showPathPicker(false);
                     }
                 });
-                srdbg('loaded paths', $scope.model);
+                //srdbg('loaded paths', $scope.model);
 
                 $scope.modelsLoaded = true;
             });
@@ -1069,7 +1069,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 m.setViewportCorner(
                     vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
                 );
-                m.setViewportSize(0.05);
+                m.setViewportSize(0.07);
                 m.computeViewport();
                 m.setMinPixelSize(50);
                 m.setMaxPixelSize(100);
@@ -1092,8 +1092,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             // lines and poly data arrays look like:
             //    [<num vertices for obj 0>, <vertex 0, 0>, ...,]
             function numDataColors(data) {
-                let i = 0;
-                let j = 0;
+                var i = 0;
+                var j = 0;
                 while (i < data.length) {
                     i += (data[i] + 1);
                     ++j;

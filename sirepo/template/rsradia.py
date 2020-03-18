@@ -229,7 +229,6 @@ def _generate_data(g_id, in_data):
     elif in_data.viewType == VIEW_TYPE_FIELD:
         return _generate_field_data(
             g_id, in_data.name, in_data.fieldType, in_data.get('fieldPaths', None)
-            #g_id, in_data.name, in_data.fieldType, in_data.fieldPoints
         )
 
 
@@ -260,9 +259,9 @@ def _generate_parameters_file(data):
                 'Invalid field {} ({})'.format(f_type, radia_tk.FIELD_TYPES)
             )
         v['fieldType'] = f_type
-        v['fieldPoints'] = _build_field_points(data.models.fieldPaths.paths)
+        v['fieldPoints'] = _build_field_points(data.models.fieldPaths.get('paths', []))
     if 'solver' in report:
-        pkdp('WILL SOLVE')
+        #pkdp('WILL SOLVE')
         v['doSolve'] = True
         s = data.models.solver
         v['solvePrec'] = s.precision
@@ -270,7 +269,7 @@ def _generate_parameters_file(data):
         v['solveMethod'] = s.method
     if 'reset' in report:
         res = radia_tk.reset()
-        pkdp('RESET RES {}', res)
+        #pkdp('RESET RES {}', res)
         data.report = 'geometry'
         return _generate_parameters_file(data)
     v['h5ObjPath'] = _geom_h5_path(VIEW_TYPE_OBJ)

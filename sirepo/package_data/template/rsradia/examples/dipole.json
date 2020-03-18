@@ -1,8 +1,21 @@
 {
     "models": {
         "geometry": {
-            "name": "Magnet",
-            "radiaRef": -1
+            "name": "Dipole",
+            "objects": [
+                {
+                    "color": "#ff0000",
+                    "material": "",
+                    "name": "Dipole.Geom.0.polygons",
+                    "type": ""
+                },
+                {
+                    "color": "#0000ff",
+                    "material": "",
+                    "name": "Dipole.Geom.1.polygons",
+                    "type": ""
+                }
+            ]
         },
         "simFolder": {},
         "simulation": {

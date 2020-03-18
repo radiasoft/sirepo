@@ -1,0 +1,49 @@
+{
+    "models": {
+        "geometry": {
+            "name": "Wiggler",
+            "objects": [
+                {
+                    "color": "#00ffff",
+                    "material": "",
+                    "name": "Wiggler.Geom.0.polygons",
+                    "type": ""
+                },
+                {
+                    "color": "#ff6600",
+                    "material": "",
+                    "name": "Wiggler.Geom.1.polygons",
+                    "type": ""
+                },
+                {
+                    "color": "#00ffff",
+                    "material": "",
+                    "name": "Wiggler.Geom.2.polygons",
+                    "type": ""
+                },
+                {
+                    "color": "#ff6600",
+                    "material": "",
+                    "name": "Wiggler.Geom.3.polygons",
+                    "type": ""
+                },
+                {
+                    "color": "#ff6600",
+                    "material": "",
+                    "name": "Wiggler.Geom.4.polygons",
+                    "type": ""
+                }
+            ]
+        },
+        "simFolder": {},
+        "simulation": {
+            "documentationUrl": "",
+            "folder": "/Examples",
+            "isExample": true,
+            "name": "Wiggler",
+            "notes": "",
+            "outOfSessionSimulationId": ""
+        }
+    },
+    "simulationType": "rsradia"
+}
