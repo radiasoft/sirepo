@@ -1017,7 +1017,7 @@ SIREPO.app.directive('helpButton', function($window) {
             helpTopic: '@helpButton',
         },
         template: [
-            '<button class="close sr-help-icon" title="{{ helpTopic }} Help" data-ng-click="openHelp()"><span class="glyphicon glyphicon-question-sign"></span></button>',
+            '<button class="close sr-help-icon" title="{{ ::helpTopic }} Help" data-ng-click="openHelp()"><span class="glyphicon glyphicon-question-sign"></span></button>',
         ].join(''),
         controller: function($scope) {
             $scope.openHelp = function() {
@@ -1028,6 +1028,29 @@ SIREPO.app.directive('helpButton', function($window) {
         },
     };
 });
+
+SIREPO.app.directive('helpLink', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            constantURL: '@helpLink',
+            icon: '@',
+            title: '@',
+        },
+        template: [
+            '<a data-ng-if="::url" data-ng-href="{{ ::url }}" target="_blank">',
+              '<span data-ng-class="::glyphClass"></span> ',
+              SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].shortName,
+              ' {{ ::title }}',
+            '</a>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.glyphClass = 'glyphicon glyphicon-' + $scope.icon;
+            $scope.url = SIREPO.APP_SCHEMA.constants[$scope.constantURL];
+        },
+    };
+});
+
 
 SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
     return {
@@ -1861,15 +1884,6 @@ SIREPO.app.directive('appHeaderLeft', function(appState, authState, panelState) 
 });
 
 SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appState, fileManager, panelState, $window) {
-
-    function helpLink(url, text, icon) {
-        return url
-            ? ('<li><a href="' + url + '" target="_blank"><span class="glyphicon glyphicon-'
-               + icon + '"></span> '
-               + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName + ' '
-               + text + '</a></li>')
-            : '';
-    }
     return {
         restrict: 'A',
         transclude: {
@@ -1901,8 +1915,8 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                   '<li class=dropdown><a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-question-sign"></span> <span class="caret"></span></a>',
                     '<ul class="dropdown-menu">',
                       '<li><a href="https://github.com/radiasoft/sirepo/issues" target="_blank"><span class="glyphicon glyphicon-exclamation-sign"></span> Report a Bug</a></li>',
-                      helpLink(SIREPO.USER_MANUAL_URL, 'User Manual', 'list-alt'),
-                      helpLink(SIREPO.USER_FORUM_URL, 'User Forum', 'globe'),
+                      '<li data-help-link="helpUserManualURL" data-title="User Manual", data-icon="list-alt"></li>',
+                      '<li data-help-link="helpUserForumURL" data-title="User Forum", data-icon="globe"></li>',
                     '</ul>',
                   '</li>',
                 '</ul>',

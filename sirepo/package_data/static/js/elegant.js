@@ -4,8 +4,6 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
-    SIREPO.USER_MANUAL_URL = 'https://ops.aps.anl.gov/manuals/elegant_latest/elegant.html';
-    SIREPO.USER_FORUM_URL = 'https://www3.aps.anl.gov/forums/elegant/';
     SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
     SIREPO.appImportText = 'Import an elegant command (.ele) or lattice (.lte) file';
     SIREPO.appFieldEditors += [
@@ -109,7 +107,7 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
                 cmd.p_central_mev = bunch.p_central_mev;
             }
             else {
-                cmd.p_central = rpnService.getRpnValue(bunch.p_central_mev) / SIREPO.APP_SCHEMA.constant.ELEGANT_ME_EV;
+                cmd.p_central = rpnService.getRpnValue(bunch.p_central_mev) / SIREPO.APP_SCHEMA.constants.ELEGANT_ME_EV;
             }
         }
         appState.saveQuietly('commands');
@@ -179,7 +177,7 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
                     bunch.p_central_mev = cmd.p_central_mev;
                 }
                 else {
-                    bunch.p_central_mev = rpnService.getRpnValue(cmd.p_central) * SIREPO.APP_SCHEMA.constant.ELEGANT_ME_EV;
+                    bunch.p_central_mev = rpnService.getRpnValue(cmd.p_central) * SIREPO.APP_SCHEMA.constants.ELEGANT_ME_EV;
                 }
             }
             // need to update source reports.

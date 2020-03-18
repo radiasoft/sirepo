@@ -1,4 +1,7 @@
 {
+    "constants": {
+        "helpUserManualURL": "https://gitlab.psi.ch/OPAL/Manual-2.2/wikis/home"
+    },
     "appModes": {
         "default": {
             "localRoute": "lattice"

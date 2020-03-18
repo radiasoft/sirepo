@@ -4,7 +4,6 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
-    SIREPO.USER_MANUAL_URL = 'https://zgoubi.sourceforge.io/ZGOUBI_DOCS/Zgoubi.pdf';
     SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="FileNameArray" data-ng-class="fieldClass">',
