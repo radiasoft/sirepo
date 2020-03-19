@@ -676,14 +676,14 @@ def sim_data_file(sim_type, sim_id):
     return simulation_dir(sim_type, sim_id).join(SIMULATION_DATA_FILE)
 
 
-def simulation_dir(simulation_type, sid=None):
+def simulation_dir(simulation_type, sid=None, uid=None):
     """Generates simulation directory from sid and simulation_type
 
     Args:
         simulation_type (str): srw, warppba, ...
         sid (str): simulation id (optional)
     """
-    d = _user_dir().join(sirepo.template.assert_sim_type(simulation_type))
+    d = _user_dir(uid=uid).join(sirepo.template.assert_sim_type(simulation_type))
     if not sid:
         return d
     return d.join(assert_sid(sid))
@@ -701,7 +701,7 @@ def simulation_lib_dir(simulation_type):
     return simulation_dir(simulation_type).join(_LIB_DIR)
 
 
-def simulation_run_dir(req_or_data, remove_dir=False):
+def simulation_run_dir(req_or_data, remove_dir=False, uid=None):
     """Where to run the simulation
 
     Args:
@@ -717,11 +717,11 @@ def simulation_run_dir(req_or_data, remove_dir=False):
     d = simulation_dir(
         t,
         s.parse_sid(req_or_data),
+        uid=uid,
     ).join(s.compute_model(req_or_data))
     if remove_dir:
         pkio.unchecked_remove(d)
     return d
-
 
 def static_libs():
     return _files_in_schema(SCHEMA_COMMON.common.staticFiles)
@@ -766,7 +766,7 @@ def tmp_dir(chdir=False):
 
 
 def uid_from_dir_name(dir_name):
-    """Extra user id from user_dir_name
+    """Extract user id from user_dir_name
 
     Args:
         dir_name (py.path): must be top level user dir or sim_dir
@@ -1132,13 +1132,17 @@ def _timestamp(time=None):
     return time.strftime('%Y%m%d.%H%M%S')
 
 
-def _user_dir():
+def _user_dir(uid=None):
     """User for the session
 
     Returns:
         str: unique id for user
     """
-    uid = sirepo.auth.logged_in_user()
+    if uid:
+        assert not util.in_flask_app_context(), \
+            'Do not supply uid when in flask context. It will be retrieved from the logged in user.'
+    else:
+        uid = sirepo.auth.logged_in_user()
     d = user_dir_name(uid)
     if not d.check():
         sirepo.auth.user_dir_not_found(d, uid)

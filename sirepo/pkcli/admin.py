@@ -77,46 +77,6 @@ def move_user_sims(target_uid=''):
         shutil.move(lib_file, target)
 
 
-def purge_guest_users(days=180, confirm=False):
-    """Remove old users from db which have not registered.
-
-    Args:
-        days (int): maximum days of untouched files (old is mtime > days)
-        confirm (bool): delete the directories if True (else don't delete) [False]
-
-    Returns:
-        (list, list): dirs and uids of removed guest users (or to remove if confirm)
-    """
-
-    days = int(days)
-    assert days >= 1, \
-        '{}: days must be a positive integer'
-    server.init()
-    from sirepo import srtime
-
-    guest_uids = auth.guest_uids()
-    now = srtime.utc_now()
-    dirs_and_uids = {}
-
-    for d in pkio.sorted_glob(simulation_db.user_dir_name().join('*')):
-        uid = simulation_db.uid_from_dir_name(d)
-        if _is_src_dir(d):
-            continue
-        if uid not in guest_uids:
-            continue
-        for f in pkio.walk_tree(d):
-            if (now - now.fromtimestamp(f.mtime())).days <= days:
-                break
-        else:
-
-            dirs_and_uids[d] = uid
-    if confirm:
-        pkio.unchecked_remove(*dirs_and_uids.keys())
-        auth_db.UserRegistration.delete_all_for_column_by_values('uid', dirs_and_uids.values())
-
-    return dirs_and_uids
-
-
 def _create_example(example):
     simulation_db.save_new_example(example)
 

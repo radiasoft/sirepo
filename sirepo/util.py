@@ -179,6 +179,11 @@ def json_dump(obj, path=None, pretty=False, **kwargs):
     return res
 
 
+def in_flask_app_context():
+    import flask
+    return flask.current_app
+
+
 def raise_bad_request(*args, **kwargs):
     _raise('BadRequest', *args, **kwargs)
 

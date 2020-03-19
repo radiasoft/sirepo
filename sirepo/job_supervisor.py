@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
+from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdformat, pkdlog, pkdexc
 from sirepo import job
@@ -16,9 +17,11 @@ import copy
 import datetime
 import os
 import pykern.pkio
+import sirepo.auth_db
 import sirepo.http_reply
 import sirepo.simulation_db
 import sirepo.srdb
+import sirepo.srtime
 import sirepo.tornado
 import sirepo.util
 import time
@@ -88,7 +91,9 @@ def init():
             parallel_premium=(2, float, 'maximum run-time for parallel job for premium user (except sbatch)'),
             sequential=(.1, float, 'maximum run-time for sequential job'),
         ),
+        purge_free_after_days=(10, int, 'how many days to wait before purging a free users simulation'),
         sbatch_poll_secs=(15, int, 'how often to poll squeue and parallel status'),
+        test_purge_frequency_secs=(3600, int, 'Only for interal test: How often try try purging free simulations')
     )
     _NEXT_REQUEST_SECONDS = PKDict({
         job.PARALLEL: 2,
@@ -115,6 +120,8 @@ def init():
             )
     else:
         pykern.pkio.mkdir_parent(_DB_DIR)
+    sirepo.auth_db.init(sirepo.srdb.root())
+    _purge_free_simulations_set()
 
 
 class ServerReq(PKDict):
@@ -162,7 +169,7 @@ class _ComputeJob(PKDict):
         self.cache_timeout_set()
 
     def cache_timeout(self):
-        if self.ops or init:
+        if self.ops:
             self.cache_timeout_set()
         else:
             del self.instances[self.db.computeJid]
@@ -172,6 +179,10 @@ class _ComputeJob(PKDict):
             cfg.job_cache_secs,
             self.cache_timeout,
         )
+
+    @classmethod
+    def db_write(cls, db):
+        sirepo.util.json_dump(db, path=cls.__db_file(db.computeJid))
 
     def destroy_op(self, op):
         if op in self.ops:
@@ -283,15 +294,28 @@ class _ComputeJob(PKDict):
             history=self.__db_init_history(prev_db),
             isParallel=c.isParallel,
             isPremiumUser=c.get('isPremiumUser'),
-            jobRunMode=c.jobRunMode,
             lastUpdateTime=0,
             simName=None,
-            nextRequestSeconds=_NEXT_REQUEST_SECONDS[c.jobRunMode],
             simulationId=c.simulationId,
             simulationType=c.simulationType,
 #TODO(robnagler) when would req come in with status?
             status=req.get('status', job.MISSING),
             uid=c.uid,
+        )
+        r = c.get('jobRunMode')
+        if not r:
+            assert c.api != 'api_runSimulation', \
+                'api_runSimulation must have a jobRunMode content={}'.format(c)
+            # __db_init() will be called when runDirNotFound.
+            # The api_* that initiated the request may not have
+            # a jobRunMode (ex api_downloadDataFile). In that
+            # case use the existing jobRunMode because the
+            # request doesn't care about the jobRunMode
+            r = self.db.jobRunMode
+
+        self.db.pkupdate(
+            jobRunMode=r,
+            nextRequestSeconds=_NEXT_REQUEST_SECONDS[r],
         )
         if self.db.isParallel:
             self.db.parallelStatus = PKDict(
@@ -322,7 +346,7 @@ class _ComputeJob(PKDict):
         return self.__db_write()
 
     def __db_write(self):
-        sirepo.util.json_dump(self.db, path=self.__db_file(self.db.computeJid))
+        self.db_write(self.db)
         return self
 
     @classmethod
@@ -492,7 +516,7 @@ class _ComputeJob(PKDict):
             if c:
                 c.destroy(cancel=False)
 
-    async def _receive_api_runSimulation(self, req):
+    async def _receive_api_runSimulation(self, req, recursion_depth=0):
         f = req.content.data.get('forceRun')
         if self._is_running_pending():
             if f or not self._req_is_valid(req):
@@ -508,7 +532,16 @@ class _ComputeJob(PKDict):
         ):
             # Valid, completed, transient simulation
             # Read this first https://github.com/radiasoft/sirepo/issues/2007
-            return await self._receive_api_runStatus(req)
+            r = await self._receive_api_runStatus(req)
+            if r.state == job.MISSING:
+                # happens when the run dir is deleted (ex _purge_free_simulations)
+                assert recursion_depth == 0, \
+                    'Infinite recursion detected. Already called from self.'
+                return await self._receive_api_runSimulation(
+                    req,
+                    recursion_depth + 1,
+                )
+            return r
         # Forced or canceled/errored/missing/invalid so run
         o = self._create_op(
             job.OP_RUN,
@@ -587,7 +620,7 @@ class _ComputeJob(PKDict):
             else job.SEQUENTIAL
         req.simulationType = self.db.simulationType
         # run mode can change between runs so use req.content.jobRunMode
-        # not self.db.jobRunmode
+        # not self.db.jobRunMode
         r = req.content.get('jobRunMode', self.db.jobRunMode)
         if r not in sirepo.simulation_db.JOB_RUN_MODE_MAP:
             # happens only when config changes, and only when sbatch is missing
@@ -690,7 +723,16 @@ class _ComputeJob(PKDict):
                         await self.run_dir_acquire(o)
                     await o.prepare_send()
                     o.send()
-                    return await o.reply_get()
+                    r =  await o.reply_get()
+                    # POSIT: any api_* that could run into runDirNotFound
+                    # will call _send_with_single_reply() and this will
+                    # properly format the reply
+                    if not r.get('runDirNotFound'):
+                        return r
+                    self.__db_init(req, prev_db=self.db)
+                    assert self.db.status == job.MISSING, \
+                        'expecting missing status={}'.format(self.db.status)
+                    return PKDict(state=self.db.status)
                 except Awaited:
                     pass
             else:
@@ -809,3 +851,51 @@ class _Op(PKDict):
 
     def __hash__(self):
         return hash((self.opId,))
+
+
+def _purge_free_simulations_set():
+    def tomorrow_2am_mst():
+        if pkconfig.channel_in_internal_test():
+            return sirepo.srtime.utc_now_as_float() \
+                + cfg.test_purge_frequency_secs
+        # 9am UTC == 2am MST: Does not adjust for daylight savings
+        t = sirepo.srtime.utc_now() + datetime.timedelta(days=1)
+        return sirepo.srtime.to_timestamp(
+          datetime.datetime(t.year, t.month, t.day, 9, 0, 0, 0)
+        )
+
+    tornado.ioloop.IOLoop.current().call_at(
+        tomorrow_2am_mst(),
+        _purge_free_simulations,
+    )
+
+
+def _purge_free_simulations():
+    def _get_run_dir_path(data):
+        data.report = data.computeModel
+        return sirepo.simulation_db.simulation_run_dir(data, uid=data.uid)
+
+    def _is_older_than_days(file, days):
+        d = sirepo.srtime.utc_now_as_float() - (days * 24 * 60 * 60)
+        return file.mtime() < d
+
+    try:
+        u = sirepo.auth_db.UserRole.uids_of_paid_users()
+        p = PKDict()
+        for f in pkio.sorted_glob(_DB_DIR.join('*')):
+            if not _is_older_than_days(f, cfg.purge_free_after_days):
+                continue
+            d = pkcollections.json_load_any(f)
+            if d.uid in u or d.status == job.FREE_USER_PURGED:
+                continue
+            p[_get_run_dir_path(d)] = d
+
+        pkdlog('run dirs to delete: {}', p.keys())
+        for k, v in p.items():
+            pkio.unchecked_remove(k)
+            v.status = job.FREE_USER_PURGED
+            _ComputeJob.db_write(v)
+    except Exception as e:
+        pkdlog('error={} stack={}', e, pkdexc())
+    finally:
+        _purge_free_simulations_set()

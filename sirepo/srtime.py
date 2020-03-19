@@ -6,9 +6,11 @@ u"""time functions (artificial time)
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
+from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 import datetime
+import sirepo.util
 import time
 
 
@@ -24,6 +26,13 @@ def adjust_time(days):
     Args:
         days (str): must be integer. If None or 0, no adjustment.
     """
+    def _adjust_supervisor_srtime():
+        import sirepo.job_api
+
+        if not sirepo.util.in_flask_app_context():
+            # We are in the supervisor
+            return
+        sirepo.job_api.adjust_supervisor_srtime(d)
 
     global _timedelta
     _timedelta = None
@@ -31,7 +40,9 @@ def adjust_time(days):
         d = int(days)
         if d != 0:
             _timedelta = datetime.timedelta(days=d)
+        _adjust_supervisor_srtime()
     except Exception:
+        _timedelta = None
         pass
 
 
@@ -44,6 +55,8 @@ def api_adjustTime(days=None):
     """
     from sirepo import http_reply
 
+    assert pkconfig.channel_in_internal_test(), \
+        'You can only adjust time in internal test'
     adjust_time(days)
     return http_reply.gen_json_ok({
         'adjustedNow': utc_now().isoformat(),
@@ -51,8 +64,15 @@ def api_adjustTime(days=None):
     })
 
 
+def init():
+    if not pkconfig.channel_in_internal_test():
+        global utc_now_as_float, utc_now
+        utc_now_as_float = time.time
+        utc_now = datetime.datetime.utcnow
+
+
 def init_apis(*args, **kwargs):
-    pass
+    init()
 
 
 def to_timestamp(dt):
@@ -89,16 +109,3 @@ def utc_now_as_float():
     if _timedelta is None:
         return time.time()
     return to_timestamp(utc_now())
-
-
-def _init():
-    if pkconfig.channel_in_internal_test():
-        from sirepo import uri_router
-        uri_router.register_api_module()
-    else:
-        global utc_now_as_float, utc_now
-        utc_now_as_float = time.time
-        utc_now = datetime.datetime.utcnow
-
-
-_init()

@@ -33,6 +33,8 @@ METHOD_GUEST = 'guest'
 ROLE_ADM = 'adm'
 ROLE_PREMIUM = 'premium'
 
+PAID_USER_ROLES = (ROLE_PREMIUM,)
+
 #: key for auth method for login state
 _COOKIE_METHOD = 'sram'
 
@@ -141,7 +143,7 @@ def init_apis(app, *args, **kwargs):
         'Do not set $SIREPO_AUTH_LOGGED_IN_USER in server'
     uri_router = importlib.import_module('sirepo.uri_router')
     simulation_db = importlib.import_module('sirepo.simulation_db')
-    auth_db.init(app)
+    auth_db.init(app.sirepo_db_dir)
     _app = app
     p = pkinspect.this_module().__name__
     visible_methods = []

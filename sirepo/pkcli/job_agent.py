@@ -121,6 +121,11 @@ def start_sbatch():
         pkio.unchecked_remove(_PID_FILE)
 
 
+def _assert_run_dir_exists(run_dir):
+    if not run_dir.exists():
+        raise _RunDirNotFound()
+
+
 class _Dispatcher(PKDict):
 
     def __init__(self):
@@ -212,6 +217,13 @@ class _Dispatcher(PKDict):
         finally:
             tornado.ioloop.IOLoop.current().stop()
 
+    def _get_cmd_type(self, msg):
+        if msg.jobRunMode == job.SBATCH:
+            return _SbatchRun if msg.isParallel else _SbatchCmd
+        elif msg.jobCmd == 'fastcgi':
+            return _FastCgiCmd
+        return _Cmd
+
     async def _op(self, msg):
         m = None
         try:
@@ -257,14 +269,21 @@ class _Dispatcher(PKDict):
         )
 
     async def _cmd(self, msg, **kwargs):
-        if msg.opName == job.OP_ANALYSIS and msg.jobCmd != 'fastcgi':
-            return await self._fastcgi_op(msg)
-        c = _Cmd
-        if msg.jobRunMode == job.SBATCH:
-            c = _SbatchRun if msg.isParallel else _SbatchCmd
-        elif msg.jobCmd == 'fastcgi':
-            c = _FastCgiCmd
-        p = c(msg=msg, dispatcher=self, op_id=msg.opId, **kwargs)
+        try:
+            if msg.opName == job.OP_ANALYSIS and msg.jobCmd != 'fastcgi':
+                return await self._fastcgi_op(msg)
+            p = self._get_cmd_type(msg)(
+                msg=msg,
+                dispatcher=self,
+                op_id=msg.opId,
+                **kwargs
+            )
+        except _RunDirNotFound:
+            return self.format_op(
+                msg,
+                job.OP_ERROR,
+                reply=PKDict(runDirNotFound=True),
+            )
         if msg.jobCmd == 'fastcgi':
             self.fastcgi_cmd = p
         self.cmds.append(p)
@@ -308,6 +327,7 @@ class _Dispatcher(PKDict):
             q.task_done()
 
     async def _fastcgi_op(self, msg):
+        _assert_run_dir_exists(pkio.py_path(msg.runDir))
         if not self.fastcgi_cmd:
             m = msg.copy()
             m.jobCmd = 'fastcgi'
@@ -749,6 +769,8 @@ class _Process(PKDict):
             cmd=cmd,
             _exit=tornado.locks.Event(),
         )
+        if self.cmd.msg.jobCmd not in ('prepare_simulation', 'compute'):
+            _assert_run_dir_exists(self.cmd.run_dir)
 
     async def exit_ready(self):
         await self._exit.wait()
@@ -800,6 +822,10 @@ class _Process(PKDict):
     def _on_exit(self, returncode):
         self.returncode = returncode
         self._exit.set()
+
+
+class _RunDirNotFound(Exception):
+    pass
 
 
 class _Stream(PKDict):
