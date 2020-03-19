@@ -88,33 +88,45 @@ def purge_guest_users(days=180, confirm=False):
         (list, list): dirs and uids of removed guest users (or to remove if confirm)
     """
 
+    def _get_premium_uids():
+        r = auth_db.UserRole
+        return [
+            x[0] for x in r.query.with_entities(r.uid).filter(
+                r.role == auth.ROLE_PREMIUM,
+            ).distinct().all()
+        ]
+
     days = int(days)
     assert days >= 1, \
         '{}: days must be a positive integer'
     server.init()
     from sirepo import srtime
 
-    guest_uids = auth.guest_uids()
-    now = srtime.utc_now()
-    dirs_and_uids = {}
-
-    for d in pkio.sorted_glob(simulation_db.user_dir_name().join('*')):
-        uid = simulation_db.uid_from_dir_name(d)
-        if _is_src_dir(d):
-            continue
-        if uid not in guest_uids:
-            continue
-        for f in pkio.walk_tree(d):
-            if (now - now.fromtimestamp(f.mtime())).days <= days:
-                break
-        else:
-
-            dirs_and_uids[d] = uid
-    if confirm:
-        pkio.unchecked_remove(*dirs_and_uids.keys())
-        auth_db.UserRegistration.delete_all_for_column_by_values('uid', dirs_and_uids.values())
-
-    return dirs_and_uids
+    with auth_db.thread_lock:
+        p = _get_premium_uids()
+        n = srtime.utc_now()
+        r = {}
+        for d in pkio.sorted_glob(simulation_db.user_dir_name().join('*')):
+            u = simulation_db.uid_from_dir_name(d)
+            # TODO(e-carlin): When does a path end in /src?
+            if _is_src_dir(d):
+                continue
+            if u in p:
+                continue
+            for f in pkio.walk_tree(d):
+                # https://github.com/radiasoft/sirepo/issues/1888
+                if not f.exists():
+                    continue
+                if (n - n.fromtimestamp(f.mtime())).days <= days:
+                    break
+            else:
+                r[d] = u
+        if confirm:
+            pkio.unchecked_remove(*r.keys())
+            auth_db.UserRegistration.delete_all_for_column_by_values(
+                'uid', r.values(),
+            )
+        return r
 
 
 def _create_example(example):
