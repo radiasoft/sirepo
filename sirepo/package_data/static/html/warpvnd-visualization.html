@@ -4,7 +4,7 @@
       <div class="row">
         <div class="col-sm-12">
           <div data-simulation-status-panel="simulationStatus">
-            <div data-ng-if="$parent.simState.getCancelledDueToTimeout()" class="alert alert-warning" role="alert">
+            <div data-ng-if="$parent.simState.getCancelledAfterSecs()" class="alert alert-warning" role="alert">
             <h4 class="alert-heading">Cancelled: Maximum runtime exceeded</h4>
             <p>Your simulation ran longer than the maximum runtime. To increase your maximum runtime please upgrade to <a href="https://radiasoft.net/sirepo" target="_blank">Sirepo Premium</a>.</p>
             </div>
