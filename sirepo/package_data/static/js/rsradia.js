@@ -1160,9 +1160,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setScaling() {
+                var b = renderer.computeVisiblePropBounds();
+                var s = [Math.abs(b[1] - b[0]), Math.abs(b[3] - b[2]), Math.abs(b[5] - b[4])];
+                var mx = Math.max(...s);
+                //srdbg('prop bnds', b, mx, mx / 8.0, 0.035 * mx);
                 getActorsOfType(radiaVtkUtils.GEOM_TYPE_VECTS).forEach(function (actor) {
                     var mapper = actor.getMapper();
-                    mapper.setScaleFactor(8.0);
+                    mapper.setScaleFactor(0.035 * mx);
                     var vs = appState.models.fieldDisplay.scaling;
                     if (vs === 'uniform') {
                         mapper.setScaleModeToScaleByConstant();
