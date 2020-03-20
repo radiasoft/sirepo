@@ -465,7 +465,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
     }
 
     function handleStatus(data) {
-        self.simulationAlerts = data.alerts || '';
+        self.simulationAlerts = data.alert || '';
         if (data.frameCount) {
             frameCache.setFrameCount(parseInt(data.frameCount));
             loadElementReports(data.outputInfo);

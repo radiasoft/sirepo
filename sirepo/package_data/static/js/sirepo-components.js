@@ -332,7 +332,6 @@ SIREPO.app.directive('cancelledDueToTimeoutAlert', function(authState) {
     };
 });
 
->>>>>>> Stashed changes
 SIREPO.app.directive('confirmationModal', function() {
     return {
         restrict: 'A',
@@ -3165,6 +3164,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                   '<div data-sbatch-cores-and-hours="simState"></div>',
                 '</div>',
               '</div>',
+              '<div data-cancelled-due-to-timeout-alert="simState"></div>',
               '<div class="col-sm-6 pull-right">',
                 '<button class="btn btn-default" data-ng-click="start()">Start New Simulation</button>',
               '</div>',
@@ -3182,6 +3182,10 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
 
             $scope.alertMessage = function() {
                 return callSimState('getAlert');
+            };
+
+            $scope.cancelledAfterSecs = function() {
+                return callSimState('getCancelledAfterSecs');
             };
 
             $scope.errorMessage = function() {

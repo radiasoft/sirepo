@@ -17,6 +17,7 @@ import pykern.pkio
 import re
 import requests
 import sirepo.auth
+import sirepo.auth_db
 import sirepo.http_reply
 import sirepo.http_request
 import sirepo.job
@@ -134,6 +135,8 @@ def api_runSimulation():
     # TODO(e-carlin): This should really be done in job_supervisor._lib_dir_symlink()
     # but that is outside of the Flask context so it won't work
     r.simulation_lib_dir = sirepo.simulation_db.simulation_lib_dir(r.simulationType)
+    if r.isParallel:
+        r.isPremiumUser = sirepo.auth.is_premium_user()
     return _request(_request_content=r)
 
 
