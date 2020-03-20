@@ -686,7 +686,7 @@ class _ComputeJob(PKDict):
     def _status_reply(self, req):
         def res(**kwargs):
             r = PKDict(**kwargs)
-            if self.db.get('cancelledAfterSecs'):
+            if self.db.get('cancelledAfterSecs') is not None:
                 r.cancelledAfterSecs = self.db.cancelledAfterSecs
             if self.db.error:
                 r.error = self.db.error

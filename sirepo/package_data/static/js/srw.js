@@ -1835,10 +1835,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
         },
         template: [
             '<form name="form" class="form-horizontal" autocomplete="off" novalidate>',
-              '<div data-ng-if="simState.getCancelledAfterSecs()" class="alert alert-warning" role="alert">',
-                  '<h4 class="alert-heading">Cancelled: Maximum runtime exceeded</h4>',
-                  '<p>Your simulation ran longer than the maximum runtime. To increase your maximum runtime please upgrade to <a href="https://radiasoft.net/sirepo" target="_blank">Sirepo Premium</a>.</p>',
-              '</div>',
+              '<div data-cancelled-due-to-timeout-alert="simState"></div>',
               '<div class="progress" data-ng-if="simState.isProcessing()">',
                 '<div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%"></div>',
               '</div>',

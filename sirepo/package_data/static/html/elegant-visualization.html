@@ -3,10 +3,7 @@
     <div class="col-md-6 col-xl-4">
 
       <div data-basic-editor-panel="" data-view-name="simulationStatus" data-want-buttons="">
-        <div data-ng-if="visualization.simState.getCancelledAfterSecs()" class="alert alert-warning" role="alert">
-          <h4 class="alert-heading">Cancelled: Maximum runtime exceeded</h4>
-          <p>Your simulation ran longer than the maximum runtime. To increase your maximum runtime please upgrade to <a href="https://radiasoft.net/sirepo" target="_blank">Sirepo Premium</a>.</p>
-          </div>
+       <div data-cancelled-due-to-timeout-alert="visualization.simState"></div>
           <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="visualization.simState.isProcessing()">
             <div class="col-sm-12" data-ng-show="visualization.simState.isStatePending()">
               <div>
