@@ -37,13 +37,14 @@ _RUNNING_PENDING = (job.RUNNING, job.PENDING)
 
 _HISTORY_FIELDS = frozenset((
     'alert',
+    'cancelledAfterSecs',
     'computeJobQueued',
     'computeJobSerial',
     'computeJobStart',
     'computeModel'
     'driverDetails',
     'isParallel',
-    'isPremiUmuser',
+    'isPremiumUser',
     'error',
     'jobRunMode',
     'lastUpdateTime',
@@ -86,6 +87,7 @@ def init():
         max_hours=dict(
             analysis=(.04, float, 'maximum run-time for analysis job',),
             parallel=(1, float, 'maximum run-time for parallel job (except sbatch)'),
+            # TODO(e-carlin): make 2
             parallel_premium=(.002, float, 'maximum run-time for parallel job for premium user (except sbatch)'),
             sequential=(.1, float, 'maximum run-time for sequential job'),
         ),
@@ -253,9 +255,7 @@ class _ComputeJob(PKDict):
     @classmethod
     def __create(cls, req):
         try:
-            d = pkcollections.json_load_any(
-                cls.__db_file(req.content.computeJid),
-            )
+            d = cls.__db_load(req.content.computeJid)
 #TODO(robnagler) when we reconnect with running processes at startup,
 #  we'll need to change this
             if d.status in _RUNNING_PENDING:
@@ -307,6 +307,20 @@ class _ComputeJob(PKDict):
         return prev_db.history + [
             PKDict(((k, v) for k, v in prev_db.items() if k in _HISTORY_FIELDS)),
         ]
+
+    @classmethod
+    def __db_load(cls, compute_jid):
+        def _fixup_fields(fields, db):
+            for k in fields:
+                db.setdefault(k, None)
+                for h in d.history:
+                    h.setdefault(k, None)
+
+        d = pkcollections.json_load_any(
+            cls.__db_file(compute_jid),
+        )
+        _fixup_fields(['alert', 'cancelledAfterSecs', 'isPremiumUser'], d)
+        return d
 
     def __db_write(self):
         sirepo.util.json_dump(self.db, path=self.__db_file(self.db.computeJid))
@@ -686,11 +700,11 @@ class _ComputeJob(PKDict):
     def _status_reply(self, req):
         def res(**kwargs):
             r = PKDict(**kwargs)
-            if self.db.get('cancelledAfterSecs') is not None:
+            if self.db.cancelledAfterSecs is not None:
                 r.cancelledAfterSecs = self.db.cancelledAfterSecs
             if self.db.error:
                 r.error = self.db.error
-            if self.db.get('alert'):
+            if self.db.alert:
                 r.alert = self.db.alert
             if self.db.isParallel:
                 r.update(self.db.parallelStatus)
