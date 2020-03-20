@@ -33,8 +33,6 @@ _DB_SUBDIR = 'supervisor-job'
 
 _NEXT_REQUEST_SECONDS = None
 
-_RUNNING_PENDING = (job.RUNNING, job.PENDING)
-
 _HISTORY_FIELDS = frozenset((
     'alert',
     'cancelledAfterSecs',
@@ -256,11 +254,13 @@ class _ComputeJob(PKDict):
     def __create(cls, req):
         try:
             d = cls.__db_load(req.content.computeJid)
+            self = cls(req, db=d)
+            if self._is_running_pending():
 #TODO(robnagler) when we reconnect with running processes at startup,
 #  we'll need to change this
-            if d.status in _RUNNING_PENDING:
-                d.status = job.CANCELED
-            return cls(req, db=d)
+                self.db.status = job.CANCELED
+                self.__db_write()
+            return self
         except Exception as e:
             if pykern.pkio.exception_is_not_found(e):
                 return cls(req).__db_write()
@@ -331,7 +331,7 @@ class _ComputeJob(PKDict):
         def _filter_jobs(job):
             if uid and job.db.uid != uid:
                 return False
-            return job.db.status in _RUNNING_PENDING
+            return job._is_running_pending()
 
         def _get_header():
             h = [
@@ -393,6 +393,9 @@ class _ComputeJob(PKDict):
         l = 2
         return PKDict(header=_get_header(), rows=_get_rows())
 
+    def _is_running_pending(self):
+        return self.db.status in (job.RUNNING, job.PENDING)
+
     @classmethod
     async def _receive_api_admJobs(cls, req):
         return cls._get_running_pending_jobs()
@@ -445,7 +448,7 @@ class _ComputeJob(PKDict):
             # may have been started so either we are canceling a compute by
             # user directive (left) or timing out an op (and canceling all).
             (not self._req_is_valid(req) and not timed_out_op)
-            or (self.db.status not in _RUNNING_PENDING and not self.ops)
+            or (not self._is_running_pending() and not self.ops)
         ):
             # job is not relevant, but let the user know it isn't running
             return r
@@ -493,7 +496,7 @@ class _ComputeJob(PKDict):
 
     async def _receive_api_runSimulation(self, req):
         f = req.content.data.get('forceRun')
-        if self.db.status == _RUNNING_PENDING:
+        if self._is_running_pending():
             if f or not self._req_is_valid(req):
                 return PKDict(
                     state=job.ERROR,
@@ -711,7 +714,7 @@ class _ComputeJob(PKDict):
                 r.computeJobHash = self.db.computeJobHash
                 r.computeJobSerial = self.db.computeJobSerial
                 r.elapsedTime = self.db.lastUpdateTime - self.db.computeJobStart
-            if self.db.status in _RUNNING_PENDING:
+            if self._is_running_pending():
                 c = req.content
                 r.update(
                     nextRequestSeconds=self.db.nextRequestSeconds,
