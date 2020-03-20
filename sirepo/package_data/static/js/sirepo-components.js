@@ -3125,7 +3125,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                   '<div data-sbatch-cores-and-hours="simState"></div>',
                 '</div>',
               '</div>',
-            '<div data-ng-if="cancelledDueToTimeout()" class="alert alert-warning" role="alert">',
+            '<div data-ng-if="cancelledAfterSecs()" class="alert alert-warning" role="alert">',
                 '<h4 class="alert-heading">Cancelled: Maximum runtime exceeded</h4>',
                 '<p>Your simulation ran longer than the maximum runtime. To increase your maximum runtime please upgrade to <a href="https://radiasoft.net/sirepo" target="_blank">Sirepo Premium</a>.</p>',
             '</div>',
@@ -3148,8 +3148,8 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                 return callSimState('getAlert');
             };
 
-            $scope.cancelledDueToTimeout = function() {
-                return callSimState('getCancelledDueToTimeout');
+            $scope.cancelledAfterSecs = function() {
+                return callSimState('getCancelledAfterSecs');
             };
 
             $scope.errorMessage = function() {

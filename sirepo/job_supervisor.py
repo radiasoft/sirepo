@@ -86,7 +86,7 @@ def init():
         max_hours=dict(
             analysis=(.04, float, 'maximum run-time for analysis job',),
             parallel=(1, float, 'maximum run-time for parallel job (except sbatch)'),
-            parallel_premium=(2, float, 'maximum run-time for parallel job for premium user (except sbatch)'),
+            parallel_premium=(.002, float, 'maximum run-time for parallel job for premium user (except sbatch)'),
             sequential=(.1, float, 'maximum run-time for sequential job'),
         ),
         sbatch_poll_secs=(60, int, 'how often to poll squeue and parallel status'),
@@ -274,7 +274,7 @@ class _ComputeJob(PKDict):
         c = req.content
         self.db = PKDict(
             alert=None,
-            cancelledDueToTimeout=False,
+            cancelledAfterSecs=None,
             computeJid=c.computeJid,
             computeJobHash=c.computeJobHash,
             computeJobSerial=0,
@@ -461,7 +461,7 @@ class _ComputeJob(PKDict):
                     for x in filter(lambda e: e != c, o):
                         x.destroy(cancel=True)
                     if timed_out_op:
-                        self.db.cancelledDueToTimeout = True
+                        self.db.cancelledAfterSecs = timed_out_op.maxRunSecs
                     self.db.status = job.CANCELED
                     self.__db_write()
                     if c:
@@ -686,8 +686,8 @@ class _ComputeJob(PKDict):
     def _status_reply(self, req):
         def res(**kwargs):
             r = PKDict(**kwargs)
-            if self.db.get('cancelledDueToTimeout'):
-                r.cancelledDueToTimeout = True
+            if self.db.get('cancelledAfterSecs'):
+                r.cancelledAfterSecs = self.db.cancelledAfterSecs
             if self.db.error:
                 r.error = self.db.error
             if self.db.get('alert'):
