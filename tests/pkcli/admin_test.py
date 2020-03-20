@@ -7,7 +7,6 @@ u"""test sirepo.pkcli.admin
 from __future__ import absolute_import, division, print_function
 import pytest
 
-# TODO(e-carlin): remove ordering need?
 # NOTE: order of the tests matters, and pytest picks them up in order
 # of definition, but we are documenting this with test_1 and test_2 prefixes
 
