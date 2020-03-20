@@ -39,7 +39,10 @@ def test_srw(fc):
         cancel = r.get('nextRequest')
         for _ in range(10):
             if r.state == 'canceled':
-                pkunit.pkok(r.cancelledDueToTimeout, 'cancelledDueToTimeout not set')
+                pkunit.pkeq(
+                    7.2,
+                    r.cancelledAfterSecs,
+                )
                 cancel = None
                 break
             r = fc.sr_post('runStatus', r.nextRequest)

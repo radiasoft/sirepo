@@ -320,14 +320,14 @@ SIREPO.app.directive('cancelledDueToTimeoutAlert', function(authState) {
                 s %= 3600;
                 var m = leftPadZero(Math.floor(s / 60));
                 return h + ':' + m + ':' + leftPadZero(Math.floor(s % 60));
-            }
+            };
 
             $scope.premiumOrEnterprise = function() {
                 if (authState.roles.includes('premium')) {
                     return 'Enterprise';
                 }
                 return 'Premium';
-            }
+            };
         },
     };
 });
