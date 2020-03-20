@@ -88,7 +88,7 @@ def init():
             analysis=(.04, float, 'maximum run-time for analysis job',),
             parallel=(1, float, 'maximum run-time for parallel job (except sbatch)'),
             # TODO(e-carlin): make 2
-            parallel_premium=(.002, float, 'maximum run-time for parallel job for premium user (except sbatch)'),
+            parallel_premium=(2, float, 'maximum run-time for parallel job for premium user (except sbatch)'),
             sequential=(.1, float, 'maximum run-time for sequential job'),
         ),
         sbatch_poll_secs=(60, int, 'how often to poll squeue and parallel status'),
