@@ -21,6 +21,7 @@ import sirepo.feature_config
 import sirepo.template
 import datetime
 import importlib
+import werkzeug.exceptions
 
 
 #: what routeName to return in the event user is logged out in require_user
@@ -166,12 +167,12 @@ def init_mock(uid=None, sim_type=None):
         login(sirepo.auth.guest, is_mock=True)
 
 
-def is_premium_user(uid):
-    with auth_db.thread_lock:
-        return auth_db.UserRole.search_by(
-            role=ROLE_PREMIUM,
-            uid=uid,
-        ) is not None
+def is_premium_user():
+    try:
+        check_user_has_role(ROLE_PREMIUM)
+        return True
+    except werkzeug.exceptions.Forbidden:
+        return False
 
 
 def logged_in_user():

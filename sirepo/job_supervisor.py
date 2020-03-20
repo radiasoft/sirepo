@@ -310,16 +310,13 @@ class _ComputeJob(PKDict):
 
     @classmethod
     def __db_load(cls, compute_jid):
-        def _fixup_fields(fields, db):
-            for k in fields:
-                db.setdefault(k, None)
-                for h in d.history:
-                    h.setdefault(k, None)
-
         d = pkcollections.json_load_any(
             cls.__db_file(compute_jid),
         )
-        _fixup_fields(['alert', 'cancelledAfterSecs', 'isPremiumUser'], d)
+        for k in ['alert', 'cancelledAfterSecs', 'isPremiumUser']:
+            d.setdefault(k, None)
+            for h in d.history:
+                h.setdefault(k, None)
         return d
 
     def __db_write(self):
@@ -626,10 +623,10 @@ class _ComputeJob(PKDict):
             (run_mode == sirepo.job.SBATCH and op_name == job.OP_RUN):
             return 0
         t = cfg.max_hours[req.kind]
-        if req.kind == job.PARALLEL and req.content.get('isPremiumUser'):
-            t = cfg.max_hours['parallel_premium']
         if op_name == sirepo.job.OP_ANALYSIS:
             t = cfg.max_hours.analysis
+        elif req.kind == job.PARALLEL and req.content.get('isPremiumUser'):
+            t = cfg.max_hours['parallel_premium']
         return t * 3600
 
     def _req_is_valid(self, req):

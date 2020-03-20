@@ -136,7 +136,7 @@ def api_runSimulation():
     # but that is outside of the Flask context so it won't work
     r.simulation_lib_dir = sirepo.simulation_db.simulation_lib_dir(r.simulationType)
     if r.isParallel:
-        r.isPremiumUser = sirepo.auth.is_premium_user(r.uid)
+        r.isPremiumUser = sirepo.auth.is_premium_user()
     return _request(_request_content=r)
 
 
