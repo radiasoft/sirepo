@@ -293,6 +293,46 @@ SIREPO.app.directive('buttons', function(appState, panelState) {
     };
 });
 
+SIREPO.app.directive('cancelledDueToTimeoutAlert', function(authState) {
+    return {
+        restrict: 'A',
+        scope: {
+            seconds: '<',
+            simState: '=cancelledDueToTimeoutAlert',
+        },
+        template: [
+            '<div data-ng-if="simState.getCancelledAfterSecs()" class="alert alert-warning" role="alert">',
+              '<h4 class="alert-heading">Cancelled: Maximum runtime exceeded</h4>',
+              '<p>Your simulation ran for {{getTime()}}. To increase your maximum runtime please upgrade to <a href="https://radiasoft.net/sirepo" target="_blank">Sirepo {{ premiumOrEnterprise() }}</a>.</p>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            function leftPadZero(num) {
+                if (num < 10) {
+                    return '0' + num;
+                }
+                return num;
+            }
+
+            $scope.getTime = function() {
+                var s = $scope.simState.getCancelledAfterSecs();
+                var h = leftPadZero(Math.floor(s / 3600));
+                s %= 3600;
+                var m = leftPadZero(Math.floor(s / 60));
+                return h + ':' + m + ':' + leftPadZero(Math.floor(s % 60));
+            };
+
+            $scope.premiumOrEnterprise = function() {
+                if (authState.roles.includes('premium')) {
+                    return 'Enterprise';
+                }
+                return 'Premium';
+            };
+        },
+    };
+});
+
+>>>>>>> Stashed changes
 SIREPO.app.directive('confirmationModal', function() {
     return {
         restrict: 'A',
