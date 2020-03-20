@@ -255,8 +255,7 @@ class _ComputeJob(PKDict):
             if self._is_running_pending():
 #TODO(robnagler) when we reconnect with running processes at startup,
 #  we'll need to change this
-                self.db.status = job.CANCELED
-                self.__db_write()
+                self.__db_update(status=job.CANCELED)
             return self
         except Exception as e:
             if pykern.pkio.exception_is_not_found(e):
@@ -302,6 +301,10 @@ class _ComputeJob(PKDict):
         return prev_db.history + [
             PKDict(((k, v) for k, v in prev_db.items() if k in _HISTORY_FIELDS)),
         ]
+
+    def __db_update(self, **kwargs):
+        self.db.pkupdate(**kwargs)
+        return self.__db_write()
 
     def __db_write(self):
         sirepo.util.json_dump(self.db, path=self.__db_file(self.db.computeJid))
@@ -456,8 +459,7 @@ class _ComputeJob(PKDict):
                     pkdlog('{} cancel={}', self, o)
                     for x in filter(lambda e: e != c, o):
                         x.destroy(cancel=True)
-                    self.db.status = job.CANCELED
-                    self.__db_write()
+                    self.__db_update(status=job.CANCELED)
                     if c:
                         c.msg.opIdsToCancel = [x.opId for x in o]
                         c.send()
@@ -497,7 +499,7 @@ class _ComputeJob(PKDict):
         )
         t = int(time.time())
         self.__db_init(req, prev_db=self.db)
-        self.db.pkupdate(
+        self.__db_update(
             computeJobQueued=t,
             computeJobSerial=t,
             computeModel=req.content.computeModel,
@@ -507,7 +509,6 @@ class _ComputeJob(PKDict):
             simName=req.content.data.models.simulation.name,
             status=job.PENDING,
         )
-        self.__db_write()
         try:
             for i in range(_MAX_RETRIES):
                 try:
@@ -530,7 +531,7 @@ class _ComputeJob(PKDict):
             else:
                 raise AssertionError('too many retries {}'.format(req))
         except Exception as e:
-            self.db.pkupdate(
+            self.__db_update(
                 status=job.ERROR,
                 error=e,
             )
@@ -648,9 +649,10 @@ class _ComputeJob(PKDict):
         except Exception as e:
             pkdlog('error={} stack={}', e, pkdexc())
             if op == self.run_op:
-                self.db.status = job.ERROR
-                self.db.error = 'server error'
-                self.__db_write()
+                self.__db_update(
+                    status=job.ERROR,
+                    error='server error',
+                )
         finally:
             op.destroy(cancel=False)
 
