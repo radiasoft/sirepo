@@ -42,6 +42,8 @@ _HISTORY_FIELDS = frozenset((
     'computeJobStart',
     'computeModel'
     'driverDetails',
+    'isParallel',
+    'isPremiUmuser',
     'error',
     'jobRunMode',
     'lastUpdateTime',
@@ -282,7 +284,7 @@ class _ComputeJob(PKDict):
             error=None,
             history=self.__db_init_history(prev_db),
             isParallel=c.isParallel,
-            isPremiumUser=c.isPremiumUser,
+            isPremiumUser=c.get('isPremiumUser'),
             jobRunMode=c.jobRunMode,
             lastUpdateTime=0,
             simName=None,
@@ -607,7 +609,7 @@ class _ComputeJob(PKDict):
             (run_mode == sirepo.job.SBATCH and op_name == job.OP_RUN):
             return 0
         t = cfg.max_hours[req.kind]
-        if req.kind == job.PARALLEL and req.content.isPremiumUser:
+        if req.kind == job.PARALLEL and req.content.get('isPremiumUser'):
             t = cfg.max_hours['parallel_premium']
         if op_name == sirepo.job.OP_ANALYSIS:
             t = cfg.max_hours.analysis

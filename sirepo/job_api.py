@@ -135,6 +135,8 @@ def api_runSimulation():
     # TODO(e-carlin): This should really be done in job_supervisor._lib_dir_symlink()
     # but that is outside of the Flask context so it won't work
     r.simulation_lib_dir = sirepo.simulation_db.simulation_lib_dir(r.simulationType)
+    if r.isParallel:
+        r.isPremiumUser = sirepo.auth.is_premium_user(r.uid)
     return _request(_request_content=r)
 
 
@@ -245,13 +247,6 @@ def _request_content(kwargs):
         computeJid=s.parse_jid(d, uid=b.uid),
         userDir=str(sirepo.simulation_db.user_dir_name(b.uid)),
     )
-    with sirepo.auth_db.thread_lock:
-        b.pkupdate(
-            isPremiumUser=sirepo.auth_db.UserRole.search_by(
-                role=sirepo.auth.ROLE_PREMIUM,
-                uid=b.uid,
-            ) is not None,
-        )
     return _run_mode(b)
 
 

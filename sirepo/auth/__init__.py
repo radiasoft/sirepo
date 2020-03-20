@@ -166,6 +166,14 @@ def init_mock(uid=None, sim_type=None):
         login(sirepo.auth.guest, is_mock=True)
 
 
+def is_premium_user(uid):
+    with auth_db.thread_lock:
+        return auth_db.UserRole.search_by(
+            role=ROLE_PREMIUM,
+            uid=uid,
+        ) is not None
+
+
 def logged_in_user():
     """Get the logged in user
 
