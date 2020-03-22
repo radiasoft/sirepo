@@ -21,6 +21,7 @@ import os.path
 import py.path
 import re
 import sirepo.sim_data
+import sirepo.util
 
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
@@ -155,17 +156,15 @@ def generate_field_report(data, run_dir, args=None):
     vals_equal = np.isclose(np.std(values), 0., atol=1e-9)
 
     if np.isnan(values).any():
-        return {
-            'error': 'Results could not be calculated.\n\nThe Simulation Grid may' +
-                     ' require adjustments to the Grid Points and Channel Width.',
-        }
-
+        raise sirepo.util.UserAlert(
+            'Results could not be calculated.\n\nThe Simulation Grid may'
+            ' require adjustments to the Grid Points and Channel Width.'
+        )
     res = _field_plot(values, axes, grid, _SIM_DATA.warpvnd_is_3d(data))
     res.title= 'ϕ Across Whole Domain' + slice_text
     res.global_min = np.min(potential) if vals_equal else None
     res.global_max = np.max(potential) if vals_equal else None
     res.frequency_title = 'Volts'
-
     return res
 
 
@@ -253,15 +252,21 @@ def open_data_file(run_dir, model_name, file_index=None):
     return res
 
 
-def prepare_output_file(run_dir, data):
+def prepare_sequential_output_file(run_dir, data):
     if data.report == 'fieldComparisonReport' or data.report == 'fieldReport':
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
             if data.report == 'fieldComparisonReport':
-                simulation_db.write_result(generate_field_comparison_report(data, run_dir), run_dir=run_dir)
+                template_common.write_sequential_result(
+                    generate_field_comparison_report(data, run_dir),
+                    run_dir=run_dir,
+                )
             else:
-                simulation_db.write_result(generate_field_report(data, run_dir), run_dir=run_dir)
+                template_common.write_sequential_result(
+                    generate_field_report(data, run_dir),
+                    run_dir=run_dir,
+                )
 
 
 def python_source_for_model(data, model):

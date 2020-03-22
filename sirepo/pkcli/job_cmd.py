@@ -12,6 +12,7 @@ from pykern.pkdebug import pkdp, pkdexc, pkdc, pkdlog
 from sirepo import job
 from sirepo import simulation_db
 from sirepo.template import template_common
+import re
 import requests
 import sirepo.template
 import sirepo.util
@@ -97,9 +98,12 @@ def _do_compute(msg, template):
             _write_parallel_status(msg, template, i)
         if i:
             continue
-        if r != 0:
-            return PKDict(state=job.ERROR, error='non zero returncode={}'.format(r))
-        return PKDict(state=job.COMPLETED)
+        return _on_do_compute_exit(
+            r == 0,
+            msg.isParallel,
+            template,
+            msg.runDir,
+        )
 
 
 def _do_fastcgi(msg, template):
@@ -128,9 +132,15 @@ def _do_fastcgi(msg, template):
 
 
 def _do_get_simulation_frame(msg, template):
-    return template_common.sim_frame_dispatch(
-        msg.data.copy().pkupdate(run_dir=msg.runDir),
-    )
+    try:
+        return template_common.sim_frame_dispatch(
+            msg.data.copy().pkupdate(run_dir=msg.runDir),
+        )
+    except Exception as e:
+        r = 'report not generated'
+        if isinstance(e, sirepo.util.UserAlert):
+            r = e.sr_args.error
+        return PKDict(error=r)
 
 
 def _do_get_data_file(msg, template):
@@ -178,14 +188,42 @@ def _do_sbatch_status(msg, template):
 
 
 def _do_sequential_result(msg, template):
-    r = simulation_db.read_result(msg.runDir)
+    r = template_common.read_sequential_result(msg.runDir)
     # Read this first: https://github.com/radiasoft/sirepo/issues/2007
-    if (r.state != job.ERROR and hasattr(template, 'prepare_output_file')
-        and 'models' in msg.data
-    ):
-        template.prepare_output_file(msg.runDir, msg.data)
-        r = simulation_db.read_result(msg.runDir)
+    if (hasattr(template, 'prepare_sequential_output_file') and 'models' in msg.data):
+        template.prepare_sequential_output_file(msg.runDir, msg.data)
+        r = template_common.read_sequential_result(msg.runDir)
     return r
+
+
+def _on_do_compute_exit(success_exit, is_parallel, template, run_dir):
+    # locals() must be called before anything else so we only get the function
+    # arguments
+    kwargs = locals()
+
+    def _failure_exit():
+        a = _post_processing()
+        if not a:
+            f = run_dir.join(template_common.RUN_LOG)
+            if f.exists():
+                a = _parse_python_errors(pkio.read_text(f))
+        if not a:
+            a = 'non-zero exit code'
+        return PKDict(state=job.ERROR, error=a)
+
+    def _post_processing():
+        if hasattr(template, 'post_execution_processing'):
+            return template.post_execution_processing(**kwargs)
+
+    def _success_exit():
+        return PKDict(
+            state=job.COMPLETED,
+            alert=_post_processing(),
+        )
+    try:
+        return _success_exit() if success_exit else _failure_exit()
+    except Exception as e:
+        return PKDict(state=sirepo.job.ERROR, error=e)
 
 
 def _mtime_or_now(path):
@@ -198,6 +236,17 @@ def _mtime_or_now(path):
         int: modification time
     """
     return int(path.mtime() if path.exists() else time.time())
+
+
+def _parse_python_errors(text):
+    m = re.search(
+        r'^Traceback .*?^\w*(?:Error|Exception):\s*(.*)',
+        text,
+        re.MULTILINE|re.DOTALL,
+    )
+    if m:
+        return re.sub(r'\nTraceback.*$', '', m.group(1), flags=re.S).strip()
+    return ''
 
 
 def _write_parallel_status(msg, template, is_running):

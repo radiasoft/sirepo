@@ -21,16 +21,13 @@ import copy
 import datetime
 import errno
 import glob
-import json
 import numconv
 import os
 import os.path
-import py
 import random
 import re
 import sirepo.auth
 import sirepo.job
-import sirepo.srdb
 import sirepo.srdb
 import sirepo.template
 import threading
@@ -84,6 +81,9 @@ _OLDEST_VERSION = '20140101.000001'
 
 #: Matches cancelation errors in run_log: KeyboardInterrupt probably only happens in dev
 _RUN_LOG_CANCEL_RE = re.compile(r'^KeyboardInterrupt$', flags=re.MULTILINE)
+
+#: Absolute path of rsmanifest file
+_RSMANIFEST_PATH = pkio.py_path('/rsmanifest' + JSON_SUFFIX)
 
 #: Cache of schemas keyed by app name
 _SCHEMA_CACHE = PKDict()
@@ -265,7 +265,11 @@ def get_schema(sim_type):
     pkcollections.mapping_merge(schema, SCHEMA_COMMON)
     pkcollections.mapping_merge(
         schema,
-        PKDict(feature_config=feature_config.for_sim_type(t)),
+        PKDict(
+            feature_config=feature_config.for_sim_type(t).pkupdate(
+                job=feature_config.cfg().job,
+            ),
+        ),
     )
     schema.simulationType = t
     _SCHEMA_CACHE[t] = schema
@@ -297,7 +301,9 @@ def generate_json(data, pretty=False):
 
 
 def hack_nfs_write_status(status, run_dir):
-    """Verify status file exists before writing.
+    """Deprecated, the job_supervisor stores the status
+
+    Verify status file exists before writing.
 
     NFS doesn't propagate files immediately so there
     is a race condition when the celery worker starts.
@@ -324,7 +330,7 @@ def iterate_simulation_datafiles(simulation_type, op, search=None):
     for path in glob.glob(
         str(sim_dir.join('*', SIMULATION_DATA_FILE)),
     ):
-        path = py.path.local(path)
+        path = pkio.py_path(path=path)
         try:
             data = open_json_file(simulation_type, path, fixup=False)
             data, changed = fixup_old_data(data)
@@ -354,7 +360,7 @@ def json_filename(filename, run_dir=None):
         filename += JSON_SUFFIX
     if run_dir and not os.path.isabs(filename):
         filename = run_dir.join(filename)
-    return py.path.local(filename)
+    return pkio.py_path(path=filename)
 
 
 def json_load(*args, **kwargs):
@@ -491,6 +497,7 @@ def prepare_simulation(data, run_dir=None):
     template = sirepo.template.import_module(data)
     s = sirepo.sim_data.get_class(sim_type)
     s.lib_files_to_run_dir(data, run_dir)
+    update_rsmanifest(data)
     write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
     is_p = s.is_parallel(data)
@@ -535,7 +542,9 @@ def read_json(filename):
 
 
 def read_result(run_dir):
-    """Read result data file from simulation
+    """Deprecated, use template_common.read_sequential_result
+
+    Read result data file from simulation
 
     Args:
         run_dir (py.path): where to find output
@@ -573,6 +582,7 @@ def read_result(run_dir):
         # Old simulation or other error, just say is canceled so restarts
         res = PKDict(state=sirepo.job.CANCELED)
     return res
+
 
 def read_simulation_json(sim_type, *args, **kwargs):
     """Calls `open_json_file` and fixes up data, possibly saving
@@ -782,6 +792,15 @@ def uid_from_dir_name(dir_name):
     return m.group(1)
 
 
+def update_rsmanifest(data):
+    try:
+        data.rsmanifest = read_json(_RSMANIFEST_PATH)
+    except Exception as e:
+        if pkio.exception_is_not_found(e):
+            return
+        raise
+
+
 def user_create(login_callback):
     """Create a user and initialize the directory
 
@@ -870,7 +889,7 @@ def write_result(result, run_dir=None):
         run_dir (py.path): Defaults to current dir
     """
     if not run_dir:
-        run_dir = py.path.local()
+        run_dir = pkio.py_path()
     fn = json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
     if fn.exists():
         # Don't overwrite first written file, because first write is
@@ -887,7 +906,9 @@ def write_result(result, run_dir=None):
 
 
 def write_status(status, run_dir):
-    """Write status to simulation
+    """Deprecated, status is now stored in the job_supervisor
+
+    Write status to simulation
 
     Args:
         status (str): pending, running, completed, canceled

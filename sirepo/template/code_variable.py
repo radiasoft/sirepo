@@ -36,9 +36,11 @@ class CodeVar(object):
         for name, value in self.variables.items():
             v, err = self.eval_var(value)
             if not err:
-                cache[name] = v
                 if self.is_var_value(value):
                     cache[value] = v
+                else:
+                    v = float(v)
+                cache[name] = v
         return cache
 
     def eval_var(self, expr):

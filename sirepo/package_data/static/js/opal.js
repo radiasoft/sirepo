@@ -31,11 +31,11 @@ SIREPO.app.config(function() {
         },
         elementPic: {
             alpha: [],
-            aperture: ['ECOLLIMATOR', 'FLEXIBLECOLLIMATOR', 'PEPPERPOT', 'RCOLLIMATOR', 'SLIT'],
+            aperture: ['CCOLLIMATOR', 'ECOLLIMATOR', 'FLEXIBLECOLLIMATOR', 'PEPPERPOT', 'RCOLLIMATOR', 'SLIT'],
             bend: ['RBEND', 'RBEND3D', 'SBEND', 'SBEND3D', 'SEPTUM'],
             drift: ['DRIFT'],
             lens: [],
-            magnet: ['CCOLLIMATOR', 'CYCLOTRON', 'CYCLOTRONVALLEY', 'DEGRADER',
+            magnet: ['CYCLOTRON', 'CYCLOTRONVALLEY', 'DEGRADER',
                      'HKICKER', 'KICKER', 'MULTIPOLE', 'MULTIPOLET', 'MULTIPOLETCURVEDCONSTRADIUS',
                      'MULTIPOLETCURVEDVARRADIUS', 'MULTIPOLETSTRAIGHT', 'OCTUPOLE',
                      'QUADRUPOLE', 'RINGDEFINITION', 'SCALINGFFAMAGNET', 'SEXTUPOLE',
@@ -55,11 +55,41 @@ SIREPO.app.factory('opalService', function(appState, commandService, latticeServ
     var self = {};
     var COMMAND_TYPES = ['BeamList', 'DistributionList', 'FieldsolverList', 'GeometryList', 'ParticlematterinteractionList', 'WakeList'];
 
+    function findCommands(type) {
+        return appState.models.commands.filter(function(cmd) {
+            return cmd._type == type;
+        });
+    }
+
     self.computeModel = function(analysisModel) {
         return 'animation';
     };
 
-    appState.setAppService(self);
+    commandService.canDeleteCommand = function(command) {
+        commandService.deleteCommandWarning = '';
+        // can't delete a command which is in use by other commands
+        //TODO(pjm) for now check track use of beam, fieldsolver and distribution
+        findCommands('track').some(function(track) {
+            if (command._id  == track.beam
+                || command._id == track.run_beam
+                || command._id == track.run_fieldsolver
+                || command._id == track.run_distribution) {
+                commandService.deleteCommandWarning = commandService.formatCommandName(command) + ' is in use ';
+                return true;
+            }
+        });
+        if (commandService.deleteCommandWarning) {
+            return false;
+        }
+        // can't delete the last option, beam, distribution, fieldsolver or track
+        if (['option', 'beam', 'distribution', 'fieldsolver', 'track'].indexOf(command._type) >= 0) {
+            if (findCommands(command._type).length == 1) {
+                commandService.deleteCommandWarning = commandService.formatCommandName(command) + ' is the only ' + command._type;
+                return false;
+            }
+        }
+        return true;
+    };
 
     // overrides commandService.commandFileExtension for opal file extensions
     commandService.commandFileExtension = function(command) {
@@ -86,11 +116,12 @@ SIREPO.app.factory('opalService', function(appState, commandService, latticeServ
     };
 
     latticeService.includeCommandNames = true;
+    appState.setAppService(self);
 
     return self;
 });
 
-SIREPO.app.controller('CommandController', function(appState, commandService, latticeService, opalService, panelState) {
+SIREPO.app.controller('CommandController', function(commandService, panelState) {
     var self = this;
     self.activeTab = 'basic';
     self.basicNames = [
@@ -104,15 +135,7 @@ SIREPO.app.controller('CommandController', function(appState, commandService, la
     self.advancedNames = [];
 
     self.createElement = function(name) {
-        var model = {
-            _id: latticeService.nextId(),
-            _type: name,
-            name: latticeService.uniqueNameForType(name.substring(0, 2).toUpperCase()),
-        };
-        appState.setModelDefaults(model, commandService.commandModelName(name));
-        var modelName = commandService.commandModelName(model._type);
-        appState.models[modelName] = model;
-        panelState.showModalEditor(modelName);
+        panelState.showModalEditor(commandService.createCommand(name));
     };
 
     self.titleForName = function(name) {
@@ -153,11 +176,13 @@ SIREPO.app.directive('appFooter', function() {
 	},
         template: [
             '<div data-common-footer="nav"></div>',
+            '<div data-import-dialog=""></div>',
 	].join(''),
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState, latticeService, panelState) {
+// must import opalService so it registers with appState
+SIREPO.app.directive('appHeader', function(appState, latticeService, opalService, panelState) {
     return {
 	restrict: 'A',
 	scope: {
@@ -170,6 +195,7 @@ SIREPO.app.directive('appHeader', function(appState, latticeService, panelState)
               '<app-header-right-sim-loaded>',
   	        '<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>',
                   '<li class="sim-section" data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
 		'</div>',
@@ -178,6 +204,9 @@ SIREPO.app.directive('appHeader', function(appState, latticeService, panelState)
 		//  '<div>App-specific setting item</div>',
               '</app-settings>',
               '<app-header-right-sim-list>',
+                '<ul class="nav navbar-nav sr-navbar-right">',
+                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+                '</ul>',
               '</app-header-right-sim-list>',
             '</div>',
 	].join(''),
@@ -194,20 +223,94 @@ SIREPO.app.directive('appHeader', function(appState, latticeService, panelState)
     };
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, frameCache, latticeService, panelState, persistentSimulation, plotRangeService, opalService, $scope) {
+SIREPO.app.controller('SourceController', function(appState, commandService, latticeService, $scope) {
+    var self = this;
+
+    function saveCommandList(type) {
+        var cmd = commandService.findFirstCommand(type);
+        $.extend(cmd, appState.models[commandService.commandModelName(type)]);
+        appState.saveChanges('commands');
+    }
+
+    self.isFromFile = function() {
+        if (appState.isLoaded() && appState.models.command_distribution) {
+            return appState.models.command_distribution.type == 'FROMFILE';
+        }
+        return false;
+    };
+
+    appState.whenModelsLoaded($scope, function() {
+        ['beam', 'distribution'].forEach(function(type) {
+            var cmd = commandService.findFirstCommand(type);
+            if (! cmd) {
+                cmd = appState.models[commandService.createCommand(type)];
+                appState.models.commands.push(cmd);
+                appState.saveChanges('commands');
+            }
+            var name = commandService.commandModelName(type);
+            appState.models[name] = appState.clone(cmd);
+            appState.applicationState()[name] = appState.cloneModel(name);
+
+            $scope.$on(name + '.changed', function() {
+                saveCommandList(type);
+            });
+            $('#sr-command_beam-basicEditor h5').hide();
+            $('#sr-command_distribution-basicEditor h5').hide();
+        });
+    });
+    latticeService.initSourceController(self);
+});
+
+SIREPO.app.controller('VisualizationController', function (appState, commandService, frameCache, latticeService, panelState, persistentSimulation, plotRangeService, opalService, $scope) {
     var self = this;
     self.panelState = panelState;
     self.errorMessage = '';
+    self.outputFiles = [];
+
+    function cleanFilename(fn) {
+        return fn.replace(/\.(?:h5|outfn)/g, '');
+    }
 
     function handleStatus(data) {
         self.errorMessage = data.error;
-        if ('percentComplete' in data && ! data.error) {
+        if ('percentComplete' in data && ! self.errorMessage) {
             ['bunchAnimation', 'plotAnimation', 'plot2Animation'].forEach(function(m) {
                 plotRangeService.computeFieldRanges(self, m, data.percentComplete);
                 appState.saveQuietly(m);
             });
+            if (data.frameCount && data.outputInfo) {
+                loadElementReports(data.outputInfo);
+            }
         }
         frameCache.setFrameCount(data.frameCount || 0);
+    }
+
+    function loadElementReports(outputInfo) {
+        self.outputFiles = [];
+        outputInfo.forEach(function(info) {
+            var outputFile = {
+                info: info,
+                reportType: 'heatmap',
+                viewName: 'elementAnimation',
+                filename: info.filename,
+                modelAccess: {
+                    modelKey: info.modelKey,
+                    getData: function() {
+                        return appState.models[info.modelKey];
+                    },
+                },
+                panelTitle: cleanFilename(info.filename),
+            };
+            self.outputFiles.push(outputFile);
+            panelState.setError(info.modelKey, null);
+            if (! appState.models[info.modelKey]) {
+                appState.models[info.modelKey] = {};
+            }
+            var m = appState.models[info.modelKey];
+            appState.setModelDefaults(m, 'elementAnimation');
+            appState.saveQuietly(info.modelKey);
+            frameCache.setFrameCount(1, info.modelKey);
+        });
     }
 
     self.simState = persistentSimulation.initSimulationState(
@@ -220,17 +323,27 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         return self.errorMessage;
     };
 
-    self.handleModalShown = function(name) {
-        if (appState.isAnimationModelName(name)) {
-            plotRangeService.processPlotRange(self, name);
-        }
-    };
-
     appState.whenModelsLoaded($scope, function() {
+        var cmd = commandService.findFirstCommand('track');
+        var name = commandService.commandModelName(cmd._type);
+        appState.models[name] = appState.clone(cmd);
+        appState.applicationState()[name] = appState.cloneModel(name);
+        $scope.$on(name + '.changed', function() {
+            // save changes to track into the commands list
+            var cmd = commandService.findFirstCommand('track');
+            $.extend(cmd, appState.models[name]);
+            appState.saveChanges('commands');
+        });
         ['bunchAnimation'].forEach(function(m) {
             appState.watchModelFields($scope, [m + '.plotRangeType'], function() {
                 plotRangeService.processPlotRange(self, m);
             });
+        });
+
+        $scope.$on('sr-tabSelected', function(evt, name) {
+            if (name == 'bunchAnimation') {
+                plotRangeService.processPlotRange(self, name);
+            }
         });
     });
 });

@@ -110,8 +110,21 @@ def run(cfg_dir):
     Args:
         cfg_dir (str): directory to run srw in
     """
-    with pkio.save_chdir(cfg_dir):
-        _run_srw()
+    sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    r = template_common.exec_parameters()
+    # special case for importing python code
+    m = sim_in.report
+    if m == 'backgroundImport':
+        template_common.write_sequential_result(PKDict(
+            {sirepo.template.srw.PARSED_DATA_ATTR: r.parsed_data}
+        ))
+    else:
+        template_common.write_sequential_result(
+            sirepo.template.srw.extract_report_data(
+                sirepo.template.srw.get_filename_for_model(m),
+                sim_in,
+            ),
+        )
 
 
 def run_background(cfg_dir):
@@ -120,27 +133,7 @@ def run_background(cfg_dir):
     Args:
         cfg_dir (str): directory to run srw in
     """
-    with pkio.save_chdir(cfg_dir):
-        mpi.run_script(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE))
-        simulation_db.write_result({})
-
-def _run_srw():
-    #TODO(pjm): need to properly escape data values, untrusted from client
-    sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
-    # special case for importing python code
-    r = sim_in.report
-    if r == 'backgroundImport':
-        simulation_db.write_result({
-            sirepo.template.srw.PARSED_DATA_ATTR: parsed_data,
-        })
-    else:
-        simulation_db.write_result(
-            sirepo.template.srw.extract_report_data(
-                sirepo.template.srw.get_filename_for_model(r),
-                sim_in,
-            ),
-        )
+    template_common.exec_parameters_with_mpi()
 
 
 def _cfg_int(lower, upper):

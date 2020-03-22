@@ -115,11 +115,11 @@ class OutputFileIterator(lattice.ModelIterator):
 
 def background_percent_complete(report, run_dir, is_running):
     #TODO(robnagler) remove duplication in run_dir.exists() (outer level?)
-    errors, last_element = parse_elegant_log(run_dir)
+    alerts, last_element = _parse_elegant_log(run_dir)
     res = PKDict(
         percentComplete=100,
         frameCount=0,
-        errors=errors,
+        alerts=alerts,
     )
     if is_running:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
@@ -133,7 +133,7 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=1,
         outputInfo=output_info,
         lastUpdateTime=output_info[0]['lastUpdateTime'],
-        errors=errors,
+        alerts=alerts,
     )
 
 
@@ -221,7 +221,7 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         i = re.sub(r'elementAnimation', '', model).split(_FILE_ID_SEP)
         return _sdds(_get_filename_for_element_id(i, data))
 
-    if model == _SIM_DATA.compute_model(None):
+    if model == 'animation':
         path = run_dir.join(ELEGANT_LOG_FILE)
         if not path.exists():
             return 'elegant-output.txt', '', 'text/plain'
@@ -256,40 +256,6 @@ def import_file(req, test_data=None, **kwargs):
     return data
 
 
-def parse_elegant_log(run_dir):
-    path = run_dir.join(ELEGANT_LOG_FILE)
-    if not path.exists():
-        return '', 0
-    res = ''
-    last_element = None
-    text = pkio.read_text(str(path))
-    want_next_line = False
-    prev_line = ''
-    prev_err = ''
-    for line in text.split('\n'):
-        if line == prev_line:
-            continue
-        match = re.search('^Starting (\S+) at s\=', line)
-        if match:
-            name = match.group(1)
-            if not re.search('^M\d+\#', name):
-                last_element = name
-        if want_next_line:
-            res += line + '\n'
-            want_next_line = False
-        elif _is_ignore_error_text(line):
-            pass
-        elif _is_error_text(line):
-            if len(line) < 10:
-                want_next_line = True
-            else:
-                if line != prev_err:
-                    res += line + '\n'
-                prev_err = line
-        prev_line = line
-    return res, last_element
-
-
 def prepare_for_client(data):
     if 'models' not in data:
         return data
@@ -297,14 +263,20 @@ def prepare_for_client(data):
     return data
 
 
-def prepare_output_file(run_dir, data):
+def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
+    if success_exit:
+        return None
+    return _parse_elegant_log(run_dir)[0]
+
+
+def prepare_sequential_output_file(run_dir, data):
     if data.report == 'twissReport' or 'bunchReport' in data.report:
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
             output_file = run_dir.join(_report_output_filename(data.report))
             if output_file.exists():
-                save_report_data(data, run_dir)
+                save_sequential_report_data(data, run_dir)
 
 
 def python_source_for_model(data, model):
@@ -324,14 +296,14 @@ def remove_last_frame(run_dir):
     pass
 
 
-def save_report_data(data, run_dir):
+def save_sequential_report_data(data, run_dir):
     a = copy.deepcopy(data.models[data.report])
     a.frameReport = data.report
     if a.frameReport == 'twissReport':
         a.x = 's'
         a.y = a.y1
     a.frameIndex = 0
-    simulation_db.write_result(
+    template_common.write_sequential_result(
         _extract_report_data(str(run_dir.join(_report_output_filename(a.frameReport))), a),
         run_dir=run_dir,
     )
@@ -866,6 +838,40 @@ def _parameter_definitions(parameters):
             sdds.sddsdata.GetParameterDefinition(_SDDS_INDEX, p),
         ))
     return res
+
+
+def _parse_elegant_log(run_dir):
+    path = run_dir.join(ELEGANT_LOG_FILE)
+    if not path.exists():
+        return '', 0
+    res = ''
+    last_element = None
+    text = pkio.read_text(str(path))
+    want_next_line = False
+    prev_line = ''
+    prev_err = ''
+    for line in text.split('\n'):
+        if line == prev_line:
+            continue
+        match = re.search('^Starting (\S+) at s\=', line)
+        if match:
+            name = match.group(1)
+            if not re.search('^M\d+\#', name):
+                last_element = name
+        if want_next_line:
+            res += line + '\n'
+            want_next_line = False
+        elif _is_ignore_error_text(line):
+            pass
+        elif _is_error_text(line):
+            if len(line) < 10:
+                want_next_line = True
+            else:
+                if line != prev_err:
+                    res += line + '\n'
+                prev_err = line
+        prev_line = line
+    return res, last_element
 
 
 def _plot_title(xfield, yfield, page_index, page_count):

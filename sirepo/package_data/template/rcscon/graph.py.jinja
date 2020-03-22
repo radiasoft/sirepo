@@ -1,0 +1,15 @@
+
+import re
+from keras.utils import model_to_dot
+from pykern import pkio
+from pykern.pkdebug import pkdp, pkdc, pkdlog
+
+# add show_shapes=True to model_to_dot() to show the shape of the input and output arrays
+# for each layer
+ml_model_graph = model_to_dot(model, show_shapes=True).create(prog='dot', format='svg')
+# the string comes back as a full XML doc - get rid of some of the nonsense
+s1 = ml_model_graph.index(b'<svg')
+#ml_model_graph = re.sub('(<!--.*?-->)', '', ml_model_graph[s1:], flags=re.DOTALL)
+ml_model_graph = ml_model_graph[s1:]
+
+pkio.write_text('modelGraph.svg', ml_model_graph)

@@ -14,7 +14,6 @@ from sirepo.template import template_common
 import os.path
 import py.path
 import sirepo.sim_data
-import xraylib
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
@@ -57,25 +56,21 @@ _FIELD_ALIAS = {
 _WIGGLER_TRAJECTOR_FILENAME = 'xshwig.sha'
 
 
-def get_application_data(data, **kwargs):
-    if data['method'] == 'validate_material':
-        name = data['material_name']
-        try:
-            xraylib.CompoundParser(str(name))
-            return {
-                'material_name': name,
-            }
-        except Exception:
-            return {
-                'error': 'invalid material name',
-            }
-    raise RuntimeError('unknown application data method: {}'.format(data['method']))
-
-
 def get_data_file(run_dir, model, frame, **kwargs):
     filename = _SHADOW_OUTPUT_FILE
     with open(str(run_dir.join(filename))) as f:
         return filename, f.read(), 'application/octet-stream'
+
+
+def post_execution_processing(
+        success_exit=True,
+        is_parallel=False,
+        run_dir=None,
+        **kwargs
+):
+    if success_exit or is_parallel:
+        return None
+    return _parse_shadow_log(run_dir)
 
 
 def python_source_for_model(data, model):
@@ -538,6 +533,15 @@ def _item_field(item, fields):
 
 def _is_disabled(item):
     return 'isDisabled' in item and item['isDisabled']
+
+
+def _parse_shadow_log(run_dir):
+    if run_dir.join(template_common.RUN_LOG).exists():
+        text = pkio.read_text(run_dir.join(template_common.RUN_LOG))
+        for line in text.split("\n"):
+            if re.search(r'invalid chemical formula', line):
+                return 'A mirror contains an invalid reflectivity material'
+    return 'an unknown error occurred'
 
 
 def _source_field(model, fields):

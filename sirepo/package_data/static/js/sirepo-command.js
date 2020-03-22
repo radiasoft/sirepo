@@ -14,6 +14,23 @@ SIREPO.app.config(function() {
 SIREPO.app.factory('commandService', function(appState, latticeService, panelState, validationService) {
     var self = {};
     var COMMAND_PREFIX = 'command_';
+    self.deleteCommandWarning = '';
+
+    self.canDeleteCommand = function(command) {
+        return true;
+    };
+
+    self.createCommand = function(name) {
+        var model = {
+            _id: latticeService.nextId(),
+            _type: name,
+            name: latticeService.uniqueNameForType(name.substring(0, 2).toUpperCase()),
+        };
+        appState.setModelDefaults(model, self.commandModelName(name));
+        var modelName = self.commandModelName(model._type);
+        appState.models[modelName] = model;
+        return modelName;
+    };
 
     self.commandFileExtension = function(command) {
         //TODO(pjm): each app will need to supply this
@@ -43,6 +60,17 @@ SIREPO.app.factory('commandService', function(appState, latticeService, panelSta
         panelState.showModalEditor(modelName);
     };
 
+    self.findFirstCommand = function(type) {
+        var res;
+        appState.models.commands.some(function(cmd) {
+            if (cmd._type == type) {
+                res = cmd;
+                return true;
+            }
+        });
+        return res;
+    };
+
     self.formatCommandName = function(cmd) {
         return cmd._type;
     };
@@ -58,7 +86,7 @@ SIREPO.app.factory('commandService', function(appState, latticeService, panelSta
     return self;
 });
 
-SIREPO.app.directive('commandTab', function(latticeService) {
+SIREPO.app.directive('commandTab', function(latticeService, commandService) {
     return {
         restrict: 'A',
         scope: {
@@ -79,10 +107,12 @@ SIREPO.app.directive('commandTab', function(latticeService) {
             '</div>',
             '<div data-var-editor=""></div>',
             '<div data-confirmation-modal="" data-id="sr-var-in-use-dialog" data-title="Variable in Use" data-ok-text="" data-cancel-text="Close">{{ latticeService.deleteVarWarning  }} and can not be deleted.</div>',
+            '<div data-confirmation-modal="" data-id="sr-command-in-use-dialog" data-title="Command in Use" data-ok-text="" data-cancel-text="Close">{{ commandService.deleteCommandWarning  }} and can not be deleted.</div>',
             '<div data-element-picker="" data-controller="controller" data-title="New Command" data-id="sr-newCommand-editor" data-small-element-class="col-sm-3"></div>',
         ].join(''),
         controller: function($scope) {
             $scope.latticeService = latticeService;
+            $scope.commandService = commandService;
         },
     };
 });
@@ -214,7 +244,13 @@ SIREPO.app.directive('commandTable', function(appState, commandService, latticeS
                     return;
                 }
                 $scope.selectItem(data);
-                $('#sr-delete-command-confirmation').modal('show');
+                if (commandService.canDeleteCommand(data)) {
+                    $('#sr-delete-command-confirmation').modal('show');
+                }
+                else {
+                    //TODO(pjm): set commandService.deleteCommandWarning
+                    $('#sr-command-in-use-dialog').modal('show');
+                }
             };
 
             $scope.deleteSelected = function() {
@@ -250,7 +286,6 @@ SIREPO.app.directive('commandTable', function(appState, commandService, latticeS
                     saveCommands();
                 }
             };
-
 
             $scope.dropLast = function(data) {
                 if (! data) {

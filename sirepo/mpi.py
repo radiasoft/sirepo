@@ -9,10 +9,7 @@ from pykern import pkconfig
 from pykern import pkio
 from pykern import pksubprocess
 from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
-import os
 import re
-import signal
-import subprocess
 import sys
 
 
@@ -24,25 +21,20 @@ def run_program(cmd, output='mpi_run.out', env=None):
         output (str): where to write stdout and stderr
         env (dict): what to pass as env
     """
-    from sirepo import simulation_db
-    try:
-        cmd = [
-            'mpiexec',
-            '--bind-to',
-            'none',
-            '-n',
-            str(cfg.cores),
+    cmd = [
+        'mpiexec',
+        '--bind-to',
+        'none',
+        '-n',
+        str(cfg.cores),
 
-        ] + cmd
-        pksubprocess.check_call_with_signals(
-            cmd,
-            msg=pkdlog,
-            output=str(output),
-            env=env,
-        )
-    except Exception as e:
-        simulation_db.write_result({'state': 'error', 'error': str(e)})
-        raise
+    ] + cmd
+    pksubprocess.check_call_with_signals(
+        cmd,
+        msg=pkdlog,
+        output=str(output),
+        env=env,
+    )
 
 
 def run_script(script):
@@ -64,7 +56,7 @@ if MPI.COMM_WORLD.Get_rank():
     fn = 'mpi_run.py'
     pkio.write_text(fn, script)
     p = None
-    return run_program([sys.executable or 'python', fn])
+    run_program([sys.executable or 'python', fn])
 
 
 cfg = pkconfig.init(
