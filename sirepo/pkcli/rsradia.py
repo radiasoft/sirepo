@@ -6,6 +6,7 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc
 from sirepo import mpi
 from sirepo import simulation_db
@@ -15,7 +16,6 @@ import sirepo.template.rsradia as template
 
 
 def run(cfg_dir):
-    pkdp('RAD RUN')
     template_common.exec_parameters()
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     template.extract_report_data(py.path.local(cfg_dir), data)
@@ -27,16 +27,18 @@ def run_background(cfg_dir):
     Args:
         cfg_dir (str): directory to run warpvnd in
     """
-    pkdp('RAD RUN BG')
     # limit to 1 until we do parallel properly
+    res = PKDict()
     mpi.cfg.cores = 1
     simulation_db.write_json(py.path.local(cfg_dir).join(template.MPI_SUMMARY_FILE), {
         'mpiCores': mpi.cfg.cores,
     })
-    template_common.exec_parameters_with_mpi()
-    simulation_db.write_result({})
+    try:
+        template_common.exec_parameters_with_mpi()
+    except Exception as e:
+        res.error = str(e)
+    simulation_db.write_result(res)
 
 
 def _script():
-    pkdp('RAD SCRPT')
     return pkio.read_text(template_common.PARAMETERS_PYTHON_FILE)
