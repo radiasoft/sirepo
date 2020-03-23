@@ -90,31 +90,16 @@ def test_runSimulation(fc):
     # Just double-check it actually worked
     assert u'plots' in d
 
+
 def test_remove_srw_report_dir(fc):
-    # TODO(e-carlin): sort and remove unused
-    from pykern.pkdebug import pkdp, pkdlog
-    from sirepo import srunit
-    from pykern import pkunit
-    import re
-    import time
-    import sirepo.srdb
     from pykern import pkio
+    from pykern import pkunit
+    import sirepo.srdb
 
-
+    m = 'intensityReport'
     data = fc.sr_sim_data('NSLS-II ESM beamline')
-    r = fc.sr_run_sim(data, 'intensityReport')
-    g = pkio.sorted_glob(sirepo.srdb.root().join('user', fc.sr_uid, 'srw', '*', 'intensityReport'))
+    fc.sr_run_sim(data, m)
+    g = pkio.sorted_glob(sirepo.srdb.root().join('user', fc.sr_uid, 'srw', '*', m))
     pkunit.pkeq(1, len(g))
-    pkio.unchecked_remove(*g) # TODO(e-carlin): this isn't working
-    pkdp('ggggggggggg {}', g)
-    assert 0
-    # for root, subdirs, files in os.walk('/home/vagrant/src/radiasoft/sirepo/tests/job_work/db/user/'):
-    #     for d in subdirs:
-    #         if d == "intensityReport":
-    #             print('Xxxxxxxxx')
-    #             shutil.rmtree(os.path.join(root, d))
-    #             print(d)
-    # pkdp('rrrrrrrrrrrrrrr')
-    # print(dir(r))
-    # pkdp('rrrrrrrrrrrrrrr')
-    # assert 0
+    pkio.unchecked_remove(*g)
+    fc.sr_run_sim(data, m)
