@@ -115,11 +115,11 @@ class OutputFileIterator(lattice.ModelIterator):
 
 def background_percent_complete(report, run_dir, is_running):
     #TODO(robnagler) remove duplication in run_dir.exists() (outer level?)
-    alerts, last_element = _parse_elegant_log(run_dir)
+    alert, last_element = _parse_elegant_log(run_dir)
     res = PKDict(
         percentComplete=100,
         frameCount=0,
-        alerts=alerts,
+        alert=alert,
     )
     if is_running:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
@@ -133,7 +133,7 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=1,
         outputInfo=output_info,
         lastUpdateTime=output_info[0]['lastUpdateTime'],
-        alerts=alerts,
+        alert=alert,
     )
 
 
