@@ -8,12 +8,12 @@ from __future__ import absolute_import, division, print_function
 from dicompylercore import dicomparser, dvhcalc
 from pykern import pkio
 from pykern import pksubprocess
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc
 from sirepo import feature_config
 from sirepo import simulation_db
 from sirepo.template import template_common
 import numpy as np
-import py.path
 import sirepo.template.rs4pi as template
 import struct
 import time
@@ -27,11 +27,11 @@ def run(cfg_dir):
     elif data['report'] == 'dvhReport':
         _run_dvh(data, cfg_dir)
     else:
-        raise RuntimeError('unknown report: {}'.format(data['report']))
+        raise AssertionError('unknown report: {}'.format(data['report']))
 
 
 def run_background(cfg_dir):
-    simulation_db.write_result({})
+    pass
 
 
 def _parent_file(cfg_dir, filename):
@@ -47,9 +47,7 @@ def _run_dose_calculation(data, cfg_dir):
     data['models']['dicomDose'] = dicom_dose
     # save results into simulation input data file, this is needed for further calls to get_simulation_frame()
     simulation_db.write_json(template_common.INPUT_BASE_NAME, data)
-    simulation_db.write_result({
-        'dicomDose': dicom_dose,
-    })
+    template_common.write_sequential_result(PKDict(dicomDose=dicom_dose))
 
 
 def _run_dose_calculation_fake(data, cfg_dir):
@@ -61,10 +59,7 @@ def _run_dose_calculation_fake(data, cfg_dir):
 
 def _run_dvh(data, cfg_dir):
     dvh_report = data['models']['dvhReport']
-    if not len(dvh_report['roiNumbers']):
-        simulation_db.write_result({
-            'error': 'No selection',
-        })
+    assert dvh_report['roiNumbers'], 'No selection'
     y_range = None
     plots = []
     max_x = 0
@@ -119,4 +114,4 @@ def _run_dvh(data, cfg_dir):
         'y_range': y_range,
         'plots': sorted(plots, key=lambda v: v['label'].lower()),
     }
-    simulation_db.write_result(res)
+    template_common.write_sequential_result(res)

@@ -287,20 +287,15 @@ _TWISS_SUMMARY_LABELS = {
 def background_percent_complete(report, run_dir, is_running):
     error = ''
     if not is_running:
-        out_file = run_dir.join('{}.json'.format(template_common.OUTPUT_BASE_NAME))
         show_tunes_report = False
         show_spin_3d = False
-        count = 0
-        if out_file.exists():
-            out = simulation_db.read_json(out_file)
-            if 'frame_count' in out:
-                count = out.frame_count
+        in_file = run_dir.join('{}.json'.format(template_common.INPUT_BASE_NAME))
+        if in_file.exists():
             data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
             show_tunes_report = _particle_count(data) <= _MAX_FILTER_PLOT_PARTICLES \
                 and data.models.simulationSettings.npass >= 10
             show_spin_3d = data.models.SPNTRK.KSO == '1'
-        if not count:
-            count = read_frame_count(run_dir)
+        count = read_frame_count(run_dir)
         if count:
             plt_file = run_dir.join(_ZGOUBI_PLT_DATA_FILE)
             return PKDict(
@@ -436,17 +431,17 @@ def import_file(req, unit_test_mode=False, **kwargs):
     return zgoubi_importer.import_file(req.file_stream.read(), unit_test_mode=unit_test_mode)
 
 
-def python_source_for_model(data, model=None):
-    return _generate_parameters_file(data)
-
-
-def prepare_output_file(run_dir, data):
+def prepare_sequential_output_file(run_dir, data):
     report = data['report']
     if 'bunchReport' in report or 'twissReport' in report or 'opticsReport' in report:
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
-            save_report_data(data, run_dir)
+            save_sequential_report_data(data, run_dir)
+
+
+def python_source_for_model(data, model=None):
+    return _generate_parameters_file(data)
 
 
 def read_frame_count(run_dir):
@@ -462,9 +457,8 @@ def remove_last_frame(run_dir):
     pass
 
 
-def save_report_data(data, run_dir):
+def save_sequential_report_data(data, run_dir):
     report_name = data['report']
-    error = ''
     if 'twissReport' in report_name or 'opticsReport' in report_name:
         enum_name = _REPORT_ENUM_INFO[report_name]
         report = data['models'][report_name]
@@ -474,9 +468,10 @@ def save_report_data(data, run_dir):
             if report[f] == 'none':
                 continue
             points = column_data(report[f], col_names, rows)
-            if any(map(lambda x: math.isnan(x), points)):
-                error = 'Twiss data could not be computed for {}'.format(
-                    template_common.enum_text(_SCHEMA, enum_name, report[f]))
+            assert not any(map(lambda x: math.isnan(x), points)), \
+                'Twiss data could not be computed for {}'.format(
+                    template_common.enum_text(_SCHEMA, enum_name, report[f]),
+                )
             plots.append({
                 'points': points,
                 'label': template_common.enum_text(_SCHEMA, enum_name, report[f]),
@@ -509,15 +504,8 @@ def save_report_data(data, run_dir):
                 'bunch': simulation_db.read_json(summary_file)
             }
     else:
-        raise RuntimeError('unknown report: {}'.format(report_name))
-    if error:
-        res = {
-            'error': error,
-        }
-    simulation_db.write_result(
-        res,
-        run_dir=run_dir,
-    )
+        raise AssertionError('unknown report: {}'.format(report_name))
+    template_common.write_sequential_result(res, run_dir=run_dir)
 
 
 def write_parameters(data, run_dir, is_parallel, python_file=template_common.PARAMETERS_PYTHON_FILE):

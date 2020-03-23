@@ -12,7 +12,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 import math
 import numpy
-import os.path
 import pykern.pkrunpy
 import re
 import sirepo.http_reply
@@ -122,6 +121,7 @@ def compute_field_range(args, compute_range):
     read the simulation specific datafiles and extract the ranges by field.
     """
     from sirepo import simulation_db
+
     run_dir = simulation_db.simulation_run_dir(PKDict(
         simulationType=args['simulationType'],
         simulationId=args['simulationId'],
@@ -255,11 +255,7 @@ def sim_frame_dispatch(frame_args):
     t = sirepo.template.import_module(frame_args.simulationType)
     o = getattr(t, 'sim_frame', None) \
         or getattr(t, 'sim_frame_' + frame_args.frameReport)
-    try:
-        res = o(frame_args)
-    except Exception as e:
-        pkdlog('error generating report frame_args={} stack={}', frame_args, pkdexc())
-        raise sirepo.util.convert_exception(e, display_text='Report not generated')
+    res = o(frame_args)
     if res is None:
         raise RuntimeError('unsupported simulation_frame model={}'.format(frame_args.frameReport))
     return res
@@ -456,7 +452,23 @@ def file_extension_ok(file_path, white_list=[], black_list=['py', 'pyc']):
     for ext in black_list:
         if pkio.has_file_extension(file_path, ext):
             return False
-    return  True
+    return True
+
+
+def read_sequential_result(run_dir):
+    """Read result data file from simulation
+
+    Args:
+        run_dir (py.path): where to find output
+
+    Returns:
+        dict: result
+    """
+    from sirepo import simulation_db
+
+    return simulation_db.read_json(
+        simulation_db.json_filename(OUTPUT_BASE_NAME, run_dir),
+    )
 
 
 def subprocess_output(cmd, env):
@@ -487,6 +499,33 @@ def subprocess_output(cmd, env):
         out = pkcompat.from_bytes(out)
         return out.strip()
     return ''
+
+
+def write_sequential_result(result, run_dir=None):
+    """Write the results of a sequential simulation to disk.
+
+    Args:
+        result (dict): The results of the simulation
+        run_dir (py.path): Defaults to current dir
+    """
+    from sirepo import simulation_db
+
+    if not run_dir:
+        run_dir = pkio.py_path()
+    f = simulation_db.json_filename(OUTPUT_BASE_NAME, run_dir)
+    assert not f.exists(), \
+        '{} file exists'.format(OUTPUT_BASE_NAME)
+    simulation_db.write_json(f, result)
+    t = sirepo.template.import_module(
+        simulation_db.read_json(
+            simulation_db.json_filename(
+                INPUT_BASE_NAME,
+                run_dir,
+            ),
+        ),
+    )
+    if hasattr(t, 'clean_run_dir'):
+        t.clean_run_dir(run_dir)
 
 
 def _escape(v):

@@ -12,7 +12,7 @@ import pytest
 
 def setup_module(module):
     os.environ.update(
-        SIREPO_JOB_SUPERVISOR_MAX_HOURS_PARALLEL='0.002',
+        SIREPO_JOB_SUPERVISOR_MAX_HOURS_PARALLEL_PREMIUM='0.002',
         SIREPO_JOB_SUPERVISOR_MAX_HOURS_ANALYSIS='0.001',
         SIREPO_FEATURE_CONFIG_JOB='1',
     )
@@ -39,6 +39,10 @@ def test_srw(fc):
         cancel = r.get('nextRequest')
         for _ in range(10):
             if r.state == 'canceled':
+                pkunit.pkeq(
+                    7.2,
+                    r.cancelledAfterSecs,
+                )
                 cancel = None
                 break
             r = fc.sr_post('runStatus', r.nextRequest)

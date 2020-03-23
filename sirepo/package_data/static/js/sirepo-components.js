@@ -293,6 +293,45 @@ SIREPO.app.directive('buttons', function(appState, panelState) {
     };
 });
 
+SIREPO.app.directive('cancelledDueToTimeoutAlert', function(authState) {
+    return {
+        restrict: 'A',
+        scope: {
+            seconds: '<',
+            simState: '=cancelledDueToTimeoutAlert',
+        },
+        template: [
+            '<div data-ng-if="simState.getCancelledAfterSecs()" class="alert alert-warning" role="alert">',
+              '<h4 class="alert-heading">Cancelled: Maximum runtime exceeded</h4>',
+              '<p>Your simulation ran for {{getTime()}}. To increase your maximum runtime please upgrade to <a href="https://radiasoft.net/sirepo" target="_blank">Sirepo {{ premiumOrEnterprise() }}</a>.</p>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            function leftPadZero(num) {
+                if (num < 10) {
+                    return '0' + num;
+                }
+                return num;
+            }
+
+            $scope.getTime = function() {
+                var s = $scope.simState.getCancelledAfterSecs();
+                var h = leftPadZero(Math.floor(s / 3600));
+                s %= 3600;
+                var m = leftPadZero(Math.floor(s / 60));
+                return h + ':' + m + ':' + leftPadZero(Math.floor(s % 60));
+            };
+
+            $scope.premiumOrEnterprise = function() {
+                if (authState.roles.includes('premium')) {
+                    return 'Enterprise';
+                }
+                return 'Premium';
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('confirmationModal', function() {
     return {
         restrict: 'A',
@@ -1017,12 +1056,55 @@ SIREPO.app.directive('helpButton', function($window) {
             helpTopic: '@helpButton',
         },
         template: [
-            '<button class="close sr-help-icon" title="{{ helpTopic }} Help" data-ng-click="openHelp()"><span class="glyphicon glyphicon-question-sign"></span></button>',
+            '<button class="close sr-help-icon" title="{{ ::helpTopic }} Help" data-ng-click="openHelp()"><span class="glyphicon glyphicon-question-sign"></span></button>',
         ].join(''),
         controller: function($scope) {
             $scope.openHelp = function() {
                 $window.open(
                     HELP_WIKI_ROOT + $scope.helpTopic.replace(/\s+/, '-'),
+                    '_blank');
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('helpLink', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            constantURL: '@helpLink',
+            icon: '@',
+            title: '@',
+        },
+        template: [
+            '<a data-ng-if="::url" data-ng-href="{{ ::url }}" target="_blank">',
+              '<span data-ng-class="::glyphClass"></span> ',
+              SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].shortName,
+              ' {{ ::title }}',
+            '</a>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.glyphClass = 'glyphicon glyphicon-' + $scope.icon;
+            $scope.url = SIREPO.APP_SCHEMA.constants[$scope.constantURL];
+        },
+    };
+});
+
+SIREPO.app.directive('videoButton', function(appState, $window) {
+    return {
+        restrict: 'A',
+        scope: {
+            viewName: '@videoButton',
+        },
+        template: [
+            '<div><button class="close sr-help-icon" data-ng-click="openVideo()" title="{{ ::tooltip }}"><span class="glyphicon glyphicon-film"></span></button></div>',
+        ].join(''),
+        controller: function($scope) {
+            var viewInfo = appState.viewInfo($scope.viewName);
+            $scope.tooltip = viewInfo.title + ' Help Video';
+            $scope.openVideo = function() {
+                $window.open(
+                    viewInfo.helpVideoURL,
                     '_blank');
             };
         },
@@ -1082,6 +1164,7 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
                   '<div class="modal-header bg-info">',
   	            '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
                     '<div data-help-button="{{ helpTopic }}"></div>',
+                    '<div data-ng-if="::hasHelpVideo" data-video-button="{{ viewName }}"></div>',
 	            '<span class="lead modal-title text-info">{{ modalTitle }}</span>',
 	          '</div>',
                   '<div class="modal-body">',
@@ -1105,6 +1188,7 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
             if (! viewInfo) {
                 throw new Error('missing view in schema: ' + $scope.viewName);
             }
+            $scope.hasHelpVideo = viewInfo.helpVideoURL;
             $scope.helpTopic = viewInfo.title;
             //TODO(pjm): cobbled-together to allow a view to refer to a model by name, ex. SRW simulationGrid view
             $scope.modelName = viewInfo.model || $scope.viewName;
@@ -1861,15 +1945,6 @@ SIREPO.app.directive('appHeaderLeft', function(appState, authState, panelState) 
 });
 
 SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appState, fileManager, panelState, $window) {
-
-    function helpLink(url, text, icon) {
-        return url
-            ? ('<li><a href="' + url + '" target="_blank"><span class="glyphicon glyphicon-'
-               + icon + '"></span> '
-               + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName + ' '
-               + text + '</a></li>')
-            : '';
-    }
     return {
         restrict: 'A',
         transclude: {
@@ -1901,8 +1976,9 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                   '<li class=dropdown><a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-question-sign"></span> <span class="caret"></span></a>',
                     '<ul class="dropdown-menu">',
                       '<li><a href="https://github.com/radiasoft/sirepo/issues" target="_blank"><span class="glyphicon glyphicon-exclamation-sign"></span> Report a Bug</a></li>',
-                      helpLink(SIREPO.USER_MANUAL_URL, 'User Manual', 'list-alt'),
-                      helpLink(SIREPO.USER_FORUM_URL, 'User Forum', 'globe'),
+                      '<li data-help-link="helpUserManualURL" data-title="User Manual", data-icon="list-alt"></li>',
+                      '<li data-help-link="helpUserForumURL" data-title="User Forum", data-icon="globe"></li>',
+                      '<li data-help-link="helpVideoURL" data-title="Instructional Video" data-icon="film"></li>',
                     '</ul>',
                   '</li>',
                 '</ul>',
@@ -3088,12 +3164,14 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                   '<div data-sbatch-cores-and-hours="simState"></div>',
                 '</div>',
               '</div>',
+              '<div data-cancelled-due-to-timeout-alert="simState"></div>',
               '<div class="col-sm-6 pull-right">',
                 '<button class="btn btn-default" data-ng-click="start()">Start New Simulation</button>',
               '</div>',
             '</form>',
             '<div class="clearfix"></div>',
             '<div data-ng-if="errorMessage()"><div class="text-danger"><strong>{{ ::appName }} Error:</strong></div><pre>{{ errorMessage() }}</pre></div>',
+            '<div data-ng-if="alertMessage()"><div class="text-warning"><strong>{{ ::appName }} Alert:</strong></div><pre>{{ alertMessage() }}</pre></div>',
         ].join(''),
         controller: function($scope, appState, authState) {
             $scope.appName = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName;
@@ -3101,6 +3179,14 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             function callSimState(method) {
                 return $scope.simState[method] && $scope.simState[method]();
             }
+
+            $scope.alertMessage = function() {
+                return callSimState('getAlert');
+            };
+
+            $scope.cancelledAfterSecs = function() {
+                return callSimState('getCancelledAfterSecs');
+            };
 
             $scope.errorMessage = function() {
                 return callSimState('errorMessage');

@@ -10,11 +10,6 @@ import os
 from pykern.pkcollections import PKDict
 import time
 
-pytestmark = pytest.mark.skipif(
-    os.environ.get('SIREPO_FEATURE_CONFIG_JOB') != '1',
-    reason='SIREPO_FEATURE_CONFIG_JOB != 1'
-)
-
 
 def setup_module(module):
     os.environ.update(
@@ -31,8 +26,8 @@ def test_adm_jobs(auth_fc):
             'admJobs',
             PKDict(simulationType=sim_type)
         )
-        pkunit.pkeq(8, len(r.header))
-        pkunit.pkeq(8, len(r.rows[0]))
+        pkunit.pkeq(9, len(r.header))
+        pkunit.pkeq(9, len(r.rows[0]))
         pkunit.pkeq('srw', r.rows[0][0])
 
     _run_sim(auth_fc, _op)
@@ -64,8 +59,8 @@ def test_srw_get_own_jobs(auth_fc):
             'admJobs',
             PKDict(simulationType=sim_type)
         )
-        pkunit.pkeq(8, len(r.header))
-        pkunit.pkeq(8, len(r.rows[0]))
+        pkunit.pkeq(9, len(r.header))
+        pkunit.pkeq(9, len(r.rows[0]))
         pkunit.pkeq('srw', r.rows[0][0])
 
     _run_sim(auth_fc, _op)

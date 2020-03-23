@@ -3,6 +3,7 @@
     <div class="col-md-6 col-xl-4">
 
       <div data-basic-editor-panel="" data-view-name="simulationStatus" data-want-buttons="">
+       <div data-cancelled-due-to-timeout-alert="visualization.simState"></div>
           <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="visualization.simState.isProcessing()">
             <div class="col-sm-12" data-ng-show="visualization.simState.isStatePending()">
               <div>
@@ -30,10 +31,10 @@
               <span data-simulation-status-timer="visualization.simState.timeData"></span>
               </span>
               <br><br>
-              <div class="well well-lg" data-ng-show="visualization.simulationErrors || visualization.simState.hasFrames()">
-                <div data-ng-if="visualization.simulationErrors">
+              <div class="well well-lg" data-ng-show="visualization.simulationAlerts || visualization.simState.hasFrames()">
+                <div data-ng-if="visualization.simulationAlerts">
                   <div class="text-warning"><strong>{{ visualization.errorHeader() }}</strong></div>
-                  <p class="elegant-error-box">{{ visualization.simulationErrors }}</p>
+                  <p class="elegant-error-box">{{ visualization.simulationAlerts }}</p>
                   <br>
                 </div>
                 <a data-ng-href="{{ visualization.logFileURL() }}" target="_blank">View elegant log</a>

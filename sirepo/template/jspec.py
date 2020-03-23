@@ -152,6 +152,24 @@ def get_application_data(data, **kwargs):
     assert False, 'unknown application data method={}'.format(data.method)
 
 
+def get_rates(run_dir):
+    f = pkio.py_path(run_dir).join(JSPEC_LOG_FILE)
+    assert f.exists(), 'non-existent log file {}'.format(f)
+    o = PKDict(
+        #TODO(pjm): x_range is needed for sirepo-plotting.js, need a better valid-data check
+        x_range=[],
+        rate=[],
+    )
+    for l in pkio.read_text(f).split("\n"):
+        m = re.match(r'^(.*? rate.*?)\:\s+(\S+)\s+(\S+)\s+(\S+)', l)
+        if m:
+            r = [m.group(1), [m.group(i) for i in range(2, 5)]]
+            r[0] = re.sub(r'\(', '[', r[0])
+            r[0] = re.sub(r'\)', ']', r[0])
+            o.rate.append(r)
+    return o
+
+
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if model in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
         path = run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)
@@ -163,12 +181,23 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         return path.basename, f.read(), 'application/octet-stream'
 
 
+def post_execution_processing(
+        success_exit=True,
+        is_parallel=False,
+        run_dir=None,
+        **kwargs
+):
+    if not success_exit or not is_parallel:
+        return None
+    return _get_time_step_warning(run_dir)
+
+
 def python_source_for_model(data, model):
     ring = data.models.ring
     elegant_twiss_file = None
     if ring.latticeSource == 'elegant':
         elegant_twiss_file = _SIM_DATA.lib_file_name_with_model_field('ring', 'elegantTwiss', ring.elegantTwiss)
-    elif  ring.latticeSource == 'elegant-sirepo':
+    elif ring.latticeSource == 'elegant-sirepo':
         elegant_twiss_file = _SIM_DATA.JSPEC_ELEGANT_TWISS_FILENAME
     convert_twiss_to_tfs = ''
     if elegant_twiss_file:
@@ -394,6 +423,41 @@ def _generate_parameters_file(data):
     v.simulationSettings_ibs = 'on' if v.simulationSettings_ibs == '1' else 'off'
     v.simulationSettings_e_cool = 'on' if v.simulationSettings_e_cool == '1' else 'off'
     return template_common.render_jinja(SIM_TYPE, v)
+
+
+def _get_time_step_warning(run_dir):
+    def _get_rate(rates, i, j):
+        return abs(float(rates[i][1][j]))
+
+    def _get_max_rate(rates):
+        m =  _get_rate(rates, 0, 0)
+        for i in range(2):
+            t = rates[i][0]
+            assert 'IBS rate' in t or 'Electron cooling rate' in t, \
+                'unknown rates={}'.format(rates)
+            for j in range(3):
+                m = max(m, _get_rate(rates, i, j))
+        return m
+
+    m = _get_max_rate(get_rates(run_dir).rate)
+    w = None
+    r = 0.05 / m
+    s = simulation_db.read_json(
+        run_dir.join(template_common.INPUT_BASE_NAME),
+    ).models.simulationSettings.time_step
+    if s < 0.25 * r:
+        w = (
+            'The time step is too small. This can lead to long run times.\n'
+            'Please consider decreasing the total time and/or increasing\n'
+            'the number of steps.'
+        )
+    elif s > 4 * r:
+        w = (
+            'The time step is too large. This can lead to innacurate results.\n'
+            'Please consider increasing the total time and/or decreasing\n'
+            'the number of steps.'
+        )
+    return w
 
 
 def _ion_files(run_dir):

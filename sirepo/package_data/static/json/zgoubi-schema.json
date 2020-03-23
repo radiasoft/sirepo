@@ -1,4 +1,7 @@
 {
+    "constants": {
+        "helpUserManualURL": "https://zgoubi.sourceforge.io/ZGOUBI_DOCS/Zgoubi.pdf"
+    },
     "appModes": {
         "default": {
             "localRoute": "lattice"
@@ -400,7 +403,7 @@
         },
         "bunch": {
             "method": ["Bunch Method", "BunchMethod", "MCOBJET3"],
-            "rigidity": ["Reference Rigidity", "Float", 1000.0, "BORO"],
+            "rigidity": ["Reference Rigidity [kG cm]", "Float", 1000.0, "BORO"],
             "particleCount": ["Number of Particles", "Integer", 1000, "IMAX", 1, 10000],
             "particleCount2": ["Number of Particles", "Integer", 1, "IMAX", 1, 10],
             "particleSelector": ["Particle Number", "ParticleSelector", "1"],

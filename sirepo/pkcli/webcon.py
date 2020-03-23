@@ -32,26 +32,22 @@ class AbortOptimizationException(Exception):
 
 
 def run(cfg_dir):
-    try:
-        data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-        if 'analysisReport' in data.report:
-            res = template.get_analysis_report(py.path.local(cfg_dir), data)
-        elif 'fftReport' in data.report:
-            res = template.get_fft(py.path.local(cfg_dir), data)
-        elif 'correctorSettingReport' in data.report:
-            res = template.get_settings_report(py.path.local(cfg_dir), data)
-        elif 'beamPositionReport' in data.report:
-            res = template.get_beam_pos_report(py.path.local(cfg_dir), data)
-        else:
-            raise sirepo.util.UserAlert('unknown report: {}'.format(data.report))
-    except sirepo.util.UserAlert as e:
-        res = PKDict(error=e.sr_args.error)
-    simulation_db.write_result(res)
+    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    if 'analysisReport' in data.report:
+        res = template.get_analysis_report(py.path.local(cfg_dir), data)
+    elif 'fftReport' in data.report:
+        res = template.get_fft(py.path.local(cfg_dir), data)
+    elif 'correctorSettingReport' in data.report:
+        res = template.get_settings_report(py.path.local(cfg_dir), data)
+    elif 'beamPositionReport' in data.report:
+        res = template.get_beam_pos_report(py.path.local(cfg_dir), data)
+    else:
+        raise AssertionError('unknown report: {}'.format(data.report))
+    template_common.write_sequential_result(res)
 
 
 def run_background(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    res = {}
     if data.report == 'epicsServerAnimation':
         epics_settings = data.models.epicsServerAnimation
         if epics_settings.serverType == 'local':
@@ -62,12 +58,11 @@ def run_background(cfg_dir):
             server_address = epics_settings.serverAddress
         _run_epics_monitor(server_address)
         if epics_settings.serverType == 'local':
-            res['error'] = _run_simulation_loop(server_address)
+            _run_simulation_loop(server_address)
         else:
-            res['error'] = _run_forever(server_address)
+            _run_forever(server_address)
     else:
-        assert False, 'unknown report: {}'.format(data.report)
-    simulation_db.write_result(res)
+        raise AssertionError('unknown report: {}'.format(data.report))
 
 
 def _check_beam_steering(is_steering):
@@ -234,10 +229,10 @@ def _wait_for_beam_steering(server_address, periodic_callback):
             _run_beam_steering(server_address, steering, periodic_callback)
             is_steering = False
         else:
-            error = periodic_callback(server_address)
-            if error:
-                return error
+            e = periodic_callback(server_address)
+            assert not e, e
 
 
 def _wait_for_remote_epics(server_address):
     time.sleep(2)
+    return None

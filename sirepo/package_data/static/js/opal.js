@@ -4,7 +4,6 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
-    SIREPO.USER_MANUAL_URL = 'https://gitlab.psi.ch/OPAL/Manual-2.2/wikis/home';
     SIREPO.SINGLE_FRAME_ANIMATION = ['plotAnimation', 'plot2Animation'];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="BeamList" data-ng-class="fieldClass">',
@@ -177,6 +176,7 @@ SIREPO.app.directive('appFooter', function() {
 	},
         template: [
             '<div data-common-footer="nav"></div>',
+            '<div data-import-dialog=""></div>',
 	].join(''),
     };
 });
@@ -204,6 +204,9 @@ SIREPO.app.directive('appHeader', function(appState, latticeService, opalService
 		//  '<div>App-specific setting item</div>',
               '</app-settings>',
               '<app-header-right-sim-list>',
+                '<ul class="nav navbar-nav sr-navbar-right">',
+                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+                '</ul>',
               '</app-header-right-sim-list>',
             '</div>',
 	].join(''),

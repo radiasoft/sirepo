@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkcollections import PKDict
-from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import code_variable
@@ -127,7 +126,7 @@ def get_application_data(data, **kwargs):
             simulation_db.sim_data_file(SIM_TYPE, data.simulationId))
         data.error = _code_var(data.variables).validate_var_delete(data.name, model_data, _SCHEMA)
         return data
-    assert False, 'unknown get_application_data: {}'.format(data)
+    raise AssertionError('unknown get_application_data: {}'.format(data))
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
@@ -143,6 +142,22 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         return path.basename, f.read(), 'application/octet-stream'
 
 
+def post_execution_processing(
+        success_exit=True,
+        is_parallel=True,
+        run_dir=None,
+        **kwargs
+):
+    if success_exit:
+        return None
+    if is_parallel:
+        return _parse_opal_log(run_dir)
+    e = _parse_opal_log(run_dir)
+    if re.search(r'Singular matrix', e):
+        e = 'Twiss values could not be computed: Singular matrix'
+    return e
+
+
 def prepare_for_client(data):
     if 'models' not in data:
         return data
@@ -150,14 +165,14 @@ def prepare_for_client(data):
     return data
 
 
-def prepare_output_file(run_dir, data):
+def prepare_sequential_output_file(run_dir, data):
     report = data['report']
     if 'bunchReport' in report or 'twissReport' in report:
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
             try:
-                save_report_data(data, run_dir)
+                save_sequential_report_data(data, run_dir)
             except IOError:
                 # the output file isn't readable
                 pass
@@ -167,7 +182,7 @@ def python_source_for_model(data, model):
     return _generate_parameters_file(data)
 
 
-def save_report_data(data, run_dir):
+def save_sequential_report_data(data, run_dir):
     report = data.models[data.report]
     res = None
     if data.report == 'twissReport':
@@ -196,8 +211,8 @@ def save_report_data(data, run_dir):
         res = _bunch_plot(report, run_dir, 0)
         res.title = ''
     else:
-        assert False, 'unknown report: {}'.format(report)
-    simulation_db.write_result(
+        raise AssertionError('unknown report: {}'.format(report))
+    template_common.write_sequential_result(
         res,
         run_dir=run_dir,
     )
@@ -592,6 +607,26 @@ def _output_info(run_dir):
                 isHistogram=True,
             ))
     return res
+
+
+def _parse_opal_log(run_dir):
+    res = ''
+    p = run_dir.join((OPAL_OUTPUT_FILE))
+    if not p.exists():
+        return res
+    with pkio.open_text(p) as f:
+        prev_line = ''
+        for line in f:
+            if re.search(r'^Error.*?>', line):
+                line = re.sub(r'^Error.*?>\s*\**\s*', '', line.rstrip())
+                if re.search(r'1DPROFILE1-DEFAULT', line):
+                    continue
+                if line and line != prev_line:
+                    res += line + '\n'
+                prev_line = line
+    if res:
+        return res
+    return 'An unknown error occurred'
 
 
 def _read_data_file(path):

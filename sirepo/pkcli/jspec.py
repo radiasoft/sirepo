@@ -20,29 +20,16 @@ _SIM_DATA = sirepo.sim_data.get_class('jspec')
 def run(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     if data['report'] == 'twissReport':
-        simulation_db.write_result(_extract_twiss_report(data))
+        template_common.write_sequential_result(_extract_twiss_report(data))
     elif data['report'] == 'rateCalculationReport':
-        text = _run_jspec(data)
-        res = {
-            #TODO(pjm): x_range is needed for sirepo-plotting.js, need a better valid-data check
-            'x_range': [],
-            'rate': [],
-        }
-        for line in text.split("\n"):
-            m = re.match(r'^(.*? rate.*?)\:\s+(\S+)\s+(\S+)\s+(\S+)', line)
-            if m:
-                row = [m.group(1), [m.group(2), m.group(3), m.group(4)]]
-                row[0] = re.sub('\(', '[', row[0]);
-                row[0] = re.sub('\)', ']', row[0]);
-                res['rate'].append(row)
-        simulation_db.write_result(res)
+        _run_jspec(data)
+        template_common.write_sequential_result(template.get_rates(cfg_dir))
     else:
-        assert False, 'unknown report: {}'.format(data['report'])
+        raise AssertionError('unknown report: {}'.format(data['report']))
 
 
 def run_background(cfg_dir):
     _run_jspec(simulation_db.read_json(template_common.INPUT_BASE_NAME))
-    simulation_db.write_result({})
 
 
 def _elegant_to_madx(ring):
@@ -119,7 +106,6 @@ def _run_jspec(data):
     f = template.JSPEC_INPUT_FILENAME
     pkio.write_text(f, r.jspec_file)
     pksubprocess.check_call_with_signals(['jspec', f], msg=pkdlog, output=template.JSPEC_LOG_FILE)
-    return pkio.read_text(template.JSPEC_LOG_FILE)
 
 
 def _parse_madx(tfs_file):

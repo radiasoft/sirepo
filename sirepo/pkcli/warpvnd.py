@@ -26,8 +26,8 @@ def run(cfg_dir):
         wp.step(template.COMPARISON_STEP_SIZE)
         res = template.generate_field_comparison_report(data, cfg_dir)
     else:
-        raise RuntimeError('unknown report: {}'.format(data['report']))
-    simulation_db.write_result(res)
+        raise AssertionError('unknown report: {}'.format(data['report']))
+    template_common.write_sequential_result(res)
 
 
 def run_background(cfg_dir):
@@ -47,4 +47,3 @@ def run_background(cfg_dir):
         template_common.exec_parameters_with_mpi()
     else:
         template_common.exec_parameters()
-    simulation_db.write_result({})

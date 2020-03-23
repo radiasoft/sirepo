@@ -49,17 +49,20 @@ def background_percent_complete(report, run_dir, is_running):
 def extract_report_data(run_dir, sim_in):
     if 'mlModelGraph' in sim_in.report:
         svg = pkio.read_text('modelGraph.svg')
-        simulation_db.write_result(PKDict(svg=svg), run_dir=run_dir)
+        template_common.write_sequential_result(
+            PKDict(svg=svg),
+            run_dir=run_dir,
+        )
         return
     if sim_in.report == 'partitionSelectionReport':
-        simulation_db.write_result(
+        template_common.write_sequential_result(
             _extract_partition_selection(run_dir, sim_in),
             run_dir=run_dir,
         )
         return
     idx = sim_in.models[sim_in.report].columnNumber
     x, y, col_name, source_name = _extract_column(run_dir, sim_in, idx)
-    simulation_db.write_result(
+    template_common.write_sequential_result(
         _plot_info(
             x,
             [
@@ -110,7 +113,7 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
     assert False, 'unknown model: {}'.format(model)
 
 
-def prepare_output_file(run_dir, sim_in):
+def prepare_sequential_output_file(run_dir, sim_in):
     if 'fileColumnReport' not in sim_in.report:
         return
     fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
