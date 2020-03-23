@@ -24,26 +24,6 @@ def test_myapp(fc):
 
     d = fc.sr_sim_data()
     d.models.simulation.name = 'srunit_long_run'
-    pkdlog('start 1')
-    r1 = fc.sr_post(
-        'runSimulation',
-        dict(
-            forceRun=False,
-            models=d.models,
-            report=_REPORT,
-            simulationId=d.models.simulation.simulationId,
-            simulationType=d.simulationType,
-        ),
-    )
-    for _ in range(10):
-        pkdlog(r1)
-        pkunit.pkok(r1.state != 'error', 'unexpected error state: {}')
-        if r1.state == 'running':
-            break
-        time.sleep(.1)
-        r1 = fc.sr_post('runStatus', r1.nextRequest)
-    else:
-        pkunit.pkfail('runStatus: failed to start running: {}', r1)
 
     def _t2():
         pkdlog('start 2')
@@ -71,6 +51,26 @@ def test_myapp(fc):
         else:
             pkunit.pkfail('runStatus: failed to start running: {}', r2)
 
+    pkdlog('start 1')
+    r1 = fc.sr_post(
+        'runSimulation',
+        dict(
+            forceRun=False,
+            models=d.models,
+            report=_REPORT,
+            simulationId=d.models.simulation.simulationId,
+            simulationType=d.simulationType,
+        ),
+    )
+    for _ in range(10):
+        pkdlog(r1)
+        pkunit.pkok(r1.state != 'error', 'unexpected error state: {}')
+        if r1.state == 'running':
+            break
+        time.sleep(.1)
+        r1 = fc.sr_post('runStatus', r1.nextRequest)
+    else:
+        pkunit.pkfail('runStatus: failed to start running: {}', r1)
 
     t2 = threading.Thread(target=_t2)
     t2.start()
