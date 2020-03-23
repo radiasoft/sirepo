@@ -284,15 +284,20 @@ class _ComputeJob(PKDict):
             history=self.__db_init_history(prev_db),
             isParallel=c.isParallel,
             isPremiumUser=c.get('isPremiumUser'),
-            jobRunMode=c.jobRunMode,
+            jobRunMode=c.get(
+                'jobRunMode',
+                self.db.jobRunMode if 'db' in self else None,
+            ),
             lastUpdateTime=0,
             simName=None,
-            nextRequestSeconds=_NEXT_REQUEST_SECONDS[c.jobRunMode],
             simulationId=c.simulationId,
             simulationType=c.simulationType,
 #TODO(robnagler) when would req come in with status?
             status=req.get('status', job.MISSING),
             uid=c.uid,
+        )
+        self.db.pkupdate(
+            nextRequestSeconds=_NEXT_REQUEST_SECONDS[self.db.jobRunMode],
         )
         if self.db.isParallel:
             self.db.parallelStatus = PKDict(
@@ -509,7 +514,11 @@ class _ComputeJob(PKDict):
         ):
             # Valid, completed, transient simulation
             # Read this first https://github.com/radiasoft/sirepo/issues/2007
-            return await self._receive_api_runStatus(req)
+            r = await self._receive_api_runStatus(req)
+            if r.state == job.MISSING:
+                # happens when the run dir is deleted w/o us knowing (ex admin cli deletion)
+                return await self._receive_api_runSimulation(req)
+            return r
         # Forced or canceled/errored/missing/invalid so run
         o = self._create_op(
             job.OP_RUN,
@@ -588,7 +597,7 @@ class _ComputeJob(PKDict):
             else job.SEQUENTIAL
         req.simulationType = self.db.simulationType
         # run mode can change between runs so use req.content.jobRunMode
-        # not self.db.jobRunmode
+        # not self.db.jobRunMode
         r = req.content.get('jobRunMode', self.db.jobRunMode)
         if r not in sirepo.simulation_db.JOB_RUN_MODE_MAP:
             # happens only when config changes, and only when sbatch is missing
@@ -691,7 +700,15 @@ class _ComputeJob(PKDict):
                         await self.run_dir_acquire(o)
                     await o.prepare_send()
                     o.send()
-                    return await o.reply_get()
+                    r =  await o.reply_get()
+                    # POSIT: All non runSimulation jobs that could run into
+                    # runDirNotFound call _send_with_single_reply()
+                    if r.get('runDirNotFound'):
+                        self.__db_init(req, prev_db=self.db)
+                        assert self.db.status == job.MISSING, \
+                            'expecting missing status={}'.format(self.db.status)
+                        return PKDict(state=job.MISSING)
+                    return r
                 except Awaited:
                     pass
             else:
