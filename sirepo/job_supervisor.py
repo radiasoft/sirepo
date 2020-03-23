@@ -19,11 +19,11 @@ import pykern.pkio
 import sirepo.http_reply
 import sirepo.simulation_db
 import sirepo.srdb
+import sirepo.tornado
 import sirepo.util
 import time
 import tornado.ioloop
 import tornado.locks
-import tornado.queues
 
 #: where supervisor state is persisted to disk
 _DB_DIR = None
@@ -746,7 +746,7 @@ class _Op(PKDict):
         self.update(
             do_not_send=False,
             opId=job.unique_key(),
-            _reply_q=tornado.queues.Queue(),
+            _reply_q=sirepo.tornado.Queue(),
         )
         self.msg.update(opId=self.opId, opName=self.opName)
         pkdlog('{} runDir={}', self, self.msg.get('runDir'))
