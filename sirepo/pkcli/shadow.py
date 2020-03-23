@@ -74,12 +74,7 @@ def run(cfg_dir):
         ticket = beam.histo2(int(model['x']), int(model['y']), nbins=template_common.histogram_bins(model['histogramBins']), ref=int(model['weight']), nolost=1, calculate_widths=0, xrange=x_range, yrange=y_range)
         _scale_ticket(ticket)
         values = ticket['histogram'].T
-        if numpy.isnan(values).any():
-            # something failed, look for errors in log
-            simulation_db.write_result({
-                'error': _parse_shadow_error(cfg_dir)
-            })
-            return
+        assert not numpy.isnan(values).any(), 'nan values found'
         res = {
             'x_range': [ticket['xrange'][0], ticket['xrange'][1], ticket['nbins_h']],
             'y_range': [ticket['yrange'][0], ticket['yrange'][1], ticket['nbins_v']],
@@ -112,7 +107,7 @@ def run(cfg_dir):
             #TODO(pjm): include offset range for client
             res['x_range'][0] = 0
             res['x_range'][1] = dist
-    simulation_db.write_result(res)
+    template_common.write_sequential_result(res)
 
 
 def run_background(cfg_dir):
@@ -138,16 +133,6 @@ def _label_with_units(column, values):
     if column in _PLOT_LABELS:
         return _PLOT_LABELS[column][0]
     return _label(column, values)
-
-
-def _parse_shadow_error(run_dir):
-    run_dir = py.path.local(run_dir)
-    if run_dir.join(template_common.RUN_LOG).exists():
-        text = pkio.read_text(run_dir.join(template_common.RUN_LOG))
-        for line in text.split("\n"):
-            if re.search(r'invalid chemical formula', line):
-                return 'A mirror contains an invalid reflectivity material'
-    return 'an unknown error occurred'
 
 
 def _scale_ticket(ticket):

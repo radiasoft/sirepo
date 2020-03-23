@@ -33,28 +33,30 @@ _DB_SUBDIR = 'supervisor-job'
 
 _NEXT_REQUEST_SECONDS = None
 
-_RUNNING_PENDING = (job.RUNNING, job.PENDING)
-
 _HISTORY_FIELDS = frozenset((
+    'alert',
+    'cancelledAfterSecs',
     'computeJobQueued',
     'computeJobSerial',
     'computeJobStart',
+    'computeModel'
     'driverDetails',
+    'isParallel',
+    'isPremiumUser',
     'error',
     'jobRunMode',
     'lastUpdateTime',
-    'computeModel'
     'status',
 ))
 
 _PARALLEL_STATUS_FIELDS = frozenset((
     'computeJobHash',
+    'computeJobStart',
+    'computeModel',
     'elapsedTime',
     'frameCount',
     'lastUpdateTime',
-    'computeModel'
     'percentComplete',
-    'computeJobStart',
 ))
 
 _UNTIMED_OPS = frozenset((job.OP_ALIVE, job.OP_CANCEL, job.OP_ERROR, job.OP_KILL, job.OP_OK))
@@ -81,9 +83,11 @@ def init():
     cfg = pkconfig.init(
         job_cache_secs=(300, int, 'when to re-read job state from disk'),
         max_hours=dict(
-            analysis=(.04, float, 'maximum run-time for analysis job'),
+            analysis=(.04, float, 'maximum run-time for analysis job',),
             parallel=(1, float, 'maximum run-time for parallel job (except sbatch)'),
-            sequential=(.1, float, 'maximum run-time for sequential job')
+            # TODO(e-carlin): make 2
+            parallel_premium=(2, float, 'maximum run-time for parallel job for premium user (except sbatch)'),
+            sequential=(.1, float, 'maximum run-time for sequential job'),
         ),
         sbatch_poll_secs=(60, int, 'how often to poll squeue and parallel status'),
     )
@@ -249,14 +253,13 @@ class _ComputeJob(PKDict):
     @classmethod
     def __create(cls, req):
         try:
-            d = pkcollections.json_load_any(
-                cls.__db_file(req.content.computeJid),
-            )
+            d = cls.__db_load(req.content.computeJid)
+            self = cls(req, db=d)
+            if self._is_running_pending():
 #TODO(robnagler) when we reconnect with running processes at startup,
 #  we'll need to change this
-            if d.status in _RUNNING_PENDING:
-                d.status = job.CANCELED
-            return cls(req, db=d)
+                self.__db_update(status=job.CANCELED)
+            return self
         except Exception as e:
             if pykern.pkio.exception_is_not_found(e):
                 return cls(req).__db_write()
@@ -269,6 +272,8 @@ class _ComputeJob(PKDict):
     def __db_init(self, req, prev_db=None):
         c = req.content
         self.db = PKDict(
+            alert=None,
+            cancelledAfterSecs=None,
             computeJid=c.computeJid,
             computeJobHash=c.computeJobHash,
             computeJobSerial=0,
@@ -278,6 +283,7 @@ class _ComputeJob(PKDict):
             error=None,
             history=self.__db_init_history(prev_db),
             isParallel=c.isParallel,
+            isPremiumUser=c.get('isPremiumUser'),
             jobRunMode=c.jobRunMode,
             lastUpdateTime=0,
             simName=None,
@@ -301,6 +307,21 @@ class _ComputeJob(PKDict):
             PKDict(((k, v) for k, v in prev_db.items() if k in _HISTORY_FIELDS)),
         ]
 
+    @classmethod
+    def __db_load(cls, compute_jid):
+        d = pkcollections.json_load_any(
+            cls.__db_file(compute_jid),
+        )
+        for k in ['alert', 'cancelledAfterSecs', 'isPremiumUser']:
+            d.setdefault(k, None)
+            for h in d.history:
+                h.setdefault(k, None)
+        return d
+
+    def __db_update(self, **kwargs):
+        self.db.pkupdate(**kwargs)
+        return self.__db_write()
+
     def __db_write(self):
         sirepo.util.json_dump(self.db, path=self.__db_file(self.db.computeJid))
         return self
@@ -310,7 +331,7 @@ class _ComputeJob(PKDict):
         def _filter_jobs(job):
             if uid and job.db.uid != uid:
                 return False
-            return job.db.status in _RUNNING_PENDING
+            return job._is_running_pending()
 
         def _get_header():
             h = [
@@ -327,6 +348,7 @@ class _ComputeJob(PKDict):
                 h.extend([
                     'Queued',
                     'Driver details',
+                    'Premium user'
                 ])
             return h
 
@@ -361,6 +383,7 @@ class _ComputeJob(PKDict):
                     d.extend([
                         _get_queued_time(i.db),
                         ' | '.join(sorted(i.db.driverDetails.values())),
+                        i.db.isPremiumUser,
                     ])
                 r.append(d)
 
@@ -369,6 +392,9 @@ class _ComputeJob(PKDict):
 
         l = 2
         return PKDict(header=_get_header(), rows=_get_rows())
+
+    def _is_running_pending(self):
+        return self.db.status in (job.RUNNING, job.PENDING)
 
     @classmethod
     async def _receive_api_admJobs(cls, req):
@@ -422,7 +448,7 @@ class _ComputeJob(PKDict):
             # may have been started so either we are canceling a compute by
             # user directive (left) or timing out an op (and canceling all).
             (not self._req_is_valid(req) and not timed_out_op)
-            or (self.db.status not in _RUNNING_PENDING and not self.ops)
+            or (not self._is_running_pending() and not self.ops)
         ):
             # job is not relevant, but let the user know it isn't running
             return r
@@ -451,8 +477,9 @@ class _ComputeJob(PKDict):
                     pkdlog('{} cancel={}', self, o)
                     for x in filter(lambda e: e != c, o):
                         x.destroy(cancel=True)
-                    self.db.status = job.CANCELED
-                    self.__db_write()
+                    if timed_out_op:
+                        self.db.cancelledAfterSecs = timed_out_op.maxRunSecs
+                    self.__db_update(status=job.CANCELED)
                     if c:
                         c.msg.opIdsToCancel = [x.opId for x in o]
                         c.send()
@@ -468,7 +495,7 @@ class _ComputeJob(PKDict):
 
     async def _receive_api_runSimulation(self, req):
         f = req.content.data.get('forceRun')
-        if self.db.status == _RUNNING_PENDING:
+        if self._is_running_pending():
             if f or not self._req_is_valid(req):
                 return PKDict(
                     state=job.ERROR,
@@ -492,7 +519,7 @@ class _ComputeJob(PKDict):
         )
         t = int(time.time())
         self.__db_init(req, prev_db=self.db)
-        self.db.pkupdate(
+        self.__db_update(
             computeJobQueued=t,
             computeJobSerial=t,
             computeModel=req.content.computeModel,
@@ -502,7 +529,6 @@ class _ComputeJob(PKDict):
             simName=req.content.data.models.simulation.name,
             status=job.PENDING,
         )
-        self.__db_write()
         try:
             for i in range(_MAX_RETRIES):
                 try:
@@ -525,7 +551,7 @@ class _ComputeJob(PKDict):
             else:
                 raise AssertionError('too many retries {}'.format(req))
         except Exception as e:
-            self.db.pkupdate(
+            self.__db_update(
                 status=job.ERROR,
                 error=e,
             )
@@ -572,7 +598,11 @@ class _ComputeJob(PKDict):
 # these values are never sent directly, only msg which can be camelcase
             computeJob=self,
             kind=req.kind,
-            maxRunSecs=self._get_max_run_secs(opName, req.kind, r),
+            maxRunSecs=self._get_max_run_secs(
+                opName,
+                r,
+                req,
+            ),
             msg=PKDict(req.content).pksetdefault(jobRunMode=r),
             opName=opName,
             req_content=req.copy_content(),
@@ -589,13 +619,15 @@ class _ComputeJob(PKDict):
         self.ops.append(o)
         return o
 
-    def _get_max_run_secs(self, op_name, kind, run_mode):
+    def _get_max_run_secs(self, op_name, run_mode, req):
         if op_name in _UNTIMED_OPS or \
             (run_mode == sirepo.job.SBATCH and op_name == job.OP_RUN):
             return 0
-        t = cfg.max_hours[kind]
+        t = cfg.max_hours[req.kind]
         if op_name == sirepo.job.OP_ANALYSIS:
             t = cfg.max_hours.analysis
+        elif req.kind == job.PARALLEL and req.content.get('isPremiumUser'):
+            t = cfg.max_hours['parallel_premium']
         return t * 3600
 
     def _req_is_valid(self, req):
@@ -623,6 +655,7 @@ class _ComputeJob(PKDict):
                         l = False
                         self.run_dir_release(op)
                     self.db.status = r.state
+                    self.db.alert = r.get('alert')
                     if self.db.status == job.ERROR:
                         self.db.error = r.get('error', '<unknown error>')
                     if 'computeJobStart' in r:
@@ -642,9 +675,10 @@ class _ComputeJob(PKDict):
         except Exception as e:
             pkdlog('error={} stack={}', e, pkdexc())
             if op == self.run_op:
-                self.db.status = job.ERROR
-                self.db.error = 'server error'
-                self.__db_write()
+                self.__db_update(
+                    status=job.ERROR,
+                    error='server error',
+                )
         finally:
             op.destroy(cancel=False)
 
@@ -668,14 +702,18 @@ class _ComputeJob(PKDict):
     def _status_reply(self, req):
         def res(**kwargs):
             r = PKDict(**kwargs)
+            if self.db.cancelledAfterSecs is not None:
+                r.cancelledAfterSecs = self.db.cancelledAfterSecs
             if self.db.error:
                 r.error = self.db.error
+            if self.db.alert:
+                r.alert = self.db.alert
             if self.db.isParallel:
                 r.update(self.db.parallelStatus)
                 r.computeJobHash = self.db.computeJobHash
                 r.computeJobSerial = self.db.computeJobSerial
                 r.elapsedTime = self.db.lastUpdateTime - self.db.computeJobStart
-            if self.db.status in _RUNNING_PENDING:
+            if self._is_running_pending():
                 c = req.content
                 r.update(
                     nextRequestSeconds=self.db.nextRequestSeconds,

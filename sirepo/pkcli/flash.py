@@ -22,4 +22,3 @@ _EXE_PATH = {
 def run_background(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     mpi.run_program([_EXE_PATH[data.models.simulation.flashType]])
-    simulation_db.write_result({})

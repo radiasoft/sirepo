@@ -2178,6 +2178,10 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             if (!appState.models.simulationStatus) {
                 appState.models.simulationStatus = {};
             }
+            if (state.model in appState.models.simulationStatus) {
+                delete appState.models.simulationStatus[state.model].alert;
+                delete appState.models.simulationStatus[state.model].cancelledAfterSecs;
+            }
             data.report = state.model;
             appState.models.simulationStatus[state.model] = angular.extend(
                 {}, appState.models.simulationStatus[state.model], data
@@ -2202,6 +2206,14 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             if (! queueHadItem && callback) {
                 callback();
             }
+        };
+
+        state.getAlert = function() {
+            return simulationStatus().alert;
+        };
+
+        state.getCancelledAfterSecs = function() {
+            return simulationStatus().cancelledAfterSecs;
         };
 
         state.getError = function() {

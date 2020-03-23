@@ -4,8 +4,6 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
-    SIREPO.USER_MANUAL_URL = 'https://ops.aps.anl.gov/manuals/elegant_latest/elegant.html';
-    SIREPO.USER_FORUM_URL = 'https://www3.aps.anl.gov/forums/elegant/';
     SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
     SIREPO.appImportText = 'Import an elegant command (.ele) or lattice (.lte) file';
     SIREPO.appFieldEditors += [
@@ -109,7 +107,7 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
                 cmd.p_central_mev = bunch.p_central_mev;
             }
             else {
-                cmd.p_central = rpnService.getRpnValue(bunch.p_central_mev) / SIREPO.APP_SCHEMA.constant.ELEGANT_ME_EV;
+                cmd.p_central = rpnService.getRpnValue(bunch.p_central_mev) / SIREPO.APP_SCHEMA.constants.ELEGANT_ME_EV;
             }
         }
         appState.saveQuietly('commands');
@@ -179,7 +177,7 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
                     bunch.p_central_mev = cmd.p_central_mev;
                 }
                 else {
-                    bunch.p_central_mev = rpnService.getRpnValue(cmd.p_central) * SIREPO.APP_SCHEMA.constant.ELEGANT_ME_EV;
+                    bunch.p_central_mev = rpnService.getRpnValue(cmd.p_central) * SIREPO.APP_SCHEMA.constants.ELEGANT_ME_EV;
                 }
             }
             // need to update source reports.
@@ -467,16 +465,16 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
     }
 
     function handleStatus(data) {
-        self.simulationErrors = data.errors || '';
+        self.simulationAlerts = data.alert || '';
         if (data.frameCount) {
             frameCache.setFrameCount(parseInt(data.frameCount));
             loadElementReports(data.outputInfo);
         }
         if (self.simState.isStopped()) {
             if (! data.frameCount) {
-                if (data.state == 'completed' && ! self.simulationErrors) {
+                if (data.state == 'completed' && ! self.simulationAlerts) {
                     // completed with no output, show link to elegant log
-                    self.simulationErrors = 'No output produced. View the ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName  + ' log for more information.';
+                    self.simulationAlerts = 'No output produced. View the ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName  + ' log for more information.';
                 }
                 self.outputFiles = [];
                 self.outputFileMap = {};
@@ -484,10 +482,10 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         }
     }
     self.errorHeader = function() {
-        if(! self.simulationErrors || self.simulationErrors == '') {
+        if(! self.simulationAlerts || self.simulationAlerts == '') {
             return '';
         }
-        return SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName + ' ' + (self.simulationErrors.toLowerCase().indexOf('error') >= 0 ? 'Errors:' : 'Warnings:');
+        return SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName + ' ' + (self.simulationAlerts.toLowerCase().indexOf('error') >= 0 ? 'Errors:' : 'Warnings:');
     };
 
     function loadElementReports(outputInfo) {

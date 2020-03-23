@@ -1,4 +1,7 @@
 {
+    "constants": {
+        "helpUserManualURL": "https://github.com/zhanghe9704/electroncooling/blob/master/JSPEC%20User%20manual.md"
+    },
     "enum": {
         "ElectronBeamShape": [
             ["dc_uniform", "Cylindrical"],

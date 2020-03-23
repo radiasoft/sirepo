@@ -7,13 +7,13 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pksubprocess
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import elegant_common
 from sirepo.template import template_common
-from sirepo.template.elegant import save_report_data, parse_elegant_log, ELEGANT_LOG_FILE
-import py.path
+from sirepo.template.elegant import save_sequential_report_data, ELEGANT_LOG_FILE
 
 
 def run(cfg_dir):
@@ -25,7 +25,12 @@ def run(cfg_dir):
         cfg_dir (str): directory to run elegant in
     """
     _run_elegant(bunch_report=True)
-    save_report_data(simulation_db.read_json(template_common.INPUT_BASE_NAME), py.path.local(cfg_dir))
+    save_sequential_report_data(
+        simulation_db.read_json(
+            template_common.INPUT_BASE_NAME,
+        ),
+        pkio.py_path(cfg_dir),
+    )
 
 
 def run_background(cfg_dir):
@@ -34,8 +39,7 @@ def run_background(cfg_dir):
     Args:
         cfg_dir (str): directory to run elegant in
     """
-    _run_elegant(with_mpi=True);
-    simulation_db.write_result({})
+    _run_elegant(with_mpi=True)
 
 
 def _run_elegant(bunch_report=False, with_mpi=False):
@@ -47,12 +51,8 @@ def _run_elegant(bunch_report=False, with_mpi=False):
         'output': ELEGANT_LOG_FILE,
         'env': elegant_common.subprocess_env(),
     }
-    try:
-        #TODO(robnagler) Need to handle this specially, b/c different binary
-        if r.execution_mode == 'parallel' and with_mpi and mpi.cfg.cores > 1:
-            mpi.run_program(['Pelegant', ele], **kwargs)
-        else:
-            pksubprocess.check_call_with_signals(['elegant', ele], msg=pkdlog, **kwargs)
-    except Exception as e:
-        # ignore elegant failures - errors will be parsed from the log
-        pass
+    #TODO(robnagler) Need to handle this specially, b/c different binary
+    if r.execution_mode == 'parallel' and with_mpi and mpi.cfg.cores > 1:
+        mpi.run_program(['Pelegant', ele], **kwargs)
+    else:
+        pksubprocess.check_call_with_signals(['elegant', ele], msg=pkdlog, **kwargs)
