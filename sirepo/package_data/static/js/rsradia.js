@@ -11,13 +11,18 @@ SIREPO.app.config(function() {
           //'<div data-color-picker="" data-color-fn="modelColor" data-default-color="defaultColor"></div>',
         '</div>',
         '<div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">',
-          '<input id="radia-pts-file-import" type="file" data-file-model="ptsFile" accept=".dat,.txt" />',
+          //'<input id="radia-pts-file-import" type="file" data-file-model="ptsFile" accept=".dat,.txt" />',
+            '<div data-stl-file-chooser="" data-input-file="inputFile" data-url="fileURL" data-title="title" data-description="description" data-require="true"></div>',
+            '<div class="col-sm-6 pull-right">',
+              '<button data-ng-click="importPathFile(inputFile)" class="btn btn-primary" data-ng-class="{\'disabled\': isMissingImportFile() }">Import File</button>',
+              ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
+            '</div>',
         '</div>',
     ].join('');
 
 });
 
-SIREPO.app.factory('radiaService', function(appState, panelState) {
+SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, requestSender) {
     var self = {};
 
     // why is this here?
@@ -130,6 +135,28 @@ SIREPO.app.factory('radiaService', function(appState, panelState) {
     }
     function toInt(v) {
         return parseInt('' + v);
+    }
+
+    function upload(inputFile, data) {
+        var simId = data.models.simulation.simulationId;
+        fileUpload.uploadFileToUrl(
+            inputFile,
+            requestSender.formatUrl(
+                'uploadFile',
+                {
+                    '<simulation_id>': simId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<file_type>': vtkPlotting.stlFileType,
+                }),
+            function(d) {
+                $('#simulation-import').modal('hide');
+                $scope.inputFile = null;
+                URL.revokeObjectURL($scope.fileURL);
+                $scope.fileURL = null;
+                requestSender.localRedirectHome(simId);
+            }, function (err) {
+                throw new Error(inputFile + ': Error during upload ' + err);
+            });
     }
 
     return self;
@@ -1214,18 +1241,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 setScaling();
             }
 
-            //function updateViewer(rebuild) {
             function updateViewer() {
-                //srdbg('updateViewer rebuild?', rebuild);
                 sceneData = {};
                 actorInfo = {};
-                //enableWatchFields(! rebuild);
                 enableWatchFields(false);
-                //if (rebuild) {
-                //    panelState.clear('geometry');
-                //    panelState.requestData('geometry', setupSceneData, true);
-                //    return;
-                //}
                 var inData = {
                     method: 'get_geom',
                     name: appState.models.geometry.name,
