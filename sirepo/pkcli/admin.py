@@ -77,8 +77,8 @@ def move_user_sims(target_uid=''):
         shutil.move(lib_file, target)
 
 
-def purge_guest_users(days=180, confirm=False):
-    """Remove old users from db which have not registered.
+def purge_basic_users(days=180, confirm=False):
+    """Remove basic users simulations
 
     Args:
         days (int): maximum days of untouched files (old is mtime > days)
@@ -123,9 +123,6 @@ def purge_guest_users(days=180, confirm=False):
                 r[d] = u
         if confirm:
             pkio.unchecked_remove(*r.keys())
-            auth_db.UserRegistration.delete_all_for_column_by_values(
-                'uid', r.values(),
-            )
         return r
 
 

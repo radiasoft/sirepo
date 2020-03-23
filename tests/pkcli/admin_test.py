@@ -17,7 +17,7 @@ def test_1_purge_users_all_premium(fc):
     from sirepo.pkcli import admin
 
     d = 1
-    res = admin.purge_guest_users(days=d, confirm=False)
+    res = admin.purge_basic_users(days=d, confirm=False)
     pkeq({}, res, '{}: no old users so no deletes', res)
 
     dirs_in_fs = _get_dirs()
@@ -27,7 +27,7 @@ def test_1_purge_users_all_premium(fc):
 
     srtime.adjust_time(d + 10)
 
-    res = admin.purge_guest_users(days=d, confirm=False)
+    res = admin.purge_basic_users(days=d, confirm=False)
     pkeq({}, res, '{}: all premium users so no deletes', res)
     pkok(dirs_in_fs[0].check(dir=True), '{}: directory not deleted', dirs_in_fs)
     pkeq(
@@ -52,7 +52,7 @@ def test_2_purge_non_premium(fc):
     )
     d = 1
     srtime.adjust_time(d + 10)
-    v = admin.purge_guest_users(days=d, confirm=False).items()
+    v = admin.purge_basic_users(days=d, confirm=False).items()
     pkunit.pkeq(1, len(v))
     pkunit.pkok(
         u in str(v[0][0]),
@@ -62,7 +62,7 @@ def test_2_purge_non_premium(fc):
         u == str(v[0][1]),
         'expecting uid to delete to be the uid of the non premium user',
     )
-    v = admin.purge_guest_users(days=d, confirm=True).items()
+    v = admin.purge_basic_users(days=d, confirm=True).items()
     pkunit.pkok(not v[0][0].check(dir=True), '{}: directory not deleted', v)
 
 
