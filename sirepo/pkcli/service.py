@@ -110,7 +110,7 @@ def http(driver='local', nersc_proxy=None, nersc_user='nagler'):
         return e
 
     def _exit(*args):
-        os.killpg(os.getpgid(0), signal.SIGTERM)
+        os.killpg(0, signal.SIGTERM)
         [p.wait() for p in processes]
         sys.exit()
 
