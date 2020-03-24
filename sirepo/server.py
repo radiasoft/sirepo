@@ -48,6 +48,7 @@ _app = None
 @api_perm.require_user
 def api_copyNonSessionSimulation():
     req = http_request.parse_post(id=True, template=True)
+    simulation_db.verify_app_directory(req.type)
     src = pkio.py_path(
         simulation_db.find_global_simulation(
             req.type,
