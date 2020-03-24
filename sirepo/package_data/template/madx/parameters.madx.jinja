@@ -1,0 +1,9 @@
+
+{{ variables }}
+{{ lattice }}
+
+{% if useBeamline %}
+beam;
+use,period={{ useBeamline }};
+twiss,file="twiss.tfs";
+{% endif %}
