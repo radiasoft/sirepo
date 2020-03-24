@@ -8,6 +8,79 @@ from __future__ import absolute_import, division, print_function
 
 import pytest
 
+def test_cache():
+    from pykern.pkcollections import PKDict
+    from pykern.pkunit import pkeq
+    from sirepo.template.code_variable import CodeVar, PurePythonEval
+    code_var = CodeVar(
+        [
+            PKDict(
+                name='x',
+                value='123',
+            ),
+            PKDict(
+                name='y',
+                value='x + x',
+            ),
+        ],
+        PurePythonEval(),
+    )
+    pkeq(
+        code_var.compute_cache(
+            PKDict(
+                models=PKDict(
+                    beamlines=[],
+                    elements=[],
+                    commands=[],
+                )
+            ),
+            PKDict(),
+        ),
+        PKDict({
+            'x': 123,
+            'y': 246,
+            'x + x': 246,
+        })
+    )
+
+
+def test_case_insensitive():
+    # tests case insensitive and attribute like variables
+    from pykern.pkcollections import PKDict
+    from pykern.pkunit import pkeq
+    from sirepo.template.code_variable import CodeVar, PurePythonEval
+    code_var = CodeVar(
+        [
+            PKDict(
+                name='x.x7.x',
+                value='123',
+            ),
+            PKDict(
+                name='Y',
+                value='x.X7.x + x.x7.x',
+            ),
+        ],
+        PurePythonEval(),
+        case_insensitive=True,
+    )
+    pkeq(
+        code_var.compute_cache(
+            PKDict(
+                models=PKDict(
+                    beamlines=[],
+                    elements=[],
+                    commands=[],
+                )
+            ),
+            PKDict(),
+        ),
+        PKDict({
+            'x.x7.x': 123,
+            'y': 246,
+            'x.x7.x + x.x7.x': 246,
+        })
+    )
+
 def test_eval():
     from pykern.pkcollections import PKDict
     from pykern.pkunit import pkeq
@@ -35,39 +108,3 @@ def test_eval():
     pkeq(True, code_var.is_var_value('abc'))
     pkeq(False, code_var.is_var_value('-1.234e-6'))
     pkeq(False, code_var.is_var_value('0'))
-
-
-def test_cache():
-    from pykern.pkcollections import PKDict
-    from pykern.pkunit import pkeq
-    from sirepo.template.code_variable import CodeVar, PurePythonEval
-    code_var = CodeVar(
-        [
-            PKDict(
-                name='x',
-                value='123',
-            ),
-            PKDict(
-                name='y',
-                value='x + x',
-            ),
-            ],
-        PurePythonEval(),
-    )
-    pkeq(
-        code_var.compute_cache(
-            PKDict(
-                models=PKDict(
-                    beamlines=[],
-                    elements=[],
-                    commands=[],
-                )
-            ),
-            PKDict(),
-        ),
-        PKDict({
-            'x': 123,
-            'y': 246,
-            'x + x': 246,
-        })
-    )
