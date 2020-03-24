@@ -25,6 +25,7 @@ cfg = None
 
 
 def default_command():
+    # raise Exception('eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeevvvvvvvvvvvvvvvvvasaaaaaaaaaaaaaaaaaaaaannnnnnnnnnnnnnnn')
     global cfg
 
     cfg = pkconfig.init(

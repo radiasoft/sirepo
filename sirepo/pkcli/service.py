@@ -14,10 +14,15 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern import pksubprocess
 from pykern.pkdebug import pkdc, pkdexc, pkdp
+import errno
+import os
 import py
+import threading
 import re
+import signal
 import sirepo.srdb
 import socket
+import subprocess
 
 
 def celery():
@@ -53,23 +58,61 @@ def flower():
 
 
 def http():
-    """Starts Flask server in http mode.
+    """Starts the Flask server and job_supervisor.
 
     Used for development only.
     """
-    from sirepo import server
 
-    with pkio.save_chdir(_run_dir()):
-        use_reloader = pkconfig.channel_in('dev')
-        app = server.init(use_reloader=use_reloader)
-        # avoid WARNING: Do not use the development server in a production environment.
-        app.env = 'development'
-        app.run(
-            host=cfg.ip,
-            port=cfg.port,
-            threaded=True,
-            use_reloader=use_reloader,
-        )
+    def _start_flask():
+        from sirepo import server
+
+        with pkio.save_chdir(_run_dir()):
+            use_reloader = pkconfig.channel_in('dev')
+            app = server.init(use_reloader=use_reloader)
+            # avoid WARNING: Do not use the development server in a production environment.
+            app.env = 'development'
+            app.run(
+                host=cfg.ip,
+                port=cfg.port,
+                threaded=True,
+                use_reloader=use_reloader,
+            )
+
+    def _start_job_supervisor():
+        def run():
+            e = os.environ.copy()
+            e.update(
+                PYENV_VERSION='py3',
+                SIREPO_JOB_DRIVER_MODULES='local',
+            )
+            p = subprocess.Popen(
+                ('pyenv', 'exec', 'sirepo', 'job_supervisor'),
+                preexec_fn=os.setsid, # TODO(e-carlin): only py2 use start_new_session=True, in py3
+                env=e,
+
+            )
+            if p.wait() != 0:
+                on_exit('supervisor exited with non-zero returncode')
+
+        if os.environ.get("WERKZEUG_RUN_MAIN"):
+            return
+
+        t = threading.Thread(target=run)
+        # t.daemon = True
+        t.start()
+        return t
+        # def _send_signal(signal, _):
+        #     os.killpg(p, signal)
+        #     raise KeyboardInterrupt
+
+        # signal.signal(signal.SIGTERM, _send_signal)
+        # signal.signal(signal.SIGINT, _send_signal)
+
+    def on_exit(error):
+        raise RuntimeError(error)
+
+    _start_job_supervisor()
+    _start_flask()
 
 
 def nginx_proxy():
