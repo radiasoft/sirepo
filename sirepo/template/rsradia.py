@@ -119,12 +119,16 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
-
 # have to include points for file type?
 def _build_field_file_pts(f_path):
-    if len(f_path.file_data) % 3 != 0:
+    pts_file = _SIM_DATA.lib_file_abspath(_SIM_DATA.lib_file_name_with_type(
+        f_path.fileName,
+        _SCHEMA.constants.pathPtsFileType
+    ))
+    lines = [float(l.strip()) for l in pkio.read_text(pts_file).split(',')]
+    if len(lines) % 3 != 0:
         raise ValueError('Invalid file data {}'.format(f_path.file_data))
-    return f_path.file_data
+    return lines
 
 
 def _build_field_points(paths):

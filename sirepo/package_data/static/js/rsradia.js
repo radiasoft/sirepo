@@ -11,12 +11,7 @@ SIREPO.app.config(function() {
           //'<div data-color-picker="" data-color-fn="modelColor" data-default-color="defaultColor"></div>',
         '</div>',
         '<div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">',
-          //'<input id="radia-pts-file-import" type="file" data-file-model="ptsFile" accept=".dat,.txt" />',
-            '<div data-stl-file-chooser="" data-input-file="inputFile" data-url="fileURL" data-title="title" data-description="description" data-require="true"></div>',
-            '<div class="col-sm-6 pull-right">',
-              '<button data-ng-click="importPathFile(inputFile)" class="btn btn-primary" data-ng-class="{\'disabled\': isMissingImportFile() }">Import File</button>',
-              ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
-            '</div>',
+          '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
         '</div>',
     ].join('');
 
@@ -40,6 +35,10 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
             appState.models.fieldPaths.paths = [];
         }
         if (! findPath(p)) {
+            if (type === 'file') {
+                p.fileName = p.fileModel.name;
+                upload((p.fileModel));
+            }
             appState.models.fieldPaths.paths.push(p);
         }
         appState.saveChanges('fieldPaths', function (d) {
@@ -137,23 +136,19 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         return parseInt('' + v);
     }
 
-    function upload(inputFile, data) {
-        var simId = data.models.simulation.simulationId;
+    function upload(inputFile) {
         fileUpload.uploadFileToUrl(
             inputFile,
+            {},
             requestSender.formatUrl(
                 'uploadFile',
                 {
-                    '<simulation_id>': simId,
+                    '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<file_type>': vtkPlotting.stlFileType,
+                    '<file_type>': SIREPO.APP_SCHEMA.constants.pathPtsFileType,
                 }),
             function(d) {
-                $('#simulation-import').modal('hide');
-                $scope.inputFile = null;
-                URL.revokeObjectURL($scope.fileURL);
-                $scope.fileURL = null;
-                requestSender.localRedirectHome(simId);
+                //srdbg('UPLOAD DONE', d);
             }, function (err) {
                 throw new Error(inputFile + ': Error during upload ' + err);
             });
@@ -300,10 +295,18 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaServ
             $scope.pathTypes = appState.enumVals('PathType');
             $scope.pathTypeModels = $scope.pathTypes.map(radiaService.pathTypeModel);
             $scope.ptsFile = null;
+            $scope.pfm = {};
             $scope.radiaService = radiaService;
 
-            $scope.getPathType = function() {
+           $scope.getPathType = function() {
                 return ($scope.model || {}).path;
+            };
+
+            $scope.importPathFile = function(inputFile) {
+                srdbg('in file', inputFile);
+                if (! inputFile) {
+                    return;
+                }
             };
 
             function numPathsOfType(type) {
@@ -367,7 +370,6 @@ SIREPO.app.directive('fieldPathTable', function(appState, radiaService) {
                   '<td><span>{{ path.numPoints }}</span></td>',
                   '<td><span>{{ pathDetails(path) }}</span></td>',
                   '<td style="text-align: right">',
-                    //'<span>{{ pathDetails($index) }}</span>',
                     '<div class="sr-button-bar-parent">',
                         '<div class="sr-button-bar" data-ng-class="sr-button-bar-active" >',
                             '<button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyPath(path)">Copy</button>',
@@ -400,24 +402,23 @@ SIREPO.app.directive('fieldPathTable', function(appState, radiaService) {
            };
 
            $scope.editPath = function(path) {
-                srdbg('EDIT', path);
                 appState.models[radiaService.pathTypeModel(path.type)] = path;
                 appState.models.fieldPaths.path = path.type;
                 radiaService.showPathPicker(true, false);
            };
 
            $scope.pathDetails = function(path) {
-               var excludeFields = ['_super', 'id', 'name', 'type', 'numPoints'];
+               var excludeFields = ['_super', 'fileModel', 'id', 'name', 'type', 'numPoints'];
                var res = '';
                var pt = radiaService.pathTypeModel(path.type);
                var vf = appState.viewInfo(pt).basic;
                var info = appState.modelInfo(pt);
-               vf.filter(function (f) {
+               Object.keys(info).filter(function (f) {
                     return excludeFields.indexOf(f) < 0;
                })
                    .forEach(function (f, i) {
                        var fi = info[f];
-                    res += (fi[0] + ': ' + path[f] + '; ');
+                       res += (fi[0] + ': ' + path[f] + '; ');
                });
                return res;
            };
@@ -741,14 +742,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             didModifyGeom = true;
                         }
                     });
-
-                    /*
-                    for (let j = 0; j < 3; ++j) {
-                        let k = 2 * j;
-                        totalBounds[k] = Math.min(totalBounds[k], bounds[k]);
-                        totalBounds[k + 1] = Math.max(totalBounds[k + 1], bounds[k + 1]);
-                    }
-                     */
                 }
 
                 if (didModifyGeom) {

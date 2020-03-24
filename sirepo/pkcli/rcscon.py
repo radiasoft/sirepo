@@ -5,6 +5,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+import py.path
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
@@ -17,7 +18,7 @@ import sirepo.template.rcscon as template
 def run(cfg_dir):
     template_common.exec_parameters()
     template.extract_report_data(
-        d,
+        py.path.local(cfg_dir),
         simulation_db.read_json(template_common.INPUT_BASE_NAME),
     )
 

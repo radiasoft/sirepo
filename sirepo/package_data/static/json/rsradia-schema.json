@@ -5,7 +5,8 @@
         }
     },
     "constants": {
-        "defaultGeomColor": "#ffffff"
+        "defaultGeomColor": "#ffffff",
+        "pathPtsFileType": "path-pts"
     },
     "dynamicFiles": {
         "externalLibs": {
@@ -83,7 +84,8 @@
         },
         "filePath": {
             "_super": ["_", "model", "fieldPath"],
-            "fileName": ["File", "PtsFile", ""],
+            "fileModel": ["File", "PtsFile", ""],
+            "fileName": ["File Name", "String", ""],
             "type": ["_", "PathType", "file"]
         },
         "geometry": {
@@ -166,7 +168,7 @@
             "title": "File",
             "basic": [
                 "name",
-                "fileName"
+                "fileModel"
             ]
         },
         "geomObject": {
