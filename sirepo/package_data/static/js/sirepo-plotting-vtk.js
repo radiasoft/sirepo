@@ -1057,6 +1057,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             eventHandlers: '<',
             modelName: '@',
             reportId: '<',
+            showBorder: '@',
         },
         templateUrl: '/static/html/vtk-display.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {

@@ -294,46 +294,34 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaServ
             $scope.modelsLoaded = false;
             $scope.pathTypes = appState.enumVals('PathType');
             $scope.pathTypeModels = $scope.pathTypes.map(radiaService.pathTypeModel);
-            $scope.ptsFile = null;
-            $scope.pfm = {};
             $scope.radiaService = radiaService;
 
            $scope.getPathType = function() {
                 return ($scope.model || {}).path;
-            };
+           };
 
-            $scope.importPathFile = function(inputFile) {
-                srdbg('in file', inputFile);
-                if (! inputFile) {
-                    return;
-                }
-            };
-
-            function numPathsOfType(type) {
+           function numPathsOfType(type) {
                 if (! $scope.model.paths) {
                     return 0;
                 }
                 return $scope.model.paths.filter(function (p) {
                     return p.type === type;
                 }).length;
-            }
+           }
 
             appState.whenModelsLoaded($scope, function () {
                 $scope.model = appState.models[$scope.modelName];
                 $scope.pathTypes.forEach(function (t) {
                     var pt = radiaService.pathTypeModel(t);
                     $scope.$on(pt + '.changed', function () {
-                        //srdbg(pt, 'changed');
                         radiaService.addOrModifyPath(t);
                     });
                 });
                 $scope.$on('cancelChanges', function(e, name) {
                     if ($scope.pathTypeModels.indexOf(name) >= 0) {
-                        //srdbg('cancel', name);
                         radiaService.showPathPicker(false);
                     }
                 });
-                //srdbg('loaded paths', $scope.model);
 
                 $scope.modelsLoaded = true;
             });
@@ -455,7 +443,6 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaServ
         controller: function($scope, $element) {
             $scope.modelsLoaded = false;
             $scope.pathTypes = appState.enumVals('PathType');
-            $scope.ptsFile = null;
             $scope.radiaService = radiaService;
 
             $scope.getPathType = function() {
@@ -563,7 +550,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
         template: [
             '<div class="col-md-6">',
                 '<div data-basic-editor-panel="" data-view-name="{{ modelName }}">',
-                    '<div data-vtk-display="" class="vtk-display" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-orientation="orientation"></div>',
+                    '<div data-vtk-display="" class="vtk-display" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-orientation="orientation"></div>',
                 '</div>',
             '</div>',
 
@@ -895,6 +882,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function handlePick(callData) {
+                //srdbg('handle', callData);
                 if (renderer !== callData.pokedRenderer) {
                     return;
                 }
@@ -1055,14 +1043,27 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function editSelectedObj(point) {
+                srdbg('edit', radiaService.selectedObj);
+                $('#radia-edit-geom-obj').modal('show');
+                /*
                 var modal = $('<div data-id="radia-edit-geom-obj" data-model="selectedObj"></div>');
-                modal.css('position', 'absolute');
+                var cp = $($element).find('canvas').position();
+                var co = $($element).find('canvas').offset();
+                modal.css('position', 'relative');
                 modal.width(200);
                 modal.height(200);
-                modal.css('left', point[0]);
-                modal.css('top', point[1]);
-                srdbg('modal', modal);
-                $($element).append(modal);
+                //modal.css('left', point[0] - cp.left);
+                //modal.css('top', point[1] - cp.top);
+                var pixels = window.devicePixelRatio;
+                modal.css('left', point[0] / pixels);
+                modal.css('top', point[1] / pixels);
+                //modal.css('left', 100);
+                //modal.css('top', 100);
+                srdbg('modal', modal, 'cp', cp, 'co', co, 'pt', point);
+                //srdbg(point[0] - cp.left, point[1] - cp.top, pixels);
+                //$($element).append(modal);
+                $('.vtk-canvas-holder').append(modal);
+                 */
             }
 
             function hasPaths() {
