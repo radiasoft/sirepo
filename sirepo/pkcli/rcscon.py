@@ -10,6 +10,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
+import py.path
 import pykern.pkio
 import sirepo.template.rcscon as template
 
@@ -17,7 +18,7 @@ import sirepo.template.rcscon as template
 def run(cfg_dir):
     template_common.exec_parameters()
     template.extract_report_data(
-        d,
+        py.path.local(cfg_dir),
         simulation_db.read_json(template_common.INPUT_BASE_NAME),
     )
 
