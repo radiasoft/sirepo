@@ -85,7 +85,7 @@ def purge_basic_users(days=180, confirm=False):
         confirm (bool): delete the directories if True (else don't delete) [False]
 
     Returns:
-        (list, list): dirs and uids of removed guest users (or to remove if confirm)
+        (list, list): dirs and uids of removed users (or to remove if confirm)
     """
 
     def _get_premium_uids():
