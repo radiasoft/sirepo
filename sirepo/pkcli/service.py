@@ -110,8 +110,7 @@ def http(driver='local', nersc_proxy=None, nersc_user='nagler'):
         return e
 
     def _exit(*args):
-        os.killpg(0, signal.SIGTERM)
-        [p.wait() for p in processes]
+        [os.kill(p.pid, args[0]) and p.wait() for p in processes]
         sys.exit()
 
     def _start(service, env):
@@ -134,7 +133,7 @@ def http(driver='local', nersc_proxy=None, nersc_user='nagler'):
     _start(['service', 'flask'], _env(flask_env=True))
     p, _ = os.wait()
     processes = filter(lambda x: x.pid != p, processes)
-    _exit()
+    _exit(signal.SIGTERM)
 
 
 def nginx_proxy():
