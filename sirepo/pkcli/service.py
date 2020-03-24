@@ -17,12 +17,12 @@ from pykern.pkdebug import pkdc, pkdexc, pkdp
 import errno
 import os
 import py
-import threading
 import re
 import signal
 import sirepo.srdb
 import socket
 import subprocess
+import sys
 
 
 def celery():
@@ -109,39 +109,32 @@ def http(driver='local', nersc_proxy=None, nersc_user='nagler'):
             e.update(PYENV_VERSION='py3')
         return e
 
+    def _exit(*args):
+        os.killpg(os.getpgid(0), signal.SIGTERM)
+        [p.wait() for p in processes]
+        sys.exit()
+
     def _start(service, env):
         c = ['pyenv', 'exec', 'sirepo']
         c.extend(service)
-        return subprocess.Popen(
+        processes.append(subprocess.Popen(
             c,
             cwd=str(_run_dir()),
             env=env,
 
-        ).pid
+        ))
 
+    _DRIVER_TYPES = ('local', 'docker', 'nersc', 'sbatch')
+    assert driver in _DRIVER_TYPES, \
+        'driver={} must be one of {}'.format(driver, _DRIVER_TYPES)
 
-        # e = os.environ.copy()
-        # e.update(
-        #     PYENV_VERSION='py3',
-        #     SIREPO_JOB_DRIVER_MODULES='local',
-        # )
-        # def _send_signal(signal, _):
-        #     os.killpg(p, signal)
-        #     raise KeyboardInterrupt
-
-        # signal.signal(signal.SIGTERM, _send_signal)
-        # signal.signal(signal.SIGINT, _send_signal)
-
-    # _DRIVER_TYPES = ('local', 'docker', 'nersc', 'sbatch')
-    # assert driver in _DRIVER_TYPES, \
-    #     'driver={} must be one of {}'.format(driver, _DRIVER_TYPES)
-
-    s = _start(['job_supervisor'], _env(flask_env=False))
-    # TODO(e-carlin): true or false
-    # if os.getenv('WERKZEUG_RUN_MAIN'):
-    f = _start(['service', 'flask'], _env(flask_env=True))
-    r = os.wait()
-    pkdp('rrrrrr {}', r)
+    processes = []
+    signal.signal(signal.SIGINT, _exit)
+    _start(['job_supervisor'], _env(flask_env=False))
+    _start(['service', 'flask'], _env(flask_env=True))
+    p, _ = os.wait()
+    processes = filter(lambda x: x.pid != p, processes)
+    _exit()
 
 
 def nginx_proxy():
