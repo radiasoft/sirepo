@@ -89,7 +89,7 @@ def init():
             parallel_premium=(2, float, 'maximum run-time for parallel job for premium user (except sbatch)'),
             sequential=(.1, float, 'maximum run-time for sequential job'),
         ),
-        sbatch_poll_secs=(60, int, 'how often to poll squeue and parallel status'),
+        sbatch_poll_secs=(15, int, 'how often to poll squeue and parallel status'),
     )
     _NEXT_REQUEST_SECONDS = PKDict({
         job.PARALLEL: 2,
