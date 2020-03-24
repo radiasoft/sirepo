@@ -1,0 +1,124 @@
+# Example
+execution_mode = 'serial'
+
+lattice_file = """
+% pi 180 / sto degrad
+% 180 pi / sto raddeg
+% pi 2 * sto twopi
+
+"BL10": DRIF,l=0
+"BL11": DRIF,l=0
+"BL12": DRIF,l=0
+"BL13": DRIF,l=0
+"BL4": DRIF,l=0
+"BL5": DRIF,l=0
+"BL6": DRIF,l=0
+"BL7": DRIF,l=0
+"BL9": DRIF,l=0
+"CAVITY": DRIF,l=0.25
+"D0": DRIF
+"DC1": DRIF,l=1.53667
+"DC2": DRIF,l=0.0975
+"DC3": DRIF,l=0.25
+"DC4": DRIF,l=0.23
+"DC5": DRIF,l=0.200986
+"DC6": DRIF,l=0.18
+"DM1": DRIF,l=3.08259415
+"DM10": DRIF,l=2.96
+"DM2": DRIF,l=0.095
+"DM3": DRIF,l=0.28
+"DM4": DRIF,l=0.25
+"DM5": DRIF,l=0.25
+"DM6": DRIF,l=0.65305037
+"DM7": DRIF,l=0.25
+"DM8": DRIF,l=0.5
+"DM9": DRIF,l=0.105
+"DMRF": DRIF,l=2.71
+"MMM": DRIF,l=0
+"SQNE": DRIF,l=0.25
+"SQNW": DRIF,l=0.25
+"SQSE": DRIF,l=0.25
+"SQSW": DRIF,l=0.25
+"HCOR": HKICK,l=0.1
+"BPM": MONI
+"QD": QUAD,k1=-1.569398098382,l=0.15
+"QDX": QUAD,k1=-1.37118218444,l=0.34
+"QDY": QUAD,k1=-0.439037182042,l=0.34
+"QDZ": QUAD,k1=-0.780124438508,l=0.34
+"QF": QUAD,k1=1.824535892328,l=0.34
+"QFC": QUAD,k1=1.786614917998,l=0.25
+"QFX": QUAD,k1=1.531422437496,l=0.6
+"QFY": QUAD,k1=1.317793654731,l=0.5
+"QFZ": QUAD,k1=1.41081398507,l=0.34
+"B34": CSBEND,angle=0.138599675893667,e1=0.069299837946834,e2=0.069299837946834,k1=-0.33,k2=0.1415,l=1.08837093518965
+"BEND": CSBEND,angle=0.184799567858223,e1=0.092399783929112,e2=0.092399783929112,k1=-0.33,k2=0.1415,l=1.45206533937021
+"SD": SEXT,k2=-36.3607602054839,l=0.25
+"SDI": SEXT,k2=-10,l=0.21
+"SF": SEXT,k2=29.6547246115592,l=0.21
+"SFI": SEXT,k2=9,l=0.21
+"VCOR": VKICK,l=0.1
+"HVCOR": LINE=(HCOR,VCOR)
+"HCEL1": LINE=(DC1,QF,DC2,HVCOR,BPM,DC2,QD,DC3,BEND,DC4,SD,DC5,BPM,HVCOR,DC5,SF,DC6,BPM,QFC)
+"HCEL2": LINE=(QFC,DC6,SF,DC5,HVCOR,BPM,DC5,SD,DC4,BEND,DC3,QD,DC2,BPM,HVCOR,DC2,QF,DC1)
+"CEL": LINE=(HCEL1,HCEL2)
+"IR": LINE=(BPM,QDX,DM2,HVCOR,BPM,DM2,QFX,DM3,BPM,QDY,DM4,B34,DM5,SDI,DM6,HVCOR,BPM,DM6,SFI,DM7,QFY,DM7,SFI,DM6,HVCOR,BPM,DM6,SDI,DM5,B34,DM8,QDZ,DM9,BPM,HVCOR,DM9,QFZ,BPM)
+"IRSW": LINE=(DM1,SQSW,IR,DM10)
+"IRSE": LINE=(DM1,SQSE,IR,DMRF,CAVITY)
+"IRNE": LINE=(DM1,SQNE,IR,DMRF,CAVITY)
+"IRNW": LINE=(DM1,SQNW,IR,DM10)
+"RING": LINE=(MMM,BL13,CEL,BL12,CEL,BL11,CEL,CEL,BL4,CEL,BL5,CEL,BL6,CEL,-IRSE,IRNE,CEL,BL9,CEL,BL10,CEL,BL7,CEL,CEL,CEL,CEL,-IRNW,IRSW)
+
+"""
+
+elegant_file = """
+
+&run_setup
+  semaphore_file = run_setup.semaphore,
+  centroid = "run_setup.centroid.sdds",
+  lattice = "elegant.lte",
+  output = "run_setup.output.sdds",
+  p_central_mev = 1001,
+  parameters = "run_setup.parameters.sdds",
+  print_statistics = 1,
+  sigma = "run_setup.sigma.sdds",
+&end
+
+&run_control
+&end
+
+&twiss_output
+  filename = "twiss_output.filename.sdds",
+&end
+
+&bunched_beam
+  alpha_x = 1,
+  alpha_y = 1,
+  alpha_z = 0,
+  beta_x = 10,
+  beta_y = 10,
+  beta_z = 0,
+  distribution_cutoff[0] = 3, 3, 3,
+  emit_x = 4.6e-08,
+  emit_y = 4.6e-08,
+  emit_z = 0,
+  enforce_rms_values[0] = 1, 1, 1,
+  n_particles_per_bunch = 5000,
+  one_random_bunch = 0,
+  sigma_dp = 0.001,
+  sigma_s = 0.00065,
+  symmetrize = 1,
+&end
+
+&track
+&end
+
+"""
+
+with open('elegant.lte', 'w') as f:
+    f.write(lattice_file)
+
+with open('elegant.ele', 'w') as f:
+    f.write(elegant_file)
+
+import os
+os.system('elegant elegant.ele')
