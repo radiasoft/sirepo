@@ -96,7 +96,7 @@ def vector_field_to_data(geom, name, pv_arr, units):
     # format is [[[px, py, pz], [vx, vy, vx]], ...]
     # convert to webGL object
 
-    pkdp('g {} n {} pa {} u {}', geom, name, pv_arr, units)
+    # pkdp('g {} n {} pa {} u {}', geom, name, pv_arr, units)
     v_data = new_geom_object()
     v_data.vectors.lengths = []
     v_data.vectors.colors = []
@@ -109,7 +109,7 @@ def vector_field_to_data(geom, name, pv_arr, units):
         v_max = max(v_max, n)
         v_min = min(v_min, n)
         nv = (numpy.array(v) / (n if n > 0 else 1.)).tolist()
-        pkdp('extend {} with {}', v_data.vectors.vertices, p)
+        # pkdp('extend {} with {}', v_data.vectors.vertices, p)
         v_data.vectors.vertices.extend(p)
         v_data.vectors.directions.extend(nv)
         v_data.vectors.magnitudes.append(n)
