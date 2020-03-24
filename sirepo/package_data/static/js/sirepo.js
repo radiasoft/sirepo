@@ -955,6 +955,9 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         if (! appState.isLoaded()) {
             return;
         }
+        function onError(modelName) {
+            panelState.setError(modelName, 'Report not generated');
+        }
         var isHidden = panelState.isHidden(modelName);
         var frameRequestTime = new Date().getTime();
         var delay = isPlaying && ! isHidden
@@ -967,6 +970,10 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
                     '<frame_id>': self.frameId(modelName, index),
                 },
                 function(data) {
+                    if ('state' in data && data.state === 'missing') {
+                        onError(modelName);
+                        return;
+                    }
                     var endTime = new Date().getTime();
                     var elapsed = endTime - frameRequestTime;
                     if (elapsed < delay) {
@@ -984,10 +991,11 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
                 },
                 null,
                 // error handling
+                //TODO(pjm): need error wrapping on server similar to runStatus route
                 function(data) {
-                    //TODO(pjm): need error wrapping on server similar to runStatus route
-                    panelState.setError(modelName, 'Report not generated');
-                });
+                    onError(modelName);
+                }
+            );
         };
         if (isHidden) {
             panelState.addPendingRequest(modelName, requestFunction);
