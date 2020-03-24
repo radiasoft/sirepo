@@ -57,50 +57,74 @@ def flower():
         ])
 
 
-def http():
+def flask():
+    from sirepo import server
+
+    use_reloader = pkconfig.channel_in('dev')
+    app = server.init(use_reloader=use_reloader)
+    # avoid WARNING: Do not use the development server in a production environment.
+    app.env = 'development'
+    app.run(
+        host=cfg.ip,
+        port=cfg.port,
+        threaded=True,
+        use_reloader=use_reloader,
+    )
+
+
+def http(driver='local', nersc_proxy=None, nersc_user='nagler'):
     """Starts the Flask server and job_supervisor.
 
     Used for development only.
+
+    Args:
+        driver (string): The driver type to enable
+    # TODO(e-carlin):
     """
+    def _env(flask_env):
+        e = os.environ.copy()
+        e.update(
+            PYENV_VERSION='py2',
+            PYKERN_PKDEBUG_WANT_PID_TIME='1',
+            SIREPO_AUTH_EMAIL_FROM_EMAIL='support@radiasoft.net',
+            SIREPO_AUTH_EMAIL_FROM_NAME='RadiaSoft Support',
+            SIREPO_AUTH_EMAIL_SMTP_PASSWORD='n/a',
+            # POSIT: same as sirepo.auth.email._DEV_SMTP_SERVER
+            SIREPO_AUTH_EMAIL_SMTP_SERVER='dev',
+            SIREPO_AUTH_EMAIL_SMTP_USER='n/a',
+            SIREPO_AUTH_METHODS='email:guest',
+            SIREPO_MPI_CORES='2',
+        )
+        if driver == 'docker':
+            # TODO(e-carlin): check for docker install; pull image
+            e.update(SIREPO_JOB_DRIVER_MODULES='docker')
+        elif driver == 'local':
+            e.update(SIREPO_JOB_DRIVER_MODULES='local')
+        elif driver == 'nersc':
+            e.update(SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Cori@NERSC')
+        elif driver == 'sbatch':
+            e.update(SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Vagrant Cluster')
 
-    def _start_flask():
-        from sirepo import server
+        if not flask_env:
+            e.update(PYENV_VERSION='py3')
+        return e
 
-        with pkio.save_chdir(_run_dir()):
-            use_reloader = pkconfig.channel_in('dev')
-            app = server.init(use_reloader=use_reloader)
-            # avoid WARNING: Do not use the development server in a production environment.
-            app.env = 'development'
-            app.run(
-                host=cfg.ip,
-                port=cfg.port,
-                threaded=True,
-                use_reloader=use_reloader,
-            )
+    def _start(service, env):
+        c = ['pyenv', 'exec', 'sirepo']
+        c.extend(service)
+        return subprocess.Popen(
+            c,
+            cwd=str(_run_dir()),
+            env=env,
 
-    def _start_job_supervisor():
-        def run():
-            e = os.environ.copy()
-            e.update(
-                PYENV_VERSION='py3',
-                SIREPO_JOB_DRIVER_MODULES='local',
-            )
-            p = subprocess.Popen(
-                ('pyenv', 'exec', 'sirepo', 'job_supervisor'),
-                preexec_fn=os.setsid, # TODO(e-carlin): only py2 use start_new_session=True, in py3
-                env=e,
+        ).pid
 
-            )
-            if p.wait() != 0:
-                on_exit('supervisor exited with non-zero returncode')
 
-        if os.environ.get("WERKZEUG_RUN_MAIN"):
-            return
-
-        t = threading.Thread(target=run)
-        # t.daemon = True
-        t.start()
-        return t
+        # e = os.environ.copy()
+        # e.update(
+        #     PYENV_VERSION='py3',
+        #     SIREPO_JOB_DRIVER_MODULES='local',
+        # )
         # def _send_signal(signal, _):
         #     os.killpg(p, signal)
         #     raise KeyboardInterrupt
@@ -108,11 +132,16 @@ def http():
         # signal.signal(signal.SIGTERM, _send_signal)
         # signal.signal(signal.SIGINT, _send_signal)
 
-    def on_exit(error):
-        raise RuntimeError(error)
+    # _DRIVER_TYPES = ('local', 'docker', 'nersc', 'sbatch')
+    # assert driver in _DRIVER_TYPES, \
+    #     'driver={} must be one of {}'.format(driver, _DRIVER_TYPES)
 
-    _start_job_supervisor()
-    _start_flask()
+    s = _start(['job_supervisor'], _env(flask_env=False))
+    # TODO(e-carlin): true or false
+    # if os.getenv('WERKZEUG_RUN_MAIN'):
+    f = _start(['service', 'flask'], _env(flask_env=True))
+    r = os.wait()
+    pkdp('rrrrrr {}', r)
 
 
 def nginx_proxy():
