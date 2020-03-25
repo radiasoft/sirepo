@@ -165,6 +165,9 @@ def http(driver='local', nersc_proxy=None, nersc_user=None, sbatch_host=None):
             SIREPO_JOB_DRIVER_SBATCH_HOST='{}'.format(
                 sbatch_host or h,
             ),
+            # TODO(e-carlin):
+            SIREPO_JOB_DRIVER_SBATCH_SUPERVISOR_URI='http://{}:8001'.format(h),
+            SIREPO_PKCLI_JOB_SUPERVISOR_IP='0.0.0.0',
             SIREPO_JOB_DRIVER_SBATCH_CORES='2',
             SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD='{}/.pyenv/versions/py3/bin/sirepo'.format(os.getenv('HOME')),
             SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/var/tmp/{sbatch_user}/sirepo',
@@ -179,7 +182,12 @@ def http(driver='local', nersc_proxy=None, nersc_user=None, sbatch_host=None):
             env.update(SIREPO_JOB_DRIVER_SBATCH_CORES='4')
 
     def _exit(*args):
-        [os.kill(p.pid, args[0]) and p.wait() for p in processes]
+        for p in processes:
+            # Kill flask reloader process
+            os.kill(-p.pid, args[0])
+            os.waitpid(-p.pid, os.WNOHANG)
+            p.kill()
+            p.wait()
         sys.exit()
 
     def _start(service, env):
@@ -189,6 +197,8 @@ def http(driver='local', nersc_proxy=None, nersc_user=None, sbatch_host=None):
             c,
             cwd=str(_run_dir()),
             env=env,
+            # TODO(e-carlin): py3 use start_new_session=True
+            preexec_fn=os.setsid,
 
         ))
 
@@ -200,6 +210,7 @@ def http(driver='local', nersc_proxy=None, nersc_user=None, sbatch_host=None):
     signal.signal(signal.SIGINT, _exit)
     _start(['job_supervisor'], _env('py3'))
     _start(['service', 'flask'], _env('py2'))
+    pkdp([p.pid for p in processes])
     p, _ = os.wait()
     processes = filter(lambda x: x.pid != p, processes)
     _exit(signal.SIGTERM)
