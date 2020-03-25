@@ -69,7 +69,8 @@
         "PartitionSection": [
             ["train", "Training"],
             ["test", "Testing"],
-            ["validate", "Valiation"]
+            ["validate", "Valiation"],
+            ["train_and_test", "Training and Testing"]
         ],
         "PlotScale": [
             ["linear", "Linear"],
@@ -173,11 +174,12 @@
             "validation": ["Validation %", "Float", 12.5],
             "method": ["Split Method", "SplitMethod"],
             "random_state": ["Random Seed", "Integer", 42],
-            "section0": ["Section 0", "PartitionSection", "test"],
-            "section1": ["Section 1", "PartitionSection", "train"],
+            "section0": ["Section 0", "PartitionSection", "validate"],
+            "section1": ["Section 1", "PartitionSection", "train_and_test"],
             "section2": ["Section 2", "PartitionSection", "validate"],
             "cutoff0": ["Cutoff 0", "Integer"],
-            "cutoff1": ["Cutoff 1", "Integer"]
+            "cutoff1": ["Cutoff 1", "Integer"],
+            "trainTestPercent": ["Training %", "Float", 75, "", 1, 98]
         },
         "partitionSelectionReport": {
         },
