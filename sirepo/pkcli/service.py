@@ -13,8 +13,10 @@ from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjinja
 from pykern import pksubprocess
-from pykern.pkdebug import pkdc, pkdexc, pkdp
+from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
+import distutils
 import errno
+import inspect
 import os
 import py
 import re
@@ -72,19 +74,23 @@ def flask():
     )
 
 
-def http(driver='local', nersc_proxy=None, nersc_user='nagler'):
+def http(driver='local', nersc_proxy=None, nersc_user=None, sbatch_host=None):
     """Starts the Flask server and job_supervisor.
 
     Used for development only.
 
     Args:
-        driver (string): The driver type to enable
+        driver (string): The driver type to enable (one of local, docker, sbatch, nersc)
+        nersc_proxy (string): A proxy nersc can use to reach the supervisor
+    # TODO(e-carlin): talk with rn
+        nersc_user(string): A nersc user ??
+        sbatch_host (string): A host to ssh into to start sbatch jobs
     # TODO(e-carlin):
     """
-    def _env(flask_env):
+    def _env(py_version):
         e = os.environ.copy()
         e.update(
-            PYENV_VERSION='py2',
+            PYENV_VERSION=py_version,
             PYKERN_PKDEBUG_WANT_PID_TIME='1',
             SIREPO_AUTH_EMAIL_FROM_EMAIL='support@radiasoft.net',
             SIREPO_AUTH_EMAIL_FROM_NAME='RadiaSoft Support',
@@ -95,19 +101,82 @@ def http(driver='local', nersc_proxy=None, nersc_user='nagler'):
             SIREPO_AUTH_METHODS='email:guest',
             SIREPO_MPI_CORES='2',
         )
-        if driver == 'docker':
-            # TODO(e-carlin): check for docker install; pull image
-            e.update(SIREPO_JOB_DRIVER_MODULES='docker')
-        elif driver == 'local':
-            e.update(SIREPO_JOB_DRIVER_MODULES='local')
-        elif driver == 'nersc':
-            e.update(SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Cori@NERSC')
-        elif driver == 'sbatch':
-            e.update(SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Vagrant Cluster')
+        {
+            n: f for n, f in inspect.currentframe().f_back.f_locals.items()
+            if callable(f)
+        }['_env_' + driver](e)
 
-        if not flask_env:
-            e.update(PYENV_VERSION='py3')
+        if 'sbatch' in e['SIREPO_JOB_DRIVER_MODULES']:
+            h = e['SIREPO_JOB_DRIVER_SBATCH_HOST']
+            m = re.search(r'^{}.+$'.format(h), pkio.read_text('~/.ssh/known_hosts'), re.MULTILINE)
+            assert m, \
+                (
+                    'you need to get the host key in ~/.ssh/known_hosts'
+                    ' run: `ssh {} true`'.format(h)
+                )
+            x = m.group(0)
+            e.update(SIREPO_JOB_DRIVER_SBATCH_HOST_KEY=x)
         return e
+
+    def _env_docker(env):
+        # TODO(e-carlin): py3 has shutil.which()
+        assert distutils.spawn.find_executable('docker') is not None, \
+            'docker not installed:  You need to run `radia_run redhat-docker`'
+        i = 'radiasoft/sirepo:dev'
+        try:
+            subprocess.check_output(('docker', 'image', 'inspect', i))
+        except subprocess.CalledProcessError:
+            pkdlog('docker image {} not installed. Pulling...')
+            assert subprocess.call(('docker', 'image', 'pull', i)) == 0, \
+                'docker image pull failed'
+
+        env.update(
+            SIREPO_JOB_DRIVER_MODULES='docker',
+        )
+
+    def _env_local(env):
+        env.update(
+            SIREPO_JOB_DRIVER_MODULES='local',
+        )
+        assert 'SIREPO_JOB_DRIVER_MODULES' in env
+
+    def _env_nersc(env):
+        # TODO(e-carlin): Shouldn't nersc_user always be nagler?
+        assert nersc_proxy and nersc_user, \
+            'You need to supply a nersc_proxy and a nserc_user'
+        env.update(
+            SIREPO_JOB_DRIVER_MODULES='local:sbatch',
+            SIREPO_JOB_DRIVER_SBATCH_HOST='cori.nersc.gov',
+            SIREPO_JOB_DRIVER_SBATCH_SHIFTER_IMAGE='radiasoft/sirepo:sbatch',
+            # TODO(e-carlin): /global/homes/??? NERSC is down so I can't ssh in and figure it out
+            # /global/homes/${3::1}/$3/.pyenv/versions/py3/bin/sirepo
+            SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD='/global/homes/{}/{}/.pyenv/versions/py3/bin/sirepo'.format(1, nersc_user),
+            SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/global/cscratch1/sd/{sbatch_user}/sirepo-dev',
+            SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS='15',
+            SIREPO_JOB_DRIVER_SBATCH_SUPERVISOR_URI='http://{}:8001'.format(nersc_proxy),
+            SIREPO_PKCLI_JOB_SUPERVISOR_IP='0.0.0.0',
+            SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Cori@NERSC',
+        )
+
+    def _env_sbatch(env):
+        h = socket.gethostname()
+        env.update(
+            SIREPO_JOB_DRIVER_MODULES='local:sbatch',
+            SIREPO_JOB_DRIVER_SBATCH_HOST='{}'.format(
+                sbatch_host or h,
+            ),
+            SIREPO_JOB_DRIVER_SBATCH_CORES='2',
+            SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD='{}/.pyenv/versions/py3/bin/sirepo'.format(os.getenv('HOME')),
+            SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/var/tmp/{sbatch_user}/sirepo',
+            SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS='5',
+            SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Vagrant Cluster',
+        )
+        if env['SIREPO_JOB_DRIVER_SBATCH_HOST'] == h:
+            # TODO(e-carlin): py3 has shutil.which()
+            assert distutils.spawn.find_executable('sbatch') is not None, \
+                'slurm not installed:  You need to run `radia_run slurm-dev`'
+        else:
+            env.update(SIREPO_JOB_DRIVER_SBATCH_CORES='4')
 
     def _exit(*args):
         [os.kill(p.pid, args[0]) and p.wait() for p in processes]
@@ -129,8 +198,8 @@ def http(driver='local', nersc_proxy=None, nersc_user='nagler'):
 
     processes = []
     signal.signal(signal.SIGINT, _exit)
-    _start(['job_supervisor'], _env(flask_env=False))
-    _start(['service', 'flask'], _env(flask_env=True))
+    _start(['job_supervisor'], _env('py3'))
+    _start(['service', 'flask'], _env('py2'))
     p, _ = os.wait()
     processes = filter(lambda x: x.pid != p, processes)
     _exit(signal.SIGTERM)
