@@ -210,7 +210,6 @@ def http(driver='local', nersc_proxy=None, nersc_user=None, sbatch_host=None):
     signal.signal(signal.SIGINT, _exit)
     _start(['job_supervisor'], _env('py3'))
     _start(['service', 'flask'], _env('py2'))
-    pkdp([p.pid for p in processes])
     p, _ = os.wait()
     processes = filter(lambda x: x.pid != p, processes)
     _exit(signal.SIGTERM)
