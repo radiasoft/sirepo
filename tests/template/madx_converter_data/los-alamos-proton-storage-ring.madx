@@ -1,3 +1,4 @@
+title, "Los Alamos Proton Storage Ring";
 
 
 D1: DRIFT,l=2.28646;
@@ -18,5 +19,5 @@ RING2: LINE=(BL1,BL2,BL3,BL1,BL1,BL1,BL2,BL3,BL1,BL1);
 
 
 beam;
-use,period=RING2;
-twiss,file="twiss.tfs";
+use, sequence=RING2;
+twiss, file="twiss.tfs";

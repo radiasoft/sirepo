@@ -175,8 +175,9 @@ def _convert(name, data, direction):
             values._comment = '{}: {} {}'.format(from_class.sim_type(), el.type, comment.strip())
         res.models.elements.append(values)
     res.models.rpnVariables = _rpn_variables(to_class, data)
-    res.models.simulation.visualizationBeamlineId = data.models.simulation.visualizationBeamlineId
-    res.models.simulation.activeBeamlineId = data.models.simulation.visualizationBeamlineId
+    for f in ('name', 'visualizationBeamlineId', 'activeBeamlineId'):
+        if f in data.models.simulation:
+            res.models.simulation[f] = data.models.simulation[f]
     return res
 
 

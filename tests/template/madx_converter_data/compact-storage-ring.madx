@@ -1,3 +1,4 @@
+title, "Compact Storage Ring";
 
 
 L0: DRIFT,l=1.43;
@@ -21,5 +22,5 @@ CSR: LINE=(QUARTER,QUARTER,QUARTER,QUARTER);
 
 
 beam;
-use,period=CSR;
-twiss,file="twiss.tfs";
+use, sequence=CSR;
+twiss, file="twiss.tfs";

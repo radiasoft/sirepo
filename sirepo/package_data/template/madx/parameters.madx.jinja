@@ -1,9 +1,10 @@
+title, "{{ simulation_name }}";
 
 {{ variables }}
 {{ lattice }}
 
 {% if useBeamline %}
 beam;
-use,period={{ useBeamline }};
-twiss,file="twiss.tfs";
+use, sequence={{ useBeamline }};
+twiss, file="twiss.tfs";
 {% endif %}
