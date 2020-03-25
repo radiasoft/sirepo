@@ -498,7 +498,7 @@ class _ComputeJob(PKDict):
             if c:
                 c.destroy(cancel=False)
 
-    async def _receive_api_runSimulation(self, req):
+    async def _receive_api_runSimulation(self, req, called_from_self=False):
         f = req.content.data.get('forceRun')
         if self._is_running_pending():
             if f or not self._req_is_valid(req):
@@ -516,8 +516,10 @@ class _ComputeJob(PKDict):
             # Read this first https://github.com/radiasoft/sirepo/issues/2007
             r = await self._receive_api_runStatus(req)
             if r.state == job.MISSING:
-                # happens when the run dir is deleted w/o us knowing (ex admin cli deletion)
-                return await self._receive_api_runSimulation(req)
+                # happens when the run dir is deleted w/o us knowing (ex pkcli.admin.purge_free_users)
+                assert not called_from_self, \
+                    'Infinite recursion detected. Already called from self.'
+                return await self._receive_api_runSimulation(req, called_from_self=True)
             return r
         # Forced or canceled/errored/missing/invalid so run
         o = self._create_op(
@@ -703,12 +705,12 @@ class _ComputeJob(PKDict):
                     r =  await o.reply_get()
                     # POSIT: All non runSimulation jobs that could run into
                     # runDirNotFound call _send_with_single_reply()
-                    if r.get('runDirNotFound'):
-                        self.__db_init(req, prev_db=self.db)
-                        assert self.db.status == job.MISSING, \
-                            'expecting missing status={}'.format(self.db.status)
-                        return PKDict(state=job.MISSING)
-                    return r
+                    if not r.get('runDirNotFound'):
+                        return r
+                    self.__db_init(req, prev_db=self.db)
+                    assert self.db.status == job.MISSING, \
+                        'expecting missing status={}'.format(self.db.status)
+                    return PKDict(state=job.MISSING)
                 except Awaited:
                     pass
             else:

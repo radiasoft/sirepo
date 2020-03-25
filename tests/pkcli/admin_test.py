@@ -17,8 +17,8 @@ def test_1_purge_users_all_premium(fc):
     from sirepo.pkcli import admin
 
     d = 1
-    res = admin.purge_basic_users(days=d, confirm=False)
-    pkeq({}, res, '{}: no old users so no deletes', res)
+    res = admin.purge_free_users(days=d, confirm=False)
+    pkeq([], res, '{}: no old users so no deletes', res)
 
     dirs_in_fs = _get_dirs()
     uids_in_db = auth_db.UserRegistration.search_all_for_column('uid')
@@ -27,8 +27,8 @@ def test_1_purge_users_all_premium(fc):
 
     srtime.adjust_time(d + 10)
 
-    res = admin.purge_basic_users(days=d, confirm=False)
-    pkeq({}, res, '{}: all premium users so no deletes', res)
+    res = admin.purge_free_users(days=d, confirm=False)
+    pkeq([], res, '{}: all premium users so no deletes', res)
     pkok(dirs_in_fs[0].check(dir=True), '{}: directory not deleted', dirs_in_fs)
     pkeq(
         auth_db.UserRegistration.search_by(uid=uids_in_db[0]).uid,
@@ -36,7 +36,7 @@ def test_1_purge_users_all_premium(fc):
         '{}: expecting uid to still be in db', uids_in_db
     )
 
-def test_2_purge_non_premium(fc):
+def test_2_purge_free_users(fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdp
     from sirepo import srtime
@@ -52,18 +52,16 @@ def test_2_purge_non_premium(fc):
     )
     d = 1
     srtime.adjust_time(d + 10)
-    v = admin.purge_basic_users(days=d, confirm=False).items()
+    v = admin.purge_free_users(days=d, confirm=False)
+    pkdp('vvvvvvvv {}', )
+    assert 0
     pkunit.pkeq(1, len(v))
     pkunit.pkok(
-        u in str(v[0][0]),
+        u in str(v[0]),
         'expecting uid in path to dir',
     )
-    pkunit.pkok(
-        u == str(v[0][1]),
-        'expecting uid to delete to be the uid of the non premium user',
-    )
-    v = admin.purge_basic_users(days=d, confirm=True).items()
-    pkunit.pkok(not v[0][0].check(dir=True), '{}: directory not deleted', v)
+    v = admin.purge_free_users(days=d, confirm=True)
+    pkunit.pkok(not v[0].check(dir=True), '{}: directory not deleted', v)
 
 
 def _get_dirs():

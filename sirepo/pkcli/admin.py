@@ -77,7 +77,7 @@ def move_user_sims(target_uid=''):
         shutil.move(lib_file, target)
 
 
-def purge_basic_users(days=180, confirm=False):
+def purge_free_users(days=180, confirm=False):
     """Remove basic users simulations
 
     Args:
@@ -87,6 +87,18 @@ def purge_basic_users(days=180, confirm=False):
     Returns:
         (list, list): dirs and uids of removed users (or to remove if confirm)
     """
+
+    def _check_expired_run_dir(path):
+        d = str(path).lower()
+        if 'report' in d or 'animation' in d:
+            for f in pkio.walk_tree(path):
+                # https://github.com/radiasoft/sirepo/issues/1888
+                if not f.exists():
+                    continue
+                if (n - n.fromtimestamp(f.mtime())).days <= days:
+                    return
+            else:
+                res.append(str(path))
 
     def _get_premium_uids():
         r = auth_db.UserRole
@@ -105,25 +117,18 @@ def purge_basic_users(days=180, confirm=False):
     with auth_db.thread_lock:
         p = _get_premium_uids()
         n = srtime.utc_now()
-        r = {}
-        for d in pkio.sorted_glob(simulation_db.user_dir_name().join('*')):
-            u = simulation_db.uid_from_dir_name(d)
-            # TODO(e-carlin): When does a path end in /src?
-            if _is_src_dir(d):
-                continue
-            if u in p:
-                continue
-            for f in pkio.walk_tree(d):
-                # https://github.com/radiasoft/sirepo/issues/1888
-                if not f.exists():
-                    continue
-                if (n - n.fromtimestamp(f.mtime())).days <= days:
-                    break
-            else:
-                r[d] = u
+        res = []
+        for p in pkio.sorted_glob(simulation_db.user_dir_name().join(
+                '*',
+                '*',
+                '*',
+                'sirepo-data.json',
+        )):
+            for dirpath, _, _ in os.walk(p.dirname):
+                _check_expired_run_dir(pkio.py_path(dirpath))
         if confirm:
-            pkio.unchecked_remove(*r.keys())
-        return r
+            pkio.unchecked_remove(*res)
+        return res
 
 
 def _create_example(example):
