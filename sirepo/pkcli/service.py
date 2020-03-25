@@ -82,10 +82,8 @@ def http(driver='local', nersc_proxy=None, nersc_user=None, sbatch_host=None):
     Args:
         driver (string): The driver type to enable (one of local, docker, sbatch, nersc)
         nersc_proxy (string): A proxy nersc can use to reach the supervisor
-    # TODO(e-carlin): talk with rn
         nersc_user(string): A nersc user ??
         sbatch_host (string): A host to ssh into to start sbatch jobs
-    # TODO(e-carlin):
     """
     def _env(py_version):
         e = os.environ.copy()
@@ -148,9 +146,10 @@ def http(driver='local', nersc_proxy=None, nersc_user=None, sbatch_host=None):
             SIREPO_JOB_DRIVER_MODULES='local:sbatch',
             SIREPO_JOB_DRIVER_SBATCH_HOST='cori.nersc.gov',
             SIREPO_JOB_DRIVER_SBATCH_SHIFTER_IMAGE='radiasoft/sirepo:sbatch',
-            # TODO(e-carlin): /global/homes/??? NERSC is down so I can't ssh in and figure it out
-            # /global/homes/${3::1}/$3/.pyenv/versions/py3/bin/sirepo
-            SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD='/global/homes/{}/{}/.pyenv/versions/py3/bin/sirepo'.format(1, nersc_user),
+            SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD='/global/homes/{}/{}/.pyenv/versions/py3/bin/sirepo'.format(
+                nersc_user[0],
+                nersc_user,
+            ),
             SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/global/cscratch1/sd/{sbatch_user}/sirepo-dev',
             SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS='15',
             SIREPO_JOB_DRIVER_SBATCH_SUPERVISOR_URI='http://{}:8001'.format(nersc_proxy),
@@ -165,7 +164,6 @@ def http(driver='local', nersc_proxy=None, nersc_user=None, sbatch_host=None):
             SIREPO_JOB_DRIVER_SBATCH_HOST='{}'.format(
                 sbatch_host or h,
             ),
-            # TODO(e-carlin):
             SIREPO_JOB_DRIVER_SBATCH_SUPERVISOR_URI='http://{}:8001'.format(h),
             SIREPO_PKCLI_JOB_SUPERVISOR_IP='0.0.0.0',
             SIREPO_JOB_DRIVER_SBATCH_CORES='2',
