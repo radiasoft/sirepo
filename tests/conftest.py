@@ -299,8 +299,8 @@ def _job_supervisor_setup(request, cfg=None):
         if k in ('PATH', 'LD_LIBRARY_PATH'):
             v2 = []
             for x in v.split(':'):
-                if x and 'py2' not in x:
-                    v2.append(x)
+#                if x and 'py2' not in x:
+                v2.append(x)
             v = ':'.join(v2)
         env[k] = v
     if not cfg:

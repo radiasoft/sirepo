@@ -13,7 +13,6 @@ from sirepo import crystal
 from sirepo import simulation_db
 from sirepo.template import srw_common
 from sirepo.template import template_common
-import bnlcrl.pkcli.simulate
 import copy
 import glob
 import math
@@ -26,15 +25,10 @@ import sirepo.mpi
 import sirepo.sim_data
 import sirepo.template.srw_fixup
 import sirepo.uri_router
-import srwl_uti_cryst
-import srwl_uti_smp
-import srwl_uti_src
+import sirepo.util
 import srwlib
 import time
 import traceback
-import uti_math
-import uti_plot_com
-import werkzeug
 import zipfile
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
@@ -186,6 +180,8 @@ def calculate_beam_drift(ebeam_position, source_type, undulator_type, undulator_
 
 
 def compute_crl_focus(model):
+    import bnlcrl.pkcli.simulate
+
     d = bnlcrl.pkcli.simulate.calc_ideal_focus(
         radius=float(model['tipRadius']) * 1e-6,  # um -> m
         n=model['numberOfLenses'],
@@ -236,6 +232,8 @@ def clean_run_dir(run_dir):
 
 
 def extract_report_data(filename, sim_in):
+    import uti_plot_com
+
     r = sim_in.report
     m = sim_in.models
     #TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
@@ -615,6 +613,8 @@ def remove_last_frame(run_dir):
 
 def validate_file(file_type, path):
     """Ensure the data file contains parseable rows data"""
+    import srwl_uti_smp
+
     if not _SIM_DATA.srw_is_valid_file_type(file_type, path):
         return 'invalid file type: {}'.format(path.ext)
     if file_type == 'mirror':
@@ -729,6 +729,8 @@ def _add_report_filenames(v):
 
 
 def _compute_material_characteristics(model, photon_energy, prefix=''):
+    import bnlcrl.pkcli.simulate
+
     fields_with_prefix = PKDict({
         'material': 'material',
         'refractiveIndex': 'refractiveIndex',
@@ -777,6 +779,8 @@ def _compute_material_characteristics(model, photon_energy, prefix=''):
 
 
 def _compute_crystal_init(model):
+    import srwl_uti_cryst
+
     parms_list = ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi']
     try:
         material_raw = model['material']  # name contains either "(SRW)" or "(X0h)"
@@ -815,6 +819,8 @@ def _compute_crystal_init(model):
 
 
 def _compute_crystal_orientation(model):
+    import uti_math
+
     if not model['dSpacing']:
         return model
     parms_list = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle']
@@ -1339,7 +1345,9 @@ def _process_image(data, tmp_dir):
         py.path.local: file to return
     """
     # This should just be a basename, but this ensures it.
-    path = str(_SIM_DATA.lib_file_abspath(werkzeug.secure_filename(data.baseImage)))
+    import srwl_uti_smp
+
+    path = str(_SIM_DATA.lib_file_abspath(sirepo.util.secure_filename(data.baseImage)))
     m = data['model']
     with pkio.save_chdir(tmp_dir):
         s = srwl_uti_smp.SRWLUtiSmp(

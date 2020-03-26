@@ -40,11 +40,7 @@ _IN_FILE = 'in-{}.json'
 
 _PID_FILE = 'job_agent.pid'
 
-_PY3_CODES = frozenset((
-    'rcscon',
-    'shadow',
-    'webcon',
-))
+_PY2_CODES = frozenset(())
 
 cfg = None
 
@@ -396,7 +392,7 @@ class _Cmd(PKDict):
         )
 
     def job_cmd_pyenv(self):
-        return 'py3' if self.msg.simulationType in _PY3_CODES else 'py2'
+        return 'py2' if self.msg.simulationType in _PY2_CODES else 'py3'
 
     def job_cmd_source_bashrc(self):
         return 'source $HOME/.bashrc'

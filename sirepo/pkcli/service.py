@@ -64,6 +64,8 @@ def http():
         app = server.init(use_reloader=use_reloader)
         # avoid WARNING: Do not use the development server in a production environment.
         app.env = 'development'
+        import werkzeug.serving
+        werkzeug.serving.click = None
         app.run(
             host=cfg.ip,
             port=cfg.port,
