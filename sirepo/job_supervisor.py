@@ -284,10 +284,6 @@ class _ComputeJob(PKDict):
             history=self.__db_init_history(prev_db),
             isParallel=c.isParallel,
             isPremiumUser=c.get('isPremiumUser'),
-            jobRunMode=c.get(
-                'jobRunMode',
-                self.db.jobRunMode if 'db' in self else None,
-            ),
             lastUpdateTime=0,
             simName=None,
             simulationId=c.simulationId,
@@ -296,8 +292,20 @@ class _ComputeJob(PKDict):
             status=req.get('status', job.MISSING),
             uid=c.uid,
         )
+        r = c.get('jobRunMode')
+        if not r:
+            assert c.api != 'api_runSimulation', \
+                'api_runSimulation must have a jobRunMode'
+            # __db_init() will be called when runDirNotFound.
+            # The api_* that initiated the request may not have
+            # a jobRunMode (ex api_downloadDataFile). In that
+            # case use the existing jobRunMode because the
+            # request doesn't care about the jobRunMode
+            r = self.db.jobRunMode
+
         self.db.pkupdate(
-            nextRequestSeconds=_NEXT_REQUEST_SECONDS[self.db.jobRunMode],
+            jobRunMode=r,
+            nextRequestSeconds=_NEXT_REQUEST_SECONDS[r],
         )
         if self.db.isParallel:
             self.db.parallelStatus = PKDict(
@@ -703,14 +711,15 @@ class _ComputeJob(PKDict):
                     await o.prepare_send()
                     o.send()
                     r =  await o.reply_get()
-                    # POSIT: All non runSimulation jobs that could run into
-                    # runDirNotFound call _send_with_single_reply()
+                    # POSIT: any api_* that could run into runDirNotFound
+                    # will call _send_with_single_reply() and this will
+                    # properly format the reply
                     if not r.get('runDirNotFound'):
                         return r
                     self.__db_init(req, prev_db=self.db)
                     assert self.db.status == job.MISSING, \
                         'expecting missing status={}'.format(self.db.status)
-                    return PKDict(state=job.MISSING)
+                    return PKDict(state=self.db.status)
                 except Awaited:
                     pass
             else:
