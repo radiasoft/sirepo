@@ -2895,7 +2895,7 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
             '<input id="{{ modelName }}-{{ field }}-range" type="range" data-ng-model="model[field]" data-ng-change="fieldDelegate.update()">',
             '<span class="valueLabel">{{ model[field] }}{{ model.units }}</span>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, $element) {
 
             var slider;
             var delegate = null;
@@ -2930,6 +2930,12 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
                 var val = delegate.storedVal;
                 if ((val || val === 0) && $scope.model[$scope.field] != val) {
                     $scope.model[$scope.field] = val;
+                    var form = $element.find('input').eq(0).controller('form');
+                    if (! form) {
+                        return;
+                    }
+                    // changing the value dirties the form; make it pristine or we'll get a spurious save button
+                    form.$setPristine();
                 }
             });
 

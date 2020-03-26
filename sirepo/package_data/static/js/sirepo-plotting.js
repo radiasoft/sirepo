@@ -767,6 +767,8 @@ SIREPO.app.directive('colorPicker', function() {
     return {
         restrict: 'A',
         scope: {
+            model: '<',
+            field: '<',
             color: '=',
             defaultColor: '<'
         },
@@ -786,6 +788,7 @@ SIREPO.app.directive('colorPicker', function() {
         ].join(''),
         controller: function($scope, $element) {
 
+            srdbg('cp scope', $scope);
             $scope.pickerColors = [
                 '#000000', '#222222', '#444444', '#666666', '#888888', '#aaaaaa', '#cccccc', '#ffffff',
                 '#0000ff', '#337777', '#3377bf', '#6992ff', '#33bb33', '#33ff33', '#00ff00', '#bbff77',
@@ -809,7 +812,8 @@ SIREPO.app.directive('colorPicker', function() {
                 return $scope.pickerColors[$scope.pcIndex(row, col)];
             };
             $scope.getColor = function(color) {
-                return color || $scope.color || $scope.defaultColor;
+                //return color || $scope.color || $scope.defaultColor;
+                return color || ($scope.model || {})[$scope.field] || $scope.defaultColor;
             };
 
             $scope.bgColorStyle = function(c) {
@@ -819,7 +823,8 @@ SIREPO.app.directive('colorPicker', function() {
             };
 
             $scope.setColor = function(color) {
-                $scope.color = color;
+                //$scope.color = color;
+                $scope.model[$scope.field] = color;
             };
         },
     };

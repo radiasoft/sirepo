@@ -1053,10 +1053,13 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
         //    visabilityControlSlot: '?visabilityControl',
         //},
         scope: {
-            enableAxes: '@',
+            enableAxes: '=',
+            enableSelection: '=',
             eventHandlers: '<',
             modelName: '@',
             reportId: '<',
+            //selectedInfo: '<',
+            //selectedModel: '<',
             showBorder: '@',
         },
         templateUrl: '/static/html/vtk-display.html' + SIREPO.SOURCE_CACHE_KEY,
@@ -1069,6 +1072,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             $scope.modeText = {};
             $scope.modeText[vtkUtils.INTERACTION_MODE_MOVE] = 'Click and drag to rotate';
             $scope.modeText[vtkUtils.INTERACTION_MODE_SELECT] = 'Control-click an object to select';
+            $scope.selectedModel = null;
 
             // common
             var api = {
@@ -1230,8 +1234,13 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 setMarkerVisible();
             };
 
+
             appState.whenModelsLoaded($scope, function () {
                 //srdbg('vtk display models loaded');
+                $scope.$on('vtkModel.selected', function (e, m) {
+                    srdbg('selected', m);
+                    $scope.selectedModel = m;
+                });
                 $scope.init();
             });
         },

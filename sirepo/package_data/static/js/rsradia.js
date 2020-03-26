@@ -7,8 +7,7 @@ SIREPO.app.config(function() {
     SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
-          '<div data-color-picker="" data-color="model.bgColor" data-default-color="defaultColor"></div>',
-          //'<div data-color-picker="" data-color-fn="modelColor" data-default-color="defaultColor"></div>',
+          '<div data-color-picker="" data-color="model.color" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
         '</div>',
         '<div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">',
           '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
@@ -550,7 +549,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
         template: [
             '<div class="col-md-6">',
                 '<div data-basic-editor-panel="" data-view-name="{{ modelName }}">',
-                    '<div data-vtk-display="" class="vtk-display" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-orientation="orientation"></div>',
+                    '<div data-vtk-display="" class="vtk-display" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-enable-selection="true" data-selected-info="selectedInfo()" data-selected-model="selectedModel()"></div>',
                 '</div>',
             '</div>',
 
@@ -559,7 +558,28 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             $scope.defaultColor = "#ff0000";
             $scope.gModel = null;
-            $scope.selectedObj = null;
+            //$scope.selectedObj = null;
+
+            $scope.selectedInfo = function () {
+                if (selectedObj) {
+                    return selectedObj.name;
+                }
+                return '--';
+            };
+
+            $scope.selectedModel = function () {
+                if (! selectedObj) {
+                    return null;
+                }
+                return {
+                    name: 'geomObject',
+                    model: {
+                        getData: function () {
+                            return selectedObj;
+                        }
+                    }
+                };
+            };
 
             var LINEAR_SCALE_ARRAY = 'linear';
             var LOG_SCALE_ARRAY = 'log';
@@ -594,6 +614,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             var ptPicker = null;
             var renderer = null;
             var renderWindow = null;
+            var selectedObj = null;
             var sceneData = {};
 
             // these objects are used to set various vector properties
@@ -1016,8 +1037,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 if (! selectedInfo) {
                     return;
                 }
-                $scope.selectedObj = getGeomObj(selectedInfo.name);
-                radiaService.setSelectedObj(getGeomObj(selectedInfo.name));
+                //$scope.selectedObj = getGeomObj(selectedInfo.name);
+                //$scope.$apply(function () {
+                    selectedObj = getGeomObj(selectedInfo.name);
+                    //$scope.selectedObj = getGeomObj(selectedInfo.name);
+                //});
+                $scope.$broadcast('vtkModel.selected', $scope.selectedModel());
+                radiaService.setSelectedObj(selectedObj);
                 //srdbg('sel o', $scope.selectedObj);
                 //appState.models.geomObject = g;
                 //panelState.showModalEditor('geomObject');
@@ -1043,8 +1069,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function editSelectedObj(point) {
-                srdbg('edit', radiaService.selectedObj);
-                $('#radia-edit-geom-obj').modal('show');
+                //srdbg('edit', radiaService.selectedObj);
+                //$('#radia-edit-geom-obj').modal('show');
                 /*
                 var modal = $('<div data-id="radia-edit-geom-obj" data-model="selectedObj"></div>');
                 var cp = $($element).find('canvas').position();
@@ -1235,6 +1261,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 setScaling();
             }
 
+            function updateObjects() {
+                srdbg('UPDATE OBJ');
+            }
+
             function updateViewer() {
                 sceneData = {};
                 actorInfo = {};
@@ -1280,6 +1310,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 $scope.gModel = appState.models.geometry;
                 appState.watchModelFields($scope, watchFields, updateLayout);
                 appState.watchModelFields($scope, ['magnetDisplay.bgColor'], setBGColor);
+                appState.watchModelFields($scope, ['geometry.objects'], updateObjects);
                 alphaDelegate = radiaService.alphaDelegate();
                 alphaDelegate.update = setAlpha;
                 panelState.enableField('geometry', 'name', ! appState.models.simulation.isExample);
