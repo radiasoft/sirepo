@@ -74,7 +74,7 @@ def flask():
     )
 
 
-def http(driver='local', nersc_proxy=None, nersc_user=None, sbatch_host=None):
+def http():
     """Starts the Flask server and job_supervisor.
 
     Used for development only.
@@ -89,102 +89,14 @@ def http(driver='local', nersc_proxy=None, nersc_user=None, sbatch_host=None):
         e = os.environ.copy()
         e.update(
             PYENV_VERSION=py_version,
-            PYKERN_PKDEBUG_WANT_PID_TIME='1',
-            SIREPO_AUTH_EMAIL_FROM_EMAIL='support@radiasoft.net',
-            SIREPO_AUTH_EMAIL_FROM_NAME='RadiaSoft Support',
-            SIREPO_AUTH_EMAIL_SMTP_PASSWORD='n/a',
-            # POSIT: same as sirepo.auth.email._DEV_SMTP_SERVER
-            SIREPO_AUTH_EMAIL_SMTP_SERVER='dev',
-            SIREPO_AUTH_EMAIL_SMTP_USER='n/a',
-            SIREPO_AUTH_METHODS='email:guest',
+            SIREPO_JOB_DRIVER_MODULES='local',
             SIREPO_MPI_CORES='2',
         )
-        {
-            n: f for n, f in inspect.currentframe().f_back.f_locals.items()
-            if callable(f)
-        }['_env_' + driver](e)
-
-        if 'sbatch' in e['SIREPO_JOB_DRIVER_MODULES']:
-            h = e['SIREPO_JOB_DRIVER_SBATCH_HOST']
-            m = re.search(r'^{}.+$'.format(h), pkio.read_text('~/.ssh/known_hosts'), re.MULTILINE)
-            assert m, \
-                (
-                    'you need to get the host key in ~/.ssh/known_hosts'
-                    ' run: `ssh {} true`'.format(h)
-                )
-            x = m.group(0)
-            e.update(SIREPO_JOB_DRIVER_SBATCH_HOST_KEY=x)
         return e
-
-    def _env_docker(env):
-        # TODO(e-carlin): py3 has shutil.which()
-        assert distutils.spawn.find_executable('docker') is not None, \
-            'docker not installed:  You need to run `radia_run redhat-docker`'
-        i = 'radiasoft/sirepo:dev'
-        try:
-            subprocess.check_output(('docker', 'image', 'inspect', i))
-        except subprocess.CalledProcessError:
-            pkdlog('docker image {} not installed. Pulling...')
-            assert subprocess.call(('docker', 'image', 'pull', i)) == 0, \
-                'docker image pull failed'
-
-        env.update(
-            SIREPO_JOB_DRIVER_MODULES='docker',
-        )
-
-    def _env_local(env):
-        env.update(
-            SIREPO_JOB_DRIVER_MODULES='local',
-        )
-        assert 'SIREPO_JOB_DRIVER_MODULES' in env
-
-    def _env_nersc(env):
-        # TODO(e-carlin): Shouldn't nersc_user always be nagler?
-        assert nersc_proxy and nersc_user, \
-            'You need to supply a nersc_proxy and a nserc_user'
-        env.update(
-            SIREPO_JOB_DRIVER_MODULES='local:sbatch',
-            SIREPO_JOB_DRIVER_SBATCH_HOST='cori.nersc.gov',
-            SIREPO_JOB_DRIVER_SBATCH_SHIFTER_IMAGE='radiasoft/sirepo:sbatch',
-            SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD='/global/homes/{}/{}/.pyenv/versions/py3/bin/sirepo'.format(
-                nersc_user[0],
-                nersc_user,
-            ),
-            SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/global/cscratch1/sd/{sbatch_user}/sirepo-dev',
-            SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS='15',
-            SIREPO_JOB_DRIVER_SBATCH_SUPERVISOR_URI='http://{}:8001'.format(nersc_proxy),
-            SIREPO_PKCLI_JOB_SUPERVISOR_IP='0.0.0.0',
-            SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Cori@NERSC',
-        )
-
-    def _env_sbatch(env):
-        h = socket.gethostname()
-        env.update(
-            SIREPO_JOB_DRIVER_MODULES='local:sbatch',
-            SIREPO_JOB_DRIVER_SBATCH_HOST='{}'.format(
-                sbatch_host or h,
-            ),
-            SIREPO_JOB_DRIVER_SBATCH_SUPERVISOR_URI='http://{}:8001'.format(h),
-            SIREPO_PKCLI_JOB_SUPERVISOR_IP='0.0.0.0',
-            SIREPO_JOB_DRIVER_SBATCH_CORES='2',
-            SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD='{}/.pyenv/versions/py3/bin/sirepo'.format(os.getenv('HOME')),
-            SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/var/tmp/{sbatch_user}/sirepo',
-            SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS='5',
-            SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Vagrant Cluster',
-        )
-        if env['SIREPO_JOB_DRIVER_SBATCH_HOST'] == h:
-            # TODO(e-carlin): py3 has shutil.which()
-            assert distutils.spawn.find_executable('sbatch') is not None, \
-                'slurm not installed:  You need to run `radia_run slurm-dev`'
-        else:
-            env.update(SIREPO_JOB_DRIVER_SBATCH_CORES='4')
 
     def _exit(*args):
         for p in processes:
-            # Kill flask reloader process
-            os.kill(-p.pid, args[0])
-            os.waitpid(-p.pid, os.WNOHANG)
-            p.kill()
+            os.killpg(os.getpgid(p.pid), args[0])
             p.wait()
         sys.exit()
 
@@ -200,12 +112,9 @@ def http(driver='local', nersc_proxy=None, nersc_user=None, sbatch_host=None):
 
         ))
 
-    _DRIVER_TYPES = ('local', 'docker', 'nersc', 'sbatch')
-    assert driver in _DRIVER_TYPES, \
-        'driver={} must be one of {}'.format(driver, _DRIVER_TYPES)
-
     processes = []
     signal.signal(signal.SIGINT, _exit)
+    signal.signal(signal.SIGTERM, _exit)
     _start(['job_supervisor'], _env('py3'))
     _start(['service', 'flask'], _env('py2'))
     p, _ = os.wait()
