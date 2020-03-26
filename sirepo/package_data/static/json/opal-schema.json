@@ -476,7 +476,7 @@
             "notes": ["Notes", "Text", ""]
         },
         "plot2Animation": {
-            "x": ["Horizontal Value to Plot", "Plot2Field", "t"],
+            "x": ["Horizontal Value to Plot", "Plot2Field", "s"],
             "y1": ["Vertical Value to Plot", "Plot2Field", "rms x"],
             "y2": ["Vertical Value to Plot", "Plot2Field", "rms y"],
             "y3": ["Vertical Value to Plot", "Plot2Field", "rms s"],
