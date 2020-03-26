@@ -44,12 +44,6 @@ def http():
     """Starts the Flask server and job_supervisor.
 
     Used for development only.
-
-    Args:
-        driver (string): The driver type to enable (one of local, docker, sbatch, nersc)
-        nersc_proxy (string): A proxy nersc can use to reach the supervisor
-        nersc_user(string): A nersc user ??
-        sbatch_host (string): A host to ssh into to start sbatch jobs
     """
     def _env():
         e = os.environ
