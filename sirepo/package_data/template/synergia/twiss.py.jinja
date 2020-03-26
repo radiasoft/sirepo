@@ -19,11 +19,11 @@ import h5py
 import numpy as np
 h5file = h5py.File('{{ twissFileName }}', 'w')
 for k in twiss[0]:
-    dtype = np.dtype('a30') if k == 'name' else np.dtype(float)
+    d = h5py.string_dtype(encoding='utf-8') if k == 'name' else np.dtype(float)
     rows = []
     for row in twiss:
         if row_has_data(row):
             rows.append(row[k])
-    data = h5file.create_dataset(k, (len(rows),), dtype=dtype)
+    data = h5file.create_dataset(k, (len(rows),), dtype=d)
     data[:] = rows
 h5file.close()
