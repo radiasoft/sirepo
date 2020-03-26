@@ -210,6 +210,7 @@ def init(app, **imports):
         js='application/javascript',
         json=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
         py='text/x-python',
+        madx='text/plain',
     )
     s = simulation_db.get_schema(sim_type=None)
     _RELOAD_JS_ROUTES = frozenset(
