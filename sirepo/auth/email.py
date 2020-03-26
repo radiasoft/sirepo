@@ -169,7 +169,7 @@ def _init_model(db, base):
         expires = db.Column(db.DateTime())
 
         def create_token(self):
-            self.expires = datetime.datetime.utcnow() + _EXPIRES_DELTA
+            self.expires = srtime.utc_now() + _EXPIRES_DELTA
             self.token = sirepo.util.create_token(self.unverified_email)
 
     UserModel = AuthEmailUser

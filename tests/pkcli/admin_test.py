@@ -10,12 +10,16 @@ import pytest
 # NOTE: order of the tests matters, and pytest picks them up in order
 # of definition, but we are documenting this with test_1 and test_2 prefixes
 
-def test_1_purge_users_all_premium(fc):
+
+def test_1_myapp_purge_users_all_premium(auth_fc):
     from pykern.pkunit import pkeq, pkok
     from sirepo import auth_db
     from sirepo import srtime
     from sirepo.pkcli import admin
 
+    fc = auth_fc
+    fc.sr_login_as_guest()
+    fc.sr_run_sim(fc.sr_sim_data(), 'heightWeightReport', expect_completed=True)
     d = 1
     res = admin.purge_free_users(days=d, confirm=False)
     pkeq([], res, '{}: no old users so no deletes', res)
@@ -36,7 +40,9 @@ def test_1_purge_users_all_premium(fc):
         '{}: expecting uid to still be in db', uids_in_db
     )
 
-def test_2_purge_free_users(fc):
+
+def test_2_myapp_purge_free_users(auth_fc):
+    from pykern import pkio
     from pykern import pkunit
     from pykern.pkdebug import pkdp
     from sirepo import srtime
@@ -44,7 +50,12 @@ def test_2_purge_free_users(fc):
     import sirepo.auth
     import sirepo.auth_db
 
-    u = fc.sr_login_as_guest()
+    fc = auth_fc
+    r = fc.sr_post('authEmailLogin', {'email': 'xxx@b.z', 'simulationType': fc.sr_sim_type})
+    fc.sr_email_confirm(fc, r)
+    fc.sr_post('authCompleteRegistration', {'displayName': 'abc', 'simulationType': fc.sr_sim_type},)
+    fc.sr_run_sim(fc.sr_sim_data(), 'heightWeightReport', expect_completed=True)
+    u = fc.sr_auth_state().uid
     sirepo.auth_db.UserRole.delete_roles(u, [sirepo.auth.ROLE_PREMIUM])
     pkunit.pkeq(
         2,
@@ -53,15 +64,13 @@ def test_2_purge_free_users(fc):
     d = 1
     srtime.adjust_time(d + 10)
     v = admin.purge_free_users(days=d, confirm=False)
-    pkdp('vvvvvvvv {}', )
-    assert 0
     pkunit.pkeq(1, len(v))
     pkunit.pkok(
         u in str(v[0]),
         'expecting uid in path to dir',
     )
     v = admin.purge_free_users(days=d, confirm=True)
-    pkunit.pkok(not v[0].check(dir=True), '{}: directory not deleted', v)
+    pkunit.pkok(not pkio.py_path(v[0]).check(dir=True), '{}: directory not deleted', v)
 
 
 def _get_dirs():

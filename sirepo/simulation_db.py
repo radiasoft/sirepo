@@ -766,7 +766,7 @@ def tmp_dir(chdir=False):
 
 
 def uid_from_dir_name(dir_name):
-    """Extra user id from user_dir_name
+    """Extract user id from user_dir_name
 
     Args:
         dir_name (py.path): must be top level user dir or sim_dir

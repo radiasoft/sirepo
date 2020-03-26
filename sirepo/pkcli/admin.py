@@ -115,7 +115,7 @@ def purge_free_users(days=180, confirm=False):
     from sirepo import srtime
 
     with auth_db.thread_lock:
-        p = _get_premium_uids()
+        u = _get_premium_uids()
         n = srtime.utc_now()
         res = []
         for p in pkio.sorted_glob(simulation_db.user_dir_name().join(
@@ -124,6 +124,8 @@ def purge_free_users(days=180, confirm=False):
                 '*',
                 'sirepo-data.json',
         )):
+            if simulation_db.uid_from_dir_name(p.dirname) in u:
+                continue
             for dirpath, _, _ in os.walk(p.dirname):
                 _check_expired_run_dir(pkio.py_path(dirpath))
         if confirm:
