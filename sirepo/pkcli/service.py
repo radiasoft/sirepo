@@ -14,9 +14,7 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern import pksubprocess
 from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
-import distutils
 import errno
-import inspect
 import os
 import py
 import re
@@ -25,38 +23,6 @@ import sirepo.srdb
 import socket
 import subprocess
 import sys
-
-
-def celery():
-    """Start celery"""
-    assert pkconfig.channel_in('dev')
-    import celery.bin.celery
-    import sirepo.celery_tasks
-    run_dir = _run_dir().join('celery').ensure(dir=True)
-    with pkio.save_chdir(run_dir):
-        celery.bin.celery.main(argv=[
-            'celery',
-            'worker',
-            '--app=sirepo.celery_tasks',
-            '--no-color',
-            '-Ofair',
-            '--queue=' + ','.join(sirepo.celery_tasks.QUEUE_NAMES),
-        ])
-
-
-def flower():
-    """Start flower"""
-    from flower import command
-    assert pkconfig.channel_in('dev')
-    run_dir = _run_dir().join('flower').ensure(dir=True)
-    with pkio.save_chdir(run_dir):
-        command.FlowerCommand().execute_from_commandline([
-            'flower',
-            '--address=' + cfg.ip,
-            '--app=sirepo.celery_tasks',
-            '--no-color',
-            '--persistent',
-        ])
 
 
 def flask():
@@ -85,40 +51,42 @@ def http():
         nersc_user(string): A nersc user ??
         sbatch_host (string): A host to ssh into to start sbatch jobs
     """
-    def _env(py_version):
-        e = os.environ.copy()
+    def _env():
+        e = os.environ
         e.update(
-            PYENV_VERSION=py_version,
             SIREPO_JOB_DRIVER_MODULES='local',
-            SIREPO_MPI_CORES='2',
         )
         return e
 
+    def _signal_exit(*args):
+        _exit(*args)
+        sys.exit(1)
+
     def _exit(*args):
         for p in processes:
-            os.killpg(os.getpgid(p.pid), args[0])
-            p.wait()
-        sys.exit()
+            try:
+                p.terminate()
+                p.wait(1)
+            except ProcessLookupError:
+                continue
+            except subprocess.TimeoutExpired:
+                p.kill()
 
-    def _start(service, env):
+    def _start(service):
         c = ['pyenv', 'exec', 'sirepo']
         c.extend(service)
         processes.append(subprocess.Popen(
             c,
             cwd=str(_run_dir()),
-            env=env,
-            # TODO(e-carlin): py3 use start_new_session=True
-            preexec_fn=os.setsid,
-
+            env=_env(),
         ))
 
     processes = []
-    signal.signal(signal.SIGINT, _exit)
-    signal.signal(signal.SIGTERM, _exit)
-    _start(['job_supervisor'], _env('py3'))
-    _start(['service', 'flask'], _env('py2'))
+    signal.signal(signal.SIGINT, _signal_exit)
+    signal.signal(signal.SIGTERM, _signal_exit)
+    _start(['job_supervisor'])
+    _start(['service', 'flask'])
     p, _ = os.wait()
-    processes = filter(lambda x: x.pid != p, processes)
     _exit(signal.SIGTERM)
 
 
