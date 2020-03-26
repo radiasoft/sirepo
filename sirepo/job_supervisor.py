@@ -12,6 +12,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdformat, pkdlog, pkdexc
 from sirepo import job
 import asyncio
+import contextlib
 import copy
 import datetime
 import os
@@ -41,10 +42,11 @@ _HISTORY_FIELDS = frozenset((
     'computeJobStart',
     'computeModel'
     'driverDetails',
+    'error',
     'isParallel',
     'isPremiumUser',
-    'error',
     'jobRunMode',
+    'jobStatusMessage',
     'lastUpdateTime',
     'status',
 ))
@@ -173,6 +175,24 @@ class _ComputeJob(PKDict):
             self.cache_timeout,
         )
 
+    def clear_status(self, op, exception=None):
+        if not exception:
+            self.__db_update(jobStatusMessage=None)
+            return
+        if not isinstance(exception, asyncio.CancelledError):
+            # All non CancelledError exceptions should be preserved in the db
+            # for future debugging
+            return
+        # If we initiated the cancel then clear the jobStatusMessage
+        # TODO(e-carlin): Race condition - Another run may have started so we
+        # no longer have control of the db to clear out the jobStatusMessage. In
+        # that case the message will be left which may be confusing. Maybe just
+        # don't handle cancel at all and always leave the message in the db on
+        # any error?
+        if self.db.status == job.CANCELED and \
+           self.get('_cancelled_serial') == self.db.computeJobSerial:
+            self.__db_update(jobStatusMessage=None)
+
     def destroy_op(self, op):
         if op in self.ops:
             self.ops.remove(op)
@@ -223,9 +243,7 @@ class _ComputeJob(PKDict):
             return PKDict(state=job.CANCELED)
         except Exception as e:
             pkdlog('{} error={} stack={}', req, e, pkdexc())
-            if isinstance(e, sirepo.util.Reply):
-                return sirepo.http_reply.gen_tornado_exception(e)
-            raise
+            return sirepo.http_reply.gen_tornado_exception(e)
 
     async def run_dir_acquire(self, owner):
         if self.run_dir_owner == owner:
@@ -248,6 +266,23 @@ class _ComputeJob(PKDict):
             'owner={} not same as releaser={}'.format(self.run_dir_owner, owner)
         self.run_dir_owner = None
         self.run_dir_mutex.set()
+
+    def set_status(self, op, status):
+        m = None
+        if op.opName == job.OP_RUN:
+            if status == _Op.STATUS_AWAIT_OP_SLOT:
+                m = 'Waiting for another simulation to complete'
+            elif status == _Op.STATUS_COMPUTE_RUNNING:
+                m = 'Running'
+
+        if m:
+            assert not self.db.jobStatusMessage, \
+                'Trying to overwrite existing jobStatusMessage={}'.format(
+                    self.db.jobStatusMessage,
+                )
+            self.__db_update(
+                jobStatusMessage=m,
+            )
 
     @classmethod
     def __create(cls, req):
@@ -280,6 +315,7 @@ class _ComputeJob(PKDict):
             computeJobQueued=0,
             driverDetails=PKDict(),
             error=None,
+            jobStatusMessage=None,
             history=self.__db_init_history(prev_db),
             isParallel=c.isParallel,
             isPremiumUser=c.get('isPremiumUser'),
@@ -311,7 +347,12 @@ class _ComputeJob(PKDict):
         d = pkcollections.json_load_any(
             cls.__db_file(compute_jid),
         )
-        for k in ['alert', 'cancelledAfterSecs', 'isPremiumUser']:
+        for k in [
+                'alert',
+                'cancelledAfterSecs',
+                'isPremiumUser',
+                'jobStatusMessage',
+        ]:
             d.setdefault(k, None)
             for h in d.history:
                 h.setdefault(k, None)
@@ -339,6 +380,7 @@ class _ComputeJob(PKDict):
                 'Start (UTC)',
                 'Last update (UTC)',
                 'Elapsed',
+                'Status',
             ]
             if uid:
                 h.insert(l, 'Name')
@@ -374,6 +416,7 @@ class _ComputeJob(PKDict):
                     _strf_unix_time(i.db.computeJobStart),
                     _strf_unix_time(i.db.lastUpdateTime),
                     _strf_seconds(i.db.lastUpdateTime - i.db.computeJobStart),
+                    i.db.jobStatusMessage if i.db.jobStatusMessage else '',
                 ]
                 if uid:
                     d.insert(l, i.db.simName)
@@ -661,34 +704,35 @@ class _ComputeJob(PKDict):
         op.pkdel('run_callback')
         l = True
         try:
-            while True:
-                try:
-                    r = await op.reply_get()
-                    #TODO(robnagler) is this ever true?
-                    if op != self.run_op:
+            with op.set_job_status(op.STATUS_COMPUTE_RUNNING):
+                while True:
+                    try:
+                        r = await op.reply_get()
+                        #TODO(robnagler) is this ever true?
+                        if op != self.run_op:
+                            return
+                        # run_dir is in a stable state so don't need to lock
+                        if l:
+                            l = False
+                            self.run_dir_release(op)
+                        self.db.status = r.state
+                        self.db.alert = r.get('alert')
+                        if self.db.status == job.ERROR:
+                            self.db.error = r.get('error', '<unknown error>')
+                        if 'computeJobStart' in r:
+                            self.db.computeJobStart = r.computeJobStart
+                        if 'parallelStatus' in r:
+                            self.db.parallelStatus.update(r.parallelStatus)
+                            self.db.lastUpdateTime = r.parallelStatus.lastUpdateTime
+                        else:
+                            # sequential jobs don't send this
+                            self.db.lastUpdateTime = int(time.time())
+                        #TODO(robnagler) will need final frame count
+                        self.__db_write()
+                        if r.state in job.EXIT_STATUSES:
+                            break
+                    except asyncio.CancelledError:
                         return
-                    # run_dir is in a stable state so don't need to lock
-                    if l:
-                        l = False
-                        self.run_dir_release(op)
-                    self.db.status = r.state
-                    self.db.alert = r.get('alert')
-                    if self.db.status == job.ERROR:
-                        self.db.error = r.get('error', '<unknown error>')
-                    if 'computeJobStart' in r:
-                        self.db.computeJobStart = r.computeJobStart
-                    if 'parallelStatus' in r:
-                        self.db.parallelStatus.update(r.parallelStatus)
-                        self.db.lastUpdateTime = r.parallelStatus.lastUpdateTime
-                    else:
-                        # sequential jobs don't send this
-                        self.db.lastUpdateTime = int(time.time())
-                    #TODO(robnagler) will need final frame count
-                    self.__db_write()
-                    if r.state in job.EXIT_STATUSES:
-                        break
-                except asyncio.CancelledError:
-                    return
         except Exception as e:
             pkdlog('error={} stack={}', e, pkdexc())
             if op == self.run_op:
@@ -757,6 +801,8 @@ class _ComputeJob(PKDict):
 
 
 class _Op(PKDict):
+    STATUS_AWAIT_OP_SLOT = 'status_await_op_slot'
+    STATUS_COMPUTE_RUNNING = 'status_compute_running'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -825,6 +871,16 @@ class _Op(PKDict):
                 self.run_timeout,
             )
         self.driver.send(self)
+
+    @contextlib.contextmanager
+    def set_job_status(self, status):
+        self.computeJob.set_status(self, status)
+        try:
+            yield
+            self.computeJob.clear_status(self)
+        except Exception as e:
+            self.computeJob.clear_status(self, exception=e)
+            raise
 
     def __hash__(self):
         return hash((self.opId,))

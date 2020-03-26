@@ -204,7 +204,8 @@ class DriverBase(PKDict):
             op.op_slot = q.get_nowait()
         except tornado.queues.QueueEmpty:
             pkdlog('{} {} await op_q.get()', self, op)
-            op.op_slot = await q.get()
+            with op.set_job_status(op.STATUS_AWAIT_OP_SLOT):
+                op.op_slot = await q.get()
             raise job_supervisor.Awaited()
 
     def pkdebug_str(self):
