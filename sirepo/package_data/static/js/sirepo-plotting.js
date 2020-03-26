@@ -763,14 +763,16 @@ SIREPO.app.directive('animationButtons', function() {
     };
 });
 
-SIREPO.app.directive('colorPicker', function() {
+SIREPO.app.directive('colorPicker', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {
-            model: '<',
-            field: '<',
-            color: '=',
-            defaultColor: '<'
+            color: '<',
+            defaultColor: '<',
+            field: '=',
+            modelName: '<',
+            model: '=',
+            form: '<',
         },
         template: [
             '<div>',
@@ -779,16 +781,16 @@ SIREPO.app.directive('colorPicker', function() {
                     '<div class="container col-sm-8">',
                         '<div data-ng-repeat="r in range(rows) track by $index" class="row">',
                             '<li data-ng-repeat="c in range(cols) track by $index" style="display: inline-block">',
-                                '<button data-ng-if="pcIndex(r, c) < pickerColors.length" class="sr-color-button" data-ng-class="{\'selected\': getColor(color).toUpperCase() == getPickerColor(r, c).toUpperCase()}" data-ng-style="bgColorStyle(getPickerColor(r, c))" data-ng-click="setColor(getPickerColor(r, c))"></button>',
+                                '<button data-ng-if="pcIndex(r, c) < pickerColors.length" class="sr-color-button" data-ng-class="{\'selected\': getColor(model[field]).toUpperCase() == getPickerColor(r, c).toUpperCase()}" data-ng-style="bgColorStyle(getPickerColor(r, c))" data-ng-click="setColor(getPickerColor(r, c))"></button>',
                             '</li>',
                         '<div>',
                     '<div>',
                 '</ul>',
             '</div>',
         ].join(''),
-        controller: function($scope, $element) {
+        controller: function($scope) {
 
-            srdbg('cp scope', $scope);
+            var origColor = null;
             $scope.pickerColors = [
                 '#000000', '#222222', '#444444', '#666666', '#888888', '#aaaaaa', '#cccccc', '#ffffff',
                 '#0000ff', '#337777', '#3377bf', '#6992ff', '#33bb33', '#33ff33', '#00ff00', '#bbff77',
@@ -823,9 +825,33 @@ SIREPO.app.directive('colorPicker', function() {
             };
 
             $scope.setColor = function(color) {
-                //$scope.color = color;
                 $scope.model[$scope.field] = color;
+                // emit change for immediate feedback
+                $scope.$emit($scope.modelName + '.' + $scope.field, color);
+                $scope.form.$setDirty();
+                /*
+                if (color !== origColor) {
+                    $scope.form.$setDirty();
+                }
+                else {
+                    if ($scope.form.$$controls.filter(function (c) {
+                            return c.$dirty;
+                        }).length) {
+                        $scope.form.$setDirty();
+                    }
+                    else {
+                        $scope.form.$setPristine();
+                    }
+                }
+                 */
             };
+
+            //$scope.$watch('color', function (n, o, s) {
+            //    srdbg('watch c', n, o);
+            //});
+            appState.whenModelsLoaded($scope, function () {
+                origColor = $scope.model[$scope.field];
+            });
         },
     };
 });

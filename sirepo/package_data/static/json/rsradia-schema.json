@@ -94,6 +94,7 @@
         },
         "geomObject": {
             "color": ["Color", "Color", "#cccccc"],
+            "id": ["_", "String", ""],
             "material": ["Material", "String", ""],
             "name": ["Name", "String", ""],
             "type": ["Type", "String", ""]

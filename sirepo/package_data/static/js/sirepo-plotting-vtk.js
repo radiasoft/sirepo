@@ -1275,5 +1275,15 @@ SIREPO.app.factory('vtkUtils', function() {
         return sc;
     };
 
+    // Converts vtk colors ranging from 0 -> 255 to 0.0 -> 1.0
+    // can't map, because we will still have a UINT8 array
+    self.floatToRGB = function (f) {
+        var rgb = new window.Uint8Array(f.length);
+        for (var i = 0; i < rgb.length; ++i) {
+            rgb[i] = Math.floor(255 * f[i]);
+        }
+        return rgb;
+    };
+
     return self;
 });
