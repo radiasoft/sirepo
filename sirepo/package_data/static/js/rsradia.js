@@ -157,7 +157,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
 });
 
 SIREPO.app.controller('RadiaSourceController', function (appState, panelState, $scope) {
-    const self = this;
+    var self = this;
 
     appState.whenModelsLoaded($scope, function() {
         // initial setup
@@ -169,7 +169,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, $
 
 SIREPO.app.controller('RadiaVisualizationController', function (appState, errorService, frameCache, panelState, persistentSimulation, radiaService, $scope) {
 
-    const self = this;
+    var self = this;
 
     var SINGLE_PLOTS = ['magnetViewer'];
     $scope.mpiCores = 0;
@@ -549,7 +549,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
         template: [
             '<div class="col-md-6">',
                 '<div data-basic-editor-panel="" data-view-name="{{ modelName }}">',
-                    '<div data-vtk-display="" class="vtk-display" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-enable-selection="true" data-selected-info="selectedInfo()" data-selected-model="selectedModel()"></div>',
+                    '<div data-vtk-display="" class="vtk-display" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-enable-selection="true"></div>',
                 '</div>',
             '</div>',
 
@@ -558,28 +558,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             $scope.defaultColor = "#ff0000";
             $scope.gModel = null;
-
-            $scope.selectedInfo = function () {
-                if (selectedObj) {
-                    return selectedObj.name;
-                }
-                return '--';
-            };
-
-            $scope.selectedModel = function () {
-                if (! selectedObj) {
-                    return null;
-                }
-                return {
-                    name: 'geomObject',
-                    model: {
-                        getData: function () {
-                            return selectedObj;
-                        },
-                        modelKey: 'geomObject',
-                    }
-                };
-            };
 
             var LINEAR_SCALE_ARRAY = 'linear';
             var LOG_SCALE_ARRAY = 'log';
@@ -652,8 +630,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             // stash the actor and associated info to avoid recalculation
             function addActor(id, group, actor, type, pickable) {
 
-                const pData = actor.getMapper().getInputData();
-                const info = {
+                var pData = actor.getMapper().getInputData();
+                var info = {
                     actor: actor,
                     colorIndices: [],
                     group: group || 0,
@@ -883,7 +861,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             linScale[3 * i] = vectors.magnitudes[i];
                             logScale[3 * i] = logMags[i];
                             for (var j = 0; j < 3; ++j) {
-                                const k = 3 * i + j;
+                                var k = 3 * i + j;
                                 orientation[k] = vectors.directions[k];
                                 scalars[k] = c[j];
                             }
@@ -898,7 +876,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function getVectOutIndex(name) {
-                for (let vIdx in vectArrays.output) {
+                for (var vIdx in vectArrays.output) {
                     if (vectArrays.output[vIdx].name === name) {
                         return vIdx;
                     }
@@ -912,10 +890,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     return;
                 }
 
-                //srdbg('mode?', vtkAPI.getMode());
                 // regular clicks happen when spinning the scene - we'll select/deselect with ctrl-click.
                 // Though one also rotates in that case, it's less common
-                //if (! callData.controlKey) {
                 var iMode = vtkAPI.getMode();
                 if (iMode === vtkUtils.INTERACTION_MODE_MOVE ||
                     (iMode === vtkUtils.INTERACTION_MODE_SELECT && ! callData.controlKey)
@@ -945,7 +921,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
 
                 var pas = picker.getActors();
-                //let posArr = view.cPicker.getPickedPositions();
+                //var posArr = view.cPicker.getPickedPositions();
                 //srdbg('pas', pas, 'positions', posArr);
                 //TODO(mvk): need to get actor closest to the "screen" based on the selected points
 
@@ -956,7 +932,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 var highlightVectColor = [255, 0, 0];
                 for (var aIdx in pas) {
                     var actor = pas[aIdx];
-                    //let pos = posArr[aIdx];
+                    //var pos = posArr[aIdx];
                     var info = getInfoForActor(actor);
                     //srdbg('actor', actor, 'info', info);
                     if (! info || ! info.pData) {
@@ -990,7 +966,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
                         // toggle color?
                         if (view.selectedColor.length) {
-                            const ssid = view.selectedPoint * ns;
+                            var ssid = view.selectedPoint * ns;
                             view.selectedColor.forEach(function (c, i) {
                                 sArr.getData()[ssid + i] = c;
                             });
@@ -1021,79 +997,44 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     selectedInfo = info;
                     srdbg(info.name, 'poly tup', cid, selectedColor);
 
-                    //if (selectedColor.length > 0) {
-                    //    if (actor === view.selectedObject) {
-                    ///        view.selectedObject = null;
-                    //    }
-                    //    else {
-                    //        eligibleActors.push(actor);
-                    //        view.selectedObject = actor;
-                    //    }
-                    //    break;
-                    //}
+                    var g = getGeomObj(info.id);
+                    if (selectedColor.length) {
+                        if (selectedObj === g) {
+                            selectedObj = null;
+                        }
+                        else {
+                            //eligibleActors.push(actor);
+                            selectedObj = g;
+                        }
+                        break;
+                    }
                 }
-
-                //if (selectedColor.length === 0) {
-                //    view.selectedObject = null;
-                //    return;
-                //}
 
                 if (! selectedInfo) {
                     return;
                 }
-                //$scope.selectedObj = getGeomObj(selectedInfo.name);
-                //$scope.$apply(function () {
-                    selectedObj = getGeomObj(selectedInfo.id);
-                    //$scope.selectedObj = getGeomObj(selectedInfo.name);
-                //});
-                $scope.$broadcast('vtkModel.selected', $scope.selectedModel());
+
+                //selectedObj = getGeomObj(selectedInfo.id);
+                // for some reason scope changes are not immediately propagating, so we'll force the issue -
+                // apply() or digest() cause infinite digest loops
+                $scope.$broadcast('vtk.selected', vtkSelection());
                 radiaService.setSelectedObj(selectedObj);
                 //srdbg('sel o', $scope.selectedObj);
-                //appState.models.geomObject = g;
-                //panelState.showModalEditor('geomObject');
-                //$('#radia-edit-geom-obj').modal('show');
-                editSelectedObj(point);
 
-                var sc = vtkUtils.rgbToFloat(selectedColor);  //[];
-                //for (var cIdx = 0; cIdx < selectedColor.length; ++cIdx) {
-                //    sc.push(selectedColor[cIdx] / 255.0);
-                //}
+                //var sc = vtkUtils.rgbToFloat(selectedColor);
 
                 var highlight = selectedColor.map(function (c) {
                     return 255 - c;
                 });
 
                 //var sch = vtk.Common.Core.vtkMath.floatRGB2HexCode(sc);
-                //view.model.set('selected_obj_color', view.selectedObject ? sch : '#ffffff');
-                //for (var name in view.actorInfo) {
-                //    var a = view.getActor(name);
-                //    view.setEdgeColor(a, view.sharesGroup(a, view.selectedObject) ? highlight : [0, 0, 0]);
-                //}
+                for (var id in actorInfo) {
+                    setEdgeColor(
+                        getActorInfo(id),
+                        selectedObj && sharesGroup(getActor(id), selectedInfo.actor) ? highlight : [0, 0, 0]
+                    );
+                }
                 //view.processPickedObject(view.getInfoForActor(view.selectedObject));
-            }
-
-            function editSelectedObj(point) {
-                //srdbg('edit', radiaService.selectedObj);
-                //$('#radia-edit-geom-obj').modal('show');
-                /*
-                var modal = $('<div data-id="radia-edit-geom-obj" data-model="selectedObj"></div>');
-                var cp = $($element).find('canvas').position();
-                var co = $($element).find('canvas').offset();
-                modal.css('position', 'relative');
-                modal.width(200);
-                modal.height(200);
-                //modal.css('left', point[0] - cp.left);
-                //modal.css('top', point[1] - cp.top);
-                var pixels = window.devicePixelRatio;
-                modal.css('left', point[0] / pixels);
-                modal.css('top', point[1] / pixels);
-                //modal.css('left', 100);
-                //modal.css('top', 100);
-                srdbg('modal', modal, 'cp', cp, 'co', co, 'pt', point);
-                //srdbg(point[0] - cp.left, point[1] - cp.top, pixels);
-                //$($element).append(modal);
-                $('.vtk-canvas-holder').append(modal);
-                 */
             }
 
             function hasPaths() {
@@ -1106,9 +1047,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 if (! renderer) {
                     throw new Error('No renderer!');
                 }
-                const ca = vtk.Rendering.Core.vtkAnnotatedCubeActor.newInstance();
+                var ca = vtk.Rendering.Core.vtkAnnotatedCubeActor.newInstance();
                 vtk.Rendering.Core.vtkAnnotatedCubeActor.Presets.applyPreset('default', ca);
-                let df = ca.getDefaultStyle();
+                var df = ca.getDefaultStyle();
                 df.fontFamily = 'Arial';
                 df.faceRotation = 45;
                 ca.setDefaultStyle(df);
@@ -1152,13 +1093,24 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 return j;
             }
 
+            function vtkSelection() {
+                return {
+                    info: selectedObj ? selectedObj.name : '--',
+                    model: selectedObj ? {
+                        getData: function () {
+                            return selectedObj;
+                        },
+                        modelKey: 'geomObject',
+                    } : null,
+                };
+            }
+
             // some weird disconnect between the model and the slider when cancelling...???
             function setAlpha() {
                 if (! renderer) {
                     return;
                 }
                 var alpha = $scope.gModel.alpha;
-                //srdbg('SETA alpha GMODEL', alpha, 'APPST', appState.models.geometry.alpha);
                 for (var id in actorInfo) {
                     var info = actorInfo[id];
                     var s = info.scalars;
@@ -1177,21 +1129,21 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setColor(info, type, color, alpha=255) {
-                //srdbg('setColor', info, type, color, alpha);
-                const s = info.scalars;
+                //srdbg('setColor', 'info', info, 'type', type, 'color', color, 'alpha', alpha);
+                var s = info.scalars;
                 if (! s) {
                     return;
                 }
                 if (type !== info.type) {
                     return;
                 }
-                const colors = s.getData();
-                const nc = s.getNumberOfComponents();
-                let i = 0;
-                const inds = info.colorIndices || [];
-                for (let j = 0; j < inds.length && i < s.getNumberOfValues(); ++j) {
+                var colors = s.getData();
+                var nc = s.getNumberOfComponents();
+                var i = 0;
+                var inds = info.colorIndices || [];
+                for (var j = 0; j < inds.length && i < s.getNumberOfValues(); ++j) {
                     if (color) {
-                        for (let k = 0; k < nc - 1; ++k) {
+                        for (var k = 0; k < nc - 1; ++k) {
                             colors[inds[j] + k] = color[k];
                         }
                     }
@@ -1208,6 +1160,18 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         .setFormula(getVectFormula(sceneData.data[0].vectors, mapName));  // which data? all? at what index?
                 });
                 renderWindow.render();
+            }
+
+            function setEdgeColor(info, color) {
+                //srdbg('setedgecolor', info, color);
+                if (! info ) {
+                    return;
+                }
+                if (! renderer) {
+                    return;
+                }
+                info.actor.getProperty().setEdgeColor(...color);
+                setColor(info, radiaVtkUtils.GEOM_TYPE_LINES, color);
             }
 
             function setScaling() {
@@ -1240,6 +1204,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 if (! initDone) {
                     initDone = true;
                 }
+            }
+
+            function sharesGroup(actor1, actor2) {
+                if (! actor1 || ! actor2) {
+                    return false;
+                }
+                return getInfoForActor(actor1).group === getInfoForActor(actor2).group;
             }
 
             function updateLayout() {

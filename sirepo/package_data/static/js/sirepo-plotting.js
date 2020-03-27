@@ -829,6 +829,7 @@ SIREPO.app.directive('colorPicker', function(appState, panelState) {
                 // emit change for immediate feedback
                 $scope.$emit($scope.modelName + '.' + $scope.field, color);
                 $scope.form.$setDirty();
+                //TODO(mvk): since this is not a normal control we need to store the original state somehow
                 /*
                 if (color !== origColor) {
                     $scope.form.$setDirty();
