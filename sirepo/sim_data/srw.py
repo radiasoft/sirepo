@@ -531,6 +531,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 # this is a hack for existing bad data
                 for k in ['outframevx', 'outframevy', 'outoptvx', 'outoptvy', 'outoptvz',
                          'tvx', 'tvy']:
+                    if i.get(k, 0) is None: i[k] = 0
                     i[k] = float(i.get(k, 0))
                 if 'diffractionAngle' not in i:
                     allowed_angles = [x[0] for x in cls.schema().enum.DiffractionPlaneAngle]
