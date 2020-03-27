@@ -228,6 +228,9 @@ def _generate_parameters_file(data):
     res += template_common.render_jinja(SIM_TYPE, v, 'scale.py')
     if 'fileColumnReport' in report or report == 'partitionSelectionReport':
         return res
+    v.hasTrainingAndTesting = v.partition_section0 == 'train_and_test' \
+        or v.partition_section1 == 'train_and_test' \
+        or v.partition_section2 == 'train_and_test'
     res += template_common.render_jinja(SIM_TYPE, v, 'partition.py')
     if 'partitionAnimation' in report:
         res += template_common.render_jinja(SIM_TYPE, v, 'save-partition.py')

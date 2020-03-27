@@ -241,18 +241,23 @@ def import_file(req, test_data=None, **kwargs):
     input_data = test_data
 
     if 'simulationId' in req.req_data:
-        input_data = simulation_db.read_simulation_json(elegant_common.SIM_TYPE, sid=req.req_data.simulationId)
+        input_data = simulation_db.read_simulation_json(SIM_TYPE, sid=req.req_data.simulationId)
     if re.search(r'.ele$', req.filename, re.IGNORECASE):
         data = elegant_command_importer.import_file(req.file_stream.read())
     elif re.search(r'.lte$', req.filename, re.IGNORECASE):
         data = elegant_lattice_importer.import_file(req.file_stream.read(), input_data)
         if input_data:
             _map_commands_to_lattice(data)
+    elif re.search(r'.madx$', req.filename, re.IGNORECASE):
+        from sirepo.template import madx_converter, madx_parser
+        data = madx_converter.from_madx(
+            SIM_TYPE,
+            madx_parser.parse_file(req.file_stream.read()))
     else:
         raise IOError('invalid file extension, expecting .ele or .lte')
-    data.models.simulation.name = re.sub(r'\.(lte|ele)$', '', req.filename, flags=re.IGNORECASE)
+    data.models.simulation.name = re.sub(r'\.(lte|ele|madx)$', '', req.filename, flags=re.IGNORECASE)
     if input_data and not test_data:
-        simulation_db.delete_simulation(elegant_common.SIM_TYPE, input_data.models.simulation.simulationId)
+        simulation_db.delete_simulation(SIM_TYPE, input_data.models.simulation.simulationId)
     return data
 
 
@@ -280,6 +285,10 @@ def prepare_sequential_output_file(run_dir, data):
 
 
 def python_source_for_model(data, model):
+    if model == 'madx':
+        from sirepo.template import madx, madx_converter
+        mad = madx_converter.to_madx(SIM_TYPE, data)
+        return madx.python_source_for_model(mad, None)
     return generate_parameters_file(data, is_parallel=True) + '''
 with open('elegant.lte', 'w') as f:
     f.write(lattice_file)

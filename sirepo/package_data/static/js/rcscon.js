@@ -285,11 +285,12 @@ SIREPO.app.directive('partitionSelection', function(appState) {
         scope: {},
         template: [
             '<form name="form" class="form-horizontal" data-ng-style="formStyle">',
-              '<div class="form-group">',
+              '<div class="form-group form-group-sm">',
                 '<div data-ng-repeat="field in fields track by $index" data-model-field="field" data-model-name="modelName" data-label-size="0" data-field-size="4"></div>',
                 '<div data-ng-repeat="field in fields track by $index" class="col-sm-4">',
                   '<p class="form-control-static text-center">{{ selectedRange(field) }}</p>',
                 '</div>',
+                '<div data-ng-if="hasTrainingAndTesting()" data-model-field="\'trainTestPercent\'" data-model-name="\'partition\'"></div>',
               '</div>',
               '<div class="col-sm-12 text-center" data-buttons="" data-model-name="modelName" data-fields="allFields"></div>',
             '</form>',
@@ -391,6 +392,26 @@ SIREPO.app.directive('partitionSelection', function(appState) {
             function processSection(field) {
                 // ensure all three values are selected
                 var partition = appState.models.partition;
+                if ($scope.hasTrainingAndTesting()) {
+                    var count = 0;
+                    $scope.fields.forEach(function(f) {
+                        if (partition[f] == 'train_and_test') {
+                            count++;
+                        }
+                        else {
+                            partition[f] = 'validate';
+                        }
+                    });
+                    if (count == 3) {
+                        partition.section2 = 'validate';
+                    }
+                }
+                else {
+                    setMissingSection(field, partition);
+                }
+            }
+
+            function setMissingSection(field, partition) {
                 var currentValue, missingValue;
                 ['train', 'test', 'validate'].some(function(v) {
                     var hasValue = false;
@@ -411,10 +432,24 @@ SIREPO.app.directive('partitionSelection', function(appState) {
                         if (field != 'partition.' + f
                             && partition[f] == currentValue) {
                             partition[f] = missingValue;
+                            missingValue = '';
                         }
                     });
+                    if (missingValue) {
+                        partition.section2 = missingValue;
+                    }
                 }
             }
+
+            $scope.hasTrainingAndTesting = function() {
+                if (! appState.isLoaded()) {
+                    return;
+                }
+                var partition = appState.models.partition;
+                return $scope.fields.some(function(f) {
+                    return partition[f] == 'train_and_test';
+                });
+            };
 
             $scope.selectedRange = function(field) {
                 if (! appState.isLoaded() || ! plotScope || ! plotScope.axes.x.domain) {

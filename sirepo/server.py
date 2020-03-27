@@ -48,6 +48,7 @@ _app = None
 @api_perm.require_user
 def api_copyNonSessionSimulation():
     req = http_request.parse_post(id=True, template=True)
+    simulation_db.verify_app_directory(req.type)
     src = pkio.py_path(
         simulation_db.find_global_simulation(
             req.type,
@@ -326,7 +327,13 @@ def api_importFile(simulation_type):
     except Exception as e:
         pkdlog('{}: exception: {}', f and f.filename, pkdexc())
         #TODO(robnagler) security issue here. Really don't want to report errors to user
-        error = str(e.args) if hasattr(e, 'args') else str(e)
+        if hasattr(e, 'args'):
+            if len(e.args) == 1:
+                error = str(e.args[0])
+            else:
+                error = str(e.args)
+        else:
+            error =str(e)
     return http_reply.gen_json({
         'error': error if error else 'An unknown error occurred',
     })
@@ -367,7 +374,7 @@ def api_pythonSource(simulation_type, simulation_id, model=None, title=None):
             req.template.python_source_for_model(d, m),
         ),
         d.models.simulation.name + ('-' + title if title else ''),
-        'py',
+        'madx' if m == 'madx' else 'py'
     )
 
 @api_perm.allow_visitor
