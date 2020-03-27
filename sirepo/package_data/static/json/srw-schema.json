@@ -13,6 +13,9 @@
             "includeMode": true
         }
     },
+    "constants": {
+        "helpVideoURL": "https://vimeo.com/184677009"
+    },
     "enum": {
         "AnalyticalTreatment": [
             ["0", "0 - Standard"],
