@@ -13,8 +13,9 @@ from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjinja
 from pykern import pksubprocess
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
-import errno
+import contextlib
 import os
 import py
 import re
@@ -22,22 +23,22 @@ import signal
 import sirepo.srdb
 import socket
 import subprocess
-import sys
 
 
 def flask():
     from sirepo import server
 
-    use_reloader = pkconfig.channel_in('dev')
-    app = server.init(use_reloader=use_reloader)
-    # avoid WARNING: Do not use the development server in a production environment.
-    app.env = 'development'
-    app.run(
-        host=cfg.ip,
-        port=cfg.port,
-        threaded=True,
-        use_reloader=use_reloader,
-    )
+    with pkio.save_chdir(_run_dir()):
+        use_reloader = pkconfig.channel_in('dev')
+        app = server.init(use_reloader=use_reloader)
+        # avoid WARNING: Do not use the development server in a production environment.
+        app.env = 'development'
+        app.run(
+            host=cfg.ip,
+            port=cfg.port,
+            threaded=True,
+            use_reloader=use_reloader,
+        )
 
 
 def http():
@@ -45,23 +46,21 @@ def http():
 
     Used for development only.
     """
-    def _env():
-        e = os.environ
-        e.update(
-            SIREPO_JOB_DRIVER_MODULES='local',
-        )
-        return e
+    @contextlib.contextmanager
+    def _handle_signals(signums):
+        o = [(x, signal.getsignal(x)) for x in signums]
+        try:
+            [signal.signal(x[0], _kill) for x in o]
+            yield
+        finally:
+            [signal.signal(x[0], x[1]) for x in o]
 
-    def _signal_exit(*args):
-        _exit(*args)
-        sys.exit(1)
-
-    def _exit(*args):
+    def _kill(*args):
         for p in processes:
             try:
                 p.terminate()
                 p.wait(1)
-            except ProcessLookupError:
+            except (ProcessLookupError, ChildProcessError):
                 continue
             except subprocess.TimeoutExpired:
                 p.kill()
@@ -72,16 +71,24 @@ def http():
         processes.append(subprocess.Popen(
             c,
             cwd=str(_run_dir()),
-            env=_env(),
+            env=e,
         ))
 
+    e = PKDict(os.environ)
+    e. SIREPO_JOB_DRIVER_MODULES = 'local'
     processes = []
-    signal.signal(signal.SIGINT, _signal_exit)
-    signal.signal(signal.SIGTERM, _signal_exit)
-    _start(['job_supervisor'])
-    _start(['service', 'flask'])
-    p, _ = os.wait()
-    _exit(signal.SIGTERM)
+    with pkio.save_chdir(_run_dir()), _handle_signals(
+            (signal.SIGINT, signal.SIGTERM),
+    ):
+        try:
+            _start(['job_supervisor'])
+            _start(['service', 'flask'])
+            p, _ = os.wait()
+        except ChildProcessError:
+            pass
+        finally:
+            _kill()
+
 
 
 def nginx_proxy():
@@ -104,26 +111,6 @@ def nginx_proxy():
             'nginx',
         ]
         pksubprocess.check_call_with_signals(cmd)
-
-
-def rabbitmq():
-    assert pkconfig.channel_in('dev')
-    run_dir = _run_dir().join('rabbitmq').ensure(dir=True)
-    with pkio.save_chdir(run_dir):
-        cmd = [
-            'docker',
-            'run',
-            '--env=RABBITMQ_NODE_IP_ADDRESS=' + cfg.ip,
-            '--net=host',
-            '--rm',
-            '--volume={}:/var/lib/rabbitmq'.format(run_dir),
-            'rabbitmq:management',
-        ]
-        try:
-            pksubprocess.check_call_with_signals(cmd)
-        except OSError as e:
-            if e.errno == errno.ENOENT:
-                pkcli.command_error('docker is not installed')
 
 
 def uwsgi():
