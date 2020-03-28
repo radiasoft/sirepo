@@ -592,8 +592,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             var ptPicker = null;
             var renderer = null;
             var renderWindow = null;
-            var selectedObj = null;
+            var selectedColor = [];
             var selectedInfo = null;
+            var selectedObj = null;
+            var selectedPointId = -1;
             var sceneData = {};
 
             // these objects are used to set various vector properties
@@ -629,7 +631,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             // stash the actor and associated info to avoid recalculation
             function addActor(id, group, actor, type, pickable) {
-
+                srdbg('addActor', 'id', id, 'grp', group, 'type', type, 'pcik', pickable);
                 var pData = actor.getMapper().getInputData();
                 var info = {
                     actor: actor,
@@ -652,8 +654,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
                 vtkPlotting.addActor(renderer, actor);
                 if (pickable) {
-                    //this.ptPicker.addPickList(actor);
-                    //this.cPicker.addPickList(actor);
+                    ptPicker.addPickList(actor);
+                    //cPicker.addPickList(actor);
                 }
                 return info;
             }
@@ -810,12 +812,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             // change to use magnitudes and color locally
             function getVectFormula(vectors, colorMapName) {
 
-                //srdbg('getVectFormula', colorMapName, '!');
+                //srdbg('getVectFormula', colorMapName);
                 var cmap = plotting.colorMapOrDefault(
                     colorMapName,
                     appState.modelInfo('fieldDisplay').colorMap[SIREPO.INFO_INDEX_DEFAULT_VALUE]
                 );
-                //srdbg('v', vectors, 'cm', cmap);
+                //srdbg('v', vectors);
+                //srdbg('cm', cmap);
                 var norms = utilities.normalize(vectors.magnitudes);
                 var logMags = vectors.magnitudes.map(function (n) {
                     return Math.log(n);
@@ -827,6 +830,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 var maxLogMag = Math.max.apply(null, logMags);
                 var minMag = Math.min.apply(null, vectors.magnitudes);
                 var maxMag = Math.max.apply(null, vectors.magnitudes);
+                var cScale = plotting.colorScale(minMag, maxMag, cmap);
 
                 logMags = logMags.map(function (n) {
                     return minMag + (n - minLogMag) * (maxMag - minMag) / (maxLogMag - minLogMag);
@@ -852,9 +856,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         for (var i = 0; i < coords.length / 3; i += 1) {
                             var c = [0, 0, 0];
                             if (cmap.length) {
-                                var cIdx = Math.floor(norms[i] * (cmap.length - 1));
-                                var h = parseInt(cmap[cIdx].substring(1), 16);
-                                c = plotting.rgbFromInt(h);
+                                var rgb = d3.rgb(cScale(norms[i]));
+                                c = [rgb.r, rgb.g, rgb.b];
                             }
                             // scale arrow length (object-local x-direction) only
                             // this can stretch/squish the arrowhead though so the actor may have to adjust the ratio
@@ -882,6 +885,22 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     }
                 }
                 throw new Error('No vector array named ' + name  + ': ' + vectArrays.output);
+            }
+
+            function getVectorInfo(point, vect, units) {
+                let pt = [];
+                point.forEach(function (c) {
+                    pt.push(utilities.roundToPlaces(c, 2));
+                });
+                const val = Math.hypot(vect[0], vect[1], vect[2]);
+                const theta = 180 * Math.acos(vect[2] / (val || 1)) / Math.PI;
+                const phi = 180 * Math.atan2(vect[1], vect[0]) / Math.PI;
+                return isNaN(val) ?
+                    '--' :
+                    utilities.roundToPlaces(val, 4) + units +
+                    '  θ ' + utilities.roundToPlaces(theta, 2) +
+                    '°  φ ' + utilities.roundToPlaces(phi, 2) +
+                    '°  at (' + pt + ')';
             }
 
             function handlePick(callData) {
@@ -919,13 +938,12 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     return;
                 }
 
-
                 var pas = picker.getActors();
                 //var posArr = view.cPicker.getPickedPositions();
                 //srdbg('pas', pas, 'positions', posArr);
                 //TODO(mvk): need to get actor closest to the "screen" based on the selected points
 
-                var selectedColor = [];
+                //var selectedColor = [];
                 selectedInfo = null;
                 var selectedValue = Number.NaN;
                 var eligibleActors = [];
@@ -964,30 +982,34 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         var sid = pid * ns;
                         var sc = sArr.getData().slice(sid, sid + ns);
 
-                        // toggle color?
-                        if (view.selectedColor.length) {
-                            var ssid = view.selectedPoint * ns;
-                            view.selectedColor.forEach(function (c, i) {
-                                sArr.getData()[ssid + i] = c;
+                        srdbg('SEL C', selectedColor);
+                        if (selectedColor.length) {
+                            srdbg('SET OLD V COLOR');
+                            selectedColor.forEach(function (c, i) {
+                                sArr.getData()[selectedPointId * ns + i] = c;
                             });
                         }
-                        if (pid === view.selectedPoint) {
-                            view.selectedPoint = -1;
-                            view.selectedColor = [];
+                        if (pid === selectedPointId) {
+                            srdbg('toggle', pid);
+                            selectedPointId = -1;
+                            selectedColor = [];
                             selectedValue = Math.min.apply(null, linArr.getData());
                             v = [];
                         }
                         else {
+                            srdbg('SET NEW V COLOR');
+                            srdbg(sArr.getData().slice(sid, sid + 3), '->', highlightVectColor);
                             highlightVectColor.forEach(function (c, i) {
                                 sArr.getData()[sid + i] = c;
                             });
-                            view.selectedPoint = pid;
-                            view.selectedColor = sc;
+                            selectedPointId = pid;
+                            selectedColor = sc;
                         }
                         info.pData.modified();
 
-                        //srdbg(info.name, 'coords', coords, 'mag', selectedValue, 'orientation', o, 'color', sc);
-                        view.processPickedVector(coords, v);
+                        srdbg(info.id, 'coords', coords, 'mag', selectedValue, 'orientation', o, 'color', sc);
+
+                        //view.processPickedVector(coords, v);
                         continue;
                     }
 
@@ -1018,7 +1040,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 // for some reason scope changes are not immediately propagating, so we'll force the issue -
                 // apply() or digest() cause infinite digest loops
                 $scope.$broadcast('vtk.selected', vtkSelection());
-                radiaService.setSelectedObj(selectedObj);
+                //radiaService.setSelectedObj(selectedObj);
                 //srdbg('sel o', $scope.selectedObj);
 
                 //var sc = vtkUtils.rgbToFloat(selectedColor);
@@ -1035,6 +1057,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     );
                 }
                 //view.processPickedObject(view.getInfoForActor(view.selectedObject));
+                //renderWindow.render();
             }
 
             function hasPaths() {
@@ -1093,18 +1116,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 return j;
             }
 
-            function vtkSelection() {
-                return {
-                    info: selectedObj ? selectedObj.name : '--',
-                    model: selectedObj ? {
-                        getData: function () {
-                            return selectedObj;
-                        },
-                        modelKey: 'geomObject',
-                    } : null,
-                };
-            }
-
             // some weird disconnect between the model and the slider when cancelling...???
             function setAlpha() {
                 if (! renderer) {
@@ -1154,6 +1165,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setColorMap() {
+                srdbg('set color map');
                 var mapName = appState.models.fieldDisplay.colorMap;
                 getActorsOfType(radiaVtkUtils.GEOM_TYPE_VECTS).forEach(function (actor) {
                     actor.getMapper().getInputConnection(0).filter
@@ -1272,6 +1284,17 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     });
             }
 
+            function vtkSelection() {
+                return {
+                    info: selectedObj ? selectedObj.name : '--',
+                    model: selectedObj ? {
+                        getData: function () {
+                            return selectedObj;
+                        },
+                        modelKey: 'geomObject',
+                    } : null,
+                };
+            }
 
             $scope.eventHandlers = {
                 handleDblClick: function(e) {

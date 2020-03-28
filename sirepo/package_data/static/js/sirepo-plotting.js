@@ -350,6 +350,13 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 .clamp(true);
         },
 
+        colorScale: function(min, max, colorMap) {
+            return d3.scale.linear()
+                .domain(linearlySpacedArray(min, max, colorMap.length))
+                .range(colorMap)
+                .clamp(true);
+        },
+
         colorsFromHexString: function(color, range) {
             if (! (/^#([0-9a-f]{2}){3}$/i).test(color)) {
                 throw new Error(color + ': Invalid color string');
@@ -450,6 +457,31 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return $.merge([split], self.fitSplit(str.substring(split.length), d3Text, width));
         },
 
+        formatColors: function(colors, format) {
+            // fix this up...
+            if (format === '#') {
+                let cx = [];
+                for (let i = 0; i < colors.length; ++i) {
+                    let str = '#';
+                    let rgb = self.rgbFromInt(colors[i], 1.0);
+                    for (let j = 0; j < rgb.length; ++j) {
+                        let n = rgb[j];
+                        let s = Number(n).toString(16);
+                        if (s.length === 1) {
+                            s = '0' + s;
+                        }
+                        str = str + s;
+                    }
+                    cx.push(str);
+                }
+                //return colors.map(function (c) {
+                //    return '#' + Number(c).toString(16);
+                //});
+                return cx;
+            }
+            return colors;
+        },
+
         formatValue: function(v, formatter, ordinateFormatter) {
             var fmt = formatter ? formatter : d3.format('.3f');
             var ordfmt = ordinateFormatter ? ordinateFormatter : d3.format('.3e');
@@ -501,6 +533,30 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             }
             cacheCanvas.getContext('2d').putImageData(img, 0, 0);
             return colorScale;
+        },
+
+        // interpolate each component to num_colors if the color map has fewer values
+        //TODO(mvk): interpolate better
+        interpolateColorMap: function (name, numColors, format) {
+            if (! numColors) {
+                numColors = 256;
+            }
+            let c = colorsFromString(COLOR_MAP[name]);
+            if (c.length >= numColors) {
+                return self.formatColors(c, format);
+            }
+            let rgbMins = self.rgbFromInt(Math.min.apply(null, c), 1.0);
+            let rgbMaxes = self.rgbFromInt(Math.max.apply(null, c), 1.0);
+            let res = Array(numColors).fill(0);
+            for (let i = 0; i < 3; ++i) {
+                let comp = linearlySpacedArray(rgbMins[i], rgbMaxes[i], numColors).map(function (v) {
+                    return Math.pow(256, 2 - i) * Math.floor(v);
+                });
+                res = res.map(function (v, j) {
+                    return v + comp[j];
+                });
+            }
+            return self.formatColors(res, format);
         },
 
         linkPlot: function(scope, element) {

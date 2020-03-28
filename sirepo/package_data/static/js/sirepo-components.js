@@ -3773,6 +3773,14 @@ SIREPO.app.service('utilities', function($window, $interval) {
         });
     };
 
+    this.roundToPlaces = function(val, p) {
+        if (p < 0) {
+            return val;
+        }
+        const r = Math.pow(10, p);
+        return Math.round(val * r) / r;
+    };
+
     // Sequentially applies a function to an array - useful for large arrays which
     // can exceed the stack limit
     this.seqApply = function(fn, array, initVal) {
