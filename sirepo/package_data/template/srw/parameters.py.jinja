@@ -219,8 +219,9 @@ varParam = srwl_bl.srwl_uti_ext_options([
 
     #to add options
     ['op_r', 'f', {{beamlineFirstElementPosition}}, 'longitudinal position of the first optical element [m]'],
+    {% if beamline3DReport %}
     ['op_fno', 's', '{{beamline3DReportFilename}}', 'file name for saving orientations of optical elements in the lab frame'],
-
+    {% endif %}
     # Former appParam:
     ['rs_type', 's', '{{rs_type}}', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
 {% if simulation_sourceType == 'm' %}

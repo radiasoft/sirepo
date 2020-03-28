@@ -835,6 +835,7 @@ def _compute_PGM_value(model):
                 _ang_roll=model['rollAngle'],
             )
             cff, defAng = opGr.ang2cff(_en=model['energyAvg'], _ang_graz=model['grazingAngle']/1000.0)
+            #print("cff={}".format(cff))
             model['cff'] = cff
         angroll = model['rollAngle']
         if abs(angroll) < np.pi/4 or abs(angroll-np.pi) < np.pi/4:
@@ -879,11 +880,11 @@ def _compute_grating_orientation(model):
             _ang_graz=model['grazingAngle'],
             _ang_roll=model['rollAngle'],
         )
-        model['nvx'] = opGr.nvx
-        model['nvy'] = opGr.nvy
-        model['nvz'] = opGr.nvz
-        model['tvx'] = opGr.tvx
-        model['tvy'] = opGr.tvy
+        model['nvx'] = opGr.mirSub.nvx
+        model['nvy'] = opGr.mirSub.nvy
+        model['nvz'] = opGr.mirSub.nvz
+        model['tvx'] = opGr.mirSub.tvx
+        model['tvy'] = opGr.mirSub.tvy
         orientDataGr_pp = opGr.get_orient(_e=model['energyAvg'])[1]
         tGr_pp = orientDataGr_pp[0]  # Tangential Vector to Grystal surface
         nGr_pp = orientDataGr_pp[2]  # Normal Vector to Grystal surface
@@ -1344,7 +1345,8 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     v['rs_type'] = source_type
     if _SIM_DATA.srw_is_idealized_undulator(source_type, undulator_type):
         v['rs_type'] = 'u'
-
+    if report == 'beamline3DReport':
+        v['beamline3DRepot'] = 1
     if report == 'mirrorReport':
         v['mirrorOutputFilename'] = _MIRROR_OUTPUT_FILE
         return template_common.render_jinja(SIM_TYPE, v, 'mirror.py')
@@ -1428,7 +1430,8 @@ def _generate_srw_main(data, plot_reports):
         content.append('v.tr = True')
         if plot_reports:
             content.append("v.tr_pl = 'xz'")
-    if run_all or _SIM_DATA.is_watchpoint(report) or report == 'beamline3DReport':
+    if run_all or _SIM_DATA.is_watchpoint(report):
+    #if run_all or _SIM_DATA.is_watchpoint(report) or report == 'beamline3DReport':
         content.append('v.ws = True')
         if plot_reports:
             content.append("v.ws_pl = 'xy'")
