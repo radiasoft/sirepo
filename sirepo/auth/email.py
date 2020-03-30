@@ -5,11 +5,10 @@ u"""Email login
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern.pkcollections import PKDict
-from pykern import pkcollections
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkinspect
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import auth
@@ -26,6 +25,8 @@ import pyisemail
 import sirepo.template
 import sirepo.uri
 import sirepo.util
+import sqlalchemy
+import sqlalchemy.ext.hybrid
 
 
 AUTH_METHOD = 'email'
@@ -67,10 +68,7 @@ def api_authEmailAuthorized(simulation_type, token):
         u = AuthEmailUser.search_by(token=token)
         if u and u.expires >= srtime.utc_now():
             n = _verify_confirm(req.type, token, auth.need_complete_registration(u))
-            u.query.filter(
-                (AuthEmailUser.user_name == u.unverified_email),
-                AuthEmailUser.unverified_email != u.unverified_email,
-            ).delete()
+            AuthEmailUser.delete_all_by_filter('changed_email', u)
             u.user_name = u.unverified_email
             u.token = None
             u.expires = None
@@ -136,7 +134,7 @@ def init_apis(app, *args, **kwargs):
         smtp_server=pkconfig.Required(str, 'SMTP TLS server'),
         smtp_user=pkconfig.Required(str, 'SMTP auth user'),
     )
-    auth_db.init_model(app, _init_model)
+    auth_db.init_model(_init_model)
     if pkconfig.channel_in('dev') and cfg.smtp_server == _DEV_SMTP_SERVER:
         return
     app.config.update(
@@ -150,7 +148,7 @@ def init_apis(app, *args, **kwargs):
     _smtp = flask_mail.Mail(app)
 
 
-def _init_model(db, base):
+def _init_model(base):
     """Creates AuthEmailUser bound to dynamic `db` variable"""
     global AuthEmailUser, UserModel
 
@@ -159,18 +157,23 @@ def _init_model(db, base):
     # Existing user: (unverified_email, token, expires) -> auth -> (unverified_email, uid, email)
 
     # display_name is prompted after first login
-    class AuthEmailUser(base, db.Model):
+    class AuthEmailUser(base):
         EMAIL_SIZE = 255
         __tablename__ = 'auth_email_user_t'
-        unverified_email = db.Column(db.String(EMAIL_SIZE), primary_key=True)
-        uid = db.Column(db.String(8), unique=True)
-        user_name = db.Column(db.String(EMAIL_SIZE), unique=True)
-        token = db.Column(db.String(sirepo.util.TOKEN_SIZE), unique=True)
-        expires = db.Column(db.DateTime())
+        unverified_email = sqlalchemy.Column(sqlalchemy.String(EMAIL_SIZE), primary_key=True)
+        uid = sqlalchemy.Column(sqlalchemy.String(8), unique=True)
+        user_name = sqlalchemy.Column(sqlalchemy.String(EMAIL_SIZE), unique=True)
+        token = sqlalchemy.Column(sqlalchemy.String(sirepo.util.TOKEN_SIZE), unique=True)
+        expires = sqlalchemy.Column(sqlalchemy.DateTime())
 
         def create_token(self):
             self.expires = datetime.datetime.utcnow() + _EXPIRES_DELTA
             self.token = sirepo.util.create_token(self.unverified_email)
+
+        @sqlalchemy.ext.hybrid.hybrid_method
+        def changed_email(self, user):
+            return (self.user_name == user.unverified_email) & \
+                (self.unverified_email != user.unverified_email)
 
     UserModel = AuthEmailUser
 

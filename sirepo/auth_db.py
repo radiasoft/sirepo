@@ -6,16 +6,21 @@ u"""Auth database
 """
 from __future__ import absolute_import, division, print_function
 
-from flask_sqlalchemy import SQLAlchemy
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import threading
+import sqlalchemy
+import sqlalchemy.orm
+import sqlalchemy.ext.declarative
 
 
 #: sqlite file located in sirepo_db_dir
 _SQLITE3_BASENAME = 'auth.db'
 
-#: SQLAlchemy instance
-_db = None
+#: SQLAlchemy database engine
+_engine = None
+
+#: SQLAlchemy session instance
+_session = None
 
 #: base for UserRegistration and *User models
 UserDbBase = None
@@ -26,69 +31,91 @@ UserRegistration = None
 #: roles for each user
 UserRole = None
 
-#: Locking of _db calls
+#: Locking of db calls
 thread_lock = threading.RLock()
 
 
 def init(app):
-    global _db, UserDbBase, UserRegistration, UserRole
-    assert not _db
+    global _session, _engine, UserDbBase, UserRegistration, UserRole
+    assert not _session
 
     f = _db_filename(app)
     _migrate_db_file(f)
-    app.config.update(
-        SQLALCHEMY_DATABASE_URI='sqlite:///{}'.format(f),
-        SQLALCHEMY_COMMIT_ON_TEARDOWN=True,
-        SQLALCHEMY_TRACK_MODIFICATIONS=False,
+    _engine = sqlalchemy.create_engine(
+        'sqlite:///{}'.format(f),
+        # We do our own thread locking so no need to have pysqlite warn us when
+        # we access a single connection across threads
+        connect_args={'check_same_thread': False},
     )
-    _db = SQLAlchemy(app, session_options=dict(autoflush=True))
+    _session = sqlalchemy.orm.Session(bind=_engine)
 
+    @sqlalchemy.ext.declarative.as_declarative()
     class UserDbBase(object):
+
         def __init__(self, **kwargs):
             for k, v in kwargs.items():
                 setattr(self, k, v)
 
         def delete(self):
-            _db.session.delete(self)
-            _db.session.commit()
+            with thread_lock:
+                _session.delete(self)
+                _session.commit()
+
+        @classmethod
+        def delete_all(cls):
+            with thread_lock:
+                _session.query(cls).delete()
+                _session.commit()
 
         def save(self):
-            _db.session.add(self)
-            _db.session.commit()
+            with thread_lock:
+                _session.add(self)
+                _session.commit()
 
         @classmethod
         def search_all_by(cls, **kwargs):
             with thread_lock:
-                return cls.query.filter_by(**kwargs).all()
+                return _session.query(cls).filter_by(**kwargs).all()
 
         @classmethod
         def search_by(cls, **kwargs):
             with thread_lock:
-                return cls.query.filter_by(**kwargs).first()
+                return _session.query(cls).filter_by(**kwargs).first()
 
         @classmethod
         def search_all_for_column(cls, column, **filter_by):
             with thread_lock:
-                return [getattr(r, column) for r in cls.query.filter_by(**filter_by)]
+                return [
+                    getattr(r, column) for r
+                    in _session.query(cls).filter_by(**filter_by)
+                ]
 
         @classmethod
         def delete_all_for_column_by_values(cls, column, values):
             with thread_lock:
-                cls.query.filter(
+                _session.query(cls).filter(
                     getattr(cls, column).in_(values),
                 ).delete(synchronize_session='fetch')
-                _db.session.commit()
+                _session.commit()
 
-    class UserRegistration(UserDbBase, _db.Model):
+        @classmethod
+        def delete_all_by_filter(cls, filter_fn_name, *args):
+            with thread_lock:
+                _session.query(cls).filter(
+                    getattr(cls, filter_fn_name)(*args)
+                ).delete()
+                _session.commit()
+
+    class UserRegistration(UserDbBase):
         __tablename__ = 'user_registration_t'
-        uid = _db.Column(_db.String(8), primary_key=True)
-        created = _db.Column(_db.DateTime(), nullable=False)
-        display_name = _db.Column(_db.String(100))
+        uid = sqlalchemy.Column(sqlalchemy.String(8), primary_key=True)
+        created = sqlalchemy.Column(sqlalchemy.DateTime(), nullable=False)
+        display_name = sqlalchemy.Column(sqlalchemy.String(100))
 
-    class UserRole(UserDbBase, _db.Model):
+    class UserRole(UserDbBase):
         __tablename__ = 'user_role_t'
-        uid = _db.Column(_db.String(8), primary_key=True)
-        role = _db.Column(_db.String(100), primary_key=True)
+        uid = sqlalchemy.Column(sqlalchemy.String(8), primary_key=True)
+        role = sqlalchemy.Column(sqlalchemy.String(100), primary_key=True)
 
         @classmethod
         def add_roles(cls, uid, roles):
@@ -99,21 +126,21 @@ def init(app):
         @classmethod
         def delete_roles(cls, uid, roles):
             with thread_lock:
-                cls.query.filter(
+                _session.query(cls).filter(
                     cls.uid == uid,
                 ).filter(
                     cls.role.in_(roles),
                 ).delete(synchronize_session='fetch')
-                _db.session.commit()
+                _session.commit()
 
     # only creates tables that don't already exist
-    _db.create_all()
+    UserDbBase.metadata.create_all(_engine)
 
 
-def init_model(app, callback):
+def init_model(callback):
     with thread_lock:
-        callback(_db, UserDbBase)
-        _db.create_all()
+        callback(UserDbBase)
+        UserDbBase.metadata.create_all(_engine)
 
 
 def _db_filename(app):
