@@ -663,7 +663,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             function buildScene() {
                 //srdbg('buildScene');
                 var name = sceneData.name;
-                var id = sceneData.id;
                 var data = sceneData.data;
 
                 vtkPlotting.removeActors(renderer);
@@ -672,11 +671,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
                     var gname = name + '.' + i;
                     var sceneDatum = data[i];
-                    var bounds = radiaVtkUtils.objBounds(sceneDatum);
 
                     // trying a separation into an actor for each data type, to better facilitate selection
                     radiaVtkUtils.GEOM_TYPES.forEach(function (t) {
-                        //var aname = gname + '.' + t;
                         var id = gname + '.' + t;
                         var d = sceneDatum[t];
                         if (! d || ! d.vertices || ! d.vertices.length) {
@@ -688,8 +685,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         var gColor = gObj.color ? vtk.Common.Core.vtkMath.hex2float(gObj.color) : null;
                         var pdti = radiaVtkUtils.objToPolyData(sceneDatum, [t], gColor);
                         var pData = pdti.data;
-                        var bundle = null;
-                        var actor = null;
+                        var bundle;
                         if (radiaVtkUtils.GEOM_OBJ_TYPES.indexOf(t) >= 0) {
                             bundle = cm.buildActorBundle();
                             bundle.mapper.setInputData(pData);
@@ -707,7 +703,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             mapper.setOrientationArray(ORIENTATION_ARRAY);
 
                             // this scales by a constant - the default is to use scalar data
-                            //TODO(mvk): set based on bounds size?
                             mapper.setScaleFactor(8.0);
                             mapper.setScaleModeToScaleByConstant();
                             mapper.setColorModeToDefault();
@@ -724,7 +719,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             gObj.name = id;
                             gObj.id = id;
                             if (gColor) {
-                                srdbg('storing color');
                                 gObj.color = vtk.Common.Core.vtkMath.floatRGB2HexCode(vtkUtils.rgbToFloat(gColor));
                             }
                             if (! appState.models.geometry.objects) {
@@ -944,29 +938,35 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 //TODO(mvk): need to get actor closest to the "screen" based on the selected points
 
                 //var selectedColor = [];
-                selectedInfo = null;
+                //selectedInfo = null;
                 var selectedValue = Number.NaN;
                 var eligibleActors = [];
                 var highlightVectColor = [255, 0, 0];
-                for (var aIdx in pas) {
-                    var actor = pas[aIdx];
+                var actor = pas[0];  //.slice(-1)[0];
+                var vtkSelection = {};
+                //for (var aIdx in pas) {
+                    //var actor = pas[aIdx];
                     //var pos = posArr[aIdx];
                     var info = getInfoForActor(actor);
+                    selectedInfo = info;
                     //srdbg('actor', actor, 'info', info);
                     if (! info || ! info.pData) {
-                        continue;
+                        return;
+                        //continue;
                     }
 
                     var pts = info.pData.getPoints();
 
                     // TODO(mvk): attach pick functions to actor info?
+                    // vectors
                     if (info.type === radiaVtkUtils.GEOM_TYPE_VECTS) {
                         var n = pts.getNumberOfComponents();
                         var coords = pts.getData().slice(n * pid, n * (pid + 1));
                         var f = actor.getMapper().getInputConnection(0).filter;
                         var linArr = f.getOutputData().getPointData().getArrayByName(LINEAR_SCALE_ARRAY);
                         if (! linArr) {
-                            continue;
+                            return;
+                            //continue;
                         }
                         selectedValue = linArr.getData()[pid * linArr.getNumberOfComponents()];
 
@@ -1008,43 +1008,67 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         info.pData.modified();
 
                         srdbg(info.id, 'coords', coords, 'mag', selectedValue, 'orientation', o, 'color', sc);
-
-                        //view.processPickedVector(coords, v);
-                        continue;
+                        vtkSelection = {
+                            info: getVectorInfo(point, v, sceneData.data[0].vectors.units),
+                        };
+                        //continue;
                     }
 
-                    var colors = info.scalars.getData();
-                    var j = info.colorIndices[cid];
-                    selectedColor = colors.slice(j, j + 3);  // 4 to get alpha
-                    selectedInfo = info;
-                    srdbg(info.name, 'poly tup', cid, selectedColor);
+                    // objects
+                else {
+                        var colors = info.scalars.getData();
+                        var j = info.colorIndices[cid];
+                        selectedColor = colors.slice(j, j + 3);  // 4 to get alpha
+                        //selectedInfo = info;
+                       // srdbg(info.name, 'poly tup', cid, selectedColor);
 
-                    var g = getGeomObj(info.id);
-                    if (selectedColor.length) {
-                        if (selectedObj === g) {
-                            selectedObj = null;
+                        var g = getGeomObj(info.id);
+                        if (selectedColor.length) {
+                            if (selectedObj === g) {
+                                selectedObj = null;
+                            } else {
+                                //eligibleActors.push(actor);
+                                selectedObj = g;
+                            }
+                            //break;
                         }
-                        else {
-                            //eligibleActors.push(actor);
-                            selectedObj = g;
-                        }
-                        break;
-                    }
-                }
+                        var highlight = selectedColor.map(function (c) {
+                            return 255 - c;
+                        });
 
-                if (! selectedInfo) {
-                    return;
-                }
+                        //var sch = vtk.Common.Core.vtkMath.floatRGB2HexCode(sc);
+                        for (var id in actorInfo) {
+                            setEdgeColor(
+                                getActorInfo(id),
+                                selectedObj && sharesGroup(getActor(id), actor) ? highlight : [0, 0, 0]
+                            );
+                        }
+
+                        vtkSelection = {
+                            info: selectedObj ? selectedObj.name : '--',
+                            model: selectedObj ? {
+                                getData: function () {
+                                    return selectedObj;
+                                },
+                                modelKey: 'geomObject',
+                            } : null,
+                        };
+                   }
+                //}
+
+                //if (! selectedInfo) {
+                //    return;
+                //}
 
                 //selectedObj = getGeomObj(selectedInfo.id);
                 // for some reason scope changes are not immediately propagating, so we'll force the issue -
                 // apply() or digest() cause infinite digest loops
-                $scope.$broadcast('vtk.selected', vtkSelection());
+                $scope.$broadcast('vtk.selected', vtkSelection);
                 //radiaService.setSelectedObj(selectedObj);
                 //srdbg('sel o', $scope.selectedObj);
 
                 //var sc = vtkUtils.rgbToFloat(selectedColor);
-
+                /*
                 var highlight = selectedColor.map(function (c) {
                     return 255 - c;
                 });
@@ -1056,8 +1080,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         selectedObj && sharesGroup(getActor(id), selectedInfo.actor) ? highlight : [0, 0, 0]
                     );
                 }
-                //view.processPickedObject(view.getInfoForActor(view.selectedObject));
-                //renderWindow.render();
+                 */
             }
 
             function hasPaths() {
@@ -1165,7 +1188,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setColorMap() {
-                srdbg('set color map');
                 var mapName = appState.models.fieldDisplay.colorMap;
                 getActorsOfType(radiaVtkUtils.GEOM_TYPE_VECTS).forEach(function (actor) {
                     actor.getMapper().getInputConnection(0).filter
@@ -1284,7 +1306,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     });
             }
 
+            /*
             function vtkSelection() {
+                if (selectedInfo.type === radiaVtkUtils.GEOM_TYPE_VECTS) {
+                    return {
+                        info: '',
+                    };
+                }
                 return {
                     info: selectedObj ? selectedObj.name : '--',
                     model: selectedObj ? {
@@ -1295,6 +1323,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     } : null,
                 };
             }
+             */
 
             $scope.eventHandlers = {
                 handleDblClick: function(e) {
