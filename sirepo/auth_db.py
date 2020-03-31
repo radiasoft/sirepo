@@ -51,6 +51,7 @@ def init(app):
 
     @sqlalchemy.ext.declarative.as_declarative()
     class UserDbBase(object):
+        _session = _session
 
         def __init__(self, **kwargs):
             for k, v in kwargs.items():
@@ -58,53 +59,45 @@ def init(app):
 
         def delete(self):
             with thread_lock:
-                _session.delete(self)
-                _session.commit()
+                self._session.delete(self)
+                self._session.commit()
 
         @classmethod
         def delete_all(cls):
             with thread_lock:
-                _session.query(cls).delete()
-                _session.commit()
+                cls._session.query(cls).delete()
+                cls._session.commit()
 
         def save(self):
             with thread_lock:
-                _session.add(self)
-                _session.commit()
+                self._session.add(self)
+                self._session.commit()
 
         @classmethod
         def search_all_by(cls, **kwargs):
             with thread_lock:
-                return _session.query(cls).filter_by(**kwargs).all()
+                return cls._session.query(cls).filter_by(**kwargs).all()
 
         @classmethod
         def search_by(cls, **kwargs):
             with thread_lock:
-                return _session.query(cls).filter_by(**kwargs).first()
+                return cls._session.query(cls).filter_by(**kwargs).first()
 
         @classmethod
         def search_all_for_column(cls, column, **filter_by):
             with thread_lock:
                 return [
                     getattr(r, column) for r
-                    in _session.query(cls).filter_by(**filter_by)
+                    in cls._session.query(cls).filter_by(**filter_by)
                 ]
 
         @classmethod
         def delete_all_for_column_by_values(cls, column, values):
             with thread_lock:
-                _session.query(cls).filter(
+                cls._session.query(cls).filter(
                     getattr(cls, column).in_(values),
                 ).delete(synchronize_session='fetch')
-                _session.commit()
-
-        @classmethod
-        def delete_all_by_filter(cls, filter_fn_name, *args):
-            with thread_lock:
-                _session.query(cls).filter(
-                    getattr(cls, filter_fn_name)(*args)
-                ).delete()
-                _session.commit()
+                cls._session.commit()
 
     class UserRegistration(UserDbBase):
         __tablename__ = 'user_registration_t'
@@ -126,12 +119,12 @@ def init(app):
         @classmethod
         def delete_roles(cls, uid, roles):
             with thread_lock:
-                _session.query(cls).filter(
+                cls._session.query(cls).filter(
                     cls.uid == uid,
                 ).filter(
                     cls.role.in_(roles),
                 ).delete(synchronize_session='fetch')
-                _session.commit()
+                cls._session.commit()
 
     # only creates tables that don't already exist
     UserDbBase.metadata.create_all(_engine)

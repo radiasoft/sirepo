@@ -26,7 +26,6 @@ import sirepo.template
 import sirepo.uri
 import sirepo.util
 import sqlalchemy
-import sqlalchemy.ext.hybrid
 
 
 AUTH_METHOD = 'email'
@@ -68,7 +67,7 @@ def api_authEmailAuthorized(simulation_type, token):
         u = AuthEmailUser.search_by(token=token)
         if u and u.expires >= srtime.utc_now():
             n = _verify_confirm(req.type, token, auth.need_complete_registration(u))
-            AuthEmailUser.delete_all_by_filter('changed_email', u)
+            AuthEmailUser.delete_changed_email(u)
             u.user_name = u.unverified_email
             u.token = None
             u.expires = None
@@ -170,10 +169,14 @@ def _init_model(base):
             self.expires = datetime.datetime.utcnow() + _EXPIRES_DELTA
             self.token = sirepo.util.create_token(self.unverified_email)
 
-        @sqlalchemy.ext.hybrid.hybrid_method
-        def changed_email(self, user):
-            return (self.user_name == user.unverified_email) & \
-                (self.unverified_email != user.unverified_email)
+        @classmethod
+        def delete_changed_email(cls, user):
+            with auth_db.thread_lock:
+                cls._session.query(cls).filter(
+                    (cls.user_name == user.unverified_email),
+                    cls.unverified_email != user.unverified_email
+                ).delete()
+                cls._session.commit()
 
     UserModel = AuthEmailUser
 
