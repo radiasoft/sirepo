@@ -320,7 +320,7 @@ class DriverBase(PKDict):
 
     async def _agent_starting_timeout_handler(self):
         pkdlog('{}', self)
-        self.kill()
+        await self.kill()
         self.free_resources()
 
     def _has_remote_agent(self):
