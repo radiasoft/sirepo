@@ -305,8 +305,8 @@ class DriverBase(PKDict):
                     self._agent_starting_timeout_handler,
                 )
                 await self._do_agent_start(op)
-            except Exception:
-                pkdlog('{} stack={}', self, pkdexc())
+            except Exception as e:
+                pkdlog('{} error={} stack={}', self, e, pkdexc())
                 self._agent_starting_done()
                 raise
 

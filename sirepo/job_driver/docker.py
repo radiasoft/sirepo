@@ -92,7 +92,7 @@ class DockerDriver(job_driver.DriverBase):
             ),
             dev_volumes=(pkconfig.channel_in('dev'), bool, 'mount ~/.pyenv, ~/.local and ~/src for development'),
             hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, 'execution hosts'),
-            idle_check_secs=(1800, int, 'how many minutes to wait between checks'),
+            idle_check_secs=(1800, int, 'how many seconds to wait between checks'),
             image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
             parallel=dict(
                 cores=(2, int, 'cores per parallel job'),
@@ -113,15 +113,19 @@ class DockerDriver(job_driver.DriverBase):
 
     async def kill(self):
         c = self.get('_cid')
-        if not c:
-            return
         self._cid = None
         pkdlog('{} cid={:.12}', self, c)
         try:
             await self._cmd(
-                ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), c),
+                (
+                    'stop',
+                    '--time={}'.format(job_driver.KILL_TIMEOUT_SECS),
+                    self._cname
+                ),
             )
         except Exception as e:
+            if not c and 'No such container' in str(e):
+                return
             pkdlog('{} error={} stack={}', self, e, pkdexc())
 
     async def prepare_send(self, op):
