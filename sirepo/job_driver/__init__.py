@@ -8,9 +8,8 @@ from pykern import pkconfig, pkio, pkinspect, pkcollections, pkconfig, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdc, pkdexc, pkdformat
 from sirepo import job
-import collections
+import asyncio
 import importlib
-import inspect
 import pykern.pkio
 import sirepo.srdb
 import sirepo.tornado
@@ -39,6 +38,11 @@ class AgentMsg(PKDict):
     async def receive(self):
         # Agent messages do not block the supervisor
         DriverBase.receive(self)
+
+
+class AgentStartTimeoutError(Exception):
+    """Timeout was met waiting for agent to start"""
+    pass
 
 
 class DriverBase(PKDict):
@@ -135,6 +139,7 @@ class DriverBase(PKDict):
                 # Will not call websocket_on_close()
                 w.sr_close()
             for o in list(self.ops.values()):
+                pkdp('dddd {}', o)
                 o.destroy()
             self.cpu_slot_free()
             self._websocket_free()
@@ -296,7 +301,23 @@ class DriverBase(PKDict):
                     self._AGENT_STARTING_SECS,
                     self._agent_starting_timeout_handler,
                 )
-                await self._do_agent_start(op)
+
+                self._agent_start_task = asyncio.create_task(
+                    self._do_agent_start(op)
+                )
+                try:
+                    await self._agent_start_task
+                except asyncio.CancelledError:
+                    # asyncio.CancelledError has a specific meaning in the
+                    # supervisor (run was cancelled). We need to raise a
+                    # different error so we can handle them differently
+                    raise AgentStartTimeoutError(
+                        '{}s timeout met while waiting for agent to start'.format(
+                            self._AGENT_STARTING_SECS,
+                        ),
+                    )
+                finally:
+                    self._agent_start_task = None
             except Exception as e:
                 pkdlog('{} error={} stack={}', self, e, pkdexc())
                 self._agent_starting_done()
@@ -312,6 +333,8 @@ class DriverBase(PKDict):
 
     async def _agent_starting_timeout_handler(self):
         pkdlog('{}', self)
+        if self.get('_agent_start_task'):
+            self._agent_start_task.cancel()
         await self.kill()
         self.free_resources()
 
