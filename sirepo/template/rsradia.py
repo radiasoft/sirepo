@@ -224,6 +224,10 @@ def _generate_field_data(g_id, name, f_type, f_paths):
         f = radia_tk.get_magnetization(g_id)
     elif f_type in radia_tk.POINT_FIELD_TYPES:
         f = radia_tk.get_field(g_id, f_type, _build_field_points(f_paths))
+        for p in [fp for fp in f_paths if fp.type == 'line']:
+            p1 = [float(p.beginX), float(p.beginY), float(p.beginZ)]
+            p2 = [float(p.endX), float(p.endY), float(p.endZ)]
+            pkdp('FI {}', radia_tk.field_integral(g_id, f_type, p1, p2))
     return radia_tk.vector_field_to_data(g_id, name, f, radia_tk.FIELD_UNITS[f_type])
 
 

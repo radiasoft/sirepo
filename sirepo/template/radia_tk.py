@@ -16,6 +16,7 @@ FIELD_TYPES = [FIELD_TYPE_MAG_M]
 POINT_FIELD_TYPES = [
     FIELD_TYPE_MAG_B, FIELD_TYPE_MAG_A, FIELD_TYPE_MAG_H, FIELD_TYPE_MAG_J
 ]
+INTEGRAL_FIELD_TYPES = [FIELD_TYPE_MAG_B, FIELD_TYPE_MAG_H]
 FIELD_TYPES.extend(POINT_FIELD_TYPES)
 
 # these might be available from radia
@@ -36,6 +37,11 @@ def dump(geom):
 # does this remember all matrices etc.?
 def dump_bin(geom):
     return radia.UtiDmp(geom, 'bin')
+
+
+# only i (?), m, h
+def field_integral(geom, f_type, p1, p2):
+    return radia.FldInt(geom, 'inf', f_type, p1, p2)
 
 
 def geom_to_data(geom, name=None, divide=True):

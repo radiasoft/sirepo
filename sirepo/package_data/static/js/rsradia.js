@@ -328,7 +328,7 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaServ
     };
 });
 
-SIREPO.app.directive('fieldPathTable', function(appState, radiaService) {
+SIREPO.app.directive('fieldPathTable', function(appState, radiaService, utilities) {
     return {
         restrict: 'A',
         scope: {},
@@ -398,9 +398,13 @@ SIREPO.app.directive('fieldPathTable', function(appState, radiaService) {
                var excludeFields = ['_super', 'fileModel', 'id', 'name', 'type', 'numPoints'];
                var res = '';
                var pt = radiaService.pathTypeModel(path.type);
+
+               // use view fields to get the order right, and add any model fields that are not in the
+               // view
                var vf = appState.viewInfo(pt).basic;
                var info = appState.modelInfo(pt);
-               Object.keys(info).filter(function (f) {
+               var mf = Object.keys(info);
+               utilities.unique(vf.concat(mf)).filter(function (f) {
                     return excludeFields.indexOf(f) < 0;
                })
                    .forEach(function (f, i) {
@@ -1265,7 +1269,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 //srdbg('update v');
                 sceneData = {};
                 actorInfo = {};
-                enableWatchFields(false);
+                //enableWatchFields(false);
                 var inData = {
                     method: 'get_geom',
                     name: appState.models.geometry.name,
