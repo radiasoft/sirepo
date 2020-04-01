@@ -1,0 +1,17 @@
+{
+    "models": {
+        "beamlines": [],
+        "commands": [],
+        "elements": [],
+        "rpnCache": {},
+        "rpnVariables": [],
+        "simulation": {
+            "documentationUrl": "",
+            "folder": "/",
+            "name": "default name",
+            "notes": "",
+            "visualizationBeamlineId": ""
+        }
+    },
+    "simulationType": "madx"
+}

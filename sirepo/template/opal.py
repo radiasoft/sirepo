@@ -535,6 +535,10 @@ def _generate_parameters_file(data):
         distribution = _find_first_command(data, 'distribution')
         v.beamName = beam.name
         v.distributionName = distribution.name
+        # these need to get set to default or distribution won't generate in 1 step
+        # for emitted distributions
+        distribution.nbin = 0
+        distribution.emissionsteps = 1
         data.models.commands = [
             _find_first_command(data, 'option'),
             beam,

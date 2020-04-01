@@ -26,10 +26,11 @@ class CodeVar(object):
         ast.USub: '+',
     })
 
-    def __init__(self, variables, evaluator):
-        self.variables = PKDict({x['name']: x.get('value', 0) for x in variables})
+    def __init__(self, variables, evaluator, case_insensitive=False):
+        self.variables = self.__variables_by_name(variables, case_insensitive)
         self.postfix_variables = self.__variables_to_postfix(self.variables)
         self.evaluator = evaluator
+        self.case_insensitive = case_insensitive
 
     def compute_cache(self, data, schema):
         cache = lattice.LatticeUtil(data, schema).iterate_models(CodeVarIterator(self)).result
@@ -46,6 +47,8 @@ class CodeVar(object):
     def eval_var(self, expr):
         if not self.is_var_value(expr):
             return expr, None
+        if self.case_insensitive:
+            expr = expr.lower()
         expr = self.infix_to_postfix(expr)
         return self.evaluator.eval_var(
             expr,
@@ -138,16 +141,32 @@ class CodeVar(object):
                 return _do(n.operand) + _do(n.op)
             elif isinstance(n, ast.IfExp):
                 return _do(n.test) + ['?'] + _do(n.body) + [':'] + _do(n.orelse) + ['$']
+            # convert an attribute-like value, ex. l.MQ, into a string "l.MQ"
+            elif isinstance(n, ast.Attribute):
+                return ['{}.{}'.format(_do(n.value)[0], n.attr)]
             else:
                 x = CodeVar._INFIX_TO_RPN.get(type(n), None)
                 if x:
                     return [x]
-            raise ValueError('{}: invalid node'._ast_dump(n))
+            raise ValueError('invalid node: {}'.format(ast.dump(n)))
 
         tree = ast.parse(expr, filename='eval', mode='eval')
         assert isinstance(tree, ast.Expression), \
             '{}: must be an expression'.format(tree)
         return ' '.join(_do(tree))
+
+    @classmethod
+    def __variables_by_name(cls, variables, case_insensitive):
+        res = PKDict()
+        for v in variables:
+            n = v['name']
+            value = v.get('value', 0)
+            if case_insensitive:
+                n = n.lower()
+                if type(value) == str:
+                    value = value.lower()
+            res[n] = value
+        return res
 
     @classmethod
     def __variables_to_postfix(cls, variables):
@@ -195,6 +214,13 @@ class PurePythonEval(object):
         '-': lambda a, b: a - b,
         'pow': lambda a, b: a ** b,
         'sqrt': lambda a: math.sqrt(a),
+        'cos': lambda a: math.cos(a),
+        'sin': lambda a: math.sin(a),
+        'asin': lambda a: math.asin(a),
+        'acos': lambda a: math.acos(a),
+        'tan': lambda a: math.tan(a),
+        'atan': lambda a: math.atan(a),
+        'abs': lambda a: abs(a),
     })
 
     _KEYWORDS = _OPS.keys()

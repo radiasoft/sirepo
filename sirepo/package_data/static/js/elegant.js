@@ -5,7 +5,8 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
-    SIREPO.appImportText = 'Import an elegant command (.ele) or lattice (.lte) file';
+    SIREPO.appMadxExport = true;
+    SIREPO.appImportText = 'Import an elegant command (.ele) or lattice (.lte or .madx) file';
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="BeamInputFile" class="col-sm-7">',
           '<div data-file-field="field" data-model="model" data-file-type="bunchFile-sourceFile" data-empty-selection-text="No File Selected"></div>',
@@ -832,8 +833,8 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                           '</div>',
                           '<div data-ng-show="isState(\'ready\') || isState(\'lattice\')">',
                             '<div data-ng-show="isState(\'ready\')" class="form-group">',
-                              '<label>Select Command (.ele), Lattice (.lte), or ', SIREPO.APP_SCHEMA.productInfo.shortName,' Export (.zip)</label>',
-                              '<input id="elegant-file-import" type="file" data-file-model="elegantFile" accept=".ele,.lte,.zip" />',
+                              '<label>Select Command (.ele), Lattice (.lte or .madx), or ', SIREPO.APP_SCHEMA.productInfo.shortName,' Export (.zip)</label>',
+                              '<input id="elegant-file-import" type="file" data-file-model="elegantFile" accept=".ele,.lte,.madx,.zip" />',
                               '<br />',
                               '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
                             '</div>',

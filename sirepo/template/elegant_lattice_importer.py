@@ -59,7 +59,9 @@ def elegant_code_var(variables):
 
 
 def import_file(text, data=None):
-    models = elegant_lattice_parser.parse_file(text, _SIM_DATA.elegant_max_id(data) if data else 0)
+    if not data:
+        data = simulation_db.default_data(elegant_common.SIM_TYPE)
+    models = elegant_lattice_parser.parse_file(text, _SIM_DATA.elegant_max_id(data))
     name_to_id, default_beamline_id = _create_name_map(models)
     if 'default_beamline_name' in models and models['default_beamline_name'] in name_to_id:
         default_beamline_id = name_to_id[models['default_beamline_name']]
@@ -78,8 +80,6 @@ def import_file(text, data=None):
     if len(models['elements']) == 0 or len(models['beamlines']) == 0:
         raise IOError('no beamline elements found in file')
 
-    if not data:
-        data = simulation_db.default_data(elegant_common.SIM_TYPE)
     data['models']['elements'] = models['elements']
     data['models']['beamlines'] = models['beamlines']
     data['models']['rpnVariables'] = models['rpnVariables']

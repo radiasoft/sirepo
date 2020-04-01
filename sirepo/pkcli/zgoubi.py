@@ -138,12 +138,12 @@ def _validate_estimate_output_file_size(data, res):
 
 
 def _run_tunes_report(cfg_dir, data):
-    template_common.exec_parameters()
-    pkio.write_text(template.TUNES_INPUT_FILE, tunes_file)
+    r = template_common.exec_parameters()
+    pkio.write_text(template.TUNES_INPUT_FILE, r.tunes_file)
     #TODO(pjm): uses datafile from animation directory
     os.symlink('../animation/zgoubi.fai', 'zgoubi.fai')
     subprocess.call([_TUNES_PATH])
-    template_common.write_sequential_result(data)
+    template_common.write_sequential_result(template.extract_tunes_report(cfg_dir, data))
 
 
 def _run_zgoubi(cfg_dir, python_file=None):

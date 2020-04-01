@@ -13,7 +13,7 @@ pykern.pksetup.setup(
     install_requires=[
         # some "concrete" dependencies in requirements.txt
         'Flask>=1.1',
-        'Flask_SQLAlchemy',
+        'SQLAlchemy',
         'aenum',
         'cryptography>=2.8',
         'numconv',
@@ -27,7 +27,6 @@ pykern.pksetup.setup(
 
         'Authlib>=0.13; python_version < "3"',
         'Flask-Mail; python_version < "3"',
-        'SQLAlchemy; python_version < "3"',
         'futures; python_version < "3"',
         'pyIsEmail; python_version < "3"',
         'uwsgi; python_version < "3"',
