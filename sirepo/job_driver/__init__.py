@@ -148,14 +148,6 @@ class DriverBase(PKDict):
             res.put_nowait(i)
         return res
 
-    async def kill(self):
-        if not self._websocket:
-            # if there is no websocket then we don't know about the agent
-            # so we can't do anything
-            return
-        # hopefully the agent is nice and listens to the kill
-        self._websocket.write_message(PKDict(opName=job.OP_KILL))
-
     def make_lib_dir_symlink(self, op):
         if not self._has_remote_agent():
             return

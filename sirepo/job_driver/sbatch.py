@@ -13,6 +13,7 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from sirepo import job
 from sirepo import job_driver
 from sirepo import util
+import asyncio
 import asyncssh
 import datetime
 import sirepo.simulation_db
@@ -44,6 +45,27 @@ class SbatchDriver(job_driver.DriverBase):
     async def cpu_slot_ready(self):
         """We allow as many users as the sbatch system allows"""
         pass
+
+    async def kill(self):
+        def _kill_ssh():
+            pkdp('11111111111111')
+            if not self.get('_ssh_task'):
+                pkdp('2222222222222')
+                return
+            self._ssh_task.cancel()
+
+        def _send_kill_message():
+            if not self._websocket:
+                # if there is no websocket then we don't know about the agent
+                # so we can't do anything
+                return
+            # hopefully the agent is nice and listens to the kill
+            self._websocket.write_message(PKDict(opName=job.OP_KILL))
+
+        _kill_ssh()
+        _send_kill_message()
+
+
 
     @classmethod
     def get_instance(cls, req):
@@ -143,35 +165,48 @@ disown
                 o, e = await p.communicate()
                 write_to_log(o, e, 'remote')
 
-        try:
-            async with asyncssh.connect(
-                self.cfg.host,
-                username=self._creds.username,
-                password=self._creds.password + self._creds.otp if 'nersc' in self.cfg.host else self._creds.password,
-                known_hosts=self._KNOWN_HOSTS,
-            ) as c:
-                try:
-                    async with c.create_process('/bin/bash --noprofile --norc -l') as p:
-                        o, e = await p.communicate(input=script)
-                        if o or e:
-                            write_to_log(o, e, 'start')
-                    self.driver_details.pkupdate(
-                        host=self.cfg.host,
-                        username=self._creds.username,
-                    )
-                    await get_agent_log(c)
-                except Exception as e:
-                    pkdlog(
-                        '{} e={} stack={}',
-                        self,
-                        e,
-                        pkdexc(),
-                    )
-        except Exception as e:
-            if isinstance(e, asyncssh.misc.PermissionDenied):
-                self._srdb_root = None
-                self._raise_sbatch_login_srexception('invalid-creds', op.msg)
-            raise
+        async def _z():
+            try:
+                async with asyncssh.connect(
+                    self.cfg.host,
+                    username=self._creds.username,
+                    password=self._creds.password + self._creds.otp if 'nersc' in self.cfg.host else self._creds.password,
+                    known_hosts=self._KNOWN_HOSTS,
+                ) as c:
+                    # pkdp('eeeeeeeeeeeeeeeeeeee')
+                    # import tornado.gen
+                    # await tornado.gen.sleep(1000)
+                    try:
+                        async with c.create_process('/bin/bash --noprofile --norc -l') as p:
+                            o, e = await p.communicate(input=script)
+                            if o or e:
+                                write_to_log(o, e, 'start')
+                        self.driver_details.pkupdate(
+                            host=self.cfg.host,
+                            username=self._creds.username,
+                        )
+                        await get_agent_log(c)
+                    except Exception as e:
+                        pkdlog(
+                            '{} e={} stack={}',
+                            self,
+                            e,
+                            pkdexc(),
+                        )
+            except Exception as e:
+                if isinstance(e, asyncssh.misc.PermissionDenied):
+                    self._srdb_root = None
+                    self._raise_sbatch_login_srexception('invalid-creds', op.msg)
+                raise
+            self._ssh_task = asyncio.create_task(_z())
+            try:
+                await self._ssh_task
+                # TODO(e-carlin): Can operations within asyncssh raise CancelledError?
+                # We won't want to silence them
+            except asyncio.CancelledError:
+                pass
+            finally:
+                self._ssh_task = None
 
     def _agent_start_dev(self):
         if not pkconfig.channel_in('dev'):
