@@ -70,6 +70,7 @@ class DriverBase(PKDict):
             _agent_starting=False,
             _agent_starting_timeout=None,
             _cpu_slot_alloc_time=None,
+            _start_cancelled_due_to_timeout=False,
             _websocket=None,
             _websocket_ready=tornado.locks.Event(),
 #TODO(robnagler) https://github.com/radiasoft/sirepo/issues/2195
@@ -139,7 +140,6 @@ class DriverBase(PKDict):
                 # Will not call websocket_on_close()
                 w.sr_close()
             for o in list(self.ops.values()):
-                pkdp('dddd {}', o)
                 o.destroy()
             self.cpu_slot_free()
             self._websocket_free()
@@ -301,21 +301,25 @@ class DriverBase(PKDict):
                     self._AGENT_STARTING_SECS,
                     self._agent_starting_timeout_handler,
                 )
-
                 self._agent_start_task = asyncio.create_task(
                     self._do_agent_start(op)
                 )
                 try:
                     await self._agent_start_task
                 except asyncio.CancelledError:
-                    # asyncio.CancelledError has a specific meaning in the
-                    # supervisor (run was cancelled). We need to raise a
-                    # different error so we can handle them differently
-                    raise AgentStartTimeoutError(
-                        '{}s timeout met while waiting for agent to start'.format(
-                            self._AGENT_STARTING_SECS,
-                        ),
-                    )
+                    # TODO(e-carlin): XXX race condition. If we receive a runCancel
+                    # and a a timeout cancel at the same time who wins?
+                    if self._start_cancelled_due_to_timeout:
+                        # asyncio.CancelledError has a specific meaning in the
+                        # supervisor (api_runCancel). We need to raise a
+                        # different error so we know we were cancelled due to a timeout
+                        self._start_cancelled_due_to_timeout = False
+                        raise AgentStartTimeoutError(
+                            '{}s timeout met while waiting for agent to start'.format(
+                                self._AGENT_STARTING_SECS,
+                            ),
+                        )
+                    raise
                 finally:
                     self._agent_start_task = None
             except Exception as e:
@@ -334,6 +338,7 @@ class DriverBase(PKDict):
     async def _agent_starting_timeout_handler(self):
         pkdlog('{}', self)
         if self.get('_agent_start_task'):
+            self._start_cancelled_due_to_timeout = True
             self._agent_start_task.cancel()
         await self.kill()
         self.free_resources()

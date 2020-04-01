@@ -486,6 +486,11 @@ class _ComputeJob(PKDict):
                     return r
                 except Awaited:
                     pass
+                except asyncio.CancelledError:
+                    asdfasdfasdf
+                    # TODO(e-carlin): This could happen when a run in hung waiting for
+                    # the agent to come alive. The start timeout is met. That will cancel
+                    # this op which is waiting on await c.prepare_send
             else:
                 raise AssertionError('too many retries {}'.format(req))
         finally:

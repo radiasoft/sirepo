@@ -20,7 +20,6 @@ import subprocess
 import tornado.ioloop
 import tornado.process
 
-
 #: prefix all container names. Full format looks like: srj-p-uid
 _CNAME_PREFIX = 'srj'
 
@@ -125,6 +124,7 @@ class DockerDriver(job_driver.DriverBase):
             )
         except Exception as e:
             if not c and 'No such container' in str(e):
+                # Make kill response idempotent
                 return
             pkdlog('{} error={} stack={}', self, e, pkdexc())
 
