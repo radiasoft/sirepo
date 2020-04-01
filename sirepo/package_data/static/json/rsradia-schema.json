@@ -6,7 +6,13 @@
     },
     "constants": {
         "defaultGeomColor": "#ffffff",
-        "pathPtsFileType": "path-pts"
+        "pathPtsFileType": "path-pts",
+        "pathDetailFields": {
+            "circlePath": ["ctrX", "ctrY", "ctrZ", "radius", "theta", "phi"],
+            "filePath": ["fileName"],
+            "linePath": ["beginX", "beginY", "beginZ", "endX", "endY", "endZ"],
+            "manualPath": ["ptX", "ptY", "ptZ"]
+        }
     },
     "dynamicFiles": {
         "externalLibs": {

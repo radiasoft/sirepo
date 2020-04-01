@@ -328,6 +328,73 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaServ
     };
 });
 
+SIREPO.app.directive('fieldIntegralTable', function(appState, radiaService, requestSender, utilities) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div class="col-md-6">',
+                '<div class="panel panel-info">',
+                    '<div class="panel-heading"><span class="sr-panel-heading">Field Integrals (T &#x00B7; mm)</span></div>',
+                    '<div class="panel-body">',
+                        '<table data-ng-if="hasPaths()" style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">',
+                          '<colgroup>',
+                            '<col style="width: 20ex">',
+                            '<col data-ng-repeat="t in INTEGRABLE_FIELD_TYPES" style="width: 10ex">',
+                          '</colgroup>',
+                          '<thead>',
+                            '<tr>',
+                              '<th>Name</th>',
+                              '<th data-ng-repeat="t in INTEGRABLE_FIELD_TYPES">{{ t }}</th>',
+                            '</tr>',
+                          '</thead>',
+                          '<tbody>',
+                            '<tr data-ng-repeat="path in paths | filter:isLine">',
+                              '<td>{{ path.name }}</td>',
+                              '<td data-ng-repeat="t in INTEGRABLE_FIELD_TYPES"><span>{{ integrals[path.name][t] }}</span></td>',
+                            '</tr>',
+                          '</tbody>',
+                        '</table>',
+                    '</div>',
+                '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+
+            $scope.INTEGRABLE_FIELD_TYPES = ['B', 'H', 'I'];
+            $scope.integrals = {};
+
+            $scope.hasPaths = function() {
+                return $scope.paths && $scope.paths.length;
+            };
+
+            $scope.isLine = function(p) {
+                return p.type === 'line';
+            };
+
+
+           appState.whenModelsLoaded($scope, function() {
+               $scope.paths = appState.models.fieldPaths.paths;
+               srdbg('getting fld ints...');
+               requestSender.getApplicationData(
+                    {
+                        fieldPaths: $scope.paths,
+                        method: 'get_field_integrals',
+                        simulationId: appState.models.simulation.simulationId,
+                    },
+                    function(d) {
+                        srdbg('got fld ints', d);
+                        if (d) {
+                            $scope.integrals = d;
+                            return;
+                        }
+                    });
+           });
+
+        },
+    };
+});
+
 SIREPO.app.directive('fieldPathTable', function(appState, radiaService, utilities) {
     return {
         restrict: 'A',
@@ -395,21 +462,12 @@ SIREPO.app.directive('fieldPathTable', function(appState, radiaService, utilitie
            };
 
            $scope.pathDetails = function(path) {
-               var excludeFields = ['_super', 'fileModel', 'id', 'name', 'type', 'numPoints'];
                var res = '';
                var pt = radiaService.pathTypeModel(path.type);
-
-               // use view fields to get the order right, and add any model fields that are not in the
-               // view
-               var vf = appState.viewInfo(pt).basic;
                var info = appState.modelInfo(pt);
-               var mf = Object.keys(info);
-               utilities.unique(vf.concat(mf)).filter(function (f) {
-                    return excludeFields.indexOf(f) < 0;
-               })
-                   .forEach(function (f, i) {
-                       var fi = info[f];
-                       res += (fi[0] + ': ' + path[f] + '; ');
+               SIREPO.APP_SCHEMA.constants.pathDetailFields[pt].forEach(function (f, i) {
+                   var fi = info[f];
+                   res += (fi[0] + ': ' + path[f] + '; ');
                });
                return res;
            };
@@ -553,8 +611,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
         template: [
             '<div class="col-md-6">',
                 '<div class="row" data-basic-editor-panel="" data-view-name="{{ modelName }}">',
-                    '<div data-vtk-display="" class="vtk-display col-sm-11" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-enable-selection="true"></div>',
-                    '<div class="col-sm-1" style="padding-left: 0" data-ng-show="isViewTypeFields()">',
+                    '<div data-vtk-display="" class="vtk-display" data-ng-class="{\'col-sm-11\': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-enable-selection="true"></div>',
+                    '<div class="col-sm-1" style="padding-left: 0" data-ng-if="isViewTypeFields()">',
                         '<div class="colorbar"></div>',
                     '</div>',
                 '</div>',
@@ -1244,6 +1302,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             function updateLayout() {
                 //srdbg('updateLayout', appState.models.magnetDisplay.viewType);
+                if ($scope.isViewTypeObjects())  {
+                    d3.select('svg.colorbar').remove();
+                }
                 panelState.showField(
                     'magnetDisplay',
                     'fieldType',

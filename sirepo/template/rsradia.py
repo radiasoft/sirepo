@@ -72,16 +72,19 @@ def extract_report_data(run_dir, sim_in):
 # should only have to blow away the file after a solve (???)
 def get_application_data(data, **kwargs):
     # pkdp('get_application_data from {}', data)
-    if 'method' in data and data.method == 'get_geom':
-        g_id = -1
-        try:
-            with open(str(_dmp_file(data.simulationId)), 'rb') as f:
-                b = f.read()
-                g_id = radia_tk.load_bin(b)
-        except IOError as e:
-            # No Radia dump file
-            # pkdp('ERR {} FROM FILE', e)
-            return {}
+    if 'method' not in data:
+        raise RuntimeError('no application data method')
+
+    g_id = -1
+    try:
+        with open(str(_dmp_file(data.simulationId)), 'rb') as f:
+            b = f.read()
+            g_id = radia_tk.load_bin(b)
+    except IOError as e:
+        # No Radia dump file
+        # pkdp('ERR {} FROM FILE', e)
+        return {}
+    if data.method == 'get_geom':
         f = _geom_file(data.simulationId)
         f_type = data.get('fieldType', None)
         p = _geom_h5_path(data.viewType, f_type)
@@ -102,6 +105,8 @@ def get_application_data(data, **kwargs):
             with h5py.File(f, 'a') as hf:
                 template_common.dict_to_h5(g, hf, path=p)
             return g
+    if data.method == 'get_field_integrals':
+        return _generate_field_integrals(g_id, data.fieldPaths)
 
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
@@ -224,11 +229,19 @@ def _generate_field_data(g_id, name, f_type, f_paths):
         f = radia_tk.get_magnetization(g_id)
     elif f_type in radia_tk.POINT_FIELD_TYPES:
         f = radia_tk.get_field(g_id, f_type, _build_field_points(f_paths))
-        for p in [fp for fp in f_paths if fp.type == 'line']:
-            p1 = [float(p.beginX), float(p.beginY), float(p.beginZ)]
-            p2 = [float(p.endX), float(p.endY), float(p.endZ)]
-            pkdp('FI {}', radia_tk.field_integral(g_id, f_type, p1, p2))
+    pkdp('F INTS {}', _generate_field_integrals(g_id, f_paths))
     return radia_tk.vector_field_to_data(g_id, name, f, radia_tk.FIELD_UNITS[f_type])
+
+
+def _generate_field_integrals(g_id, f_paths):
+    res = PKDict()
+    for p in [fp for fp in f_paths if fp.type == 'line']:
+        res[p.name] = PKDict()
+        p1 = [float(p.beginX), float(p.beginY), float(p.beginZ)]
+        p2 = [float(p.endX), float(p.endY), float(p.endZ)]
+        for i_type in radia_tk.INTEGRABLE_FIELD_TYPES:
+            res[p.name][i_type] = radia_tk.field_integral(g_id, i_type, p1, p2)
+    return res
 
 
 def _generate_data(g_id, in_data):
