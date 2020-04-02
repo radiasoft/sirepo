@@ -30,15 +30,20 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
 
     self.addOrModifyPath = function(type) {
         var p = appState.models[self.pathTypeModel(type)];
+        srdbg('ADD', type, p);
         if (! appState.models.fieldPaths.paths) {
             appState.models.fieldPaths.paths = [];
         }
         if (! findPath(p)) {
+            srdbg('NO SUCH PATH, ADDING');
             if (type === 'file') {
                 p.fileName = p.fileModel.name;
                 upload((p.fileModel));
             }
             appState.models.fieldPaths.paths.push(p);
+        }
+        else {
+            srdbg('FOUND!');
         }
         appState.saveChanges('fieldPaths', function (d) {
             self.showPathPicker(false);
@@ -66,9 +71,9 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
 
     self.createPathModel = function(type) {
         var t = type || self.pathTypeModel(appState.models.fieldPaths.path);
-        srdbg('create', t);
+        srdbg('create', t, appState.models.fieldPaths.path);
         var model = {
-            id: numPathsOfType(t),
+            id: numPathsOfType(appState.models.fieldPaths.path),
         };
         appState.models[t] = appState.setModelDefaults(model, t);
     };
@@ -102,7 +107,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
     };
 
     self.showPathPicker = function(doShow, isNew) {
-        //srdbg('showPathPicker show?', doShow, 'new?', isNew);
         self.isEditing = doShow && ! isNew;
         if (doShow) {
             if (isNew) {
@@ -124,6 +128,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
 
     function numPathsOfType(type) {
         return (appState.models.fieldPaths.paths || []).filter(function (p) {
+            srdbg('CHECK P', type, p);
             return p.type === type;
         }).length;
     }
@@ -340,18 +345,21 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, radiaService, requ
                         '<table data-ng-if="hasPaths()" style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">',
                           '<colgroup>',
                             '<col style="width: 20ex">',
-                            '<col data-ng-repeat="t in INTEGRABLE_FIELD_TYPES" style="width: 10ex">',
+                            '<col>',
                           '</colgroup>',
                           '<thead>',
                             '<tr>',
                               '<th>Name</th>',
-                              '<th data-ng-repeat="t in INTEGRABLE_FIELD_TYPES">{{ t }}</th>',
+                              '<th>Fields</th>',
                             '</tr>',
                           '</thead>',
                           '<tbody>',
                             '<tr data-ng-repeat="path in paths | filter:isLine">',
                               '<td>{{ path.name }}</td>',
-                              '<td data-ng-repeat="t in INTEGRABLE_FIELD_TYPES"><span>{{ integrals[path.name][t] }}</span></td>',
+                                '<td>',
+                                    '<div data-ng-repeat="t in INTEGRABLE_FIELD_TYPES"><span style="font-weight: bold">{{ t }}:</span> </span><span>{{ format(integrals[path.name][t]) }}</span></div>',
+                                '</td>',
+                              //'<td data-ng-repeat="t in INTEGRABLE_FIELD_TYPES"><span>{{ integrals[path.name][t] }}</span></td>',
                             '</tr>',
                           '</tbody>',
                         '</table>',
@@ -368,14 +376,20 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, radiaService, requ
                 return $scope.paths && $scope.paths.length;
             };
 
+            $scope.format = function(vals) {
+                if (! vals) {
+                    return [];
+                }
+                return vals.map(function (v, i) {
+                    return utilities.roundToPlaces(v, 4);
+                });
+            };
+
             $scope.isLine = function(p) {
                 return p.type === 'line';
             };
 
-
-           appState.whenModelsLoaded($scope, function() {
-               $scope.paths = appState.models.fieldPaths.paths;
-               srdbg('getting fld ints...');
+            function updateTable() {
                requestSender.getApplicationData(
                     {
                         fieldPaths: $scope.paths,
@@ -383,13 +397,18 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, radiaService, requ
                         simulationId: appState.models.simulation.simulationId,
                     },
                     function(d) {
-                        srdbg('got fld ints', d);
-                        if (d) {
-                            $scope.integrals = d;
-                            return;
-                        }
+                        $scope.integrals = d;
                     });
-           });
+            }
+
+            $scope.$on('fieldPaths.changed', function () {
+                updateTable();
+            });
+
+           appState.whenModelsLoaded($scope, function() {
+               $scope.paths = appState.models.fieldPaths.paths;
+               updateTable();
+            });
 
         },
     };
