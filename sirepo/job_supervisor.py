@@ -434,7 +434,6 @@ class _ComputeJob(PKDict):
             if timed_out_op in self.ops:
                 r.add(timed_out_op)
             return list(r)
-
         r = PKDict(state=job.CANCELED)
         if (
             # a running simulation may be cancelled due to a
@@ -453,6 +452,8 @@ class _ComputeJob(PKDict):
             return r
         c = None
         o = []
+        # No matter what happens the job is cancelled
+        self.__db_update(status=job.CANCELED)
         try:
             for i in range(_MAX_RETRIES):
                 try:
@@ -478,7 +479,6 @@ class _ComputeJob(PKDict):
                         x.destroy(cancel=True)
                     if timed_out_op:
                         self.db.cancelledAfterSecs = timed_out_op.maxRunSecs
-                    self.__db_update(status=job.CANCELED)
                     if c:
                         c.msg.opIdsToCancel = [x.opId for x in o]
                         c.send()
@@ -486,11 +486,6 @@ class _ComputeJob(PKDict):
                     return r
                 except Awaited:
                     pass
-                except asyncio.CancelledError:
-                    raise NotImplementedError('TODO')
-                    # TODO(e-carlin): This could happen when a run in hung waiting for
-                    # the agent to come alive. The start timeout is met. That will cancel
-                    # this op which is waiting on await c.prepare_send
             else:
                 raise AssertionError('too many retries {}'.format(req))
         finally:
@@ -533,6 +528,7 @@ class _ComputeJob(PKDict):
             simName=req.content.data.models.simulation.name,
             status=job.PENDING,
         )
+        c = self.db.computeJobSerial
         try:
             for i in range(_MAX_RETRIES):
                 try:
@@ -554,7 +550,32 @@ class _ComputeJob(PKDict):
                     pass
             else:
                 raise AssertionError('too many retries {}'.format(req))
+        except asyncio.CancelledError:
+            # We were cancelled by a runCancel and it will update self.db
+            # o will be destroyed by the runCancel
+            raise
+        except job_driver.AgentStartTimeoutError:
+            # o will be destroyed by job_driver.free_resources() which was
+            # called in job_driver._agent_starting_timeout_handler()
+            """
+            todo What should happen?
+            - If there was no runCancel then this is an error
+            - If there was a runCancel then this should be ignored and the runCancel
+              will update the db. Should we then change it to a CancelledError so the
+              try/except on receive() will be happy? How do we know if we were there was
+              a runCancel before the timeout and we should just leave self.db.status=cancelled.
+              We could set a flag with the compute job serial and if the serial is the same
+              then we know that there was a runCancel?
+            """
+            raise AssertionError('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
         except Exception as e:
+            # The db is still ours because only one runSim is allowed
+            # at a time. The sentinel for this is self.db.status. Only this
+            # method and api_runCancel will update the status. If runCancel
+            # updated the status then the `except CancelledError` above would
+            # be called (runCancel cancels all outstanding op tasks)
+            assert self.db.computeJobSerial == c, \
+                'c={} != db.computeJobSerial={} the db has changed unexpectedly'
             self.__db_update(
                 status=job.ERROR,
                 error=e,
@@ -612,7 +633,7 @@ class _ComputeJob(PKDict):
             req_content=req.copy_content(),
             task=asyncio.current_task(),
         )
-        o.driver = job_driver.get_instance(req, r, o)
+        job_driver.assign_instance_to_op(req, r, o)
         if 'dataFileKey' in kwargs:
             kwargs['dataFileUri'] = job.supervisor_file_uri(
                 o.driver.cfg.supervisor_uri,

@@ -45,6 +45,22 @@ class AgentStartTimeoutError(Exception):
     pass
 
 
+def assign_instance_to_op(req, jobRunMode, op):
+    if jobRunMode == job.SBATCH:
+        res = _CLASSES[job.SBATCH].get_instance(req)
+    else:
+        res = _DEFAULT_CLASS.get_instance(req)
+    assert req.content.uid == res.uid, \
+        'req.content.uid={} is not same as db.uid={} for jid={}'.format(
+            req.content.uid,
+            res.uid,
+            req.content.computeJid,
+        )
+    op.driver = res
+    op.driver.ops[op.opId] = op
+    op.op_slot = None
+
+
 class DriverBase(PKDict):
 
     __instances = PKDict()
@@ -69,8 +85,8 @@ class DriverBase(PKDict):
             _agent_start_lock=tornado.locks.Lock(),
             _agent_starting=False,
             _agent_starting_timeout=None,
+            _agent_start_task=None,
             _cpu_slot_alloc_time=None,
-            _start_cancelled_due_to_timeout=False,
             _websocket=None,
             _websocket_ready=tornado.locks.Event(),
 #TODO(robnagler) https://github.com/radiasoft/sirepo/issues/2195
@@ -153,6 +169,11 @@ class DriverBase(PKDict):
             res.put_nowait(i)
         return res
 
+    async def kill(self):
+        raise NotImplementedError(
+            'DriverBase children need to implement their own kill',
+        )
+
     def make_lib_dir_symlink(self, op):
         if not self._has_remote_agent():
             return
@@ -209,7 +230,6 @@ class DriverBase(PKDict):
         Returns:
             bool: True if the op was actually sent
         """
-        self.ops[op.opId] = op
         if not self._websocket_ready.is_set():
             await self._agent_start(op)
             pkdlog('{} {} await _websocket_ready', self, op)
@@ -289,37 +309,37 @@ class DriverBase(PKDict):
                 return
             try:
                 self._agent_starting = True
-                # TODO(e-carlin): We need a timeout on agent starts. If an agent
-                # is started but never connects we will be in the '_agent_starting'
-                # state forever. After a timeout we should kill the misbehaving
-                # agent and start a new one.
-                await self.kill()
-                # this starts the process, but _receive_alive sets it to false
-                # when the agent fully starts.
                 pkdlog('{} {} await _do_agent_start', self, op)
+                self._agent_start_task = asyncio.current_task()
+                # All awaits must be after this. If a call hangs the timeout
+                # handler will cancel this task
                 self._agent_starting_timeout = tornado.ioloop.IOLoop.current().call_later(
                     self._AGENT_STARTING_SECS,
                     self._agent_starting_timeout_handler,
                 )
-                self._agent_start_task = asyncio.create_task(
-                    self._do_agent_start(op)
-                )
                 try:
-                    await self._agent_start_task
-                except asyncio.CancelledError:
-                    # TODO(e-carlin): XXX race condition. If we receive a runCancel
-                    # and a a timeout cancel at the same time who wins?
-                    if self._start_cancelled_due_to_timeout:
-                        # asyncio.CancelledError has a specific meaning in the
-                        # supervisor (api_runCancel). We need to raise a
-                        # different error so we know we were cancelled due to a timeout
-                        self._start_cancelled_due_to_timeout = False
-                        raise AgentStartTimeoutError(
-                            '{}s timeout met while waiting for agent to start'.format(
-                                self._AGENT_STARTING_SECS,
-                            ),
-                        )
-                    raise
+                    # POSIT: CancelledError isn't smothered by any of the below calls
+                    await self.kill()
+                    await self._do_agent_start(op)
+                except asyncio.CancelledError as e:
+                    # POSIT: CancelledError will only be raised due to
+                    # _agent_starting_timeout. api_runCancel will never cancel
+                    # this task because it is blocked waiting for the agent to
+                    # start (prepare_send).
+                    pkdlog(
+                        'cancelled due to timeout while waiting for agent'
+                        ' start to complete error={} stack={}',
+                        e,
+                        pkdexc(),
+                    )
+                    # Need to raise an error distinct from CancelledError.
+                    # CancelledError has a specific meaning in the
+                    # supervisor (runCancel cancelled the task)
+                    raise AgentStartTimeoutError(
+                        '{}s timeout met while waiting for agent to start'.format(
+                            self._AGENT_STARTING_SECS,
+                        ),
+                    )
                 finally:
                     self._agent_start_task = None
             except Exception as e:
@@ -336,12 +356,16 @@ class DriverBase(PKDict):
             self._agent_starting_timeout = None
 
     async def _agent_starting_timeout_handler(self):
-        pkdlog('{}', self)
-        if self.get('_agent_start_task'):
-            self._start_cancelled_due_to_timeout = True
-            self._agent_start_task.cancel()
-        await self.kill()
-        self.free_resources()
+        try:
+            pkdlog('{}', self)
+            if self._agent_start_task:
+                self._agent_start_task.cancel()
+            await self.kill()
+        finally:
+            # We must always free resources. This is a callback and no one is
+            # listening to handle an exception. If we don't free resources
+            # then no one else will
+            self.free_resources()
 
     def _has_remote_agent(self):
         return False
@@ -400,21 +424,6 @@ class DriverBase(PKDict):
 
     def _websocket_free(self):
         pass
-
-
-def get_instance(req, jobRunMode, op):
-    if jobRunMode == job.SBATCH:
-        res = _CLASSES[job.SBATCH].get_instance(req)
-    else:
-        res = _DEFAULT_CLASS.get_instance(req)
-    assert req.content.uid == res.uid, \
-        'req.content.uid={} is not same as db.uid={} for jid={}'.format(
-            req.content.uid,
-            res.uid,
-            req.content.computeJid,
-        )
-    op.op_slot = None
-    return res
 
 
 def init(job_supervisor_module):
