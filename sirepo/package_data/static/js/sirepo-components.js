@@ -3217,8 +3217,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                 if (j && j.jobRunMode && j.jobRunMode in authState.jobRunModeMap === false) {
                     j.jobRunMode = 'parallel';
                 }
-                appState.saveChanges($scope.simState.model);
-                $scope.simState.runSimulation();
+                appState.saveChanges($scope.simState.model, $scope.simState.runSimulation);
             };
         },
     };

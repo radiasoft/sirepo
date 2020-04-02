@@ -1412,6 +1412,24 @@ SIREPO.app.directive('srBunchEditor', function(appState, panelState) {
     return {
         restrict: 'A',
         controller: function($scope) {
+
+            function updateEmittance() {
+                var bunch = appState.models.bunch;
+                ['emit_x', 'emit_nx', 'emit_y', 'emit_ny'].forEach(function(f) {
+                    if (panelState.isActiveField('bunch', f) && bunch[f] != 0) {
+                        var prefix;
+                        if (f.indexOf('emit_n') == 0) {
+                            prefix = 'emit_';
+                        }
+                        else {
+                            prefix = 'emit_n';
+                        }
+                        var dir = f.charAt(f.length - 1);
+                        bunch[prefix + dir] = 0;
+                    }
+                });
+            }
+
             function updateHalton() {
                 panelState.showField('bunch', 'halton_radix', appState.models.bunch.optimized_halton == '0');
             }
@@ -1434,6 +1452,10 @@ SIREPO.app.directive('srBunchEditor', function(appState, panelState) {
             appState.whenModelsLoaded($scope, function() {
                 appState.watchModelFields($scope, ['bunch.optimized_halton'], updateHalton);
                 appState.watchModelFields($scope, ['bunch.longitudinalMethod'], updateLongitudinalFields);
+                appState.watchModelFields(
+                    $scope,
+                    ['bunch.emit_x', 'bunch.emit_y', 'bunch.emit_nx', 'bunch.emit_ny'],
+                    updateEmittance);
             });
         },
     };

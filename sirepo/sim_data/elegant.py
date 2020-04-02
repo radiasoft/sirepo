@@ -50,6 +50,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                         b[f] = c[f]
             else:
                 dm.bunch.centroid = '0,0,0,0,0,0'
+        cls._init_models(dm, ('bunch', ))
         for m in dm.commands:
             cls.update_model_defaults(m, 'command_{}'.format(m._type))
         cls._organize_example(data)
