@@ -34,6 +34,10 @@ def background_percent_complete(report, run_dir, is_running):
             res.percentComplete = 100
             res.frameCount = 1;
         return res
+    if report == 'elegantAnimation':
+        if not is_running and run_dir.join('inputs.csv').exists():
+            _compute_elegant_result_columns(run_dir, res)
+        return res
     csv_file = run_dir.join(_OUTPUT_FILE.fitOutputFile)
     if csv_file.exists():
         line = _read_last_line(csv_file)
@@ -60,6 +64,7 @@ def extract_report_data(run_dir, sim_in):
             run_dir=run_dir,
         )
         return
+    assert 'fileColumnReport' in sim_in.report
     idx = sim_in.models[sim_in.report].columnNumber
     x, y, col_name, source_name = _extract_column(run_dir, sim_in, idx)
     template_common.write_sequential_result(
@@ -68,9 +73,10 @@ def extract_report_data(run_dir, sim_in):
             [
                 PKDict(
                     points=y.tolist(),
-                    label=col_name,
+                    label='',
                 ),
             ],
+            col_name,
         ),
         run_dir=run_dir,
     )
@@ -78,7 +84,7 @@ def extract_report_data(run_dir, sim_in):
 
 def get_application_data(data, **kwargs):
     if data.method == 'compute_column_count':
-        return _compute_column_count(data)
+        return _compute_file_column_count(data.files)
     assert False, 'unknown get_application_data: {}'.format(data)
 
 
@@ -141,16 +147,27 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
-def _compute_column_count(data):
-    lib_dir = simulation_db.simulation_lib_dir(SIM_TYPE)
+def _compute_column_count(file_dir, input_filename, output_filename, res):
     count = 0
-    for field in ('inputs', 'outputs'):
-        filename = _SIM_DATA.lib_file_name_with_model_field('files', field, data.files[field])
-        header = _read_csv_header_columns(lib_dir.join(filename))
+    for info in (['inputs', input_filename], ['outputs', output_filename]):
+        header = _read_csv_header_columns(file_dir.join(info[1]))
         count += len(header)
-        data.files['{}Count'.format(field)] = len(header)
-    data.files.columnCount = count
-    return data.files
+        res['{}Count'.format(info[0])] = len(header)
+    res.columnCount = count
+    return res
+
+
+def _compute_elegant_result_columns(run_dir, res):
+    return _compute_column_count(run_dir, 'inputs.csv', 'outputs.csv', res)
+
+
+def _compute_file_column_count(files):
+    return _compute_column_count(
+        simulation_db.simulation_lib_dir(SIM_TYPE),
+        _SIM_DATA.lib_file_name_with_model_field('files', 'inputs', files.inputs),
+        _SIM_DATA.lib_file_name_with_model_field('files', 'outputs', files.outputs),
+        files,
+    )
 
 
 def _epoch_animation(frame_args):
@@ -210,13 +227,34 @@ def _fit_animation(frame_args):
     )
 
 
+def _generate_elegant_simulation(data):
+    vars_by_name = PKDict({x.name : x.value for x in data.models.rpnVariables})
+    for m in ('elegantAnimation', 'latticeSettings', 'rfcSettings'):
+        for f in data.models[m]:
+            vars_by_name[f] = data.models[m][f]
+    data.models.rpnVariables = [PKDict(name=n, value=v) for n,v in vars_by_name.items()]
+    res, v = template_common.generate_parameters_file(data)
+    from sirepo.template import elegant
+    #TODO(pjm): don't call private functions
+    v.rpn_variables = elegant._generate_variables(data)
+    data.models.simulation.update(PKDict(
+        backtracking='0',
+        simulationMode='serial',
+    ))
+    return elegant._generate_full_simulation(data, v)
+
+
 def _generate_parameters_file(data):
     report = data.get('report', '')
+    if report == 'elegantAnimation':
+        return _generate_elegant_simulation(data)
     res, v = template_common.generate_parameters_file(data)
     res += 'from __future__ import absolute_import, division, print_function\n'
+    infile = _SIM_DATA.rcscon_filename(data, 'files', 'inputs')
+    outfile = _SIM_DATA.rcscon_filename(data, 'files', 'outputs')
     v.update(PKDict(
-        inputsFileName=_SIM_DATA.rcscon_filename(data, 'files', 'inputs'),
-        outputsFileName=_SIM_DATA.rcscon_filename(data, 'files', 'outputs'),
+        inputsFileName=infile,
+        outputsFileName=outfile,
         layerImplementationNames=_layer_implementation_list(data),
         neuralNetLayers=data.models.neuralNet.layers,
         inputDim=data.models.files.inputsCount,
