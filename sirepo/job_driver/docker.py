@@ -7,13 +7,11 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
-import pykern.pkcollections
-from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc, pkdpretty
+from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 from sirepo import job
 from sirepo import job_driver
-from sirepo import mpi
+import asyncio
 import io
-import itertools
 import os
 import re
 import subprocess
@@ -114,6 +112,8 @@ class DockerDriver(job_driver.DriverBase):
         c = self.pkdel('_cid')
         pkdlog('{} cid={:.12}', self, c)
         try:
+            # TODO(e-carlin): This can possibly hang and needs to be handled
+            # Ex. docker daemon is not responsive
             await self._cmd(
                 (
                     'stop',
@@ -121,6 +121,10 @@ class DockerDriver(job_driver.DriverBase):
                     self._cname
                 ),
             )
+        except asyncio.CancelledError:
+            # CancelledErrors need to make it back out because we handle
+            # them specifically in callers of this code (ex _agent_start())
+            raise
         except Exception as e:
             if not c and 'No such container' in str(e):
                 # Make kill response idempotent
