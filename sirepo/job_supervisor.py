@@ -487,7 +487,7 @@ class _ComputeJob(PKDict):
                 except Awaited:
                     pass
                 except asyncio.CancelledError:
-                    asdfasdfasdf
+                    raise NotImplementedError('TODO')
                     # TODO(e-carlin): This could happen when a run in hung waiting for
                     # the agent to come alive. The start timeout is met. That will cancel
                     # this op which is waiting on await c.prepare_send

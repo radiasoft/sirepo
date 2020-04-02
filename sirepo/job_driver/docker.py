@@ -111,8 +111,7 @@ class DockerDriver(job_driver.DriverBase):
         return cls
 
     async def kill(self):
-        c = self.get('_cid')
-        self._cid = None
+        c = self.pkdel('_cid')
         pkdlog('{} cid={:.12}', self, c)
         try:
             await self._cmd(

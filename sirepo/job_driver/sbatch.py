@@ -169,8 +169,7 @@ disown
                     username=self._creds.username,
                 )
                 try:
-                    pass
-                    # await get_agent_log(c)
+                    await get_agent_log(c)
                 except asyncio.CancelledError:
                     raise
                 except Exception as e:
