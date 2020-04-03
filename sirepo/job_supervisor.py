@@ -494,17 +494,17 @@ class _ComputeJob(PKDict):
                 c.destroy(cancel=False)
 
     async def _receive_api_runSimulation(self, req):
-        def _set_error(error, op, compute_job_serial):
+        def _set_error(op, compute_job_serial):
             if self.db.computeJobSerial != compute_job_serial:
                 # We no longer own the db so there is nothing to do
                 return
             self.__db_update(
                 status=job.ERROR,
-                error=error,
+                error='Server error',
             )
             # _run destroys in the happy path (never got to _run here)
-            if o:
-                o.destroy(cancel=False)
+            if op:
+                op.destroy(cancel=False)
 
         f = req.content.data.get('forceRun')
         if self._is_running_pending():
@@ -569,12 +569,12 @@ class _ComputeJob(PKDict):
                 # api_runCancel destroyed the op and updated the db
                 raise
             # There was a timeout getting the run started. Set the
-            # error and let the user know.
-            # TODO(e-carlin): Do we want to set o.error or just general "server error"
-            _set_error(o.error, o, c)
+            # error and let the user know. The timeot has destroyed
+            # the op so don't need to in _set_error
+            _set_error(None, c)
             return self._status_reply(req)
         except Exception:
-            _set_error('server error', o, c)
+            _set_error(o, c)
             raise
 
     async def _receive_api_runStatus(self, req):
@@ -769,15 +769,11 @@ class _Op(PKDict):
         self.msg.update(opId=self.opId, opName=self.opName)
         pkdlog('{} runDir={}', self, self.msg.get('runDir'))
 
-    def destroy(self, cancel=True, error=None):
+    def destroy(self, cancel=True):
         if cancel:
             if self.task:
                 self.task.cancel()
                 self.task = None
-        # Ops can be destroyed multiple times
-        # The first error is "closest to the source" so don't overwrite it
-        if error and not self.error:
-            self.error = error
         for x in 'run_callback', 'timer':
             if x in self:
                 tornado.ioloop.IOLoop.current().remove_timeout(self.pkdel(x))
