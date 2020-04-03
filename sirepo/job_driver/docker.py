@@ -122,8 +122,8 @@ class DockerDriver(job_driver.DriverBase):
                 ),
             )
         except asyncio.CancelledError:
-            # CancelledErrors need to make it back out because we handle
-            # them specifically in callers of this code (ex _agent_start())
+            # CancelledErrors need to make it back out to be handled
+            # by callers (ex job_supervisor.api_runSimulation)
             raise
         except Exception as e:
             if not c and 'No such container' in str(e):

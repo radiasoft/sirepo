@@ -569,12 +569,7 @@ class _ComputeJob(PKDict):
                 # api_runCancel destroyed the op and updated the db
                 raise
             # There was a timeout getting the run started. Set the
-            # error and let the user know. This run (runA) may no
-            # longer own the db. This happens when there was a runA,
-            # then a runACancel, then a runB, then a timeout waiting
-            # for the agent to start. In that case the runACancel
-            # updated the db and there is nothing else to do for
-            # runA. The runB owns the db and will set the error here.
+            # error and let the user know.
             # TODO(e-carlin): Do we want to set o.error or just general "server error"
             _set_error(o.error, o, c)
             return self._status_reply(req)
@@ -630,7 +625,7 @@ class _ComputeJob(PKDict):
             req_content=req.copy_content(),
             task=asyncio.current_task(),
         )
-        job_driver.assign_instance_to_op(req, r, o)
+        job_driver.assign_instance_op(req, r, o)
         if 'dataFileKey' in kwargs:
             kwargs['dataFileUri'] = job.supervisor_file_uri(
                 o.driver.cfg.supervisor_uri,

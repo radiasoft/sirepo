@@ -40,12 +40,7 @@ class AgentMsg(PKDict):
         DriverBase.receive(self)
 
 
-class AgentStartTimeoutError(Exception):
-    """Timeout was met waiting for agent to start"""
-    pass
-
-
-def assign_instance_to_op(req, jobRunMode, op):
+def assign_instance_op(req, jobRunMode, op):
     if jobRunMode == job.SBATCH:
         res = _CLASSES[job.SBATCH].get_instance(req)
     else:
