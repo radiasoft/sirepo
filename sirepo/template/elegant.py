@@ -115,7 +115,7 @@ class OutputFileIterator(lattice.ModelIterator):
 
 def background_percent_complete(report, run_dir, is_running):
     #TODO(robnagler) remove duplication in run_dir.exists() (outer level?)
-    alert, last_element = _parse_elegant_log(run_dir)
+    alert, last_element, step = _parse_elegant_log(run_dir)
     res = PKDict(
         percentComplete=100,
         frameCount=0,
@@ -123,7 +123,7 @@ def background_percent_complete(report, run_dir, is_running):
     )
     if is_running:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-        res.percentComplete = _compute_percent_complete(data, last_element)
+        res.percentComplete = _compute_percent_complete(data, last_element, step)
         return res
     if not run_dir.join(_ELEGANT_SEMAPHORE_FILE).exists():
         return res
@@ -442,7 +442,17 @@ def _command_file_extension(model):
     return 'sdds'
 
 
-def _compute_percent_complete(data, last_element):
+def _compute_percent_complete(data, last_element, step):
+    if step > 1:
+        cmd = _find_first_command(data, 'run_control')
+        if cmd and cmd.n_steps:
+            n_steps = 0
+            if code_variable.CodeVar.is_var_value(cmd.n_steps):
+                n_steps = _code_var(data.models.rpnVariables).eval_var(cmd.n_steps)[0]
+            else:
+                n_steps = int(cmd.n_steps)
+            if n_steps and n_steps > 0:
+                return min(100, step * 100 / n_steps)
     if not last_element:
         return 0
     elements = PKDict()
@@ -455,10 +465,7 @@ def _compute_percent_complete(data, last_element):
     beamline_map = PKDict()
     count = _walk_beamline(beamlines[id], 1, elements, beamlines, beamline_map)
     index = beamline_map[last_element] if last_element in beamline_map else 0
-    res = index * 100 / count
-    if res > 100:
-        return 100
-    return res
+    return min(100, index * 100 / count)
 
 
 def _contains_columns(column_names, search):
@@ -741,10 +748,13 @@ def _generate_twiss_simulation(data, v):
     )
     twiss_output.final_values_only = '0'
     twiss_output.output_at_each_step = '0'
+    change_particle = _find_first_command(data, 'change_particle')
     data.models.commands = [
         run_setup,
         twiss_output,
     ]
+    if change_particle:
+        data.models.commands.insert(0, change_particle)
     return _generate_full_simulation(data, v)
 
 
@@ -859,6 +869,7 @@ def _parse_elegant_log(run_dir):
     want_next_line = False
     prev_line = ''
     prev_err = ''
+    step = 0
     for line in text.split('\n'):
         if line == prev_line:
             continue
@@ -867,6 +878,9 @@ def _parse_elegant_log(run_dir):
             name = match.group(1)
             if not re.search('^M\d+\#', name):
                 last_element = name
+        match = re.search('^tracking step (\d+)', line)
+        if match:
+            step = int(match.group(1))
         if want_next_line:
             res += line + '\n'
             want_next_line = False
@@ -880,7 +894,7 @@ def _parse_elegant_log(run_dir):
                     res += line + '\n'
                 prev_err = line
         prev_line = line
-    return res, last_element
+    return res, last_element, step
 
 
 def _plot_title(xfield, yfield, page_index, page_count):

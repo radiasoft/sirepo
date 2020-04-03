@@ -15,7 +15,7 @@ from sirepo.template.line_parser import LineParser
 _FIELD_ALIAS = PKDict(bmax='b_max')
 
 
-def parse_file(lattice_text, maxId=0):
+def parse_file(lattice_text, rpn_variables, maxId=0):
     parser = LineParser(maxId)
     lines = lattice_text.replace('\r', '').split('\n')
     prev_line = ''
@@ -35,7 +35,8 @@ def parse_file(lattice_text, maxId=0):
         if not _parse_line(parser, prev_line + line, models):
             break
         prev_line = ''
-    models['rpnVariables'] = [PKDict(name=k, value=v) for k, v in models.rpnVariables.items()]
+    models['rpnVariables'] = [PKDict(name=k, value=v) for k, v in models.rpnVariables.items()] \
+        + rpn_variables
     return models
 
 
