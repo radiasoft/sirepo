@@ -83,9 +83,7 @@ class DriverBase(PKDict):
             uid=req.content.uid,
             _agentId=job.unique_key(),
             _agent_start_lock=tornado.locks.Lock(),
-            _agent_starting=False,
             _agent_starting_timeout=None,
-            _agent_start_task=None,
             _cpu_slot_alloc_time=None,
             _websocket=None,
             _websocket_ready=tornado.locks.Event(),
@@ -144,9 +142,9 @@ class DriverBase(PKDict):
             q.put_nowait(op.op_slot)
             op.op_slot = None
 
-    def free_resources(self):
+    def free_resources(self, error=None):
         """Remove holds on all resources and remove self from data structures"""
-        pkdlog('{}', self)
+        pkdlog('{} error={}', self, error)
         try:
             self._agent_starting_done()
             self._websocket_ready.clear()
@@ -156,7 +154,7 @@ class DriverBase(PKDict):
                 # Will not call websocket_on_close()
                 w.sr_close()
             for o in list(self.ops.values()):
-                o.destroy()
+                o.destroy(error=error)
             self.cpu_slot_free()
             self._websocket_free()
         except Exception as e:
@@ -302,70 +300,37 @@ class DriverBase(PKDict):
         )
 
     async def _agent_start(self, op):
-        if self._agent_starting:
+        if self._agent_starting_timeout:
             return
         async with self._agent_start_lock:
-            if self._agent_starting or self._websocket_ready.is_set():
+            if self._agent_starting_timeout or self._websocket_ready.is_set():
                 return
             try:
-                self._agent_starting = True
                 pkdlog('{} {} await _do_agent_start', self, op)
-                self._agent_start_task = asyncio.current_task()
                 # All awaits must be after this. If a call hangs the timeout
                 # handler will cancel this task
                 self._agent_starting_timeout = tornado.ioloop.IOLoop.current().call_later(
                     self._AGENT_STARTING_SECS,
                     self._agent_starting_timeout_handler,
                 )
-                try:
-                    # POSIT: CancelledError isn't smothered by any of the below calls
-                    await self.kill()
-                    await self._do_agent_start(op)
-                except asyncio.CancelledError as e:
-                    # POSIT: CancelledError will only be raised due to
-                    # _agent_starting_timeout. api_runCancel will never cancel
-                    # this task because it is blocked waiting for the agent to
-                    # start (prepare_send).
-                    pkdlog(
-                        'cancelled due to timeout while waiting for agent'
-                        ' start to complete error={} stack={}',
-                        e,
-                        pkdexc(),
-                    )
-                    # Need to raise an error distinct from CancelledError.
-                    # CancelledError has a specific meaning in the
-                    # supervisor (runCancel cancelled the task)
-                    raise AgentStartTimeoutError(
-                        '{}s timeout met while waiting for agent to start'.format(
-                            self._AGENT_STARTING_SECS,
-                        ),
-                    )
-                finally:
-                    self._agent_start_task = None
+                # POSIT: CancelledError isn't smothered by any of the below calls
+                await self.kill()
+                await self._do_agent_start(op)
             except Exception as e:
                 pkdlog('{} error={} stack={}', self, e, pkdexc())
-                self._agent_starting_done()
+                self.free_resources(error='Failed to start agent')
                 raise
 
     def _agent_starting_done(self):
-        self._agent_starting = False
         if self._agent_starting_timeout:
             tornado.ioloop.IOLoop.current().remove_timeout(
                 self._agent_starting_timeout
             )
             self._agent_starting_timeout = None
 
-    async def _agent_starting_timeout_handler(self):
-        try:
-            pkdlog('{}', self)
-            if self._agent_start_task:
-                self._agent_start_task.cancel()
-            await self.kill()
-        finally:
-            # We must always free resources. This is a callback and no one is
-            # listening to handle an exception. If we don't free resources
-            # then no one else will
-            self.free_resources()
+    def _agent_starting_timeout_handler(self):
+        pkdlog('{} timeout={}', self, self._AGENT_STARTING_SECS)
+        self.free_resources(error='Timeout while trying to start agent')
 
     def _has_remote_agent(self):
         return False
