@@ -220,8 +220,8 @@ def _fit_animation(frame_args):
         frame_args,
         PKDict(
             x_label='',
-            y_label=header[idx],
-            title='',
+            y_label='',
+            title=header[idx],
             hideColorBar=True,
         ),
     )
