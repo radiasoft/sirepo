@@ -454,6 +454,7 @@ class _ComputeJob(PKDict):
         o = []
         # No matter what happens the job is cancelled
         self.__db_update(status=job.CANCELED)
+        self._cancelled_serial = self.db.computeJobSerial
         try:
             for i in range(_MAX_RETRIES):
                 try:
@@ -493,6 +494,18 @@ class _ComputeJob(PKDict):
                 c.destroy(cancel=False)
 
     async def _receive_api_runSimulation(self, req):
+        def _set_error(error, op, compute_job_serial):
+            if self.db.computeJobSerial != compute_job_serial:
+                # We no longer own the db so there is nothing to do
+                return
+            self.__db_update(
+                status=job.ERROR,
+                error=error,
+            )
+            # _run destroys in the happy path (never got to _run here)
+            if o:
+                o.destroy(cancel=False)
+
         f = req.content.data.get('forceRun')
         if self._is_running_pending():
             if f or not self._req_is_valid(req):
@@ -551,38 +564,22 @@ class _ComputeJob(PKDict):
             else:
                 raise AssertionError('too many retries {}'.format(req))
         except asyncio.CancelledError:
-            # We were cancelled by a runCancel and it will update self.db
-            # o will be destroyed by the runCancel
-            raise
-        except job_driver.AgentStartTimeoutError:
-            # o will be destroyed by job_driver.free_resources() which was
-            # called in job_driver._agent_starting_timeout_handler()
-            """
-            todo What should happen?
-            - If there was no runCancel then this is an error
-            - If there was a runCancel then this should be ignored and the runCancel
-              will update the db. Should we then change it to a CancelledError so the
-              try/except on receive() will be happy? How do we know if we were there was
-              a runCancel before the timeout and we should just leave self.db.status=cancelled.
-              We could set a flag with the compute job serial and if the serial is the same
-              then we know that there was a runCancel?
-            """
-            raise AssertionError('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
-        except Exception as e:
-            # The db is still ours because only one runSim is allowed
-            # at a time. The sentinel for this is self.db.status. Only this
-            # method and api_runCancel will update the status. If runCancel
-            # updated the status then the `except CancelledError` above would
-            # be called (runCancel cancels all outstanding op tasks)
-            assert self.db.computeJobSerial == c, \
-                'c={} != db.computeJobSerial={} the db has changed unexpectedly'
-            self.__db_update(
-                status=job.ERROR,
-                error=e,
-            )
-            # _run destroys in the happy path (never got to _run here)
-            if o:
-                o.destroy(cancel=False)
+            if self.pkdel('_cancelled_serial') == c:
+                # We were cancelled due to api_runCancel.
+                # api_runCancel destroyed the op and updated the db
+                raise
+            # There was a timeout getting the run started. Set the
+            # error and let the user know. This run (runA) may no
+            # longer own the db. This happens when there was a runA,
+            # then a runACancel, then a runB, then a timeout waiting
+            # for the agent to start. In that case the runACancel
+            # updated the db and there is nothing else to do for
+            # runA. The runB owns the db and will set the error here.
+            # TODO(e-carlin): Do we want to set o.error or just general "server error"
+            _set_error(o.error, o, c)
+            return self._status_reply(req)
+        except Exception:
+            _set_error('server error', o, c)
             raise
 
     async def _receive_api_runStatus(self, req):
@@ -770,17 +767,22 @@ class _Op(PKDict):
         super().__init__(*args, **kwargs)
         self.update(
             do_not_send=False,
+            error=None,
             opId=job.unique_key(),
             _reply_q=sirepo.tornado.Queue(),
         )
         self.msg.update(opId=self.opId, opName=self.opName)
         pkdlog('{} runDir={}', self, self.msg.get('runDir'))
 
-    def destroy(self, cancel=True):
+    def destroy(self, cancel=True, error=None):
         if cancel:
             if self.task:
                 self.task.cancel()
                 self.task = None
+        # Ops can be destroyed multiple times
+        # The first error is "closest to the source" so don't overwrite it
+        if error and not self.error:
+            self.error = error
         for x in 'run_callback', 'timer':
             if x in self:
                 tornado.ioloop.IOLoop.current().remove_timeout(self.pkdel(x))

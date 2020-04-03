@@ -168,6 +168,7 @@ disown
                     host=self.cfg.host,
                     username=self._creds.username,
                 )
+
                 try:
                     await get_agent_log(c)
                 except asyncio.CancelledError:
