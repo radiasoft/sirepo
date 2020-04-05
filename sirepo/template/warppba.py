@@ -5,9 +5,9 @@ u"""WARP execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from opmd_viewer import OpenPMDTimeSeries
-from opmd_viewer.openpmd_timeseries import main
-from opmd_viewer.openpmd_timeseries.data_reader import field_reader
+from openpmd_viewer import OpenPMDTimeSeries
+from openpmd_viewer.openpmd_timeseries import main
+from openpmd_viewer.openpmd_timeseries.data_reader import field_reader
 from pykern import pkcollections
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -41,7 +41,7 @@ def background_percent_complete(report, run_dir, is_running):
     if is_running:
         file_index -= 1
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    Fr, info = field_reader.read_field_circ(str(files[file_index]), 'E/r')
+    Fr, info = _read_field_circ(files[file_index])
     plasma_length = float(data.models.electronPlasma.length) / 1e3
     zmin = float(data.models.simulationGrid.zMin) / 1e6
     percent_complete = (info.imshow_extent[1] / (plasma_length - zmin))
@@ -102,6 +102,7 @@ def extract_particle_report(frame_args, particle_type):
         output=True,
         plot=False,
     )
+    pkdp(data_list)
     with h5py.File(data_file.filename) as f:
         data_list.append(main.read_species_data(f, particle_type, 'w', ()))
     select = _particle_selection_args(frame_args)
@@ -124,6 +125,7 @@ def extract_particle_report(frame_args, particle_type):
         weights=data_list[2],
         range=[_select_range(data_list[0], xarg, select), _select_range(data_list[1], yarg, select)],
     )
+    pkdp(edges)
     return PKDict(
         x_range=[float(edges[0][0]), float(edges[0][-1]), len(hist)],
         y_range=[float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
@@ -268,7 +270,7 @@ def write_parameters(data, run_dir, is_parallel):
 
 def _adjust_z_width(data_list, data_file):
     # match boundaries with field report
-    Fr, info = field_reader.read_field_circ(data_file.filename, 'E/r')
+    Fr, info = _read_field_circ(data_file.filename)
     extent = info.imshow_extent
     return [
         numpy.append(data_list[0], [extent[0], extent[1]]),
@@ -313,6 +315,15 @@ def _particle_selection_args(args):
                 continue
             res[field] = [min, max]
     return res if len(res.keys()) else None
+
+
+def _read_field_circ(filename):
+    return field_reader.read_field_circ(
+        str(filename),
+        'E/r',
+        slice_across=None,
+        slice_relative_position=None,
+    )
 
 
 def _select_range(values, arg, select):

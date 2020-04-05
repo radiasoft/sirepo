@@ -28,6 +28,7 @@ build_as_root() {
 build_as_run_user() {
     . ~/.bashrc
     cd "$build_guest_conf"
+    umask 022
     sirepo_boot_init
     git clone -q --depth=50 https://github.com/radiasoft/pykern
     git clone -q --depth=50 "--branch=${TRAVIS_BRANCH:-master}" \
@@ -37,23 +38,19 @@ build_as_run_user() {
         git checkout -qf "$TRAVIS_COMMIT"
     fi
     local p
-    for p in py3 py2; do
-        pyenv global "$p"
-        sirepo_fix_srw
-        cd ../pykern
-        pip uninstall -y pykern || true
-        pip install .
-        cd ../sirepo
-        pip install -r requirements.txt
-        pip install -e .
-        sirepo srw create_predefined
-        pip uninstall -y sirepo
-        pip install .
-    done
-
+    sirepo_fix_srw
+    cd ../pykern
+    pip uninstall -y pykern || true
+    pip install .
+    cd ../sirepo
+    pip install -r requirements.txt
+    pip install -e .
+    sirepo srw create_predefined
+    pip uninstall -y sirepo
+    pip install .
     PYKERN_PKDEBUG_WANT_PID_TIME=1 SIREPO_PYTEST_SKIP=job_test:animation_test:report_test bash test.sh
     cd ..
-    build_run_user_home_chmod_public
+#    build_run_user_home_chmod_public
 }
 
 sirepo_boot_init() {

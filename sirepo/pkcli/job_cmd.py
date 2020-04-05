@@ -140,7 +140,7 @@ def _do_get_simulation_frame(msg, template):
         r = 'report not generated'
         if isinstance(e, sirepo.util.UserAlert):
             r = e.sr_args.error
-        return PKDict(error=r)
+        return PKDict(state=job.ERROR, error=r, stack=pkdexc())
 
 
 def _do_get_data_file(msg, template):
@@ -223,7 +223,7 @@ def _on_do_compute_exit(success_exit, is_parallel, template, run_dir):
     try:
         return _success_exit() if success_exit else _failure_exit()
     except Exception as e:
-        return PKDict(state=sirepo.job.ERROR, error=e)
+        return PKDict(state=sirepo.job.ERROR, error=e, stack=pkdexc())
 
 
 def _mtime_or_now(path):
