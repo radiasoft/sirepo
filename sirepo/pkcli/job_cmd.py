@@ -114,7 +114,12 @@ def _do_fastcgi(msg, template):
     s.connect(msg.fastcgiFile)
     while True:
         try:
-            m = pkjson.load_any(s.recv(int(1e8)))
+            r = b''
+            while True:
+                r += s.recv(int(1e8))
+                if r[-1:] == b'\n':
+                    m = pkjson.load_any(r)
+                    break
             m.runDir = pkio.py_path(m.runDir)
             with pkio.save_chdir(m.runDir):
                 r = globals()['_do_' + m.jobCmd](

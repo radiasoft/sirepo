@@ -296,12 +296,12 @@ def _parse_statement(state, cmd, label, values):
             pass
         else:
             pkdlog('unknown cmd: {}', values)
-    return state
 
 
 def _parse_values(state, values):
     #pkdp('parse values: {}', values)
-    assert len(values)
+    if not len(values):
+        return
     if len(values) == 1 and '=' in values[0] and not re.search(r'\Wline\s*=s*\(', values[0].lower()):
         # a variable assignment
         m = re.match(r'.*?([\w.\']+)\s*:?=\s*(.*)$', values[0])
@@ -317,7 +317,7 @@ def _parse_values(state, values):
         label, cmd = m.group(1, 2)
     else:
         label, cmd = None, values[0]
-    return _parse_statement(state, cmd, label, values)
+    _parse_statement(state, cmd, label, values)
 
 
 def _set_default_beamline(state):
@@ -334,7 +334,8 @@ def _set_default_beamline(state):
         beamline_id = state.elements_by_name[name].id
     elif len(state.models.beamlines):
         beamline_id = state.models.beamlines[-1].id
-    state.models.simulation.visualizationBeamlineId = beamline_id
+    state.models.simulation.activeBeamlineId = \
+        state.models.simulation.visualizationBeamlineId = beamline_id
 
 
 def _split_values(item):
