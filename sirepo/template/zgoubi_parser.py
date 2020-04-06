@@ -40,6 +40,13 @@ _NEW_PARTICLE_TYPES = PKDict(
 )
 
 def parse_file(zgoubi_text, max_id=0):
+    # very specific fixup for old zgoubi data files which split MULTIPOL components
+    # across multiple lines
+    zgoubi_text = re.sub(
+        r'\n[ ]*(\'MULTIPOL\'.*?\n.*?\n.*?)\n[ ]*([0-9.-e]+)[ ]*\n',
+        r'\n\1 \2\n',
+        zgoubi_text,
+    )
     lines = zgoubi_text.replace('\r', '').split('\n')
     elements = []
     # skip first documentation line
