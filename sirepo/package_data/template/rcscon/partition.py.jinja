@@ -9,19 +9,45 @@ def train_test_validate(x, y, train, test):
     x_test, x_validate, y_test, y_validate = train_test_split(x_tv, y_tv, test_size=size, random_state=42, shuffle=True)
     return (x_train, x_test, x_validate, y_train, y_test, y_validate)
 
-(x_train, x_test, x_validate, y_train, y_test, y_validate) = train_test_validate(
+x_train, x_test, x_validate, y_train, y_test, y_validate = train_test_validate(
     x_scaled,
     y_scaled,
     {{ partition_training }},
     {{partition_testing }},
 )
 {% else %}
-cutoff0 = {{ partition_cutoff0 }}            
-cutoff1 = {{ partition_cutoff1 }}            
+cutoff0 = {{ partition_cutoff0 }}
+cutoff1 = {{ partition_cutoff1 }}
+
+{% if hasTrainingAndTesting %}
+from sklearn.model_selection import train_test_split
+
+def append_values(values, new_values):
+    if values is not None:
+        return np.append(values, new_values, axis=0)
+    return new_values
+
+x_validate = y_validate = x_train_and_test = y_train_and_test = None
+x_{{ partition_section0 }} = x_scaled[:cutoff0]
+y_{{ partition_section0 }} = y_scaled[:cutoff0]
+x_{{ partition_section1 }} = append_values(x_{{ partition_section1 }}, x_scaled[cutoff0:cutoff1])
+y_{{ partition_section1 }} = append_values(y_{{ partition_section1 }}, y_scaled[cutoff0:cutoff1])
+x_{{ partition_section2 }} = append_values(x_{{ partition_section2 }}, x_scaled[cutoff1:])
+y_{{ partition_section2 }} = append_values(y_{{ partition_section2 }}, y_scaled[cutoff1:])
+
+x_train, x_test, y_train, y_test = train_test_split(
+    x_train_and_test,
+    y_train_and_test,
+    test_size=(100 - {{ partition_trainTestPercent }}) / 100,
+    random_state=42,
+    shuffle=True
+)
+{% else %}
 x_{{ partition_section0 }} = x_scaled[:cutoff0]
 y_{{ partition_section0 }} = y_scaled[:cutoff0]
 x_{{ partition_section1 }} = x_scaled[cutoff0:cutoff1]
 y_{{ partition_section1 }} = y_scaled[cutoff0:cutoff1]
 x_{{ partition_section2 }} = x_scaled[cutoff1:]
 y_{{ partition_section2 }} = y_scaled[cutoff1:]
+{% endif %}
 {% endif %}

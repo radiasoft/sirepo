@@ -1,0 +1,10 @@
+title, "{{ simulation_name }}";
+
+{{ variables }}
+{{ lattice }}
+
+{% if useBeamline %}
+beam;
+use, sequence={{ useBeamline }};
+twiss, file="twiss.tfs";
+{% endif %}

@@ -13,7 +13,7 @@ pykern.pksetup.setup(
     install_requires=[
         # some "concrete" dependencies in requirements.txt
         'Flask>=1.1',
-        'Flask_SQLAlchemy',
+        'SQLAlchemy',
         'aenum',
         'cryptography>=2.8',
         'numconv',

@@ -5,7 +5,8 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
-    SIREPO.appImportText = 'Import an elegant command (.ele) or lattice (.lte) file';
+    SIREPO.appMadxExport = true;
+    SIREPO.appImportText = 'Import an elegant command (.ele) or lattice (.lte or .madx) file';
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="BeamInputFile" class="col-sm-7">',
           '<div data-file-field="field" data-model="model" data-file-type="bunchFile-sourceFile" data-empty-selection-text="No File Selected"></div>',
@@ -832,8 +833,8 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                           '</div>',
                           '<div data-ng-show="isState(\'ready\') || isState(\'lattice\')">',
                             '<div data-ng-show="isState(\'ready\')" class="form-group">',
-                              '<label>Select Command (.ele), Lattice (.lte), or ', SIREPO.APP_SCHEMA.productInfo.shortName,' Export (.zip)</label>',
-                              '<input id="elegant-file-import" type="file" data-file-model="elegantFile" accept=".ele,.lte,.zip" />',
+                              '<label>Select Command (.ele), Lattice (.lte or .madx), or ', SIREPO.APP_SCHEMA.productInfo.shortName,' Export (.zip)</label>',
+                              '<input id="elegant-file-import" type="file" data-file-model="elegantFile" accept=".ele,.lte,.madx,.zip" />',
                               '<br />',
                               '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
                             '</div>',
@@ -1411,6 +1412,24 @@ SIREPO.app.directive('srBunchEditor', function(appState, panelState) {
     return {
         restrict: 'A',
         controller: function($scope) {
+
+            function updateEmittance() {
+                var bunch = appState.models.bunch;
+                ['emit_x', 'emit_nx', 'emit_y', 'emit_ny'].forEach(function(f) {
+                    if (panelState.isActiveField('bunch', f) && bunch[f] != 0) {
+                        var prefix;
+                        if (f.indexOf('emit_n') == 0) {
+                            prefix = 'emit_';
+                        }
+                        else {
+                            prefix = 'emit_n';
+                        }
+                        var dir = f.charAt(f.length - 1);
+                        bunch[prefix + dir] = 0;
+                    }
+                });
+            }
+
             function updateHalton() {
                 panelState.showField('bunch', 'halton_radix', appState.models.bunch.optimized_halton == '0');
             }
@@ -1433,6 +1452,10 @@ SIREPO.app.directive('srBunchEditor', function(appState, panelState) {
             appState.whenModelsLoaded($scope, function() {
                 appState.watchModelFields($scope, ['bunch.optimized_halton'], updateHalton);
                 appState.watchModelFields($scope, ['bunch.longitudinalMethod'], updateLongitudinalFields);
+                appState.watchModelFields(
+                    $scope,
+                    ['bunch.emit_x', 'bunch.emit_y', 'bunch.emit_nx', 'bunch.emit_ny'],
+                    updateEmittance);
             });
         },
     };

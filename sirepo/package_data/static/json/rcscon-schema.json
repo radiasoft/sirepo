@@ -15,6 +15,10 @@
         }
     },
     "enum": {
+        "DataSource": [
+            ["files", "Input/Output Files"],
+            ["elegant", "Elegant Simulation"]
+        ],
         "MLModule": [
             ["neuralnet", "Neural Network"]
         ],
@@ -69,7 +73,8 @@
         "PartitionSection": [
             ["train", "Training"],
             ["test", "Testing"],
-            ["validate", "Valiation"]
+            ["validate", "Valiation"],
+            ["train_and_test", "Training and Testing"]
         ],
         "PlotScale": [
             ["linear", "Linear"],
@@ -90,7 +95,8 @@
     "dynamicFiles": {
         "sirepoLibs": {
             "js": [
-                "rcscon.js"
+                "rcscon.js",
+                "sirepo-lattice.js"
             ],
             "css": [
                 "rcscon.css"
@@ -123,9 +129,16 @@
     "frameIdFields": {
         "animation": ["columnNumber"],
         "partitionAnimation": ["columnNumber"],
-        "epochAnimation": []
+        "epochAnimation": [],
+        "elegantAnimation": []
     },
     "model": {
+        "dataSource": {
+            "source": ["Data Source", "DataSource", "files"]
+        },
+        "elegantAnimation": {
+            "n_steps": ["Iterations", "Integer", 100]
+        },
         "epochAnimation": {
             "plotScale": ["Plot Scale", "PlotScale", "linear"]
         },
@@ -142,6 +155,15 @@
             "columnNumber": ["Column Number", "Integer", 0],
             "histogramBins": ["Histogram Bins", "Integer", 30],
             "colorMap": ["Color Map", "ColorMap", "viridis"]
+        },
+        "latticeSettings": {
+            "phase_error": ["Phase Error [deg]", "Float", 25.0, "The width of the Gaussian distribution of error in the DTL tank phase settings."],
+            "amplitude_error": ["Amplitude Error", "Float", 0.075, "The width of the Guassian distribution of error in the DTL tank amplitude (Voltage) setting. This is a fractional error based on the default Voltage setting."],
+            "dx_error": ["dx Error [m]", "Float", 0.25, "The width of the Guassian distribution of error for initial horizontal bunch size."],
+            "dy_error": ["dy Error [m]", "Float", 0.25, "The width of the Guassian distribution of error for initial vertical bunch size."],
+            "dxp_error": ["dxp Error [rad]", "Float", 0.25, "The width of the Guassian distribution of error for initial horizontal divergence."],
+            "dyp_error": ["dyp Error [rad]", "Float", 0.25, "The width of the Guassian distribution of error for initial vertical divergence."],
+            "dp_error": ["dp Error", "Float", 0.15e-3, "The width of the Guassian distribution of error for initial energy offset in $\\beta\\gamma$."]
         },
         "mlModel": {
             "mlModule": ["Model Type", "MLModule", "neuralnet"]
@@ -171,22 +193,45 @@
             "training": ["Training %", "Float", 75, "", 1, 98],
             "testing": ["Testing %", "Float", 12.5, "", 1, 98],
             "validation": ["Validation %", "Float", 12.5],
-            "method": ["Split Method", "SplitMethod"],
+            "method": ["Split Method", "SplitMethod", "random"],
             "random_state": ["Random Seed", "Integer", 42],
-            "section0": ["Section 0", "PartitionSection", "test"],
-            "section1": ["Section 1", "PartitionSection", "train"],
+            "section0": ["Section 0", "PartitionSection", "validate"],
+            "section1": ["Section 1", "PartitionSection", "train_and_test"],
             "section2": ["Section 2", "PartitionSection", "validate"],
             "cutoff0": ["Cutoff 0", "Integer"],
-            "cutoff1": ["Cutoff 1", "Integer"]
+            "cutoff1": ["Cutoff 1", "Integer"],
+            "trainTestPercent": ["Training %", "Float", 75, "", 1, 98]
         },
         "partitionSelectionReport": {
         },
         "partitionAnimation": {
             "columnNumber": ["Column Number", "Integer", 0]
         },
+        "rfcSettings": {
+            "change_p0": ["Change P0", "Boolean", "1", "does cavity change central momentum?"],
+            "freq": ["Frequency [Hz]", "Float", "201.24"],
+            "end1_focus": ["End1 Focus", "Boolean", "1", "include focusing at entrance?"],
+            "end2_focus": ["End2 Focus", "Boolean", "1", "include focusing at exit?"],
+            "phase": ["Phase [deg]", "Float", "58.0"],
+            "lock_phase": ["Lock Phase", "Boolean", "0", "Lock phase to given value regardless of bunch centroid motion?"]
+        },
         "simulationStatus": {}
     },
     "view": {
+        "dataSource": {
+            "title": "Data Source",
+            "basic": [
+                "source"
+            ],
+            "advanced": []
+        },
+        "elegantAnimation": {
+            "title": "Elegant Simulation",
+            "basic": [
+                "n_steps"
+            ],
+            "advanced": []
+        },
         "epochAnimation": {
             "title": "Training Error",
             "advanced": [
@@ -209,6 +254,19 @@
         },
         "fitAnimation": {
             "title": "Column",
+            "advanced": []
+        },
+        "latticeSettings": {
+            "title": "Lattice Errors",
+            "basic": [
+                "phase_error",
+                "amplitude_error",
+                "dx_error",
+                "dy_error",
+                "dxp_error",
+                "dyp_error",
+                "dp_error"
+            ],
             "advanced": []
         },
         "mlModel": {
@@ -251,6 +309,18 @@
         },
         "partitionSelectionReport": {
             "title": "Partition Selection",
+            "advanced": []
+        },
+        "rfcSettings": {
+            "title": "RF Cavity Settings",
+            "basic":  [
+                "change_p0",
+                "freq",
+                "end1_focus",
+                "end2_focus",
+                "phase",
+                "lock_phase"
+            ],
             "advanced": []
         },
         "simulationStatus": {

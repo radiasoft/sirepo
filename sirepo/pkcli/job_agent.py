@@ -18,6 +18,7 @@ import os
 import re
 import signal
 import sirepo.auth
+import sirepo.tornado
 import socket
 import subprocess
 import sys
@@ -301,7 +302,7 @@ class _Dispatcher(PKDict):
             m = msg.copy()
             m.jobCmd = 'fastcgi'
             self._fastcgi_file = 'job_cmd_fastcgi.sock'
-            self._fastcgi_msg_q = tornado.queues.Queue(1)
+            self._fastcgi_msg_q = sirepo.tornado.Queue(1)
             pkio.unchecked_remove(self._fastcgi_file)
             # Avoid OSError: AF_UNIX path too long (max=100)
             # Use relative path

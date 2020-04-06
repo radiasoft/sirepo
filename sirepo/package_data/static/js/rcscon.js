@@ -5,6 +5,14 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.SINGLE_FRAME_ANIMATION = ['epochAnimation'];
+    SIREPO.lattice = {
+        elementColor: {},
+        elementPic: {
+            zeroLength: ['EMATRIX'],
+            magnet: ['QUAD'],
+            rf: ['RFCA'],
+        },
+    };
 });
 
 SIREPO.app.factory('rcsconService', function(appState, panelState, frameCache) {
@@ -41,6 +49,9 @@ SIREPO.app.factory('rcsconService', function(appState, panelState, frameCache) {
     self.computeModel = function(analysisModel) {
         if (analysisModel.indexOf('partitionAnimation') >= 0) {
             return 'partitionAnimation';
+        }
+        if (analysisModel == 'elegantAnimation') {
+            return analysisModel;
         }
         return 'animation';
     };
@@ -82,7 +93,7 @@ SIREPO.app.directive('appHeader', function(appState) {
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
   	        '<div data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Data Source</a></li>',
                   '<li class="sim-section" data-ng-if="hasFiles()" data-ng-class="{active: nav.isActive(\'partition\')}"><a href data-ng-click="nav.openSection(\'partition\')"><span class="glyphicon glyphicon-scissors"></span> Partition</a></li>',
                   '<li class="sim-section" data-ng-if="hasFilesAndPartition()" data-ng-class="{active: nav.isActive(\'machine-learning\')}"><a href data-ng-click="nav.openSection(\'machine-learning\')"><span class="glyphicon glyphicon-qrcode"></span> Machine Learning</a></li>',
 		'</div>',
@@ -101,7 +112,7 @@ SIREPO.app.directive('appHeader', function(appState) {
             $scope.hasFiles = function() {
                 if (appState.isLoaded()) {
                     var files = appState.applicationState().files;
-                    return files.inputs && files.outputs;
+                    return files.columnCount > 0;
                 }
                 return false;
             };
@@ -169,8 +180,7 @@ SIREPO.app.controller('MLController', function (appState, frameCache, persistent
     self.simState = persistentSimulation.initSimulationState(
         $scope,
         rcsconService.computeModel('fitAnimation'),
-        handleStatus
-    );
+        handleStatus);
 
     self.simState.errorMessage = function() {
         return errorMessage;
@@ -285,11 +295,12 @@ SIREPO.app.directive('partitionSelection', function(appState) {
         scope: {},
         template: [
             '<form name="form" class="form-horizontal" data-ng-style="formStyle">',
-              '<div class="form-group">',
+              '<div class="form-group form-group-sm">',
                 '<div data-ng-repeat="field in fields track by $index" data-model-field="field" data-model-name="modelName" data-label-size="0" data-field-size="4"></div>',
                 '<div data-ng-repeat="field in fields track by $index" class="col-sm-4">',
                   '<p class="form-control-static text-center">{{ selectedRange(field) }}</p>',
                 '</div>',
+                '<div data-ng-if="hasTrainingAndTesting()" data-model-field="\'trainTestPercent\'" data-model-name="\'partition\'"></div>',
               '</div>',
               '<div class="col-sm-12 text-center" data-buttons="" data-model-name="modelName" data-fields="allFields"></div>',
             '</form>',
@@ -372,7 +383,9 @@ SIREPO.app.directive('partitionSelection', function(appState) {
                 plotScope.select('svg').selectAll('.overlay').classed('disabled-overlay', true);
                 plotRefresh();
                 var partition = appState.models.partition;
-                if (! partition.cutoff0 || ! partition.cutoff1) {
+                if (! partition.cutoff0 || ! partition.cutoff1
+                    || partition.cutoff0 > plotScope.axes.x.domain[1]
+                    || partition.cutoff1 > plotScope.axes.x.domain[1]) {
                     setDefaultCutoff(partition);
                 }
                 drawCarats(['cutoff0', 'cutoff1']);
@@ -391,6 +404,26 @@ SIREPO.app.directive('partitionSelection', function(appState) {
             function processSection(field) {
                 // ensure all three values are selected
                 var partition = appState.models.partition;
+                if ($scope.hasTrainingAndTesting()) {
+                    var count = 0;
+                    $scope.fields.forEach(function(f) {
+                        if (partition[f] == 'train_and_test') {
+                            count++;
+                        }
+                        else {
+                            partition[f] = 'validate';
+                        }
+                    });
+                    if (count == 3) {
+                        partition.section2 = 'validate';
+                    }
+                }
+                else {
+                    setMissingSection(field, partition);
+                }
+            }
+
+            function setMissingSection(field, partition) {
                 var currentValue, missingValue;
                 ['train', 'test', 'validate'].some(function(v) {
                     var hasValue = false;
@@ -411,10 +444,24 @@ SIREPO.app.directive('partitionSelection', function(appState) {
                         if (field != 'partition.' + f
                             && partition[f] == currentValue) {
                             partition[f] = missingValue;
+                            missingValue = '';
                         }
                     });
+                    if (missingValue) {
+                        partition.section2 = missingValue;
+                    }
                 }
             }
+
+            $scope.hasTrainingAndTesting = function() {
+                if (! appState.isLoaded()) {
+                    return;
+                }
+                var partition = appState.models.partition;
+                return $scope.fields.some(function(f) {
+                    return partition[f] == 'train_and_test';
+                });
+            };
 
             $scope.selectedRange = function(field) {
                 if (! appState.isLoaded() || ! plotScope || ! plotScope.axes.x.domain) {
@@ -456,14 +503,11 @@ SIREPO.app.directive('partitionSimState', function(appState, frameCache, panelSt
             '</div>',
         ].join(''),
         controller: function($scope) {
+            var firstVisit = true;
 
             function handleStatus(data) {
                 if (! appState.isLoaded()) {
                     return;
-                }
-                if (! appState.models.partition.method) {
-                    // first time visiting this page, the form should appear dirty
-                    appState.models.partition.method = 'random';
                 }
                 $scope.statusText = '';
                 var reports = null;
@@ -480,6 +524,12 @@ SIREPO.app.directive('partitionSimState', function(appState, frameCache, panelSt
                     else {
                         if ($scope.simState.isProcessing()) {
                             $scope.statusText = 'Partitioning data ...';
+                        }
+                        else {
+                            if (firstVisit) {
+                                firstVisit = false;
+                                $scope.simState.runSimulation();
+                            }
                         }
                     }
                 }
@@ -536,8 +586,22 @@ SIREPO.app.controller('PartitionController', function (appState, panelState, $sc
     });
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, requestSender, rcsconService, $scope) {
+SIREPO.app.controller('VisualizationController', function (appState, persistentSimulation, requestSender, rcsconService, $scope) {
     var self = this;
+    self.appState = appState;
+
+    function computeColumnCount(callback) {
+        var files = appState.models.files;
+        if (! files.inputs || ! files.outputs) {
+            return;
+        }
+        if (appState.applicationState().dataSource.source == 'files') {
+            requestSender.getApplicationData({
+                method: 'compute_column_count',
+                files: files,
+            }, callback);
+        }
+    }
 
     function createReports() {
         self.reports = [];
@@ -562,28 +626,51 @@ SIREPO.app.controller('VisualizationController', function (appState, requestSend
         }
     }
 
-    function processColumnCount() {
-        var files = appState.models.files;
-        if (! files.inputs || ! files.outputs) {
-            return;
+    function handleStatus(data) {
+        if (appState.isLoaded()
+            && appState.applicationState().dataSource.source == 'elegant') {
+            if ('inputsCount' in data) {
+                updateFiles(data);
+            }
+            else {
+                appState.models.files.columnCount = 0;
+            }
+            appState.saveChanges('files');
         }
-        requestSender.getApplicationData(
-            {
-                method: 'compute_column_count',
-                files: files,
-            },
-            function(data) {
-                if (appState.isLoaded()) {
-                    var files = appState.models.files;
-                    ['columnCount', 'inputsCount', 'outputsCount'].forEach(function(f) {
-                        files[f] = data[f];
-                    });
-                }
-            });
     }
+
+    function processColumnCount() {
+        computeColumnCount(updateFiles);
+    }
+
+    function resetColumnCount() {
+        appState.models.files.columnCount = 0;
+        appState.saveChanges('files');
+        computeColumnCount(updateFilesAndSave);
+    }
+
+    function updateFiles(data) {
+        if (appState.isLoaded()) {
+            var files = appState.models.files;
+            ['columnCount', 'inputsCount', 'outputsCount', 'lastUpdateTime'].forEach(function(f) {
+                files[f] = data[f];
+            });
+        }
+    }
+
+    function updateFilesAndSave(data) {
+        updateFiles(data);
+        appState.saveChanges('files');
+    }
+
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        rcsconService.computeModel('elegantAnimation'),
+        handleStatus);
 
     appState.whenModelsLoaded($scope, function() {
         $scope.$on('files.changed', createReports);
+        $scope.$on('dataSource.changed', resetColumnCount);
         appState.watchModelFields($scope, ['files.inputs', 'files.outputs'], processColumnCount);
         createReports();
     });
@@ -710,6 +797,49 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
             }
 
             buildLayerFields();
+        },
+    };
+});
+
+SIREPO.app.directive('rcsconLattice', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            //'<div class="col-sm-10 col-sm-offset-1 col-md-8 col-md-offset-2 col-xl-6 col-xl-offset-3">',
+            '<div class="col-sm-12">',
+              '<div class="rcscon-lattice">',
+                '<div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="beamlines" data-flatten="1"></div>',
+              '</div>',
+              '<div class="lead">DTL Tank</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            var axis, latticeScope;
+
+            function windowResize() {
+                if (axis) {
+                    axis.scale.range([0, $('.rcscon-lattice').parent().width()]);
+                    latticeScope.updateFixedAxis(axis, 0, 50, 65, 55);
+                    $scope.$applyAsync();
+                }
+            }
+
+            $scope.isLoaded = appState.isLoaded;
+
+            $scope.$on('sr-latticeLinked', function(event) {
+                latticeScope = event.targetScope;
+                event.stopPropagation();
+                axis = {
+                    scale: d3.scale.linear(),
+                    //TODO(pjm): hard-coded beamline length in meters
+                    domain: [0, 7.20722],
+                };
+                axis.scale.domain(axis.domain);
+                windowResize();
+            });
+
+            $scope.$on('sr-window-resize', windowResize);
         },
     };
 });
