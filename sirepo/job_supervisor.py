@@ -85,7 +85,6 @@ def init():
         max_hours=dict(
             analysis=(.04, float, 'maximum run-time for analysis job',),
             parallel=(1, float, 'maximum run-time for parallel job (except sbatch)'),
-            # TODO(e-carlin): make 2
             parallel_premium=(2, float, 'maximum run-time for parallel job for premium user (except sbatch)'),
             sequential=(.1, float, 'maximum run-time for sequential job'),
         ),
