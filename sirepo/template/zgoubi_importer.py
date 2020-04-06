@@ -35,15 +35,15 @@ def import_file(text, unit_test_mode=False):
     title, elements, unhandled_elements = zgoubi_parser.parse_file(text, 1)
     title = re.sub(r'\s+', ' ', title)
     title = re.sub(r'^\s+|\s+$', '', title)
-    data['models']['simulation']['name'] = title if title else 'zgoubi'
+    data.models.simulation.name = title if title else 'zgoubi'
     if len(unhandled_elements):
-        data['models']['simulation']['warnings'] = 'Unsupported Zgoubi elements: {}'.format(', '.join(unhandled_elements))
+        data.models.simulation.warnings = 'Unsupported Zgoubi elements: {}'.format(', '.join(unhandled_elements))
     info = _validate_and_dedup_elements(data, elements)
     _validate_element_names(data, info)
     LatticeUtil(data, _SCHEMA).sort_elements_and_beamlines()
-    if 'missingFiles' in info and len(info['missingFiles']):
-        data['error'] = 'Missing data files'
-        data['missingFiles'] = info['missingFiles']
+    if 'missingFiles' in info and len(info.missingFiles):
+        data.error = 'Missing data files'
+        data.missingFiles = info.missingFiles
     _update_report_parameters(data)
     return data
 
@@ -56,10 +56,10 @@ def tosca_info(tosca):
     # determine the list of available files (from zip if necessary)
     # compute the tosca length from datafile
     #TODO(pjm): keep a cache on the tosca model?
-    n = _SIM_DATA.lib_file_name_with_model_field('TOSCA', 'magnetFile', tosca['magnetFile'])
+    n = _SIM_DATA.lib_file_name_with_model_field('TOSCA', 'magnetFile', tosca.magnetFile)
     if not _SIM_DATA.lib_file_exists(n):
         return PKDict(
-            error='missing or invalid file: {}'.format(tosca['magnetFile']),
+            error='missing or invalid file: {}'.format(tosca.magnetFile),
         )
     error = None
     length = None
@@ -67,16 +67,16 @@ def tosca_info(tosca):
     if is_zip_file(n):
         with zipfile.ZipFile(str(datafile), 'r') as z:
             filenames = []
-            if 'fileNames' not in tosca or not tosca['fileNames']:
-                tosca['fileNames'] = []
+            if 'fileNames' not in tosca or not tosca.fileNames:
+                tosca.fileNames = []
             for info in z.infolist():
                 filenames.append(info.filename)
-                if not length and info.filename in tosca['fileNames']:
+                if not length and info.filename in tosca.fileNames:
                     length, error = _tosca_length(tosca, z.read(info).splitlines())
                     if length:
                         error = None
     else:
-        filenames = [tosca['magnetFile']]
+        filenames = [tosca.magnetFile]
         with pkio.open_text(str(datafile)) as f:
             length, error = _tosca_length(tosca, f)
     if error:
@@ -85,7 +85,7 @@ def tosca_info(tosca):
         toscaInfo=PKDict(
             toscaLength=length,
             fileList=sorted(filenames) if filenames else None,
-            magnetFile=tosca['magnetFile'],
+            magnetFile=tosca.magnetFile,
         ),
     )
 
@@ -162,6 +162,12 @@ def _init_model_units():
         ),
         CHANGREF2=PKDict(
             subElements=_changref2,
+        ),
+        COLLIMA=PKDict(
+            C1='cm_to_m',
+            C2='cm_to_m',
+            C3='cm_to_m',
+            C4='cm_to_m',
         ),
         DRIFT=PKDict(
             l='cm_to_m',
@@ -301,7 +307,7 @@ def _tosca_length(tosca, lines):
     count = 0
     for line in lines:
         count += 1
-        if count <= tosca['headerLineCount']:
+        if count <= tosca.headerLineCount:
             continue
         # some columns may not have spaces between values, ex:
         #  -1.2000E+02 0.0000E+00-3.5000E+01 3.1805E-03-1.0470E+01 2.0089E-03-2.4481E-15
@@ -313,31 +319,31 @@ def _tosca_length(tosca, lines):
             except ValueError:
                 pass
     if not len(col2):
-        return None, 'missing column 2 data in file: {}'.format(tosca['magnetFile'])
+        return None, 'missing column 2 data in file: {}'.format(tosca.magnetFile)
     # scaled by unit conversion XN
-    return (max(col2) - min(col2)) / 100.0 * tosca['XN'], None
+    return (max(col2) - min(col2)) / 100.0 * tosca.XN, None
 
 
 def _update_report_parameters(data):
-    if data['models']['bunch']['method'] == 'OBJET2.1':
+    if data.models.bunch.method == 'OBJET2.1':
         for name in ('bunchAnimation', 'bunchAnimation2', 'energyAnimation'):
-            m = data['models'][name]
-            m['showAllFrames'] = '1'
-            m['particleSelector'] = '1'
+            m = data.models[name]
+            m.showAllFrames = '1'
+            mparticleSelector = '1'
 
 
 def _validate_and_dedup_elements(data, elements):
     beamline = []
     current_id = 1
-    data['models']['beamlines'] = [
+    data.models.beamlines = [
         PKDict(
             name='BL1',
             id=current_id,
             items=beamline,
         ),
     ]
-    data['models']['simulation']['activeBeamlineId'] = current_id
-    data['models']['simulation']['visualizationBeamlineId'] = current_id
+    data.models.simulation.activeBeamlineId = current_id
+    data.models.simulation.visualizationBeamlineId = current_id
     info = PKDict(
         ids=[],
         names=[],
@@ -345,39 +351,39 @@ def _validate_and_dedup_elements(data, elements):
         missingFiles=[],
     )
     for el in elements:
-        _validate_model(el['type'], el, info['missingFiles'])
+        _validate_model(el.type, el, info.missingFiles)
         if 'name' in el:
-            name = el['name']
+            name = el.name
             #TODO(pjm): don't de-duplicate certain types
-            if el['type'] != 'MARKER' and not re.search(r'^DUMMY ', name):
+            if el.type != 'MARKER' and not re.search(r'^DUMMY ', name):
                 del el['name']
-            if el not in info['elements']:
+            if el not in info.elements:
                 current_id += 1
-                info['ids'].append(current_id)
-                info['names'].append(name)
-                info['elements'].append(el)
-            beamline.append(info['ids'][info['elements'].index(el)])
+                info.ids.append(current_id)
+                info.names.append(name)
+                info.elements.append(el)
+            beamline.append(info.ids[info.elements.index(el)])
         else:
-            if el['type'] in data['models']:
-                pkdlog('updating existing {} model', el['type'])
-                data['models'][el['type']].update(el)
+            if el.type in data.models:
+                pkdlog('updating existing {} model', el.type)
+                data.models[el.type].update(el)
             else:
-                _SIM_DATA.update_model_defaults(el, el['type'])
-                data['models'][el['type']] = el
+                _SIM_DATA.update_model_defaults(el, el.type)
+                data.models[el.type] = el
     return info
 
 
 def _validate_element_names(data, info):
     names = PKDict()
-    for idx in range(len(info['ids'])):
-        el = info['elements'][idx]
-        _SIM_DATA.update_model_defaults(el, el['type'])
-        el['_id'] = info['ids'][idx]
-        name = info['names'][idx]
+    for idx in range(len(info.ids)):
+        el = info.elements[idx]
+        _SIM_DATA.update_model_defaults(el, el.type)
+        el._id = info.ids[idx]
+        name = info.names[idx]
         name = re.sub(r'\\', '_', name)
         name = re.sub(r'(\_|\#)$', '', name)
         if not name:
-            name = el['type'][:2]
+            name = el.type[:2]
         if name in names:
             count = 2
             while True:
@@ -386,16 +392,16 @@ def _validate_element_names(data, info):
                     name = name2
                     break
                 count += 1
-        el['name'] = name
+        el.name = name
         names[name] = True
-        data['models']['elements'].append(el)
+        data.models.elements.append(el)
 
 
 def _validate_field(model, field, model_info):
     if field in ('_id', 'type'):
         return
     assert field in model_info, \
-        'unknown model field: {}.{}, value: {}'.format(model['type'], field, model[field])
+        'unknown model field: {}.{}, value: {}'.format(model.type, field, model[field])
     field_info = model_info[field]
     field_type = field_info[1]
     if field_type == 'Float':
@@ -404,26 +410,26 @@ def _validate_field(model, field, model_info):
         model[field] = int(model[field])
     elif field_type == 'FileNameArray':
         return _validate_file_names(model, model[field])
-    elif field_type in _SCHEMA['enum']:
-        for v in _SCHEMA['enum'][field_type]:
+    elif field_type in _SCHEMA.enum:
+        for v in _SCHEMA.enum[field_type]:
             if v[0] == model[field]:
                 return
-        pkdlog('invalid enum value, {}.{} {}: {}', model['type'], field, field_type, model[field])
+        pkdlog('invalid enum value, {}.{} {}: {}', model.type, field, field_type, model[field])
         model[field] = field_info[2]
 
 
 def _validate_file_names(model, file_names):
     if _UNIT_TEST_MODE:
         return
-    #TODO(pjm): currently specific to TOSCA element, but could be generalizaed on model['type']
+    #TODO(pjm): currently specific to TOSCA element, but could be generalizaed on model.type
     # flatten filenames, search indiviual and zip files which contains all files, set magnetFile if found
     for idx in range(len(file_names)):
         file_names[idx] = os.path.basename(file_names[idx])
-    file_type = '{}-{}'.format(model['type'], 'magnetFile')
+    file_type = '{}-{}'.format(model.type, 'magnetFile')
     magnet_file = None
     if len(file_names) == 1:
         name = file_names[0]
-        target = _SIM_DATA.lib_file_name_with_model_field(model['type'], 'magnetFile', name)
+        target = _SIM_DATA.lib_file_name_with_model_field(model.type, 'magnetFile', name)
         if _SIM_DATA.lib_file_exists(target):
             magnet_file = name
     for f in _SIM_DATA.zgoubi_lib_files_with_zip():
@@ -440,27 +446,27 @@ def _validate_file_names(model, file_names):
             magnet_file = os.path.basename(f)[len(file_type) + 1:]
             break
     if magnet_file:
-        model['magnetFile'] = magnet_file
+        model.magnetFile = magnet_file
         info = tosca_info(model)
         if 'toscaInfo' in info:
-            model['l'] = info['toscaInfo']['toscaLength']
+            model.l = info.toscaInfo.toscaLength
         return
     return PKDict({
-        model['type']: sorted(file_names),
+        model.type: sorted(file_names),
     })
 
 
 def _validate_model(model_type, model, missing_files):
-    assert model_type in _SCHEMA['model'], \
+    assert model_type in _SCHEMA.model, \
         'element type missing from schema: {}'.format(model_type)
-    model_info = _SCHEMA['model'][model_type]
+    model_info = _SCHEMA.model[model_type]
     if 'name' in model_info and 'name' not in model:
-        model['name'] = ''
+        model.name = ''
     MODEL_UNITS.scale_from_native(model_type, model)
     for f in model.keys():
         if isinstance(model[f], list) and len(model[f]) and 'type' in model[f][0]:
             for sub_model in model[f]:
-                _validate_model(sub_model['type'], sub_model, missing_files)
+                _validate_model(sub_model.type, sub_model, missing_files)
             continue
         err = _validate_field(model, f, model_info)
         if err:

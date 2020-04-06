@@ -5,9 +5,8 @@ l:copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
-import copy
 import math
 import re
 
@@ -31,14 +30,14 @@ _IGNORE_ELEMENTS = [
 _MAX_COORDINATES = 10
 
 #TODO(pjm): remove when we have updated to latest zgoubi
-_NEW_PARTICLE_TYPES = {
-    'POSITRON': {
-        'M': 0.5109989461,
-        'Q': 1.602176487e-19,
-        'G': 1.159652181e-3,
-        'Tau': 1e99,
-    },
-}
+_NEW_PARTICLE_TYPES = PKDict(
+    POSITRON=PKDict(
+        M=0.5109989461,
+        Q=1.602176487e-19,
+        G=1.159652181e-3,
+        Tau=1e99,
+    ),
+)
 
 def parse_file(zgoubi_text, max_id=0):
     lines = zgoubi_text.replace('\r', '').split('\n')
@@ -76,7 +75,7 @@ def parse_float(v):
 
 
 def tosca_file_count(el):
-    if '-sf' in el.magnetType or ('-f' in el.magnetType and el['fileCount'] == 1):
+    if '-sf' in el.magnetType or ('-f' in el.magnetType and el.fileCount == 1):
         return 1
     if '-f' in el.magnetType:
         return el.fileCount
@@ -113,16 +112,16 @@ def _parse_command(command, command_def):
 
 
 def _parse_command_header(command):
-    res = _parse_command_line(pkcollections.Dict({}), command[0], 'type *name *label2')
+    res = _parse_command_line(PKDict(), command[0], 'type *name *label2')
     for f in ('name', 'label2'):
         # don't parse line numbers into name or label2
         if f in res and re.search(r'^\d+$', res[f]):
             del res[f]
     if 'label2' in res:
         if 'name' in res:
-            res['name'] = '{} {}'.format(res['name'], res['label2'])
+            res.name = '{} {}'.format(res.name, res.label2)
         else:
-            res['name'] = res['label2']
+            res.name = res.label2
         del res['label2']
     return res
 
@@ -134,7 +133,7 @@ def _parse_command_line(element, line, line_def):
             if not len(line):
                 break
         assert len(line), 'Element "{} {}": missing "{}" value for line def: {}'.format(
-            element['type'], element.get('name', ''), k, line_def)
+            element.type, element.get('name', ''), k, line_def)
         element[k] = line.pop(0)
     return element
 
@@ -246,7 +245,7 @@ def _zgoubi_bend(command):
         'KPOS XCE YCE ALE',
     ])
     _remove_fields(res, ['NCE', 'NCS'])
-    assert res['KPOS'] in ('1', '2', '3'), '{}: BEND KPOS not yet supported'.format(res['KPOS'])
+    assert res['KPOS'] in ('1', '2', '3'), '{}: BEND KPOS not yet supported'.format(res.KPOS)
     return res
 
 
@@ -284,22 +283,45 @@ def _zgoubi_changref(command):
     if re.search(r'^(X|Y|Z)', command[1][0]):
         # new format CHANGREF --> CHANGREF2
         res = _parse_command_header(command)
-        res['type'] = 'CHANGREF2'
-        res['subElements'] = []
+        res.type = 'CHANGREF2'
+        res.subElements = []
         for i in range(int(len(command[1]) / 2)):
             v = parse_float(command[1][i * 2 + 1])
             if v != 0:
-                res['subElements'].append(pkcollections.Dict({
-                    'type': 'CHANGREF_VALUE',
-                    'transformType': command[1][i * 2],
-                    'transformValue': v,
-                }))
-        if not len(res['subElements']):
+                res.subElements.append(PKDict(
+                    type='CHANGREF_VALUE',
+                    transformType=command[1][i * 2],
+                    transformValue=v,
+                ))
+        if not len(res.subElements):
             return None
         return res
     return _parse_command(command, [
         'XCE YCE ALE',
     ])
+
+
+def _zgoubi_collima(command):
+    iform = command[2][0]
+    m = re.match('^(1|2)(\.(1|2))?$', iform)
+    if m:
+        res = _parse_command(command, [
+            'IA',
+            'IFORM C1 C2 C3 C4',
+        ])
+        if res.IA != '0':
+            res.IA = '1'
+        res.IFORM = m.group(1)
+        if m.group(2) == '2':
+            # convert from form 2 to form 1
+            ch = (float(res.C1) + float(res.C2)) / 2
+            cv = (float(res.C3) + float(res.C4)) / 2
+            res.C1 = abs(float(res.C1 - ch))
+            res.C2 = abs(float(res.C3 - cv))
+            res.C3 = ch
+            res.C4 = cv
+        return res
+    assert False, 'unsupported COLLIMA IFORM: {}'.format(iform)
 
 
 def _zgoubi_drift(command):
@@ -310,7 +332,7 @@ def _zgoubi_drift(command):
 
 def _zgoubi_esl(command):
     res = _zgoubi_drift(command)
-    res['type'] = 'DRIFT'
+    res.type = 'DRIFT'
     return res
 
 
@@ -320,9 +342,9 @@ def _zgoubi_faistore(command):
         'ip',
     ])
     _remove_fields(res, ['name', 'file'])
-    if int(res['ip']) < 1:
-        res['ip'] = 1
-    res['type'] = 'simulationSettings'
+    if int(res.ip) < 1:
+        res.ip = 1
+    res.type = 'simulationSettings'
     return res
 
 
@@ -344,14 +366,14 @@ def _zgoubi_ffag(command, dipole_type=None, dipole_def=None):
             'NCL CL_0 CL_1 CL_2 CL_3 CL_4 CL_5 SHIFT_L',
             'OMEGA_L THETA_L R1_L U1_L U2_L R2_L',
         ]
-    res['dipoles'] = []
-    dipole_count = int(res['N'])
+    res.dipoles = []
+    dipole_count = int(res.N)
     def_size = len(dipole_def)
     for idx in range(dipole_count):
-        dipole = pkcollections.Dict({
-            'type': dipole_type if dipole_type else 'ffaDipole',
-        })
-        res['dipoles'].append(dipole)
+        dipole = PKDict(
+            type=dipole_type if dipole_type else 'ffaDipole',
+        )
+        res.dipoles.append(dipole)
         for line_idx in range(len(dipole_def)):
             _parse_command_line(dipole, command[3 + def_size * idx + line_idx], dipole_def[line_idx])
         _remove_fields(dipole, ['NCE', 'NCS', 'NCL'])
@@ -359,10 +381,10 @@ def _zgoubi_ffag(command, dipole_type=None, dipole_def=None):
     _parse_command_line(res, command[3 + def_size * dipole_count + 1], 'XPAS')
     # 'KPOS DP' or 'KPOS RE TE RS TS'
     _parse_command_line(res, command[3 + def_size * dipole_count + 2], 'KPOS RE *TE *RS *TS')
-    if res['KPOS'] == '1':
-        res['DP'] = res['RE']
+    if res.KPOS == '1':
+        res.DP = res.RE
         _remove_fields(res, ['RE', 'TE', 'RS', 'TS'])
-    res['type'] = 'FFA'
+    res.type = 'FFA'
     return res
 
 
@@ -379,13 +401,13 @@ def _zgoubi_ffag_spi(command):
         'NCL CL_0 CL_1 CL_2 CL_3 CL_4 CL_5 SHIFT_L',
         'OMEGA_L XI_L',
     ])
-    res['type'] = 'FFA_SPI'
+    res.type = 'FFA_SPI'
     return res
 
 
 def _zgoubi_marker(command):
     res = _parse_command_header(command)
-    res['plt'] = '0'
+    res.plt = '0'
     return res
 
 
@@ -402,7 +424,7 @@ def _zgoubi_multipol(command):
         'KPOS XCE YCE ALE',
     ])
     _remove_fields(res, ['NCE', 'NCS'])
-    assert res['KPOS'] in ('1', '2', '3'), '{}: MULTIPOL KPOS not yet supported'.format(res['KPOS'])
+    assert res.KPOS in ('1', '2', '3'), '{}: MULTIPOL KPOS not yet supported'.format(res.KPOS)
     return res
 
 
@@ -411,15 +433,15 @@ def _zgoubi_objet(command):
         'rigidity',
         'KOBJ'
     ])
-    kobj = res['KOBJ']
+    kobj = res.KOBJ
     _remove_fields(res, ['KOBJ', 'name'])
-    res['type'] = 'bunch'
+    res.type = 'bunch'
     if kobj == '2' or kobj == '2.1':
         imax = int(command[3][0])
         coordinates = []
         for idx in range(imax):
-            coord = _parse_command_line({}, command[4 + idx], 'Y T Z P X D')
-            coord['type'] = 'particleCoordinate'
+            coord = _parse_command_line(PKDict(), command[4 + idx], 'Y T Z P X D')
+            coord.type = 'particleCoordinate'
             coordinates.append(coord)
         if len(coordinates) > _MAX_COORDINATES:
             coordinates = coordinates[:_MAX_COORDINATES]
@@ -443,14 +465,14 @@ def _zgoubi_mcobjet(command):
         'alpha_X beta_X emit_X n_cutoff_X *n_cutoff2_X',
         # 'IR1 IR2 IR3',
     ])
-    if 'n_cutoff2_Y' in res and parse_float(res['n_cutoff_Y']) >= 0:
-        res['DT'] = res['DY']
-        res['DY'] = res['n_cutoff2_Y']
-    if 'n_cutoff2_Z' in res and parse_float(res['n_cutoff_Z']) >= 0:
-        res['DP'] = res['DZ']
-        res['DZ'] = res['n_cutoff2_Z']
+    if 'n_cutoff2_Y' in res and parse_float(res.n_cutoff_Y) >= 0:
+        res.DT = res.DY
+        res.DY = res.n_cutoff2_Y
+    if 'n_cutoff2_Z' in res and parse_float(res.n_cutoff_Z) >= 0:
+        res.DP = res.DZ
+        res.DZ = res.n_cutoff2_Z
     _remove_fields(res, ['KOBJ', 'name'])
-    res['type'] = 'bunch'
+    res.type = 'bunch'
     return res
 
 
@@ -459,16 +481,16 @@ def _zgoubi_particul(command):
         res = _parse_command(command, [
             'M Q G Tau',
         ])
-        res['particleType'] = 'Other'
+        res.particleType = 'Other'
     else:
         res = _parse_command(command, [
             'particleType',
         ])
-        if res['particleType'] in _NEW_PARTICLE_TYPES:
-            res.update(_NEW_PARTICLE_TYPES[res['particleType']])
-            res['particleType'] = 'Other'
+        if res.particleType in _NEW_PARTICLE_TYPES:
+            res.update(_NEW_PARTICLE_TYPES[res.particleType])
+            res.particleType = 'Other'
     _remove_fields(res, ['name'])
-    res['type'] = 'particle'
+    res.type = 'particle'
     return res
 
 
@@ -491,25 +513,29 @@ def _zgoubi_rebelote(command):
     res = _parse_command(command, [
         'npass',
     ])
-    res['npass'] = int(res['npass']) + 1
-    res['type'] = 'simulationSettings'
+    res.npass = int(res.npass) + 1
+    res.type = 'simulationSettings'
     return res
 
 
 def _zgoubi_scaling(command):
-    #TODO(pjm): access IOPT and NFAM directly from command before calling _parse_command
-    command2 = copy.deepcopy(command)
+    nfam = command[1][1]
     pattern = [
-        'IOPT NFAM',
+        'IOPT',
     ]
-    res = _parse_command(command, pattern)
-    for idx in range(1, int(res['NFAM']) + 1):
-        pattern.append('NAMEF{} *LBL{}'.format(idx, idx))
+    for idx in range(1, int(nfam) + 1):
+        pattern.append('NAMEF{} *LBL{} *LBL{}_2 *LBL{}_3 *LBL{}_4'.format(idx, idx, idx, idx, idx))
         pattern.append('ignore'.format(idx))
         pattern.append('SCL{}'.format(idx))
         pattern.append('ignore'.format(idx))
-    res = _parse_command(command2, pattern)
-    _remove_fields(res, ['NFAM', 'ignore'])
+    res = _parse_command(command, pattern)
+    for idx in range(1, int(nfam) + 1):
+        for lbl in range(2, 5):
+            l = 'LBL{}_{}'.format(idx, lbl)
+            if l in res:
+                res['LBL{}'.format(idx)] += ' {}'.format(res[l])
+                del res[l]
+    _remove_fields(res, ['ignore'])
     return res
 
 
@@ -549,28 +575,28 @@ def _zgoubi_spinr(command):
 
 def _zgoubi_spntrk(command):
     kso = command[1][0]
-    res = {
-        'KSO': '1',
-        'S_X': 0,
-        'S_Y': 0,
-        'S_Z': 0,
-        'type': 'SPNTRK',
-    }
+    res = PKDict(
+        KSO='1',
+        S_X=0,
+        S_Y=0,
+        S_Z=0,
+        type='SPNTRK',
+    )
     if kso == '0':
-        res['KSO'] = '0'
+        res.KSO = '0'
     if kso == '1':
-        res['S_X'] = 1
+        res.S_X = 1
     elif kso == '2':
-        res['S_Y'] = 1
+        res.S_Y = 1
     elif kso == '3':
-        res['S_Z'] = 1
+        res.S_Z = 1
     elif re.search(r'^4', kso):
         res = _parse_command(command, [
             'KSO',
             'S_X S_Y S_Z',
         ])
-        if res['KSO'] != '0':
-            res['KSO'] = '1'
+        if res.KSO != '0':
+            res.KSO = '1'
         _remove_fields(res, ['name'])
     return res
 
@@ -580,11 +606,11 @@ def _zgoubi_srloss(command):
         'KSR',
         'STR1',
     ])
-    res['KSR'] = re.sub(r'\..*$', '', res['KSR'])
-    if res['STR1'] == 'all':
-        res['applyToAll'] = '1'
+    res.KSR = re.sub(r'\..*$', '', res.KSR)
+    if res.STR1 == 'all':
+        res.applyToAll = '1'
     else:
-        res['keyword'] = res['STR1']
+        res.keyword = res.STR1
     _remove_fields(res, ['STR1', 'name'])
     return res
 
@@ -602,10 +628,10 @@ def _zgoubi_tosca(command):
     res.fileNames = []
     file_count = tosca_file_count(res)
     for idx in range(file_count):
-        el = {}
+        el = PKDict()
         #TODO(pjm): _parse_command_line() should remove line, can then remove 5 offset
         _parse_command_line(el, command[5 + idx], 'FNAME')
-        res.fileNames.append(el['FNAME'])
+        res.fileNames.append(el.FNAME)
     _parse_command_line(res, command[5 + file_count], 'ID A B C *Ap *Bp *Cp *App *Bpp *Cpp')
     _parse_command_line(res, command[6 + file_count], 'IORDRE')
     _parse_command_line(res, command[7 + file_count], 'XPAS')
