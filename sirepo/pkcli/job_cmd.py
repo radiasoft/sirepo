@@ -20,6 +20,8 @@ import subprocess
 import sys
 import time
 
+_MAX_FASTCGI_EXCEPTIONS = 2
+
 
 def default_command(in_file):
     """Reads `in_file` passes to `msg.jobCmd`
@@ -109,20 +111,25 @@ def _do_compute(msg, template):
 def _do_fastcgi(msg, template):
     import socket
 
+    def _recv():
+        r = b''
+        while True:
+            r += s.recv(int(1e8))
+            if not r:
+                pkdlog('socket closed abruptly')
+                return None
+            if r[-1:] == b'\n':
+                return pkjson.load_any(r)
+
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     # relative file name (see job_agent.fastcgi_op)
     s.connect(msg.fastcgiFile)
+    c = 0
     while True:
         try:
-            r = b''
-            while True:
-                r += s.recv(int(1e8))
-                if not r:
-                    pkdlog('socket closed abruptly')
-                    return
-                if r[-1:] == b'\n':
-                    m = pkjson.load_any(r)
-                    break
+            m = _recv()
+            if not m:
+                return
             m.runDir = pkio.py_path(m.runDir)
             with pkio.save_chdir(m.runDir):
                 r = globals()['_do_' + m.jobCmd](
@@ -130,12 +137,16 @@ def _do_fastcgi(msg, template):
                     sirepo.template.import_module(m.simulationType)
                 )
             r = PKDict(r).pksetdefault(state=job.COMPLETED)
+            c = 0
         except Exception as e:
+            assert c < _MAX_FASTCGI_EXCEPTIONS, \
+                'too many fastcgi exceptions'
             r = PKDict(
                 state=job.ERROR,
                 error=e.sr_args.error if isinstance(e, sirepo.util.UserAlert) else str(e),
                 stack=pkdexc(),
             )
+            c += 1
         s.sendall(pkjson.dump_bytes(r) + b'\n')
 
 
