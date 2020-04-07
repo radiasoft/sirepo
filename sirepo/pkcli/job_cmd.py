@@ -117,6 +117,9 @@ def _do_fastcgi(msg, template):
             r = b''
             while True:
                 r += s.recv(int(1e8))
+                if not r:
+                    # socket closed
+                    return
                 if r[-1:] == b'\n':
                     m = pkjson.load_any(r)
                     break
