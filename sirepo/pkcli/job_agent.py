@@ -755,11 +755,13 @@ class _Process(PKDict):
         p = None
         try:
             p = self.pkdel('_subprocess').proc.pid
+            pkdlog('pid={}', p)
             os.killpg(p, signal.SIGKILL)
-        except ProcessLookupError:
+        except ProcessLookupError as e:
+            pkdlog('pid={} error={}', p, e)
             pass
         except Exception as e:
-            pkdlog('kill pid={} exception={}', p, e)
+            pkdlog('pid={} error={}', p, e)
 
     def start(self):
         # SECURITY: msg must not contain agentId
