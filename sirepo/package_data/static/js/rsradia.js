@@ -841,14 +841,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 bndBox.actor.getProperty().setRepresentationToWireframe();
                 //var lf = vtk.Filters.General.vtkLineFilter.newInstance();
 
-
-                //var pd = vtk.Common.DataModel.vtkPolyData.newInstance();
-                //var pdSrc = vtk.Filters.General.vtkAppendPolyData.newInstance();
-                //pd.getPoints().setData(points, 3);
-                //pdSrc.setInputData(pd);
-                //var bndl = cm.buildFromSource(pdSrc);
-                //bndl.setSource(pdSrc);
-                //bndl.mapper.setInputData(pd);
                 renderer.addActor(bndBox.actor);
                 var vpb = vtkPlotting.vpBox(bndBox.source, renderer);
                 renderWindow.render();
@@ -859,7 +851,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 geometry.basis.forEach(function (dim, i) {
                     acfg[dim] = {};
                     acfg[dim].dimLabel = dim;
-                    acfg[dim].label = dim;
+                    acfg[dim].label = dim + ' [cm]';
                     acfg[dim].max = b[2 * i + 1];
                     acfg[dim].min = b[2 * i];
                     acfg[dim].numPoints = 100;

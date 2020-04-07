@@ -890,7 +890,6 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
 
             function refresh() {
                 //srdbg('axes refresh', $scope, $scope.boundObj);
-                //vtkAxisService.refresh(axes, axisCfg, $scope.boundObj, d3self);
 
                 // If an axis is shorter than this, don't display it -- the ticks will
                 // be cramped and unreadable
@@ -913,9 +912,9 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     var externalEdges = $scope.boundObj.externalVpEdgesForDimension(dim)
                         .sort(vtkAxisService.edgeSorter(perpScreenDim, ! isHorizontal));
                     var seg = geometry.bestEdgeAndSectionInBounds(externalEdges, $scope.boundObj.boundingRect(), dim, false);
-                    //srdbg(dim, 'seg', seg);
 
                     if (! seg) {
+                        /*
                         // all possible axis ends offscreen, so try a centerline
                         var cl = $scope.boundObj.vpCenterLineForDimension(dim);
                         seg = geometry.bestEdgeAndSectionInBounds([cl], $scope.boundObj.boundingRect(), dim, false);
@@ -926,6 +925,10 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                             continue;
                         }
                         showAxisEnds = true;
+                        */
+                        d3self.select(axisSelector).style('opacity', 0.0);
+                        d3self.select(axisLabelSelector).style('opacity', 0.0);
+                        continue;
                     }
                     d3self.select(axisSelector).style('opacity', 1.0);
 
@@ -1259,7 +1262,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 worldCoord.setCoordinateSystemToWorld();
 
                 var hdlrs = $scope.eventHandlers || {};
-                //rw.addEventListener('dblclick', hdlrs.handleDblClick || handleDblClick);
                 // double click handled separately
                 rw.addEventListener('dblclick', function (evt) {
                     ondblclick(evt);
@@ -1275,10 +1277,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                         }
                     };
                 });
-                //rw.onpointerdown = hdlrs.handlePtrDown || handlePtrDown;
-                //rw.onpointermove = hdlrs.handlePtrMove || handlePtrMove;
-                //rw.onpointerup = hdlrs.handlePtrUp || handlePtrUp;
-                //rw.onwheel = hdlrs.handleWheel || handleWheel;
 
                 canvas3d = $($element).find('canvas')[0];
 
@@ -1338,6 +1336,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     return c * $scope.axisDirs.dir;
                 });
                 setCam(cp, $scope.axisDirs[side].camViewUp);
+                refresh();
             };
 
             $scope.toggleMarker = function() {
