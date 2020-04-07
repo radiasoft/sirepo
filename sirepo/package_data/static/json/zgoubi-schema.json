@@ -1155,6 +1155,7 @@
         },
         "beamlineReport": {
             "title": "Lattice",
+            "hasDataFile": false,
             "advanced": []
         },
         "bunchAnimation": {

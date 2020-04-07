@@ -3965,6 +3965,7 @@
     "view": {
         "beamlineReport": {
             "title": "Lattice",
+            "hasDataFile": false,
             "advanced": ["notes"]
         },
         "bunch": {
