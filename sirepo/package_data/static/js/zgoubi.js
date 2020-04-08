@@ -1068,7 +1068,8 @@ SIREPO.app.directive('zgoubiImportOptions', function(fileUpload, requestSender) 
                         requestSender.formatUrl(
                             'uploadFile',
                             {
-                                '<simulation_id>': 'unused',
+                                // dummy id because no simulation id is available or required
+                                '<simulation_id>': '11111111',
                                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                                 '<file_type>': 'TOSCA-magnetFile',
                             }),

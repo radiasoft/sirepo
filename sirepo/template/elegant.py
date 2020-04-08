@@ -228,11 +228,6 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         with open(str(path)) as f:
             return 'elegant-output.txt', f.read(), 'text/plain'
 
-    if model == 'beamlineReport':
-        data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
-        source = generate_parameters_file(data, is_parallel=True)
-        return 'python-source.py', source, 'text/plain'
-
     return _sdds(_report_output_filename('bunchReport'))
 
 

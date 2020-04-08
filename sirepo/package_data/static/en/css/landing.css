@@ -744,6 +744,7 @@
 }
 .landing footer .footer-sirepo {
   margin-right: 25px;
+  width: 144px;
 }
 .landing footer .footer-nav ul {
   padding: 0;
@@ -1051,6 +1052,7 @@
   }
   .landing footer .footer-sirepo {
     margin: 0;
+    width: 144px;
   }
   .landing footer .footer-nav {
     margin: 25px 0;
