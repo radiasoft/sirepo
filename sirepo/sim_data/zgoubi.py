@@ -59,7 +59,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
-    def zgoubi_lib_files_with_zip():
+    def zgoubi_lib_files_with_zip(cls):
         """Return sorted list of zip files
 
         Only works locally
@@ -73,7 +73,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-        if compute_model == 'tunesReport':
+        if r == 'tunesReport':
             return [r]
         res = ['particle', 'bunch']
         if compute_model == 'bunchReport':

@@ -135,6 +135,8 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         filename = _OPAL_H5_FILE
     elif model == 'plot2Animation':
         filename = _OPAL_SDDS_FILE
+    elif 'elementAnimation' in model:
+        filename = _file_name_for_element_animation(run_dir, model)
     else:
         assert False, 'file: {}'.format(model)
     path = run_dir.join(filename)
@@ -227,13 +229,12 @@ def sim_frame(frame_args):
     if r == 'plot2Animation':
         return sim_frame_plot2Animation(frame_args)
     # elementAnimations
-    page_count = 0
-    filename = None
-    for info in _output_info(frame_args.run_dir):
-        if info.modelKey == r:
-            filename = info.filename
-            break
-    return _bunch_plot(frame_args, frame_args.run_dir, frame_args.frameIndex, filename)
+    return _bunch_plot(
+        frame_args,
+        frame_args.run_dir,
+        frame_args.frameIndex,
+        _file_name_for_element_animation(frame_args.run_dir, r)
+    )
 
 
 def sim_frame_bunchAnimation(frame_args):
@@ -393,6 +394,13 @@ def _field_units(units, field):
 
 def _file_id(model_id, field_index):
     return '{}{}{}'.format(model_id, _FILE_ID_SEP, field_index)
+
+
+def _file_name_for_element_animation(run_dir, name):
+    for info in _output_info(run_dir):
+        if info.modelKey == name:
+            return info.filename
+    assert False, 'no output file for: {}'.format(name)
 
 
 def _find_run_method(commands):

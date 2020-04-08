@@ -834,7 +834,7 @@ class _ReadUntilCloseStream(_Stream):
             job.cfg.max_message_size - len(self.text),
             partial=True,
         )
-        pkdc('cmd={} stderr={}', self.cmd, t)
+        pkdlog('cmd={} stderr={}', self.cmd, t)
         await self.cmd.on_stderr_read(t)
         l = len(self.text) + len(t)
         assert l < job.cfg.max_message_size, \

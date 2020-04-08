@@ -1654,8 +1654,8 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   '<li><a href data-ng-click="downloadImage(480)">PNG - Small</a></li>',
                   '<li><a href data-ng-click="downloadImage(720)">PNG - Medium</a></li>',
                   '<li><a href data-ng-click="downloadImage(1080)">PNG - Large</a></li>',
-                  '<li role="separator" class="divider"></li>',
-                  '<li><a data-ng-href="{{ dataFileURL() }}" target="_blank">Raw Data File</a></li>',
+                  '<li data-ng-if="::hasDataFile" role="separator" class="divider"></li>',
+                  '<li data-ng-if="::hasDataFile"><a data-ng-href="{{ dataFileURL() }}" target="_blank">Raw Data File</a></li>',
                   SIREPO.appDownloadLinks || '',
                 '</ul>',
               '</div>',
@@ -1670,6 +1670,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             // modelKey may not exist in viewInfo, assume it has an editor in that case
             var view = appState.viewInfo($scope.viewName || $scope.modelKey);
             $scope.hasEditor = view && view.advanced.length === 0 ? false : true;
+            $scope.hasDataFile = view && view.hasOwnProperty('hasDataFile') ? view.hasDataFile : true;
 
             // used for python export which lives in SIREPO.appDownloadLinks
             $scope.reportTitle = function () {
