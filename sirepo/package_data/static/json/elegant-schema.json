@@ -462,11 +462,13 @@
             "limit_invariants": ["Limit Invariants", "Integer", 0, "If non-zero, the distribution cutoffs are applied to the invariants, rather than to the coordinates. This is useful for gaussian beams when the distribution cutoff is small."],
             "limit_in_4d": ["Limit In 4D", "RPNBoolean", "0", "If non-zero, then the transverse distribution is taken to be a 4-d gaussian or uniform distribution. One of these must be chosen using the distribution_type control. It must be the same for x and y. This is useful, for example, if you want to make a cylindrically symmetric beam."],
             "emit_x": ["Horizontal Geometric Emittance [m]", "RPNValue", "0.0", "", 0],
+            "emit_nx": ["Horizontal Normalized Emittance", "RPNValue", "0.0", "", 0],
             "beta_x": ["Horizontal Beta [m]", "RPNValue", "1.0", "", 1e-99],
             "alpha_x": ["Horizontal Alpha", "RPNValue", "0.0", ""],
             "eta_x": ["Horizontal Eta", "RPNValue", "0.0", ""],
             "etap_x": ["Horizontal Etap", "RPNValue", "0.0", ""],
             "emit_y": ["Vertical Geometric Emittance [m]", "RPNValue", "0.0", "", 0],
+            "emit_ny": ["Vertical Normalized Emittance", "RPNValue", "0.0", "", 0],
             "beta_y": ["Vertical Beta [m]", "RPNValue", "1.0", "", 1e-99],
             "alpha_y": ["Vertical Alpha", "RPNValue", "0.0", ""],
             "eta_y": ["Vertical Eta", "RPNValue", "0.0", ""],
@@ -1191,7 +1193,7 @@
             "load_parameters": ["Load Parameters", "RPNBoolean", "0", "If nonzero, specifies loading the SDDS parameter data rather than the column data."]
         },
         "command_run_control": {
-            "n_steps": ["N Steps", "Integer", 1, "The number of separate repetitions of the action implied by the next action command. If random errors are defined, this is also the number of separate error ensembles."],
+            "n_steps": ["N Steps", "RPNValue", 1, "The number of separate repetitions of the action implied by the next action command. If random errors are defined, this is also the number of separate error ensembles."],
             "bunch_frequency": ["Bunch Frequency", "RPNValue", "0.0", "The frequency to use in calculating the time delay between repetitions."],
             "n_indices": ["N Indices", "Integer", 0, "The number of looping indices for which to expect definitions in subsequent vary_element commands. If nonzero, then n_steps is ignored."],
             "n_passes": ["N Passes", "Integer", 1, "The number of passes to make through the beamline per repetition."],
@@ -3963,6 +3965,7 @@
     "view": {
         "beamlineReport": {
             "title": "Lattice",
+            "hasDataFile": false,
             "advanced": ["notes"]
         },
         "bunch": {
@@ -3989,6 +3992,7 @@
                     [
                         ["Horizontal", [
                             "emit_x",
+                            "emit_nx",
                             "beta_x",
                             "alpha_x",
                             "eta_x",
@@ -3996,6 +4000,7 @@
                         ]],
                         ["Vertical", [
                             "emit_y",
+                            "emit_ny",
                             "beta_y",
                             "alpha_y",
                             "eta_y",

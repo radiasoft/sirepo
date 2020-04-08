@@ -13,6 +13,7 @@ import importlib
 import inspect
 import pykern.pkio
 import sirepo.srdb
+import sirepo.tornado
 import time
 import tornado.gen
 import tornado.ioloop
@@ -142,7 +143,7 @@ class DriverBase(PKDict):
 
     @classmethod
     def init_q(cls, maxsize):
-        res = tornado.queues.Queue(maxsize=maxsize)
+        res = sirepo.tornado.Queue(maxsize=maxsize)
         for i in range(1, maxsize + 1):
             res.put_nowait(i)
         return res

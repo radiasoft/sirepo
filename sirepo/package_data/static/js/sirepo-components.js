@@ -1657,8 +1657,8 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   '<li><a href data-ng-click="downloadImage(480)">PNG - Small</a></li>',
                   '<li><a href data-ng-click="downloadImage(720)">PNG - Medium</a></li>',
                   '<li><a href data-ng-click="downloadImage(1080)">PNG - Large</a></li>',
-                  '<li role="separator" class="divider"></li>',
-                  '<li><a data-ng-href="{{ dataFileURL() }}" target="_blank">Raw Data File</a></li>',
+                  '<li data-ng-if="::hasDataFile" role="separator" class="divider"></li>',
+                  '<li data-ng-if="::hasDataFile"><a data-ng-href="{{ dataFileURL() }}" target="_blank">Raw Data File</a></li>',
                   SIREPO.appDownloadLinks || '',
                 '</ul>',
               '</div>',
@@ -1673,6 +1673,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             // modelKey may not exist in viewInfo, assume it has an editor in that case
             var view = appState.viewInfo($scope.viewName || $scope.modelKey);
             $scope.hasEditor = view && view.advanced.length === 0 ? false : true;
+            $scope.hasDataFile = view && view.hasOwnProperty('hasDataFile') ? view.hasDataFile : true;
 
             // used for python export which lives in SIREPO.appDownloadLinks
             $scope.reportTitle = function () {
@@ -2182,6 +2183,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                     '<li><a href data-ng-if="nav.modeIsDefault()" data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
                     '<li><a href data-ng-click="exportArchive(\'zip\')"><span class="glyphicon glyphicon-cloud-download"></span> Export as ZIP</a></li>',
                     '<li><a href data-ng-click="pythonSource()"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Python Source</a></li>',
+                    '<li data-ng-if="::canExportMadx()" ><a href data-ng-click="pythonSource(\'madx\')"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as MAD-X lattice</a></li>',
                     '<li data-ng-if="canCopy()"><a href data-ng-click="copyItem()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>',
                     '<li data-ng-if="isExample()"><a href data-target="#reset-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-repeat"></span> Discard Changes to Example</a></li>',
                     '<li data-ng-if="! isExample()"><a href data-target="#delete-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-trash"></span> Delete</a></li>',
@@ -2211,6 +2213,10 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
             ].join('');
             $scope.doneLoadingSimList = false;
 
+            $scope.canExportMadx = function() {
+                return SIREPO.appMadxExport;
+            };
+
             $scope.simulationId = function () {
                 if (appState.isLoaded()) {
                     return appState.models.simulation.simulationId;
@@ -2223,10 +2229,10 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
             $scope.showDocumentationUrl = function() {
                 panelState.showModalEditor('simDoc');
             };
-            $scope.pythonSource = function() {
-                panelState.pythonSource($scope.simulationId());
-            };
 
+            $scope.pythonSource = function(modelName) {
+                panelState.pythonSource($scope.simulationId(), modelName);
+            };
 
             $scope.relatedSimulations = [];
 
@@ -3229,8 +3235,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                 if (j && j.jobRunMode && j.jobRunMode in authState.jobRunModeMap === false) {
                     j.jobRunMode = 'parallel';
                 }
-                appState.saveChanges($scope.simState.model);
-                $scope.simState.runSimulation();
+                appState.saveChanges($scope.simState.model, $scope.simState.runSimulation);
             };
         },
     };

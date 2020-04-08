@@ -154,10 +154,6 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         path = py.path.local(_particle_file_list(run_dir)[frame])
     elif 'bunchReport' in model:
         path = run_dir.join(OUTPUT_FILE.bunchReport)
-    elif model == 'beamlineReport':
-        data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
-        source = _generate_parameters_file(data)
-        return 'python-source.py', source, 'text/plain'
     else:
         assert False, 'model data file not yet supported: {}'.format(model)
     with open(str(path)) as f:

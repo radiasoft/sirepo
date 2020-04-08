@@ -77,7 +77,7 @@ def test_srw_user_see_only_own_jobs(auth_fc):
         fc.sr_post('runCancel', cancel_req)
 
     def _clear_role_db():
-        sirepo.auth_db.UserRole.query.delete()
+        sirepo.auth_db.UserRole.delete_all()
 
     def _get_jobs(adm, job_count):
         r = fc.sr_post(

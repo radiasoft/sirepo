@@ -7,21 +7,20 @@ GitHub is written Github and github (no underscore or dash) for ease of use.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import auth
+from sirepo import auth_db
 from sirepo import cookie
 from sirepo import http_request
 from sirepo import uri_router
-from sirepo import auth_db
 from sirepo import util
+import authlib.integrations.flask_client
 import flask
 import flask.sessions
-import authlib.integrations.flask_client
-import sirepo.template
+import sqlalchemy
 
 
 AUTH_METHOD = 'github'
@@ -115,7 +114,7 @@ def init_apis(app, *args, **kwargs):
         secret=pkconfig.Required(str, 'Github secret'),
         callback_uri=(None, str, 'Github callback URI (defaults to api_authGithubAuthorized)'),
     )
-    auth_db.init_model(app, _init_model)
+    auth_db.init_model(_init_model)
     app.session_interface = _FlaskSessionInterface()
     _app = app
 
@@ -139,15 +138,15 @@ class _FlaskSessionInterface(flask.sessions.SessionInterface):
         pass
 
 
-def _init_model(db, base):
+def _init_model(base):
     """Creates User class bound to dynamic `db` variable"""
     global AuthGithubUser, UserModel
 
-    class AuthGithubUser(base, db.Model):
+    class AuthGithubUser(base):
         __tablename__ = 'auth_github_user_t'
-        oauth_id = db.Column(db.String(100), primary_key=True)
-        user_name = db.Column(db.String(100), unique=True, nullable=False)
-        uid = db.Column(db.String(8), unique=True)
+        oauth_id = sqlalchemy.Column(sqlalchemy.String(100), primary_key=True)
+        user_name = sqlalchemy.Column(sqlalchemy.String(100), unique=True, nullable=False)
+        uid = sqlalchemy.Column(sqlalchemy.String(8), unique=True)
 
     UserModel = AuthGithubUser
 

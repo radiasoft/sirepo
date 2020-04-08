@@ -59,7 +59,12 @@ def elegant_code_var(variables):
 
 
 def import_file(text, data=None):
-    models = elegant_lattice_parser.parse_file(text, _SIM_DATA.elegant_max_id(data) if data else 0)
+    if not data:
+        data = simulation_db.default_data(elegant_common.SIM_TYPE)
+    models = elegant_lattice_parser.parse_file(
+        text,
+        data.models.rpnVariables,
+        _SIM_DATA.elegant_max_id(data))
     name_to_id, default_beamline_id = _create_name_map(models)
     if 'default_beamline_name' in models and models['default_beamline_name'] in name_to_id:
         default_beamline_id = name_to_id[models['default_beamline_name']]
@@ -78,8 +83,6 @@ def import_file(text, data=None):
     if len(models['elements']) == 0 or len(models['beamlines']) == 0:
         raise IOError('no beamline elements found in file')
 
-    if not data:
-        data = simulation_db.default_data(elegant_common.SIM_TYPE)
     data['models']['elements'] = models['elements']
     data['models']['beamlines'] = models['beamlines']
     data['models']['rpnVariables'] = models['rpnVariables']
@@ -99,14 +102,10 @@ def validate_fields(el, rpn_cache, code_var=None):
         code_var = elegant_code_var([])
     for field in el.copy():
         _validate_field(el, field, rpn_cache, code_var)
-    model_name = _model_name_for_data(el)
+    model_name = lattice.LatticeUtil.model_name_for_data(el)
     for field in _SCHEMA['model'][model_name]:
         if field not in el:
             el[field] = _SCHEMA['model'][model_name][field][2]
-
-
-def _model_name_for_data(model):
-    return 'command_{}'.format(model['_type']) if '_type' in model else model['type']
 
 
 def _create_name_map(models):
@@ -127,7 +126,7 @@ def _field_type_for_field(el, field):
     if re.search(r'\[\d+\]$', field):
         field = re.sub(r'\[\d+\]$', '', field)
     field_type = None
-    model_name = _model_name_for_data(el)
+    model_name = lattice.LatticeUtil.model_name_for_data(el)
     for f in _SCHEMA['model'][model_name]:
         if f == field:
             field_type = _SCHEMA['model'][model_name][f][1]
@@ -223,15 +222,14 @@ def _validate_input_file(el, field):
 
 def _validate_rpn_field(el, field, rpn_cache, code_var):
     if '_type' in el:
-        return
-    #TODO(pjm): doesn't reach this if?
-    if '_type' in el:
+        # command model
         m = re.search('\((.*?)\)$', el[field])
         if m:
             el[field] = m.group(1)
         m = re.search('\{\s*rpnl\s+(.*)\}$', el[field])
         if m:
             el[field] = m.group(1)
+        return
     value, error = code_var.eval_var(el[field])
     if error:
         raise IOError('invalid rpn: "{}"'.format(el[field]))
@@ -265,7 +263,7 @@ def _validate_string_array_field(el, field):
     field = m.group(1)
     index = int(m.group(2))
     if not field in el:
-        model_name = _model_name_for_data(el)
+        model_name = lattice.LatticeUtil.model_name_for_data(el)
         el[field] = _SCHEMA['model'][model_name][field][2]
     value_array = re.split('\s*,\s*', el[field])
     m = re.search('^(\d+)\*(.*)$', value)
