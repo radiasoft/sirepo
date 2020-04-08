@@ -117,7 +117,7 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
         )
         pkunit.pkeq(200, r.status_code, 'FAIL: unexpected status={}', r.status)
         if r.mimetype == 'text/html':
-            m = _JAVASCRIPT_REDIRECT_RE.search(r.data)
+            m = _JAVASCRIPT_REDIRECT_RE.search(str(r.data))
             if m:
                 pkunit.pkfail('unexpected redirect={}', m.group(1))
             pkunit.pkfail('unexpected html response={}', r.data)
@@ -224,7 +224,7 @@ class _TestClient(flask.testing.FlaskClient):
         from pykern import pkunit
         import pykern.pkcollections
 
-        m = re.search(r'(\{.*\})', self.sr_get('authState').data)
+        m = re.search(r'(\{.*\})', str(self.sr_get('authState').data))
         s = pykern.pkcollections.json_load_any(m.group(1))
         for k, v in kwargs.items():
             pkunit.pkeq(
@@ -407,7 +407,7 @@ class _TestClient(flask.testing.FlaskClient):
                 pkdlog('runCancel')
                 self.sr_post('runCancel', cancel)
             import subprocess
-            o = subprocess.check_output(['ps', 'axww'], stderr=subprocess.STDOUT)
+            o = str(subprocess.check_output(['ps', 'axww'], stderr=subprocess.STDOUT))
             o = filter(lambda x: 'mpiexec' in x, o.split('\n'))
             if o:
                 pkdlog('found "mpiexec" after cancel in ps={}', '\n'.join(o))
@@ -524,7 +524,7 @@ class _TestClient(flask.testing.FlaskClient):
             )
             # Emulate code in sirepo.js to deal with redirects
             if r.status_code == 200 and r.mimetype == 'text/html':
-                m = _JAVASCRIPT_REDIRECT_RE.search(r.data)
+                m = _JAVASCRIPT_REDIRECT_RE.search(str(r.data))
                 if m:
                     if m.group(1).endswith('#/error'):
                         raise sirepo.util.Error(

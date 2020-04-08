@@ -15,7 +15,7 @@ import time
 
 #%%time
 num_steps = {{ simulationGrid_num_steps }}
-output_steps = np.linspace(0,num_steps,num_steps/particleperiod + 1)[1:]
+output_steps = np.linspace(0,num_steps,num_steps//particleperiod + 1)[1:]
 step_count = 0
 time0 = time.time()
 wp.step(num_steps)

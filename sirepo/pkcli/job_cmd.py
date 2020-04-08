@@ -248,6 +248,7 @@ def _on_do_compute_exit(success_exit, is_parallel, template, run_dir):
     def _post_processing():
         if hasattr(template, 'post_execution_processing'):
             return template.post_execution_processing(**kwargs)
+        return None
 
     def _success_exit():
         return PKDict(

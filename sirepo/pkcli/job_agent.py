@@ -386,7 +386,6 @@ class _Cmd(PKDict):
         return job.agent_cmd_stdin_env(
             cmd=self.job_cmd_cmd(),
             env=self.job_cmd_env(),
-            pyenv=self.job_cmd_pyenv(),
             source_bashrc=self.job_cmd_source_bashrc(),
         )
 
@@ -397,9 +396,6 @@ class _Cmd(PKDict):
                 SIREPO_SIM_DATA_LIB_FILE_URI=self.msg.get('libFileUri', ''),
             ),
         )
-
-    def job_cmd_pyenv(self):
-        return 'py2' if self.msg.simulationType in _PY2_CODES else 'py3'
 
     def job_cmd_source_bashrc(self):
         return 'source $HOME/.bashrc'
@@ -654,7 +650,6 @@ class _SbatchRun(_SbatchCmd):
 cat > bash.stdin <<'EOF'
 {self.job_cmd_source_bashrc()}
 {self.job_cmd_env()}
-pyenv shell {self.job_cmd_pyenv()}
 if [[ ! $LD_LIBRARY_PATH =~ /usr/lib64/mpich/lib ]]; then
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64/mpich/lib
 fi

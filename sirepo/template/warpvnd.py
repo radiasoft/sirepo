@@ -110,7 +110,7 @@ def generate_field_comparison_report(data, run_dir, args=None):
     params = args if args is not None else data['models']['fieldComparisonAnimation']
     grid = data['models']['simulationGrid']
     dimension = params['dimension']
-    with h5py.File(str(py.path.local(run_dir).join(_COMPARISON_FILE))) as f:
+    with h5py.File(str(py.path.local(run_dir).join(_COMPARISON_FILE)), 'r') as f:
         values = f['data/{}/meshes/E/{}'.format(COMPARISON_STEP_SIZE, dimension)]
         values = values[()]
 
@@ -836,7 +836,7 @@ def _max_conductor_voltage(data):
     res = data.models.beam.anode_voltage
     for c in data.models.conductors:
         # conductor_type has been added to conductor during _prepare_conductors()
-        if c.conductor_type.voltage > res:
+        if float(c.conductor_type.voltage) > float(res):
             res = c.conductor_type.voltage
     return res
 
