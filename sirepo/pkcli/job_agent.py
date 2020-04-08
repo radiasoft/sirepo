@@ -124,7 +124,11 @@ def start_sbatch():
 class _Dispatcher(PKDict):
 
     def __init__(self):
-        super().__init__(cmds=[], fastcgi_cmd=None)
+        super().__init__(
+            cmds=[],
+            fastcgi_cmd=None,
+            fastcgi_error_count=0,
+        )
 
     def format_op(self, msg, opName, **kwargs):
         if msg:
@@ -198,7 +202,7 @@ class _Dispatcher(PKDict):
     def terminate(self):
         try:
             x = self.cmds
-            self.cmds.clear()
+            self.cmds = []
             for c in x:
                 try:
                     c.destroy()
@@ -284,6 +288,7 @@ class _Dispatcher(PKDict):
                         reply=PKDict(
                             state=job.ERROR,
                             error='internal error',
+                            fastCgiErrorCount=self.fastcgi_error_count,
                         ),
                     )
                 )
@@ -291,6 +296,7 @@ class _Dispatcher(PKDict):
                 pkdlog('msg={} error={} stack={}', msg, e, pkdexc())
         # destroy _fastcgi state first, then send replies to avoid
         # asynchronous modification of _fastcgi state.
+        self.fastcgi_error_count += 1
         self._fastcgi_remove_handler()
         q = self._fastcgi_msg_q
         self._fastcgi_msg_q = None
@@ -440,8 +446,9 @@ class _Cmd(PKDict):
 
     def pkdebug_str(self):
         return pkdformat(
-            '{}(jid={} o={:.4} job_cmd={} run_dir={})',
+            '{}(a={:.4} jid={} o={:.4} job_cmd={} run_dir={})',
             self.__class__.__name__,
+            cfg.agent_id,
             self.jid,
             self.op_id,
             self.msg.jobCmd,
@@ -754,12 +761,19 @@ class _Process(PKDict):
             return
         p = None
         try:
+            pkdlog('{}', self)
             p = self.pkdel('_subprocess').proc.pid
             os.killpg(p, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
         except Exception as e:
-            pkdlog('kill pid={} exception={}', p, e)
+            pkdlog('{} error={}', self, e)
+
+    def pkdebug_str(self):
+        return pkdformat(
+            '{}(pid={} cmd={})',
+            self.__class__.__name__,
+            self._subprocess.proc.pid if self.get('_subprocess') else None,
+            self.cmd,
+        )
 
     def start(self):
         # SECURITY: msg must not contain agentId
