@@ -20,7 +20,9 @@ import subprocess
 import sys
 import time
 
-_MAX_FASTCGI_EXCEPTIONS = 2
+_MAX_FASTCGI_EXCEPTIONS = 3
+
+_MAX_FASTCGI_MSG = int(1e8)
 
 
 def default_command(in_file):
@@ -56,6 +58,11 @@ def default_command(in_file):
             stack=pkdexc(),
         )
     return pkjson.dump_pretty(r, pretty=False)
+
+
+class _AbruptSocketCloseError(Exception):
+    """Fastcgi unix domain socket closed"""
+    pass
 
 
 def _background_percent_complete(msg, template, is_running):
@@ -112,14 +119,20 @@ def _do_fastcgi(msg, template):
     import socket
 
     def _recv():
-        r = b''
+        m = b''
         while True:
-            r += s.recv(int(1e8))
+            r = s.recv(_MAX_FASTCGI_MSG)
             if not r:
-                pkdlog('socket closed abruptly')
-                return None
-            if r[-1:] == b'\n':
-                return pkjson.load_any(r)
+                pkdlog(
+                    'job_cmd should be killed before socket is closed msg={}',
+                    msg,
+                )
+                raise _AbruptSocketCloseError()
+            if len(m) + len(r) > _MAX_FASTCGI_MSG:
+                raise RuntimeError('message larger than {} bytes',  _MAX_FASTCGI_MSG)
+            m += r
+            if m[-1:] == b'\n':
+                return pkjson.load_any(m)
 
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     # relative file name (see job_agent.fastcgi_op)
@@ -138,15 +151,17 @@ def _do_fastcgi(msg, template):
                 )
             r = PKDict(r).pksetdefault(state=job.COMPLETED)
             c = 0
+        except _AbruptSocketCloseError:
+            return
         except Exception as e:
             assert c < _MAX_FASTCGI_EXCEPTIONS, \
-                'too many fastcgi exceptions'
+                'too many fastgci exceptions {}. Most recent error={}'.format(c, e)
+            c += 1
             r = PKDict(
                 state=job.ERROR,
                 error=e.sr_args.error if isinstance(e, sirepo.util.UserAlert) else str(e),
                 stack=pkdexc(),
             )
-            c += 1
         s.sendall(pkjson.dump_bytes(r) + b'\n')
 
 
