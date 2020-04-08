@@ -1274,9 +1274,6 @@ SIREPO.app.directive('modelField', function(appState) {
             $scope.fieldName = function() {
                 return field;
             };
-            //if(modelName === 'geometry') {
-            //    srdbg('MF mn', modelName, 'm', $scope.modelForField(), 'field', $scope.field, 'frm aapdtd', appState.models[$scope.modelName]);
-            //}
         },
     };
 });
@@ -3782,7 +3779,7 @@ SIREPO.app.service('utilities', function($window, $interval) {
         if (p < 0) {
             return val;
         }
-        const r = Math.pow(10, p);
+        var r = Math.pow(10, p);
         return Math.round(val * r) / r;
     };
 

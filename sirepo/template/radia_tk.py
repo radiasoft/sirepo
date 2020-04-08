@@ -103,7 +103,7 @@ def vector_field_to_data(geom, name, pv_arr, units):
     # format is [[[px, py, pz], [vx, vy, vx]], ...]
     # convert to webGL object
 
-    # pkdp('g {} n {} pa {} u {}', geom, name, pv_arr, units)
+    #pkdp('g {} n {} pa {} u {}', geom, name, pv_arr, units)
     v_data = new_geom_object()
     v_data.vectors.lengths = []
     v_data.vectors.colors = []

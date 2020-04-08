@@ -128,7 +128,9 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 });
 
                 var ab = actorBundle(ps);
-                ab.actor.getProperty().setColor(...(colorArray || [1, 1, 1]));
+                //ab.actor.getProperty().setColor(...(colorArray || [1, 1, 1]));
+                var ca = colorArray || [1, 1, 1];
+                ab.actor.getProperty().setColor(ca[0], ca[1], ca[2]);
                 ab.actor.getProperty().setLighting(false);
                 return ab;
             },
@@ -236,16 +238,16 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
     };
 
     self.cylinderSection = function(center, axis, radius, height, planes) {
-        const startAxis = [0, 0, 1];
-        const startOrigin = [0, 0, 0];
-        const cylBounds = [-radius, radius, -radius, radius, -height/2.0, height/2.0];
-        const cyl = vtk.Common.DataModel.vtkCylinder.newInstance({
+        var startAxis = [0, 0, 1];
+        var startOrigin = [0, 0, 0];
+        var cylBounds = [-radius, radius, -radius, radius, -height/2.0, height/2.0];
+        var cyl = vtk.Common.DataModel.vtkCylinder.newInstance({
             radius: radius,
             center: startOrigin,
             axis: startAxis
         });
 
-        const pl = planes.map(function (p) {
+        var pl = planes.map(function (p) {
             return vtk.Common.DataModel.vtkPlane.newInstance({
                 normal: p.norm || startAxis,
                 origin: p.origin || startOrigin
@@ -253,37 +255,41 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
         });
 
         // perform the sectioning
-        const section = vtk.Common.DataModel.vtkImplicitBoolean.newInstance({
+        var f = [cyl];
+        f.concat(pl);
+        var section = vtk.Common.DataModel.vtkImplicitBoolean.newInstance({
             operation: 'Intersection',
-            functions: [cyl, ...pl]
+            functions: f
+            //functions: [cyl, ...pl]
         });
 
-        const sectionSample = vtk.Imaging.Hybrid.vtkSampleFunction.newInstance({
+        var sectionSample = vtk.Imaging.Hybrid.vtkSampleFunction.newInstance({
             implicitFunction: section,
             modelBounds: cylBounds,
             sampleDimensions: [32, 32, 32]
         });
 
-        const sectionSource = vtk.Filters.General.vtkImageMarchingCubes.newInstance();
+        var sectionSource = vtk.Filters.General.vtkImageMarchingCubes.newInstance();
         sectionSource.setInputConnection(sectionSample.getOutputPort());
         // this transformation adapted from VTK cylinder source - we don't "untranslate" because we want to
         // rotate in place, not around the global origin
         vtk.Common.Core.vtkMatrixBuilder
             .buildFromRadian()
-            .translate(...center)
+            //.translate(...center)
+            .translate(center[0], center[1], center[2])
             .rotateFromDirections(startAxis, axis)
             .apply(sectionSource.getOutputData().getPoints().getData());
        return sectionSource;
     };
 
     self.setColorSclars = function(data, color) {
-        const pts = data.getPoints();
-        const n = color.length * (pts.getData().length / pts.getNumberOfComponents());
-        const pd = data.getPointData();
-        const s = pd.getScalars();
-        const rgb = s ? s.getData() : new window.Uint8Array(n);
-        for (let i = 0; i < n; i += color.length) {
-            for (let j = 0; j < color.length; ++j) {
+        var pts = data.getPoints();
+        var n = color.length * (pts.getData().length / pts.getNumberOfComponents());
+        var pd = data.getPointData();
+        var s = pd.getScalars();
+        var rgb = s ? s.getData() : new window.Uint8Array(n);
+        for (var i = 0; i < n; i += color.length) {
+            for (var j = 0; j < color.length; ++j) {
                 rgb[i + j] = color[j];
             }
         }
@@ -1214,9 +1220,13 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     return;
                 }
                 var cam = renderer.get().activeCamera;
-                cam.setPosition(...(pos || [1, 0, 0]));
+                //cam.setPosition(...(pos || [1, 0, 0]));
+                var p = pos || [1, 0, 0];
+                cam.setPosition(p[0], p[1], p[2]);
                 cam.setFocalPoint(0, 0, 0);
-                cam.setViewUp(...(vu || [0, 0, 1]));
+                //cam.setViewUp(...(vu || [0, 0, 1]));
+                var v = vu || [0, 0, 1];
+                cam.setViewUp(v[0], v[1], v[2]);
                 renderer.resetCamera();
                 if (marker) {
                     marker.updateMarkerOrientation();
@@ -1242,8 +1252,8 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             };
 
             $scope.init = function() {
-                srdbg('vtk init', $scope);
-                const rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
+                //srdbg('vtk init', $scope);
+                var rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
                 fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
                     background: [1, 1, 1, 1],
                     container: rw,
