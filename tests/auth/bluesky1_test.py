@@ -68,7 +68,7 @@ def test_srw_auth_hash_copy():
             req['simulationType'],
             req['simulationId'],
             bluesky.cfg.secret,
-        ]),
+        ]).encode(),
     )
-    req['authHash'] = 'v1:' + base64.urlsafe_b64encode(h.digest())
+    req['authHash'] = 'v1:' + str(base64.urlsafe_b64encode(h.digest()))
     bluesky.auth_hash(pkcollections.Dict(req), verify=True)

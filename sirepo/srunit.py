@@ -408,7 +408,7 @@ class _TestClient(flask.testing.FlaskClient):
                 self.sr_post('runCancel', cancel)
             import subprocess
             o = str(subprocess.check_output(['ps', 'axww'], stderr=subprocess.STDOUT))
-            o = filter(lambda x: 'mpiexec' in x, o.split('\n'))
+            o = list(filter(lambda x: 'mpiexec' in x, o.split('\n')))
             if o:
                 pkdlog('found "mpiexec" after cancel in ps={}', '\n'.join(o))
                 # this exception won't be seen because in finally

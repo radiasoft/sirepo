@@ -83,9 +83,9 @@ def auth_hash(req, verify=False):
             req.simulationType,
             req.simulationId,
             cfg.secret,
-        ]),
+        ]).encode(),
     )
-    res = 'v1:' + base64.urlsafe_b64encode(h.digest())
+    res = 'v1:' + str(base64.urlsafe_b64encode(h.digest()))
     if not verify:
         req.authHash = res
         return
