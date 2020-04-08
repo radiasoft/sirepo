@@ -383,10 +383,7 @@ def get_application_data(data, **kwargs):
 
 
 def get_data_file(run_dir, model, frame, **kwargs):
-    filename = get_filename_for_model(model)
-    with open(str(run_dir.join(filename))) as f:
-        return filename, f.read(), 'application/octet-stream'
-    raise RuntimeError('output file unknown for model: {}'.format(model))
+    return get_filename_for_model(model)
 
 
 def get_filename_for_model(model):

@@ -172,13 +172,10 @@ def get_rates(run_dir):
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if model in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
-        path = run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)
+        return _BEAM_EVOLUTION_OUTPUT_FILENAME
     elif model == 'forceTableAnimation':
-        path = run_dir.join(_FORCE_TABLE_FILENAME)
-    else:
-        path = py.path.local(_ion_files(run_dir)[frame])
-    with open(str(path)) as f:
-        return path.basename, f.read(), 'application/octet-stream'
+        return_FORCE_TABLE_FILENAME
+    return _ion_files(run_dir)[frame]
 
 
 def post_execution_processing(

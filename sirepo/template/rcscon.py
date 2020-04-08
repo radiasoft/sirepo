@@ -89,34 +89,34 @@ def get_application_data(data, **kwargs):
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
-    name = None
-    filename = None
     sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    f = sim_in.models.files
     if 'fileColumnReport' in model:
-        idx = int(re.search(r'(\d+)$', model).group(1))
-        source, idx = _input_or_output(sim_in, idx, 'inputs', 'outputs')
-        if source == 'inputs':
-            name = sim_in.models.files.inputs
-        else:
-            name = sim_in.models.files.outputs
-        filename = _SIM_DATA.lib_file_name_with_model_field('files', source, name)
+        source = _input_or_output(
+            sim_in,
+            int(re.search(r'(\d+)$', model).group(1)),
+            'inputs',
+            'outputs',
+        )[0]
+        return _SIM_DATA.lib_file_name_with_model_field(
+            'files',
+            source,
+            sim_in.models.files[source],
+        )
     if model == 'partitionSelectionReport' or 'partitionAnimation' in model:
-        name = sim_in.models.files.inputs
-        filename = _SIM_DATA.lib_file_name_with_model_field('files', 'inputs', name)
+        return _SIM_DATA.lib_file_name_with_model_field(
+            'files',
+            'inputs',
+            sim_in.models.files.inputs,
+        )
     if model == 'epochAnimation':
-        name = _OUTPUT_FILE.fitOutputFile
-        filename = name
-    if filename:
-        with open(str(run_dir.join(filename)), 'r') as f:
-            return name, f.read(), 'application/octet-stream'
+        return _OUTPUT_FILE.fitOutputFile
     if 'fitAnimation' in model:
-        filename = _OUTPUT_FILE.testOutputFile
-        with open(str(run_dir.join(filename)), 'r') as f:
-            res = f.read()
-        filename = _OUTPUT_FILE.predictOutputFile
-        with open(str(run_dir.join(filename)), 'r') as f:
-            return 'test-and-predict.csv', res + f.read(), 'application/octet-stream'
-    assert False, 'unknown model: {}'.format(model)
+        return PKDict(
+            filename=(_OUTPUT_FILE.testOutputFile, _OUTPUT_FILE.predictOutputFile),
+            uri='test-and-predict.csv',
+        )
+    raise AssertionError('unknown model: {}'.format(model))
 
 
 def prepare_sequential_output_file(run_dir, sim_in):

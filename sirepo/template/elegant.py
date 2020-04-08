@@ -201,18 +201,21 @@ def _file_name_from_id(file_id, model_data, run_dir):
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
+
     def _sdds(filename):
         path = run_dir.join(filename)
         assert path.check(file=True, exists=True), \
             '{}: not found'.format(path)
         if not options.suffix:
-            with open(str(path)) as f:
-                return path.basename, f.read(), 'application/octet-stream'
+            return path
         if options.suffix == 'csv':
             out = elegant_common.subprocess_output(['sddsprintout', '-columns', '-spreadsheet=csv', str(path)])
             assert out, \
                 '{}: invalid or empty output from sddsprintout'.format(path)
-            return path.purebasename + '.csv', out, 'text/csv'
+            return PKDict(
+                uri=path.purebasename + '.csv',
+                content=out,
+            )
         raise AssertionError('{}: invalid suffix for download path={}'.format(options.suffix, path))
 
     if frame >= 0:
@@ -220,19 +223,14 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         # ex. elementAnimation17-55
         i = re.sub(r'elementAnimation', '', model).split(_FILE_ID_SEP)
         return _sdds(_get_filename_for_element_id(i, data))
-
     if model == 'animation':
         path = run_dir.join(ELEGANT_LOG_FILE)
-        if not path.exists():
-            return 'elegant-output.txt', '', 'text/plain'
-        with open(str(path)) as f:
-            return 'elegant-output.txt', f.read(), 'text/plain'
-
+        PKDict(
+            uri='elegant-output.txt',
+            content=path.read() if path.exists() else '',
+        )
     if model == 'beamlineReport':
-        data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
-        source = generate_parameters_file(data, is_parallel=True)
-        return 'python-source.py', source, 'text/plain'
-
+        return PKDict(python_gen=lambda x: generate_parameters_file(x, is_parallel=True))
     return _sdds(_report_output_filename('bunchReport'))
 
 

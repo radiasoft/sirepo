@@ -149,19 +149,14 @@ def import_file(req, tmp_dir=None, **kwargs):
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if model in OUTPUT_FILE:
-        path = run_dir.join(OUTPUT_FILE[model])
+        return OUTPUT_FILE[model]
     elif model == 'bunchAnimation':
-        path = py.path.local(_particle_file_list(run_dir)[frame])
+        return _particle_file_list(run_dir)[frame]
     elif 'bunchReport' in model:
-        path = run_dir.join(OUTPUT_FILE.bunchReport)
+        return OUTPUT_FILE.bunchReport
     elif model == 'beamlineReport':
-        data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
-        source = _generate_parameters_file(data)
-        return 'python-source.py', source, 'text/plain'
-    else:
-        assert False, 'model data file not yet supported: {}'.format(model)
-    with open(str(path)) as f:
-        return path.basename, f.read(), 'application/octet-stream'
+        return PKDict(python_gen=_generate_parameters_file)
+    raise AssertionError('unsupported model={}'.format(model))
 
 
 def label(field, enum_labels=None):

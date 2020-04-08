@@ -189,20 +189,19 @@ def get_application_data(data, **kwargs):
 
 def get_data_file(run_dir, model, frame, **kwargs):
     if model == 'particleAnimation' or model == 'egunCurrentAnimation' or model == 'particle3d':
-        filename = str(run_dir.join(_PARTICLE_FILE if model == 'particleAnimation' or model == 'particle3d' else _EGUN_CURRENT_FILE))
-        with open(filename) as f:
-            return os.path.basename(filename), f.read(), 'application/octet-stream'
+        return _PARTICLE_FILE if model in ('particleAnimation', 'particle3d') else _EGUN_CURRENT_FILE
     if model == 'conductorGridReport':
         data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
-        return 'python-source.py', python_source_for_model(data, model), 'text/plain'
+#TODO(robnagler) make a call to get this
+        return PKDict(
+            python=python_source_for_model(data, model),
+        )
     files = _h5_file_list(run_dir, model)
     #TODO(pjm): last client file may have been deleted on a canceled animation,
     # give the last available file instead.
     if len(files) < frame + 1:
         frame = -1
-    filename = str(files[int(frame)])
-    with open(filename) as f:
-        return os.path.basename(filename), f.read(), 'application/octet-stream'
+    return str(files[int(frame)])
 
 
 def get_zcurrent_new(particle_array, momenta, mesh, particle_weight, dz):

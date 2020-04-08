@@ -157,12 +157,15 @@ def get_application_data(data, **kwargs):
 
 def get_data_file(run_dir, model, frame, **kwargs):
     if model == 'dicomAnimation4':
-        with open(_parent_file(run_dir, _DOSE_DICOM_FILE)) as f:
-            return RTDOSE_EXPORT_FILENAME, f.read(), 'application/octet-stream'
+        return PKDict(
+            filename=_parent_file(run_dir, _DOSE_DICOM_FILE),
+            uri=RTDOSE_EXPORT_FILENAME,
+        )
     filename, _ = _generate_rtstruct_file(_parent_dir(run_dir), kwargs['tmp_dir'])
-    with open (filename, 'rb') as f:
-        dicom_data = f.read()
-    return RTSTRUCT_EXPORT_FILENAME, dicom_data, 'application/octet-stream'
+    return PKDict(
+        filename=filename,
+        uri=RTSTRUCT_EXPORT_FILENAME,
+    )
 
 
 def import_file(req, tmp_dir=None, **kwargs):

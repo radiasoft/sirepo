@@ -125,7 +125,7 @@ def extract_particle_report(frame_args, particle_type):
         weights=data_list[2],
         range=[_select_range(data_list[0], xarg, select), _select_range(data_list[1], yarg, select)],
     )
-    pkdp(edges)
+    pkdp(data_list[2])
     return PKDict(
         x_range=[float(edges[0][0]), float(edges[0][-1]), len(hist)],
         y_range=[float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
@@ -161,7 +161,7 @@ def get_data_file(run_dir, model, frame, **kwargs):
     if len(files) < frame + 1:
         frame = -1
     filename = str(files[int(frame)])
-    with open(filename) as f:
+    with open(filename, 'rb') as f:
         return os.path.basename(filename), f.read(), 'application/octet-stream'
 
 
@@ -217,7 +217,7 @@ def open_data_file(run_dir, file_index=None):
     res.frame_index = res.num_frames - 1 if file_index is None else file_index
     res.filename = str(files[res.frame_index])
     res.iteration = int(re.search(r'data(\d+)', res.filename).group(1))
-    return res
+    return pkdp(res)
 
 
 def python_source_for_model(data, model):
@@ -296,7 +296,7 @@ def _opmd_time_series(data_file):
     try:
         prev = main.list_h5_files
         main.list_h5_files = lambda x: ([data_file.filename], [data_file.iteration])
-        return OpenPMDTimeSeries(py.path.local(data_file.filename).dirname)
+        return pkdp(OpenPMDTimeSeries(py.path.local(data_file.filename).dirname))
     finally:
         if prev:
             main.list_h5_files = prev

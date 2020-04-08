@@ -402,22 +402,16 @@ def get_application_data(data, **kwargs):
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
-    filename = _ZGOUBI_FAI_DATA_FILE
     if options and options.suffix == _ZGOUBI_COMMAND_FILE:
-        if model == 'tunesReport':
-            filename = TUNES_INPUT_FILE
-        else:
-            filename = _ZGOUBI_COMMAND_FILE
+        return TUNES_INPUT_FILE if model == 'tunesReport' else _ZGOUBI_COMMAND_FILE
     elif model == 'elementStepAnimation':
-        filename = _ZGOUBI_PLT_DATA_FILE
+        return _ZGOUBI_PLT_DATA_FILE
     elif model == 'opticsReport' or 'twissReport' in model:
-        filename = _ZGOUBI_TWISS_FILE
+        return _ZGOUBI_TWISS_FILE
     elif model == 'beamlineReport':
-        data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
-        return 'python-source.py', python_source_for_model(data), 'text/plain'
-    path = run_dir.join(filename)
-    with open(str(path)) as f:
-        return path.basename, f.read(), 'application/octet-stream'
+        return PKDict(python_generator=python_source_for_model)
+    else:
+        return _ZGOUBI_FAI_DATA_FILE
 
 
 def sim_frame(frame_args):
