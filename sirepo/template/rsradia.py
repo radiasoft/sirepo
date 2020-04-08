@@ -229,7 +229,6 @@ def _generate_field_data(g_id, name, f_type, f_paths):
         f = radia_tk.get_magnetization(g_id)
     elif f_type in radia_tk.POINT_FIELD_TYPES:
         f = radia_tk.get_field(g_id, f_type, _build_field_points(f_paths))
-    pkdp('F INTS {}', _generate_field_integrals(g_id, f_paths))
     return radia_tk.vector_field_to_data(g_id, name, f, radia_tk.FIELD_UNITS[f_type])
 
 
@@ -259,7 +258,6 @@ def _generate_obj_data(g_id, name):
 
 def _generate_parameters_file(data):
     report = data.get('report', '')
-    pkdp('RPT {}', report)
     res, v = template_common.generate_parameters_file(data)
     g = data.models.geometry
 
@@ -282,15 +280,13 @@ def _generate_parameters_file(data):
         v['fieldType'] = f_type
         v['fieldPoints'] = _build_field_points(data.models.fieldPaths.get('paths', []))
     if 'solver' in report:
-        #pkdp('WILL SOLVE')
         v['doSolve'] = True
         s = data.models.solver
         v['solvePrec'] = s.precision
         v['solveMaxIter'] = s.maxIterations
         v['solveMethod'] = s.method
     if 'reset' in report:
-        res = radia_tk.reset()
-        #pkdp('RESET RES {}', res)
+        radia_tk.reset()
         data.report = 'geometry'
         return _generate_parameters_file(data)
     v['h5ObjPath'] = _geom_h5_path(VIEW_TYPE_OBJ)

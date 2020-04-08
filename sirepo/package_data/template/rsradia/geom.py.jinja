@@ -24,8 +24,6 @@ if '{{ viewType }}' == VIEW_TYPE_FIELD:
     f_type = '{{ fieldType }}'
 {% if doSolve %}
     res = radia_tk.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
-    print('SOLVE RES {}'.format(res))
-    print('DMP {}'.format(radia_tk.dump(g_id)))
 {% endif %}
     if f_type == radia_tk.FIELD_TYPE_MAG_M:
         f = radia_tk.get_magnetization(g_id)
