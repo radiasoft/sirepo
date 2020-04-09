@@ -28,78 +28,54 @@ def test_myapp_free_user_sim_purged(auth_fc):
     from pykern.pkdebug import pkdp
     import sirepo.auth
 
-    def _check_run_dir(should_exist=False):
-        def _dirs():
-            return pkio.sorted_glob(pkunit.work_dir().join(
-                'db',
-                'user',
-                fc.sr_auth_state().uid,
-                'myapp',
-                '*',
-                '*',
-                ),
-            )
-
-        f = [d for d in _dirs() if 'heightWeightReport' in str(d)]
-        if should_exist:
-            pkunit.pkeq(1, len(f))
-            return
-        pkunit.pkeq(0, len(f))
-
-    def _login_as_user(user):
-        fc.sr_logout()
-        r = fc.sr_post(
-            'authEmailLogin',
-            PKDict(email=user, simulationType=fc.sr_sim_type),
-        )
-        fc.sr_email_confirm(fc, r)
+    def _check_run_dir(should_exist=0):
+        f = pkio.walk_tree(fc.sr_user_dir(), file_re=m)
+        pkunit.pkeq(should_exist, len(f))
 
     def _make_user_premium(uid):
         sirepo.auth_db.UserRole.add_roles(uid, [sirepo.auth.ROLE_PREMIUM])
         r = sirepo.auth_db.UserRole.search_all_for_column('uid')
-        pkunit.pkeq(1, len(r), 'One user with role premium r={}', r)
-        pkunit.pkeq(r[0], uid, 'Expected same uid as user')
+        pkunit.pkeq(r, [uid], 'expecting one premium user with same id')
 
-    def _run_sim(data):
-        from pykern import pkunit
+    def sr_run_sim_on_state_do_op(sim_data, compute_model, state, op):
         c = None
         try:
             r = fc.sr_post(
                 'runSimulation',
                 PKDict(
-                    models=data.models,
-                    report=m,
-                    simulationId=data.models.simulation.simulationId,
-                    simulationType=data.simulationType,
+                    models=sim_data.models,
+                    report=compute_model,
+                    simulationId=sim_data.models.simulation.simulationId,
+                    simulationType=sim_data.simulationType,
                 )
             )
             c = r.nextRequest
             for _ in range(10):
-                if r.state == 'completed':
-                    return c
+                if r.state == state:
+                    return op(c)
                 r = fc.sr_post('runStatus', r.nextRequest)
                 time.sleep(1)
             else:
-                pkunit.pkfail('Never entered running state')
+                pkunit.pkfail('Never entered state {}', state)
         except Exception:
             if c:
                 fc.sr_post('runCancel', c)
             raise
 
-    def _register_both_users():
-        def _register(email):
-            r = fc.sr_post(
-                'authEmailLogin',
-                PKDict(email=email, simulationType=fc.sr_sim_type),
-            )
-            fc.sr_email_confirm(fc, r)
-            fc.sr_post(
-                'authCompleteRegistration',
-                PKDict(displayName=email, simulationType=fc.sr_sim_type),
-            )
-        _register(user_free)
-        _register(user_premium)
-        _make_user_premium(fc.sr_auth_state().uid)
+    def _run_sim(data):
+        r = fc.sr_run_sim(data, m)
+        r.simulationType = fc.sr_sim_type
+        r.report = m
+        r.update(data)
+        return r
+
+    def _register(email):
+        # TODO(e-carlin): modularize in srunit
+        fc.sr_email_login(email)
+        fc.sr_post(
+            'authCompleteRegistration',
+            PKDict(displayName=email, simulationType=fc.sr_sim_type),
+        )
 
     def _status_eq(next_req, status):
         pkunit.pkeq(
@@ -111,9 +87,11 @@ def test_myapp_free_user_sim_purged(auth_fc):
     m = 'heightWeightReport'
     user_free = 'free@b.c'
     user_premium = 'premium@x.y'
-    _register_both_users()
+    _register(user_free)
+    _register(user_premium)
+    _make_user_premium(fc.sr_auth_state().uid)
     next_req_premium = _run_sim(fc.sr_sim_data())
-    _login_as_user(user_free)
+    fc.sr_email_login(user_free)
     next_req_free = _run_sim(fc.sr_sim_data())
     fc.sr_get_json(
         'adjustTime',
@@ -121,7 +99,7 @@ def test_myapp_free_user_sim_purged(auth_fc):
     )
     time.sleep(_CACHE_AND_SIM_PURGE_FREQUENCY + 1)
     _status_eq(next_req_free, 'free_user_purged')
-    _check_run_dir(should_exist=False)
-    _login_as_user(user_premium)
+    _check_run_dir(should_exist=0)
+    fc.sr_email_login(user_premium)
     _status_eq(next_req_premium, 'completed')
-    _check_run_dir(should_exist=True)
+    _check_run_dir(should_exist=6)
