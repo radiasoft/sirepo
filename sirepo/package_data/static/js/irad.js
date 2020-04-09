@@ -8,11 +8,26 @@ SIREPO.appReportTypes = [
     '<div data-ng-switch-when="dicomCoronal" data-dicom-plot="" class="sr-plot" data-dicom-plane="c" data-model-name="{{ modelKey }}"></div>',
     '<div data-ng-switch-when="dicom3d" data-dicom-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
 ].join('');
+SIREPO.appPanelHeadingButtons = [
+    '<div data-ng-if="isReport && modelKey == \'dicom3DReport\'" style="display: inline-block">',
+      '<div data-toggle-report-button="dvh"></div>',
+    '</div>',
+    '<div data-ng-if="isReport && modelKey == \'dvhReport\'" style="display: inline-block">',
+      '<div data-toggle-report-button="3d"></div>',
+    '</div>',
+].join('');
 
 SIREPO.app.factory('iradService', function(appState, requestSender, $rootScope) {
     var self = {};
-    var simulationId;
-    var roiPoints;
+    var simulationId, roiPoints;
+    var slicePosition = {};
+
+    self.dicomTitle = function(dicomPlane) {
+        return appState.enumDescription('DicomPlane', dicomPlane)
+            + (slicePosition[dicomPlane]
+               ? (' ' + slicePosition[dicomPlane].toFixed(3) + 'mm')
+               : '');
+    };
 
     self.downloadDataFile = function(modelName, frame) {
         var url = requestSender.formatUrl(
@@ -58,17 +73,45 @@ SIREPO.app.factory('iradService', function(appState, requestSender, $rootScope) 
             });
     };
 
+    self.setSlicePosition = function(dicomPlane, position) {
+        slicePosition[dicomPlane] = position;
+    };
+
     $rootScope.$on('modelsUnloaded', function() {
         simulationId = null;
         roiPoints = null;
+        slicePosition = {};
     });
 
     appState.setAppService(self);
     return self;
 });
 
-SIREPO.app.controller('SourceController', function (appState, panelState, $scope) {
+SIREPO.app.controller('SourceController', function (appState, iradService, $scope) {
     var self = this;
+    self.iradService = iradService;
+
+    self.showReport = function(toggle) {
+        if (! appState.isLoaded()) {
+            if (toggle == '3d') {
+                return true;
+            }
+            return false;
+        }
+        return appState.models.dvhReport.toggle == toggle;
+    };
+
+    //TODO(pjm): work-around to turn off plot legend on DVH report
+    $scope.$on('sr-plotLinked', function(event) {
+        var plotScope = event.targetScope;
+        if (plotScope.modelName == 'dvhReport') {
+            var loadFunction = plotScope.load;
+            plotScope.load = function(json) {
+                loadFunction(json);
+                plotScope.margin.bottom = 47;
+            };
+        }
+    });
 });
 
 SIREPO.app.directive('appFooter', function() {
@@ -139,62 +182,68 @@ SIREPO.app.directive('dicom3d', function(appState, iradService, plotting, reques
             }
 
             function refresh(event, reader, frame) {
-                if (frame != 1) {
-                    return;
-                }
-                removeActors();
-
                 var actor = vtk.Rendering.Core.vtkVolume.newInstance();
                 var mapper = vtk.Rendering.Core.vtkVolumeMapper.newInstance();
-                //mapper.setSampleDistance(0.7);
-                //mapper.setSampleDistance(4);
                 actor.setMapper(mapper);
                 mapper.setInputConnection(reader.getOutputPort());
-
-                var ctfun = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
-                ctfun.addRGBPoint(200.0, 0.4, 0.2, 0.0);
-                ctfun.addRGBPoint(2000.0, 1.0, 1.0, 1.0);
-                var ofun = vtk.Common.DataModel.vtkPiecewiseFunction.newInstance();
-                ofun.addPoint(200.0, 0.0);
-                ofun.addPoint(1200.0, 0.5);
-                ofun.addPoint(3000.0, 0.8);
-                actor.getProperty().setRGBTransferFunction(0, ctfun);
-                actor.getProperty().setScalarOpacity(0, ofun);
-                //      actor.getProperty().setScalarOpacityUnitDistance(0, 4.5);
-                actor.getProperty().setScalarOpacityUnitDistance(0, 10);
-                actor.getProperty().setInterpolationTypeToLinear();
-                actor.getProperty().setUseGradientOpacity(0, true);
-                //actor.getProperty().setGradientOpacityMinimumValue(0, 15);
-                actor.getProperty().setGradientOpacityMinimumValue(0, 99);
-                actor.getProperty().setGradientOpacityMinimumOpacity(0, 0.0);
-                actor.getProperty().setGradientOpacityMaximumValue(0, 100);
-                actor.getProperty().setGradientOpacityMaximumOpacity(0, 1.0);
-                //      actor.getProperty().setShade(true);
-                actor.getProperty().setAmbient(0.2);
-                actor.getProperty().setDiffuse(0.7);
-                actor.getProperty().setSpecular(0.3);
-                actor.getProperty().setSpecularPower(8.0);
-
                 var renderer = fsRenderer.getRenderer();
-                renderer.addVolume(actor);
-                renderer.resetCamera();
-                var cam =  renderer.getActiveCamera();
-                var pos = cam.getPosition();
-                cam.zoom(1.5);
-                cam.roll(30);
-                cam.elevation(-100);
-                renderer.updateLightsGeometryToFollowCamera();
+
+                var ofun, ctfun;
+                if (frame == 1) {
+                    //mapper.setSampleDistance(0.7);
+                    //mapper.setSampleDistance(4);
+                    ctfun = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
+                    ctfun.addRGBPoint(200.0, 0.4, 0.2, 0.0);
+                    ctfun.addRGBPoint(2000.0, 1.0, 1.0, 1.0);
+                    ofun = vtk.Common.DataModel.vtkPiecewiseFunction.newInstance();
+                    ofun.addPoint(200.0, 0.0);
+                    ofun.addPoint(1200.0, 0.5);
+                    ofun.addPoint(3000.0, 0.8);
+                    actor.getProperty().setRGBTransferFunction(0, ctfun);
+                    actor.getProperty().setScalarOpacity(0, ofun);
+                    //      actor.getProperty().setScalarOpacityUnitDistance(0, 4.5);
+                    actor.getProperty().setScalarOpacityUnitDistance(0, 10);
+                    actor.getProperty().setInterpolationTypeToLinear();
+                    actor.getProperty().setUseGradientOpacity(0, true);
+                    //actor.getProperty().setGradientOpacityMinimumValue(0, 15);
+                    actor.getProperty().setGradientOpacityMinimumValue(0, 99);
+                    actor.getProperty().setGradientOpacityMinimumOpacity(0, 0.0);
+                    actor.getProperty().setGradientOpacityMaximumValue(0, 100);
+                    actor.getProperty().setGradientOpacityMaximumOpacity(0, 1.0);
+                    //      actor.getProperty().setShade(true);
+                    actor.getProperty().setAmbient(0.2);
+                    actor.getProperty().setDiffuse(0.7);
+                    actor.getProperty().setSpecular(0.3);
+                    actor.getProperty().setSpecularPower(8.0);
+
+                    renderer.addVolume(actor);
+                    renderer.resetCamera();
+                    var cam =  renderer.getActiveCamera();
+                    var pos = cam.getPosition();
+                    cam.zoom(1.5);
+                    cam.roll(30);
+                    cam.elevation(-100);
+                    renderer.updateLightsGeometryToFollowCamera();
+
+                    addOrientationMarker();
+                }
+                else {
+                    ofun = vtk.Common.DataModel.vtkPiecewiseFunction.newInstance();
+                    ofun.addPoint(0, 0);
+                    var dmin = 100000;
+                    var dmax = 1051663;
+                    ofun.addPoint(dmin, 0);
+                    ofun.addPoint(dmax, 0.01);
+                    actor.getProperty().setScalarOpacity(0, ofun);
+                    actor.getProperty().setInterpolationTypeToLinear();
+                    ctfun = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
+                    ctfun.addRGBPoint(dmin, 1.0, 1.0, 0.0);
+                    ctfun.addRGBPoint(dmax, 0.8, 0.0, 0.0);
+                    actor.getProperty().setRGBTransferFunction(0, ctfun);
+                    renderer.addVolume(actor);
+                }
                 fsRenderer.getRenderWindow().render();
-
-                addOrientationMarker();
                 pngCanvas.copyCanvas();
-            }
-
-            function removeActors() {
-                var renderer = fsRenderer.getRenderer();
-                renderer.getActors().forEach(function(actor) {
-                    renderer.removeActor(actor);
-                });
             }
 
             $scope.destroy = function() {
@@ -361,8 +410,10 @@ function imageFeature() {
     function isValidHeatmap() {
         return heatmap && heatmap.length;
     }
+    var DOSE_CUTOFF = 10;
 
     return {
+        DOSE_CUTOFF: DOSE_CUTOFF,
         clearColorScale: function() {
             colorScale = null;
         },
@@ -424,6 +475,10 @@ function imageFeature() {
                         imageData.data[++p] = c.g;
                         imageData.data[++p] = c.b;
                         imageData.data[++p] = doseTransparency;
+                        //TODO(pjm): add adjustable % cut-off
+                        if (v < DOSE_CUTOFF) {
+                            imageData.data[p] = 0;
+                        }
                     }
                     else {
                         imageData.data[++p] = c;
@@ -458,7 +513,7 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
         template: [
           '<div style="position: relative" ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">',
             '<canvas ng-attr-style="position: absolute; left: {{ margin.left }}px; top: {{ margin.top }}px;"></canvas>',
-            '<div><svg class="sr-plot" style="position: relative;" ng-attr-width="{{ margin.left + margin.right + canvasWidth }}" ng-attr-height="{{ margin.top + margin.bottom + canvasHeight }}">',
+            '<div><svg class="sr-plot" style="position: relative;" ng-attr-width="{{ margin.left + margin.right + canvasWidth }}" ng-attr-height="{{ margin.top + margin.bottom + canvasHeight}}">',
               '<g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">',
                 '<svg class="plot-viewport" ng-attr-width="{{ canvasWidth }}" ng-attr-height="{{ canvasHeight }}">',
                   '<rect class="overlay mouse-zoom" ng-attr-width="{{ canvasWidth }}" ng-attr-height="{{ canvasHeight }}"></rect>',
@@ -476,7 +531,7 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
         controller: function($scope) {
             $scope.canvasHeight = 0;
             $scope.canvasWidth = 0;
-            $scope.margin = {top: 0, left: 0, right: 0, bottom: 0};
+            $scope.margin = {top: 0, left: 0, right: 0, bottom: -5};
 
             var canvas, dicomDomain, xAxisScale, xValues, yAxisScale, yValues, zoom;
             var data3d, dose3d, frameScale;
@@ -491,7 +546,7 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
             //var frameIdx = dicomPlane == 't' ? 41 : dicomPlane == 'c' ? 301 : 255;
             var frameIdx = dicomPlane == 't' ? 110 : dicomPlane == 'c' ? 301 : 255;
             var roiFeature = dicomPlane == 't' ? dicomROIFeature($scope, iradService) : null;
-            var zFrame;
+            var zFrame, slicePosition;
 
             function advanceFrame() {
                 if (! d3.event || ! d3.event.sourceEvent || d3.event.sourceEvent.type == 'mousemove') {
@@ -637,7 +692,8 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                     //TODO(pjm): metadata
                     var maxDose = 62.6127136398;
                     var colorScale = d3.scale.linear()
-                        .domain(plotting.linearlySpacedArray(0, maxDose * 0.8, colorMap.length))
+                        //TODO(pjm): add adjustable % cut-off
+                        .domain(plotting.linearlySpacedArray(doseFeature.DOSE_CUTOFF, maxDose * 0.8, colorMap.length))
                         .range(colorMap)
                         .clamp(true);
                     //TODO(pjm): model data
@@ -669,8 +725,8 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                 //         .on('zoom', refresh);
                 // }
                 // else if (rs4piService.isMouseWheelMode('advanceFrame')) {
-                    zoom.x(frameScale)
-                        .on('zoom', advanceFrame);
+                   zoom.x(frameScale)
+                       .on('zoom', advanceFrame);
                 // }
             }
 
@@ -687,12 +743,11 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                 var idx = frameIdx;
 
                 //TODO(pjm): refactor the "if" into one sub
-                var width, height, xmax, ymax, yi, xi, pos;
+                var width, height, xmax, ymax, yi, xi;
                 if (dicomPlane == 't') {
+                    slicePosition = data3d.bounds[4] - idx * data3d.spacing[2];
                     if (data === dose3d) {
-                        pos = data3d.bounds[4] - idx * data3d.spacing[2];
                         idx = Math.round((zFrame - data.bounds[4]) / -data.spacing[2]);
-                        zFrame = pos.toFixed(1);
                     }
                     width = dim[0];
                     height = dim[1];
@@ -705,9 +760,9 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                     }
                 }
                 else if (dicomPlane == 'c') {
+                    slicePosition = data3d.bounds[2] + idx * data3d.spacing[1];
                     if (data === dose3d) {
-                        pos = data3d.bounds[2] + idx * data3d.spacing[1];
-                        idx = Math.round((pos - data.bounds[2]) / data.spacing[1]);
+                        idx = Math.round((slicePosition - data.bounds[2]) / data.spacing[1]);
                         if (idx < 0 || idx > dim[1]) {
                             return res;
                         }
@@ -724,9 +779,9 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                     }
                 }
                 else if (dicomPlane == 's') {
+                    slicePosition = data3d.bounds[0] + idx * data3d.spacing[0];
                     if (data === dose3d) {
-                        pos = data3d.bounds[0] + idx * data3d.spacing[0];
-                        idx = Math.round((pos - data.bounds[0]) / data.spacing[0]);
+                        idx = Math.round((slicePosition - data.bounds[0]) / data.spacing[0]);
                         if (idx < 0 || idx > dim[0]) {
                             return res;
                         }
@@ -742,16 +797,14 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                         }
                     }
                 }
+                zFrame = slicePosition.toFixed(1);
+                iradService.setSlicePosition(dicomPlane, slicePosition);
                 return res;
             }
 
             $scope.destroy = function() {
                 zoom.on('zoom', null);
             };
-
-            // $scope.dicomTitle = function() {
-            //     return rs4piService.dicomTitle($scope.modelName);
-            // };
 
             $scope.init = function() {
                 select('svg').attr('height', plotting.initialHeight($scope));
@@ -804,6 +857,110 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
             appState.whenModelsLoaded(scope, function() {
                 plotting.linkPlot(scope, element);
             });
+        },
+    };
+});
+
+SIREPO.app.directive('dicomObjectSelector', function(appState, iradService) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div data-ng-repeat="row in rows" style="padding: 0.5ex 0;">',
+              '<div>',
+                '<span data-ng-if="row.items && row.isExpanded" class="glyphicon glyphicon-collapse-up"></span>',
+                ' <span data-ng-if="row.isSelected" class="glyphicon glyphicon-check"></span>',
+                ' <span data-ng-if="! row.isSelected" class="glyphicon glyphicon-unchecked"></span>',
+                ' {{ row.name }}',
+              '</div>',
+              '<div data-ng-repeat="item in row.items" style="padding: 0.3ex 0;">',
+                '<div style="white-space: nowrap; overflow: hidden; padding-left: 18px;">',
+                  ' <span data-ng-if="item.isSelected" class="glyphicon glyphicon-check"></span>',
+                  ' <span data-ng-if="! item.isSelected" class="glyphicon glyphicon-unchecked"></span>',
+                  ' <div class="irad-circle" data-ng-if="item.color" style="background-color: {{ itemColor(item) }}"> </div>',
+                  ' {{ item.name }}',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.itemColor = function(item) {
+                var c = item.color;
+                return c && window.d3 ? d3.rgb(c[0], c[1], c[2]) : '#000';
+            };
+            $scope.rows = [
+                {
+                    name: 'CT PROSTATE',
+                    isSelected: true,
+                },
+                {
+                    name: 'RTDOSE',
+                    isSelected: true,
+                },
+                {
+                    name: 'RTSTRUCT',
+                    isSelected: true,
+                    isExpanded: true,
+                },
+                {
+                    name: 'RTPLAN',
+                    isSelected: false,
+                    isExpanded: true,
+                },
+            ];
+            $scope.$on('roiPointsLoaded', function() {
+                var rois = iradService.getROIPoints();
+                var items = [];
+                Object.keys(rois).forEach(function(roiNumber) {
+                    var roi = rois[roiNumber];
+                    if (! roi.color) {
+                        return;
+                    }
+                    items.push({
+                        id: roiNumber,
+                        name: roi.name,
+                        //TODO(pjm): why index 0?
+                        color: roi.color[0],
+                        isSelected: true,
+                    });
+                });
+                items.sort(function(a, b) {
+                    return a.name.localeCompare(b.name);
+                });
+                $scope.rows[2].items = items;
+                //TODO(pjm): dummy plan beams
+                $scope.rows[3].items = [
+                    {
+                        name: 'Beam 1',
+                        isSelected: false,
+                    },
+                    {
+                        name: 'Beam 2',
+                        isSelected: false,
+                    },
+                ];
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('toggleReportButton', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            selected: '@toggleReportButton',
+        },
+        template: [
+            '<a href data-ng-click="toggleReport()">{{ label }}</a>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.label = appState.enumDescription('ReportToggle', $scope.selected);
+
+            $scope.toggleReport = function() {
+                if (appState.isLoaded()) {
+                    appState.models.dvhReport.toggle = $scope.selected;
+                }
+            };
         },
     };
 });

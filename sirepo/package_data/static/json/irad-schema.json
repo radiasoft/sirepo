@@ -1,5 +1,14 @@
 {
     "enum": {
+        "DicomPlane": [
+            ["c", "Coronal"],
+            ["t", "Transverse"],
+            ["s", "Sagittal"]
+        ],
+        "ReportToggle": [
+            ["3d", "3D"],
+            ["dvh", "DVH"]
+        ]
     },
     "dynamicFiles": {
         "externalLibs": {
@@ -26,16 +35,28 @@
         }
     },
     "model": {
+        "components": {},
         "dicom3DReport": {},
-        "dicomReport": {}
+        "dicomReport": {},
+        "dvhReport": {
+            "toggle": ["Toggle", "ReportToggle", "3d"]
+        }
     },
     "view": {
+        "components": {
+            "title": "Components",
+            "advanced": []
+        },
         "dicom3DReport": {
             "title": "3D DICOM",
             "advanced": []
         },
         "dicomReport": {
             "title": "DICOM",
+            "advanced": []
+        },
+        "dvhReport": {
+            "title": "Dose Volume Histogram",
             "advanced": []
         }
     }

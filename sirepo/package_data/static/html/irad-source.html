@@ -1,17 +1,29 @@
 <div class="container-fluid">
-  <div class="row">
-    <div class="col-md-6">
-      <div data-report-panel="dicomTranspose" data-model-name="dicomReport"></div>
+  <div class="row irad-pad-right">
+    <div class="col-md-2">
+      <div data-simple-panel="components">
+        <div data-dicom-object-selector=""></div>
+      </div>
     </div>
-    <div class="col-md-6">
-      <div data-report-panel="dicom3d" data-model-name="dicom3DReport"></div>
-    </div>
-    <div class="clearfix"></div>
-    <div class="col-md-6">
-      <div data-report-panel="dicomSagittal" data-model-name="dicomReport"></div>
-    </div>
-    <div class="col-md-6">
-      <div data-report-panel="dicomCoronal" data-model-name="dicomReport"></div>
+    <div class="col-md-10">
+      <div class="row">
+        <div class="col-md-6 irad-col-nopadding">
+          <div data-report-panel="dicomTranspose" data-model-name="dicomReport" data-panel-title="{{ source.iradService.dicomTitle('t') }}"></div>
+        </div>
+        <div data-ng-show="source.showReport('3d')" class="col-md-6 irad-col-nopadding">
+          <div data-report-panel="dicom3d" data-model-name="dicom3DReport"></div>
+        </div>
+        <div data-ng-if="source.showReport('dvh')" class="col-md-6">
+          <div data-report-panel="parameter" data-model-name="dvhReport"></div>
+        </div>
+        <div class="clearfix"></div>
+        <div class="col-md-6 irad-col-nopadding">
+          <div data-report-panel="dicomSagittal" data-model-name="dicomReport" data-panel-title="{{ source.iradService.dicomTitle('s') }}"></div>
+        </div>
+        <div class="col-md-6 irad-col-nopadding">
+          <div data-report-panel="dicomCoronal" data-model-name="dicomReport" data-panel-title="{{ source.iradService.dicomTitle('c') }}"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>

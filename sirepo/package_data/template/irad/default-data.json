@@ -1,7 +1,11 @@
 {
     "models": {
         "simulation": {},
-        "dicom3DReport": {}
+        "dicom3DReport": {},
+        "dicomReport": {},
+        "dvhReport": {
+            "toggle": "3d"
+        }
     },
     "simulationType": "irad"
 }

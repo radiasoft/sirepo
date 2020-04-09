@@ -24,13 +24,17 @@ def get_application_data(data, **kwargs):
 def get_data_file(run_dir, model, frame, **kwargs):
     sim_id = kwargs['options'].simulationId
     if frame == 1:
-        filename = _sim_file(sim_id, 'ct.zip')
+        filename = sim_file(sim_id, 'ct.zip')
     elif frame == 2:
-        filename = _sim_file(sim_id, 'rtdose.zip')
+        filename = sim_file(sim_id, 'rtdose.zip')
     else:
         assert False, 'invalid frame: {}'.format(frame)
     with open(filename) as f:
         return 'index.json', f.read(), 'application/octet-stream'
+
+
+def sim_file(sim_id, filename):
+    return str(simulation_db.simulation_dir(SIM_TYPE, sim_id).join(filename))
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -42,8 +46,4 @@ def _read_roi_file(sim_id):
 
 
 def _roi_file(sim_id):
-    return _sim_file(sim_id, _ROI_FILE_NAME)
-
-
-def _sim_file(sim_id, filename):
-    return str(simulation_db.simulation_dir(SIM_TYPE, sim_id).join(filename))
+    return sim_file(sim_id, _ROI_FILE_NAME)
