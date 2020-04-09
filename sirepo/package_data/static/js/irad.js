@@ -108,7 +108,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('dicom3d', function(appState, iradService, plotting, requestSender, vtkToPNG) {
+SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, plotting, requestSender, vtkPlotting, vtkToPNG) {
     return {
         restrict: 'A',
         scope: {
@@ -122,14 +122,25 @@ SIREPO.app.directive('dicom3d', function(appState, iradService, plotting, reques
         ].join(''),
         controller: function($scope, $element) {
             var fsRenderer, orientationMarker, pngCanvas;
+            var actor = null;
+            var roiActors = [];
             $scope.isClientOnly = true;
+
+            // the coordinate system may depend on the data?
+            const t = geometry.transform([
+                [1, 0, 0],
+                [0, -1, 0],
+                [0, 0, -1]
+            ]);
+            const cm = vtkPlotting.coordMapper(t);
+            const ha = cm.buildFromSource(homunculus()).actor;
 
             function addOrientationMarker() {
                 orientationMarker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
-                    actor: vtk.Rendering.Core.vtkAxesActor.newInstance(),
+                    actor: ha,   //vtk.Rendering.Core.vtkAxesActor.newInstance(),
                     interactor: fsRenderer.getRenderWindow().getInteractor(),
                     viewportCorner: vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT,
-                    viewportSize: 0.15,
+                    viewportSize: 0.10,
                 });
                 orientationMarker.setEnabled(true);
             }
@@ -138,13 +149,147 @@ SIREPO.app.directive('dicom3d', function(appState, iradService, plotting, reques
                 return vtk.Common.Core.vtkMath.hex2float(v);
             }
 
+            function getCoord(pts, cIdx) {
+                return pts.filter(function (p, pIdx) {
+                    return pIdx % 2 === cIdx;
+                });
+            }
+
+            function homunculus(bodyCenter) {
+
+                bodyCenter = bodyCenter || [0, 0, 0];
+                const thetaRez = 24;
+                const phiRez = 24;
+                const bodyRadius = 1.0;
+                const bodyHeight = 3 * bodyRadius;
+
+                let source = vtk.Filters.General.vtkAppendPolyData.newInstance();
+
+                // plane names
+                const VENTRAL = SIREPO.APP_SCHEMA.constants.planeVentral;
+                const DORSAL = SIREPO.APP_SCHEMA.constants.planeDorsal;
+                const DEXTER = SIREPO.APP_SCHEMA.constants.planeDexter;
+                const SINISTER = SIREPO.APP_SCHEMA.constants.planeSinister;
+                const ROSTRAL = SIREPO.APP_SCHEMA.constants.planeRostral;
+                const CAUDAL = SIREPO.APP_SCHEMA.constants.planeCaudal;
+
+                const quadrantColors = {};
+                quadrantColors[VENTRAL + DEXTER] = [0, 255, 0, 255];
+                quadrantColors[VENTRAL + SINISTER] = [255, 0, 0, 255];
+                quadrantColors[DORSAL + DEXTER] = [0, 0, 255, 255];
+                quadrantColors[DORSAL + SINISTER] = [255, 255, 0, 255];
+
+                const extentPlanes = {};
+                extentPlanes[ROSTRAL] = {norm: [0, 0, -1], origin: [0, 0, bodyHeight / 2.0]};
+                extentPlanes[CAUDAL] = {norm: [0, 0, 1], origin: [0, 0, -bodyHeight / 2.0]};
+
+                const quadrantPlanes = {};
+                quadrantPlanes[VENTRAL] = {norm: [0, 1, 0], origin: bodyCenter};
+                quadrantPlanes[DEXTER] = {norm: [1, 0, 0], origin: bodyCenter};
+                quadrantPlanes[DORSAL] = {norm: [0, -1, 0], origin: bodyCenter};
+                quadrantPlanes[SINISTER] = {norm: [-1, 0, 0], origin: bodyCenter};
+
+                const headRadius = 0.70 * bodyRadius;
+                var headCenter = [bodyCenter[0], bodyCenter[1], bodyCenter[2] + bodyHeight / 2.0 + 0.9 * headRadius];
+                const headQuadrants = {};
+                headQuadrants[VENTRAL + DEXTER] = {th1: 0, th2: 90};
+                headQuadrants[VENTRAL + SINISTER] = {th1: 90, th2: 180};
+                headQuadrants[DORSAL + DEXTER] = {th1: 270, th2: 360};
+                headQuadrants[DORSAL + SINISTER] = {th1: 180, th2: 270};
+
+                let n = 0;
+                [VENTRAL, DORSAL].forEach(function (vd) {
+                    [SINISTER, DEXTER].forEach(function (sd) {
+                        const qc = quadrantColors[vd + sd];
+                        let s = vtkPlotting.cylinderSection(
+                            bodyCenter, [0, 0 , 1], bodyRadius, bodyHeight,
+                            [extentPlanes[ROSTRAL], extentPlanes[CAUDAL], quadrantPlanes[vd], quadrantPlanes[sd]]
+                        ).getOutputData();
+                        vtkPlotting.setColorScalars(s, qc);
+                        if (n === 0) {
+                            source.setInputData(s);
+                        }
+                        else {
+                            source.addInputData(s);
+                        }
+                        ++n;
+                        const hq = headQuadrants[vd + sd];
+                        s = vtk.Filters.Sources.vtkSphereSource.newInstance({
+                            radius: headRadius,
+                            center: headCenter,
+                            thetaResolution: thetaRez,
+                            phiResolution: phiRez,
+                            startTheta: hq.th1,
+                            endTheta: hq.th2
+                        }).getOutputData();
+                        vtkPlotting.setColorScalars(s, qc);
+                        source.addInputData(s);
+                        ++n;
+                    });
+                });
+
+                const noseRadius = 0.33 * headRadius;
+                const noseCenter = [headCenter[0], bodyCenter[1] + headRadius + 0.66 * noseRadius, headCenter[2]];
+                let s = vtk.Filters.Sources.vtkSphereSource.newInstance({
+                    radius: noseRadius,
+                    center: noseCenter,
+                    thetaResolution: thetaRez,
+                    phiResolution: phiRez,
+                }).getOutputData();
+                vtkPlotting.setColorScalars(s, [255, 255, 255, 255]);
+                source.addInputData(s);
+                ++n;
+
+                // might omit limbs for clarity, but leaving the code
+                /*
+                const limbRadius = bodyRadius / 6.0;
+                const limbGeom = {};
+                limbGeom[ROSTRAL] = {
+                    length: 0.5 * bodyHeight,
+                    angle: -Math.PI / 3.0,
+                    zPos: 0.50 * bodyHeight,
+                };
+                limbGeom[CAUDAL] = {
+                    length: 0.75 * bodyHeight,
+                    angle: Math.PI / 12.0,
+                    zPos: -0.75 * bodyHeight,
+                };
+
+                [ROSTRAL, CAUDAL].forEach(function (rc, rcIdx) {
+                    let len = limbGeom[rc].length;
+                    let th = limbGeom[rc].angle;
+                    let rcDir = 2 * rcIdx - 1;
+                    let offset = Math.hypot(len / 2.0, limbRadius) *
+                        Math.sin(th + Math.sign(th) * Math.atan2(limbRadius, len / 2.0)) -
+                        Math.sign(th) * 2 * limbRadius * Math.cos(th) +
+                        rcDir * bodyRadius;
+                    [VENTRAL, DORSAL].forEach(function (vd) {
+                        [SINISTER, DEXTER].forEach(function (sd, sdIdx) {
+                            let sdDir = 2 * sdIdx - 1;
+                            let s = vtkPlotting.cylinderSection(
+                               [rcDir * sdDir * offset, 0, limbGeom[rc].zPos],
+                                [-sdDir * Math.sin(th), 0, Math.cos(th)],
+                                limbRadius,
+                                len,
+                                [extentPlanes[ROSTRAL], extentPlanes[CAUDAL], quadrantPlanes[vd]]
+                            ).getOutputData();
+                            vtkPlotting.setColorScalars(s, quadrantColors[vd + sd]);
+                            source.addInputData(s);
+                            ++n;
+                        });
+                    });
+                });
+                */
+                return source;
+            }
+
             function refresh(event, reader, frame) {
                 if (frame != 1) {
                     return;
                 }
                 removeActors();
 
-                var actor = vtk.Rendering.Core.vtkVolume.newInstance();
+                actor = vtk.Rendering.Core.vtkVolume.newInstance();
                 var mapper = vtk.Rendering.Core.vtkVolumeMapper.newInstance();
                 //mapper.setSampleDistance(0.7);
                 //mapper.setSampleDistance(4);
@@ -197,6 +342,199 @@ SIREPO.app.directive('dicom3d', function(appState, iradService, plotting, reques
                 });
             }
 
+            function showActiveRoi() {
+                roiActors.forEach(function (a) {
+                    fsRenderer.getRenderer().removeActor(a);
+                });
+                roiActors = [];
+
+                // 0: rectum; 6: body; 23: ring3
+                var roi = iradService.getROIPoints()[23];
+                if (! roi) {
+                    return;
+                }
+
+                const aColor = roi.color[0].map(function (c) {
+                    return parseFloat(c) / 255.0;
+                });
+                var z, segment, points;
+                let bnds = [
+                    Number.MAX_VALUE, -Number.MAX_VALUE,
+                    Number.MAX_VALUE, -Number.MAX_VALUE,
+                    Number.MAX_VALUE, -Number.MAX_VALUE,
+                ];
+                let nGrid = [0, 0, 0];
+
+                let aBnds = actor.getBounds().slice();
+                let aCtr = [
+                    (aBnds[0] + aBnds[1]) / 2,
+                    (aBnds[2] + aBnds[3]) / 2,
+                    (aBnds[4] + aBnds[5]) / 2
+                ];
+                let aSize = [
+                    aBnds[1] - aBnds[0],
+                    aBnds[3] - aBnds[2],
+                    aBnds[5] - aBnds[4]
+                ];
+                //srdbg('actor bnds', aBnds, 'ctr', aCtr, 'size', aSize);
+
+                let maxSegs = 0;
+                for (z in roi.contour) {
+                    ++nGrid[2];
+                    bnds[4] = Math.min(bnds[4], parseFloat(z));
+                    bnds[5] = Math.max(bnds[5], parseFloat(z));
+                    let nSegs = roi.contour[z].length;
+                    maxSegs = Math.max(maxSegs, nSegs);
+                    for (segment = 0; segment < nSegs; segment++) {
+                        points = roi.contour[z][segment];
+                        for (let i = 0; i < 2; ++i) {
+                            let c = getCoord(points, i);
+                            nGrid[i] = Math.max(nGrid[i], c.length);
+                            bnds[2 * i] = Math.min(bnds[2 * i], Math.min.apply(null, c));
+                            bnds[2 * i + 1] = Math.max(bnds[2 * i + 1], Math.max.apply(null, c));
+                        }
+                    }
+                }
+                //srdbg('max grid', nGrid);
+
+                const zShift = 2 * aBnds[4];
+                bnds[4] = zShift - bnds[4];
+                bnds[5] = zShift - bnds[5];
+
+                let ctr = [
+                    (bnds[0] + bnds[1]) / 2.0,
+                    (bnds[2] + bnds[3]) / 2.0,
+                    (bnds[4] + bnds[5]) / 2.0,
+                ];
+                //srdbg('shifted bnds', bnds.slice(), 'ctr', ctr, 'size', sz);
+
+                const zPlanes = Object.keys(roi.contour)
+                    .sort(function (zp1, zp2) {
+                    return parseFloat(zp1) - parseFloat(zp2);
+                });
+                //const shZPlanes = zPlanes.map(function (zp) {
+                //    return '' +  (zShift - parseFloat(zp));
+                //});
+                const dz = Math.abs((parseFloat(zPlanes[zPlanes.length - 1]) - parseFloat(zPlanes[0])) / (zPlanes.length - 1));
+                //srdbg('zplanes', zPlanes);
+
+                // don't go beyond maximal grid (yet?)
+                nGrid = [
+                    Math.min(128, nGrid[0]),
+                    Math.min(128, nGrid[1]),
+                    Math.min(128, nGrid[2])
+                ];
+                //srdbg('final grid', nGrid);
+                let gridSpc = [
+                    Math.abs((bnds[1] - bnds[0])) / (nGrid[0] - 1),
+                    Math.abs((bnds[3] - bnds[2])) / (nGrid[1] - 1),
+                    Math.abs((bnds[5] - bnds[4])) / (nGrid[2] - 1),
+                ];
+
+                let segBnds = Array(maxSegs);
+                let segGrid = Array(maxSegs);
+                let segCtr = Array(maxSegs);
+                for (let i = 0; i < maxSegs; ++i) {
+                    segBnds[i] = [];
+                    for (let j = 0; j < 6; ++j) {
+                        segBnds[i].push((1 - 2 * (j % 2)) * Number.MAX_VALUE);
+                    }
+                }
+
+                let polys = {};
+                zPlanes.forEach(function (zp, zpIdx) {
+                    let z = parseFloat(zp);  // raw z
+                    let shz = zShift - z;  // shift z
+                    let revzp = zPlanes[zPlanes.length - zpIdx - 1];
+                    let revz = parseFloat(revzp);  // reverse z
+                    let shrevz = zShift - revz;  // reverse shift z
+                    let nSegs = roi.contour[zp].length;
+                    let zPolys = Array(nSegs);
+                    for (segment = 0; segment < nSegs; segment++) {
+                        segBnds[segment][4] = Math.min(segBnds[segment][4], shz);
+                        segBnds[segment][5] = Math.max(segBnds[segment][5], shz);
+                        var cPoints = roi.contour[zp][segment];
+                        let segPolyPts = Array(cPoints.length / 2);
+                        for (let i = 0; i < cPoints.length; i += 2) {
+                            segPolyPts[i / 2] = [cPoints[i], cPoints[i + 1], shrevz];
+                            for (let j = 0; j < 2; ++j) {
+                                segBnds[segment][2 * j] = Math.min(segBnds[segment][2 * j], cPoints[i + j]);
+                                segBnds[segment][2 * j + 1] = Math.max(segBnds[segment][2 * j + 1], cPoints[i + j]);
+                            }
+                        }
+                        zPolys[segment] = geometry.polygon(segPolyPts);
+                    }
+                    //polys[zp] = zPolys;
+                    // reverse the z plane associated with this polygon, and shift fot later lookup
+                    polys['' + shrevz] = zPolys;
+                });
+                //srdbg('segBnds', segBnds.slice());
+                //srdbg('polys', polys);
+
+                // reduce the space for marching cubes to the bounds of each segment
+                for (let i = 0; i < maxSegs; ++i) {
+                    let b = segBnds[i];
+                    segGrid[i] = Array(3);
+                    segCtr[i] = Array(3);
+                    for (let j = 0; j < 3; ++j) {
+                        // add a grid spacing on each side to close off the volume - or
+                        // not, it does slow things down and may not be necessary
+                        //b[2 * j] -= gridSpc[j];  b[2 * j + 1] += gridSpc[j];
+                        //segGrid[i][j] = 2 + Math.floor(Math.abs((b[2 * j + 1] - b[2 * j])) / gridSpc[0]),
+                        // must be at least 2 grid points in each direction
+                        segGrid[i][j] = Math.max(
+                            2,
+                            Math.floor(Math.abs((b[2 * j + 1] - b[2 * j])) / gridSpc[j])
+                        );
+                        segCtr[i][j] = (b[2 * j] + b[2 * j + 1]) / 2.0;
+                    }
+                }
+                //srdbg('seg grid', segGrid, 'ctr', segCtr);
+
+                // used by the vtk sample function to decide which points in the volume are in or out
+                function segmentImpl(seg) {
+                    return {
+                        evaluateFunction: function (coords) {
+                            const d = Math.hypot(...[ctr[0] - coords[0], ctr[1] - coords[1], ctr[2] - coords[2]]);
+                            // closest zplane
+                            // don't use reverse zp;  otherwise it undoes the previous reversal
+                            const zpIdx = zPlanes.length + Math.floor((coords[2] - bnds[4]) / dz) - 1;
+                            const zp = '' + (zShift - parseFloat(zPlanes[zpIdx]));
+                            if (! polys[zp] || ! polys[zp][seg]) {
+                                return -d;
+                            }
+                            return polys[zp][seg].containsPoint(coords) ? d : -d;
+                        },
+                    };
+                }
+
+                for (let i = 0; i < maxSegs; ++i) {
+                    let s = vtk.Imaging.Hybrid.vtkSampleFunction.newInstance({
+                        implicitFunction: segmentImpl(i),
+                        modelBounds: segBnds[i],
+                        sampleDimensions: segGrid[i]
+                    });
+                    let c = vtk.Filters.General.vtkImageMarchingCubes.newInstance({ contourValue: 0.0 });
+                    c.setInputConnection(s.getOutputPort());
+                    let m = vtk.Rendering.Core.vtkMapper.newInstance();
+                    m.setInputConnection(c.getOutputPort());
+                    let a = vtk.Rendering.Core.vtkActor.newInstance({
+                        mapper: m,
+                    });
+                    //a.getProperty().setColor(...aColor);
+                    // hacks for report screenshot
+                    a.getProperty().setColor(...[0.0, 0.9, 0.9]);
+                    if (i === 0) {
+                       a.getProperty().setOpacity(0.6);
+                    }
+                    roiActors.push(a);
+                    fsRenderer.getRenderer().addActor(a);
+                }
+
+                fsRenderer.getRenderer().resetCamera();
+                fsRenderer.getRenderWindow().render();
+            }
+
             $scope.destroy = function() {
                 window.removeEventListener('resize', fsRenderer.resize);
                 fsRenderer.getInteractor().unbindEvents();
@@ -215,6 +553,11 @@ SIREPO.app.directive('dicom3d', function(appState, iradService, plotting, reques
                 pngCanvas = vtkToPNG.pngCanvas($scope.reportId, fsRenderer, $element);
                 iradService.downloadDataFile($scope.modelName, 1);
             };
+
+            $scope.$on('roiPointsLoaded', function() {
+                //srdbg('received points loaded', iradService.getROIPoints());
+                showActiveRoi();
+            });
 
             $scope.$on('irad-data-available', refresh);
 
@@ -526,7 +869,10 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                     spacing: data.getSpacing(),
                 };
                 //TODO(pjm): this could be a flag based on patient position
+                //srdbg('res bnds before', res.spacing, res.dim, res.bounds.slice());
                 res.bounds[5] = res.bounds[4] - res.spacing[2] * (res.dim[2] - 1);
+                //srdbg('res bnds after', res.bounds.slice());
+
                 return res;
             }
 

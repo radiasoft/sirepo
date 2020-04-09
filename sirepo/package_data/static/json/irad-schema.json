@@ -1,6 +1,14 @@
 {
     "enum": {
     },
+    "constants": {
+        "planeCaudal":  "caudal",
+        "planeDexter": "dexter",
+        "planeDorsal": "dorsal",
+        "planeRostral": "rostral",
+        "planeSinister": "sinister",
+        "planeVentral": "ventral"
+    },
     "dynamicFiles": {
         "externalLibs": {
             "js": [

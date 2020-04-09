@@ -57,17 +57,18 @@ SIREPO.app.service('geometry', function(utilities) {
             containsPoint: function (p, tolerance) {
                 // since we do math to see if the point satisfies the line's equation,
                 // we need to specify how close we can get to account for rounding errors
-                var t = tolerance || 0.0001;
-                if (this.slope() === Infinity) {
-                    return equalWithin(p.x, point1.x, t);  //Math.abs(p.x - point1.x) <= t;
+                const t = tolerance || 0.0001;
+                const s = this.slope();
+                if (s === Infinity) {
+                    return equalWithin(p.x, point1.x, t);
                 }
-                var y = this.slope() * p.x + this.intercept();
+                const y = s * p.x + this.intercept();
 
-                return equalWithin(p.y, y, t); //Math.abs(p.y - y) <= t;
+                return equalWithin(p.y, y, t);
             },
             equals: function (l2) {
                 if (this.slope() === Infinity && l2.slope() === Infinity) {
-                    return this.points()[0].x === l2.points()[0].x;
+                    return equalWithin(this.points()[0].x, l2.points()[0].x);
                 }
                 return this.slope() === l2.slope() && this.intercept() === l2.intercept();
             },
@@ -127,20 +128,26 @@ SIREPO.app.service('geometry', function(utilities) {
     // 2d only
     this.lineSegment = function(point1, point2) {
         var ls = {
+            ext: [
+                [Math.min(point1.x, point2.x), Math.max(point1.x, point2.x)],
+                [Math.min(point1.y, point2.y), Math.max(point1.y, point2.y)]
+            ],
             p1: point1,
-            p2: point2
+            p2: point2,
+            l: svc.line(point1, point2)
         };
+
         ls.containsPoint = function (p) {
             var ext = this.extents();
             return this.line().containsPoint(p) &&
-                (p.x >= ext[0][0] && p.x <= ext[0][1]) &&
-                (p.y >= ext[1][0] && p.y <= ext[1][1]);
+                (gtOrEqualWithin(p.x, ext[0][0]) && ltOrEqualWithin(p.x, ext[0][1])) &&
+                (gtOrEqualWithin(p.y, ext[1][0]) && ltOrEqualWithin(p.y, ext[1][1]));
         };
         ls.equals = function (ls2) {
             var ps1 = this.points();
             var ps2 = ls2.points();
-            return (ps1[0].equals(ps2[0]) && ps1[1].equals(ps2[1])) ||
-                (ps1[0].equals(ps2[1]) && ps1[1].equals(ps2[0]));
+            return (equalWithin(ps1[0], ps2[0]) && equalWithin(ps1[1], ps2[1])) ||
+                (equalWithin(ps1[0], ps2[1]) && equalWithin(ps1[1], ps2[0]));
         };
         ls.extents = function() {
             var pts = this.points();
@@ -163,7 +170,7 @@ SIREPO.app.service('geometry', function(utilities) {
             return svc.line(this.p1, this.p2);
         };
         ls.pointFilter = function() {
-            var ls = this;
+            let ls = this;
             return function (point) {
                 return ls.containsPoint(point);
             };
@@ -180,8 +187,13 @@ SIREPO.app.service('geometry', function(utilities) {
             });
         };
         ls.update = function(newp1, newp2) {
+            this.ext = [
+                [Math.min(newp1.x, newp2.x), Math.max(newp1.x, newp2.x)],
+                [Math.min(newp1.y, newp2.y), Math.max(newp1.y, newp2.y)]
+            ];
             this.p1 = newp1;
             this.p2 = newp2;
+            this.l = svc.line(newp1, newp2);
         };
         ls.vector = function () {
             return [this.p1.x - this.p2.x, this.p1.y - this.p2.y];
@@ -299,11 +311,7 @@ SIREPO.app.service('geometry', function(utilities) {
                 if (this.dimension() != p2.dimension()) {
                     throw new Error('Points in array have different dimensions: ' + this.dimension() + ' != ' + p2.dimension());
                 }
-                return Math.sqrt(
-                    (p2.x - this.x) * (p2.x - this.x) +
-                    (p2.y - this.y) * (p2.y - this.y) +
-                    (p2.z - this.z) * (p2.z - this.z)
-                );
+                return Math.hypot(p2.x - this.x, p2.y - this.y, p2.z - this.z);
             },
             equals: function (p2) {
                 var t = 0.0001;
@@ -326,7 +334,96 @@ SIREPO.app.service('geometry', function(utilities) {
     };
 
     this.pointFromArr = function (arr) {
-        return this.point(arr[0], arr[1], arr[2]);
+        return this.point(...arr);
+    };
+
+    // construct from array of points, assumed to be in "drawing order"
+    this.polygon = function (pts) {
+
+        if (pts.length < 3) {
+            throw new Error('A polygon requires at least 3 points (' + pts.length + ' provided)');
+        }
+
+        /*
+        let bounds = {};
+        svc.basis.forEach(function (dim) {
+            bounds[dim] = {};
+            const d = pts.map(function (pt) {
+                return pt[dim];
+            });
+            bounds[dim].min = Math.min.apply(null, d);
+            bounds[dim].max = Math.max.apply(null, d);
+        });
+        */
+
+        //let boundaryRect = svc.rect(svc.point(bounds.x.min, bounds.y.min), svc.point(bounds.x.max, bounds.y.max));
+
+        let sides = Array(pts.length);
+        pts.forEach(function (pt, ptIdx) {
+            //sides[ptIdx] = svc.lineSegment(pts[(ptIdx + 1) % pts.length], pt);
+            sides[ptIdx] = [pts[(ptIdx + 1) % pts.length], pt];
+        });
+
+        // static properties set at init
+        let poly = {
+            //bounds: bounds,
+            points: pts,
+            //boundaryRect: boundaryRect,
+            sides: sides,
+        };
+
+        // "ray casting" simplified
+        poly.containsPoint = function(pt) {
+            // count sides whose endpoints are above/below the input point and have least one endpoint to the left
+            // - implies a ray starting at -Infinity crosses that many sides
+            return sides.filter(function (ls) {
+                return (ls[0][1] > pt[1] !== ls[1][1] > pt[1]) &&
+                    (ls[0][0] < pt[0] || ls[1][0] < pt[0]);
+                //return (ls.p1.y > pt.y !== ls.p2.y > pt.y) &&
+                //    (ls.p1.x < pt.x || ls.p2.x < pt.x);
+            }).length  % 2 === 1;
+        };
+
+        // should start separating "dynamic" from "static" - if points are not expected to change there is
+        // no reason to recalculate everything.  Maybe an argument?
+        /*
+        poly.getBoundaryRect = function() {
+            const b = this.bounds();
+            return svc.rect(svc.point(b.x.min, b.y.min), svc.point(b.x.max, b.y.max));
+        };
+
+        poly.getBounds = function() {
+            const b = {};
+            svc.basis.forEach(function (dim) {
+                const d = pts.map(function (pt) {
+                    return pt[dim];
+                });
+                b[dim] = {};
+                b[dim].min = Math.min.apply(null, d);
+                b[dim].max = Math.max.apply(null, d);
+            });
+            return b;
+        };
+
+        poly.getPoints = function () {
+            return pts;
+        };
+
+        poly.getSides = function() {
+            let ls = Array(pts.length);
+            pts.forEach(function (pt, ptIdx) {
+                ls[ptIdx] = svc.lineSegment(pts[(ptIdx + 1) % pts.length], pt);
+            });
+            return ls;
+        };
+        */
+        return poly;
+    };
+
+    this.polyFromArr = function (arr) {
+        return this.polygon(arr.map(function (c) {
+            return svc.pointFromArr(c);
+        }));
     };
 
     // 2d only
@@ -439,6 +536,10 @@ SIREPO.app.service('geometry', function(utilities) {
                 return this.sides()[1].length();
             }
         };
+    };
+
+    this.rectFromArr = function (arr) {
+        return svc.rect(svc.pointFromArr(arr[0]), svc.pointFromArr(arr[1]));
     };
 
     // Sort (with optional reversal) the point array by the values in the given dimension;
@@ -625,6 +726,24 @@ SIREPO.app.service('geometry', function(utilities) {
     function equalWithin(val1, val2, tolerance) {
         var tol = tolerance || 0.0001;
         return Math.abs(val2 - val1) < tol;
+    }
+
+    function gtOutside(val1, val2, tolerance) {
+        const tol = tolerance || 0.0001;
+        return val1 - val2 > tol;
+    }
+
+    function gtOrEqualWithin(val1, val2, tolerance) {
+        return val1 > val2 || equalWithin(val1, val2, tolerance);
+    }
+
+    function ltOutside(val1, val2, tolerance) {
+        const tol = tolerance || 0.0001;
+        return val2 - val1 > tol;
+    }
+
+    function ltOrEqualWithin(val1, val2, tolerance) {
+        return val1 < val2 || equalWithin(val1, val2, tolerance);
     }
 
     function sectionOfEdgeInBounds(edge, boundingRect, dim, reverse) {
