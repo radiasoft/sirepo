@@ -244,12 +244,20 @@ def _generate_field_integrals(g_id, f_paths):
 
 
 def _generate_data(g_id, in_data):
+    o = _generate_obj_data(g_id, in_data.name)
     if in_data.viewType == VIEW_TYPE_OBJ:
-        return _generate_obj_data(g_id, in_data.name)
+        return o
+        #return _generate_obj_data(g_id, in_data.name)
     elif in_data.viewType == VIEW_TYPE_FIELD:
-        return _generate_field_data(
+        f_arr = _generate_field_data(
             g_id, in_data.name, in_data.fieldType, in_data.get('fieldPaths', None)
         )
+        for d in o.data:
+            f_arr.data.append(PKDict(lines=d.lines))
+        return f_arr
+        #return _generate_field_data(
+        #    g_id, in_data.name, in_data.fieldType, in_data.get('fieldPaths', None)
+        #)
 
 
 def _generate_obj_data(g_id, name):
