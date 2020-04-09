@@ -676,14 +676,14 @@ def sim_data_file(sim_type, sim_id):
     return simulation_dir(sim_type, sim_id).join(SIMULATION_DATA_FILE)
 
 
-def simulation_dir(simulation_type, sid=None, uid=None):
+def simulation_dir(simulation_type, sid=None):
     """Generates simulation directory from sid and simulation_type
 
     Args:
         simulation_type (str): srw, warppba, ...
         sid (str): simulation id (optional)
     """
-    d = _user_dir(uid=uid).join(sirepo.template.assert_sim_type(simulation_type))
+    d = _user_dir().join(sirepo.template.assert_sim_type(simulation_type))
     if not sid:
         return d
     return d.join(assert_sid(sid))
@@ -701,7 +701,7 @@ def simulation_lib_dir(simulation_type):
     return simulation_dir(simulation_type).join(_LIB_DIR)
 
 
-def simulation_run_dir(req_or_data, remove_dir=False, uid=None):
+def simulation_run_dir(req_or_data, remove_dir=False):
     """Where to run the simulation
 
     Args:
@@ -717,7 +717,6 @@ def simulation_run_dir(req_or_data, remove_dir=False, uid=None):
     d = simulation_dir(
         t,
         s.parse_sid(req_or_data),
-        uid=uid,
     ).join(s.compute_model(req_or_data))
     if remove_dir:
         pkio.unchecked_remove(d)
@@ -1132,17 +1131,13 @@ def _timestamp(time=None):
     return time.strftime('%Y%m%d.%H%M%S')
 
 
-def _user_dir(uid=None):
+def _user_dir():
     """User for the session
 
     Returns:
         str: unique id for user
     """
-    if uid:
-        assert not util.in_flask_app_context(), \
-            'Do not supply uid when in flask context. It will be retrieved from the logged in user.'
-    else:
-        uid = sirepo.auth.logged_in_user()
+    uid = sirepo.auth.logged_in_user()
     d = user_dir_name(uid)
     if not d.check():
         sirepo.auth.user_dir_not_found(d, uid)

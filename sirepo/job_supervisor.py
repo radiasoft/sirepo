@@ -17,6 +17,7 @@ import copy
 import datetime
 import os
 import pykern.pkio
+import sirepo.auth
 import sirepo.auth_db
 import sirepo.http_reply
 import sirepo.simulation_db
@@ -122,6 +123,8 @@ def init():
         pykern.pkio.mkdir_parent(_DB_DIR)
     sirepo.auth_db.init(sirepo.srdb.root())
     _purge_free_simulations_set()
+
+
 
 
 class ServerReq(PKDict):
@@ -870,31 +873,55 @@ def _purge_free_simulations_set():
     )
 
 
-def _purge_free_simulations():
+async def _purge_free_simulations():
+    async def _get_uids_and_files():
+        r = PKDict()
+        p = sirepo.auth_db.UserRole.uids_of_paid_users()
+        for f in pkio.sorted_glob(_DB_DIR.join('*')):
+            u = str(f.basename).split('-')[0]
+            if u in p or not _is_older_than_days(f):
+                continue
+            if u not in r:
+                r[u] = []
+                await tornado.gen.sleep(0) # TODO(e-carlin): necessary?
+            r[u].append(f)
+        return r
+
     def _get_run_dir_path(data):
         data.report = data.computeModel
-        return sirepo.simulation_db.simulation_run_dir(data, uid=data.uid)
+        return sirepo.simulation_db.simulation_run_dir(data)
 
-    def _is_older_than_days(file, days):
-        d = sirepo.srtime.utc_now_as_float() - (days * 24 * 60 * 60)
-        return file.mtime() < d
+    def _is_older_than_days(db_file):
+        return db_file.mtime() < (
+            sirepo.srtime.utc_now_as_float() -
+            (cfg.purge_free_after_days * 24 * 60 * 60)
+        )
+
+    def _purge_sim(db_file):
+        # OPTIMIZATION: We assume the uids_of_paid_users doesn't change very
+        # frequently so we don't need to check again. A user could run a sim
+        # at anytime so we need to check that they haven't
+        if not _is_older_than_days(db_file):
+            return
+        d = pkcollections.json_load_any(db_file)
+        if d.status == job.FREE_USER_PURGED:
+            # TODO(e-carlin): should we touch the file so we don't look at again for a bit?
+            # TODO(e-carlin): should we delete the file after some time?
+            return
+        p = _get_run_dir_path(d)
+        pkio.unchecked_remove(p)
+        d.status = job.FREE_USER_PURGED
+        _ComputeJob.db_write(d)
+        sims_purged.append((db_file, p))
 
     try:
-        u = sirepo.auth_db.UserRole.uids_of_paid_users()
-        p = PKDict()
-        for f in pkio.sorted_glob(_DB_DIR.join('*')):
-            if not _is_older_than_days(f, cfg.purge_free_after_days):
-                continue
-            d = pkcollections.json_load_any(f)
-            if d.uid in u or d.status == job.FREE_USER_PURGED:
-                continue
-            p[_get_run_dir_path(d)] = d
-
-        pkdlog('run dirs to delete: {}', p.keys())
-        for k, v in p.items():
-            pkio.unchecked_remove(k)
-            v.status = job.FREE_USER_PURGED
-            _ComputeJob.db_write(v)
+        sims_purged = []
+        for u, v in (await _get_uids_and_files()).items():
+            with sirepo.auth.set_user(u):
+                for f in v:
+                    _purge_sim(f)
+            await tornado.gen.sleep(0)
+        pkdlog('sims purged: {}', sims_purged)
     except Exception as e:
         pkdlog('error={} stack={}', e, pkdexc())
     finally:

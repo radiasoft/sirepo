@@ -16,6 +16,7 @@ from sirepo import http_reply
 from sirepo import http_request
 from sirepo import auth_db
 from sirepo import util
+import contextlib
 import sirepo.uri
 import sirepo.feature_config
 import sirepo.template
@@ -159,7 +160,7 @@ def init_apis(app, *args, **kwargs):
     cookie.auth_hook_from_header = _auth_hook_from_header
 
 
-def init_mock(uid=None, sim_type=None):
+def init_mock(uid=None):
     """A mock user for pkcli"""
     cookie.init_mock()
     import sirepo.auth.guest
@@ -396,6 +397,16 @@ def reset_state():
     cookie.unchecked_remove(_COOKIE_METHOD)
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
     _set_log_user()
+
+
+@contextlib.contextmanager
+def set_user(uid):
+    """Set the user (uid) for the context"""
+    assert not util.in_flask_app_context(), \
+        'Flask sets the user on the request'
+    init_mock(uid=uid)
+    yield
+    reset_state()
 
 
 def user_dir_not_found(user_dir, uid):
