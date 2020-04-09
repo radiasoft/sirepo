@@ -10,15 +10,15 @@ from pykern.pkcollections import PKDict
 import os
 import time
 
-SECS = 3
-DAYS = 1
+_CACHE_AND_SIM_PURGE_FREQUENCY = 3
+_PURGE_FREE_AFTER_DAYS = 1
 
 
 def setup_module(module):
     os.environ.update(
-        SIREPO_JOB_SUPERVISOR_JOB_CACHE_SECS=str(SECS),
-        SIREPO_JOB_SUPERVISOR_TEST_PURGE_FREQUENCY_SECS=str(SECS),
-        SIREPO_JOB_SUPERVISOR_PURGE_FREE_AFTER_DAYS=str(DAYS),
+        SIREPO_JOB_SUPERVISOR_JOB_CACHE_SECS=str(_CACHE_AND_SIM_PURGE_FREQUENCY),
+        SIREPO_JOB_SUPERVISOR_TEST_PURGE_FREQUENCY_SECS=str(_CACHE_AND_SIM_PURGE_FREQUENCY),
+        SIREPO_JOB_SUPERVISOR_PURGE_FREE_AFTER_DAYS=str(_PURGE_FREE_AFTER_DAYS),
     )
 
 
@@ -29,19 +29,18 @@ def test_myapp_free_user_sim_purged(auth_fc):
     import sirepo.auth
 
     def _check_run_dir(should_exist=False):
-        def _filter(elem):
-            return 'heightWeightReport' in str(elem)
+        def _dirs():
+            return pkio.sorted_glob(pkunit.work_dir().join(
+                'db',
+                'user',
+                fc.sr_auth_state().uid,
+                'myapp',
+                '*',
+                '*',
+                ),
+            )
 
-        f = pkio.sorted_glob(pkunit.work_dir().join(
-            'db',
-            'user',
-            fc.sr_auth_state().uid,
-            'myapp',
-            '*',
-            '*',
-            ),
-        )
-        f = filter(_filter, f)
+        f = [d for d in _dirs() if 'heightWeightReport' in str(d)]
         if should_exist:
             pkunit.pkeq(1, len(f))
             return
@@ -118,9 +117,9 @@ def test_myapp_free_user_sim_purged(auth_fc):
     next_req_free = _run_sim(fc.sr_sim_data())
     fc.sr_get_json(
         'adjustTime',
-        params=PKDict(days=DAYS + 1),
+        params=PKDict(days=_PURGE_FREE_AFTER_DAYS + 1),
     )
-    time.sleep(SECS + 1)
+    time.sleep(_CACHE_AND_SIM_PURGE_FREQUENCY + 1)
     _status_eq(next_req_free, 'free_user_purged')
     _check_run_dir(should_exist=False)
     _login_as_user(user_premium)

@@ -56,7 +56,7 @@ def api_adjustTime(days=None):
     from sirepo import http_reply
 
     assert pkconfig.channel_in_internal_test(), \
-        'You can only adjust time in internal test'
+        'API forbidden'
     adjust_time(days)
     return http_reply.gen_json_ok({
         'adjustedNow': utc_now().isoformat(),
@@ -65,10 +65,11 @@ def api_adjustTime(days=None):
 
 
 def init():
-    if not pkconfig.channel_in_internal_test():
-        global utc_now_as_float, utc_now
-        utc_now_as_float = time.time
-        utc_now = datetime.datetime.utcnow
+    if pkconfig.channel_in_internal_test():
+        return
+    global utc_now_as_float, utc_now
+    utc_now_as_float = time.time
+    utc_now = datetime.datetime.utcnow
 
 
 def init_apis(*args, **kwargs):
