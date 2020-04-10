@@ -335,7 +335,6 @@ class _Dispatcher(PKDict):
         s = None
         m = None
         try:
-            #s = tornado.iostream.IOStream(connection, max_buffer_size=1024 * 1024 * 1024)
             s = tornado.iostream.IOStream(connection)
             while True:
                 m = await self._fastcgi_msg_q.get()
