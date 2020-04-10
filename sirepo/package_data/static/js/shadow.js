@@ -3,17 +3,19 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
-SIREPO.PLOTTING_SHOW_FWHM = true;
-SIREPO.appFieldEditors = [
-    '<div data-ng-switch-when="ReflectivityMaterial" data-ng-class="fieldClass">',
-      '<input data-reflectivity-material="" data-ng-model="model[field]" class="form-control" required />',
-    '</div>',
-].join('');
-SIREPO.appDownloadLinks = [
-    '<li data-lineout-csv-link="x"></li>',
-    '<li data-lineout-csv-link="y"></li>',
-].join('');
+SIREPO.app.config(function() {
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
+    SIREPO.PLOTTING_SHOW_FWHM = true;
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="ReflectivityMaterial" data-ng-class="fieldClass">',
+          '<input data-reflectivity-material="" data-ng-model="model[field]" class="form-control" required />',
+        '</div>',
+    ].join('');
+    SIREPO.appDownloadLinks = [
+        '<li data-lineout-csv-link="x"></li>',
+        '<li data-lineout-csv-link="y"></li>',
+    ].join('');
+});
 
 SIREPO.app.factory('shadowService', function(appState, beamlineService, panelState) {
     // ColumnValue enum values which are in mm
@@ -331,7 +333,6 @@ SIREPO.app.directive('appHeader', function() {
     };
 });
 
-//TODO(pjm): consolidate this with similar code in rpnValue directive
 SIREPO.app.directive('reflectivityMaterial', function(appState, requestSender) {
     var requestIndex = 0;
     return {
@@ -342,28 +343,18 @@ SIREPO.app.directive('reflectivityMaterial', function(appState, requestSender) {
                 if (ngModel.$isEmpty(value)) {
                     return null;
                 }
-                requestIndex++;
-                var currentRequestIndex = requestIndex;
-                requestSender.getApplicationData(
-                    {
-                        method: 'validate_material',
-                        material_name: value,
-                    },
-                    function(data) {
-                        // check for a stale request
-                        if (requestIndex != currentRequestIndex) {
-                            return;
-                        }
-                        var err = data.error;
-                        ngModel.$setValidity('', err ? false : true);
-                    });
-                return value;
-            });
-            ngModel.$formatters.push(function(value) {
-                if (ngModel.$isEmpty(value)) {
-                    return value;
+                var isValid = true;
+                if (! /^[A-Za-z0-9().]+$/.test(value)) {
+                    isValid = false;
                 }
-                return value.toString();
+                else if (/^[a-z0-9]/.test(value)) {
+                    isValid = false;
+                }
+                else if (/[0-9][a-z]/.test(value)) {
+                    isValid = false;
+                }
+                ngModel.$setValidity('', isValid);
+                return value;
             });
         }
     };

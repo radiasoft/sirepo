@@ -10,6 +10,7 @@ from pykern import pkresource
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
+from sirepo.template import code_variable
 from sirepo.template import elegant_command_importer
 from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_importer
@@ -17,11 +18,9 @@ from sirepo.template import lattice
 from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
-import ast
 import copy
 import glob
 import math
-import numpy as np
 import os
 import os.path
 import py.path
@@ -29,7 +28,6 @@ import re
 import sdds
 import sirepo.sim_data
 import stat
-import werkzeug
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
@@ -53,18 +51,6 @@ _FIELD_LABEL = PKDict(
 )
 
 _FILE_ID_SEP = '-'
-
-_INFIX_TO_RPN = PKDict({
-    ast.Add: '+',
-    ast.Div: '/',
-    ast.Invert: '!',
-    ast.Mult: '*',
-    ast.Not: '!',
-    ast.Pow: 'pow',
-    ast.Sub: '-',
-    ast.UAdd: '+',
-    ast.USub: '+',
-})
 
 _OUTPUT_INFO_FILE = 'outputInfo.json'
 
@@ -126,30 +112,18 @@ class OutputFileIterator(lattice.ModelIterator):
         else:
             self.model_index[self.model_name] = 1
 
-class RPNValueIterator(lattice.ModelIterator):
-    def __init__(self, rpn_variables):
-        self.result = PKDict()
-        self.rpn_variables = rpn_variables
-
-    def field(self, model, field_schema, field):
-        if field_schema[1] == 'RPNValue' and elegant_lattice_importer.is_rpn_value(model[field]):
-            if model[field] not in self.result:
-                v, err = _parse_expr(model[field], self.rpn_variables)
-                if not err:
-                    self.result[model[field]] = v
-
 
 def background_percent_complete(report, run_dir, is_running):
     #TODO(robnagler) remove duplication in run_dir.exists() (outer level?)
-    errors, last_element = parse_elegant_log(run_dir)
+    alert, last_element, step = _parse_elegant_log(run_dir)
     res = PKDict(
         percentComplete=100,
         frameCount=0,
-        errors=errors,
+        alert=alert,
     )
     if is_running:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-        res.percentComplete = _compute_percent_complete(data, last_element)
+        res.percentComplete = _compute_percent_complete(data, last_element, step)
         return res
     if not run_dir.join(_ELEGANT_SEMAPHORE_FILE).exists():
         return res
@@ -159,17 +133,21 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=1,
         outputInfo=output_info,
         lastUpdateTime=output_info[0]['lastUpdateTime'],
-        errors=errors,
+        alert=alert,
     )
 
 
 def copy_related_files(data, source_path, target_path):
-    # copy any simulation output
-    if os.path.isdir(str(py.path.local(source_path).join(_SIM_DATA.compute_model(data)))):
-        animation_dir = py.path.local(target_path).join(_SIM_DATA.compute_model(data))
-        pkio.mkdir_parent(str(animation_dir))
-        for f in glob.glob(str(py.path.local(source_path).join(_SIM_DATA.compute_model(data), '*'))):
-            py.path.local(f).copy(animation_dir)
+    # copy results and log for the long-running simulations
+    for m in ('animation',):
+        # copy any simulation output
+        s = pkio.py_path(source_path).join(m)
+        if not s.exists():
+            continue
+        t = pkio.py_path(target_path).join(m)
+        pkio.mkdir_parent(str(t))
+        for f in pkio.sorted_glob('*'):
+            f.copy(t)
 
 
 def generate_parameters_file(data, is_parallel=False):
@@ -192,20 +170,25 @@ def get_application_data(data, **kwargs):
             data.input_type = _sdds_beam_type_from_file(data.input_file)
         return data
     if data.method == 'rpn_value':
-        value, error = _parse_expr(data.value, _variables_to_postfix(data.variables))
-        if error:
-            data.error = error
+        v, err = _code_var(data.variables).eval_var(data.value)
+        if err:
+            data.error = err
         else:
-            data.result = value
+            data.result = v
         return data
     if data.method == 'recompute_rpn_cache_values':
-        variables = _variables_to_postfix(data.variables)
-        for k in data.cache:
-            value, error = _parse_expr(k, variables)
-            if not error:
-                data.cache[k] = value
+        _code_var(data.variables).recompute_cache(data.cache)
+        return data
+    if data.method == 'validate_rpn_delete':
+        model_data = simulation_db.read_json(
+            simulation_db.sim_data_file(SIM_TYPE, data.simulationId))
+        data.error = _code_var(data.variables).validate_var_delete(data.name, model_data, _SCHEMA)
         return data
     raise RuntimeError('unknown application data method: {}'.format(data.method))
+
+
+def _code_var(variables):
+    return elegant_lattice_importer.elegant_code_var(variables)
 
 
 def _file_id(model_id, field_index):
@@ -238,17 +221,12 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         i = re.sub(r'elementAnimation', '', model).split(_FILE_ID_SEP)
         return _sdds(_get_filename_for_element_id(i, data))
 
-    if model == _SIM_DATA.compute_model(None):
+    if model == 'animation':
         path = run_dir.join(ELEGANT_LOG_FILE)
         if not path.exists():
             return 'elegant-output.txt', '', 'text/plain'
         with open(str(path)) as f:
             return 'elegant-output.txt', f.read(), 'text/plain'
-
-    if model == 'beamlineReport':
-        data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
-        source = generate_parameters_file(data, is_parallel=True)
-        return 'python-source.py', source, 'text/plain'
 
     return _sdds(_report_output_filename('bunchReport'))
 
@@ -257,83 +235,55 @@ def import_file(req, test_data=None, **kwargs):
     # input_data is passed by test cases only
     input_data = test_data
 
-    if 'simulationId' in req:
-        input_data = simulation_db.read_simulation_json(elegant_common.SIM_TYPE, sid=req.simulationId)
+    if 'simulationId' in req.req_data:
+        input_data = simulation_db.read_simulation_json(SIM_TYPE, sid=req.req_data.simulationId)
     if re.search(r'.ele$', req.filename, re.IGNORECASE):
         data = elegant_command_importer.import_file(req.file_stream.read())
     elif re.search(r'.lte$', req.filename, re.IGNORECASE):
         data = elegant_lattice_importer.import_file(req.file_stream.read(), input_data)
         if input_data:
             _map_commands_to_lattice(data)
+    elif re.search(r'.madx$', req.filename, re.IGNORECASE):
+        from sirepo.template import madx_converter, madx_parser
+        data = madx_converter.from_madx(
+            SIM_TYPE,
+            madx_parser.parse_file(req.file_stream.read()))
     else:
         raise IOError('invalid file extension, expecting .ele or .lte')
-    data.models.simulation.name = re.sub(r'\.(lte|ele)$', '', req.filename, flags=re.IGNORECASE)
+    data.models.simulation.name = re.sub(r'\.(lte|ele|madx)$', '', req.filename, flags=re.IGNORECASE)
     if input_data and not test_data:
-        simulation_db.delete_simulation(elegant_common.SIM_TYPE, input_data.models.simulation.simulationId)
+        simulation_db.delete_simulation(SIM_TYPE, input_data.models.simulation.simulationId)
     return data
-
-
-def parse_elegant_log(run_dir):
-    path = run_dir.join(ELEGANT_LOG_FILE)
-    if not path.exists():
-        return '', 0
-    res = ''
-    last_element = None
-    text = pkio.read_text(str(path))
-    want_next_line = False
-    prev_line = ''
-    prev_err = ''
-    for line in text.split('\n'):
-        if line == prev_line:
-            continue
-        match = re.search('^Starting (\S+) at s\=', line)
-        if match:
-            name = match.group(1)
-            if not re.search('^M\d+\#', name):
-                last_element = name
-        if want_next_line:
-            res += line + '\n'
-            want_next_line = False
-        elif _is_ignore_error_text(line):
-            pass
-        elif _is_error_text(line):
-            if len(line) < 10:
-                want_next_line = True
-            else:
-                if line != prev_err:
-                    res += line + '\n'
-                prev_err = line
-        prev_line = line
-    return res, last_element
 
 
 def prepare_for_client(data):
     if 'models' not in data:
         return data
-    # evaluate rpn values into model.rpnCache
-    variables = _variables_to_postfix(data.models.rpnVariables)
-    cache = LatticeUtil(data, _SCHEMA).iterate_models(RPNValueIterator(variables)).result
-    data.models.rpnCache = cache
-    for rpn_var in data.models.rpnVariables:
-        v, err = _parse_expr(rpn_var.value, variables)
-        if not err:
-            cache[rpn_var.name] = v
-            if elegant_lattice_importer.is_rpn_value(rpn_var.value):
-                cache[rpn_var.value] = v
+    data.models.rpnCache = _code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
     return data
 
 
-def prepare_output_file(run_dir, data):
+def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
+    if success_exit:
+        return None
+    return _parse_elegant_log(run_dir)[0]
+
+
+def prepare_sequential_output_file(run_dir, data):
     if data.report == 'twissReport' or 'bunchReport' in data.report:
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
             output_file = run_dir.join(_report_output_filename(data.report))
             if output_file.exists():
-                save_report_data(data, run_dir)
+                save_sequential_report_data(data, run_dir)
 
 
 def python_source_for_model(data, model):
+    if model == 'madx':
+        from sirepo.template import madx, madx_converter
+        mad = madx_converter.to_madx(SIM_TYPE, data)
+        return madx.python_source_for_model(mad, None)
     return generate_parameters_file(data, is_parallel=True) + '''
 with open('elegant.lte', 'w') as f:
     f.write(lattice_file)
@@ -350,14 +300,14 @@ def remove_last_frame(run_dir):
     pass
 
 
-def save_report_data(data, run_dir):
+def save_sequential_report_data(data, run_dir):
     a = copy.deepcopy(data.models[data.report])
     a.frameReport = data.report
     if a.frameReport == 'twissReport':
         a.x = 's'
         a.y = a.y1
     a.frameIndex = 0
-    simulation_db.write_result(
+    template_common.write_sequential_result(
         _extract_report_data(str(run_dir.join(_report_output_filename(a.frameReport))), a),
         run_dir=run_dir,
     )
@@ -487,7 +437,17 @@ def _command_file_extension(model):
     return 'sdds'
 
 
-def _compute_percent_complete(data, last_element):
+def _compute_percent_complete(data, last_element, step):
+    if step > 1:
+        cmd = _find_first_command(data, 'run_control')
+        if cmd and cmd.n_steps:
+            n_steps = 0
+            if code_variable.CodeVar.is_var_value(cmd.n_steps):
+                n_steps = _code_var(data.models.rpnVariables).eval_var(cmd.n_steps)[0]
+            else:
+                n_steps = int(cmd.n_steps)
+            if n_steps and n_steps > 0:
+                return min(100, step * 100 / n_steps)
     if not last_element:
         return 0
     elements = PKDict()
@@ -500,10 +460,7 @@ def _compute_percent_complete(data, last_element):
     beamline_map = PKDict()
     count = _walk_beamline(beamlines[id], 1, elements, beamlines, beamline_map)
     index = beamline_map[last_element] if last_element in beamline_map else 0
-    res = index * 100 / count
-    if res > 100:
-        return 100
-    return res
+    return min(100, index * 100 / count)
 
 
 def _contains_columns(column_names, search):
@@ -690,8 +647,8 @@ def _format_field_value(state, model, field, el_type):
 
 
 def _format_rpn_value(value, is_command=False):
-    if elegant_lattice_importer.is_rpn_value(value):
-        value = _infix_to_postfix(value)
+    if code_variable.CodeVar.is_var_value(value):
+        value = code_variable.CodeVar.infix_to_postfix(value)
         if is_command:
             return '({})'.format(value)
     return value
@@ -786,10 +743,13 @@ def _generate_twiss_simulation(data, v):
     )
     twiss_output.final_values_only = '0'
     twiss_output.output_at_each_step = '0'
+    change_particle = _find_first_command(data, 'change_particle')
     data.models.commands = [
         run_setup,
         twiss_output,
     ]
+    if change_particle:
+        data.models.commands.insert(0, change_particle)
     return _generate_full_simulation(data, v)
 
 
@@ -804,26 +764,17 @@ def _generate_variable(name, variables, visited):
 def _generate_variables(data):
     res = ''
     visited = PKDict()
-    variables = PKDict({x.name: x.value for x in data.models.rpnVariables})
+    code_var = _code_var(data.models.rpnVariables)
 
-    for name in sorted(variables):
-        for dependency in elegant_lattice_importer.build_variable_dependency(variables[name], variables, []):
-            res += _generate_variable(dependency, variables, visited)
-        res += _generate_variable(name, variables, visited)
+    for name in sorted(code_var.postfix_variables):
+        for dependency in code_var.get_expr_dependencies(code_var.postfix_variables[name]):
+            res += _generate_variable(dependency, code_var.postfix_variables, visited)
+        res += _generate_variable(name, code_var.postfix_variables, visited)
     return res
 
 
 def _get_filename_for_element_id(id, data):
     return _build_filename_map(data)['{}{}{}'.format(id[0], _FILE_ID_SEP, id[1])]
-
-
-def _infix_to_postfix(expr):
-    try:
-        rpn = _parse_expr_infix(expr)
-        expr = rpn
-    except Exception as e:
-        pass
-    return expr
 
 
 def _is_error_text(text):
@@ -903,49 +854,42 @@ def _parameter_definitions(parameters):
     return res
 
 
-def _parse_expr(expr, variables):
-    """If not infix, default to rpn"""
-    return elegant_lattice_importer.parse_rpn_value(_infix_to_postfix(expr), variables)
-
-
-def _parse_expr_infix(expr):
-    """Use Python parser (ast) and return depth first (RPN) tree"""
-
-    # https://bitbucket.org/takluyver/greentreesnakes/src/587ad72894bc7595bc30e33affaa238ac32f0740/astpp.py?at=default&fileviewer=file-view-default
-
-    def _do(n):
-        # http://greentreesnakes.readthedocs.io/en/latest/nodes.html
-        if isinstance(n, ast.Str):
-            assert not re.search('^[^\'"]*$', n.s), \
-                '{}: invalid string'.format(n.s)
-            return ['"{}"'.format(n.s)]
-        elif isinstance(n, ast.Name):
-            return [str(n.id)]
-        elif isinstance(n, ast.Num):
-            return [str(n.n)]
-        elif isinstance(n, ast.Expression):
-            return _do(n.body)
-        elif isinstance(n, ast.Call):
-            res = []
-            for x in n.args:
-                res.extend(_do(x))
-            return res + [n.func.id]
-        elif isinstance(n, ast.BinOp):
-            return _do(n.left) + _do(n.right) + _do(n.op)
-        elif isinstance(n, ast.UnaryOp):
-            return _do(n.operand) + _do(n.op)
-        elif isinstance(n, ast.IfExp):
-            return _do(n.test) + ['?'] + _do(n.body) + [':'] + _do(n.orelse) + ['$']
-        else:
-            x = _INFIX_TO_RPN.get(type(n), None)
-            if x:
-                return [x]
-        raise ValueError('{}: invalid node'._ast_dump(n))
-
-    tree = ast.parse(expr, filename='eval', mode='eval')
-    assert isinstance(tree, ast.Expression), \
-        '{}: must be an expression'.format(tree)
-    return ' '.join(_do(tree))
+def _parse_elegant_log(run_dir):
+    path = run_dir.join(ELEGANT_LOG_FILE)
+    if not path.exists():
+        return '', 0
+    res = ''
+    last_element = None
+    text = pkio.read_text(str(path))
+    want_next_line = False
+    prev_line = ''
+    prev_err = ''
+    step = 0
+    for line in text.split('\n'):
+        if line == prev_line:
+            continue
+        match = re.search('^Starting (\S+) at s\=', line)
+        if match:
+            name = match.group(1)
+            if not re.search('^M\d+\#', name):
+                last_element = name
+        match = re.search('^tracking step (\d+)', line)
+        if match:
+            step = int(match.group(1))
+        if want_next_line:
+            res += line + '\n'
+            want_next_line = False
+        elif _is_ignore_error_text(line):
+            pass
+        elif _is_error_text(line):
+            if len(line) < 10:
+                want_next_line = True
+            else:
+                if line != prev_err:
+                    res += line + '\n'
+                prev_err = line
+        prev_line = line
+    return res, last_element, step
 
 
 def _plot_title(xfield, yfield, page_index, page_count):
@@ -1028,19 +972,6 @@ def _validate_data(data, schema):
         for m in data.models[model_type]:
             template_common.validate_model(m, schema.model[LatticeUtil.model_name_for_data(m)], enum_info)
             _correct_halo_gaussian_distribution_type(m)
-
-
-def _variables_to_postfix(rpn_variables):
-    res = []
-    for v in rpn_variables:
-        if 'value' not in v:
-            pkdlog('rpn var missing value: {}', v['name'])
-            v.value = '0'
-        res.append(PKDict(
-            name=v.name,
-            value=_infix_to_postfix(v.value),
-        ))
-    return res
 
 
 def _walk_beamline(beamline, index, elements, beamlines, beamline_map):

@@ -3,112 +3,94 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.USER_MANUAL_URL = 'https://ops.aps.anl.gov/manuals/elegant_latest/elegant.html';
-SIREPO.USER_FORUM_URL = 'https://www3.aps.anl.gov/forums/elegant/';
-SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
-SIREPO.appImportText = 'Import an elegant command (.ele) or lattice (.lte) file';
-//TODO(pjm): provide API for this, keyed by field type
-SIREPO.appFieldEditors = [
-    '<div data-ng-switch-when="BeamInputFile" class="col-sm-7">',
-      '<div data-file-field="field" data-model="model" data-file-type="bunchFile-sourceFile" data-empty-selection-text="No File Selected"></div>',
-    '</div>',
-    '<div data-ng-switch-when="LatticeBeamlineList" data-ng-class="fieldClass">',
-      '<div data-lattice-beamline-list="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="ElegantLatticeList" data-ng-class="fieldClass">',
-      '<div data-elegant-lattice-list="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="InputFileXY" class="col-sm-7">',
-      '<div data-input-file-x-y="" data-model-name="modelName" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="OutputFile" data-ng-class="fieldClass">',
-      '<div data-output-file-field="field" data-model="model"></div>',
-    '</div>',
-    '<div data-ng-switch-when="RPNBoolean" data-ng-class="fieldClass">',
-      '<div data-rpn-boolean="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="RPNValue">',
-      '<div data-ng-class="fieldClass">',
-        '<input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" required />',
-      '</div>',
-      //TODO(pjm): fragile - hide rpnStaic value when in column mode, need better detection this case
-      '<div data-ng-hide="{{ fieldSize && fieldSize != \'2\' }}" class="col-sm-2">',
-        '<div data-rpn-static="" data-model="model" data-field="field"></div>',
-      '</div>',
-    '</div>',
-    '<div data-ng-switch-when="StringArray" data-ng-class="fieldClass">',
-      '<input data-ng-model="model[field]" class="form-control" data-lpignore="true" required />',
-    '</div>',
-    '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
-      '<div class="form-control-static" data-ng-if="model.valueList[field].length == 1">{{ model.valueList[field][0] }}</div>',
-      '<select data-ng-if="model.valueList[field].length != 1" class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model.valueList[field]"></select>',
-    '</div>',
-    '<div data-ng-switch-when="FileValueList">',
-      '<div data-ng-class="fieldClass">',
-        '<div class="input-group">',
-          '<select class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model[\'valueList\'][field]"></select>',
-            '<a href class="btn btn-default input-group-addon elegant-download-button" data-file-value-button="" data-ng-href="{{ fileDownloadURL(model) }}"><span class="glyphicon glyphicon-cloud-download"></span></a>',
+SIREPO.app.config(function() {
+    SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
+    SIREPO.appMadxExport = true;
+    SIREPO.appImportText = 'Import an elegant command (.ele) or lattice (.lte or .madx) file';
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="BeamInputFile" class="col-sm-7">',
+          '<div data-file-field="field" data-model="model" data-file-type="bunchFile-sourceFile" data-empty-selection-text="No File Selected"></div>',
         '</div>',
-      '</div>',
-    '</div>',
-    '<div data-ng-switch-when="DistributionTypeStringArray" class="col-sm-7">',
-        '<div data-enum-list="" data-field="model[field]" data-info="info" data-type-list="enum[\'DistributionType\']"></div>',
-    '</div>',
-    '<div data-ng-switch-when="BooleanStringArray" class="col-sm-7">',
-        '<div data-enum-list="" data-field="model[field]" data-info="info" data-type-list="enum[\'Boolean\']"></div>',
-    '</div>',
-    '<div data-ng-switch-when="RandomizeStringArray" class="col-sm-7">',
-        '<div data-enum-list="" data-field="model[field]" data-info="info" data-type-list="enum[\'Randomize\']"></div>',
-    '</div>',
-    '<div data-ng-switch-when="Integer3StringArray" class="col-sm-7">',
-        '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="3"></div>',
-    '</div>',
-    '<div data-ng-switch-when="Integer6StringArray" class="col-sm-7">',
-        '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="6"></div>',
-    '</div>',
-    '<div data-ng-switch-when="Float6StringArray" class="col-sm-7">',
-        '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="6"></div>',
-    '</div>',
-].join('');
-SIREPO.appDownloadLinks = [
-    '<li><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
-].join('');
-SIREPO.lattice = {
-    canReverseBeamline: true,
-    elementColor: {
-        BMAPXY: 'magenta',
-        FTABLE: 'magenta',
-        KOCT: 'lightyellow',
-        KQUAD: 'tomato',
-        KSEXT: 'lightgreen',
-        MATTER: 'black',
-        OCTU: 'yellow',
-        QUAD: 'red',
-        QUFRINGE: 'salmon',
-        SEXT: 'lightgreen',
-        VKICK: 'blue',
-        LMIRROR: 'lightblue',
-        REFLECT: 'blue',
-    },
-    elementPic: {
-        alpha: ['ALPH'],
-        aperture: ['CLEAN', 'ECOL', 'MAXAMP', 'PEPPOT', 'RCOL', 'SCRAPER'],
-        bend: ['BRAT', 'BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'FTABLE', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
-        drift: ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT'],
-        lens: ['LTHINLENS'],
-        magnet: ['BMAPXY', 'HKICK', 'KICKER', 'KOCT', 'KQUAD', 'KSEXT', 'MATTER', 'OCTU', 'QUAD', 'QUFRINGE', 'SEXT', 'VKICK'],
-        malign: ['MALIGN'],
-        mirror: ['LMIRROR'],
-        recirc: ['RECIRC'],
-        rf: ['CEPL', 'FRFMODE', 'FTRFMODE', 'MODRF', 'MRFDF', 'RAMPP', 'RAMPRF', 'RFCA', 'RFCW', 'RFDF', 'RFMODE', 'RFTM110', 'RFTMEZ0', 'RMDF', 'TMCF', 'TRFMODE', 'TWLA', 'TWMTA', 'TWPL'],
-        solenoid: ['MAPSOLENOID', 'SOLE'],
-        undulator: ['CORGPIPE', 'CWIGGLER', 'GFWIGGLER', 'LSRMDLTR', 'MATR', 'UKICKMAP', 'WIGGLER'],
-        watch: ['HMON', 'MARK', 'MONI', 'VMON', 'WATCH'],
-        zeroLength: ['BRANCH', 'CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'MAGNIFY', 'MHISTOGRAM', 'PFILTER', 'REFLECT','REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SLICE', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
-    },
-};
+        '<div data-ng-switch-when="ElegantLatticeList" data-ng-class="fieldClass">',
+          '<div data-elegant-lattice-list="" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="InputFileXY" class="col-sm-7">',
+          '<div data-input-file-x-y="" data-model-name="modelName" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="StringArray" data-ng-class="fieldClass">',
+          '<input data-ng-model="model[field]" class="form-control" data-lpignore="true" required />',
+        '</div>',
+        '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
+          '<div class="form-control-static" data-ng-if="model.valueList[field].length == 1">{{ model.valueList[field][0] }}</div>',
+          '<select data-ng-if="model.valueList[field].length != 1" class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model.valueList[field]"></select>',
+        '</div>',
+        '<div data-ng-switch-when="FileValueList">',
+          '<div data-ng-class="fieldClass">',
+            '<div class="input-group">',
+              '<select class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model[\'valueList\'][field]"></select>',
+              '<a href class="btn btn-default input-group-addon elegant-download-button" data-file-value-button="" data-ng-href="{{ fileDownloadURL(model) }}"><span class="glyphicon glyphicon-cloud-download"></span></a>',
+            '</div>',
+          '</div>',
+        '</div>',
+        '<div data-ng-switch-when="DistributionTypeStringArray" class="col-sm-7">',
+          '<div data-enum-list="" data-field="model[field]" data-info="info" data-type-list="enum[\'DistributionType\']"></div>',
+        '</div>',
+        '<div data-ng-switch-when="BooleanStringArray" class="col-sm-7">',
+          '<div data-enum-list="" data-field="model[field]" data-info="info" data-type-list="enum[\'Boolean\']"></div>',
+        '</div>',
+        '<div data-ng-switch-when="RandomizeStringArray" class="col-sm-7">',
+          '<div data-enum-list="" data-field="model[field]" data-info="info" data-type-list="enum[\'Randomize\']"></div>',
+        '</div>',
+        '<div data-ng-switch-when="Integer3StringArray" class="col-sm-7">',
+          '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="3"></div>',
+        '</div>',
+        '<div data-ng-switch-when="Integer6StringArray" class="col-sm-7">',
+          '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="6"></div>',
+        '</div>',
+        '<div data-ng-switch-when="Float6StringArray" class="col-sm-7">',
+          '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="6"></div>',
+        '</div>',
+    ].join('');
+    SIREPO.appDownloadLinks = [
+        '<li data-ng-if="::hasDataFile"><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
+    ].join('');
+    SIREPO.lattice = {
+        canReverseBeamline: true,
+        elementColor: {
+            BMAPXY: 'magenta',
+            FTABLE: 'magenta',
+            KOCT: 'lightyellow',
+            KQUAD: 'tomato',
+            KSEXT: 'lightgreen',
+            MATTER: 'black',
+            OCTU: 'yellow',
+            QUAD: 'red',
+            QUFRINGE: 'salmon',
+            SEXT: 'lightgreen',
+            VKICK: 'blue',
+            LMIRROR: 'lightblue',
+            REFLECT: 'blue',
+        },
+        elementPic: {
+            alpha: ['ALPH'],
+            aperture: ['CLEAN', 'ECOL', 'MAXAMP', 'PEPPOT', 'RCOL', 'SCRAPER'],
+            bend: ['BRAT', 'BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'FTABLE', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
+            drift: ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT'],
+            lens: ['LTHINLENS'],
+            magnet: ['BMAPXY', 'HKICK', 'KICKER', 'KOCT', 'KQUAD', 'KSEXT', 'MATTER', 'OCTU', 'QUAD', 'QUFRINGE', 'SEXT', 'VKICK'],
+            malign: ['MALIGN'],
+            mirror: ['LMIRROR'],
+            recirc: ['RECIRC'],
+            rf: ['CEPL', 'FRFMODE', 'FTRFMODE', 'MODRF', 'MRFDF', 'RAMPP', 'RAMPRF', 'RFCA', 'RFCW', 'RFDF', 'RFMODE', 'RFTM110', 'RFTMEZ0', 'RMDF', 'TMCF', 'TRFMODE', 'TWLA', 'TWMTA', 'TWPL'],
+            solenoid: ['MAPSOLENOID', 'SOLE'],
+            undulator: ['CORGPIPE', 'CWIGGLER', 'GFWIGGLER', 'LSRMDLTR', 'MATR', 'UKICKMAP', 'WIGGLER'],
+            watch: ['HMON', 'MARK', 'MONI', 'VMON', 'WATCH'],
+            zeroLength: ['BRANCH', 'CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'MAGNIFY', 'MHISTOGRAM', 'PFILTER', 'REFLECT','REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SLICE', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
+        },
+    };
+});
 
-SIREPO.app.factory('elegantService', function(appState, requestSender, rpnService, $rootScope) {
+SIREPO.app.factory('elegantService', function(appState, commandService, requestSender, rpnService, $rootScope) {
     var self = {};
     var filenameRequired = ['command_floor_coordinates', 'HISTOGRAM', 'SLICE', 'WATCH'];
     var rootScopeListener = null;
@@ -126,7 +108,7 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
                 cmd.p_central_mev = bunch.p_central_mev;
             }
             else {
-                cmd.p_central = rpnService.getRpnValue(bunch.p_central_mev) / SIREPO.APP_SCHEMA.constant.ELEGANT_ME_EV;
+                cmd.p_central = rpnService.getRpnValue(bunch.p_central_mev) / SIREPO.APP_SCHEMA.constants.ELEGANT_ME_EV;
             }
         }
         appState.saveQuietly('commands');
@@ -196,7 +178,7 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
                     bunch.p_central_mev = cmd.p_central_mev;
                 }
                 else {
-                    bunch.p_central_mev = rpnService.getRpnValue(cmd.p_central) * SIREPO.APP_SCHEMA.constant.ELEGANT_ME_EV;
+                    bunch.p_central_mev = rpnService.getRpnValue(cmd.p_central) * SIREPO.APP_SCHEMA.constants.ELEGANT_ME_EV;
                 }
             }
             // need to update source reports.
@@ -346,6 +328,21 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
         // force update to bunch from command.bunched_beam
         appState.saveChanges('commands');
     });
+
+    // overrides commandService.commandFileExtension for elegant file extensions
+    commandService.commandFileExtension = function(command) {
+        //TODO(pjm): keep in sync with template/elegant.py _command_file_extension()
+        if (command) {
+            if (command._type == 'save_lattice') {
+                return '.lte';
+            }
+            else if (command._type == 'global_settings') {
+                return '.txt';
+            }
+        }
+        return '.sdds';
+    };
+
     return self;
 });
 
@@ -469,16 +466,16 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
     }
 
     function handleStatus(data) {
-        self.simulationErrors = data.errors || '';
+        self.simulationAlerts = data.alert || '';
         if (data.frameCount) {
             frameCache.setFrameCount(parseInt(data.frameCount));
             loadElementReports(data.outputInfo);
         }
         if (self.simState.isStopped()) {
             if (! data.frameCount) {
-                if (data.state == 'completed' && ! self.simulationErrors) {
+                if (data.state == 'completed' && ! self.simulationAlerts) {
                     // completed with no output, show link to elegant log
-                    self.simulationErrors = 'No output produced. View the ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName  + ' log for more information.';
+                    self.simulationAlerts = 'No output produced. View the ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName  + ' log for more information.';
                 }
                 self.outputFiles = [];
                 self.outputFileMap = {};
@@ -486,10 +483,10 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         }
     }
     self.errorHeader = function() {
-        if(! self.simulationErrors || self.simulationErrors == '') {
+        if(! self.simulationAlerts || self.simulationAlerts == '') {
             return '';
         }
-        return SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName + ' ' + (self.simulationErrors.toLowerCase().indexOf('error') >= 0 ? 'Errors:' : 'Warnings:');
+        return SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName + ' ' + (self.simulationAlerts.toLowerCase().indexOf('error') >= 0 ? 'Errors:' : 'Warnings:');
     };
 
     function loadElementReports(outputInfo) {
@@ -656,7 +653,8 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState, latticeService) {
+// elegantService is required to register with appState
+SIREPO.app.directive('appHeader', function(appState, elegantService, latticeService) {
     return {
         restrict: 'A',
         scope: {
@@ -835,8 +833,8 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                           '</div>',
                           '<div data-ng-show="isState(\'ready\') || isState(\'lattice\')">',
                             '<div data-ng-show="isState(\'ready\')" class="form-group">',
-                              '<label>Select Command (.ele), Lattice (.lte), or ', SIREPO.APP_SCHEMA.productInfo.shortName,' Export (.zip)</label>',
-                              '<input id="elegant-file-import" type="file" data-file-model="elegantFile" accept=".ele,.lte,.zip" />',
+                              '<label>Select Command (.ele), Lattice (.lte or .madx), or ', SIREPO.APP_SCHEMA.productInfo.shortName,' Export (.zip)</label>',
+                              '<input id="elegant-file-import" type="file" data-file-model="elegantFile" accept=".ele,.lte,.madx,.zip" />',
                               '<br />',
                               '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
                             '</div>',
@@ -1273,278 +1271,6 @@ SIREPO.app.directive('numberList', function() {
     };
 });
 
-SIREPO.app.directive('outputFileField', function(appState, commandService) {
-    return {
-        restrict: 'A',
-        scope: {
-            field: '=outputFileField',
-            model: '=',
-        },
-        template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in items()"></select>',
-        ].join(''),
-        controller: function($scope) {
-            var items = [];
-            var filename = '';
-
-            $scope.items = function() {
-                if (! $scope.model) {
-                    return items;
-                }
-                var prefix = $scope.model.name;
-                if ($scope.model._type) {
-                    var index = 0;
-                    for (var i = 0; i < appState.models.commands.length; i++) {
-                        var m = appState.models.commands[i];
-                        if (m._type == $scope.model._type) {
-                            index++;
-                            if (m == $scope.model) {
-                                break;
-                            }
-                        }
-                    }
-                    prefix = $scope.model._type + (index > 1 ? index : '');
-                }
-                var name = prefix + '.' + $scope.field + commandService.commandFileExtension($scope.model);
-                if (name != filename) {
-                    filename = name;
-                    items = [
-                        ['', 'None'],
-                        ['1', name],
-                    ];
-                }
-                return items;
-            };
-        },
-    };
-});
-
-SIREPO.app.directive('rpnBoolean', function(rpnService) {
-    return {
-        restrict: 'A',
-        scope: {
-            model: '=',
-            field: '=',
-        },
-        template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in elegantRpnBooleanValues()"></select>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.elegantRpnBooleanValues = function() {
-                return rpnService.getRpnBooleanForField($scope.model, $scope.field);
-            };
-        },
-    };
-});
-
-SIREPO.app.directive('rpnEditor', function(appState) {
-    return {
-        scope: {},
-        template: [
-            '<div class="modal fade" data-backdrop="static" id="elegant-rpn-variables" tabindex="-1" role="dialog">',
-              '<div class="modal-dialog modal-lg">',
-                '<div class="modal-content">',
-                  '<div class="modal-header bg-info">',
-                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-                    '<span class="lead modal-title text-info">RPN Variables</span>',
-                  '</div>',
-                  '<div class="modal-body">',
-                    '<div class="container-fluid">',
-                      '<form name="form" class="form-horizontal" autocomplete="off">',
-                        '<div class="row">',
-                          '<div data-ng-if="hasFirstColumn()" class="col-sm-2 text-center"><h5>Name</h5></div>',
-                          '<div data-ng-if="hasFirstColumn()" class="col-sm-2 text-center"><h5>Value</h5></div>',
-                          '<div data-ng-if="hasSecondColumn()" class="col-sm-offset-2 col-sm-2 text-center"><h5>Name</h5></div>',
-                          '<div data-ng-if="hasSecondColumn()" class="col-sm-2 text-center"><h5>Value</h5></div>',
-                        '</div>',
-                        '<div class="row">',
-                          '<div class="form-group-sm" data-ng-repeat="rpnVar in appState.models.rpnVariables">',
-                            '<div data-field-editor="\'value\'" data-field-size="2" data-label-size="2" data-custom-label="rpnVar.name" data-model-name="\'rpnVariable\'" data-model="appState.models.rpnVariables[$index]"></div>',
-                          '</div>',
-                        '</div>',
-                      '</form>',
-
-                      '<div data-ng-hide="showAddNewFields" class="row">',
-                        '<div class="col-sm-3">',
-                          '<button data-ng-click="showAddNewFields = true" class="btn btn-default"><span class="glyphicon glyphicon-plus"></span> Add New</button>',
-                        '</div>',
-                      '</div>',
-
-                      '<div data-ng-show="showAddNewFields" class="row">',
-                        '<br />',
-                        '<form name="addNewForm" class="form-horizontal" autocomplete="off">',
-                          '<div class="form-group-sm">',
-                            '<div class="col-sm-2">',
-                              '<input class="form-control" required data-ng-model="newRpn.name" />',
-                            '</div>',
-                            '<div data-field-editor="\'value\'" data-field-size="2" data-label-size="0" data-model-name="\'rpnVariable\'" data-model="newRpn"></div>',
-                            '<div class="col-sm-4">',
-                              '<button formnovalidate data-ng-click="saveVariable()" data-ng-class="{\'disabled\': ! addNewForm.$valid}" class="btn btn-default">Add Variable</button> ',
-                              '<button formnovalidate data-ng-click="cancelVariable()" class="btn btn-default">Cancel</button>',
-                            '</div>',
-                          '</div>',
-                        '</form>',
-                      '</div>',
-
-                      '<div data-ng-hide="showAddNewFields" class="col-sm-6 pull-right">',
-                        '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> ',
-                        '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
-                      '</div>',
-
-                    '</div>',
-                  '</div>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.showAddNewFields = false;
-            $scope.appState = appState;
-            $scope.newRpn = {};
-            $scope.originalRpnCache = {};
-            $scope.isSaved = false;
-
-            $scope.cancelChanges = function() {
-                $scope.isSaved = false;
-                $('#elegant-rpn-variables').modal('hide');
-            };
-
-            $scope.cancelVariable = function() {
-                $scope.newRpn = {};
-                $scope.showAddNewFields = false;
-                $scope.addNewForm.$setPristine();
-            };
-
-            $scope.hasFirstColumn = function() {
-                if ($scope.showAddNewFields) {
-                    return true;
-                }
-                if (appState.isLoaded()) {
-                    return appState.models.rpnVariables.length > 0;
-                }
-                return false;
-            };
-
-            $scope.hasSecondColumn = function() {
-                if (appState.isLoaded()) {
-                    return appState.models.rpnVariables.length > 1;
-                }
-                return false;
-            };
-
-            $scope.saveVariable = function() {
-                appState.models.rpnVariables.push({
-                    name: $scope.newRpn.name,
-                    value: $scope.newRpn.value,
-                });
-                $scope.cancelVariable();
-            };
-
-            $scope.saveChanges = function() {
-                $('#elegant-rpn-variables').modal('hide');
-                $scope.isSaved = true;
-            };
-        },
-        link: function(scope, element) {
-            $(element).on('show.bs.modal', function() {
-                scope.isSaved = false;
-                scope.originalRpnCache = appState.clone(appState.models.rpnCache);
-            });
-            $(element).on('hidden.bs.modal', function() {
-                if (scope.isSaved) {
-                    for (var i = 0; i < appState.models.rpnVariables.length; i++) {
-                        var v = appState.models.rpnVariables[i];
-                        appState.models.rpnCache[v.name] = v.value in appState.models.rpnCache
-                            ? appState.models.rpnCache[v.value] : parseFloat(v.value);
-                    }
-                    appState.saveChanges('rpnVariables');
-                    scope.isSaved = false;
-                }
-                else {
-                    appState.cancelChanges('rpnVariables');
-                    appState.models.rpnCache = scope.originalRpnCache;
-                }
-                scope.cancelVariable();
-                scope.$applyAsync();
-            });
-            scope.$on('$destroy', function() {
-                $(element).off();
-            });
-        },
-    };
-});
-
-SIREPO.app.directive('rpnStatic', function(rpnService) {
-    return {
-        restrict: 'A',
-        scope: {
-            model: '=',
-            field: '=',
-        },
-        template: [
-            '<div class="form-control-static pull-right">{{ elegantComputedRpnValue(); }}</div>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.elegantComputedRpnValue = function() {
-                return rpnService.getRpnValueForField($scope.model, $scope.field);
-            };
-        },
-    };
-});
-
-SIREPO.app.directive('rpnValue', function(appState, rpnService) {
-    var requestIndex = 0;
-    return {
-        restrict: 'A',
-        require: 'ngModel',
-        link: function(scope, element, attrs, ngModel) {
-            var rpnVariableName = scope.modelName == 'rpnVariable' ? scope.model.name : null;
-            var range = {
-                min: scope.info[4],
-                max: scope.info[5],
-            };
-            ngModel.$parsers.push(function(value) {
-                requestIndex++;
-                var currentRequestIndex = requestIndex;
-                if (ngModel.$isEmpty(value)) {
-                    return null;
-                }
-                if (SIREPO.NUMBER_REGEXP.test(value)) {
-                    var v = parseFloat(value);
-                    if (rpnVariableName) {
-                        rpnService.recomputeCache(rpnVariableName, v);
-                    }
-                    if (range.min != undefined && v < range.min) {
-                        return undefined;
-                    }
-                    if (range.max != undefined && v > range.max) {
-                        return undefined;
-                    }
-                    ngModel.$setValidity('', true);
-                    return v;
-                }
-                rpnService.computeRpnValue(value, function(v, err) {
-                    // check for a stale request
-                    if (requestIndex != currentRequestIndex) {
-                        return;
-                    }
-                    ngModel.$setValidity('', err ? false : true);
-                    if (rpnVariableName && ! err) {
-                        rpnService.recomputeCache(rpnVariableName, v);
-                    }
-                });
-                return value;
-            });
-            ngModel.$formatters.push(function(value) {
-                if (ngModel.$isEmpty(value)) {
-                    return value;
-                }
-                return value.toString();
-            });
-        }
-    };
-});
-
 SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
     return {
         restrict: 'A',
@@ -1686,6 +1412,24 @@ SIREPO.app.directive('srBunchEditor', function(appState, panelState) {
     return {
         restrict: 'A',
         controller: function($scope) {
+
+            function updateEmittance() {
+                var bunch = appState.models.bunch;
+                ['emit_x', 'emit_nx', 'emit_y', 'emit_ny'].forEach(function(f) {
+                    if (panelState.isActiveField('bunch', f) && bunch[f] != 0) {
+                        var prefix;
+                        if (f.indexOf('emit_n') == 0) {
+                            prefix = 'emit_';
+                        }
+                        else {
+                            prefix = 'emit_n';
+                        }
+                        var dir = f.charAt(f.length - 1);
+                        bunch[prefix + dir] = 0;
+                    }
+                });
+            }
+
             function updateHalton() {
                 panelState.showField('bunch', 'halton_radix', appState.models.bunch.optimized_halton == '0');
             }
@@ -1708,6 +1452,10 @@ SIREPO.app.directive('srBunchEditor', function(appState, panelState) {
             appState.whenModelsLoaded($scope, function() {
                 appState.watchModelFields($scope, ['bunch.optimized_halton'], updateHalton);
                 appState.watchModelFields($scope, ['bunch.longitudinalMethod'], updateLongitudinalFields);
+                appState.watchModelFields(
+                    $scope,
+                    ['bunch.emit_x', 'bunch.emit_y', 'bunch.emit_nx', 'bunch.emit_ny'],
+                    updateEmittance);
             });
         },
     };

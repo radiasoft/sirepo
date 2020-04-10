@@ -5,10 +5,10 @@ u"""Email login
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern.pkcollections import PKDict
-from pykern import pkcollections
+from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkinspect
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import auth
@@ -25,6 +25,7 @@ import pyisemail
 import sirepo.template
 import sirepo.uri
 import sirepo.util
+import sqlalchemy
 
 
 AUTH_METHOD = 'email'
@@ -53,7 +54,6 @@ _EXPIRES_MINUTES = 8 * 60
 #: for adding to now
 _EXPIRES_DELTA = datetime.timedelta(minutes=_EXPIRES_MINUTES)
 
-
 @api_perm.allow_cookieless_set_user
 def api_authEmailAuthorized(simulation_type, token):
     """Clicked by user in an email
@@ -67,10 +67,7 @@ def api_authEmailAuthorized(simulation_type, token):
         u = AuthEmailUser.search_by(token=token)
         if u and u.expires >= srtime.utc_now():
             n = _verify_confirm(req.type, token, auth.need_complete_registration(u))
-            u.query.filter(
-                (AuthEmailUser.user_name == u.unverified_email),
-                AuthEmailUser.unverified_email != u.unverified_email,
-            ).delete()
+            AuthEmailUser.delete_changed_email(u)
             u.user_name = u.unverified_email
             u.token = None
             u.expires = None
@@ -108,7 +105,7 @@ def api_authEmailLogin():
         u = AuthEmailUser.search_by(unverified_email=email)
         if not u:
             u = AuthEmailUser(unverified_email=email)
-        u.token = u.create_token()
+        u.create_token()
         u.save()
     return _send_login_email(
         u,
@@ -121,7 +118,7 @@ def api_authEmailLogin():
 
 def avatar_uri(model, size):
     return 'https://www.gravatar.com/avatar/{}?d=mp&s={}'.format(
-        hashlib.md5(model.user_name).hexdigest(),
+        hashlib.md5(pkcompat.to_bytes(model.user_name)).hexdigest(),
         size,
     )
 
@@ -136,7 +133,7 @@ def init_apis(app, *args, **kwargs):
         smtp_server=pkconfig.Required(str, 'SMTP TLS server'),
         smtp_user=pkconfig.Required(str, 'SMTP auth user'),
     )
-    auth_db.init_model(app, _init_model)
+    auth_db.init_model(_init_model)
     if pkconfig.channel_in('dev') and cfg.smtp_server == _DEV_SMTP_SERVER:
         return
     app.config.update(
@@ -150,7 +147,7 @@ def init_apis(app, *args, **kwargs):
     _smtp = flask_mail.Mail(app)
 
 
-def _init_model(db, base):
+def _init_model(base):
     """Creates AuthEmailUser bound to dynamic `db` variable"""
     global AuthEmailUser, UserModel
 
@@ -159,21 +156,27 @@ def _init_model(db, base):
     # Existing user: (unverified_email, token, expires) -> auth -> (unverified_email, uid, email)
 
     # display_name is prompted after first login
-    class AuthEmailUser(base, db.Model):
+    class AuthEmailUser(base):
         EMAIL_SIZE = 255
-        TOKEN_SIZE = 16
         __tablename__ = 'auth_email_user_t'
-        unverified_email = db.Column(db.String(EMAIL_SIZE), primary_key=True)
-        uid = db.Column(db.String(8), unique=True)
-        user_name = db.Column(db.String(EMAIL_SIZE), unique=True)
-        token = db.Column(db.String(TOKEN_SIZE), unique=True)
-        expires = db.Column(db.DateTime())
+        unverified_email = sqlalchemy.Column(sqlalchemy.String(EMAIL_SIZE), primary_key=True)
+        uid = sqlalchemy.Column(sqlalchemy.String(8), unique=True)
+        user_name = sqlalchemy.Column(sqlalchemy.String(EMAIL_SIZE), unique=True)
+        token = sqlalchemy.Column(sqlalchemy.String(sirepo.util.TOKEN_SIZE), unique=True)
+        expires = sqlalchemy.Column(sqlalchemy.DateTime())
 
         def create_token(self):
-            token = sirepo.util.random_base62(self.TOKEN_SIZE)
             self.expires = datetime.datetime.utcnow() + _EXPIRES_DELTA
-            self.token = token
-            return token
+            self.token = sirepo.util.create_token(self.unverified_email)
+
+        @classmethod
+        def delete_changed_email(cls, user):
+            with auth_db.thread_lock:
+                cls._session.query(cls).filter(
+                    (cls.user_name == user.unverified_email),
+                    cls.unverified_email != user.unverified_email
+                ).delete()
+                cls._session.commit()
 
     UserModel = AuthEmailUser
 
@@ -185,11 +188,11 @@ def _parse_email(data):
     return res
 
 
-def _send_login_email(user, url):
+def _send_login_email(user, uri):
     if not _smtp:
         assert pkconfig.channel_in('dev')
-        pkdlog('{}', url)
-        return http_reply.gen_json_ok({'url': url})
+        pkdlog('{}', uri)
+        return http_reply.gen_json_ok({'uri': uri})
     login_text = u'sign in to' if user.user_name else \
         u'confirm your email and finish creating'
     msg = flask_mail.Message(
@@ -202,7 +205,7 @@ Click the link below to {} your Sirepo account.
 This link will expire in {} hours and can only be used once.
 
 {}
-'''.format(login_text, _EXPIRES_MINUTES / 60, url)
+'''.format(login_text, _EXPIRES_MINUTES / 60, uri)
     )
     _smtp.send(msg)
     return http_reply.gen_json_ok()

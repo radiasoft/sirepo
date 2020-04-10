@@ -2,8 +2,12 @@
 <meta charset="utf-8">
 <html>
   <body>
-    <script>
-      window.location = "{{ redirect_uri | safe }}";
+      <script>
+       {% if sr_exception is defined %}
+       {# POSIT: matches sirepo.js sendRequst #}
+       /*sr_exception={{ sr_exception | safe }}*/
+       {% endif %}
+       window.location = "{{ redirect_uri | safe }}";
     </script>
   </body>
 </html>

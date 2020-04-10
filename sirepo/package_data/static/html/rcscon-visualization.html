@@ -1,0 +1,35 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6">
+      <div data-basic-editor-panel="" data-view-name="dataSource"></div>
+    </div>
+    <div data-ng-if="appState.applicationState().dataSource.source == 'elegant'" class="col-md-6">
+      <div data-rcscon-lattice=""></div>
+    </div>
+    <div data-ng-if="appState.applicationState().dataSource.source == 'files'" class="col-md-4">
+      <div data-basic-editor-panel="" data-view-name="files"></div>
+    </div>
+  </div>
+  <div data-ng-if="appState.applicationState().dataSource.source == 'elegant'" class="row">
+    <div class="col-md-6">
+      <div data-basic-editor-panel="" data-view-name="latticeSettings"></div>
+    </div>
+    <div class="col-md-6">
+      <div data-basic-editor-panel="" data-view-name="rfcSettings"></div>
+    </div>
+    <div class="col-md-6">
+      <div data-basic-editor-panel="" data-view-name="elegantAnimation" data-want-buttons="">
+        <div data-sim-status-panel="visualization.simState"></div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="clearfix"></div>
+        <div data-ng-repeat="report in visualization.reports">
+          <div class="col-sm-3">
+            <div data-report-panel="parameter" data-model-name="fileColumnReport" data-model-data="report" data-panel-title="{{ report.title }}"></div>
+          </div>
+          <div data-ng-if="report.break" class="clearfix"></div>
+        </div>
+  </div>
+</div>

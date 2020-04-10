@@ -9,16 +9,22 @@
       </div>
     </div>
     <div class="clearfix"></div>
+    <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.getFrameCount() > 1">
+      <div data-report-panel="parameterWithLattice" data-model-name="plotAnimation"></div>
+    </div>
     <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
-      <div data-report-panel="parameter" data-model-name="plotAnimation"></div>
+      <div data-report-panel="parameterWithLattice" data-model-name="plot2Animation"></div>
     </div>
     <div data-column-for-aspect-ratio="bunchAnimation" data-ng-if="visualization.simState.hasFrames()">
       <div data-report-panel="heatmap" data-model-name="bunchAnimation" data-panel-title="{{ visualization.bunchReportHeading('bunchAnimation') }}">
         <div data-ng-if="visualization.isComputingRanges" class="text-center text-info">Computing plot range across frames...</div>
       </div>
     </div>
+    <div data-ng-repeat="item in visualization.outputFiles" data-column-for-aspect-ratio="{{ item.modelAccess.modelKey }}" data-ng-if="visualization.simState.hasFrames()">
+      <div data-report-panel="{{ item.reportType }}" data-model-data="item.modelAccess" data-panel-title="{{ item.panelTitle }}"></div>
+    </div>
   </div> <!-- /row -->
 </div> <!-- /container -->
 
-<!-- modal dialogs -->
-<div data-modal-editor="" view-name="bunchAnimation" data-parent-controller="visualization"></div>
+
+<div data-modal-editor="" view-name="elementAnimation" data-ng-repeat="item in visualization.outputFiles" data-model-data="item.modelAccess">

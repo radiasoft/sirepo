@@ -3,18 +3,20 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="dicom" data-dicom-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-].join('');
-SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
-SIREPO.appFieldEditors = [
-    '<div data-ng-switch-when="ROI" class="col-sm-7">',
-        '<div data-roi-selector="" data-field="model[field]"></div>',
-    '</div>',
-    '<div data-ng-switch-when="ROIArray" class="col-sm-7">',
-        '<div data-roi-selection-list="" data-field="model[field]" data-model-name="modelName"></div>',
-    '</div>',
-].join('');
+SIREPO.app.config(function() {
+    SIREPO.appReportTypes = [
+        '<div data-ng-switch-when="dicom" data-dicom-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+    ].join('');
+    SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="ROI" class="col-sm-7">',
+          '<div data-roi-selector="" data-field="model[field]"></div>',
+        '</div>',
+        '<div data-ng-switch-when="ROIArray" class="col-sm-7">',
+          '<div data-roi-selection-list="" data-field="model[field]" data-model-name="modelName"></div>',
+        '</div>',
+    ].join('');
+});
 
 SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender, $rootScope) {
     var self = {};

@@ -65,6 +65,7 @@ def test_guest_merge(monkeypatch):
 
 def test_happy_path(monkeypatch):
     from pykern.pkdebug import pkdp
+    from pykern import pkjson
     from pykern.pkunit import pkfail, pkok, pkeq, pkre, pkexcept
 
     fc, sim_type, oc = _fc(monkeypatch, 'happy')
@@ -77,7 +78,8 @@ def test_happy_path(monkeypatch):
     pkre(state, r.headers['location'])
     fc.sr_auth_state(displayName=None, isLoggedIn=False, uid=None, userName=None)
     r = fc.sr_get('authGithubAuthorized', query={'state': state}, redirect=False)
-    pkre('complete-registration', r.headers['Location'])
+    pkeq(302, r.status_code)
+    pkre('complete-registration', r.headers['location'])
     with pkexcept('SRException.*routeName=completeRegistration'):
         fc.sr_post('listSimulations', {'simulationType': sim_type})
     fc.sr_post(

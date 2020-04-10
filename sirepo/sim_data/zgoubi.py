@@ -51,12 +51,15 @@ class SimData(sirepo.sim_data.SimDataBase):
                     if f in dm[m]:
                         dm.SPNTRK[f] = dm[m][f]
                         del dm[m][f]
+        if dm.elementStepAnimation.x == 'Y-DY':
+            # fixup bad AGS booster example data
+            dm.elementStepAnimation.x = 'YDY'
         for e in dm.elements:
             cls.update_model_defaults(e, e.type)
         cls._organize_example(data)
 
     @classmethod
-    def zgoubi_lib_files_with_zip():
+    def zgoubi_lib_files_with_zip(cls):
         """Return sorted list of zip files
 
         Only works locally
@@ -70,7 +73,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-        if compute_model == 'tunesReport':
+        if r == 'tunesReport':
             return [r]
         res = ['particle', 'bunch']
         if compute_model == 'bunchReport':

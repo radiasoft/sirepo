@@ -1,4 +1,7 @@
 {
+    "constants": {
+        "helpUserManualURL": "https://zgoubi.sourceforge.io/ZGOUBI_DOCS/Zgoubi.pdf"
+    },
     "appModes": {
         "default": {
             "localRoute": "lattice"
@@ -53,6 +56,10 @@
             ["XR", "X Rotate [rad]"],
             ["YR", "Y Rotate [rad]"],
             ["ZR", "Z Rotate [rad]"]
+        ],
+        "CollimaFormat": [
+            ["1", "Rectangular"],
+            ["2", "Elliptical"]
         ],
         "DipoleSelector": [
             ["1", "1"],
@@ -400,7 +407,7 @@
         },
         "bunch": {
             "method": ["Bunch Method", "BunchMethod", "MCOBJET3"],
-            "rigidity": ["Reference Rigidity", "Float", 1000.0, "BORO"],
+            "rigidity": ["Reference Rigidity [kG cm]", "Float", 1000.0, "BORO"],
             "particleCount": ["Number of Particles", "Integer", 1000, "IMAX", 1, 10000],
             "particleCount2": ["Number of Particles", "Integer", 1, "IMAX", 1, 10],
             "particleSelector": ["Particle Number", "ParticleSelector", "1"],
@@ -727,6 +734,15 @@
             "transformType": ["Transform", "ChangRef2Transform"],
             "transformValue": ["Value", "Float", 0.0]
         },
+        "COLLIMA": {
+            "name": ["Name", "ValidatedString"],
+            "IA": ["Active", "Boolean", "1"],
+            "IFORM": ["Collimator Format", "CollimaFormat", "1"],
+            "C1": ["Half Width [m]", "Float", 1],
+            "C2": ["Half Height [m]", "Float", 1],
+            "C3": ["Horizontal Center [m]", "Float", 0],
+            "C4": ["Vertical Center [m]", "Float", 0]
+        },
         "DRIFT": {
             "name": ["Name", "ValidatedString"],
             "l": ["Length [m]", "Float", 0.0, "XL"]
@@ -795,6 +811,7 @@
             "E_8": ["16 Pole", "Float", 0.0],
             "E_9": ["18 Pole", "Float", 0.0],
             "E_10": ["20 Pole", "Float", 0.0],
+            "NCE": ["Number of Components", "Integer", 6],
             "C_0": ["Entrance Fringe Field Coefficients $C_0$", "Float", 0.0],
             "C_1": ["Entrance Fringe Field Coefficients $C_1$", "Float", 0.0],
             "C_2": ["Entrance Fringe Field Coefficients $C_2$", "Float", 0.0],
@@ -812,6 +829,7 @@
             "S_8": ["16 Pole", "Float", 0.0],
             "S_9": ["18 Pole", "Float", 0.0],
             "S_10": ["20 Pole", "Float", 0.0],
+            "NCS": ["Number of Components", "Integer", 6],
             "CS_0": ["Exit Fringe Field Coefficients $C_0$", "Float", 0.0],
             "CS_1": ["Exit Fringe Field Coefficients $C_1$", "Float", 0.0],
             "CS_2": ["Exit Fringe Field Coefficients $C_2$", "Float", 0.0],
@@ -885,7 +903,34 @@
             "SCL6": ["Scale", "Float", 1.0],
             "NAMEF7": ["Family Name", "ScalingFamily", "none"],
             "LBL7": ["Label", "OptionalString", ""],
-            "SCL7": ["Scale", "Float", 1.0]
+            "SCL7": ["Scale", "Float", 1.0],
+            "NAMEF8": ["Family Name", "ScalingFamily", "none"],
+            "LBL8": ["Label", "OptionalString", ""],
+            "SCL8": ["Scale", "Float", 1.0],
+            "NAMEF9": ["Family Name", "ScalingFamily", "none"],
+            "LBL9": ["Label", "OptionalString", ""],
+            "SCL9": ["Scale", "Float", 1.0],
+            "NAMEF10": ["Family Name", "ScalingFamily", "none"],
+            "LBL10": ["Label", "OptionalString", ""],
+            "SCL10": ["Scale", "Float", 1.0],
+            "NAMEF11": ["Family Name", "ScalingFamily", "none"],
+            "LBL11": ["Label", "OptionalString", ""],
+            "SCL11": ["Scale", "Float", 1.0],
+            "NAMEF12": ["Family Name", "ScalingFamily", "none"],
+            "LBL12": ["Label", "OptionalString", ""],
+            "SCL12": ["Scale", "Float", 1.0],
+            "NAMEF13": ["Family Name", "ScalingFamily", "none"],
+            "LBL13": ["Label", "OptionalString", ""],
+            "SCL13": ["Scale", "Float", 1.0],
+            "NAMEF14": ["Family Name", "ScalingFamily", "none"],
+            "LBL14": ["Label", "OptionalString", ""],
+            "SCL14": ["Scale", "Float", 1.0],
+            "NAMEF15": ["Family Name", "ScalingFamily", "none"],
+            "LBL15": ["Label", "OptionalString", ""],
+            "SCL15": ["Scale", "Float", 1.0],
+            "NAMEF16": ["Family Name", "ScalingFamily", "none"],
+            "LBL16": ["Label", "OptionalString", ""],
+            "SCL16": ["Scale", "Float", 1.0]
         },
         "SEXTUPOL": {
             "name": ["Name", "ValidatedString"],
@@ -1110,6 +1155,7 @@
         },
         "beamlineReport": {
             "title": "Lattice",
+            "hasDataFile": false,
             "advanced": []
         },
         "bunchAnimation": {
@@ -1422,6 +1468,19 @@
             "advanced": [
                 "name",
                 "subElements"
+            ]
+        },
+        "COLLIMA": {
+            "title": "COLLIMA",
+            "description": "Collimator",
+            "advanced": [
+                "name",
+                "IA",
+                "IFORM",
+                "C1",
+                "C2",
+                "C3",
+                "C4"
             ]
         },
         "DRIFT": {
@@ -1739,29 +1798,64 @@
             "title": "SCALING",
             "description": "Power supplies and R.F. function generator",
             "advanced": [
-                "name",
-                "IOPT",
-                "NAMEF1",
-                "LBL1",
-                "SCL1",
-                "NAMEF2",
-                "LBL2",
-                "SCL2",
-                "NAMEF3",
-                "LBL3",
-                "SCL3",
-                "NAMEF4",
-                "LBL4",
-                "SCL4",
-                "NAMEF5",
-                "LBL5",
-                "SCL5",
-                "NAMEF6",
-                "LBL6",
-                "SCL6",
-                "NAMEF7",
-                "LBL7",
-                "SCL7"
+                ["Page 1", [
+                    "name",
+                    "IOPT",
+                    "NAMEF1",
+                    "LBL1",
+                    "SCL1",
+                    "NAMEF2",
+                    "LBL2",
+                    "SCL2",
+                    "NAMEF3",
+                    "LBL3",
+                    "SCL3",
+                    "NAMEF4",
+                    "LBL4",
+                    "SCL4"
+                ]],
+                ["Page 2", [
+                    "NAMEF5",
+                    "LBL5",
+                    "SCL5",
+                    "NAMEF6",
+                    "LBL6",
+                    "SCL6",
+                    "NAMEF7",
+                    "LBL7",
+                    "SCL7",
+                    "NAMEF8",
+                    "LBL8",
+                    "SCL8"
+                ]],
+                ["Page 3", [
+                    "NAMEF9",
+                    "LBL9",
+                    "SCL9",
+                    "NAMEF10",
+                    "LBL10",
+                    "SCL10",
+                    "NAMEF11",
+                    "LBL11",
+                    "SCL11",
+                    "NAMEF12",
+                    "LBL12",
+                    "SCL12"
+                ]],
+                ["Page 4", [
+                    "NAMEF13",
+                    "LBL13",
+                    "SCL13",
+                    "NAMEF14",
+                    "LBL14",
+                    "SCL14",
+                    "NAMEF15",
+                    "LBL15",
+                    "SCL15",
+                    "NAMEF16",
+                    "LBL16",
+                    "SCL16"
+                ]]
             ]
         },
         "SEXTUPOL": {

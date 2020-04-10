@@ -47,6 +47,15 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
         controller: function($scope, $element) {
             var viewInfo = appState.viewInfo($scope.viewName);
             var i;
+
+            function tabSelectedEvent() {
+                appState.whenModelsLoaded($scope, function() {
+                    panelState.waitForUI(function() {
+                        $scope.$emit('sr-tabSelected', $scope.modelName, $scope.modelData ? $scope.modelData.modelKey : null);
+                    });
+                });
+            }
+
             $scope.form = angular.element($($element).find('form').eq(0));
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.description = viewInfo.description;
@@ -72,11 +81,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
                             $scope.modelName, $scope.modelData ? $scope.modelData.modelKey : null);
                     });
                 }
-                if (appState.isLoaded()) {
-                    panelState.waitForUI(function() {
-                        $scope.$emit('sr-tabSelected', $scope.modelName, $scope.modelData ? $scope.modelData.modelKey : null);
-                    });
-                }
+                tabSelectedEvent();
             };
             // named tabs
             if ($scope.advancedFields.length && $scope.isColumnField($scope.advancedFields[0]) && ! $scope.isColumnField($scope.advancedFields[0][0])) {
@@ -121,6 +126,9 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
             }
             if ($scope.pages) {
                 $scope.setActivePage($scope.pages[0]);
+            }
+            else {
+                tabSelectedEvent();
             }
         },
         link: function(scope, element) {
@@ -282,6 +290,45 @@ SIREPO.app.directive('buttons', function(appState, panelState) {
                 }
             });
         }
+    };
+});
+
+SIREPO.app.directive('cancelledDueToTimeoutAlert', function(authState) {
+    return {
+        restrict: 'A',
+        scope: {
+            seconds: '<',
+            simState: '=cancelledDueToTimeoutAlert',
+        },
+        template: [
+            '<div data-ng-if="simState.getCancelledAfterSecs()" class="alert alert-warning" role="alert">',
+              '<h4 class="alert-heading">Cancelled: Maximum runtime exceeded</h4>',
+              '<p>Your simulation ran for {{getTime()}}. To increase your maximum runtime please upgrade to <a href="https://radiasoft.net/sirepo" target="_blank">Sirepo {{ premiumOrEnterprise() }}</a>.</p>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            function leftPadZero(num) {
+                if (num < 10) {
+                    return '0' + num;
+                }
+                return num;
+            }
+
+            $scope.getTime = function() {
+                var s = $scope.simState.getCancelledAfterSecs();
+                var h = leftPadZero(Math.floor(s / 3600));
+                s %= 3600;
+                var m = leftPadZero(Math.floor(s / 60));
+                return h + ':' + m + ':' + leftPadZero(Math.floor(s % 60));
+            };
+
+            $scope.premiumOrEnterprise = function() {
+                if (authState.roles.includes('premium')) {
+                    return 'Enterprise';
+                }
+                return 'Premium';
+            };
+        },
     };
 });
 
@@ -490,7 +537,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                '<div data-ng-switch-when="Range" data-ng-class="fieldClass">',
                   '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field" data-field-delegate="fieldDelegate"></div>',
                '</div>',
-              SIREPO.appFieldEditors || '',
+              SIREPO.appFieldEditors,
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
                 '<div data-ng-if="wantEnumButtons" class="btn-group">',
@@ -601,6 +648,8 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
               '<ul class="dropdown-menu">',
                 '<li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>',
                 '<li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }} via {{ ::authState.method }}</li>',
+                '<li data-ng-if="showAdmJobs()"><a data-ng-href="{{ getUrl(\'admJobs\') }}">Admin</a></li>',
+                '<li><a data-ng-href="{{ getUrl(\'ownJobs\') }}">Jobs</a></li>',
                 '<li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
               '</ul>',
             '</li>',
@@ -608,6 +657,14 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
         controller: function($scope) {
             $scope.authState = authState;
             $scope.authService = authService;
+
+            $scope.getUrl = function(route) {
+                return requestSender.formatUrlLocal(route);
+            };
+
+            $scope.showAdmJobs = function() {
+                return SIREPO.APP_SCHEMA.feature_config.job && authState.roles.includes('adm');
+            };
         },
     };
 });
@@ -999,12 +1056,55 @@ SIREPO.app.directive('helpButton', function($window) {
             helpTopic: '@helpButton',
         },
         template: [
-            '<button class="close sr-help-icon" title="{{ helpTopic }} Help" data-ng-click="openHelp()"><span class="glyphicon glyphicon-question-sign"></span></button>',
+            '<button class="close sr-help-icon" title="{{ ::helpTopic }} Help" data-ng-click="openHelp()"><span class="glyphicon glyphicon-question-sign"></span></button>',
         ].join(''),
         controller: function($scope) {
             $scope.openHelp = function() {
                 $window.open(
                     HELP_WIKI_ROOT + $scope.helpTopic.replace(/\s+/, '-'),
+                    '_blank');
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('helpLink', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            constantURL: '@helpLink',
+            icon: '@',
+            title: '@',
+        },
+        template: [
+            '<a data-ng-if="::url" data-ng-href="{{ ::url }}" target="_blank">',
+              '<span data-ng-class="::glyphClass"></span> ',
+              SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].shortName,
+              ' {{ ::title }}',
+            '</a>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.glyphClass = 'glyphicon glyphicon-' + $scope.icon;
+            $scope.url = SIREPO.APP_SCHEMA.constants[$scope.constantURL];
+        },
+    };
+});
+
+SIREPO.app.directive('videoButton', function(appState, $window) {
+    return {
+        restrict: 'A',
+        scope: {
+            viewName: '@videoButton',
+        },
+        template: [
+            '<div><button class="close sr-help-icon" data-ng-click="openVideo()" title="{{ ::tooltip }}"><span class="glyphicon glyphicon-film"></span></button></div>',
+        ].join(''),
+        controller: function($scope) {
+            var viewInfo = appState.viewInfo($scope.viewName);
+            $scope.tooltip = viewInfo.title + ' Help Video';
+            $scope.openVideo = function() {
+                $window.open(
+                    viewInfo.helpVideoURL,
                     '_blank');
             };
         },
@@ -1018,7 +1118,7 @@ SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
             axis: '@lineoutCsvLink',
         },
         template: [
-            '<a href data-ng-show=":: is3dPlot()" data-ng-click="exportLineout()">CSV - {{:: axisName }} Cut</a>',
+            '<a href data-ng-show=":: is3dPlot()" data-ng-click="exportLineout()">CSV - {{:: axisName }}</a>',
         ].join(''),
         controller: function($scope) {
 
@@ -1030,7 +1130,11 @@ SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
                 return s;
             }
 
-            $scope.axisName = $scope.axis == 'x' ? 'Horizontal' : 'Vertical';
+            $scope.axisName = $scope.axis == 'x'
+                ? 'Horizontal Cut'
+                : $scope.axis == 'y'
+                    ? 'Vertical Cut'
+                    : 'Full Plot';
 
             $scope.exportLineout = function() {
                 findReportPanelScope().$broadcast(SIREPO.PLOTTING_LINE_CSV_EVENT, $scope.axis);
@@ -1060,6 +1164,7 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
                   '<div class="modal-header bg-info">',
   	            '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
                     '<div data-help-button="{{ helpTopic }}"></div>',
+                    '<div data-ng-if="::hasHelpVideo" data-video-button="{{ viewName }}"></div>',
 	            '<span class="lead modal-title text-info">{{ modalTitle }}</span>',
 	          '</div>',
                   '<div class="modal-body">',
@@ -1083,6 +1188,7 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
             if (! viewInfo) {
                 throw new Error('missing view in schema: ' + $scope.viewName);
             }
+            $scope.hasHelpVideo = viewInfo.helpVideoURL;
             $scope.helpTopic = viewInfo.title;
             //TODO(pjm): cobbled-together to allow a view to refer to a model by name, ex. SRW simulationGrid view
             $scope.modelName = viewInfo.model || $scope.viewName;
@@ -1245,10 +1351,11 @@ SIREPO.app.directive('panelLayout', function(appState, utilities, $window) {
 
 SIREPO.app.directive('safePath', function() {
 
-    var unsafe_path_chars = '\\/|&:+?\'"<>'.split('');
-    var unsafe_path_warn = ' must not include any of the following: ' +
-        unsafe_path_chars.join(' ');
-    var unsafe_path_regexp = new RegExp('[\\' + unsafe_path_chars.join('\\') + ']');
+    // keep in sync with sirepo.srschem.py _NAME_ILLEGALS
+    var unsafePathChars = '\\/|&:+?\'*"<>'.split('');
+    var unsafePathWarn = ' must not include: ' +
+        unsafePathChars.join(' ');
+    var unsafePathRegexp = new RegExp('[\\' + unsafePathChars.join('\\') + ']');
 
     return {
         restrict: 'A',
@@ -1256,15 +1363,23 @@ SIREPO.app.directive('safePath', function() {
         link: function(scope, element, attrs, ngModel) {
             scope.showWarning = false;
             scope.warningText = '';
+
+            function setWarningText(text) {
+                scope.warningText = (scope.info ? scope.info[0] : 'Value') + text;
+            }
+
             ngModel.$parsers.push(function (v) {
-                scope.showWarning = unsafe_path_regexp.test(v);
+                scope.showWarning = unsafePathRegexp.test(v);
                 if (scope.showWarning) {
-                    scope.warningText = (scope.info ? scope.info[0] : 'Value') + unsafe_path_warn;
-                    ngModel.$setValidity('size', false);
+                    setWarningText(unsafePathWarn);
                 }
                 else {
-                    ngModel.$setValidity('size', true);
+                    scope.showWarning = /^\.|\.$/.test(v);
+                    if (scope.showWarning) {
+                        setWarningText(' must not start or end with a "."');
+                    }
                 }
+                ngModel.$setValidity('size', ! scope.showWarning);
                 return v;
             });
 
@@ -1540,8 +1655,8 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   '<li><a href data-ng-click="downloadImage(480)">PNG - Small</a></li>',
                   '<li><a href data-ng-click="downloadImage(720)">PNG - Medium</a></li>',
                   '<li><a href data-ng-click="downloadImage(1080)">PNG - Large</a></li>',
-                  '<li role="separator" class="divider"></li>',
-                  '<li><a data-ng-href="{{ dataFileURL() }}" target="_blank">Raw Data File</a></li>',
+                  '<li data-ng-if="::hasDataFile" role="separator" class="divider"></li>',
+                  '<li data-ng-if="::hasDataFile"><a data-ng-href="{{ dataFileURL() }}" target="_blank">Raw Data File</a></li>',
                   SIREPO.appDownloadLinks || '',
                 '</ul>',
               '</div>',
@@ -1555,6 +1670,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             // modelKey may not exist in viewInfo, assume it has an editor in that case
             var view = appState.viewInfo($scope.viewName || $scope.modelKey);
             $scope.hasEditor = view && view.advanced.length === 0 ? false : true;
+            $scope.hasDataFile = view && view.hasOwnProperty('hasDataFile') ? view.hasDataFile : true;
 
             // used for python export which lives in SIREPO.appDownloadLinks
             $scope.reportTitle = function () {
@@ -1648,6 +1764,15 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
         },
         link: function(scope, element) {
             scope.panel = element.next();
+            panelState.waitForUI(function() {
+                var view = appState.viewInfo(scope.viewName || scope.modelKey);
+                if (! view) {
+                    var editorId = '#' + panelState.modalId(scope.modelKey);
+                    if (! $(editorId).length) {
+                        scope.hasEditor = false;
+                    }
+                }
+            });
         },
     };
 });
@@ -1659,6 +1784,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
         scope: {
             reportId: '<',
             reportContent: '@',
+            reportCfg: '<',
             modelKey: '@',
         },
         template: [
@@ -1674,6 +1800,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
                 '<div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
+                '<div data-ng-switch-when="rawSVG" data-svg-plot="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId" data-report-cfg="reportCfg"></div>',
                 SIREPO.appReportTypes || '',
               '</div>',
               '<div data-ng-transclude=""></div>',
@@ -1819,15 +1946,6 @@ SIREPO.app.directive('appHeaderLeft', function(appState, authState, panelState) 
 });
 
 SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appState, fileManager, panelState, $window) {
-
-    function helpLink(url, text, icon) {
-        return url
-            ? ('<li><a href="' + url + '" target="_blank"><span class="glyphicon glyphicon-'
-               + icon + '"></span> '
-               + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName + ' '
-               + text + '</a></li>')
-            : '';
-    }
     return {
         restrict: 'A',
         transclude: {
@@ -1859,8 +1977,9 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                   '<li class=dropdown><a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-question-sign"></span> <span class="caret"></span></a>',
                     '<ul class="dropdown-menu">',
                       '<li><a href="https://github.com/radiasoft/sirepo/issues" target="_blank"><span class="glyphicon glyphicon-exclamation-sign"></span> Report a Bug</a></li>',
-                      helpLink(SIREPO.USER_MANUAL_URL, 'User Manual', 'list-alt'),
-                      helpLink(SIREPO.USER_FORUM_URL, 'User Forum', 'globe'),
+                      '<li data-help-link="helpUserManualURL" data-title="User Manual", data-icon="list-alt"></li>',
+                      '<li data-help-link="helpUserForumURL" data-title="User Forum", data-icon="globe"></li>',
+                      '<li data-help-link="helpVideoURL" data-title="Instructional Video" data-icon="film"></li>',
                     '</ul>',
                   '</li>',
                 '</ul>',
@@ -2061,6 +2180,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                     '<li><a href data-ng-if="nav.modeIsDefault()" data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
                     '<li><a href data-ng-click="exportArchive(\'zip\')"><span class="glyphicon glyphicon-cloud-download"></span> Export as ZIP</a></li>',
                     '<li><a href data-ng-click="pythonSource()"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Python Source</a></li>',
+                    '<li data-ng-if="::canExportMadx()" ><a href data-ng-click="pythonSource(\'madx\')"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as MAD-X lattice</a></li>',
                     '<li data-ng-if="canCopy()"><a href data-ng-click="copyItem()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>',
                     '<li data-ng-if="isExample()"><a href data-target="#reset-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-repeat"></span> Discard Changes to Example</a></li>',
                     '<li data-ng-if="! isExample()"><a href data-target="#delete-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-trash"></span> Delete</a></li>',
@@ -2090,6 +2210,10 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
             ].join('');
             $scope.doneLoadingSimList = false;
 
+            $scope.canExportMadx = function() {
+                return SIREPO.appMadxExport;
+            };
+
             $scope.simulationId = function () {
                 if (appState.isLoaded()) {
                     return appState.models.simulation.simulationId;
@@ -2102,10 +2226,10 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
             $scope.showDocumentationUrl = function() {
                 panelState.showModalEditor('simDoc');
             };
-            $scope.pythonSource = function() {
-                panelState.pythonSource($scope.simulationId());
-            };
 
+            $scope.pythonSource = function(modelName) {
+                panelState.pythonSource($scope.simulationId(), modelName);
+            };
 
             $scope.relatedSimulations = [];
 
@@ -2621,6 +2745,94 @@ SIREPO.app.directive('bootstrapToggle', function() {
     };
 });
 
+
+SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $sce) {
+    return {
+        restrict: 'A',
+        scope: {
+            wantAdm: '<',
+        },
+        template: [
+            '<div>',
+                '<table class="table">',
+                    '<thead ng-bind-html="getHeader()"></thead>',
+                    '<tbody ng-bind-html="getRows()"></tbody>',
+                '</table>',
+                '<button class="btn btn-default" data-ng-click="getJobs()">Refresh</button>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            function dataLoaded(data, status) {
+                $scope.data = data;
+            }
+
+            function getRow(row, nameIndex, simulationIdIndex, appIndex) {
+                var h = '';
+                for (var i = getStartIndex(); i < row.length; i++) {
+                    var v = row[i];
+                    if (!$scope.wantAdm && i === nameIndex) {
+                        v = '<a href=' + getUrl(row[simulationIdIndex], row[appIndex])  + '>' + v + '</a>';
+                    }
+                    h += '<td>' + v + '</td>';
+                }
+                return h;
+            }
+
+            function getStartIndex() {
+                // 'SimulationId' and
+                return $scope.wantAdm ? 0 : 2;
+            }
+
+            function getUrl(simulationId, app) {
+                return requestSender.formatUrlLocal(
+                    'source',
+                    {':simulationId': simulationId},
+                    app
+                );
+            }
+
+            $scope.getHeader = function() {
+                var h = '';
+                if ($scope.data) {
+                    for (var i = getStartIndex(); i < $scope.data.header.length; i++) {
+                        h += '<th>' + $scope.data.header[i] + '</th>';
+                    }
+                    return $sce.trustAsHtml(h);
+                }
+            };
+
+            $scope.getJobs = function () {
+                requestSender.sendRequest(
+                    $scope.wantAdm ? 'admJobs' : 'ownJobs',
+                    dataLoaded,
+                    {
+                        simulationType: SIREPO.APP_SCHEMA.simulationType,
+                    });
+            };
+
+            $scope.getRows = function() {
+                var d = $scope.data;
+                if (d) {
+                    var a = d.header.indexOf('App');
+                    var s = d.header.indexOf('Simulation id');
+                    if (a !== 0 && s !== 1) {
+                        throw new Error("'Simulation id' or 'App' not found in known location on header=" + d.header);
+                    }
+                    var h = '';
+                    for (var i in d.rows) {
+                        h += '<tr>' + getRow(d.rows[i], d.header.indexOf('Name'), s, a) + '</tr>';
+                    }
+                    return $sce.trustAsHtml(h);
+                }
+            };
+
+            appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
+            $scope.getJobs();
+
+        },
+    };
+});
+
 SIREPO.app.directive('optimizeFloat', function(appState, panelState) {
     return {
         restrict: 'A',
@@ -2801,7 +3013,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                     '<button  type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
                     '</div>',
                     '<div class="modal-body">',
-                        '<form>',
+                        '<form name="sbatchLoginModalForm">',
                             '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
                             '<div class="form-group">',
                                 '<input type="text" class="form-control" name="username" placeholder="username" data-ng-model="username" />',
@@ -2810,7 +3022,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                                 '<input type="password" class="form-control" name="password" placeholder="password" data-ng-model="password" />',
                             '</div>',
                             '<div class="form-group">',
-                                '<input type="text" class="form-control" name="otp" placeholder="one time password" data-ng-show="showOtp" data-ng-model="otp"/>',
+                                '<input type="password" class="form-control" name="otp" placeholder="one time password" data-ng-show="showOtp" data-ng-model="otp"/>',
                             '</div>',
                             '<button  data-ng-click="submit()" class="btn btn-primary" data-ng-disabled="submitDisabled()">Submit</button>',
                             ' <button  data-dismiss="modal" class="btn btn-default">Cancel</button>',
@@ -2822,14 +3034,19 @@ SIREPO.app.directive('sbatchLoginModal', function() {
             '</div>',
         ].join(''),
         controller: function(requestSender, $scope) {
-            $scope.password = "";
-            $scope.username = "";
+            $scope.otp = '';
+            $scope.password = '';
+            $scope.username = '';
             var awaitingSendResponse = false;
             var el = $('#sbatch-login-modal');
             var onHidden = null;
 
             el.on('hidden.bs.modal', function() {
-                onHidden({'state': 'error', 'error': 'Please try agian.'});
+                $scope.otp = '';
+                $scope.password = '';
+                $scope.username = '';
+                $scope.sbatchLoginModalForm.$setPristine();
+                onHidden({'state': 'error', 'error': 'Please try again.'});
                 onHidden = null;
                 $scope.$apply();
             });
@@ -2845,6 +3062,8 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                 if (onHidden === null) {
                     onHidden = data.errorCallback;
                 }
+                $scope.otp = '';
+                $scope.password = '';
                 awaitingSendResponse = false;
                 $scope.host = data.host;
                 $scope.showOtp = data.host.includes('nersc');
@@ -2883,9 +3102,10 @@ SIREPO.app.directive('sbatchCoresAndHours', function(appState) {
             simState: '=sbatchCoresAndHours',
         },
         template: [
-            '<div data-ng-show="showCoresAndHours()">',
-                '<div data-model-field="\'sbatchHours\'" data-model-name="simState.model"></div>',
-                '<div data-model-field="\'sbatchCores\'" data-model-name="simState.model"></div>',
+            '<div class="clearfix"></div>',
+            '<div style="margin-top: 10px" data-ng-show="showCoresAndHours()">',
+                '<div data-model-field="\'sbatchHours\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>',
+                '<div data-model-field="\'sbatchCores\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
@@ -2946,23 +3166,33 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               '</div>',
               '<div data-ng-if="simState.showJobSettings()">',
                 '<div class="form-group form-group-sm">',
-                  '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model"></div>',
+                  '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>',
                   '<div data-sbatch-cores-and-hours="simState"></div>',
                 '</div>',
               '</div>',
+              '<div data-cancelled-due-to-timeout-alert="simState"></div>',
               '<div class="col-sm-6 pull-right">',
                 '<button class="btn btn-default" data-ng-click="start()">Start New Simulation</button>',
               '</div>',
             '</form>',
             '<div class="clearfix"></div>',
             '<div data-ng-if="errorMessage()"><div class="text-danger"><strong>{{ ::appName }} Error:</strong></div><pre>{{ errorMessage() }}</pre></div>',
+            '<div data-ng-if="alertMessage()"><div class="text-warning"><strong>{{ ::appName }} Alert:</strong></div><pre>{{ alertMessage() }}</pre></div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, appState, authState) {
             $scope.appName = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName;
 
             function callSimState(method) {
                 return $scope.simState[method] && $scope.simState[method]();
             }
+
+            $scope.alertMessage = function() {
+                return callSimState('getAlert');
+            };
+
+            $scope.cancelledAfterSecs = function() {
+                return callSimState('getCancelledAfterSecs');
+            };
 
             $scope.errorMessage = function() {
                 return callSimState('errorMessage');
@@ -2982,8 +3212,13 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                     || 'Simulation ' + $scope.simState.stateAsText() + ': ' + $scope.simState.getFrameCount() + ' animation frames';
             };
             $scope.start = function() {
-                appState.saveChanges($scope.simState.model);
-                $scope.simState.runSimulation();
+                // The available jobRunModes can change. Default to parallel if
+                // the current jobRunMode doesn't exist
+                var j = appState.models[$scope.simState.model];
+                if (j && j.jobRunMode && j.jobRunMode in authState.jobRunModeMap === false) {
+                    j.jobRunMode = 'parallel';
+                }
+                appState.saveChanges($scope.simState.model, $scope.simState.runSimulation);
             };
         },
     };
@@ -3312,29 +3547,51 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
     var runningModels = [];
 
     function setFieldRange(controller, prefix, model, field) {
-        //TODO(pjm): special case for jspec, needs to get migrated to jspec.js
-        if (field == 'dpp') {
-            field = 'dp/p';
-        }
-        var range = controller.fieldRange[field];
+        setRange(model, prefix, controller.fieldRange[field]);
+    }
+
+    function setRange(model, prefix, range) {
         if (range) {
             model[prefix + 'Size'] = range[1] - range[0];
             model[prefix + 'Offset'] = (range[0] + range[1]) / 2;
         }
     }
 
+    function setRunningState(name) {
+        appState.models[name].isRunning = 1;
+        if (runningModels.indexOf(name) < 0) {
+            runningModels.push(name);
+        }
+    }
+
+    function setVerticalFieldRange(controller, model) {
+        var range = null;
+        ['y1', 'y2', 'y3'].forEach(function(f) {
+            var r1 = controller.fieldRange[model[f]];
+            if (! range) {
+                range = r1;
+            }
+            else if (r1) {
+                if (r1[0] < range[0]) {
+                    range[0] = r1[0];
+                }
+                if (r1[1] > range[1]) {
+                    range[1] = r1[1];
+                }
+            }
+        });
+        setRange(model, 'vertical', range);
+    }
+
     self.computeFieldRanges = function(controller, name, percentComplete) {
         if (controller.simState.isProcessing()) {
-            appState.models[name].isRunning = 1;
-            if (runningModels.indexOf(name) < 0) {
-                runningModels.push(name);
-            }
+            setRunningState(name);
         }
         // this assumes all models share same range parameters
         if (percentComplete == 100 && ! controller.isComputingRanges) {
             controller.fieldRange = null;
             controller.isComputingRanges = true;
-            appState.models[name].isRunning = 1;
+            setRunningState(name);
             requestSender.getApplicationData(
                 {
                     method: 'compute_particle_ranges',
@@ -3375,7 +3632,12 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
             }
             else {
                 setFieldRange(controller, 'horizontal', model, model.x);
-                setFieldRange(controller, 'vertical', model, model.y || model.y1);
+                if (model.y) {
+                    setFieldRange(controller, 'vertical', model, model.y);
+                }
+                else {
+                    setVerticalFieldRange(controller, model);
+                }
             }
         }
     };
@@ -3402,7 +3664,15 @@ SIREPO.app.service('utilities', function($window, $interval) {
         if (! fsString) {
             return 0;
         }
-        return parseFloat(fsString.substring(0, fsString.indexOf('px')));
+        var units = ['px', 'pt'];
+        for (var uIdx in units) {
+            var unit = units[uIdx];
+            var fs = parseFloat(fsString.substring(0, fsString.indexOf(unit)));
+            if (! isNaN(fs)) {
+                return fs;
+            }
+        }
+        return NaN;
     };
 
     this.wordSplits = function(str) {

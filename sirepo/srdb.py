@@ -21,9 +21,7 @@ _root = None
 
 
 def root():
-    if not _root:
-        _init_root()
-    return _root
+    return _root or _init_root()
 
 
 @pkconfig.parse_none
@@ -32,16 +30,11 @@ def _cfg_root(value):
     return value
 
 
-def _init_root(*args):
-    global _root
-
-    if args:
-        assert not cfg.root, \
-            'Cannot set both SIREPO_SRDB_ROOT ({}) and SIREPO_SERVER_DB_DIR ({})'.format(
-                cfg.root,
-                args[0],
-            )
-        cfg.root = args[0]
+def _init_root():
+    global cfg, _root
+    cfg = pkconfig.init(
+        root=(None, _cfg_root, 'where database resides'),
+    )
     v = cfg.root
     if v:
         assert os.path.isabs(v), \
@@ -61,8 +54,4 @@ def _init_root(*args):
             root = pkio.py_path('.')
         v = pkio.mkdir_parent(root.join(_DEFAULT_ROOT))
     _root = v
-
-
-cfg = pkconfig.init(
-    root=(None, _cfg_root, 'where database resides'),
-)
+    return v

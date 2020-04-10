@@ -5,13 +5,14 @@ u"""Common execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 import math
 import numpy
-import os.path
+import pykern.pkrunpy
 import re
 import sirepo.http_reply
 import sirepo.http_request
@@ -120,6 +121,7 @@ def compute_field_range(args, compute_range):
     read the simulation specific datafiles and extract the ranges by field.
     """
     from sirepo import simulation_db
+
     run_dir = simulation_db.simulation_run_dir(PKDict(
         simulationType=args['simulationType'],
         simulationId=args['simulationId'],
@@ -132,7 +134,8 @@ def compute_field_range(args, compute_range):
         if 'fieldRange' in data.models[model_name]:
             res = data.models[model_name].fieldRange
         else:
-            res = compute_range(run_dir, data)
+            #TODO(pjm): second arg was never used
+            res = compute_range(run_dir, None)
             data.models[model_name].fieldRange = res
             simulation_db.write_json(run_dir.join(INPUT_BASE_NAME), data)
     return PKDict(fieldRange=res)
@@ -193,6 +196,16 @@ def enum_text(schema, name, value):
     assert False, 'unknown {} enum value: {}'.format(name, value)
 
 
+def exec_parameters(path=None):
+    return pykern.pkrunpy.run_path_as_module(path or PARAMETERS_PYTHON_FILE)
+
+
+def exec_parameters_with_mpi():
+    import sirepo.mpi
+
+    return sirepo.mpi.run_script(pkio.read_text(PARAMETERS_PYTHON_FILE))
+
+
 def flatten_data(d, res, prefix=''):
     """Takes a nested dictionary and converts it to a single level dictionary with flattened keys."""
     for k in d:
@@ -215,7 +228,7 @@ def generate_parameters_file(data):
 def sim_frame(frame_id, op):
     f, s = sirepo.sim_data.parse_frame_id(frame_id)
     # document parsing the request
-    sirepo.http_request.parse_post(req_data=f, id=True)
+    sirepo.http_request.parse_post(req_data=f, id=True, check_sim_exists=True)
     try:
         x = op(f)
     except Exception as e:
@@ -316,7 +329,7 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
         if model.plotRangeType == 'fixed':
             res['x_range'] = _plot_range(model, 'horizontal')
             res['y_range'] = _plot_range(model, 'vertical')
-        elif model.plotRangeType == 'fit':
+        elif model.plotRangeType == 'fit' and 'fieldRange' in model:
             res['x_range'] = model.fieldRange[model.x]
             for i in range(len(plots)):
                 r = model.fieldRange[plots[i]['field']]
@@ -439,7 +452,23 @@ def file_extension_ok(file_path, white_list=[], black_list=['py', 'pyc']):
     for ext in black_list:
         if pkio.has_file_extension(file_path, ext):
             return False
-    return  True
+    return True
+
+
+def read_sequential_result(run_dir):
+    """Read result data file from simulation
+
+    Args:
+        run_dir (py.path): where to find output
+
+    Returns:
+        dict: result
+    """
+    from sirepo import simulation_db
+
+    return simulation_db.read_json(
+        simulation_db.json_filename(OUTPUT_BASE_NAME, run_dir),
+    )
 
 
 def subprocess_output(cmd, env):
@@ -467,8 +496,36 @@ def subprocess_output(cmd, env):
         pkdlog('{}: exit={} err={}', cmd, e.returncode, err)
         return None
     if out != None and len(out):
+        out = pkcompat.from_bytes(out)
         return out.strip()
     return ''
+
+
+def write_sequential_result(result, run_dir=None):
+    """Write the results of a sequential simulation to disk.
+
+    Args:
+        result (dict): The results of the simulation
+        run_dir (py.path): Defaults to current dir
+    """
+    from sirepo import simulation_db
+
+    if not run_dir:
+        run_dir = pkio.py_path()
+    f = simulation_db.json_filename(OUTPUT_BASE_NAME, run_dir)
+    assert not f.exists(), \
+        '{} file exists'.format(OUTPUT_BASE_NAME)
+    simulation_db.write_json(f, result)
+    t = sirepo.template.import_module(
+        simulation_db.read_json(
+            simulation_db.json_filename(
+                INPUT_BASE_NAME,
+                run_dir,
+            ),
+        ),
+    )
+    if hasattr(t, 'clean_run_dir'):
+        t.clean_run_dir(run_dir)
 
 
 def _escape(v):

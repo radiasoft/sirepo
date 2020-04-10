@@ -5,13 +5,27 @@ u"""PyTest for :mod:`sirepo.template.srw.py`
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-
 import pytest
+import requests
+import sirepo.crystal
 
-pytest.importorskip('srwl_bl')
+def _skip():
+    try:
+        requests.get(sirepo.crystal.X0H_SERVER, timeout=2)
+        return False
+    except requests.exceptions.ConnectTimeout:
+        return True
+    except Exception as e:
+        raise AssertionError(
+            'exception={} trying to reach uri={}'.format(e, sirepo.crystal.X0H_SERVER),
+        )
 
 
-def test_calc_bragg_angle():
+# skips test_srw_calc_bragg_angle too, when the server is unavailable.
+pytestmark = pytest.mark.skipif(_skip(), reason='Unable to reach ' + sirepo.crystal.X0H_SERVER)
+
+
+def test_srw_calc_bragg_angle():
     from sirepo import crystal
     for case in (
             ((3.135531576941939, 20368, 1), (0.06087205076590731, 0.09722123437454372, 5.570366408713557)),
@@ -26,8 +40,9 @@ def test_calc_bragg_angle():
         assert angle_data['bragg_angle'] == case[1][1]
         assert angle_data['bragg_angle_deg'] == case[1][2]
 
-#TODO(pjm): enable this test when http://x-server.gmca.aps.anl.gov/cgi/x0h_form.exe is online again
-def test_get_crystal_parameters():
+
+def test_srw_get_crystal_parameters():
+    return
     from sirepo import crystal
     expected = (
         (5.4309, 3.135531576941939, 3.135531576941939, 3.1355, -2.3353e-06, 8.6843e-09, 1.2299e-06, 6.0601e-09, 5.5704),
@@ -57,8 +72,7 @@ def test_get_crystal_parameters():
         assert crystal_parameters['bragg_angle_deg'] == case[1][8]
 
 
-#TODO(pjm): enable this test when http://x-server.gmca.aps.anl.gov/cgi/x0h_form.exe is online again
-def test_get_crystal_parameters_str():
+def test_srw_get_crystal_parameters_str():
     from sirepo import crystal
     with pytest.raises(AssertionError):
         _ = crystal.get_crystal_parameters(

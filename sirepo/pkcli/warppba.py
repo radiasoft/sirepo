@@ -22,21 +22,22 @@ def run(cfg_dir):
         cfg_dir (str): directory to run code in
     """
     template = sirepo.template.import_module(pkinspect.module_basename(run))
-    with pkio.save_chdir(cfg_dir):
-        _run_code()
-        a = PKDict(
-            # see template.warppba.open_data_file (opens last frame)
-            frameIndex=None,
-            run_dir=pkio.py_path(cfg_dir),
-            sim_in=simulation_db.read_json(template_common.INPUT_BASE_NAME),
-        )
-        a.frameReport = a.sim_in.report
-        a.update(a.sim_in.models[a.frameReport])
-        if a.frameReport == 'laserPreviewReport':
-            res = template.sim_frame_fieldAnimation(a)
-        elif a.frameReport == 'beamPreviewReport':
-            res = template.sim_frame_beamAnimation(a)
-        simulation_db.write_result(res)
+    _run_code()
+    a = PKDict(
+        # see template.warppba.open_data_file (opens last frame)
+        frameIndex=None,
+        run_dir=pkio.py_path(cfg_dir),
+        sim_in=simulation_db.read_json(template_common.INPUT_BASE_NAME),
+    )
+    a.frameReport = a.sim_in.report
+    a.update(a.sim_in.models[a.frameReport])
+    if a.frameReport == 'laserPreviewReport':
+        res = template.sim_frame_fieldAnimation(a)
+    elif a.frameReport == 'beamPreviewReport':
+        res = template.sim_frame_beamAnimation(a)
+    else:
+        raise AssertionError('invalid report: {}'.format(a.frameReport))
+    template_common.write_sequential_result(res)
 
 
 def run_background(cfg_dir, sbatch=False):
@@ -45,34 +46,18 @@ def run_background(cfg_dir, sbatch=False):
     Args:
         cfg_dir (str): directory to run code in
     """
-    with pkio.save_chdir(cfg_dir):
-        mpi.run_script(_script())
-        simulation_db.write_result({})
-
-
-def sbatch_script(path):
-    """Write script to path
-
-    Args:
-        path (str): where to write file
-    """
-    pkio.write_text(path, _script())
+    template_common.exec_parameters_with_mpi()
 
 
 def _run_code():
     """Run code program with isolated locals()
     """
-    exec(_script(), locals(), locals())
+    r = template_common.exec_parameters()
     # advance the window until zmin is >= 0 (avoids mirroring in output)
-    doit = True
-    total_steps = 0
-    while doit:
-        step(inc_steps)
-        total_steps += inc_steps
-        if USE_BEAM:
-            doit = total_steps < diag_period
-        else:
-            doit = w3d.zmmin + top.zgrid < 0
-
-def _script():
-    return pkio.read_text(template_common.PARAMETERS_PYTHON_FILE)
+    i = r.inc_steps
+    if r.USE_BEAM:
+        for x in range(0, r.diag_period, i):
+            r.step(i)
+    else:
+        while r.w3d.zmmin + r.top.zgrid < 0:
+            r.step(i)

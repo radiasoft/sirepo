@@ -3,46 +3,44 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.USER_MANUAL_URL = 'https://zgoubi.sourceforge.io/ZGOUBI_DOCS/Zgoubi.pdf';
-SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
-SIREPO.appFieldEditors = [
-    '<div data-ng-switch-when="LatticeBeamlineList" data-ng-class="fieldClass">',
-      '<div data-lattice-beamline-list="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="FileNameArray" data-ng-class="fieldClass">',
-      '<div data-magnet-files="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="Changref2Array" class="col-sm-7">',
-      '<div data-changref2-fields="" data-model="model" data-field="field"></div>',
-    '</div>',
-].join('');
-SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot"></div>',
-].join('');
-SIREPO.appDownloadLinks = [
-    '<li data-export-zgoubi-link="" data-report-title="{{ reportTitle() }}"></li>',
-].join('');
-SIREPO.appImportText = 'Import a zgoubi.dat datafile';
-SIREPO.lattice = {
-    invalidElementName: /[#*'",]/g,
-    elementColor: {
-        CHANGREF: 'orange',
-        CHANGREF_VALUE: 'orange',
-        QUADRUPO: 'tomato',
-        SEXTUPOL: 'lightgreen',
-        TOSCA: 'cornflowerblue',
-    },
-    elementPic: {
-        aperture: [],
-        bend: ['AUTOREF', 'BEND', 'CHANGREF', 'CHANGREF_VALUE', 'FFA', 'FFA_SPI', 'MULTIPOL'],
-        drift: ['DRIFT'],
-        magnet: ['QUADRUPO', 'SEXTUPOL', 'TOSCA'],
-        rf: ['CAVITE'],
-        solenoid: ['SOLENOID'],
-        watch: ['MARKER'],
-        zeroLength: ['SCALING', 'SPINR', 'YMY'],
-    },
-};
+SIREPO.app.config(function() {
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="FileNameArray" data-ng-class="fieldClass">',
+          '<div data-magnet-files="" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="Changref2Array" class="col-sm-7">',
+          '<div data-changref2-fields="" data-model="model" data-field="field"></div>',
+        '</div>',
+    ].join('');
+    SIREPO.appReportTypes = [
+        '<div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot"></div>',
+    ].join('');
+    SIREPO.appDownloadLinks = [
+        '<li data-export-zgoubi-link="" data-report-title="{{ reportTitle() }}"></li>',
+    ].join('');
+    SIREPO.appImportText = 'Import a zgoubi.dat datafile';
+    SIREPO.lattice = {
+        invalidElementName: /[#*'",]/g,
+        elementColor: {
+            CHANGREF: 'orange',
+            CHANGREF_VALUE: 'orange',
+            QUADRUPO: 'tomato',
+            SEXTUPOL: 'lightgreen',
+            TOSCA: 'cornflowerblue',
+        },
+        elementPic: {
+            aperture: ['COLLIMA'],
+            bend: ['AUTOREF', 'BEND', 'CHANGREF', 'CHANGREF_VALUE', 'FFA', 'FFA_SPI', 'MULTIPOL'],
+            drift: ['DRIFT'],
+            magnet: ['QUADRUPO', 'SEXTUPOL', 'TOSCA'],
+            rf: ['CAVITE'],
+            solenoid: ['SOLENOID'],
+            watch: ['MARKER'],
+            zeroLength: ['SCALING', 'SPINR', 'YMY'],
+        },
+    };
+});
 
 SIREPO.app.directive('appFooter', function() {
     return {
@@ -97,7 +95,7 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
     var self = this;
     self.latticeService = latticeService;
     self.advancedNames = ['AUTOREF',  'TOSCA', 'YMY'];
-    self.basicNames = ['BEND', 'CAVITE', 'CHANGREF', 'CHANGREF2', 'DRIFT', 'FFA', 'FFA_SPI', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'SOLENOID', 'SPINR'];
+    self.basicNames = ['BEND', 'CAVITE', 'CHANGREF', 'CHANGREF2', 'COLLIMA', 'DRIFT', 'FFA', 'FFA_SPI', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'SOLENOID', 'SPINR'];
     var scaling = null;
 
     function updateScaling() {
@@ -1070,7 +1068,8 @@ SIREPO.app.directive('zgoubiImportOptions', function(fileUpload, requestSender) 
                         requestSender.formatUrl(
                             'uploadFile',
                             {
-                                '<simulation_id>': 'unused',
+                                // dummy id because no simulation id is available or required
+                                '<simulation_id>': '11111111',
                                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                                 '<file_type>': 'TOSCA-magnetFile',
                             }),

@@ -6,8 +6,8 @@ u"""Hellweg execution template.
 """
 
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkio
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from rslinac import solver
 from sirepo import simulation_db
@@ -38,26 +38,26 @@ _HELLWEG_PARSED_FILE = 'PARSED.TXT'
 
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
-        return {
-            'percentComplete': 0,
-            'frameCount': 0,
-        }
+        return PKDict(
+            percentComplete=0,
+            frameCount=0,
+        )
     dump_file = _dump_file(run_dir)
     if os.path.exists(dump_file):
         beam_header = hellweg_dump_reader.beam_header(dump_file)
         last_update_time = int(os.path.getmtime(dump_file))
         frame_count = beam_header.NPoints
-        return {
-            'lastUpdateTime': last_update_time,
-            'percentComplete': 100,
-            'frameCount': frame_count,
-            'summaryData': _summary_text(run_dir),
-        }
-    return {
-        'percentComplete': 100,
-        'frameCount': 0,
-        'error': _parse_error_message(run_dir)
-    }
+        return PKDict(
+            lastUpdateTime=last_update_time,
+            percentComplete=100,
+            frameCount=frame_count,
+            summaryData=_summary_text(run_dir),
+        )
+    return PKDict(
+        percentComplete=100,
+        frameCount=0,
+        error=_parse_error_message(run_dir)
+    )
 
 
 def get_application_data(data, **kwargs):

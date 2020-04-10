@@ -5,9 +5,9 @@ u"""zgoubi execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import lattice, template_common, zgoubi_importer, zgoubi_parser
@@ -33,10 +33,10 @@ TUNES_INPUT_FILE = 'tunesFromFai.In'
 
 ZGOUBI_LOG_FILE = 'sr_zgoubi.log'
 
-_ELEMENT_NAME_MAP = {
+_ELEMENT_NAME_MAP = PKDict({
     'FFAG': 'FFA',
     'FFAG-SPI': 'FFA-SPI',
-}
+})
 
 #TODO(pjm): could be determined from schema ParticleSelector enum
 _MAX_FILTER_PLOT_PARTICLES = 10
@@ -55,13 +55,13 @@ _ZGOUBI_LOG_FILE = 'zgoubi.res'
 
 _ZGOUBI_TWISS_FILE = 'zgoubi.TWISS.out'
 
-_INITIAL_PHASE_MAP = {
-    'D1': 'Do1',
-    'time': 'to',
-}
+_INITIAL_PHASE_MAP = PKDict(
+    D1='Do1',
+    time='to',
+)
 
-_MAGNET_TYPE_TO_MOD = {
-    'cartesian': {
+_MAGNET_TYPE_TO_MOD = PKDict(
+    cartesian=PKDict({
         '2d-sf': '0',
         '2d-sf-ags': '3',
         '2d-sf-ags-p': '3.1',
@@ -72,57 +72,57 @@ _MAGNET_TYPE_TO_MOD = {
         '3d-sf-1v': '12.1',
         '3d-2f-8v': '12.2',
         '3d-mf-f': '15.{{ fileCount }}',
-    },
-    'cylindrical': {
+    }),
+    cylindrical=PKDict({
         '2d-mf-f': '25.{{ fileCount }}',
         '3d-sf-4v': '20',
         '2d-mf-f-2v': '22.{{ fileCount }}',
         '3d-mf-f-2v': '22.{{ fileCount }}',
         '3d-sf': '24',
-    },
-}
+    }),
+)
 
-_ANIMATION_FIELD_INFO = {
-    'Do1': [u'dp/p₀', 1],
-    'Yo': [u'Y₀ [m]', 0.01],
-    'To': [u'Y\'₀ [rad]', 0.001],
-    'Zo': [u'Z₀ [m]', 0.01],
-    'Po': [u'Z\'₀ [rad]', 0.001],
-    'So': [u's₀ [m]', 0.01],
-    'to': [u't₀', 1],
-    'D1': ['dp/p', 1],
-    'Y': ['Y [m]', 0.01],
-    'X': ['X [m]', 0.01],
-    'YDY': ['Y [m]', 0.01],
-    'T': ['Y\' [rad]', 0.001],
-    'Z': ['Z [m]', 0.01],
-    'P': ['Z\' [rad]', 0.001],
-    'S': ['s [m]', 0.01],
-    'time': ['t [s]', 1e-6],
-    'RET': ['RF Phase [rad]', 1],
-    'DPR': ['dp/p', 1e6],
-    'ENEKI': ['Kenetic Energy [eV]', 1e6],
-    'ENERG': ['Energy [eV]', 1e6],
-    'IPASS': ['Turn Number', 1],
-    'SX': ['Spin X', 1],
-    'SY': ['Spin Y', 1],
-    'SZ': ['Spin Z', 1],
-    'BX': ['Bx [G]', 1000],
-    'BY': ['By [G]', 1000],
-    'BZ': ['Bz [G]', 1000],
-    'EX': ['Ex [V/m]', 1],
-    'EY': ['Ey [V/m]', 1],
-    'EZ': ['Ez [V/m]', 1],
-}
+_ANIMATION_FIELD_INFO = PKDict(
+    Do1=[u'dp/p₀', 1],
+    Yo=[u'Y₀ [m]', 0.01],
+    To=[u'Y\'₀ [rad]', 0.001],
+    Zo=[u'Z₀ [m]', 0.01],
+    Po=[u'Z\'₀ [rad]', 0.001],
+    So=[u's₀ [m]', 0.01],
+    to=[u't₀', 1],
+    D1=['dp/p', 1],
+    Y=['Y [m]', 0.01],
+    X=['X [m]', 0.01],
+    YDY=['Y [m]', 0.01],
+    T=['Y\' [rad]', 0.001],
+    Z=['Z [m]', 0.01],
+    P=['Z\' [rad]', 0.001],
+    S=['s [m]', 0.01],
+    time=['t [s]', 1e-6],
+    RET=['RF Phase [rad]', 1],
+    DPR=['dp/p', 1e6],
+    ENEKI=['Kenetic Energy [eV]', 1e6],
+    ENERG=['Energy [eV]', 1e6],
+    IPASS=['Turn Number', 1],
+    SX=['Spin X', 1],
+    SY=['Spin Y', 1],
+    SZ=['Spin Z', 1],
+    BX=['Bx [G]', 1000],
+    BY=['By [G]', 1000],
+    BZ=['Bz [G]', 1000],
+    EX=['Ex [V/m]', 1],
+    EY=['Ey [V/m]', 1],
+    EZ=['Ez [V/m]', 1],
+)
 
 #TODO(pjm): move to jinja file?
-_FAKE_ELEMENT_TEMPLATES = {
-    'AUTOREF': '''
+_FAKE_ELEMENT_TEMPLATES = PKDict(
+    AUTOREF='''
  'AUTOREF' {{ name }}
 {{ I }}
 {{ XCE }} {{ YCE }} {{ ALE }}
 ''',
-    'CAVITE': '''
+    CAVITE='''
  'CAVITE' {{ name }}
 {{ IOPT }}
 {% if IOPT in ('0', '1', '2', '3') -%}
@@ -136,7 +136,7 @@ _FAKE_ELEMENT_TEMPLATES = {
 {{ V }} {{ sig_s }} {{ IOP }}
 {%- endif -%}
 ''',
-    'CHANGREF2': '''
+    CHANGREF2='''
  'CHANGREF' {{ name }}
 {% for transform in subElements -%}
 {%- if transform['transformType'] == 'none' -%}
@@ -148,7 +148,12 @@ _FAKE_ELEMENT_TEMPLATES = {
 {%- endif -%}
 {%- endfor %}
 ''',
-    'FFA': '''
+    COLLIMA='''
+ 'COLLIMA'
+{{ IA }}
+{{ IFORM }} {{ C1 }} {{ C2 }} {{ C3  }} {{ C4 }}
+''',
+    FFA='''
  'FFAG' {{ name }}
 {{ IL }}
 {{ N }} {{ AT }} {{ RM }}
@@ -173,7 +178,7 @@ _FAKE_ELEMENT_TEMPLATES = {
 {{- RE }} {{ TE }} {{ RS }} {{ TS }}
 {%- endif -%}
 ''',
-    'FFA_SPI': '''
+    FFA_SPI='''
  'FFAG-SPI' {{ name }}
 {{ IL }}
 {{ N }} {{ AT }} {{ RM }}
@@ -198,7 +203,7 @@ _FAKE_ELEMENT_TEMPLATES = {
 {{- RE }} {{ TE }} {{ RS }} {{ TS }}
 {%- endif -%}
 ''',
-    'SOLENOID': '''
+    SOLENOID='''
  'SOLENOID'
 {{ IL }}
 {{ l }} {{ R_0 }} {{ B_0 }} {{ MODL }}
@@ -206,7 +211,7 @@ _FAKE_ELEMENT_TEMPLATES = {
 {{ XPAS }}
 {{ KPOS }} {{ XCE }} {{ YCE }} {{ ALE }}
 ''',
-    'SPINR': '''
+    SPINR='''
  'SPINR' {{ name }}
 {{ IOPT }}
 {% if IOPT in ('0', '1') -%}
@@ -215,7 +220,7 @@ _FAKE_ELEMENT_TEMPLATES = {
 {{ phi }} {{ B }} {{ B_0 }} {{ C_0 }} {{ C_1 }} {{ C_2 }} {{ C_3 }}
 {% endif -%}
 ''',
-    'TOSCA': '''
+    TOSCA='''
  'TOSCA' {{ name }}
 0 {{ IL }}
 {{ BNORM }} {{ XN }} {{ YN }} {{ ZN }}
@@ -238,86 +243,81 @@ _FAKE_ELEMENT_TEMPLATES = {
 {{ RE }} {{ TE }} {{ RS }} {{ TS }}
 {% endif -%}
 ''',
-}
+)
 
-_PYZGOUBI_FIELD_MAP = {
-    'l': 'XL',
-    'plt': 'label2',
-}
+_PYZGOUBI_FIELD_MAP = PKDict(
+    l='XL',
+    plt='label2',
+)
 
-_REPORT_ENUM_INFO = {
-    'twissReport': 'TwissParameter',
-    'twissReport2': 'TwissParameter',
-    'opticsReport': 'OpticsParameter',
-}
+_REPORT_ENUM_INFO = PKDict(
+    twissReport='TwissParameter',
+    twissReport2='TwissParameter',
+    opticsReport='OpticsParameter',
+)
 
-_TWISS_SUMMARY_LABELS = {
-    'LENGTH': 'Beamline length [m]',
-    'ORBIT5': 'Orbit5 [m]',
-    'ALFA': 'Momentum compaction factor',
-    'GAMMATR': 'Transition energy gamma',
-    'DELTAP': 'Energy difference',
-    'ENERGY': 'Particle energy [GeV]',
-    'GAMMA': 'Particle gamma',
+_TWISS_SUMMARY_LABELS = PKDict(
+    LENGTH='Beamline length [m]',
+    ORBIT5='Orbit5 [m]',
+    ALFA='Momentum compaction factor',
+    GAMMATR='Transition energy gamma',
+    DELTAP='Energy difference',
+    ENERGY='Particle energy [GeV]',
+    GAMMA='Particle gamma',
 
-    'Q1': 'Horizontal tune (fractional)',
-    'DQ1': 'Horizontal chromaticity',
-    'BETXMIN': 'Horizontal minimum beta [m]',
-    'BETXMAX': 'Horizontal maximum beta [m]',
-    'DXMIN': 'Horizontal minimum dispersion [m]',
-    'DXMAX': 'Horizontal maximum dispersion [m]',
-    'DXRMS': 'Horizontal RMS dispersion [m]',
-    'XCOMIN': 'Horizontal closed orbit minimum deviation [m]',
-    'XCOMAX': 'Horizontal closed orbit maximum deviation [m]',
-    'XCORMS': 'Horizontal closed orbit RMS deviation [m]',
+    Q1='Horizontal tune (fractional)',
+    DQ1='Horizontal chromaticity',
+    BETXMIN='Horizontal minimum beta [m]',
+    BETXMAX='Horizontal maximum beta [m]',
+    DXMIN='Horizontal minimum dispersion [m]',
+    DXMAX='Horizontal maximum dispersion [m]',
+    DXRMS='Horizontal RMS dispersion [m]',
+    XCOMIN='Horizontal closed orbit minimum deviation [m]',
+    XCOMAX='Horizontal closed orbit maximum deviation [m]',
+    XCORMS='Horizontal closed orbit RMS deviation [m]',
 
-    'Q2': 'Vertical tune (fractional)',
-    'DQ2': 'Vertical chromaticity',
-    'BETYMIN': 'Vertical minimum beta [m]',
-    'BETYMAX': 'Vertical maximum beta [m]',
-    'DYMIN': 'Vertical minimum dispersion [m]',
-    'DYMAX': 'Vertical maximum dispersion [m]',
-    'DYRMS': 'Vertical RMS dispersion [m]',
-    'YCOMIN': 'Vertical closed orbit minimum deviation [m]',
-    'YCOMAX': 'Vertical closed orbit maximum deviation [m]',
-    'YCORMS': 'Vertical closed orbit RMS deviation [m]',
-}
+    Q2='Vertical tune (fractional)',
+    DQ2='Vertical chromaticity',
+    BETYMIN='Vertical minimum beta [m]',
+    BETYMAX='Vertical maximum beta [m]',
+    DYMIN='Vertical minimum dispersion [m]',
+    DYMAX='Vertical maximum dispersion [m]',
+    DYRMS='Vertical RMS dispersion [m]',
+    YCOMIN='Vertical closed orbit minimum deviation [m]',
+    YCOMAX='Vertical closed orbit maximum deviation [m]',
+    YCORMS='Vertical closed orbit RMS deviation [m]',
+)
 
 
 def background_percent_complete(report, run_dir, is_running):
     error = ''
     if not is_running:
-        out_file = run_dir.join('{}.json'.format(template_common.OUTPUT_BASE_NAME))
         show_tunes_report = False
         show_spin_3d = False
-        count = 0
-        if out_file.exists():
-            out = simulation_db.read_json(out_file)
-            if 'frame_count' in out:
-                count = out.frame_count
+        in_file = run_dir.join('{}.json'.format(template_common.INPUT_BASE_NAME))
+        if in_file.exists():
             data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
             show_tunes_report = _particle_count(data) <= _MAX_FILTER_PLOT_PARTICLES \
                 and data.models.simulationSettings.npass >= 10
             show_spin_3d = data.models.SPNTRK.KSO == '1'
-        if not count:
-            count = read_frame_count(run_dir)
+        count = read_frame_count(run_dir)
         if count:
             plt_file = run_dir.join(_ZGOUBI_PLT_DATA_FILE)
-            return {
-                'hasPlotFile': plt_file.exists(),
-                'percentComplete': 100,
-                'frameCount': count,
-                'showTunesReport': show_tunes_report,
-                'showSpin3d': show_spin_3d,
-            }
+            return PKDict(
+                hasPlotFile=plt_file.exists(),
+                percentComplete=100,
+                frameCount=count,
+                showTunesReport=show_tunes_report,
+                showSpin3d=show_spin_3d,
+            )
         else:
             error = _parse_zgoubi_log(run_dir)
-    res = {
-        'percentComplete': 0,
-        'frameCount': 0,
-    }
+    res = PKDict(
+        percentComplete=0,
+        frameCount=0,
+    )
     if error:
-        res['error'] = error
+        res.error = error
     return res
 
 
@@ -356,13 +356,13 @@ def extract_tunes_report(run_dir, data):
             p = row[p_idx]
             if current_p != p:
                 current_p = p
-                plots.append({
-                    'points': [],
-                    'label': 'Particle {}'.format(current_p),
-                })
+                plots.append(PKDict(
+                    points=[],
+                    label='Particle {}'.format(current_p),
+                ))
                 x = []
             x.append(float(row[x_idx]))
-            plots[-1]['points'].append(float(row[y_idx]))
+            plots[-1].points.append(float(row[y_idx]))
     else:
         title = 'Tunes, Particle {}'.format(report.particleSelector)
         for axis in ('x', 'y'):
@@ -373,37 +373,37 @@ def extract_tunes_report(run_dir, data):
                 if axis == 'x':
                     x.append(float(row[x_idx]))
                 points.append(float(row[y_idx]))
-            plots.append({
-                'label': template_common.enum_text(_SCHEMA, 'TunesAxis', axis),
-                'points': points,
-            })
+            plots.append(PKDict(
+                label=template_common.enum_text(_SCHEMA, 'TunesAxis', axis),
+                points=points,
+            ))
     for plot in plots:
-        plot['label'] += ', {}'.format(_peak_x(x, plot['points']))
+        plot.label += ', {}'.format(_peak_x(x, plot.points))
     if report.plotScale == 'linear':
         # normalize each plot to 1.0 and show amplitude in label
         for plot in plots:
-            maxp = max(plot['points'])
+            maxp = max(plot.points)
             if maxp != 0:
-                plot['points'] = (np.array(plot['points']) / maxp).tolist()
-            plot['label'] += ', amplitude: {}'.format(_format_exp(maxp))
+                plot.points = (np.array(plot.points) / maxp).tolist()
+            plot.label += ', amplitude: {}'.format(_format_exp(maxp))
 
-    return template_common.parameter_plot(x, plots, {}, {
-        'title': title,
-        'y_label': '',
-        'x_label': '',
-    }, plot_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'])
+    return template_common.parameter_plot(x, plots, {}, PKDict(
+        title=title,
+        y_label='',
+        x_label='',
+    ), plot_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'])
 
 
 def get_application_data(data, **kwargs):
-    if data['method'] == 'compute_particle_ranges':
+    if data.method == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_frames)
-    if data['method'] == 'tosca_info':
-        return zgoubi_importer.tosca_info(data['tosca'])
+    if data.method == 'tosca_info':
+        return zgoubi_importer.tosca_info(data.tosca)
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
     filename = _ZGOUBI_FAI_DATA_FILE
-    if options and options['suffix'] == _ZGOUBI_COMMAND_FILE:
+    if options and options.suffix == _ZGOUBI_COMMAND_FILE:
         if model == 'tunesReport':
             filename = TUNES_INPUT_FILE
         else:
@@ -412,9 +412,6 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         filename = _ZGOUBI_PLT_DATA_FILE
     elif model == 'opticsReport' or 'twissReport' in model:
         filename = _ZGOUBI_TWISS_FILE
-    elif model == 'beamlineReport':
-        data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
-        return 'python-source.py', python_source_for_model(data), 'text/plain'
     path = run_dir.join(filename)
     with open(str(path)) as f:
         return path.basename, f.read(), 'application/octet-stream'
@@ -436,17 +433,17 @@ def import_file(req, unit_test_mode=False, **kwargs):
     return zgoubi_importer.import_file(req.file_stream.read(), unit_test_mode=unit_test_mode)
 
 
-def python_source_for_model(data, model=None):
-    return _generate_parameters_file(data)
-
-
-def prepare_output_file(run_dir, data):
-    report = data['report']
+def prepare_sequential_output_file(run_dir, data):
+    report = data.report
     if 'bunchReport' in report or 'twissReport' in report or 'opticsReport' in report:
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
-            save_report_data(data, run_dir)
+            save_sequential_report_data(data, run_dir)
+
+
+def python_source_for_model(data, model=None):
+    return _generate_parameters_file(data)
 
 
 def read_frame_count(run_dir):
@@ -462,62 +459,55 @@ def remove_last_frame(run_dir):
     pass
 
 
-def save_report_data(data, run_dir):
-    report_name = data['report']
-    error = ''
+def save_sequential_report_data(data, run_dir):
+    report_name = data.report
     if 'twissReport' in report_name or 'opticsReport' in report_name:
         enum_name = _REPORT_ENUM_INFO[report_name]
-        report = data['models'][report_name]
+        report = data.models[report_name]
         plots = []
         col_names, rows = _read_data_file(py.path.local(run_dir).join(_ZGOUBI_TWISS_FILE))
         for f in ('y1', 'y2', 'y3'):
             if report[f] == 'none':
                 continue
             points = column_data(report[f], col_names, rows)
-            if any(map(lambda x: math.isnan(x), points)):
-                error = 'Twiss data could not be computed for {}'.format(
-                    template_common.enum_text(_SCHEMA, enum_name, report[f]))
-            plots.append({
-                'points': points,
-                'label': template_common.enum_text(_SCHEMA, enum_name, report[f]),
-            })
+            assert not any(map(lambda x: math.isnan(x), points)), \
+                'Twiss data could not be computed for {}'.format(
+                    template_common.enum_text(_SCHEMA, enum_name, report[f]),
+                )
+            plots.append(PKDict(
+                points=points,
+                label=template_common.enum_text(_SCHEMA, enum_name, report[f]),
+            ))
         #TODO(pjm): use template_common
         x = column_data('sums', col_names, rows)
-        res = {
-            'title': '',
-            'x_range': [min(x), max(x)],
-            'y_label': '',
-            'x_label': 's [m]',
-            'x_points': x,
-            'plots': plots,
-            'y_range': template_common.compute_plot_color_and_range(plots),
-            'summaryData': _read_twiss_header(run_dir),
-        }
+        res = PKDict(
+            title='',
+            x_range=[min(x), max(x)],
+            y_label='',
+            x_label='s [m]',
+            x_points=x,
+            plots=plots,
+            y_range=template_common.compute_plot_color_and_range(plots),
+            summaryData=_read_twiss_header(run_dir),
+        )
     elif report_name == 'twissSummaryReport':
-        res = {
+        res = PKDict(
             #TODO(pjm): x_range requied by sirepo-plotting.js
-            'x_range': [],
-            'summaryData': _read_twiss_header(run_dir),
-        }
+            x_range=[],
+            summaryData=_read_twiss_header(run_dir),
+        )
     elif 'bunchReport' in report_name:
-        report = data['models'][report_name]
+        report = data.models[report_name]
         col_names, rows = _read_data_file(py.path.local(run_dir).join(_ZGOUBI_FAI_DATA_FILE))
         res = _extract_heatmap_data(report, col_names, rows, '')
         summary_file = py.path.local(run_dir).join(BUNCH_SUMMARY_FILE)
         if summary_file.exists():
-            res['summaryData'] = {
-                'bunch': simulation_db.read_json(summary_file)
-            }
+            res.summaryData = PKDict(
+                bunch=simulation_db.read_json(summary_file)
+            )
     else:
-        raise RuntimeError('unknown report: {}'.format(report_name))
-    if error:
-        res = {
-            'error': error,
-        }
-    simulation_db.write_result(
-        res,
-        run_dir=run_dir,
-    )
+        raise AssertionError('unknown report: {}'.format(report_name))
+    template_common.write_sequential_result(res, run_dir=run_dir)
 
 
 def write_parameters(data, run_dir, is_parallel, python_file=template_common.PARAMETERS_PYTHON_FILE):
@@ -538,7 +528,7 @@ def write_parameters(data, run_dir, is_parallel, python_file=template_common.PAR
 
 
 def _compute_range_across_frames(run_dir, data):
-    res = {}
+    res = PKDict()
     for v in _SCHEMA.enum.PhaseSpaceCoordinate:
         res[v[0]] = []
     for v in _SCHEMA.enum.EnergyPlotVariable:
@@ -602,6 +592,7 @@ def _extract_animation(frame_args):
     rows = []
     ipass_index = int(col_names.index('IPASS'))
     it_index = int(col_names.index('IT'))
+    kex_index = int(col_names.index('KEX'))
     it_filter = None
     if _particle_count(frame_args.sim_in) <= _MAX_FILTER_PLOT_PARTICLES:
         if frame_args.particleSelector != 'all':
@@ -610,6 +601,10 @@ def _extract_animation(frame_args):
     count = 0
     el_names = []
     for row in all_rows:
+        if not is_frame_0:
+            if row[kex_index] != '1':
+                # particle isn't active
+                continue
         if frame_args.showAllFrames == '1':
             if it_filter and row[it_index] != it_filter:
                 continue
@@ -631,23 +626,23 @@ def _extract_animation(frame_args):
 
 
 def _extract_heatmap_data(report, col_names, rows, title):
-    x_info = _ANIMATION_FIELD_INFO[report['x']]
-    y_info = _ANIMATION_FIELD_INFO[report['y']]
-    x = np.array(column_data(report['x'], col_names, rows)) * x_info[1]
-    y = np.array(column_data(report['y'], col_names, rows)) * y_info[1]
-    return template_common.heatmap([x, y], report, {
-        'x_label': x_info[0],
-        'y_label': y_info[0],
-        'title': title,
-        'z_label': 'Number of Particles',
-    })
+    x_info = _ANIMATION_FIELD_INFO[report.x]
+    y_info = _ANIMATION_FIELD_INFO[report.y]
+    x = np.array(column_data(report.x, col_names, rows)) * x_info[1]
+    y = np.array(column_data(report.y, col_names, rows)) * y_info[1]
+    return template_common.heatmap([x, y], report, PKDict(
+        x_label=x_info[0],
+        y_label=y_info[0],
+        title=title,
+        z_label='Number of Particles',
+    ))
 
 
 def _extract_particle_data(report, col_names, rows, title):
-    x_info = _ANIMATION_FIELD_INFO[report['x']]
-    y_info = _ANIMATION_FIELD_INFO[report['y']]
-    x = np.array(column_data(report['x'], col_names, rows)) * x_info[1]
-    y = np.array(column_data(report['y'], col_names, rows)) * y_info[1]
+    x_info = _ANIMATION_FIELD_INFO[report.x]
+    y_info = _ANIMATION_FIELD_INFO[report.y]
+    x = np.array(column_data(report.x, col_names, rows)) * x_info[1]
+    y = np.array(column_data(report.y, col_names, rows)) * y_info[1]
     it = column_data('IT', col_names, rows)
     x_points = []
     points = []
@@ -685,15 +680,15 @@ def _extract_particle_data(report, col_names, rows, title):
             x_points[-1].append(x[idx])
             points[-1].append(y[idx])
         title += ' ' + ', '.join(names)
-    return {
-        'title': title,
-        'y_label': y_info[0],
-        'x_label': x_info[0],
-        'x_range': _2d_range(x_points),
-        'y_range': _2d_range(points),
-        'x_points': x_points,
-        'points': points,
-    }
+    return PKDict(
+        title=title,
+        y_label=y_info[0],
+        x_label=x_info[0],
+        x_range=_2d_range(x_points),
+        y_range=_2d_range(points),
+        x_points=x_points,
+        points=points,
+    )
 
 
 def _extract_spin_3d(frame_args):
@@ -712,10 +707,10 @@ def _extract_spin_3d(frame_args):
         points.append(row[x_idx])
         points.append(row[y_idx])
         points.append(row[z_idx])
-    return {
-        'title': 'Particle {}'.format(it_filter) if it_filter else 'All Particles',
-        'points': points,
-    }
+    return PKDict(
+        title='Particle {}'.format(it_filter) if it_filter else 'All Particles',
+        points=points,
+    )
 
 
 def _format_exp(v):
@@ -731,11 +726,11 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
             res += _generate_beamline(data, beamline_map, element_map, item_id)
             continue
         el = element_map[item_id]
-        if el['type'] == 'TOSCA':
+        if el.type == 'TOSCA':
             _prepare_tosca_element(el)
-        if el['type'] == 'SEXTUPOL':
+        if el.type == 'SEXTUPOL':
             res += _generate_pyzgoubi_element(el, 'QUADRUPO')
-        elif el['type'] == 'SCALING':
+        elif el.type == 'SCALING':
             #TODO(pjm): convert to fake element jinja template
             form = 'line.add(core.FAKE_ELEM(""" \'SCALING\'\n{} {}\n{}"""))\n'
             #TODO(pjm): keep in sync with zgoubi.js
@@ -750,9 +745,9 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
                         el['NAMEF{}'.format(idx)], el.get('LBL{}'.format(idx), ''), el['SCL{}'.format(idx)])
             if el.IOPT == '1' and count > 0:
                 res += form.format(el.IOPT, count, scale_values)
-        elif el['type'] in _FAKE_ELEMENT_TEMPLATES:
+        elif el.type in _FAKE_ELEMENT_TEMPLATES:
             res += 'line.add(core.FAKE_ELEM("""{}\n"""))\n'.format(
-                jinja2.Template(_FAKE_ELEMENT_TEMPLATES[el['type']]).render(el))
+                jinja2.Template(_FAKE_ELEMENT_TEMPLATES[el.type]).render(el))
         else:
             res += _generate_pyzgoubi_element(el)
     return res
@@ -760,16 +755,16 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
 
 def _generate_beamline_elements(report, data):
     res = ''
-    beamline_map = {}
+    beamline_map = PKDict()
     for bl in data.models.beamlines:
         beamline_map[bl.id] = bl
-    element_map = {}
+    element_map = PKDict()
     for el in copy.deepcopy(data.models.elements):
         element_map[el._id] = zgoubi_importer.MODEL_UNITS.scale_to_native(el.type, el)
         #TODO(pjm): special case for FFA dipole array
         if 'dipoles' in el:
             for dipole in el.dipoles:
-                zgoubi_importer.MODEL_UNITS.scale_to_native(dipole['type'], dipole)
+                zgoubi_importer.MODEL_UNITS.scale_to_native(dipole.type, dipole)
     beamline_id = lattice.LatticeUtil(data, _SCHEMA).select_beamline().id
     return _generate_beamline(data, beamline_map, element_map, beamline_id)
 
@@ -790,20 +785,20 @@ def _generate_parameters_file(data):
     report = data.report if 'report' in data else ''
     if report == 'tunesReport':
         return template_common.render_jinja(SIM_TYPE, v, TUNES_INPUT_FILE)
-    v['zgoubiCommandFile'] = _ZGOUBI_COMMAND_FILE
-    v['particleDef'] = _generate_particle(data.models.particle)
-    v['beamlineElements'] = _generate_beamline_elements(report, data)
-    v['bunchCoordinates'] = data.models.bunch.coordinates
+    v.zgoubiCommandFile = _ZGOUBI_COMMAND_FILE
+    v.particleDef = _generate_particle(data.models.particle)
+    v.beamlineElements = _generate_beamline_elements(report, data)
+    v.bunchCoordinates = data.models.bunch.coordinates
     res += template_common.render_jinja(SIM_TYPE, v, 'base.py')
     if 'twissReport' in report or 'opticsReport' in report or report == 'twissSummaryReport':
-        v['fitYRange'] = [-10, 10]
-        if v['bunch_method'] == 'OBJET2.1':
-            y = v['bunchCoordinates'][0]['Y']
+        v.fitYRange = [-10, 10]
+        if v.bunch_method == 'OBJET2.1':
+            y = v.bunchCoordinates[0].Y
             if y != 0:
                 # within 20% on either side of particle 0
-                v['fitYRange'] = [min(v['fitYRange'][0], y * 80), max(v['fitYRange'][1], y * 120)]
+                v.fitYRange = [min(v.fitYRange[0], y * 80), max(v.fitYRange[1], y * 120)]
         return res + template_common.render_jinja(SIM_TYPE, v, 'twiss.py')
-    v['outputFile'] = _ZGOUBI_FAI_DATA_FILE
+    v.outputFile = _ZGOUBI_FAI_DATA_FILE
     res += template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
     if 'bunchReport' in report:
         return res + template_common.render_jinja(SIM_TYPE, v, 'bunch-report.py')
@@ -835,7 +830,7 @@ def _parse_zgoubi_log(run_dir):
     if not path.exists():
         return ''
     res = ''
-    element_by_num = {}
+    element_by_num = PKDict()
     text = pkio.read_text(str(path))
 
     for line in text.split("\n"):
@@ -880,16 +875,16 @@ def _peak_x(x_points, y_points):
 
 
 def _prepare_tosca_element(el):
-    el['MOD'] = _MAGNET_TYPE_TO_MOD[el.meshType][el.magnetType]
-    if '{{ fileCount }}' in el['MOD']:
-        el['MOD'] = el['MOD'].replace('{{ fileCount }}', str(el['fileCount']))
-        el['hasFields'] = True
+    el.MOD = _MAGNET_TYPE_TO_MOD[el.meshType][el.magnetType]
+    if '{{ fileCount }}' in el.MOD:
+        el.MOD = el.MOD.replace('{{ fileCount }}', str(el.fileCount))
+        el.hasFields = True
     file_count = zgoubi_parser.tosca_file_count(el)
-    el['fileNames'] = el['fileNames'][:file_count]
+    el.fileNames = el.fileNames[:file_count]
 
     filename = _SIM_DATA.lib_file_name_with_model_field('TOSCA', 'magnetFile', el.magnetFile)
     if file_count == 1 and not zgoubi_importer.is_zip_file(filename):
-        el['fileNames'][0] = _SIM_DATA.lib_file_name_with_model_field('TOSCA', 'magnetFile', el['fileNames'][0])
+        el.fileNames[0] = _SIM_DATA.lib_file_name_with_model_field('TOSCA', 'magnetFile', el.fileNames[0])
 
 
 def _read_data_file(path, mode='title'):
@@ -910,7 +905,7 @@ def _read_data_file(path, mode='title'):
                 # header row starts with '# <letter>'
                 if re.search(r'^\s*#\s+[a-zA-Z]', line):
                     col_names = re.split('\s+', line)
-                    col_names = map(lambda x: re.sub(r'\W|_', '', x), col_names[1:])
+                    col_names = [re.sub(r'\W|_', '', x) for x in col_names[1:]]
                     mode = 'data'
             elif mode == 'data':
                 if re.search('^\s*#', line):

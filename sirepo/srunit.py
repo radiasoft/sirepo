@@ -28,7 +28,7 @@ _JAVASCRIPT_REDIRECT_RE = re.compile(r'window.location = "([^"]+)"')
 CONFTEST_ALL_CODES = None
 
 
-def flask_client(cfg=None, sim_types=None):
+def flask_client(cfg=None, sim_types=None, job_run_mode=None):
     """Return FlaskClient with easy access methods.
 
     Creates a new run directory every test file so can assume
@@ -70,7 +70,7 @@ def flask_client(cfg=None, sim_types=None):
             app = server.init()
             app.config['TESTING'] = True
             app.test_client_class = _TestClient
-            setattr(app, a, app.test_client())
+            setattr(app, a, app.test_client(job_run_mode=job_run_mode))
     return getattr(app, a)
 
 
@@ -115,14 +115,14 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
             uri_router.srunit_uri,
             headers=headers,
         )
-        pkunit.pkeq(200, r.status_code, 'FAIL: status={}', r.status)
+        pkunit.pkeq(200, r.status_code, 'FAIL: unexpected status={}', r.status)
         if r.mimetype == 'text/html':
             m = _JAVASCRIPT_REDIRECT_RE.search(r.data)
             if m:
-                pkunit.pkfail('redirect={}', m.group(1))
-            pkunit.pkfail('other html response={}', r.data)
+                pkunit.pkfail('unexpected redirect={}', m.group(1))
+            pkunit.pkfail('unexpected html response={}', r.data)
         d = pkcollections.json_load_any(r.data)
-        pkunit.pkeq('ok', d.get('state'), 'FAIL: data={}', d)
+        pkunit.pkeq('ok', d.get('state'), 'FAIL: expecting state=ok, but got data={}', d)
     finally:
         try:
             delattr(server._app, server.SRUNIT_TEST_IN_REQUEST)
@@ -164,10 +164,56 @@ class _TestClient(flask.testing.FlaskClient):
     SR_SIM_TYPE_DEFAULT = MYAPP
 
     def __init__(self, *args, **kwargs):
+        self.sr_job_run_mode = kwargs.pop('job_run_mode')
         super(_TestClient, self).__init__(*args, **kwargs)
-        self.sr_uid = None
+        self.sr_sbatch_logged_in = False
         self.sr_sim_type = None
+        self.sr_uid = None
 
+    def sr_animation_run(self, sim_name, compute_model, reports, **kwargs):
+        from pykern import pkunit
+        from pykern.pkcollections import PKDict
+        from pykern.pkdebug import pkdp, pkdlog
+        import re
+
+        data = self.sr_sim_data(sim_name)
+        run = self.sr_run_sim(data, compute_model, **kwargs)
+        for r, a in reports.items():
+            if 'runSimulation' in a:
+                f = self.sr_run_sim(data, r)
+                for k, v in a.items():
+                    m = re.search('^expect_(.+)', k)
+                    if m:
+                        pkunit.pkre(
+                            v(i) if callable(v) else v,
+                            str(f.get(m.group(1))),
+                        )
+                continue
+            if 'frame_index' in a:
+                c = [a.get('frame_index')]
+            else:
+                c = range(run.get(a.get('frame_count_key', 'frameCount')))
+                assert c, \
+                    'frame_count_key={} or frameCount={} is zero'.format(
+                        a.get('frame_count_key'), a.get('frameCount'),
+                    )
+            pkdlog('frameReport={} count={}', r, c)
+            import sirepo.sim_data
+
+            s = sirepo.sim_data.get_class(self.sr_sim_type)
+            for i in c:
+                pkdlog('frameIndex={} frameCount={}', i, run.get('frameCount'))
+                f = self.sr_get_json(
+                    'simulationFrame',
+                    PKDict(frame_id=s.frame_id(data, run, r, i)),
+                )
+                for k, v in a.items():
+                    m = re.search('^expect_(.+)', k)
+                    if m:
+                        pkunit.pkre(
+                            v(i) if callable(v) else v,
+                            str(f.get(m.group(1))),
+                        )
 
     def sr_auth_state(self, **kwargs):
         """Gets authState and prases
@@ -315,10 +361,20 @@ class _TestClient(flask.testing.FlaskClient):
             **kwargs
         )
 
-    def sr_run_sim(self, data, model, expect_completed=True, timeout=7, **post_args):
+    def sr_run_sim(
+            self,
+            data,
+            model,
+            expect_completed=True,
+            timeout=10,
+            **post_args
+    ):
         from pykern import pkunit
         from pykern.pkdebug import pkdlog, pkdexc
         import time
+
+        if self.sr_job_run_mode:
+            data.models[model].jobRunMode = self.sr_job_run_mode
 
         cancel = None
         try:
@@ -333,8 +389,7 @@ class _TestClient(flask.testing.FlaskClient):
             )
             if r.state == 'completed':
                 return r
-            pkunit.pkeq('pending', r.state, 'not pending, run={}', r)
-            cancel = r.nextRequest
+            cancel = r.get('nextRequest')
             for _ in range(timeout):
                 if r.state in ('completed', 'error'):
                     pkdlog(r.state)
@@ -359,6 +414,32 @@ class _TestClient(flask.testing.FlaskClient):
                 # this exception won't be seen because in finally
                 raise AssertionError('cancel failed')
 
+    def sr_sbatch_animation_run(self, sim_name, compute_model, reports, **kwargs):
+        from pykern.pkunit import pkexcept
+
+        d = self.sr_sim_data(sim_name)
+        if not self.sr_sbatch_logged_in:
+            with pkexcept('SRException.*no-creds'):
+                # Must try to run sim first to seed job_supervisor.db
+                self.sr_run_sim(d, compute_model, expect_completed=False)
+            self.sr_sbatch_login(compute_model, d)
+            self.sr_sbatch_logged_in = True
+        self.sr_animation_run(sim_name, compute_model, reports, **kwargs)
+
+    def sr_sbatch_login(self, compute_model, data):
+        import getpass
+
+        p = getpass.getuser()
+        self.sr_post(
+            'sbatchLogin',
+            PKDict(
+                password=p,
+                report=compute_model,
+                simulationId=data.models.simulation.simulationId,
+                simulationType=data.simulationType,
+                username=p,
+            )
+        )
 
     def sr_sim_data(self, sim_name=None, sim_type=None):
         """Return simulation data by name
@@ -436,7 +517,11 @@ class _TestClient(flask.testing.FlaskClient):
             u = sirepo.uri.server_route(route_or_uri, params, query)
             pkdc('uri={}', u)
             r = op(u)
-            pkdc('status={} data={}', r.status_code, r.data)
+            pkdc(
+                'status={} data={}',
+                r.status_code,
+                '<snip-file>' if 'download-data-file' in u else r.data,
+            )
             # Emulate code in sirepo.js to deal with redirects
             if r.status_code == 200 and r.mimetype == 'text/html':
                 m = _JAVASCRIPT_REDIRECT_RE.search(r.data)

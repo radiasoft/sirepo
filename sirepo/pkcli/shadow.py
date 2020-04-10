@@ -7,12 +7,13 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
-from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
-import numpy as np
+import numpy
 import py.path
+import re
 import sirepo.template.shadow as template
+
 
 _MM_TO_CM = 0.1
 _CM_TO_M = 0.01
@@ -53,59 +54,60 @@ def run(cfg_dir):
     Args:
         cfg_dir (str): directory to run shadow in
     """
-    with pkio.save_chdir(cfg_dir):
-        beam = _run_shadow()
-        data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-        model = data['models'][data['report']]
-        column_values = _SCHEMA['enum']['ColumnValue']
+    beam = template_common.exec_parameters().beam
+    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    model = data['models'][data['report']]
+    column_values = _SCHEMA['enum']['ColumnValue']
 
-        if 'y' in model:
-            x_range = None
-            y_range = None
-            if model['overrideSize'] == '1':
-                x_range = (np.array([
-                    model['horizontalOffset'] - model['horizontalSize'] / 2,
-                    model['horizontalOffset'] + model['horizontalSize'] / 2,
-                ]) * _MM_TO_CM).tolist()
-                y_range = (np.array([
-                    model['verticalOffset'] - model['verticalSize'] / 2,
-                    model['verticalOffset'] + model['verticalSize'] / 2,
-                ]) * _MM_TO_CM).tolist()
-            ticket = beam.histo2(int(model['x']), int(model['y']), nbins=template_common.histogram_bins(model['histogramBins']), ref=int(model['weight']), nolost=1, calculate_widths=0, xrange=x_range, yrange=y_range)
-            _scale_ticket(ticket)
-            res = {
-                'x_range': [ticket['xrange'][0], ticket['xrange'][1], ticket['nbins_h']],
-                'y_range': [ticket['yrange'][0], ticket['yrange'][1], ticket['nbins_v']],
-                'x_label': _label_with_units(model['x'], column_values),
-                'y_label': _label_with_units(model['y'], column_values),
-                'z_label': 'Frequency',
-                'title': u'{}, {}'.format(_label(model['x'], column_values), _label(model['y'], column_values)),
-                'z_matrix': ticket['histogram'].T.tolist(),
-                'frameCount': 1,
-            }
-        else:
-            weight = int(model['weight'])
-            ticket = beam.histo1(int(model['column']), nbins=template_common.histogram_bins(model['histogramBins']), ref=weight, nolost=1, calculate_widths=0)
-            _scale_ticket(ticket)
-            res = {
-                'title': _label(model['column'], column_values),
-                'x_range': [ticket['xrange'][0], ticket['xrange'][1], ticket['nbins']],
-                'y_label': u'{}{}'.format(
-                    'Number of Rays',
-                    u' weighted by {}'.format(_label_for_weight(model['weight'], column_values)) if weight else ''),
-                'x_label': _label_with_units(model['column'], column_values),
-                'points': ticket['histogram'].T.tolist(),
-                'frameCount': 1,
-            }
-            #pkdlog('range amount: {}', res['x_range'][1] - res['x_range'][0])
-            #1.55431223448e-15
-            dist = res['x_range'][1] - res['x_range'][0]
-            #TODO(pjm): only rebalance range if outside of 0
-            if dist < 1e-14:
-                #TODO(pjm): include offset range for client
-                res['x_range'][0] = 0
-                res['x_range'][1] = dist
-        simulation_db.write_result(res)
+    if 'y' in model:
+        x_range = None
+        y_range = None
+        if model['overrideSize'] == '1':
+            x_range = (numpy.array([
+                model['horizontalOffset'] - model['horizontalSize'] / 2,
+                model['horizontalOffset'] + model['horizontalSize'] / 2,
+            ]) * _MM_TO_CM).tolist()
+            y_range = (numpy.array([
+                model['verticalOffset'] - model['verticalSize'] / 2,
+                model['verticalOffset'] + model['verticalSize'] / 2,
+            ]) * _MM_TO_CM).tolist()
+        ticket = beam.histo2(int(model['x']), int(model['y']), nbins=template_common.histogram_bins(model['histogramBins']), ref=int(model['weight']), nolost=1, calculate_widths=0, xrange=x_range, yrange=y_range)
+        _scale_ticket(ticket)
+        values = ticket['histogram'].T
+        assert not numpy.isnan(values).any(), 'nan values found'
+        res = {
+            'x_range': [ticket['xrange'][0], ticket['xrange'][1], ticket['nbins_h']],
+            'y_range': [ticket['yrange'][0], ticket['yrange'][1], ticket['nbins_v']],
+            'x_label': _label_with_units(model['x'], column_values),
+            'y_label': _label_with_units(model['y'], column_values),
+            'z_label': 'Frequency',
+            'title': u'{}, {}'.format(_label(model['x'], column_values), _label(model['y'], column_values)),
+            'z_matrix': values.tolist(),
+            'frameCount': 1,
+        }
+    else:
+        weight = int(model['weight'])
+        ticket = beam.histo1(int(model['column']), nbins=template_common.histogram_bins(model['histogramBins']), ref=weight, nolost=1, calculate_widths=0)
+        _scale_ticket(ticket)
+        res = {
+            'title': _label(model['column'], column_values),
+            'x_range': [ticket['xrange'][0], ticket['xrange'][1], ticket['nbins']],
+            'y_label': u'{}{}'.format(
+                'Number of Rays',
+                u' weighted by {}'.format(_label_for_weight(model['weight'], column_values)) if weight else ''),
+            'x_label': _label_with_units(model['column'], column_values),
+            'points': ticket['histogram'].T.tolist(),
+            'frameCount': 1,
+        }
+        #pkdlog('range amount: {}', res['x_range'][1] - res['x_range'][0])
+        #1.55431223448e-15
+        dist = res['x_range'][1] - res['x_range'][0]
+        #TODO(pjm): only rebalance range if outside of 0
+        if dist < 1e-14:
+            #TODO(pjm): include offset range for client
+            res['x_range'][0] = 0
+            res['x_range'][1] = dist
+    template_common.write_sequential_result(res)
 
 
 def run_background(cfg_dir):
@@ -133,16 +135,6 @@ def _label_with_units(column, values):
     return _label(column, values)
 
 
-def _run_shadow():
-    """Run shadow program with isolated locals()
-    """
-    try:
-        exec(_script(), locals(), locals())
-    except Exception:
-        pkdlog('script={} error={}', _script(), pkdexc())
-    return beam
-
-
 def _scale_ticket(ticket):
     if 'xrange' in ticket:
         col_h = ticket['col_h'] if 'col_h' in ticket else ticket['col']
@@ -156,4 +148,4 @@ def _scale_ticket(ticket):
 
 
 def _script():
-    return pkio.read_text(template_common.PARAMETERS_PYTHON_FILE)
+    return pkio.read_text()

@@ -44,7 +44,7 @@ _FRAME_ID_KEYS = (
     'simulationId',
     'simulationType',
     'computeJobHash',
-    'computeJobStart',
+    'computeJobSerial',
 )
 
 def get_class(type_or_data):
@@ -99,7 +99,7 @@ def parse_frame_id(frame_id):
     v = frame_id.split(_FRAME_ID_SEP)
     res = PKDict(zip(_FRAME_ID_KEYS, v[:len(_FRAME_ID_KEYS)]))
     res.frameIndex = int(res.frameIndex)
-    res.computeJobStart = int(res.computeJobStart)
+    res.computeJobSerial = int(res.computeJobSerial)
     s = get_class(res.simulationType)
     s.frameReport = s.parse_model(res)
     s.simulationId = s.parse_sid(res)
@@ -136,11 +136,12 @@ class SimDataBase(object):
             return 'HashIsUnused'
         m = data['models']
         res = hashlib.md5()
-        for f in sorted(
-            sirepo.sim_data.get_class(
-                data.simulationType
-            )._compute_job_fields(data, data.report, c),
-        ):
+        fields = sirepo.sim_data.get_class(
+            data.simulationType
+        )._compute_job_fields(data, data.report, c)
+        # values may be string or PKDict
+        fields.sort(key=lambda x:str(x))
+        for f in fields:
             # assert isinstance(f, pkconfig.STRING_TYPES), \
             #     'value={} not a string_type'.format(f)
             #TODO(pjm): work-around for now
@@ -173,10 +174,6 @@ class SimDataBase(object):
         Returns:
             str: name of compute model for report
         """
-        if model_or_data is None:
-            # Only called in a few places (jspec & elegant)
-            # and this preserves old behavior.
-            return _ANIMATION_NAME
         m = cls.parse_model(model_or_data)
         d = model_or_data if isinstance(model_or_data, dict) else None
         #TODO(robnagler) is this necesary since m is parsed?
@@ -217,7 +214,7 @@ class SimDataBase(object):
                 data.models.simulation.simulationId,
                 data.simulationType,
                 response.computeJobHash,
-                str(response.computeJobStart),
+                str(response.computeJobSerial),
             ] + [str(m.get(k)) for k in cls._frame_id_fields(frame_args)],
         )
 
@@ -389,8 +386,10 @@ class SimDataBase(object):
                 res[f] = d[2]
         return res
 
+    # TODO(e-carlin): Supplying uid is a temprorary workaround until
+    # issue/2129 is resolved
     @classmethod
-    def parse_jid(cls, data):
+    def parse_jid(cls, data, uid=None):
         """A Job is a tuple of user, sid, and compute_model.
 
         A jid is words and dashes.
@@ -403,7 +402,7 @@ class SimDataBase(object):
         import sirepo.auth
 
         return _JOB_ID_SEP.join((
-            sirepo.auth.logged_in_user(),
+            uid or sirepo.auth.logged_in_user(),
             cls.parse_sid(data),
             cls.compute_model(data),
         ))

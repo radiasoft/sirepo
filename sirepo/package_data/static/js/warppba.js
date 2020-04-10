@@ -3,7 +3,9 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appDefaultSimulationValues.simulation.sourceType = 'laserPulse';
+SIREPO.app.config(function() {
+    SIREPO.appDefaultSimulationValues.simulation.sourceType = 'laserPulse';
+});
 
 SIREPO.app.factory('warpPBAService', function(appState, $rootScope) {
     var self = {};

@@ -73,6 +73,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     def fixup_old_data(cls, data):
         """Fixup data to match the most recent schema."""
         dm = data.models
+        has_electron_beam_position = 'electronBeamPosition' in dm
         x = (
             'arbitraryMagField',
             'beamline3DReport',
@@ -137,21 +138,23 @@ class SimData(sirepo.sim_data.SimDataBase):
                 verticalRange=m.verticalRange,
             )
         cls.update_model_defaults(dm.multiElectronAnimation, 'multiElectronAnimation')
-        if 'horizontalPosition' in dm.electronBeam:
-            e = dm.electronBeam
+        e = dm.electronBeam
+        if not has_electron_beam_position:
             dm.electronBeamPosition.update(dict(
                 horizontalPosition=e.horizontalPosition,
                 verticalPosition=e.verticalPosition,
                 driftCalculationMethod=e.get('driftCalculationMethod', 'auto'),
                 drift=e.get('drift', 0),
             ))
+        if 'horizontalPosition' in e:
             for f in 'horizontalPosition', 'verticalPosition', 'driftCalculationMethod', 'drift':
                 if f in e:
                     del e[f]
         cls.__fixup_old_data_beamline(data)
-        if 'horizontalDeflectingParameter' not in dm.undulator:
-            cls.__fixup_old_data_by_template(data)
-            dm = data.models
+        # if 'horizontalDeflectingParameter' not in dm.undulator:
+        #     cls.__fixup_old_data_by_template(data)
+        #     dm = data.models
+        cls.__fixup_old_data_by_template(data)
         hv = ('horizontalPosition', 'horizontalRange', 'verticalPosition', 'verticalRange')
         if 'samplingMethod' not in dm.simulation:
             simulation = dm.simulation
@@ -214,6 +217,13 @@ class SimData(sirepo.sim_data.SimDataBase):
                     r += [0, 0, 0, 0, 0, 0, 0, 0]
         if 'electronBeams' in dm:
             del dm['electronBeams']
+        # special case for old examples with incorrect electronBeam.drift
+        if dm.simulation.isExample and dm.simulation.name in (
+                'NSLS-II HXN beamline',
+                'NSLS-II HXN beamline: SSA closer',
+                'NSLS-II CSX-1 beamline'):
+            dm.electronBeamPosition.driftCalculationMethod = 'manual'
+            dm.electronBeamPosition.drift = -1.8 if 'HXN' in dm.simulation.name else -1.0234
         cls._organize_example(data)
 
     @classmethod
@@ -442,41 +452,46 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def __fixup_old_data_by_template(cls, data):
-        import pykern.pkcompat
-        import pykern.pkjson
-        import sirepo.simulation_db
-        import subprocess
-        import os
-        import sys
+        # import pykern.pkcompat
+        # import pykern.pkjson
+        # import sirepo.simulation_db
+        # import subprocess
+        # import os
+        # import sys
 
-        with sirepo.simulation_db.tmp_dir() as d:
-            f = d.join('in.json')
-            pykern.pkjson.dump_pretty(data, filename=f, pretty=False)
-            try:
-                #TODO(robnagler) find a better way to do this
-                e = PKDict(os.environ).pkupdate(
-                    SIREPO_SRDB_ROOT=str(sirepo.srdb.root()),
-                )
-                d = sirepo.simulation_db.cfg.tmp_dir
-                if d:
-                    e.SIREPO_SIMULATION_DB_TMP_DIR = str(d)
-                    e.SIREPO_SIM_DATA_LIB_FILE_RESOURCE_ONLY = '1'
-                else:
-                    e.SIREPO_AUTH_LOGGED_IN_USER = str(sirepo.auth.logged_in_user())
-                n = subprocess.check_output(
-                    ['sirepo', 'srw', 'fixup_old_data', str(f)],
-                    stderr=subprocess.STDOUT,
-                    env=e,
-                )
-            except subprocess.CalledProcessError as e:
-                pkdlog('sirepo.pkcli.srw.fixup_old_data failed: {}', e.output)
-                raise
-            data.clear()
-            try:
-                data.update(pykern.pkjson.load_any(n))
-            except Exception as e:
-                pkdlog('unable to parse json={}', n)
-                raise
+        # with sirepo.simulation_db.tmp_dir() as d:
+        #     f = d.join('in.json')
+        #     pykern.pkjson.dump_pretty(data, filename=f, pretty=False)
+        #     try:
+        #         #TODO(robnagler) find a better way to do this
+        #         e = PKDict(os.environ).pkupdate(
+        #             SIREPO_SRDB_ROOT=str(sirepo.srdb.root()),
+        #         )
+        #         d = sirepo.simulation_db.cfg.tmp_dir
+        #         if d:
+        #             e.SIREPO_SIMULATION_DB_TMP_DIR = str(d)
+        #             e.SIREPO_SIM_DATA_LIB_FILE_RESOURCE_ONLY = '1'
+        #         else:
+        #             e.SIREPO_AUTH_LOGGED_IN_USER = str(sirepo.auth.logged_in_user())
+        #         n = subprocess.check_output(
+        #             ['sirepo', 'srw', 'fixup_old_data', str(f)],
+        #             stderr=subprocess.STDOUT,
+        #             env=e,
+        #         )
+        #     except subprocess.CalledProcessError as e:
+        #         pkdlog('sirepo.pkcli.srw.fixup_old_data failed: {}', e.output)
+        #         raise
+        #     data.clear()
+        #     try:
+        #         data.update(pykern.pkjson.load_any(n))
+        #     except Exception as e:
+        #         pkdlog('unable to parse json={}', n)
+        #         raise
+
+        import sirepo.template.srw_fixup
+        import sirepo.template.srw
+        sirepo.template.srw_fixup.do(sirepo.template.srw, data)
+
 
     @classmethod
     def __fixup_old_data_beamline(cls, data):

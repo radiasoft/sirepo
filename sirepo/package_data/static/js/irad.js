@@ -151,7 +151,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, plotting, requestSender, vtkPlotting, vtkToPNG) {
+SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, panelState, plotting, requestSender, vtkPlotting, vtkToPNG) {
     return {
         restrict: 'A',
         scope: {
@@ -168,8 +168,8 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, plotti
             var actor = null;
             var roiActors = [];
             //TODO(pjm): set the variables below when selecting from Components panel
-            var selected3DROI = 31; //null; //31;
-            var showRTDose = false;
+            var selected3DROI = null; //31;
+            var showRTDose = true;
             $scope.isClientOnly = true;
 
             // the coordinate system may depend on the data?
@@ -588,7 +588,8 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, plotti
                     // hacks for report screenshot
                     a.getProperty().setColor(0.0, 0.9, 0.9);
                     if (i === 0) {
-                       a.getProperty().setOpacity(0.6);
+                        //a.getProperty().setOpacity(0.6);
+                       a.getProperty().setOpacity(1);
                     }
                     roiActors.push(a);
                     fsRenderer.getRenderer().addActor(a);
@@ -614,7 +615,10 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, plotti
                     container: $('.sr-dicom3d-content')[0],
                 });
                 pngCanvas = vtkToPNG.pngCanvas($scope.reportId, fsRenderer, $element);
-                iradService.downloadDataFile($scope.modelName, 1);
+
+                panelState.requestData('dicom3DReport', function(data) {
+                    iradService.downloadDataFile($scope.modelName, 1);
+                });
             };
 
             $scope.$on('roiPointsLoaded', function() {
@@ -996,7 +1000,10 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
             function loadData3d(event, reader, frame) {
                 var data = createData3d(reader.getOutputData());
                 if (frame == 1) {
-                    iradService.downloadDataFile($scope.modelName, 2);
+                    //TODO(pjm): this is the wrong place to request the dose file.
+                    if (dicomPlane == 't') {
+                        iradService.downloadDataFile('dicom3DReport', 2);
+                    }
                     data3d = data;
                 }
                 else if (frame == 2) {

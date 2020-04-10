@@ -22,7 +22,7 @@ def get_application_data(data, **kwargs):
 
 
 def get_data_file(run_dir, model, frame, **kwargs):
-    sim_id = kwargs['options'].simulationId
+    sim_id = simulation_db.read_json(run_dir.join('out.json')).simulationId
     if frame == 1:
         filename = sim_file(sim_id, 'ct.zip')
     elif frame == 2:

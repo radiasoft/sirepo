@@ -10,6 +10,7 @@
 "LINA10": RFCA,change_p0=1,freq=2856e6,l=0.3,phase="90 28 -",volt="48e6 10 /"
 "LINB10": RFCA,change_p0=1,freq=2856e6,l=0.3,phase="90 6 +",volt="48e6 10 /"
 "ZWAKE": WAKE,factor="86 10 /",inputfile="WAKE-inputfile.knsl45.liwake.sdds",interpolate=1,n_bins=1024,tcolumn="t",wcolumn="W"
+"ZWAKE2": WAKE,factor="86 10 /",inputfile="WAKE-inputfile.knsl45.liwake.sdds",interpolate=1,n_bins=1024,tcolumn="t",wcolumn="W"
 "W1": WATCH,filename="w1.filename.sdds"
 "W2": WATCH,filename="w2.filename.sdds"
 "W3": WATCH,filename="w3.filename.sdds"

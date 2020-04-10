@@ -21,6 +21,7 @@ import hashlib
 import inspect
 import sirepo.sim_data
 import sirepo.template
+import sirepo.util
 import time
 
 #: What is_running?
@@ -34,6 +35,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         id=simulation_id,
         model=model,
         type=simulation_type,
+        check_sim_exists=True,
     )
     f, c, t = sirepo.template.import_module(req.type).get_data_file(
         simulation_db.simulation_run_dir(req.req_data),
@@ -48,7 +50,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
 def api_runCancel():
     jid = None
     try:
-        req = http_request.parse_post(id=True, model=True)
+        req = http_request.parse_post(id=True, model=True, check_sim_exists=True)
         jid = req.sim_data.parse_jid(req.req_data)
         # TODO(robnagler) need to have a way of listing jobs
         # Don't bother with cache_hit check. We don't have any way of canceling
@@ -62,7 +64,7 @@ def api_runCancel():
             try:
                 simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
             except Exception as e:
-                if not pkio.exception_is_not_found(e):
+                if not pykern.pkio.exception_is_not_found(e):
                     raise
                 # else: run_dir may have been deleted
             runner.job_kill(jid)
@@ -79,7 +81,7 @@ def api_runCancel():
 
 @api_perm.require_user
 def api_runSimulation():
-    req = http_request.parse_post(id=True, model=True, fixup_old_data=True)
+    req = http_request.parse_post(id=True, model=True, fixup_old_data=True, check_sim_exists=True)
     res = _simulation_run_status(req, quiet=True)
     if (
         (
@@ -99,7 +101,7 @@ def api_runSimulation():
 def api_runStatus():
     return http_reply.gen_json(
         _simulation_run_status(
-            http_request.parse_post(id=True, model=True),
+            http_request.parse_post(id=True, model=True, check_sim_exists=True),
         ),
     )
 
@@ -189,7 +191,7 @@ def _reqd(req):
     res.cached_hash = c.models.pksetdefault(
         computeJobCacheKey=lambda: PKDict(
             computeJobHash=res.sim_data.compute_job_hash(c),
-            computeJobStart=int(res.input_file.mtime()),
+            computeJobSerial=int(res.input_file.mtime()),
         ),
     ).computeJobCacheKey.computeJobHash
     if res.req_hash == res.cached_hash:
@@ -272,10 +274,10 @@ def _simulation_run_status(req, quiet=False):
         )
     if reqd.is_parallel and reqd.cached_data:
         s = reqd.cached_data.models.computeJobCacheKey
-        t = s.get('computeJobStart', 0)
+        t = s.get('computeJobSerial', 0)
         res.pksetdefault(
             computeJobHash=s.computeJobHash,
-            computeJobStart=t,
+            computeJobSerial=t,
             elapsedTime=lambda: int(
                 (res.get('lastUpdateTime') or _mtime_or_now(reqd.run_dir)) - t
                 if t else 0,
@@ -311,8 +313,8 @@ def _start_simulation(data):
     """
     s = data.models.computeJobCacheKey
     s.pkupdate(
-        computeJobStart=int(time.time()),
-    );
+        computeJobSerial=int(time.time()),
+    )
     runner.job_start(data)
 
 

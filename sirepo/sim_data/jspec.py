@@ -20,20 +20,28 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        cls._init_models(dm, ('ring', 'particleAnimation', 'twissReport'))
-        if 'coolingRatesAnimation' not in dm:
-            for m in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
-                dm[m] = PKDict()
-                cls.update_model_defaults(dm[m], m)
+        cls._init_models(dm, (
+            'beamEvolutionAnimation',
+            'coolingRatesAnimation',
+            'forceTableAnimation',
+            'particleAnimation',
+            'ring',
+            'twissReport',
+        ))
         if 'beam_type' not in dm.ionBeam:
             dm.ionBeam.setdefault(
                 'beam_type',
                 'bunched' if dm.ionBeam.rms_bunch_length > 0 else 'continuous',
             )
+        if 'particle' not in dm.ionBeam:
+            dm.ionBeam.particle = 'OTHER'
         if 'beam_type' not in dm.electronBeam:
             x = dm.electronBeam
             x.beam_type = 'continuous' if x.shape == 'dc_uniform' else 'bunched'
             x.rh = x.rv = 0.004
+        if 'time_step' not in dm.simulationSettings:
+            dm.simulationSettings.time_step = dm.simulationSettings.time / (dm.simulationSettings.step_number or 1)
+        cls._init_models(dm, ('ionBeam', 'electronBeam', 'simulationSettings'))
         x = dm.simulationSettings
         if x.model == 'model_beam':
             x.model = 'particle'
@@ -65,7 +73,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def jspec_elegant_twiss_path(cls):
-        return '{}/{}'.format(cls.compute_model(None), cls.JSPEC_ELEGANT_TWISS_FILENAME)
+        return '{}/{}'.format('animation', cls.JSPEC_ELEGANT_TWISS_FILENAME)
 
     @classmethod
     def jspec_elegant_dir(cls):
@@ -95,6 +103,4 @@ class SimData(sirepo.sim_data.SimDataBase):
             res.append(cls.lib_file_name_with_model_field('ring', 'lattice', r['lattice']))
         elif s == 'elegant':
             res.append(cls.lib_file_name_with_model_field('ring', 'elegantTwiss', r['elegantTwiss']))
-        if s == 'elegant-sirepo' and 'elegantSirepo' in r:
-            res.append(cls.jspec_elegant_dir().join(r['elegantSirepo'], cls.jspec_elegant_twiss_path()))
         return res

@@ -29,7 +29,7 @@ def default_command():
 
     cfg = pkconfig.init(
         debug=(pkconfig.channel_in('dev'), bool, 'run supervisor in debug mode'),
-        ip=(sirepo.job.DEFAULT_IP, str, 'ip address to listen on'),
+        ip=(sirepo.job.DEFAULT_IP, str, 'ip to listen on'),
         port=(sirepo.job.DEFAULT_PORT, int, 'what port to listen on'),
     )
     sirepo.job_supervisor.init()
@@ -46,8 +46,15 @@ def default_command():
         static_path=sirepo.job.SUPERVISOR_SRV_ROOT.join(sirepo.job.LIB_FILE_URI),
         # tornado expects a trailing slash
         static_url_prefix=sirepo.job.LIB_FILE_URI + '/',
+        websocket_max_message_size=sirepo.job.cfg.max_message_size,
+        websocket_ping_interval=sirepo.job.cfg.ping_interval_secs,
+        websocket_ping_timeout=sirepo.job.cfg.ping_timeout_secs,
     )
-    server = tornado.httpserver.HTTPServer(app)
+    server = tornado.httpserver.HTTPServer(
+        app,
+        xheaders=True,
+        max_buffer_size=sirepo.job.cfg.max_message_size,
+    )
     server.listen(cfg.port, cfg.ip)
     signal.signal(signal.SIGTERM, _sigterm)
     signal.signal(signal.SIGINT, _sigterm)
@@ -74,7 +81,11 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
         await _incoming(msg, self)
 
     def open(self):
-        pkdlog(self.request.uri)
+        pkdlog(
+            'uri={} remote_ip={} ',
+            self.request.uri,
+            self.request.remote_ip,
+        )
 
     def sr_close(self):
         """Close socket and does not call on_close
@@ -159,15 +170,20 @@ async def _incoming(content, handler):
         c = content
         if not isinstance(content, dict):
             c = pkjson.load_any(content)
-        pkdc(
-            'class={} content={}',
-            handler.sr_class,
-            c if 'opName' in c and c.opName == sirepo.job.OP_ERROR \
-            else sirepo.job.LogFormatter(c)
-        )
+        if c.get('api') != 'api_runStatus':
+            pkdc(
+                'class={} content={}',
+                handler.sr_class,
+                c,
+            )
         await handler.sr_class(handler=handler, content=c).receive()
     except Exception as e:
-        pkdlog('exception={} handler={} content={}', e, handler, content)
+        pkdlog(
+            'exception={} handler={} content={}',
+            e,
+            handler,
+            content
+        )
         pkdlog(pkdexc())
         try:
             handler.sr_on_exception()

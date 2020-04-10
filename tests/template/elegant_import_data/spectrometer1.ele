@@ -24,16 +24,16 @@
 
 &optimization_setup
         method = simplex, mode = minimize,
-        tolerance = 1e-12,     
+        tolerance = 1e-12,
         target = 0
-        n_passes = 3, n_evaluations = 1500, n_restarts = 2        
+        n_passes = 3, n_evaluations = 1500, n_restarts = 2
         verbose = 0, log_file = /dev/tty
         output_sparsing_factor = 100
 &end
 
 ! Energy resolution squared is proportional to emittance*beta/eta^2
 &optimization_term
-        term = "betax etax sqr /" 
+        term = "betax etax sqr /"
 &end
 
 ! Keep betax and betay from being larger than 20 m
@@ -92,8 +92,8 @@
         enforce_rms_values[0] = 3*1,
         beta_x = 1,
         beta_y = 1,
-        alpha_x = 0,
-        alpha_y = 0,
+        alpha_x = <beam_alpha_x>,
+        alpha_y = <beam_alpha_y>,
         sigma_dp = 1e-3,
         emit_nx = 1e-6,
         emit_ny = 1e-6

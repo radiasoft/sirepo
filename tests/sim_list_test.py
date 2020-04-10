@@ -55,15 +55,21 @@ def test_illegals(fc):
 
     d = fc.sr_sim_data()
     for x in (
-        (PKDict(name='new/sim'), 'illegal character'),
-        (PKDict(name='some*sim'), 'illegal character'),
-        (PKDict(folder='.foo'), 'with a dot'),
+        (PKDict(name='new/sim'), ('newsim', '/folder')),
+        (PKDict(name='some*sim'), ('somesim', '/folder')),
+        (PKDict(folder='.foo'), ('name', '/foo')),
+        (PKDict(name='s|&+?\'"im***\\'), ('sim', '/folder')),
         (PKDict(folder=''), 'blank folder'),
         (PKDict(name=''), 'blank name'),
+        (PKDict(name='***'), 'blank name'),
     ):
         c = d.copy().pkupdate(folder='folder', name='name')
         r = fc.sr_post('newSimulation', c.pkupdate(x[0]))
-        pkre(x[1], r.error)
+        if 'error' in r:
+            pkre(x[1], r.error)
+        else:
+            pkeq(r.models.simulation.name, x[1][0])
+            pkeq(r.models.simulation.folder, x[1][1])
 
 
 def test_rename_folder(fc):

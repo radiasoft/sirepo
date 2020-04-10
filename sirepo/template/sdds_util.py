@@ -13,6 +13,7 @@ from sirepo.template import elegant_common
 import math
 import re
 import sdds
+import threading
 
 # elegant mux and muy are computed in sddsprocess below
 _ELEGANT_TO_MADX_COLUMNS = [
@@ -34,38 +35,78 @@ _ELEGANT_TO_MADX_COLUMNS = [
 
 MADX_TWISS_COLUMS = map(lambda row: row[1], _ELEGANT_TO_MADX_COLUMNS)
 
-_SDDS_INDEX = 0
+# start SDDS index at 1, leave 0 for others
+_SDDS_INDEX = 1
+_MAX_SDDS_INDEX = 19
+_sdds_lock = threading.RLock()
 
 
 def extract_sdds_column(filename, field, page_index):
+    """ Returns values from one column on one page.
+    """
     return process_sdds_page(filename, page_index, _sdds_column, field)
 
 
 def process_sdds_page(filename, page_index, callback, *args, **kwargs):
+    """ Invokes callback on one page of data.
+    """
+    sdds_index = _next_index()
     try:
-        if sdds.sddsdata.InitializeInput(_SDDS_INDEX, filename) != 1:
+        if sdds.sddsdata.InitializeInput(sdds_index, filename) != 1:
             pkdlog('{}: cannot access'.format(filename))
             # In normal execution, the file may not yet be available over NFS
-            err = _sdds_error('Output file is not yet available.')
+            err = _sdds_error(sdds_index, 'Output file is not yet available.')
         else:
             #TODO(robnagler) SDDS_GotoPage not in sddsdata, why?
-            for _ in xrange(page_index + 1):
-                if sdds.sddsdata.ReadPage(_SDDS_INDEX) <= 0:
+            for _ in range(page_index + 1):
+                if sdds.sddsdata.ReadPage(sdds_index) <= 0:
                     #TODO(robnagler) is this an error?
                     break
             try:
+                kwargs['sdds_index'] = sdds_index
                 return callback(*args, **kwargs)
             except SystemError as e:
                 pkdlog('{}: page not found in {}'.format(page_index, filename))
-                err = _sdds_error('Output page {} not found'.format(page_index) if page_index else 'No output was generated for this report.')
+                err = _sdds_error(
+                    sdds_index,
+                    'Output page {} not found'.format(page_index) \
+                    if page_index \
+                    else 'No output was generated for this report.')
     finally:
         try:
-            sdds.sddsdata.Terminate(_SDDS_INDEX)
+            sdds.sddsdata.Terminate(sdds_index)
         except Exception:
             pass
     return {
         'err': err,
     }
+
+
+def read_sdds_pages(filename, column_names, group_by_page_number=False):
+    """ Returns values from all pages, keyed by column name.
+    """
+    sdds_index = _next_index()
+    res = PKDict()
+    try:
+        assert sdds.sddsdata.InitializeInput(sdds_index, filename) == 1
+        all_names = sdds.sddsdata.GetColumnNames(sdds_index)
+        while sdds.sddsdata.ReadPage(sdds_index) > 0:
+            for name in column_names:
+                if name not in res:
+                    res[name] = []
+                values = sdds.sddsdata.GetColumn(
+                    sdds_index,
+                    all_names.index(name),
+                )
+                if group_by_page_number:
+                    values = [values]
+                res[name] += values
+    finally:
+        try:
+            sdds.sddsdata.Terminate(sdds_index)
+        except Exception:
+            pass
+    return res
 
 
 def twiss_to_madx(elegant_twiss_file, madx_twiss_file):
@@ -89,29 +130,40 @@ def twiss_to_madx(elegant_twiss_file, madx_twiss_file):
     pkio.write_text(madx_twiss_file, header + '\n'.join(lines) + '\n')
 
 
+def _next_index():
+    global _SDDS_INDEX
+    with _sdds_lock:
+        sdds_index = _SDDS_INDEX
+        _SDDS_INDEX += 1
+        if _SDDS_INDEX > _MAX_SDDS_INDEX:
+            _SDDS_INDEX = 1
+    return sdds_index
+
+
 def _safe_sdds_value(v):
     if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
         return 0
     return v
 
 
-def _sdds_column(field):
-    column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
-    column_def = sdds.sddsdata.GetColumnDefinition(_SDDS_INDEX, field)
+def _sdds_column(field, sdds_index=0):
+    column_names = sdds.sddsdata.GetColumnNames(sdds_index)
+    assert field in column_names, 'field not in sdds columns: {}: {}'.format(field, column_names)
+    column_def = sdds.sddsdata.GetColumnDefinition(sdds_index, field)
     values = sdds.sddsdata.GetColumn(
-        _SDDS_INDEX,
+        sdds_index,
         column_names.index(field),
     )
     return PKDict(
-        values=map(lambda v: _safe_sdds_value(v), values),
+        values=[_safe_sdds_value(v) for v in values],
         column_names=column_names,
         column_def=column_def,
         err=None,
     )
 
 
-def _sdds_error(error_text='invalid data file'):
-    sdds.sddsdata.Terminate(_SDDS_INDEX)
+def _sdds_error(sdds_idx, error_text='invalid data file'):
+    sdds.sddsdata.Terminate(sdds_idx)
     return PKDict(
         error=error_text,
     )

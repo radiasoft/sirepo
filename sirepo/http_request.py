@@ -21,7 +21,9 @@ _POST_ATTR = 'sirepo_http_request_post'
 
 
 def init(**imports):
+    global sirepo
     sirepo.util.setattr_imports(imports)
+    import sirepo.auth
 
 
 def is_spider():
@@ -122,18 +124,18 @@ def parse_post(**kwargs):
         else:
             r[z[0]] = v
         res[n] = f(v)
+    if kwargs.pkdel('check_sim_exists') \
+        and not simulation_db.sim_data_file(res.type, res.id).exists():
+        sirepo.util.raise_not_found('type={} sid={} does not exist', res.type, res.id)
     assert not kwargs, \
         'unexpected kwargs={}'.format(kwargs)
+    sirepo.auth.require_sim_type(res.type)
     return res
 
 
 def set_post(data=None):
     """Interface for uri_router"""
-    # Always remove data (if there)
-    res = flask.g.pop(_POST_ATTR, None)
-    if data is not None:
-        flask.g.setdefault(_POST_ATTR, data)
-    return res
+    return _set_flask_g(_POST_ATTR, data)
 
 
 def set_sim_type(sim_type):
@@ -157,3 +159,11 @@ def sim_type(value=None):
     if value:
         return sirepo.template.assert_sim_type(value)
     return flask.g.get(_SIM_TYPE_ATTR)
+
+
+def _set_flask_g(key, value):
+    # Always remove data (if there)
+    res = flask.g.pop(key, None)
+    if value is not None:
+        flask.g.setdefault(key, value)
+    return res

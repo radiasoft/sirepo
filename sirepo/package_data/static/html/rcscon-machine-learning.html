@@ -1,0 +1,64 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6">
+      <div class="row">
+        <div class="col-sm-12">
+          <div data-basic-editor-panel="" data-view-name="mlModel">
+              <button data-ng-disabled="! ml.hasModel()" class="btn btn-default" data-ng-click="ml.display()">Display Graph</button>
+          </div>
+        </div>
+        <div class="col-sm-12">
+          <div data-simple-panel="neuralNetLayer">
+            <div class="col-md-12">
+              <div data-neural-net-layers-form=""></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal fade" id="sr-ml-model-plot" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header bg-warning">
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            <span class="lead modal-title text-info">Model Graph</span>
+          </div>
+          <div class="modal-body">
+            <div class="container-fluid">
+              <div class="row">
+                <div class="col-sm-12" data-ng-if="mlModelShown">
+                  <div data-ml-model-graph="" data-model-name="mlModel" data-report-id="reportId"></div>
+                </div>
+              </div>
+              <br />
+              <div class="row">
+                <div class="col-sm-offset-5 col-sm-2">
+                  <button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+      <div data-basic-editor-panel="" data-view-name="neuralNet"></div>
+    </div>
+    <div class="col-md-6" data-ng-show="ml.hasModel()">
+      <div data-simple-panel="simulationStatus">
+        <div data-sim-status-panel="ml.simState"></div>
+      </div>
+    </div>
+    <div class="col-md-6" data-ng-if="ml.hasFrames('epochAnimation')">
+      <div data-report-panel="parameter" data-model-name="epochAnimation"></div>
+    </div>
+    <div class="clearfix"></div>
+    <div data-ng-repeat="report in ml.reports">
+      <div class="col-sm-3">
+        <div data-report-panel="heatmap" data-model-name="fitAnimation" data-model-data="report" data-panel-title="{{ report.title }}"></div>
+      </div>
+      <div data-ng-if="$index % 4 == 3" class="clearfix"></div>
+    </div>
+  </div>
+</div>

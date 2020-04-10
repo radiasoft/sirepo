@@ -29,7 +29,18 @@ def test_srw_generate_all_optics(fc):
 def test_srw_generate_python(fc):
     from sirepo.template import srw
 
-    for name in ('NSLS-II CHX beamline', 'Sample from Image', 'Boron Fiber (CRL with 3 lenses)', 'Tabulated Undulator Example', 'Gaussian X-ray beam through a Beamline containing Imperfect Mirrors', 'NSLS-II SRX beamline', 'NSLS-II ESM beamline', 'Mask example', 'NSLS-II SMI beamline'):
+    for name in (
+        'Boron Fiber (CRL with 3 lenses)',
+        'Gaussian X-ray beam through a Beamline containing Imperfect Mirrors',
+        'Mask example',
+        'NSLS-II CHX beamline',
+        'NSLS-II ESM beamline',
+        'NSLS-II HXN beamline: SSA closer',
+        'NSLS-II SMI beamline',
+        'NSLS-II SRX beamline',
+        'Sample from Image',
+        'Tabulated Undulator Example',
+    ):
         sim = fc.sr_sim_data(name)
         _generate_source(fc, sim, name)
 
@@ -50,5 +61,7 @@ def _generate_source(fc, sim, name):
         '',
         re.sub(r'\s', '-', '{}.py'.format(name.lower())),
     )
-    pkunit.work_dir().join(n).write(d, 'wb')
-    pkunit.pkeq(pkunit.data_dir().join(n).read(), d)
+    e = pkunit.data_dir().join(n)
+    a = pkunit.work_dir().join(n)
+    a.write(d, 'wb')
+    pkunit.pkeq(e.read(), d, 'diff {} {}', e, a)

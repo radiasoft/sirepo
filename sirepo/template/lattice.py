@@ -44,7 +44,9 @@ class ElementIterator(ModelIterator):
         self.field_index += 1
         if self.is_ignore_field(field) or self.__is_default(model, field_schema, field):
             return
-        self.fields.append(self.formatter(self, model, field, field_schema[1]))
+        f = self.formatter(self, model, field, field_schema[1])
+        if f:
+            self.fields.append(f)
 
     def is_ignore_field(self, field):
         return False
@@ -181,6 +183,11 @@ class LatticeUtil(object):
             res[bl.id] = bl
         for el in data.models.elements:
             res[el._id] = el
+        if 'commands' in data.models:
+            for cmd in data.models.commands:
+                #TODO(pjm): some old elegant sims have overlap in element and command ids
+                if cmd._id not in res:
+                    res[cmd._id] = cmd
         return res
 
     def __render_beamline(self, quote_name=False, want_semicolon=False):
@@ -189,7 +196,7 @@ class LatticeUtil(object):
         ordered_beamlines = []
         for bid in sorted(self.id_map):
             model = self.id_map[bid]
-            if 'type' not in model:
+            if 'type' not in model and not self.is_command(model):
                 LatticeUtil.__add_beamlines(model, self.id_map, ordered_beamlines)
         res = ''
         for bl in ordered_beamlines:

@@ -1,0 +1,331 @@
+{
+    "appModes": {
+        "default": {
+            "localRoute": "visualization"
+        }
+    },
+    "constants": {
+        "layerGraphParams": {
+            "Activation": "activationActivation",
+            "AlphaDropout": "alphaDropoutRate",
+            "Dense": "denseActivation",
+            "Dropout": "dropoutRate",
+            "GaussianDropout": "gaussianDropoutRate",
+            "GaussianNoise": "gaussianNoiseStddev"
+        }
+    },
+    "enum": {
+        "DataSource": [
+            ["files", "Input/Output Files"],
+            ["elegant", "Elegant Simulation"]
+        ],
+        "MLModule": [
+            ["neuralnet", "Neural Network"]
+        ],
+        "NeuralNetActivation": [
+            ["elu", "Exponential Linear Unit (elu)"],
+            ["softmax", "Softmax"],
+            ["selu", "Scaled Exponential Linear Unit (selu)"],
+            ["softplus", "Softplus"],
+            ["softsign", "Softsign"],
+            ["relu", "Rectified Linear Unit (relu)"],
+            ["tanh", "Hyperbolic Tangent"],
+            ["sigmoid", "Sigmoid"],
+            ["hard_sigmoid", "Hard Sigmoid"],
+            ["exponential", "Exponential (base e)"],
+            ["linear", "Linear (identity)"]
+        ],
+        "NeuralNetLayer": [
+            ["Activation", "Activation Funciton"],
+            ["AlphaDropout", "Alpha Noise Dropout"],
+            ["Dense", "Densely Connected NN"],
+            ["Dropout", "Dropout"],
+            ["Flatten", "Flatten"],
+            ["GaussianDropout", "Gaussian Noise Dropout"],
+            ["GaussianNoise", "Gaussian Noise"]
+        ],
+        "NeuralNetLosses": [
+            ["binary_crossentropy", "Binary Cross-Entropy"],
+            ["categorical_crossentropy", "Categorical Crossentropy"],
+            ["categorical_hinge", "Categorical Hinge"],
+            ["cosine_proximity", "Cosine Proximity"],
+            ["crossentropy", "Crossentropy"],
+            ["hinge", "Hinge"],
+            ["kullback_leibler_diverence", "Kullback Leibler Divergence"],
+            ["logcosh", "log(cosh(x))"],
+            ["mean_absolute_error", "Mean Absolute Error"],
+            ["mean_absolute_percentage_error", "Mean Absolute Percentage Error"],
+            ["mean_squared_error", "Mean Squared Error"],
+            ["mean_squared_logarithmic_error", "Mean Squared Logarithmic Error"],
+            ["poisson", "Poisson"],
+            ["sparse_categorical_crossentropy", "Sparse Categorical Crossentropy"],
+            ["squared_hinge", "Squared Hinge"]
+        ],
+        "NeuralNetOptimizer": [
+            ["sgd", "Stochastic Gradient Descent"],
+            ["rmsprop", "RMSProp"],
+            ["adagrad", "Adagrad"],
+            ["adadelta", "Adadelta"],
+            ["adam", "Adam"],
+            ["adamax", "Adamax"],
+            ["nadam", "Nesterov Adam"]
+        ],
+        "PartitionSection": [
+            ["train", "Training"],
+            ["test", "Testing"],
+            ["validate", "Valiation"],
+            ["train_and_test", "Training and Testing"]
+        ],
+        "PlotScale": [
+            ["linear", "Linear"],
+            ["log10", "Base-10 Logarithm"]
+        ],
+        "Scaler": [
+            ["MaxAbsScaler", "Max-Abs Scaler"],
+            ["MinMaxScaler", "Min-Max Scaler"],
+            ["RobustScaler", "Robust Scaler"],
+            ["StandardScaler", "Standard Scaler"],
+            ["None", "None"]
+        ],
+        "SplitMethod": [
+            ["random", "Random"],
+            ["selection", "Select Ranges"]
+        ]
+    },
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": [
+                "rcscon.js",
+                "sirepo-lattice.js"
+            ],
+            "css": [
+                "rcscon.css"
+            ]
+        }
+    },
+    "localRoutes": {
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "VisualizationController as visualization",
+                "templateUrl": "/static/html/rcscon-visualization.html"
+            }
+        },
+        "partition": {
+            "route": "/partition/:simulationId",
+            "config": {
+                "controller": "PartitionController as partition",
+                "templateUrl": "/static/html/rcscon-partition.html"
+            }
+        },
+        "machine-learning": {
+            "route": "/machine-learning/:simulationId",
+            "config": {
+                "controller": "MLController as ml",
+                "templateUrl": "/static/html/rcscon-machine-learning.html"
+            }
+        }
+    },
+    "frameIdFields": {
+        "animation": ["columnNumber"],
+        "partitionAnimation": ["columnNumber"],
+        "epochAnimation": [],
+        "elegantAnimation": []
+    },
+    "model": {
+        "dataSource": {
+            "source": ["Data Source", "DataSource", "files"]
+        },
+        "elegantAnimation": {
+            "n_steps": ["Iterations", "Integer", 100]
+        },
+        "epochAnimation": {
+            "plotScale": ["Plot Scale", "PlotScale", "linear"]
+        },
+        "files": {
+            "inputs": ["Inputs File", "InputFile"],
+            "outputs": ["Outputs File", "InputFile"],
+            "inputsScaler": ["Inputs Scaler", "Scaler", "RobustScaler"],
+            "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"]
+        },
+        "fileColumnReport": {
+            "columnNumber": ["Column Number", "Integer", 0]
+        },
+        "fitAnimation": {
+            "columnNumber": ["Column Number", "Integer", 0],
+            "histogramBins": ["Histogram Bins", "Integer", 30],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
+        },
+        "latticeSettings": {
+            "phase_error": ["Phase Error [deg]", "Float", 25.0, "The width of the Gaussian distribution of error in the DTL tank phase settings."],
+            "amplitude_error": ["Amplitude Error", "Float", 0.075, "The width of the Guassian distribution of error in the DTL tank amplitude (Voltage) setting. This is a fractional error based on the default Voltage setting."],
+            "dx_error": ["dx Error [m]", "Float", 0.25, "The width of the Guassian distribution of error for initial horizontal bunch size."],
+            "dy_error": ["dy Error [m]", "Float", 0.25, "The width of the Guassian distribution of error for initial vertical bunch size."],
+            "dxp_error": ["dxp Error [rad]", "Float", 0.25, "The width of the Guassian distribution of error for initial horizontal divergence."],
+            "dyp_error": ["dyp Error [rad]", "Float", 0.25, "The width of the Guassian distribution of error for initial vertical divergence."],
+            "dp_error": ["dp Error", "Float", 0.15e-3, "The width of the Guassian distribution of error for initial energy offset in $\\beta\\gamma$."]
+        },
+        "mlModel": {
+            "mlModule": ["Model Type", "MLModule", "neuralnet"]
+        },
+        "mlModelGraph": {
+            "inProgressText": ["", "String", "Building"],
+            "svg": ["", "String", ""]
+        },
+        "neuralNet": {
+            "optimizer": ["Optimizer", "NeuralNetOptimizer", "adam"],
+            "losses": ["Losses", "NeuralNetLosses", "mean_squared_error"],
+            "epochs" : ["Epochs", "Integer", 500],
+            "batch_size": ["Batch Size", "Integer", 50],
+            "shuffle": ["Shuffle Before Epoch", "Boolean", "1"]
+        },
+        "neuralNetLayer": {
+            "layer": ["Layer", "NeuralNetLayer", "Dense"],
+            "activationActivation": ["Activation", "NeuralNetActivation", "relu"],
+            "alphaDropoutRate": ["Rate", "Float", 0.5],
+            "denseActivation": ["Activation", "NeuralNetActivation", "relu"],
+            "denseDimensionality": ["Dimensionality", "Integer", 10],
+            "dropoutRate": ["Rate", "Float", 0.5],
+            "gaussianDropoutRate": ["Rate", "Float", 0.5],
+            "gaussianNoiseStddev": ["Standard Deviation", "Float", 0.01]
+        },
+        "partition": {
+            "training": ["Training %", "Float", 75, "", 1, 98],
+            "testing": ["Testing %", "Float", 12.5, "", 1, 98],
+            "validation": ["Validation %", "Float", 12.5],
+            "method": ["Split Method", "SplitMethod", "random"],
+            "random_state": ["Random Seed", "Integer", 42],
+            "section0": ["Section 0", "PartitionSection", "validate"],
+            "section1": ["Section 1", "PartitionSection", "train_and_test"],
+            "section2": ["Section 2", "PartitionSection", "validate"],
+            "cutoff0": ["Cutoff 0", "Integer"],
+            "cutoff1": ["Cutoff 1", "Integer"],
+            "trainTestPercent": ["Training %", "Float", 75, "", 1, 98]
+        },
+        "partitionSelectionReport": {
+        },
+        "partitionAnimation": {
+            "columnNumber": ["Column Number", "Integer", 0]
+        },
+        "rfcSettings": {
+            "change_p0": ["Change P0", "Boolean", "1", "does cavity change central momentum?"],
+            "freq": ["Frequency [Hz]", "Float", "201.24"],
+            "end1_focus": ["End1 Focus", "Boolean", "1", "include focusing at entrance?"],
+            "end2_focus": ["End2 Focus", "Boolean", "1", "include focusing at exit?"],
+            "phase": ["Phase [deg]", "Float", "58.0"],
+            "lock_phase": ["Lock Phase", "Boolean", "0", "Lock phase to given value regardless of bunch centroid motion?"]
+        },
+        "simulationStatus": {}
+    },
+    "view": {
+        "dataSource": {
+            "title": "Data Source",
+            "basic": [
+                "source"
+            ],
+            "advanced": []
+        },
+        "elegantAnimation": {
+            "title": "Elegant Simulation",
+            "basic": [
+                "n_steps"
+            ],
+            "advanced": []
+        },
+        "epochAnimation": {
+            "title": "Training Error",
+            "advanced": [
+                "plotScale"
+            ]
+        },
+        "files": {
+            "title": "Files",
+            "basic": [
+                "inputs",
+                "outputs",
+                "inputsScaler",
+                "outputsScaler"
+            ],
+            "advanced": []
+        },
+        "fileColumnReport": {
+            "title": "Column",
+            "advanced": []
+        },
+        "fitAnimation": {
+            "title": "Column",
+            "advanced": []
+        },
+        "latticeSettings": {
+            "title": "Lattice Errors",
+            "basic": [
+                "phase_error",
+                "amplitude_error",
+                "dx_error",
+                "dy_error",
+                "dxp_error",
+                "dyp_error",
+                "dp_error"
+            ],
+            "advanced": []
+        },
+        "mlModel": {
+            "title": "Model",
+            "basic": [
+                "mlModule"
+            ],
+            "advanced": []
+        },
+        "neuralNet": {
+            "title": "Neural Network",
+            "basic": [
+                "optimizer",
+                "losses",
+                "epochs",
+                "batch_size",
+                "shuffle"
+            ],
+            "advanced": []
+        },
+        "neuralNetLayer": {
+            "title": "Neural Network Layers",
+            "advanced": []
+        },
+        "partition": {
+            "title": "Partition",
+            "basic": [
+                "method",
+                "training",
+                "testing",
+                "validation"
+            ],
+            "advanced": [
+                "random_state"
+            ]
+        },
+        "partitionAnimation": {
+            "title": "Column",
+            "advanced": []
+        },
+        "partitionSelectionReport": {
+            "title": "Partition Selection",
+            "advanced": []
+        },
+        "rfcSettings": {
+            "title": "RF Cavity Settings",
+            "basic":  [
+                "change_p0",
+                "freq",
+                "end1_focus",
+                "end2_focus",
+                "phase",
+                "lock_phase"
+            ],
+            "advanced": []
+        },
+        "simulationStatus": {
+            "title": "Execution Status",
+            "advanced": []
+        }
+    }
+}

@@ -3,23 +3,24 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.USER_MANUAL_URL = 'https://github.com/zhanghe9704/electroncooling/blob/master/JSPEC%20User%20manual.md';
-SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
-SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation', 'coolingRatesAnimation'];
-SIREPO.FILE_UPLOAD_TYPE = {
-    'ring-lattice': '.tfs,.txt',
-};
-SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="rateCalculation" data-rate-calculation-panel="" class="sr-plot"></div>',
-].join('');
-SIREPO.appFieldEditors = [
-    '<div data-ng-switch-when="ElegantSimList" data-ng-class="fieldClass">',
-      '<div data-elegant-sim-list="" data-model="model" data-field="field"></div>',
-    '</div>',
-    '<div data-ng-switch-when="TwissFile" class="col-sm-7">',
-      '<div data-twiss-file-field="" data-model="model" data-field="field" data-model-name="modelName"></div>',
-    '</div>',
-].join('');
+SIREPO.app.config(function() {
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
+    SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation', 'coolingRatesAnimation', 'forceTableAnimation'];
+    SIREPO.FILE_UPLOAD_TYPE = {
+        'ring-lattice': '.tfs,.txt',
+    };
+    SIREPO.appReportTypes = [
+        '<div data-ng-switch-when="rateCalculation" data-rate-calculation-panel="" class="sr-plot"></div>',
+    ].join('');
+    SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="ElegantSimList" data-ng-class="fieldClass">',
+          '<div data-elegant-sim-list="" data-model="model" data-field="field"></div>',
+        '</div>',
+        '<div data-ng-switch-when="TwissFile" class="col-sm-7">',
+          '<div data-twiss-file-field="" data-model="model" data-field="field" data-model-name="modelName"></div>',
+        '</div>',
+    ].join('');
+});
 
 SIREPO.app.factory('jspecService', function(appState) {
     var self = {};
@@ -107,6 +108,13 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         panelState.showField('ring', 'elegantSirepo', latticeSource == 'elegant-sirepo');
     }
 
+    function processParticle() {
+        var n = 'ionBeam';
+        ['mass', 'charge_number'].forEach(function(f) {
+            panelState.showField(n, f, appState.models[n].particle === 'OTHER');
+        });
+    }
+
     function updateForceFormulas() {
         if (! SIREPO.APP_SCHEMA.feature_config.derbenevskrinsky_force_formula) {
             panelState.showEnum('electronCoolingRate', 'force_formula', 'derbenevskrinsky', false);
@@ -123,12 +131,14 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         processElectronBeamShape();
         processLatticeSource();
         processGamma();
+        processParticle();
         updateForceFormulas();
         appState.watchModelFields($scope, ['ionBeam.beam_type'], processIonBeamType);
         appState.watchModelFields($scope, ['electronBeam.shape', 'electronBeam.beam_type'], processElectronBeamShape);
         appState.watchModelFields($scope, ['electronBeam.beam_type'], processElectronBeamType);
         appState.watchModelFields($scope, ['ring.latticeSource'], processLatticeSource);
         appState.watchModelFields($scope, ['ionBeam.mass', 'ionBeam.kinetic_energy'], processGamma);
+        appState.watchModelFields($scope, ['ionBeam.particle'], processParticle);
         $scope.$on('sr-tabSelected', processIntrabeamScatteringMethod);
         $scope.$on('sr-tabSelected', updateForceFormulas);
         appState.watchModelFields($scope, ['intrabeamScatteringRate.longitudinalMethod'], processIntrabeamScatteringMethod);
@@ -139,16 +149,15 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     var self = this;
     self.hasParticles = false;
     self.hasRates = false;
+    self.hasForceTable = false;
 
     function handleStatus(data) {
+        self.hasParticles = self.hasRates = self.hasForceTable = false;
         if ('percentComplete' in data && ! data.error) {
+            self.hasParticles = data.hasParticles;
+            self.hasRates = data.hasRates;
+            self.hasForceTable = data.hasForceTable;
             plotRangeService.computeFieldRanges(self, 'particleAnimation', data.percentComplete);
-            ['beamEvolutionAnimation', 'coolingRatesAnimation', 'particleAnimation'].forEach(function(m) {
-                appState.saveQuietly(m);
-                self.hasParticles = data.hasParticles;
-                self.hasRates = data.hasRates;
-                frameCache.setFrameCount(data.frameCount, m);
-            });
         }
         frameCache.setFrameCount(data.frameCount || 0);
     }
@@ -159,6 +168,21 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         });
     }
 
+    function processForceTablePlot() {
+        if (! appState.isLoaded()) {
+            return;
+        }
+        var force = appState.models.forceTableAnimation;
+        if (force.plot == 'longitudinal') {
+            force.x = 'Vlong';
+            force.y1 = 'flong';
+        }
+        else {
+            force.x = 'Vtrans';
+            force.y1 = 'fx';
+        }
+    }
+
     function processModel() {
         var settings = appState.models.simulationSettings;
         panelState.showField('simulationSettings', 'save_particle_interval', settings.model == 'particle');
@@ -166,19 +190,43 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         panelState.showField('electronCoolingRate', 'sample_number', settings.model == 'particle');
     }
 
-    self.handleModalShown = function(name) {
-        if (name == 'particleAnimation') {
-            processColorRange();
-            plotRangeService.processPlotRange(self, name);
+    function processTimeStep() {
+        var s = appState.models.simulationSettings;
+        if (panelState.isActiveField('simulationSettings', 'time') || panelState.isActiveField('simulationSettings', 'step_number')) {
+            s.time_step = s.time / s.step_number;
         }
-    };
+        else if (panelState.isActiveField('simulationSettings', 'time_step')) {
+             s.time = s.step_number * s.time_step;
+        }
+    }
 
     appState.whenModelsLoaded($scope, function() {
         processModel();
         appState.watchModelFields($scope, ['simulationSettings.model', 'simulationSettings.e_cool'], processModel);
+        appState.watchModelFields(
+            $scope,
+            ['simulationSettings.time', 'simulationSettings.step_number', 'simulationSettings.time_step'],
+            processTimeStep);
         appState.watchModelFields($scope, ['particleAnimation.colorRangeType'], processColorRange);
-        appState.watchModelFields($scope, ['particleAnimation.plotRangeType'], function() {
-            plotRangeService.processPlotRange(self, 'particleAnimation');
+        appState.watchModelFields($scope, ['forceTableAnimation.plot'], processForceTablePlot);
+        ['particleAnimation', 'beamEvolutionAnimation', 'coolingRatesAnimation', 'forceTableAnimation'].forEach(function(m) {
+            appState.watchModelFields($scope, [m + '.plotRangeType'], function() {
+                plotRangeService.processPlotRange(self, m);
+            });
+        });
+        $scope.$on('sr-tabSelected', function(evt, name) {
+            if (name == 'particleAnimation') {
+                processColorRange();
+                plotRangeService.processPlotRange(self, name);
+            }
+            else if (name == 'beamEvolutionAnimation' || name == 'coolingRatesAnimation') {
+                //TODO(pjm): plots have fixed x field 't', should set in template.jspec, see _X_FIELD
+                appState.models[name].x = 't';
+                plotRangeService.processPlotRange(self, name);
+            }
+            else if (name == 'forceTableAnimation') {
+                plotRangeService.processPlotRange(self, name);
+            }
         });
     });
 

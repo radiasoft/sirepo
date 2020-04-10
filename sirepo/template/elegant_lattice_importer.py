@@ -9,9 +9,10 @@ from pykern import pkresource
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
-from sirepo.template.lattice import LatticeUtil
+from sirepo.template import code_variable
 from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_parser
+from sirepo.template import lattice
 import ntpath
 import re
 import sirepo.sim_data
@@ -27,27 +28,54 @@ _ELEGANT_TYPE_RE = re.compile(r'^[A-Z]+$')
 _ELEGANT_TYPES = set(n for n in _SCHEMA.model if _ELEGANT_TYPE_RE.search(n))
 
 
-def build_variable_dependency(value, variables, depends):
-    for v in str(value).split(' '):
-        if v in variables:
-            if v not in depends:
-                build_variable_dependency(variables[v], variables, depends)
-                depends.append(v)
-    return depends
+class ElegantRPNEval(object):
+
+    def eval_var(self, expr, depends, variables):
+        #TODO(robnagler) scan variable values for strings. Need to be parsable
+        var_list = ' '.join(map(lambda x: '{} sto {}'.format(variables[x], x), depends))
+        #TODO(pjm): security - need to scrub field value
+        #     execn  send top of string stack to UNIX and put result on numerical stack
+        #     execs     send top of string stack to UNIX and put output on string stack
+        # csh                       start and enter C shell subprocess
+        # cshs                       send top of string stack to C shell
+        # gets                       get string from input file
+        # seems like this would be bad, because you could construct a string that could be executed
+        # mudf    make user defined function from string stack (name commands mudf)
+        # open                       open input/output file
+        # puts                       put string to file
+        # sleep                       sleep for number of seconds
+        # @                       push command input file
+        pkdc('rpn variables={} expr="{}"', var_list, expr)
+        out = elegant_common.subprocess_output(['rpnl', '{} {}'.format(var_list, expr)])
+        if out is None:
+            return None, 'invalid'
+        if len(out):
+            return float(out.strip()), None
+        return None, 'empty'
+
+
+def elegant_code_var(variables):
+    return code_variable.CodeVar(variables, ElegantRPNEval())
 
 
 def import_file(text, data=None):
-    models = elegant_lattice_parser.parse_file(text, _SIM_DATA.elegant_max_id(data) if data else 0)
+    if not data:
+        data = simulation_db.default_data(elegant_common.SIM_TYPE)
+    models = elegant_lattice_parser.parse_file(
+        text,
+        data.models.rpnVariables,
+        _SIM_DATA.elegant_max_id(data))
     name_to_id, default_beamline_id = _create_name_map(models)
     if 'default_beamline_name' in models and models['default_beamline_name'] in name_to_id:
         default_beamline_id = name_to_id[models['default_beamline_name']]
     element_names = PKDict()
     rpn_cache = PKDict()
+    code_var = elegant_code_var(models.rpnVariables)
 
     for el in models['elements']:
         el['type'] = _validate_type(el, element_names)
         element_names[el['name'].upper()] = el
-        validate_fields(el, rpn_cache, models['rpnVariables'])
+        validate_fields(el, rpn_cache, code_var)
 
     for bl in models['beamlines']:
         bl['items'] = _validate_beamline(bl, name_to_id, element_names)
@@ -55,12 +83,10 @@ def import_file(text, data=None):
     if len(models['elements']) == 0 or len(models['beamlines']) == 0:
         raise IOError('no beamline elements found in file')
 
-    if not data:
-        data = simulation_db.default_data(elegant_common.SIM_TYPE)
     data['models']['elements'] = models['elements']
     data['models']['beamlines'] = models['beamlines']
     data['models']['rpnVariables'] = models['rpnVariables']
-    LatticeUtil(data, _SCHEMA).sort_elements_and_beamlines()
+    lattice.LatticeUtil(data, _SCHEMA).sort_elements_and_beamlines()
 
     if default_beamline_id:
         data['models']['simulation']['activeBeamlineId'] = default_beamline_id
@@ -71,51 +97,15 @@ def import_file(text, data=None):
     return data
 
 
-def is_rpn_value(value):
-    if (value):
-        if re.search(r'^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$', str(value)):
-            return False
-        return True
-    return False
-
-
-def parse_rpn_value(value, variable_list):
-    variables = PKDict({x['name']: x['value'] for x in variable_list})
-    depends = build_variable_dependency(value, variables, [])
-    #TODO(robnagler) scan variable values for strings. Need to be parsable
-    var_list = ' '.join(map(lambda x: '{} sto {}'.format(variables[x], x), depends))
-    #TODO(pjm): security - need to scrub field value
-    #     execn  send top of string stack to UNIX and put result on numerical stack
-    #     execs     send top of string stack to UNIX and put output on string stack
-    # csh                       start and enter C shell subprocess
-    # cshs                       send top of string stack to C shell
-    # gets                       get string from input file
-    # seems like this would be bad, because you could construct a string that could be executed
-    # mudf    make user defined function from string stack (name commands mudf)
-    # open                       open input/output file
-    # puts                       put string to file
-    # sleep                       sleep for number of seconds
-    # @                       push command input file
-    pkdc('rpn variables={} expr="{}"', var_list, value)
-    out = elegant_common.subprocess_output(['rpnl', '{} {}'.format(var_list, value)])
-    if out is None:
-        return None, 'invalid'
-    if len(out):
-        return float(out.strip()), None
-    return None, 'empty'
-
-
-def validate_fields(el, rpn_cache, rpn_variables):
+def validate_fields(el, rpn_cache, code_var=None):
+    if code_var is None:
+        code_var = elegant_code_var([])
     for field in el.copy():
-        _validate_field(el, field, rpn_cache, rpn_variables)
-    model_name = _model_name_for_data(el)
+        _validate_field(el, field, rpn_cache, code_var)
+    model_name = lattice.LatticeUtil.model_name_for_data(el)
     for field in _SCHEMA['model'][model_name]:
         if field not in el:
             el[field] = _SCHEMA['model'][model_name][field][2]
-
-
-def _model_name_for_data(model):
-    return 'command_{}'.format(model['_type']) if '_type' in model else model['type']
 
 
 def _create_name_map(models):
@@ -136,7 +126,7 @@ def _field_type_for_field(el, field):
     if re.search(r'\[\d+\]$', field):
         field = re.sub(r'\[\d+\]$', '', field)
     field_type = None
-    model_name = _model_name_for_data(el)
+    model_name = lattice.LatticeUtil.model_name_for_data(el)
     for f in _SCHEMA['model'][model_name]:
         if f == field:
             field_type = _SCHEMA['model'][model_name][f][1]
@@ -146,6 +136,10 @@ def _field_type_for_field(el, field):
             pkdlog('{}: unknown field type for {}', field, model_name)
         del el[field]
     return field_type
+
+
+def _strip_file_prefix(value, model, field):
+    return re.sub('^{}-{}\.'.format(model, field), '', value)
 
 
 def _validate_beamline(bl, name_to_id, element_names):
@@ -183,7 +177,7 @@ def _validate_enum(el, field, field_type):
         raise IOError('{} unknown value: "{}"'.format(field, search))
 
 
-def _validate_field(el, field, rpn_cache, rpn_variables):
+def _validate_field(el, field, rpn_cache, code_var):
     if field in ['_id', '_type']:
         return
     if '_type' not in el and field == 'type':
@@ -197,14 +191,21 @@ def _validate_field(el, field, rpn_cache, rpn_variables):
         el[field] = ntpath.basename(el[field])
     elif field_type == "InputFileXY":
         _validate_input_file(el, field)
-    elif (field_type == 'RPNValue' or field_type == 'RPNBoolean') and is_rpn_value(el[field]):
-        _validate_rpn_field(el, field, rpn_cache, rpn_variables)
+    elif (field_type == 'RPNValue' or field_type == 'RPNBoolean') and \
+         code_var.is_var_value(el[field]):
+        _validate_rpn_field(el, field, rpn_cache, code_var)
     elif field_type.endswith('StringArray'):
         _validate_string_array_field(el, field)
     elif field_type in _SCHEMA['enum']:
         _validate_enum(el, field, field_type)
     elif 'type' in el and el['type'] == 'SCRIPT' and field == 'command':
         _validate_script(el)
+    # Input files may have been from a sirepo export. Strip the sirepo file prefix if present.
+    if field_type.startswith('InputFile'):
+        el[field] = _strip_file_prefix(
+            el[field], lattice.LatticeUtil.model_name_for_data(el), field)
+    elif field_type == 'BeamInputFile':
+        el[field] = _strip_file_prefix(el[field], 'bunchFile', 'sourceFile')
 
 
 def _validate_input_file(el, field):
@@ -219,18 +220,17 @@ def _validate_input_file(el, field):
         el[field] = fullname
 
 
-def _validate_rpn_field(el, field, rpn_cache, rpn_variables):
+def _validate_rpn_field(el, field, rpn_cache, code_var):
     if '_type' in el:
-        return
-    #TODO(pjm): doesn't reach this if?
-    if '_type' in el:
+        # command model
         m = re.search('\((.*?)\)$', el[field])
         if m:
             el[field] = m.group(1)
         m = re.search('\{\s*rpnl\s+(.*)\}$', el[field])
         if m:
             el[field] = m.group(1)
-    value, error = parse_rpn_value(el[field], rpn_variables)
+        return
+    value, error = code_var.eval_var(el[field])
     if error:
         raise IOError('invalid rpn: "{}"'.format(el[field]))
     rpn_cache[el[field]] = value
@@ -263,7 +263,7 @@ def _validate_string_array_field(el, field):
     field = m.group(1)
     index = int(m.group(2))
     if not field in el:
-        model_name = _model_name_for_data(el)
+        model_name = lattice.LatticeUtil.model_name_for_data(el)
         el[field] = _SCHEMA['model'][model_name][field][2]
     value_array = re.split('\s*,\s*', el[field])
     m = re.search('^(\d+)\*(.*)$', value)
