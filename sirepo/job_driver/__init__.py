@@ -164,7 +164,7 @@ class DriverBase(PKDict):
 
     async def kill(self):
         raise NotImplementedError(
-            'DriverBase children need to implement their own kill',
+            'DriverBase subclasses need to implement their own kill',
         )
 
     def make_lib_dir_symlink(self, op):
