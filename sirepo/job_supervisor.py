@@ -496,7 +496,7 @@ class _ComputeJob(PKDict):
     async def _receive_api_runSimulation(self, req):
         def _set_error(op, compute_job_serial):
             if self.db.computeJobSerial != compute_job_serial:
-                # We no longer own the db so there is nothing to do
+                # Another run has started
                 return
             self.__db_update(
                 status=job.ERROR,
@@ -569,7 +569,7 @@ class _ComputeJob(PKDict):
                 # api_runCancel destroyed the op and updated the db
                 raise
             # There was a timeout getting the run started. Set the
-            # error and let the user know. The timeot has destroyed
+            # error and let the user know. The timeout has destroyed
             # the op so don't need to in _set_error
             _set_error(None, c)
             return self._status_reply(req)
