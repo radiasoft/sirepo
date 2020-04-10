@@ -44,6 +44,8 @@ def test_srw_auth_hash_copy():
         'SIREPO_FEATURE_CONFIG_SIM_TYPES': 'srw:myapp',
     })
     from pykern import pkcollections
+    from pykern import pkcompat
+    from pykern.pkdebug import pkdp
     from pykern.pkunit import pkeq
     from sirepo.auth import bluesky
     import base64
@@ -63,12 +65,16 @@ def test_srw_auth_hash_copy():
     )
     h = hashlib.sha256()
     h.update(
-        ':'.join([
-            req['authNonce'],
-            req['simulationType'],
-            req['simulationId'],
-            bluesky.cfg.secret,
-        ]).encode(),
+        pkcompat.to_bytes(
+            ':'.join([
+                req['authNonce'],
+                req['simulationType'],
+                req['simulationId'],
+                bluesky.cfg.secret,
+            ]),
+        ),
     )
-    req['authHash'] = 'v1:' + str(base64.urlsafe_b64encode(h.digest()))
+    req['authHash'] = 'v1:' + pkcompat.from_bytes(
+        base64.urlsafe_b64encode(h.digest()),
+    )
     bluesky.auth_hash(pkcollections.Dict(req), verify=True)

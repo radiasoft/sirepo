@@ -5,6 +5,7 @@ u"""NSLS-II BlueSky Login
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
@@ -78,14 +79,16 @@ def auth_hash(req, verify=False):
         req.authNonce = str(now) + _AUTH_NONCE_SEPARATOR + util.random_base62()
     h = hashlib.sha256()
     h.update(
-        _AUTH_HASH_SEPARATOR.join([
+        pkcompat.to_bytes(_AUTH_HASH_SEPARATOR.join([
             req.authNonce,
             req.simulationType,
             req.simulationId,
             cfg.secret,
-        ]).encode(),
+        ])),
     )
-    res = 'v1:' + str(base64.urlsafe_b64encode(h.digest()))
+    res = 'v1:' + pkcompat.from_bytes(
+        base64.urlsafe_b64encode(h.digest()),
+    )
     if not verify:
         req.authHash = res
         return

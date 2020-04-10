@@ -5,19 +5,15 @@ u"""Simple API test for app.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-try:
-    import StringIO
-except:
-    from io import StringIO
 import csv
 import pytest
 import re
+import six
 import time
 
 
 def test_elegant_data_file(fc):
-    from pykern import pkio
-    from pykern import pkunit
+    from pykern import pkunit, pkcompat, pkio
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     import sdds
@@ -44,7 +40,7 @@ def test_elegant_data_file(fc):
         time.sleep(1)
     else:
         pkunit.pkfail('runStatus: failed to complete: {}', run)
-    resp = fc.sr_get(
+    r = fc.sr_get(
         'downloadDataFile',
         PKDict(
             simulation_type=data.simulationType,
@@ -54,10 +50,11 @@ def test_elegant_data_file(fc):
             suffix='csv',
         ),
     )
-    pkunit.pkre('no-cache', resp.headers['Cache-Control'])
-    rows = csv.reader(StringIO.StringIO(resp.get_data()))
+    pkunit.pkeq(200, r.status_code)
+    pkunit.pkre('no-cache', r.headers.get('Cache-Control'))
+    rows = csv.reader(six.StringIO(pkcompat.from_bytes(r.data)))
     pkunit.pkeq(50001, len(list(rows)), '50,000 particles plus header row')
-    resp = fc.sr_get(
+    r = fc.sr_get(
         'downloadDataFile',
         PKDict(
             simulation_type=data.simulationType,
@@ -66,10 +63,14 @@ def test_elegant_data_file(fc):
             frame='-1',
         ),
     )
-    m = re.search(r'attachment; filename="([^"]+)"', resp.headers['Content-Disposition'])
+    pkunit.pkeq(200, r.status_code)
+    m = re.search(
+        r'attachment; filename="([^"]+)"',
+        r.headers.get('Content-Disposition'),
+    )
     d = pkunit.work_dir()
     path = d.join(m.group(1))
-    path.write_binary(resp.get_data())
+    path.write_binary(r.data)
     assert sdds.sddsdata.InitializeInput(0, str(path)) == 1, \
         '{}: sdds failed to open'.format(path)
     # Verify we can read something
@@ -78,23 +79,23 @@ def test_elegant_data_file(fc):
 
 
 def test_myapp_basic(fc):
-    from pykern import pkunit
+    from pykern import pkunit, pkcompat
 
-    resp = fc.get('/old')
-    assert 'LandingPageController' in resp.get_data(), \
+    r = fc.get('/old')
+    assert 'LandingPageController' in pkcompat.from_bytes(r.data), \
         'Top level document is the landing page'
-    resp = fc.get('/robots.txt')
-    pkunit.pkre('elegant.*myapp.*srw', resp.get_data())
+    r = fc.get('/robots.txt')
+    pkunit.pkre('elegant.*myapp.*srw', pkcompat.from_bytes(r.data))
 
 
 def test_srw(fc):
-    from pykern import pkio
+    from pykern import pkio, pkcompat
     from pykern.pkdebug import pkdpretty
     from pykern.pkunit import pkeq, pkre
     import json
 
     r = fc.sr_get_root()
-    pkre('<!DOCTYPE html', r.data)
+    pkre('<!DOCTYPE html', pkcompat.from_bytes(r.data))
     d = fc.sr_post('listSimulations', {'simulationType': fc.sr_sim_type})
     pkeq(fc.get('/find-by-name-auth/srw/default/UndulatorRadiation').status_code, 404)
     for sep in (' ', '%20', '+'):

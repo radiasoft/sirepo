@@ -11,6 +11,7 @@ import pytest
 def test_create_zip(fc):
     from pykern import pkio
     from pykern import pkunit
+    from pykern import pkcompat
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp, pkdpretty
     from pykern.pkunit import pkeq
@@ -36,7 +37,7 @@ def test_create_zip(fc):
                     )
                 )
                 p = d.join(sim_name + '.' + t)
-                x = r.data
+                x = pkcompat.from_bytes(r.data)
                 if t == 'html':
                     m = re.search(r'name="zip" \S+ value="([^"]+)"', x, flags=re.DOTALL)
                     x = m.group(1).decode('base64')
