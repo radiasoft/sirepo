@@ -56,11 +56,11 @@ def test_follow_email_auth_link_twice(auth_fc):
     fc.get(r.uri)
     # get the url twice - should still be logged in
     d = fc.sr_get(r.uri)
-    assert not re.search(r'login-fail', d.data)
+    assert not re.search(r'login-fail', str(d.data))
     fc.sr_email_confirm(fc, r)
     fc.sr_get('authLogout', {'simulation_type': fc.sr_sim_type})
     # now logged out, should see login fail for bad link
-    pkre('login-fail', fc.get(r.uri).data)
+    pkre('login-fail', str(fc.get(r.uri).data))
 
 
 def test_force_login(auth_fc):

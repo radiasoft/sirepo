@@ -19,7 +19,7 @@ def test_deprecated():
 
     r = fc.sr_get('authGuestLogin', {'simulation_type': sim_type}, redirect=False)
     pkeq(302, r.status_code)
-    pkre('guest/deprecated', r.data)
+    pkre('guest/deprecated', str(r.data))
 
 
 def _fc(guest_deprecated=False):
