@@ -92,7 +92,7 @@ def init():
             parallel_premium=(2, float, 'maximum run-time for parallel job for premium user (except sbatch)'),
             sequential=(.1, float, 'maximum run-time for sequential job'),
         ),
-        purge_free_after_days=(10, int, 'how many days to wait before purging a free users simulation'),
+        purge_free_after_days=(1000, int, 'how many days to wait before purging a free users simulation'),
         sbatch_poll_secs=(15, int, 'how often to poll squeue and parallel status'),
         test_purge_frequency_secs=(3600, int, 'Only for interal test: How often try try purging free simulations')
     )
