@@ -69,14 +69,6 @@ def test_myapp_free_user_sim_purged(auth_fc):
         r.update(data)
         return r
 
-    def _register(email):
-        # TODO(e-carlin): modularize in srunit
-        fc.sr_email_login(email)
-        fc.sr_post(
-            'authCompleteRegistration',
-            PKDict(displayName=email, simulationType=fc.sr_sim_type),
-        )
-
     def _status_eq(next_req, status):
         pkunit.pkeq(
             status,
@@ -87,8 +79,8 @@ def test_myapp_free_user_sim_purged(auth_fc):
     m = 'heightWeightReport'
     user_free = 'free@b.c'
     user_premium = 'premium@x.y'
-    _register(user_free)
-    _register(user_premium)
+    fc.sr_email_register(user_free)
+    fc.sr_email_register(user_premium)
     _make_user_premium(fc.sr_auth_state().uid)
     next_req_premium = _run_sim(fc.sr_sim_data())
     fc.sr_email_login(user_free)

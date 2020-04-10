@@ -246,6 +246,13 @@ class _TestClient(flask.testing.FlaskClient):
         )
         self.sr_email_confirm(self, r)
 
+    def sr_email_register(self, email):
+        self.sr_email_login(email)
+        self.sr_post(
+            'authCompleteRegistration',
+            PKDict(displayName=email, simulationType=self.sr_sim_type),
+        )
+
 
     def sr_get(self, route_or_uri, params=None, query=None, **kwargs):
         """Gets a request to route_or_uri to server
