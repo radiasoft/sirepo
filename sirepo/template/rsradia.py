@@ -80,18 +80,17 @@ def get_application_data(data, **kwargs):
         with open(str(_dmp_file(data.simulationId)), 'rb') as f:
             b = f.read()
             g_id = radia_tk.load_bin(b)
-    except IOError as e:
+    except IOError:
         # No Radia dump file
-        #pkdp('ERR {} FROM FILE', e)
         return {}
     if data.method == 'get_geom':
         f = _geom_file(data.simulationId)
         f_type = data.get('fieldType', None)
-        p = _geom_h5_path(data.viewType, f_type)
         #TODO(mvk): we always regenerate point field data - should do some kind
         # of hash comparison so we only regenerate when the evaluation points change
         if data.viewType == VIEW_TYPE_FIELD and f_type in radia_tk.POINT_FIELD_TYPES:
             return _generate_data(g_id, data)
+        p = _geom_h5_path(data.viewType, f_type)
         try:
             with h5py.File(f, 'r') as hf:
                 g = template_common.h5_to_dict(hf, path=p)
@@ -247,7 +246,6 @@ def _generate_data(g_id, in_data):
     o = _generate_obj_data(g_id, in_data.name)
     if in_data.viewType == VIEW_TYPE_OBJ:
         return o
-        #return _generate_obj_data(g_id, in_data.name)
     elif in_data.viewType == VIEW_TYPE_FIELD:
         f_arr = _generate_field_data(
             g_id, in_data.name, in_data.fieldType, in_data.get('fieldPaths', None)
@@ -255,9 +253,6 @@ def _generate_data(g_id, in_data):
         for d in o.data:
             f_arr.data.append(PKDict(lines=d.lines))
         return f_arr
-        #return _generate_field_data(
-        #    g_id, in_data.name, in_data.fieldType, in_data.get('fieldPaths', None)
-        #)
 
 
 def _generate_obj_data(g_id, name):

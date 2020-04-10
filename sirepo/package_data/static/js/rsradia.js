@@ -1074,7 +1074,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 //srdbg('Picked pid', pid);
                 //srdbg('Picked cid', cid);
 
-                // treat pickers separately rather than select one?
                 var picker;
                 if (appState.models.magnetDisplay.viewType === VIEW_TYPE_OBJECTS && cid >= 0) {
                     picker = cPicker;
@@ -1082,8 +1081,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 else if (appState.models.magnetDisplay.viewType === VIEW_TYPE_FIELDS && pid >= 0) {
                     picker = ptPicker;
                 }
-                //var picker = cid >= 0 ? cPicker : (pid >= 0 ? ptPicker : null);
-                //if (cid < 0 && pid < 0) {
                 if (! picker) {
                     //srdbg('Pick failed');
                     return;

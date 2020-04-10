@@ -122,14 +122,6 @@ def vector_field_to_data(geom, name, pv_arr, units):
     v_data.vectors.range = [v_min, v_max]
     v_data.vectors.units = units
 
-    #l_data = geom_to_data(geom, name, divide=False).data[0]
-    # temp color set - will move to client
-    #for c_idx, c in enumerate(l_data.lines.colors):
-    #    l_data.lines.colors[c_idx] = 0.85
-    #v_data.lines.vertices.extend(l_data.lines.vertices)
-    #v_data.lines.lengths.extend(l_data.lines.lengths)
-    #v_data.lines.colors.extend(l_data.lines.colors)
-
     return PKDict(name=name + '.Field', id=geom, data=[v_data])
 
 
