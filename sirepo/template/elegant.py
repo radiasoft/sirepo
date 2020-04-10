@@ -868,12 +868,12 @@ def _parse_elegant_log(run_dir):
     for line in text.split('\n'):
         if line == prev_line:
             continue
-        match = re.search('^Starting (\S+) at s\=', line)
+        match = re.search(r'^Starting (\S+) at s=', line)
         if match:
             name = match.group(1)
-            if not re.search('^M\d+\#', name):
+            if not re.search(r'^M\d+\#', name):
                 last_element = name
-        match = re.search('^tracking step (\d+)', line)
+        match = re.search(r'^tracking step (\d+)', line)
         if match:
             step = int(match.group(1))
         if want_next_line:
