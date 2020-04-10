@@ -406,7 +406,7 @@ class _Cmd(PKDict):
                 self.dispatcher.format_op(
                     self.msg,
                     job.OP_JOB_CMD_STDERR,
-                    error=text.decode('utf-8', errors='ignore'),
+                    stderr=text.decode('utf-8', errors='ignore'),
                 )
             )
         except Exception as exc:
