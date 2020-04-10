@@ -403,7 +403,7 @@ class _ComputeJob(PKDict):
         return await self._send_with_single_reply(
             job.OP_ANALYSIS,
             req,
-            jobCmd='get_data_file',
+            jobCmd='download_data_file',
             dataFileKey=req.content.pop('dataFileKey')
         )
 

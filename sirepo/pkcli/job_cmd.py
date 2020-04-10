@@ -115,6 +115,24 @@ def _do_compute(msg, template):
         )
 
 
+def _do_download_data_file(msg, template):
+    try:
+        f, c, _ = template.get_data_file(
+            msg.runDir,
+            msg.analysisModel,
+            msg.frame,
+            options=PKDict(suffix=msg.suffix),
+        )
+        requests.put(
+            msg.dataFileUri + f,
+            data=c,
+            verify=job.cfg.verify_tls,
+        ).raise_for_status()
+        return PKDict()
+    except Exception as e:
+        return PKDict(state=job.ERROR, error=e, stack=pkdexc())
+
+
 def _do_fastcgi(msg, template):
     import socket
 
@@ -175,24 +193,6 @@ def _do_get_simulation_frame(msg, template):
         if isinstance(e, sirepo.util.UserAlert):
             r = e.sr_args.error
         return PKDict(state=job.ERROR, error=r, stack=pkdexc())
-
-
-def _do_get_data_file(msg, template):
-    try:
-        f, c, _ = template.get_data_file(
-            msg.runDir,
-            msg.analysisModel,
-            msg.frame,
-            options=PKDict(suffix=msg.suffix),
-        )
-        requests.put(
-            msg.dataFileUri + f,
-            data=c,
-            verify=job.cfg.verify_tls,
-        ).raise_for_status()
-        return PKDict()
-    except Exception as e:
-        return PKDict(state=job.ERROR, error=e, stack=pkdexc())
 
 
 def _do_prepare_simulation(msg, template):
