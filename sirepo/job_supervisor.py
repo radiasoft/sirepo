@@ -20,6 +20,7 @@ import pykern.pkio
 import sirepo.auth
 import sirepo.auth_db
 import sirepo.http_reply
+import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.srdb
 import sirepo.srtime
@@ -101,6 +102,7 @@ def init():
         job.SBATCH: cfg.sbatch_poll_secs,
         job.SEQUENTIAL: 1,
     })
+    sirepo.auth_db.init(sirepo.srdb.root(), migrate_db_file=False)
     if sirepo.simulation_db.user_dir_name().exists():
         if not _DB_DIR.exists():
             pkdlog('calling upgrade_runner_to_job_db path={}', _DB_DIR)
@@ -121,7 +123,6 @@ def init():
             )
     else:
         pykern.pkio.mkdir_parent(_DB_DIR)
-    sirepo.auth_db.init(sirepo.srdb.root())
     _purge_free_simulations_set()
 
 
@@ -280,7 +281,7 @@ class _ComputeJob(PKDict):
 
     @classmethod
     def __db_file(cls, computeJid):
-        return _DB_DIR.join(computeJid + '.json')
+        return _DB_DIR.join(computeJid + sirepo.simulation_db.JSON_SUFFIX)
 
     def __db_init(self, req, prev_db=None):
         c = req.content
@@ -539,7 +540,9 @@ class _ComputeJob(PKDict):
             if r.state == job.MISSING:
                 # happens when the run dir is deleted (ex _purge_free_simulations)
                 assert recursion_depth == 0, \
-                    'Infinite recursion detected. Already called from self.'
+                    'Infinite recursion detected. Already called from self. req={}'.format(
+                        req,
+                    )
                 return await self._receive_api_runSimulation(
                     req,
                     recursion_depth + 1,
@@ -874,55 +877,57 @@ def _purge_free_simulations_set():
 
 
 async def _purge_free_simulations():
-    async def _get_uids_and_files():
-        r = PKDict()
+    def _get_uids_and_files():
+        r = []
+        u = None
         p = sirepo.auth_db.UserRole.uids_of_paid_users()
-        for f in pkio.sorted_glob(_DB_DIR.join('*')):
-            u = str(f.basename).split('-')[0]
-            if u in p or not _is_older_than_days(f):
+        for f in pkio.sorted_glob(_DB_DIR.join('*{}'.format(
+                sirepo.simulation_db.JSON_SUFFIX,
+        ))):
+            n = sirepo.sim_data.uid_from_jid(f.basename)
+            if n in p or f.mtime() > _too_old:
                 continue
-            if u not in r:
-                r[u] = []
-                await tornado.gen.sleep(0) # TODO(e-carlin): necessary?
-            r[u].append(f)
-        return r
-
-    def _get_run_dir_path(data):
-        data.report = data.computeModel
-        return sirepo.simulation_db.simulation_run_dir(data)
-
-    def _is_older_than_days(db_file):
-        return db_file.mtime() < (
-            sirepo.srtime.utc_now_as_float() -
-            (cfg.purge_free_after_days * 24 * 60 * 60)
-        )
+            if u != n:
+                # POSIT: Uid is the first part of each db file. The files are
+                # sorted so this should yield all of a user's files
+                if r:
+                    yield u, r
+                u = n
+                r = []
+            r.append(f)
+        if r:
+            yield u, r
 
     def _purge_sim(db_file):
+        d = pkcollections.json_load_any(db_file)
         # OPTIMIZATION: We assume the uids_of_paid_users doesn't change very
         # frequently so we don't need to check again. A user could run a sim
         # at anytime so we need to check that they haven't
-        if not _is_older_than_days(db_file):
+        if d.lastUpdateTime > _too_old:
             return
-        d = pkcollections.json_load_any(db_file)
         if d.status == job.FREE_USER_PURGED:
-            # TODO(e-carlin): should we touch the file so we don't look at again for a bit?
-            # TODO(e-carlin): should we delete the file after some time?
             return
-        p = _get_run_dir_path(d)
+        p = sirepo.simulation_db.simulation_run_dir(d)
         pkio.unchecked_remove(p)
         d.status = job.FREE_USER_PURGED
         _ComputeJob.db_write(d)
-        sims_purged.append((db_file, p))
+        jids_purged.append(db_file.purebasename)
 
+    u = None
+    f = None
     try:
-        sims_purged = []
-        for u, v in (await _get_uids_and_files()).items():
+        _too_old = sirepo.srtime.utc_now_as_float() - (
+            cfg.purge_free_after_days * 24 * 60 * 60
+        )
+
+        jids_purged = []
+        for u, v in _get_uids_and_files():
             with sirepo.auth.set_user(u):
                 for f in v:
                     _purge_sim(f)
             await tornado.gen.sleep(0)
-        pkdlog('sims purged: {}', sims_purged)
+        pkdlog('jids={}', jids_purged)
     except Exception as e:
-        pkdlog('error={} stack={}', e, pkdexc())
+        pkdlog('u={} f={} error={} stack={}', u, f, e, pkdexc())
     finally:
         _purge_free_simulations_set()

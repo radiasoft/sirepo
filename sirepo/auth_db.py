@@ -36,12 +36,13 @@ UserRole = None
 thread_lock = threading.RLock()
 
 
-def init(srdb_root):
+def init(srdb_root, migrate_db_file=True):
     global _session, _engine, UserDbBase, UserRegistration, UserRole
     assert not _session
 
     f = _db_filename(srdb_root)
-    _migrate_db_file(f)
+    if migrate_db_file:
+        _migrate_db_file(f)
     _engine = sqlalchemy.create_engine(
         'sqlite:///{}'.format(f),
         # We do our own thread locking so no need to have pysqlite warn us when

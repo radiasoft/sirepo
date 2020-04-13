@@ -160,16 +160,6 @@ def init_apis(app, *args, **kwargs):
     cookie.auth_hook_from_header = _auth_hook_from_header
 
 
-def init_mock(uid=None):
-    """A mock user for pkcli"""
-    cookie.init_mock()
-    import sirepo.auth.guest
-    if uid:
-        _login_user(sirepo.auth.guest, uid)
-    else:
-        login(sirepo.auth.guest, is_mock=True)
-
-
 def is_premium_user():
     try:
         check_user_has_role(ROLE_PREMIUM)
@@ -399,14 +389,26 @@ def reset_state():
     _set_log_user()
 
 
+def set_user_for_utils(uid=None):
+    """A mock user for utilities"""
+    cookie.set_cookie_for_utils()
+    import sirepo.auth.guest
+    if uid:
+        _login_user(sirepo.auth.guest, uid)
+    else:
+        login(sirepo.auth.guest, is_mock=True)
+
+
 @contextlib.contextmanager
 def set_user(uid):
     """Set the user (uid) for the context"""
     assert not util.in_flask_app_context(), \
         'Flask sets the user on the request'
-    init_mock(uid=uid)
-    yield
-    reset_state()
+    try:
+        set_user_for_utils(uid=uid)
+        yield
+    finally:
+        reset_state()
 
 
 def user_dir_not_found(user_dir, uid):

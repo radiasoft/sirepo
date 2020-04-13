@@ -29,10 +29,9 @@ def adjust_time(days):
     def _adjust_supervisor_srtime():
         import sirepo.job_api
 
-        if not sirepo.util.in_flask_app_context():
+        if sirepo.util.in_flask_app_context():
             # We are in the supervisor
-            return
-        sirepo.job_api.adjust_supervisor_srtime(d)
+            sirepo.job_api.adjust_supervisor_srtime(d)
 
     global _timedelta
     _timedelta = None

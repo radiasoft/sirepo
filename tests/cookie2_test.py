@@ -27,7 +27,7 @@ def test_set_get():
     with pkunit.pkexcept('AssertionError'):
         cookie.set_value('hi', 'hello')
     pkeq(None, cookie.unchecked_get_value('hi'))
-    cookie.init_mock()
+    cookie.set_cookie_for_utils()
     cookie.set_value('hi', 'hello')
     r = _Response(status_code=200)
     cookie.save_to_cookie(r)
