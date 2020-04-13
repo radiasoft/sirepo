@@ -6,14 +6,18 @@ u"""IRAD execution template.
 """
 
 from __future__ import absolute_import, division, print_function
-from sirepo import simulation_db
 from pykern.pkdebug import pkdp
+from sirepo import simulation_db
+from sirepo.template import template_common
 
 SIM_TYPE = 'irad'
 
-_ROI_FILE_NAME = 'rtstruct-data.json'
+CT_FILE = 'ct.zip'
+RTDOSE_FILE = 'rtdose.zip'
+RTSTRUCT_FILE = 'rtstruct-data.json'
 
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
+_VTI_FILE = 'index.json'
 
 def get_application_data(data, **kwargs):
     if data['method'] == 'roi_points':
@@ -22,15 +26,15 @@ def get_application_data(data, **kwargs):
 
 
 def get_data_file(run_dir, model, frame, **kwargs):
-    sim_id = simulation_db.read_json(run_dir.join('out.json')).simulationId
+    sim_id = simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME)).simulationId
     if frame == 1:
-        filename = sim_file(sim_id, 'ct.zip')
+        filename = sim_file(sim_id, CT_FILE)
     elif frame == 2:
-        filename = sim_file(sim_id, 'rtdose.zip')
+        filename = sim_file(sim_id, RTDOSE_FILE)
     else:
         assert False, 'invalid frame: {}'.format(frame)
     with open(filename) as f:
-        return 'index.json', f.read(), 'application/octet-stream'
+        return _VTI_FILE, f.read(), 'application/octet-stream'
 
 
 def sim_file(sim_id, filename):
@@ -46,4 +50,4 @@ def _read_roi_file(sim_id):
 
 
 def _roi_file(sim_id):
-    return sim_file(sim_id, _ROI_FILE_NAME)
+    return sim_file(sim_id, RTSTRUCT_FILE)
