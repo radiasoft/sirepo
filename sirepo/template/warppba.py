@@ -154,9 +154,7 @@ def get_data_file(run_dir, model, frame, **kwargs):
     # give the last available file instead.
     if len(files) < frame + 1:
         frame = -1
-    filename = str(files[int(frame)])
-    with open(filename, 'rb') as f:
-        return os.path.basename(filename), f.read(), 'application/octet-stream'
+    return files[int(frame)])
 
 
 def new_simulation(data, new_simulation_data):

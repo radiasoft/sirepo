@@ -113,7 +113,8 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         return _OUTPUT_FILE.fitOutputFile
     if 'fitAnimation' in model:
         return PKDict(
-            filename=(_OUTPUT_FILE.testOutputFile, _OUTPUT_FILE.predictOutputFile),
+            content=run_dir.join(_OUTPUT_FILE.testOutputFile).read_text() \
+                + run_dir.join(_OUTPUT_FILE.predictOutputFile).read_text(),
             uri='test-and-predict.csv',
         )
     raise AssertionError('unknown model: {}'.format(model))

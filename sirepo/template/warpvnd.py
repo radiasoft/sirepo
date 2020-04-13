@@ -190,12 +190,6 @@ def get_application_data(data, **kwargs):
 def get_data_file(run_dir, model, frame, **kwargs):
     if model == 'particleAnimation' or model == 'egunCurrentAnimation' or model == 'particle3d':
         return _PARTICLE_FILE if model in ('particleAnimation', 'particle3d') else _EGUN_CURRENT_FILE
-    if model == 'conductorGridReport':
-        data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
-#TODO(robnagler) make a call to get this
-        return PKDict(
-            python=python_source_for_model(data, model),
-        )
     files = _h5_file_list(run_dir, model)
     #TODO(pjm): last client file may have been deleted on a canceled animation,
     # give the last available file instead.

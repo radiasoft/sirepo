@@ -5,6 +5,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
@@ -124,32 +125,17 @@ def _do_download_data_file(msg, template):
             options=PKDict(suffix=msg.suffix),
         )
         if not isinstance(r, PKDict):
-            r = PKDict(filename=r)
-        if 'python_gen' in r:
-            f = 'python-source.py',
-
-        multiple files
-        r.pksetdefault(content_type='application/octet-stream')
-        if isinstance(r.filename, tuple):
-            loop
-        if isinstance(r.filename, str):
-            r.filename = msg.runDir.join(r)
-
-
-        data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
-
-        return PKDict(python_gen=python_source_for_model)
-
-
-            uri=
-
-            uri='elegant-output.txt',
-            content=path.read() if path.exists() else '',
-            content_type='text/plain',
-
-        filename
+            r = PKDict(filename=msg.runDir.join(r) if isinstance(r, str) else r)
+        u = r.get('uri')
+        if u is None:
+            u = r.filename.basename
+        c = r.get('content')
+        if c is None:
+            c = pkcompat.to_bytes(r.filename.read_text()) \
+                if u.endswith(('py', 'txt', 'csv')) \
+                else r.filename.read_binary()
         requests.put(
-            msg.dataFileUri + f,
+            msg.dataFileUri + u,
             data=c,
             verify=job.cfg.verify_tls,
         ).raise_for_status()
