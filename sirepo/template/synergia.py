@@ -795,7 +795,7 @@ def _parse_synergia_log(run_dir):
 
 
 def _particle_file_list(run_dir):
-    return sorted(glob.glob(str(run_dir.join('particles_*.h5'))))
+    return pkio.sorted_glob(run_dir.join('particles_*.h5'))
 
 
 def _plot_field(field):
