@@ -134,17 +134,9 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         return _OPAL_H5_FILE
     elif model == 'plot2Animation':
         return _OPAL_SDDS_FILE
-    raise AssertionError('unknown model={}'.format(model))
-=======
-        filename = _OPAL_SDDS_FILE
     elif 'elementAnimation' in model:
-        filename = _file_name_for_element_animation(run_dir, model)
-    else:
-        assert False, 'file: {}'.format(model)
-    path = run_dir.join(filename)
-    with open(str(path)) as f:
-        return path.basename, f.read(), 'application/octet-stream'
->>>>>>> issue/1560
+        return _file_name_for_element_animation(run_dir, model)
+    raise AssertionError('unknown model={}'.format(model))
 
 
 def post_execution_processing(

@@ -211,7 +211,7 @@ def open_data_file(run_dir, file_index=None):
     res.frame_index = res.num_frames - 1 if file_index is None else file_index
     res.filename = str(files[res.frame_index])
     res.iteration = int(re.search(r'data(\d+)', res.filename).group(1))
-    return pkdp(res)
+    return res
 
 
 def python_source_for_model(data, model):
@@ -290,7 +290,7 @@ def _opmd_time_series(data_file):
     try:
         prev = main.list_h5_files
         main.list_h5_files = lambda x: ([data_file.filename], [data_file.iteration])
-        return pkdp(OpenPMDTimeSeries(py.path.local(data_file.filename).dirname))
+        return OpenPMDTimeSeries(py.path.local(data_file.filename).dirname)
     finally:
         if prev:
             main.list_h5_files = prev

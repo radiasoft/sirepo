@@ -225,19 +225,10 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         return _sdds(_get_filename_for_element_id(i, data))
     if model == 'animation':
         path = run_dir.join(ELEGANT_LOG_FILE)
-        return PKDict(
+        PKDict(
             uri='elegant-output.txt',
-            content=path.read() if path.exists() else '',
+            content=path.read_text() if path.exists() else '',
         )
-    if model == 'beamlineReport':
-        return PKDict(python_gen=lambda x: generate_parameters_file(x, is_parallel=True))
-=======
-        if not path.exists():
-            return 'elegant-output.txt', '', 'text/plain'
-        with open(str(path)) as f:
-            return 'elegant-output.txt', f.read(), 'text/plain'
-
->>>>>>> issue/1560
     return _sdds(_report_output_filename('bunchReport'))
 
 

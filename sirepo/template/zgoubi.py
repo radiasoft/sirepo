@@ -408,8 +408,7 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         return _ZGOUBI_PLT_DATA_FILE
     elif model == 'opticsReport' or 'twissReport' in model:
         return _ZGOUBI_TWISS_FILE
-    else:
-        return _ZGOUBI_FAI_DATA_FILE
+    return _ZGOUBI_FAI_DATA_FILE
 
 
 def sim_frame(frame_args):

@@ -117,12 +117,37 @@ def _do_compute(msg, template):
 
 def _do_download_data_file(msg, template):
     try:
-        f, c, _ = template.get_data_file(
+        r = template.get_data_file(
             msg.runDir,
             msg.analysisModel,
             msg.frame,
             options=PKDict(suffix=msg.suffix),
         )
+        if not isinstance(r, PKDict):
+            r = PKDict(filename=r)
+        if 'python_gen' in r:
+            f = 'python-source.py',
+
+        multiple files
+        r.pksetdefault(content_type='application/octet-stream')
+        if isinstance(r.filename, tuple):
+            loop
+        if isinstance(r.filename, str):
+            r.filename = msg.runDir.join(r)
+
+
+        data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
+
+        return PKDict(python_gen=python_source_for_model)
+
+
+            uri=
+
+            uri='elegant-output.txt',
+            content=path.read() if path.exists() else '',
+            content_type='text/plain',
+
+        filename
         requests.put(
             msg.dataFileUri + f,
             data=c,
