@@ -163,8 +163,7 @@
             "refScheme": ["Reflection Scheme", "ReflectionScheme", "uniform"]
         },
         "conductorGridReport": {
-            "tileDomain": ["Show tiled domain", "Boolean", "0"],
-            "hasDataFile": false
+            "tileDomain": ["Show tiled domain", "Boolean", "0"]
         },
         "conductorPosition": {
             "xCenter": ["Center X [µm]", "OptFloat"],
@@ -336,6 +335,7 @@
         },
         "conductorGridReport": {
             "title": "Conductor Grid",
+            "hasDataFile": false,
             "advanced": []
         },
         "conductorPosition": {
