@@ -224,11 +224,7 @@ def _config_sbatch_supervisor_env(env):
         ),
         SIREPO_JOB_DRIVER_SBATCH_HOST=h,
         SIREPO_JOB_DRIVER_SBATCH_HOST_KEY=m.group(0),
-        SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=subprocess.check_output(
-            'PYENV_VERSION=py3 pyenv which sirepo',
-            stderr=subprocess.STDOUT,
-            shell=True
-        ).rstrip(),
+        SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD='sirepo',
         SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT=str(pykern.pkunit.work_dir().join(
             '/{sbatch_user}/sirepo'
         )),
@@ -237,22 +233,8 @@ def _config_sbatch_supervisor_env(env):
 
 
 def _job_supervisor_check(env):
-    import sirepo.job
     import socket
-    import subprocess
 
-    try:
-        o = subprocess.check_output(
-            ['pyenv', 'exec', 'sirepo', 'job_supervisor', '--help'],
-            env=env,
-            stderr=subprocess.STDOUT,
-        )
-    except subprocess.CalledProcessError as e:
-        from pykern.pkdebug import pkdlog
-
-        pkdlog('job_supervisor --help exit={} output={}', e.returncode, e.output)
-        raise
-    assert 'usage: sirepo job_supervisor' in str(o)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
@@ -292,17 +274,7 @@ def _job_supervisor_setup(request, cfg=None):
     import os
     from pykern.pkcollections import PKDict
     sbatch_module = 'sbatch' in request.module.__name__
-    env = PKDict()
-    for k, v in os.environ.items():
-        if ('PYENV' in k or 'PYTHON' in k):
-            continue
-        if k in ('PATH', 'LD_LIBRARY_PATH'):
-            v2 = []
-            for x in v.split(':'):
-#                if x and 'py2' not in x:
-                v2.append(x)
-            v = ':'.join(v2)
-        env[k] = v
+    env = PKDict(os.environ)
     if not cfg:
         cfg = PKDict()
     i = '127.0.0.1'
@@ -318,11 +290,7 @@ def _job_supervisor_setup(request, cfg=None):
         cfg['SIREPO_JOB_{}_SUPERVISOR_URI'.format(x)] = 'http://{}:{}'.format(i, p)
     if sbatch_module:
         cfg.pkupdate(SIREPO_SIMULATION_DB_SBATCH_DISPLAY='testing@123')
-    env.pkupdate(
-        PYENV_VERSION='py3',
-        PYTHONUNBUFFERED='1',
-        **cfg
-    )
+    env.pkupdate(**cfg)
 
     import sirepo.srunit
     fc = sirepo.srunit.flask_client(
@@ -353,7 +321,7 @@ def _job_supervisor_start(request, cfg=None):
 
     env, fc = _job_supervisor_setup(request, cfg)
     p = subprocess.Popen(
-        ['pyenv', 'exec', 'sirepo', 'job_supervisor'],
+        ['sirepo', 'job_supervisor'],
         env=env,
     )
     for i in range(30):

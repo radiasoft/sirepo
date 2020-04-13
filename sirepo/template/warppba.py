@@ -102,7 +102,6 @@ def extract_particle_report(frame_args, particle_type):
         output=True,
         plot=False,
     )
-    pkdp(data_list)
     with h5py.File(data_file.filename) as f:
         data_list.append(main.read_species_data(f, particle_type, 'w', ()))
     select = _particle_selection_args(frame_args)
@@ -111,10 +110,6 @@ def extract_particle_report(frame_args, particle_type):
             main.apply_selection(f, data_list, select, particle_type, ())
     xunits = ' [m]' if len(xarg) == 1 else ''
     yunits = ' [m]' if len(yarg) == 1 else ''
-    if len(xarg) == 1:
-        data_list[0] /= 1e6
-    if len(yarg) == 1:
-        data_list[1] /= 1e6
 
     if xarg == 'z':
         data_list = _adjust_z_width(data_list, data_file)
@@ -125,7 +120,6 @@ def extract_particle_report(frame_args, particle_type):
         weights=data_list[2],
         range=[_select_range(data_list[0], xarg, select), _select_range(data_list[1], yarg, select)],
     )
-    pkdp(data_list[2])
     return PKDict(
         x_range=[float(edges[0][0]), float(edges[0][-1]), len(hist)],
         y_range=[float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
@@ -309,8 +303,8 @@ def _particle_selection_args(args):
     for f in '', 'u':
         for f2 in 'x', 'y', 'z':
             field = '{}{}'.format(f, f2)
-            min = float(args[field + 'Min'])
-            max = float(args[field + 'Max'])
+            min = float(args[field + 'Min']) / 1e6
+            max = float(args[field + 'Max']) / 1e6
             if min == 0 and max == 0:
                 continue
             res[field] = [min, max]

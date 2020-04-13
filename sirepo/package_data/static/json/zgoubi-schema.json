@@ -811,6 +811,7 @@
             "E_8": ["16 Pole", "Float", 0.0],
             "E_9": ["18 Pole", "Float", 0.0],
             "E_10": ["20 Pole", "Float", 0.0],
+            "NCE": ["Number of Components", "Integer", 6],
             "C_0": ["Entrance Fringe Field Coefficients $C_0$", "Float", 0.0],
             "C_1": ["Entrance Fringe Field Coefficients $C_1$", "Float", 0.0],
             "C_2": ["Entrance Fringe Field Coefficients $C_2$", "Float", 0.0],
@@ -828,6 +829,7 @@
             "S_8": ["16 Pole", "Float", 0.0],
             "S_9": ["18 Pole", "Float", 0.0],
             "S_10": ["20 Pole", "Float", 0.0],
+            "NCS": ["Number of Components", "Integer", 6],
             "CS_0": ["Exit Fringe Field Coefficients $C_0$", "Float", 0.0],
             "CS_1": ["Exit Fringe Field Coefficients $C_1$", "Float", 0.0],
             "CS_2": ["Exit Fringe Field Coefficients $C_2$", "Float", 0.0],
@@ -1153,6 +1155,7 @@
         },
         "beamlineReport": {
             "title": "Lattice",
+            "hasDataFile": false,
             "advanced": []
         },
         "bunchAnimation": {

@@ -154,8 +154,6 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         return _particle_file_list(run_dir)[frame]
     elif 'bunchReport' in model:
         return OUTPUT_FILE.bunchReport
-    elif model == 'beamlineReport':
-        return PKDict(python_gen=_generate_parameters_file)
     raise AssertionError('unsupported model={}'.format(model))
 
 

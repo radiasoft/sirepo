@@ -408,8 +408,6 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         return _ZGOUBI_PLT_DATA_FILE
     elif model == 'opticsReport' or 'twissReport' in model:
         return _ZGOUBI_TWISS_FILE
-    elif model == 'beamlineReport':
-        return PKDict(python_generator=python_source_for_model)
     else:
         return _ZGOUBI_FAI_DATA_FILE
 

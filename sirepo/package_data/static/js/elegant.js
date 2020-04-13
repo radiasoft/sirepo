@@ -52,7 +52,7 @@ SIREPO.app.config(function() {
         '</div>',
     ].join('');
     SIREPO.appDownloadLinks = [
-        '<li><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
+        '<li data-ng-if="::hasDataFile"><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
     ].join('');
     SIREPO.lattice = {
         canReverseBeamline: true,

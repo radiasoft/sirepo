@@ -443,7 +443,7 @@ def _validate_file_names(model, file_names):
                 zip_has_files = False
                 break
         if zip_has_files:
-            magnet_file = os.path.basename(f)[len(file_type) + 1:]
+            magnet_file = os.path.basename(str(f))[len(file_type) + 1:]
             break
     if magnet_file:
         model.magnetFile = magnet_file

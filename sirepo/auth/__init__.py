@@ -470,7 +470,11 @@ def _auth_hook_from_header(values):
         m = values.get(_COOKIE_METHOD)
         if m and m not in valid_methods:
             # invalid method (changed config), reset state
-            pkdlog('possibly misconfigured server: invalid cookie_method={}, clearing values={}', values)
+            pkdlog(
+                'possibly misconfigured server: invalid cookie_method={}, clearing values={}',
+                m,
+                values,
+            )
             pkcollections.unchecked_del(
                 values,
                 _COOKIE_METHOD,
