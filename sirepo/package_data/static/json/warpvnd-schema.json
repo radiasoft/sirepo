@@ -163,7 +163,8 @@
             "refScheme": ["Reflection Scheme", "ReflectionScheme", "uniform"]
         },
         "conductorGridReport": {
-            "tileDomain": ["Show tiled domain", "Boolean", "0"]
+            "tileDomain": ["Show tiled domain", "Boolean", "0"],
+            "hasDataFile": false
         },
         "conductorPosition": {
             "xCenter": ["Center X [µm]", "OptFloat"],
