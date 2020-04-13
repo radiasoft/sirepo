@@ -2,14 +2,14 @@ from __future__ import absolute_import, division, print_function
 
 import h5py
 from sirepo.template import radia_tk
-from sirepo.template import rsradia_examples
+from sirepo.template import radia_examples
 from sirepo.template import template_common
 
 VIEW_TYPE_OBJ = 'objects'
 VIEW_TYPE_FIELD = 'fields'
 
 {% if isExample %}
-g_id = rsradia_examples.build('{{ geomName }}')
+g_id = radia_examples.build('{{ geomName }}')
 {% else %}
 g_id = -1
 {% endif %}

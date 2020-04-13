@@ -1,11 +1,13 @@
+from __future__ import absolute_import, division, print_function
+
 import numpy
 import radia
 import sys
-import template_common
 
 from numpy import linalg
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
+from sirepo.template import template_common
 
 FIELD_TYPE_MAG_A = 'A'
 FIELD_TYPE_MAG_B = 'B'

@@ -20,7 +20,7 @@
         },
         "sirepoLibs": {
             "css": ["vtk.css"],
-            "js": ["rsradia.js"]
+            "js": ["radia.js"]
         }
     },
     "enum": {

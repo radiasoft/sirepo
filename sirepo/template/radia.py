@@ -16,7 +16,7 @@ from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
 from sirepo.template import radia_tk
-from sirepo.template import rsradia_examples
+from sirepo.template import radia_examples
 import h5py
 import math
 import sirepo.sim_data
@@ -212,7 +212,7 @@ def _build_field_circle_pts(f_path):
 def _build_geom(data):
     g_name = data.models.geometry.name
     if data.models.simulation.isExample:
-        return rsradia_examples.build(g_name)
+        return radia_examples.build(g_name)
     else:
         #TODO(mvk): build from model data
         return -1
