@@ -191,15 +191,15 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
     };
 
     self.updateDicomAndDoseFrame = function(waitForDose) {
-        if (! waitForDose) {
-            frameCache.setFrameCount(1);
-            return;
-        }
         var status = appState.models.simulationStatus;
-        if (status.dicomAnimation && status.dicomAnimation.state != 'missing'
-            && status.doseCalculation && status.doseCalculation.state != 'missing') {
-            // wait for both dicomAnimation and doseCalculation status
-            frameCache.setFrameCount(1);
+        if (status.dicomAnimation && status.dicomAnimation.percentComplete == 100) {
+            if (! waitForDose) {
+                frameCache.setFrameCount(1);
+            }
+            else if (status.doseCalculation && status.doseCalculation.percentComplete == 100) {
+                // wait for both dicomAnimation and doseCalculation status
+                frameCache.setFrameCount(1);
+            }
         }
     };
 
@@ -253,7 +253,7 @@ SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, pan
     );
 });
 
-SIREPO.app.controller('Rs4piSourceController', function (appState, rs4piService, $rootScope, $scope) {
+SIREPO.app.controller('Rs4piSourceController', function (appState, frameCache, rs4piService, $rootScope, $scope) {
     var self = this;
 
     self.dicomTitle = function() {
@@ -261,6 +261,10 @@ SIREPO.app.controller('Rs4piSourceController', function (appState, rs4piService,
             return;
         }
         return appState.models.dicomSeries.description;
+    };
+
+    self.hasFrames = function() {
+        return frameCache.hasFrames();
     };
 
     $scope.$on('cancelChanges', function(e, name) {
@@ -332,7 +336,7 @@ SIREPO.app.directive('dicomFrames', function(frameCache, persistentSimulation, r
         },
         controller: function($scope) {
             function handleStatus(data) {
-                if ($scope.model == 'dicomAnimation' && data.state == 'stopped' && data.percentComplete === 0) {
+                if ($scope.model == 'dicomAnimation' && data.state == 'missing' && data.percentComplete === 0) {
                     $scope.simState.runSimulation();
                     return;
                 }
