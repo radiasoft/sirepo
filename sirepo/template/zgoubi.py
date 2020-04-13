@@ -538,7 +538,7 @@ def _compute_range_across_frames(run_dir, data):
             res[field][1] = max(max(values), res[field][1])
         else:
             res[field] = [min(values), max(values)]
-    for field in res.keys():
+    for field in list(res.keys()):
         factor = _ANIMATION_FIELD_INFO[field][1]
         res[field][0] *= factor
         res[field][1] *= factor
