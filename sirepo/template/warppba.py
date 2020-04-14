@@ -154,7 +154,7 @@ def get_data_file(run_dir, model, frame, **kwargs):
     # give the last available file instead.
     if len(files) < frame + 1:
         frame = -1
-    return files[int(frame)])
+    return files[int(frame)]
 
 
 def new_simulation(data, new_simulation_data):
