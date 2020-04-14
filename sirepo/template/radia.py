@@ -63,12 +63,7 @@ def extract_report_data(run_dir, sim_in):
         f_type = sim_in.models.magnetDisplay.fieldType if v_type == VIEW_TYPE_FIELD\
             else None
         with h5py.File(_geom_file(sim_in.simulationId), 'r') as hf:
-            #g = template_common.h5_to_dict(hf, path=_geom_h5_path(v_type, f_type))
-            g = template_common.h5_to_dict(hf, path=_geom_h5_path(VIEW_TYPE_OBJ))
-            if f_type:
-                g.data.append(
-                    template_common.h5_to_dict(hf, path=_geom_h5_path(v_type, f_type))
-                )
+            g = template_common.h5_to_dict(hf, path=_geom_h5_path(v_type, f_type))
             simulation_db.write_result(g, run_dir=run_dir)
         return
     simulation_db.write_result(PKDict(), run_dir=run_dir)
