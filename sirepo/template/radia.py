@@ -27,6 +27,7 @@ import time
 _DMP_FILE = 'geom.dat'
 _GEOM_DIR = 'geometry'
 _GEOM_FILE = 'geom.h5'
+_METHODS = ['get_field_integrals', 'get_geom']
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 GEOM_PYTHON_FILE = 'geom.py'
@@ -62,7 +63,12 @@ def extract_report_data(run_dir, sim_in):
         f_type = sim_in.models.magnetDisplay.fieldType if v_type == VIEW_TYPE_FIELD\
             else None
         with h5py.File(_geom_file(sim_in.simulationId), 'r') as hf:
-            g = template_common.h5_to_dict(hf, path=_geom_h5_path(v_type, f_type))
+            #g = template_common.h5_to_dict(hf, path=_geom_h5_path(v_type, f_type))
+            g = template_common.h5_to_dict(hf, path=_geom_h5_path(VIEW_TYPE_OBJ))
+            if f_type:
+                g.data.append(
+                    template_common.h5_to_dict(hf, path=_geom_h5_path(v_type, f_type))
+                )
             simulation_db.write_result(g, run_dir=run_dir)
         return
     simulation_db.write_result(PKDict(), run_dir=run_dir)
@@ -74,6 +80,8 @@ def get_application_data(data, **kwargs):
     #pkdp('get_application_data from {}', data)
     if 'method' not in data:
         raise RuntimeError('no application data method')
+    if data.method not in _METHODS:
+        raise RuntimeError('unknown application data method: {}'.format(data.method))
 
     g_id = -1
     try:
@@ -94,20 +102,23 @@ def get_application_data(data, **kwargs):
         try:
             with h5py.File(f, 'r') as hf:
                 g = template_common.h5_to_dict(hf, path=p)
+                if f_type:
+                    o = template_common.h5_to_dict(hf, path=_geom_h5_path(VIEW_TYPE_OBJ))
+                    for d in o.data:
+                        g.data.append(PKDict(lines=d.lines))
                 return g
         except IOError:
             # No geom file
             return {}
         except KeyError:
-            g = _generate_data(g_id, data)
-            # write the new data to the existing file
+            # No such path, so generate the data and write to the existing file
+            g = _generate_data(g_id, data, add_lines=False)
             with h5py.File(f, 'a') as hf:
                 template_common.dict_to_h5(g, hf, path=p)
-            return g
+            #return g
+            return get_application_data(data)
     if data.method == 'get_field_integrals':
         return _generate_field_integrals(g_id, data.fieldPaths)
-
-    raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
 def python_source_for_model(data, model):
@@ -242,7 +253,7 @@ def _generate_field_integrals(g_id, f_paths):
     return res
 
 
-def _generate_data(g_id, in_data):
+def _generate_data(g_id, in_data, add_lines=True):
     o = _generate_obj_data(g_id, in_data.name)
     if in_data.viewType == VIEW_TYPE_OBJ:
         return o
@@ -250,8 +261,9 @@ def _generate_data(g_id, in_data):
         f_arr = _generate_field_data(
             g_id, in_data.name, in_data.fieldType, in_data.get('fieldPaths', None)
         )
-        for d in o.data:
-            f_arr.data.append(PKDict(lines=d.lines))
+        if add_lines:
+            for d in o.data:
+                f_arr.data.append(PKDict(lines=d.lines))
         return f_arr
 
 
