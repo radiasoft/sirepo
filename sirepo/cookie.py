@@ -145,7 +145,9 @@ class _State(dict):
         return self.crypto
 
     def _decrypt(self, value):
-        d = self._crypto().decrypt(base64.urlsafe_b64decode(pkcompat.to_bytes(value)))
+        d = self._crypto().decrypt(
+            base64.urlsafe_b64decode(pkcompat.to_bytes(value)),
+        )
         pkdc(d)
         return pkcompat.from_bytes(d)
 
@@ -157,13 +159,18 @@ class _State(dict):
         return v
 
     def _encrypt(self, text):
-        return base64.urlsafe_b64encode(self._crypto().encrypt(pkcompat.to_bytes(text)))
+        return base64.urlsafe_b64encode(
+            self._crypto().encrypt(pkcompat.to_bytes(text)),
+        )
 
     def _from_cookie_header(self, header):
         s = None
         err = None
         try:
-            match = re.search(r'\b{}=([^;]+)'.format(cfg.http_name), header)
+            match = re.search(
+                r'\b{}=([^;]+)'.format(cfg.http_name),
+                header,
+            )
             if match:
                 s = self._decrypt(match.group(1))
                 self.update(auth_hook_from_header(self._deserialize(s)))
@@ -175,7 +182,7 @@ class _State(dict):
                 # so just report the type.
                 e = type(e)
             err = e
-            pkdc(pkdexc())
+            pkdc('{}', pkdexc())
         if err:
             pkdlog('Cookie decoding failed: {} value={}', err, s)
 
