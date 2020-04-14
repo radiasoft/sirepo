@@ -748,7 +748,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function buildScene() {
-                //srdbg('buildScene');
+                //srdbg('buildScene', sceneData.data);
                 var name = sceneData.name;
                 var data = sceneData.data;
 
@@ -1438,6 +1438,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         if (d && d.data) {
                             setupSceneData(d);
                             return;
+                        }
+                        if (d.error) {
+                            throw new Error(d.error);
                         }
                         //srdbg('no app data, requesting');
                         panelState.clear('geometry');

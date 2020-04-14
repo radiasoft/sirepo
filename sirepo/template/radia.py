@@ -107,10 +107,10 @@ def get_application_data(data, **kwargs):
             return {}
         except KeyError:
             # No such path, so generate the data and write to the existing file
-            g = _generate_data(g_id, data, add_lines=False)
             with h5py.File(f, 'a') as hf:
-                template_common.dict_to_h5(g, hf, path=p)
-            #return g
+                template_common.dict_to_h5(
+                    _generate_data(g_id, data, add_lines=False), hf, path=p
+                )
             return get_application_data(data)
     if data.method == 'get_field_integrals':
         return _generate_field_integrals(g_id, data.fieldPaths)
@@ -238,28 +238,36 @@ def _generate_field_data(g_id, name, f_type, f_paths):
 
 
 def _generate_field_integrals(g_id, f_paths):
-    res = PKDict()
-    for p in [fp for fp in f_paths if fp.type == 'line']:
-        res[p.name] = PKDict()
-        p1 = [float(p.beginX), float(p.beginY), float(p.beginZ)]
-        p2 = [float(p.endX), float(p.endY), float(p.endZ)]
-        for i_type in radia_tk.INTEGRABLE_FIELD_TYPES:
-            res[p.name][i_type] = radia_tk.field_integral(g_id, i_type, p1, p2)
-    return res
+    try:
+        res = PKDict()
+        for p in [fp for fp in f_paths if fp.type == 'line']:
+            res[p.name] = PKDict()
+            p1 = [float(p.beginX), float(p.beginY), float(p.beginZ)]
+            p2 = [float(p.endX), float(p.endY), float(p.endZ)]
+            for i_type in radia_tk.INTEGRABLE_FIELD_TYPES:
+                res[p.name][i_type] = radia_tk.field_integral(g_id, i_type, p1, p2)
+        return res
+    except RuntimeError as e:
+        pkdc('Radia error {}', e.message)
+        return PKDict(error=e.message)
 
 
 def _generate_data(g_id, in_data, add_lines=True):
-    o = _generate_obj_data(g_id, in_data.name)
-    if in_data.viewType == VIEW_TYPE_OBJ:
-        return o
-    elif in_data.viewType == VIEW_TYPE_FIELD:
-        f_arr = _generate_field_data(
-            g_id, in_data.name, in_data.fieldType, in_data.get('fieldPaths', None)
-        )
-        if add_lines:
-            for d in o.data:
-                f_arr.data.append(PKDict(lines=d.lines))
-        return f_arr
+    try:
+        o = _generate_obj_data(g_id, in_data.name)
+        if in_data.viewType == VIEW_TYPE_OBJ:
+            return o
+        elif in_data.viewType == VIEW_TYPE_FIELD:
+            f_arr = _generate_field_data(
+                g_id, in_data.name, in_data.fieldType, in_data.get('fieldPaths', None)
+            )
+            if add_lines:
+                for d in o.data:
+                    f_arr.data.append(PKDict(lines=d.lines))
+            return f_arr
+    except RuntimeError as e:
+        pkdc('Radia error {}', e.message)
+        return PKDict(error=e.message)
 
 
 def _generate_obj_data(g_id, name):
