@@ -473,11 +473,10 @@ def _get_default_drift():
             if content[i].find('function defaultDriftPropagationParams()') >= 0:
                 # Find 'return' statement:
                 for j in range(10):
-                    '''
-                        function defaultDriftPropagationParams() {
-                            return [0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0];
-                        }
-                    '''
+                    #
+                    #    function defaultDriftPropagationParams() {
+                    #        return [0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0];
+                    #    }
                     if content[i + j].find('return') >= 0:
                         default_drift_prop = content[i + j].replace('return ', '').replace(';', '').strip()
                         break

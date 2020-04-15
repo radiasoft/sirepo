@@ -90,7 +90,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['ebm_z', 'f', 0., 'electron beam initial average longitudinal position [m]'],
     ['ebm_dr', 'f', -1.54, 'electron beam longitudinal drift [m] to be performed before a required calculation'],
     ['ebm_ens', 'f', 0.00089, 'electron beam relative energy spread'],
-    ['ebm_emx', 'f', 5.5e-10, 'electron beam horizontal emittance [m]'],
+    ['ebm_emx', 'f', 5.500000000000001e-10, 'electron beam horizontal emittance [m]'],
     ['ebm_emy', 'f', 8e-12, 'electron beam vertical emittance [m]'],
     # Definition of the beam through Twiss:
     ['ebm_betax', 'f', 2.02, 'horizontal beta-function [m]'],
@@ -253,7 +253,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_CRL_n', 'i', 3, 'numberOfLenses'],
 
     # CRL_Watchpoint: drift
-    ['op_CRL_Watchpoint_L', 'f', 34.1915, 'length'],
+    ['op_CRL_Watchpoint_L', 'f', 34.191500000000005, 'length'],
 
     # Fiber: fiber
     ['op_Fiber_foc_plane', 'f', 2, 'focalPlane'],
@@ -267,7 +267,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_Fiber_yc', 'f', 0.0, 'verticalCenterPosition'],
 
     # Fiber_Watchpoint2: drift
-    ['op_Fiber_Watchpoint2_L', 'f', 0.6585, 'length'],
+    ['op_Fiber_Watchpoint2_L', 'f', 0.6584999999999894, 'length'],
 
 #---Propagation parameters
     ['op_CRL_pp', 'f',               [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'CRL'],

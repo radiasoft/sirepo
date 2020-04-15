@@ -43,7 +43,7 @@ QPOLE HEADER_8
 TOSCA-magnetFile.gsiq0.map
 0 0.0 0.0 0.0 0 0 0 0 0 0
 2
-3.1
+3.1000000000000005
 2 0.0 0.0 0.0
 """))
 line.add(core.FAKE_ELEM("""
@@ -55,10 +55,10 @@ DIPOLE HEADER_8
 TOSCA-magnetFile.gsid0.map
 1 0.0 1.0 117.0 0 0 0 0 0 0
 2
-3.1
+3.1000000000000005
 2 0.0 0.0 0.0
 """))
-line.add(core.CHANGREF("CH", ALE=-45.0, YCE=-135.37, XCE=0.0))
+line.add(core.CHANGREF("CH", XCE=0.0, YCE=-135.37, ALE=-45.0))
 line.add(core.DRIFT("DR2", XL=54.31))
 line.add(core.DRIFT("DR", XL=36.0))
 line.add(core.FAKE_ELEM("""
@@ -72,7 +72,7 @@ gsiq4.map
 gsiq8.map
 0 0.0 0.0 0.0 0 0 0 0 0 0
 2
-3.1
+3.1000000000000005
 2 0.0 0.0 0.0
 """))
 line.add(core.FAKE_ELEM("""
@@ -86,10 +86,10 @@ gsid4.map
 gsid8.map
 1 0.0 1.0 117.0 0 0 0 0 0 0
 2
-3.1
+3.1000000000000005
 2 0.0 0.0 0.0
 """))
-line.add(core.CHANGREF("CH", ALE=-45.0, YCE=-135.37, XCE=0.0))
+line.add(core.CHANGREF("CH", XCE=0.0, YCE=-135.37, ALE=-45.0))
 line.add(core.DRIFT("DR2", XL=54.31))
 line.add(core.FAKE_ELEM("""
 'FAISTORE'

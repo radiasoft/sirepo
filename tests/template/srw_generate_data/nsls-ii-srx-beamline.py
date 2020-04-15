@@ -404,7 +404,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_S0_y', 'f', 0.0, 'verticalOffset'],
 
     # S0_HFM: drift
-    ['op_S0_HFM_L', 'f', 1.081, 'length'],
+    ['op_S0_HFM_L', 'f', 1.081000000000003, 'length'],
 
     # HFM: sphericalMirror
     ['op_HFM_hfn', 's', 'None', 'heightProfileFile'],
@@ -413,17 +413,17 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_HFM_size_tang', 'f', 0.95, 'tangentialSize'],
     ['op_HFM_size_sag', 'f', 0.005, 'sagittalSize'],
     ['op_HFM_ang', 'f', 0.0025, 'grazingAngle'],
-    ['op_HFM_nvx', 'f', 0.999996875002, 'normalVectorX'],
+    ['op_HFM_nvx', 'f', 0.9999968750016276, 'normalVectorX'],
     ['op_HFM_nvy', 'f', 0.0, 'normalVectorY'],
-    ['op_HFM_nvz', 'f', -0.00249999739583, 'normalVectorZ'],
-    ['op_HFM_tvx', 'f', 0.00249999739583, 'tangentialVectorX'],
+    ['op_HFM_nvz', 'f', -0.002499997395834147, 'normalVectorZ'],
+    ['op_HFM_tvx', 'f', 0.002499997395834147, 'tangentialVectorX'],
     ['op_HFM_tvy', 'f', 0.0, 'tangentialVectorY'],
     ['op_HFM_amp_coef', 'f', 1.0, 'heightAmplification'],
     ['op_HFM_x', 'f', 0.0, 'horizontalOffset'],
     ['op_HFM_y', 'f', 0.0, 'verticalOffset'],
 
     # HFM_S1: drift
-    ['op_HFM_S1_L', 'f', 1.407, 'length'],
+    ['op_HFM_S1_L', 'f', 1.4069999999999965, 'length'],
 
     # S1: aperture
     ['op_S1_shape', 's', 'r', 'shape'],
@@ -433,53 +433,53 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_S1_y', 'f', 0.0, 'verticalOffset'],
 
     # S1_DCM_C1: drift
-    ['op_S1_DCM_C1_L', 'f', 0.781, 'length'],
+    ['op_S1_DCM_C1_L', 'f', 0.7809999999999988, 'length'],
 
     # DCM_C1: crystal
     ['op_DCM_C1_hfn', 's', '', 'heightProfileFile'],
     ['op_DCM_C1_dim', 's', 'x', 'orientation'],
-    ['op_DCM_C1_d_sp', 'f', 3.13557135638, 'dSpacing'],
-    ['op_DCM_C1_psi0r', 'f', -1.53227839905e-05, 'psi0r'],
-    ['op_DCM_C1_psi0i', 'f', 3.59410775406e-07, 'psi0i'],
-    ['op_DCM_C1_psiHr', 'f', -8.10706354484e-06, 'psiHr'],
-    ['op_DCM_C1_psiHi', 'f', 2.50931132347e-07, 'psiHi'],
-    ['op_DCM_C1_psiHBr', 'f', -8.10706354484e-06, 'psiHBr'],
-    ['op_DCM_C1_psiHBi', 'f', 2.50931132347e-07, 'psiHBi'],
+    ['op_DCM_C1_d_sp', 'f', 3.1355713563754857, 'dSpacing'],
+    ['op_DCM_C1_psi0r', 'f', -1.5322783990464697e-05, 'psi0r'],
+    ['op_DCM_C1_psi0i', 'f', 3.594107754061173e-07, 'psi0i'],
+    ['op_DCM_C1_psiHr', 'f', -8.107063544835198e-06, 'psiHr'],
+    ['op_DCM_C1_psiHi', 'f', 2.509311323470587e-07, 'psiHi'],
+    ['op_DCM_C1_psiHBr', 'f', -8.107063544835198e-06, 'psiHBr'],
+    ['op_DCM_C1_psiHBi', 'f', 2.509311323470587e-07, 'psiHBi'],
     ['op_DCM_C1_tc', 'f', 0.01, 'crystalThickness'],
     ['op_DCM_C1_ang_as', 'f', 0.0, 'asymmetryAngle'],
-    ['op_DCM_C1_nvx', 'f', -0.968973817886, 'nvx'],
-    ['op_DCM_C1_nvy', 'f', 2.59635532439e-08, 'nvy'],
-    ['op_DCM_C1_nvz', 'f', -0.247163387763, 'nvz'],
-    ['op_DCM_C1_tvx', 'f', -0.247163387763, 'tvx'],
-    ['op_DCM_C1_tvy', 'f', 6.62271741473e-09, 'tvy'],
-    ['op_DCM_C1_ang', 'f', 0.249751717635, 'grazingAngle'],
+    ['op_DCM_C1_nvx', 'f', -0.9689738178863605, 'nvx'],
+    ['op_DCM_C1_nvy', 'f', 2.5963553243865408e-08, 'nvy'],
+    ['op_DCM_C1_nvz', 'f', -0.24716338776349875, 'nvz'],
+    ['op_DCM_C1_tvx', 'f', -0.24716338776349867, 'tvx'],
+    ['op_DCM_C1_tvy', 'f', 6.62271741472828e-09, 'tvy'],
+    ['op_DCM_C1_ang', 'f', 0.2497517176345311, 'grazingAngle'],
     ['op_DCM_C1_amp_coef', 'f', 1.0, 'heightAmplification'],
 
     # DCM_C2: crystal
     ['op_DCM_C2_hfn', 's', '', 'heightProfileFile'],
     ['op_DCM_C2_dim', 's', 'x', 'orientation'],
-    ['op_DCM_C2_d_sp', 'f', 3.13557135638, 'dSpacing'],
-    ['op_DCM_C2_psi0r', 'f', -1.53227839905e-05, 'psi0r'],
-    ['op_DCM_C2_psi0i', 'f', 3.59410775406e-07, 'psi0i'],
-    ['op_DCM_C2_psiHr', 'f', -8.10706354484e-06, 'psiHr'],
-    ['op_DCM_C2_psiHi', 'f', 2.50931132347e-07, 'psiHi'],
-    ['op_DCM_C2_psiHBr', 'f', -8.10706354484e-06, 'psiHBr'],
-    ['op_DCM_C2_psiHBi', 'f', 2.50931132347e-07, 'psiHBi'],
+    ['op_DCM_C2_d_sp', 'f', 3.1355713563754857, 'dSpacing'],
+    ['op_DCM_C2_psi0r', 'f', -1.5322783990464697e-05, 'psi0r'],
+    ['op_DCM_C2_psi0i', 'f', 3.594107754061173e-07, 'psi0i'],
+    ['op_DCM_C2_psiHr', 'f', -8.107063544835198e-06, 'psiHr'],
+    ['op_DCM_C2_psiHi', 'f', 2.509311323470587e-07, 'psiHi'],
+    ['op_DCM_C2_psiHBr', 'f', -8.107063544835198e-06, 'psiHBr'],
+    ['op_DCM_C2_psiHBi', 'f', 2.509311323470587e-07, 'psiHBi'],
     ['op_DCM_C2_tc', 'f', 0.01, 'crystalThickness'],
     ['op_DCM_C2_ang_as', 'f', 0.0, 'asymmetryAngle'],
-    ['op_DCM_C2_nvx', 'f', 0.968973817886, 'nvx'],
+    ['op_DCM_C2_nvx', 'f', 0.9689738178863605, 'nvx'],
     ['op_DCM_C2_nvy', 'f', 0.0, 'nvy'],
-    ['op_DCM_C2_nvz', 'f', -0.247163387763, 'nvz'],
-    ['op_DCM_C2_tvx', 'f', 0.247163387763, 'tvx'],
+    ['op_DCM_C2_nvz', 'f', -0.24716338776349875, 'nvz'],
+    ['op_DCM_C2_tvx', 'f', 0.24716338776349867, 'tvx'],
     ['op_DCM_C2_tvy', 'f', 0.0, 'tvy'],
-    ['op_DCM_C2_ang', 'f', 0.249751717635, 'grazingAngle'],
+    ['op_DCM_C2_ang', 'f', 0.2497517176345311, 'grazingAngle'],
     ['op_DCM_C2_amp_coef', 'f', 1.0, 'heightAmplification'],
 
     # DCM_C2_At_BPM1: drift
-    ['op_DCM_C2_At_BPM1_L', 'f', 2.2416, 'length'],
+    ['op_DCM_C2_At_BPM1_L', 'f', 2.2415999999999983, 'length'],
 
     # At_BPM1_Before_SSA: drift
-    ['op_At_BPM1_Before_SSA_L', 'f', 11.9668, 'length'],
+    ['op_At_BPM1_Before_SSA_L', 'f', 11.966800000000006, 'length'],
 
     # SSA: aperture
     ['op_SSA_shape', 's', 'r', 'shape'],
@@ -489,7 +489,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_SSA_y', 'f', 0.0, 'verticalOffset'],
 
     # SSA_AKB: drift
-    ['op_SSA_AKB_L', 'f', 11.8308, 'length'],
+    ['op_SSA_AKB_L', 'f', 11.830799999999996, 'length'],
 
     # AKB: aperture
     ['op_AKB_shape', 's', 'r', 'shape'],
@@ -499,7 +499,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_AKB_y', 'f', 0.0, 'verticalOffset'],
 
     # AKB_KBV: drift
-    ['op_AKB_KBV_L', 'f', 0.175, 'length'],
+    ['op_AKB_KBV_L', 'f', 0.17499999999999716, 'length'],
 
     # KBV: ellipsoidMirror
     ['op_KBV_hfn', 's', '', 'heightProfileFile'],
@@ -511,15 +511,15 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_KBV_size_tang', 'f', 0.35, 'tangentialSize'],
     ['op_KBV_size_sag', 'f', 0.003, 'sagittalSize'],
     ['op_KBV_nvx', 'f', 0.0, 'normalVectorX'],
-    ['op_KBV_nvy', 'f', 0.999996875002, 'normalVectorY'],
-    ['op_KBV_nvz', 'f', -0.00249999739583, 'normalVectorZ'],
+    ['op_KBV_nvy', 'f', 0.9999968750016276, 'normalVectorY'],
+    ['op_KBV_nvz', 'f', -0.002499997395834147, 'normalVectorZ'],
     ['op_KBV_tvx', 'f', 0.0, 'tangentialVectorX'],
-    ['op_KBV_tvy', 'f', -0.00249999739583, 'tangentialVectorY'],
+    ['op_KBV_tvy', 'f', -0.002499997395834147, 'tangentialVectorY'],
     ['op_KBV_x', 'f', 0.0, 'horizontalOffset'],
     ['op_KBV_y', 'f', 0.0, 'verticalOffset'],
 
     # KBV_KBH: drift
-    ['op_KBV_KBH_L', 'f', 0.337, 'length'],
+    ['op_KBV_KBH_L', 'f', 0.3370000000000033, 'length'],
 
     # KBH: ellipsoidMirror
     ['op_KBH_hfn', 's', '', 'heightProfileFile'],
@@ -530,16 +530,16 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_KBH_amp_coef', 'f', 1.0, 'heightAmplification'],
     ['op_KBH_size_tang', 'f', 0.3, 'tangentialSize'],
     ['op_KBH_size_sag', 'f', 0.003, 'sagittalSize'],
-    ['op_KBH_nvx', 'f', 0.999996875002, 'normalVectorX'],
+    ['op_KBH_nvx', 'f', 0.9999968750016276, 'normalVectorX'],
     ['op_KBH_nvy', 'f', 0.0, 'normalVectorY'],
-    ['op_KBH_nvz', 'f', -0.00249999739583, 'normalVectorZ'],
-    ['op_KBH_tvx', 'f', -0.00249999739583, 'tangentialVectorX'],
+    ['op_KBH_nvz', 'f', -0.002499997395834147, 'normalVectorZ'],
+    ['op_KBH_tvx', 'f', -0.002499997395834147, 'tangentialVectorX'],
     ['op_KBH_tvy', 'f', 0.0, 'tangentialVectorY'],
     ['op_KBH_x', 'f', 0.0, 'horizontalOffset'],
     ['op_KBH_y', 'f', 0.0, 'verticalOffset'],
 
     # KBH_At_Sample: drift
-    ['op_KBH_At_Sample_L', 'f', 0.3, 'length'],
+    ['op_KBH_At_Sample_L', 'f', 0.29999999999999716, 'length'],
 
 #---Propagation parameters
     ['op_S0_pp', 'f',                 [0, 0, 1.0, 0, 0, 1.1, 7.0, 1.3, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'S0'],
