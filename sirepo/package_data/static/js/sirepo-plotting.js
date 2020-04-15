@@ -859,6 +859,9 @@ SIREPO.app.directive('colorPicker', function(appState, panelState) {
             };
 
             appState.whenModelsLoaded($scope, function () {
+                if (! $scope.model) {
+                    return;
+                }
                 origColor = $scope.model[$scope.field];
             });
         },
