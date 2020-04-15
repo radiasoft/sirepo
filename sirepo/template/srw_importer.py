@@ -789,7 +789,7 @@ def _patch_mirror_profile(code, mirror_file='mirror_1d.dat'):
             final_mirror_file = None
         var_name = 'ifn' + var_name
         for i in range(len(code_list)):
-            if re.search('^(\s*)' + var_name + '(\d*)(\s*)=(\s*)(.*\.dat\w*)(\s*)', code_list[i]):
+            if re.search(r'^(\s*)' + var_name + r'(\d*)(\s*)=(\s*)(.*\.dat\w*)(\s*)', code_list[i]):
                 full_var_name = code_list[i].strip().split('=')[0].strip()
                 code_list[i] = code_list[i].replace(
                     full_var_name,
