@@ -341,14 +341,19 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaServ
     };
 });
 
-SIREPO.app.directive('fieldIntegralTable', function(appState, radiaService, requestSender, utilities) {
+SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
     return {
         restrict: 'A',
         scope: {},
         template: [
             '<div class="col-md-6">',
                 '<div class="panel panel-info">',
-                    '<div class="panel-heading"><span class="sr-panel-heading">Field Integrals (T &#x00B7; mm)</span></div>',
+                    '<div class="panel-heading">',
+                        '<span class="sr-panel-heading">Field Integrals (T &#x00B7; mm)</span>',
+                        '<div class="sr-panel-options pull-right">',
+                        '<a data-ng-click="download()" target="_blank" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
+                        '</div>',
+                    '</div>',
                     '<div class="panel-body">',
                         '<table data-ng-if="hasPaths()" style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">',
                           '<colgroup>',
@@ -358,13 +363,13 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, radiaService, requ
                           '</colgroup>',
                           '<thead>',
                             '<tr>',
-                              '<th>Line</th>',
-                              '<th>Endpoints</th>',
-                              '<th>Fields</th>',
+                              '<th data-ng-repeat="h in HEADING">{{ h }}</th>',
+                              //'<th>Endpoints</th>',
+                              //'<th>Fields</th>',
                             '</tr>',
                           '</thead>',
                           '<tbody>',
-                            '<tr data-ng-repeat="path in paths | filter:isLine">',
+                            '<tr data-ng-repeat="path in paths">',
                               '<td>{{ path.name }}</td>',
                               '<td>[{{ path.beginX }}, {{ path.beginY }}, {{ path.beginZ }}] &#x2192; [{{ path.endX }}, {{ path.endY }}, {{ path.endZ }}]</td>',
                               '<td>',
@@ -379,8 +384,30 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, radiaService, requ
         ].join(''),
         controller: function($scope) {
 
+            $scope.CSV_HEADING = ['Line', 'x0', 'y0', 'z0', 'x1', 'y1', 'z1', 'Bx', 'By', 'Bz', 'Hx', 'Hy', 'Hz'];
+            $scope.HEADING = ['Line', 'Endpoints', 'Fields'];
             $scope.INTEGRABLE_FIELD_TYPES = ['B', 'H'];
             $scope.integrals = {};
+
+            $scope.download = function() {
+                var fileName = panelState.fileNameFromText('Field Integrals', 'csv');
+                var points = [$scope.CSV_HEADING];
+                $scope.paths.forEach(function (p) {
+                    var row = [];
+                    row.push(
+                        p.name,
+                        p.beginX, p.beginY, p.beginZ, p.endX, p.endY, p.endZ
+                    );
+                    $scope.INTEGRABLE_FIELD_TYPES.forEach(function (t) {
+                        row = row.concat(
+                            $scope.integrals[p.name][t]
+                        );
+                    });
+                    points.push(row);
+                });
+                //srdbg('save to', fileName, heading, points);
+                saveAs(new Blob([d3.csv.format(points)], {type: "text/csv;charset=utf-8"}), fileName);
+            };
 
             $scope.hasPaths = function() {
                 return $scope.paths && $scope.paths.length;
@@ -416,7 +443,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, radiaService, requ
             });
 
            appState.whenModelsLoaded($scope, function() {
-               $scope.paths = appState.models.fieldPaths.paths;
+               $scope.paths = appState.models.fieldPaths.paths.filter($scope.isLine);
                updateTable();
             });
 
@@ -593,14 +620,10 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
         template: [
             '<div class="col-md-6">',
                 '<div data-basic-editor-panel="" data-view-name="solver">',
-                    //'<div class="col-sm-6 col-sm-offset-5">',
                         '<div data-sim-status-panel="viz.simState"></div>',
                         '<div class="col-sm-6 pull-right" style="padding-top: 8px;">',
-                        '<button class="btn btn-default" data-ng-click="reset()">Reset</button>',
+                            '<button class="btn btn-default" data-ng-click="reset()">Reset</button>',
                         '</div>',
-                    //'</div>',
-                    //'<button class="btn btn-default" data-ng-click="solve()">Solve</button> ',
-                    //'<button class="btn btn-default" data-ng-click="reset()">Reset</button>',
                     '</div>',
                 '</div>',
             '</div>',
@@ -609,10 +632,6 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
         controller: function($scope, $element) {
 
             $scope.model = appState.models[$scope.modelName];
-
-            //$scope.solve = function() {
-            //    $scope.viz.startSimulation();
-            //};
 
             $scope.reset = function() {
                 panelState.clear('geometry');
