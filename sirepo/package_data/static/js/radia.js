@@ -203,6 +203,10 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         handleStatus
     );
 
+    self.simState.notRunningMessage = function() {
+        return 'Solve complete';
+    };
+
     appState.whenModelsLoaded($scope, function() {
         // initial setup
        // appState.watchModelFields($scope, ['model.field'], function() {
@@ -566,7 +570,7 @@ SIREPO.app.directive('radiaGeomObjInfo', function(appState, panelState, radiaSer
 });
 
 // does not need to be its own directive?  everything in viz and service? (and move template to html)
-SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache, geometry, layoutService, panelState) {
+SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache, geometry, layoutService, panelState, radiaService) {
 
     return {
         restrict: 'A',
@@ -578,6 +582,13 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
             '<div class="col-md-6">',
                 '<div data-basic-editor-panel="" data-view-name="solver">',
                     '<div class="col-sm-6 col-sm-offset-5">',
+                        //'<div data-ng-show="viz.simState.isStateRunning()">',
+                        //    '<div class="progress">',
+                        //        '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ viz.simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ viz.simState.getPercentComplete() || 100 }}%">',
+                        //    '</div>',
+                        //'</div>',
+                        '<div data-sim-status-panel="viz.simState"></div>',
+                    '</div>',
                     '<button class="btn btn-default" data-ng-click="solve()">Solve</button> ',
                     '<button class="btn btn-default" data-ng-click="reset()">Reset</button>',
                     '</div>',
