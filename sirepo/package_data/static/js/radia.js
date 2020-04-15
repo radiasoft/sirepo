@@ -174,7 +174,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     $scope.svc = radiaService;
 
     function handleStatus(data) {
-        //srdbg('SIM STATUS', data);
+        srdbg('SIM STATUS', data);
         if (data.error) {
             throw new Error('Solver failed: ' + data.error);
         }
@@ -188,6 +188,9 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
                     frameCache.setFrameCount(1, name);
                 });
             }
+        }
+        if (data.state == 'stopped' && ! data.frameCount) {
+            srdbg('CANCEL?');
         }
         frameCache.setFrameCount(data.frameCount);
     }
@@ -205,6 +208,18 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
 
     self.simState.notRunningMessage = function() {
         return 'Solve complete';
+    };
+
+    self.simState.startButtonLabel = function() {
+        return 'Solve';
+    };
+
+    //self.simState.stateAsText = function() {
+    //    return 'Solving';
+    //};
+
+    self.simState.stopButtonLabel = function() {
+        return 'Cancel';
     };
 
     appState.whenModelsLoaded($scope, function() {
@@ -582,15 +597,11 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
             '<div class="col-md-6">',
                 '<div data-basic-editor-panel="" data-view-name="solver">',
                     '<div class="col-sm-6 col-sm-offset-5">',
-                        //'<div data-ng-show="viz.simState.isStateRunning()">',
-                        //    '<div class="progress">',
-                        //        '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ viz.simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ viz.simState.getPercentComplete() || 100 }}%">',
-                        //    '</div>',
-                        //'</div>',
                         '<div data-sim-status-panel="viz.simState"></div>',
+                        '<button class="btn btn-default" data-ng-click="reset()">Reset</button>',
                     '</div>',
-                    '<button class="btn btn-default" data-ng-click="solve()">Solve</button> ',
-                    '<button class="btn btn-default" data-ng-click="reset()">Reset</button>',
+                    //'<button class="btn btn-default" data-ng-click="solve()">Solve</button> ',
+                    //'<button class="btn btn-default" data-ng-click="reset()">Reset</button>',
                     '</div>',
                 '</div>',
             '</div>',
@@ -600,11 +611,10 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
 
             $scope.model = appState.models[$scope.modelName];
 
-            $scope.solve = function() {
-                $scope.viz.startSimulation();
-            };
+            //$scope.solve = function() {
+            //    $scope.viz.startSimulation();
+            //};
 
-            // not sure how to do this - want Radia to keep geom defs but forget the fields...???
             $scope.reset = function() {
                 panelState.clear('geometry');
                 panelState.requestData('reset', function (d) {
@@ -613,7 +623,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
             };
 
             appState.whenModelsLoaded($scope, function () {
-
+                srdbg('frms', frameCache.getFrameCount());
             });
 
 

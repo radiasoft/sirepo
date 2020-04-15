@@ -62,9 +62,15 @@ def extract_report_data(run_dir, sim_in):
         v_type = sim_in.models.magnetDisplay.viewType
         f_type = sim_in.models.magnetDisplay.fieldType if v_type == VIEW_TYPE_FIELD\
             else None
-        with h5py.File(_geom_file(sim_in.simulationId), 'r') as hf:
-            g = template_common.h5_to_dict(hf, path=_geom_h5_path(v_type, f_type))
-            simulation_db.write_result(g, run_dir=run_dir)
+        g = _read_data(sim_in.simulationId, v_type, f_type)
+        #with h5py.File(_geom_file(sim_in.simulationId), 'r') as hf:
+        #    g = template_common.h5_to_dict(hf, path=_geom_h5_path(v_type, f_type))
+        #    if f_type:
+        #        _add_obj_lines(
+        #            g,
+        #            template_common.h5_to_dict(hf, path=_geom_h5_path(VIEW_TYPE_OBJ))
+        #        )
+        simulation_db.write_result(g, run_dir=run_dir)
         return
     simulation_db.write_result(PKDict(), run_dir=run_dir)
 
@@ -95,13 +101,14 @@ def get_application_data(data, **kwargs):
             return _generate_data(g_id, data)
         p = _geom_h5_path(data.viewType, f_type)
         try:
-            with h5py.File(f, 'r') as hf:
-                g = template_common.h5_to_dict(hf, path=p)
-                if f_type:
-                    o = template_common.h5_to_dict(hf, path=_geom_h5_path(VIEW_TYPE_OBJ))
-                    for d in o.data:
-                        g.data.append(PKDict(lines=d.lines))
-                return g
+            #with h5py.File(f, 'r') as hf:
+            #    g = template_common.h5_to_dict(hf, path=p)
+            #    if f_type:
+            #        o = template_common.h5_to_dict(hf, path=_geom_h5_path(VIEW_TYPE_OBJ))
+            #        for d in o.data:
+            #            g.data.append(PKDict(lines=d.lines))
+            #    return g
+            return _read_data(data.simulationId, data.viewType, f_type)
         except IOError:
             # No geom file
             return {}
@@ -127,6 +134,11 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
     )
+
+
+def _add_obj_lines(field_data, obj):
+    for d in obj.data:
+        field_data.data.append(PKDict(lines=d.lines))
 
 
 # have to include points for file type?
@@ -262,8 +274,9 @@ def _generate_data(g_id, in_data, add_lines=True):
                 g_id, in_data.name, in_data.fieldType, in_data.get('fieldPaths', None)
             )
             if add_lines:
-                for d in o.data:
-                    f_arr.data.append(PKDict(lines=d.lines))
+                _add_obj_lines(f_arr, o)
+                #for d in o.data:
+                #    f_arr.data.append(PKDict(lines=d.lines))
             return f_arr
     except RuntimeError as e:
         pkdc('Radia error {}', e.message)
@@ -329,3 +342,12 @@ def _geom_h5_path(v_type, f_type=None):
     return p
 
 
+def _read_data(sim_id, view_type, field_type):
+    with h5py.File(_geom_file(sim_id), 'r') as hf:
+        g = template_common.h5_to_dict(hf, path=_geom_h5_path(view_type, field_type))
+        if field_type:
+            _add_obj_lines(
+                g,
+                template_common.h5_to_dict(hf, path=_geom_h5_path(VIEW_TYPE_OBJ))
+            )
+    return g
