@@ -101,19 +101,28 @@ def import_python(code, tmp_dir, user_filename=None, arguments=None):
             return o.data
     except Exception as e:
         lineno = script and _find_line_in_trace(script)
-        # Avoid
+        if hasattr(e, 'args'):
+            if len(e.args) == 1:
+                m = str(e.args[0])
+            elif e.args:
+                m = str(e.args)
+            else:
+                m = e.__class__.__name__
+        else:
+            m = str(e)
         pkdlog(
             'Error: {}; exception={}; script={}; filename={}; stack:\n{}',
-            e.message,
-            e,
+            m,
+            e.__class__.__name__,
             script,
             user_filename,
             pkdexc(),
         )
-        e = str(e)[:50]
+        m = m[:50]
         raise ValueError(
-            'Error on line {}: {}'.format(lineno, e) if lineno
-            else 'Error: {}'.format(e))
+            'Error on line {}: {}'.format(lineno, m) if lineno
+            else 'Error: {}'.format(m),
+        )
 
 
 # Mapping all the values to a dictionary:

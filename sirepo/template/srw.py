@@ -5,6 +5,7 @@ u"""SRW execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkinspect
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -432,7 +433,7 @@ def import_file(req, tmp_dir, **kwargs):
         i = d.models.simulation.simulationId
         b = d.models.backgroundImport = PKDict(
             arguments=req.import_file_arguments,
-            python=req.file_stream.read(),
+            python=pkcompat.from_bytes(req.file_stream.read()),
             userFilename=req.filename,
         )
         # POSIT: import.py uses ''', but we just don't allow quotes in names
@@ -1192,7 +1193,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     if report == 'backgroundImport':
         v.tmp_dir = str(run_dir)
         v.python_file = run_dir.join('user_python.py')
-        v.python_file.write(data.models.backgroundImport.python)
+        pkio.write_text(v.python_file, data.models.backgroundImport.python)
         return template_common.render_jinja(SIM_TYPE, v, 'import.py')
     v['beamlineOptics'], v['beamlineOpticsParameters'] = _generate_beamline_optics(report, data, last_id)
 
