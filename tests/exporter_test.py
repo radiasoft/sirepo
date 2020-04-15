@@ -16,6 +16,7 @@ def test_create_zip(fc):
     from pykern.pkdebug import pkdp, pkdpretty
     from pykern.pkunit import pkeq
     from sirepo import srunit
+    import base64
     import re
     import zipfile
 
@@ -37,11 +38,12 @@ def test_create_zip(fc):
                     )
                 )
                 p = d.join(sim_name + '.' + t)
-                x = pkcompat.from_bytes(r.data)
+                x = r.data
                 if t == 'html':
+                    x = pkcompat.from_bytes(x)
                     m = re.search(r'name="zip" \S+ value="([^"]+)"', x, flags=re.DOTALL)
-                    x = m.group(1).decode('base64')
-                p.write(x, mode='wb')
+                    x = base64.b64decode(pkcompat.to_bytes(m.group(1)))
+                p.write_binary(x)
                 e = expect
                 if t == 'html':
                     e.remove('run.py')
