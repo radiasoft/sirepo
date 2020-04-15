@@ -172,18 +172,16 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, panelS
             var showRTDose = true;
             $scope.isClientOnly = true;
 
-            // the coordinate system may depend on the data?
-            var t = geometry.transform([
-                [1, 0, 0],
-                [0, -1, 0],
-                [0, 0, -1]
-            ]);
-            var cm = vtkPlotting.coordMapper(t);
-            var ha = cm.buildFromSource(homunculus()).actor;
-
             function addOrientationMarker() {
                 orientationMarker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
-                    actor: ha,   //vtk.Rendering.Core.vtkAxesActor.newInstance(),
+                    actor: vtkPlotting.coordMapper(
+                        // the coordinate system may depend on the data?
+                        geometry.transform([
+                            [1, 0, 0],
+                            [0, -1, 0],
+                            [0, 0, -1]
+                        ])
+                    ).buildFromSource(homunculus()).actor,
                     interactor: fsRenderer.getRenderWindow().getInteractor(),
                     viewportCorner: vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT,
                     viewportSize: 0.10,
@@ -202,7 +200,6 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, panelS
             }
 
             function homunculus(bodyCenter) {
-
                 bodyCenter = bodyCenter || [0, 0, 0];
                 var thetaRez = 24;
                 var phiRez = 24;
@@ -381,10 +378,11 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, panelS
                     addOrientationMarker();
                 }
                 else {
+                    var metadata = reader.getOutputData().get().metadata;
+                    var dmin = 4 / metadata.DoseGridScaling;
+                    var dmax = metadata.DoseMax;
                     ofun = vtk.Common.DataModel.vtkPiecewiseFunction.newInstance();
                     ofun.addPoint(0, 0);
-                    var dmin = 100000;
-                    var dmax = 1051663;
                     ofun.addPoint(dmin, 0);
                     ofun.addPoint(dmax, 0.01);
                     actor.getProperty().setScalarOpacity(0, ofun);
@@ -940,6 +938,7 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                     dim: data.getDimensions(),
                     bounds: data.getBounds(),
                     spacing: data.getSpacing(),
+                    metadata: data.get().metadata,
                 };
                 //TODO(pjm): this could be a flag based on patient position
                 //srdbg('res bnds before', res.spacing, res.dim, res.bounds.slice());
@@ -1043,21 +1042,15 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                 var width = data3d.dim[0];
                 var height = data3d.dim[1];
                 var depth = data3d.dim[2];
-                //TODO(pjm): metadata
-                var rescaleIntercept = -1024.0;
-                var rescaleSlope = 1;
-                var pixels = sliceArray(data3d, rescaleIntercept, rescaleSlope);
+                var pixels = sliceArray(data3d, data3d.metadata.RescaleIntercept, data3d.metadata.RescaleSlope);
                 if (roiFeature) {
                     roiFeature.load(zFrame);
                 }
                 if (dose3d) {
-                    //TODO(pjm): metadata
-                    var doseScaling = 6.1609162e-5;
-                    var dosePixels = sliceArray(dose3d, 0, doseScaling);
+                    var dosePixels = sliceArray(dose3d, 0, dose3d.metadata.DoseGridScaling);
                     //var colorMap = plotting.colorMapFromModel($scope.modelName);
                     var colorMap = plotting.colorMapOrDefault('jet');
-                    //TODO(pjm): metadata
-                    var maxDose = 62.6127136398;
+                    var maxDose = dose3d.metadata.DoseMax * dose3d.metadata.DoseGridScaling;
                     var colorScale = d3.scale.linear()
                         //TODO(pjm): add adjustable % cut-off
                         .domain(plotting.linearlySpacedArray(doseFeature.DOSE_CUTOFF, maxDose * 0.8, colorMap.length))

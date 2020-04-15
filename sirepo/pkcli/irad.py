@@ -29,39 +29,39 @@ _PIXEL_DATA_FILE = '{}/out.bin'.format(_PIXEL_DATA_DIR)
 _ROI_FILE_NAME = template.RTSTRUCT_FILE
 _VTI_CT_ZIP_FILE = template.CT_FILE
 _VTI_RTDOSE_ZIP_FILE = template.RTDOSE_FILE
-_VTI_TEMPLATE = {
-    'cellData': {
-        'arrays': [],
-        'vtkClass': 'vtkDataSetAttributes'
-    },
-    'fieldData': {
-        'arrays': [],
-        'vtkClass': 'vtkDataSetAttributes'
-    },
-    'vtkClass': 'vtkImageData',
-    'pointData': {
-        'arrays': [
-            {
-                'data': {
-                    'numberOfComponents': 1,
-                    'name': 'ImageScalars',
-                    'vtkClass': 'vtkDataArray',
-                    'ref': {
-                        'registration': 'setScalars',
-                        'encode': 'LittleEndian',
-                        'basepath': 'data',
-                        'id': 'out.bin'
-                    }
-                }
-            }
+_VTI_TEMPLATE = PKDict(
+    cellData=PKDict(
+        arrays=[],
+        vtkClass='vtkDataSetAttributes'
+    ),
+    fieldData=PKDict(
+        arrays=[],
+        vtkClass='vtkDataSetAttributes'
+    ),
+    vtkClass='vtkImageData',
+    pointData=PKDict(
+        arrays=[
+            PKDict(
+                data=PKDict(
+                    numberOfComponents=1,
+                    name='ImageScalars',
+                    vtkClass='vtkDataArray',
+                    ref=PKDict(
+                        registration='setScalars',
+                        encode='LittleEndian',
+                        basepath='data',
+                        id='out.bin'
+                    )
+                )
+            )
         ],
-        'vtkClass': 'vtkDataSetAttributes'
-    },
-}
+        vtkClass='vtkDataSetAttributes'
+    ),
+)
 
 def process_dicom_files(cfg_dir):
     # convert dicom files into ct.zip, rt.zip, rtdose.json and rtstruct.json
-    files = _dicom_files('dcm')
+    files = _dicom_files(cfg_dir)
     ctinfo = _write_ct_vti_file(files)
     pkdlog('ct: {}', ctinfo)
     rtdose = _write_rtdose_file(files)
@@ -177,15 +177,15 @@ def _extract_dcm_info(files, info, frame):
         if 'PatientPosition' in frame:
             info.update(PKDict(
                 PatientPosition=frame.PatientPosition,
-                WindowCenter=float(frame.WindowCenter),
-                WindowWidth=float(frame.WindowWidth),
+                # WindowCenter=float(frame.WindowCenter),
+                # WindowWidth=float(frame.WindowWidth),
                 RescaleIntercept=float(frame.RescaleIntercept),
                 RescaleSlope=float(frame.RescaleSlope),
                 Count=len(files.ctmap),
             ))
         else:
             info.SliceThickness=float(frame.GridFrameOffsetVector[1]) - float(frame.GridFrameOffsetVector[0])
-            info.Count=float(frame.NumberOfFrames)
+            info.Count=int(frame.NumberOfFrames)
     elif 'SliceThickness' not in info:
         info.SliceThickness = abs(info.ImagePositionPatient[2] - frame.ImagePositionPatient[2])
     return info
@@ -215,9 +215,10 @@ def _write_dvh_file(files, rois):
 
 def _write_rtdose_file(files):
     rtdose = pydicom.dcmread(files.rtdose)
-    doseinfo = None
-    doseinfo = _extract_dcm_info(files, doseinfo, rtdose)
-    pkdlog('max dose: {}, scaler: {}', rtdose.pixel_array.max(), rtdose.DoseGridScaling)
+    doseinfo = _extract_dcm_info(files, None, rtdose)
+    doseinfo.DoseMax = int(rtdose.pixel_array.max())
+    doseinfo.DoseGridScaling = rtdose.DoseGridScaling
+    pkdlog('max dose: {}, scaler: {}', doseinfo.DoseMax, doseinfo.DoseGridScaling)
     pkdlog('max dose (scaled): {}', rtdose.pixel_array.max() * rtdose.DoseGridScaling)
     doseinfo.ImagePositionPatient[2] += (doseinfo.Count - 1) * doseinfo.SliceThickness
     #pkdp('dose pixel array size: {}, len(rtdose.pixel_array))
@@ -263,22 +264,25 @@ def _write_rtstruct_file(files):
 
 def _write_vti_file(filename, info):
     vti = copy.deepcopy(_VTI_TEMPLATE)
-    vti['spacing'] = [
+    vti.spacing = [
         info.PixelSpacing[0],
         info.PixelSpacing[1],
         info.SliceThickness,
     ]
-    vti['extent'] = [
+    vti.extent = [
         0, info.Columns - 1,
         0, info.Rows - 1,
         0, info.Count - 1,
     ]
-    vti['metadata'] = {
-        'name': 'ct.vti' if 'PatientPosition' in info else 'dose.vti',
-    }
-    vti['origin'] = info.ImagePositionPatient
-    vti['pointData']['arrays'][0]['data']['size'] = info.Rows * info.Columns * info.Count
-    vti['pointData']['arrays'][0]['data']['dataType'] = 'Int{}Array'.format(info.BitsAllocated)
+    vti.metadata = PKDict(
+        name='ct.vti' if 'PatientPosition' in info else 'dose.vti',
+    )
+    for f in ('RescaleSlope', 'RescaleIntercept', 'DoseMax', 'DoseGridScaling'):
+        if f in info:
+            vti.metadata[f] = info[f]
+    vti.origin = info.ImagePositionPatient
+    vti.pointData.arrays[0].data.size = info.Rows * info.Columns * info.Count
+    vti.pointData.arrays[0].data.dataType = 'Int{}Array'.format(info.BitsAllocated)
     pkio.unchecked_remove(filename)
     with ZipFile(filename, 'w') as vti_zip:
         vti_zip.writestr('index.json', json.dumps(vti))
