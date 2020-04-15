@@ -256,7 +256,6 @@ class DockerDriver(job_driver.DriverBase):
                 cmd_prefix=cls._cmd_prefix(h, d),
                 instances=PKDict(),
                 name=h,
-                cpu_slots=PKDict(),
                 cpu_slot_q=PKDict(),
             )
             for k in job.KINDS:
