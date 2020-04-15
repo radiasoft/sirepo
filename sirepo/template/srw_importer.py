@@ -10,6 +10,7 @@ SRW objects.
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
+from pykern import pkjson
 from pykern import pkresource
 from pykern import pkrunpy
 from pykern.pkdebug import pkdlog, pkdexc, pkdp
@@ -456,37 +457,12 @@ def _get_default_drift():
     """The function parses srw.js file to find the default values for drift propagation parameters, which can be
     sometimes missed in the exported .py files (when distance = 0), but should be presented in .json files.
 
-    :return default_drift_prop: found list as a string.
+    Returns:
+        str: default drift propagation paramters
     """
-
-    try:
-        with open(_JS_DIR + '/srw.js') as f:
-            file_content = f.read()
-    except Exception:
-        file_content = ''
-
-    default_drift_prop = '[0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0]'
-
-    try:
-        content = file_content.split('\n')
-        for i in range(len(content)):
-            if content[i].find('function defaultDriftPropagationParams()') >= 0:
-                # Find 'return' statement:
-                for j in range(10):
-                    #
-                    #    function defaultDriftPropagationParams() {
-                    #        return [0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0];
-                    #    }
-                    if content[i + j].find('return') >= 0:
-                        default_drift_prop = content[i + j].replace('return ', '').replace(';', '').strip()
-                        break
-                break
-    except Exception:
-        pass
-
-    default_drift_prop = ast.literal_eval(default_drift_prop)
-
-    return default_drift_prop
+    c = pkio.read_text(_JS_DIR.join('srw.js'))
+    m = re.search(r'function defaultDriftPropagationParams.*?return\s*(\[[^\]]+\])', c, re.DOTALL)
+    return pkjson.load_any(m.group(1))
 
 
 def _get_propagation(op):
