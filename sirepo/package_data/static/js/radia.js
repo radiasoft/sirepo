@@ -174,7 +174,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     $scope.svc = radiaService;
 
     function handleStatus(data) {
-        srdbg('SIM STATUS', data);
+        //srdbg('SIM STATUS', data);
         if (data.error) {
             throw new Error('Solver failed: ' + data.error);
         }
@@ -188,9 +188,6 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
                     frameCache.setFrameCount(1, name);
                 });
             }
-        }
-        if (data.state == 'stopped' && ! data.frameCount) {
-            srdbg('CANCEL?');
         }
         frameCache.setFrameCount(data.frameCount);
     }
@@ -596,10 +593,12 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
         template: [
             '<div class="col-md-6">',
                 '<div data-basic-editor-panel="" data-view-name="solver">',
-                    '<div class="col-sm-6 col-sm-offset-5">',
+                    //'<div class="col-sm-6 col-sm-offset-5">',
                         '<div data-sim-status-panel="viz.simState"></div>',
+                        '<div class="col-sm-6 pull-right" style="padding-top: 8px;">',
                         '<button class="btn btn-default" data-ng-click="reset()">Reset</button>',
-                    '</div>',
+                        '</div>',
+                    //'</div>',
                     //'<button class="btn btn-default" data-ng-click="solve()">Solve</button> ',
                     //'<button class="btn btn-default" data-ng-click="reset()">Reset</button>',
                     '</div>',
@@ -623,7 +622,11 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
             };
 
             appState.whenModelsLoaded($scope, function () {
-                srdbg('frms', frameCache.getFrameCount());
+                //srdbg('frms', frameCache.hasFrames(), frameCache.getFrameCount());
+                //var cf = $scope.viz.simState.cancelSimulation;
+                //$scope.viz.simState.cancelSimulation = cf(function () {
+                //    $scope.reset();
+                //});
             });
 
 

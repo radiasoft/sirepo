@@ -62,15 +62,10 @@ def extract_report_data(run_dir, sim_in):
         v_type = sim_in.models.magnetDisplay.viewType
         f_type = sim_in.models.magnetDisplay.fieldType if v_type == VIEW_TYPE_FIELD\
             else None
-        g = _read_data(sim_in.simulationId, v_type, f_type)
-        #with h5py.File(_geom_file(sim_in.simulationId), 'r') as hf:
-        #    g = template_common.h5_to_dict(hf, path=_geom_h5_path(v_type, f_type))
-        #    if f_type:
-        #        _add_obj_lines(
-        #            g,
-        #            template_common.h5_to_dict(hf, path=_geom_h5_path(VIEW_TYPE_OBJ))
-        #        )
-        simulation_db.write_result(g, run_dir=run_dir)
+        simulation_db.write_result(
+            _read_data(sim_in.simulationId, v_type, f_type),
+            run_dir=run_dir
+        )
         return
     simulation_db.write_result(PKDict(), run_dir=run_dir)
 
@@ -101,13 +96,6 @@ def get_application_data(data, **kwargs):
             return _generate_data(g_id, data)
         p = _geom_h5_path(data.viewType, f_type)
         try:
-            #with h5py.File(f, 'r') as hf:
-            #    g = template_common.h5_to_dict(hf, path=p)
-            #    if f_type:
-            #        o = template_common.h5_to_dict(hf, path=_geom_h5_path(VIEW_TYPE_OBJ))
-            #        for d in o.data:
-            #            g.data.append(PKDict(lines=d.lines))
-            #    return g
             return _read_data(data.simulationId, data.viewType, f_type)
         except IOError:
             # No geom file
@@ -270,14 +258,12 @@ def _generate_data(g_id, in_data, add_lines=True):
         if in_data.viewType == VIEW_TYPE_OBJ:
             return o
         elif in_data.viewType == VIEW_TYPE_FIELD:
-            f_arr = _generate_field_data(
+            g = _generate_field_data(
                 g_id, in_data.name, in_data.fieldType, in_data.get('fieldPaths', None)
             )
             if add_lines:
-                _add_obj_lines(f_arr, o)
-                #for d in o.data:
-                #    f_arr.data.append(PKDict(lines=d.lines))
-            return f_arr
+                _add_obj_lines(g, o)
+            return g
     except RuntimeError as e:
         pkdc('Radia error {}', e.message)
         return PKDict(error=e.message)
