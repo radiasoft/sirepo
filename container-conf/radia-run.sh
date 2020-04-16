@@ -11,7 +11,6 @@ export SIREPO_PKCLI_SERVICE_PORT='{sirepo_port}'
 export SIREPO_PKCLI_SERVICE_RUN_DIR="$PWD"
 export SIREPO_SRDB_ROOT="$PWD/db"
 export SIREPO_COOKIE_IS_SECURE=false
-export SIREPO_FEATURE_CONFIG_JOB=false
 mkdir -m 700 -p "$SIREPO_SRDB_ROOT"
 f=$SIREPO_SRDB_ROOT/cookie_private_key
 if [[ ! -r $f ]]; then
