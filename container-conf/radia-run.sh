@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Start sirepo with "tini"
+# Start sirepo
 #
 . ~/.bashrc
 set -euo pipefail
