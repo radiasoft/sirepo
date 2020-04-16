@@ -58,7 +58,7 @@ TOSCA-magnetFile.gsid0.map
 3.1000000000000005
 2 0.0 0.0 0.0
 """))
-line.add(core.CHANGREF("CH", XCE=0.0, YCE=-135.37, ALE=-45.0))
+line.add(core.CHANGREF("CH", ALE=-45.0, XCE=0.0, YCE=-135.37))
 line.add(core.DRIFT("DR2", XL=54.31))
 line.add(core.DRIFT("DR", XL=36.0))
 line.add(core.FAKE_ELEM("""
@@ -89,7 +89,7 @@ gsid8.map
 3.1000000000000005
 2 0.0 0.0 0.0
 """))
-line.add(core.CHANGREF("CH", XCE=0.0, YCE=-135.37, ALE=-45.0))
+line.add(core.CHANGREF("CH", ALE=-45.0, XCE=0.0, YCE=-135.37))
 line.add(core.DRIFT("DR2", XL=54.31))
 line.add(core.FAKE_ELEM("""
 'FAISTORE'

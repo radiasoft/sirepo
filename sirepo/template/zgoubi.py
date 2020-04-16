@@ -765,7 +765,7 @@ def _generate_beamline_elements(report, data):
 
 def _generate_pyzgoubi_element(el, schema_type=None):
     res = 'line.add(core.{}("{}"'.format(el.type, el.name)
-    for f in _SCHEMA.model[schema_type or el.type]:
+    for f in sorted(_SCHEMA.model[schema_type or el.type].keys()):
         #TODO(pjm): need ignore list
         if f == 'name' or f == 'order' or f == 'format':
             continue
@@ -861,7 +861,7 @@ def _particle_count(data):
 def _peak_x(x_points, y_points):
     x = x_points[0]
     max_y = y_points[0]
-    for i in xrange(len(x_points)):
+    for i in range(len(x_points)):
         if y_points[i] > max_y:
             max_y = y_points[i]
             x = x_points[i]
@@ -898,13 +898,13 @@ def _read_data_file(path, mode='title'):
             if mode == 'header':
                 # header row starts with '# <letter>'
                 if re.search(r'^\s*#\s+[a-zA-Z]', line):
-                    col_names = re.split('\s+', line)
+                    col_names = re.split(r'\s+', line)
                     col_names = [re.sub(r'\W|_', '', x) for x in col_names[1:]]
                     mode = 'data'
             elif mode == 'data':
-                if re.search('^\s*#', line):
+                if re.search(r'^\s*#', line):
                     continue
-                row = re.split('\s+', re.sub(r'^\s+', '', line))
+                row = re.split(r'\s+', re.sub(r'^\s+', '', line))
                 rows.append(row)
     return col_names, rows
 
