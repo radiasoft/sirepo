@@ -13,50 +13,19 @@ from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjinja
 from pykern import pksubprocess
-from pykern.pkdebug import pkdc, pkdexc, pkdp
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
+import contextlib
+import os
 import py
 import re
+import signal
 import sirepo.srdb
 import socket
+import subprocess
 
 
-def celery():
-    """Start celery"""
-    assert pkconfig.channel_in('dev')
-    import celery.bin.celery
-    import sirepo.celery_tasks
-    run_dir = _run_dir().join('celery').ensure(dir=True)
-    with pkio.save_chdir(run_dir):
-        celery.bin.celery.main(argv=[
-            'celery',
-            'worker',
-            '--app=sirepo.celery_tasks',
-            '--no-color',
-            '-Ofair',
-            '--queue=' + ','.join(sirepo.celery_tasks.QUEUE_NAMES),
-        ])
-
-
-def flower():
-    """Start flower"""
-    from flower import command
-    assert pkconfig.channel_in('dev')
-    run_dir = _run_dir().join('flower').ensure(dir=True)
-    with pkio.save_chdir(run_dir):
-        command.FlowerCommand().execute_from_commandline([
-            'flower',
-            '--address=' + cfg.ip,
-            '--app=sirepo.celery_tasks',
-            '--no-color',
-            '--persistent',
-        ])
-
-
-def http():
-    """Starts Flask server in http mode.
-
-    Used for development only.
-    """
+def flask():
     from sirepo import server
 
     with pkio.save_chdir(_run_dir()):
@@ -72,6 +41,56 @@ def http():
             threaded=True,
             use_reloader=use_reloader,
         )
+
+
+def http():
+    """Starts the Flask server and job_supervisor.
+
+    Used for development only.
+    """
+    @contextlib.contextmanager
+    def _handle_signals(signums):
+        o = [(x, signal.getsignal(x)) for x in signums]
+        try:
+            [signal.signal(x[0], _kill) for x in o]
+            yield
+        finally:
+            [signal.signal(x[0], x[1]) for x in o]
+
+    def _kill(*args):
+        for p in processes:
+            try:
+                p.terminate()
+                p.wait(1)
+            except (ProcessLookupError, ChildProcessError):
+                continue
+            except subprocess.TimeoutExpired:
+                p.kill()
+
+    def _start(service):
+        c = ['pyenv', 'exec', 'sirepo']
+        c.extend(service)
+        processes.append(subprocess.Popen(
+            c,
+            cwd=str(_run_dir()),
+            env=e,
+        ))
+
+    e = PKDict(os.environ)
+    e. SIREPO_JOB_DRIVER_MODULES = 'local'
+    processes = []
+    with pkio.save_chdir(_run_dir()), _handle_signals(
+            (signal.SIGINT, signal.SIGTERM),
+    ):
+        try:
+            _start(['job_supervisor'])
+            _start(['service', 'flask'])
+            p, _ = os.wait()
+        except ChildProcessError:
+            pass
+        finally:
+            _kill()
+
 
 
 def nginx_proxy():
@@ -94,26 +113,6 @@ def nginx_proxy():
             'nginx',
         ]
         pksubprocess.check_call_with_signals(cmd)
-
-
-def rabbitmq():
-    assert pkconfig.channel_in('dev')
-    run_dir = _run_dir().join('rabbitmq').ensure(dir=True)
-    with pkio.save_chdir(run_dir):
-        cmd = [
-            'docker',
-            'run',
-            '--env=RABBITMQ_NODE_IP_ADDRESS=' + cfg.ip,
-            '--net=host',
-            '--rm',
-            '--volume={}:/var/lib/rabbitmq'.format(run_dir),
-            'rabbitmq:management',
-        ]
-        try:
-            pksubprocess.check_call_with_signals(cmd)
-        except OSError as e:
-            if e.errno == errno.ENOENT:
-                pkcli.command_error('docker is not installed')
 
 
 def uwsgi():
