@@ -10,7 +10,7 @@ build_vars() {
     local boot_dir=$build_run_user_home/.radia-run
     sirepo_boot=$boot_dir/start
     build_is_public=1
-    build_docker_cmd='[""'"$sirepo_boot"'"]'
+    build_docker_cmd='["'"$sirepo_boot"'"]'
     build_dockerfile_aux="USER $build_run_user"
 }
 
