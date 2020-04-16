@@ -11,6 +11,6 @@ def gen_private_key():
     """Generate 32 byte random private key"""
     import base64
     import os
-    from pyken import pkcompat
+    from pykern import pkcompat
 
     return pkcompat.from_bytes(base64.urlsafe_b64encode(os.urandom(32)))
