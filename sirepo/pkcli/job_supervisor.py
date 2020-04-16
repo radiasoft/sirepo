@@ -50,7 +50,11 @@ def default_command():
         websocket_ping_interval=sirepo.job.cfg.ping_interval_secs,
         websocket_ping_timeout=sirepo.job.cfg.ping_timeout_secs,
     )
-    server = tornado.httpserver.HTTPServer(app, xheaders=True)
+    server = tornado.httpserver.HTTPServer(
+        app,
+        xheaders=True,
+        max_buffer_size=sirepo.job.cfg.max_message_size,
+    )
     server.listen(cfg.port, cfg.ip)
     signal.signal(signal.SIGTERM, _sigterm)
     signal.signal(signal.SIGINT, _sigterm)

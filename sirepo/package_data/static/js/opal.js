@@ -166,6 +166,10 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
         'VARIABLE_RF_CAVITY_FRINGE_FIELD', 'VKICKER', 'VMONITOR', 'WIRE', 'YROT',
     ];
     self.basicNames = ['DRIFT', 'ECOLLIMATOR', 'KICKER', 'MARKER', 'QUADRUPOLE', 'SBEND', 'SEXTUPOLE'];
+
+    self.titleForName = function(name) {
+        return SIREPO.APP_SCHEMA.view[name].description;
+    };
 });
 
 SIREPO.app.directive('appFooter', function() {
@@ -486,16 +490,13 @@ SIREPO.app.directive('srCommanddistributionEditor', function(appState, panelStat
                 ['sigmax', 'sigmay', 'sigmar', 'sigmaz', 'sigmat', 'sigmapx', 'sigmapy', 'sigmapz', 'sigmapt'].forEach(function(f) {
                     panelState.showField(name, f, hasSigma(type));
                 });
-                if (type == 'BINOMIAL' || type == 'GAUSSMATCHED') {
+                if (type == 'BINOMIAL') {
                     panelState.showField(name, 'sigmar', false);
                 }
-                panelState.showTab(name, tab.Cutoff, hasSigma(type) || type == 'GAUSSMATCHED');
+                panelState.showTab(name, tab.Cutoff, hasSigma(type));
                 panelState.showTab(name, tab.Correlation, hasSigma(type));
                 ['mx', 'my'].forEach(function(f) {
                     panelState.showField(name, f, type == 'BINOMIAL');
-                });
-                ['line', 'fmapfn', 'fmtype', 'ex', 'ey', 'et', 'residuum', 'maxstepsco', 'maxstepssi', 'ordermaps', 'magsym', 'rguess'].forEach(function(f) {
-                    panelState.showField(name, f, type == 'GAUSSMATCHED');
                 });
                 if (type == 'GUNGAUSSFLATTOPTH' || type == 'ASTRAFLATTOPTH') {
                     dist.emitted = '1';
@@ -507,7 +508,7 @@ SIREPO.app.directive('srCommanddistributionEditor', function(appState, panelStat
                 panelState.showField(name, 'cutoff', type == 'GUNGAUSSFLATTOPTH');
                 panelState.showField(name, 'cutoffr', type == 'GAUSS');
                 ['cutoffpx', 'cutoffpy', 'cutoffpz'].forEach(function(f) {
-                    panelState.showField(name, f, type == 'GAUSS' || type == 'BINOMIAL' || type == 'GAUSSMATCHED');
+                    panelState.showField(name, f, type == 'GAUSS' || type == 'BINOMIAL');
                 });
                 processEmitted();
             }
