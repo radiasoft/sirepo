@@ -5,6 +5,7 @@ u"""zgoubi datafile parser
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkresource
 from pykern.pkcollections import PKDict
@@ -72,8 +73,10 @@ def tosca_info(tosca):
             for info in z.infolist():
                 filenames.append(info.filename)
                 if not length and info.filename in tosca.fileNames:
-                    f = pkcompat.from_bytes(z.read(info))
-                    length, error = _tosca_length(tosca, f.splitlines())
+                    length, error = _tosca_length(
+                        tosca,
+                        pkcompat.from_bytes(z.read(info)).splitlines(),
+                    )
                     if length:
                         error = None
     else:
