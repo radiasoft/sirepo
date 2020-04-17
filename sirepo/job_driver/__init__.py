@@ -79,7 +79,7 @@ class DriverBase(PKDict):
             _agentId=job.unique_key(),
             _agent_start_lock=tornado.locks.Lock(),
             _agent_starting_timeout=None,
-            _cpu_slot_alloc_lock=_NotifyAllWaitersLock(),
+            _cpu_slot_q_lock=tornado.locks.Lock(),
             _cpu_slot_alloc_time=None,
             _websocket=None,
             _websocket_ready=tornado.locks.Event(),
@@ -116,19 +116,19 @@ class DriverBase(PKDict):
     async def cpu_slot_ready(self):
         if self.cpu_slot:
             return
-        if self._cpu_slot_alloc_lock.locked():
-            await self._cpu_slot_alloc_lock.wait()
-            raise job_supervisor.Awaited()
-        try:
-            self.cpu_slot = self.cpu_slot_q.get_nowait()
-        except tornado.queues.QueueEmpty:
-            self.cpu_slot_free_one()
-            with self._cpu_slot_alloc_lock:
-                pkdlog('{} await cpu_slot_q.get()', self)
-                self.cpu_slot = await self.cpu_slot_q.get()
-                raise job_supervisor.Awaited()
-        finally:
-            self._cpu_slot_alloc_time = time.time()
+            try:
+                self.cpu_slot = self.cpu_slot_q.get_nowait()
+                self._cpu_slot_alloc_time = time.time()
+            except tornado.queues.QueueEmpty:
+                self.cpu_slot_free_one()
+                pkdlog('{} await cpu_slot_q_lock', self)
+                async with self._cpu_slot_q_lock.acquire():
+                    if self.cpu_slot:
+                        raise job_supervisor.Awaited()
+                    pkdlog('{} await cpu_slot_q.get()', self)
+                    self.cpu_slot = await self.cpu_slot_q.get()
+                    self._cpu_slot_alloc_time = time.time()
+                    raise job_supervisor.Awaited()
 
     def destroy_op(self, op):
         """Clear our op and (possibly) free cpu slot"""
@@ -410,31 +410,3 @@ def init(job_supervisor_module):
 
 async def terminate():
     await DriverBase.terminate()
-
-
-class _NotifyAllWaitersLock():
-    def __init__(self):
-        self._event = tornado.locks.Event()
-        self._event.set()
-
-    def locked(self):
-        return not self._event.is_set()
-
-    async def wait(self):
-        assert self.locked(), 'Do not wait. Lock is not locked.'
-        await self._event.wait()
-
-    def _acquire(self):
-        assert not self.locked(), 'The lock is locked. It cannot be acquired'
-        self._event.clear()
-
-    def _relese(self):
-        assert self.locked(), 'The lock is not locked. It cannot be released'
-        self._event.set()
-
-    def __enter__(self):
-        self._acquire()
-
-    def __exit__(self, *args):
-        self._relese()
-        return None
