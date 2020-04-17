@@ -125,7 +125,9 @@ def _do_download_data_file(msg, template):
             options=PKDict(suffix=msg.suffix),
         )
         if not isinstance(r, PKDict):
-            r = PKDict(filename=msg.runDir.join(r) if isinstance(r, str) else r)
+            if isinstance(r, str):
+                r = msg.runDir.join(r, abs=1)
+            r = PKDict(filename=r)
         u = r.get('uri')
         if u is None:
             u = r.filename.basename
