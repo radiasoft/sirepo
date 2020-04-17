@@ -148,7 +148,7 @@ class _State(dict):
         d = self._crypto().decrypt(
             base64.urlsafe_b64decode(pkcompat.to_bytes(value)),
         )
-        pkdc(d)
+        pkdc('{}', d)
         return pkcompat.from_bytes(d)
 
     def _deserialize(self, value):
