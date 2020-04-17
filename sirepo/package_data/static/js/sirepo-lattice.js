@@ -2360,7 +2360,7 @@ SIREPO.app.directive('rpnStatic', function(rpnService) {
             field: '=',
         },
         template: [
-            '<div data-ng-attr-title="{{ computedRpnValue(); }}" class="form-control-static" style="text-overflow: ellipsis; overflow: hidden; margin-left: -15px; padding-left: 0">{{ computedRpnValue(); }}</div>',
+            '<div data-ng-attr-title="{{ computedRpnValue(); }}" class="form-control-static" style="text-overflow: ellipsis; overflow: hidden; margin-left: -15px; padding-left: 0; white-space: nowrap">{{ computedRpnValue(); }}</div>',
         ].join(''),
         controller: function($scope) {
             $scope.computedRpnValue = function() {
