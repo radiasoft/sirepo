@@ -174,7 +174,7 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if model in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
         return _BEAM_EVOLUTION_OUTPUT_FILENAME
     elif model == 'forceTableAnimation':
-        return FORCE_TABLE_FILENAME
+        return _FORCE_TABLE_FILENAME
     return _ion_files(run_dir)[frame]
 
 
