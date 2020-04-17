@@ -14,6 +14,7 @@ SIREPO.app.config(function() {
     SIREPO.appDownloadLinks = [
         '<li data-lineout-csv-link="x"></li>',
         '<li data-lineout-csv-link="y"></li>',
+        '<li data-lineout-csv-link="full"></li>',
     ].join('');
 });
 
