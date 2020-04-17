@@ -6,9 +6,11 @@
     },
     "constants": {
         "defaultGeomColor": "#ffffff",
+        "inProgressText": "Solving",
         "pathPtsFileType": "path-pts",
         "pathDetailFields": {
             "circlePath": ["ctrX", "ctrY", "ctrZ", "radius", "theta", "phi"],
+            "fieldMapPath": ["ctrX", "ctrY", "ctrZ", "lenX", "lenY", "lenZ"],
             "filePath": ["fileName"],
             "linePath": ["beginX", "beginY", "beginZ", "endX", "endY", "endZ"],
             "manualPath": ["ptX", "ptY", "ptZ"]
@@ -39,8 +41,9 @@
         "PathType": [
             ["line", "Line"],
             ["circle", "Circle"],
-            ["manual", "Manual"],
-            ["file", "File"]
+            ["manual", "Manual Group"],
+            ["file", "File"],
+            ["fieldMap", "Field Map"]
         ],
         "SolveMethod": [
             ["0", "0"],
@@ -81,6 +84,17 @@
         "fieldDisplay": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "scaling": ["Scaling", "FieldScaling", "uniform"]
+        },
+        "fieldMapPath": {
+            "_super": ["_", "model", "fieldPath"],
+            "ctrX": ["Center x", "Float", 0.0],
+            "ctrY": ["Center y", "Float", 0.0],
+            "ctrZ": ["Center z", "Float", 0.0],
+            "lenX": ["X length", "Float", 1.0, "", 0],
+            "lenY": ["Y length", "Float", 1.0, "", 0],
+            "lenZ": ["Z length", "Float", 1.0, "", 0],
+            "numPoints": ["Num Points", "Integer", 10, "", 2],
+            "type": ["_", "PathType", "fieldMap"]
         },
         "fieldPath": {
             "name": ["Name", "String", ""]
@@ -145,7 +159,9 @@
             "maxIterations": ["Max iterations", "Integer", 1500, "", 1],
             "method": ["Method", "SolveMethod", "0"],
             "precision": ["Precision (T)", "Float", 0.00010, "", ""],
-            "result": ["Result", "String", ""]
+            "result": ["Result", "String", ""],
+            "sbatchCores": ["Cores", "Integer", 1],
+            "sbatchHours": ["Hours", "Float", 0.4]
         }
     },
     "view": {
@@ -159,6 +175,19 @@
                 "radius",
                 "theta",
                 "phi",
+                "numPoints"
+            ]
+        },
+        "fieldMapPath": {
+            "title": "Field Map",
+            "basic": [
+                "name",
+                "ctrX",
+                "ctrY",
+                "ctrZ",
+                "lenX",
+                "lenY",
+                "lenZ",
                 "numPoints"
             ]
         },

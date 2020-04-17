@@ -144,14 +144,7 @@ def _build_field_file_pts(f_path):
 def _build_field_points(paths):
     res = []
     for p in paths:
-        if p.type == 'manual':
-            res.extend([float(p.ptX), float(p.ptY), float(p.ptZ)])
-        if p.type == 'line':
-            res.extend(_build_field_line_pts(p))
-        if p.type == 'circle':
-            res.extend(_build_field_circle_pts(p))
-        if p.type == 'file':
-            res.extend(_build_field_file_pts(p))
+        res.extend(_FIELD_PT_BUILDERS[p.type](p))
     return res
 
 
@@ -167,6 +160,24 @@ def _build_field_line_pts(f_path):
             [p1[j] + i * (p2[j] - p1[j]) / n for j in r]
         )
     res.extend(p2)
+    return res
+
+
+def _build_field_manual_pts(f_path):
+    return [float(f_path.ptX), float(f_path.ptY), float(f_path.ptZ)]
+
+
+def _build_field_map_pts(f_path):
+    res = []
+    n = int(f_path.numPoints)
+    dx, dy, dz = f_path.lenX / (n - 1), f_path.lenY / (n - 1), f_path.lenZ / (n - 1)
+    for i in range(n):
+        x = f_path.ctrX - 0.5 * f_path.lenX + i * dx
+        for j in range(n):
+            y = f_path.ctrY - 0.5 * f_path.lenY + j * dy
+            for k in range(n):
+                z = f_path.ctrZ - 0.5 * f_path.lenZ + k * dz
+                res.extend([x, y, z])
     return res
 
 
@@ -214,6 +225,14 @@ def _build_field_circle_pts(f_path):
         ])
     return res
 
+
+_FIELD_PT_BUILDERS = {
+    'circle': _build_field_circle_pts,
+    'fieldMap': _build_field_map_pts,
+    'file': _build_field_file_pts,
+    'line': _build_field_line_pts,
+    'manual': _build_field_manual_pts,
+}
 
 def _build_geom(data):
     g_name = data.models.geometry.name

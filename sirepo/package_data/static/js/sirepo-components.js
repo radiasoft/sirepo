@@ -3170,7 +3170,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                 '</div>',
               '</div>',
               '<div class="col-sm-6 pull-right">',
-                '<button class="btn btn-default" data-ng-click="simState.cancelSimulation()">End Simulation</button>',
+                '<button class="btn btn-default" data-ng-click="simState.cancelSimulation()">{{ stopButtonLabel() }}</button>',
               '</div>',
             '</form>',
             '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isStopped()">',
@@ -3186,7 +3186,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               '</div>',
               '<div data-cancelled-due-to-timeout-alert="simState"></div>',
               '<div class="col-sm-6 pull-right">',
-                '<button class="btn btn-default" data-ng-click="start()">Start New Simulation</button>',
+                '<button class="btn btn-default" data-ng-click="start()">{{ startButtonLabel() }}</button>',
               '</div>',
             '</form>',
             '<div class="clearfix"></div>',
@@ -3202,6 +3202,14 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
 
             $scope.alertMessage = function() {
                 return callSimState('getAlert');
+            };
+
+            $scope.startButtonLabel = function() {
+                return callSimState('startButtonLabel') || 'Start New Simulation';
+            };
+
+            $scope.stopButtonLabel = function() {
+                return callSimState('stopButtonLabel') || 'End Simulation';
             };
 
             $scope.cancelledAfterSecs = function() {

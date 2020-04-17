@@ -13,7 +13,14 @@ SIREPO.app.config(function() {
           '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
         '</div>',
     ].join('');
-
+    SIREPO.appPanelHeadingButtons = [
+        '<div style="display: inline-block">',
+        '<a data-ng-click="download()" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
+        //'<ul class="dropdown-menu dropdown-menu-right">',
+        //'<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
+        //'</ul>',
+        '</div>',
+    ];
 });
 
 SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, requestSender) {
@@ -72,6 +79,36 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         appState.models[t] = appState.setModelDefaults(model, t);
     };
 
+    /*
+    self.downloadPath = function(path, field) {
+        srdbg('dl', path);
+        requestSender.getApplicationData(
+            {
+                fieldPaths: $scope.paths,
+                method: 'get_field_integrals',
+                simulationId: appState.models.simulation.simulationId,
+            },
+            function(d) {
+                $scope.integrals = d;
+            });
+
+        var CSV_HEADING = ['x', 'y', 'z', field + 'x', field + 'y', field + 'z'];
+        var fileName = panelState.fileNameFromText(path.name + ' ' + field, 'csv');
+        var points = [CSV_HEADING];
+        $scope.paths.forEach(function (p) {
+            var row = [];
+            row.push(
+                p.name,
+                p.beginX, p.beginY, p.beginZ, p.endX, p.endY, p.endZ
+            );
+            $scope.INTEGRABLE_FIELD_TYPES.forEach(function (t) {
+                row = row.concat($scope.integrals[p.name][t]);
+            });
+            points.push(row);
+        });
+        saveAs(new Blob([d3.csv.format(points)], {type: "text/csv;charset=utf-8"}), fileName);
+    };
+*/
     self.getPathType = function() {
         return (appState.models.fieldTypes || {}).path;
     };
@@ -97,6 +134,11 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
 
     self.setSelectedObj = function(o) {
         self.selectedObj = o;
+    };
+
+    self.showFieldDownload = function(doShow, path) {
+        self.selectedPath = path;
+        $('#sr-field-download').modal(doShow ? 'show' : 'hide');
     };
 
     self.showPathPicker = function(doShow, isNew) {
@@ -268,6 +310,48 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
+SIREPO.app.directive('fieldDownload', function(appState, panelState, radiaService) {
+
+    return {
+        restrict: 'A',
+        scope: {
+        },
+        template: [
+            '<div class="modal fade" tabindex="-1" role="dialog" id="sr-field-download" data-small-element-class="col-sm-2">',
+                '<div class="modal-dialog modal-lg">',
+                    '<div class="modal-content">',
+                        '<div class="modal-header bg-info">',
+                            '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                            '<span class="lead modal-title text-info">{{ svc.selectedPath.name }}</span>',
+                        '</div>',
+                        '<div class="modal-body">',
+                            '<div class="container-fluid">',
+                                '<div class="row">',
+                                    '<div class="col-sm-3 col-sm-offset-6">',
+                                        '<span>Field</span>',
+                                        '<select class="form-control">',
+                                            '<option ng-repeat="t in svc.pointFieldTypes">{{ t }}</option>',
+                                        '</select>',
+                                    '</div>',
+                                '</div>',
+                                '<div class="row">',
+                                    '<button dta-ng-click="" class="btn btn-default col-sm-offset-6">Download</button>',
+                                '</div>',
+                            '</div>',
+                        '</div>',
+                    '</div>',
+                '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            $scope.svc = radiaService;
+
+            appState.whenModelsLoaded($scope, function () {
+            });
+        },
+    };
+});
+
 SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaService) {
 
     return {
@@ -364,8 +448,6 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                           '<thead>',
                             '<tr>',
                               '<th data-ng-repeat="h in HEADING">{{ h }}</th>',
-                              //'<th>Endpoints</th>',
-                              //'<th>Fields</th>',
                             '</tr>',
                           '</thead>',
                           '<tbody>',
@@ -451,7 +533,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
     };
 });
 
-SIREPO.app.directive('fieldPathTable', function(appState, radiaService, utilities) {
+SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaService, utilities) {
     return {
         restrict: 'A',
         scope: {},
@@ -484,6 +566,7 @@ SIREPO.app.directive('fieldPathTable', function(appState, radiaService, utilitie
                         '<div class="sr-button-bar" data-ng-class="sr-button-bar-active" >',
                             '<button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyPath(path)">Copy</button>',
                             ' <button data-ng-click="editPath(path)" class="btn btn-info btn-xs sr-hover-button">Edit</button>',
+                            ' <button data-ng-click="svc.showFieldDownload(true, path)" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-cloud-download"></span></button>',
                             ' <button data-ng-click="deletePath(path, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>',
                         '</div>',
                     '<div>',
@@ -493,6 +576,7 @@ SIREPO.app.directive('fieldPathTable', function(appState, radiaService, utilitie
             '</table>',
         ].join(''),
         controller: function($scope) {
+            $scope.svc = radiaService;
 
             $scope.hasPaths = function() {
                 return $scope.paths && $scope.paths.length;
@@ -1456,8 +1540,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 //srdbg('update v');
                 sceneData = {};
                 actorInfo = {};
-                //vtkSelection = {};
-                //$scope.$broadcast('vtk.selected', vtkSelection);
                 //enableWatchFields(false);
                 var inData = {
                     method: 'get_geom',
@@ -1465,7 +1547,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     viewType: appState.models.magnetDisplay.viewType,
                     simulationId: appState.models.simulation.simulationId,
                 };
-                //if (appState.models.magnetDisplay.viewType === VIEW_TYPE_FIELDS) {
                 if ($scope.isViewTypeFields()) {
                     inData.fieldType = appState.models.magnetDisplay.fieldType;
                 }
