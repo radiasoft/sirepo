@@ -1088,7 +1088,7 @@ def _stl_polygon_file(filename):
 
 def _save_stl_polys(data):
     try:
-        with h5py.File(str(_SIM_DATA.lib_file_write_path(_stl_polygon_file(data.file)))) as hf:
+        with h5py.File(str(_SIM_DATA.lib_file_write_path(_stl_polygon_file(data.file))), 'w') as hf:
             template_common.dict_to_h5(data, hf, path='/')
     except Exception as e:
         pkdlog('!save_stl_polys FAIL: {}', e)

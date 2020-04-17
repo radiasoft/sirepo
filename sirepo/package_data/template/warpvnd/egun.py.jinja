@@ -75,7 +75,7 @@ if can_write_files:
         particles[0][2].append(yvals)
 
     update_status_file(ITERATIONS + 1)
-    with h5py.File('{{ particleFile }}') as hf:
+    with h5py.File('{{ particleFile }}', 'w') as hf:
         dict_to_h5(
             {
                 'kept': particles[0],
