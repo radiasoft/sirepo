@@ -72,12 +72,13 @@ def tosca_info(tosca):
             for info in z.infolist():
                 filenames.append(info.filename)
                 if not length and info.filename in tosca.fileNames:
-                    length, error = _tosca_length(tosca, z.read(info).splitlines())
+                    f = pkcompat.from_bytes(z.read(info))
+                    length, error = _tosca_length(tosca, f.splitlines())
                     if length:
                         error = None
     else:
         filenames = [tosca.magnetFile]
-        with pkio.open_text(str(datafile)) as f:
+        with pkio.open_text(datafile) as f:
             length, error = _tosca_length(tosca, f)
     if error:
         return PKDict(error=error)

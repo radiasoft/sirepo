@@ -5,6 +5,7 @@ u"""zgoubi execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkcollections import PKDict
@@ -424,7 +425,10 @@ def sim_frame(frame_args):
 
 
 def import_file(req, unit_test_mode=False, **kwargs):
-    return zgoubi_importer.import_file(req.file_stream.read(), unit_test_mode=unit_test_mode)
+    return zgoubi_importer.import_file(
+        pkcompat.from_bytes(req.file_stream.read()),
+        unit_test_mode=unit_test_mode,
+    )
 
 
 def prepare_sequential_output_file(run_dir, data):
