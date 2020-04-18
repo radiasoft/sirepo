@@ -32,6 +32,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
     };
 
     self.isEditing = false;
+    self.objBounds = null;
     self.pointFieldTypes = appState.enumVals('FieldType').slice(1);
     self.selectedObj = null;
 
@@ -77,6 +78,16 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
             id: numPathsOfType(appState.models.fieldPaths.path),
         };
         appState.models[t] = appState.setModelDefaults(model, t);
+
+        // set to fill bounds if any actors exist
+        if (t === 'fieldMapPath' && self.objBounds) {
+            appState.models[t].lenX = Math.abs(self.objBounds[1] - self.objBounds[0]);
+            appState.models[t].lenY = Math.abs(self.objBounds[3] - self.objBounds[2]);
+            appState.models[t].lenZ = Math.abs(self.objBounds[5] - self.objBounds[4]);
+            appState.models[t].ctrX = (self.objBounds[1] + self.objBounds[0]) / 2.0;
+            appState.models[t].ctrY = (self.objBounds[3] + self.objBounds[2]) / 2.0;
+            appState.models[t].ctrZ = (self.objBounds[5] + self.objBounds[4]) / 2.0;
+        }
     };
 
     /*
@@ -388,22 +399,14 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaServ
         ].join(''),
         controller: function($scope, $element) {
             $scope.modelsLoaded = false;
+            $scope.pathType = null;
             $scope.pathTypes = appState.enumVals('PathType');
             $scope.pathTypeModels = $scope.pathTypes.map(radiaService.pathTypeModel);
             $scope.radiaService = radiaService;
 
-           $scope.getPathType = function() {
-                return ($scope.model || {}).path;
-           };
-
-           function numPathsOfType(type) {
-                if (! $scope.model.paths) {
-                    return 0;
-                }
-                return $scope.model.paths.filter(function (p) {
-                    return p.type === type;
-                }).length;
-           }
+            $scope.getPathType = function() {
+               return ($scope.model || {}).path;
+            };
 
             appState.whenModelsLoaded($scope, function () {
                 $scope.model = appState.models[$scope.modelName];
@@ -418,7 +421,13 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaServ
                         radiaService.showPathPicker(false);
                     }
                 });
-
+                $scope.$watch('model.path', function (m) {
+                    var o = $($element).find('.modal').css('opacity');
+                    if (o == 1 && ! radiaService.isEditing) {
+                        // displaying editor but not editing, must be new
+                        radiaService.createPathModel();
+                    }
+                });
                 $scope.modelsLoaded = true;
             });
         },
@@ -952,6 +961,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
 
                 var b = renderer.computeVisiblePropBounds();
+                radiaService.objBounds = b;
                 //srdbg('bnds', b);
                 var points = new window.Float32Array([
                     b[0], b[2], b[4], b[1], b[2], b[4], b[1], b[3], b[4], b[0], b[3], b[4],
@@ -1540,6 +1550,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 //srdbg('update v');
                 sceneData = {};
                 actorInfo = {};
+                radiaService.objBounds = null;
                 //enableWatchFields(false);
                 var inData = {
                     method: 'get_geom',
