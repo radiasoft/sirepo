@@ -175,6 +175,7 @@ def _extract_dcm_info(files, info, frame):
             BitsAllocated=frame.BitsAllocated,
         )
         if 'PatientPosition' in frame:
+            # ct
             info.update(PKDict(
                 PatientPosition=frame.PatientPosition,
                 # WindowCenter=float(frame.WindowCenter),
@@ -184,6 +185,7 @@ def _extract_dcm_info(files, info, frame):
                 Count=len(files.ctmap),
             ))
         else:
+            # rtdose
             info.SliceThickness=float(frame.GridFrameOffsetVector[1]) - float(frame.GridFrameOffsetVector[0])
             info.Count=int(frame.NumberOfFrames)
     elif 'SliceThickness' not in info:
@@ -197,7 +199,11 @@ def _float_list(ar):
 
 def _write_ct_vti_file(files):
     ctinfo = None
-    instance_numbers = sorted(files.ctmap.keys()) if files.position == 'HFS' else reversed(sorted(files.ctmap.keys()))
+    #instance_numbers = sorted(files.ctmap.keys()) if files.position == 'HFS' else reversed(sorted(files.ctmap.keys()))
+    instance_numbers = sorted(files.ctmap.keys())
+    if pydicom.dcmread(files.ctmap[instance_numbers[0]]).ImagePositionPatient[2] \
+       > pydicom.dcmread(files.ctmap[instance_numbers[-1]]).ImagePositionPatient[2]:
+        instance_numbers = reversed(instance_numbers)
     for idx in instance_numbers:
         frame = pydicom.dcmread(files.ctmap[idx])
         ctinfo = _extract_dcm_info(files, ctinfo, frame)
@@ -220,14 +226,15 @@ def _write_rtdose_file(files):
     doseinfo.DoseGridScaling = rtdose.DoseGridScaling
     pkdlog('max dose: {}, scaler: {}', doseinfo.DoseMax, doseinfo.DoseGridScaling)
     pkdlog('max dose (scaled): {}', rtdose.pixel_array.max() * rtdose.DoseGridScaling)
-    doseinfo.ImagePositionPatient[2] += (doseinfo.Count - 1) * doseinfo.SliceThickness
+    #doseinfo.ImagePositionPatient[2] += (doseinfo.Count - 1) * doseinfo.SliceThickness
     #pkdp('dose pixel array size: {}, len(rtdose.pixel_array))
     pkio.mkdir_parent(_PIXEL_DATA_DIR)
     pkdlog(rtdose.pixel_array.shape)
 
     # order frame in direction used by ct (assumes HFS)
     with open (_PIXEL_DATA_FILE, 'ab') as f:
-        for di in reversed(range(rtdose.pixel_array.shape[0])):
+        #for di in reversed(range(rtdose.pixel_array.shape[0])):
+        for di in range(rtdose.pixel_array.shape[0]):
             for yi in range(rtdose.pixel_array.shape[1]):
                 rtdose.pixel_array[di][yi].tofile(f)
     _write_vti_file(_VTI_RTDOSE_ZIP_FILE, doseinfo)
