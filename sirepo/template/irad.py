@@ -6,6 +6,8 @@ u"""IRAD execution template.
 """
 
 from __future__ import absolute_import, division, print_function
+from pykern import pkio
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -33,8 +35,10 @@ def get_data_file(run_dir, model, frame, **kwargs):
         filename = sim_file(sim_id, RTDOSE_FILE)
     else:
         assert False, 'invalid frame: {}'.format(frame)
-    with open(filename) as f:
-        return _VTI_FILE, f.read(), 'application/octet-stream'
+    return PKDict(
+        uri=_VTI_FILE,
+        filename=pkio.py_path(filename),
+    )
 
 
 def sim_file(sim_id, filename):
