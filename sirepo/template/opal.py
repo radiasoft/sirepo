@@ -130,18 +130,13 @@ def get_application_data(data, **kwargs):
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
-    filename = None
-    if model == 'bunchAnimation' or model == 'plotAnimation' or 'bunchReport' in model:
-        filename = _OPAL_H5_FILE
+    if model in ('bunchAnimation', 'plotAnimation') or 'bunchReport' in model:
+        return _OPAL_H5_FILE
     elif model == 'plot2Animation':
-        filename = _OPAL_SDDS_FILE
+        return _OPAL_SDDS_FILE
     elif 'elementAnimation' in model:
-        filename = _file_name_for_element_animation(run_dir, model)
-    else:
-        assert False, 'file: {}'.format(model)
-    path = run_dir.join(filename)
-    with open(str(path)) as f:
-        return path.basename, f.read(), 'application/octet-stream'
+        return _file_name_for_element_animation(run_dir, model)
+    raise AssertionError('unknown model={}'.format(model))
 
 
 def post_execution_processing(

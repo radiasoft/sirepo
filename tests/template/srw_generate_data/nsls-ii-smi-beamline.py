@@ -251,7 +251,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['ebm_xp', 'f', 0.0, 'electron beam initial average horizontal angle [rad]'],
     ['ebm_yp', 'f', 0.0, 'electron beam initial average vertical angle [rad]'],
     ['ebm_z', 'f', 0., 'electron beam initial average longitudinal position [m]'],
-    ['ebm_dr', 'f', -1.44325, 'electron beam longitudinal drift [m] to be performed before a required calculation'],
+    ['ebm_dr', 'f', -1.4432500000000001, 'electron beam longitudinal drift [m] to be performed before a required calculation'],
     ['ebm_ens', 'f', 0.00089, 'electron beam relative energy spread'],
     ['ebm_emx', 'f', 9e-10, 'electron beam horizontal emittance [m]'],
     ['ebm_emy', 'f', 8e-12, 'electron beam vertical emittance [m]'],
@@ -405,48 +405,48 @@ varParam = srwl_bl.srwl_uti_ext_options([
     # MOAT_1: crystal
     ['op_MOAT_1_hfn', 's', 'Si_heat204.dat', 'heightProfileFile'],
     ['op_MOAT_1_dim', 's', 'y', 'orientation'],
-    ['op_MOAT_1_d_sp', 'f', 3.13557135638, 'dSpacing'],
-    ['op_MOAT_1_psi0r', 'f', -2.33400050166e-06, 'psi0r'],
-    ['op_MOAT_1_psi0i', 'f', 8.59790386417e-09, 'psi0i'],
-    ['op_MOAT_1_psiHr', 'f', -1.22944507993e-06, 'psiHr'],
-    ['op_MOAT_1_psiHi', 'f', 6.00282990962e-09, 'psiHi'],
-    ['op_MOAT_1_psiHBr', 'f', -1.22944507993e-06, 'psiHBr'],
-    ['op_MOAT_1_psiHBi', 'f', 6.00282990962e-09, 'psiHBi'],
+    ['op_MOAT_1_d_sp', 'f', 3.1355713563754857, 'dSpacing'],
+    ['op_MOAT_1_psi0r', 'f', -2.3340005016580434e-06, 'psi0r'],
+    ['op_MOAT_1_psi0i', 'f', 8.597903864165458e-09, 'psi0i'],
+    ['op_MOAT_1_psiHr', 'f', -1.229445079930407e-06, 'psiHr'],
+    ['op_MOAT_1_psiHi', 'f', 6.002829909616196e-09, 'psiHi'],
+    ['op_MOAT_1_psiHBr', 'f', -1.229445079930407e-06, 'psiHBr'],
+    ['op_MOAT_1_psiHBi', 'f', 6.002829909616196e-09, 'psiHBi'],
     ['op_MOAT_1_tc', 'f', 0.01, 'crystalThickness'],
     ['op_MOAT_1_ang_as', 'f', 0.0, 'asymmetryAngle'],
-    ['op_MOAT_1_nvx', 'f', -0.0966554453406, 'nvx'],
-    ['op_MOAT_1_nvy', 'f', 0.990567587399, 'nvy'],
-    ['op_MOAT_1_nvz', 'f', -0.0971266167475, 'nvz'],
-    ['op_MOAT_1_tvx', 'f', -0.00943241252825, 'tvx'],
-    ['op_MOAT_1_tvy', 'f', 0.0966675192333, 'tvy'],
-    ['op_MOAT_1_ang', 'f', 0.0972799772892, 'grazingAngle'],
+    ['op_MOAT_1_nvx', 'f', -0.0966554453405512, 'nvx'],
+    ['op_MOAT_1_nvy', 'f', 0.9905675873988612, 'nvy'],
+    ['op_MOAT_1_nvz', 'f', -0.097126616747518, 'nvz'],
+    ['op_MOAT_1_tvx', 'f', -0.009432412528249381, 'tvx'],
+    ['op_MOAT_1_tvy', 'f', 0.09666751923327799, 'tvy'],
+    ['op_MOAT_1_ang', 'f', 0.0972799772892332, 'grazingAngle'],
     ['op_MOAT_1_amp_coef', 'f', 1.0, 'heightAmplification'],
 
     # MOAT_1_MOAT_2: drift
-    ['op_MOAT_1_MOAT_2_L', 'f', 0.05, 'length'],
+    ['op_MOAT_1_MOAT_2_L', 'f', 0.04999999999999716, 'length'],
 
     # MOAT_2: crystal
     ['op_MOAT_2_hfn', 's', 'None', 'heightProfileFile'],
     ['op_MOAT_2_dim', 's', 'x', 'orientation'],
-    ['op_MOAT_2_d_sp', 'f', 3.13557135638, 'dSpacing'],
-    ['op_MOAT_2_psi0r', 'f', -2.33400050166e-06, 'psi0r'],
-    ['op_MOAT_2_psi0i', 'f', 8.59790386417e-09, 'psi0i'],
-    ['op_MOAT_2_psiHr', 'f', -1.22944507993e-06, 'psiHr'],
-    ['op_MOAT_2_psiHi', 'f', 6.00282990962e-09, 'psiHi'],
-    ['op_MOAT_2_psiHBr', 'f', -1.22944507993e-06, 'psiHBr'],
-    ['op_MOAT_2_psiHBi', 'f', 6.00282990962e-09, 'psiHBi'],
+    ['op_MOAT_2_d_sp', 'f', 3.1355713563754857, 'dSpacing'],
+    ['op_MOAT_2_psi0r', 'f', -2.3340005016580434e-06, 'psi0r'],
+    ['op_MOAT_2_psi0i', 'f', 8.597903864165458e-09, 'psi0i'],
+    ['op_MOAT_2_psiHr', 'f', -1.229445079930407e-06, 'psiHr'],
+    ['op_MOAT_2_psiHi', 'f', 6.002829909616196e-09, 'psiHi'],
+    ['op_MOAT_2_psiHBr', 'f', -1.229445079930407e-06, 'psiHBr'],
+    ['op_MOAT_2_psiHBi', 'f', 6.002829909616196e-09, 'psiHBi'],
     ['op_MOAT_2_tc', 'f', 0.01, 'crystalThickness'],
     ['op_MOAT_2_ang_as', 'f', 0.0, 'asymmetryAngle'],
-    ['op_MOAT_2_nvx', 'f', 0.0966554453406, 'nvx'],
-    ['op_MOAT_2_nvy', 'f', 0.990567587399, 'nvy'],
-    ['op_MOAT_2_nvz', 'f', -0.0971266167475, 'nvz'],
-    ['op_MOAT_2_tvx', 'f', 0.00943241252825, 'tvx'],
-    ['op_MOAT_2_tvy', 'f', 0.0966675192333, 'tvy'],
-    ['op_MOAT_2_ang', 'f', 0.0972799772892, 'grazingAngle'],
+    ['op_MOAT_2_nvx', 'f', 0.0966554453405512, 'nvx'],
+    ['op_MOAT_2_nvy', 'f', 0.9905675873988612, 'nvy'],
+    ['op_MOAT_2_nvz', 'f', -0.097126616747518, 'nvz'],
+    ['op_MOAT_2_tvx', 'f', 0.009432412528249381, 'tvx'],
+    ['op_MOAT_2_tvy', 'f', 0.09666751923327799, 'tvy'],
+    ['op_MOAT_2_ang', 'f', 0.0972799772892332, 'grazingAngle'],
     ['op_MOAT_2_amp_coef', 'f', 1.0, 'heightAmplification'],
 
     # MOAT_2_HFM: drift
-    ['op_MOAT_2_HFM_L', 'f', 2.89244, 'length'],
+    ['op_MOAT_2_HFM_L', 'f', 2.892440000000004, 'length'],
 
     # HFM: sphericalMirror
     ['op_HFM_hfn', 's', 'HFM_Rh7.6km.dat', 'heightProfileFile'],
@@ -454,18 +454,18 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_HFM_r', 'f', 7100.0, 'radius'],
     ['op_HFM_size_tang', 'f', 0.5, 'tangentialSize'],
     ['op_HFM_size_sag', 'f', 0.04, 'sagittalSize'],
-    ['op_HFM_ang', 'f', 0.003141592654, 'grazingAngle'],
-    ['op_HFM_nvx', 'f', 0.999995065202, 'normalVectorX'],
+    ['op_HFM_ang', 'f', 0.003141592653998904, 'grazingAngle'],
+    ['op_HFM_nvx', 'f', 0.9999950652018569, 'normalVectorX'],
     ['op_HFM_nvy', 'f', 0.0, 'normalVectorY'],
-    ['op_HFM_nvz', 'f', -0.00314158748629, 'normalVectorZ'],
-    ['op_HFM_tvx', 'f', 0.00314158748629, 'tangentialVectorX'],
+    ['op_HFM_nvz', 'f', -0.003141587486288672, 'normalVectorZ'],
+    ['op_HFM_tvx', 'f', 0.003141587486288672, 'tangentialVectorX'],
     ['op_HFM_tvy', 'f', 0.0, 'tangentialVectorY'],
     ['op_HFM_amp_coef', 'f', 1.0, 'heightAmplification'],
     ['op_HFM_x', 'f', 0.0, 'horizontalOffset'],
     ['op_HFM_y', 'f', 0.0, 'verticalOffset'],
 
     # HFM_VFM: drift
-    ['op_HFM_VFM_L', 'f', 3.42, 'length'],
+    ['op_HFM_VFM_L', 'f', 3.4199999999999946, 'length'],
 
     # VFM: sphericalMirror
     ['op_VFM_hfn', 's', 'VFM_Rh5.4km.dat', 'heightProfileFile'],
@@ -473,18 +473,18 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_VFM_r', 'f', 6100.0, 'radius'],
     ['op_VFM_size_tang', 'f', 0.4, 'tangentialSize'],
     ['op_VFM_size_sag', 'f', 0.04, 'sagittalSize'],
-    ['op_VFM_ang', 'f', 0.003141592654, 'grazingAngle'],
+    ['op_VFM_ang', 'f', 0.003141592653998904, 'grazingAngle'],
     ['op_VFM_nvx', 'f', 0.0, 'normalVectorX'],
-    ['op_VFM_nvy', 'f', 0.999995065202, 'normalVectorY'],
-    ['op_VFM_nvz', 'f', -0.00314158748629, 'normalVectorZ'],
+    ['op_VFM_nvy', 'f', 0.9999950652018569, 'normalVectorY'],
+    ['op_VFM_nvz', 'f', -0.003141587486288672, 'normalVectorZ'],
     ['op_VFM_tvx', 'f', 0.0, 'tangentialVectorX'],
-    ['op_VFM_tvy', 'f', 0.00314158748629, 'tangentialVectorY'],
+    ['op_VFM_tvy', 'f', 0.003141587486288672, 'tangentialVectorY'],
     ['op_VFM_amp_coef', 'f', 1.0, 'heightAmplification'],
     ['op_VFM_x', 'f', 0.0, 'horizontalOffset'],
     ['op_VFM_y', 'f', 0.0, 'verticalOffset'],
 
     # VFM_VDM: drift
-    ['op_VFM_VDM_L', 'f', 0.69756, 'length'],
+    ['op_VFM_VDM_L', 'f', 0.6975600000000028, 'length'],
 
     # VDM: sphericalMirror
     ['op_VDM_hfn', 's', 'VDM.dat', 'heightProfileFile'],
@@ -494,10 +494,10 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_VDM_size_sag', 'f', 0.04, 'sagittalSize'],
     ['op_VDM_ang', 'f', 0.0031415926, 'grazingAngle'],
     ['op_VDM_nvx', 'f', 0.0, 'normalVectorX'],
-    ['op_VDM_nvy', 'f', 0.999995065202, 'normalVectorY'],
-    ['op_VDM_nvz', 'f', -0.00314158743229, 'normalVectorZ'],
+    ['op_VDM_nvy', 'f', 0.9999950652020265, 'normalVectorY'],
+    ['op_VDM_nvz', 'f', -0.003141587432290035, 'normalVectorZ'],
     ['op_VDM_tvx', 'f', 0.0, 'tangentialVectorX'],
-    ['op_VDM_tvy', 'f', 0.00314158743229, 'tangentialVectorY'],
+    ['op_VDM_tvy', 'f', 0.003141587432290035, 'tangentialVectorY'],
     ['op_VDM_amp_coef', 'f', 1.0, 'heightAmplification'],
     ['op_VDM_x', 'f', 0.0, 'horizontalOffset'],
     ['op_VDM_y', 'f', 0.0, 'verticalOffset'],
@@ -513,10 +513,10 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_SSA_y', 'f', 0.0, 'verticalOffset'],
 
     # SSA_ES1: drift
-    ['op_SSA_ES1_L', 'f', 3.89756, 'length'],
+    ['op_SSA_ES1_L', 'f', 3.8975599999999986, 'length'],
 
     # ES1_CRL: drift
-    ['op_ES1_CRL_L', 'f', 6.435, 'length'],
+    ['op_ES1_CRL_L', 'f', 6.435000000000002, 'length'],
 
     # CRL: crl
     ['op_CRL_foc_plane', 'f', 3, 'focalPlane'],
@@ -532,7 +532,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_CRL_n', 'i', 23, 'numberOfLenses'],
 
     # CRL_ES2: drift
-    ['op_CRL_ES2_L', 'f', 1.665, 'length'],
+    ['op_CRL_ES2_L', 'f', 1.6649999999999991, 'length'],
 
 #---Propagation parameters
     ['op_MOAT_1_pp', 'f',        [0, 0, 1.0, 0, 0, 3.0, 1.0, 3.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'MOAT_1'],

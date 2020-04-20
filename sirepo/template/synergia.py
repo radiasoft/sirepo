@@ -5,6 +5,7 @@ u"""Synergia execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
@@ -129,17 +130,18 @@ def get_application_data(data, **kwargs):
 
 
 def import_file(req, tmp_dir=None, **kwargs):
+    f = pkcompat.from_bytes(req.file_stream.read())
     if re.search(r'.madx$', req.filename, re.IGNORECASE):
-        data = _import_madx_file(req.file_stream.read())
+        data = _import_madx_file()
     elif re.search(r'.mad8$', req.filename, re.IGNORECASE):
         import pyparsing
         try:
-            data = _import_mad8_file(req.file_stream.read())
+            data = _import_mad8_file(f)
         except pyparsing.ParseException as e:
             # ParseException has no message attribute
             raise sirepo.util.UserAlert(str(e))
     elif re.search(r'.lte$', req.filename, re.IGNORECASE):
-        data = _import_elegant_file(req.file_stream.read())
+        data = _import_elegant_file(f)
     else:
         raise sirepo.util.UserAlert('invalid file extension, expecting .madx or .mad8')
     LatticeUtil(data, _SCHEMA).sort_elements_and_beamlines()
@@ -149,15 +151,12 @@ def import_file(req, tmp_dir=None, **kwargs):
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if model in OUTPUT_FILE:
-        path = run_dir.join(OUTPUT_FILE[model])
+        return OUTPUT_FILE[model]
     elif model == 'bunchAnimation':
-        path = py.path.local(_particle_file_list(run_dir)[frame])
+        return _particle_file_list(run_dir)[frame]
     elif 'bunchReport' in model:
-        path = run_dir.join(OUTPUT_FILE.bunchReport)
-    else:
-        assert False, 'model data file not yet supported: {}'.format(model)
-    with open(str(path)) as f:
-        return path.basename, f.read(), 'application/octet-stream'
+        return OUTPUT_FILE.bunchReport
+    raise AssertionError('unsupported model={}'.format(model))
 
 
 def label(field, enum_labels=None):
@@ -798,7 +797,7 @@ def _parse_synergia_log(run_dir):
 
 
 def _particle_file_list(run_dir):
-    return sorted(glob.glob(str(run_dir.join('particles_*.h5'))))
+    return pkio.sorted_glob(run_dir.join('particles_*.h5'))
 
 
 def _plot_field(field):

@@ -64,9 +64,13 @@ def test_2_purge_users_guests_present(auth_fc):
 
     res = admin.purge_guest_users(days=days, confirm=True)
     pkeq(dirs_and_uids, res, '{}: one guest user so one dir and uid to delete', res)
-    pkok(not res.keys()[0].check(dir=True), '{}: directory deleted', res)
+    pkok(
+        not list(res.keys())[0].check(dir=True),
+        '{}: directory deleted',
+        res,
+    )
     pkeq(
-        auth_db.UserRegistration.search_by(uid=res.values()[0]),
+        auth_db.UserRegistration.search_by(uid=list(res.values())[0]),
         None,
         '{}: expecting uid to deleted from db', res
     )

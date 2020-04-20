@@ -5,6 +5,7 @@ u"""SRW execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkinspect
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -13,7 +14,6 @@ from sirepo import crystal
 from sirepo import simulation_db
 from sirepo.template import srw_common
 from sirepo.template import template_common
-import bnlcrl.pkcli.simulate
 import copy
 import glob
 import math
@@ -26,15 +26,10 @@ import sirepo.mpi
 import sirepo.sim_data
 import sirepo.template.srw_fixup
 import sirepo.uri_router
-import srwl_uti_cryst
-import srwl_uti_smp
-import srwl_uti_src
+import sirepo.util
 import srwlib
 import time
 import traceback
-import uti_math
-import uti_plot_com
-import werkzeug
 import zipfile
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
@@ -186,6 +181,8 @@ def calculate_beam_drift(ebeam_position, source_type, undulator_type, undulator_
 
 
 def compute_crl_focus(model):
+    import bnlcrl.pkcli.simulate
+
     d = bnlcrl.pkcli.simulate.calc_ideal_focus(
         radius=float(model['tipRadius']) * 1e-6,  # um -> m
         n=model['numberOfLenses'],
@@ -236,6 +233,8 @@ def clean_run_dir(run_dir):
 
 
 def extract_report_data(filename, sim_in):
+    import uti_plot_com
+
     r = sim_in.report
     m = sim_in.models
     #TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
@@ -385,10 +384,7 @@ def get_application_data(data, **kwargs):
 
 
 def get_data_file(run_dir, model, frame, **kwargs):
-    filename = get_filename_for_model(model)
-    with open(str(run_dir.join(filename))) as f:
-        return filename, f.read(), 'application/octet-stream'
-    raise RuntimeError('output file unknown for model: {}'.format(model))
+    return get_filename_for_model(model)
 
 
 def get_filename_for_model(model):
@@ -437,7 +433,7 @@ def import_file(req, tmp_dir, **kwargs):
         i = d.models.simulation.simulationId
         b = d.models.backgroundImport = PKDict(
             arguments=req.import_file_arguments,
-            python=req.file_stream.read(),
+            python=pkcompat.from_bytes(req.file_stream.read()),
             userFilename=req.filename,
         )
         # POSIT: import.py uses ''', but we just don't allow quotes in names
@@ -615,6 +611,8 @@ def remove_last_frame(run_dir):
 
 def validate_file(file_type, path):
     """Ensure the data file contains parseable rows data"""
+    import srwl_uti_smp
+
     if not _SIM_DATA.srw_is_valid_file_type(file_type, path):
         return 'invalid file type: {}'.format(path.ext)
     if file_type == 'mirror':
@@ -729,6 +727,8 @@ def _add_report_filenames(v):
 
 
 def _compute_material_characteristics(model, photon_energy, prefix=''):
+    import bnlcrl.pkcli.simulate
+
     fields_with_prefix = PKDict({
         'material': 'material',
         'refractiveIndex': 'refractiveIndex',
@@ -777,6 +777,8 @@ def _compute_material_characteristics(model, photon_energy, prefix=''):
 
 
 def _compute_crystal_init(model):
+    import srwl_uti_cryst
+
     parms_list = ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi']
     try:
         material_raw = model['material']  # name contains either "(SRW)" or "(X0h)"
@@ -815,6 +817,8 @@ def _compute_crystal_init(model):
 
 
 def _compute_crystal_orientation(model):
+    import uti_math
+
     if not model['dSpacing']:
         return model
     parms_list = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle']
@@ -1189,7 +1193,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     if report == 'backgroundImport':
         v.tmp_dir = str(run_dir)
         v.python_file = run_dir.join('user_python.py')
-        v.python_file.write(data.models.backgroundImport.python)
+        pkio.write_text(v.python_file, data.models.backgroundImport.python)
         return template_common.render_jinja(SIM_TYPE, v, 'import.py')
     v['beamlineOptics'], v['beamlineOpticsParameters'] = _generate_beamline_optics(report, data, last_id)
 
@@ -1339,7 +1343,9 @@ def _process_image(data, tmp_dir):
         py.path.local: file to return
     """
     # This should just be a basename, but this ensures it.
-    path = str(_SIM_DATA.lib_file_abspath(werkzeug.secure_filename(data.baseImage)))
+    import srwl_uti_smp
+
+    path = str(_SIM_DATA.lib_file_abspath(sirepo.util.secure_filename(data.baseImage)))
     m = data['model']
     with pkio.save_chdir(tmp_dir):
         s = srwl_uti_smp.SRWLUtiSmp(

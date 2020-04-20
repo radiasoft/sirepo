@@ -5,6 +5,7 @@ u"""elegant execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkresource
 from pykern.pkcollections import PKDict
@@ -201,18 +202,21 @@ def _file_name_from_id(file_id, model_data, run_dir):
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
+
     def _sdds(filename):
         path = run_dir.join(filename)
         assert path.check(file=True, exists=True), \
             '{}: not found'.format(path)
         if not options.suffix:
-            with open(str(path)) as f:
-                return path.basename, f.read(), 'application/octet-stream'
+            return path
         if options.suffix == 'csv':
             out = elegant_common.subprocess_output(['sddsprintout', '-columns', '-spreadsheet=csv', str(path)])
             assert out, \
                 '{}: invalid or empty output from sddsprintout'.format(path)
-            return path.purebasename + '.csv', out, 'text/csv'
+            return PKDict(
+                uri=path.purebasename + '.csv',
+                content=out,
+            )
         raise AssertionError('{}: invalid suffix for download path={}'.format(options.suffix, path))
 
     if frame >= 0:
@@ -220,34 +224,28 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         # ex. elementAnimation17-55
         i = re.sub(r'elementAnimation', '', model).split(_FILE_ID_SEP)
         return _sdds(_get_filename_for_element_id(i, data))
-
     if model == 'animation':
-        path = run_dir.join(ELEGANT_LOG_FILE)
-        if not path.exists():
-            return 'elegant-output.txt', '', 'text/plain'
-        with open(str(path)) as f:
-            return 'elegant-output.txt', f.read(), 'text/plain'
-
+        return ELEGANT_LOG_FILE
     return _sdds(_report_output_filename('bunchReport'))
 
 
 def import_file(req, test_data=None, **kwargs):
     # input_data is passed by test cases only
     input_data = test_data
-
+    text = pkcompat.from_bytes(req.file_stream.read())
     if 'simulationId' in req.req_data:
         input_data = simulation_db.read_simulation_json(SIM_TYPE, sid=req.req_data.simulationId)
     if re.search(r'.ele$', req.filename, re.IGNORECASE):
-        data = elegant_command_importer.import_file(req.file_stream.read())
+        data = elegant_command_importer.import_file(text)
     elif re.search(r'.lte$', req.filename, re.IGNORECASE):
-        data = elegant_lattice_importer.import_file(req.file_stream.read(), input_data)
+        data = elegant_lattice_importer.import_file(text, input_data)
         if input_data:
             _map_commands_to_lattice(data)
     elif re.search(r'.madx$', req.filename, re.IGNORECASE):
         from sirepo.template import madx_converter, madx_parser
         data = madx_converter.from_madx(
             SIM_TYPE,
-            madx_parser.parse_file(req.file_stream.read()))
+            madx_parser.parse_file(text))
     else:
         raise IOError('invalid file extension, expecting .ele or .lte')
     data.models.simulation.name = re.sub(r'\.(lte|ele|madx)$', '', req.filename, flags=re.IGNORECASE)
@@ -857,7 +855,7 @@ def _parameter_definitions(parameters):
 def _parse_elegant_log(run_dir):
     path = run_dir.join(ELEGANT_LOG_FILE)
     if not path.exists():
-        return '', 0
+        return '', 0, 0
     res = ''
     last_element = None
     text = pkio.read_text(str(path))
@@ -868,12 +866,12 @@ def _parse_elegant_log(run_dir):
     for line in text.split('\n'):
         if line == prev_line:
             continue
-        match = re.search('^Starting (\S+) at s\=', line)
+        match = re.search(r'^Starting (\S+) at s=', line)
         if match:
             name = match.group(1)
-            if not re.search('^M\d+\#', name):
+            if not re.search(r'^M\d+\#', name):
                 last_element = name
-        match = re.search('^tracking step (\d+)', line)
+        match = re.search(r'^tracking step (\d+)', line)
         if match:
             step = int(match.group(1))
         if want_next_line:

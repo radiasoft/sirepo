@@ -78,7 +78,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['ebm_z', 'f', 0., 'electron beam initial average longitudinal position [m]'],
     ['ebm_dr', 'f', -1.54, 'electron beam longitudinal drift [m] to be performed before a required calculation'],
     ['ebm_ens', 'f', 0.00089, 'electron beam relative energy spread'],
-    ['ebm_emx', 'f', 5.5e-10, 'electron beam horizontal emittance [m]'],
+    ['ebm_emx', 'f', 5.500000000000001e-10, 'electron beam horizontal emittance [m]'],
     ['ebm_emy', 'f', 8e-12, 'electron beam vertical emittance [m]'],
     # Definition of the beam through Twiss:
     ['ebm_betax', 'f', 2.02, 'horizontal beta-function [m]'],

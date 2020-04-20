@@ -405,7 +405,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_S1_y', 'f', 0.0, 'verticalOffset'],
 
     # S1_HCM: drift
-    ['op_S1_HCM_L', 'f', 1.73, 'length'],
+    ['op_S1_HCM_L', 'f', 1.7300000000000004, 'length'],
 
     # HCM: sphericalMirror
     ['op_HCM_hfn', 's', 'None', 'heightProfileFile'],
@@ -414,60 +414,60 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_HCM_size_tang', 'f', 1.0, 'tangentialSize'],
     ['op_HCM_size_sag', 'f', 0.006, 'sagittalSize'],
     ['op_HCM_ang', 'f', 0.0032, 'grazingAngle'],
-    ['op_HCM_nvx', 'f', 0.999994880004, 'normalVectorX'],
+    ['op_HCM_nvx', 'f', 0.9999948800043691, 'normalVectorX'],
     ['op_HCM_nvy', 'f', 0.0, 'normalVectorY'],
-    ['op_HCM_nvz', 'f', -0.00319999453867, 'normalVectorZ'],
-    ['op_HCM_tvx', 'f', 0.00319999453867, 'tangentialVectorX'],
+    ['op_HCM_nvz', 'f', -0.003199994538669463, 'normalVectorZ'],
+    ['op_HCM_tvx', 'f', 0.003199994538669463, 'tangentialVectorX'],
     ['op_HCM_tvy', 'f', 0.0, 'tangentialVectorY'],
     ['op_HCM_amp_coef', 'f', 1.0, 'heightAmplification'],
     ['op_HCM_x', 'f', 0.0, 'horizontalOffset'],
     ['op_HCM_y', 'f', 0.0, 'verticalOffset'],
 
     # HCM_DCM_C1: drift
-    ['op_HCM_DCM_C1_L', 'f', 2.07, 'length'],
+    ['op_HCM_DCM_C1_L', 'f', 2.0700000000000003, 'length'],
 
     # DCM_C1: crystal
     ['op_DCM_C1_hfn', 's', '', 'heightProfileFile'],
     ['op_DCM_C1_dim', 's', 'x', 'orientation'],
-    ['op_DCM_C1_d_sp', 'f', 3.13557135638, 'dSpacing'],
-    ['op_DCM_C1_psi0r', 'f', -1.53227839905e-05, 'psi0r'],
-    ['op_DCM_C1_psi0i', 'f', 3.59410775406e-07, 'psi0i'],
-    ['op_DCM_C1_psiHr', 'f', -8.10706354484e-06, 'psiHr'],
-    ['op_DCM_C1_psiHi', 'f', 2.50931132347e-07, 'psiHi'],
-    ['op_DCM_C1_psiHBr', 'f', -8.10706354484e-06, 'psiHBr'],
-    ['op_DCM_C1_psiHBi', 'f', 2.50931132347e-07, 'psiHBi'],
+    ['op_DCM_C1_d_sp', 'f', 3.1355713563754857, 'dSpacing'],
+    ['op_DCM_C1_psi0r', 'f', -1.5322783990464697e-05, 'psi0r'],
+    ['op_DCM_C1_psi0i', 'f', 3.594107754061173e-07, 'psi0i'],
+    ['op_DCM_C1_psiHr', 'f', -8.107063544835198e-06, 'psiHr'],
+    ['op_DCM_C1_psiHi', 'f', 2.509311323470587e-07, 'psiHi'],
+    ['op_DCM_C1_psiHBr', 'f', -8.107063544835198e-06, 'psiHBr'],
+    ['op_DCM_C1_psiHBi', 'f', 2.509311323470587e-07, 'psiHBi'],
     ['op_DCM_C1_tc', 'f', 0.01, 'crystalThickness'],
     ['op_DCM_C1_ang_as', 'f', 0.0, 'asymmetryAngle'],
-    ['op_DCM_C1_nvx', 'f', -0.968973817886, 'nvx'],
+    ['op_DCM_C1_nvx', 'f', -0.9689738178863605, 'nvx'],
     ['op_DCM_C1_nvy', 'f', 0.0, 'nvy'],
-    ['op_DCM_C1_nvz', 'f', -0.247163387763, 'nvz'],
-    ['op_DCM_C1_tvx', 'f', -0.247163387763, 'tvx'],
+    ['op_DCM_C1_nvz', 'f', -0.24716338776349875, 'nvz'],
+    ['op_DCM_C1_tvx', 'f', -0.24716338776349867, 'tvx'],
     ['op_DCM_C1_tvy', 'f', 0.0, 'tvy'],
-    ['op_DCM_C1_ang', 'f', 0.249751717635, 'grazingAngle'],
+    ['op_DCM_C1_ang', 'f', 0.2497517176345311, 'grazingAngle'],
     ['op_DCM_C1_amp_coef', 'f', 1.0, 'heightAmplification'],
 
     # DCM_C2: crystal
     ['op_DCM_C2_hfn', 's', '', 'heightProfileFile'],
     ['op_DCM_C2_dim', 's', 'x', 'orientation'],
-    ['op_DCM_C2_d_sp', 'f', 3.13557135638, 'dSpacing'],
-    ['op_DCM_C2_psi0r', 'f', -1.53227839905e-05, 'psi0r'],
-    ['op_DCM_C2_psi0i', 'f', 3.59410775406e-07, 'psi0i'],
-    ['op_DCM_C2_psiHr', 'f', -8.10706354484e-06, 'psiHr'],
-    ['op_DCM_C2_psiHi', 'f', 2.50931132347e-07, 'psiHi'],
-    ['op_DCM_C2_psiHBr', 'f', -8.10706354484e-06, 'psiHBr'],
-    ['op_DCM_C2_psiHBi', 'f', 2.50931132347e-07, 'psiHBi'],
+    ['op_DCM_C2_d_sp', 'f', 3.1355713563754857, 'dSpacing'],
+    ['op_DCM_C2_psi0r', 'f', -1.5322783990464697e-05, 'psi0r'],
+    ['op_DCM_C2_psi0i', 'f', 3.594107754061173e-07, 'psi0i'],
+    ['op_DCM_C2_psiHr', 'f', -8.107063544835198e-06, 'psiHr'],
+    ['op_DCM_C2_psiHi', 'f', 2.509311323470587e-07, 'psiHi'],
+    ['op_DCM_C2_psiHBr', 'f', -8.107063544835198e-06, 'psiHBr'],
+    ['op_DCM_C2_psiHBi', 'f', 2.509311323470587e-07, 'psiHBi'],
     ['op_DCM_C2_tc', 'f', 0.01, 'crystalThickness'],
     ['op_DCM_C2_ang_as', 'f', 0.0, 'asymmetryAngle'],
-    ['op_DCM_C2_nvx', 'f', 0.968973817886, 'nvx'],
+    ['op_DCM_C2_nvx', 'f', 0.9689738178863605, 'nvx'],
     ['op_DCM_C2_nvy', 'f', 0.0, 'nvy'],
-    ['op_DCM_C2_nvz', 'f', -0.247163387763, 'nvz'],
-    ['op_DCM_C2_tvx', 'f', 0.247163387763, 'tvx'],
+    ['op_DCM_C2_nvz', 'f', -0.24716338776349875, 'nvz'],
+    ['op_DCM_C2_tvx', 'f', 0.24716338776349867, 'tvx'],
     ['op_DCM_C2_tvy', 'f', 0.0, 'tvy'],
-    ['op_DCM_C2_ang', 'f', 0.249751717635, 'grazingAngle'],
+    ['op_DCM_C2_ang', 'f', 0.2497517176345311, 'grazingAngle'],
     ['op_DCM_C2_amp_coef', 'f', 1.0, 'heightAmplification'],
 
     # DCM_C2_HFM: drift
-    ['op_DCM_C2_HFM_L', 'f', 2.22, 'length'],
+    ['op_DCM_C2_HFM_L', 'f', 2.219999999999999, 'length'],
 
     # HFM: sphericalMirror
     ['op_HFM_hfn', 's', 'None', 'heightProfileFile'],
@@ -476,17 +476,17 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_HFM_size_tang', 'f', 1.0, 'tangentialSize'],
     ['op_HFM_size_sag', 'f', 0.06, 'sagittalSize'],
     ['op_HFM_ang', 'f', 0.0032, 'grazingAngle'],
-    ['op_HFM_nvx', 'f', -0.999994880004, 'normalVectorX'],
+    ['op_HFM_nvx', 'f', -0.9999948800043691, 'normalVectorX'],
     ['op_HFM_nvy', 'f', 0.0, 'normalVectorY'],
-    ['op_HFM_nvz', 'f', -0.00319999453867, 'normalVectorZ'],
-    ['op_HFM_tvx', 'f', -0.00319999453867, 'tangentialVectorX'],
+    ['op_HFM_nvz', 'f', -0.003199994538669463, 'normalVectorZ'],
+    ['op_HFM_tvx', 'f', -0.003199994538669463, 'tangentialVectorX'],
     ['op_HFM_tvy', 'f', 0.0, 'tangentialVectorY'],
     ['op_HFM_amp_coef', 'f', 1.0, 'heightAmplification'],
     ['op_HFM_x', 'f', 0.0, 'horizontalOffset'],
     ['op_HFM_y', 'f', 0.0, 'verticalOffset'],
 
     # After_HFM_CRL1: drift
-    ['op_After_HFM_CRL1_L', 'f', 1.51, 'length'],
+    ['op_After_HFM_CRL1_L', 'f', 1.509999999999998, 'length'],
 
     # CRL1: crl
     ['op_CRL1_foc_plane', 'f', 2, 'focalPlane'],
@@ -541,7 +541,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_FFO_y', 'f', 0.0, 'verticalOffset'],
 
     # FFO_At_Sample: drift
-    ['op_FFO_At_Sample_L', 'f', 0.018147, 'length'],
+    ['op_FFO_At_Sample_L', 'f', 0.018146999999999025, 'length'],
 
 #---Propagation parameters
     ['op_S1_pp', 'f',              [0, 0, 1.0, 0, 0, 1.2, 2.5, 1.2, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'S1'],

@@ -41,7 +41,7 @@ bunch = synergia.optics.generate_matched_bunch_transverse(
     emit_y=1e-06, # m-rad, RMS
     rms_z=1e-05, # z bunch size
     dpop=0.0001, # unitless, RMS \frac{\delta p}{p_{tot}}
-    num_real_particles=int(1.2e+12), # real particles, used for space charge, impedance, etc
+    num_real_particles=int(1200000000000.0), # real particles, used for space charge, impedance, etc
     num_macro_particles=50000, # Used for PIC calculations
     seed=1415926
 )

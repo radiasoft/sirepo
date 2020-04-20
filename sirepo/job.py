@@ -103,8 +103,8 @@ UNIQUE_KEY_RE = re.compile(r'^\w+$')
 
 cfg = None
 
-def agent_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.', source_bashrc=''):
-    """Convert `cmd` in `pyenv` with `env` to script and cmd
+def agent_cmd_stdin_env(cmd, env, cwd='.', source_bashrc=''):
+    """Convert `cmd` with `env` to script and cmd
 
     Uses tempfile so the file can be closed after the subprocess
     gets the handle. You have to close `stdin` after calling
@@ -114,7 +114,6 @@ def agent_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.', source_bashrc=''):
     Args:
         cmd (iter): list of words to be quoted
         env (str): empty or result of `agent_env`
-        pyenv (str): python environment (py3 default)
         cwd (str): directory for the agent to run in (will be created if it doesn't exist)
         uid (str): which user should be logged in
 
@@ -132,14 +131,12 @@ def agent_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.', source_bashrc=''):
 set -e
 mkdir -p '{}'
 cd '{}'
-pyenv shell {}
 {}
 {}
 '''.format(
         source_bashrc,
         cwd,
         cwd,
-        pyenv,
         env or agent_env(),
         c,
     ).encode())

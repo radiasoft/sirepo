@@ -153,8 +153,8 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['gbm_pen', 'f', 0.001, 'energy per pulse [J]'],
     ['gbm_rep', 'f', 1, 'rep. rate [Hz]'],
     ['gbm_pol', 'f', 1, 'polarization 1- lin. hor., 2- lin. vert., 3- lin. 45 deg., 4- lin.135 deg., 5- circ. right, 6- circ. left'],
-    ['gbm_sx', 'f', 9.78723e-06, 'rms beam size vs horizontal position [m] at waist (for intensity)'],
-    ['gbm_sy', 'f', 9.78723e-06, 'rms beam size vs vertical position [m] at waist (for intensity)'],
+    ['gbm_sx', 'f', 9.787229999999999e-06, 'rms beam size vs horizontal position [m] at waist (for intensity)'],
+    ['gbm_sy', 'f', 9.787229999999999e-06, 'rms beam size vs vertical position [m] at waist (for intensity)'],
     ['gbm_st', 'f', 1e-14, 'rms pulse duration [s] (for intensity)'],
     ['gbm_mx', 'f', 0, 'transverse Gauss-Hermite mode order in horizontal direction'],
     ['gbm_my', 'f', 0, 'transverse Gauss-Hermite mode order in vertical direction'],
@@ -314,15 +314,15 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_VFM_size_tang', 'f', 0.5, 'tangentialSize'],
     ['op_VFM_size_sag', 'f', 0.01, 'sagittalSize'],
     ['op_VFM_nvx', 'f', 0.0, 'normalVectorX'],
-    ['op_VFM_nvy', 'f', 0.999993520007, 'normalVectorY'],
-    ['op_VFM_nvz', 'f', -0.00359999222401, 'normalVectorZ'],
+    ['op_VFM_nvy', 'f', 0.9999935200069984, 'normalVectorY'],
+    ['op_VFM_nvz', 'f', -0.0035999922240050387, 'normalVectorZ'],
     ['op_VFM_tvx', 'f', 0.0, 'tangentialVectorX'],
-    ['op_VFM_tvy', 'f', -0.00359999222401, 'tangentialVectorY'],
+    ['op_VFM_tvy', 'f', -0.0035999922240050387, 'tangentialVectorY'],
     ['op_VFM_x', 'f', 0.0, 'horizontalOffset'],
     ['op_VFM_y', 'f', 0.0, 'verticalOffset'],
 
     # VFM_HFM: drift
-    ['op_VFM_HFM_L', 'f', 0.6, 'length'],
+    ['op_VFM_HFM_L', 'f', 0.6000000000000227, 'length'],
 
     # HFM: ellipsoidMirror
     ['op_HFM_hfn', 's', 'mirror2_1d.dat', 'heightProfileFile'],
@@ -333,16 +333,16 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_HFM_amp_coef', 'f', 1.0, 'heightAmplification'],
     ['op_HFM_size_tang', 'f', 0.5, 'tangentialSize'],
     ['op_HFM_size_sag', 'f', 0.01, 'sagittalSize'],
-    ['op_HFM_nvx', 'f', 0.999993520007, 'normalVectorX'],
+    ['op_HFM_nvx', 'f', 0.9999935200069984, 'normalVectorX'],
     ['op_HFM_nvy', 'f', 0.0, 'normalVectorY'],
-    ['op_HFM_nvz', 'f', -0.00359999222401, 'normalVectorZ'],
-    ['op_HFM_tvx', 'f', -0.00359999222401, 'tangentialVectorX'],
+    ['op_HFM_nvz', 'f', -0.0035999922240050387, 'normalVectorZ'],
+    ['op_HFM_tvx', 'f', -0.0035999922240050387, 'tangentialVectorX'],
     ['op_HFM_tvy', 'f', 0.0, 'tangentialVectorY'],
     ['op_HFM_x', 'f', 0.0, 'horizontalOffset'],
     ['op_HFM_y', 'f', 0.0, 'verticalOffset'],
 
     # HFM_Sample: drift
-    ['op_HFM_Sample_L', 'f', 1.1, 'length'],
+    ['op_HFM_Sample_L', 'f', 1.1000000000000227, 'length'],
 
 #---Propagation parameters
     ['op_ApM1_pp', 'f',          [0, 0, 1.0, 1, 0, 2.0, 5.0, 2.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'ApM1'],

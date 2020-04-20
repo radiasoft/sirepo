@@ -21,7 +21,7 @@
                 "horizontalFocalLength": 1e+23,
                 "horizontalOffset": 0,
                 "id": 3,
-                "position": 38.30244,
+                "position": 38.302440000000004,
                 "title": "KL2",
                 "type": "lens",
                 "verticalFocalLength": 9.611423401717389,
@@ -31,7 +31,7 @@
                 "horizontalOffset": 0,
                 "horizontalSize": 0.4,
                 "id": 4,
-                "position": 47.00244,
+                "position": 47.00244000000001,
                 "shape": "r",
                 "title": "S1",
                 "type": "aperture",
@@ -40,7 +40,7 @@
             },
             {
                 "id": 5,
-                "position": 50.90244,
+                "position": 50.902440000000006,
                 "title": "Watch",
                 "type": "watch"
             }
@@ -272,7 +272,15 @@
                     1.0,
                     1.0,
                     1.0,
-                    1.0
+                    1.0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ]
         },

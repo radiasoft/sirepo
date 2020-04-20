@@ -9,6 +9,7 @@ import pytest
 
 
 def test_model_units():
+    from pykern.pkunit import pkeq
     from sirepo.template.template_common import ModelUnits
     import re
 
@@ -17,7 +18,7 @@ def test_model_units():
         if is_native:
             if re.search(r'^#', str(value)):
                 value = re.sub(r'^#', '', value)
-                return map(cm_to_m, value.split('|'))
+                return list(map(cm_to_m, value.split('|')))
         else:
             if type(value) is list:
                 return '#' + '|'.join(map(str, map(lambda v: int(cm_to_m(v)), value)))

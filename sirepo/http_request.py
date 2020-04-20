@@ -13,7 +13,6 @@ import sirepo.template
 import sirepo.util
 import sirepo.srschema
 import user_agents
-import werkzeug
 
 _SIM_TYPE_ATTR = 'sirepo_http_request_sim_type'
 
@@ -68,8 +67,8 @@ def parse_post(**kwargs):
     Args:
         req_data (PKDict): input values [`parse_json`]
         type (object): `assert_sim_type`
-        file_type (object): `werkzeug.secure_filename`
-        filename (object): `werkzeug.secure_filename`
+        file_type (object): `sirepo.util.secure_filename`
+        filename (object): `sirepo.util.secure_filename`
         folder (object): `parse_folder`
         id (object): `parse_sid`
         model (object): `parse_model`
@@ -101,8 +100,8 @@ def parse_post(**kwargs):
     for x in (
         # must be first
         ('type', ('simulationType',), t),
-        ('file_type', ('file_type', 'fileType'), werkzeug.secure_filename),
-        ('filename', ('filename', 'fileName'), werkzeug.secure_filename),
+        ('file_type', ('file_type', 'fileType'), sirepo.util.secure_filename),
+        ('filename', ('filename', 'fileName'), sirepo.util.secure_filename),
         ('folder', ('folder',), sirepo.srschema.parse_folder),
         ('id', ('simulationId',), lambda a: res.sim_data.parse_sid(r)),
         ('model', ('report',), lambda a: res.sim_data.parse_model(r)),
