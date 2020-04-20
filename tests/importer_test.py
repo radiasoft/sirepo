@@ -38,7 +38,7 @@ def test_import_zip(fc):
 
 def _do(fc, file_ext, parse):
     from pykern.pkcollections import PKDict
-    from pykern import pkio
+    from pykern import pkio, pkcompat
     from pykern import pkunit
     from pykern import pkcollections
     from pykern.pkdebug import pkdp
@@ -47,7 +47,7 @@ def _do(fc, file_ext, parse):
 
     for suffix in (('',) if file_ext == 'py' else ('', ' 2', ' 3')):
         for f in pkio.sorted_glob(pkunit.data_dir().join('*.' + file_ext)):
-            json = parse(f)
+            json = pkcompat.from_bytes(parse(f))
             sim_type = re.search(r'^([a-z]+)_', f.basename).group(1)
             fc.sr_get_root(sim_type)
             is_dev = 'deviance' in f.basename

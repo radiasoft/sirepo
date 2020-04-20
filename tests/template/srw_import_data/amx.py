@@ -145,7 +145,7 @@ def set_optics(_v):
         #print('DCM Fourier Components:', psi)
 
         #---------------------- DCM Crystal #1
-        opCr1 = SRWLOptCryst(_d_sp=dc, _psi0r=psi[0], _psi0i=psi[1], _psi_hr=psi[2], _psi_hi=psi[3], _psi_hbr=psi[2], _psi_hbi=psi[3], _tc=tc, _ang_as=angAs)
+        opCr1 = SRWLOptCryst(_d_sp=dc, _psi0r=psi[0], _psi0i=psi[1], _psi_hr=psi[2], _psi_hi=psi[3], _psi_hbr=psi[2], _psi_hbi=psi[3], _tc=tc, _ang_as=angAs, _ang_roll=1.5707963)
 
         #Find appropriate orientation of the Crystal #1 and the Output Beam Frame (using a member-function in SRWLOptCryst):
         orientDataCr1 = opCr1.find_orient(_en=_v.op_DCM_e, _ang_dif_pl=1.5707963) # Horizontally-deflecting
@@ -184,7 +184,7 @@ def set_optics(_v):
         el.append(opCr1); pp.append(_v.op_DCMC1_pp)
 
         #---------------------- DCM Crystal #2
-        opCr2 = SRWLOptCryst(_d_sp=dc, _psi0r=psi[0], _psi0i=psi[1], _psi_hr=psi[2], _psi_hi=psi[3], _psi_hbr=psi[2], _psi_hbi=psi[3], _tc=tc, _ang_as=angAs)
+        opCr2 = SRWLOptCryst(_d_sp=dc, _psi0r=psi[0], _psi0i=psi[1], _psi_hr=psi[2], _psi_hi=psi[3], _psi_hbr=psi[2], _psi_hbi=psi[3], _tc=tc, _ang_as=angAs, _ang_roll=-1.5707963)
 
         #Find appropriate orientation of the Crystal #2 and the Output Beam Frame
         orientDataCr2 = opCr2.find_orient(_en=_v.op_DCM_e, _ang_dif_pl=-1.5707963)

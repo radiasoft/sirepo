@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 import pytest
 
 def test_myapp_user_dir_deleted(fc):
-    from pykern import pkunit
+    from pykern import pkunit, pkcompat
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     import sirepo.srdb
@@ -22,5 +22,5 @@ def test_myapp_user_dir_deleted(fc):
         PKDict(simulationType=fc.sr_sim_type),
         raw_response=True,
     )
-    pkunit.pkre('^<!DOCTYPE html.*APP_NAME:', r.data)
+    pkunit.pkre('^<!DOCTYPE html.*APP_NAME:', pkcompat.from_bytes(r.data))
     fc.sr_auth_state(displayName=None, isLoggedIn=False, method=None)

@@ -101,9 +101,10 @@ def _run_dvh(data, cfg_dir):
                 y_range[1] = max_y
         else:
             y_range = [min_y, max_y]
+        rgb = s['color']
         plots.append({
             'points': counts.tolist(),
-            'color': '#{}'.format(struct.pack('BBB', *s['color']).encode('hex')),
+            'color': '#{:02x}{:02x}{:02x}'.format(int(rgb[0]), int(rgb[1]), int(rgb[2])),
             'label': s['name'],
         })
     res = {

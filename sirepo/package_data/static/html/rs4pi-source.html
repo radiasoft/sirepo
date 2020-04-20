@@ -1,14 +1,14 @@
 <div class="container-fluid">
   <div data-dicom-frames="dicomAnimation"></div>
   <div class="row">
-    <div class="col-md-7">
+    <div class="col-md-7" data-ng-if="source.hasFrames()">
         <div data-report-panel="dicom" data-model-name="dicomAnimation" data-panel-title="{{ source.dicomTitle() }}">
         </div>
     </div>
     <div class="col-md-3">
       <div data-roi-confirm-form=""></div>
-      <div data-dicom-plot="" class="sr-plot" data-model-name="dicomAnimation2" data-is-sub-frame="1"></div>
-      <div data-dicom-plot="" class="sr-plot" data-model-name="dicomAnimation3" data-is-sub-frame="1"></div>
+      <div data-ng-if="source.hasFrames()" data-dicom-plot="" class="sr-plot" data-model-name="dicomAnimation2" data-is-sub-frame="1"></div>
+      <div data-ng-if="source.hasFrames()" data-dicom-plot="" class="sr-plot" data-model-name="dicomAnimation3" data-is-sub-frame="1"></div>
       <div data-dicom-histogram="" data-model-name="dicomAnimation"></div>
     </div>
     <div class="col-md-2">

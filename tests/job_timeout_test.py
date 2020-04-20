@@ -19,7 +19,7 @@ def setup_module(module):
 
 
 def test_srw(fc):
-    from pykern import pkunit
+    from pykern import pkunit, pkcompat
     from pykern.pkdebug import pkdlog, pkdexc
     import time
     m = 'multiElectronAnimation'
@@ -53,8 +53,10 @@ def test_srw(fc):
         if cancel:
             fc.sr_post('runCancel', cancel)
         import subprocess
-        o = subprocess.check_output(['ps', 'axww'], stderr=subprocess.STDOUT)
-        o = filter(lambda x: 'mpiexec' in x, o.split('\n'))
+        o = pkcompat.from_bytes(
+            subprocess.check_output(['ps', 'axww'], stderr=subprocess.STDOUT),
+        )
+        o = list(filter(lambda x: 'mpiexec' in x, o.split('\n')))
         if o:
             pkdlog('found "mpiexec" after cancel in ps={}', '\n'.join(o))
             raise AssertionError('cancel failed')

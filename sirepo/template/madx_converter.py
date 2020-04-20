@@ -204,7 +204,7 @@ def _build_field_map(info):
 def _rpn_variables(to_class, data):
     res = data.models.rpnVariables
     if to_class.sim_type() == 'madx':
-        return filter(lambda x: x.name not in _CODE_VARIABLES, res)
+        return list(filter(lambda x: x.name not in _CODE_VARIABLES, res))
     names = set([v.name for v in res])
     for name in _CODE_VARIABLES:
         if name not in names:

@@ -45,7 +45,7 @@
                 "horizontalFocalLength": 1e+23,
                 "horizontalOffset": 0,
                 "id": 5,
-                "position": 38.30244,
+                "position": 38.302440000000004,
                 "title": "KL2",
                 "type": "lens",
                 "verticalFocalLength": 9.611423401717389,
@@ -58,7 +58,7 @@
                 "horizontalTransverseSize": 6.0,
                 "id": 6,
                 "orientation": "y",
-                "position": 38.30244,
+                "position": 38.302440000000004,
                 "title": "HDM3",
                 "type": "mirror",
                 "verticalTransverseSize": 1.2566350129158168
@@ -70,7 +70,7 @@
                 "horizontalTransverseSize": 6.0,
                 "id": 7,
                 "orientation": "y",
-                "position": 39.00244,
+                "position": 39.00244000000001,
                 "title": "HDM4",
                 "type": "mirror",
                 "verticalTransverseSize": 1.5707937661447706
@@ -79,7 +79,7 @@
                 "horizontalOffset": 0,
                 "horizontalSize": 0.9,
                 "id": 8,
-                "position": 47.00244,
+                "position": 47.00244000000001,
                 "shape": "r",
                 "title": "S1",
                 "type": "aperture",
@@ -90,7 +90,7 @@
                 "horizontalOffset": 0,
                 "horizontalSize": 1.0,
                 "id": 9,
-                "position": 57.33736,
+                "position": 57.337360000000004,
                 "shape": "c",
                 "title": "S2",
                 "type": "aperture",
@@ -103,7 +103,7 @@
                 "horizontalApertureSize": 1.0,
                 "id": 10,
                 "numberOfLenses": 23,
-                "position": 57.33736,
+                "position": 57.337360000000004,
                 "radius": 5e-05,
                 "refractiveIndex": 8.21692879e-07,
                 "shape": 1,
@@ -114,7 +114,7 @@
             },
             {
                 "id": 11,
-                "position": 59.00244,
+                "position": 59.00244000000001,
                 "title": "Watch",
                 "type": "watch"
             }
@@ -286,7 +286,15 @@
                     1.0,
                     1.0,
                     1.0,
-                    1.0
+                    1.0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ],
             "2": [
@@ -313,7 +321,15 @@
                     1.0,
                     1.0,
                     1.0,
-                    1.0
+                    1.0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ],
             "3": [
@@ -370,7 +386,15 @@
                     1.0,
                     1.0,
                     1.0,
-                    1.0
+                    1.0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ],
             "5": [
@@ -487,7 +511,15 @@
                     1.0,
                     1.0,
                     1.0,
-                    1.0
+                    1.0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
                 ]
             ],
             "9": [

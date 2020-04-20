@@ -15,8 +15,8 @@ REAL PS_DUMP_FREQUENCY = 20;
 REAL RF_FREQUENCY = 100000000;
 REAL RF_WAVELENGTH = CLIGHT / RF_FREQUENCY;
 REAL STAT_DUMP_FREQUENCY = 1;
-REAL TIME_STEP_1 = 4.37345628029e-12;
-REAL bend_angle = 0.523598775598;
+REAL TIME_STEP_1 = 4.37345628028939e-12;
+REAL bend_angle = 0.5235987755982988;
 REAL bend_length = 0.129409522551;
 REAL drift_before_bend = 0.1;
 REAL gambet = gamma * beta;
@@ -28,7 +28,7 @@ FS_CSR_WAKE: wake,filters="SG_FILTER",type="1D-CSR";
 
 D1: DRIFT,l=drift_before_bend;
 D2: DRIFT,l=0.4,wakef=FS_CSR_WAKE;
-S1: SBEND,angle=bend_angle,designenergy=bend_energy,e1=0.0872664625997,e2=0.0872664625997,gap=0.02,l=bend_length,wakef=FS_CSR_WAKE;
+S1: SBEND,angle=bend_angle,designenergy=bend_energy,e1=0.08726646259971647,e2=0.08726646259971647,gap=0.02,l=bend_length,wakef=FS_CSR_WAKE;
 
 "D1#0": D1,elemedge=0;
 "S1#0": S1,elemedge=0.1;

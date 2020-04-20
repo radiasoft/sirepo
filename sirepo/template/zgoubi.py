@@ -5,6 +5,7 @@ u"""zgoubi execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkcollections import PKDict
@@ -402,19 +403,13 @@ def get_application_data(data, **kwargs):
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
-    filename = _ZGOUBI_FAI_DATA_FILE
     if options and options.suffix == _ZGOUBI_COMMAND_FILE:
-        if model == 'tunesReport':
-            filename = TUNES_INPUT_FILE
-        else:
-            filename = _ZGOUBI_COMMAND_FILE
+        return TUNES_INPUT_FILE if model == 'tunesReport' else _ZGOUBI_COMMAND_FILE
     elif model == 'elementStepAnimation':
-        filename = _ZGOUBI_PLT_DATA_FILE
+        return _ZGOUBI_PLT_DATA_FILE
     elif model == 'opticsReport' or 'twissReport' in model:
-        filename = _ZGOUBI_TWISS_FILE
-    path = run_dir.join(filename)
-    with open(str(path)) as f:
-        return path.basename, f.read(), 'application/octet-stream'
+        return _ZGOUBI_TWISS_FILE
+    return _ZGOUBI_FAI_DATA_FILE
 
 
 def sim_frame(frame_args):
@@ -430,7 +425,10 @@ def sim_frame(frame_args):
 
 
 def import_file(req, unit_test_mode=False, **kwargs):
-    return zgoubi_importer.import_file(req.file_stream.read(), unit_test_mode=unit_test_mode)
+    return zgoubi_importer.import_file(
+        pkcompat.from_bytes(req.file_stream.read()),
+        unit_test_mode=unit_test_mode,
+    )
 
 
 def prepare_sequential_output_file(run_dir, data):
@@ -544,7 +542,7 @@ def _compute_range_across_frames(run_dir, data):
             res[field][1] = max(max(values), res[field][1])
         else:
             res[field] = [min(values), max(values)]
-    for field in res.keys():
+    for field in list(res.keys()):
         factor = _ANIMATION_FIELD_INFO[field][1]
         res[field][0] *= factor
         res[field][1] *= factor
@@ -771,7 +769,7 @@ def _generate_beamline_elements(report, data):
 
 def _generate_pyzgoubi_element(el, schema_type=None):
     res = 'line.add(core.{}("{}"'.format(el.type, el.name)
-    for f in _SCHEMA.model[schema_type or el.type]:
+    for f in sorted(_SCHEMA.model[schema_type or el.type].keys()):
         #TODO(pjm): need ignore list
         if f == 'name' or f == 'order' or f == 'format':
             continue
@@ -867,7 +865,7 @@ def _particle_count(data):
 def _peak_x(x_points, y_points):
     x = x_points[0]
     max_y = y_points[0]
-    for i in xrange(len(x_points)):
+    for i in range(len(x_points)):
         if y_points[i] > max_y:
             max_y = y_points[i]
             x = x_points[i]
@@ -904,13 +902,13 @@ def _read_data_file(path, mode='title'):
             if mode == 'header':
                 # header row starts with '# <letter>'
                 if re.search(r'^\s*#\s+[a-zA-Z]', line):
-                    col_names = re.split('\s+', line)
+                    col_names = re.split(r'\s+', line)
                     col_names = [re.sub(r'\W|_', '', x) for x in col_names[1:]]
                     mode = 'data'
             elif mode == 'data':
-                if re.search('^\s*#', line):
+                if re.search(r'^\s*#', line):
                     continue
-                row = re.split('\s+', re.sub(r'^\s+', '', line))
+                row = re.split(r'\s+', re.sub(r'^\s+', '', line))
                 rows.append(row)
     return col_names, rows
 

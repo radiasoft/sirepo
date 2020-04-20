@@ -5,6 +5,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
@@ -19,6 +20,10 @@ import sirepo.util
 import subprocess
 import sys
 import time
+
+_MAX_FASTCGI_EXCEPTIONS = 3
+
+_MAX_FASTCGI_MSG = int(1e8)
 
 
 def default_command(in_file):
@@ -54,6 +59,11 @@ def default_command(in_file):
             stack=pkdexc(),
         )
     return pkjson.dump_pretty(r, pretty=False)
+
+
+class _AbruptSocketCloseError(Exception):
+    """Fastcgi unix domain socket closed"""
+    pass
 
 
 def _background_percent_complete(msg, template, is_running):
@@ -106,20 +116,64 @@ def _do_compute(msg, template):
         )
 
 
+def _do_download_data_file(msg, template):
+    try:
+        r = template.get_data_file(
+            msg.runDir,
+            msg.analysisModel,
+            msg.frame,
+            options=PKDict(suffix=msg.suffix),
+        )
+        if not isinstance(r, PKDict):
+            if isinstance(r, str):
+                r = msg.runDir.join(r, abs=1)
+            r = PKDict(filename=r)
+        u = r.get('uri')
+        if u is None:
+            u = r.filename.basename
+        c = r.get('content')
+        if c is None:
+            c = pkcompat.to_bytes(pkio.read_text(r.filename)) \
+                if u.endswith(('py', 'txt', 'csv')) \
+                else r.filename.read_binary()
+        requests.put(
+            msg.dataFileUri + u,
+            data=c,
+            verify=job.cfg.verify_tls,
+        ).raise_for_status()
+        return PKDict()
+    except Exception as e:
+        return PKDict(state=job.ERROR, error=e, stack=pkdexc())
+
+
 def _do_fastcgi(msg, template):
     import socket
+
+    def _recv():
+        m = b''
+        while True:
+            r = s.recv(_MAX_FASTCGI_MSG)
+            if not r:
+                pkdlog(
+                    'job_cmd should be killed before socket is closed msg={}',
+                    msg,
+                )
+                raise _AbruptSocketCloseError()
+            if len(m) + len(r) > _MAX_FASTCGI_MSG:
+                raise RuntimeError('message larger than {} bytes',  _MAX_FASTCGI_MSG)
+            m += r
+            if m[-1:] == b'\n':
+                return pkjson.load_any(m)
 
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     # relative file name (see job_agent.fastcgi_op)
     s.connect(msg.fastcgiFile)
+    c = 0
     while True:
         try:
-            r = b''
-            while True:
-                r += s.recv(int(1e8))
-                if r[-1:] == b'\n':
-                    m = pkjson.load_any(r)
-                    break
+            m = _recv()
+            if not m:
+                return
             m.runDir = pkio.py_path(m.runDir)
             with pkio.save_chdir(m.runDir):
                 r = globals()['_do_' + m.jobCmd](
@@ -127,7 +181,13 @@ def _do_fastcgi(msg, template):
                     sirepo.template.import_module(m.simulationType)
                 )
             r = PKDict(r).pksetdefault(state=job.COMPLETED)
+            c = 0
+        except _AbruptSocketCloseError:
+            return
         except Exception as e:
+            assert c < _MAX_FASTCGI_EXCEPTIONS, \
+                'too many fastgci exceptions {}. Most recent error={}'.format(c, e)
+            c += 1
             r = PKDict(
                 state=job.ERROR,
                 error=e.sr_args.error if isinstance(e, sirepo.util.UserAlert) else str(e),
@@ -146,24 +206,6 @@ def _do_get_simulation_frame(msg, template):
         if isinstance(e, sirepo.util.UserAlert):
             r = e.sr_args.error
         return PKDict(state=job.ERROR, error=r, stack=pkdexc())
-
-
-def _do_get_data_file(msg, template):
-    try:
-        f, c, _ = template.get_data_file(
-            msg.runDir,
-            msg.analysisModel,
-            msg.frame,
-            options=PKDict(suffix=msg.suffix),
-        )
-        requests.put(
-            msg.dataFileUri + f,
-            data=c,
-            verify=job.cfg.verify_tls,
-        ).raise_for_status()
-        return PKDict()
-    except Exception as e:
-        return PKDict(state=job.ERROR, error=e, stack=pkdexc())
 
 
 def _do_prepare_simulation(msg, template):
@@ -219,6 +261,7 @@ def _on_do_compute_exit(success_exit, is_parallel, template, run_dir):
     def _post_processing():
         if hasattr(template, 'post_execution_processing'):
             return template.post_execution_processing(**kwargs)
+        return None
 
     def _success_exit():
         return PKDict(
