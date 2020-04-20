@@ -132,7 +132,7 @@ def get_application_data(data, **kwargs):
 def import_file(req, tmp_dir=None, **kwargs):
     f = pkcompat.from_bytes(req.file_stream.read())
     if re.search(r'.madx$', req.filename, re.IGNORECASE):
-        data = _import_madx_file()
+        data = _import_madx_file(f)
     elif re.search(r'.mad8$', req.filename, re.IGNORECASE):
         import pyparsing
         try:
