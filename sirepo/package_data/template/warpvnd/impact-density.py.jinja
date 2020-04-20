@@ -103,7 +103,7 @@ if can_write_files and not density_results:
             coord_keys = ['x', 'y', 'z']
             try:
                 min_s, max_s, d = plot_density.generate_plot_data_for_faces_3d(c)
-            except:
+            except Exception:
                 err = 'Cannot generate impact density for conductor {}'.format(c.conductor.condid)
                 print(err)
                 f_data = {
@@ -204,6 +204,6 @@ if can_write_files and not density_results:
             'max': global_max,
         }
 
-if can_write_files:        
-    with h5py.File('{{ densityFile }}') as hf:
+if can_write_files:
+    with h5py.File('{{ densityFile }}', 'w') as hf:
         dict_to_h5(density_results, hf, path='density')

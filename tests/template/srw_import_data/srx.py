@@ -76,7 +76,7 @@ def set_optics(_v):
         #Could be made more general
     '''
 
-    arElNames = []; 
+    arElNames = [];
     for i in range(len(arElNamesAll)):
         arElNames.append(arElNamesAll[i])
         if(len(_v.op_fin) > 0):
@@ -85,13 +85,13 @@ def set_optics(_v):
     el = []; pp = [] #lists of SRW optical element objects and their corresponding propagation parameters
 
     #S0 (primary slit)
-    if('S0' in arElNames): 
+    if('S0' in arElNames):
         el.append(SRWLOptA('r', 'a', _v.op_S0_dx, _v.op_S0_dy)); pp.append(_v.op_S0_pp)
 
     #Drift S0 -> HFM
-    if('S0_HFM' in arElNames): 
+    if('S0_HFM' in arElNames):
         el.append(SRWLOptD(zHFM - zS0)); pp.append(_v.op_S0_HFM_pp)
-        
+
     #HDM (Height Profile Error)
     if('HFM' in arElNames):
         lenHFM = 0.95 #Length [m]
@@ -119,19 +119,19 @@ def set_optics(_v):
             el.append(opHFM); pp.append(_v.op_HFMT_pp)
 
     #Drift HFM -> S1
-    if('HFM_S1' in arElNames): 
+    if('HFM_S1' in arElNames):
         el.append(SRWLOptD(zS1 - zHFM + _v.op_S1_dz)); pp.append(_v.op_HFM_S1_pp)
 
     #S1 slit
-    if('S1' in arElNames): 
+    if('S1' in arElNames):
         el.append(SRWLOptA('r', 'a', _v.op_S1_dx, _v.op_S1_dy)); pp.append(_v.op_S1_pp)
 
     #Drift S1 -> DCM
-    if('S1_DCM' in arElNames): 
+    if('S1_DCM' in arElNames):
         el.append(SRWLOptD(zDCM - zS1 - _v.op_S1_dz)); pp.append(_v.op_S1_DCM_pp)
 
     #Drift S1 -> SSA
-    if('S1_SSA' in arElNames): 
+    if('S1_SSA' in arElNames):
         el.append(SRWLOptD(zSSA - zS1 - _v.op_S1_dz + _v.op_SSA_dz)); pp.append(_v.op_S1_SSA_pp)
 
     #Double-Crystal Monochromator
@@ -140,32 +140,32 @@ def set_optics(_v):
         angAs = 0.*pi/180. # [rad] asymmetry angle
         hc = [1,1,1]
         if(_v.op_DCM_r == '311'): hc = [3,1,1]
-        
+
         dc = srwl_uti_cryst_pl_sp(hc, 'Si')
         #print('DCM Interplannar dist.:', dc)
         psi = srwl_uti_cryst_pol_f(_v.op_DCM_e0, hc, 'Si')  #MR15032016: replaced "op_DCM_e" by "op_DCM_e0" to test the import in Sirepo
         #print('DCM Fourier Components:', psi)
 
         #---------------------- DCM Crystal #1
-        opCr1 = SRWLOptCryst(_d_sp=dc, _psi0r=psi[0], _psi0i=psi[1], _psi_hr=psi[2], _psi_hi=psi[3], _psi_hbr=psi[2], _psi_hbi=psi[3], _tc=tc, _ang_as=angAs)
+        opCr1 = SRWLOptCryst(_d_sp=dc, _psi0r=psi[0], _psi0i=psi[1], _psi_hr=psi[2], _psi_hi=psi[3], _psi_hbr=psi[2], _psi_hbi=psi[3], _tc=tc, _ang_as=angAs, _ang_roll=1.5707963, _e_avg=_v.op_DCM_e0)
 
         #Find appropriate orientation of the Crystal #1 and the Output Beam Frame (using a member-function in SRWLOptCryst):
         orientDataCr1 = opCr1.find_orient(_en=_v.op_DCM_e0, _ang_dif_pl=1.5707963) # Horizontally-deflecting  #MR15032016: replaced "op_DCM_e" by "op_DCM_e0" to test the import in Sirepo
         #Crystal #1 Orientation found:
         orientCr1 = orientDataCr1[0]
         tCr1 = orientCr1[0] #Tangential Vector to Crystal surface
-        sCr1 = orientCr1[1]        
+        sCr1 = orientCr1[1]
         nCr1 = orientCr1[2] #Normal Vector to Crystal surface
         # print('DCM Crystal #1 Orientation (original):')
         # print('  t =', tCr1, 's =', orientCr1[1], 'n =', nCr1)
-        
+
         import uti_math
         if(_v.op_DCM_ac1 != 0): #Small rotation of DCM Crystal #1:
             rot = uti_math.trf_rotation([0,1,0], _v.op_DCM_ac1, [0,0,0])
             tCr1 = uti_math.matr_prod(rot[0], tCr1)
             sCr1 = uti_math.matr_prod(rot[0], sCr1)
             nCr1 = uti_math.matr_prod(rot[0], nCr1)
-        
+
         #Set the Crystal #1 orientation:
         opCr1.set_orient(nCr1[0], nCr1[1], nCr1[2], tCr1[0], tCr1[1])
 
@@ -186,7 +186,7 @@ def set_optics(_v):
         el.append(opCr1); pp.append(_v.op_DCMC1_pp)
 
         #---------------------- DCM Crystal #2
-        opCr2 = SRWLOptCryst(_d_sp=dc, _psi0r=psi[0], _psi0i=psi[1], _psi_hr=psi[2], _psi_hi=psi[3], _psi_hbr=psi[2], _psi_hbi=psi[3], _tc=tc, _ang_as=angAs)
+        opCr2 = SRWLOptCryst(_d_sp=dc, _psi0r=psi[0], _psi0i=psi[1], _psi_hr=psi[2], _psi_hi=psi[3], _psi_hbr=psi[2], _psi_hbi=psi[3], _tc=tc, _ang_as=angAs, _ang_roll=-1.5707963, _e_avg=_v.op_DCM_e0)
 
         #Find appropriate orientation of the Crystal #2 and the Output Beam Frame
         orientDataCr2 = opCr2.find_orient(_en=_v.op_DCM_e0, _ang_dif_pl=-1.5707963)  #MR15032016: replaced "op_DCM_e" by "op_DCM_e0" to test the import in Sirepo
@@ -225,15 +225,15 @@ def set_optics(_v):
         el.append(opCr2); pp.append(_v.op_DCMC2_pp)
 
     #Drift DCM -> SSA
-    if('DCM_SSA' in arElNames): 
+    if('DCM_SSA' in arElNames):
         el.append(SRWLOptD(zSSA - zDCM + _v.op_SSA_dz)); pp.append(_v.op_DCM_SSA_pp)
 
     #SSA slit
-    if('SSA' in arElNames): 
+    if('SSA' in arElNames):
         el.append(SRWLOptA('r', 'a', _v.op_SSA_dx, _v.op_SSA_dy)); pp.append(_v.op_SSA_pp)
 
     #Drift SSA -> DBPM2
-    if('SSA_DBPM2' in arElNames): 
+    if('SSA_DBPM2' in arElNames):
         el.append(SRWLOptD(zDBPM2 - zSSA - _v.op_SSA_dz + _v.op_DBPM2_dz)); pp.append(_v.op_SSA_DBPM2_pp)
 
     ###############To continue
@@ -250,7 +250,7 @@ def set_optics(_v):
 ##                srwl_uti_save_intens_ascii(pathDifSMP, opSMP.mesh, ofnSMP, 0, ['', 'Horizontal Position', 'Vertical Position', 'Opt. Path Dif.'], _arUnits=['', 'm', 'm', 'm'])
 ##            el.append(opSMP); pp.append(v.op_SMP_pp)
 ##            ifSMP.close()
-            
+
 ##    #Drift Sample -> Detector
 ##    if('SMP_D' in arElNames):
 ##        el.append(SRWLOptD(zD - zSample + v.op_D_dz)); pp.append(v.op_SMP_D_pp)
@@ -260,7 +260,7 @@ def set_optics(_v):
     return SRWLOptC(el, pp)
 
 #*********************************List of Parameters allowed to be varied
-#---List of supported options / commands / parameters allowed to be varied for this Beamline (comment-out unnecessary):   
+#---List of supported options / commands / parameters allowed to be varied for this Beamline (comment-out unnecessary):
 varParam = [
 #---Data Folder
     ['fdir', 's', os.path.join(os.getcwd(), 'data_SRX'), 'folder (directory) name for reading-in input and saving output data files'],
@@ -280,7 +280,7 @@ varParam = [
     ['ebm_ens', 'f', -1, 'electron beam relative energy spread'],
     ['ebm_emx', 'f', -1, 'electron beam horizontal emittance [m]'],
     ['ebm_emy', 'f', -1, 'electron beam vertical emittance [m]'],
-        
+
 #---Undulator
     ['und_per', 'f', 0.021, 'undulator period [m]'],
     ['und_len', 'f', 1.5, 'undulator length [m]'],
@@ -365,7 +365,7 @@ varParam = [
     ['ws', '', '', 'calculate single-electron (/ fully coherent) wavefront propagation', 'store_true'],
     #Multi-Electron (partially-coherent) Wavefront Propagation
     ['wm', '', '', 'calculate multi-electron (/ partially coherent) wavefront propagation', 'store_true'],
-    
+
     ['w_e', 'f', 9000., 'photon energy [eV] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ef', 'f', -1., 'final photon energy [eV] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ne', 'i', 1, 'number of points vs photon energy for calculation of intensity distribution'],
@@ -402,17 +402,17 @@ varParam = [
     #['ws_fn', 's', '', 'file name for saving single-e (/ fully coherent) wavefront data'],
     #['wm_fn', 's', '', 'file name for saving multi-e (/ partially coherent) wavefront data'],
     #to add options
-    
+
     ['op_r', 'f', 33.1798, 'longitudinal position of the first optical element [m]'],
     ['op_fin', 's', 'S3_SMP', 'name of the final optical element wavefront has to be propagated through'],
-    
+
     #NOTE: the above option/variable names (fdir, ebm*, und*, ss*, sm*, pw*, is*, ws*, wm*) should be the same in all beamline scripts
     #on the other hand, the beamline optics related options below (op*) are specific to a particular beamline (and can be differ from beamline to beamline).
     #However, the default values of all the options/variables (above and below) can differ from beamline to beamline.
-    
+
 #---Beamline Optics
     ['op_BL', 'f', 1, 'beamline version/option number'],
-    
+
     ['op_S0_dx', 'f', 2.375e-03, 'slit S0: horizontal size [m]'],
     ['op_S0_dy', 'f', 2.0e-03, 'slit S0: vertical size [m]'],
 
@@ -469,12 +469,12 @@ varParam = [
     ['op_SSA_DBPM2_pp', 'f',[0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0], 'drift SSA -> DBPM2: propagation parameters'],
 
     ###############To continue
-    
+
 ##    ['op_S3_SMP_pp', 'f',  [0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0], 'drift S3 -> sample: propagation parameters'],
 ##    ['op_SMP_pp', 'f',     [0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0], 'sample: propagation parameters'],
 ##    ['op_SMP_D_pp', 'f',   [0, 0, 1, 3, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0], 'sample -> detector: propagation parameters'],
 
-    #['op_fin_pp', 'f',     [0, 0, 1, 0, 1, 0.1, 5.0, 1.0, 1.5, 0, 0, 0], 'final post-propagation (resize) parameters'],    
+    #['op_fin_pp', 'f',     [0, 0, 1, 0, 1, 0.1, 5.0, 1.0, 1.5, 0, 0, 0], 'final post-propagation (resize) parameters'],
     ['op_fin_pp', 'f',      [0, 0, 1, 0, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0], 'final post-propagation (resize) parameters'],
 
     #[ 0]: Auto-Resize (1) or not (0) Before propagation
@@ -503,7 +503,7 @@ if __name__ == "__main__":
 
 #---Parse options, defining Beamline elements and running calculations
     v = srwl_uti_parse_options(varParam)
-    
+
 #---Add some constant "parameters" (not allowed to be varied) for the beamline
     v.und_per = 0.021 #['und_per', 'f', 0.021, 'undulator period [m]'],
     v.und_len = 1.5 #['und_len', 'f', 1.5, 'undulator length [m]'],

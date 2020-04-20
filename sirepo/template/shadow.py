@@ -57,9 +57,7 @@ _WIGGLER_TRAJECTOR_FILENAME = 'xshwig.sha'
 
 
 def get_data_file(run_dir, model, frame, **kwargs):
-    filename = _SHADOW_OUTPUT_FILE
-    with open(str(run_dir.join(filename))) as f:
-        return filename, f.read(), 'application/octet-stream'
+    return _SHADOW_OUTPUT_FILE
 
 
 def post_execution_processing(

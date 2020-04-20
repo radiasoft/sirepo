@@ -37,7 +37,7 @@ def run(cfg_dir):
 def _csv_to_cols():
     with open(template.OUTPUT_NAME, 'r') as f:
         rows = csv.reader(f)
-        headers = rows.next()
+        headers = next(rows)
         cols = [[] for _ in headers]
         for row in rows:
             for i, c in enumerate(row):

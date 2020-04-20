@@ -29,7 +29,7 @@ def do_form(form):
 
     if not 'zip' in form:
         raise sirepo.util.raise_not_found('missing zip in form')
-    data = read_zip(six.BytesIO(base64.decodestring(pkcompat.to_bytes(form['zip']))))
+    data = read_zip(base64.decodebytes(pkcompat.to_bytes(form['zip'])))
     data.models.simulation.folder = '/Import'
     data.models.simulation.isExample = False
     return simulation_db.save_new_simulation(data)
@@ -58,11 +58,11 @@ def read_json(text, sim_type=None):
     return sirepo.http_request.parse_post(req_data=data).req_data
 
 
-def read_zip(stream, sim_type=None):
+def read_zip(zip_bytes, sim_type=None):
     """Read zip file and store contents
 
     Args:
-        stream (IO): file to read
+        zip_bytes (bytes): bytes to read
         sim_type (module): expected app
 
     Returns:
@@ -74,7 +74,7 @@ def read_zip(stream, sim_type=None):
     with simulation_db.tmp_dir() as tmp:
         data = None
         zipped = PKDict()
-        with zipfile.ZipFile(stream, 'r') as z:
+        with zipfile.ZipFile(six.BytesIO(zip_bytes), 'r') as z:
             for i in z.infolist():
                 b = pykern.pkio.py_path(i.filename).basename
                 c = z.read(i)

@@ -11,7 +11,7 @@ import pytest
 
 
 def test_basic(auth_fc, monkeypatch):
-    from pykern import pkconfig
+    from pykern import pkconfig, pkcompat
     from pykern.pkunit import pkeq
     from sirepo import srunit
     import base64
@@ -30,7 +30,9 @@ def test_basic(auth_fc, monkeypatch):
     r = auth_fc.sr_get_json(
         'serverStatus',
         headers=PKDict(
-            Authorization='Basic ' + base64.b64encode(u + ':' + 'pass'),
+            Authorization='Basic ' + pkcompat.from_bytes(
+                base64.b64encode(pkcompat.to_bytes(u + ':' + 'pass')),
+            ),
         ),
     )
     pkeq('ok', r.state)
