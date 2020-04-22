@@ -10,15 +10,15 @@ from pykern.pkcollections import PKDict
 import os
 import time
 
-_CACHE_AND_SIM_PURGE_FREQUENCY = 3
+_CACHE_AND_SIM_PURGE_PERIOD = 3
 _PURGE_FREE_AFTER_DAYS = 1
 
 
 def setup_module(module):
     os.environ.update(
-        SIREPO_JOB_SUPERVISOR_JOB_CACHE_SECS=str(_CACHE_AND_SIM_PURGE_FREQUENCY),
-        SIREPO_JOB_SUPERVISOR_TEST_PURGE_FREQUENCY_SECS=str(_CACHE_AND_SIM_PURGE_FREQUENCY),
+        SIREPO_JOB_SUPERVISOR_JOB_CACHE_SECS=str(_CACHE_AND_SIM_PURGE_PERIOD),
         SIREPO_JOB_SUPERVISOR_PURGE_FREE_AFTER_DAYS=str(_PURGE_FREE_AFTER_DAYS),
+        SIREPO_JOB_SUPERVISOR_PURGE_FREE_PERIOD='00:00:0{}'.format(_CACHE_AND_SIM_PURGE_PERIOD),
     )
 
 
@@ -89,7 +89,7 @@ def test_myapp_free_user_sim_purged(auth_fc):
         'adjustTime',
         params=PKDict(days=_PURGE_FREE_AFTER_DAYS + 1),
     )
-    time.sleep(_CACHE_AND_SIM_PURGE_FREQUENCY + 1)
+    time.sleep(_CACHE_AND_SIM_PURGE_PERIOD + 1)
     _status_eq(next_req_free, 'free_user_purged')
     _check_run_dir(should_exist=0)
     fc.sr_email_login(user_premium)

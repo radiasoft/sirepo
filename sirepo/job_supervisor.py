@@ -94,8 +94,9 @@ def init():
             sequential=(.1, float, 'maximum run-time for sequential job'),
         ),
         purge_free_after_days=(1000, int, 'how many days to wait before purging a free users simulation'),
+        purge_free_start=('02:00:00', str, 'time to first start purging free users simulations (%H:%M:%S)'),
+        purge_free_period=('01:00:00', str, 'how often to purge free users simulations after start time (%H:%M:%S)'),
         sbatch_poll_secs=(15, int, 'how often to poll squeue and parallel status'),
-        test_purge_frequency_secs=(3600, int, 'Only for interal test: How often try try purging free simulations')
     )
     _NEXT_REQUEST_SECONDS = PKDict({
         job.PARALLEL: 2,
@@ -123,9 +124,10 @@ def init():
             )
     else:
         pykern.pkio.mkdir_parent(_DB_DIR)
-    _purge_free_simulations_set()
-
-
+    tornado.ioloop.IOLoop.current().add_callback(
+        _ComputeJob.purge_free_simulations,
+        init=True,
+    )
 
 
 class ServerReq(PKDict):
@@ -184,10 +186,6 @@ class _ComputeJob(PKDict):
             self.cache_timeout,
         )
 
-    @classmethod
-    def db_write(cls, db):
-        sirepo.util.json_dump(db, path=cls.__db_file(db.computeJid))
-
     def destroy_op(self, op):
         if op in self.ops:
             self.ops.remove(op)
@@ -223,6 +221,64 @@ class _ComputeJob(PKDict):
             d.get('status'),
             self.ops,
         )
+
+    @classmethod
+    async def purge_free_simulations(cls, init=False):
+        def _get_uids_and_files():
+            r = []
+            u = None
+            p = sirepo.auth_db.UserRole.uids_of_paid_users()
+            for f in pkio.sorted_glob(_DB_DIR.join('*{}'.format(
+                    sirepo.simulation_db.JSON_SUFFIX,
+            ))):
+                n = sirepo.sim_data.uid_from_jid(f.basename)
+                if n in p or f.mtime() > _too_old:
+                    continue
+                if u != n:
+                    # POSIT: Uid is the first part of each db file. The files are
+                    # sorted so this should yield all of a user's files
+                    if r:
+                        yield u, r
+                    u = n
+                    r = []
+                r.append(f)
+            if r:
+                yield u, r
+
+        def _purge_sim(db_file):
+            d = pkcollections.json_load_any(db_file)
+            # OPTIMIZATION: We assume the uids_of_paid_users doesn't change very
+            # frequently so we don't need to check again. A user could run a sim
+            # at anytime so we need to check that they haven't
+            if d.lastUpdateTime > _too_old:
+                return
+            if d.status == job.FREE_USER_PURGED:
+                return
+            p = sirepo.simulation_db.simulation_run_dir(d)
+            pkio.unchecked_remove(p)
+            d.status = job.FREE_USER_PURGED
+            cls.__db_write_file(d)
+            jids_purged.append(db_file.purebasename)
+
+        s = sirepo.srtime.utc_now()
+        u = None
+        f = None
+        try:
+            _too_old = sirepo.srtime.utc_now_as_float() - (
+                cfg.purge_free_after_days * 24 * 60 * 60
+            )
+
+            jids_purged = []
+            for u, v in _get_uids_and_files():
+                with sirepo.auth.set_user(u):
+                    for f in v:
+                        _purge_sim(f)
+                await tornado.gen.sleep(0)
+            pkdlog('jids={}', jids_purged)
+        except Exception as e:
+            pkdlog('u={} f={} error={} stack={}', u, f, e, pkdexc())
+        finally:
+            cls._purge_free_simulations_set(s, init)
 
     @classmethod
     async def receive(cls, req):
@@ -350,8 +406,12 @@ class _ComputeJob(PKDict):
         return self.__db_write()
 
     def __db_write(self):
-        self.db_write(self.db)
+        self.__db_write_file(self.db)
         return self
+
+    @classmethod
+    def __db_write_file(cls, db):
+        sirepo.util.json_dump(db, path=cls.__db_file(db.computeJid))
 
     @classmethod
     def _get_running_pending_jobs(cls, uid=None):
@@ -668,6 +728,47 @@ class _ComputeJob(PKDict):
             t = cfg.max_hours['parallel_premium']
         return t * 3600
 
+    @classmethod
+    def _purge_free_simulations_set(cls, previous_start, init):
+        def _call_at(time):
+            tornado.ioloop.IOLoop.current().call_at(
+                sirepo.srtime.to_timestamp(time),
+                _ComputeJob.purge_free_simulations,
+            )
+
+        def _get_start():
+            t = datetime.datetime.combine(
+                datetime.date.fromtimestamp(sirepo.srtime.to_timestamp(n)),
+                datetime.datetime.min.time(),
+            )
+            return t + _get_timedelta(cfg.purge_free_start)
+
+        def _get_timedelta(time_str):
+            t = datetime.datetime.strptime(time_str, "%H:%M:%S")
+            return datetime.timedelta(
+                hours=t.hour,
+                minutes=t.minute,
+                seconds=t.second,
+            )
+        n = sirepo.srtime.utc_now()
+        s = _get_start()
+        p = _get_timedelta(cfg.purge_free_period)
+
+        if not init:
+            # TODO(e-carlin): This will drift away from s because
+            # call_at doesn't guarantee the callback is called at
+            # exactly the time provided. Using previous_start should
+            # make the drift inconsequentially small.
+            _call_at(previous_start + p)
+            return
+        if s > n:
+            _call_at(s)
+            return
+        t = s + p
+        while t < n:
+            t += p
+        _call_at(t)
+
     def _req_is_valid(self, req):
         return (
             self.db.computeJobHash == req.content.computeJobHash
@@ -857,77 +958,3 @@ class _Op(PKDict):
 
     def __hash__(self):
         return hash((self.opId,))
-
-
-def _purge_free_simulations_set():
-    def tomorrow_2am_mst():
-        if pkconfig.channel_in_internal_test():
-            return sirepo.srtime.utc_now_as_float() \
-                + cfg.test_purge_frequency_secs
-        # 9am UTC == 2am MST: Does not adjust for daylight savings
-        t = sirepo.srtime.utc_now() + datetime.timedelta(days=1)
-        return sirepo.srtime.to_timestamp(
-          datetime.datetime(t.year, t.month, t.day, 9, 0, 0, 0)
-        )
-
-    tornado.ioloop.IOLoop.current().call_at(
-        tomorrow_2am_mst(),
-        _purge_free_simulations,
-    )
-
-
-async def _purge_free_simulations():
-    def _get_uids_and_files():
-        r = []
-        u = None
-        p = sirepo.auth_db.UserRole.uids_of_paid_users()
-        for f in pkio.sorted_glob(_DB_DIR.join('*{}'.format(
-                sirepo.simulation_db.JSON_SUFFIX,
-        ))):
-            n = sirepo.sim_data.uid_from_jid(f.basename)
-            if n in p or f.mtime() > _too_old:
-                continue
-            if u != n:
-                # POSIT: Uid is the first part of each db file. The files are
-                # sorted so this should yield all of a user's files
-                if r:
-                    yield u, r
-                u = n
-                r = []
-            r.append(f)
-        if r:
-            yield u, r
-
-    def _purge_sim(db_file):
-        d = pkcollections.json_load_any(db_file)
-        # OPTIMIZATION: We assume the uids_of_paid_users doesn't change very
-        # frequently so we don't need to check again. A user could run a sim
-        # at anytime so we need to check that they haven't
-        if d.lastUpdateTime > _too_old:
-            return
-        if d.status == job.FREE_USER_PURGED:
-            return
-        p = sirepo.simulation_db.simulation_run_dir(d)
-        pkio.unchecked_remove(p)
-        d.status = job.FREE_USER_PURGED
-        _ComputeJob.db_write(d)
-        jids_purged.append(db_file.purebasename)
-
-    u = None
-    f = None
-    try:
-        _too_old = sirepo.srtime.utc_now_as_float() - (
-            cfg.purge_free_after_days * 24 * 60 * 60
-        )
-
-        jids_purged = []
-        for u, v in _get_uids_and_files():
-            with sirepo.auth.set_user(u):
-                for f in v:
-                    _purge_sim(f)
-            await tornado.gen.sleep(0)
-        pkdlog('jids={}', jids_purged)
-    except Exception as e:
-        pkdlog('u={} f={} error={} stack={}', u, f, e, pkdexc())
-    finally:
-        _purge_free_simulations_set()
