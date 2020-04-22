@@ -5,6 +5,7 @@ u"""OPAL execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkcollections import PKDict
@@ -137,6 +138,10 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
     elif 'elementAnimation' in model:
         return _file_name_for_element_animation(run_dir, model)
     raise AssertionError('unknown model={}'.format(model))
+
+
+def opal_code_var(variables):
+    return _code_var(variables)
 
 
 def post_execution_processing(
@@ -681,4 +686,4 @@ def _units(twiss_field):
 
 
 def _units_from_hdf5(h5file, field):
-    return _field_units(str(h5file.attrs['{}Unit'.format(field.name)]), field)
+    return _field_units(pkcompat.from_bytes(h5file.attrs['{}Unit'.format(field.name)]), field)
