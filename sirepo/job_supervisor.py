@@ -179,19 +179,6 @@ class _ComputeJob(PKDict):
         if not exception:
             self.__db_update(jobStatusMessage=None)
             return
-        if not isinstance(exception, asyncio.CancelledError):
-            # All non CancelledError exceptions should be preserved in the db
-            # for future debugging
-            return
-        # If we initiated the cancel then clear the jobStatusMessage
-        # TODO(e-carlin): Race condition - Another run may have started so we
-        # no longer have control of the db to clear out the jobStatusMessage. In
-        # that case the message will be left which may be confusing. Maybe just
-        # don't handle cancel at all and always leave the message in the db on
-        # any error?
-        if self.db.status == job.CANCELED and \
-           self.get('_cancelled_serial') == self.db.computeJobSerial:
-            self.__db_update(jobStatusMessage=None)
 
     def destroy_op(self, op):
         if op in self.ops:
