@@ -11,7 +11,7 @@ import re
 
 import requests
 
-X0H_SERVER = 'http://x-server.gmca.aps.anl.gov/cgi/x0h_form.exe'
+X0H_SERVER = 'https://x-server.gmca.aps.anl.gov/cgi/x0h_form.exe'
 
 
 def calc_bragg_angle(d, energy_eV, n=1):

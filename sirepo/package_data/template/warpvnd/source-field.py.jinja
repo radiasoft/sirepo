@@ -22,7 +22,7 @@ solverE.mgmaxiters = 100
 
 potential = wp.getphi(bcast=0)
 if can_write_files:
-    hf = h5py.File('potential.h5')
+    hf = h5py.File('potential.h5', 'w')
     dict_to_h5(potential, hf, path='potential')
     hf.close()
 

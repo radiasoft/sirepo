@@ -13,15 +13,15 @@ def test_generate_python():
     from sirepo.template import synergia
     import re
 
-    with pkunit.save_chdir_work():
+    with pkunit.save_chdir_work() as d:
         for f in pkio.sorted_glob(pkunit.data_dir().join('*.txt')):
-            e = f.read()
+            e = pkio.read_text(f)
             m = re.search(r'^#\s*(.*\S)\s*$', e, flags=re.MULTILINE)
             assert m
             name = m.group(1)
             a = synergia._generate_parameters_file(_example_data(name))
             pkio.write_text(f.basename, a)
-            pkunit.pkeq(e, a)
+            pkunit.pkeq(e, a, 'diff {} {}', f, d.join(f.basename))
 
 
 def _example_data(name):

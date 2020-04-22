@@ -28,8 +28,7 @@ OUTPUT_NAME = 'hundli.csv'
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if options and options.get('suffix') == 'sr_long_analysis':
         time.sleep(100)
-    f = run_dir.join(OUTPUT_NAME)
-    return f.basename, f.read(), 'text/csv'
+    return OUTPUT_NAME
 
 
 def python_source_for_model(data, model):

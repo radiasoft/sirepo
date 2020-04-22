@@ -5,9 +5,9 @@ u"""WARP execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from opmd_viewer import OpenPMDTimeSeries
-from opmd_viewer.openpmd_timeseries import main
-from opmd_viewer.openpmd_timeseries.data_reader import field_reader
+from openpmd_viewer import OpenPMDTimeSeries
+from openpmd_viewer.openpmd_timeseries import main
+from openpmd_viewer.openpmd_timeseries.data_reader import field_reader
 from pykern import pkcollections
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -41,7 +41,7 @@ def background_percent_complete(report, run_dir, is_running):
     if is_running:
         file_index -= 1
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    Fr, info = field_reader.read_field_circ(str(files[file_index]), 'E/r')
+    Fr, info = _read_field_circ(files[file_index])
     plasma_length = float(data.models.electronPlasma.length) / 1e3
     zmin = float(data.models.simulationGrid.zMin) / 1e6
     percent_complete = (info.imshow_extent[1] / (plasma_length - zmin))
@@ -110,10 +110,6 @@ def extract_particle_report(frame_args, particle_type):
             main.apply_selection(f, data_list, select, particle_type, ())
     xunits = ' [m]' if len(xarg) == 1 else ''
     yunits = ' [m]' if len(yarg) == 1 else ''
-    if len(xarg) == 1:
-        data_list[0] /= 1e6
-    if len(yarg) == 1:
-        data_list[1] /= 1e6
 
     if xarg == 'z':
         data_list = _adjust_z_width(data_list, data_file)
@@ -158,9 +154,7 @@ def get_data_file(run_dir, model, frame, **kwargs):
     # give the last available file instead.
     if len(files) < frame + 1:
         frame = -1
-    filename = str(files[int(frame)])
-    with open(filename) as f:
-        return os.path.basename(filename), f.read(), 'application/octet-stream'
+    return files[int(frame)]
 
 
 def new_simulation(data, new_simulation_data):
@@ -268,7 +262,7 @@ def write_parameters(data, run_dir, is_parallel):
 
 def _adjust_z_width(data_list, data_file):
     # match boundaries with field report
-    Fr, info = field_reader.read_field_circ(data_file.filename, 'E/r')
+    Fr, info = _read_field_circ(data_file.filename)
     extent = info.imshow_extent
     return [
         numpy.append(data_list[0], [extent[0], extent[1]]),
@@ -307,12 +301,21 @@ def _particle_selection_args(args):
     for f in '', 'u':
         for f2 in 'x', 'y', 'z':
             field = '{}{}'.format(f, f2)
-            min = float(args[field + 'Min'])
-            max = float(args[field + 'Max'])
+            min = float(args[field + 'Min']) / 1e6
+            max = float(args[field + 'Max']) / 1e6
             if min == 0 and max == 0:
                 continue
             res[field] = [min, max]
     return res if len(res.keys()) else None
+
+
+def _read_field_circ(filename):
+    return field_reader.read_field_circ(
+        str(filename),
+        'E/r',
+        slice_across=None,
+        slice_relative_position=None,
+    )
 
 
 def _select_range(values, arg, select):

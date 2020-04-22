@@ -15,7 +15,6 @@ import pykern.pkinspect
 import pykern.pkio
 import pykern.pkjson
 import random
-import werkzeug.exceptions
 
 
 #: length of string returned by create_token
@@ -212,6 +211,12 @@ def random_base62(length=32):
     return ''.join(r.choice(numconv.BASE62) for x in range(length))
 
 
+def secure_filename(path):
+    import werkzeug.utils
+
+    return werkzeug.utils.secure_filename(path)
+
+
 def setattr_imports(imports):
     m = pykern.pkinspect.caller_module()
     for k, v in imports.items():
@@ -219,6 +224,8 @@ def setattr_imports(imports):
 
 
 def _raise(exc, fmt, *args, **kwargs):
+    import werkzeug.exceptions
+
     kwargs['pkdebug_frame'] = inspect.currentframe().f_back.f_back
     pkdlog(fmt, *args, **kwargs)
     raise getattr(werkzeug.exceptions, exc)()

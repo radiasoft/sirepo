@@ -311,7 +311,7 @@ def api_importFile(simulation_type):
         #TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
         # (dicom input is normally a zip file)
         elif pkio.has_file_extension(req.filename, 'zip') and req.type != 'rs4pi':
-            data = sirepo.importer.read_zip(req.file_stream, sim_type=req.type)
+            data = sirepo.importer.read_zip(req.file_stream.read(), sim_type=req.type)
         else:
             if not hasattr(req.template, 'import_file'):
                 raise sirepo.util.Error('Only zip files are supported')
@@ -333,7 +333,7 @@ def api_importFile(simulation_type):
             else:
                 error = str(e.args)
         else:
-            error =str(e)
+            error = str(e)
     return http_reply.gen_json({
         'error': error if error else 'An unknown error occurred',
     })

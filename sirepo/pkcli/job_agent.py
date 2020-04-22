@@ -41,11 +41,7 @@ _IN_FILE = 'in-{}.json'
 
 _PID_FILE = 'job_agent.pid'
 
-_PY3_CODES = frozenset((
-    'rcscon',
-    'shadow',
-    'webcon',
-))
+_PY2_CODES = frozenset(())
 
 cfg = None
 
@@ -410,7 +406,6 @@ class _Cmd(PKDict):
         return job.agent_cmd_stdin_env(
             cmd=self.job_cmd_cmd(),
             env=self.job_cmd_env(),
-            pyenv=self.job_cmd_pyenv(),
             source_bashrc=self.job_cmd_source_bashrc(),
         )
 
@@ -422,9 +417,6 @@ class _Cmd(PKDict):
             ),
         )
 
-    def job_cmd_pyenv(self):
-        return 'py3' if self.msg.simulationType in _PY3_CODES else 'py2'
-
     def job_cmd_source_bashrc(self):
         return 'source $HOME/.bashrc'
 
@@ -434,7 +426,7 @@ class _Cmd(PKDict):
                 self.dispatcher.format_op(
                     self.msg,
                     job.OP_JOB_CMD_STDERR,
-                    error=text.decode('utf-8', errors='ignore'),
+                    stderr=text.decode('utf-8', errors='ignore'),
                 )
             )
         except Exception as exc:
@@ -678,7 +670,6 @@ class _SbatchRun(_SbatchCmd):
 cat > bash.stdin <<'EOF'
 {self.job_cmd_source_bashrc()}
 {self.job_cmd_env()}
-pyenv shell {self.job_cmd_pyenv()}
 if [[ ! $LD_LIBRARY_PATH =~ /usr/lib64/mpich/lib ]]; then
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64/mpich/lib
 fi

@@ -38,7 +38,7 @@ def set_optics(_v):
     Such function has to be written for every beamline to be simulated; it is specific to a particular beamline.
     :param _v: structure containing all parameters allowed to be varied for that particular beamline
     """
-    
+
 #---Nominal Positions of Optical Elements [m] (with respect to straight section center)
     zS0 = 20.5 #S0 (primary slit)
     zHDM = 27.4 #Horizontally-Deflecting Mirror (HDM)
@@ -66,7 +66,7 @@ def set_optics(_v):
         if(_v.op_fin not in arElNamesAll): raise Exception('Optical element with the name specified in the "op_fin" option is not present in this beamline')
         #Could be made more general
 
-    arElNames = []; 
+    arElNames = [];
     for i in range(len(arElNamesAll)):
         arElNames.append(arElNamesAll[i])
         if(len(_v.op_fin) > 0):
@@ -75,19 +75,19 @@ def set_optics(_v):
     el = []; pp = [] #lists of SRW optical element objects and their corresponding propagation parameters
 
     #S0 (primary slit)
-    if('S0' in arElNames): 
+    if('S0' in arElNames):
         el.append(SRWLOptA('r', 'a', _v.op_S0_dx, _v.op_S0_dy, _v.op_S0_x, _v.op_S0_y)); pp.append(_v.op_S0_pp)
 
     #Drift S0 -> HDM
-    if('S0_HDM' in arElNames): 
+    if('S0_HDM' in arElNames):
         el.append(SRWLOptD(zHDM - zS0)); pp.append(_v.op_S0_HDM_pp)
 
     #Drift S0 -> S1
-    if('S0_S1' in arElNames): 
+    if('S0_S1' in arElNames):
         el.append(SRWLOptD(zS1 - zS0)); pp.append(_v.op_S0_S1_pp)
-        
+
     #HDM (Height Profile Error)
-    if('HDM' in arElNames): 
+    if('HDM' in arElNames):
         horApHDM = 0.94e-03 #Projected dimensions
         verApHDM = 1.e-03
         angHDM = 3.1415926e-03 #? grazing angle
@@ -100,17 +100,17 @@ def set_optics(_v):
                 pathDifHDM = opHDM.get_data(3, 3)
                 srwl_uti_save_intens_ascii(pathDifHDM, opHDM.mesh, ofnHDM, 0, ['', 'Horizontal Position', 'Vertical Position', 'Opt. Path Dif.'], _arUnits=['', 'm', 'm', 'm'])
             el.append(opHDM); pp.append(_v.op_HDM_pp)
-            
+
     #Drift HDM -> S1
-    if('HDM_S1' in arElNames): 
+    if('HDM_S1' in arElNames):
         el.append(SRWLOptD(zS1 - zHDM + _v.op_S1_dz)); pp.append(_v.op_HDM_S1_pp)
 
     #S1 slit
-    if('S1' in arElNames): 
+    if('S1' in arElNames):
         el.append(SRWLOptA('r', 'a', _v.op_S1_dx, _v.op_S1_dy, _v.op_S1_x, _v.op_S1_y)); pp.append(_v.op_S1_pp)
 
     #Drift S1 -> DCM
-    if('S1_DCM' in arElNames): 
+    if('S1_DCM' in arElNames):
         el.append(SRWLOptD(zDCM - zS1)); pp.append(_v.op_S1_DCM_pp)
 
     #Double-Crystal Monochromator
@@ -130,7 +130,7 @@ def set_optics(_v):
         #Find appropriate orientation of the Crystal #1 and the Output Beam Frame (using a member-function in SRWLOptCryst):
         #orientDataCr1 = opCr1.find_orient(_en=_v.op_DCM_e, _ang_dif_pl=1.5707963) # Horizontally-deflecting (from HXN)
         orientDataCr1 = opCr1.find_orient(_en=_v.op_DCM_e) # Vertically-deflecting
-        
+
         #Crystal #1 Orientation found:
         orientCr1 = orientDataCr1[0]
         tCr1 = orientCr1[0] #Tangential Vector to Crystal surface
@@ -138,13 +138,13 @@ def set_optics(_v):
         nCr1 = orientCr1[2] #Normal Vector to Crystal surface
         print('DCM Crystal #1 Orientation (original):')
         print('  t =', tCr1, 's =', orientCr1[1], 'n =', nCr1)
-        
+
         if(_v.op_DCM_ac1 != 0): #Small rotation of DCM Crystal #1:
             rot = uti_math.trf_rotation([0,1,0], _v.op_DCM_ac1, [0,0,0])
             tCr1 = uti_math.matr_prod(rot[0], tCr1)
             sCr1 = uti_math.matr_prod(rot[0], sCr1)
             nCr1 = uti_math.matr_prod(rot[0], nCr1)
-        
+
         #Set the Crystal #1 orientation:
         opCr1.set_orient(nCr1[0], nCr1[1], nCr1[2], tCr1[0], tCr1[1])
 
@@ -165,12 +165,12 @@ def set_optics(_v):
         el.append(opCr1); pp.append(_v.op_DCMC1_pp)
 
         #---------------------- DCM Crystal #2
-        opCr2 = SRWLOptCryst(_d_sp=dc, _psi0r=psi[0], _psi0i=psi[1], _psi_hr=psi[2], _psi_hi=psi[3], _psi_hbr=psi[2], _psi_hbi=psi[3], _tc=tc, _ang_as=angAs)
+        opCr2 = SRWLOptCryst(_d_sp=dc, _psi0r=psi[0], _psi0i=psi[1], _psi_hr=psi[2], _psi_hi=psi[3], _psi_hbr=psi[2], _psi_hbi=psi[3], _tc=tc, _ang_as=angAs, _ang_roll=3.1415926)
 
         #Find appropriate orientation of the Crystal #2 and the Output Beam Frame
         #orientDataCr2 = opCr2.find_orient(_en=_v.op_DCM_e, _ang_dif_pl=-1.5707963) #from HXN
         orientDataCr2 = opCr2.find_orient(_en=_v.op_DCM_e, _ang_dif_pl=3.1415926) #Vertically-deflecting
-        
+
         #Crystal #2 Orientation found:
         orientCr2 = orientDataCr2[0]
         tCr2 = orientCr2[0] #Tangential Vector to Crystal surface
@@ -220,7 +220,7 @@ def set_optics(_v):
         el.append(opDCME); pp.append(_v.op_DCME_pp)
 
     #Drift DCM -> S2
-    if('DCM_S2' in arElNames): 
+    if('DCM_S2' in arElNames):
         el.append(SRWLOptD(zS2 - zDCM + _v.op_S2_dz)); pp.append(_v.op_DCM_S2_pp)
 
     #Boron Fiber (with Tungsten core)
@@ -233,23 +233,23 @@ def set_optics(_v):
         pp.append(_v.op_FIB_pp)
 
     #Drift S1 -> S2
-    if('S1_S2' in arElNames): 
+    if('S1_S2' in arElNames):
         el.append(SRWLOptD(zS2 - zS1 + _v.op_S2_dz)); pp.append(_v.op_S1_S2_pp)
 
     #S2 slit
-    if('S2' in arElNames): 
+    if('S2' in arElNames):
         el.append(SRWLOptA('r', 'a', _v.op_S2_dx, _v.op_S2_dy, _v.op_S2_x, _v.op_S2_y)); pp.append(_v.op_S2_pp)
 
     #Drift S2 -> BPM
-    if('S2_BPM' in arElNames): 
+    if('S2_BPM' in arElNames):
         el.append(SRWLOptD(zBPM - zS2 + _v.op_BPM_dz)); pp.append(_v.op_S2_BPM_pp)
 
     #Drift BPM -> CRL
-    if('BPM_CRL' in arElNames): 
+    if('BPM_CRL' in arElNames):
         el.append(SRWLOptD(zCRL - zBPM + _v.op_CRL_dz)); pp.append(_v.op_BPM_CRL_pp)
 
     #Drift S2 -> CRL
-    if('S2_CRL' in arElNames): 
+    if('S2_CRL' in arElNames):
         el.append(SRWLOptD(zCRL - zS2 - _v.op_S2_dz + _v.op_CRL_dz)); pp.append(_v.op_S2_CRL_pp)
 
     #CRL1 (1D, vertically-focusing)
@@ -281,7 +281,7 @@ def set_optics(_v):
         el.append(SRWLOptD(zSample - zCRL - _v.op_CRL_dz + _v.op_SMP_dz)); pp.append(_v.op_CRL_SMP_pp)
 
     #KL Aperture
-    if('KLA' in arElNames): 
+    if('KLA' in arElNames):
         el.append(SRWLOptA('r', 'a', _v.op_KLA_dx, _v.op_KLA_dy, _v.op_KL_x, _v.op_KL_y)); pp.append(_v.op_KLA_pp)
 
     #KL (1D, horizontally-focusing)
@@ -307,7 +307,7 @@ def set_optics(_v):
         if(len(ifnSMP) > 0):
             ifSMP = open(ifnSMP, 'rb')
             opSMP = pickle.load(ifSMP)
-            
+
             #Implementing transverse shift of sample ??
             xSt = opSMP.mesh.xStart
             xFi = opSMP.mesh.xFin
@@ -319,14 +319,14 @@ def set_optics(_v):
             halfRangeY = 0.5*(yFi - ySt)
             opSMP.mesh.yStart = -halfRangeY + _v.op_SMP_y
             opSMP.mesh.yFin = halfRangeY + _v.op_SMP_y
-            
+
             ofnSMP = os.path.join(_v.fdir, _v.op_SMP_ofn) if len(_v.op_SMP_ofn) > 0 else ''
             if(len(ofnSMP) > 0):
                 pathDifSMP = opSMP.get_data(3, 3)
                 srwl_uti_save_intens_ascii(pathDifSMP, opSMP.mesh, ofnSMP, 0, ['', 'Horizontal Position', 'Vertical Position', 'Opt. Path Dif.'], _arUnits=['', 'm', 'm', 'm'])
             el.append(opSMP); pp.append(_v.op_SMP_pp)
             ifSMP.close()
-            
+
     #Drift Sample -> Detector
     if('SMP_D' in arElNames):
         el.append(SRWLOptD(zD - zSample + _v.op_D_dz)); pp.append(_v.op_SMP_D_pp)
@@ -336,7 +336,7 @@ def set_optics(_v):
     return SRWLOptC(el, pp)
 
 #*********************************List of Parameters allowed to be varied
-#---List of supported options / commands / parameters allowed to be varied for this Beamline (comment-out unnecessary):   
+#---List of supported options / commands / parameters allowed to be varied for this Beamline (comment-out unnecessary):
 varParam = [
 #---Data Folder
     ['fdir', 's', os.path.join(os.getcwd(), 'data_CHX'), 'folder (directory) name for reading-in input and saving output data files'],
@@ -375,14 +375,14 @@ varParam = [
     #NOTE: the above option/variable names (fdir, ebm*, und*, ss*, sm*, pw*, is*, ws*, wm*) should be the same in all beamline scripts
     #on the other hand, the beamline optics related options below (op*) are specific to a particular beamline (and can be differ from beamline to beamline).
     #However, the default values of all the options/variables (above and below) can differ from beamline to beamline.
-    
+
 #---Beamline Optics
-    
+
     ['op_r', 'f', 20.5, 'longitudinal position of the first optical element [m]'],
     ['op_fin', 's', 'FIB', 'name of the final optical element wavefront has to be propagated through'],
 
     ['op_BL', 'f', 5, 'beamline version/option number'],
-    
+
     ['op_S0_dx', 'f', 0.2e-03, 'slit S0: horizontal size [m]'],
     ['op_S0_dy', 'f', 1.0e-03, 'slit S0: vertical size [m]'],
     ['op_S0_x', 'f', 0., 'slit S0: horizontal center position [m]'],
@@ -425,9 +425,9 @@ varParam = [
     ['op_S2_dy', 'f', 0.2e-03, 'slit S2: vertical size [m]'], #1.0e-03, 'slit S2: vertical size [m]'],
     ['op_S2_x', 'f', 0., 'slit S2: horizontal center position [m]'],
     ['op_S2_y', 'f', 0., 'slit S2: vertical center position [m]'],
-    
+
     ['op_BPM_dz', 'f', 0., 'BPM: offset of longitudinal position [m]'],
-    
+
     ['op_CRL_dz', 'f', 0., 'CRL: offset of longitudinal position [m]'],
     ['op_CRL1_fpl', 's', 'v', 'CRL1: focusing plane ("h" or "v" or "hv" or "")'],
     ['op_CRL1_delta', 'f', 4.20756805e-06, 'CRL1: refractive index decrements of material'],
@@ -439,7 +439,7 @@ varParam = [
     ['op_CRL1_thck', 'f', 80.e-06, 'CRL1: wall thickness (at the tip of parabola) [m]'],
     ['op_CRL1_x', 'f', 0., 'CRL1: horizontal center position [m]'],
     ['op_CRL1_y', 'f', 0., 'CRL1: vertical center position [m]'],
-    
+
     ['op_CRL2_fpl', 's', 'v', 'CRL2: focusing plane ("h" or "v" or "hv" or "")'],
     ['op_CRL2_delta', 'f', 4.20756805e-06, 'CRL2: refractive index decrements of material'],
     ['op_CRL2_atnl', 'f', 7312.94e-06, 'CRL2: attenuation length of material [m]'],
@@ -450,7 +450,7 @@ varParam = [
     ['op_CRL2_thck', 'f', 80.e-06, 'CRL2: wall thickness (at the tip of parabola) [m]'],
     ['op_CRL2_x', 'f', 0., 'CRL2: horizontal center position [m]'],
     ['op_CRL2_y', 'f', 0., 'CRL2: vertical center position [m]'],
-    
+
     ['op_KLA_dx', 'f', 1.0e-03, 'KL aperture: horizontal size [m]'], #1.4e-03, 'KL Aperture: horizontal size [m]'],
     ['op_KLA_dy', 'f', 0.1e-03, 'KL aperture: vertical size [m]'], #0.2e-03, 'KL Aperture: vertical size [m]'],
     ['op_KL_dz', 'f', 0., 'KL: offset of longitudinal position [m]'],
@@ -458,19 +458,19 @@ varParam = [
     ['op_KL_fy', 'f', 1.e+23, 'KL: vertical focal length [m]'],
     ['op_KL_x', 'f', 0., 'KL: horizontal center position [m]'],
     ['op_KL_y', 'f', 0., 'KL: vertical center position [m]'],
-    
+
     ['op_S3_dz', 'f', 0., 'S3: offset of longitudinal position [m]'],
     ['op_S3_dx', 'f', 10.e-06, 'slit S3: horizontal size [m]'],
     ['op_S3_dy', 'f', 10.e-06, 'slit S3: vertical size [m]'],
     ['op_S3_x', 'f', 0., 'slit S3: horizontal center position [m]'],
     ['op_S3_y', 'f', 0., 'slit S3: vertical center position [m]'],
-    
+
     ['op_SMP_dz', 'f', 0., 'sample: offset of longitudinal position [m]'],
     ['op_SMP_ifn', 's', 'CHX_SMP_CDI_001.pickle', 'sample: model file name (binary "dumped" SRW transmission object)'],
     ['op_SMP_ofn', 's', 'res_CHX_SMP_opt_path_dif.dat', 'sample: output file name of optical path difference data'],
     ['op_SMP_x', 'f', 0., 'sample: horizontal center position [m]'],
     ['op_SMP_y', 'f', 0., 'sample: vertical center position [m]'],
-    
+
     ['op_D_dz', 'f', 0., 'detector: offset of longitudinal position [m]'],
 
     #to add options for different beamline cases, etc.
@@ -531,13 +531,13 @@ varParam = [
 ]
 
 varParam = srwl_uti_ext_options(varParam)
-    
+
 #*********************************Entry
 if __name__ == "__main__":
 
 #---Parse options, defining Beamline elements and running calculations
     v = srwl_uti_parse_options(varParam)
-    
+
 #---Add some constant "parameters" (not allowed to be varied) for the beamline
     #v.und_per = 0.02 #['und_per', 'f', 0.02, 'undulator period [m]'],
     #v.und_len = 3. #['und_len', 'f', 3., 'undulator length [m]'],

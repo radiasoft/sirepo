@@ -110,7 +110,7 @@ def generate_field_comparison_report(data, run_dir, args=None):
     params = args if args is not None else data['models']['fieldComparisonAnimation']
     grid = data['models']['simulationGrid']
     dimension = params['dimension']
-    with h5py.File(str(py.path.local(run_dir).join(_COMPARISON_FILE))) as f:
+    with h5py.File(str(py.path.local(run_dir).join(_COMPARISON_FILE)), 'r') as f:
         values = f['data/{}/meshes/E/{}'.format(COMPARISON_STEP_SIZE, dimension)]
         values = values[()]
 
@@ -189,20 +189,13 @@ def get_application_data(data, **kwargs):
 
 def get_data_file(run_dir, model, frame, **kwargs):
     if model == 'particleAnimation' or model == 'egunCurrentAnimation' or model == 'particle3d':
-        filename = str(run_dir.join(_PARTICLE_FILE if model == 'particleAnimation' or model == 'particle3d' else _EGUN_CURRENT_FILE))
-        with open(filename) as f:
-            return os.path.basename(filename), f.read(), 'application/octet-stream'
-    if model == 'conductorGridReport':
-        data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
-        return 'python-source.py', python_source_for_model(data, model), 'text/plain'
+        return _PARTICLE_FILE if model in ('particleAnimation', 'particle3d') else _EGUN_CURRENT_FILE
     files = _h5_file_list(run_dir, model)
     #TODO(pjm): last client file may have been deleted on a canceled animation,
     # give the last available file instead.
     if len(files) < frame + 1:
         frame = -1
-    filename = str(files[int(frame)])
-    with open(filename) as f:
-        return os.path.basename(filename), f.read(), 'application/octet-stream'
+    return str(files[int(frame)])
 
 
 def get_zcurrent_new(particle_array, momenta, mesh, particle_weight, dz):
@@ -836,7 +829,7 @@ def _max_conductor_voltage(data):
     res = data.models.beam.anode_voltage
     for c in data.models.conductors:
         # conductor_type has been added to conductor during _prepare_conductors()
-        if c.conductor_type.voltage > res:
+        if float(c.conductor_type.voltage) > float(res):
             res = c.conductor_type.voltage
     return res
 
@@ -1095,7 +1088,7 @@ def _stl_polygon_file(filename):
 
 def _save_stl_polys(data):
     try:
-        with h5py.File(str(_SIM_DATA.lib_file_write_path(_stl_polygon_file(data.file)))) as hf:
+        with h5py.File(str(_SIM_DATA.lib_file_write_path(_stl_polygon_file(data.file))), 'w') as hf:
             template_common.dict_to_h5(data, hf, path='/')
     except Exception as e:
         pkdlog('!save_stl_polys FAIL: {}', e)
