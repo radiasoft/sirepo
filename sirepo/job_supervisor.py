@@ -41,6 +41,7 @@ _HISTORY_FIELDS = frozenset((
     'computeJobStart',
     'computeModel'
     'driverDetails',
+    'internalError',
     'isParallel',
     'isPremiumUser',
     'error',
@@ -311,7 +312,12 @@ class _ComputeJob(PKDict):
         d = pkcollections.json_load_any(
             cls.__db_file(compute_jid),
         )
-        for k in ['alert', 'cancelledAfterSecs', 'isPremiumUser']:
+        for k in [
+                'alert',
+                'cancelledAfterSecs',
+                'isPremiumUser',
+                'internalError',
+        ]:
             d.setdefault(k, None)
             for h in d.history:
                 h.setdefault(k, None)
@@ -494,17 +500,18 @@ class _ComputeJob(PKDict):
                 c.destroy(cancel=False)
 
     async def _receive_api_runSimulation(self, req):
-        def _set_error(op, compute_job_serial):
-            if self.db.computeJobSerial != compute_job_serial:
+        def _set_error(destroy_op):
+            if self.db.computeJobSerial != c:
                 # Another run has started
                 return
             self.__db_update(
-                status=job.ERROR,
                 error='Server error',
+                internalError=o.internal_error,
+                status=job.ERROR,
             )
             # _run destroys in the happy path (never got to _run here)
-            if op:
-                op.destroy(cancel=False)
+            if destroy_op:
+                o.destroy(cancel=False)
 
         f = req.content.data.get('forceRun')
         if self._is_running_pending():
@@ -571,10 +578,10 @@ class _ComputeJob(PKDict):
             # There was a timeout getting the run started. Set the
             # error and let the user know. The timeout has destroyed
             # the op so don't need to in _set_error
-            _set_error(None, c)
+            _set_error(False)
             return self._status_reply(req)
         except Exception:
-            _set_error(o, c)
+            _set_error(True)
             raise
 
     async def _receive_api_runStatus(self, req):
@@ -762,18 +769,22 @@ class _Op(PKDict):
         super().__init__(*args, **kwargs)
         self.update(
             do_not_send=False,
-            error=None,
+            internal_error=None,
             opId=job.unique_key(),
             _reply_q=sirepo.tornado.Queue(),
         )
         self.msg.update(opId=self.opId, opName=self.opName)
         pkdlog('{} runDir={}', self, self.msg.get('runDir'))
 
-    def destroy(self, cancel=True):
+    def destroy(self, cancel=True, internal_error=None):
         if cancel:
             if self.task:
                 self.task.cancel()
                 self.task = None
+        # Ops can be destroyed multiple times
+        # The first error is "closest to the source" so don't overwrite it
+        if not self.internal_error:
+            self.internal_error = internal_error
         for x in 'run_callback', 'timer':
             if x in self:
                 tornado.ioloop.IOLoop.current().remove_timeout(self.pkdel(x))
