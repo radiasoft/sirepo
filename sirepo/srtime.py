@@ -20,6 +20,9 @@ EPOCH = datetime.datetime.utcfromtimestamp(0)
 #: Adjustment of system time
 _timedelta = None
 
+#: Whether or not this module has been initilaized
+_initialized = False
+
 def adjust_time(days):
     """Shift the system time by days
 
@@ -66,7 +69,10 @@ def api_adjustTime(days=None):
 def init():
     if pkconfig.channel_in_internal_test():
         return
-    global utc_now_as_float, utc_now
+    global _initialized, utc_now_as_float, utc_now
+    if _initialized:
+        return
+    _initialized = True
     utc_now_as_float = time.time
     utc_now = datetime.datetime.utcnow
 
