@@ -49,9 +49,7 @@ def cfg():
         dict: configurated features
     """
     global _cfg
-    if not _cfg:
-        _init()
-    return _cfg
+    return _cfg or _init()
 
 
 def for_sim_type(sim_type):
@@ -115,3 +113,6 @@ def _init():
     )
     # can't check proprietary_sim_types against sim_types, because
     # may not overlap (flash is always proprietary)
+    assert _cfg.job, \
+        'sirepo.feature_config.job must be true ("runner" unsupported)'
+    return _cfg

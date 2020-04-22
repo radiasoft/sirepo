@@ -5,6 +5,7 @@ u"""zgoubi datafile parser
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkresource
 from pykern.pkcollections import PKDict
@@ -72,12 +73,15 @@ def tosca_info(tosca):
             for info in z.infolist():
                 filenames.append(info.filename)
                 if not length and info.filename in tosca.fileNames:
-                    length, error = _tosca_length(tosca, z.read(info).splitlines())
+                    length, error = _tosca_length(
+                        tosca,
+                        pkcompat.from_bytes(z.read(info)).splitlines(),
+                    )
                     if length:
                         error = None
     else:
         filenames = [tosca.magnetFile]
-        with pkio.open_text(str(datafile)) as f:
+        with pkio.open_text(datafile) as f:
             length, error = _tosca_length(tosca, f)
     if error:
         return PKDict(error=error)

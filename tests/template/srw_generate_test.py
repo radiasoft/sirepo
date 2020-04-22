@@ -46,16 +46,16 @@ def test_srw_generate_python(fc):
 
 
 def _generate_source(fc, sim, name):
-    from pykern import pkio, pkunit, pkdebug
+    from pykern import pkio, pkunit, pkdebug, pkcompat
     import re
 
-    d = fc.sr_get(
+    d = pkcompat.from_bytes(fc.sr_get(
         'pythonSource',
         PKDict(
             simulation_id=sim.models.simulation.simulationId,
             simulation_type=sim.simulationType,
         ),
-    ).data
+    ).data)
     n = re.sub(
         r'[^\w\-\.]',
         '',
@@ -63,5 +63,5 @@ def _generate_source(fc, sim, name):
     )
     e = pkunit.data_dir().join(n)
     a = pkunit.work_dir().join(n)
-    a.write(d, 'wb')
-    pkunit.pkeq(e.read(), d, 'diff {} {}', e, a)
+    pkio.write_text(a, d)
+    pkunit.pkeq(pkio.read_text(e), d, 'diff {} {}', e, a)

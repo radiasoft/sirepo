@@ -222,7 +222,10 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
     buf = six.StringIO()
     buf.write(','.join(col_info['names']) + '\n')
     numpy.savetxt(buf, plot_data, delimiter=',')
-    return '{}.csv'.format(model), buf.getvalue(), 'text/csv'
+    return PKDict(
+        uri='{}.csv'.format(model),
+        content=buf.getvalue(),
+    )
 
 
 def get_fft(run_dir, data):

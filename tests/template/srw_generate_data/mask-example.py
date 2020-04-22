@@ -257,15 +257,15 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_VFM_size_tang', 'f', 0.2, 'tangentialSize'],
     ['op_VFM_size_sag', 'f', 0.01, 'sagittalSize'],
     ['op_VFM_nvx', 'f', 0.0, 'normalVectorX'],
-    ['op_VFM_nvy', 'f', 0.999995500003, 'normalVectorY'],
-    ['op_VFM_nvz', 'f', -0.0029999955, 'normalVectorZ'],
+    ['op_VFM_nvy', 'f', 0.999995500003375, 'normalVectorY'],
+    ['op_VFM_nvz', 'f', -0.002999995500002025, 'normalVectorZ'],
     ['op_VFM_tvx', 'f', 0.0, 'tangentialVectorX'],
-    ['op_VFM_tvy', 'f', -0.0029999955, 'tangentialVectorY'],
+    ['op_VFM_tvy', 'f', -0.002999995500002025, 'tangentialVectorY'],
     ['op_VFM_x', 'f', 0.0, 'horizontalOffset'],
     ['op_VFM_y', 'f', 0.0, 'verticalOffset'],
 
     # VFM_HFM: drift
-    ['op_VFM_HFM_L', 'f', 0.2, 'length'],
+    ['op_VFM_HFM_L', 'f', 0.20000000000000284, 'length'],
 
     # HFM: ellipsoidMirror
     ['op_HFM_hfn', 's', 'None', 'heightProfileFile'],
@@ -276,19 +276,19 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_HFM_amp_coef', 'f', 1.0, 'heightAmplification'],
     ['op_HFM_size_tang', 'f', 0.2, 'tangentialSize'],
     ['op_HFM_size_sag', 'f', 0.01, 'sagittalSize'],
-    ['op_HFM_nvx', 'f', 0.999995500003, 'normalVectorX'],
+    ['op_HFM_nvx', 'f', 0.999995500003375, 'normalVectorX'],
     ['op_HFM_nvy', 'f', 0.0, 'normalVectorY'],
-    ['op_HFM_nvz', 'f', -0.0029999955, 'normalVectorZ'],
-    ['op_HFM_tvx', 'f', -0.0029999955, 'tangentialVectorX'],
+    ['op_HFM_nvz', 'f', -0.002999995500002025, 'normalVectorZ'],
+    ['op_HFM_tvx', 'f', -0.002999995500002025, 'tangentialVectorX'],
     ['op_HFM_tvy', 'f', 0.0, 'tangentialVectorY'],
     ['op_HFM_x', 'f', 0.0, 'horizontalOffset'],
     ['op_HFM_y', 'f', 0.0, 'verticalOffset'],
 
     # HFM_Watchpoint: drift
-    ['op_HFM_Watchpoint_L', 'f', 0.2, 'length'],
+    ['op_HFM_Watchpoint_L', 'f', 0.19999999999999574, 'length'],
 
     # Watchpoint_Mask: drift
-    ['op_Watchpoint_Mask_L', 'f', 0.2, 'length'],
+    ['op_Watchpoint_Mask_L', 'f', 0.20000000000000284, 'length'],
 
     # Mask: mask
     ['op_Mask_delta', 'f', 1.0, 'refractiveIndex'],
@@ -299,9 +299,9 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_Mask_grid_dy', 'f', 5e-06, 'verticalGridDimension'],
     ['op_Mask_pitch_x', 'f', 2e-05, 'horizontalGridPitch'],
     ['op_Mask_pitch_y', 'f', 2e-05, 'verticalGridPitch'],
-    ['op_Mask_gridTiltAngle', 'f', 0.436332312999, 'gridTiltAngle'],
-    ['op_Mask_hx', 'f', 7.32e-07, 'horizontalSamplingInterval'],
-    ['op_Mask_hy', 'f', 7.32e-07, 'verticalSamplingInterval'],
+    ['op_Mask_gridTiltAngle', 'f', 0.4363323129985824, 'gridTiltAngle'],
+    ['op_Mask_hx', 'f', 7.319999999999999e-07, 'horizontalSamplingInterval'],
+    ['op_Mask_hy', 'f', 7.319999999999999e-07, 'verticalSamplingInterval'],
     ['op_Mask_mask_x0', 'f', 0.0, 'horizontalMaskCoordinate'],
     ['op_Mask_mask_y0', 'f', 0.0, 'verticalMaskCoordinate'],
     ['op_Mask_mask_Nx', 'i', 1024, 'horizontalPixelsNumber'],

@@ -29,6 +29,7 @@ def test_srw_1():
 @srunit.wrap_in_request(want_cookie=True, want_user=True)
 def test_srw_2():
     _t({
+        'nsls-ii-esm-beamline': ('nsls-ii-esm-beamline', None),
         'sample_from_image': ('sample_from_image', None),
         'smi_es1_bump_norm': ('smi', '--beamline ES1 --bump --BMmode Norm'),
         'smi_es1_nobump': ('smi', '--beamline ES1'),
@@ -38,13 +39,12 @@ def test_srw_2():
         'srx_bl2': ('srx', '--op_BL=2'),
         'srx_bl3': ('srx', '--op_BL=3'),
         'srx_bl4': ('srx', '--op_BL=4'),
-        'nsls-ii-esm-beamline': ('nsls-ii-esm-beamline', None),
     })
 
 
 def _t(tests):
     from sirepo.template.srw_importer import import_python
-    from pykern import pkio
+    from pykern import pkio, pkjson
     from pykern import pkresource
     from pykern import pkunit
     from pykern.pkdebug import pkdc, pkdp

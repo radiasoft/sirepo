@@ -335,6 +335,7 @@
         },
         "conductorGridReport": {
             "title": "Conductor Grid",
+            "hasDataFile": false,
             "advanced": []
         },
         "conductorPosition": {
