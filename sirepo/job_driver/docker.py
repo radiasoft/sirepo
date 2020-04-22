@@ -90,6 +90,7 @@ class DockerDriver(job_driver.DriverBase):
                 int,
                 'how long to wait for agent start',
             ),
+            constrain_resources=(True, bool, 'apply --cpus and --memory constraints'),
             dev_volumes=(pkconfig.channel_in('dev'), bool, 'mount ~/.pyenv, ~/.local and ~/src for development'),
             hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, 'execution hosts'),
             idle_check_secs=(1800, int, 'how many minutes to wait between checks'),
@@ -152,6 +153,14 @@ class DockerDriver(job_driver.DriverBase):
         """
         return _CNAME_SEP.join([_CNAME_PREFIX, self.kind[0], self.uid])
 
+    def _constrain_resources(self, cfg_kind):
+        if not self.cfg.constrain_resources:
+            return tuple()
+        return (
+            '--cpus={}'.format(cfg_kind.get('cores', 1)),
+            '--memory={}g'.format(cfg_kind.gigabytes),
+        )
+
     async def _do_agent_start(self, op):
         cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agent_exec_dir)
         pkdlog('{} agent_exec_dir={}', self, self._agent_exec_dir)
@@ -161,11 +170,9 @@ class DockerDriver(job_driver.DriverBase):
             'run',
             # attach to stdin for writing
             '--attach=stdin',
-            '--cpus={}'.format(c.get('cores', 1)),
             '--init',
             # keeps stdin open so we can write to it
             '--interactive',
-            '--memory={}g'.format(c.gigabytes),
             '--name={}'.format(self._cname),
             '--network=host',
             '--rm',
@@ -174,7 +181,7 @@ class DockerDriver(job_driver.DriverBase):
             # do not use a "name", but a uid, because /etc/password is image specific, but
             # IDs are universal.
             '--user={}'.format(os.getuid()),
-        ) + self._volumes() + (self._image,)
+        ) + self._constrain_resources(c) + self._volumes() + (self._image,)
         self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
         self.driver_details.pkupdate(host=self.host.name)
         pkdlog('{} cname={} cid={:.12}', self, self._cname, self._cid)
