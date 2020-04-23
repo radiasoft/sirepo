@@ -92,7 +92,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
 
     /*
     self.downloadPath = function(path, field) {
-        srdbg('dl', path);
+        //srdbg('dl', path);
         requestSender.getApplicationData(
             {
                 fieldPaths: $scope.paths,
@@ -321,7 +321,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('fieldDownload', function(appState, panelState, radiaService) {
+SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, radiaService, requestSender) {
 
     return {
         restrict: 'A',
@@ -340,13 +340,13 @@ SIREPO.app.directive('fieldDownload', function(appState, panelState, radiaServic
                                 '<div class="row">',
                                     '<div class="col-sm-3 col-sm-offset-6">',
                                         '<span>Field</span>',
-                                        '<select class="form-control">',
+                                        '<select data-ng-model="tModel.type" data-ng-change="ch()" class="form-control">',
                                             '<option ng-repeat="t in svc.pointFieldTypes">{{ t }}</option>',
                                         '</select>',
                                     '</div>',
                                 '</div>',
                                 '<div class="row">',
-                                    '<button dta-ng-click="" class="btn btn-default col-sm-offset-6">Download</button>',
+                                    '<button data-ng-click="download()" class="btn btn-default col-sm-offset-6">Download</button>',
                                 '</div>',
                             '</div>',
                         '</div>',
@@ -356,6 +356,56 @@ SIREPO.app.directive('fieldDownload', function(appState, panelState, radiaServic
         ].join(''),
         controller: function($scope, $element) {
             $scope.svc = radiaService;
+
+            $scope.tModel = {
+                type: radiaService.pointFieldTypes[0],
+            };
+
+            $scope.ch = function() {
+                //srdbg('CHANGE', $scope.tModel);
+            };
+            
+            $scope.download = function() {
+                //srdbg('download', $scope.tModel.type, radiaService.selectedPath);
+                var CSV_HEADING = geometry.basis.slice();
+                //srdbg('h', CSV_HEADING);
+                geometry.basis.forEach(function (c) {
+                    CSV_HEADING.push($scope.tModel.type + c);
+                });
+                var p = radiaService.selectedPath;
+                var fileName = panelState.fileNameFromText(p.name + ' ' + $scope.tModel.type, 'csv');
+                var data = [CSV_HEADING];
+                requestSender.getApplicationData(
+                    {
+                        fieldPaths: [p],
+                        fieldType: $scope.tModel.type,
+                        method: 'get_field',
+                        name: p.name,
+                        simulationId: appState.models.simulation.simulationId,
+                        viewType: 'fields',
+                    },
+                    function(d) {
+                        if (! d || ! d.data) {
+                            return;
+                        }
+                        d.data.forEach(function (o) {
+                            var v = o.vectors;
+                            for (var i = 0; i < v.magnitudes.length; ++i) {
+                                var row = [];
+                                for (var j = 0; j < 3; ++j) {
+                                    row.push(v.vertices[3 * i + j]);
+                                }
+                                for (var k = 0; k < 3; ++k) {
+                                    row.push(v.magnitudes[i] * v.directions[3 * i + k]);
+                                }
+                                data.push(row);
+                            }
+                        });
+                        // use SDDS for field map
+                        //srdbg('save to', fileName, CSV_HEADING, data);
+                        saveAs(new Blob([d3.csv.format(data)], {type: "text/csv;charset=utf-8"}), fileName);
+                    });
+            };
 
             appState.whenModelsLoaded($scope, function () {
             });
@@ -479,10 +529,11 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             $scope.HEADING = ['Line', 'Endpoints', 'Fields'];
             $scope.INTEGRABLE_FIELD_TYPES = ['B', 'H'];
             $scope.integrals = {};
+            $scope.paths = [];
 
             $scope.download = function() {
                 var fileName = panelState.fileNameFromText('Field Integrals', 'csv');
-                var points = [$scope.CSV_HEADING];
+                var data = [$scope.CSV_HEADING];
                 $scope.paths.forEach(function (p) {
                     var row = [];
                     row.push(
@@ -494,10 +545,10 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                             $scope.integrals[p.name][t]
                         );
                     });
-                    points.push(row);
+                    data.push(row);
                 });
-                //srdbg('save to', fileName, heading, points);
-                saveAs(new Blob([d3.csv.format(points)], {type: "text/csv;charset=utf-8"}), fileName);
+                //srdbg('save to', fileName, heading, data);
+                saveAs(new Blob([d3.csv.format(data)], {type: "text/csv;charset=utf-8"}), fileName);
             };
 
             $scope.hasPaths = function() {
@@ -534,7 +585,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             });
 
            appState.whenModelsLoaded($scope, function() {
-               $scope.paths = appState.models.fieldPaths.paths.filter($scope.isLine);
+               $scope.paths = (appState.models.fieldPaths.paths || []).filter($scope.isLine);
                updateTable();
             });
 
@@ -1560,6 +1611,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 };
                 if ($scope.isViewTypeFields()) {
                     inData.fieldType = appState.models.magnetDisplay.fieldType;
+                    inData.method = 'get_field';
                 }
                 if (radiaService.pointFieldTypes.indexOf(appState.models.magnetDisplay.fieldType) >= 0 ) {
                     inData.fieldPaths = appState.models.fieldPaths.paths;
@@ -1571,6 +1623,22 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     function(d) {
                         //srdbg('got app data', d);
                         if (d && d.data) {
+                            if ($scope.isViewTypeFields()) {
+                                // get the lines in a separate call - downside is longer wait
+                                inData.geomTypes = ['lines'];
+                                inData.method = 'get_geom';
+                                inData.viewType = VIEW_TYPE_OBJECTS;
+                                requestSender.getApplicationData(
+                                    inData,
+                                    function(g) {
+                                        if (g && g.data) {
+                                            d.data = d.data.concat(g.data);
+                                        }
+                                        setupSceneData(d);
+                                    }
+                                );
+                                return;
+                            }
                             setupSceneData(d);
                             return;
                         }

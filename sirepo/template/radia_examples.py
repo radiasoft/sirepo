@@ -4,7 +4,7 @@ u"""Radia examples.
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
+from __future__ import division
 
 import math
 import radia

@@ -7,7 +7,7 @@ Radia "instance" goes away and references no longer have any meaning.
 :copyright: Copyright (c) 2017-2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
+from __future__ import division
 from pykern import pkcollections
 from pykern.pkcollections import PKDict
 from pykern import pkio
@@ -25,9 +25,10 @@ import time
 
 
 _DMP_FILE = 'geom.dat'
+_FIELDS_FILE = 'fields.h5'
 _GEOM_DIR = 'geometry'
 _GEOM_FILE = 'geom.h5'
-_METHODS = ['get_field_integrals', 'get_geom']
+_METHODS = ['get_field', 'get_field_integrals', 'get_geom']
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 GEOM_PYTHON_FILE = 'geom.py'
@@ -87,28 +88,63 @@ def get_application_data(data, **kwargs):
     except IOError:
         # No Radia dump file
         return {}
-    if data.method == 'get_geom':
-        f = _geom_file(data.simulationId)
-        f_type = data.get('fieldType', None)
-        #TODO(mvk): we always regenerate point field data - should do some kind
-        # of hash comparison so we only regenerate when the evaluation points change
-        if data.viewType == VIEW_TYPE_FIELD and f_type in radia_tk.POINT_FIELD_TYPES:
-            return _generate_data(g_id, data)
-        p = _geom_h5_path(data.viewType, f_type)
-        try:
-            return _read_data(data.simulationId, data.viewType, f_type)
-        except IOError:
-            # No geom file
-            return {}
-        except KeyError:
-            # No such path, so generate the data and write to the existing file
-            with h5py.File(f, 'a') as hf:
-                template_common.dict_to_h5(
-                    _generate_data(g_id, data, add_lines=False), hf, path=p
-                )
-            return get_application_data(data)
+    f = _geom_file(data.simulationId)
+    if data.method == 'get_field':
+        f_type = data.get('fieldType')
+        #TODO(mvk): we always regenerate point field data - should do a
+        # comparison so we only regenerate when the evaluation points change.
+        # Need to save off previous results somewhere?
+        if f_type in radia_tk.POINT_FIELD_TYPES:
+            return _generate_field_data(
+                g_id, data.name, f_type, data.get('fieldPaths', None)
+            )
+        return _read_or_generate(g_id, data)
+        #try:
+        #    return _read_data(data.simulationId, data.viewType, f_type)
+        #except IOError:
+        #    # No geom file
+        #    return {}
+        #except KeyError:
+        #    # No such path, so generate the data and write to the existing file
+        #    with h5py.File(f, 'a') as hf:
+        #        template_common.dict_to_h5(
+        #            _generate_data(g_id, data, add_lines=False),
+        #            hf,
+        ##            path=_geom_h5_path(data.viewType, f_type)
+        #        )
+        #    return get_application_data(data)
     if data.method == 'get_field_integrals':
         return _generate_field_integrals(g_id, data.fieldPaths)
+    if data.method == 'get_geom':
+        #f = _geom_file(data.simulationId)
+        f_type = data.get('fieldType', None)
+        g_types = data.get('geomTypes', ['lines', 'polygons'])
+        #TODO(mvk): we always regenerate point field data - should do some kind
+        # of comparison so we only regenerate when the evaluation points change
+        #if data.viewType == VIEW_TYPE_FIELD and f_type in radia_tk.POINT_FIELD_TYPES:
+        #    return _generate_field_data(
+        #        g_id, data.name, f_type, data.get('fieldPaths', None)
+        #    )
+        #return _read_or_generate(g_id, data)
+        res = _read_or_generate(g_id, data)
+        #if not res or not res.data:
+        #    return res
+        res.data = [{k: d[k] for k in d.keys() if k in g_types} for d in res.data]
+        return res
+            #return _generate_data(g_id, data)
+        #p = _geom_h5_path(data.viewType, f_type)
+        #try:
+        #    return _read_data(data.simulationId, data.viewType, f_type)
+        #except IOError:
+        #    # No geom file
+        #    return {}
+        #except KeyError:
+        #    # No such path, so generate the data and write to the existing file
+        #    with h5py.File(f, 'a') as hf:
+        #        template_common.dict_to_h5(
+        #            _generate_data(g_id, data, add_lines=False), hf, path=p
+        #        )
+        #    return get_application_data(data)
 
 
 def python_source_for_model(data, model):
@@ -244,8 +280,13 @@ def _build_geom(data):
 
 
 def _dmp_file(sim_id):
-    return simulation_db.simulation_dir(SIM_TYPE, sim_id) \
-        .join('geometry').join(_DMP_FILE)
+    return _get_res_file(sim_id, _DMP_FILE)
+    #return simulation_db.simulation_dir(SIM_TYPE, sim_id) \
+    #    .join(_GEOM_DIR).join(_DMP_FILE)
+
+
+def _fields_file(sim_id):
+    return _get_res_file(sim_id, _FIELDS_FILE)
 
 
 def _generate_field_data(g_id, name, f_type, f_paths):
@@ -336,8 +377,9 @@ def _generate_parameters_file(data):
 
 
 def _geom_file(sim_id):
-    return simulation_db.simulation_dir(SIM_TYPE, sim_id) \
-        .join(_GEOM_DIR).join(_GEOM_FILE)
+    #return simulation_db.simulation_dir(SIM_TYPE, sim_id) \
+    #    .join(_GEOM_DIR).join(_GEOM_FILE)
+    return _get_res_file(sim_id, _GEOM_FILE)
 
 
 def _geom_h5_path(v_type, f_type=None):
@@ -347,12 +389,35 @@ def _geom_h5_path(v_type, f_type=None):
     return p
 
 
+def _get_res_file(sim_id, filename):
+    return simulation_db.simulation_dir(SIM_TYPE, sim_id) \
+        .join(_GEOM_DIR).join(filename)
+
+
 def _read_data(sim_id, view_type, field_type):
     with h5py.File(_geom_file(sim_id), 'r') as hf:
         g = template_common.h5_to_dict(hf, path=_geom_h5_path(view_type, field_type))
-        if field_type:
-            _add_obj_lines(
-                g,
-                template_common.h5_to_dict(hf, path=_geom_h5_path(VIEW_TYPE_OBJ))
-            )
+        #if field_type:
+        #    _add_obj_lines(
+        #        g,
+        #        template_common.h5_to_dict(hf, path=_geom_h5_path(VIEW_TYPE_OBJ))
+        #    )
     return g
+
+
+def _read_or_generate(geom_id, data):
+    f_type = data.get('fieldType', None)
+    try:
+        return _read_data(data.simulationId, data.viewType, f_type)
+    except IOError:
+        # No geom file
+        return {}
+    except KeyError:
+        # No such path, so generate the data and write to the existing file
+        with h5py.File(_geom_file(data.simulationId), 'a') as hf:
+            template_common.dict_to_h5(
+                _generate_data(geom_id, data, add_lines=False),
+                hf,
+                path=_geom_h5_path(data.viewType, f_type)
+            )
+        return get_application_data(data)
