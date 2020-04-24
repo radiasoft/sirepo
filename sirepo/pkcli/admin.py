@@ -6,12 +6,13 @@ u"""?
 """
 from __future__ import absolute_import, division, print_function
 
-from pykern import pkio
+from pykern import pkio, pkconfig
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import auth
 from sirepo import auth_db
 from sirepo import feature_config
 from sirepo import server
+from sirepo import sim_data
 from sirepo import simulation_db
 from sirepo.template import template_common
 import datetime
@@ -20,6 +21,51 @@ import json
 import os.path
 import re
 import shutil
+
+
+def audit_protected_lib_files(uid=None):
+    """Add/removes protected files based on a user's roles
+
+    For example, add the Flash executable if user has the flash role.
+
+    Args:
+        uid (str): Uid of the user
+    """
+    import py
+
+    def _link_or_unlik_protected_files(sim_type, should_link):
+        for f in sim_data.get_class(sim_type).protected_lib_file_basenames():
+            p = simulation_db.simulation_lib_dir(sim_type).join(f)
+            if not should_link:
+                pkio.unchecked_remove(p)
+                continue
+            try:
+                p.mksymlinkto(
+                    # TODO(e-carlin): discuss with rn file structure for flash binaries
+                    pkio.py_path(cfg.flash_src_dir).join(f).join('flash4'),
+                    absolute=False,
+                )
+            except py.error.EEXIST:
+                pass
+
+
+    def _audit_user(uid):
+        with auth.set_user(uid):
+            for t in feature_config.cfg().proprietary_sim_types:
+                _link_or_unlik_protected_files(
+                    t,
+                    auth.check_user_has_role(
+                        auth.role_for_sim_type(t),
+                        raise_forbidden=False,
+                    ),
+                )
+
+    server.init()
+    if uid:
+        _audit_user(uid)
+        return
+    for d in pkio.sorted_glob(simulation_db.user_dir_name().join('*')):
+        _audit_user(simulation_db.uid_from_dir_name(d))
 
 
 def create_examples():
@@ -83,3 +129,12 @@ def _create_example(example):
 
 def _is_src_dir(d):
     return re.search(r'/src$', str(d))
+
+
+cfg = pkconfig.init(
+    flash_src_dir=(
+        '/home/vagrant/src/FLASH4.6.2/',
+        str,
+        'flash source code directory',
+    ),
+)

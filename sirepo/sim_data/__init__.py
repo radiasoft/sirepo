@@ -371,7 +371,12 @@ class SimDataBase(object):
             data (dict): simulation db
             run_dir (py.path): where to copy to
         """
-        for b in cls.lib_file_basenames(data):
+        f = cls.lib_file_basenames(data)
+        # TODO(e-carlin): When remote we will pull the flash binary
+        # over the wire each time the user wants to run the sim. Could
+        # be a source of slowdown.
+        f.extend(cls.protected_lib_file_basenames())
+        for b in f:
             t = run_dir.join(b)
             s = cls.lib_file_abspath(b, data=data)
             if t != s:
@@ -460,6 +465,12 @@ class SimDataBase(object):
             int: number of seconds to poll
         """
         return 2 if cls.is_parallel(data) else 1
+
+    @classmethod
+    def protected_lib_file_basenames(cls):
+        """List protected files used by the simulation
+        """
+        return []
 
     @classmethod
     def resource_dir(cls):
