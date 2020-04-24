@@ -19,10 +19,6 @@ import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
-_FLASH_UNITS_PATH = {
-    'RTFlame': '/home/vagrant/src/FLASH4.5/object/setup_units',
-    'CapLaser': '/home/vagrant/src/FLASH4.5/CapLaser/setup_units',
-}
 _GRID_EVOLUTION_FILE = 'flash.dat'
 _PLOT_FILE_PREFIX = 'flash_hdf5_plt_cnt_'
 
@@ -424,10 +420,17 @@ _PLOT_COLUMNS = {
     ],
 }
 
+
 def _generate_parameters_file(data):
     res = ''
     names = {}
-    for line in pkio.read_text(_FLASH_UNITS_PATH[data.models.simulation.flashType]).split('\n'):
+    for line in pkio.read_text(
+            sirepo.sim_data.get_class(
+                data,
+            ).setup_units_file_path(
+                data.models.simulation.flashType,
+            ),
+    ).split('\n'):
         name = ''
         #TODO(pjm): share with setup_params parser
         for part in line.split('/'):

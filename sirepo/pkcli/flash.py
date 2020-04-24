@@ -14,11 +14,8 @@ import py.path
 import sirepo.template.flash as template
 import subprocess
 
-_EXE_PATH = {
-    'RTFlame': '/home/vagrant/src/FLASH4.5/object/flash4',
-    'CapLaser': '/home/vagrant/src/FLASH4.5/CapLaser/flash4',
-}
-
 def run_background(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    mpi.run_program([_EXE_PATH[data.models.simulation.flashType]])
+    mpi.run_program(
+        [pkio.py_path(cfg_dir).join(data.models.simulation.flashType)],
+    )

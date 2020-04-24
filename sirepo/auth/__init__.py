@@ -125,7 +125,7 @@ def complete_registration(name=None):
 
 
 def get_all_roles():
-    r = [_role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types]
+    r = [role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types]
     r.append(ROLE_ADM)
     r.append(ROLE_PREMIUM)
     return r
@@ -161,11 +161,7 @@ def init_apis(app, *args, **kwargs):
 
 
 def is_premium_user():
-    try:
-        check_user_has_role(ROLE_PREMIUM)
-        return True
-    except werkzeug.exceptions.Forbidden:
-        return False
+    return check_user_has_role(ROLE_PREMIUM, raise_forbidden=False)
 
 
 def logged_in_user():
@@ -327,14 +323,17 @@ def require_sim_type(sim_type):
         # the GUI has to be able to get access to certain APIs before
         # logging in.
         return
-    check_user_has_role(_role_for_sim_type(sim_type))
+    check_user_has_role(role_for_sim_type(sim_type))
 
 
-def check_user_has_role(role):
+def check_user_has_role(role, raise_forbidden=True):
     u = _get_user()
     with auth_db.thread_lock:
-        if not sirepo.auth_db.UserRole.search_by(role=role, uid=u):
-            util.raise_forbidden('uid={} role={} not found'.format(u, role))
+        if sirepo.auth_db.UserRole.search_by(role=role, uid=u):
+            return True
+    if raise_forbidden:
+        util.raise_forbidden('uid={} role={} not found'.format(u, role))
+    return False
 
 
 def require_user():
@@ -387,6 +386,10 @@ def reset_state():
     cookie.unchecked_remove(_COOKIE_METHOD)
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
     _set_log_user()
+
+
+def role_for_sim_type(sim_type):
+    return 'sim_type_' + sim_type
 
 
 def set_user_for_utils(uid=None):
@@ -655,10 +658,6 @@ def _parse_display_name(value):
     assert len(res), \
         'invalid post data: displayName={}'.format(value)
     return res
-
-
-def _role_for_sim_type(sim_type):
-    return 'sim_type_' + sim_type
 
 
 def _set_log_user():
