@@ -122,7 +122,7 @@ class DriverBase(PKDict):
         except tornado.queues.QueueEmpty:
             self.cpu_slot_free_one()
             pkdlog('{} await cpu_slot_q_lock', self)
-            async with self._cpu_slot_q_lock.acquire():
+            async with self._cpu_slot_q_lock:
                 if self.cpu_slot:
                     raise job_supervisor.Awaited()
                 pkdlog('{} await cpu_slot_q.get()', self)
