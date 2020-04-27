@@ -116,19 +116,19 @@ class DriverBase(PKDict):
     async def cpu_slot_ready(self):
         if self.cpu_slot:
             return
-            try:
-                self.cpu_slot = self.cpu_slot_q.get_nowait()
-                self._cpu_slot_alloc_time = time.time()
-            except tornado.queues.QueueEmpty:
-                self.cpu_slot_free_one()
-                pkdlog('{} await cpu_slot_q_lock', self)
-                async with self._cpu_slot_q_lock.acquire():
-                    if self.cpu_slot:
-                        raise job_supervisor.Awaited()
-                    pkdlog('{} await cpu_slot_q.get()', self)
-                    self.cpu_slot = await self.cpu_slot_q.get()
-                    self._cpu_slot_alloc_time = time.time()
+        try:
+            self.cpu_slot = self.cpu_slot_q.get_nowait()
+            self._cpu_slot_alloc_time = time.time()
+        except tornado.queues.QueueEmpty:
+            self.cpu_slot_free_one()
+            pkdlog('{} await cpu_slot_q_lock', self)
+            async with self._cpu_slot_q_lock.acquire():
+                if self.cpu_slot:
                     raise job_supervisor.Awaited()
+                pkdlog('{} await cpu_slot_q.get()', self)
+                self.cpu_slot = await self.cpu_slot_q.get()
+                self._cpu_slot_alloc_time = time.time()
+                raise job_supervisor.Awaited()
 
     def destroy_op(self, op):
         """Clear our op and (possibly) free cpu slot"""
@@ -219,7 +219,7 @@ class DriverBase(PKDict):
             self._agentId,
             self.kind,
             self.uid,
-            bool(self.get('cpu_slot')),
+            self.get('cpu_slot'),
             list(self.ops.values()),
         )
 
