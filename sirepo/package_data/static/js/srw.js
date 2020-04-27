@@ -1802,12 +1802,13 @@ SIREPO.app.directive('propagationParametersModal', function(appState) {
         ].join(''),
         controller: function($scope) {
             var activePropagationSection = 0;
-            $scope.propagationSections = ['Propagator and Resizing', 'Auto-Resize', 'Orientation'];
-            $scope.propagationInfo = [null, '<div style="text-align: left">Available for Standard Propagators</div>', null];
+            $scope.propagationSections = ['Propagator and Resizing', 'Auto-Resize', 'Orientation', 'Grid Shift'];
+            $scope.propagationInfo = [null, '<div style="text-align: left">Available for Standard Propagators</div>', null, null];
             $scope.parametersBySection = [
                 [3, 4, 5, 6, 7, 8],
                 [0, 1, 2],
                 [12, 13, 14, 15, 16],
+                [9,10,11],
             ];
 
             $scope.isPropagationSectionActive = function(index) {
