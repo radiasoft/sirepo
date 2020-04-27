@@ -8,9 +8,8 @@ from pykern import pkconfig, pkio, pkinspect, pkcollections, pkconfig, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdc, pkdexc, pkdformat
 from sirepo import job
-import collections
+import asyncio
 import importlib
-import inspect
 import pykern.pkio
 import sirepo.srdb
 import sirepo.tornado
@@ -41,6 +40,22 @@ class AgentMsg(PKDict):
         DriverBase.receive(self)
 
 
+def assign_instance_op(req, jobRunMode, op):
+    if jobRunMode == job.SBATCH:
+        res = _CLASSES[job.SBATCH].get_instance(req)
+    else:
+        res = _DEFAULT_CLASS.get_instance(req)
+    assert req.content.uid == res.uid, \
+        'req.content.uid={} is not same as db.uid={} for jid={}'.format(
+            req.content.uid,
+            res.uid,
+            req.content.computeJid,
+        )
+    op.driver = res
+    op.driver.ops[op.opId] = op
+    op.op_slot = None
+
+
 class DriverBase(PKDict):
 
     __instances = PKDict()
@@ -63,7 +78,6 @@ class DriverBase(PKDict):
             uid=req.content.uid,
             _agentId=job.unique_key(),
             _agent_start_lock=tornado.locks.Lock(),
-            _agent_starting=False,
             _agent_starting_timeout=None,
             _cpu_slot_alloc_time=None,
             _websocket=None,
@@ -123,9 +137,9 @@ class DriverBase(PKDict):
             q.put_nowait(op.op_slot)
             op.op_slot = None
 
-    def free_resources(self):
+    def free_resources(self, internal_error=None):
         """Remove holds on all resources and remove self from data structures"""
-        pkdlog('{}', self)
+        pkdlog('{} internal_error={}', self, internal_error)
         try:
             self._agent_starting_done()
             self._websocket_ready.clear()
@@ -135,7 +149,7 @@ class DriverBase(PKDict):
                 # Will not call websocket_on_close()
                 w.sr_close()
             for o in list(self.ops.values()):
-                o.destroy()
+                o.destroy(internal_error=internal_error)
             self.cpu_slot_free()
             self._websocket_free()
         except Exception as e:
@@ -149,12 +163,9 @@ class DriverBase(PKDict):
         return res
 
     async def kill(self):
-        if not self._websocket:
-            # if there is no websocket then we don't know about the agent
-            # so we can't do anything
-            return
-        # hopefully the agent is nice and listens to the kill
-        self._websocket.write_message(PKDict(opName=job.OP_KILL))
+        raise NotImplementedError(
+            'DriverBase subclasses need to implement their own kill',
+        )
 
     def make_lib_dir_symlink(self, op):
         if not self._has_remote_agent():
@@ -212,7 +223,6 @@ class DriverBase(PKDict):
         Returns:
             bool: True if the op was actually sent
         """
-        self.ops[op.opId] = op
         if not self._websocket_ready.is_set():
             await self._agent_start(op)
             pkdlog('{} {} await _websocket_ready', self, op)
@@ -285,42 +295,37 @@ class DriverBase(PKDict):
         )
 
     async def _agent_start(self, op):
-        if self._agent_starting:
+        if self._agent_starting_timeout:
             return
         async with self._agent_start_lock:
-            if self._agent_starting or self._websocket_ready.is_set():
+            if self._agent_starting_timeout or self._websocket_ready.is_set():
                 return
             try:
-                self._agent_starting = True
-                # TODO(e-carlin): We need a timeout on agent starts. If an agent
-                # is started but never connects we will be in the '_agent_starting'
-                # state forever. After a timeout we should kill the misbehaving
-                # agent and start a new one.
-                await self.kill()
-                # this starts the process, but _receive_alive sets it to false
-                # when the agent fully starts.
                 pkdlog('{} {} await _do_agent_start', self, op)
+                # All awaits must be after this. If a call hangs the timeout
+                # handler will cancel this task
                 self._agent_starting_timeout = tornado.ioloop.IOLoop.current().call_later(
                     self._AGENT_STARTING_SECS,
                     self._agent_starting_timeout_handler,
                 )
+                # POSIT: CancelledError isn't smothered by any of the below calls
+                await self.kill()
                 await self._do_agent_start(op)
             except Exception as e:
-                pkdlog('{} exception={}', self, e)
-                self._agent_starting_done()
+                pkdlog('{} error={} stack={}', self, e, pkdexc())
+                self.free_resources(internal_error='failure starting agent')
                 raise
 
     def _agent_starting_done(self):
-        self._agent_starting = False
         if self._agent_starting_timeout:
             tornado.ioloop.IOLoop.current().remove_timeout(
                 self._agent_starting_timeout
             )
             self._agent_starting_timeout = None
 
-    async def _agent_starting_timeout_handler(self):
-        pkdlog('{}', self)
-        self.free_resources()
+    def _agent_starting_timeout_handler(self):
+        pkdlog('{} timeout={}', self, self._AGENT_STARTING_SECS)
+        self.free_resources(internal_error='timeout waiting for agent to start')
 
     def _has_remote_agent(self):
         return False
@@ -379,21 +384,6 @@ class DriverBase(PKDict):
 
     def _websocket_free(self):
         pass
-
-
-def get_instance(req, jobRunMode, op):
-    if jobRunMode == job.SBATCH:
-        res = _CLASSES[job.SBATCH].get_instance(req)
-    else:
-        res = _DEFAULT_CLASS.get_instance(req)
-    assert req.content.uid == res.uid, \
-        'req.content.uid={} is not same as db.uid={} for jid={}'.format(
-            req.content.uid,
-            res.uid,
-            req.content.computeJid,
-        )
-    op.op_slot = None
-    return res
 
 
 def init(job_supervisor_module):

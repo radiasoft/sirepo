@@ -124,6 +124,7 @@ class LocalDriver(job_driver.DriverBase):
             pkio.mkdir_parent(self._agent_exec_dir)
             self.subprocess = tornado.process.Subprocess(
                 cmd,
+                cwd=self._agent_exec_dir,
                 env=env,
                 stdin=stdin,
                 stderr=subprocess.STDOUT,
