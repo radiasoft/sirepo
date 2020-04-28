@@ -30,79 +30,79 @@ cfg = None
 _sims = []
 
 _CODES = PKDict(
-    elegant=[
+    elegant=(
         PKDict(
             name='bunchComp - fourDipoleCSR',
-            reports=[
+            reports=(
                 'bunchReport1',
                 'elementAnimation10-5',
-            ],
+            ),
         ),
         PKDict(
             name='SPEAR3',
-            reports=[
+            reports=(
                 'bunchReport2',
                 'elementAnimation62-3',
-            ],
+            ),
         ),
-    ],
-    jspec=[
+    ),
+    jspec=(
         PKDict(
             name='Booster Ring',
-            reports=[
+            reports=(
                 'particleAnimation',
                 'rateCalculationReport',
-            ],
+            ),
         ),
-    ],
-    srw=[
+    ),
+    srw=(
         PKDict(
             name='Tabulated Undulator Example',
-            reports=[
+            reports=(
                 'intensityReport',
                 'trajectoryReport',
                 'multiElectronAnimation',
                 'powerDensityReport',
                 'sourceIntensityReport',
-            ],
+            ),
         ),
         PKDict(
             name='Bending Magnet Radiation',
-            reports=[
+            reports=(
                 'initialIntensityReport',
                 'intensityReport',
                 'powerDensityReport',
                 'sourceIntensityReport',
                 'trajectoryReport',
-            ],
+            ),
         ),
-    ],
-    synergia=[
+    ),
+    synergia=(
         PKDict(
             name='IOTA 6-6 Bare',
-            reports=[
+            reports=(
                 'beamEvolutionAnimation',
                 'bunchReport1',
-            ],
+            ),
         ),
-    ],
-    warppba=[
+    ),
+    warppba=(
         PKDict(
             name='Laser Pulse',
-            reports=[
+            reports=(
                 'fieldAnimation',
                 'laserPreviewReport',
-            ],
+            ),
         ),
-    ],
-    warpvnd=[
+    ),
+    warpvnd=(
         PKDict(
             name='EGun Example',
-            reports=[
+            reports=(
                 'fieldAnimation',
-            ],
+            ),
         ),
-    ],
+    ),
 )
 
 
@@ -473,7 +473,7 @@ async def _main():
                 a.append(await _App(
                     sim_type=t,
                     client=c.copy(),
-                    examples=_CODES[t].copy(),
+                    examples=copy.deepcopy(_CODES[t]),
                 ).setup_sim_data())
         return a
 
@@ -484,8 +484,7 @@ async def _main():
         s = []
         for a in await _apps():
             e = a.examples[random.randrange(len(a.examples))]
-            random.shuffle(e.reports)
-            for r in e.reports:
+            for r in random.sample(e.reports, len(e.reports)):
                 s.append(_Sim(a, e.name, r).create_task())
         return s
 
@@ -495,7 +494,7 @@ async def _main():
         signal.signal(signal.SIGTERM, _s)
         signal.signal(signal.SIGINT, _s)
 
-    s = None
+    s = []
     try:
         s = await _sims_tasks()
         t = asyncio.gather(*s)
