@@ -114,10 +114,8 @@ def default_command():
 
 
 class _App(PKDict):
-    def __init__(self, sim_type, client, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(
-            sim_type=sim_type,
-            client=client,
             **kwargs
         )
         self.client.app = self
@@ -158,7 +156,7 @@ async def _cancel_all_tasks(tasks):
     for t in tasks:
         t.cancel()
     # We need a gather() after cancel() because there are awaits in the
-    # finally blocks (ex awiat post('run-cancel)). We need return_exceptions
+    # finally blocks (ex await post('run-cancel)). We need return_exceptions
     # so the CancelledErrors aren't raised which would cancel the gather.
     await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -183,7 +181,7 @@ class _Client(PKDict):
 
     async def get(self, uri, caller):
         uri = self._uri(uri)
-        with self._timer('{} {}'.format(uri, caller.pkdebug_str())):
+        with self._timer(uri, caller):
             return self.parse_response(
                 await self._client.fetch(
                     uri,
@@ -247,7 +245,7 @@ class _Client(PKDict):
         data.simulationType = self.sim_type
         uri = self._uri(uri)
 
-        with self._timer('{} {}'.format(uri, caller.pkdebug_str())):
+        with self._timer(uri, caller):
             return self.parse_response(
                 await self._client.fetch(
                     uri,
@@ -262,11 +260,16 @@ class _Client(PKDict):
             )
 
     @contextlib.contextmanager
-    def _timer(self, description):
+    def _timer(self, uri, caller):
         s = time.time()
         yield
-        if 'run-status' not in description:
-            pkdlog('{} elapsed_time={}', description, time.time() - s)
+        if 'run-status' not in uri:
+            pkdlog(
+                '{} {} elapsed_time={}',
+                uri,
+                caller.pkdebug_str(),
+                time.time() - s,
+            )
 
 
     @property
@@ -340,7 +343,7 @@ class _Sim(PKDict):
                         raise
                     finally:
                         if c:
-                            await self._cancel(e)
+                            await self._cancel(error=e)
             except asyncio.CancelledError:
                 # Don't log on cancel error, we initiate cancels so not interesting
                 raise
@@ -365,7 +368,7 @@ class _Sim(PKDict):
             self.get('_waiting_on', '<unknown>'),
         )
 
-    async def _cancel(self, error):
+    async def _cancel(self, error=False):
         c = self._app.client.post(
             '/run-cancel',
             PKDict(
@@ -456,6 +459,7 @@ def _init():
     if cfg:
         return
     cfg = pkconfig.init(
+        emails=(['one@radia.run', 'two@radia.run', 'three@radia.run'], list, 'emails to test'),
         server_uri=('http://127.0.0.1:8000', str, 'where to send requests'),
         run_min_secs=(90, int, 'minimum amount of time to let a simulation run'),
         run_max_secs=(120, int, 'maximum amount of time to let a simulation run'),
@@ -463,35 +467,28 @@ def _init():
 
 
 async def _main():
-    async def _get_apps(clients):
+    async def _apps():
         a = []
-        for c in clients:
-            for t in (
-                    'elegant',
-                    'jspec',
-                    'srw',
-                    'synergia',
-                    'warppba',
-                    'warpvnd',
-            ):
-                a.append(await _App(t, c.copy()).setup_sim_data())
+        for c in await _clients():
+            for t in _CODES.keys():
+                a.append(await _App(
+                    sim_type=t,
+                    client=c.copy(),
+                    examples=_CODES[t].copy(),
+                ).setup_sim_data())
         return a
 
-    async def _get_clients(*users):
-        l = []
-        for u in users:
-            l.append(_Client(u).login())
-        return await asyncio.gather(*l)
+    async def _clients():
+        return await asyncio.gather(*[_Client(u).login() for u in cfg.emails])
 
-    def _get_sims(apps):
+    async def _sims():
         s = []
-        for a in apps:
-            t = _CODES[a.sim_type]
-            e = t[random.randrange(len(t))]
+        for a in await _apps():
+            e = a.examples[random.randrange(len(a.examples))]
             random.shuffle(e.reports)
             for r in e.reports:
                 s.append(_Sim(a, e.name, r).run())
-        return s
+        return (s, asyncio.gather(*s))
 
     def _register_signal_handlers(main_task):
         def _s(*args):
@@ -499,13 +496,9 @@ async def _main():
         signal.signal(signal.SIGTERM, _s)
         signal.signal(signal.SIGINT, _s)
 
-    s = _get_sims(
-        await _get_apps(
-            await _get_clients('one@b.c', 'two@b.c', 'three@b.c'),
-        ),
-    )
+    s = None
     try:
-        t = asyncio.gather(*s)
+        s, t = await _sims()
         _register_signal_handlers(t)
         await t
     except Exception as e:
