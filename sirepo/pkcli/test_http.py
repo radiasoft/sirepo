@@ -24,7 +24,6 @@ import tornado.ioloop
 import tornado.locks
 import random
 import signal
-import sys
 
 cfg = None
 
@@ -505,6 +504,6 @@ async def _main():
         await _cancel_all_tasks(s)
         if isinstance(e, asyncio.CancelledError):
             # Will only be cancelled by a signal handler
-            sys.exit(1)
+            return
         pkdlog('error={} stack={} sims={}', e, pkdexc(), _sims)
         raise
