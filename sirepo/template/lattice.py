@@ -5,7 +5,9 @@ u"""Lattice utilities.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+from sirepo.template.line_parser import LineParser
 import re
 
 
@@ -61,6 +63,8 @@ class ElementIterator(ModelIterator):
         default_value = field_schema[2]
         value = model[field]
         if value is not None and default_value is not None:
+            if value == default_value:
+                return True
             return str(value) == str(default_value)
         return True
 
@@ -83,6 +87,302 @@ class LatticeIterator(ElementIterator):
     """
     def is_ignore_field(self, field):
         return field in ['name', 'type', '_id'] or re.search('(X|Y|File)$', field)
+
+
+class LatticeParser(object):
+    def __init__(self, sim_data):
+        self.sim_data = sim_data
+        self.schema = sim_data.schema()
+
+    def parse_file(self, lattice_text):
+        from sirepo import simulation_db
+        self.parser = LineParser()
+        self.data = simulation_db.default_data(self.sim_data.sim_type())
+        self.data.models.rpnVariables = {}
+        self.data.models.sequences = []
+        # None | sequence | track | match | edit
+        self.container = None
+        self.elements_by_name = PKDict()
+        lines = lattice_text.replace('\r', '').split('\n')
+        self.__parse_lines(lines)
+        return self.data
+
+    def _code_variables_to_lowercase(self, code_var):
+        for v in self.data.models.rpnVariables:
+            if not code_var.is_var_value(v.value):
+                v.value = float(v.value)
+        for el in self.data.models.elements:
+            for f in self.schema.model[el.type]:
+                if self.schema.model[el.type][f][1] == 'RPNValue':
+                    if code_var.is_var_value(el[f]):
+                        el[f] = el[f].lower()
+                    else:
+                        el[f] = float(el[f])
+
+    def _compute_drifts(self, code_var):
+        drifts = PKDict()
+        for el in self.data.models.elements:
+            if el.type == 'DRIFT':
+                length = self._format_length(self._eval_var(code_var, el.l))
+                if length not in drifts:
+                    drifts[length] = el._id
+        return drifts
+
+    def _eval_var(self, code_var, value):
+        (v, err) = code_var.eval_var(value)
+        assert not err, err
+        return float(v)
+
+    def _format_length(self, length):
+        res = '{:.8E}'.format(length)
+        res = re.sub(r'(\.\d+?)(0+)E', r'\1e', res)
+        res = re.sub(r'e\+00$', '', res)
+        return res
+
+    def _get_drift(self, drifts, length, allow_negative_drift=False):
+        if length == 0:
+            return None
+        if length < 0 and not allow_negative_drift:
+            pkdlog('warning: negative drift: {}', length)
+            return None
+        length = self._format_length(length)
+        if length not in drifts:
+            name = 'D{}'.format(length)
+            name = re.sub(r'\+', '', name)
+            name = re.sub(r'e?-', 'R', name)
+            drift = PKDict(
+                _id=self.parser.next_id(),
+                l=float(length),
+                name=name,
+                type='DRIFT',
+            )
+            self.data.models.elements.append(drift)
+            drifts[length] = drift._id
+        return drifts[length]
+
+    def _set_default_beamline(self, cmd_type, field1, field2=None):
+        name = None
+        for cmd in self.data.models.commands:
+            if cmd._type == cmd_type:
+                name = None
+                if field1 in cmd:
+                    name = cmd.get(field1)
+                elif field2 and field2 in cmd:
+                    name = cmd.get(field2)
+                if name and name.upper() in self.elements_by_name:
+                    name = name.upper()
+                    break
+                name = None
+        beamline_id = None
+        if name:
+            beamline_id = self.elements_by_name[name].id
+        elif len(self.data.models.beamlines):
+            beamline_id = self.data.models.beamlines[-1].id
+        self.data.models.simulation.activeBeamlineId = \
+            self.data.models.simulation.visualizationBeamlineId = beamline_id
+
+    def __parse_beamline(self, label, values):
+        assert label
+        values[-1] = re.sub(r'\s*\)$', '', values[-1])
+        values[0] = re.sub(r'^.*?=\s*\(\s*', '', values[0])
+        res = PKDict(
+            name=label,
+            id=self.parser.next_id(),
+            items=[],
+        )
+        for v in values:
+            v = self.__remove_quotes(v)
+            count = 1
+            m = re.match(r'^(\d+)\s*\*\s*([\w.]+)$', v)
+            if m:
+                count = int(m.group(1))
+                v = m.group(2)
+            reverse = False
+            if v[0] == '-':
+                reverse = True
+                v = v[1:]
+            el = self.elements_by_name[v.upper()]
+            assert el, 'line: {} element not found: {}'.format(label, v)
+            el_id = el._id if '_id' in el else el.id
+            for _ in range(count):
+                res['items'].append(-el_id if reverse else el_id)
+        assert label.upper() not in self.elements_by_name
+        self.elements_by_name[label.upper()] = res
+        self.data.models.beamlines.append(res)
+
+    def __parse_element(self, cmd, label, values):
+        res = self.__parse_fields(values, PKDict(
+            name=label,
+            _id=self.parser.next_id(),
+        ))
+        res.type = cmd
+        if self.container:
+            assert 'at' in res, 'sequence element missing "at": {}'.format(values)
+            at = res.at
+            del res['at']
+            if cmd not in self.schema.model:
+                parent = self.elements_by_name[cmd]
+                assert parent
+                assert len(res) >= 3
+                if len(res) == 3:
+                    self.container['items'].append([parent._id, at])
+                    return
+            assert label, 'unlabeled element: {}'.format(values)
+            self.container['items'].append([res._id, at])
+        assert 'at' not in res
+        # copy in superclass values
+        while cmd not in self.schema.model:
+            parent = self.elements_by_name[cmd]
+            assert parent and parent.type
+            res = PKDict(list(parent.items()) + list(res.items()))
+            res.type = parent.type
+            cmd = parent.type
+        self.sim_data.update_model_defaults(res, res.type)
+        self.data.models.elements.append(res)
+        if not label:
+            label = values[0].upper()
+            assert label in self.elements_by_name, 'no element for label: {}: {}'.format(label, values)
+            self.elements_by_name[label].update(res)
+        elif label.upper() in self.elements_by_name:
+            pkdlog('duplicate label: {}', values)
+        else:
+            self.elements_by_name[label.upper()] = res
+        return res
+
+    def __parse_fields(self, values, res):
+        #TODO(pjm): only add fields which are in the schema
+        for value in values[1:]:
+            m = re.match(r'^\s*([\w.]+)\s*:?=\s*(.+?)\s*$', value)
+            if m:
+                f, v = m.group(1, 2)
+                assert f not in res, 'field already defined: {}, values: {}'.format(f, values)
+                res[f.lower()] = self.__remove_quotes(v)
+                continue
+            m = re.match(r'^\s*(!)?\s*([\w.]+)\s*$', value)
+            assert m, 'failed to parse field assignment: {}'.format(value)
+            v, f = m.group(1, 2)
+            res[f.lower()] = '0' if v else '1'
+        return res
+
+    def __parse_lines(self, lines):
+        prev_line = ''
+        in_comment = False
+        for line in lines:
+            self.parser.increment_line_number()
+            line = re.sub(r'\&\s*$', '', line)
+            # strip comments
+            line = line.strip()
+            line = re.sub(r'(.*?)(!|//).*$', r'\1', line)
+            line = re.sub(r'\/\*.*?\*\/', '', line)
+            # special case, some commands often missing a comma
+            line = re.sub(r'^\s*(title|exec|call)\s+([^,])', r'\1, \2', line, flags=re.IGNORECASE)
+            if in_comment and re.search(r'^.*\*\/', line):
+                line = re.sub(r'^.*\*\/', '', line)
+                in_comment = False
+            if re.search(r'\/\*.*$', line):
+                line = re.sub(r'\/\*.*$', '', line)
+                in_comment = True
+            if not line or in_comment:
+                continue
+            assert not re.search(r'^\s*(if|while)\s*\(', line, re.IGNORECASE), \
+                'Remove conditional if() or while() statements from input file before import'
+            while ';' in line:
+                m = re.match(r'^(.*?);(.*)$', line)
+                assert m, 'parse ; failed: {}'.format(line)
+                item = (prev_line + ' ' + m.group(1)).strip()
+                self.__parse_values(self.__split_values(item))
+                line = m.group(2)
+                prev_line = ''
+            prev_line += line
+        self.data.models['rpnVariables'] = [
+            PKDict(name=k, value=v) for k, v in self.data.models.rpnVariables.items()
+        ]
+
+    def __parse_statement(self, cmd, label, values):
+        if cmd.upper() in self.schema.model or cmd.upper() in self.elements_by_name:
+            self.__parse_element(cmd.upper(), label, values)
+            return
+        cmd = cmd.lower()
+        if self.container and cmd == 'end{}'.format(self.container.type):
+            assert len(values) == 1, 'invalid end{}: {}'.format(self.container, values)
+            self.container = None
+            return
+        if cmd  in ('sequence', 'track'):
+            self.container = PKDict(
+                name=label,
+                type=cmd,
+                _id=self.parser.next_id(),
+            )
+            self.__parse_fields(values, self.container)
+            self.container['items'] = []
+            if cmd == 'sequence':
+                self.data.models.sequences.append(self.container)
+        if 'command_{}'.format(cmd) in self.schema.model:
+            res = PKDict(
+                _type=cmd,
+                _id=self.parser.next_id(),
+                name=label,
+            )
+            self.__parse_fields(values, res)
+            self.sim_data.update_model_defaults(res, LatticeUtil.model_name_for_data(res))
+            self.data.models.commands.append(res)
+        elif cmd == 'line':
+            self.__parse_beamline(label, values)
+        elif cmd == 'title':
+            if len(values) > 1:
+                self.data.models.simulation.name = values[1]
+        elif cmd not in self.ignore_commands:
+            assert cmd != 'call', '"CALL" statement not supported, combine subfiles into one input file before import'
+            if re.search(r'^ptc_', cmd):
+                pass
+            else:
+                pkdlog('unknown cmd: {}', values)
+
+    def __parse_values(self, values):
+        if not len(values):
+            return
+        if len(values) == 1 and '=' in values[0] and not re.search(r'\Wline\s*=\s*\(', values[0].lower()):
+            # a variable assignment
+            m = re.match(r'.*?([\w.\']+)\s*:?=\s*(.*)$', values[0])
+            assert m, 'invalid variable assignment: {}'.format(values)
+            name = m.group(1)
+            v = m.group(2)
+            if name not in self.data.models.rpnVariables:
+                self.data.models.rpnVariables[name] = v
+            return
+        if ':' in values[0]:
+            m = re.match(r'([\w.#"]+)\s*:\s*([\w.]+)', values[0])
+            assert m, 'label match failed: {}'.format(values[0])
+            label, cmd = m.group(1, 2)
+            label = self.__remove_quotes(label)
+        else:
+            label, cmd = None, values[0]
+        self.__parse_statement(cmd, label, values)
+
+    def __remove_quotes(self, value):
+        return re.sub(r'[\'"](.*)[\'"]', r'\1', value)
+
+    def __split_values(self, item):
+        # split items into values by commas
+        values = []
+        while item and len(item):
+            item = item.strip()
+            m = re.match(
+                r'^\s*((?:[\w.\']+\s*:?=\s*)?(?:(?:".*?")|(?:\'.*?\')|(?:\{.*?\})|(?:\w+\(.*?\))))(?:,(.*))?$',
+                item)
+            if m:
+                values.append(m.group(1))
+                assert item != m.group(2)
+                item = m.group(2)
+                continue
+            m = re.match(r'^\s*(.+?)(?:,(.*))?$', item)
+            if m:
+                values.append(m.group(1).strip())
+                assert item != m.group(2)
+                item = m.group(2)
+                continue
+            assert False, 'line parse failed: {}'.format(item)
+        return values
 
 
 class LatticeUtil(object):

@@ -1,7 +1,9 @@
 
-REAL QB = 2e-10;
-REAL BF = 2998;
-REAL BC = QB * BF * 1e6;
+Title, string="CTF3 RF Photoinjector";
+
+REAL qb = 2e-10;
+REAL bf = 2998;
+REAL bc = qb * bf * 1e6;
 
 
 OPT1: option,autophase=4,psdumpfreq=50,statdumpfreq=1,version=10900;

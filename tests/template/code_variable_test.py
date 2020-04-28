@@ -42,6 +42,14 @@ def test_cache():
             'x + x': 246,
         })
     )
+    pkeq(
+        code_var.get_expr_dependencies('x x * x +'),
+        ['x'],
+    )
+    pkeq(
+        code_var.get_expr_dependencies('y 2 pow'),
+        ['x', 'y'],
+    )
 
 
 def test_case_insensitive():
@@ -80,6 +88,11 @@ def test_case_insensitive():
             'x.x7.x + x.x7.x': 246,
         })
     )
+    pkeq(
+        code_var.get_expr_dependencies('Y y +'),
+        ['x.x7.x', 'y'],
+    )
+
 
 def test_eval():
     from pykern.pkcollections import PKDict

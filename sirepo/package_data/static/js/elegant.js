@@ -856,7 +856,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                           '<div data-ng-show="isState(\'missing-files\')">',
                             '<p>Please upload the files below which are referenced in the ', SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName, ' file.</p>',
                             '<div class="form-group" data-ng-repeat="item in missingFiles">',
-                              '<div class="col-sm-8 col-sm-offset-1">',
+                              '<div class="col-sm-11 col-sm-offset-1">',
                                 '<span data-ng-if="item[5] && isCorrectMissingFile(item)" class="glyphicon glyphicon-ok"></span> ',
                                 '<span data-ng-if="item[5] && ! isCorrectMissingFile(item)" class="glyphicon glyphicon-flag text-danger"></span> <span data-ng-if="item[5] && ! isCorrectMissingFile(item)" class="text-danger">Filename does not match, expected: </span>',
                                 '<label>{{ auxFileLabel(item) }}</label> ({{ auxFileName(item) }})',

@@ -27,7 +27,11 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'twissReport',
             ),
         )
-
+        for cmd in dm.commands:
+            if cmd._type == 'filter':
+                cmd.type = cmd.type.upper()
+            elif cmd._type == 'particlematterinteraction':
+                cmd.material = cmd.material.upper()
         if 'bunchReport1' not in dm:
             for i in range(1, 5):
                 m = dm['bunchReport{}'.format(i)] = PKDict()

@@ -51,9 +51,11 @@ SIREPO.app.config(function() {
     };
 });
 
-SIREPO.app.factory('opalService', function(appState, commandService, latticeService) {
+SIREPO.app.factory('opalService', function(appState, commandService, latticeService, rpnService) {
     var self = {};
     var COMMAND_TYPES = ['BeamList', 'DistributionList', 'FieldsolverList', 'GeometryList', 'ParticlematterinteractionList', 'WakeList'];
+    commandService.hideCommandName = true;
+    rpnService.isCaseInsensitive = true;
 
     function findCommands(type) {
         return appState.models.commands.filter(function(cmd) {
@@ -152,7 +154,7 @@ SIREPO.app.controller('CommandController', function(commandService, panelState) 
 // OPAL-cycle
 // SBEND3D, CCOLLIMATOR, SEPTUM, PROBE, STRIPPER,
 
-SIREPO.app.controller('LatticeController', function(appState, errorService, panelState, latticeService, $scope) {
+SIREPO.app.controller('LatticeController', function(appState, commandService, latticeService, $scope) {
     var self = this;
     self.latticeService = latticeService;
     self.advancedNames = [
@@ -165,11 +167,66 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
         'TRAVELINGWAVE', 'TRIMCOIL', 'VARIABLE_RF_CAVITY',
         'VARIABLE_RF_CAVITY_FRINGE_FIELD', 'VKICKER', 'VMONITOR', 'WIRE', 'YROT',
     ];
+
+    var m_e = 0.51099895000e-03;
+    var m_p = 0.93827208816;
+    var amu = 0.93149410242;
+    var clight = 299792458.0e-9;
+    var particleInfo = {
+        // mass, charge
+        ELECTRON: [m_e, -1.0],
+        PROTON: [m_p, 1.0],
+        POSITRON: [m_e, 1.0],
+        ANTIPROTON: [m_p, -1.0],
+        CARBON: [12 * amu, 12.0],
+        HMINUS: [1.00837 * amu, -1.0],
+        URANIUM: [238.050787 * amu, 35.0],
+        MUON: [0.1056583755, -1.0],
+        DEUTERON: [2.013553212745 * amu, 1.0],
+        XENON: [124 * amu, 20.0],
+        H2P: [2.01510 * amu, 1.0]
+    };
+
+    function bendAngle(particle, bend) {
+        var mass = particleInfo[particle][0];
+        var charge = particleInfo[particle][1];
+        var gamma = bend.designenergy * 1e-3 / mass + 1;
+        var betaGamma = Math.sqrt(Math.pow(gamma, 2) - 1);
+        var fieldAmp = charge * Math.abs(Math.sqrt(Math.pow(bend.k0, 2) + Math.pow(bend.k0s, 2)) / charge);
+        var radius = Math.abs((betaGamma * mass) / (clight * fieldAmp));
+        return 2 * Math.asin(bend.l / (2 * radius));
+    }
+
+    function updateElementAttributes(item) {
+        if (item.type == 'SBEND' || item.type == 'RBEND') {
+            if (item.angle == 0 && item.designenergy) {
+                var particle = commandService.findFirstCommand('beam').particle;
+                item.angle = bendAngle(particle, item);
+            }
+        }
+    }
+
     self.basicNames = ['DRIFT', 'ECOLLIMATOR', 'KICKER', 'MARKER', 'QUADRUPOLE', 'SBEND', 'SEXTUPOLE'];
 
     self.titleForName = function(name) {
         return SIREPO.APP_SCHEMA.view[name].description;
     };
+
+    appState.whenModelsLoaded($scope, function() {
+        var sim = appState.models.simulation;
+        if (! sim.isInitialized) {
+            appState.models.elements.map(updateElementAttributes);
+            sim.isInitialized = true;
+            appState.saveChanges(['elements', 'simulation']);
+        }
+
+        $scope.$on('modelChanged', function(e, name) {
+            var m = appState.models[name];
+            if (m.type) {
+                updateElementAttributes(m);
+            }
+        });
+    });
 });
 
 SIREPO.app.directive('appFooter', function() {
@@ -180,7 +237,9 @@ SIREPO.app.directive('appFooter', function() {
 	},
         template: [
             '<div data-common-footer="nav"></div>',
-            '<div data-import-dialog=""></div>',
+            '<div data-import-dialog="" data-title="Import Opal File" data-description="Select an opal .in file." data-file-formats=".in">',
+              '<div data-opal-import-options=""></div>',
+            '</div>',
 	].join(''),
     };
 });
@@ -522,6 +581,104 @@ SIREPO.app.directive('srCommanddistributionEditor', function(appState, panelStat
                     name + '.emissionmodel',
                 ], processType);
             });
+        },
+    };
+});
+
+SIREPO.app.directive('opalImportOptions', function(fileUpload, requestSender) {
+    return {
+        restrict: 'A',
+        template: [
+            '<div data-ng-if="hasMissingFiles()" class="form-horizontal" style="margin-top: 1em;">',
+              '<div style="margin-bottom: 1ex; white-space: pre;">{{ additionalFileText() }}</div>',
+              '<div data-ng-repeat="info in missingFiles">',
+                '<div data-ng-if="! info.hasFile" class="col-sm-11 col-sm-offset-1">',
+                  '<span data-ng-if="info.invalidFilename" class="glyphicon glyphicon-flag text-danger"></span> <span data-ng-if="info.invalidFilename" class="text-danger">Filename does not match, expected: </span>',
+                  '<label>{{ info.filename }}</label> ',
+                  '({{ info.label + ": " + info.type }})',
+                  '<input id="file-import" type="file" data-file-model="info.file">',
+                  '<div data-ng-if="uploadDatafile(info)"></div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+
+        controller: function($scope) {
+            var parentScope = $scope.$parent;
+            $scope.missingFiles = null;
+
+            function checkFiles() {
+                if (parentScope.fileUploadError) {
+                    var hasFiles = true;
+                    $scope.missingFiles.forEach(function(f) {
+                        if (! f.hasFile) {
+                            hasFiles = false;
+                        }
+                    });
+                    if (hasFiles) {
+                        parentScope.fileUploadError = null;
+                    }
+                }
+            }
+
+            $scope.additionalFileText = function() {
+                if ($scope.missingFiles) {
+                    return 'Please upload the files below which are referenced in the opal file.';
+                }
+            };
+
+            $scope.uploadDatafile = function(info) {
+                if (info.file.name) {
+                    if (info.file.name != info.filename) {
+                        if (! info.invalidFilename) {
+                            info.invalidFilename = true;
+                            $scope.$applyAsync();
+                        }
+                        return false;
+                    }
+                    info.invalidFilename = false;
+                    parentScope.isUploading = true;
+                    fileUpload.uploadFileToUrl(
+                        info.file,
+                        null,
+                        requestSender.formatUrl(
+                            'uploadFile',
+                            {
+                                // dummy id because no simulation id is available or required
+                                '<simulation_id>': '11111111',
+                                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                                '<file_type>': info.file_type,
+                            }),
+                        function(data) {
+                            parentScope.isUploading = false;
+                            if (data.error) {
+                                parentScope.fileUploadError = data.error;
+                                return;
+                            }
+                            info.hasFile = true;
+                            checkFiles();
+                        });
+                    info.file = {};
+                }
+                return false;
+            };
+
+            $scope.hasMissingFiles = function() {
+                if (parentScope.fileUploadError) {
+                    if (parentScope.errorData && parentScope.errorData.missingFiles) {
+                        $scope.missingFiles = [];
+                        parentScope.errorData.missingFiles.forEach(function(f) {
+                            f.file = {};
+                            $scope.missingFiles.push(f);
+                        });
+                        delete parentScope.errorData;
+                    }
+                }
+                else {
+                    $scope.missingFiles = null;
+                }
+                return $scope.missingFiles && $scope.missingFiles.length;
+            };
         },
     };
 });

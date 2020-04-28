@@ -38,6 +38,8 @@ class CodeVar(object):
             v, err = self.eval_var(value)
             if not err:
                 if self.is_var_value(value):
+                    if self.case_insensitive:
+                        value = value.lower()
                     cache[value] = v
                 else:
                     v = float(v)
@@ -61,6 +63,8 @@ class CodeVar(object):
         if depends is None:
             depends = []
             visited = {}
+        if self.case_insensitive and self.is_var_value(expr):
+            expr = expr.lower()
         for v in str(expr).split(' '):
             if v in self.postfix_variables:
                 if v not in depends:
@@ -182,11 +186,14 @@ class CodeVarIterator(lattice.ModelIterator):
         self.code_var = code_var
 
     def field(self, model, field_schema, field):
-        if field_schema[1] == 'RPNValue' and self.code_var.is_var_value(model[field]):
-            if model[field] not in self.result:
-                v, err = self.code_var.eval_var(model[field])
+        value = model[field]
+        if field_schema[1] == 'RPNValue' and self.code_var.is_var_value(value):
+            if self.code_var.case_insensitive:
+                value = value.lower()
+            if value not in self.result:
+                v, err = self.code_var.eval_var(value)
                 if not err:
-                    self.result[model[field]] = v
+                    self.result[value] = v
 
 
 class CodeVarDeleteIterator(lattice.ModelIterator):
@@ -229,6 +236,7 @@ class PurePythonEval(object):
         self.constants = constants or []
 
     def eval_var(self, expr, depends, variables):
+        variables = variables.copy()
         for d in depends:
             v, err = PurePythonEval.__eval_python_stack(self, variables[d], variables)
             if err:
