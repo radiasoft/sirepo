@@ -34,15 +34,15 @@ _CODES = PKDict(
         PKDict(
             name='bunchComp - fourDipoleCSR',
             reports=(
-                'bunchReport1',
-                'elementAnimation10-5',
+                PKDict(report='bunchReport1', binary_data_file=False),
+                PKDict(report='elementAnimation10-5', binary_data_file=True),
             ),
         ),
         PKDict(
             name='SPEAR3',
             reports=(
-                'bunchReport2',
-                'elementAnimation62-3',
+                PKDict(report='bunchReport2', binary_data_file=False),
+                PKDict(report='elementAnimation62-3', binary_data_file=True),
             ),
         ),
     ),
@@ -50,8 +50,8 @@ _CODES = PKDict(
         PKDict(
             name='Booster Ring',
             reports=(
-                'particleAnimation',
-                'rateCalculationReport',
+                PKDict(report='particleAnimation', binary_data_file=False),
+                PKDict(report='rateCalculationReport', binary_data_file=False),
             ),
         ),
     ),
@@ -59,21 +59,21 @@ _CODES = PKDict(
         PKDict(
             name='Tabulated Undulator Example',
             reports=(
-                'intensityReport',
-                'trajectoryReport',
-                'multiElectronAnimation',
-                'powerDensityReport',
-                'sourceIntensityReport',
+                PKDict(report='intensityReport', binary_data_file=False),
+                PKDict(report='trajectoryReport', binary_data_file=False),
+                PKDict(report='multiElectronAnimation', binary_data_file=False),
+                PKDict(report='powerDensityReport', binary_data_file=False),
+                PKDict(report='sourceIntensityReport', binary_data_file=False),
             ),
         ),
         PKDict(
             name='Bending Magnet Radiation',
             reports=(
-                'initialIntensityReport',
-                'intensityReport',
-                'powerDensityReport',
-                'sourceIntensityReport',
-                'trajectoryReport',
+                PKDict(report='initialIntensityReport', binary_data_file=False),
+                PKDict(report='intensityReport', binary_data_file=False),
+                PKDict(report='powerDensityReport', binary_data_file=False),
+                PKDict(report='sourceIntensityReport', binary_data_file=False),
+                PKDict(report='trajectoryReport', binary_data_file=False),
             ),
         ),
     ),
@@ -81,8 +81,8 @@ _CODES = PKDict(
         PKDict(
             name='IOTA 6-6 Bare',
             reports=(
-                'beamEvolutionAnimation',
-                'bunchReport1',
+                PKDict(report='beamEvolutionAnimation', binary_data_file=True),
+                PKDict(report='bunchReport1', binary_data_file=False),
             ),
         ),
     ),
@@ -90,8 +90,8 @@ _CODES = PKDict(
         PKDict(
             name='Laser Pulse',
             reports=(
-                'fieldAnimation',
-                'laserPreviewReport',
+                PKDict(report='fieldAnimation', binary_data_file=True),
+                PKDict(report='laserPreviewReport', binary_data_file=False),
             ),
         ),
     ),
@@ -99,7 +99,7 @@ _CODES = PKDict(
         PKDict(
             name='EGun Example',
             reports=(
-                'fieldAnimation',
+                PKDict(report='fieldAnimation', binary_data_file=True),
             ),
         ),
     ),
@@ -178,7 +178,7 @@ class _Client(PKDict):
                 n[k] = copy.deepcopy(v)
         return n
 
-    async def get(self, uri, caller):
+    async def get(self, uri, caller, expect_binary_body=False):
         uri = self._uri(uri)
         with self._timer(uri, caller):
             return self.parse_response(
@@ -188,7 +188,8 @@ class _Client(PKDict):
                     method='GET',
                     connect_timeout=1e8,
                     request_timeout=1e8,
-                )
+                ),
+                expect_binary_body=expect_binary_body,
             )
 
     async def login(self):
@@ -214,7 +215,7 @@ class _Client(PKDict):
             )
         return self
 
-    def parse_response(self, resp):
+    def parse_response(self, resp, expect_binary_body=False):
         assert resp.code == 200, 'resp={}'.format(resp)
         if 'Set-Cookie' in resp.headers:
             self._headers.Cookie = resp.headers['Set-Cookie']
@@ -222,7 +223,14 @@ class _Client(PKDict):
             return pkjson.load_any(resp.body)
         try:
             b = pkcompat.from_bytes(resp.body)
+            assert not expect_binary_body, \
+                'expecting binary body resp={} body={}'.format(
+                    resp,
+                    b[:1000],
+                )
         except UnicodeDecodeError:
+            assert expect_binary_body, \
+                'unexpected binary body resp={}'.format(resp)
             # Binary data files can't be decoded
             return
         if 'html' in resp.headers['content-type']:
@@ -291,11 +299,12 @@ class _Client(PKDict):
 
 
 class _Sim(PKDict):
-    def __init__(self, app, sim_name, report, **kwargs):
+    def __init__(self, app, sim_name, report, binary_data_file, **kwargs):
         super().__init__(
             _app=app,
             _sim_name=sim_name,
             _report=report,
+            _binary_data_file=binary_data_file,
             **kwargs
         )
         self._sid = self._app.get_sid(self._sim_name)
@@ -398,6 +407,7 @@ class _Sim(PKDict):
                     0,
                 ),
                 self,
+                expect_binary_body=self._binary_data_file,
             )
         return g
 
@@ -485,7 +495,9 @@ async def _main():
         for a in await _apps():
             e = a.examples[random.randrange(len(a.examples))]
             for r in random.sample(e.reports, len(e.reports)):
-                s.append(_Sim(a, e.name, r).create_task())
+                s.append(
+                    _Sim(a, e.name, r.report, r.binary_data_file).create_task(),
+                )
         return s
 
     def _register_signal_handlers(main_task):
