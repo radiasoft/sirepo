@@ -314,7 +314,7 @@ class _Sim(PKDict):
         # leave it for debugging
         self._waiting_on = None
 
-    def run(self):
+    def create_task(self):
         async def _run():
             _sims.append(self)
             # Must be set here once we are in the _run() task
@@ -480,14 +480,14 @@ async def _main():
     async def _clients():
         return await asyncio.gather(*[_Client(u).login() for u in cfg.emails])
 
-    async def _sims():
+    async def _sims_tasks():
         s = []
         for a in await _apps():
             e = a.examples[random.randrange(len(a.examples))]
             random.shuffle(e.reports)
             for r in e.reports:
-                s.append(_Sim(a, e.name, r).run())
-        return (s, asyncio.gather(*s))
+                s.append(_Sim(a, e.name, r).create_task())
+        return s
 
     def _register_signal_handlers(main_task):
         def _s(*args):
@@ -497,7 +497,8 @@ async def _main():
 
     s = None
     try:
-        s, t = await _sims()
+        s = await _sims_tasks()
+        t = asyncio.gather(*s)
         _register_signal_handlers(t)
         await t
     except Exception as e:
