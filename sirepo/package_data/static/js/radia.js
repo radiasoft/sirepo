@@ -366,6 +366,17 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
 
                 // use SDDS for field map - use python sdds
                 if ($scope.isFieldMap()) {
+                    var p = radiaService.selectedPath;
+                    var f = p.name + ' ' + $scope.fieldType() + '.sdds';
+                    requestSender.newWindow(
+                        'exportArchive',
+                        {
+                            '<simulation_id>': appState.models.simulation.simulationId,
+                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                            '<filename>': f,
+                        },
+                        true
+                    );
                     /*
                     var routeObj = {
                         routeName: 'writeSDDS',
@@ -375,7 +386,7 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                     requestSender.sendRequest(
                         routeObj,
                         function(data) {
-                            srdbg('fm save done', data);
+                            //srdbg('fm save done', data);
                         }
                     );
                     */
@@ -386,19 +397,29 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                 geometry.basis.forEach(function (c) {
                     CSV_HEADING.push($scope.fieldType() + c);
                 });
-                var p = radiaService.selectedPath;
+                //var p = radiaService.selectedPath;
                 var data = [CSV_HEADING];
                 requestSender.getApplicationData(
                     {
-                        fieldPaths: [p],
+                        fieldPaths: [radiaService.selectedPath],
                         fieldType: $scope.fieldType(),
-                        method: 'get_field',
-                        name: p.name,
+                        fileType: $scope.isFieldMap() ? 'sdds' : 'csv',
+                        method: 'save_field',
+                        name: radiaService.selectedPath.name,
                         simulationId: appState.models.simulation.simulationId,
                         viewType: 'fields',
                     },
                     function(d) {
                         if (! d || ! d.data) {
+                            return;
+                        }
+                        //srdbg('save to', fileName, CSV_HEADING, data);
+                        var f = p.name + ' ' + $scope.fieldType();
+                        var ext = $scope.isFieldMap() ? 'sdds' : 'csv';
+                        var t = $scope.isFieldMap() ? 'application/octet-stream' : 'text/csv;charset=utf-8';
+                        var fileName = panelState.fileNameFromText(f, ext);
+                        if ($scope.isFieldMap()) {
+                            //srdbg('FM DATA', d);
                             return;
                         }
                         d.data.forEach(function (o) {
@@ -415,8 +436,9 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                             }
                         });
                         //srdbg('save to', fileName, CSV_HEADING, data);
-                        var fileName = panelState.fileNameFromText(p.name + ' ' + $scope.fieldType(), 'csv');
-                        saveAs(new Blob([d3.csv.format(data)], {type: "text/csv;charset=utf-8"}), fileName);
+                        //var fileName = panelState.fileNameFromText(p.name + ' ' + $scope.fieldType(), 'csv');
+                        //saveAs(new Blob([d3.csv.format(data)], {type: "text/csv;charset=utf-8"}), fileName);
+                        saveAs(new Blob([d3.csv.format(data)], {type: t}), fileName);
                     });
             };
 
@@ -673,9 +695,9 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
            };
 
            $scope.editPath = function(path) {
-                appState.models[radiaService.pathTypeModel(path.type)] = path;
-                appState.models.fieldPaths.path = path.type;
-                radiaService.showPathPicker(true, false);
+               appState.models[radiaService.pathTypeModel(path.type)] = path;
+               appState.models.fieldPaths.path = path.type;
+               radiaService.showPathPicker(true, false);
            };
 
            $scope.pathDetails = function(path) {

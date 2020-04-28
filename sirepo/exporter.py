@@ -13,6 +13,7 @@ from pykern import pkjson
 from pykern.pkdebug import pkdp
 from sirepo import sim_data
 from sirepo import simulation_db
+from sirepo import template
 from sirepo import uri_router
 import base64
 import copy
@@ -20,6 +21,8 @@ import sirepo.http_reply
 import sirepo.util
 import zipfile
 
+#_TYPES = ('zip', 'html', 'sdds')
+_TYPES = ('zip', 'html')
 
 def create_archive(sim):
     """Zip up the json file and its dependencies
@@ -30,12 +33,21 @@ def create_archive(sim):
     Returns:
         py.path.Local: zip file name
     """
-    if not pkio.has_file_extension(sim.filename, ('zip', 'html')):
+    #if not pkio.has_file_extension(sim.filename, ('zip', 'html')):
+    #pkdp('ARCH {}', sim)
+    # We need input so I don't think we can use exporter...
+    if not pkio.has_file_extension(sim.filename, _TYPES):
         raise sirepo.util.NotFound(
-            'unknown file type={}; expecting html or zip'.format(sim.filename),
+            #'unknown file type={}; expecting html or zip'.format(sim.filename),
+            'unknown file type={}; expecting one of {}'.format(sim.filename, _TYPES),
         )
     with simulation_db.tmp_dir() as d:
         want_zip = sim.filename.endswith('zip')
+        #want_sdds = sim.filename.endswith('sdds')
+        #if want_sdds:
+        #    f = 'MAKE AN SDDS WITH TEMPLATE!'
+        #    template = sirepo.template.import_module(sim)
+        #    t = 'application/octet-stream'
         f, c = _create_zip(sim, want_python=want_zip, out_dir=d)
         if want_zip:
             t = 'application/zip'

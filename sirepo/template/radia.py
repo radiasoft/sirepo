@@ -20,17 +20,28 @@ from sirepo.template import radia_examples
 import h5py
 import math
 import numpy
+import sdds
 import sirepo.sim_data
 import sirepo.util
 import time
 
-
 _DMP_FILE = 'geom.dat'
+_FIELD_MAP_COLS = ['x', 'y', 'z', 'Bx', 'By', 'Bz']
+_FIELD_MAP_UNITS = ['cm', 'cm', 'cm', 'T', 'T', 'T']
 _FIELDS_FILE = 'fields.h5'
 _GEOM_DIR = 'geometry'
 _GEOM_FILE = 'geom.h5'
-_METHODS = ['get_field', 'get_field_integrals', 'get_geom']
+_METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'save_field']
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+_SDDS_INDEX = 0
+
+_s = sdds.SDDS(_SDDS_INDEX)
+_s.setDescription('Field Map', 'yes, a field map')
+for i, n in enumerate(_FIELD_MAP_COLS):
+    #name, symbol, units, desc, format, type, len)
+     _s.defineColumn(n, '', _FIELD_MAP_UNITS[i], n, '', _s.SDDS_DOUBLE, 0)
+    #_s.defineSimpleColumn(n, _s.SDDS_DOUBLE)
+
 
 GEOM_PYTHON_FILE = 'geom.py'
 MPI_SUMMARY_FILE = 'mpi-info.json'
@@ -72,6 +83,9 @@ def extract_report_data(run_dir, sim_in):
     simulation_db.write_result(PKDict(), run_dir=run_dir)
 
 
+def _field_map_to_sdds():
+    pass
+
 # if the file exists but the data we seek does not, have Radia generate it here.  We
 # should only have to blow away the file after a solve (???)
 def get_application_data(data, **kwargs):
@@ -91,24 +105,84 @@ def get_application_data(data, **kwargs):
         return {}
     if data.method == 'get_field':
         f_type = data.get('fieldType')
+        #pkdp('FT {}', f_type)
         if f_type in radia_tk.POINT_FIELD_TYPES:
-            try:
-                res = _read_data(data.simulationId, data.viewType, f_type)
-            except KeyError:
-                res = None
-            if res:
-                v = [d.vectors.vertices for d in res.data if 'vectors' in d]
-                old_pts = [p for a in v for p in a]
-                new_pts = _build_field_points(data.fieldPaths)
-                if len(old_pts) == len(new_pts) and numpy.allclose(new_pts, old_pts):
-                    return res
-        return _read_or_generate(g_id, data)
+            #TODO(mvk): won't work for subsets of available paths, figure that out
+            pass
+            #try:
+            #    res = _read_data(data.simulationId, data.viewType, f_type)
+            #except KeyError:
+            #    res = None
+            #pkdp('READ RES {}', res)
+            #if res:
+            #    v = [d.vectors.vertices for d in res.data if 'vectors' in d]
+            #    old_pts = [p for a in v for p in a]
+            #    new_pts = _build_field_points(data.fieldPaths)
+            #pkdp('CHECK FOR CHANGE OLD {} VS NEW {}', old_pts, new_pts)
+            #    if len(old_pts) == len(new_pts) and numpy.allclose(new_pts, old_pts):
+            #        return res
+        #return _read_or_generate(g_id, data)
+        return _generate_field_data(g_id, data.name, f_type, data.fieldPaths)
     if data.method == 'get_field_integrals':
         return _generate_field_integrals(g_id, data.fieldPaths)
     if data.method == 'get_geom':
         g_types = data.get('geomTypes', ['lines', 'polygons'])
         res = _read_or_generate(g_id, data)
         res.data = [{k: d[k] for k in d.keys() if k in g_types} for d in res.data]
+        return res
+    if data.method == 'save_field':
+        #pkdp('DATA {}', data)
+        data.method = 'get_field'
+        res = get_application_data(data)
+        #pkdp('FIOELDS {}', res)
+        pt = [d.vectors.vertices for d in res.data if 'vectors' in d]
+        pt = [p for a in pt for p in a]
+        m = [d.vectors.magnitudes for d in res.data if 'vectors' in d]
+        m = [p for a in m for p in a]
+        dr = [d.vectors.directions for d in res.data if 'vectors' in d]
+        dr = [p for a in dr for p in a]
+        #pkdp('PTS {}', pt)
+        with simulation_db.tmp_dir(True) as out_dir:
+            path = out_dir.join(data.simulationId + '.' + data.fileType)
+            #pkdp('LIB TMP {}', path)
+            if data.fileType == 'sdds':
+                col_data = [
+                    [
+                        [x for (j, x) in enumerate(pt) if j % 3 == 0]
+                    ],
+                    [
+                        [x for (j, x) in enumerate(pt) if j % 3 == 1]
+                    ],
+                    [
+                        [x for (j, x) in enumerate(pt) if j % 3 == 2]
+                    ],
+                    [
+                        [m[j // 3] * d for (j, d) in enumerate(dr) if j % 3 == 0]
+                    ],
+                    [
+                        [m[j // 3] * d for (j, d) in enumerate(dr) if j % 3 == 1]
+                    ],
+                    [
+                        [m[i // 3] * d for (i, d) in enumerate(dr) if i % 3 == 2]
+                    ]
+                ]
+                #pkdp('SDDS SAVE COLS {}', col_data)
+                for i, n in enumerate(_FIELD_MAP_COLS):
+                    _s.setColumnValueLists(n, col_data[i])
+                #pkdp('SAVING TO {}', str(path))
+                _s.save(str(path))
+                #with open(str(path)) as f:
+                #    for l in [line.rstrip('\n') for line in f]:
+                #pkdp('{}', l)
+                fp = PKDict(file=path)
+                return PKDict(data=fp)
+        #for p in data.fieldPaths:
+        #    f = p.name + '-' + p.type
+        #    ext = 'sdds' if p.type == 'fieldMap' else 'csv'
+        #    simulation_db.simulation_lib_dir('')
+        ##    if p.type == 'fieldMap':
+        #        sdds_file = ''
+        #return PKDict(files=files)
         return res
 
 
@@ -368,9 +442,6 @@ def _read_or_generate(geom_id, data):
     f_type = data.get('fieldType', None)
     try:
         return _read_data(data.simulationId, data.viewType, f_type)
-    #except IOError:
-    #    # No geom file
-    #    return {}
     except KeyError:
         # No such path, so generate the data and write to the existing file
         with h5py.File(_geom_file(data.simulationId), 'a') as hf:
@@ -380,3 +451,7 @@ def _read_or_generate(geom_id, data):
                 path=_geom_h5_path(data.viewType, f_type)
             )
         return get_application_data(data)
+
+
+def _save_sdds():
+    pass
