@@ -7,19 +7,16 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
-import pykern.pkcollections
-from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc, pkdpretty
+from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 from sirepo import job
 from sirepo import job_driver
-from sirepo import mpi
+import asyncio
 import io
-import itertools
 import os
 import re
 import subprocess
 import tornado.ioloop
 import tornado.process
-
 
 #: prefix all container names. Full format looks like: srj-p-uid
 _CNAME_PREFIX = 'srj'
@@ -93,7 +90,7 @@ class DockerDriver(job_driver.DriverBase):
             constrain_resources=(True, bool, 'apply --cpus and --memory constraints'),
             dev_volumes=(pkconfig.channel_in('dev'), bool, 'mount ~/.pyenv, ~/.local and ~/src for development'),
             hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, 'execution hosts'),
-            idle_check_secs=(1800, int, 'how many minutes to wait between checks'),
+            idle_check_secs=(1800, int, 'how many seconds to wait between checks'),
             image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
             parallel=dict(
                 cores=(2, int, 'cores per parallel job'),
@@ -113,16 +110,26 @@ class DockerDriver(job_driver.DriverBase):
         return cls
 
     async def kill(self):
-        c = self.get('_cid')
-        if not c:
-            return
-        self._cid = None
+        c = self.pkdel('_cid')
         pkdlog('{} cid={:.12}', self, c)
         try:
+            # TODO(e-carlin): This can possibly hang and needs to be handled
+            # Ex. docker daemon is not responsive
             await self._cmd(
-                ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), c),
+                (
+                    'stop',
+                    '--time={}'.format(job_driver.KILL_TIMEOUT_SECS),
+                    self._cname
+                ),
             )
+        except asyncio.CancelledError:
+            # CancelledErrors need to make it back out to be handled
+            # by callers (ex job_supervisor.api_runSimulation)
+            raise
         except Exception as e:
+            if not c and 'No such container' in str(e):
+                # Make kill response idempotent
+                return
             pkdlog('{} error={} stack={}', self, e, pkdexc())
 
     async def prepare_send(self, op):
