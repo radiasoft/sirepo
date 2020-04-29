@@ -27,7 +27,7 @@ import time
 
 _DMP_FILE = 'geom.dat'
 _FIELD_MAP_COLS = ['x', 'y', 'z', 'Bx', 'By', 'Bz']
-_FIELD_MAP_UNITS = ['cm', 'cm', 'cm', 'T', 'T', 'T']
+_FIELD_MAP_UNITS = ['m', 'm', 'm', 'T', 'T', 'T']
 _FIELDS_FILE = 'fields.h5'
 _GEOM_DIR = 'geometry'
 _GEOM_FILE = 'geom.h5'
@@ -35,19 +35,14 @@ _METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'save_field']
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
 
-_s = sdds.SDDS(_SDDS_INDEX)
-_s.setDescription('Field Map', 'yes, a field map')
-for i, n in enumerate(_FIELD_MAP_COLS):
-    #name, symbol, units, desc, format, type, len)
-     _s.defineColumn(n, '', _FIELD_MAP_UNITS[i], n, '', _s.SDDS_DOUBLE, 0)
-    #_s.defineSimpleColumn(n, _s.SDDS_DOUBLE)
-
-
 GEOM_PYTHON_FILE = 'geom.py'
 MPI_SUMMARY_FILE = 'mpi-info.json'
 VIEW_TYPE_OBJ = 'objects'
 VIEW_TYPE_FIELD = 'fields'
 VIEW_TYPES = [VIEW_TYPE_OBJ, VIEW_TYPE_FIELD]
+
+# cfg contains sdds instance
+_cfg = PKDict(sdds=None)
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -82,9 +77,6 @@ def extract_report_data(run_dir, sim_in):
         return
     simulation_db.write_result(PKDict(), run_dir=run_dir)
 
-
-def _field_map_to_sdds():
-    pass
 
 # if the file exists but the data we seek does not, have Radia generate it here.  We
 # should only have to blow away the file after a solve (???)
@@ -134,55 +126,14 @@ def get_application_data(data, **kwargs):
         #pkdp('DATA {}', data)
         data.method = 'get_field'
         res = get_application_data(data)
-        #pkdp('FIOELDS {}', res)
-        pt = [d.vectors.vertices for d in res.data if 'vectors' in d]
-        pt = [p for a in pt for p in a]
-        m = [d.vectors.magnitudes for d in res.data if 'vectors' in d]
-        m = [p for a in m for p in a]
-        dr = [d.vectors.directions for d in res.data if 'vectors' in d]
-        dr = [p for a in dr for p in a]
-        #pkdp('PTS {}', pt)
-        with simulation_db.tmp_dir(True) as out_dir:
-            path = out_dir.join(data.simulationId + '.' + data.fileType)
-            #pkdp('LIB TMP {}', path)
-            if data.fileType == 'sdds':
-                col_data = [
-                    [
-                        [x for (j, x) in enumerate(pt) if j % 3 == 0]
-                    ],
-                    [
-                        [x for (j, x) in enumerate(pt) if j % 3 == 1]
-                    ],
-                    [
-                        [x for (j, x) in enumerate(pt) if j % 3 == 2]
-                    ],
-                    [
-                        [m[j // 3] * d for (j, d) in enumerate(dr) if j % 3 == 0]
-                    ],
-                    [
-                        [m[j // 3] * d for (j, d) in enumerate(dr) if j % 3 == 1]
-                    ],
-                    [
-                        [m[i // 3] * d for (i, d) in enumerate(dr) if i % 3 == 2]
-                    ]
-                ]
-                #pkdp('SDDS SAVE COLS {}', col_data)
-                for i, n in enumerate(_FIELD_MAP_COLS):
-                    _s.setColumnValueLists(n, col_data[i])
-                #pkdp('SAVING TO {}', str(path))
-                _s.save(str(path))
-                #with open(str(path)) as f:
-                #    for l in [line.rstrip('\n') for line in f]:
-                #pkdp('{}', l)
-                fp = PKDict(file=path)
-                return PKDict(data=fp)
-        #for p in data.fieldPaths:
-        #    f = p.name + '-' + p.type
-        #    ext = 'sdds' if p.type == 'fieldMap' else 'csv'
-        #    simulation_db.simulation_lib_dir('')
-        ##    if p.type == 'fieldMap':
-        #        sdds_file = ''
-        #return PKDict(files=files)
+        if data.fileType == 'sdds':
+            # we save individual field paths, so there will be one item in the list
+            return _save_fm_sdds(
+                res.name,
+                res.data[0],
+                simulation_db.simulation_lib_dir(SIM_TYPE).join(
+                    data.simulationId + '_' + res.name + '.' + data.fileType
+                ))
         return res
 
 
@@ -309,6 +260,7 @@ _FIELD_PT_BUILDERS = {
     'manual': _build_field_manual_pts,
 }
 
+
 def _build_geom(data):
     g_name = data.models.geometry.name
     if data.models.simulation.isExample:
@@ -429,6 +381,19 @@ def _get_res_file(sim_id, filename):
         .join(_GEOM_DIR).join(filename)
 
 
+def _get_sdds():
+    if _cfg.sdds is None:
+        _cfg.sdds = sdds.SDDS(_SDDS_INDEX)
+        # TODO(mvk): elegant cannot read these binary files; figure that out
+        # _cfg.sdds = sd.SDDS_BINARY
+        for i, n in enumerate(_FIELD_MAP_COLS):
+            # name, symbol, units, desc, format, type, len)
+            _cfg.sdds.defineColumn(
+                n, '', _FIELD_MAP_UNITS[i], n, '', _cfg.sdds.SDDS_DOUBLE, 0
+            )
+    return _cfg.sdds
+
+
 def _read_data(sim_id, view_type, field_type):
     try:
         with h5py.File(_geom_file(sim_id), 'r') as hf:
@@ -453,5 +418,25 @@ def _read_or_generate(geom_id, data):
         return get_application_data(data)
 
 
-def _save_sdds():
-    pass
+def _save_fm_sdds(name, f_data, file_path):
+    s = _get_sdds()
+    s.setDescription('Field Map for ' + name, 'x(m), y(m), z(m), Bx(T), By(T), Bz(T)')
+    # cm -> m for elegant - might need to have this as a param in general
+    pts = 0.01 * numpy.reshape(f_data.vectors.vertices, (-1, 3))
+    ind = numpy.lexsort((pts[:, 0], pts[:, 1], pts[:, 2]))
+    pts = pts[ind]
+    mag = f_data.vectors.magnitudes
+    dirs = f_data.vectors.directions
+    v = [mag[j // 3] * d for (j, d) in enumerate(dirs)]
+    fld = numpy.reshape(v, (-1, 3))[ind]
+    # can we use tmp_dir before it gets deleted?
+    # with simulation_db.tmp_dir(True) as out_dir:
+    col_data = []
+    for i in range(3):
+        col_data.append([pts[:, i].tolist()])
+    for i in range(3):
+        col_data.append([fld[:, i].tolist()])
+    for i, n in enumerate(_FIELD_MAP_COLS):
+        s.setColumnValueLists(n, col_data[i])
+    s.save(str(file_path))
+    return file_path

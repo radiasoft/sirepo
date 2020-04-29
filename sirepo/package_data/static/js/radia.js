@@ -366,6 +366,7 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
 
                 // use SDDS for field map - use python sdds
                 if ($scope.isFieldMap()) {
+                    /*
                     var p = radiaService.selectedPath;
                     var f = p.name + ' ' + $scope.fieldType() + '.sdds';
                     requestSender.newWindow(
@@ -377,6 +378,8 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                         },
                         true
                     );
+
+                     */
                     /*
                     var routeObj = {
                         routeName: 'writeSDDS',
@@ -390,17 +393,21 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                         }
                     );
                     */
-                    return;
+                    //return;
                 }
 
                 var CSV_HEADING = geometry.basis.slice();
                 geometry.basis.forEach(function (c) {
                     CSV_HEADING.push($scope.fieldType() + c);
                 });
-                //var p = radiaService.selectedPath;
+                var p = radiaService.selectedPath;
                 var data = [CSV_HEADING];
+                var f = p.name + ' ' + $scope.fieldType();
+                var ext = $scope.isFieldMap() ? 'sdds' : 'csv';
+                var fn = $scope.isFieldMap() ? panelState.fileNameFromText(f, ext) : null;
                 requestSender.getApplicationData(
                     {
+                        contentType: $scope.isFieldMap() ? 'application/octet-stream' : 'text/csv;charset=utf-8',
                         fieldPaths: [radiaService.selectedPath],
                         fieldType: $scope.fieldType(),
                         fileType: $scope.isFieldMap() ? 'sdds' : 'csv',
@@ -410,18 +417,20 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                         viewType: 'fields',
                     },
                     function(d) {
+                        // should be able to save both csv and sdds, processing all on the server
+                        if ($scope.isFieldMap()) {
+                            srdbg('FM DATA', d);
+                            saveAs(new Blob([d], {type: 'application/octet-stream'}), fn);
+                            return;
+                        }
                         if (! d || ! d.data) {
                             return;
                         }
                         //srdbg('save to', fileName, CSV_HEADING, data);
-                        var f = p.name + ' ' + $scope.fieldType();
-                        var ext = $scope.isFieldMap() ? 'sdds' : 'csv';
-                        var t = $scope.isFieldMap() ? 'application/octet-stream' : 'text/csv;charset=utf-8';
-                        var fileName = panelState.fileNameFromText(f, ext);
-                        if ($scope.isFieldMap()) {
-                            //srdbg('FM DATA', d);
-                            return;
-                        }
+                        //var f = p.name + ' ' + $scope.fieldType();
+                        //var ext = $scope.isFieldMap() ? 'sdds' : 'csv';
+                        //var t = $scope.isFieldMap() ? 'application/octet-stream' : 'text/csv;charset=utf-8';
+                        //var fileName = panelState.fileNameFromText(f, ext);
                         d.data.forEach(function (o) {
                             var v = o.vectors;
                             for (var i = 0; i < v.magnitudes.length; ++i) {
@@ -435,11 +444,13 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                                 data.push(row);
                             }
                         });
-                        //srdbg('save to', fileName, CSV_HEADING, data);
+                        //srdbg('save to', fn, CSV_HEADING, data);
                         //var fileName = panelState.fileNameFromText(p.name + ' ' + $scope.fieldType(), 'csv');
-                        //saveAs(new Blob([d3.csv.format(data)], {type: "text/csv;charset=utf-8"}), fileName);
-                        saveAs(new Blob([d3.csv.format(data)], {type: t}), fileName);
-                    });
+                        saveAs(new Blob([d3.csv.format(data)], {type: "text/csv;charset=utf-8"}), fn);
+                        //saveAs(new Blob([d3.csv.format(data)], {type: t}), fileName);
+                    },
+                    fn
+                );
             };
 
             $scope.fieldType = function() {
