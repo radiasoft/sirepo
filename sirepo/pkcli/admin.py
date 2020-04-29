@@ -23,8 +23,8 @@ import re
 import shutil
 
 
-def audit_protected_lib_files(uid=None):
-    """Add/removes protected files based on a user's roles
+def audit_proprietary_lib_files(uid=None):
+    """Add/removes proprietary files based on a user's roles
 
     For example, add the Flash executable if user has the flash role.
 
@@ -33,8 +33,8 @@ def audit_protected_lib_files(uid=None):
     """
     import py
 
-    def _link_or_unlik_protected_files(sim_type, should_link):
-        for f in sim_data.get_class(sim_type).protected_lib_file_basenames():
+    def _link_or_unlik_proprietary_files(sim_type, should_link):
+        for f in sim_data.get_class(sim_type).proprietary_lib_file_basenames():
             p = simulation_db.simulation_lib_dir(sim_type).join(f)
             if not should_link:
                 pkio.unchecked_remove(p)
@@ -52,7 +52,7 @@ def audit_protected_lib_files(uid=None):
     def _audit_user(uid):
         with auth.set_user(uid):
             for t in feature_config.cfg().proprietary_sim_types:
-                _link_or_unlik_protected_files(
+                _link_or_unlik_proprietary_files(
                     t,
                     auth.check_user_has_role(
                         auth.role_for_sim_type(t),

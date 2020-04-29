@@ -20,7 +20,7 @@ def add_roles(uid, *args):  # TODO(e-carlin): roles arg
     """
     _check_uid_and_roles(uid, args)
     sirepo.auth_db.UserRole.add_roles(uid, args)
-    admin.audit_protected_lib_files(uid)
+    admin.audit_proprietary_lib_files(uid)
 
 
 
@@ -32,7 +32,7 @@ def delete_roles(uid, *args):
     """
     _check_uid_and_roles(uid, args)
     sirepo.auth_db.UserRole.delete_roles(uid, args)
-    admin.audit_protected_lib_files(uid)
+    admin.audit_proprietary_lib_files(uid)
 
 
 def list_roles(uid):
