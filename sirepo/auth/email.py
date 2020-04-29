@@ -166,7 +166,7 @@ def _init_model(base):
         expires = sqlalchemy.Column(sqlalchemy.DateTime())
 
         def create_token(self):
-            self.expires = datetime.datetime.utcnow() + _EXPIRES_DELTA
+            self.expires = srtime.utc_now() + _EXPIRES_DELTA
             self.token = sirepo.util.create_token(self.unverified_email)
 
         @classmethod

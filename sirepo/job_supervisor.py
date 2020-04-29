@@ -8,17 +8,23 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
+from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdformat, pkdlog, pkdexc
 from sirepo import job
 import asyncio
+import contextlib
 import copy
 import datetime
 import os
 import pykern.pkio
+import sirepo.auth
+import sirepo.auth_db
 import sirepo.http_reply
+import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.srdb
+import sirepo.srtime
 import sirepo.tornado
 import sirepo.util
 import time
@@ -41,11 +47,12 @@ _HISTORY_FIELDS = frozenset((
     'computeJobStart',
     'computeModel'
     'driverDetails',
+    'error',
     'internalError',
     'isParallel',
     'isPremiumUser',
-    'error',
     'jobRunMode',
+    'jobStatusMessage',
     'lastUpdateTime',
     'status',
 ))
@@ -89,6 +96,9 @@ def init():
             parallel_premium=(2, float, 'maximum run-time for parallel job for premium user (except sbatch)'),
             sequential=(.1, float, 'maximum run-time for sequential job'),
         ),
+        purge_free_after_days=(1000, int, 'how many days to wait before purging a free users simulation'),
+        purge_free_start=('02:00:00', str, 'time to first start purging free users simulations (%H:%M:%S)'),
+        purge_free_period=('01:00:00', str, 'how often to purge free users simulations after start time (%H:%M:%S)'),
         sbatch_poll_secs=(15, int, 'how often to poll squeue and parallel status'),
     )
     _NEXT_REQUEST_SECONDS = PKDict({
@@ -96,6 +106,7 @@ def init():
         job.SBATCH: cfg.sbatch_poll_secs,
         job.SEQUENTIAL: 1,
     })
+    sirepo.auth_db.init(sirepo.srdb.root(), migrate_db_file=False)
     if sirepo.simulation_db.user_dir_name().exists():
         if not _DB_DIR.exists():
             pkdlog('calling upgrade_runner_to_job_db path={}', _DB_DIR)
@@ -116,6 +127,10 @@ def init():
             )
     else:
         pykern.pkio.mkdir_parent(_DB_DIR)
+    tornado.ioloop.IOLoop.current().add_callback(
+        _ComputeJob.purge_free_simulations,
+        init=True,
+    )
 
 
 class ServerReq(PKDict):
@@ -163,7 +178,7 @@ class _ComputeJob(PKDict):
         self.cache_timeout_set()
 
     def cache_timeout(self):
-        if self.ops or init:
+        if self.ops:
             self.cache_timeout_set()
         else:
             del self.instances[self.db.computeJid]
@@ -173,6 +188,11 @@ class _ComputeJob(PKDict):
             cfg.job_cache_secs,
             self.cache_timeout,
         )
+
+    def clear_status(self, op, exception=None):
+        if not exception:
+            self.__db_update(jobStatusMessage=None)
+            return
 
     def destroy_op(self, op):
         if op in self.ops:
@@ -211,6 +231,64 @@ class _ComputeJob(PKDict):
         )
 
     @classmethod
+    async def purge_free_simulations(cls, init=False):
+        def _get_uids_and_files():
+            r = []
+            u = None
+            p = sirepo.auth_db.UserRole.uids_of_paid_users()
+            for f in pkio.sorted_glob(_DB_DIR.join('*{}'.format(
+                    sirepo.simulation_db.JSON_SUFFIX,
+            ))):
+                n = sirepo.sim_data.uid_from_jid(f.basename)
+                if n in p or f.mtime() > _too_old:
+                    continue
+                if u != n:
+                    # POSIT: Uid is the first part of each db file. The files are
+                    # sorted so this should yield all of a user's files
+                    if r:
+                        yield u, r
+                    u = n
+                    r = []
+                r.append(f)
+            if r:
+                yield u, r
+
+        def _purge_sim(db_file):
+            d = pkcollections.json_load_any(db_file)
+            # OPTIMIZATION: We assume the uids_of_paid_users doesn't change very
+            # frequently so we don't need to check again. A user could run a sim
+            # at anytime so we need to check that they haven't
+            if d.lastUpdateTime > _too_old:
+                return
+            if d.status == job.FREE_USER_PURGED:
+                return
+            p = sirepo.simulation_db.simulation_run_dir(d)
+            pkio.unchecked_remove(p)
+            d.status = job.FREE_USER_PURGED
+            cls.__db_write_file(d)
+            jids_purged.append(db_file.purebasename)
+
+        s = sirepo.srtime.utc_now()
+        u = None
+        f = None
+        try:
+            _too_old = sirepo.srtime.utc_now_as_float() - (
+                cfg.purge_free_after_days * 24 * 60 * 60
+            )
+
+            jids_purged = []
+            for u, v in _get_uids_and_files():
+                with sirepo.auth.set_user(u):
+                    for f in v:
+                        _purge_sim(f)
+                await tornado.gen.sleep(0)
+            pkdlog('jids={}', jids_purged)
+        except Exception as e:
+            pkdlog('u={} f={} error={} stack={}', u, f, e, pkdexc())
+        finally:
+            cls._purge_free_simulations_set(s, init)
+
+    @classmethod
     async def receive(cls, req):
         if req.content.get('api') != 'api_runStatus':
             pkdlog('{}', req)
@@ -224,9 +302,7 @@ class _ComputeJob(PKDict):
             return PKDict(state=job.CANCELED)
         except Exception as e:
             pkdlog('{} error={} stack={}', req, e, pkdexc())
-            if isinstance(e, sirepo.util.Reply):
-                return sirepo.http_reply.gen_tornado_exception(e)
-            raise
+            return sirepo.http_reply.gen_tornado_exception(e)
 
     async def run_dir_acquire(self, owner):
         if self.run_dir_owner == owner:
@@ -250,6 +326,23 @@ class _ComputeJob(PKDict):
         self.run_dir_owner = None
         self.run_dir_mutex.set()
 
+    def set_status(self, op, status):
+        m = None
+        if op.opName == job.OP_RUN:
+            if status == _Op.STATUS_AWAIT_OP_SLOT:
+                m = 'Waiting for another simulation to complete'
+            elif status == _Op.STATUS_COMPUTE_RUNNING:
+                m = 'Running'
+
+        if m:
+            assert not self.db.jobStatusMessage, \
+                'Trying to overwrite existing jobStatusMessage={}'.format(
+                    self.db.jobStatusMessage,
+                )
+            self.__db_update(
+                jobStatusMessage=m,
+            )
+
     @classmethod
     def __create(cls, req):
         try:
@@ -267,7 +360,7 @@ class _ComputeJob(PKDict):
 
     @classmethod
     def __db_file(cls, computeJid):
-        return _DB_DIR.join(computeJid + '.json')
+        return _DB_DIR.join(computeJid + sirepo.simulation_db.JSON_SUFFIX)
 
     def __db_init(self, req, prev_db=None):
         c = req.content
@@ -281,18 +374,32 @@ class _ComputeJob(PKDict):
             computeJobQueued=0,
             driverDetails=PKDict(),
             error=None,
+            jobStatusMessage=None,
             history=self.__db_init_history(prev_db),
             isParallel=c.isParallel,
             isPremiumUser=c.get('isPremiumUser'),
-            jobRunMode=c.jobRunMode,
             lastUpdateTime=0,
             simName=None,
-            nextRequestSeconds=_NEXT_REQUEST_SECONDS[c.jobRunMode],
             simulationId=c.simulationId,
             simulationType=c.simulationType,
 #TODO(robnagler) when would req come in with status?
             status=req.get('status', job.MISSING),
             uid=c.uid,
+        )
+        r = c.get('jobRunMode')
+        if not r:
+            assert c.api != 'api_runSimulation', \
+                'api_runSimulation must have a jobRunMode content={}'.format(c)
+            # __db_init() will be called when runDirNotFound.
+            # The api_* that initiated the request may not have
+            # a jobRunMode (ex api_downloadDataFile). In that
+            # case use the existing jobRunMode because the
+            # request doesn't care about the jobRunMode
+            r = self.db.jobRunMode
+
+        self.db.pkupdate(
+            jobRunMode=r,
+            nextRequestSeconds=_NEXT_REQUEST_SECONDS[r],
         )
         if self.db.isParallel:
             self.db.parallelStatus = PKDict(
@@ -316,6 +423,7 @@ class _ComputeJob(PKDict):
                 'alert',
                 'cancelledAfterSecs',
                 'isPremiumUser',
+                'jobStatusMessage',
                 'internalError',
         ]:
             d.setdefault(k, None)
@@ -328,8 +436,12 @@ class _ComputeJob(PKDict):
         return self.__db_write()
 
     def __db_write(self):
-        sirepo.util.json_dump(self.db, path=self.__db_file(self.db.computeJid))
+        self.__db_write_file(self.db)
         return self
+
+    @classmethod
+    def __db_write_file(cls, db):
+        sirepo.util.json_dump(db, path=cls.__db_file(db.computeJid))
 
     @classmethod
     def _get_running_pending_jobs(cls, uid=None):
@@ -345,6 +457,7 @@ class _ComputeJob(PKDict):
                 'Start (UTC)',
                 'Last update (UTC)',
                 'Elapsed',
+                'Status',
             ]
             if uid:
                 h.insert(l, 'Name')
@@ -380,6 +493,7 @@ class _ComputeJob(PKDict):
                     _strf_unix_time(i.db.computeJobStart),
                     _strf_unix_time(i.db.lastUpdateTime),
                     _strf_seconds(i.db.lastUpdateTime - i.db.computeJobStart),
+                    i.db.jobStatusMessage if i.db.jobStatusMessage else '',
                 ]
                 if uid:
                     d.insert(l, i.db.simName)
@@ -499,19 +613,19 @@ class _ComputeJob(PKDict):
             if c:
                 c.destroy(cancel=False)
 
-    async def _receive_api_runSimulation(self, req):
-        def _set_error(destroy_op):
-            if self.db.computeJobSerial != c:
+    async def _receive_api_runSimulation(self, req, recursion_depth=0):
+        def _set_error(op, compute_job_serial):
+            if self.db.computeJobSerial != compute_job_serial:
                 # Another run has started
                 return
             self.__db_update(
                 error='Server error',
-                internalError=o.internal_error,
+                internalError=op.internal_error,
                 status=job.ERROR,
             )
             # _run destroys in the happy path (never got to _run here)
-            if destroy_op:
-                o.destroy(cancel=False)
+            if op:
+                op.destroy(cancel=False)
 
         f = req.content.data.get('forceRun')
         if self._is_running_pending():
@@ -528,7 +642,18 @@ class _ComputeJob(PKDict):
         ):
             # Valid, completed, transient simulation
             # Read this first https://github.com/radiasoft/sirepo/issues/2007
-            return await self._receive_api_runStatus(req)
+            r = await self._receive_api_runStatus(req)
+            if r.state == job.MISSING:
+                # happens when the run dir is deleted (ex _purge_free_simulations)
+                assert recursion_depth == 0, \
+                    'Infinite recursion detected. Already called from self. req={}'.format(
+                        req,
+                    )
+                return await self._receive_api_runSimulation(
+                    req,
+                    recursion_depth + 1,
+                )
+            return r
         # Forced or canceled/errored/missing/invalid so run
         o = self._create_op(
             job.OP_RUN,
@@ -578,10 +703,10 @@ class _ComputeJob(PKDict):
             # There was a timeout getting the run started. Set the
             # error and let the user know. The timeout has destroyed
             # the op so don't need to in _set_error
-            _set_error(False)
+            _set_error(None, c)
             return self._status_reply(req)
         except Exception:
-            _set_error(True)
+            _set_error(o, c)
             raise
 
     async def _receive_api_runStatus(self, req):
@@ -612,7 +737,7 @@ class _ComputeJob(PKDict):
             else job.SEQUENTIAL
         req.simulationType = self.db.simulationType
         # run mode can change between runs so use req.content.jobRunMode
-        # not self.db.jobRunmode
+        # not self.db.jobRunMode
         r = req.content.get('jobRunMode', self.db.jobRunMode)
         if r not in sirepo.simulation_db.JOB_RUN_MODE_MAP:
             # happens only when config changes, and only when sbatch is missing
@@ -654,6 +779,47 @@ class _ComputeJob(PKDict):
             t = cfg.max_hours['parallel_premium']
         return t * 3600
 
+    @classmethod
+    def _purge_free_simulations_set(cls, previous_start, init):
+        def _call_at(time):
+            tornado.ioloop.IOLoop.current().call_at(
+                sirepo.srtime.to_timestamp(time),
+                _ComputeJob.purge_free_simulations,
+            )
+
+        def _get_start():
+            t = datetime.datetime.combine(
+                datetime.date.fromtimestamp(sirepo.srtime.to_timestamp(n)),
+                datetime.datetime.min.time(),
+            )
+            return t + _get_timedelta(cfg.purge_free_start)
+
+        def _get_timedelta(time_str):
+            t = datetime.datetime.strptime(time_str, "%H:%M:%S")
+            return datetime.timedelta(
+                hours=t.hour,
+                minutes=t.minute,
+                seconds=t.second,
+            )
+        n = sirepo.srtime.utc_now()
+        s = _get_start()
+        p = _get_timedelta(cfg.purge_free_period)
+
+        if not init:
+            # TODO(e-carlin): This will drift away from s because
+            # call_at doesn't guarantee the callback is called at
+            # exactly the time provided. Using previous_start should
+            # make the drift inconsequentially small.
+            _call_at(previous_start + p)
+            return
+        if s > n:
+            _call_at(s)
+            return
+        t = s + p
+        while t < n:
+            t += p
+        _call_at(t)
+
     def _req_is_valid(self, req):
         return (
             self.db.computeJobHash == req.content.computeJobHash
@@ -668,34 +834,35 @@ class _ComputeJob(PKDict):
         op.pkdel('run_callback')
         l = True
         try:
-            while True:
-                try:
-                    r = await op.reply_get()
-                    #TODO(robnagler) is this ever true?
-                    if op != self.run_op:
+            with op.set_job_status(op.STATUS_COMPUTE_RUNNING):
+                while True:
+                    try:
+                        r = await op.reply_get()
+                        #TODO(robnagler) is this ever true?
+                        if op != self.run_op:
+                            return
+                        # run_dir is in a stable state so don't need to lock
+                        if l:
+                            l = False
+                            self.run_dir_release(op)
+                        self.db.status = r.state
+                        self.db.alert = r.get('alert')
+                        if self.db.status == job.ERROR:
+                            self.db.error = r.get('error', '<unknown error>')
+                        if 'computeJobStart' in r:
+                            self.db.computeJobStart = r.computeJobStart
+                        if 'parallelStatus' in r:
+                            self.db.parallelStatus.update(r.parallelStatus)
+                            self.db.lastUpdateTime = r.parallelStatus.lastUpdateTime
+                        else:
+                            # sequential jobs don't send this
+                            self.db.lastUpdateTime = int(time.time())
+                        #TODO(robnagler) will need final frame count
+                        self.__db_write()
+                        if r.state in job.EXIT_STATUSES:
+                            break
+                    except asyncio.CancelledError:
                         return
-                    # run_dir is in a stable state so don't need to lock
-                    if l:
-                        l = False
-                        self.run_dir_release(op)
-                    self.db.status = r.state
-                    self.db.alert = r.get('alert')
-                    if self.db.status == job.ERROR:
-                        self.db.error = r.get('error', '<unknown error>')
-                    if 'computeJobStart' in r:
-                        self.db.computeJobStart = r.computeJobStart
-                    if 'parallelStatus' in r:
-                        self.db.parallelStatus.update(r.parallelStatus)
-                        self.db.lastUpdateTime = r.parallelStatus.lastUpdateTime
-                    else:
-                        # sequential jobs don't send this
-                        self.db.lastUpdateTime = int(time.time())
-                    #TODO(robnagler) will need final frame count
-                    self.__db_write()
-                    if r.state in job.EXIT_STATUSES:
-                        break
-                except asyncio.CancelledError:
-                    return
         except Exception as e:
             pkdlog('error={} stack={}', e, pkdexc())
             if op == self.run_op:
@@ -715,7 +882,16 @@ class _ComputeJob(PKDict):
                         await self.run_dir_acquire(o)
                     await o.prepare_send()
                     o.send()
-                    return await o.reply_get()
+                    r =  await o.reply_get()
+                    # POSIT: any api_* that could run into runDirNotFound
+                    # will call _send_with_single_reply() and this will
+                    # properly format the reply
+                    if not r.get('runDirNotFound'):
+                        return r
+                    self.__db_init(req, prev_db=self.db)
+                    assert self.db.status == job.MISSING, \
+                        'expecting missing status={}'.format(self.db.status)
+                    return PKDict(state=self.db.status)
                 except Awaited:
                     pass
             else:
@@ -764,6 +940,8 @@ class _ComputeJob(PKDict):
 
 
 class _Op(PKDict):
+    STATUS_AWAIT_OP_SLOT = 'status_await_op_slot'
+    STATUS_COMPUTE_RUNNING = 'status_compute_running'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -836,6 +1014,16 @@ class _Op(PKDict):
                 self.run_timeout,
             )
         self.driver.send(self)
+
+    @contextlib.contextmanager
+    def set_job_status(self, status):
+        self.computeJob.set_status(self, status)
+        try:
+            yield
+            self.computeJob.clear_status(self)
+        except Exception as e:
+            self.computeJob.clear_status(self, exception=e)
+            raise
 
     def __hash__(self):
         return hash((self.opId,))

@@ -5,11 +5,7 @@
       <div data-basic-editor-panel="" data-view-name="simulationStatus" data-want-buttons="">
        <div data-cancelled-due-to-timeout-alert="visualization.simState"></div>
           <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="visualization.simState.isProcessing()">
-            <div class="col-sm-12" data-ng-show="visualization.simState.isStatePending()">
-              <div>
-                {{ visualization.simState.stateAsText() }}  {{ visualization.simState.dots }}
-              </div>
-            </div>
+            <div class="col-sm-12" data-pending-link-to-simulations="" data-sim-state="visualization.simState"></div>
             <div class="col-sm-12" data-ng-show="visualization.simState.isStateRunning()">
               <div>
                 {{ visualization.runningStatusText() }}

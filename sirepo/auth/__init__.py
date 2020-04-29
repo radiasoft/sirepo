@@ -16,6 +16,7 @@ from sirepo import http_reply
 from sirepo import http_request
 from sirepo import auth_db
 from sirepo import util
+import contextlib
 import sirepo.uri
 import sirepo.feature_config
 import sirepo.template
@@ -32,6 +33,8 @@ METHOD_GUEST = 'guest'
 
 ROLE_ADM = 'adm'
 ROLE_PREMIUM = 'premium'
+
+PAID_USER_ROLES = (ROLE_PREMIUM,)
 
 #: key for auth method for login state
 _COOKIE_METHOD = 'sram'
@@ -141,7 +144,7 @@ def init_apis(app, *args, **kwargs):
         'Do not set $SIREPO_AUTH_LOGGED_IN_USER in server'
     uri_router = importlib.import_module('sirepo.uri_router')
     simulation_db = importlib.import_module('sirepo.simulation_db')
-    auth_db.init(app)
+    auth_db.init(app.sirepo_db_dir)
     _app = app
     p = pkinspect.this_module().__name__
     visible_methods = []
@@ -155,16 +158,6 @@ def init_apis(app, *args, **kwargs):
     visible_methods = tuple(sorted(visible_methods))
     non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
     cookie.auth_hook_from_header = _auth_hook_from_header
-
-
-def init_mock(uid=None, sim_type=None):
-    """A mock user for pkcli"""
-    cookie.init_mock()
-    import sirepo.auth.guest
-    if uid:
-        _login_user(sirepo.auth.guest, uid)
-    else:
-        login(sirepo.auth.guest, is_mock=True)
 
 
 def is_premium_user():
@@ -394,6 +387,28 @@ def reset_state():
     cookie.unchecked_remove(_COOKIE_METHOD)
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
     _set_log_user()
+
+
+def set_user_for_utils(uid=None):
+    """A mock user for utilities"""
+    cookie.set_cookie_for_utils()
+    import sirepo.auth.guest
+    if uid:
+        _login_user(sirepo.auth.guest, uid)
+    else:
+        login(sirepo.auth.guest, is_mock=True)
+
+
+@contextlib.contextmanager
+def set_user(uid):
+    """Set the user (uid) for the context"""
+    assert not util.in_flask_app_context(), \
+        'Flask sets the user on the request'
+    try:
+        set_user_for_utils(uid=uid)
+        yield
+    finally:
+        reset_state()
 
 
 def user_dir_not_found(user_dir, uid):
