@@ -16,6 +16,7 @@ from sirepo import util
 import asyncio
 import asyncssh
 import datetime
+import errno
 import sirepo.simulation_db
 import sirepo.srdb
 import tornado.gen
@@ -181,6 +182,10 @@ disown
                         pkdexc(),
                     )
         except Exception as e:
+            if isinstance(e, OSError) and e.errno == errno.EHOSTUNREACH:
+                raise sirepo.util.UserAlert(
+                    'Host {} unreachable. Please try again later.'.format(self.cfg.host),
+                )
             if isinstance(e, asyncssh.misc.PermissionDenied):
                 self._srdb_root = None
                 self._raise_sbatch_login_srexception('invalid-creds', op.msg)

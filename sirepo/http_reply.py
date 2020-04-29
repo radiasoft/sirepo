@@ -188,10 +188,12 @@ def gen_redirect_for_local_route(sim_type=None, route=None, params=None, query=N
 
 
 def gen_tornado_exception(exc):
-    return PKDict({
-       _STATE: SR_EXCEPTION_STATE,
-       SR_EXCEPTION_STATE: exc.sr_args,
-    })
+    if not isinstance(exc, sirepo.util.Reply):
+        raise
+    return getattr(
+        pykern.pkinspect.this_module(),
+        '_gen_tornado_exception_reply_' + exc.__class__.__name__,
+    )(exc.sr_args)
 
 
 def headers_for_no_cache(resp):
@@ -341,3 +343,11 @@ def _gen_exception_reply_UserAlert(args):
 def _gen_exception_werkzeug(exc):
 #TODO(robnagler) convert exceptions to our own
     raise exc
+
+
+def _gen_tornado_exception_reply_SRException(args):
+    return PKDict({_STATE: SR_EXCEPTION_STATE, SR_EXCEPTION_STATE: args})
+
+
+def _gen_tornado_exception_reply_UserAlert(args):
+    return PKDict({_STATE: _ERROR_STATE, _ERROR_STATE: args.error})
