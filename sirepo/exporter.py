@@ -13,6 +13,7 @@ from pykern import pkjson
 from pykern.pkdebug import pkdp
 from sirepo import sim_data
 from sirepo import simulation_db
+from sirepo import template
 from sirepo import uri_router
 import base64
 import copy
@@ -32,7 +33,7 @@ def create_archive(sim):
     """
     if not pkio.has_file_extension(sim.filename, ('zip', 'html')):
         raise sirepo.util.NotFound(
-            'unknown file type={}; expecting html or zip'.format(sim.filename),
+            'unknown file type={}; expecting html or zip'.format(sim.filename)
         )
     with simulation_db.tmp_dir() as d:
         want_zip = sim.filename.endswith('zip')
