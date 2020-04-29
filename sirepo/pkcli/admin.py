@@ -23,17 +23,17 @@ import re
 import shutil
 
 
-def audit_proprietary_lib_files(uid=None):
+def audit_proprietary_lib_files(*uid):
     """Add/removes proprietary files based on a user's roles
 
     For example, add the Flash executable if user has the flash role.
 
     Args:
-        uid (str): Uid of the user
+        *uid: Uid(s) of the user(s) to audit. If None all users will be audited.
     """
     import py
 
-    def _link_or_unlik_proprietary_files(sim_type, should_link):
+    def _link_or_unlink_proprietary_files(sim_type, should_link):
         for f in sim_data.get_class(sim_type).proprietary_lib_file_basenames():
             p = simulation_db.simulation_lib_dir(sim_type).join(f)
             if not should_link:
@@ -49,10 +49,10 @@ def audit_proprietary_lib_files(uid=None):
                 pass
 
 
-    def _audit_user(uid):
+    def _audit_user(uid, proprietary_sim_types):
         with auth.set_user(uid):
-            for t in feature_config.cfg().proprietary_sim_types:
-                _link_or_unlik_proprietary_files(
+            for t in proprietary_sim_types:
+                _link_or_unlink_proprietary_files(
                     t,
                     auth.check_user_has_role(
                         auth.role_for_sim_type(t),
@@ -61,11 +61,14 @@ def audit_proprietary_lib_files(uid=None):
                 )
 
     server.init()
-    if uid:
-        _audit_user(uid)
+    t = feature_config.cfg().proprietary_sim_types
+    if not t:
         return
-    for d in pkio.sorted_glob(simulation_db.user_dir_name().join('*')):
-        _audit_user(simulation_db.uid_from_dir_name(d))
+    for u in uid if uid else [
+            simulation_db.uid_from_dir_name(d) for d in
+            pkio.sorted_glob(simulation_db.user_dir_name().join('*'))
+    ]:
+        _audit_user(u, t)
 
 
 def create_examples():

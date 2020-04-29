@@ -425,11 +425,7 @@ def _generate_parameters_file(data):
     res = ''
     names = {}
     for line in pkio.read_text(
-            sirepo.sim_data.get_class(
-                data,
-            ).setup_units_file_path(
-                data.models.simulation.flashType,
-            ),
+            _SIM_DATA.flash_setup_units_path(data),
     ).split('\n'):
         name = ''
         #TODO(pjm): share with setup_params parser
