@@ -242,6 +242,22 @@ class _TestClient(flask.testing.FlaskClient):
             )
         return s
 
+    def sr_email_login(self, email):
+        self.sr_logout()
+        r = self.sr_post(
+            'authEmailLogin',
+            PKDict(email=email, simulationType=self.sr_sim_type),
+        )
+        self.sr_email_confirm(self, r)
+
+    def sr_email_register(self, email):
+        self.sr_email_login(email)
+        self.sr_post(
+            'authCompleteRegistration',
+            PKDict(displayName=email, simulationType=self.sr_sim_type),
+        )
+
+
     def sr_get(self, route_or_uri, params=None, query=None, **kwargs):
         """Gets a request to route_or_uri to server
 
@@ -495,6 +511,15 @@ class _TestClient(flask.testing.FlaskClient):
         """
         self.sr_sim_type = sim_type or self.sr_sim_type or self.SR_SIM_TYPE_DEFAULT
         return self
+
+    def sr_user_dir(self, uid=None):
+        """User's db dir"""
+        from pykern import pkunit
+
+        if not uid:
+            uid = self.sr_auth_state().uid
+        return pkunit.work_dir().join('db', 'user', uid)
+
 
     def __req(self, route_or_uri, params, query, op, raw_response, **kwargs):
         """Make request and parse result
