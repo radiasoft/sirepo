@@ -8,9 +8,10 @@ REAL bc = qb * bf * 1e6;
 
 OPT1: option,autophase=4,psdumpfreq=50,statdumpfreq=1,version=10900;
 
-D1: DRIFT,l=0.43014;
+D1: DRIFT,l=0.48;
 D2: DRIFT,l=0.08;
 D3: DRIFT,l=4.16;
+DR1: DRIFT,l=-0.04986;
 FIND1_MQ10: QUADRUPOLE,l=0.1;
 FINSS_RGUN: RFCAVITY,fmapfn="RFCAVITY-fmapfn.CTF3_Ez_ASTRA.opal",freq=BF,l=0.34986,lag=-3.5 / 180.0 * PI,type=STANDING,volt=100;
 FIND1_MSOL10: SOLENOID,fmapfn="SOLENOID-fmapfn.NEW_SINGLE_SOL_NOFRINGE_ASTRA.opal",ks=0.206,l=0.6;
@@ -18,8 +19,8 @@ GUNSOURCE: SOURCE;
 
 "GUNSOURCE#0": GUNSOURCE,elemedge=0;
 "FINSS_RGUN#0": FINSS_RGUN,elemedge=0;
-"FIND1_MSOL10#0": FIND1_MSOL10,elemedge=0.34986;
-"D1#0": D1,elemedge=0.9498599999999999;
+"FIND1_MSOL10#0": FIND1_MSOL10,elemedge=0.3;
+"D1#0": D1,elemedge=0.8999999999999999;
 "FIND1_MQ10#0": FIND1_MQ10,elemedge=1.38;
 "D2#0": D2,elemedge=1.48;
 "FIND1_MQ10#1": FIND1_MQ10,elemedge=1.56;
