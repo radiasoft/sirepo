@@ -419,7 +419,7 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                     function(d) {
                         // should be able to save both csv and sdds, processing all on the server
                         if ($scope.isFieldMap()) {
-                            srdbg('FM DATA', d);
+                            //srdbg('FM DATA', d);
                             saveAs(new Blob([d], {type: 'application/octet-stream'}), fn);
                             return;
                         }
@@ -427,10 +427,6 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                             return;
                         }
                         //srdbg('save to', fileName, CSV_HEADING, data);
-                        //var f = p.name + ' ' + $scope.fieldType();
-                        //var ext = $scope.isFieldMap() ? 'sdds' : 'csv';
-                        //var t = $scope.isFieldMap() ? 'application/octet-stream' : 'text/csv;charset=utf-8';
-                        //var fileName = panelState.fileNameFromText(f, ext);
                         d.data.forEach(function (o) {
                             var v = o.vectors;
                             for (var i = 0; i < v.magnitudes.length; ++i) {

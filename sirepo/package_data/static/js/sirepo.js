@@ -1643,11 +1643,9 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                 '<filename>': fileName
             } : 'getApplicationData';
             self.sendRequest(r, callback, data, function (data, status, respData) {
-                srdbg('ERR, check for filename');
                 if (status === 200) {
                     if (fileName) {
                         // if filename, do a Blob saveAs() here?
-                        srdbg('Got filename', fileName, 'do callback with', respData);
                         callback(respData, status);
                     }
                 }
