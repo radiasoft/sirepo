@@ -21,14 +21,14 @@ class SimData(sirepo.sim_data.SimDataBase):
             )
 
     @classmethod
-    def proprietary_lib_file_basenames(cls):
-        return ['CapLaser']
+    def flash_setup_units_path(cls, data):
+        return cls.lib_file_resource_dir().join(
+            '{}.setup_units'.format(data.models.simulation.flashType),
+        )
 
     @classmethod
-    def setup_units_file_path(cls, flash_type):
-        return cls.lib_file_resource_dir().join(
-            '{}.setup_units'.format(flash_type),
-        )
+    def proprietary_lib_file_basenames(cls):
+        return ['CapLaser']
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
