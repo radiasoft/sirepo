@@ -22,8 +22,7 @@ class CodeVar(object):
         ast.Not: '!',
         ast.Pow: 'pow',
         ast.Sub: '-',
-        ast.UAdd: '+',
-        ast.USub: '+',
+        ast.USub: 'chs',
     })
 
     def __init__(self, variables, evaluator, case_insensitive=False):
@@ -141,6 +140,8 @@ class CodeVar(object):
                 return res + [n.func.id]
             elif isinstance(n, ast.BinOp):
                 return _do(n.left) + _do(n.right) + _do(n.op)
+            elif isinstance(n, ast.UAdd):
+                return []
             elif isinstance(n, ast.UnaryOp):
                 return _do(n.operand) + _do(n.op)
             elif isinstance(n, ast.IfExp):
@@ -228,6 +229,7 @@ class PurePythonEval(object):
         'tan': lambda a: math.tan(a),
         'atan': lambda a: math.atan(a),
         'abs': lambda a: abs(a),
+        'chs': lambda a: -a,
     })
 
     _KEYWORDS = _OPS.keys()
