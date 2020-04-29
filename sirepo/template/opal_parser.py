@@ -240,25 +240,30 @@ class OpalParser(lattice.LatticeParser):
 
     def __update_filenames(self):
         res = []
+        visited = set()
         for container in ('elements', 'commands'):
             for el in self.data.models[container]:
                 model_name = self.util.model_name_for_data(el)
                 el_schema = self.schema.model[model_name]
                 for f in el:
-                    if f in el_schema:
-                        if el_schema[f][1] == 'OutputFile' and el[f]:
-                            el[f] = '1'
-                        elif el_schema[f][1] == 'InputFile' and el[f]:
-                            el[f] = os.path.basename(el[f])
+                    if f not in el_schema:
+                        continue
+                    if el_schema[f][1] == 'OutputFile' and el[f]:
+                        el[f] = '1'
+                    elif el_schema[f][1] == 'InputFile' and el[f]:
+                        el[f] = os.path.basename(el[f])
+                        filename = self.sim_data.lib_file_name_with_model_field(
+                            model_name, f, el[f])
+                        if filename not in visited:
                             res.append(PKDict(
                                 label=el.name,
                                 type=LatticeUtil.type_for_data(el),
                                 file_type='{}-{}'.format(model_name, f),
                                 filename=el[f],
                                 field=f,
-                                lib_filename=self.sim_data.lib_file_name_with_model_field(
-                                    model_name, f, el[f]),
+                                lib_filename=filename,
                             ))
+                        visited.add(filename)
         return res
 
 
