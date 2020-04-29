@@ -96,8 +96,8 @@ class LatticeParser(object):
 
     def parse_file(self, lattice_text):
         from sirepo import simulation_db
-        self.parser = LineParser()
         self.data = simulation_db.default_data(self.sim_data.sim_type())
+        self.parser = LineParser(100)
         self.data.models.rpnVariables = {}
         self.data.models.sequences = []
         # None | sequence | track | match | edit
@@ -127,6 +127,17 @@ class LatticeParser(object):
                 if length not in drifts:
                     drifts[length] = el._id
         return drifts
+
+    def _downcase_variables(self, code_var):
+        for v in self.data.models.rpnVariables:
+            v.name = v.name.lower()
+        for container in ('elements', 'commands'):
+            for el in self.data.models[container]:
+                model_name = LatticeUtil.model_name_for_data(el)
+                for f in self.schema.model[model_name]:
+                    if f in el and self.schema.model[model_name][f][1] == 'RPNValue':
+                        if code_var.is_var_value(el[f]):
+                            el[f] = el[f].lower()
 
     def _eval_var(self, code_var, value):
         (v, err) = code_var.eval_var(value)
@@ -392,7 +403,7 @@ class LatticeUtil(object):
     def __init__(self, data, schema):
         self.data = data
         self.schema = schema
-        self.id_map = self.__build_id_map(data)
+        self.id_map, self.max_id = self.__build_id_map(data)
 
     @classmethod
     def is_command(cls, model):
@@ -492,7 +503,8 @@ class LatticeUtil(object):
                 #TODO(pjm): some old elegant sims have overlap in element and command ids
                 if cmd._id not in res:
                     res[cmd._id] = cmd
-        return res
+        max_id = max(res.keys()) if len(res) else 0
+        return res, max_id
 
     def __render_beamline(self, quote_name=False, want_semicolon=False):
         """Render the beamlines list in precedence order.

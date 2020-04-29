@@ -235,17 +235,17 @@ def import_file(req, test_data=None, **kwargs):
     text = pkcompat.from_bytes(req.file_stream.read())
     if 'simulationId' in req.req_data:
         input_data = simulation_db.read_simulation_json(SIM_TYPE, sid=req.req_data.simulationId)
-    if re.search(r'.ele$', req.filename, re.IGNORECASE):
+    if re.search(r'\.ele$', req.filename, re.IGNORECASE):
         data = elegant_command_importer.import_file(text)
-    elif re.search(r'.lte$', req.filename, re.IGNORECASE):
+    elif re.search(r'\.lte$', req.filename, re.IGNORECASE):
         data = elegant_lattice_importer.import_file(text, input_data)
         if input_data:
             _map_commands_to_lattice(data)
-    elif re.search(r'.madx$', req.filename, re.IGNORECASE):
+    elif re.search(r'\.madx$', req.filename, re.IGNORECASE):
         from sirepo.template import madx_converter, madx_parser
         data = madx_converter.from_madx(
             SIM_TYPE,
-            madx_parser.parse_file(text))
+            madx_parser.parse_file(text, downcase_variables=True))
     else:
         raise IOError('invalid file extension, expecting .ele or .lte')
     data.models.simulation.name = re.sub(r'\.(lte|ele|madx)$', '', req.filename, flags=re.IGNORECASE)

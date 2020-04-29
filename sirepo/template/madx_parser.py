@@ -29,13 +29,15 @@ class MadXParser(lattice.LatticeParser):
         ])
         super().__init__(sirepo.sim_data.get_class('madx'))
 
-    def parse_file(self, lattice_text):
+    def parse_file(self, lattice_text, downcase_variables=False):
         from sirepo.template import madx
         res = super().parse_file(lattice_text)
         cv = madx.madx_code_var(self.data.models.rpnVariables)
         self._code_variables_to_float(cv)
         self.__convert_sequences_to_beamlines(cv)
         self._set_default_beamline('use', 'sequence', 'period')
+        if downcase_variables:
+            self._downcase_variables(cv)
         return res
 
     def __convert_sequences_to_beamlines(self, code_var):
@@ -59,19 +61,18 @@ class MadXParser(lattice.LatticeParser):
                 if prev is not None:
                     d = self._get_drift(drifts, at - prev)
                     if d:
-                        beamline['items'].append(d._id)
+                        beamline['items'].append(d)
                 beamline['items'].append(el._id)
                 prev = at + self._eval_var(code_var, el.get('l', 0))
             if len(beamline['items']):
                 if 'l' in seq:
                     d = self._get_drift(drifts, self._eval_var(code_var, seq.l) - prev)
                     if d:
-                        beamline['items'].append(d._id)
+                        beamline['items'].append(d)
                 beamline.id = self.parser.next_id()
                 data.models.beamlines.append(beamline)
         del data.models['sequences']
         util.sort_elements_and_beamlines()
 
-
-def parse_file(lattice_text):
-    return MadXParser().parse_file(lattice_text)
+def parse_file(lattice_text, downcase_variables=False):
+    return MadXParser().parse_file(lattice_text, downcase_variables)
