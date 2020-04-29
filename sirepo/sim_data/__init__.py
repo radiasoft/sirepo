@@ -375,7 +375,7 @@ class SimDataBase(object):
         # TODO(e-carlin): When remote we will pull the flash binary
         # over the wire each time the user wants to run the sim. Could
         # be a source of slowdown.
-        f.extend(cls.protected_lib_file_basenames())
+        f.extend(cls.proprietary_lib_file_basenames())
         for b in f:
             t = run_dir.join(b)
             s = cls.lib_file_abspath(b, data=data)
@@ -467,8 +467,8 @@ class SimDataBase(object):
         return 2 if cls.is_parallel(data) else 1
 
     @classmethod
-    def protected_lib_file_basenames(cls):
-        """List protected files used by the simulation
+    def proprietary_lib_file_basenames(cls):
+        """List proprietary files used by the simulation
         """
         return []
 

@@ -21,7 +21,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             )
 
     @classmethod
-    def protected_lib_file_basenames(cls):
+    def proprietary_lib_file_basenames(cls):
         return ['CapLaser']
 
     @classmethod
