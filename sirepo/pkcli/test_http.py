@@ -15,19 +15,16 @@ import asyncio
 import contextlib
 import copy
 import inspect
+import random
 import re
+import signal
+import sirepo.pkcli.service
 import sirepo.sim_data
 import sirepo.util
 import time
 import tornado.httpclient
 import tornado.ioloop
 import tornado.locks
-import random
-import signal
-
-cfg = None
-
-_sims = []
 
 _CODES = PKDict(
     elegant=(
@@ -105,11 +102,76 @@ _CODES = PKDict(
     ),
 )
 
+_cfg = None
 
-def default_command():
-    _init()
+_sims = []
+
+
+def cfg():
+    global _cfg
+    if not _cfg:
+        c = sirepo.pkcli.service.cfg()
+        _cfg = pkconfig.init(
+            emails=(['one@radia.run', 'two@radia.run', 'three@radia.run'], list, 'emails to test'),
+            server_uri=(
+                'http://{}:{}'.format(c.ip, c.port),
+                str,
+                'where to send requests',
+            ),
+            run_min_secs=(90, int, 'minimum amount of time to let a simulation run'),
+            run_max_secs=(120, int, 'maximum amount of time to let a simulation run'),
+        )
+    return _cfg
+
+
+def test():
+    async def _apps():
+        a = []
+        for c in await _clients():
+            for t in _CODES.keys():
+                a.append(await _App(
+                    sim_type=t,
+                    client=c.copy(),
+                    examples=copy.deepcopy(_CODES[t]),
+                ).setup_sim_data())
+        return a
+
+    async def _clients():
+        return await asyncio.gather(*[_Client(u).login() for u in cfg().emails])
+
+    def _register_signal_handlers(main_task):
+        def _s(*args):
+            main_task.cancel()
+        signal.signal(signal.SIGTERM, _s)
+        signal.signal(signal.SIGINT, _s)
+
+    async def _run():
+        s = []
+        try:
+            s = await _sims_tasks()
+            t = asyncio.gather(*s)
+            _register_signal_handlers(t)
+            await t
+        except Exception as e:
+            await _cancel_all_tasks(s)
+            if isinstance(e, asyncio.CancelledError):
+                # Will only be cancelled by a signal handler
+                return
+            pkdlog('error={} stack={} sims={}', e, pkdexc(), _sims)
+            raise
+
+    async def _sims_tasks():
+        s = []
+        for a in await _apps():
+            e = a.examples[random.randrange(len(a.examples))]
+            for r in random.sample(e.reports, len(e.reports)):
+                s.append(
+                    _Sim(a, e.name, r.report, r.binary_data_file).create_task(),
+                )
+        return s
+
     random.seed()
-    tornado.ioloop.IOLoop.current().run_sync(_main)
+    tornado.ioloop.IOLoop.current().run_sync(_run)
 
 
 class _App(PKDict):
@@ -295,7 +357,7 @@ class _Client(PKDict):
         # Elegant frame_id's sometimes have spaces in them so need to
         # make them url safe. But, the * in the url should not be made
         # url safe
-        return cfg.server_uri + uri.replace(' ', '%20')
+        return cfg().server_uri + uri.replace(' ', '%20')
 
 
 class _Sim(PKDict):
@@ -434,7 +496,7 @@ class _Sim(PKDict):
         try:
             with self._set_waiting_on_status():
                 r = await self._run_sim()
-            t = random.randrange(cfg.run_min_secs, cfg.run_max_secs)
+            t = random.randrange(cfg().run_min_secs, cfg().run_max_secs)
             for _ in range(t):
                 if r.state == 'completed' or r.state == 'error':
                     c = False
@@ -462,60 +524,3 @@ class _Sim(PKDict):
         finally:
             if c:
                 await self._cancel(e)
-
-def _init():
-    global cfg
-    if cfg:
-        return
-    cfg = pkconfig.init(
-        emails=(['one@radia.run', 'two@radia.run', 'three@radia.run'], list, 'emails to test'),
-        server_uri=('http://127.0.0.1:8000', str, 'where to send requests'),
-        run_min_secs=(90, int, 'minimum amount of time to let a simulation run'),
-        run_max_secs=(120, int, 'maximum amount of time to let a simulation run'),
-    )
-
-
-async def _main():
-    async def _apps():
-        a = []
-        for c in await _clients():
-            for t in _CODES.keys():
-                a.append(await _App(
-                    sim_type=t,
-                    client=c.copy(),
-                    examples=copy.deepcopy(_CODES[t]),
-                ).setup_sim_data())
-        return a
-
-    async def _clients():
-        return await asyncio.gather(*[_Client(u).login() for u in cfg.emails])
-
-    async def _sims_tasks():
-        s = []
-        for a in await _apps():
-            e = a.examples[random.randrange(len(a.examples))]
-            for r in random.sample(e.reports, len(e.reports)):
-                s.append(
-                    _Sim(a, e.name, r.report, r.binary_data_file).create_task(),
-                )
-        return s
-
-    def _register_signal_handlers(main_task):
-        def _s(*args):
-            main_task.cancel()
-        signal.signal(signal.SIGTERM, _s)
-        signal.signal(signal.SIGINT, _s)
-
-    s = []
-    try:
-        s = await _sims_tasks()
-        t = asyncio.gather(*s)
-        _register_signal_handlers(t)
-        await t
-    except Exception as e:
-        await _cancel_all_tasks(s)
-        if isinstance(e, asyncio.CancelledError):
-            # Will only be cancelled by a signal handler
-            return
-        pkdlog('error={} stack={} sims={}', e, pkdexc(), _sims)
-        raise
