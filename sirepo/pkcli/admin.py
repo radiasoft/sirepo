@@ -14,6 +14,7 @@ from sirepo import feature_config
 from sirepo import server
 from sirepo import sim_data
 from sirepo import simulation_db
+from sirepo import util
 from sirepo.template import template_common
 import datetime
 import glob
@@ -35,7 +36,10 @@ def audit_proprietary_lib_files(*uid):
 
     def _link_or_unlink_proprietary_files(sim_type, should_link):
         for f in sim_data.get_class(sim_type).proprietary_lib_file_basenames():
-            p = simulation_db.simulation_lib_dir(sim_type).join(f)
+            try:
+                p = simulation_db.simulation_lib_dir(sim_type).join(f)
+            except util.UserDirNotFound:
+                return
             if not should_link:
                 pkio.unchecked_remove(p)
                 continue
@@ -64,10 +68,7 @@ def audit_proprietary_lib_files(*uid):
     t = feature_config.cfg().proprietary_sim_types
     if not t:
         return
-    for u in uid if uid else [
-            simulation_db.uid_from_dir_name(d) for d in
-            pkio.sorted_glob(simulation_db.user_dir_name().join('*'))
-    ]:
+    for u in uid if uid else auth_db.UserRegistration.search_all_for_column('uid'):
         _audit_user(u, t)
 
 
