@@ -32,6 +32,14 @@ cfg = None
 _MAX_FRAME_SEARCH_DEPTH = 6
 
 
+def adjust_supervisor_srtime(days):
+    return _request(
+        api_name='not used',
+        _request_content=PKDict(days=days),
+        _request_uri=cfg.supervisor_uri + sirepo.job.SERVER_SRTIME_URI,
+    )
+
+
 @api_perm.require_user
 def api_admJobs():
     sirepo.auth.check_user_has_role(sirepo.auth.ROLE_ADM)
@@ -182,6 +190,8 @@ def init_apis(*args, **kwargs):
 
 def _request(**kwargs):
     def get_api_name():
+        if 'api_name' in kwargs:
+            return kwargs['api_name']
         f = inspect.currentframe()
         for _ in range(_MAX_FRAME_SEARCH_DEPTH):
             m = re.search(r'^api_.*$', f.f_code.co_name)

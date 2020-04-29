@@ -167,6 +167,7 @@
             ["MUON", "MUON"],
             ["DEUTERON", "DEUTERON"],
             ["XENON", "XENON"],
+            ["H2P", "H2P"],
             ["OTHER", "OTHER"]
         ],
         "CyclotronCyclotron_type": [
@@ -243,10 +244,10 @@
         ],
         "FilterType": [
             ["", "NOT SELECTED"],
-            ["Savitzky-Golay", "Savitzky-Golay"],
-            ["fixedFFTLowPass", "fixedFFTLowPass"],
-            ["relativeFFTLowPass", "relativeFFTLowPass"],
-            ["Stencil", "Stencil"]
+            ["SAVITZKY-GOLAY", "Savitzky-Golay"],
+            ["FIXEDFFTLOWPASS", "fixedFFTLowPass"],
+            ["RELATIVEFFTLOWPASS", "relativeFFTLowPass"],
+            ["STENCIL", "Stencil"]
         ],
         "GeometryTopo": [
             ["BOX", "BOX"],
@@ -280,21 +281,21 @@
         ],
         "ParticlematterinteractionMaterial": [
             ["", "NOT SELECTED"],
-            ["Air", "Air"],
-            ["AluminaAL2O3", "AluminaAL2O3"],
-            ["Aluminum", "Aluminum"],
-            ["Beryllium", "Beryllium"],
-            ["BoronCarbide", "BoronCarbide"],
-            ["Copper", "Copper"],
-            ["Gold", "Gold"],
-            ["Graphite", "Graphite"],
-            ["GraphiteR6710", "GraphiteR6710"],
-            ["Kapton", "Kapton"],
-            ["Molybdenum", "Molybdenum"],
-            ["Mylar", "Mylar"],
-            ["Titanium", "Titanium"],
-            ["Titan", "Titan"],
-            ["Water", "Water"]
+            ["AIR", "Air"],
+            ["ALUMINAAL2O3", "AluminaAL2O3"],
+            ["ALUMINUM", "Aluminum"],
+            ["BERYLLIUM", "Beryllium"],
+            ["BORONCARBIDE", "BoronCarbide"],
+            ["COPPER", "Copper"],
+            ["GOLD", "Gold"],
+            ["GRAPHITE", "Graphite"],
+            ["GRAPHITER6710", "GraphiteR6710"],
+            ["KAPTON", "Kapton"],
+            ["MOLYBDENUM", "Molybdenum"],
+            ["MYLAR", "Mylar"],
+            ["TITANIUM", "Titanium"],
+            ["TITAN", "Titan"],
+            ["WATER", "Water"]
         ],
         "ParticlematterinteractionType": [
             ["", "NOT SELECTED"],
@@ -1825,7 +1826,6 @@
             "numblocks": ["NUMBLOCKS", "RPNValue", 0, "Maximum number of vectors in the Krylov space (for RCGSolMgr)"],
             "recycleblocks": ["RECYCLEBLOCKS", "RPNValue", 0, "Number of vectors in the recycle space (for RCGSolMgr)"],
             "nlhs": ["NLHS", "RPNValue", 1, "Number of stored old solutions for extrapolating the new starting vector"],
-            "enablehdf5": ["ENABLEHDF5", "Boolean", "1", "If true, HDF5 actions are enabled"],
             "asciidump": ["ASCIIDUMP", "Boolean", "0", "If true, some of the elements dump in ASCII instead of HDF5"],
             "boundpdestroyfq": ["BOUNDPDESTROYFQ", "RPNValue", 10, "The frequency to do boundp_destroy to delete lost particles"],
             "beamhaloboundary": ["BEAMHALOBOUNDARY", "RPNValue", 0, "Defines in terms of sigma where the halo starts"],
@@ -1840,6 +1840,20 @@
             "type": ["TYPE", "ParticlematterinteractionType", "", "Specifies the particle mater interaction handler: Collimator"],
             "material": ["MATERIAL", "ParticlematterinteractionMaterial", "", "The material of the surface"],
             "enablerutherford": ["ENABLERUTHERFORD", "Boolean", "1", "Enable large angle scattering"]
+        },
+        "command_run": {
+            "method": ["METHOD", "RunMethod", "THIN", "Name of tracking algorithm to use:\n\t\t\tTHIN (default) or THICK, OPAL-T,OPAL-T3D, OPAL-CYCL."],
+            "turns": ["TURNS [cyclotron]", "RPNValue", 1, "Number of turns to be tracked; Number of neighboring bunches to be tracked"],
+            "mbmode": ["MBMODE", "RunMbmode", "FORCE", "The working way for multi-bunch mode for OPAL-cycl: FORCE or AUTO"],
+            "paramb": ["PARAMB", "RPNValue", 5, "Control parameter to define when to start multi-bunch mode, only available in AUTO mode"],
+            "mb_eta": ["MB_ETA", "RPNValue", 0.01, "The scale parameter for binning in multi-bunch mode"],
+            "mb_binning": ["MB_BINNING", "RunMb_binning", "GAMMA", "Type of energy binning in multi-bunch mode: GAMMA or BUNCH"],
+            "beam": ["BEAM", "BeamList", "", "Name of beam"],
+            "fieldsolver": ["FIELDSOLVER", "FieldsolverList", "", "Field solver to be used"],
+            "boundarygeometry": ["BOUNDARYGEOMETRY [default]", "GeometryList", "", "Boundary geometry to be used NONE"],
+            "distribution": ["DISTRIBUTION", "DistributionList", "", "List of particle distributions to be used"],
+            "multipacting": ["MULTIPACTING", "Boolean", "0", "Multipacting flag, default: false. Set true to initialize primary particles according to BoundaryGeometry"],
+            "trackback": ["TRACKBACK", "Boolean", "0", "Track in reverse direction, default: false"]
         },
         "command_select": {
             "name": ["NAME", "ValidatedString", "", ""],
@@ -1881,6 +1895,9 @@
             "listm": ["LISTM", "Boolean", "0", "List the monitors after correction"],
             "listc": ["LISTC", "Boolean", "0", "List the correctors after correction"]
         },
+        "command_title": {
+            "string": ["STRING", "String", "", ""]
+        },
         "command_threadbpm": {
             "name": ["NAME", "ValidatedString", "", ""],
             "tol": ["TOL", "RPNValue", 0, "The tolerance for the closed orbit positions."],
@@ -1907,7 +1924,6 @@
             "run_paramb": ["PARAMB", "RPNValue", 5, "Control parameter to define when to start multi-bunch mode, only available in AUTO mode"],
             "run_mb_eta": ["MB_ETA", "RPNValue", 0.01, "The scale parameter for binning in multi-bunch mode"],
             "run_mb_binning": ["MB_BINNING", "RunMb_binning", "GAMMA", "Type of energy binning in multi-bunch mode: GAMMA or BUNCH"],
-            "run_file": ["FILE", "OutputFile", "TRACK", "Name of file to be written"],
             "run_beam": ["BEAM", "BeamList", "", "Name of beam"],
             "run_fieldsolver": ["FIELDSOLVER", "FieldsolverList", "", "Field solver to be used"],
             "run_boundarygeometry": ["BOUNDARYGEOMETRY [default]", "GeometryList", "", "Boundary geometry to be used NONE"],

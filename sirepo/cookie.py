@@ -41,13 +41,6 @@ def has_sentinel():
     return _COOKIE_SENTINEL in _state()
 
 
-def init_mock():
-    """A mock cookie for pkcli"""
-    flask.g = pkcollections.Dict()
-    _State('')
-    set_sentinel()
-
-
 def process_header(unit_test=None):
     _State(unit_test or flask.request.environ.get('HTTP_COOKIE', ''))
 
@@ -64,6 +57,13 @@ def reset_state(error):
 
 def save_to_cookie(resp):
     _state().save_to_cookie(resp)
+
+
+def set_cookie_for_utils():
+    """A mock cookie for utilities"""
+    flask.g = pkcollections.Dict()
+    _State('')
+    set_sentinel()
 
 
 def set_sentinel(values=None):

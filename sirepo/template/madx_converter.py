@@ -168,7 +168,7 @@ def _convert(name, data, direction):
         for f in el:
             if f not in fields and f in defaults and str(el[f]) != str(defaults[f]):
                 v = el[f]
-                if ' ' in v:
+                if ' ' in str(v):
                     v = '"{}"'.format(v)
                 comment += '{}={} '.format(f, v)
         if comment:

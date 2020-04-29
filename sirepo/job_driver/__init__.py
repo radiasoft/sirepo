@@ -137,9 +137,9 @@ class DriverBase(PKDict):
             q.put_nowait(op.op_slot)
             op.op_slot = None
 
-    def free_resources(self):
+    def free_resources(self, internal_error=None):
         """Remove holds on all resources and remove self from data structures"""
-        pkdlog('{}', self)
+        pkdlog('{} internal_error={}', self, internal_error)
         try:
             self._agent_starting_done()
             self._websocket_ready.clear()
@@ -149,7 +149,7 @@ class DriverBase(PKDict):
                 # Will not call websocket_on_close()
                 w.sr_close()
             for o in list(self.ops.values()):
-                o.destroy()
+                o.destroy(internal_error=internal_error)
             self.cpu_slot_free()
             self._websocket_free()
         except Exception as e:
@@ -314,7 +314,7 @@ class DriverBase(PKDict):
                 await self._do_agent_start(op)
             except Exception as e:
                 pkdlog('{} error={} stack={}', self, e, pkdexc())
-                self.free_resources()
+                self.free_resources(internal_error='failure starting agent')
                 raise
 
     def _agent_starting_done(self):
@@ -326,7 +326,7 @@ class DriverBase(PKDict):
 
     def _agent_starting_timeout_handler(self):
         pkdlog('{} timeout={}', self, self._AGENT_STARTING_SECS)
-        self.free_resources()
+        self.free_resources(internal_error='timeout waiting for agent to start')
 
     def _has_remote_agent(self):
         return False

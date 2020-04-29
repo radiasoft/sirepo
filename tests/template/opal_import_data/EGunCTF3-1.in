@@ -1,0 +1,130 @@
+Option, PSDUMPFREQ=50;
+Option, STATDUMPFREQ=1;
+Option, ECHO=FALSE;
+Option, AUTOPHASE=4;
+Option, VERSION=10900;
+
+Title, string="Phase 1 of PSI FEL 250 Injector with CTF3 RF Photoinjector";
+
+REAL FINSB01_RACC_phi = 0;
+REAL FINSB02_RACC_phi = 0;
+
+REAL REPARTFREQ       = 100;
+REAL MINSTEPFORREBIN  = 600;
+
+REAL QB               = 0.2e-9;
+REAL BF               = 2998.0;
+REAL BC               = QB*BF*1e6;
+
+
+// Begin: CTF3 /////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Definition of CTF3 RF photoinjector.
+//
+
+GUNSOURCE: SOURCE, ELEMEDGE = 0.0;
+//
+// L:		physical element length (real in m)
+// VOLT:	field scaling factor (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+// TYPE:	specifies "STANDING" (default), "TRAVELLING" or "SINGLE GAP" structure
+// FREQ:	RF frequency of cavity (real in MHz).
+//
+FINSS_RGUN: RFCavity, L = 0.34986, VOLT = 100.0, FMAPFN = "CTF3_Ez_ASTRA.opal",
+		ELEMEDGE =0.0, TYPE = "STANDING", FREQ = BF,
+		LAG = -3.5/180.0*PI;
+//
+// L:		physical element length (real in m)
+// KS:		field scaling factor (real)
+// FMAPFN:	field file name (string)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+//
+FIND1_MSOL10: Solenoid, L = 0.6, KS = 0.206, FMAPFN = "NEW_SINGLE_SOL_NOFRINGE_ASTRA.opal", ELEMEDGE = 0.3;
+
+//
+// L:		physical element length (real in m)
+// KS:		field scaling factor (real)
+// ELEMEDGE:	physical start of the element on the floor (real in m)
+//
+FIND1_MQ10: Quadrupole, L=0.1, K1= 0.0, ELEMEDGE=1.38;
+FIND1_MQ20: Quadrupole, L=0.1, K1= 0.0, ELEMEDGE=1.56;
+FIND1_MQ30: Quadrupole, L=0.1, K1= 0.0, ELEMEDGE=1.74;
+
+//elemento fittizio utilizzato per prolungare la linea del fascio
+END: Solenoid, L=0.01, KS = 0.01, ELEMEDGE=100., FMAPFN="NEW_SINGLE_SOL_NOFRINGE_ASTRA.opal";
+
+Injector: Line = (GUNSOURCE, FINSS_RGUN, FIND1_MSOL10, FIND1_MQ10, FIND1_MQ20, FIND1_MQ30, END);
+// End: CTF3 //////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Begin: Screen monitors ////////////////////////////////////////////////////////////////////////////////////
+//
+// Define screen monitors in beam line.
+//
+// L:		physical element length (real in m). Always equal to 1 cm.
+// ELEMEDGE:	position of screen (real in m). This is where the particle information is taken.
+// OUTFN:       name of .h5 file to store data. Include ".h5" on end.
+//
+SCREEN1: Monitor, L = 0.01, ELEMEDGE = 0.902, OUTFN = "Screen1.h5";
+SCREEN2: Monitor, L = 0.01, ELEMEDGE = 1.0165, OUTFN = "Screen2.h5";
+//previous screen, virtual screen placed in the mid point of RFD
+SCREEN3: Monitor, L = 0.01, ELEMEDGE = 1.1295, OUTFN = "Screen3.h5";
+SCREEN4: Monitor, L = 0.01, ELEMEDGE = 2.2525, OUTFN = "Screen4.h5";
+SCREEN5: Monitor, L = 0.01, ELEMEDGE = 2.735, OUTFN = "Screen5.h5";
+SCREEN6: Monitor, L = 0.01, ELEMEDGE = 3.0, OUTFN = "Screen6.h5";
+SCREEN7: Monitor, L = 0.01, ELEMEDGE = 3.126, OUTFN = "Screen7.h5";
+SCREEN8: Monitor, L = 0.01, ELEMEDGE = 3.252, OUTFN = "Screen8.h5";
+SCREEN9: Monitor, L = 0.01, ELEMEDGE = 4.126, OUTFN = "Screen9.h5";
+SCREEN10: Monitor, L = 0.01, ELEMEDGE = 5.126, OUTFN = "Screen10.h5";
+
+SCREENS: Line = (SCREEN1,SCREEN2,SCREEN3,SCREEN4,SCREEN5,SCREEN6,SCREEN7,SCREEN8,SCREEN9,SCREEN10);
+// End: Screen monitors //////////////////////////////////////////////////////////////////////////////////////
+
+
+// Begin: Fieldsolver ///////////////////////////////////////////
+//
+// Definition of first field solver.
+//
+Fs1:FIELDSOLVER, FSTYPE = FFT, MX = 16, MY = 16, MT = 32,
+		 PARFFTX = true, PARFFTY = true, PARFFTT = true,
+		 BCFFTX = open, BCFFTY = open, BCFFTT = open,
+		 BBOXINCR = 1, GREENSF = INTEGRATED;
+// End: Fieldsolver ////////////////////////////////////////////
+
+
+Dist1:DISTRIBUTION, TYPE = "GUNGAUSSFLATTOPTH",
+		    sigmax = 0.000395,
+		    sigmapx = 0.0,
+		    corrx = 0.0,
+		    sigmay = 0.000395,
+		    sigmapy = 0.0,
+		    corry = 0.0,
+		    sigmat = 0.0,
+		    pt = 0.0,
+		    sigmapt = 0.0,
+		    corrt = 0.0,
+		    tRise=7.45e-12,
+		    tFall=7.45e-12,
+		    tPulseFWHM=10.4e-12,
+		    ekin=0.4,
+		    NBIN=5;
+
+Dist2:DISTRIBUTION, TYPE=fromfile,
+		    FNAME="ReferenceParticles.dat";
+
+beam1: BEAM, PARTICLE = ELECTRON, pc = P0, NPART = 20000, BFREQ = BF, BCURRENT = BC, CHARGE = -1;
+
+SELECT, LINE=Injector;
+
+// Simulation of the gun with step size DTGUN
+TRACK, LINE= Injector, BEAM=beam1, MAXSTEPS=100, DT=1.0e-12, ZSTOP=0.14;
+ RUN, METHOD = "PARALLEL-T", BEAM = beam1, FIELDSOLVER = Fs1, DISTRIBUTION = Dist1;
+ENDTRACK;
+
+// Simulation of the beam with step size DT
+TRACK,LINE= Injector, BEAM=beam1, MAXSTEPS=49, DT=1.0e-11, ZSTOP=0.20;
+ RUN, METHOD = "PARALLEL-T", BEAM=beam1, FIELDSOLVER=Fs1;
+ENDTRACK;
+
+QUIT;
