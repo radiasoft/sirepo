@@ -7,6 +7,7 @@ u"""OPAL parser.
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template import lattice
+from sirepo.template.lattice import LatticeUtil
 import os.path
 import re
 import sirepo.sim_data
@@ -35,7 +36,7 @@ class OpalParser(lattice.LatticeParser):
         res = super().parse_file(lattice_text)
         self.__fix_pow_variables()
         cv = opal.opal_code_var(self.data.models.rpnVariables)
-        self._code_variables_to_lowercase(cv)
+        self._code_variables_to_float(cv)
         self.__remove_bend_default_fmap()
         self.__remove_default_commands()
         self.__combine_track_and_run()
@@ -251,7 +252,7 @@ class OpalParser(lattice.LatticeParser):
                             el[f] = os.path.basename(el[f])
                             res.append(PKDict(
                                 label=el.name,
-                                type=el._type if '_type' in el else el.type,
+                                type=LatticeUtil.type_for_data(el),
                                 file_type='{}-{}'.format(model_name, f),
                                 filename=el[f],
                                 field=f,

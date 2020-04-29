@@ -107,17 +107,17 @@ class LatticeParser(object):
         self.__parse_lines(lines)
         return self.data
 
-    def _code_variables_to_lowercase(self, code_var):
+    def _code_variables_to_float(self, code_var):
         for v in self.data.models.rpnVariables:
             if not code_var.is_var_value(v.value):
                 v.value = float(v.value)
-        for el in self.data.models.elements:
-            for f in self.schema.model[el.type]:
-                if self.schema.model[el.type][f][1] == 'RPNValue':
-                    if code_var.is_var_value(el[f]):
-                        el[f] = el[f].lower()
-                    else:
-                        el[f] = float(el[f])
+        for container in ('elements', 'commands'):
+            for el in self.data.models[container]:
+                model_name = LatticeUtil.model_name_for_data(el)
+                for f in self.schema.model[model_name]:
+                    if f in el and self.schema.model[model_name][f][1] == 'RPNValue':
+                        if not code_var.is_var_value(el[f]):
+                            el[f] = float(el[f])
 
     def _compute_drifts(self, code_var):
         drifts = PKDict()
@@ -156,6 +156,7 @@ class LatticeParser(object):
                 name=name,
                 type='DRIFT',
             )
+            self.sim_data.update_model_defaults(drift, 'DRIFT')
             self.data.models.elements.append(drift)
             drifts[length] = drift._id
         return drifts[length]
@@ -427,11 +428,10 @@ class LatticeUtil(object):
         res = ''
         for el in fields:
             # el is [model, [[f, v], [f, v]...]]
-            type_field = '_type' if LatticeUtil.is_command(el[0]) else 'type'
             name = el[0].name.upper()
             if quote_name:
                 name = '"{}"'.format(name)
-            res += '{}: {},'.format(name, el[0][type_field])
+            res += '{}: {},'.format(name, self.type_for_data(el[0]))
             for f in el[1]:
                 res += '{}={},'.format(f[0], f[1])
             res = res[:-1]
@@ -463,6 +463,10 @@ class LatticeUtil(object):
         m = self.data.models
         m.elements = sorted(m.elements, key=lambda e: (e.type, e.name.lower()))
         m.beamlines = sorted(m.beamlines, key=lambda e: e.name.lower())
+
+    @classmethod
+    def type_for_data(cls, model):
+        return model['_type' if cls.is_command(model) else 'type']
 
     @staticmethod
     def __add_beamlines(beamline, beamlines, ordered_beamlines):
