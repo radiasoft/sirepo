@@ -14,6 +14,7 @@ from sirepo import feature_config
 from sirepo import server
 from sirepo import sim_data
 from sirepo import simulation_db
+from sirepo import srdb
 from sirepo import util
 from sirepo.template import template_common
 import datetime
@@ -34,22 +35,6 @@ def audit_proprietary_lib_files(*uid):
     """
     import py
 
-    def _link_or_unlink_proprietary_files(sim_type, should_link):
-        for f in sim_data.get_class(sim_type).proprietary_lib_file_basenames():
-            p = simulation_db.simulation_lib_dir(sim_type).join(f)
-            if not should_link:
-                pkio.unchecked_remove(p)
-                continue
-            try:
-                p.mksymlinkto(
-                    # TODO(e-carlin): discuss with rn file structure for flash binaries
-                    pkio.py_path(cfg.flash_src_dir).join(f).join('flash4'),
-                    absolute=False,
-                )
-            except py.error.EEXIST:
-                pass
-
-
     def _audit_user(uid, proprietary_sim_types):
         with auth.set_user(uid):
             for t in proprietary_sim_types:
@@ -61,11 +46,30 @@ def audit_proprietary_lib_files(*uid):
                     ),
                 )
 
+    def _link_or_unlink_proprietary_files(sim_type, should_link):
+        d = _proprietary_sim_type_dir(sim_type)
+        for e in simulation_db.examples(sim_type):
+            b = sim_data.get_class(sim_type).proprietary_lib_file_basename(e)
+            p = simulation_db.simulation_lib_dir(sim_type).join(b)
+            if not should_link:
+                pkio.unchecked_remove(p)
+                continue
+            try:
+                p.mksymlinkto(
+                    d.join(b),
+                    absolute=False,
+                )
+            except py.error.EEXIST:
+                pass
+
+    def _proprietary_sim_type_dir(sim_type):
+        return srdb.root().join(cfg.proprietary_code_dir, sim_type)
+
     server.init()
     t = feature_config.cfg().proprietary_sim_types
     if not t:
         return
-    for u in uid if uid else auth_db.UserRegistration.search_all_for_column('uid'):
+    for u in uid or auth_db.all_uids():
         _audit_user(u, t)
 
 
@@ -133,9 +137,9 @@ def _is_src_dir(d):
 
 
 cfg = pkconfig.init(
-    flash_src_dir=(
-        '/home/vagrant/src/FLASH4.6.2/',
+    proprietary_code_dir=(
+        'proprietary_codes',
         str,
-        'flash source code directory',
+        'location of proprietary codes (relative to srdb root)',
     ),
 )

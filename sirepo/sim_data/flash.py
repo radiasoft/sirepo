@@ -6,6 +6,7 @@ u"""simulation data operations
 """
 from __future__ import absolute_import, division, print_function
 import sirepo.sim_data
+import sirepo.util
 
 
 class SimData(sirepo.sim_data.SimDataBase):
@@ -27,8 +28,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
 
     @classmethod
-    def proprietary_lib_file_basenames(cls):
-        return ['CapLaser']
+    def proprietary_lib_file_basename(cls, data):
+        return '{}.zip'.format(sirepo.util.secure_filename(data.models.simulation.name))
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):

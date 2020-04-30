@@ -36,6 +36,10 @@ UserRole = None
 thread_lock = threading.RLock()
 
 
+def all_uids():
+    return UserRegistration.search_all_for_column('uid')
+
+
 def init(srdb_root, migrate_db_file=True):
     global _session, _engine, UserDbBase, UserRegistration, UserRole
     assert not _session
