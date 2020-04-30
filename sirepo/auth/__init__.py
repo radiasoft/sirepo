@@ -431,7 +431,7 @@ def user_dir_not_found(user_dir, uid):
         if u:
             u.delete()
     reset_state()
-    raise util.UserDirNotFound(
+    raise util.SRException(
         'login',
         PKDict(reload_js=True),
         'simulation_db dir={} not found, deleted uid={}',

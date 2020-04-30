@@ -130,9 +130,6 @@ class UserAlert(Reply):
             **kwargs
         )
 
-class UserDirNotFound(SRException):
-    """Raised when user_dir is not found"""
-    pass
 
 def convert_exception(exception, display_text='unexpected error'):
     """Convert exception so can be raised

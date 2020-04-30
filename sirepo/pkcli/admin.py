@@ -36,10 +36,7 @@ def audit_proprietary_lib_files(*uid):
 
     def _link_or_unlink_proprietary_files(sim_type, should_link):
         for f in sim_data.get_class(sim_type).proprietary_lib_file_basenames():
-            try:
-                p = simulation_db.simulation_lib_dir(sim_type).join(f)
-            except util.UserDirNotFound:
-                return
+            p = simulation_db.simulation_lib_dir(sim_type).join(f)
             if not should_link:
                 pkio.unchecked_remove(p)
                 continue

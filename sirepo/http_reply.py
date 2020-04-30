@@ -339,9 +339,6 @@ def _gen_exception_reply_UserAlert(args):
         PKDict({_STATE: _ERROR_STATE, _ERROR_STATE: args.error}),
     )
 
-def _gen_exception_reply_UserDirNotFound(args):
-    return _gen_exception_reply_SRException(args)
-
 
 def _gen_exception_werkzeug(exc):
 #TODO(robnagler) convert exceptions to our own
