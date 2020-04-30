@@ -33,7 +33,7 @@ def auth_fc_module(request):
         SIREPO_AUTH_METHODS='basic:email:guest',
         SIREPO_FEATURE_CONFIG_API_MODULES='status',
     )
-    if 'email3_test' in str(request.fspath):
+    if 'email3_test' in str(request.fspath.purebasename):
         cfg.SIREPO_AUTH_METHODS += ':github'
     else:
         cfg.SIREPO_AUTH_DEPRECATED_METHODS = 'github'
@@ -343,7 +343,7 @@ def _sim_type(request):
     for c in sirepo.feature_config.ALL_CODES:
         f = request.function
         n = getattr(f, 'func_name', None) or getattr(f, '__name__')
-        if c in n or c in str(request.fspath):
+        if c in n or c in str(request.fspath.purebasename):
             return c
     return 'myapp'
 
