@@ -106,6 +106,8 @@ class SlotProxy(PKDict):
         super().__init__(**kwargs, _value=None)
 
     async def alloc(self, status):
+        if self._value is not None:
+            return
         try:
             self._value = self._q.get_nowait()
         except tornado.queues.QueueEmpty:
@@ -124,7 +126,7 @@ class SlotProxy(PKDict):
 
 class SlotQueue(sirepo.tornado.Queue):
 
-    def __init__(self, maxsize=1, **kwargs):
+    def __init__(self, maxsize=1):
         super().__init__(maxsize=maxsize)
         for i in range(1, maxsize + 1):
             self.put_nowait(i)
@@ -338,7 +340,7 @@ class _ComputeJob(PKDict):
             assert not s or not s.startswith(p), \
                 f'Trying to overwrite existing jobStatusMessage="{s}" with status="{status}"'
         if exception is not None:
-            status = f'{p}{e}, while {s}'
+            status = f'{p}{exception}, while {s}'
         self.__db_update(jobStatusMessage=status)
 
     @classmethod
@@ -1008,6 +1010,7 @@ class _Op(PKDict):
             yield
             self.computeJob.set_status(self, None)
         except Exception as e:
+            pkdlog('{} status={} stack={}', self, status, pkdexc())
             self.computeJob.set_status(self, None, exception=e)
             raise
 
