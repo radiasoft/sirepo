@@ -79,6 +79,27 @@ class Awaited(Exception):
     pass
 
 
+class ServerReq(PKDict):
+
+    def copy_content(self):
+        return copy.deepcopy(self.content)
+
+    def pkdebug_str(self):
+        c = self.get('content')
+        if not c:
+            return 'ServerReq(<no content>)'
+        return pkdformat('ServerReq({}, {})', c.api, c.get('computeJid'))
+
+    async def receive(self):
+        s = self.content.pkdel('serverSecret')
+        # no longer contains secret so ok to log
+        assert s, \
+            'no secret in message: {}'.format(self.content)
+        assert s == sirepo.job.cfg.server_secret, \
+            'server_secret did not match'.format(self.content)
+        self.handler.write(await _ComputeJob.receive(self))
+
+
 class SlotProxy(PKDict):
 
     def __init__(self, **kwargs):
@@ -88,10 +109,10 @@ class SlotProxy(PKDict):
         try:
             self._value = self._q.get_nowait()
         except tornado.queues.QueueEmpty:
-            pkdlog('{} await .get()', self._op)
+            pkdlog('{} status={}', self._op, status)
             with self._op.set_job_status(status):
                 self._value = await self._q.get()
-            raise job_supervisor.Awaited()
+            raise Awaited()
 
     def free(self):
         if self._value is None:
@@ -164,27 +185,6 @@ def init():
         _ComputeJob.purge_free_simulations,
         init=True,
     )
-
-
-class ServerReq(PKDict):
-
-    def copy_content(self):
-        return copy.deepcopy(self.content)
-
-    def pkdebug_str(self):
-        c = self.get('content')
-        if not c:
-            return 'ServerReq(<no content>)'
-        return pkdformat('ServerReq({}, {})', c.api, c.get('computeJid'))
-
-    async def receive(self):
-        s = self.content.pkdel('serverSecret')
-        # no longer contains secret so ok to log
-        assert s, \
-            'no secret in message: {}'.format(self.content)
-        assert s == sirepo.job.cfg.server_secret, \
-            'server_secret did not match'.format(self.content)
-        self.handler.write(await _ComputeJob.receive(self))
 
 
 async def terminate():
@@ -552,6 +552,7 @@ class _ComputeJob(PKDict):
             if timed_out_op in self.ops:
                 r.add(timed_out_op)
             return list(r)
+
         r = PKDict(state=job.CANCELED)
         if (
             # a running simulation may be cancelled due to a

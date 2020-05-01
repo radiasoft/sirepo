@@ -152,9 +152,7 @@ class DriverBase(PKDict):
         # must be before cpu_slot_q, because reserves queue position
         # of op relative to other ops, and this also limits ops to
         # one per opName.
-        await self._op_slot_ready(op)
-        # once local resources are acquired, ask for global
-        await op.cpu_slot.alloc('Waiting for CPU resources')
+        await self._slots_ready(op)
 
     @classmethod
     def receive(cls, msg):
@@ -262,19 +260,6 @@ class DriverBase(PKDict):
     def _has_remote_agent(self):
         return False
 
-    async def _op_slot_ready(self, op):
-        """Only one op of each type allowed"""
-        n = op.opName
-        if n in (job.OP_CANCEL, job.OP_KILL):
-            return
-        if n == job.OP_SBATCH_LOGIN:
-            l = [o for o in self.ops.values() if o.opId != op.opId]
-            assert not l, \
-                'received {} but have other ops={}'.format(op, l)
-            return
-        await op.op_slot.alloc('Waiting for another simulation to complete')
-        await op.run_dir_slot.alloc('Waiting for access to simulation state')
-
     def _receive(self, msg):
         c = msg.content
         i = c.get('opId')
@@ -326,6 +311,21 @@ class DriverBase(PKDict):
     def _receive_error(self, msg):
 #TODO(robnagler) what does this mean? Just a way of logging? Document this.
         pkdlog('{} msg={}', self, msg)
+
+    async def _slots_ready(self, op):
+        """Only one op of each type allowed"""
+        n = op.opName
+        if n in (job.OP_CANCEL, job.OP_KILL):
+            return
+        if n == job.OP_SBATCH_LOGIN:
+            l = [o for o in self.ops.values() if o.opId != op.opId]
+            assert not l, \
+                'received {} but have other ops={}'.format(op, l)
+            return
+        await op.op_slot.alloc('Waiting for another simulation to complete')
+        await op.run_dir_slot.alloc('Waiting for access to simulation state')
+        # once local resources are acquired, ask for global
+        await op.cpu_slot.alloc('Waiting for CPU resources')
 
     def _websocket_free(self):
         pass
