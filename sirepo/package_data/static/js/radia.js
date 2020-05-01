@@ -80,6 +80,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         appState.models[t] = appState.setModelDefaults(model, t);
 
         // set to fill bounds if any actors exist
+        //TODO: must use OBJECT bounds, not the bounds of a vector field!
         if (t === 'fieldMapPath' && self.objBounds) {
             appState.models[t].lenX = Math.abs(self.objBounds[1] - self.objBounds[0]);
             appState.models[t].lenY = Math.abs(self.objBounds[3] - self.objBounds[2]);
@@ -257,7 +258,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     );
 
     self.simState.notRunningMessage = function() {
-        return 'Solve complete';
+        return 'Solve complete ' + '' + '(' + '' + 's)';
     };
 
     self.simState.startButtonLabel = function() {
@@ -818,6 +819,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                         '<div class="col-sm-6 pull-right" style="padding-top: 8px;">',
                             '<button class="btn btn-default" data-ng-click="reset()">Reset</button>',
                         '</div>',
+                        '<span>Results: </span>',
                     '</div>',
                 '</div>',
             '</div>',

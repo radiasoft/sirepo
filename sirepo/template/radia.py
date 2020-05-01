@@ -88,8 +88,9 @@ def get_application_data(data, **kwargs):
         raise RuntimeError('unknown application data method: {}'.format(data.method))
 
     g_id = -1
+    sim_id = data.simulationId
     try:
-        with open(str(_dmp_file(data.simulationId)), 'rb') as f:
+        with open(str(_dmp_file(sim_id)), 'rb') as f:
             b = f.read()
             g_id = radia_tk.load_bin(b)
     except IOError:
@@ -102,7 +103,7 @@ def get_application_data(data, **kwargs):
             #TODO(mvk): won't work for subsets of available paths, figure that out
             pass
             #try:
-            #    res = _read_data(data.simulationId, data.viewType, f_type)
+            #    res = _read_data(sim_id, data.viewType, f_type)
             #except KeyError:
             #    res = None
             #pkdp('READ RES {}', res)
@@ -114,7 +115,12 @@ def get_application_data(data, **kwargs):
             #    if len(old_pts) == len(new_pts) and numpy.allclose(new_pts, old_pts):
             #        return res
         #return _read_or_generate(g_id, data)
-        return _generate_field_data(g_id, data.name, f_type, data.fieldPaths)
+        res = _generate_field_data(
+            g_id, data.name, f_type, data.get('fieldPaths', None)
+        )
+        res.solution = _read_solution(sim_id)
+        return res
+
     if data.method == 'get_field_integrals':
         return _generate_field_integrals(g_id, data.fieldPaths)
     if data.method == 'get_geom':
@@ -132,7 +138,7 @@ def get_application_data(data, **kwargs):
                 res.name,
                 res.data[0],
                 simulation_db.simulation_lib_dir(SIM_TYPE).join(
-                    data.simulationId + '_' + res.name + '.' + data.fileType
+                    sim_id + '_' + res.name + '.' + data.fileType
                 ))
         return res
 
@@ -394,13 +400,25 @@ def _get_sdds():
     return _cfg.sdds
 
 
-def _read_data(sim_id, view_type, field_type):
+def _read_path(sim_id, h5path):
     try:
         with h5py.File(_geom_file(sim_id), 'r') as hf:
-            g = template_common.h5_to_dict(hf, path=_geom_h5_path(view_type, field_type))
+            g = template_common.h5_to_dict(hf, path=h5path)
         return g
     except IOError:
         return {}
+
+
+def _read_data(sim_id, view_type, field_type):
+    res = _read_path(sim_id, _geom_h5_path(view_type, field_type))
+    res.solution = _read_solution(sim_id)
+    return res
+    #try:
+    #    with h5py.File(_geom_file(sim_id), 'r') as hf:
+    #        g = template_common.h5_to_dict(hf, path=_geom_h5_path(view_type, field_type))
+    #    return g
+    #except IOError:
+    #    return {}
 
 
 def _read_or_generate(geom_id, data):
@@ -416,6 +434,10 @@ def _read_or_generate(geom_id, data):
                 path=_geom_h5_path(data.viewType, f_type)
             )
         return get_application_data(data)
+
+
+def _read_solution(sim_id):
+    return _read_path(sim_id, 'solution')
 
 
 def _save_fm_sdds(name, f_data, file_path):

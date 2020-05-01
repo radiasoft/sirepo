@@ -42,8 +42,9 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _lib_file_basenames(cls, data):
         res = []
         #pkdp('LIB FILES FROM {}', data)
-        res.append(cls.lib_file_name_with_model_field(
-            'fieldPath',
-            data.fieldType,
-            data.name + '.' + data.fileType))
+        if 'fieldType' in data:
+            res.append(cls.lib_file_name_with_model_field(
+                'fieldPath',
+                data.fieldType,
+                data.name + '.' + data.fileType))
         return res

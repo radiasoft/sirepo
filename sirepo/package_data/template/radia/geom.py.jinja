@@ -20,11 +20,14 @@ g_data = radia_tk.geom_to_data(g_id, name='{{ geomName }}')
 with h5py.File('{{ dataFile }}', 'a') as hf:
     template_common.dict_to_h5(g_data, hf, path='{{ h5ObjPath }}')
 
+{% if doSolve %}
+res = radia_tk.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
+with h5py.File('{{ dataFile }}', 'a') as hf:
+    template_common.dict_to_h5(res, hf, path='solution')
+{% endif %}
+
 if '{{ viewType }}' == VIEW_TYPE_FIELD:
     f_type = '{{ fieldType }}'
-{% if doSolve %}
-    res = radia_tk.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
-{% endif %}
     if f_type == radia_tk.FIELD_TYPE_MAG_M:
         f = radia_tk.get_magnetization(g_id)
     elif f_type in radia_tk.POINT_FIELD_TYPES:
