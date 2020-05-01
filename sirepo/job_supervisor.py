@@ -103,7 +103,7 @@ class ServerReq(PKDict):
 class SlotProxy(PKDict):
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs, _value=None)
+        super().__init__(_value=None, **kwargs)
 
     async def alloc(self, status):
         if self._value is not None:

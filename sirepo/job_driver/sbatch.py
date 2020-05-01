@@ -39,7 +39,7 @@ class SbatchDriver(job_driver.DriverBase):
             _srdb_root=None,
             # we allow one of each op type in. This is essentially a no-op (ha ha)
             # but makes it easier to code the other cases.
-            cpu_slot_q=job_supervisor.SlotQueue(len(job_driver.OPS_WHICH_NEED_SLOTS)),
+            cpu_slot_q=job_supervisor.SlotQueue(len(job_driver.OPS_THAT_NEED_SLOTS)),
         )
         self.__instances[self.uid] = self
 

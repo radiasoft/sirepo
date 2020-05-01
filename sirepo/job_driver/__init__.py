@@ -32,6 +32,8 @@ _DEFAULT_MODULE = 'local'
 
 cfg = None
 
+OPS_THAT_NEED_SLOTS = frozenset((job.OP_ANALYSIS, job.OP_RUN))
+
 
 class AgentMsg(PKDict):
 
@@ -72,7 +74,7 @@ class DriverBase(PKDict):
             #TODO(robnagler) sbatch could override OP_RUN, but not OP_ANALYSIS
             # because OP_ANALYSIS touches the directory sometimes. Reasonably
             # there should only be one OP_ANALYSIS running on an agent at one time.
-            op_slot_q=PKDict({k: job_supervisor.SlotQueue() for k in (job.OP_ANALYSIS, job.OP_RUN)}),
+            op_slot_q=PKDict({k: job_supervisor.SlotQueue() for k in OPS_THAT_NEED_SLOTS}),
             uid=req.content.uid,
             _agentId=job.unique_key(),
             _agent_start_lock=tornado.locks.Lock(),
@@ -149,9 +151,6 @@ class DriverBase(PKDict):
             bool: True if the op was actually sent
         """
         await self._agent_ready(op)
-        # must be before cpu_slot_q, because reserves queue position
-        # of op relative to other ops, and this also limits ops to
-        # one per opName.
         await self._slots_ready(op)
 
     @classmethod
@@ -220,6 +219,7 @@ class DriverBase(PKDict):
         await self._agent_start(op)
         pkdlog('{} {} await _websocket_ready', self, op)
         await self._websocket_ready.wait()
+        pkdc('{} websocket alive', op)
         raise job_supervisor.Awaited()
 
     async def _agent_start(self, op):
@@ -324,7 +324,8 @@ class DriverBase(PKDict):
             return
         await op.op_slot.alloc('Waiting for another simulation to complete')
         await op.run_dir_slot.alloc('Waiting for access to simulation state')
-        # once local resources are acquired, ask for global
+        # once job-op relative resources are acquired, ask for global resources
+        # so we only acquire on global resources, once we know we are ready to go.
         await op.cpu_slot.alloc('Waiting for CPU resources')
 
     def _websocket_free(self):
