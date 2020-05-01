@@ -70,8 +70,6 @@ def audit_proprietary_lib_files(*uid):
         _audit_user(u, t)
 
 
-
-
 def create_examples():
     """Adds missing app examples to all users.
     """
