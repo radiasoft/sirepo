@@ -740,10 +740,6 @@ def static_file_path(file_dir, file_name):
     return STATIC_FOLDER.join(file_dir).join(file_name)
 
 
-# TODO(e-carlin): sort
-def tarball_basename(data):
-    return '{}.tgz'.format(data.models.simulation.name)
-
 @contextlib.contextmanager
 def tmp_dir(chdir=False):
     """Generates new, temporary directory

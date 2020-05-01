@@ -383,18 +383,6 @@ def write_parameters(data, run_dir, is_parallel):
         _generate_parameters_file(data),
     )
 
-# TODO(e-carlin): sort
-def _extract_zip(data, run_dir):
-    import os
-    import sirepo.pkcli.flash
-    import stat
-    import zipfile
-    zipfile.ZipFile(run_dir.join(_SIM_DATA.proprietary_lib_file_basename(data))).extractall()
-    # extractall() doesn't maintain file permissions
-    # https://bugs.python.org/issue15795
-    os.chmod(run_dir.join(sirepo.pkcli.flash.EXE_NAME), stat.S_IXUSR)
-
-
 def _apply_to_grid(grid, values, bounds, cell_size, xdomain, ydomain):
     xsize = len(values)
     ysize = len(values[0])
@@ -417,6 +405,17 @@ def _cell_size(f, refine_max):
                 return f['block size'][i]
         refine_max -= 1
     assert False, 'no blocks with appropriate refine level'
+
+
+def _extract_zip(data, run_dir):
+    import os
+    import sirepo.pkcli.flash
+    import stat
+    import zipfile
+    zipfile.ZipFile(run_dir.join(_SIM_DATA.proprietary_lib_file_basename(data))).extractall()
+    # extractall() doesn't maintain file permissions
+    # https://bugs.python.org/issue15795
+    os.chmod(run_dir.join(sirepo.pkcli.flash.EXE_NAME), stat.S_IXUSR)
 
 
 #TODO(pjm): plot columns are hard-coded for flashType
