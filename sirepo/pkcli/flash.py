@@ -14,8 +14,10 @@ import py.path
 import sirepo.template.flash as template
 import subprocess
 
+EXE_NAME = 'flash4'
+
 def run_background(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     mpi.run_program(
-        [pkio.py_path(cfg_dir).join(data.models.simulation.flashType)],
+        [pkio.py_path(cfg_dir).join(EXE_NAME)],
     )

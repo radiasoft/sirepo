@@ -375,11 +375,23 @@ def sim_frame_varAnimation(frame_args):
 
 
 def write_parameters(data, run_dir, is_parallel):
+    _extract_zip(data, run_dir)
     pkio.write_text(
         #TODO: generate python instead
         run_dir.join('flash.par'),
         _generate_parameters_file(data),
     )
+
+# TODO(e-carlin): sort
+def _extract_zip(data, run_dir):
+    import os
+    import sirepo.pkcli.flash
+    import stat
+    import zipfile
+    zipfile.ZipFile(run_dir.join(_SIM_DATA.proprietary_lib_file_basename(data))).extractall()
+    # extractall() doesn't maintain file permissions
+    # https://bugs.python.org/issue15795
+    os.chmod(run_dir.join(sirepo.pkcli.flash.EXE_NAME), stat.S_IXUSR)
 
 
 def _apply_to_grid(grid, values, bounds, cell_size, xdomain, ydomain):
