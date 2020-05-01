@@ -79,6 +79,39 @@ class Awaited(Exception):
     pass
 
 
+class SlotProxy(PKDict):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs, _value=None)
+
+    async def alloc(self, status):
+        try:
+            self._value = self._q.get_nowait()
+        except tornado.queues.QueueEmpty:
+            pkdlog('{} await .get()', self._op)
+            with self._op.set_job_status(status):
+                self._value = await self._q.get()
+            raise job_supervisor.Awaited()
+
+    def free(self):
+        if self._value is None:
+            return
+        self._q.task_done()
+        self._q.put_nowait(self._value)
+        self._value = None
+
+
+class SlotQueue(sirepo.tornado.Queue):
+
+    def __init__(self, maxsize=1, **kwargs):
+        super().__init__(maxsize=maxsize)
+        for i in range(1, maxsize + 1):
+            self.put_nowait(i)
+
+    def sr_slot_proxy(self, op):
+        return SlotProxy(_op=op, _q=self)
+
+
 def init():
     global _DB_DIR, cfg, _NEXT_REQUEST_SECONDS, job_driver
     if _DB_DIR:
@@ -168,12 +201,10 @@ class _ComputeJob(PKDict):
         super().__init__(
             ops=[],
             run_op=None,
-            run_dir_mutex=tornado.locks.Event(),
+            run_dir_slot_q=SlotQueue(),
             **kwargs,
         )
         # At start we don't know anything about the run_dir so assume ready
-        self.run_dir_mutex.set()
-        self.run_dir_owner = None
         self.pksetdefault(db=lambda: self.__db_init(req))
         self.cache_timeout_set()
 
@@ -189,18 +220,11 @@ class _ComputeJob(PKDict):
             self.cache_timeout,
         )
 
-    def clear_status(self, op, exception=None):
-        if not exception:
-            self.__db_update(jobStatusMessage=None)
-            return
-
     def destroy_op(self, op):
         if op in self.ops:
             self.ops.remove(op)
         if self.run_op == op:
             self.run_op = None
-        if op == self.run_dir_owner:
-            self.run_dir_release(self.run_dir_owner)
 
     @classmethod
     def get_instance_or_class(cls, req):
@@ -304,44 +328,18 @@ class _ComputeJob(PKDict):
             pkdlog('{} error={} stack={}', req, e, pkdexc())
             return sirepo.http_reply.gen_tornado_exception(e)
 
-    async def run_dir_acquire(self, owner):
-        if self.run_dir_owner == owner:
+    def set_status(self, op, status, exception=None):
+        if op.opName != job.OP_RUN:
             return
-        e = None
-        if not self.run_dir_mutex.is_set():
-            pkdlog('{} await self.run_dir_mutex', self)
-            await self.run_dir_mutex.wait()
-            e = Awaited()
-            if self.run_dir_owner:
-                # some other op acquired it before this one
-                raise e
-        self.run_dir_mutex.clear()
-        self.run_dir_owner = owner
-        if e:
-            raise e
-
-    def run_dir_release(self, owner):
-        assert owner == self.run_dir_owner, \
-            'owner={} not same as releaser={}'.format(self.run_dir_owner, owner)
-        self.run_dir_owner = None
-        self.run_dir_mutex.set()
-
-    def set_status(self, op, status):
-        m = None
-        if op.opName == job.OP_RUN:
-            if status == _Op.STATUS_AWAIT_OP_SLOT:
-                m = 'Waiting for another simulation to complete'
-            elif status == _Op.STATUS_COMPUTE_RUNNING:
-                m = 'Running'
-
-        if m:
-            assert not self.db.jobStatusMessage, \
-                'Trying to overwrite existing jobStatusMessage={}'.format(
-                    self.db.jobStatusMessage,
-                )
-            self.__db_update(
-                jobStatusMessage=m,
-            )
+        s = self.db.jobStatusMessage
+        p = 'Exception: '
+        if status is not None:
+            # POSIT: no other status begins with exception
+            assert not s or not s.startswith(p), \
+                f'Trying to overwrite existing jobStatusMessage="{s}" with status="{status}"'
+        if exception is not None:
+            status = f'{p}{e}, while {s}'
+        self.__db_update(jobStatusMessage=status)
 
     @classmethod
     def __create(cls, req):
@@ -493,7 +491,7 @@ class _ComputeJob(PKDict):
                     _strf_unix_time(i.db.computeJobStart),
                     _strf_unix_time(i.db.lastUpdateTime),
                     _strf_seconds(i.db.lastUpdateTime - i.db.computeJobStart),
-                    i.db.jobStatusMessage if i.db.jobStatusMessage else '',
+                    i.db.get('jobStatusMessage', ''),
                 ]
                 if uid:
                     d.insert(l, i.db.simName)
@@ -582,14 +580,6 @@ class _ComputeJob(PKDict):
                         #TODO(robnagler) cancel run_op, not just by jid, which is insufficient (hash)
                         if not c:
                             c = self._create_op(job.OP_CANCEL, req)
-                        # do not need to run_dir_acquire. OP_ANALYSIS may be in
-                        # process, and it will have run_dir_mutex. That's ok,
-                        # because an OP_RUN will wait for run_dir_mutex, and
-                        # we'll destroy the OP_RUN below (never getting to the
-                        # run_dir_mutex). The opposite case is trickier, but
-                        # relies on the fact that we don't preempt below after
-                        # the destroy (which may release run_dir_mutex) until the
-                        # reply_get await (after the send).
                         await c.prepare_send()
                         o = _ops_to_cancel()
                     elif c:
@@ -677,7 +667,6 @@ class _ComputeJob(PKDict):
         try:
             for i in range(_MAX_RETRIES):
                 try:
-                    await self.run_dir_acquire(o)
                     await o.prepare_send()
                     self.run_op = o
                     o.make_lib_dir_symlink()
@@ -757,6 +746,7 @@ class _ComputeJob(PKDict):
             req_content=req.copy_content(),
             task=asyncio.current_task(),
         )
+#TODO(robnagler) move into _Op()
         job_driver.assign_instance_op(req, r, o)
         if 'dataFileKey' in kwargs:
             kwargs['dataFileUri'] = job.supervisor_file_uri(
@@ -832,9 +822,8 @@ class _ComputeJob(PKDict):
     async def _run(self, op):
         op.task = asyncio.current_task()
         op.pkdel('run_callback')
-        l = True
         try:
-            with op.set_job_status(op.STATUS_COMPUTE_RUNNING):
+            with op.set_job_status('Running'):
                 while True:
                     try:
                         r = await op.reply_get()
@@ -842,9 +831,7 @@ class _ComputeJob(PKDict):
                         if op != self.run_op:
                             return
                         # run_dir is in a stable state so don't need to lock
-                        if l:
-                            l = False
-                            self.run_dir_release(op)
+                        op.run_dir_slot.free()
                         self.db.status = r.state
                         self.db.alert = r.get('alert')
                         if self.db.status == job.ERROR:
@@ -878,8 +865,6 @@ class _ComputeJob(PKDict):
         try:
             for i in range(_MAX_RETRIES):
                 try:
-                    if opName == job.OP_ANALYSIS:
-                        await self.run_dir_acquire(o)
                     await o.prepare_send()
                     o.send()
                     r =  await o.reply_get()
@@ -940,8 +925,6 @@ class _ComputeJob(PKDict):
 
 
 class _Op(PKDict):
-    STATUS_AWAIT_OP_SLOT = 'status_await_op_slot'
-    STATUS_COMPUTE_RUNNING = 'status_compute_running'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -950,11 +933,13 @@ class _Op(PKDict):
             internal_error=None,
             opId=job.unique_key(),
             _reply_q=sirepo.tornado.Queue(),
+            run_dir_slot=self.computeJob.run_dir_slot_q.sr_slot_proxy(self),
         )
         self.msg.update(opId=self.opId, opName=self.opName)
         pkdlog('{} runDir={}', self, self.msg.get('runDir'))
 
     def destroy(self, cancel=True, internal_error=None):
+        self.run_dir_slot.free()
         if cancel:
             if self.task:
                 self.task.cancel()
@@ -1020,9 +1005,9 @@ class _Op(PKDict):
         self.computeJob.set_status(self, status)
         try:
             yield
-            self.computeJob.clear_status(self)
+            self.computeJob.set_status(self, None)
         except Exception as e:
-            self.computeJob.clear_status(self, exception=e)
+            self.computeJob.set_status(self, None, exception=e)
             raise
 
     def __hash__(self):

@@ -37,16 +37,11 @@ class SbatchDriver(job_driver.DriverBase):
             # before it is overwritten by prepare_send
             _local_user_dir=pkio.py_path(req.content.userDir),
             _srdb_root=None,
+            # we allow one of each op type in. This is essentially a no-op (ha ha)
+            # but makes it easier to code the other cases.
+            cpu_slot_q=job_supervisor.SlotQueue(len(job_driver.OPS_WHICH_NEED_SLOTS)),
         )
         self.__instances[self.uid] = self
-
-    def cpu_slot_free_one(self):
-        """We allow as many users as the sbatch system allows"""
-        pass
-
-    async def cpu_slot_ready(self):
-        """We allow as many users as the sbatch system allows"""
-        pass
 
     async def kill(self):
         if not self._websocket:
@@ -62,7 +57,9 @@ class SbatchDriver(job_driver.DriverBase):
         return cls.__instances.pksetdefault(u, lambda: cls(req))[u]
 
     @classmethod
-    def init_class(cls):
+    def init_class(cls, job_supervisor_module):
+        global job_supervisor
+        job_supervisor = job_supervisor_module
         cls.cfg = pkconfig.init(
             agent_log_read_sleep=(
                 5,
@@ -224,8 +221,7 @@ scancel -u $USER >& /dev/null || true
         self._srdb_root = None
 
 
-def init_class():
-    return SbatchDriver.init_class()
+CLASS = SbatchDriver
 
 
 def _cfg_srdb_root(value):
