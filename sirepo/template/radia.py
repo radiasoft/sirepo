@@ -47,19 +47,19 @@ _cfg = PKDict(sdds=None)
 
 def background_percent_complete(report, run_dir, is_running):
     res = PKDict(
-        percentComplete=100,
+        percentComplete=0,
         frameCount=0,
         errors='',  #errors,
     )
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if is_running:
-        data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+        #data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         res.percentComplete = 0.0  #_compute_percent_complete(data, last_element)
         return res
-    #output_info = _output_info(run_dir)
     return PKDict(
         percentComplete=100,
         frameCount=1,
-        outputInfo=[],  #output_info,
+        outputInfo=[_read_solution(data.simulationId)],  #output_info,
         lastUpdateTime=time.time(),  #output_info[0]['lastUpdateTime'],
         errors='',  #errors,
     )
@@ -331,9 +331,10 @@ def _generate_obj_data(g_id, name):
 def _generate_parameters_file(data):
     report = data.get('report', '')
     res, v = template_common.generate_parameters_file(data)
+    sim_id = data.simulationId
     g = data.models.geometry
 
-    v['dmpFile'] = _dmp_file(data.simulationId)
+    v['dmpFile'] = _dmp_file(sim_id)
     v['isExample'] = data.models.simulation.isExample
     v['geomName'] = g.name
     disp = data.models.magnetDisplay
@@ -342,7 +343,7 @@ def _generate_parameters_file(data):
     if v_type not in VIEW_TYPES:
         raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
     v['viewType'] = v_type
-    v['dataFile'] = _geom_file(data.simulationId)
+    v['dataFile'] = _geom_file(sim_id)
     if v_type == VIEW_TYPE_FIELD:
         f_type = disp.fieldType
         if f_type not in radia_tk.FIELD_TYPES:
@@ -403,8 +404,7 @@ def _get_sdds():
 def _read_path(sim_id, h5path):
     try:
         with h5py.File(_geom_file(sim_id), 'r') as hf:
-            g = template_common.h5_to_dict(hf, path=h5path)
-        return g
+            return template_common.h5_to_dict(hf, path=h5path)
     except IOError:
         return {}
 
@@ -437,7 +437,11 @@ def _read_or_generate(geom_id, data):
 
 
 def _read_solution(sim_id):
-    return _read_path(sim_id, 'solution')
+    try:
+        return _read_path(sim_id, 'solution')
+    except KeyError:
+        # not solved yet
+        return []
 
 
 def _save_fm_sdds(name, f_data, file_path):

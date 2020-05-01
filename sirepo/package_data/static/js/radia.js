@@ -26,10 +26,13 @@ SIREPO.app.config(function() {
 SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, requestSender) {
     var self = {};
 
-    // why is this here?
+
+    // why is this here? - answer: for getting frames
     self.computeModel = function(analysisModel) {
         return 'solver';
     };
+
+    appState.setAppService(self);
 
     self.isEditing = false;
     self.objBounds = null;
@@ -218,7 +221,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, $
     });
 });
 
-SIREPO.app.controller('RadiaVisualizationController', function (appState, errorService, frameCache, panelState, persistentSimulation, radiaService, $scope) {
+SIREPO.app.controller('RadiaVisualizationController', function (appState, errorService, frameCache, panelState, persistentSimulation, radiaService, utilities, $scope) {
 
     var self = this;
 
@@ -227,6 +230,8 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     $scope.panelState = panelState;
     $scope.svc = radiaService;
 
+    self.solution = [];
+    
     function handleStatus(data) {
         //srdbg('SIM STATUS', data);
         if (data.error) {
@@ -238,6 +243,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         });
         if ('percentComplete' in data && ! data.error) {
             if (data.percentComplete === 100 && ! self.simState.isProcessing()) {
+                self.solution = data.outputInfo[0];
                 SINGLE_PLOTS.forEach(function(name) {
                     frameCache.setFrameCount(1, name);
                 });
@@ -247,6 +253,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     }
 
     self.startSimulation = function() {
+        self.solution = [];
         $scope.$broadcast('solveStarted', self.simState);
         self.simState.saveAndRunSimulation('simulation');
     };
@@ -258,7 +265,13 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     );
 
     self.simState.notRunningMessage = function() {
-        return 'Solve complete ' + '' + '(' + '' + 's)';
+        var msg = 'Complete - ';
+        if (! self.solution.length) {
+            return msg + 'No solution found';
+        }
+        return msg + self.solution[3] + ' steps ' +
+            'Max |M| ' + utilities.roundToPlaces(self.solution[1], 4) + 'A/m; ' +
+            'Max |H| ' + utilities.roundToPlaces(self.solution[2], 4) + 'A/m';
     };
 
     self.simState.startButtonLabel = function() {
@@ -364,39 +377,6 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
 
             $scope.download = function() {
                 //srdbg('download', $scope.tModel.type, radiaService.selectedPath);
-
-                // use SDDS for field map - use python sdds
-                if ($scope.isFieldMap()) {
-                    /*
-                    var p = radiaService.selectedPath;
-                    var f = p.name + ' ' + $scope.fieldType() + '.sdds';
-                    requestSender.newWindow(
-                        'exportArchive',
-                        {
-                            '<simulation_id>': appState.models.simulation.simulationId,
-                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                            '<filename>': f,
-                        },
-                        true
-                    );
-
-                     */
-                    /*
-                    var routeObj = {
-                        routeName: 'writeSDDS',
-                        '<simulation_id>': appState.models.simulation.simulationId,
-                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    };
-                    requestSender.sendRequest(
-                        routeObj,
-                        function(data) {
-                            //srdbg('fm save done', data);
-                        }
-                    );
-                    */
-                    //return;
-                }
-
                 var CSV_HEADING = geometry.basis.slice();
                 geometry.basis.forEach(function (c) {
                     CSV_HEADING.push($scope.fieldType() + c);
@@ -816,10 +796,12 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
             '<div class="col-md-6">',
                 '<div data-basic-editor-panel="" data-view-name="solver">',
                         '<div data-sim-status-panel="viz.simState"></div>',
+              //'<div>',
+              //  '<div data-simulation-status-timer="viz.simState.timeData"></div>',
+              //'</div>',
                         '<div class="col-sm-6 pull-right" style="padding-top: 8px;">',
                             '<button class="btn btn-default" data-ng-click="reset()">Reset</button>',
                         '</div>',
-                        '<span>Results: </span>',
                     '</div>',
                 '</div>',
             '</div>',
@@ -830,6 +812,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
             $scope.model = appState.models[$scope.modelName];
 
             $scope.reset = function() {
+                $scope.viz.solution = [];
                 panelState.clear('geometry');
                 panelState.requestData('reset', function (d) {
                     frameCache.setFrameCount(0);
