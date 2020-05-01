@@ -59,9 +59,6 @@ class DockerDriver(job_driver.DriverBase):
         )
         pkio.unchecked_remove(self._agent_exec_dir)
 
-    def cpu_slot_peers(self):
-        return self.host.instances[self.kind]
-
     @classmethod
     def get_instance(cls, req):
         # SECURITY: must only return instances for authorized user
@@ -80,7 +77,7 @@ class DockerDriver(job_driver.DriverBase):
         return cls(req, h)
 
     @classmethod
-    def init_class(cls):
+    def init_class(cls, job_supervisor):
         cls.cfg = pkconfig.init(
             agent_starting_secs=(
                 cls._AGENT_STARTING_SECS,
@@ -106,7 +103,7 @@ class DockerDriver(job_driver.DriverBase):
         )
         if not cls.cfg.tls_dir or not cls.cfg.hosts:
             cls._init_dev_hosts()
-        cls._init_hosts()
+        cls._init_hosts(job_supervisor)
         return cls
 
     async def kill(self):
@@ -249,19 +246,15 @@ class DockerDriver(job_driver.DriverBase):
         d.join('cacert.pem').write(o)
 
     @classmethod
-    def _init_hosts(cls):
+    def _init_hosts(cls, job_supervisor):
         for h in cls.cfg.hosts:
             d = cls.cfg.tls_dir.join(h)
             x = cls.__hosts[h] = PKDict(
                 cmd_prefix=cls._cmd_prefix(h, d),
-                instances=PKDict(),
+                instances=PKDict({k: [] for k in job.KINDS}),
                 name=h,
-                cpu_slots=PKDict(),
-                cpu_slot_q=PKDict(),
+                cpu_slot_q=PKDict({k: job_supervisor.SlotQueue(cls.cfg[k].slots_per_host) for k in job.KINDS}),
             )
-            for k in job.KINDS:
-                x.cpu_slot_q[k] = cls.init_q(cls.cfg[k].slots_per_host)
-                x.instances[k] = []
         assert len(cls.__hosts) > 0, \
             '{}: no docker hosts found in directory'.format(cls.cfg.tls_d)
 
@@ -301,8 +294,7 @@ class DockerDriver(job_driver.DriverBase):
         return tuple(res)
 
 
-def init_class():
-    return DockerDriver.init_class()
+CLASS = DockerDriver
 
 
 def _cfg_tls_dir(value):

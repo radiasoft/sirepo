@@ -1,7 +1,8 @@
+import os
 import pytest
 
 #: Maximum time an individual test case (function) can run
-MAX_CASE_RUN_SECS = 120
+MAX_CASE_RUN_SECS = int(os.getenv('SIREPO_CONFTEST_MAX_CASE_RUN_SECS', 120))
 
 
 @pytest.fixture
@@ -175,7 +176,17 @@ def pytest_runtest_protocol(item, *args, **kwargs):
     from pykern import pkunit
 
     def _timeout(*args, **kwargs):
+        signal.signal(signal.SIGALRM, _timeout_failed)
+        signal.alarm(1)
         pkunit.pkfail('MAX_CASE_RUN_SECS={} exceeded', MAX_CASE_RUN_SECS)
+
+    def _timeout_failed(*args, **kwargs):
+        import os
+        import sys
+        from pykern.pkdebug import pkdlog
+
+        pkdlog('failed to die after timeout (pkfail)')
+        os.killpg(os.getpgrp(), signal.SIGKILL)
 
     # Seems to be the only way to get the module under test
     m = item._request.module
