@@ -22,14 +22,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             )
 
     @classmethod
-    def flash_setup_units_path(cls, data):
-        return cls.lib_file_resource_dir().join(
-            '{}.setup_units'.format(data.models.simulation.flashType),
-        )
-
-    @classmethod
     def proprietary_lib_file_basename(cls, data):
-        return '{}.zip'.format(sirepo.util.secure_filename(data.models.simulation.name))
+        return '{}.zip'.format(sirepo.util.secure_filename(data.models.simulation.flashType))
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
@@ -38,8 +32,6 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _lib_file_basenames(cls, data):
         t = data.models.simulation.flashType
-        #return ['flash.par', 'al-imx-004.cn4', 'h-imx-004.cn4']
-        #return ['flash.par', 'helm_table.dat']
         if t == 'RTFlame':
             return ['helm_table.dat']
         if t == 'CapLaser':

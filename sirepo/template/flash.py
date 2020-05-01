@@ -21,6 +21,7 @@ _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 _GRID_EVOLUTION_FILE = 'flash.dat'
 _PLOT_FILE_PREFIX = 'flash_hdf5_plt_cnt_'
+_SETUP_UNITS_FILE = 'setup_units'
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -436,9 +437,7 @@ _PLOT_COLUMNS = {
 def _generate_parameters_file(data):
     res = ''
     names = {}
-    for line in pkio.read_text(
-            _SIM_DATA.flash_setup_units_path(data),
-    ).split('\n'):
+    for line in pkio.read_text(_SETUP_UNITS_FILE).split('\n'):
         name = ''
         #TODO(pjm): share with setup_params parser
         for part in line.split('/'):
