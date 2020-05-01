@@ -47,7 +47,7 @@ def audit_proprietary_lib_files(*uid):
                 )
 
     def _link_or_unlink_proprietary_files(sim_type, should_link):
-        d = _proprietary_sim_type_dir(sim_type)
+        d = proprietary_sim_type_dir(sim_type)
         for e in simulation_db.examples(sim_type):
             b = sim_data.get_class(sim_type).proprietary_lib_file_basename(e)
             p = simulation_db.simulation_lib_dir(sim_type).join(b)
@@ -62,15 +62,14 @@ def audit_proprietary_lib_files(*uid):
             except py.error.EEXIST:
                 pass
 
-    def _proprietary_sim_type_dir(sim_type):
-        return srdb.root().join(cfg.proprietary_code_dir, sim_type)
-
     server.init()
     t = feature_config.cfg().proprietary_sim_types
     if not t:
         return
     for u in uid or auth_db.all_uids():
         _audit_user(u, t)
+
+
 
 
 def create_examples():
@@ -127,6 +126,9 @@ def move_user_sims(target_uid=''):
         pkdlog(lib_file)
         shutil.move(lib_file, target)
 
+
+def proprietary_sim_type_dir(sim_type):
+    return srdb.root().join(cfg.proprietary_code_dir, sim_type)
 
 def _create_example(example):
     simulation_db.save_new_example(example)
