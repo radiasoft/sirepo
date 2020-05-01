@@ -250,7 +250,8 @@ class _TestClient(flask.testing.FlaskClient):
         )
         self.sr_email_confirm(self, r)
 
-    def sr_email_register(self, email):
+    def sr_email_register(self, email, sim_type=None):
+        self.sr_sim_type_set(sim_type)
         self.sr_email_login(email)
         self.sr_post(
             'authCompleteRegistration',
