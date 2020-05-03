@@ -94,9 +94,9 @@ class ServerReq(PKDict):
         s = self.content.pkdel('serverSecret')
         # no longer contains secret so ok to log
         assert s, \
-            'no secret in message: {}'.format(self.content)
+            'no secret in message content={}'.format(self.content)
         assert s == sirepo.job.cfg.server_secret, \
-            'server_secret did not match'.format(self.content)
+            'server_secret did not match content={}'.format(self.content)
         self.handler.write(await _ComputeJob.receive(self))
 
 
