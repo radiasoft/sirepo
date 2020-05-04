@@ -6,13 +6,16 @@ u"""?
 """
 from __future__ import absolute_import, division, print_function
 
-from pykern import pkio
+from pykern import pkio, pkconfig
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import auth
 from sirepo import auth_db
 from sirepo import feature_config
 from sirepo import server
+from sirepo import sim_data
 from sirepo import simulation_db
+from sirepo import srdb
+from sirepo import util
 from sirepo.template import template_common
 import datetime
 import glob
@@ -20,6 +23,53 @@ import json
 import os.path
 import re
 import shutil
+
+_PROPRIETARY_CODE_DIR = 'proprietary_code'
+
+
+def audit_proprietary_lib_files(*uid):
+    """Add/removes proprietary files based on a user's roles
+
+    For example, add the Flash executable if user has the flash role.
+
+    Args:
+        *uid: Uid(s) of the user(s) to audit. If None all users will be audited.
+    """
+    import py
+
+    def _audit_user(uid, proprietary_sim_types):
+        with auth.set_user(uid):
+            for t in proprietary_sim_types:
+                _link_or_unlink_proprietary_files(
+                    t,
+                    auth.check_user_has_role(
+                        auth.role_for_sim_type(t),
+                        raise_forbidden=False,
+                    ),
+                )
+
+    def _link_or_unlink_proprietary_files(sim_type, should_link):
+        d = proprietary_code_dir(sim_type)
+        for e in simulation_db.examples(sim_type):
+            b = sim_data.get_class(sim_type).proprietary_lib_file_basename(e)
+            p = simulation_db.simulation_lib_dir(sim_type).join(b)
+            if not should_link:
+                pkio.unchecked_remove(p)
+                continue
+            try:
+                p.mksymlinkto(
+                    d.join(b),
+                    absolute=False,
+                )
+            except py.error.EEXIST:
+                pass
+
+    server.init()
+    t = feature_config.cfg().proprietary_sim_types
+    if not t:
+        return
+    for u in uid or auth_db.all_uids():
+        _audit_user(u, t)
 
 
 def create_examples():
@@ -76,6 +126,9 @@ def move_user_sims(target_uid=''):
         pkdlog(lib_file)
         shutil.move(lib_file, target)
 
+
+def proprietary_code_dir(sim_type):
+    return srdb.root().join(_PROPRIETARY_CODE_DIR, sim_type)
 
 def _create_example(example):
     simulation_db.save_new_example(example)

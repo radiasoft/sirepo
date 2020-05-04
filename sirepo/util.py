@@ -130,6 +130,7 @@ class UserAlert(Reply):
             **kwargs
         )
 
+
 def convert_exception(exception, display_text='unexpected error'):
     """Convert exception so can be raised
 
