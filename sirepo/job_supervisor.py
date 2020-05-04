@@ -744,13 +744,10 @@ class _ComputeJob(PKDict):
                 r,
                 req,
             ),
-            msg=PKDict(req.content).pksetdefault(jobRunMode=r),
+            msg=PKDict(req.copy_content()).pksetdefault(jobRunMode=r),
             opName=opName,
-            req_content=req.copy_content(),
             task=asyncio.current_task(),
         )
-#TODO(robnagler) move into _Op()
-        job_driver.assign_instance_op(req, r, o)
         if 'dataFileKey' in kwargs:
             kwargs['dataFileUri'] = job.supervisor_file_uri(
                 o.driver.cfg.supervisor_uri,
@@ -939,6 +936,12 @@ class _Op(PKDict):
             run_dir_slot=self.computeJob.run_dir_slot_q.sr_slot_proxy(self),
         )
         self.msg.update(opId=self.opId, opName=self.opName)
+        self.driver = job_driver.assign_instance_op(self)
+        self.cpu_slot = self.driver.cpu_slot_q.sr_slot_proxy(self)
+        q = self.driver.op_slot_q.get(self.opName)
+        self.op_slot = q and q.sr_slot_proxy(self)
+
+
         pkdlog('{} runDir={}', self, self.msg.get('runDir'))
 
     def destroy(self, cancel=True, internal_error=None):
@@ -991,7 +994,7 @@ class _Op(PKDict):
         """Can be any op that's timed"""
         pkdlog('{} maxRunSecs={}', self, self.maxRunSecs)
         await self.computeJob._receive_api_runCancel(
-            ServerReq(content=self.req_content),
+            ServerReq(content=self.msg),
             timed_out_op=self,
         )
 

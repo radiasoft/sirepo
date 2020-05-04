@@ -19,10 +19,6 @@ import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
-_FLASH_UNITS_PATH = {
-    'RTFlame': '/home/vagrant/src/FLASH4.5/object/setup_units',
-    'CapLaser': '/home/vagrant/src/FLASH4.5/CapLaser/setup_units',
-}
 _GRID_EVOLUTION_FILE = 'flash.dat'
 _PLOT_FILE_PREFIX = 'flash_hdf5_plt_cnt_'
 
@@ -379,6 +375,7 @@ def sim_frame_varAnimation(frame_args):
 
 
 def write_parameters(data, run_dir, is_parallel):
+    _extract_zip(data, run_dir)
     pkio.write_text(
         #TODO: generate python instead
         run_dir.join('flash.par'),
@@ -410,6 +407,17 @@ def _cell_size(f, refine_max):
     assert False, 'no blocks with appropriate refine level'
 
 
+def _extract_zip(data, run_dir):
+    import os
+    import sirepo.pkcli.flash
+    import stat
+    import zipfile
+    zipfile.ZipFile(run_dir.join(_SIM_DATA.proprietary_lib_file_basename(data))).extractall()
+    # extractall() doesn't maintain file permissions
+    # https://bugs.python.org/issue15795
+    os.chmod(run_dir.join(_SIM_DATA.EXE_NAME), stat.S_IXUSR)
+
+
 #TODO(pjm): plot columns are hard-coded for flashType
 _PLOT_COLUMNS = {
     'RTFlame': [
@@ -424,10 +432,11 @@ _PLOT_COLUMNS = {
     ],
 }
 
+
 def _generate_parameters_file(data):
     res = ''
     names = {}
-    for line in pkio.read_text(_FLASH_UNITS_PATH[data.models.simulation.flashType]).split('\n'):
+    for line in pkio.read_text(_SIM_DATA.SETUP_UNITS_FILE).split('\n'):
         name = ''
         #TODO(pjm): share with setup_params parser
         for part in line.split('/'):

@@ -5,12 +5,12 @@ _build_nsls2_guest_d=/home/vagrant/tmp-nsls2
 
 build_nsls2_docker_clean() {
     local x=( $(docker ps -a -q --filter status=exited) )
-    if [[ $x ]]; then
+    if [[ ${x:-} ]]; then
         echo Removing containers: "${x[@]}"
         docker rm "${x[@]}" || true
     fi
     x=( $(docker images --filter dangling=true -q) )
-    if [[ $x ]]; then
+    if [[ ${x:-} ]]; then
         echo Removing images: "${x[@]}"
         docker rmi "${x[@]}" || true
     fi
@@ -48,12 +48,14 @@ build_nsls2_host_main() {
     cd "$d"
     ls -al
     mkdir sirepo
-    cp -a ../../{LICENSE,MANIFEST.in,README.md,requirements.txt,setup.py,sirepo} sirepo
+    cp -a ../../{LICENSE,README.md,requirements.txt,setup.py,sirepo} sirepo
     mkdir -p SRW/env/work/srw_python
     cp -a ~/src/ochubar/SRW/env/work/srw_python/[a-z]*py SRW/env/work/srw_python
     cp -a ~/src/ochubar/SRW/{cpp,Makefile} SRW
     perl -pi -e "s/'fftw'/'sfftw'/" SRW/cpp/py/setup.py
     perl -pi -e 's/-lfftw/-lsfftw/; s/\bcc\b/gcc/; s/\bc\+\+/g++/' SRW/cpp/gcc/Makefile
+    echo 'Updating: radiasoft/sirepo:dev'
+    docker pull -q radiasoft/sirepo:dev
     cat > Dockerfile <<EOF
 FROM radiasoft/sirepo:dev
 USER vagrant
