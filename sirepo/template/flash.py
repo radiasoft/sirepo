@@ -21,7 +21,6 @@ _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 _GRID_EVOLUTION_FILE = 'flash.dat'
 _PLOT_FILE_PREFIX = 'flash_hdf5_plt_cnt_'
-_SETUP_UNITS_FILE = 'setup_units'
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -416,7 +415,7 @@ def _extract_zip(data, run_dir):
     zipfile.ZipFile(run_dir.join(_SIM_DATA.proprietary_lib_file_basename(data))).extractall()
     # extractall() doesn't maintain file permissions
     # https://bugs.python.org/issue15795
-    os.chmod(run_dir.join(sirepo.pkcli.flash.EXE_NAME), stat.S_IXUSR)
+    os.chmod(run_dir.join(_SIM_DATA.EXE_NAME), stat.S_IXUSR)
 
 
 #TODO(pjm): plot columns are hard-coded for flashType
@@ -437,7 +436,7 @@ _PLOT_COLUMNS = {
 def _generate_parameters_file(data):
     res = ''
     names = {}
-    for line in pkio.read_text(_SETUP_UNITS_FILE).split('\n'):
+    for line in pkio.read_text(_SIM_DATA.SETUP_UNITS_FILE).split('\n'):
         name = ''
         #TODO(pjm): share with setup_params parser
         for part in line.split('/'):

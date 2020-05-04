@@ -9,7 +9,11 @@ import sirepo.sim_data
 import sirepo.util
 
 
+
 class SimData(sirepo.sim_data.SimDataBase):
+
+    EXE_NAME = 'flash4'
+    SETUP_UNITS_FILE = 'setup_units'
 
     @classmethod
     def fixup_old_data(cls, data):

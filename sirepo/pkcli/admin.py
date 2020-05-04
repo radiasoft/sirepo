@@ -24,6 +24,8 @@ import os.path
 import re
 import shutil
 
+_PROPRIETARY_CODE_DIR = 'proprietary_code'
+
 
 def audit_proprietary_lib_files(*uid):
     """Add/removes proprietary files based on a user's roles
@@ -47,7 +49,7 @@ def audit_proprietary_lib_files(*uid):
                 )
 
     def _link_or_unlink_proprietary_files(sim_type, should_link):
-        d = proprietary_sim_type_dir(sim_type)
+        d = proprietary_code_dir(sim_type)
         for e in simulation_db.examples(sim_type):
             b = sim_data.get_class(sim_type).proprietary_lib_file_basename(e)
             p = simulation_db.simulation_lib_dir(sim_type).join(b)
@@ -125,8 +127,8 @@ def move_user_sims(target_uid=''):
         shutil.move(lib_file, target)
 
 
-def proprietary_sim_type_dir(sim_type):
-    return srdb.root().join(cfg.proprietary_code_dir, sim_type)
+def proprietary_code_dir(sim_type):
+    return srdb.root().join(_PROPRIETARY_CODE_DIR, sim_type)
 
 def _create_example(example):
     simulation_db.save_new_example(example)
@@ -134,12 +136,3 @@ def _create_example(example):
 
 def _is_src_dir(d):
     return re.search(r'/src$', str(d))
-
-
-cfg = pkconfig.init(
-    proprietary_code_dir=(
-        'proprietary_codes',
-        str,
-        'location of proprietary codes (relative to srdb root)',
-    ),
-)

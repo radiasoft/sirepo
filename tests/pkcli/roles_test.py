@@ -25,12 +25,11 @@ def test_flash_change_role_change_lib_files(auth_fc):
 
     def _check_file(exists=True):
         pkunit.pkeq(
-            [_PROPRIETARY_FILE] if exists else [],
-            [x.basename for x in pkio.walk_tree(fc.sr_user_dir(), _PROPRIETARY_FILE)],
+            [_proprietary_file] if exists else [],
+            [x.basename for x in pkio.walk_tree(fc.sr_user_dir(), _proprietary_file)],
         )
 
-    _PROPRIETARY_FILE = 'CapLaser.zip'
-
+    _proprietary_file = 'CapLaser.zip'
     fc = auth_fc
     fc.sr_email_register('a@b.c', sim_type='flash')
 
