@@ -54,6 +54,8 @@ build_nsls2_host_main() {
     cp -a ~/src/ochubar/SRW/{cpp,Makefile} SRW
     perl -pi -e "s/'fftw'/'sfftw'/" SRW/cpp/py/setup.py
     perl -pi -e 's/-lfftw/-lsfftw/; s/\bcc\b/gcc/; s/\bc\+\+/g++/' SRW/cpp/gcc/Makefile
+    echo 'Updating: radiasoft/sirepo:dev'
+    docker pull -q radiasoft/sirepo:dev
     cat > Dockerfile <<EOF
 FROM radiasoft/sirepo:dev
 USER vagrant
