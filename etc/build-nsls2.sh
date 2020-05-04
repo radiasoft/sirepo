@@ -5,12 +5,12 @@ _build_nsls2_guest_d=/home/vagrant/tmp-nsls2
 
 build_nsls2_docker_clean() {
     local x=( $(docker ps -a -q --filter status=exited) )
-    if [[ $x ]]; then
+    if [[ ${x:-} ]]; then
         echo Removing containers: "${x[@]}"
         docker rm "${x[@]}" || true
     fi
     x=( $(docker images --filter dangling=true -q) )
-    if [[ $x ]]; then
+    if [[ ${x:-} ]]; then
         echo Removing images: "${x[@]}"
         docker rmi "${x[@]}" || true
     fi
