@@ -24,7 +24,7 @@ INTEGRABLE_FIELD_TYPES = [FIELD_TYPE_MAG_B, FIELD_TYPE_MAG_H, FIELD_TYPE_MAG_I]
 
 # these might be available from radia
 FIELD_UNITS = PKDict({
-    FIELD_TYPE_MAG_A: 'T m',
+    FIELD_TYPE_MAG_A: 'T mm',
     FIELD_TYPE_MAG_B: 'T',
     FIELD_TYPE_MAG_H: 'A/m',
     FIELD_TYPE_MAG_J: 'A/m^2',
@@ -47,19 +47,34 @@ def field_integral(geom, f_type, p1, p2):
     return radia.FldInt(geom, 'inf', f_type, p1, p2)
 
 
-def geom_to_data(geom, name=None, divide=True):
+def geom_to_data(geom, name=None, divide=True, scale=1.0):
     d_arr = []
     if not divide:
         d_arr.append(template_common.to_pkdict(radia.ObjDrwVTK(geom, 'Axes->No')))
     else:
         for g in radia.ObjCntStuf(geom):
             # for fully recursive array
-            # for g in self._get_all_geom(geom):
+            # for g in get_all_geom(geom):
             d_arr.append(template_common.to_pkdict(radia.ObjDrwVTK(g, 'Axes->No')))
 
     n = name if name is not None else str(geom)
+    for d in d_arr:
+        for t in d:
+            if 'vertices' not in t:
+                continue
+            # apply scale here
+            #pkdp('VERTS {}', t.vertices)
     return PKDict(name=n + '.Geom', id=geom, data=d_arr)
 
+
+def get_all_geom(geom):
+    g_arr = []
+    for g in radia.ObjCntStuf(geom):
+        if len(radia.ObjCntStuf(g)) > 0:
+            g_arr.extend(get_all_geom(g))
+        else:
+            g_arr.append(g)
+    return g_arr
 
 # path is *flattened* array of positions in space ([x1, y1, z1,...xn, yn, zn])
 def get_field(geom, f_type, path):
@@ -99,7 +114,6 @@ def reset():
 
 
 def solve(geom, prec, max_iter, solve_method):
-    #pkdp('SOLVE g {} p {} i {} m {}', geom, prec, max_iter, solve_method)
     return radia.Solve(geom, float(prec), int(max_iter), int(solve_method))
 
 
@@ -107,7 +121,6 @@ def vector_field_to_data(geom, name, pv_arr, units):
     # format is [[[px, py, pz], [vx, vy, vx]], ...]
     # convert to webGL object
 
-    #pkdp('g {} n {} pa {} u {}', geom, name, pv_arr, units)
     v_data = new_geom_object()
     v_data.vectors.lengths = []
     v_data.vectors.colors = []
@@ -196,7 +209,6 @@ class RadiaGeomMgr:
         del self._geoms[g_name]
 
     def solve_geom(self, g_name, prec, max_iter, solve_method):
-        #pkdp('SOLVE g {} p {} i {} m {}', g_name, prec, max_iter, solve_method)
         return solve(self.get_geom(g_name), float(prec), int(max_iter), int(solve_method))
 
 

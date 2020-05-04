@@ -324,8 +324,9 @@ def _generate_data(g_id, in_data, add_lines=True):
         return PKDict(error=e.message)
 
 
-def _generate_obj_data(g_id, name):
-    return radia_tk.geom_to_data(g_id, name=name)
+def _generate_obj_data(g_id, name, scale=1.0):
+    #pkdp('GEN OBJ SCALE {}', scale)
+    return radia_tk.geom_to_data(g_id, name=name, scale=scale)
 
 
 def _generate_parameters_file(data):
@@ -413,12 +414,6 @@ def _read_data(sim_id, view_type, field_type):
     res = _read_path(sim_id, _geom_h5_path(view_type, field_type))
     res.solution = _read_solution(sim_id)
     return res
-    #try:
-    #    with h5py.File(_geom_file(sim_id), 'r') as hf:
-    #        g = template_common.h5_to_dict(hf, path=_geom_h5_path(view_type, field_type))
-    #    return g
-    #except IOError:
-    #    return {}
 
 
 def _read_or_generate(geom_id, data):
@@ -447,8 +442,8 @@ def _read_solution(sim_id):
 def _save_fm_sdds(name, f_data, file_path):
     s = _get_sdds()
     s.setDescription('Field Map for ' + name, 'x(m), y(m), z(m), Bx(T), By(T), Bz(T)')
-    # cm -> m for elegant - might need to have this as a param in general
-    pts = 0.01 * numpy.reshape(f_data.vectors.vertices, (-1, 3))
+    # mm -> m for elegant - might need to have this as a param in general
+    pts = 0.001 * numpy.reshape(f_data.vectors.vertices, (-1, 3))
     ind = numpy.lexsort((pts[:, 0], pts[:, 1], pts[:, 2]))
     pts = pts[ind]
     mag = f_data.vectors.magnitudes

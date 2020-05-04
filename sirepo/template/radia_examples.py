@@ -155,6 +155,36 @@ def dipole_example():
 def undulator_example():
     mu0 = 4 * math.pi / 1e7
 
+    # set parameters for this undulator
+    # -- general parameters
+
+    # number of full magnetic periods
+    n_periods = 1  #2
+
+    # period (mm)
+    period = 46
+
+    # gap height (mm)
+    gap = 20
+    offset = 1
+
+    # parameters for the iron poles
+    # dimensions (mm)
+    lp = [45, 5, 25]
+
+    # pole-tip segmentation
+    nsp = [2, 2, 5]
+    #cp = [1, 0, 0]
+    ll = period / 2 - lp[1]
+
+    # parameters for the magnet blocks
+    # dimensions (mm)
+    lm = [65, ll, 45]
+
+    # magnet-block segmentation
+    nsm = [1 ,3, 1]
+    #cm = [0, 1, 1]    # assign color
+
     # ~iron type Va Permendur
     iron_h = [
         0.8, 1.5, 2.2, 3.6, 5.0, 6.8, 9.8, 18.0,
@@ -206,7 +236,7 @@ def undulator_example():
 
         # -- magnet and pole pairs
         m_dir = -1
-        for i in range(0, num_periods):
+        for i in range(num_periods):
             init_m = [0, m_dir, 0]
             m_dir *= -1
             y += block_lengths[1] / 2
@@ -248,7 +278,10 @@ def undulator_example():
         radia.TrfZerPara(grp, zero, [0, 0, 1])  # reflect in the (x,y) plane
         radia.TrfZerPerp(grp, zero, [0, 1, 0])  # reflect in the (z,x) plane
 
-        return grp, pole, magnet
+        # appears that a container with symmetries must live in another container, or
+        # ObjDrwVTK() will not apply the symmetry
+        return radia.ObjCnt([grp]), pole, magnet
+        #return grp, pole, magnet
 
     def materials(h, m, smat, rm):
         """
@@ -269,42 +302,13 @@ def undulator_example():
 
         return mp, mm
 
-    # set parameters for this undulator
-    # -- general parameters
-
-    # number of full magnetic periods
-    n_periods = 2
-
-    # period (mm)
-    period = 46
-
-    # gap height (mm)
-    gap = 20
-    offset = 1
-
-    # parameters for the iron poles
-    # dimensions (mm)
-    lp = [45, 5, 25]
-
-    # pole-tip segmentation
-    nsp = [2, 2, 5]
-    #cp = [1, 0, 0]
-    ll = period / 2 - lp[1]
-
-    # parameters for the magnet blocks
-    # dimensions (mm)
-    lm = [65, ll, 45]
-
-    # magnet-block segmentation
-    nsm = [1 ,3, 1]
-    #cm = [0, 1, 1]    # assign color
-
     # -- magnetic materials
     # pole tips: ~iron type Va Permendur
     # permanent magnets: NdFeB with 1.2 Tesla remanent magnetization
     mp, mm = materials(iron_h, iron_m, 'NdFeB', 1.2)
 
     # then build the undulator
+    #TODO(mvk): the symmetries are not applied to the geometry?
     und, pl, mg = undulator(lp, mp, nsp, lm, mm, nsm, gap, offset, n_periods)
 
     return und

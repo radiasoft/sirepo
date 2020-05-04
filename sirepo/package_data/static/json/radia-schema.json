@@ -72,9 +72,9 @@
     "model": {
         "circlePath": {
             "_super": ["_", "model", "fieldPath"],
-            "ctrX": ["Center x", "Float", 0.0],
-            "ctrY": ["Center y", "Float", 0.0],
-            "ctrZ": ["Center z", "Float", 0.0],
+            "ctrX": ["Center x (mm)", "Float", 0.0],
+            "ctrY": ["Center y (mm)", "Float", 0.0],
+            "ctrZ": ["Center z (mm)", "Float", 0.0],
             "radius": ["Radius", "Float", 10.0],
             "theta": ["\uD835\uDFB1", "Float", 0.0, "Euler 2", -3.14159, 3.14159],
             "phi": ["\uD835\uDFBF", "Float", 0.0, "Euler 3", 0.0, 6.2832],
@@ -87,12 +87,12 @@
         },
         "fieldMapPath": {
             "_super": ["_", "model", "fieldPath"],
-            "ctrX": ["Center x", "Float", 0.0],
-            "ctrY": ["Center y", "Float", 0.0],
-            "ctrZ": ["Center z", "Float", 0.0],
-            "lenX": ["X length", "Float", 1.0, "", 0],
-            "lenY": ["Y length", "Float", 1.0, "", 0],
-            "lenZ": ["Z length", "Float", 1.0, "", 0],
+            "ctrX": ["Center x (mm)", "Float", 0.0],
+            "ctrY": ["Center y (mm)", "Float", 0.0],
+            "ctrZ": ["Center z (mm)", "Float", 0.0],
+            "lenX": ["X length (mm)", "Float", 1.0, "", 0],
+            "lenY": ["Y length (mm)", "Float", 1.0, "", 0],
+            "lenZ": ["Z length (mm)", "Float", 1.0, "", 0],
             "numPoints": ["Num Points", "Integer", 10, "", 2],
             "type": ["_", "PathType", "fieldMap"]
         },
@@ -121,12 +121,12 @@
         },
         "linePath": {
             "_super": ["_", "model", "fieldPath"],
-            "beginX": ["x1", "Float", -10.0],
-            "beginY": ["y1", "Float", 0.0],
-            "beginZ": ["z1", "Float", 0.0],
-            "endX": ["x2", "Float", 10.0],
-            "endY": ["y2", "Float", 0.0],
-            "endZ": ["z2", "Float", 0.0],
+            "beginX": ["x1 (mm)", "Float", -10.0],
+            "beginY": ["y1 (mm)", "Float", 0.0],
+            "beginZ": ["z1 (mm)", "Float", 0.0],
+            "endX": ["x2 (mm)", "Float", 10.0],
+            "endY": ["y2 (mm)", "Float", 0.0],
+            "endZ": ["z2 (mm)", "Float", 0.0],
             "numPoints": ["Num Points", "Integer", 10, "", 2],
             "type": ["_", "PathType", "line"]
         },
@@ -141,9 +141,9 @@
         },
         "manualPath": {
             "_super": ["_", "model", "fieldPath"],
-            "ptX": ["x", "Float", 0.0],
-            "ptY": ["y", "Float", 0.0],
-            "ptZ": ["z", "Float", 0.0],
+            "ptX": ["x (mm)", "Float", 0.0],
+            "ptY": ["y (mm)", "Float", 0.0],
+            "ptZ": ["z (mm)", "Float", 0.0],
             "type": ["_", "PathType", "manual"]
         },
         "material": {

@@ -266,7 +266,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
 
     self.simState.notRunningMessage = function() {
         var msg = 'Complete - ';
-        if (! self.solution.length) {
+        if (! (self.solution || []).length) {
             return msg + 'No solution found';
         }
         return msg + self.solution[3] + ' steps ' +
@@ -1080,7 +1080,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 geometry.basis.forEach(function (dim, i) {
                     acfg[dim] = {};
                     acfg[dim].dimLabel = dim;
-                    acfg[dim].label = dim + ' [cm]';
+                    acfg[dim].label = dim + ' [m]';
                     acfg[dim].max = b[2 * i + 1];
                     acfg[dim].min = b[2 * i];
                     acfg[dim].numPoints = 100;
@@ -1656,7 +1656,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 requestSender.getApplicationData(
                     inData,
                     function(d) {
-                        //srdbg('got app data', d);
+                        srdbg('got app data', d);
                         if (d && d.data) {
                             if ($scope.isViewTypeFields()) {
                                 // get the lines in a separate call - downside is longer wait
@@ -1693,7 +1693,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             };
 
             appState.whenModelsLoaded($scope, function () {
-                //srdbg('whenModelsLoaded g', appState.models.geometry);
                 $scope.model = appState.models[$scope.modelName];
                 $scope.gModel = appState.models.geometry;
                 appState.watchModelFields($scope, watchFields, updateLayout);
