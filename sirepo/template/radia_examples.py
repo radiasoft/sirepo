@@ -338,7 +338,8 @@ def wiggler_example():
     # and reflect in the (x,y) plane [plane through (0,0,0) with normal (0,0,1)]
     radia.TrfZerPara(geom, [0, 0, 0], [0, 0, 1])
 
-    return geom
+    return radia.ObjCnt([geom])
+    #return geom
 
 
 def build(name):
