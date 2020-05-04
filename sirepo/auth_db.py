@@ -7,10 +7,11 @@ u"""Auth database
 from __future__ import absolute_import, division, print_function
 
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-import threading
+import sirepo.auth
 import sqlalchemy
-import sqlalchemy.orm
 import sqlalchemy.ext.declarative
+import sqlalchemy.orm
+import threading
 
 
 #: sqlite file located in sirepo_db_dir
@@ -35,12 +36,17 @@ UserRole = None
 thread_lock = threading.RLock()
 
 
-def init(app):
+def all_uids():
+    return UserRegistration.search_all_for_column('uid')
+
+
+def init(srdb_root, migrate_db_file=True):
     global _session, _engine, UserDbBase, UserRegistration, UserRole
     assert not _session
 
-    f = _db_filename(app)
-    _migrate_db_file(f)
+    f = _db_filename(srdb_root)
+    if migrate_db_file:
+        _migrate_db_file(f)
     _engine = sqlalchemy.create_engine(
         'sqlite:///{}'.format(f),
         # We do our own thread locking so no need to have pysqlite warn us when
@@ -126,6 +132,14 @@ def init(app):
                 ).delete(synchronize_session='fetch')
                 cls._session.commit()
 
+        @classmethod
+        def uids_of_paid_users(cls):
+            return [
+                x[0] for x in cls._session.query(cls).with_entities(cls.uid).filter(
+                    cls.role.in_(sirepo.auth.PAID_USER_ROLES),
+                ).distinct().all()
+            ]
+
     # only creates tables that don't already exist
     UserDbBase.metadata.create_all(_engine)
 
@@ -136,8 +150,8 @@ def init_model(callback):
         UserDbBase.metadata.create_all(_engine)
 
 
-def _db_filename(app):
-    return app.sirepo_db_dir.join(_SQLITE3_BASENAME)
+def _db_filename(srdb_root):
+    return srdb_root.join(_SQLITE3_BASENAME)
 
 
 def _migrate_db_file(fn):

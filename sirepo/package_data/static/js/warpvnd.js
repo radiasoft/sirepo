@@ -2642,9 +2642,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
         template: [
             '<div data-simple-panel="{{ modelName }}">',
                 '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isProcessing()">',
-                  '<div data-ng-show="simState.isStatePending()">',
-                    '<div class="col-sm-12">{{ simState.stateAsText() }} {{ simState.dots }}</div>',
-                  '</div>',
+                  '<div data-pending-link-to-simulations="" data-sim-state="simState"></div>',
                   '<div data-ng-show="simState.isStateRunning()">',
                     '<div class="col-sm-12">',
                       '<div data-ng-show="simState.isInitializing() || simState.getFrameCount() > 0">',

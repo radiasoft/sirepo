@@ -1842,9 +1842,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
 
               '<div data-ng-if="simState.isProcessing()">',
                 '<div class="col-sm-6">',
-                  '<div data-ng-show="simState.isStatePending()">',
-                    '<span class="glyphicon glyphicon-hourglass"></span> {{ simState.stateAsText() }} {{ simState.dots }}',
-                  '</div>',
+                  '<div data-pending-link-to-simulations="" data-sim-state="simState"></div>',
                   '<div data-ng-show="simState.isInitializing()">',
                     '<span class="glyphicon glyphicon-hourglass"></span> Initializing Simulation {{ simState.dots }}',
                   '</div>',

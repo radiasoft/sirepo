@@ -499,7 +499,7 @@ def api_srUnit():
     v = getattr(flask.current_app, SRUNIT_TEST_IN_REQUEST)
     if v.want_user:
         import sirepo.auth
-        sirepo.auth.init_mock()
+        sirepo.auth.set_user_for_utils()
     if v.want_cookie:
         import sirepo.cookie
         sirepo.cookie.set_sentinel()

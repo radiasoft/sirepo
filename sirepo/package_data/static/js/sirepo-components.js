@@ -1349,6 +1349,25 @@ SIREPO.app.directive('panelLayout', function(appState, utilities, $window) {
     };
 });
 
+SIREPO.app.directive('pendingLinkToSimulations', function(requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            simState: '<',
+        },
+        template: [
+            '<div data-ng-show="simState.isStatePending()">',
+              '<a data-ng-href="{{ requestSender.formatUrlLocal(\'ownJobs\') }}" target="_blank" >',
+                '<span class="glyphicon glyphicon-hourglass"></span> {{ simState.stateAsText() }} {{ simState.dots }}',
+              '</a>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.requestSender = requestSender;
+        },
+    };
+});
+
 SIREPO.app.directive('safePath', function() {
 
     // keep in sync with sirepo.srschem.py _NAME_ILLEGALS
@@ -3054,18 +3073,27 @@ SIREPO.app.directive('sbatchLoginModal', function() {
             var awaitingSendResponse = false;
             var el = $('#sbatch-login-modal');
             var onHidden = null;
+            var errorResponse = null;
 
             el.on('hidden.bs.modal', function() {
                 $scope.otp = '';
                 $scope.password = '';
                 $scope.username = '';
                 $scope.sbatchLoginModalForm.$setPristine();
-                onHidden({'state': 'error', 'error': 'Please try again.'});
+                var r = {'state': 'error', 'error': 'Please try again.'};
+                if (errorResponse) {
+                    r = {'state': 'error', 'error': errorResponse};
+                }
+                errorResponse = null;
+                onHidden(r);
                 onHidden = null;
                 $scope.$apply();
             });
 
             function handleResponse(data) {
+                if (data.hasOwnProperty('state') && data.state == 'error') {
+                    errorResponse = data.error;
+                }
                 el.modal('hide');
             }
 
@@ -3156,9 +3184,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
         },
         template: [
             '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isProcessing()">',
-              '<div data-ng-show="simState.isStatePending()">',
-                '<div class="col-sm-12">{{ simState.stateAsText() }} {{ simState.dots }}</div>',
-              '</div>',
+              '<div data-pending-link-to-simulations="" data-sim-state="simState"></div>',
               '<div data-ng-show="simState.isStateRunning()">',
                 '<div class="col-sm-12">',
                   '<div data-ng-show="simState.isInitializing()">{{ initMessage() }} {{ simState.dots }}</div>',

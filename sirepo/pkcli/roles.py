@@ -6,6 +6,7 @@ u"""CRUD operations for user roles
 """
 from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from sirepo.pkcli import admin
 import sirepo.auth
 import sirepo.auth_db
 import sirepo.server
@@ -19,6 +20,8 @@ def add_roles(uid, *args):  # TODO(e-carlin): roles arg
     """
     _check_uid_and_roles(uid, args)
     sirepo.auth_db.UserRole.add_roles(uid, args)
+    admin.audit_proprietary_lib_files(uid)
+
 
 
 def delete_roles(uid, *args):
@@ -29,6 +32,7 @@ def delete_roles(uid, *args):
     """
     _check_uid_and_roles(uid, args)
     sirepo.auth_db.UserRole.delete_roles(uid, args)
+    admin.audit_proprietary_lib_files(uid)
 
 
 def list_roles(uid):

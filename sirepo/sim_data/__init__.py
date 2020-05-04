@@ -371,7 +371,11 @@ class SimDataBase(object):
             data (dict): simulation db
             run_dir (py.path): where to copy to
         """
-        for b in cls.lib_file_basenames(data):
+        # TODO(e-carlin): When remote we will pull the flash binary
+        # over the wire each time the user wants to run the sim. Could
+        # be a source of slowdown.
+        p = cls.proprietary_lib_file_basename(data)
+        for b in cls.lib_file_basenames(data) + [p] if p else []:
             t = run_dir.join(b)
             s = cls.lib_file_abspath(b, data=data)
             if t != s:
@@ -422,7 +426,7 @@ class SimDataBase(object):
         if isinstance(obj, pkconfig.STRING_TYPES):
             res = obj
         elif isinstance(obj, dict):
-            res = obj.get('frameReport') or obj.get('report')
+            res = obj.get('frameReport') or obj.get('report') or obj.get('computeModel')
         else:
             raise AssertionError('obj={} is unsupported type={}', obj, type(obj))
         assert res and _MODEL_RE.search(res), \
@@ -460,6 +464,12 @@ class SimDataBase(object):
             int: number of seconds to poll
         """
         return 2 if cls.is_parallel(data) else 1
+
+    @classmethod
+    def proprietary_lib_file_basename(cls, data):
+        """Zip archive of proprietary file(s) used by the simulation
+        """
+        return None
 
     @classmethod
     def resource_dir(cls):
@@ -649,6 +659,10 @@ class SimDataBase(object):
         dm = data.models
         if dm.simulation.get('isExample') and dm.simulation.folder == '/':
             dm.simulation.folder = '/Examples'
+
+
+def uid_from_jid(jid):
+    return jid.split(_JOB_ID_SEP)[0]
 
 
 def _init():

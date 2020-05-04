@@ -22,6 +22,10 @@ def test_cache():
                 name='y',
                 value='x + x',
             ),
+            PKDict(
+                name='z',
+                value='y * -20',
+            ),
         ],
         PurePythonEval(),
     )
@@ -40,7 +44,17 @@ def test_cache():
             'x': 123,
             'y': 246,
             'x + x': 246,
+            'y * -20': -4920,
+            'z': -4920,
         })
+    )
+    pkeq(
+        code_var.get_expr_dependencies('x x * x +'),
+        ['x'],
+    )
+    pkeq(
+        code_var.get_expr_dependencies('y 2 pow'),
+        ['x', 'y'],
     )
 
 
@@ -80,6 +94,11 @@ def test_case_insensitive():
             'x.x7.x + x.x7.x': 246,
         })
     )
+    pkeq(
+        code_var.get_expr_dependencies('Y y +'),
+        ['x.x7.x', 'y'],
+    )
+
 
 def test_eval():
     from pykern.pkcollections import PKDict
@@ -108,3 +127,13 @@ def test_eval():
     pkeq(True, code_var.is_var_value('abc'))
     pkeq(False, code_var.is_var_value('-1.234e-6'))
     pkeq(False, code_var.is_var_value('0'))
+
+
+def test_infix_to_postfix():
+    from pykern.pkcollections import PKDict
+    from pykern.pkunit import pkeq
+    from sirepo.template.code_variable import CodeVar, PurePythonEval
+    code_var = CodeVar([], PurePythonEval(PKDict()))
+    pkeq(code_var.infix_to_postfix('x + y * 2'), 'x y 2 * +')
+    pkeq(code_var.infix_to_postfix('-(x)'), 'x chs')
+    pkeq(code_var.infix_to_postfix('-(x + +x)'), 'x x + chs')
