@@ -25,7 +25,7 @@ KILL_TIMEOUT_SECS = 3
 #: map of driver names to class
 _CLASSES = None
 
-#: default class when not determined by request
+#: default class when not determined by op
 _DEFAULT_CLASS = None
 
 _DEFAULT_MODULE = 'local'
@@ -42,22 +42,20 @@ class AgentMsg(PKDict):
         DriverBase.receive(self)
 
 
-def assign_instance_op(req, jobRunMode, op):
-    if jobRunMode == job.SBATCH:
-        res = _CLASSES[job.SBATCH].get_instance(req)
+def assign_instance_op(op):
+    m = op.msg
+    if m.jobRunMode == job.SBATCH:
+        res = _CLASSES[job.SBATCH].get_instance(op)
     else:
-        res = _DEFAULT_CLASS.get_instance(req)
-    assert req.content.uid == res.uid, \
-        'req.content.uid={} is not same as db.uid={} for jid={}'.format(
-            req.content.uid,
+        res = _DEFAULT_CLASS.get_instance(op)
+    assert m.uid == res.uid, \
+        'op.msg.uid={} is not same as db.uid={} for jid={}'.format(
+            m.uid,
             res.uid,
-            req.content.computeJid,
+            m.computeJid,
         )
-    op.driver = res
-    op.driver.ops[op.opId] = op
-    op.cpu_slot = op.driver.cpu_slot_q.sr_slot_proxy(op)
-    q = op.driver.op_slot_q.get(op.opName)
-    op.op_slot = q and q.sr_slot_proxy(op)
+    res.ops[op.opId] = op
+    return res
 
 
 class DriverBase(PKDict):
@@ -66,16 +64,16 @@ class DriverBase(PKDict):
 
     _AGENT_STARTING_SECS = 5
 
-    def __init__(self, req):
+    def __init__(self, op):
         super().__init__(
             driver_details=PKDict({'type': self.__class__.__name__}),
-            kind=req.kind,
+            kind=op.kind,
             ops=PKDict(),
             #TODO(robnagler) sbatch could override OP_RUN, but not OP_ANALYSIS
             # because OP_ANALYSIS touches the directory sometimes. Reasonably
             # there should only be one OP_ANALYSIS running on an agent at one time.
             op_slot_q=PKDict({k: job_supervisor.SlotQueue() for k in OPS_THAT_NEED_SLOTS}),
-            uid=req.content.uid,
+            uid=op.msg.uid,
             _agentId=job.unique_key(),
             _agent_start_lock=tornado.locks.Lock(),
             _agent_starting_timeout=None,
