@@ -375,7 +375,7 @@ class SimDataBase(object):
         # over the wire each time the user wants to run the sim. Could
         # be a source of slowdown.
         p = cls.proprietary_lib_file_basename(data)
-        for b in cls.lib_file_basenames(data) + [p] if p else []:
+        for b in cls.lib_file_basenames(data) + ([p] if p else []):
             t = run_dir.join(b)
             s = cls.lib_file_abspath(b, data=data)
             if t != s:
