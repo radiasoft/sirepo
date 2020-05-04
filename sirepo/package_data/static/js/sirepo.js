@@ -418,6 +418,12 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return res;
     };
 
+    self.enumVals = function(enumName) {
+        return SIREPO.APP_SCHEMA.enum[enumName].map(function (e) {
+            return e[SIREPO.ENUM_INDEX_VALUE];
+        });
+    };
+
     // intermediate method to change from arrays to objects when defining model fields
     self.fieldProperties = function(modelName, fieldName) {
         // these won't exist for beamline elements
@@ -955,6 +961,9 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         if (! appState.isLoaded()) {
             return;
         }
+        function onError(modelName) {
+            panelState.setError(modelName, 'Report not generated');
+        }
         var isHidden = panelState.isHidden(modelName);
         var frameRequestTime = new Date().getTime();
         var delay = isPlaying && ! isHidden
@@ -967,6 +976,10 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
                     '<frame_id>': self.frameId(modelName, index),
                 },
                 function(data) {
+                    if ('state' in data && data.state === 'missing') {
+                        onError(modelName);
+                        return;
+                    }
                     var endTime = new Date().getTime();
                     var elapsed = endTime - frameRequestTime;
                     if (elapsed < delay) {
@@ -984,10 +997,11 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
                 },
                 null,
                 // error handling
+                //TODO(pjm): need error wrapping on server similar to runStatus route
                 function(data) {
-                    //TODO(pjm): need error wrapping on server similar to runStatus route
-                    panelState.setError(modelName, 'Report not generated');
-                });
+                    onError(modelName);
+                }
+            );
         };
         if (isHidden) {
             panelState.addPendingRequest(modelName, requestFunction);
@@ -1622,7 +1636,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         return formatUrl(SIREPO.APP_SCHEMA.route, routeName, params);
     };
 
-    self.getApplicationData = function(data, callback) {
+    self.getApplicationData = function(data, callback, fileName) {
         // debounce the method so server calls don't go on every keystroke
         // track method calls by methodSignature (for shared methods) or method name (for unique methods)
         var signature = data.methodSignature || data.method;
@@ -1632,7 +1646,18 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         getApplicationDataTimeout[signature] = $interval(function() {
             delete getApplicationDataTimeout[signature];
             data.simulationType = SIREPO.APP_SCHEMA.simulationType;
-            self.sendRequest('getApplicationData', callback, data);
+            var r = fileName ? {
+                routeName: 'getApplicationData',
+                '<filename>': fileName
+            } : 'getApplicationData';
+            self.sendRequest(r, callback, data, function (data, status, respData) {
+                if (status === 200) {
+                    if (fileName) {
+                        // if filename, do a Blob saveAs() here?
+                        callback(respData, status);
+                    }
+                }
+            });
         }, 350, 1);
     };
 
@@ -1854,12 +1879,18 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                 }
             }
             srlog(data.error);
-            errorCallback(data, status);
+            errorCallback(data, status, response.data);
         };
         req.then(
             function(response) {
                 var data = response.data;
                 if (! angular.isObject(data) || data.state === 'srException') {
+                    // properly handle file path returns from get_application_data, which do not live in json objects
+                    // (this is a placeholder)
+                    //if (response.status === 200) {
+                    //    successCallback(data, response.status);
+                    //    return;
+                    //}
                     thisErrorCallback(response);
                     return;
                 }

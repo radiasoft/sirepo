@@ -1349,6 +1349,25 @@ SIREPO.app.directive('panelLayout', function(appState, utilities, $window) {
     };
 });
 
+SIREPO.app.directive('pendingLinkToSimulations', function(requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            simState: '<',
+        },
+        template: [
+            '<div data-ng-show="simState.isStatePending()">',
+              '<a data-ng-href="{{ requestSender.formatUrlLocal(\'ownJobs\') }}" target="_blank" >',
+                '<span class="glyphicon glyphicon-hourglass"></span> {{ simState.stateAsText() }} {{ simState.dots }}',
+              '</a>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.requestSender = requestSender;
+        },
+    };
+});
+
 SIREPO.app.directive('safePath', function() {
 
     // keep in sync with sirepo.srschem.py _NAME_ILLEGALS
@@ -2898,13 +2917,10 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
             '<input id="{{ modelName }}-{{ field }}-range" type="range" data-ng-model="model[field]" data-ng-change="fieldDelegate.update()">',
             '<span class="valueLabel">{{ model[field] }}{{ model.units }}</span>',
         ].join(''),
-        controller: function($scope) {
-            var slider;
+        controller: function($scope, $element) {
 
-            var delegate = $scope.fieldDelegate;
-            if (! delegate || $.isEmptyObject(delegate)) {
-                delegate = panelState.getFieldDelegate($scope.modelName, $scope.field);
-            }
+            var slider;
+            var delegate = null;
 
             function update() {
                 updateReadout();
@@ -2922,9 +2938,13 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
                 panelState.setFieldLabel($scope.modelName, $scope.field, delegate.readout());
             }
 
-            appState.watchModelFields($scope, (delegate.watchFields || []), update);
-
             appState.whenModelsLoaded($scope, function () {
+                delegate = $scope.fieldDelegate;
+                if (! delegate || $.isEmptyObject(delegate)) {
+                    delegate = panelState.getFieldDelegate($scope.modelName, $scope.field);
+                    $scope.fieldDelegate = delegate;
+                }
+                appState.watchModelFields($scope, (delegate.watchFields || []), update);
                 slider = $('#' + $scope.modelName + '-' + $scope.field + '-range');
                 update();
                 // on load, the slider will coerce model values to fit the basic input model of range 0-100,
@@ -2932,6 +2952,19 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
                 var val = delegate.storedVal;
                 if ((val || val === 0) && $scope.model[$scope.field] != val) {
                     $scope.model[$scope.field] = val;
+                    var form = $element.find('input').eq(0).controller('form');
+                    if (! form) {
+                        return;
+                    }
+                    // changing the value dirties the form; make it pristine or we'll get a spurious save button
+                    form.$setPristine();
+                }
+            });
+
+            $scope.$on('sliderParent.ready', function (e, m) {
+                // ???
+                if (m) {
+                    $scope.model = m;
                 }
             });
         },
@@ -3040,18 +3073,27 @@ SIREPO.app.directive('sbatchLoginModal', function() {
             var awaitingSendResponse = false;
             var el = $('#sbatch-login-modal');
             var onHidden = null;
+            var errorResponse = null;
 
             el.on('hidden.bs.modal', function() {
                 $scope.otp = '';
                 $scope.password = '';
                 $scope.username = '';
                 $scope.sbatchLoginModalForm.$setPristine();
-                onHidden({'state': 'error', 'error': 'Please try again.'});
+                var r = {'state': 'error', 'error': 'Please try again.'};
+                if (errorResponse) {
+                    r = {'state': 'error', 'error': errorResponse};
+                }
+                errorResponse = null;
+                onHidden(r);
                 onHidden = null;
                 $scope.$apply();
             });
 
             function handleResponse(data) {
+                if (data.hasOwnProperty('state') && data.state == 'error') {
+                    errorResponse = data.error;
+                }
                 el.modal('hide');
             }
 
@@ -3142,9 +3184,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
         },
         template: [
             '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isProcessing()">',
-              '<div data-ng-show="simState.isStatePending()">',
-                '<div class="col-sm-12">{{ simState.stateAsText() }} {{ simState.dots }}</div>',
-              '</div>',
+              '<div data-pending-link-to-simulations="" data-sim-state="simState"></div>',
               '<div data-ng-show="simState.isStateRunning()">',
                 '<div class="col-sm-12">',
                   '<div data-ng-show="simState.isInitializing()">{{ initMessage() }} {{ simState.dots }}</div>',
@@ -3156,7 +3196,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                 '</div>',
               '</div>',
               '<div class="col-sm-6 pull-right">',
-                '<button class="btn btn-default" data-ng-click="simState.cancelSimulation()">End Simulation</button>',
+                '<button class="btn btn-default" data-ng-click="simState.cancelSimulation()">{{ stopButtonLabel() }}</button>',
               '</div>',
             '</form>',
             '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isStopped()">',
@@ -3172,7 +3212,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               '</div>',
               '<div data-cancelled-due-to-timeout-alert="simState"></div>',
               '<div class="col-sm-6 pull-right">',
-                '<button class="btn btn-default" data-ng-click="start()">Start New Simulation</button>',
+                '<button class="btn btn-default" data-ng-click="start()">{{ startButtonLabel() }}</button>',
               '</div>',
             '</form>',
             '<div class="clearfix"></div>',
@@ -3188,6 +3228,14 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
 
             $scope.alertMessage = function() {
                 return callSimState('getAlert');
+            };
+
+            $scope.startButtonLabel = function() {
+                return callSimState('startButtonLabel') || 'Start New Simulation';
+            };
+
+            $scope.stopButtonLabel = function() {
+                return callSimState('stopButtonLabel') || 'End Simulation';
             };
 
             $scope.cancelledAfterSecs = function() {
@@ -3743,6 +3791,30 @@ SIREPO.app.service('utilities', function($window, $interval) {
             }
             debounceInterval = $interval(later, milliseconds, 1);
         };
+    };
+
+    this.indexArray = function(size) {
+        var res = [];
+        for (var i = 0; i < size; res.push(i++)) {}
+        return res;
+    };
+
+    this.normalize = function(seq) {
+        var sMax = Math.max.apply(null, seq);
+        var sMin = Math.min.apply(null, seq);
+        var sRange = sMax - sMin;
+        sRange = sRange > 0 ? sRange : 1.0;
+        return seq.map(function (v) {
+            return (v - sMin) / sRange;
+        });
+    };
+
+    this.roundToPlaces = function(val, p) {
+        if (p < 0) {
+            return val;
+        }
+        var r = Math.pow(10, p);
+        return Math.round(val * r) / r;
     };
 
     // Sequentially applies a function to an array - useful for large arrays which

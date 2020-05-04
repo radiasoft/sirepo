@@ -24,7 +24,7 @@ SIREPO.app.config(function() {
           '<div data-cell-selector=""></div>',
         '</div>',
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
-          '<div data-color-picker="" data-color="model.color" data-default-color="model.isConductor === \'0\' ? \'#f3d4c8\' : \'#6992ff\'"></div>',
+          '<div data-color-picker="" data-model="model" data-field="field" data-color="model.color" data-default-color="model.isConductor === \'0\' ? \'#f3d4c8\' : \'#6992ff\'"></div>',
         '</div>',
         '<div data-ng-switch-when="OptimizationField" data-ng-class="fieldClass">',
           '<div data-optimization-field-picker="" field="field" data-model="model"></div>',
@@ -2642,9 +2642,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
         template: [
             '<div data-simple-panel="{{ modelName }}">',
                 '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isProcessing()">',
-                  '<div data-ng-show="simState.isStatePending()">',
-                    '<div class="col-sm-12">{{ simState.stateAsText() }} {{ simState.dots }}</div>',
-                  '</div>',
+                  '<div data-pending-link-to-simulations="" data-sim-state="simState"></div>',
                   '<div data-ng-show="simState.isStateRunning()">',
                     '<div class="col-sm-12">',
                       '<div data-ng-show="simState.isInitializing() || simState.getFrameCount() > 0">',
@@ -3815,217 +3813,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 return arr;
             }
 
-            function homunculus(bodyCenter) {
-
-                bodyCenter = bodyCenter || [0, 0, 0];
-                const thetaRez = 24;
-                const phiRez = 24;
-                var bodyRadius = 1.0;
-                var bodyHeight = 3 * bodyRadius;
-
-                var source = vtk.Filters.General.vtkAppendPolyData.newInstance();
-
-                // define plane constants
-                const VENTRAL = SIREPO.APP_SCHEMA.constants.planeVentral;
-                const DORSAL = SIREPO.APP_SCHEMA.constants.planeDorsal;
-                const DEXTER = SIREPO.APP_SCHEMA.constants.planeDexter;
-                const SINISTER = SIREPO.APP_SCHEMA.constants.planeSinister;
-                const ROSTRAL = SIREPO.APP_SCHEMA.constants.planeRostral;
-                const CAUDAL = SIREPO.APP_SCHEMA.constants.planeCaudal;
-
-                // define quadrant constants
-                const VENTRAL_DEXTER = VENTRAL + DEXTER;
-                const VENTRAL_SINISTER = VENTRAL + SINISTER;
-                const DORSAL_DEXTER = DORSAL + DEXTER;
-                const DORSAL_SINISTER = DORSAL + SINISTER;
-                const ROSTRAL_DEXTER = ROSTRAL + DEXTER;
-                const ROSTRAL_SINISTER = ROSTRAL + SINISTER;
-                const CAUDAL_DEXTER = CAUDAL + DEXTER;
-                const CAUDAL_SINISTER = CAUDAL + SINISTER;
-
-                const VERT_QUADRANTS = [VENTRAL_DEXTER, VENTRAL_SINISTER, DORSAL_DEXTER, DORSAL_SINISTER];
-                const HORIZ_QUADRANTS = [ROSTRAL_DEXTER, ROSTRAL_SINISTER, CAUDAL_DEXTER, CAUDAL_SINISTER];
-                const QUADRANTS = [...VERT_QUADRANTS, ...HORIZ_QUADRANTS];
-
-                const quadrantColors = {};
-                quadrantColors[VENTRAL + DEXTER] = [0, 255, 0, 255];
-                quadrantColors[VENTRAL + SINISTER] = [255, 0, 0, 255];
-                quadrantColors[DORSAL + DEXTER] = [0, 0, 255, 255];
-                quadrantColors[DORSAL + SINISTER] = [255, 255, 0, 255];
-
-                const extentPlanes = {};
-                extentPlanes[ROSTRAL] = {norm: [0, 0, -1], origin: [0, 0, bodyHeight / 2.0]};
-                extentPlanes[CAUDAL] = {norm: [0, 0, 1], origin: [0, 0, -bodyHeight / 2.0]};
-
-                const quadrantPlanes = {};
-                quadrantPlanes[VENTRAL] = {norm: [0, 1, 0], origin: bodyCenter};
-                quadrantPlanes[DEXTER] = {norm: [1, 0, 0], origin: bodyCenter};
-                quadrantPlanes[DORSAL] = {norm: [0, -1, 0], origin: bodyCenter};
-                quadrantPlanes[SINISTER] = {norm: [-1, 0, 0], origin: bodyCenter};
-
-                var headRadius = 0.70 * bodyRadius;
-                var headCenter = [bodyCenter[0], bodyCenter[1], bodyCenter[2] + bodyHeight / 2.0 + 0.9 * headRadius];
-                const headQuadrants = {};
-                headQuadrants[VENTRAL + DEXTER] = {th1: 0, th2: 90};
-                headQuadrants[VENTRAL + SINISTER] = {th1: 90, th2: 180};
-                headQuadrants[DORSAL + DEXTER] = {th1: 270, th2: 360};
-                headQuadrants[DORSAL + SINISTER] = {th1: 180, th2: 270};
-
-                let n = 0;
-                [VENTRAL, DORSAL].forEach(function (vd) {
-                    [SINISTER, DEXTER].forEach(function (sd) {
-                        const qc = quadrantColors[vd + sd];
-                        let s = vtkPlotting.cylinderSection(
-                            bodyCenter, [0, 0 , 1], bodyRadius, bodyHeight,
-                            [extentPlanes[ROSTRAL], extentPlanes[CAUDAL], quadrantPlanes[vd], quadrantPlanes[sd]]
-                        ).getOutputData();
-                        vtkPlotting.setColorSclars(s, qc);
-                        if (n === 0) {
-                            source.setInputData(s);
-                        }
-                        else {
-                            source.addInputData(s);
-                        }
-                        ++n;
-                        const hq = headQuadrants[vd + sd];
-                        s = vtk.Filters.Sources.vtkSphereSource.newInstance({
-                            radius: headRadius,
-                            center: headCenter,
-                            thetaResolution: thetaRez,
-                            phiResolution: phiRez,
-                            startTheta: hq.th1,
-                            endTheta: hq.th2
-                        }).getOutputData();
-                        vtkPlotting.setColorSclars(s, qc);
-                        source.addInputData(s);
-                        ++n;
-                    });
-                });
-
-                const limbRadius = bodyRadius / 6.0;
-                const limbLen = 0.5 * bodyHeight;
-                const armLen = 0.5 * bodyHeight;
-                const armAngle = -Math.PI / 3.0;
-                const armRho = Math.hypot(limbLen / 2.0, limbRadius);
-                const armPhi = Math.atan2(limbRadius, limbLen / 2.0);
-                const armdx = armRho * Math.sin(armAngle - armPhi) + 2 * limbRadius * Math.cos(armAngle);
-
-                const legLen = 0.75 * bodyHeight;
-                const legAngle = Math.PI / 12.0;
-                const legRho = Math.hypot(legLen / 2.0, limbRadius);
-                const legPhi = Math.atan2(limbRadius, legLen / 2.0);
-                const legdx = legRho * Math.sin(legAngle + legPhi) - 2 * limbRadius * Math.cos(legAngle);
-
-                const limbs = {};
-                limbs[ROSTRAL_SINISTER] = {
-                    axis: [Math.sin(armAngle), 0, Math.cos(armAngle)],
-                    center: [armdx - bodyRadius, 0, 0.50 * bodyHeight],
-                    length: armLen,
-                    planes: [extentPlanes[ROSTRAL], extentPlanes[CAUDAL], quadrantPlanes[VENTRAL]],
-                    radius: limbRadius,
-                };
-                limbs[ROSTRAL + DEXTER] = {
-                    axis: [-Math.sin(armAngle), 0, Math.cos(armAngle)],
-                    center: [-armdx + bodyRadius, 0, 0.50 * bodyHeight],
-                    length: armLen,
-                    planes: [extentPlanes[ROSTRAL], extentPlanes[CAUDAL], quadrantPlanes[VENTRAL]],
-                    radius: limbRadius,
-                };
-                limbs[CAUDAL + SINISTER] = {
-                    axis: [Math.sin(legAngle), 0, Math.cos(legAngle)],
-                    center: [-legdx - bodyRadius, 0, -0.75 * bodyHeight],
-                    length: legLen,
-                    planes: [extentPlanes[ROSTRAL], extentPlanes[CAUDAL], quadrantPlanes[VENTRAL]],
-                    radius: limbRadius,
-                };
-                limbs[CAUDAL + DEXTER] = {
-                    axis: [-Math.sin(legAngle), 0, Math.cos(legAngle)],
-                    center: [legdx + bodyRadius, 0, -0.75 * bodyHeight],
-                    length: legLen,
-                    planes: [extentPlanes[ROSTRAL], extentPlanes[CAUDAL], quadrantPlanes[VENTRAL]],
-                    radius: limbRadius,
-                };
-/*
-                for (let qIdex in HORIZ_QUADRANTS) {
-                    const qName = HORIZ_QUADRANTS[qIdex];
-                    let q = limbs[qName];
-                    for (let dsIdx in [SINISTER, DEXTER]) {
-                        let side = [SINISTER, DEXTER][dsIdx];
-                        const qc = quadrantColors[qName];
-                        let s = vtkPlotting.cylinderSection(
-                            q.center, q.axis, q.radius, q.length,
-                            [extentPlanes[ROSTRAL], extentPlanes[CAUDAL], ...q.planes]
-                        ).getOutputData();
-                        vtkPlotting.setColorSclars(s, qc);
-                        source.addInputData(s);
-                        ++n;
-                    }
-                }
-*/
-/*
-                let arm = vtkPlotting.cylinderSection(
-                        [armdx - bodyRadius, 0, 0.50 * bodyHeight], [Math.sin(armAngle), 0, Math.cos(armAngle)], limbRadius, limbLen,
-                        //quadrantPlanes[VENTRAL], null, bodyCenter, null
-                    [extentPlanes[ROSTRAL], extentPlanes[CAUDAL], quadrantPlanes[VENTRAL]]
-                    ).getOutputData();
-                vtkPlotting.setColorSclars(arm, quadrantColors[VENTRAL_SINISTER]);
-                source.addInputData(arm);
-                arm = vtkPlotting.cylinderSection(
-                        [armdx - bodyRadius, 0, 0.50 * bodyHeight], [Math.sin(armAngle), 0, Math.cos(armAngle)], limbRadius, limbLen,
-                        //quadrantPlanes[DORSAL], null, bodyCenter, null
-                    [extentPlanes[ROSTRAL], extentPlanes[CAUDAL], quadrantPlanes[DORSAL]]
-                    ).getOutputData();
-                vtkPlotting.setColorSclars(arm, quadrantColors[DORSAL_SINISTER]);
-                source.addInputData(arm);
-                arm = vtkPlotting.cylinderSection(
-                        [-armdx + bodyRadius, 0, 0.50 * bodyHeight], [-Math.sin(armAngle), 0, Math.cos(armAngle)], limbRadius, limbLen,
-                        //quadrantPlanes[VENTRAL], null, bodyCenter, null
-                    [extentPlanes[ROSTRAL], extentPlanes[CAUDAL], quadrantPlanes[VENTRAL]]
-                    ).getOutputData();
-                vtkPlotting.setColorSclars(arm, quadrantColors[VENTRAL_DEXTER]);
-                source.addInputData(arm);
-                arm = vtkPlotting.cylinderSection(
-                        [-armdx + bodyRadius, 0, 0.50 * bodyHeight], [-Math.sin(armAngle), 0, Math.cos(armAngle)], limbRadius, limbLen,
-                        //quadrantPlanes[DORSAL], null, bodyCenter, null
-                    [extentPlanes[ROSTRAL], extentPlanes[CAUDAL], quadrantPlanes[DORSAL]]
-                    ).getOutputData();
-                vtkPlotting.setColorSclars(arm, quadrantColors[DORSAL_DEXTER]);
-                source.addInputData(arm);
-
-                let leg = vtkPlotting.cylinderSection(
-                        [-legdx - bodyRadius, 0, -0.75 * bodyHeight], [Math.sin(legAngle), 0, Math.cos(legAngle)], limbRadius, legLen,
-                        //quadrantPlanes[VENTRAL], null, bodyCenter, null
-                    [extentPlanes[ROSTRAL], extentPlanes[CAUDAL], quadrantPlanes[VENTRAL]]
-                    ).getOutputData();
-                vtkPlotting.setColorSclars(leg, quadrantColors[VENTRAL_SINISTER]);
-                source.addInputData(leg);
-                leg = vtkPlotting.cylinderSection(
-                        [-legdx - bodyRadius, 0, -0.75 * bodyHeight], [Math.sin(legAngle), 0, Math.cos(legAngle)], limbRadius, legLen,
-                        //quadrantPlanes[DORSAL], null, bodyCenter, null
-                    [extentPlanes[ROSTRAL], extentPlanes[CAUDAL], quadrantPlanes[DORSAL]]
-                    ).getOutputData();
-                vtkPlotting.setColorSclars(leg, quadrantColors[DORSAL_SINISTER]);
-                source.addInputData(leg);
-                leg = vtkPlotting.cylinderSection(
-                        [legdx + bodyRadius, 0, -0.75 * bodyHeight], [-Math.sin(legAngle), 0, Math.cos(legAngle)], limbRadius, legLen,
-                        //quadrantPlanes[VENTRAL], null, bodyCenter, null
-                    [extentPlanes[ROSTRAL], extentPlanes[CAUDAL], quadrantPlanes[VENTRAL]]
-                    ).getOutputData();
-                vtkPlotting.setColorSclars(leg, quadrantColors[VENTRAL_DEXTER]);
-                source.addInputData(leg);
-                leg = vtkPlotting.cylinderSection(
-                        [legdx + bodyRadius, 0, -0.75 * bodyHeight], [-Math.sin(legAngle), 0, Math.cos(legAngle)], limbRadius, legLen,
-                        //quadrantPlanes[DORSAL], null, bodyCenter, null
-                    [extentPlanes[ROSTRAL], extentPlanes[CAUDAL], quadrantPlanes[DORSAL]]
-                    ).getOutputData();
-                vtkPlotting.setColorSclars(leg, quadrantColors[DORSAL_DEXTER]);
-                source.addInputData(leg);
-*/
-
-
-                return source;
-            }
-
             var cFactor = 1000000.0;
             function scaleWithShave(a) {
                 var shave = 0.01;
@@ -4157,12 +3944,8 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
 
                 // a little widget that mirrors the orientation (not the scale) of the scence
                 var axesActor = vtk.Rendering.Core.vtkAxesActor.newInstance();
-                var hActor = coordMapper.buildFromSource(homunculus()).actor;
-                hActor.getProperty().setLighting(true);
-                hActor.getProperty().setEdgeVisibility(false);
-                //vtkPlotting.addActor(renderer, hActor);
                 orientationMarker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
-                    actor: hActor, //axesActor,
+                    actor: axesActor,
                     interactor: renderWindow.getInteractor()
                 });
                 orientationMarker.setEnabled(true);

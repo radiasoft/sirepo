@@ -1,0 +1,39 @@
+from __future__ import absolute_import, division, print_function
+
+import h5py
+from sirepo.template import radia_tk
+from sirepo.template import radia_examples
+from sirepo.template import template_common
+
+VIEW_TYPE_OBJ = 'objects'
+VIEW_TYPE_FIELD = 'fields'
+
+{% if isExample %}
+g_id = radia_examples.build('{{ geomName }}')
+{% else %}
+g_id = -1
+{% endif %}
+
+
+# always store the object
+g_data = radia_tk.geom_to_data(g_id, name='{{ geomName }}')
+with h5py.File('{{ dataFile }}', 'a') as hf:
+    template_common.dict_to_h5(g_data, hf, path='{{ h5ObjPath }}')
+
+if '{{ viewType }}' == VIEW_TYPE_FIELD:
+    f_type = '{{ fieldType }}'
+{% if doSolve %}
+    res = radia_tk.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
+{% endif %}
+    if f_type == radia_tk.FIELD_TYPE_MAG_M:
+        f = radia_tk.get_magnetization(g_id)
+    elif f_type in radia_tk.POINT_FIELD_TYPES:
+        f = radia_tk.get_field(g_id, f_type, {{ fieldPoints }})
+    g_data = radia_tk.vector_field_to_data(g_id, '{{ geomName }}', f, radia_tk.FIELD_UNITS[f_type])
+
+    with h5py.File('{{ dataFile }}', 'a') as hf:
+        template_common.dict_to_h5(g_data, hf, path='{{ h5FieldPath }}')
+
+
+with open('{{ dmpFile }}', 'wb') as f:
+    f.write(radia_tk.dump_bin(g_id))

@@ -13,10 +13,13 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from sirepo import job
 from sirepo import job_driver
 from sirepo import util
+import asyncio
 import asyncssh
 import datetime
+import errno
 import sirepo.simulation_db
 import sirepo.srdb
+import tornado.gen
 import tornado.ioloop
 
 
@@ -34,16 +37,19 @@ class SbatchDriver(job_driver.DriverBase):
             # before it is overwritten by prepare_send
             _local_user_dir=pkio.py_path(req.content.userDir),
             _srdb_root=None,
+            # we allow one of each op type in. This is essentially a no-op (ha ha)
+            # but makes it easier to code the other cases.
+            cpu_slot_q=job_supervisor.SlotQueue(len(job_driver.OPS_THAT_NEED_SLOTS)),
         )
         self.__instances[self.uid] = self
 
-    def cpu_slot_free_one(self):
-        """We allow as many users as the sbatch system allows"""
-        pass
-
-    async def cpu_slot_ready(self):
-        """We allow as many users as the sbatch system allows"""
-        pass
+    async def kill(self):
+        if not self._websocket:
+            # if there is no websocket then we don't know about the agent
+            # so we can't do anything
+            return
+        # hopefully the agent is nice and listens to the kill
+        self._websocket.write_message(PKDict(opName=job.OP_KILL))
 
     @classmethod
     def get_instance(cls, req):
@@ -51,7 +57,9 @@ class SbatchDriver(job_driver.DriverBase):
         return cls.__instances.pksetdefault(u, lambda: cls(req))[u]
 
     @classmethod
-    def init_class(cls):
+    def init_class(cls, job_supervisor_module):
+        global job_supervisor
+        job_supervisor = job_supervisor_module
         cls.cfg = pkconfig.init(
             agent_log_read_sleep=(
                 5,
@@ -150,16 +158,19 @@ disown
                 password=self._creds.password + self._creds.otp if 'nersc' in self.cfg.host else self._creds.password,
                 known_hosts=self._KNOWN_HOSTS,
             ) as c:
+                async with c.create_process('/bin/bash --noprofile --norc -l') as p:
+                    o, e = await p.communicate(input=script)
+                    if o or e:
+                        write_to_log(o, e, 'start')
+                self.driver_details.pkupdate(
+                    host=self.cfg.host,
+                    username=self._creds.username,
+                )
+
                 try:
-                    async with c.create_process('/bin/bash --noprofile --norc -l') as p:
-                        o, e = await p.communicate(input=script)
-                        if o or e:
-                            write_to_log(o, e, 'start')
-                    self.driver_details.pkupdate(
-                        host=self.cfg.host,
-                        username=self._creds.username,
-                    )
                     await get_agent_log(c)
+                except asyncio.CancelledError:
+                    raise
                 except Exception as e:
                     pkdlog(
                         '{} e={} stack={}',
@@ -168,6 +179,10 @@ disown
                         pkdexc(),
                     )
         except Exception as e:
+            if isinstance(e, OSError) and e.errno == errno.EHOSTUNREACH:
+                raise sirepo.util.UserAlert(
+                    'Host {} unreachable. Please try again later.'.format(self.cfg.host),
+                )
             if isinstance(e, asyncssh.misc.PermissionDenied):
                 self._srdb_root = None
                 self._raise_sbatch_login_srexception('invalid-creds', op.msg)
@@ -206,8 +221,7 @@ scancel -u $USER >& /dev/null || true
         self._srdb_root = None
 
 
-def init_class():
-    return SbatchDriver.init_class()
+CLASS = SbatchDriver
 
 
 def _cfg_srdb_root(value):
