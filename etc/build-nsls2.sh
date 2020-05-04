@@ -48,7 +48,7 @@ build_nsls2_host_main() {
     cd "$d"
     ls -al
     mkdir sirepo
-    cp -a ../../{LICENSE,MANIFEST.in,README.md,requirements.txt,setup.py,sirepo} sirepo
+    cp -a ../../{LICENSE,README.md,requirements.txt,setup.py,sirepo} sirepo
     mkdir -p SRW/env/work/srw_python
     cp -a ~/src/ochubar/SRW/env/work/srw_python/[a-z]*py SRW/env/work/srw_python
     cp -a ~/src/ochubar/SRW/{cpp,Makefile} SRW
