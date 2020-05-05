@@ -153,8 +153,7 @@ def init():
             sequential=(.1, float, 'maximum run-time for sequential job'),
         ),
         purge_free_after_days=(1000, int, 'how many days to wait before purging a free users simulation'),
-        purge_free_start=('02:00:00', str, 'time to first start purging free users simulations (%H:%M:%S)'),
-        purge_free_period=('01:00:00', str, 'how often to purge free users simulations after start time (%H:%M:%S)'),
+        purge_free_period=('12:00:00', str, 'how often to purge free users simulations (%H:%M:%S)'),
         sbatch_poll_secs=(15, int, 'how often to poll squeue and parallel status'),
     )
     _NEXT_REQUEST_SECONDS = PKDict({
@@ -185,7 +184,6 @@ def init():
         pykern.pkio.mkdir_parent(_DB_DIR)
     tornado.ioloop.IOLoop.current().add_callback(
         _ComputeJob.purge_free_simulations,
-        init=True,
     )
 
 
@@ -198,6 +196,7 @@ async def terminate():
 class _ComputeJob(PKDict):
 
     instances = PKDict()
+    _purged_jids_cache = set()
 
     def __init__(self, req, **kwargs):
         super().__init__(
@@ -257,7 +256,16 @@ class _ComputeJob(PKDict):
         )
 
     @classmethod
-    async def purge_free_simulations(cls, init=False):
+    async def purge_free_simulations(cls):
+        def _next_call_secs():
+            t = datetime.datetime.strptime(cfg.purge_free_period, "%H:%M:%S")
+            return datetime.timedelta(
+                hours=t.hour,
+                minutes=t.minute,
+                seconds=t.second,
+            ).total_seconds()
+
+
         def _get_uids_and_files():
             r = []
             u = None
@@ -265,8 +273,9 @@ class _ComputeJob(PKDict):
             for f in pkio.sorted_glob(_DB_DIR.join('*{}'.format(
                     sirepo.simulation_db.JSON_SUFFIX,
             ))):
-                n = sirepo.sim_data.uid_from_jid(f.basename)
-                if n in p or f.mtime() > _too_old:
+                n = sirepo.sim_data.uid_from_jid(f.purebasename)
+                if n in p or f.mtime() > _too_old \
+                   or f.purebasename in cls._purged_jids_cache:
                     continue
                 if u != n:
                     # POSIT: Uid is the first part of each db file. The files are
@@ -293,6 +302,7 @@ class _ComputeJob(PKDict):
             d.status = job.FREE_USER_PURGED
             cls.__db_write_file(d)
             jids_purged.append(db_file.purebasename)
+            cls._cache_purged_jid(d.computeJid)
 
         s = sirepo.srtime.utc_now()
         u = None
@@ -312,7 +322,10 @@ class _ComputeJob(PKDict):
         except Exception as e:
             pkdlog('u={} f={} error={} stack={}', u, f, e, pkdexc())
         finally:
-            cls._purge_free_simulations_set(s, init)
+            tornado.ioloop.IOLoop.current().call_later(
+                _next_call_secs(),
+                cls.purge_free_simulations,
+            )
 
     @classmethod
     async def receive(cls, req):
@@ -666,6 +679,7 @@ class _ComputeJob(PKDict):
             simName=req.content.data.models.simulation.name,
             status=job.PENDING,
         )
+        self._cache_purged_jid(self.db.computeJid, invalidate=True)
         c = self.db.computeJobSerial
         try:
             for i in range(_MAX_RETRIES):
@@ -769,47 +783,6 @@ class _ComputeJob(PKDict):
             t = cfg.max_hours['parallel_premium']
         return t * 3600
 
-    @classmethod
-    def _purge_free_simulations_set(cls, previous_start, init):
-        def _call_at(time):
-            tornado.ioloop.IOLoop.current().call_at(
-                sirepo.srtime.to_timestamp(time),
-                _ComputeJob.purge_free_simulations,
-            )
-
-        def _get_start():
-            t = datetime.datetime.combine(
-                datetime.date.fromtimestamp(sirepo.srtime.to_timestamp(n)),
-                datetime.datetime.min.time(),
-            )
-            return t + _get_timedelta(cfg.purge_free_start)
-
-        def _get_timedelta(time_str):
-            t = datetime.datetime.strptime(time_str, "%H:%M:%S")
-            return datetime.timedelta(
-                hours=t.hour,
-                minutes=t.minute,
-                seconds=t.second,
-            )
-        n = sirepo.srtime.utc_now()
-        s = _get_start()
-        p = _get_timedelta(cfg.purge_free_period)
-
-        if not init:
-            # TODO(e-carlin): This will drift away from s because
-            # call_at doesn't guarantee the callback is called at
-            # exactly the time provided. Using previous_start should
-            # make the drift inconsequentially small.
-            _call_at(previous_start + p)
-            return
-        if s > n:
-            _call_at(s)
-            return
-        t = s + p
-        while t < n:
-            t += p
-        _call_at(t)
-
     def _req_is_valid(self, req):
         return (
             self.db.computeJobHash == req.content.computeJobHash
@@ -883,6 +856,16 @@ class _ComputeJob(PKDict):
                 raise AssertionError('too many retries {}'.format(req))
         finally:
             o.destroy(cancel=False)
+
+    @classmethod
+    def _cache_purged_jid(cls, compute_jid, invalidate=False):
+        if not invalidate:
+            cls._purged_jids_cache.add(compute_jid)
+            return
+        try:
+            cls._purged_jids_cache.remove(compute_jid)
+        except KeyError:
+            pass
 
     def _status_reply(self, req):
         def res(**kwargs):
