@@ -32,7 +32,7 @@ build_nsls2_guest_main() {
     cd ../sirepo
     pip uninstall sirepo >& /dev/null || true
     pip install -r requirements.txt
-    pip install sirepo
+    pip install .
     sirepo srw create_predefined
     cd /
     rm -rf "$_build_nsls2_guest_d"
@@ -48,7 +48,7 @@ build_nsls2_host_main() {
     cd "$d"
     ls -al
     mkdir sirepo
-    cp -a ../../{LICENSE,README.md,requirements.txt,setup.py,sirepo} sirepo
+    cp -a ../../{LICENSE,README.md,requirements.txt,setup.py,sirepo,.git} sirepo
     mkdir -p SRW/env/work/srw_python
     cp -a ~/src/ochubar/SRW/env/work/srw_python/[a-z]*py SRW/env/work/srw_python
     cp -a ~/src/ochubar/SRW/{cpp,Makefile} SRW
