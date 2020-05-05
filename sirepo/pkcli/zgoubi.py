@@ -5,6 +5,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkconfig
 from pykern import pkio
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
@@ -32,6 +33,7 @@ _TWISS_TO_BUNCH_FIELD = {
 
 _ZGOUBI_FIT_FILE = 'zgoubi.FIT.out.dat'
 
+cfg = None
 
 def run(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
@@ -90,7 +92,7 @@ def _bunch_match_twiss(cfg_dir, data):
             bunch[_TWISS_TO_BUNCH_FIELD[f]] = v
         found_fit = False
         lines = pkio.read_text(_ZGOUBI_FIT_FILE).split('\n')
-        for i in xrange(len(lines)):
+        for i in range(len(lines)):
             line = lines[i]
             if re.search(r"^\s*'OBJET'", line):
                 values = lines[i + 4].split()
@@ -105,6 +107,20 @@ def _bunch_match_twiss(cfg_dir, data):
         # rewrite the original report with original parameters
         template.write_parameters(data, py.path.local(cfg_dir), False)
     return data
+
+
+def _init():
+    global cfg
+    if cfg:
+        return
+    p = os.environ.get('PYENV_ROOT')
+    if p:
+        p += '/versions/py2/bin/python'
+    else:
+        p = 'python2'
+    cfg = pkconfig.init(
+        python_path=(p, str, 'python executable'),
+    )
 
 
 def _validate_estimate_output_file_size(data, res):
@@ -138,14 +154,15 @@ def _validate_estimate_output_file_size(data, res):
 
 
 def _run_tunes_report(cfg_dir, data):
-    template_common.exec_parameters()
-    pkio.write_text(template.TUNES_INPUT_FILE, tunes_file)
+    r = template_common.exec_parameters()
+    pkio.write_text(template.TUNES_INPUT_FILE, r.tunes_file)
     #TODO(pjm): uses datafile from animation directory
     os.symlink('../animation/zgoubi.fai', 'zgoubi.fai')
     subprocess.call([_TUNES_PATH])
-    template_common.write_sequential_result(data)
+    template_common.write_sequential_result(template.extract_tunes_report(cfg_dir, data))
 
 
-def _run_zgoubi(cfg_dir, python_file=None):
-    template_common.exec_parameters(python_file)
+def _run_zgoubi(cfg_dir, python_file=template_common.PARAMETERS_PYTHON_FILE):
+    _init()
+    subprocess.call([cfg.python_path, python_file])
     subprocess.call([_EXE_PATH])

@@ -12,14 +12,14 @@ import pytest
 def test_deprecated():
     fc, sim_type = _fc(guest_deprecated=True)
 
-    from pykern import pkconfig, pkunit, pkio
+    from pykern import pkconfig, pkunit, pkio, pkcompat
     from pykern.pkunit import pkok, pkre, pkeq
     from pykern.pkdebug import pkdp
     import re
 
     r = fc.sr_get('authGuestLogin', {'simulation_type': sim_type}, redirect=False)
     pkeq(302, r.status_code)
-    pkre('guest/deprecated', r.data)
+    pkre('guest/deprecated', pkcompat.from_bytes(r.data))
 
 
 def _fc(guest_deprecated=False):

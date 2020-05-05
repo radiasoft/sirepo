@@ -1,7 +1,8 @@
+import os
 import pytest
 
 #: Maximum time an individual test case (function) can run
-MAX_CASE_RUN_SECS = 120
+MAX_CASE_RUN_SECS = int(os.getenv('SIREPO_CONFTEST_MAX_CASE_RUN_SECS', 120))
 
 
 @pytest.fixture
@@ -33,7 +34,7 @@ def auth_fc_module(request):
         SIREPO_AUTH_METHODS='basic:email:guest',
         SIREPO_FEATURE_CONFIG_API_MODULES='status',
     )
-    if 'email3_test' in str(request.fspath):
+    if 'email3_test' in str(request.fspath.purebasename):
         cfg.SIREPO_AUTH_METHODS += ':github'
     else:
         cfg.SIREPO_AUTH_DEPRECATED_METHODS = 'github'
@@ -175,7 +176,17 @@ def pytest_runtest_protocol(item, *args, **kwargs):
     from pykern import pkunit
 
     def _timeout(*args, **kwargs):
+        signal.signal(signal.SIGALRM, _timeout_failed)
+        signal.alarm(1)
         pkunit.pkfail('MAX_CASE_RUN_SECS={} exceeded', MAX_CASE_RUN_SECS)
+
+    def _timeout_failed(*args, **kwargs):
+        import os
+        import sys
+        from pykern.pkdebug import pkdlog
+
+        pkdlog('failed to die after timeout (pkfail)')
+        os.killpg(os.getpgrp(), signal.SIGKILL)
 
     # Seems to be the only way to get the module under test
     m = item._request.module
@@ -224,11 +235,7 @@ def _config_sbatch_supervisor_env(env):
         ),
         SIREPO_JOB_DRIVER_SBATCH_HOST=h,
         SIREPO_JOB_DRIVER_SBATCH_HOST_KEY=m.group(0),
-        SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=subprocess.check_output(
-            'PYENV_VERSION=py3 pyenv which sirepo',
-            stderr=subprocess.STDOUT,
-            shell=True
-        ).rstrip(),
+        SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD='sirepo',
         SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT=str(pykern.pkunit.work_dir().join(
             '/{sbatch_user}/sirepo'
         )),
@@ -237,22 +244,8 @@ def _config_sbatch_supervisor_env(env):
 
 
 def _job_supervisor_check(env):
-    import sirepo.job
     import socket
-    import subprocess
 
-    try:
-        o = subprocess.check_output(
-            ['pyenv', 'exec', 'sirepo', 'job_supervisor', '--help'],
-            env=env,
-            stderr=subprocess.STDOUT,
-        )
-    except subprocess.CalledProcessError as e:
-        from pykern.pkdebug import pkdlog
-
-        pkdlog('job_supervisor --help exit={} output={}', e.returncode, e.output)
-        raise
-    assert 'usage: sirepo job_supervisor' in str(o)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
@@ -292,17 +285,7 @@ def _job_supervisor_setup(request, cfg=None):
     import os
     from pykern.pkcollections import PKDict
     sbatch_module = 'sbatch' in request.module.__name__
-    env = PKDict()
-    for k, v in os.environ.items():
-        if ('PYENV' in k or 'PYTHON' in k):
-            continue
-        if k in ('PATH', 'LD_LIBRARY_PATH'):
-            v2 = []
-            for x in v.split(':'):
-                if x and 'py2' not in x:
-                    v2.append(x)
-            v = ':'.join(v2)
-        env[k] = v
+    env = PKDict(os.environ)
     if not cfg:
         cfg = PKDict()
     i = '127.0.0.1'
@@ -318,11 +301,7 @@ def _job_supervisor_setup(request, cfg=None):
         cfg['SIREPO_JOB_{}_SUPERVISOR_URI'.format(x)] = 'http://{}:{}'.format(i, p)
     if sbatch_module:
         cfg.pkupdate(SIREPO_SIMULATION_DB_SBATCH_DISPLAY='testing@123')
-    env.pkupdate(
-        PYENV_VERSION='py3',
-        PYTHONUNBUFFERED='1',
-        **cfg
-    )
+    env.pkupdate(**cfg)
 
     import sirepo.srunit
     fc = sirepo.srunit.flask_client(
@@ -353,7 +332,7 @@ def _job_supervisor_start(request, cfg=None):
 
     env, fc = _job_supervisor_setup(request, cfg)
     p = subprocess.Popen(
-        ['pyenv', 'exec', 'sirepo', 'job_supervisor'],
+        ['sirepo', 'job_supervisor'],
         env=env,
     )
     for i in range(30):
@@ -375,7 +354,7 @@ def _sim_type(request):
     for c in sirepo.feature_config.ALL_CODES:
         f = request.function
         n = getattr(f, 'func_name', None) or getattr(f, '__name__')
-        if c in n or c in str(request.fspath):
+        if c in n or c in str(request.fspath.purebasename):
             return c
     return 'myapp'
 

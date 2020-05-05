@@ -1,0 +1,264 @@
+{
+    "appModes": {
+       "default": {
+            "localRoute": "visualization"
+        }
+    },
+    "constants": {
+        "defaultGeomColor": "#ffffff",
+        "inProgressText": "Solving",
+        "pathPtsFileType": "path-pts",
+        "pathDetailFields": {
+            "circlePath": ["ctrX", "ctrY", "ctrZ", "radius", "theta", "phi"],
+            "fieldMapPath": ["ctrX", "ctrY", "ctrZ", "lenX", "lenY", "lenZ"],
+            "filePath": ["fileName"],
+            "linePath": ["beginX", "beginY", "beginZ", "endX", "endY", "endZ"],
+            "manualPath": ["ptX", "ptY", "ptZ"]
+        }
+    },
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": ["vtk.js"]
+        },
+        "sirepoLibs": {
+            "css": ["vtk.css"],
+            "js": ["radia.js"]
+        }
+    },
+    "enum": {
+        "FieldScaling": [
+            ["uniform", "Uniform"],
+            ["linear", "Linear"],
+            ["log", "Log"]
+        ],
+        "FieldType": [
+            ["M", "M"],
+            ["B", "B"],
+            ["A", "A"],
+            ["H", "H"],
+            ["J", "J"]
+        ],
+        "PathType": [
+            ["line", "Line"],
+            ["circle", "Circle"],
+            ["manual", "Manual Group"],
+            ["file", "File"],
+            ["fieldMap", "Field Map"]
+        ],
+        "SolveMethod": [
+            ["0", "0"],
+            ["3", "3"],
+            ["4", "4"],
+            ["5", "5"]
+        ],
+        "ViewType": [
+            ["objects", "Objects"],
+            ["fields", "Fields"]
+        ]
+    },
+    "frameIdFields": {
+        "solver": [],
+        "magnetViewer": []
+    },
+    "localRoutes": {
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "RadiaVisualizationController as viz",
+                "templateUrl": "/static/html/radia-visualization.html"
+            }
+        }
+    },
+    "model": {
+        "circlePath": {
+            "_super": ["_", "model", "fieldPath"],
+            "ctrX": ["Center x", "Float", 0.0],
+            "ctrY": ["Center y", "Float", 0.0],
+            "ctrZ": ["Center z", "Float", 0.0],
+            "radius": ["Radius", "Float", 10.0],
+            "theta": ["\uD835\uDFB1", "Float", 0.0, "Euler 2", -3.14159, 3.14159],
+            "phi": ["\uD835\uDFBF", "Float", 0.0, "Euler 3", 0.0, 6.2832],
+            "numPoints": ["Num Points", "Integer", 10, "", 2],
+            "type": ["_", "PathType", "circle"]
+        },
+        "fieldDisplay": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "scaling": ["Scaling", "FieldScaling", "uniform"]
+        },
+        "fieldMapPath": {
+            "_super": ["_", "model", "fieldPath"],
+            "ctrX": ["Center x", "Float", 0.0],
+            "ctrY": ["Center y", "Float", 0.0],
+            "ctrZ": ["Center z", "Float", 0.0],
+            "lenX": ["X length", "Float", 1.0, "", 0],
+            "lenY": ["Y length", "Float", 1.0, "", 0],
+            "lenZ": ["Z length", "Float", 1.0, "", 0],
+            "numPoints": ["Num Points", "Integer", 10, "", 2],
+            "type": ["_", "PathType", "fieldMap"]
+        },
+        "fieldPath": {
+            "name": ["Name", "String", ""]
+        },
+        "fieldPaths": {
+            "path": ["Path", "PathType", "line"]
+        },
+        "filePath": {
+            "_super": ["_", "model", "fieldPath"],
+            "fileModel": ["File", "PtsFile", ""],
+            "fileName": ["File Name", "String", ""],
+            "type": ["_", "PathType", "file"]
+        },
+        "geometry": {
+            "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
+            "name": ["Name", "String", ""]
+        },
+        "geomObject": {
+            "color": ["Color", "Color", "#cccccc"],
+            "id": ["_", "String", ""],
+            "material": ["Material", "String", ""],
+            "name": ["Name", "String", ""],
+            "type": ["Type", "String", ""]
+        },
+        "linePath": {
+            "_super": ["_", "model", "fieldPath"],
+            "beginX": ["x1", "Float", -10.0],
+            "beginY": ["y1", "Float", 0.0],
+            "beginZ": ["z1", "Float", 0.0],
+            "endX": ["x2", "Float", 10.0],
+            "endY": ["y2", "Float", 0.0],
+            "endZ": ["z2", "Float", 0.0],
+            "numPoints": ["Num Points", "Integer", 10, "", 2],
+            "type": ["_", "PathType", "line"]
+        },
+        "magnet": {
+            "_super": ["_", "model", "geometry"]
+        },
+        "magnetDisplay": {
+            "bgColor": ["Background Color", "Color", "#ffffff"],
+            "fieldType": ["Field", "FieldType", "M"],
+            "notes": ["Notes", "Text", ""],
+            "viewType": ["View", "ViewType", "objects"]
+        },
+        "manualPath": {
+            "_super": ["_", "model", "fieldPath"],
+            "ptX": ["x", "Float", 0.0],
+            "ptY": ["y", "Float", 0.0],
+            "ptZ": ["z", "Float", 0.0],
+            "type": ["_", "PathType", "manual"]
+        },
+        "material": {
+            "density": ["Density", "Float", 1.0],
+            "name": ["Name", "String", ""]
+        },
+        "reset": {
+        },
+        "simulation": {
+        },
+        "solver":  {
+            "lastSolved": ["", "Integer", "-1"],
+            "maxIterations": ["Max iterations", "Integer", 1500, "", 1],
+            "method": ["Method", "SolveMethod", "0"],
+            "precision": ["Precision (T)", "Float", 0.00010, "", ""],
+            "result": ["Result", "String", ""],
+            "sbatchCores": ["Cores", "Integer", 1],
+            "sbatchHours": ["Hours", "Float", 0.4]
+        }
+    },
+    "view": {
+        "circlePath": {
+            "title": "Circle",
+            "basic": [
+                "name",
+                "ctrX",
+                "ctrY",
+                "ctrZ",
+                "radius",
+                "theta",
+                "phi",
+                "numPoints"
+            ]
+        },
+        "fieldMapPath": {
+            "title": "Field Map",
+            "basic": [
+                "name",
+                "ctrX",
+                "ctrY",
+                "ctrZ",
+                "lenX",
+                "lenY",
+                "lenZ",
+                "numPoints"
+            ]
+        },
+        "fieldPaths": {
+            "title": "Field Paths",
+            "basic": [
+                "path"
+            ],
+            "advanced": [
+                "path"
+            ]
+        },
+        "filePath": {
+            "title": "File",
+            "basic": [
+                "name",
+                "fileModel"
+            ]
+        },
+        "geomObject": {
+            "title": "Object",
+            "advanced": [
+                "name",
+                "color"
+            ]
+        },
+        "linePath": {
+            "title": "Line",
+            "basic": [
+                "name",
+                "beginX",
+                "beginY",
+                "beginZ",
+                "endX",
+                "endY",
+                "endZ",
+                "numPoints"
+            ]
+        },
+        "magnetDisplay": {
+            "title": "Magnet Viewer",
+            "basic": [
+                "geometry.name",
+                "viewType",
+                "bgColor",
+                "geometry.alpha",
+                "fieldType",
+                "fieldDisplay.colorMap",
+                "fieldDisplay.scaling"
+            ],
+            "advanced": [
+                "notes"
+            ]
+        },
+        "manualPath": {
+            "title": "Manual",
+            "basic": [
+                "name",
+                "ptX",
+                "ptY",
+                "ptZ"
+            ]
+        },
+        "solver": {
+            "title": "Solver",
+            "basic": [
+                "precision",
+                "maxIterations",
+                "method"
+            ],
+            "advanced": []
+        }
+    }
+}

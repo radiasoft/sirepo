@@ -42,16 +42,15 @@ _sdds_lock = threading.RLock()
 
 
 def extract_sdds_column(filename, field, page_index):
+    """ Returns values from one column on one page.
+    """
     return process_sdds_page(filename, page_index, _sdds_column, field)
 
 
 def process_sdds_page(filename, page_index, callback, *args, **kwargs):
-    global _SDDS_INDEX
-    with _sdds_lock:
-        sdds_index = _SDDS_INDEX
-        _SDDS_INDEX += 1
-        if _SDDS_INDEX > _MAX_SDDS_INDEX:
-            _SDDS_INDEX = 1
+    """ Invokes callback on one page of data.
+    """
+    sdds_index = _next_index()
     try:
         if sdds.sddsdata.InitializeInput(sdds_index, filename) != 1:
             pkdlog('{}: cannot access'.format(filename))
@@ -83,6 +82,33 @@ def process_sdds_page(filename, page_index, callback, *args, **kwargs):
     }
 
 
+def read_sdds_pages(filename, column_names, group_by_page_number=False):
+    """ Returns values from all pages, keyed by column name.
+    """
+    sdds_index = _next_index()
+    res = PKDict()
+    try:
+        assert sdds.sddsdata.InitializeInput(sdds_index, filename) == 1
+        all_names = sdds.sddsdata.GetColumnNames(sdds_index)
+        while sdds.sddsdata.ReadPage(sdds_index) > 0:
+            for name in column_names:
+                if name not in res:
+                    res[name] = []
+                values = sdds.sddsdata.GetColumn(
+                    sdds_index,
+                    all_names.index(name),
+                )
+                if group_by_page_number:
+                    values = [values]
+                res[name] += values
+    finally:
+        try:
+            sdds.sddsdata.Terminate(sdds_index)
+        except Exception:
+            pass
+    return res
+
+
 def twiss_to_madx(elegant_twiss_file, madx_twiss_file):
     outfile = 'sdds_output.txt'
     twiss_file = 'twiss-with-mu.sdds'
@@ -102,6 +128,16 @@ def twiss_to_madx(elegant_twiss_file, madx_twiss_file):
     lines = pkio.read_text(outfile).split('\n')
     header = '* {}\n$ \n'.format(' '.join(map(lambda x: x[1], _ELEGANT_TO_MADX_COLUMNS)))
     pkio.write_text(madx_twiss_file, header + '\n'.join(lines) + '\n')
+
+
+def _next_index():
+    global _SDDS_INDEX
+    with _sdds_lock:
+        sdds_index = _SDDS_INDEX
+        _SDDS_INDEX += 1
+        if _SDDS_INDEX > _MAX_SDDS_INDEX:
+            _SDDS_INDEX = 1
+    return sdds_index
 
 
 def _safe_sdds_value(v):

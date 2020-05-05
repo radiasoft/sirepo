@@ -13,7 +13,6 @@ from sirepo import job
 from sirepo import job_driver
 import collections
 import os
-import sirepo.job_driver
 import sirepo.mpi
 import sirepo.srdb
 import subprocess
@@ -26,27 +25,24 @@ class LocalDriver(job_driver.DriverBase):
 
     cfg = None
 
-    __instances = PKDict()
+    __instances = PKDict({k: [] for k in job.KINDS})
 
     __cpu_slot_q = PKDict()
 
-    def __init__(self, req):
-        super().__init__(req)
+    def __init__(self, op):
+        super().__init__(op)
         self.update(
-            _agent_exec_dir=pkio.py_path(req.content.userDir).join(
+            _agent_exec_dir=pkio.py_path(op.msg.userDir).join(
                 'agent-local',
                 self._agentId,
             ),
             _agent_exit=tornado.locks.Event(),
         )
-        self.cpu_slot_q = self.__cpu_slot_q[req.kind]
+        self.cpu_slot_q = self.__cpu_slot_q[op.kind]
         self.__instances[self.kind].append(self)
 
-    def cpu_slot_peers(self):
-        return self.__instances[self.kind]
-
     @classmethod
-    def get_instance(cls, req):
+    def get_instance(cls, op):
         # TODO(robnagler) need to introduce concept of parked drivers for reallocation.
         # a driver is freed as soon as it completes all its outstanding ops. For
         # _run(), this is an outstanding op, which holds the driver until the _run()
@@ -64,14 +60,14 @@ class LocalDriver(job_driver.DriverBase):
         # need to have an allocation per user, e.g. 2 sequential and one 1 parallel.
         # _Slot() may have to understand this, because related to parking. However,
         # we are parking a driver so maybe that's a (local) driver mechanism
-        for d in cls.__instances[req.kind]:
+        for d in cls.__instances[op.kind]:
             # SECURITY: must only return instances for authorized user
-            if d.uid == req.content.uid:
+            if d.uid == op.msg.uid:
                 return d
-        return cls(req)
+        return cls(op)
 
     @classmethod
-    def init_class(cls):
+    def init_class(cls, job_supervisor):
         cls.cfg = pkconfig.init(
             agent_starting_secs=(
                 cls._AGENT_STARTING_SECS,
@@ -84,9 +80,7 @@ class LocalDriver(job_driver.DriverBase):
             ),
             supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
         )
-        for k in job.KINDS:
-            cls.__instances[k] = []
-            cls.__cpu_slot_q[k] = cls.init_q(cls.cfg.slots[k])
+        cls.__cpu_slot_q.update({k: job_supervisor.SlotQueue(cls.cfg.slots[k]) for k in job.KINDS})
         return cls
 
     async def kill(self):
@@ -124,6 +118,7 @@ class LocalDriver(job_driver.DriverBase):
             pkio.mkdir_parent(self._agent_exec_dir)
             self.subprocess = tornado.process.Subprocess(
                 cmd,
+                cwd=self._agent_exec_dir,
                 env=env,
                 stdin=stdin,
                 stderr=subprocess.STDOUT,
@@ -134,5 +129,4 @@ class LocalDriver(job_driver.DriverBase):
                 stdin.close()
 
 
-def init_class():
-    return LocalDriver.init_class()
+CLASS = LocalDriver

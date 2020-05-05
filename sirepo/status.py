@@ -6,6 +6,7 @@ u"""Sirepo web server status for remote monitoring
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
+from pykern import pkcompat
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import http_reply
@@ -59,7 +60,7 @@ def _run_tests():
             simulation_name=_SIM_NAME,
         ),
     )
-    m = re.search(r'\/source\/(\w+)"', res.data)
+    m = re.search(r'\/source\/(\w+)"', pkcompat.from_bytes(res.data))
     if not m:
         raise RuntimeError('failed to find sid in resp={}'.format(res.data))
     i = m.group(1)

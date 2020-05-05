@@ -354,7 +354,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_S0_y', 'f', 0.0, 'verticalOffset'],
 
     # S0_HDM: drift
-    ['op_S0_HDM_L', 'f', 6.9, 'length'],
+    ['op_S0_HDM_L', 'f', 6.899999999999999, 'length'],
 
     # HDM: mirror
     ['op_HDM_hfn', 's', 'mirror_1d.dat', 'heightProfileFile'],
@@ -375,7 +375,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_S1_y', 'f', 0.0, 'verticalOffset'],
 
     # S1_S2: drift
-    ['op_S1_S2_L', 'f', 4.4, 'length'],
+    ['op_S1_S2_L', 'f', 4.399999999999999, 'length'],
 
     # S2: aperture
     ['op_S2_shape', 's', 'r', 'shape'],
@@ -385,7 +385,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_S2_y', 'f', 0.0, 'verticalOffset'],
 
     # S2_CRL1: drift
-    ['op_S2_CRL1_L', 'f', 1.1, 'length'],
+    ['op_S2_CRL1_L', 'f', 1.1000000000000014, 'length'],
 
     # CRL1: crl
     ['op_CRL1_foc_plane', 'f', 2, 'focalPlane'],
@@ -414,7 +414,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_CRL2_n', 'i', 6, 'numberOfLenses'],
 
     # CRL2_KLA: drift
-    ['op_CRL2_KLA_L', 'f', 9.1, 'length'],
+    ['op_CRL2_KLA_L', 'f', 9.100000000000001, 'length'],
 
     # KLA: aperture
     ['op_KLA_shape', 's', 'r', 'shape'],
@@ -440,7 +440,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_S3_y', 'f', 0.0, 'verticalOffset'],
 
     # S3_Sample: drift
-    ['op_S3_Sample_L', 'f', 0.7, 'length'],
+    ['op_S3_Sample_L', 'f', 0.7000000000000028, 'length'],
 
 #---Propagation parameters
     ['op_S0_pp', 'f',        [0, 0, 1.0, 0, 0, 2.5, 5.0, 1.5, 2.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'S0'],

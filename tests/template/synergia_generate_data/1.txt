@@ -61,26 +61,26 @@ IBPME2R: MONITOR;
 ! INSERT: NLINSERT,extractor_type="chef_propagate",l=1.8,phase=0.3,t=0.4;
 INSERT.NLINSERT.D0_045: DRIFT,l=0.045;
 INSERT.NLINSERT.D0_09: DRIFT,l=0.09;
-INSERT.NLINSERT.1: NLLENS,cnll=0.0133111024716,extractor_type="chef_propagate",knll=2.03176954998e-06;
-INSERT.NLINSERT.2: NLLENS,cnll=0.0124454032437,extractor_type="chef_propagate",knll=2.32425918167e-06;
-INSERT.NLINSERT.3: NLLENS,cnll=0.0116218829044,extractor_type="chef_propagate",knll=2.66532093143e-06;
-INSERT.NLINSERT.4: NLLENS,cnll=0.0108501497707,extractor_type="chef_propagate",knll=3.0579546094e-06;
-INSERT.NLINSERT.5: NLLENS,cnll=0.0101420326023,extractor_type="chef_propagate",knll=3.49987469896e-06;
-INSERT.NLINSERT.6: NLLENS,cnll=0.00951174999782,extractor_type="chef_propagate",knll=3.97907061816e-06;
-INSERT.NLINSERT.7: NLLENS,cnll=0.00897571379856,extractor_type="chef_propagate",knll=4.46852825639e-06;
-INSERT.NLINSERT.8: NLLENS,cnll=0.00855166509068,extractor_type="chef_propagate",knll=4.92267463887e-06;
-INSERT.NLINSERT.9: NLLENS,cnll=0.0082568759776,extractor_type="chef_propagate",knll=5.28045052801e-06;
-INSERT.NLINSERT.10: NLLENS,cnll=0.00810546195183,extractor_type="chef_propagate",knll=5.47957603728e-06;
-INSERT.NLINSERT.11: NLLENS,cnll=0.00810546195183,extractor_type="chef_propagate",knll=5.47957603728e-06;
-INSERT.NLINSERT.12: NLLENS,cnll=0.0082568759776,extractor_type="chef_propagate",knll=5.28045052801e-06;
-INSERT.NLINSERT.13: NLLENS,cnll=0.00855166509068,extractor_type="chef_propagate",knll=4.92267463887e-06;
-INSERT.NLINSERT.14: NLLENS,cnll=0.00897571379856,extractor_type="chef_propagate",knll=4.46852825639e-06;
-INSERT.NLINSERT.15: NLLENS,cnll=0.00951174999782,extractor_type="chef_propagate",knll=3.97907061816e-06;
-INSERT.NLINSERT.16: NLLENS,cnll=0.0101420326023,extractor_type="chef_propagate",knll=3.49987469896e-06;
-INSERT.NLINSERT.17: NLLENS,cnll=0.0108501497707,extractor_type="chef_propagate",knll=3.0579546094e-06;
-INSERT.NLINSERT.18: NLLENS,cnll=0.0116218829044,extractor_type="chef_propagate",knll=2.66532093143e-06;
-INSERT.NLINSERT.19: NLLENS,cnll=0.0124454032437,extractor_type="chef_propagate",knll=2.32425918167e-06;
-INSERT.NLINSERT.20: NLLENS,cnll=0.0133111024716,extractor_type="chef_propagate",knll=2.03176954998e-06;
+INSERT.NLINSERT.1: NLLENS,cnll=0.013311102471649506,extractor_type="chef_propagate",knll=2.0317695499823542e-06;
+INSERT.NLINSERT.2: NLLENS,cnll=0.012445403243733028,extractor_type="chef_propagate",knll=2.324259181669341e-06;
+INSERT.NLINSERT.3: NLLENS,cnll=0.011621882904432295,extractor_type="chef_propagate",knll=2.6653209314328795e-06;
+INSERT.NLINSERT.4: NLLENS,cnll=0.010850149770689752,extractor_type="chef_propagate",knll=3.057954609404607e-06;
+INSERT.NLINSERT.5: NLLENS,cnll=0.010142032602260266,extractor_type="chef_propagate",knll=3.499874698958059e-06;
+INSERT.NLINSERT.6: NLLENS,cnll=0.009511749997822148,extractor_type="chef_propagate",knll=3.979070618159703e-06;
+INSERT.NLINSERT.7: NLLENS,cnll=0.008975713798560936,extractor_type="chef_propagate",knll=4.468528256385335e-06;
+INSERT.NLINSERT.8: NLLENS,cnll=0.008551665090678706,extractor_type="chef_propagate",knll=4.922674638865199e-06;
+INSERT.NLINSERT.9: NLLENS,cnll=0.008256875977598102,extractor_type="chef_propagate",knll=5.2804505280122775e-06;
+INSERT.NLINSERT.10: NLLENS,cnll=0.008105461951831525,extractor_type="chef_propagate",knll=5.479576037284235e-06;
+INSERT.NLINSERT.11: NLLENS,cnll=0.008105461951831525,extractor_type="chef_propagate",knll=5.479576037284235e-06;
+INSERT.NLINSERT.12: NLLENS,cnll=0.008256875977598103,extractor_type="chef_propagate",knll=5.280450528012277e-06;
+INSERT.NLINSERT.13: NLLENS,cnll=0.008551665090678708,extractor_type="chef_propagate",knll=4.922674638865198e-06;
+INSERT.NLINSERT.14: NLLENS,cnll=0.008975713798560936,extractor_type="chef_propagate",knll=4.468528256385335e-06;
+INSERT.NLINSERT.15: NLLENS,cnll=0.00951174999782215,extractor_type="chef_propagate",knll=3.979070618159701e-06;
+INSERT.NLINSERT.16: NLLENS,cnll=0.010142032602260266,extractor_type="chef_propagate",knll=3.499874698958059e-06;
+INSERT.NLINSERT.17: NLLENS,cnll=0.010850149770689752,extractor_type="chef_propagate",knll=3.057954609404607e-06;
+INSERT.NLINSERT.18: NLLENS,cnll=0.011621882904432296,extractor_type="chef_propagate",knll=2.6653209314328787e-06;
+INSERT.NLINSERT.19: NLLENS,cnll=0.012445403243733028,extractor_type="chef_propagate",knll=2.324259181669341e-06;
+INSERT.NLINSERT.20: NLLENS,cnll=0.013311102471649506,extractor_type="chef_propagate",knll=2.031769549982354e-06;
 QMA1L: QUADRUPOLE,k1=-9.000671334,l=0.21;
 QMA1R: QUADRUPOLE,k1=-9.000671334,l=0.21;
 QMA2L: QUADRUPOLE,k1=12.84668182,l=0.21;
@@ -162,7 +162,7 @@ bunch = synergia.optics.generate_matched_bunch_transverse(
     emit_y=2.5e-06, # m-rad, RMS
     rms_z=0.0, # z bunch size
     dpop=0.0, # unitless, RMS \frac{\delta p}{p_{tot}}
-    num_real_particles=int(1e+11), # real particles, used for space charge, impedance, etc
+    num_real_particles=int(100000000000.0), # real particles, used for space charge, impedance, etc
     num_macro_particles=10000, # Used for PIC calculations
     seed=349250524
 )

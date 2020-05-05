@@ -10,12 +10,12 @@ from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
-import asyncio
 import signal
 import sirepo.job
 import sirepo.job_driver
 import sirepo.job_supervisor
 import sirepo.srdb
+import sirepo.srtime
 import tornado.httpserver
 import tornado.ioloop
 import tornado.web
@@ -32,6 +32,7 @@ def default_command():
         ip=(sirepo.job.DEFAULT_IP, str, 'ip to listen on'),
         port=(sirepo.job.DEFAULT_PORT, int, 'what port to listen on'),
     )
+    sirepo.srtime.init()
     sirepo.job_supervisor.init()
     pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
     pkio.mkdir_parent(sirepo.job.LIB_FILE_ROOT)
@@ -40,6 +41,7 @@ def default_command():
             (sirepo.job.AGENT_URI, _AgentMsg),
             (sirepo.job.SERVER_URI, _ServerReq),
             (sirepo.job.SERVER_PING_URI, _ServerPing),
+            (sirepo.job.SERVER_SRTIME_URI, _ServerSrtime),
             (sirepo.job.DATA_FILE_URI + '/(.*)', _DataFileReq),
         ],
         debug=cfg.debug,
@@ -50,7 +52,11 @@ def default_command():
         websocket_ping_interval=sirepo.job.cfg.ping_interval_secs,
         websocket_ping_timeout=sirepo.job.cfg.ping_timeout_secs,
     )
-    server = tornado.httpserver.HTTPServer(app, xheaders=True)
+    server = tornado.httpserver.HTTPServer(
+        app,
+        xheaders=True,
+        max_buffer_size=sirepo.job.cfg.max_message_size,
+    )
     server.listen(cfg.port, cfg.ip)
     signal.signal(signal.SIGTERM, _sigterm)
     signal.signal(signal.SIGINT, _sigterm)
@@ -124,19 +130,21 @@ class _DataFileReq(tornado.web.RequestHandler):
         self.on_connection_close()
 
 
-class _ServerPing(tornado.web.RequestHandler):
+class _JsonPostRequestHandler(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ["POST"]
-
-    async def post(self):
-        r = pkjson.load_any(self.request.body)
-        self.write(r.pkupdate(state='ok'))
 
     def set_default_headers(self):
         self.set_header("Content-Type", 'application/json; charset="utf-8"')
 
 
-class _ServerReq(tornado.web.RequestHandler):
-    SUPPORTED_METHODS = ["POST"]
+class _ServerPing(_JsonPostRequestHandler):
+
+    async def post(self):
+        r = pkjson.load_any(self.request.body)
+        self.write(r.pkupdate(state='ok'))
+
+
+class _ServerReq(_JsonPostRequestHandler):
     sr_class = sirepo.job_supervisor.ServerReq
 
     def on_connection_close(self):
@@ -152,9 +160,6 @@ class _ServerReq(tornado.web.RequestHandler):
 
     async def post(self):
         await _incoming(self.request.body, self)
-
-    def set_default_headers(self):
-        self.set_header("Content-Type", 'application/json; charset="utf-8"')
 
     def sr_on_exception(self):
         self.send_error()
@@ -185,6 +190,15 @@ async def _incoming(content, handler):
             handler.sr_on_exception()
         except Exception as e:
             pkdlog('sr_on_exception: exception={}', e)
+
+
+class _ServerSrtime(_JsonPostRequestHandler):
+
+    def post(self):
+        assert pkconfig.channel_in_internal_test(), \
+            'You can only adjust time in internal test'
+        sirepo.srtime.adjust_time(pkjson.load_any(self.request.body).days)
+        self.write(PKDict())
 
 
 def _sigterm(signum, frame):

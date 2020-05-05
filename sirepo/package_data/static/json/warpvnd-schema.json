@@ -1,10 +1,16 @@
 {
     "constants": {
+        "cellColors": ["#ff0000", "#008000", "#0000ff"],
         "nonZeroVoltsColor": "#6992ff",
         "particleTrackColor": "#4682b4",
+        "planeCaudal":  "caudal",
+        "planeDexter": "dexter",
+        "planeDorsal": "dorsal",
+        "planeRostral": "rostral",
+        "planeSinister": "sinister",
+        "planeVentral": "ventral",
         "reflectedParticleTrackColor": "#d04836",
-        "zeroVoltsColor": "#f3d4c8",
-        "cellColors": ["#ff0000", "#008000", "#0000ff"]
+        "zeroVoltsColor": "#f3d4c8"
     },
     "enum": {
         "Axes": [
@@ -335,6 +341,7 @@
         },
         "conductorGridReport": {
             "title": "Conductor Grid",
+            "hasDataFile": false,
             "advanced": []
         },
         "conductorPosition": {

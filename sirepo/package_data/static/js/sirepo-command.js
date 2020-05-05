@@ -161,6 +161,9 @@ SIREPO.app.directive('commandTable', function(appState, commandService, latticeS
                 var fields = Object.keys(model).sort();
                 for (var i = 0; i < fields.length; i++) {
                     var f = fields[i];
+                    if (commandService.hideCommandName && f == 'name') {
+                        continue;
+                    }
                     if (angular.isDefined(model[f]) && angular.isDefined(schema[f])) {
                         if (schema[f][2] != model[f]) {
                             res += (res.length ? ",\n" : '') + f + ' = ';

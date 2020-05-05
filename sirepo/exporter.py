@@ -7,12 +7,15 @@ u"""Export simulations in a single archive
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
+from pykern import pkcompat
 from pykern import pkjinja
 from pykern import pkjson
 from pykern.pkdebug import pkdp
 from sirepo import sim_data
 from sirepo import simulation_db
+from sirepo import template
 from sirepo import uri_router
+import base64
 import copy
 import sirepo.http_reply
 import sirepo.util
@@ -30,7 +33,7 @@ def create_archive(sim):
     """
     if not pkio.has_file_extension(sim.filename, ('zip', 'html')):
         raise sirepo.util.NotFound(
-            'unknown file type={}; expecting html or zip'.format(sim.filename),
+            'unknown file type={}; expecting html or zip'.format(sim.filename)
         )
     with simulation_db.tmp_dir() as d:
         want_zip = sim.filename.endswith('zip')
@@ -65,7 +68,7 @@ def _create_html(zip_path, data):
     values.appShortName = sc.appInfo[data.simulationType].shortName
     values.productLongName = sc.productInfo.longName
     values.productShortName = sc.productInfo.shortName
-    values.zip = zip_path.read().encode('base64')
+    values.zip = pkcompat.from_bytes(base64.b64encode(zip_path.read_binary()))
     with open(str(fp), 'wb') as f:
         fp.write(pkjinja.render_resource('archive.html', values))
     return fp, 'text/html'

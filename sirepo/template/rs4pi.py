@@ -157,12 +157,20 @@ def get_application_data(data, **kwargs):
 
 def get_data_file(run_dir, model, frame, **kwargs):
     if model == 'dicomAnimation4':
-        with open(_parent_file(run_dir, _DOSE_DICOM_FILE)) as f:
-            return RTDOSE_EXPORT_FILENAME, f.read(), 'application/octet-stream'
-    filename, _ = _generate_rtstruct_file(_parent_dir(run_dir), kwargs['tmp_dir'])
-    with open (filename, 'rb') as f:
-        dicom_data = f.read()
-    return RTSTRUCT_EXPORT_FILENAME, dicom_data, 'application/octet-stream'
+        filename = filename=_parent_file(run_dir, _DOSE_DICOM_FILE)
+        uri = RTDOSE_EXPORT_FILENAME
+        with open(filename, mode='rb') as f:
+            out = f.read()
+    else:
+        with simulation_db.tmp_dir() as tmp_dir:
+            filename, _ = _generate_rtstruct_file(_parent_dir(run_dir), tmp_dir)
+            uri = RTSTRUCT_EXPORT_FILENAME
+            with open(filename, mode='rb') as f:
+                out = f.read()
+    return PKDict(
+        content=out,
+        uri=uri,
+    )
 
 
 def import_file(req, tmp_dir=None, **kwargs):
@@ -393,7 +401,7 @@ def _frame_info(count):
 
 
 def _float_list(ar):
-    return map(lambda x: float(x), ar)
+    return [float(x) for x in ar]
 
 
 def _frame_file_name(plane, index):
@@ -616,7 +624,7 @@ def _sim_file(sim_id, filename):
 
 
 def _string_list(ar):
-    return map(lambda x: str(x), ar)
+    return [str(x) for x in ar]
 
 
 def _summarize_dicom_files(data, dicom_dir):

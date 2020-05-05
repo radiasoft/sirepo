@@ -119,8 +119,8 @@
 &end
 
 &bunched_beam
-  alpha_x = 0,
-  alpha_y = 0,
+  alpha_x = "(beam_alpha_x)",
+  alpha_y = "(beam_alpha_y)",
   beta_x = 1,
   beta_y = 1,
   distribution_cutoff[0] = 3, 3, 3,

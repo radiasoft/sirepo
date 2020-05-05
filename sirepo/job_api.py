@@ -17,6 +17,7 @@ import pykern.pkio
 import re
 import requests
 import sirepo.auth
+import sirepo.auth_db
 import sirepo.http_reply
 import sirepo.http_request
 import sirepo.job
@@ -29,6 +30,14 @@ cfg = None
 
 #: how many call frames to search backwards to find the api_.* caller
 _MAX_FRAME_SEARCH_DEPTH = 6
+
+
+def adjust_supervisor_srtime(days):
+    return _request(
+        api_name='not used',
+        _request_content=PKDict(days=days),
+        _request_uri=cfg.supervisor_uri + sirepo.job.SERVER_SRTIME_URI,
+    )
 
 
 @api_perm.require_user
@@ -134,6 +143,8 @@ def api_runSimulation():
     # TODO(e-carlin): This should really be done in job_supervisor._lib_dir_symlink()
     # but that is outside of the Flask context so it won't work
     r.simulation_lib_dir = sirepo.simulation_db.simulation_lib_dir(r.simulationType)
+    if r.isParallel:
+        r.isPremiumUser = sirepo.auth.is_premium_user()
     return _request(_request_content=r)
 
 
@@ -179,6 +190,8 @@ def init_apis(*args, **kwargs):
 
 def _request(**kwargs):
     def get_api_name():
+        if 'api_name' in kwargs:
+            return kwargs['api_name']
         f = inspect.currentframe()
         for _ in range(_MAX_FRAME_SEARCH_DEPTH):
             m = re.search(r'^api_.*$', f.f_code.co_name)
@@ -196,11 +209,7 @@ def _request(**kwargs):
         api=get_api_name(),
         serverSecret=sirepo.job.cfg.server_secret,
     )
-    pkdlog(
-        'api={} runDir={}',
-        c.api,
-        c.get('runDir')
-    )
+    pkdlog('api={} runDir={}', c.api, c.get('runDir'))
     r = requests.post(
         u,
         data=pkjson.dump_bytes(c),

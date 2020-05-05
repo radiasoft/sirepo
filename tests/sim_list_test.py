@@ -108,6 +108,7 @@ def test_rename_folder(fc):
 
 def test_srw_discard_example(fc):
     """Emulates what the GUI does"""
+    from pykern import pkcompat
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkok
@@ -139,4 +140,8 @@ def test_srw_discard_example(fc):
             simulation_id=i,
         ),
     )
-    pkok('srwl_bl.SRWLBeamline' in r.data, 'incomplete python={}', r.data)
+    pkok(
+        'srwl_bl.SRWLBeamline' in pkcompat.from_bytes(r.data),
+        'incomplete python={}',
+        r.data,
+    )

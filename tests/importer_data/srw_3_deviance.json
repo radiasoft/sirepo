@@ -1,4 +1,4 @@
-//Error: No JSON object could be decoded
+//Error: No JSON object could be decoded|Expecting value: line
 "name": "${sim_name}",
 "folder": "/Anything",
 "

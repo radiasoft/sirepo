@@ -100,7 +100,7 @@ def test_myapp_sim(fc):
 
 
 def test_srw_cancel(fc):
-    from pykern import pkunit
+    from pykern import pkunit, pkcompat
     import subprocess
     import time
 
@@ -128,8 +128,10 @@ def test_srw_cancel(fc):
     pkunit.pkeq('canceled', r.state)
     r = fc.sr_post('runStatus', x)
     pkunit.pkeq('canceled', r.state)
-    o = subprocess.check_output(['ps', 'axww'], stderr=subprocess.STDOUT)
-    o = filter(lambda x: 'mpiexec' in x, o.split('\n'))
+    o = pkcompat.from_bytes(
+        subprocess.check_output(['ps', 'axww'], stderr=subprocess.STDOUT),
+    )
+    o = list(filter(lambda x: 'mpiexec' in x, o.split('\n')))
     pkunit.pkok(
         not o,
         'found "mpiexec" after cancel in ps={}',

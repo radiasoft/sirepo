@@ -7,19 +7,16 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
-import pykern.pkcollections
-from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc, pkdpretty
+from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 from sirepo import job
 from sirepo import job_driver
-from sirepo import mpi
+import asyncio
 import io
-import itertools
 import os
 import re
 import subprocess
 import tornado.ioloop
 import tornado.process
-
 
 #: prefix all container names. Full format looks like: srj-p-uid
 _CNAME_PREFIX = 'srj'
@@ -43,13 +40,13 @@ class DockerDriver(job_driver.DriverBase):
 
     __users = PKDict()
 
-    def __init__(self, req, host):
-        super().__init__(req)
+    def __init__(self, op, host):
+        super().__init__(op)
         self.update(
             _cname=self._cname_join(),
             _idle_timer=None,
             _image=self._get_image(),
-            _user_dir=pkio.py_path(req.content.userDir),
+            _user_dir=pkio.py_path(op.msg.userDir),
             host=host,
         )
         host.instances[self.kind].append(self)
@@ -62,15 +59,12 @@ class DockerDriver(job_driver.DriverBase):
         )
         pkio.unchecked_remove(self._agent_exec_dir)
 
-    def cpu_slot_peers(self):
-        return self.host.instances[self.kind]
-
     @classmethod
-    def get_instance(cls, req):
+    def get_instance(cls, op):
         # SECURITY: must only return instances for authorized user
-        u = cls.__users.get(req.content.uid)
+        u = cls.__users.get(op.msg.uid)
         if u:
-            d = u.get(req.kind)
+            d = u.get(op.kind)
             if d:
                 return d
             # jobs of different kinds for the same user need to go to the
@@ -79,20 +73,21 @@ class DockerDriver(job_driver.DriverBase):
             h = list(u.values())[0].host
         else:
             # least used host
-            h = min(cls.__hosts.values(), key=lambda h: len(h.instances[req.kind]))
-        return cls(req, h)
+            h = min(cls.__hosts.values(), key=lambda h: len(h.instances[op.kind]))
+        return cls(op, h)
 
     @classmethod
-    def init_class(cls):
+    def init_class(cls, job_supervisor):
         cls.cfg = pkconfig.init(
             agent_starting_secs=(
                 cls._AGENT_STARTING_SECS,
                 int,
                 'how long to wait for agent start',
             ),
+            constrain_resources=(True, bool, 'apply --cpus and --memory constraints'),
             dev_volumes=(pkconfig.channel_in('dev'), bool, 'mount ~/.pyenv, ~/.local and ~/src for development'),
             hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, 'execution hosts'),
-            idle_check_secs=(1800, int, 'how many minutes to wait between checks'),
+            idle_check_secs=(1800, int, 'how many seconds to wait between checks'),
             image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
             parallel=dict(
                 cores=(2, int, 'cores per parallel job'),
@@ -108,20 +103,30 @@ class DockerDriver(job_driver.DriverBase):
         )
         if not cls.cfg.tls_dir or not cls.cfg.hosts:
             cls._init_dev_hosts()
-        cls._init_hosts()
+        cls._init_hosts(job_supervisor)
         return cls
 
     async def kill(self):
-        c = self.get('_cid')
-        if not c:
-            return
-        self._cid = None
+        c = self.pkdel('_cid')
         pkdlog('{} cid={:.12}', self, c)
         try:
+            # TODO(e-carlin): This can possibly hang and needs to be handled
+            # Ex. docker daemon is not responsive
             await self._cmd(
-                ('stop', '--time={}'.format(job_driver.KILL_TIMEOUT_SECS), c),
+                (
+                    'stop',
+                    '--time={}'.format(job_driver.KILL_TIMEOUT_SECS),
+                    self._cname
+                ),
             )
+        except asyncio.CancelledError:
+            # CancelledErrors need to make it back out to be handled
+            # by callers (ex job_supervisor.api_runSimulation)
+            raise
         except Exception as e:
+            if not c and 'No such container' in str(e):
+                # Make kill response idempotent
+                return
             pkdlog('{} error={} stack={}', self, e, pkdexc())
 
     async def prepare_send(self, op):
@@ -152,6 +157,14 @@ class DockerDriver(job_driver.DriverBase):
         """
         return _CNAME_SEP.join([_CNAME_PREFIX, self.kind[0], self.uid])
 
+    def _constrain_resources(self, cfg_kind):
+        if not self.cfg.constrain_resources:
+            return tuple()
+        return (
+            '--cpus={}'.format(cfg_kind.get('cores', 1)),
+            '--memory={}g'.format(cfg_kind.gigabytes),
+        )
+
     async def _do_agent_start(self, op):
         cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agent_exec_dir)
         pkdlog('{} agent_exec_dir={}', self, self._agent_exec_dir)
@@ -161,11 +174,9 @@ class DockerDriver(job_driver.DriverBase):
             'run',
             # attach to stdin for writing
             '--attach=stdin',
-            '--cpus={}'.format(c.get('cores', 1)),
             '--init',
             # keeps stdin open so we can write to it
             '--interactive',
-            '--memory={}g'.format(c.gigabytes),
             '--name={}'.format(self._cname),
             '--network=host',
             '--rm',
@@ -174,7 +185,7 @@ class DockerDriver(job_driver.DriverBase):
             # do not use a "name", but a uid, because /etc/password is image specific, but
             # IDs are universal.
             '--user={}'.format(os.getuid()),
-        ) + self._volumes() + (self._image,)
+        ) + self._constrain_resources(c) + self._volumes() + (self._image,)
         self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
         self.driver_details.pkupdate(host=self.host.name)
         pkdlog('{} cname={} cid={:.12}', self, self._cname, self._cid)
@@ -235,19 +246,15 @@ class DockerDriver(job_driver.DriverBase):
         d.join('cacert.pem').write(o)
 
     @classmethod
-    def _init_hosts(cls):
+    def _init_hosts(cls, job_supervisor):
         for h in cls.cfg.hosts:
             d = cls.cfg.tls_dir.join(h)
             x = cls.__hosts[h] = PKDict(
                 cmd_prefix=cls._cmd_prefix(h, d),
-                instances=PKDict(),
+                instances=PKDict({k: [] for k in job.KINDS}),
                 name=h,
-                cpu_slots=PKDict(),
-                cpu_slot_q=PKDict(),
+                cpu_slot_q=PKDict({k: job_supervisor.SlotQueue(cls.cfg[k].slots_per_host) for k in job.KINDS}),
             )
-            for k in job.KINDS:
-                x.cpu_slot_q[k] = cls.init_q(cls.cfg[k].slots_per_host)
-                x.instances[k] = []
         assert len(cls.__hosts) > 0, \
             '{}: no docker hosts found in directory'.format(cls.cfg.tls_d)
 
@@ -287,8 +294,7 @@ class DockerDriver(job_driver.DriverBase):
         return tuple(res)
 
 
-def init_class():
-    return DockerDriver.init_class()
+CLASS = DockerDriver
 
 
 def _cfg_tls_dir(value):

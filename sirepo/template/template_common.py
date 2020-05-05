@@ -370,6 +370,22 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE):
     )
 
 
+# seems like PKDict is a better place for this...
+def to_pkdict(d):
+    pkd = PKDict(d)
+    for k, v in pkd.items():
+        # PKDict([]) returns {} - catch that
+        if not v:
+            continue
+        try:
+            pkd[k] = to_pkdict(v)
+        except TypeError:
+            pass
+        except ValueError:
+            pkd[k] = v
+    return pkd
+
+
 def validate_model(model_data, model_schema, enum_info):
 
     """Ensure the value is valid for the field type. Scales values as needed."""

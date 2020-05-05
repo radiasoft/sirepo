@@ -22,14 +22,14 @@ class CodeVar(object):
         ast.Not: '!',
         ast.Pow: 'pow',
         ast.Sub: '-',
-        ast.UAdd: '+',
-        ast.USub: '+',
+        ast.USub: 'chs',
     })
 
-    def __init__(self, variables, evaluator):
-        self.variables = PKDict({x['name']: x.get('value', 0) for x in variables})
+    def __init__(self, variables, evaluator, case_insensitive=False):
+        self.variables = self.__variables_by_name(variables, case_insensitive)
         self.postfix_variables = self.__variables_to_postfix(self.variables)
         self.evaluator = evaluator
+        self.case_insensitive = case_insensitive
 
     def compute_cache(self, data, schema):
         cache = lattice.LatticeUtil(data, schema).iterate_models(CodeVarIterator(self)).result
@@ -37,6 +37,8 @@ class CodeVar(object):
             v, err = self.eval_var(value)
             if not err:
                 if self.is_var_value(value):
+                    if self.case_insensitive:
+                        value = value.lower()
                     cache[value] = v
                 else:
                     v = float(v)
@@ -46,6 +48,8 @@ class CodeVar(object):
     def eval_var(self, expr):
         if not self.is_var_value(expr):
             return expr, None
+        if self.case_insensitive:
+            expr = expr.lower()
         expr = self.infix_to_postfix(expr)
         return self.evaluator.eval_var(
             expr,
@@ -58,6 +62,8 @@ class CodeVar(object):
         if depends is None:
             depends = []
             visited = {}
+        if self.case_insensitive and self.is_var_value(expr):
+            expr = expr.lower()
         for v in str(expr).split(' '):
             if v in self.postfix_variables:
                 if v not in depends:
@@ -134,20 +140,38 @@ class CodeVar(object):
                 return res + [n.func.id]
             elif isinstance(n, ast.BinOp):
                 return _do(n.left) + _do(n.right) + _do(n.op)
+            elif isinstance(n, ast.UAdd):
+                return []
             elif isinstance(n, ast.UnaryOp):
                 return _do(n.operand) + _do(n.op)
             elif isinstance(n, ast.IfExp):
                 return _do(n.test) + ['?'] + _do(n.body) + [':'] + _do(n.orelse) + ['$']
+            # convert an attribute-like value, ex. l.MQ, into a string "l.MQ"
+            elif isinstance(n, ast.Attribute):
+                return ['{}.{}'.format(_do(n.value)[0], n.attr)]
             else:
                 x = CodeVar._INFIX_TO_RPN.get(type(n), None)
                 if x:
                     return [x]
-            raise ValueError('{}: invalid node'._ast_dump(n))
+            raise ValueError('invalid node: {}'.format(ast.dump(n)))
 
         tree = ast.parse(expr, filename='eval', mode='eval')
         assert isinstance(tree, ast.Expression), \
             '{}: must be an expression'.format(tree)
         return ' '.join(_do(tree))
+
+    @classmethod
+    def __variables_by_name(cls, variables, case_insensitive):
+        res = PKDict()
+        for v in variables:
+            n = v['name']
+            value = v.get('value', 0)
+            if case_insensitive:
+                n = n.lower()
+                if type(value) == str:
+                    value = value.lower()
+            res[n] = value
+        return res
 
     @classmethod
     def __variables_to_postfix(cls, variables):
@@ -163,11 +187,14 @@ class CodeVarIterator(lattice.ModelIterator):
         self.code_var = code_var
 
     def field(self, model, field_schema, field):
-        if field_schema[1] == 'RPNValue' and self.code_var.is_var_value(model[field]):
-            if model[field] not in self.result:
-                v, err = self.code_var.eval_var(model[field])
+        value = model[field]
+        if field_schema[1] == 'RPNValue' and self.code_var.is_var_value(value):
+            if self.code_var.case_insensitive:
+                value = value.lower()
+            if value not in self.result:
+                v, err = self.code_var.eval_var(value)
                 if not err:
-                    self.result[model[field]] = v
+                    self.result[value] = v
 
 
 class CodeVarDeleteIterator(lattice.ModelIterator):
@@ -195,6 +222,14 @@ class PurePythonEval(object):
         '-': lambda a, b: a - b,
         'pow': lambda a, b: a ** b,
         'sqrt': lambda a: math.sqrt(a),
+        'cos': lambda a: math.cos(a),
+        'sin': lambda a: math.sin(a),
+        'asin': lambda a: math.asin(a),
+        'acos': lambda a: math.acos(a),
+        'tan': lambda a: math.tan(a),
+        'atan': lambda a: math.atan(a),
+        'abs': lambda a: abs(a),
+        'chs': lambda a: -a,
     })
 
     _KEYWORDS = _OPS.keys()
@@ -203,6 +238,7 @@ class PurePythonEval(object):
         self.constants = constants or []
 
     def eval_var(self, expr, depends, variables):
+        variables = variables.copy()
         for d in depends:
             v, err = PurePythonEval.__eval_python_stack(self, variables[d], variables)
             if err:

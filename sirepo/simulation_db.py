@@ -725,7 +725,6 @@ def simulation_run_dir(req_or_data, remove_dir=False):
         pkio.unchecked_remove(d)
     return d
 
-
 def static_libs():
     return _files_in_schema(SCHEMA_COMMON.common.staticFiles)
 
@@ -769,7 +768,7 @@ def tmp_dir(chdir=False):
 
 
 def uid_from_dir_name(dir_name):
-    """Extra user id from user_dir_name
+    """Extract user id from user_dir_name
 
     Args:
         dir_name (py.path): must be top level user dir or sim_dir

@@ -16,11 +16,13 @@ from sirepo import http_reply
 from sirepo import http_request
 from sirepo import auth_db
 from sirepo import util
+import contextlib
 import sirepo.uri
 import sirepo.feature_config
 import sirepo.template
 import datetime
 import importlib
+import werkzeug.exceptions
 
 
 #: what routeName to return in the event user is logged out in require_user
@@ -30,6 +32,9 @@ LOGIN_ROUTE_NAME = 'login'
 METHOD_GUEST = 'guest'
 
 ROLE_ADM = 'adm'
+ROLE_PREMIUM = 'premium'
+
+PAID_USER_ROLES = (ROLE_PREMIUM,)
 
 #: key for auth method for login state
 _COOKIE_METHOD = 'sram'
@@ -120,8 +125,9 @@ def complete_registration(name=None):
 
 
 def get_all_roles():
-    r = [_role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types]
+    r = [role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types]
     r.append(ROLE_ADM)
+    r.append(ROLE_PREMIUM)
     return r
 
 
@@ -138,7 +144,7 @@ def init_apis(app, *args, **kwargs):
         'Do not set $SIREPO_AUTH_LOGGED_IN_USER in server'
     uri_router = importlib.import_module('sirepo.uri_router')
     simulation_db = importlib.import_module('sirepo.simulation_db')
-    auth_db.init(app)
+    auth_db.init(app.sirepo_db_dir)
     _app = app
     p = pkinspect.this_module().__name__
     visible_methods = []
@@ -154,14 +160,8 @@ def init_apis(app, *args, **kwargs):
     cookie.auth_hook_from_header = _auth_hook_from_header
 
 
-def init_mock(uid=None, sim_type=None):
-    """A mock user for pkcli"""
-    cookie.init_mock()
-    import sirepo.auth.guest
-    if uid:
-        _login_user(sirepo.auth.guest, uid)
-    else:
-        login(sirepo.auth.guest, is_mock=True)
+def is_premium_user():
+    return check_user_has_role(ROLE_PREMIUM, raise_forbidden=False)
 
 
 def logged_in_user():
@@ -323,14 +323,17 @@ def require_sim_type(sim_type):
         # the GUI has to be able to get access to certain APIs before
         # logging in.
         return
-    check_user_has_role(_role_for_sim_type(sim_type))
+    check_user_has_role(role_for_sim_type(sim_type))
 
 
-def check_user_has_role(role):
+def check_user_has_role(role, raise_forbidden=True):
     u = _get_user()
     with auth_db.thread_lock:
-        if not sirepo.auth_db.UserRole.search_by(role=role, uid=u):
-            util.raise_forbidden('uid={} role={} not found'.format(u, role))
+        if sirepo.auth_db.UserRole.search_by(role=role, uid=u):
+            return True
+    if raise_forbidden:
+        util.raise_forbidden('uid={} role={} not found'.format(u, role))
+    return False
 
 
 def require_user():
@@ -383,6 +386,32 @@ def reset_state():
     cookie.unchecked_remove(_COOKIE_METHOD)
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
     _set_log_user()
+
+
+def role_for_sim_type(sim_type):
+    return 'sim_type_' + sim_type
+
+
+def set_user_for_utils(uid=None):
+    """A mock user for utilities"""
+    cookie.set_cookie_for_utils()
+    import sirepo.auth.guest
+    if uid:
+        _login_user(sirepo.auth.guest, uid)
+    else:
+        login(sirepo.auth.guest, is_mock=True)
+
+
+@contextlib.contextmanager
+def set_user(uid):
+    """Set the user (uid) for the context"""
+    assert not util.in_flask_app_context(), \
+        'Flask sets the user on the request'
+    try:
+        set_user_for_utils(uid=uid)
+        yield
+    finally:
+        reset_state()
 
 
 def user_dir_not_found(user_dir, uid):
@@ -459,7 +488,11 @@ def _auth_hook_from_header(values):
         m = values.get(_COOKIE_METHOD)
         if m and m not in valid_methods:
             # invalid method (changed config), reset state
-            pkdlog('possibly misconfigured server: invalid cookie_method={}, clearing values={}', values)
+            pkdlog(
+                'possibly misconfigured server: invalid cookie_method={}, clearing values={}',
+                m,
+                values,
+            )
             pkcollections.unchecked_del(
                 values,
                 _COOKIE_METHOD,
@@ -625,10 +658,6 @@ def _parse_display_name(value):
     assert len(res), \
         'invalid post data: displayName={}'.format(value)
     return res
-
-
-def _role_for_sim_type(sim_type):
-    return 'sim_type_' + sim_type
 
 
 def _set_log_user():

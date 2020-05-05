@@ -10,6 +10,7 @@ SRW objects.
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
+from pykern import pkjson
 from pykern import pkresource
 from pykern import pkrunpy
 from pykern.pkdebug import pkdlog, pkdexc, pkdp
@@ -101,19 +102,28 @@ def import_python(code, tmp_dir, user_filename=None, arguments=None):
             return o.data
     except Exception as e:
         lineno = script and _find_line_in_trace(script)
-        # Avoid
+        if hasattr(e, 'args'):
+            if len(e.args) == 1:
+                m = str(e.args[0])
+            elif e.args:
+                m = str(e.args)
+            else:
+                m = e.__class__.__name__
+        else:
+            m = str(e)
         pkdlog(
             'Error: {}; exception={}; script={}; filename={}; stack:\n{}',
-            e.message,
-            e,
+            m,
+            e.__class__.__name__,
             script,
             user_filename,
             pkdexc(),
         )
-        e = str(e)[:50]
+        m = m[:50]
         raise ValueError(
-            'Error on line {}: {}'.format(lineno, e) if lineno
-            else 'Error: {}'.format(e))
+            'Error on line {}: {}'.format(lineno, m) if lineno
+            else 'Error: {}'.format(m),
+        )
 
 
 # Mapping all the values to a dictionary:
@@ -448,38 +458,12 @@ def _get_default_drift():
     """The function parses srw.js file to find the default values for drift propagation parameters, which can be
     sometimes missed in the exported .py files (when distance = 0), but should be presented in .json files.
 
-    :return default_drift_prop: found list as a string.
+    Returns:
+        str: default drift propagation paramters
     """
-
-    try:
-        with open(_JS_DIR + '/srw.js') as f:
-            file_content = f.read()
-    except Exception:
-        file_content = ''
-
-    default_drift_prop = '[0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0]'
-
-    try:
-        content = file_content.split('\n')
-        for i in range(len(content)):
-            if content[i].find('function defaultDriftPropagationParams()') >= 0:
-                # Find 'return' statement:
-                for j in range(10):
-                    '''
-                        function defaultDriftPropagationParams() {
-                            return [0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0];
-                        }
-                    '''
-                    if content[i + j].find('return') >= 0:
-                        default_drift_prop = content[i + j].replace('return ', '').replace(';', '').strip()
-                        break
-                break
-    except Exception:
-        pass
-
-    default_drift_prop = ast.literal_eval(default_drift_prop)
-
-    return default_drift_prop
+    c = pkio.read_text(_JS_DIR.join('srw.js'))
+    m = re.search(r'function defaultDriftPropagationParams.*?return\s*(\[[^\]]+\])', c, re.DOTALL)
+    return pkjson.load_any(m.group(1))
 
 
 def _get_propagation(op):
@@ -807,7 +791,7 @@ def _patch_mirror_profile(code, mirror_file='mirror_1d.dat'):
             final_mirror_file = None
         var_name = 'ifn' + var_name
         for i in range(len(code_list)):
-            if re.search('^(\s*)' + var_name + '(\d*)(\s*)=(\s*)(.*\.dat\w*)(\s*)', code_list[i]):
+            if re.search(r'^(\s*)' + var_name + r'(\d*)(\s*)=(\s*)(.*\.dat\w*)(\s*)', code_list[i]):
                 full_var_name = code_list[i].strip().split('=')[0].strip()
                 code_list[i] = code_list[i].replace(
                     full_var_name,

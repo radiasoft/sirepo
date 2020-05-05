@@ -47,6 +47,14 @@
                 "url":""
             }
         },
+        "radia": {
+            "url": "/static/html/landing-page-radia.html",
+            "infoPanelTitle": "Radia",
+            "mediaConfig": {
+                "title": "Radia Sirepo",
+                "url":""
+            }
+        },
         "opal": {
             "url": "/static/html/landing-page-opal.html",
             "codeURL": "/opal",

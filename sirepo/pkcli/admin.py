@@ -6,13 +6,16 @@ u"""?
 """
 from __future__ import absolute_import, division, print_function
 
-from pykern import pkio
+from pykern import pkio, pkconfig
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import auth
 from sirepo import auth_db
 from sirepo import feature_config
 from sirepo import server
+from sirepo import sim_data
 from sirepo import simulation_db
+from sirepo import srdb
+from sirepo import util
 from sirepo.template import template_common
 import datetime
 import glob
@@ -20,6 +23,53 @@ import json
 import os.path
 import re
 import shutil
+
+_PROPRIETARY_CODE_DIR = 'proprietary_code'
+
+
+def audit_proprietary_lib_files(*uid):
+    """Add/removes proprietary files based on a user's roles
+
+    For example, add the Flash executable if user has the flash role.
+
+    Args:
+        *uid: Uid(s) of the user(s) to audit. If None all users will be audited.
+    """
+    import py
+
+    def _audit_user(uid, proprietary_sim_types):
+        with auth.set_user(uid):
+            for t in proprietary_sim_types:
+                _link_or_unlink_proprietary_files(
+                    t,
+                    auth.check_user_has_role(
+                        auth.role_for_sim_type(t),
+                        raise_forbidden=False,
+                    ),
+                )
+
+    def _link_or_unlink_proprietary_files(sim_type, should_link):
+        d = proprietary_code_dir(sim_type)
+        for e in simulation_db.examples(sim_type):
+            b = sim_data.get_class(sim_type).proprietary_lib_file_basename(e)
+            p = simulation_db.simulation_lib_dir(sim_type).join(b)
+            if not should_link:
+                pkio.unchecked_remove(p)
+                continue
+            try:
+                p.mksymlinkto(
+                    d.join(b),
+                    absolute=False,
+                )
+            except py.error.EEXIST:
+                pass
+
+    server.init()
+    t = feature_config.cfg().proprietary_sim_types
+    if not t:
+        return
+    for u in uid or auth_db.all_uids():
+        _audit_user(u, t)
 
 
 def create_examples():
@@ -31,7 +81,7 @@ def create_examples():
         if _is_src_dir(d):
             continue;
         uid = simulation_db.uid_from_dir_name(d)
-        auth.init_mock(uid)
+        auth.set_user_for_utils(uid)
         for sim_type in feature_config.cfg().sim_types:
             simulation_db.verify_app_directory(sim_type)
             names = [x.name for x in simulation_db.iterate_simulation_datafiles(
@@ -77,45 +127,8 @@ def move_user_sims(target_uid=''):
         shutil.move(lib_file, target)
 
 
-def purge_guest_users(days=180, confirm=False):
-    """Remove old users from db which have not registered.
-
-    Args:
-        days (int): maximum days of untouched files (old is mtime > days)
-        confirm (bool): delete the directories if True (else don't delete) [False]
-
-    Returns:
-        (list, list): dirs and uids of removed guest users (or to remove if confirm)
-    """
-
-    days = int(days)
-    assert days >= 1, \
-        '{}: days must be a positive integer'
-    server.init()
-    from sirepo import srtime
-
-    guest_uids = auth.guest_uids()
-    now = srtime.utc_now()
-    dirs_and_uids = {}
-
-    for d in pkio.sorted_glob(simulation_db.user_dir_name().join('*')):
-        uid = simulation_db.uid_from_dir_name(d)
-        if _is_src_dir(d):
-            continue
-        if uid not in guest_uids:
-            continue
-        for f in pkio.walk_tree(d):
-            if (now - now.fromtimestamp(f.mtime())).days <= days:
-                break
-        else:
-
-            dirs_and_uids[d] = uid
-    if confirm:
-        pkio.unchecked_remove(*dirs_and_uids.keys())
-        auth_db.UserRegistration.delete_all_for_column_by_values('uid', dirs_and_uids.values())
-
-    return dirs_and_uids
-
+def proprietary_code_dir(sim_type):
+    return srdb.root().join(_PROPRIETARY_CODE_DIR, sim_type)
 
 def _create_example(example):
     simulation_db.save_new_example(example)

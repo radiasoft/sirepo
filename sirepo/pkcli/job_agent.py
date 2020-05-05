@@ -18,6 +18,7 @@ import os
 import re
 import signal
 import sirepo.auth
+import sirepo.tornado
 import socket
 import subprocess
 import sys
@@ -40,11 +41,7 @@ _IN_FILE = 'in-{}.json'
 
 _PID_FILE = 'job_agent.pid'
 
-_PY3_CODES = frozenset((
-    'rcscon',
-    'shadow',
-    'webcon',
-))
+_PY2_CODES = frozenset(())
 
 cfg = None
 
@@ -120,10 +117,19 @@ def start_sbatch():
         pkio.unchecked_remove(_PID_FILE)
 
 
+def _assert_run_dir_exists(run_dir):
+    if not run_dir.exists():
+        raise _RunDirNotFound()
+
+
 class _Dispatcher(PKDict):
 
     def __init__(self):
-        super().__init__(cmds=[], fastcgi_cmd=None)
+        super().__init__(
+            cmds=[],
+            fastcgi_cmd=None,
+            fastcgi_error_count=0,
+        )
 
     def format_op(self, msg, opName, **kwargs):
         if msg:
@@ -197,7 +203,7 @@ class _Dispatcher(PKDict):
     def terminate(self):
         try:
             x = self.cmds
-            self.cmds.clear()
+            self.cmds = []
             for c in x:
                 try:
                     c.destroy()
@@ -206,6 +212,13 @@ class _Dispatcher(PKDict):
             return None
         finally:
             tornado.ioloop.IOLoop.current().stop()
+
+    def _get_cmd_type(self, msg):
+        if msg.jobRunMode == job.SBATCH:
+            return _SbatchRun if msg.isParallel else _SbatchCmd
+        elif msg.jobCmd == 'fastcgi':
+            return _FastCgiCmd
+        return _Cmd
 
     async def _op(self, msg):
         m = None
@@ -252,14 +265,21 @@ class _Dispatcher(PKDict):
         )
 
     async def _cmd(self, msg, **kwargs):
-        if msg.opName == job.OP_ANALYSIS and msg.jobCmd != 'fastcgi':
-            return await self._fastcgi_op(msg)
-        c = _Cmd
-        if msg.jobRunMode == job.SBATCH:
-            c = _SbatchRun if msg.isParallel else _SbatchCmd
-        elif msg.jobCmd == 'fastcgi':
-            c = _FastCgiCmd
-        p = c(msg=msg, dispatcher=self, op_id=msg.opId, **kwargs)
+        try:
+            if msg.opName == job.OP_ANALYSIS and msg.jobCmd != 'fastcgi':
+                return await self._fastcgi_op(msg)
+            p = self._get_cmd_type(msg)(
+                msg=msg,
+                dispatcher=self,
+                op_id=msg.opId,
+                **kwargs
+            )
+        except _RunDirNotFound:
+            return self.format_op(
+                msg,
+                job.OP_ERROR,
+                reply=PKDict(runDirNotFound=True),
+            )
         if msg.jobCmd == 'fastcgi':
             self.fastcgi_cmd = p
         self.cmds.append(p)
@@ -283,6 +303,7 @@ class _Dispatcher(PKDict):
                         reply=PKDict(
                             state=job.ERROR,
                             error='internal error',
+                            fastCgiErrorCount=self.fastcgi_error_count,
                         ),
                     )
                 )
@@ -290,6 +311,7 @@ class _Dispatcher(PKDict):
                 pkdlog('msg={} error={} stack={}', msg, e, pkdexc())
         # destroy _fastcgi state first, then send replies to avoid
         # asynchronous modification of _fastcgi state.
+        self.fastcgi_error_count += 1
         self._fastcgi_remove_handler()
         q = self._fastcgi_msg_q
         self._fastcgi_msg_q = None
@@ -301,11 +323,12 @@ class _Dispatcher(PKDict):
             q.task_done()
 
     async def _fastcgi_op(self, msg):
+        _assert_run_dir_exists(pkio.py_path(msg.runDir))
         if not self.fastcgi_cmd:
             m = msg.copy()
             m.jobCmd = 'fastcgi'
             self._fastcgi_file = 'job_cmd_fastcgi.sock'
-            self._fastcgi_msg_q = tornado.queues.Queue(1)
+            self._fastcgi_msg_q = sirepo.tornado.Queue(1)
             pkio.unchecked_remove(self._fastcgi_file)
             # Avoid OSError: AF_UNIX path too long (max=100)
             # Use relative path
@@ -383,7 +406,6 @@ class _Cmd(PKDict):
         return job.agent_cmd_stdin_env(
             cmd=self.job_cmd_cmd(),
             env=self.job_cmd_env(),
-            pyenv=self.job_cmd_pyenv(),
             source_bashrc=self.job_cmd_source_bashrc(),
         )
 
@@ -395,9 +417,6 @@ class _Cmd(PKDict):
             ),
         )
 
-    def job_cmd_pyenv(self):
-        return 'py3' if self.msg.simulationType in _PY3_CODES else 'py2'
-
     def job_cmd_source_bashrc(self):
         return 'source $HOME/.bashrc'
 
@@ -407,7 +426,7 @@ class _Cmd(PKDict):
                 self.dispatcher.format_op(
                     self.msg,
                     job.OP_JOB_CMD_STDERR,
-                    error=text.decode('utf-8', errors='ignore'),
+                    stderr=text.decode('utf-8', errors='ignore'),
                 )
             )
         except Exception as exc:
@@ -439,8 +458,9 @@ class _Cmd(PKDict):
 
     def pkdebug_str(self):
         return pkdformat(
-            '{}(jid={} o={:.4} job_cmd={} run_dir={})',
+            '{}(a={:.4} jid={} o={:.4} job_cmd={} run_dir={})',
             self.__class__.__name__,
+            cfg.agent_id,
             self.jid,
             self.op_id,
             self.msg.jobCmd,
@@ -650,7 +670,6 @@ class _SbatchRun(_SbatchCmd):
 cat > bash.stdin <<'EOF'
 {self.job_cmd_source_bashrc()}
 {self.job_cmd_env()}
-pyenv shell {self.job_cmd_pyenv()}
 if [[ ! $LD_LIBRARY_PATH =~ /usr/lib64/mpich/lib ]]; then
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64/mpich/lib
 fi
@@ -741,6 +760,8 @@ class _Process(PKDict):
             cmd=cmd,
             _exit=tornado.locks.Event(),
         )
+        if self.cmd.msg.jobCmd not in ('prepare_simulation', 'compute'):
+            _assert_run_dir_exists(self.cmd.run_dir)
 
     async def exit_ready(self):
         await self._exit.wait()
@@ -753,12 +774,19 @@ class _Process(PKDict):
             return
         p = None
         try:
+            pkdlog('{}', self)
             p = self.pkdel('_subprocess').proc.pid
             os.killpg(p, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
         except Exception as e:
-            pkdlog('kill pid={} exception={}', p, e)
+            pkdlog('{} error={}', self, e)
+
+    def pkdebug_str(self):
+        return pkdformat(
+            '{}(pid={} cmd={})',
+            self.__class__.__name__,
+            self._subprocess.proc.pid if self.get('_subprocess') else None,
+            self.cmd,
+        )
 
     def start(self):
         # SECURITY: msg must not contain agentId
@@ -785,6 +813,10 @@ class _Process(PKDict):
     def _on_exit(self, returncode):
         self.returncode = returncode
         self._exit.set()
+
+
+class _RunDirNotFound(Exception):
+    pass
 
 
 class _Stream(PKDict):
@@ -833,7 +865,7 @@ class _ReadUntilCloseStream(_Stream):
             job.cfg.max_message_size - len(self.text),
             partial=True,
         )
-        pkdc('cmd={} stderr={}', self.cmd, t)
+        pkdlog('cmd={} stderr={}', self.cmd, t)
         await self.cmd.on_stderr_read(t)
         l = len(self.text) + len(t)
         assert l < job.cfg.max_message_size, \

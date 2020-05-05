@@ -26,8 +26,7 @@ def test_adm_jobs(auth_fc):
             'admJobs',
             PKDict(simulationType=sim_type)
         )
-        pkunit.pkeq(8, len(r.header))
-        pkunit.pkeq(8, len(r.rows[0]))
+        pkunit.pkeq(len(r.rows[0]), len(r.header))
         pkunit.pkeq('srw', r.rows[0][0])
 
     _run_sim(auth_fc, _op)
@@ -59,8 +58,7 @@ def test_srw_get_own_jobs(auth_fc):
             'admJobs',
             PKDict(simulationType=sim_type)
         )
-        pkunit.pkeq(8, len(r.header))
-        pkunit.pkeq(8, len(r.rows[0]))
+        pkunit.pkeq(len(r.rows[0]), len(r.header))
         pkunit.pkeq('srw', r.rows[0][0])
 
     _run_sim(auth_fc, _op)
@@ -77,7 +75,7 @@ def test_srw_user_see_only_own_jobs(auth_fc):
         fc.sr_post('runCancel', cancel_req)
 
     def _clear_role_db():
-        sirepo.auth_db.UserRole.query.delete()
+        sirepo.auth_db.UserRole.delete_all()
 
     def _get_jobs(adm, job_count):
         r = fc.sr_post(

@@ -34,6 +34,10 @@ def background_percent_complete(report, run_dir, is_running):
             res.percentComplete = 100
             res.frameCount = 1;
         return res
+    if report == 'elegantAnimation':
+        if not is_running and run_dir.join('inputs.csv').exists():
+            _compute_elegant_result_columns(run_dir, res)
+        return res
     csv_file = run_dir.join(_OUTPUT_FILE.fitOutputFile)
     if csv_file.exists():
         line = _read_last_line(csv_file)
@@ -60,6 +64,7 @@ def extract_report_data(run_dir, sim_in):
             run_dir=run_dir,
         )
         return
+    assert 'fileColumnReport' in sim_in.report
     idx = sim_in.models[sim_in.report].columnNumber
     x, y, col_name, source_name = _extract_column(run_dir, sim_in, idx)
     template_common.write_sequential_result(
@@ -68,9 +73,10 @@ def extract_report_data(run_dir, sim_in):
             [
                 PKDict(
                     points=y.tolist(),
-                    label=col_name,
+                    label='',
                 ),
             ],
+            col_name,
         ),
         run_dir=run_dir,
     )
@@ -78,39 +84,40 @@ def extract_report_data(run_dir, sim_in):
 
 def get_application_data(data, **kwargs):
     if data.method == 'compute_column_count':
-        return _compute_column_count(data)
+        return _compute_file_column_count(data.files)
     assert False, 'unknown get_application_data: {}'.format(data)
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
-    name = None
-    filename = None
     sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    f = sim_in.models.files
     if 'fileColumnReport' in model:
-        idx = int(re.search(r'(\d+)$', model).group(1))
-        source, idx = _input_or_output(sim_in, idx, 'inputs', 'outputs')
-        if source == 'inputs':
-            name = sim_in.models.files.inputs
-        else:
-            name = sim_in.models.files.outputs
-        filename = _SIM_DATA.lib_file_name_with_model_field('files', source, name)
+        source = _input_or_output(
+            sim_in,
+            int(re.search(r'(\d+)$', model).group(1)),
+            'inputs',
+            'outputs',
+        )[0]
+        return _SIM_DATA.lib_file_name_with_model_field(
+            'files',
+            source,
+            sim_in.models.files[source],
+        )
     if model == 'partitionSelectionReport' or 'partitionAnimation' in model:
-        name = sim_in.models.files.inputs
-        filename = _SIM_DATA.lib_file_name_with_model_field('files', 'inputs', name)
+        return _SIM_DATA.lib_file_name_with_model_field(
+            'files',
+            'inputs',
+            sim_in.models.files.inputs,
+        )
     if model == 'epochAnimation':
-        name = _OUTPUT_FILE.fitOutputFile
-        filename = name
-    if filename:
-        with open(str(run_dir.join(filename)), 'r') as f:
-            return name, f.read(), 'application/octet-stream'
+        return _OUTPUT_FILE.fitOutputFile
     if 'fitAnimation' in model:
-        filename = _OUTPUT_FILE.testOutputFile
-        with open(str(run_dir.join(filename)), 'r') as f:
-            res = f.read()
-        filename = _OUTPUT_FILE.predictOutputFile
-        with open(str(run_dir.join(filename)), 'r') as f:
-            return 'test-and-predict.csv', res + f.read(), 'application/octet-stream'
-    assert False, 'unknown model: {}'.format(model)
+        return PKDict(
+            content=run_dir.join(_OUTPUT_FILE.testOutputFile).read_text() \
+                + run_dir.join(_OUTPUT_FILE.predictOutputFile).read_text(),
+            uri='test-and-predict.csv',
+        )
+    raise AssertionError('unknown model: {}'.format(model))
 
 
 def prepare_sequential_output_file(run_dir, sim_in):
@@ -141,16 +148,27 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
-def _compute_column_count(data):
-    lib_dir = simulation_db.simulation_lib_dir(SIM_TYPE)
+def _compute_column_count(file_dir, input_filename, output_filename, res):
     count = 0
-    for field in ('inputs', 'outputs'):
-        filename = _SIM_DATA.lib_file_name_with_model_field('files', field, data.files[field])
-        header = _read_csv_header_columns(lib_dir.join(filename))
+    for info in (['inputs', input_filename], ['outputs', output_filename]):
+        header = _read_csv_header_columns(file_dir.join(info[1]))
         count += len(header)
-        data.files['{}Count'.format(field)] = len(header)
-    data.files.columnCount = count
-    return data.files
+        res['{}Count'.format(info[0])] = len(header)
+    res.columnCount = count
+    return res
+
+
+def _compute_elegant_result_columns(run_dir, res):
+    return _compute_column_count(run_dir, 'inputs.csv', 'outputs.csv', res)
+
+
+def _compute_file_column_count(files):
+    return _compute_column_count(
+        simulation_db.simulation_lib_dir(SIM_TYPE),
+        _SIM_DATA.lib_file_name_with_model_field('files', 'inputs', files.inputs),
+        _SIM_DATA.lib_file_name_with_model_field('files', 'outputs', files.outputs),
+        files,
+    )
 
 
 def _epoch_animation(frame_args):
@@ -203,20 +221,41 @@ def _fit_animation(frame_args):
         frame_args,
         PKDict(
             x_label='',
-            y_label=header[idx],
-            title='',
+            y_label='',
+            title=header[idx],
             hideColorBar=True,
         ),
     )
 
 
+def _generate_elegant_simulation(data):
+    vars_by_name = PKDict({x.name : x.value for x in data.models.rpnVariables})
+    for m in ('elegantAnimation', 'latticeSettings', 'rfcSettings'):
+        for f in data.models[m]:
+            vars_by_name[f] = data.models[m][f]
+    data.models.rpnVariables = [PKDict(name=n, value=v) for n,v in vars_by_name.items()]
+    res, v = template_common.generate_parameters_file(data)
+    from sirepo.template import elegant
+    #TODO(pjm): don't call private functions
+    v.rpn_variables = elegant._generate_variables(data)
+    data.models.simulation.update(PKDict(
+        backtracking='0',
+        simulationMode='serial',
+    ))
+    return elegant._generate_full_simulation(data, v)
+
+
 def _generate_parameters_file(data):
     report = data.get('report', '')
+    if report == 'elegantAnimation':
+        return _generate_elegant_simulation(data)
     res, v = template_common.generate_parameters_file(data)
     res += 'from __future__ import absolute_import, division, print_function\n'
+    infile = _SIM_DATA.rcscon_filename(data, 'files', 'inputs')
+    outfile = _SIM_DATA.rcscon_filename(data, 'files', 'outputs')
     v.update(PKDict(
-        inputsFileName=_SIM_DATA.rcscon_filename(data, 'files', 'inputs'),
-        outputsFileName=_SIM_DATA.rcscon_filename(data, 'files', 'outputs'),
+        inputsFileName=infile,
+        outputsFileName=outfile,
         layerImplementationNames=_layer_implementation_list(data),
         neuralNetLayers=data.models.neuralNet.layers,
         inputDim=data.models.files.inputsCount,
@@ -228,6 +267,9 @@ def _generate_parameters_file(data):
     res += template_common.render_jinja(SIM_TYPE, v, 'scale.py')
     if 'fileColumnReport' in report or report == 'partitionSelectionReport':
         return res
+    v.hasTrainingAndTesting = v.partition_section0 == 'train_and_test' \
+        or v.partition_section1 == 'train_and_test' \
+        or v.partition_section2 == 'train_and_test'
     res += template_common.render_jinja(SIM_TYPE, v, 'partition.py')
     if 'partitionAnimation' in report:
         res += template_common.render_jinja(SIM_TYPE, v, 'save-partition.py')

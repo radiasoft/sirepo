@@ -1923,15 +1923,14 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
         },
         template: [
             '<form name="form" class="form-horizontal" autocomplete="off" novalidate>',
+              '<div data-cancelled-due-to-timeout-alert="simState"></div>',
               '<div class="progress" data-ng-if="simState.isProcessing()">',
                 '<div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%"></div>',
               '</div>',
 
               '<div data-ng-if="simState.isProcessing()">',
                 '<div class="col-sm-6">',
-                  '<div data-ng-show="simState.isStatePending()">',
-                    '<span class="glyphicon glyphicon-hourglass"></span> {{ simState.stateAsText() }} {{ simState.dots }}',
-                  '</div>',
+                  '<div data-pending-link-to-simulations="" data-sim-state="simState"></div>',
                   '<div data-ng-show="simState.isInitializing()">',
                     '<span class="glyphicon glyphicon-hourglass"></span> Initializing Simulation {{ simState.dots }}',
                   '</div>',

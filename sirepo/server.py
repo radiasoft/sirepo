@@ -31,7 +31,7 @@ import werkzeug.exceptions
 
 
 #TODO(pjm): this import is required to work-around template loading in listSimulations, see #1151
-if any(k in feature_config.cfg().sim_types for k in ('flash', 'rs4pi', 'synergia', 'warppba', 'warpvnd')):
+if any(k in feature_config.cfg().sim_types for k in ('flash', 'rs4pi', 'radia', 'synergia', 'warppba', 'warpvnd')):
     import h5py
 
 #: See sirepo.srunit
@@ -48,6 +48,7 @@ _app = None
 @api_perm.require_user
 def api_copyNonSessionSimulation():
     req = http_request.parse_post(id=True, template=True)
+    simulation_db.verify_app_directory(req.type)
     src = pkio.py_path(
         simulation_db.find_global_simulation(
             req.type,
@@ -251,7 +252,11 @@ def api_getApplicationData(filename=None):
         if 'filename' in req:
             assert isinstance(res, pkconst.PY_PATH_LOCAL_TYPE), \
                 '{}: template did not return a file'.format(res)
-            return http_reply.gen_file_as_attachment(res, filename=req.filename)
+            return http_reply.gen_file_as_attachment(
+                res,
+                filename=req.filename,
+                content_type=req.req_data.get('contentType', None)
+            )
         return http_reply.gen_json(res)
 
 
@@ -310,7 +315,7 @@ def api_importFile(simulation_type):
         #TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
         # (dicom input is normally a zip file)
         elif pkio.has_file_extension(req.filename, 'zip') and req.type != 'rs4pi':
-            data = sirepo.importer.read_zip(req.file_stream, sim_type=req.type)
+            data = sirepo.importer.read_zip(req.file_stream.read(), sim_type=req.type)
         else:
             if not hasattr(req.template, 'import_file'):
                 raise sirepo.util.Error('Only zip files are supported')
@@ -326,7 +331,13 @@ def api_importFile(simulation_type):
     except Exception as e:
         pkdlog('{}: exception: {}', f and f.filename, pkdexc())
         #TODO(robnagler) security issue here. Really don't want to report errors to user
-        error = str(e.args) if hasattr(e, 'args') else str(e)
+        if hasattr(e, 'args'):
+            if len(e.args) == 1:
+                error = str(e.args[0])
+            else:
+                error = str(e.args)
+        else:
+            error = str(e)
     return http_reply.gen_json({
         'error': error if error else 'An unknown error occurred',
     })
@@ -367,7 +378,7 @@ def api_pythonSource(simulation_type, simulation_id, model=None, title=None):
             req.template.python_source_for_model(d, m),
         ),
         d.models.simulation.name + ('-' + title if title else ''),
-        'py',
+        'madx' if m == 'madx' else 'py'
     )
 
 @api_perm.allow_visitor
@@ -488,7 +499,7 @@ def api_srUnit():
     v = getattr(flask.current_app, SRUNIT_TEST_IN_REQUEST)
     if v.want_user:
         import sirepo.auth
-        sirepo.auth.init_mock()
+        sirepo.auth.set_user_for_utils()
     if v.want_cookie:
         import sirepo.cookie
         sirepo.cookie.set_sentinel()

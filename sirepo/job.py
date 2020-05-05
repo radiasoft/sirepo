@@ -30,6 +30,9 @@ OP_SBATCH_LOGIN = 'sbatch_login'
 #: path supervisor registers to receive messages from agent
 AGENT_URI = '/job-agent-websocket'
 
+#: path supervisor registers to receive srtime adjustments from server
+SERVER_SRTIME_URI = '/job-api-srtime'
+
 #: path supervisor registers to receive requests from server
 SERVER_URI = '/job-api-request'
 
@@ -77,6 +80,7 @@ RUNNER_STATUS_FILE = 'status'
 CANCELED = 'canceled'
 COMPLETED = 'completed'
 ERROR = 'error'
+FREE_USER_PURGED = 'free_user_purged'
 MISSING = 'missing'
 PENDING = 'pending'
 RUNNING = 'running'
@@ -103,8 +107,8 @@ UNIQUE_KEY_RE = re.compile(r'^\w+$')
 
 cfg = None
 
-def agent_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.', source_bashrc=''):
-    """Convert `cmd` in `pyenv` with `env` to script and cmd
+def agent_cmd_stdin_env(cmd, env, cwd='.', source_bashrc=''):
+    """Convert `cmd` with `env` to script and cmd
 
     Uses tempfile so the file can be closed after the subprocess
     gets the handle. You have to close `stdin` after calling
@@ -114,7 +118,6 @@ def agent_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.', source_bashrc=''):
     Args:
         cmd (iter): list of words to be quoted
         env (str): empty or result of `agent_env`
-        pyenv (str): python environment (py3 default)
         cwd (str): directory for the agent to run in (will be created if it doesn't exist)
         uid (str): which user should be logged in
 
@@ -132,14 +135,12 @@ def agent_cmd_stdin_env(cmd, env, pyenv='py3', cwd='.', source_bashrc=''):
 set -e
 mkdir -p '{}'
 cd '{}'
-pyenv shell {}
 {}
 {}
 '''.format(
         source_bashrc,
         cwd,
         cwd,
-        pyenv,
         env or agent_env(),
         c,
     ).encode())

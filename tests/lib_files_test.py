@@ -117,7 +117,7 @@ def test_srw_delete(fc):
 
 
 def test_srw_upload(fc):
-    from pykern import pkunit
+    from pykern import pkunit, pkcompat
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     import sirepo.sim_data
@@ -170,7 +170,7 @@ def test_srw_upload(fc):
         ),
         data=PKDict(),
     )
-    pkunit.pkre(r'^\s*-1.39500', r.data)
+    pkunit.pkre(r'^\s*-1.39500', pkcompat.from_bytes(r.data))
 
 
 def test_srw_validate_file(fc):

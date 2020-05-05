@@ -41,13 +41,6 @@ def has_sentinel():
     return _COOKIE_SENTINEL in _state()
 
 
-def init_mock():
-    """A mock cookie for pkcli"""
-    flask.g = pkcollections.Dict()
-    _State('')
-    set_sentinel()
-
-
 def process_header(unit_test=None):
     _State(unit_test or flask.request.environ.get('HTTP_COOKIE', ''))
 
@@ -64,6 +57,13 @@ def reset_state(error):
 
 def save_to_cookie(resp):
     _state().save_to_cookie(resp)
+
+
+def set_cookie_for_utils():
+    """A mock cookie for utilities"""
+    flask.g = pkcollections.Dict()
+    _State('')
+    set_sentinel()
 
 
 def set_sentinel(values=None):
@@ -145,8 +145,10 @@ class _State(dict):
         return self.crypto
 
     def _decrypt(self, value):
-        d = self._crypto().decrypt(base64.urlsafe_b64decode(pkcompat.to_bytes(value)))
-        pkdc(d)
+        d = self._crypto().decrypt(
+            base64.urlsafe_b64decode(pkcompat.to_bytes(value)),
+        )
+        pkdc('{}', d)
         return pkcompat.from_bytes(d)
 
     def _deserialize(self, value):
@@ -157,13 +159,18 @@ class _State(dict):
         return v
 
     def _encrypt(self, text):
-        return base64.urlsafe_b64encode(self._crypto().encrypt(pkcompat.to_bytes(text)))
+        return base64.urlsafe_b64encode(
+            self._crypto().encrypt(pkcompat.to_bytes(text)),
+        )
 
     def _from_cookie_header(self, header):
         s = None
         err = None
         try:
-            match = re.search(r'\b{}=([^;]+)'.format(cfg.http_name), header)
+            match = re.search(
+                r'\b{}=([^;]+)'.format(cfg.http_name),
+                header,
+            )
             if match:
                 s = self._decrypt(match.group(1))
                 self.update(auth_hook_from_header(self._deserialize(s)))
@@ -175,7 +182,7 @@ class _State(dict):
                 # so just report the type.
                 e = type(e)
             err = e
-            pkdc(pkdexc())
+            pkdc('{}', pkdexc())
         if err:
             pkdlog('Cookie decoding failed: {} value={}', err, s)
 

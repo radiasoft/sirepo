@@ -5,6 +5,7 @@ u"""elegant execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkresource
 from pykern.pkcollections import PKDict
@@ -115,15 +116,15 @@ class OutputFileIterator(lattice.ModelIterator):
 
 def background_percent_complete(report, run_dir, is_running):
     #TODO(robnagler) remove duplication in run_dir.exists() (outer level?)
-    alerts, last_element = _parse_elegant_log(run_dir)
+    alert, last_element, step = _parse_elegant_log(run_dir)
     res = PKDict(
         percentComplete=100,
         frameCount=0,
-        alerts=alerts,
+        alert=alert,
     )
     if is_running:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-        res.percentComplete = _compute_percent_complete(data, last_element)
+        res.percentComplete = _compute_percent_complete(data, last_element, step)
         return res
     if not run_dir.join(_ELEGANT_SEMAPHORE_FILE).exists():
         return res
@@ -133,7 +134,7 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=1,
         outputInfo=output_info,
         lastUpdateTime=output_info[0]['lastUpdateTime'],
-        alerts=alerts,
+        alert=alert,
     )
 
 
@@ -201,18 +202,21 @@ def _file_name_from_id(file_id, model_data, run_dir):
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
+
     def _sdds(filename):
         path = run_dir.join(filename)
         assert path.check(file=True, exists=True), \
             '{}: not found'.format(path)
         if not options.suffix:
-            with open(str(path)) as f:
-                return path.basename, f.read(), 'application/octet-stream'
+            return path
         if options.suffix == 'csv':
             out = elegant_common.subprocess_output(['sddsprintout', '-columns', '-spreadsheet=csv', str(path)])
             assert out, \
                 '{}: invalid or empty output from sddsprintout'.format(path)
-            return path.purebasename + '.csv', out, 'text/csv'
+            return PKDict(
+                uri=path.purebasename + '.csv',
+                content=out,
+            )
         raise AssertionError('{}: invalid suffix for download path={}'.format(options.suffix, path))
 
     if frame >= 0:
@@ -220,39 +224,33 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
         # ex. elementAnimation17-55
         i = re.sub(r'elementAnimation', '', model).split(_FILE_ID_SEP)
         return _sdds(_get_filename_for_element_id(i, data))
-
     if model == 'animation':
-        path = run_dir.join(ELEGANT_LOG_FILE)
-        if not path.exists():
-            return 'elegant-output.txt', '', 'text/plain'
-        with open(str(path)) as f:
-            return 'elegant-output.txt', f.read(), 'text/plain'
-
-    if model == 'beamlineReport':
-        data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
-        source = generate_parameters_file(data, is_parallel=True)
-        return 'python-source.py', source, 'text/plain'
-
+        return ELEGANT_LOG_FILE
     return _sdds(_report_output_filename('bunchReport'))
 
 
 def import_file(req, test_data=None, **kwargs):
     # input_data is passed by test cases only
     input_data = test_data
-
+    text = pkcompat.from_bytes(req.file_stream.read())
     if 'simulationId' in req.req_data:
-        input_data = simulation_db.read_simulation_json(elegant_common.SIM_TYPE, sid=req.req_data.simulationId)
-    if re.search(r'.ele$', req.filename, re.IGNORECASE):
-        data = elegant_command_importer.import_file(req.file_stream.read())
-    elif re.search(r'.lte$', req.filename, re.IGNORECASE):
-        data = elegant_lattice_importer.import_file(req.file_stream.read(), input_data)
+        input_data = simulation_db.read_simulation_json(SIM_TYPE, sid=req.req_data.simulationId)
+    if re.search(r'\.ele$', req.filename, re.IGNORECASE):
+        data = elegant_command_importer.import_file(text)
+    elif re.search(r'\.lte$', req.filename, re.IGNORECASE):
+        data = elegant_lattice_importer.import_file(text, input_data)
         if input_data:
             _map_commands_to_lattice(data)
+    elif re.search(r'\.madx$', req.filename, re.IGNORECASE):
+        from sirepo.template import madx_converter, madx_parser
+        data = madx_converter.from_madx(
+            SIM_TYPE,
+            madx_parser.parse_file(text, downcase_variables=True))
     else:
         raise IOError('invalid file extension, expecting .ele or .lte')
-    data.models.simulation.name = re.sub(r'\.(lte|ele)$', '', req.filename, flags=re.IGNORECASE)
+    data.models.simulation.name = re.sub(r'\.(lte|ele|madx)$', '', req.filename, flags=re.IGNORECASE)
     if input_data and not test_data:
-        simulation_db.delete_simulation(elegant_common.SIM_TYPE, input_data.models.simulation.simulationId)
+        simulation_db.delete_simulation(SIM_TYPE, input_data.models.simulation.simulationId)
     return data
 
 
@@ -280,6 +278,10 @@ def prepare_sequential_output_file(run_dir, data):
 
 
 def python_source_for_model(data, model):
+    if model == 'madx':
+        from sirepo.template import madx, madx_converter
+        mad = madx_converter.to_madx(SIM_TYPE, data)
+        return madx.python_source_for_model(mad, None)
     return generate_parameters_file(data, is_parallel=True) + '''
 with open('elegant.lte', 'w') as f:
     f.write(lattice_file)
@@ -433,7 +435,17 @@ def _command_file_extension(model):
     return 'sdds'
 
 
-def _compute_percent_complete(data, last_element):
+def _compute_percent_complete(data, last_element, step):
+    if step > 1:
+        cmd = _find_first_command(data, 'run_control')
+        if cmd and cmd.n_steps:
+            n_steps = 0
+            if code_variable.CodeVar.is_var_value(cmd.n_steps):
+                n_steps = _code_var(data.models.rpnVariables).eval_var(cmd.n_steps)[0]
+            else:
+                n_steps = int(cmd.n_steps)
+            if n_steps and n_steps > 0:
+                return min(100, step * 100 / n_steps)
     if not last_element:
         return 0
     elements = PKDict()
@@ -446,10 +458,7 @@ def _compute_percent_complete(data, last_element):
     beamline_map = PKDict()
     count = _walk_beamline(beamlines[id], 1, elements, beamlines, beamline_map)
     index = beamline_map[last_element] if last_element in beamline_map else 0
-    res = index * 100 / count
-    if res > 100:
-        return 100
-    return res
+    return min(100, index * 100 / count)
 
 
 def _contains_columns(column_names, search):
@@ -732,10 +741,13 @@ def _generate_twiss_simulation(data, v):
     )
     twiss_output.final_values_only = '0'
     twiss_output.output_at_each_step = '0'
+    change_particle = _find_first_command(data, 'change_particle')
     data.models.commands = [
         run_setup,
         twiss_output,
     ]
+    if change_particle:
+        data.models.commands.insert(0, change_particle)
     return _generate_full_simulation(data, v)
 
 
@@ -843,21 +855,25 @@ def _parameter_definitions(parameters):
 def _parse_elegant_log(run_dir):
     path = run_dir.join(ELEGANT_LOG_FILE)
     if not path.exists():
-        return '', 0
+        return '', 0, 0
     res = ''
     last_element = None
     text = pkio.read_text(str(path))
     want_next_line = False
     prev_line = ''
     prev_err = ''
+    step = 0
     for line in text.split('\n'):
         if line == prev_line:
             continue
-        match = re.search('^Starting (\S+) at s\=', line)
+        match = re.search(r'^Starting (\S+) at s=', line)
         if match:
             name = match.group(1)
-            if not re.search('^M\d+\#', name):
+            if not re.search(r'^M\d+\#', name):
                 last_element = name
+        match = re.search(r'^tracking step (\d+)', line)
+        if match:
+            step = int(match.group(1))
         if want_next_line:
             res += line + '\n'
             want_next_line = False
@@ -871,7 +887,7 @@ def _parse_elegant_log(run_dir):
                     res += line + '\n'
                 prev_err = line
         prev_line = line
-    return res, last_element
+    return res, last_element, step
 
 
 def _plot_title(xfield, yfield, page_index, page_count):

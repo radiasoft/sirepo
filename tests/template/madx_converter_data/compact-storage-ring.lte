@@ -1,0 +1,81 @@
+# Compact Storage Ring
+execution_mode = 'serial'
+
+lattice_file = """
+% pi 180 / sto degrad
+% 180 pi / sto raddeg
+% pi 2 * sto twopi
+
+"L0": DRIF,l=1.43
+"L1": DRIF,l=0.25
+"L2": DRIF,l=0.35
+"M0": MARK
+"M1": MARK
+"M2": MARK
+"M3": MARK
+"M4": MARK
+"M5": MARK
+"Q1": QUAD,k1=2.875068323553936,l=0.25
+"Q2": QUAD,k1=-6.313934929538485,l=0.25
+"Q3": QUAD,k1=4.369624927236353,l=0.25
+"Q4": QUAD,k1=5.508911786298143,l=0.25
+"BM": CSBEND,angle=0.78539816,e1=0.39269908,e2=0.39269908,l=1.8
+"SD": SEXT
+"SF": SEXT
+"QUARTER": LINE=(M0,L0,Q1,M1,L2,Q2,M2,L2,Q3,M3,L2,BM,L2,SD,L1,Q4,M4,L1,SF,L2,BM,L2,M3,Q3,L2,M2,Q2,L2,M1,Q1,L0)
+"CSR": LINE=(QUARTER,QUARTER,QUARTER,QUARTER)
+
+"""
+
+elegant_file = """
+
+&run_setup
+  semaphore_file = run_setup.semaphore,
+  centroid = "run_setup.centroid.sdds",
+  lattice = "elegant.lte",
+  output = "run_setup.output.sdds",
+  p_central_mev = 1001,
+  parameters = "run_setup.parameters.sdds",
+  print_statistics = 1,
+  sigma = "run_setup.sigma.sdds",
+&end
+
+&run_control
+&end
+
+&twiss_output
+  filename = "twiss_output.filename.sdds",
+&end
+
+&bunched_beam
+  alpha_x = 1,
+  alpha_y = 1,
+  alpha_z = 0,
+  beta_x = 10,
+  beta_y = 10,
+  beta_z = 0,
+  distribution_cutoff[0] = 3, 3, 3,
+  emit_x = 4.6e-08,
+  emit_y = 4.6e-08,
+  emit_z = 0,
+  enforce_rms_values[0] = 1, 1, 1,
+  n_particles_per_bunch = 5000,
+  one_random_bunch = 0,
+  sigma_dp = 0.001,
+  sigma_s = 0.00065,
+  symmetrize = 1,
+&end
+
+&track
+&end
+
+"""
+
+with open('elegant.lte', 'w') as f:
+    f.write(lattice_file)
+
+with open('elegant.ele', 'w') as f:
+    f.write(elegant_file)
+
+import os
+os.system('elegant elegant.ele')
