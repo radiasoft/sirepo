@@ -189,7 +189,7 @@
                 "always_change_p0": "0",
                 "centroid": "1",
                 "combine_bunch_statistics": "0",
-                "concat_order": 2,
+                "concat_order": 0,
                 "correction_iterations": "1",
                 "default_order": "2",
                 "echo_lattice": "0",
