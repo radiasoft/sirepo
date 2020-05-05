@@ -46,7 +46,6 @@ build_nsls2_host_main() {
     mkdir "$d"
     cp -a "$s" "$d"
     cd "$d"
-    ls -al
     mkdir sirepo
     cp -a ../../{LICENSE,README.md,requirements.txt,setup.py,sirepo,.git} sirepo
     mkdir -p SRW/env/work/srw_python
@@ -62,7 +61,7 @@ USER vagrant
 ADD --chown=vagrant:vagrant . $_build_nsls2_guest_d
 RUN bash $_build_nsls2_guest_d/$s
 EOF
-    docker build --rm=true --network=host --tag=radiasoft/sirepo:nsls2 .
+    docker build --rm=true --tag=radiasoft/sirepo:nsls2 .
     cd ..
     rm -rf "$d"
     build_nsls2_docker_clean
