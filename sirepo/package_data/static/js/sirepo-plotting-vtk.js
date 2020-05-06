@@ -884,6 +884,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             var axisCfgDefault = {};
             geometry.basis.forEach(function (dim) {
                 axisCfgDefault[dim] = {};
+                axisCfgDefault[dim].color = '#ff0000';
                 axisCfgDefault[dim].dimLabel = dim;
                 axisCfgDefault[dim].label = dim;
                 axisCfgDefault[dim].max = 1;
@@ -937,6 +938,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                         continue;
                     }
                     d3self.select(axisSelector).style('opacity', 1.0);
+                    //d3self.select(axisSelector).style('stroke', $scope.axisCfg[dim].color);
 
                     var fullSeg = seg.full;
                     var clippedSeg = seg.clipped;

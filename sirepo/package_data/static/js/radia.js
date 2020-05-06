@@ -385,9 +385,11 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                 var data = [CSV_HEADING];
                 var f = p.name + ' ' + $scope.fieldType();
                 var ext = $scope.isFieldMap() ? 'sdds' : 'csv';
-                var fn = $scope.isFieldMap() ? panelState.fileNameFromText(f, ext) : null;
+                //var fn = $scope.isFieldMap() ? panelState.fileNameFromText(f, ext) : null;
+                var fn = panelState.fileNameFromText(f, ext);
                 requestSender.getApplicationData(
                     {
+                        beamAxis: appState.models.geometry.beamAxis,
                         contentType: $scope.isFieldMap() ? 'application/octet-stream' : 'text/csv;charset=utf-8',
                         fieldPaths: [radiaService.selectedPath],
                         fieldType: $scope.fieldType(),
@@ -399,11 +401,18 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                     },
                     function(d) {
                         // should be able to save both csv and sdds, processing all on the server
+                        //srdbg('FM DATA', d);
                         if ($scope.isFieldMap()) {
-                            //srdbg('FM DATA', d);
                             saveAs(new Blob([d], {type: 'application/octet-stream'}), fn);
-                            return;
+                            //return;
                         }
+                        else {
+                            //srdbg('FM DATA', d);
+                            //var arr = d.split(',');
+                            //srdbg('ARR', arr);
+                            saveAs(new Blob([d], {type: "text/csv;charset=utf-8"}), fn);
+                        }
+                        /*
                         if (! d || ! d.data) {
                             return;
                         }
@@ -421,9 +430,11 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                                 data.push(row);
                             }
                         });
+
+                         */
                         //srdbg('save to', fn, CSV_HEADING, data);
                         //var fileName = panelState.fileNameFromText(p.name + ' ' + $scope.fieldType(), 'csv');
-                        saveAs(new Blob([d3.csv.format(data)], {type: "text/csv;charset=utf-8"}), fn);
+                        //saveAs(new Blob([d3.csv.format(data)], {type: "text/csv;charset=utf-8"}), fn);
                         //saveAs(new Blob([d3.csv.format(data)], {type: t}), fileName);
                     },
                     fn
@@ -843,6 +854,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             '<div class="col-md-6">',
                 '<div class="row" data-basic-editor-panel="" data-view-name="{{ modelName }}">',
                     '<div data-vtk-display="" class="vtk-display" data-ng-class="{\'col-sm-11\': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>',
+                    //'<div data-vtk-axes="" data-width="canvasGeometry().size.width" data-height="canvasGeometry().size.height" data-bound-obj="beamAxisObj" data-axis-cfg="beamAxisCfg"></div>',
                     '<div class="col-sm-1" style="padding-left: 0" data-ng-if="isViewTypeFields()">',
                         '<div class="colorbar"></div>',
                     '</div>',
@@ -1080,7 +1092,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 geometry.basis.forEach(function (dim, i) {
                     acfg[dim] = {};
                     acfg[dim].dimLabel = dim;
-                    acfg[dim].label = dim + ' [m]';
+                    acfg[dim].label = dim + ' [mm]';
                     acfg[dim].max = b[2 * i + 1];
                     acfg[dim].min = b[2 * i];
                     acfg[dim].numPoints = 100;

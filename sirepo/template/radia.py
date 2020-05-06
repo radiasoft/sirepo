@@ -132,14 +132,16 @@ def get_application_data(data, **kwargs):
         #pkdp('DATA {}', data)
         data.method = 'get_field'
         res = get_application_data(data)
+        file_path = simulation_db.simulation_lib_dir(SIM_TYPE).join(
+            sim_id + '_' + res.name + '.' + data.fileType
+        )
+        # we save individual field paths, so there will be one item in the list
+        vectors = res.data[0].vectors
+        #pkdp('DATUM {}', datum)
         if data.fileType == 'sdds':
-            # we save individual field paths, so there will be one item in the list
-            return _save_fm_sdds(
-                res.name,
-                res.data[0],
-                simulation_db.simulation_lib_dir(SIM_TYPE).join(
-                    sim_id + '_' + res.name + '.' + data.fileType
-                ))
+            return _save_fm_sdds(res.name, vectors, file_path)
+        elif data.fileType == 'csv':
+            return _save_field_csv(data.fieldType, vectors, file_path)
         return res
 
 
@@ -289,6 +291,7 @@ def _generate_field_data(g_id, name, f_type, f_paths):
         f = radia_tk.get_magnetization(g_id)
     elif f_type in radia_tk.POINT_FIELD_TYPES:
         f = radia_tk.get_field(g_id, f_type, _build_field_points(f_paths))
+        f = radia_tk.get_field(g_id, f_type, _build_field_points(f_paths))
     return radia_tk.vector_field_to_data(g_id, name, f, radia_tk.FIELD_UNITS[f_type])
 
 
@@ -324,9 +327,8 @@ def _generate_data(g_id, in_data, add_lines=True):
         return PKDict(error=e.message)
 
 
-def _generate_obj_data(g_id, name, scale=1.0):
-    #pkdp('GEN OBJ SCALE {}', scale)
-    return radia_tk.geom_to_data(g_id, name=name, scale=scale)
+def _generate_obj_data(g_id, name):
+    return radia_tk.geom_to_data(g_id, name=name)
 
 
 def _generate_parameters_file(data):
@@ -439,15 +441,33 @@ def _read_solution(sim_id):
         return []
 
 
-def _save_fm_sdds(name, f_data, file_path):
+def _save_field_csv(f_type, vectors, file_path):
+    #pkdp('SAVE TYPE {} V {} PATH {}', f_type, vectors, file_path)
+    data = ['x,y,z,' + f_type + 'x,' + f_type + 'y,' + f_type + 'z']
+    # mm -> m for elegant - might need to have this as a param in general
+    verts = 0.001 * numpy.asarray(vectors.vertices)
+    mags = numpy.asarray(vectors.magnitudes)
+    dirs = numpy.asarray(vectors.directions)
+    for i in range(len(mags)):
+        j = 3 * i
+        r = verts[j:j + 3]
+        #pkdp('verts {} {}', j, r)
+        r = numpy.append(r, mags[i] * dirs[j:j + 3])
+        #pkdp('row {} {}', j, r)
+        data.append(','.join(map(str, r)))
+    pkio.write_text(file_path, '\n'.join(data))
+    return file_path
+
+
+def _save_fm_sdds(name, vectors, file_path):
     s = _get_sdds()
     s.setDescription('Field Map for ' + name, 'x(m), y(m), z(m), Bx(T), By(T), Bz(T)')
     # mm -> m for elegant - might need to have this as a param in general
-    pts = 0.001 * numpy.reshape(f_data.vectors.vertices, (-1, 3))
+    pts = 0.001 * numpy.reshape(vectors.vertices, (-1, 3))
     ind = numpy.lexsort((pts[:, 0], pts[:, 1], pts[:, 2]))
     pts = pts[ind]
-    mag = f_data.vectors.magnitudes
-    dirs = f_data.vectors.directions
+    mag = vectors.magnitudes
+    dirs = vectors.directions
     v = [mag[j // 3] * d for (j, d) in enumerate(dirs)]
     fld = numpy.reshape(v, (-1, 3))[ind]
     # can we use tmp_dir before it gets deleted?
