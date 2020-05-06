@@ -13,7 +13,7 @@
 &end
 
 &sdds_beam
-  input = "bunchFile-sourceFile.PCG.sdds",
+  input = "distribution/bunchFile-sourceFile.PCG.sdds",
 &end
 
 &load_parameters
