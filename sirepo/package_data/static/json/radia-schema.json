@@ -26,6 +26,11 @@
         }
     },
     "enum": {
+        "BeamAxis": [
+            ["x", "x"],
+            ["y", "y"],
+            ["z", "z"]
+        ],
         "FieldScaling": [
             ["uniform", "Uniform"],
             ["linear", "Linear"],
@@ -110,6 +115,7 @@
         },
         "geometry": {
             "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
+            "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
             "name": ["Name", "String", ""]
         },
         "geomObject": {
@@ -231,6 +237,7 @@
             "title": "Magnet Viewer",
             "basic": [
                 "geometry.name",
+                "geometry.beamAxis",
                 "viewType",
                 "bgColor",
                 "geometry.alpha",

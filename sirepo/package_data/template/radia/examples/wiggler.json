@@ -2,6 +2,7 @@
     "models": {
         "geometry": {
             "name": "Wiggler",
+            "beamAxis": "z",
             "objects": [
                 {
                     "color": "#00ffff",
