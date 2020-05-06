@@ -306,8 +306,10 @@ class _ComputeJob(PKDict):
             d.status = job.JOB_RUN_PURGED
             cls.__db_write_file(d)
             jids_purged.append(db_file.purebasename)
-            cls._cache_purged_jid(d.computeJid)
+            cls._purged_jids_cache.add(db_file.purebasename)
 
+        if not cfg.purge_non_premium_task_secs:
+            return
         s = sirepo.srtime.utc_now()
         u = None
         f = None
@@ -683,7 +685,7 @@ class _ComputeJob(PKDict):
             simName=req.content.data.models.simulation.name,
             status=job.PENDING,
         )
-        self._cache_purged_jid(self.db.computeJid, invalidate=True)
+        self._purged_jids_cache.discard(self.__db_file(self.db.computeJid).purebasename)
         c = self.db.computeJobSerial
         try:
             for i in range(_MAX_RETRIES):
@@ -860,16 +862,6 @@ class _ComputeJob(PKDict):
                 raise AssertionError('too many retries {}'.format(req))
         finally:
             o.destroy(cancel=False)
-
-    @classmethod
-    def _cache_purged_jid(cls, compute_jid, invalidate=False):
-        if not invalidate:
-            cls._purged_jids_cache.add(compute_jid)
-            return
-        try:
-            cls._purged_jids_cache.remove(compute_jid)
-        except KeyError:
-            pass
 
     def _status_reply(self, req):
         def res(**kwargs):
