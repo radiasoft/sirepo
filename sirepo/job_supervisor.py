@@ -305,7 +305,6 @@ class _ComputeJob(PKDict):
             pkio.unchecked_remove(p)
             d.status = job.JOB_RUN_PURGED
             cls.__db_write_file(d)
-            jids_purged.append(db_file.purebasename)
             cls._purged_jids_cache.add(db_file.purebasename)
 
         if not cfg.purge_non_premium_task_secs:
@@ -318,13 +317,11 @@ class _ComputeJob(PKDict):
                 cfg.purge_non_premium_after_days * 24 * 60 * 60
             )
 
-            jids_purged = []
             for u, v in _get_uids_and_files():
                 with sirepo.auth.set_user(u):
                     for f in v:
                         _purge_sim(f)
                 await tornado.gen.sleep(0)
-            pkdlog('jids={}', jids_purged)
         except Exception as e:
             pkdlog('u={} f={} error={} stack={}', u, f, e, pkdexc())
         finally:
