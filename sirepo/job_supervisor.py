@@ -152,8 +152,8 @@ def init():
             parallel_premium=(2, float, 'maximum run-time for parallel job for premium user (except sbatch)'),
             sequential=(.1, float, 'maximum run-time for sequential job'),
         ),
-        purge_free_after_days=(1000, int, 'how many days to wait before purging a free users simulation'),
-        purge_free_period=('12:00:00', str, 'how often to purge free users simulations (%H:%M:%S)'),
+        purge_non_premium_after_days=(1000, int, 'how many days to wait before purging non-premium users simulations'),
+        purge_non_premium_task_secs=(None, _cfg_secs, 'when to clean up simulation runs of non-premium users (%H:%M:%S)'),
         sbatch_poll_secs=(15, int, 'how often to poll squeue and parallel status'),
     )
     _NEXT_REQUEST_SECONDS = PKDict({
@@ -191,6 +191,19 @@ async def terminate():
     from sirepo import job_driver
 
     await job_driver.terminate()
+
+
+def _cfg_secs(value):
+    try:
+        return int(value)
+    except Exception:
+        pass
+    t = datetime.datetime.strptime(value, '%H:%M:%S')
+    return int(datetime.timedelta(
+        hours=t.hour,
+        minutes=t.minute,
+        seconds=t.second,
+    ).total_seconds())
 
 
 class _ComputeJob(PKDict):
@@ -257,15 +270,6 @@ class _ComputeJob(PKDict):
 
     @classmethod
     async def purge_free_simulations(cls):
-        def _next_call_secs():
-            t = datetime.datetime.strptime(cfg.purge_free_period, "%H:%M:%S")
-            return datetime.timedelta(
-                hours=t.hour,
-                minutes=t.minute,
-                seconds=t.second,
-            ).total_seconds()
-
-
         def _get_uids_and_files():
             r = []
             u = None
@@ -295,11 +299,11 @@ class _ComputeJob(PKDict):
             # at anytime so we need to check that they haven't
             if d.lastUpdateTime > _too_old:
                 return
-            if d.status == job.FREE_USER_PURGED:
+            if d.status == job.JOB_RUN_PURGED:
                 return
             p = sirepo.simulation_db.simulation_run_dir(d)
             pkio.unchecked_remove(p)
-            d.status = job.FREE_USER_PURGED
+            d.status = job.JOB_RUN_PURGED
             cls.__db_write_file(d)
             jids_purged.append(db_file.purebasename)
             cls._cache_purged_jid(d.computeJid)
@@ -309,7 +313,7 @@ class _ComputeJob(PKDict):
         f = None
         try:
             _too_old = sirepo.srtime.utc_now_as_float() - (
-                cfg.purge_free_after_days * 24 * 60 * 60
+                cfg.purge_non_premium_after_days * 24 * 60 * 60
             )
 
             jids_purged = []
@@ -323,7 +327,7 @@ class _ComputeJob(PKDict):
             pkdlog('u={} f={} error={} stack={}', u, f, e, pkdexc())
         finally:
             tornado.ioloop.IOLoop.current().call_later(
-                _next_call_secs(),
+                cfg.purge_non_premium_task_secs,
                 cls.purge_free_simulations,
             )
 
