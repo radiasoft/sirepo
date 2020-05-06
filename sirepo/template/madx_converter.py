@@ -16,7 +16,7 @@ import sirepo.sim_data
 _MADX_SIM_DATA = sirepo.sim_data.get_class('madx')
 _MADX_SCHEMA = _MADX_SIM_DATA.schema()
 
-_CODE_VARIABLES = PKDict(
+_MADX_VARIABLES = PKDict(
     twopi='pi * 2',
     raddeg='180 / pi',
     degrad='pi / 180',
@@ -116,6 +116,79 @@ _FIELD_MAP = PKDict(
             ['SROT', 'tilt=angle'],
         ],
     ],
+    opal=[
+        ['DRIFT',
+            ['DRIFT', 'l'],
+        ],
+        ['SBEND',
+            ['SBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'hgap', 'tilt=psi'],
+        ],
+        ['RBEND',
+            ['RBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'hgap', 'tilt=psi'],
+        ],
+        ['QUADRUPOLE',
+            ['QUADRUPOLE', 'l', 'k1', 'k1s', 'tilt=psi'],
+        ],
+        ['SEXTUPOLE',
+            ['SEXTUPOLE', 'l', 'k2', 'k2s', 'tilt=psi'],
+        ],
+        ['OCTUPOLE',
+            ['OCTUPOLE', 'l', 'k3', 'k3s', 'tilt=psi'],
+        ],
+        ['SOLENOID',
+         #TODO(pjm): compute dks from ksi?
+            ['SOLENOID', 'l', 'ks'],
+        ],
+        ['MULTIPOLE',
+         #TODO(pjm): compute kn, ks from knl, ksl?
+            ['MULTIPOLE', 'l=lrad', 'tilt=psi'],
+        ],
+        ['HKICKER',
+            ['HKICKER', 'l', 'kick', 'tilt=psi'],
+        ],
+        ['VKICKER',
+            ['VKICKER', 'l', 'kick', 'tilt=psi'],
+        ],
+        ['KICKER',
+            ['KICKER', 'l', 'hkick', 'vkick', 'tilt=psi'],
+        ],
+        ['MARKER',
+            ['MARKER'],
+        ],
+        ['PLACEHOLDER',
+            ['DRIF', 'l'],
+        ],
+        ['INSTRUMENT',
+            ['INSTRUMENT', 'l'],
+        ],
+        ['ECOLLIMATOR',
+            ['ECOLLIMATOR', 'l', 'xsize', 'ysize'],
+        ],
+        ['RCOLLIMATOR',
+            ['RCOLLIMATOR', 'l', 'xsize', 'ysize'],
+        ],
+        ['COLLIMATOR apertype=ELLIPSE',
+            ['ECOLLIMATOR', 'l', 'xsize=aperture[0]', 'ysize=aperture[1]'],
+        ],
+        ['COLLIMATOR apertype=RECTANGLE',
+            ['RCOLLIMATOR', 'l', 'xsize=aperture[0]', 'ysize=aperture[1]'],
+        ],
+        ['RFCAVITY',
+            ['RFCAVITY', 'l', 'volt', 'lag', 'harmon', 'freq'],
+        ],
+        ['HMONITOR',
+            ['HMONITOR', 'l'],
+        ],
+        ['VMONITOR',
+            ['VMONITOR', 'l'],
+        ],
+        ['MONITOR',
+            ['MONITOR', 'l'],
+        ],
+        ['SROTATION',
+            ['SROT', 'angle'],
+        ],
+    ],
 )
 
 
@@ -161,7 +234,10 @@ def _convert(name, data, direction):
         values.type = fields[0]
         values._id = el._id
         for idx in range(1, len(fields)):
-            values[fields[idx]] = el[fields[idx]]
+            f1 = f2 = fields[idx]
+            if '=' in fields[idx]:
+                f1, f2 = fields[idx].split('=')
+            values[f1] = el[f2]
         # add any non-default values not in map to a comment
         comment = ''
         defaults = from_class.model_defaults(el.type)
@@ -204,13 +280,16 @@ def _build_field_map(info):
 def _rpn_variables(to_class, data):
     res = data.models.rpnVariables
     if to_class.sim_type() == 'madx':
-        return list(filter(lambda x: x.name not in _CODE_VARIABLES, res))
+        return list(filter(lambda x: x.name not in _MADX_VARIABLES, res))
+    if to_class.sim_type() == 'opal':
+        #TODO(pjm): opal already has these default vars, add config for this
+        return res
     names = set([v.name for v in res])
-    for name in _CODE_VARIABLES:
+    for name in _MADX_VARIABLES:
         if name not in names:
             res.append(PKDict(
                 name=name,
-                value=_CODE_VARIABLES[name],
+                value=_MADX_VARIABLES[name],
             ))
     return res
 

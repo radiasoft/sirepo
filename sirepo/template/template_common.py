@@ -115,6 +115,77 @@ class ModelUnits(object):
         return model
 
 
+class ParticleEnergy(object):
+    """Computes the energy related fields for a particle from one field.
+    Units:
+        mass [GeV/c^2]
+        pc [GeV/c]
+        energy [GeV]
+        brho [Tm]
+    """
+
+    SPEED_OF_LIGHT = 299792458 # [m/s]
+
+    ENERGY_PRIORITY = PKDict(
+        opal=['gamma', 'energy', 'pc'],
+        madx=['energy', 'pc', 'gamma', 'beta', 'brho'],
+    )
+
+    PARTICLE = PKDict(
+        electron=PKDict(
+            mass=5.10998928e-4, # [GeV]
+            charge=-1,
+        ),
+        proton=PKDict(
+            mass=0.938272046, # [GeV]
+            charge=1,
+        ),
+    )
+
+    @classmethod
+    def compute_energy(cls, sim_type, particle, energy):
+        for f in cls.ENERGY_PRIORITY[sim_type]:
+            if f in energy and energy[f] != 0:
+                v = energy[f]
+                handler = '_ParticleEnergy__set_from_{}'.format(f)
+                getattr(cls, handler)(cls.PARTICLE[particle], energy)
+                energy[f] = v
+                return energy
+        assert False, 'missing energy field: {}'.format(energy)
+
+    @classmethod
+    def __set_from_beta(cls, particle, energy):
+        assert energy.beta >= 0 or energy.beta < 1, \
+            'energy beta out of range: {}'.format(energy.beta)
+        energy.gamma = 1 / math.sqrt(1 - energy.beta ** 2)
+        cls.__set_from_gamma(particle, energy)
+
+    @classmethod
+    def __set_from_brho(cls, particle, energy):
+        energy.pc = energy.brho * abs(particle.charge) * cls.SPEED_OF_LIGHT * 1e-9
+        cls.__set_from_pc(particle, energy)
+
+    @classmethod
+    def __set_from_energy(cls, particle, energy):
+        energy.gamma = energy.energy / particle.mass
+        cls.__set_from_gamma(particle, energy)
+
+    @classmethod
+    def __set_from_gamma(cls, particle, energy):
+        assert energy.gamma >= 1, \
+            'energy gamma out of range: {}'.format(energy.gamma)
+        energy.energy = energy.gamma * particle.mass
+        energy.beta = math.sqrt(1.0 - 1.0 / (energy.gamma ** 2))
+        energy.pc = energy.gamma * energy.beta * particle.mass
+        energy.brho = energy.pc / (abs(particle.charge) * cls.SPEED_OF_LIGHT * 1e-9)
+
+    @classmethod
+    def __set_from_pc(cls, particle, energy):
+        r2 = energy.pc ** 2 / (particle.mass ** 2)
+        energy.beta = math.sqrt(r2 / (1 + r2))
+        cls.__set_from_beta(particle, energy)
+
+
 def compute_field_range(args, compute_range):
     """ Computes the fieldRange values for all parameters across all animation files.
     Caches the value on the animation input file. compute_range() is called to

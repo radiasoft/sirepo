@@ -15,6 +15,7 @@ from sirepo.template import code_variable
 from sirepo.template import lattice
 from sirepo.template import sdds_util
 from sirepo.template import template_common
+from sirepo.template.template_common import ParticleEnergy
 from sirepo.template.lattice import LatticeUtil
 import h5py
 import numpy as np
@@ -144,18 +145,28 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
 
 def import_file(req, unit_test_mode=False, **kwargs):
     from sirepo.template import opal_parser
-    data, input_files = opal_parser.parse_file(
-        pkcompat.from_bytes(req.file_stream.read()),
-        filename=req.filename)
-    missing_files = []
-    for infile in input_files:
-        if not _SIM_DATA.lib_file_exists(infile.lib_filename):
-            missing_files.append(infile)
-    if len(missing_files):
-        return PKDict(
-            error='Missing data files',
-            missingFiles=missing_files,
-        )
+    text = pkcompat.from_bytes(req.file_stream.read())
+    if re.search(r'\.in$', req.filename, re.IGNORECASE):
+        data, input_files = opal_parser.parse_file(
+            text,
+            filename=req.filename)
+        missing_files = []
+        for infile in input_files:
+            if not _SIM_DATA.lib_file_exists(infile.lib_filename):
+                missing_files.append(infile)
+        if len(missing_files):
+            return PKDict(
+                error='Missing data files',
+                missingFiles=missing_files,
+            )
+    elif re.search(r'\.madx$', req.filename, re.IGNORECASE):
+        from sirepo.template import madx_converter, madx_parser
+        madx = madx_parser.parse_file(text)
+        data = madx_converter.from_madx(SIM_TYPE, madx)
+        data.models.simulation.name = re.sub(r'\.madx$', '', req.filename, flags=re.IGNORECASE)
+        _fixup_madx(madx, data)
+    else:
+        raise IOError('invalid file extension, expecting .in or .madx')
     return data
 
 
@@ -200,6 +211,10 @@ def prepare_sequential_output_file(run_dir, data):
 
 
 def python_source_for_model(data, model):
+    if model == 'madx':
+        from sirepo.template import madx, madx_converter
+        mad = madx_converter.to_madx(SIM_TYPE, data)
+        return madx.python_source_for_model(mad, None)
     return _generate_parameters_file(data)
 
 
@@ -412,6 +427,13 @@ def _field_units(units, field):
     field.units = units
 
 
+def _find_first_command(data, command_type):
+    for cmd in data.models.commands:
+        if cmd._type == command_type:
+            return cmd
+    assert False, 'command not found: {}'.format(command_type)
+
+
 def _file_id(model_id, field_index):
     return '{}{}{}'.format(model_id, _FILE_ID_SEP, field_index)
 
@@ -428,6 +450,34 @@ def _find_run_method(commands):
         if command._type == 'track' and command.run_method:
             return command.run_method
     return 'THIN'
+
+
+def _fixup_madx(madx, data):
+    import sirepo.template.madx
+    cv = sirepo.template.madx.madx_code_var(madx.models.rpnVariables)
+    import pykern.pkjson
+    assert _has_command(madx, 'beam'), \
+        'MAD-X file missing BEAM command'
+    beam = _find_first_command(madx, 'beam')
+    if beam.energy == 1 and (beam.pc != 0 or beam.gamma != 0 or beam.beta != 0 or beam.brho != 0):
+        # unset the default mad-x value if other energy fields are set
+        beam.energy = 0
+    particle = beam.particle.lower()
+    _find_first_command(data, 'beam').particle = particle.upper()
+    energy = ParticleEnergy.compute_energy('madx', particle, beam.copy())
+    _find_first_command(data, 'beam').pc = energy.pc
+    _find_first_command(data, 'track').line = data.models.simulation.visualizationBeamlineId
+    for el in data.models.elements:
+        if el.type == 'SBEND' or el.type == 'RBEND':
+            # mad-x is GeV (total energy), designenergy is MeV (kinetic energy)
+            el.designenergy = round(
+                (energy.energy - ParticleEnergy.PARTICLE[particle].mass) * 1e3,
+                6,
+            )
+            # this is different than the opal default of "2 * sin(angle / 2) / length"
+            # but matches elegant and synergia
+            el.k0 = cv.eval_var_with_assert(el.angle) / cv.eval_var_with_assert(el.l)
+            el.gap = 2 * cv.eval_var_with_assert(el.hgap)
 
 
 def _format_field_value(state, model, field, el_type):
@@ -523,8 +573,11 @@ def _generate_lattice(util, code_var, beamline_id):
 def _generate_beamline(util, code_var, count_by_name, beamline_id, edge, names):
     res = ''
     run_method = _find_run_method(util.data.models.commands)
-    for item_id in util.id_map[beamline_id]['items']:
-        item = util.id_map[item_id]
+    items = util.id_map[abs(beamline_id)]['items']
+    if beamline_id < 0:
+        items = reversed(items)
+    for item_id in items:
+        item = util.id_map[abs(item_id)]
         if 'type' in item:
             # element
             name = item.name
@@ -549,13 +602,6 @@ def _generate_beamline(util, code_var, count_by_name, beamline_id, edge, names):
             text, edge = _generate_beamline(util, code_var, count_by_name, item_id, edge, names)
             res += text
     return res, edge
-
-
-def _find_first_command(data, command_type):
-    for cmd in data.models.commands:
-        if cmd._type == command_type:
-            return cmd
-    assert False, 'command not found: {}'.format(command_type)
 
 
 def _generate_parameters_file(data):
@@ -615,6 +661,13 @@ def _generate_variables(code_var, data):
             res += _generate_variable(dependency, code_var.variables, visited)
         res += _generate_variable(name, code_var.variables, visited)
     return res
+
+
+def _has_command(data, command_type):
+    for cmd in data.models.commands:
+        if cmd._type == command_type:
+            return True
+    return False
 
 
 def _iterate_hdf5_steps(path, callback, state):

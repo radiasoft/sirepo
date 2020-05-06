@@ -140,9 +140,7 @@ class LatticeParser(object):
                             el[f] = el[f].lower()
 
     def _eval_var(self, code_var, value):
-        (v, err) = code_var.eval_var(value)
-        assert not err, err
-        return float(v)
+        return code_var.eval_var_with_assert(value)
 
     def _format_length(self, length):
         res = '{:.8E}'.format(length)
@@ -329,6 +327,7 @@ class LatticeParser(object):
             self.container['items'] = []
             if cmd == 'sequence':
                 self.data.models.sequences.append(self.container)
+                return
         if 'command_{}'.format(cmd) in self.schema.model:
             res = PKDict(
                 _type=cmd,
