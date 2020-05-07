@@ -375,7 +375,6 @@ def sim_frame_varAnimation(frame_args):
 
 
 def write_parameters(data, run_dir, is_parallel):
-    _extract_zip(data, run_dir)
     pkio.write_text(
         #TODO: generate python instead
         run_dir.join('flash.par'),
@@ -407,15 +406,23 @@ def _cell_size(f, refine_max):
     assert False, 'no blocks with appropriate refine level'
 
 
-def _extract_zip(data, run_dir):
-    import os
-    import sirepo.pkcli.flash
-    import stat
-    import zipfile
-    zipfile.ZipFile(run_dir.join(_SIM_DATA.proprietary_lib_file_basename(data))).extractall()
-    # extractall() doesn't maintain file permissions
-    # https://bugs.python.org/issue15795
-    os.chmod(run_dir.join(_SIM_DATA.EXE_NAME), stat.S_IXUSR)
+def _extract_rpm(data):
+    import distutils.spawn
+    import subprocess
+
+    if distutils.spawn.find_executable(_SIM_DATA.flash_exe_name(data)):
+        return
+    #SECURITY: No user defined input in cmd so shell=True is ok
+    # TODO(e-carlin): think about stdout and stderr, where should they go?
+    subprocess.check_call(
+        'rpm2cpio {} | cpio -idv'.format(
+            simulation_db.simulation_lib_dir(SIM_TYPE).join(
+                _SIM_DATA.FLASH_RPM_FILENAME,
+            ),
+        ),
+        cwd='/',
+        shell=True,
+    )
 
 
 #TODO(pjm): plot columns are hard-coded for flashType
@@ -434,9 +441,10 @@ _PLOT_COLUMNS = {
 
 
 def _generate_parameters_file(data):
+    _extract_rpm(data)
     res = ''
     names = {}
-    for line in pkio.read_text(_SIM_DATA.SETUP_UNITS_FILE).split('\n'):
+    for line in pkio.read_text(_SIM_DATA.flash_setup_units_path(data)).split('\n'):
         name = ''
         #TODO(pjm): share with setup_params parser
         for part in line.split('/'):

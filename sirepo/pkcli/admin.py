@@ -49,20 +49,20 @@ def audit_proprietary_lib_files(*uid):
                 )
 
     def _link_or_unlink_proprietary_files(sim_type, should_link):
-        d = proprietary_code_dir(sim_type)
-        for e in simulation_db.examples(sim_type):
-            b = sim_data.get_class(sim_type).proprietary_lib_file_basename(e)
-            p = simulation_db.simulation_lib_dir(sim_type).join(b)
-            if not should_link:
-                pkio.unchecked_remove(p)
-                continue
-            try:
-                p.mksymlinkto(
-                    d.join(b),
-                    absolute=False,
-                )
-            except py.error.EEXIST:
-                pass
+        b = sim_data.get_class(sim_type).FLASH_RPM_FILENAME
+        p = simulation_db.simulation_lib_dir(sim_type).join(b)
+        if not should_link:
+            pkio.unchecked_remove(p)
+            return
+        try:
+            s = proprietary_code_dir(sim_type).join(b)
+            assert s.check(file=True), f'{s} not found'
+            p.mksymlinkto(
+                s,
+                absolute=False,
+            )
+        except py.error.EEXIST:
+            pass
 
     server.init()
     t = feature_config.cfg().proprietary_sim_types

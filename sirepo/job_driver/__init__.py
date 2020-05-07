@@ -11,6 +11,8 @@ from sirepo import job
 import asyncio
 import importlib
 import pykern.pkio
+import sirepo.auth
+import sirepo.simulation_db
 import sirepo.srdb
 import sirepo.tornado
 import time
@@ -118,19 +120,20 @@ class DriverBase(PKDict):
         if not self._has_remote_agent():
             return
         m = op.msg
-        d = pykern.pkio.py_path(m.simulation_lib_dir)
-        op.lib_dir_symlink = job.LIB_FILE_ROOT.join(
-            job.unique_key()
-        )
-        op.lib_dir_symlink.mksymlinkto(d, absolute=True)
-        m.pkupdate(
-            libFileUri=job.supervisor_file_uri(
-                self.cfg.supervisor_uri,
-                job.LIB_FILE_URI,
-                op.lib_dir_symlink.basename,
-            ),
-            libFileList=[f.basename for f in d.listdir()],
-        )
+        with sirepo.auth.set_user(m.uid):
+            d = sirepo.simulation_db.simulation_lib_dir(m.simulationType)
+            op.lib_dir_symlink = job.LIB_FILE_ROOT.join(
+                job.unique_key()
+            )
+            op.lib_dir_symlink.mksymlinkto(d, absolute=True)
+            m.pkupdate(
+                libFileUri=job.supervisor_file_uri(
+                    self.cfg.supervisor_uri,
+                    job.LIB_FILE_URI,
+                    op.lib_dir_symlink.basename,
+                ),
+                libFileList=[f.basename for f in d.listdir()],
+            )
 
     def pkdebug_str(self):
         return pkdformat(

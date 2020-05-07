@@ -20,7 +20,7 @@ import subprocess
 def run_background(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     mpi.run_program(
-        [pkio.py_path(cfg_dir).join(sirepo.sim_data.get_class(data).EXE_NAME)],
+        [sirepo.sim_data.get_class(data).flash_exe_name(data)],
     )
 
 def setup_dev():
@@ -35,9 +35,10 @@ def setup_dev():
         _remote_file(dest)
 
     def _local_file(dest):
-        shutil.copy(pkio.py_path(
-            cfg.dev_depot_url.replace(_FILE_PREFIX, ''),
-        ).join(dest.basename), dest)
+        p = pkio.py_path(cfg.dev_depot_url.replace(_FILE_PREFIX, ''))
+        f = pkio.walk_tree(p.dirname, p.basename)
+        assert len(f) == 1, f'expecting only 1 file found {f}'
+        shutil.copy(f[0], dest)
 
     def _remote_file(dest):
         r = requests.get('{}/{}'.format(cfg.dev_depot_url, dest.basename))
@@ -53,14 +54,12 @@ def setup_dev():
     d = sirepo.pkcli.admin.proprietary_code_dir(t)
     pkio.mkdir_parent(d)
     s = sirepo.sim_data.get_class(t)
-    for e in simulation_db.examples(t):
-        _get_file(d.join(s.proprietary_lib_file_basename(e)))
+    _get_file(d.join(s.FLASH_RPM_FILENAME))
 
 
 cfg = pkconfig.init(
     dev_depot_url=(
-        # TODO(e-carlin): This should be radiasoft.depot.org
-        'file:///home/vagrant/src/FLASH4.6.2',
+        'file:///home/vagrant/src/yum/fedora/29/x86_64/dev/rscode-flash',
         str,
         'where to get flash files when in dev'
     )
