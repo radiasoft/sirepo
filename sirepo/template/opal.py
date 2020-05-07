@@ -212,9 +212,7 @@ def prepare_sequential_output_file(run_dir, data):
 
 def python_source_for_model(data, model):
     if model == 'madx':
-        from sirepo.template import madx, madx_converter
-        mad = madx_converter.to_madx(SIM_TYPE, data)
-        return madx.python_source_for_model(mad, None)
+        return _export_madx(data)
     return _generate_parameters_file(data)
 
 
@@ -407,6 +405,17 @@ def _column_data(col, col_names, rows):
     return res
 
 
+def _export_madx(data):
+    from sirepo.template import madx, madx_converter
+    mad = madx_converter.to_madx(SIM_TYPE, data)
+    madx_beam = LatticeUtil.find_first_command(mad, 'beam')
+    opal_beam = LatticeUtil.find_first_command(data, 'beam')
+    energy = template_common.ParticleEnergy.compute_energy(SIM_TYPE, madx_beam.particle, opal_beam.copy())
+    madx_beam.particle = opal_beam.particle
+    madx_beam.pc = energy.pc
+    return madx.python_source_for_model(mad, None)
+
+
 def _field_units(units, field):
     if units == '1':
         units = ''
@@ -425,13 +434,6 @@ def _field_units(units, field):
         else:
             field.label += ' [{}]'.format(units)
     field.units = units
-
-
-def _find_first_command(data, command_type):
-    for cmd in data.models.commands:
-        if cmd._type == command_type:
-            return cmd
-    assert False, 'command not found: {}'.format(command_type)
 
 
 def _file_id(model_id, field_index):
@@ -458,15 +460,15 @@ def _fixup_madx(madx, data):
     import pykern.pkjson
     assert _has_command(madx, 'beam'), \
         'MAD-X file missing BEAM command'
-    beam = _find_first_command(madx, 'beam')
+    beam = LatticeUtil.find_first_command(madx, 'beam')
     if beam.energy == 1 and (beam.pc != 0 or beam.gamma != 0 or beam.beta != 0 or beam.brho != 0):
         # unset the default mad-x value if other energy fields are set
         beam.energy = 0
     particle = beam.particle.lower()
-    _find_first_command(data, 'beam').particle = particle.upper()
+    LatticeUtil.find_first_command(data, 'beam').particle = particle.upper()
     energy = ParticleEnergy.compute_energy('madx', particle, beam.copy())
-    _find_first_command(data, 'beam').pc = energy.pc
-    _find_first_command(data, 'track').line = data.models.simulation.visualizationBeamlineId
+    LatticeUtil.find_first_command(data, 'beam').pc = energy.pc
+    LatticeUtil.find_first_command(data, 'track').line = data.models.simulation.visualizationBeamlineId
     for el in data.models.elements:
         if el.type == 'SBEND' or el.type == 'RBEND':
             # mad-x is GeV (total energy), designenergy is MeV (kinetic energy)
@@ -612,8 +614,8 @@ def _generate_parameters_file(data):
 
     if 'bunchReport' in report:
         # keep only first distribution and beam in command list
-        beam = _find_first_command(data, 'beam')
-        distribution = _find_first_command(data, 'distribution')
+        beam = LatticeUtil.find_first_command(data, 'beam')
+        distribution = LatticeUtil.find_first_command(data, 'distribution')
         v.beamName = beam.name
         v.distributionName = distribution.name
         # these need to get set to default or distribution won't generate in 1 step
@@ -621,7 +623,7 @@ def _generate_parameters_file(data):
         distribution.nbin = 0
         distribution.emissionsteps = 1
         data.models.commands = [
-            _find_first_command(data, 'option'),
+            LatticeUtil.find_first_command(data, 'option'),
             beam,
             distribution,
         ]
@@ -629,7 +631,7 @@ def _generate_parameters_file(data):
         if report == 'twissReport':
             beamline_id = util.select_beamline().id
         else:
-            beamline_id = _find_first_command(util.data, 'track').line or util.select_beamline().id
+            beamline_id = LatticeUtil.find_first_command(util.data, 'track').line or util.select_beamline().id
         v.lattice = _generate_lattice(util, code_var, beamline_id)
         v.use_beamline = util.select_beamline().name
     v.update(dict(

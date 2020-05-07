@@ -221,6 +221,7 @@ def _convert(name, data, direction):
             items=bl['items'],
             id=bl.id,
         ))
+    max_id = 0
     for el in data.models.elements:
         if el.type not in field_map:
             #TODO(pjm): convert to a sim appropriate drift rather than skipping
@@ -233,10 +234,13 @@ def _convert(name, data, direction):
         values.name = el.name
         values.type = fields[0]
         values._id = el._id
+        max_id = max(max_id, el._id)
         for idx in range(1, len(fields)):
             f1 = f2 = fields[idx]
             if '=' in fields[idx]:
                 f1, f2 = fields[idx].split('=')
+                if direction == 'from' and from_class.sim_type() == 'madx':
+                    f2, f1 = f1, f2
             values[f1] = el[f2]
         # add any non-default values not in map to a comment
         comment = ''
@@ -254,6 +258,12 @@ def _convert(name, data, direction):
     for f in ('name', 'visualizationBeamlineId', 'activeBeamlineId'):
         if f in data.models.simulation:
             res.models.simulation[f] = data.models.simulation[f]
+    if direction == 'to' and to_class.sim_type() == 'madx':
+        beam = to_class.model_defaults('command_beam')
+        beam._type = 'beam'
+        beam.name = 'BEAM1'
+        beam._id = max_id + 1
+        res.models.commands.append(beam)
     return res
 
 

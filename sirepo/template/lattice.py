@@ -405,6 +405,13 @@ class LatticeUtil(object):
         self.id_map, self.max_id = self.__build_id_map(data)
 
     @classmethod
+    def find_first_command(cls, data, command_type):
+        for m in data.models.commands:
+            if m._type == command_type:
+                return m
+        return None
+
+    @classmethod
     def is_command(cls, model):
         """Is the model a command or a lattice element?
         """

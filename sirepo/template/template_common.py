@@ -132,12 +132,25 @@ class ParticleEnergy(object):
     )
 
     PARTICLE = PKDict(
-        electron=PKDict(
-            mass=5.10998928e-4, # [GeV]
+        # mass [GeV]
+        antiproton=PKDict(
+            mass=0.938272046,
             charge=-1,
         ),
+        electron=PKDict(
+            mass=5.10998928e-4,
+            charge=-1,
+        ),
+        muon=PKDict(
+            mass=0.1056583755,
+            charge=-1.0,
+        ),
+        positron=PKDict(
+            mass=5.10998928e-4,
+            charge=1,
+        ),
         proton=PKDict(
-            mass=0.938272046, # [GeV]
+            mass=0.938272046,
             charge=1,
         ),
     )
