@@ -411,12 +411,13 @@ class _TestClient(flask.testing.FlaskClient):
             if r.state == 'completed':
                 return r
             cancel = r.get('nextRequest')
-            for _ in range(timeout):
+            for i in range(timeout):
+                if i != 0:
+                    r = self.sr_post('runStatus', r.nextRequest)
+                pkdlog(r.state)
                 if r.state in ('completed', 'error'):
-                    pkdlog(r.state)
                     cancel = None
                     break
-                r = self.sr_post('runStatus', r.nextRequest)
                 time.sleep(1)
             else:
                 pkunit.pkok(not expect_completed, 'did not complete: runStatus={}', r)
