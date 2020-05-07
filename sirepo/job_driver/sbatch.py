@@ -67,7 +67,7 @@ class SbatchDriver(job_driver.DriverBase):
                 'how long to wait before reading the agent log on start',
             ),
             agent_starting_secs=(
-                cls._AGENT_STARTING_SECS * 3,
+                cls._AGENT_STARTING_SECS_DEFAULT * 3,
                 int,
                 'how long to wait for agent start',
             ),
@@ -87,33 +87,32 @@ class SbatchDriver(job_driver.DriverBase):
 
     async def prepare_send(self, op):
         m = op.msg
-        try:
-            self._creds = m.pkdel('sbatchCredentials')
-            if self._srdb_root is None:
-                if not self._creds or 'username' not in self._creds:
-                    self._raise_sbatch_login_srexception('no-creds', m)
-                self._srdb_root = self.cfg.srdb_root.format(
-                    sbatch_user=self._creds.username,
-                )
-            m.userDir = '/'.join(
-                (
-                    str(self._srdb_root),
-                    sirepo.simulation_db.USER_ROOT_DIR,
-                    m.uid,
-                )
+        c = m.pkdel('sbatchCredentials')
+        if self._srdb_root is None or c:
+            if c:
+                self._creds = c
+            if not self.get('_creds') or 'username' not in self._creds:
+                self._raise_sbatch_login_srexception('no-creds', m)
+            self._srdb_root = self.cfg.srdb_root.format(
+                sbatch_user=self._creds.username,
             )
-            m.runDir = '/'.join((m.userDir, m.simulationType, m.computeJid))
-            if op.opName == job.OP_RUN:
-                assert m.sbatchHours
-                if self.cfg.cores:
-                    m.sbatchCores = min(m.sbatchCores, self.cfg.cores)
-                m.mpiCores = m.sbatchCores
-                if op.kind == job.PARALLEL:
-                    op.maxRunSecs = 0
-            m.shifterImage = self.cfg.shifter_image
-            return await super().prepare_send(op)
-        finally:
-            self.pkdel('_creds')
+        m.userDir = '/'.join(
+            (
+                str(self._srdb_root),
+                sirepo.simulation_db.USER_ROOT_DIR,
+                m.uid,
+            )
+        )
+        m.runDir = '/'.join((m.userDir, m.simulationType, m.computeJid))
+        if op.opName == job.OP_RUN:
+            assert m.sbatchHours
+            if self.cfg.cores:
+                m.sbatchCores = min(m.sbatchCores, self.cfg.cores)
+            m.mpiCores = m.sbatchCores
+            if op.kind == job.PARALLEL:
+                op.maxRunSecs = 0
+        m.shifterImage = self.cfg.shifter_image
+        return await super().prepare_send(op)
 
     def _agent_env(self):
         return super()._agent_env(
@@ -187,6 +186,9 @@ disown
                 self._srdb_root = None
                 self._raise_sbatch_login_srexception('invalid-creds', op.msg)
             raise
+        finally:
+            self.pkdel('_creds')
+
 
     def _agent_start_dev(self):
         if not pkconfig.channel_in('dev'):
