@@ -377,20 +377,15 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
 
             $scope.download = function() {
                 //srdbg('download', $scope.tModel.type, radiaService.selectedPath);
-                var CSV_HEADING = geometry.basis.slice();
-                geometry.basis.forEach(function (c) {
-                    CSV_HEADING.push($scope.fieldType() + c);
-                });
                 var p = radiaService.selectedPath;
-                var data = [CSV_HEADING];
                 var f = p.name + ' ' + $scope.fieldType();
                 var ext = $scope.isFieldMap() ? 'sdds' : 'csv';
-                //var fn = $scope.isFieldMap() ? panelState.fileNameFromText(f, ext) : null;
                 var fn = panelState.fileNameFromText(f, ext);
+                var ct = $scope.isFieldMap() ? 'application/octet-stream' : 'text/csv;charset=utf-8';
                 requestSender.getApplicationData(
                     {
                         beamAxis: appState.models.geometry.beamAxis,
-                        contentType: $scope.isFieldMap() ? 'application/octet-stream' : 'text/csv;charset=utf-8',
+                        contentType: ct,
                         fieldPaths: [radiaService.selectedPath],
                         fieldType: $scope.fieldType(),
                         fileType: $scope.isFieldMap() ? 'sdds' : 'csv',
@@ -400,42 +395,7 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                         viewType: 'fields',
                     },
                     function(d) {
-                        // should be able to save both csv and sdds, processing all on the server
-                        //srdbg('FM DATA', d);
-                        if ($scope.isFieldMap()) {
-                            saveAs(new Blob([d], {type: 'application/octet-stream'}), fn);
-                            //return;
-                        }
-                        else {
-                            //srdbg('FM DATA', d);
-                            //var arr = d.split(',');
-                            //srdbg('ARR', arr);
-                            saveAs(new Blob([d], {type: "text/csv;charset=utf-8"}), fn);
-                        }
-                        /*
-                        if (! d || ! d.data) {
-                            return;
-                        }
-                        //srdbg('save to', fileName, CSV_HEADING, data);
-                        d.data.forEach(function (o) {
-                            var v = o.vectors;
-                            for (var i = 0; i < v.magnitudes.length; ++i) {
-                                var row = [];
-                                for (var j = 0; j < 3; ++j) {
-                                    row.push(v.vertices[3 * i + j]);
-                                }
-                                for (var k = 0; k < 3; ++k) {
-                                    row.push(v.magnitudes[i] * v.directions[3 * i + k]);
-                                }
-                                data.push(row);
-                            }
-                        });
-
-                         */
-                        //srdbg('save to', fn, CSV_HEADING, data);
-                        //var fileName = panelState.fileNameFromText(p.name + ' ' + $scope.fieldType(), 'csv');
-                        //saveAs(new Blob([d3.csv.format(data)], {type: "text/csv;charset=utf-8"}), fn);
-                        //saveAs(new Blob([d3.csv.format(data)], {type: t}), fileName);
+                        saveAs(new Blob([d], {type: ct}), fn);
                     },
                     fn
                 );
@@ -1668,7 +1628,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 requestSender.getApplicationData(
                     inData,
                     function(d) {
-                        srdbg('got app data', d);
+                        //srdbg('got app data', d);
                         if (d && d.data) {
                             if ($scope.isViewTypeFields()) {
                                 // get the lines in a separate call - downside is longer wait
