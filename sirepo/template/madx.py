@@ -82,6 +82,10 @@ def _generate_parameters_file(data):
     v.variables = _generate_variables(code_var, data)
     if data.models.simulation.visualizationBeamlineId:
         v.useBeamline = util.id_map[data.models.simulation.visualizationBeamlineId].name
+    beam = util.find_first_command(data, 'beam')
+    if beam:
+        v.beamParticle = beam.particle
+        v.beamPC = beam.pc
     return template_common.render_jinja(SIM_TYPE, v, 'parameters.madx')
 
 

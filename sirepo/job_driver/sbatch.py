@@ -31,11 +31,11 @@ class SbatchDriver(job_driver.DriverBase):
 
     __instances = PKDict()
 
-    def __init__(self, req):
-        super().__init__(req)
+    def __init__(self, op):
+        super().__init__(op)
         self.pkupdate(
             # before it is overwritten by prepare_send
-            _local_user_dir=pkio.py_path(req.content.userDir),
+            _local_user_dir=pkio.py_path(op.msg.userDir),
             _srdb_root=None,
             # we allow one of each op type in. This is essentially a no-op (ha ha)
             # but makes it easier to code the other cases.
@@ -52,9 +52,9 @@ class SbatchDriver(job_driver.DriverBase):
         self._websocket.write_message(PKDict(opName=job.OP_KILL))
 
     @classmethod
-    def get_instance(cls, req):
-        u = req.content.uid
-        return cls.__instances.pksetdefault(u, lambda: cls(req))[u]
+    def get_instance(cls, op):
+        u = op.msg.uid
+        return cls.__instances.pksetdefault(u, lambda: cls(op))[u]
 
     @classmethod
     def init_class(cls, job_supervisor_module):

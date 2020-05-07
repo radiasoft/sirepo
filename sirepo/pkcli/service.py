@@ -120,8 +120,7 @@ def nginx_proxy():
     run_dir = _run_dir().join('nginx_proxy').ensure(dir=True)
     with pkio.save_chdir(run_dir):
         f = run_dir.join('default.conf')
-        values = dict(pkcollections.map_items(cfg))
-        pkjinja.render_resource('nginx_proxy.conf', values, output=f)
+        pkjinja.render_resource('nginx_proxy.conf', cfg(), output=f)
         cmd = [
             'docker',
             'run',
@@ -137,7 +136,7 @@ def uwsgi():
     """Starts UWSGI server"""
     run_dir = _run_dir()
     with pkio.save_chdir(run_dir):
-        values = dict(pkcollections.map_items(cfg))
+        values = cfg().copy()
         values['logto'] = None if pkconfig.channel_in('dev') else str(run_dir.join('uwsgi.log'))
         # uwsgi.py must be first, because values['uwsgi_py'] referenced by uwsgi.yml
         for f in ('uwsgi.py', 'uwsgi.yml'):

@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.appMadxExport = true;
     SIREPO.SINGLE_FRAME_ANIMATION = ['plotAnimation', 'plot2Animation'];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="BeamList" data-ng-class="fieldClass">',
@@ -26,8 +27,11 @@ SIREPO.app.config(function() {
         '</div>',
     ].join('');
     SIREPO.lattice = {
+        canReverseBeamline: true,
         elementColor: {
             CCOLLIMATOR: 'magenta',
+            SEXTUPOLE: 'lightgreen',
+            OCTUPOLE: 'yellow',
         },
         elementPic: {
             alpha: [],
@@ -39,11 +43,11 @@ SIREPO.app.config(function() {
                      'HKICKER', 'KICKER', 'MULTIPOLE', 'MULTIPOLET', 'MULTIPOLETCURVEDCONSTRADIUS',
                      'MULTIPOLETCURVEDVARRADIUS', 'MULTIPOLETSTRAIGHT', 'OCTUPOLE',
                      'QUADRUPOLE', 'RINGDEFINITION', 'SCALINGFFAMAGNET', 'SEXTUPOLE',
-                     'SOLENOID', 'STRIPPER', 'TRIMCOIL', 'VKICKER', 'WIRE'],
+                     'STRIPPER', 'TRIMCOIL', 'VKICKER', 'WIRE'],
             malign: [],
             mirror: [],
             rf: ['PARALLELPLATE', 'RFCAVITY', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD'],
-            solenoid: [],
+            solenoid: ['SOLENOID'],
             undulator: [],
             watch: ['HMONITOR', 'INSTRUMENT', 'MARKER', 'MONITOR', 'PROBE', 'VMONITOR'],
             zeroLength: ['PATCH', 'SEPARATOR', 'SOURCE', 'SROT', 'TRAVELINGWAVE', 'YROT'],
@@ -237,7 +241,7 @@ SIREPO.app.directive('appFooter', function() {
 	},
         template: [
             '<div data-common-footer="nav"></div>',
-            '<div data-import-dialog="" data-title="Import Opal File" data-description="Select an opal .in file." data-file-formats=".in">',
+            '<div data-import-dialog="" data-title="Import Opal File" data-description="Select an OPAL .in or .madx file." data-file-formats=".in,.madx">',
               '<div data-opal-import-options=""></div>',
             '</div>',
 	].join(''),
@@ -395,7 +399,8 @@ SIREPO.app.controller('VisualizationController', function (appState, commandServ
             // save changes to track into the commands list
             var cmd = commandService.findFirstCommand('track');
             $.extend(cmd, appState.models[name]);
-            appState.saveChanges('commands');
+            appState.models.simulation.visualizationBeamlineId = cmd.line;
+            appState.saveChanges(['commands', 'simulation']);
         });
         ['bunchAnimation'].forEach(function(m) {
             appState.watchModelFields($scope, [m + '.plotRangeType'], function() {

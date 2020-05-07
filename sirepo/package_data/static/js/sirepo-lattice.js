@@ -502,7 +502,7 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
     };
 
     self.getRpnValue = function(v) {
-        if (angular.isUndefined(v)) {
+        if (angular.isUndefined(v) || v === null) {
             return v;
         }
         if (self.isCaseInsensitive) {

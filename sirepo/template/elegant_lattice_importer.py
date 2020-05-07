@@ -205,6 +205,7 @@ def _validate_field(el, field, rpn_cache, code_var):
         el[field] = _strip_file_prefix(
             el[field], lattice.LatticeUtil.model_name_for_data(el), field)
     elif field_type == 'BeamInputFile':
+        el[field] = ntpath.basename(el[field])
         el[field] = _strip_file_prefix(el[field], 'bunchFile', 'sourceFile')
 
 
