@@ -62,7 +62,7 @@ class DriverBase(PKDict):
 
     __instances = PKDict()
 
-    _AGENT_STARTING_SECS = 5
+    _AGENT_STARTING_SECS_DEFAULT = 5
 
     def __init__(self, op):
         super().__init__(
@@ -233,7 +233,7 @@ class DriverBase(PKDict):
                 # All awaits must be after this. If a call hangs the timeout
                 # handler will cancel this task
                 self._agent_starting_timeout = tornado.ioloop.IOLoop.current().call_later(
-                    self._AGENT_STARTING_SECS,
+                    self.cfg.agent_starting_secs,
                     self._agent_starting_timeout_handler,
                 )
                 # POSIT: CancelledError isn't smothered by any of the below calls
@@ -252,7 +252,7 @@ class DriverBase(PKDict):
             self._agent_starting_timeout = None
 
     def _agent_starting_timeout_handler(self):
-        pkdlog('{} timeout={}', self, self._AGENT_STARTING_SECS)
+        pkdlog('{} timeout={}', self, self.cfg.agent_starting_secs)
         self.free_resources(internal_error='timeout waiting for agent to start')
 
     def _has_remote_agent(self):

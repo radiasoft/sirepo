@@ -26,13 +26,15 @@ radia_run redhat-docker
             echo 'you need to supply a proxy NERSC can reach and NERSC user '
             exit 1
         fi
+        nersc_proxy=$2
+        nersc_user=$3
         export SIREPO_JOB_DRIVER_MODULES=local:sbatch
         export SIREPO_JOB_DRIVER_SBATCH_HOST=cori.nersc.gov
         export SIREPO_JOB_DRIVER_SBATCH_SHIFTER_IMAGE=radiasoft/sirepo:sbatch
-        export SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=/global/homes/${3::1}/$3/.pyenv/versions/py3/bin/sirepo
+        export SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=/global/homes/${nersc_user::1}/$nersc_user/.pyenv/versions/py3/bin/sirepo
         export SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/global/cscratch1/sd/{sbatch_user}/sirepo-dev'
         export SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS=15
-        export SIREPO_JOB_DRIVER_SBATCH_SUPERVISOR_URI=http://$2:8001
+        export SIREPO_JOB_DRIVER_SBATCH_SUPERVISOR_URI=http://$nersc_proxy:8001
         export SIREPO_PKCLI_JOB_SUPERVISOR_IP=0.0.0.0
         export SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Cori@NERSC'
         ;;
@@ -67,7 +69,8 @@ if [[ $SIREPO_JOB_DRIVER_MODULES =~ sbatch ]]; then
     if [[ ! $SIREPO_JOB_DRIVER_SBATCH_HOST_KEY ]]; then
         cat <<EOF 1>&2
 you need to get the host key in ~/.ssh/known_hosts
-ssh $SIREPO_JOB_DRIVER_SBATCH_HOST true
+
+ssh ${nersc_user+$nersc_user@}$SIREPO_JOB_DRIVER_SBATCH_HOST true
 EOF
         exit 1
     fi
