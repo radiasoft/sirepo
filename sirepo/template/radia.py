@@ -27,21 +27,9 @@ import sirepo.util
 import time
 
 _BEAM_AXIS_ROTATIONS = PKDict(
-    x=Rotation.from_matrix([
-        [0, 0, 1],
-        [0, 1, 0],
-        [-1, 0, 0]
-    ]),
-    y=Rotation.from_matrix([
-        [1, 0, 0],
-        [0, 0, -1],
-        [0, 1, 0]
-    ]),
-    z=Rotation.from_matrix([
-        [1, 0, 0],
-        [0, 1, 0],
-        [0, 0, 1]
-    ])
+    x=Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
+    y=Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
+    z=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 )
 _DMP_FILE = 'geom.dat'
 _FIELD_MAP_COLS = ['x', 'y', 'z', 'Bx', 'By', 'Bz']
@@ -475,14 +463,12 @@ def _rot_flat_list(l, r):
 
 def _save_field_csv(f_type, vectors, rot, file_path):
     #pkdp('SAVE TYPE {} V {} PATH {}', f_type, vectors, file_path)
+    # rotate so the beam axis is aligned with z
     data = ['x,y,z,' + f_type + 'x,' + f_type + 'y,' + f_type + 'z']
     # mm -> m
-    #pts = 0.001 * numpy.array(vectors.vertices)
     pts = 0.001 * _rot_flat_list(vectors.vertices, rot).flatten()
     #pkdp('v {} to pts {}', vectors.vertices, pts)
-    # rotate so the beam axis is aligned with z
     mags = numpy.array(vectors.magnitudes)
-    #dirs = numpy.array(vectors.directions)
     dirs = _rot_flat_list(vectors.directions, rot).flatten()
     for i in range(len(mags)):
         j = 3 * i
@@ -496,13 +482,11 @@ def _save_field_csv(f_type, vectors, rot, file_path):
 def _save_fm_sdds(name, vectors, rot, file_path):
     s = _get_sdds()
     s.setDescription('Field Map for ' + name, 'x(m), y(m), z(m), Bx(T), By(T), Bz(T)')
-    # mm -> m for elegant - might need to have this as a param in general
-    #pts = 0.001 * numpy.reshape(vectors.vertices, (-1, 3))
+    # mm -> m
     pts = 0.001 * _rot_flat_list(vectors.vertices, rot)
     ind = numpy.lexsort((pts[:, 0], pts[:, 1], pts[:, 2]))
     pts = pts[ind]
     mag = vectors.magnitudes
-    #dirs = vectors.directions
     dirs = _rot_flat_list(vectors.directions, rot)
     v = [mag[j // 3] * d for (j, d) in enumerate(dirs)]
     fld = numpy.reshape(v, (-1, 3))[ind]

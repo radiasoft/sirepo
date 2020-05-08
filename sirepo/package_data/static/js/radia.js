@@ -350,10 +350,12 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                             '<span class="lead modal-title text-info">{{ svc.selectedPath.name }}</span>',
                         '</div>',
                         '<div class="modal-body">',
-                            '<div class="container-fluid">',
-                                '<div class="row" data-ng-show="! isFieldMap()">',
-                                    '<div class="col-sm-3 col-sm-offset-6">',
-                                        '<span>Field</span>',
+                            '<div class="form-horizontal">',
+                                '<div class="form-group form-group-sm" data-ng-show="! isFieldMap()">',
+                                    '<div class="control-label col-sm-5">',
+                                        '<label><span>Field</span></label>',
+                                    '</div>',
+                                    '<div class="col-sm-5">',
                                         '<select data-ng-model="tModel.type" data-ng-change="ch()" class="form-control">',
                                             '<option ng-repeat="t in svc.pointFieldTypes">{{ t }}</option>',
                                         '</select>',
@@ -396,6 +398,7 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
                     },
                     function(d) {
                         saveAs(new Blob([d], {type: ct}), fn);
+                        radiaService.showFieldDownload(false);
                     },
                     fn
                 );
