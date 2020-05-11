@@ -13,7 +13,7 @@ import sirepo.util
 
 class SimData(sirepo.sim_data.SimDataBase):
 
-    FLASH_RPM_FILENAME = 'flash.rpm'
+    FLASH_RPM = 'flash.rpm'
     _FLASH_EXE_PREFIX = 'flash4'
     _FLASH_SETUP_UNITS_PREFIX = 'setup_units'
 
@@ -28,20 +28,27 @@ class SimData(sirepo.sim_data.SimDataBase):
             )
 
     @classmethod
-    def flash_exe_name(cls, data):
-        return '{}-{}'.format(
-            cls._FLASH_EXE_PREFIX,
-            data.models.simulation.flashType,
+    def flash_exe_path(cls, data):
+        from pykern import pkio
+        import distutils.spawn
+        p = distutils.spawn.find_executable(
+            '{}-{}'.format(
+                cls._FLASH_EXE_PREFIX,
+                data.models.simulation.flashType,
+            ),
         )
+        if p:
+            return pkio.py_path(p)
+        return  None
 
     @classmethod
     def flash_setup_units_path(cls, data):
-        return pkio.py_path(
-            # TODO(e-carlin): talk with rn about sharing this path better with installer
-            '/home/vagrant/.local/share/flash4/{}-{}'.format(
-                cls._FLASH_SETUP_UNITS_PREFIX,
-                data.models.simulation.flashType,
-            )
+        return cls.flash_exe_path(data).join(
+            '..',
+            '..',
+            'share',
+            cls._FLASH_EXE_PREFIX,
+            f'{cls._FLASH_SETUP_UNITS_PREFIX}-{data.models.simulation.flashType}',
         )
 
     @classmethod

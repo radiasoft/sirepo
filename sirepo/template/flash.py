@@ -407,21 +407,18 @@ def _cell_size(f, refine_max):
 
 
 def _extract_rpm(data):
-    import distutils.spawn
     import subprocess
 
-    if distutils.spawn.find_executable(_SIM_DATA.flash_exe_name(data)):
+    if _SIM_DATA.flash_exe_path(data):
         return
     #SECURITY: No user defined input in cmd so shell=True is ok
-    # TODO(e-carlin): think about stdout and stderr, where should they go?
-    subprocess.check_call(
-        'rpm2cpio {} | cpio -idv'.format(
-            simulation_db.simulation_lib_dir(SIM_TYPE).join(
-                _SIM_DATA.FLASH_RPM_FILENAME,
-            ),
+    subprocess.check_output(
+        "rpm2cpio '{}' | cpio --extract --make-directories".format(
+            _SIM_DATA.lib_file_abspath(_SIM_DATA.FLASH_RPM),
         ),
         cwd='/',
         shell=True,
+        stderr=subprocess.STDOUT,
     )
 
 

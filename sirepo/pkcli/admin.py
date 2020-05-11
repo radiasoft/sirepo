@@ -30,7 +30,7 @@ _PROPRIETARY_CODE_DIR = 'proprietary_code'
 def audit_proprietary_lib_files(*uid):
     """Add/removes proprietary files based on a user's roles
 
-    For example, add the Flash executable if user has the flash role.
+    For example, add the Flash rpm if user has the flash role.
 
     Args:
         *uid: Uid(s) of the user(s) to audit. If None all users will be audited.
@@ -49,20 +49,22 @@ def audit_proprietary_lib_files(*uid):
                 )
 
     def _link_or_unlink_proprietary_files(sim_type, should_link):
-        b = sim_data.get_class(sim_type).FLASH_RPM_FILENAME
-        p = simulation_db.simulation_lib_dir(sim_type).join(b)
-        if not should_link:
-            pkio.unchecked_remove(p)
-            return
-        try:
-            s = proprietary_code_dir(sim_type).join(b)
-            assert s.check(file=True), f'{s} not found'
-            p.mksymlinkto(
-                s,
-                absolute=False,
-            )
-        except py.error.EEXIST:
-            pass
+        for f in proprietary_code_dir(sim_type).listdir(
+                fil=lambda x: x.check(file=True),
+                sort=True,
+        ):
+            p = simulation_db.simulation_lib_dir(sim_type).join(f.basename)
+            if not should_link:
+                pkio.unchecked_remove(p)
+                return
+            try:
+                assert f.check(file=True), f'{f} not found'
+                p.mksymlinkto(
+                    f,
+                    absolute=False,
+                )
+            except py.error.EEXIST:
+                pass
 
     server.init()
     t = feature_config.cfg().proprietary_sim_types
@@ -91,6 +93,29 @@ def create_examples():
             for example in simulation_db.examples(sim_type):
                 if example.models.simulation.name not in names:
                     _create_example(example)
+
+
+def setup_dev_proprietary_code(sim_type, rpm_url):
+    """Get an rpm and put it in the proprietary code dir for a sim type.
+
+    Args:
+      sim_type (str): simulation type
+      rpm_url (str): Url of the rpm (file:// or http://)
+    """
+    import sirepo.pkcli.admin
+    import urllib.request
+
+    assert pkconfig.channel_in('dev'), \
+        'Only to be used in dev. channel={}'.format(pkconfig.cfg.channel)
+
+    d = sirepo.pkcli.admin.proprietary_code_dir(sim_type)
+    pkio.mkdir_parent(d)
+    s = sirepo.sim_data.get_class(sim_type)
+
+    urllib.request.urlretrieve(
+        rpm_url,
+        d.join(getattr(s, '{}_RPM'.format(sim_type.upper()))),
+    )
 
 
 def move_user_sims(target_uid=''):
