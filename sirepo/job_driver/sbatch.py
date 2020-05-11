@@ -85,6 +85,9 @@ class SbatchDriver(job_driver.DriverBase):
         ).encode('ascii')
         return cls
 
+    def op_is_untimed(self, op):
+        return True
+
     async def prepare_send(self, op):
         m = op.msg
         c = m.pkdel('sbatchCredentials')
@@ -109,8 +112,6 @@ class SbatchDriver(job_driver.DriverBase):
             if self.cfg.cores:
                 m.sbatchCores = min(m.sbatchCores, self.cfg.cores)
             m.mpiCores = m.sbatchCores
-            if op.kind == job.PARALLEL:
-                op.maxRunSecs = 0
         m.shifterImage = self.cfg.shifter_image
         return await super().prepare_send(op)
 

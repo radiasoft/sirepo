@@ -67,7 +67,6 @@ _PARALLEL_STATUS_FIELDS = frozenset((
     'percentComplete',
 ))
 
-_UNTIMED_OPS = frozenset((job.OP_ALIVE, job.OP_CANCEL, job.OP_ERROR, job.OP_KILL, job.OP_OK))
 cfg = None
 
 #: how many times restart request when Awaited() raised
@@ -608,7 +607,7 @@ class _ComputeJob(PKDict):
                     for x in filter(lambda e: e != c, o):
                         x.destroy(cancel=True)
                     if timed_out_op:
-                        self.db.cancelledAfterSecs = timed_out_op.maxRunSecs
+                        self.db.cancelledAfterSecs = timed_out_op.max_run_secs
                     if c:
                         c.msg.opIdsToCancel = [x.opId for x in o]
                         c.send()
@@ -756,11 +755,6 @@ class _ComputeJob(PKDict):
 # these values are never sent directly, only msg which can be camelcase
             computeJob=self,
             kind=req.kind,
-            maxRunSecs=self._get_max_run_secs(
-                opName,
-                r,
-                req,
-            ),
             msg=PKDict(req.copy_content()).pksetdefault(jobRunMode=r),
             opName=opName,
             task=asyncio.current_task(),
@@ -774,17 +768,6 @@ class _ComputeJob(PKDict):
         o.msg.pkupdate(**kwargs)
         self.ops.append(o)
         return o
-
-    def _get_max_run_secs(self, op_name, run_mode, req):
-        if op_name in _UNTIMED_OPS or \
-            (run_mode == sirepo.job.SBATCH and op_name == job.OP_RUN):
-            return 0
-        t = cfg.max_hours[req.kind]
-        if op_name == sirepo.job.OP_ANALYSIS:
-            t = cfg.max_hours.analysis
-        elif req.kind == job.PARALLEL and req.content.get('isPremiumUser'):
-            t = cfg.max_hours['parallel_premium']
-        return t * 3600
 
     def _req_is_valid(self, req):
         return (
@@ -908,16 +891,15 @@ class _Op(PKDict):
             do_not_send=False,
             internal_error=None,
             opId=job.unique_key(),
-            _reply_q=sirepo.tornado.Queue(),
             run_dir_slot=self.computeJob.run_dir_slot_q.sr_slot_proxy(self),
+            _reply_q=sirepo.tornado.Queue(),
         )
         self.msg.update(opId=self.opId, opName=self.opName)
         self.driver = job_driver.assign_instance_op(self)
         self.cpu_slot = self.driver.cpu_slot_q.sr_slot_proxy(self)
         q = self.driver.op_slot_q.get(self.opName)
         self.op_slot = q and q.sr_slot_proxy(self)
-
-
+        self.max_run_secs = self._get_max_run_secs()
         pkdlog('{} runDir={}', self, self.msg.get('runDir'))
 
     def destroy(self, cancel=True, internal_error=None):
@@ -968,16 +950,16 @@ class _Op(PKDict):
 
     async def run_timeout(self):
         """Can be any op that's timed"""
-        pkdlog('{} maxRunSecs={}', self, self.maxRunSecs)
+        pkdlog('{} max_run_secs={}', self, self.max_run_secs)
         await self.computeJob._receive_api_runCancel(
             ServerReq(content=self.msg),
             timed_out_op=self,
         )
 
     def send(self):
-        if self.maxRunSecs:
+        if self.max_run_secs:
             self.timer = tornado.ioloop.IOLoop.current().call_later(
-                self.maxRunSecs,
+                self.max_run_secs,
                 self.run_timeout,
             )
         self.driver.send(self)
@@ -992,6 +974,16 @@ class _Op(PKDict):
             pkdlog('{} status={} stack={}', self, status, pkdexc())
             self.computeJob.set_status(self, None, exception=e)
             raise
+
+    def _get_max_run_secs(self):
+        if self.driver.op_is_untimed(self):
+            return 0
+        t = cfg.max_hours[self.kind]
+        if self.opName == sirepo.job.OP_ANALYSIS:
+            t = cfg.max_hours.analysis
+        elif self.kind == job.PARALLEL and self.msg.get('isPremiumUser'):
+            t = cfg.max_hours['parallel_premium']
+        return t * 3600
 
     def __hash__(self):
         return hash((self.opId,))
