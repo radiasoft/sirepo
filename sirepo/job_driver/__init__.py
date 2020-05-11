@@ -34,6 +34,8 @@ cfg = None
 
 OPS_THAT_NEED_SLOTS = frozenset((job.OP_ANALYSIS, job.OP_RUN))
 
+_UNTIMED_OPS = frozenset((job.OP_ALIVE, job.OP_CANCEL, job.OP_ERROR, job.OP_KILL, job.OP_OK))
+
 
 class AgentMsg(PKDict):
 
@@ -62,7 +64,7 @@ class DriverBase(PKDict):
 
     __instances = PKDict()
 
-    _AGENT_STARTING_SECS = 5
+    _AGENT_STARTING_SECS_DEFAULT = 5
 
     def __init__(self, op):
         super().__init__(
@@ -131,6 +133,9 @@ class DriverBase(PKDict):
             ),
             libFileList=[f.basename for f in d.listdir()],
         )
+
+    def op_is_untimed(self, op):
+        return op.opName in _UNTIMED_OPS
 
     def pkdebug_str(self):
         return pkdformat(
@@ -233,7 +238,7 @@ class DriverBase(PKDict):
                 # All awaits must be after this. If a call hangs the timeout
                 # handler will cancel this task
                 self._agent_starting_timeout = tornado.ioloop.IOLoop.current().call_later(
-                    self._AGENT_STARTING_SECS,
+                    self.cfg.agent_starting_secs,
                     self._agent_starting_timeout_handler,
                 )
                 # POSIT: CancelledError isn't smothered by any of the below calls
@@ -252,7 +257,7 @@ class DriverBase(PKDict):
             self._agent_starting_timeout = None
 
     def _agent_starting_timeout_handler(self):
-        pkdlog('{} timeout={}', self, self._AGENT_STARTING_SECS)
+        pkdlog('{} timeout={}', self, self.cfg.agent_starting_secs)
         self.free_resources(internal_error='timeout waiting for agent to start')
 
     def _has_remote_agent(self):

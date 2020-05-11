@@ -467,7 +467,7 @@ def _validate_model(model_type, model, missing_files):
     if 'name' in model_info and 'name' not in model:
         model.name = ''
     MODEL_UNITS.scale_from_native(model_type, model)
-    for f in model.keys():
+    for f in list(model.keys()):
         if isinstance(model[f], list) and len(model[f]) and 'type' in model[f][0]:
             for sub_model in model[f]:
                 _validate_model(sub_model.type, sub_model, missing_files)
