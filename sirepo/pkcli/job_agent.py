@@ -651,13 +651,11 @@ class _SbatchRun(_SbatchCmd):
     def _sbatch_script(self):
         i = self.msg.shifterImage
         s = o = ''
-        q = "debug" if self.msg.sbatchHours < 0.5 \
-            and self.msg.sbatchCores < 62 * 32 else "regular"
         if i:
 #TODO(robnagler) provide via sbatch driver
             o = f'''#SBATCH --image={i}
 #SBATCH --constraint=haswell
-#SBATCH --qos={q}
+#SBATCH --qos={self.msg.sbatchQueue}
 #SBATCH --tasks-per-node=32'''
             s = '--cpu-bind=cores shifter'
         f = self.run_dir.join(self.jid + '.sbatch')

@@ -232,6 +232,11 @@
                 ["none", "None"],
                 ["fit", "Fit Data"],
                 ["fixed", "Fixed"]
+            ],
+            "SbatchQueue": [
+                ["debug", "debug"],
+                ["realtime", "realtime"],
+                ["regular", "regular"]
             ]
         },
         "localRoutes": {

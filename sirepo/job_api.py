@@ -278,4 +278,5 @@ def _run_mode(request_content):
         jobRunMode=j,
         sbatchCores=m.sbatchCores,
         sbatchHours=m.sbatchHours,
+        sbatchQueue=m.sbatchQueue,
     )
