@@ -34,6 +34,8 @@ cfg = None
 
 OPS_THAT_NEED_SLOTS = frozenset((job.OP_ANALYSIS, job.OP_RUN))
 
+_UNTIMED_OPS = frozenset((job.OP_ALIVE, job.OP_CANCEL, job.OP_ERROR, job.OP_KILL, job.OP_OK))
+
 
 class AgentMsg(PKDict):
 
@@ -131,6 +133,9 @@ class DriverBase(PKDict):
             ),
             libFileList=[f.basename for f in d.listdir()],
         )
+
+    def op_is_untimed(self, op):
+        return op.opName in _UNTIMED_OPS
 
     def pkdebug_str(self):
         return pkdformat(
