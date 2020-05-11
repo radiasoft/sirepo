@@ -356,6 +356,9 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
         });
         worldCoord.setCoordinateSystemToWorld();
 
+        // arbitrary configuration
+        vpObj.defaultCfg = {};
+
         vpObj.worldReady = false;
 
         vpObj.source = vtkSource;
@@ -441,14 +444,14 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
         vpObj.vpEdges = function() {
             var ee = {};
             var es = vpObj.worldEdges;
-            for(var e in es) {
+            for (var e in es) {
                 var edges = es[e];
                 var lEdges = [];
-                for(var i = 0; i < edges.length; ++i) {
+                for (var i = 0; i < edges.length; ++i) {
                     var ls = edges[i];
                     var wpts = ls.points();
                     var lpts = [];
-                    for(var j = 0; j < wpts.length; ++j) {
+                    for (var j = 0; j < wpts.length; ++j) {
                         lpts.push(vpObj.localCoordFromWorld(wpts[j]));
                     }
                     var lEdge = geometry.lineSegment(lpts[0], lpts[1]);
@@ -502,10 +505,44 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
     self.vpBox = function(vtkCubeSource, renderer) {
 
         var box = self.vpObject(vtkCubeSource, renderer);
+        box.defaultCfg = {
+            edgeCfg: {
+                x: { sense: 1 },
+                y: { sense: 1 },
+                z: { sense: 1 },
+            }
+        };
+
+        // box corners are defined thus:
+        //
+        //   2------X2------3    6------X3------7
+        //   |              |    |              |
+        //   |              |    |              |
+        //   Y0   Front    Y1    Y2   Back     Y3
+        //   |              |    |              |
+        //   |              |    |              |
+        //   0------X0------1    4------X1------5
+        //
+        //TODO(mvk): Order is important only for axis direction and should be supplied externally
+        var edgeCornerPairs = {
+            x: [[0, 1], [4, 5], [2, 3], [6, 7]],
+            y: [[0, 2], [1, 3], [4, 6], [5, 7]],
+            z: [[4, 0], [5, 1], [6, 2], [7, 3]]
+        };
 
         var initWorldFn = box.initializeWorld;
-        box.initializeWorld = function () {
+        //box.initializeWorld = function () {
+        box.initializeWorld = function (cfg) {
             if (! box.worldReady) {
+                cfg = cfg || box.defaultCfg;
+                for (var dim in cfg.edgeCfg) {
+                    var c = cfg.edgeCfg[dim];
+                    for (var i = 0; i < edgeCornerPairs[dim].length; ++i) {
+                        if (c.sense < 0) {
+                            edgeCornerPairs[dim][i].reverse();
+                        }
+                    }
+                }
                 box.worldCorners = wCorners();
                 box.worldEdges = wEdges();
             }
@@ -555,23 +592,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
             }
             return corners;
         }
-
-        // box corners are defined thus:
-        //
-        //   2------X2------3    6------X3------7
-        //   |              |    |              |
-        //   |              |    |              |
-        //   Y0   Front    Y1    Y2   Back     Y3
-        //   |              |    |              |
-        //   |              |    |              |
-        //   0------X0------1    4------X1------5
-        //
-        //TODO(mvk): Order is important only for axis direction and should be supplied externally
-        var edgeCornerPairs = {
-            x: [[0, 1], [4, 5], [2, 3], [6, 7]],
-            y: [[0, 2], [1, 3], [4, 6], [5, 7]],
-            z: [[4, 0], [5, 1], [6, 2], [7, 3]]
-        };
 
         function wEdges() {
             var c = box.worldCorners;
@@ -873,8 +893,6 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             $scope.margin = {top: 50, right: 23, bottom: 50, left: 75};
             //$scope.width = $scope.height = 0;
 
-            var d3self = d3.selectAll($element);
-
             var axes = {
                 x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh, utilities),
                 y: layoutService.plotAxis($scope.margin, 'y', 'bottom', refresh, utilities),
@@ -895,9 +913,28 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
 
             var axisCfg = axisCfgDefault;
 
-            function refresh() {
-                //srdbg('axes refresh', $scope, $scope.boundObj);
+            var d3self = d3.selectAll($element);
+            var lastSize = [1, 1];
 
+            function refresh() {
+                //srdbg('axes refresh');
+
+                var size = [$($element).width(), $($element).height()];
+                var pos = $($element).offset();
+                //srdbg('axes pos', pos, 'sz', size);
+                var screenRect = geometry.rect(
+                    geometry.point(
+                        $scope.axesMargins.x.width,
+                        $scope.axesMargins.y.height
+                    ),
+                    geometry.point(
+                        size[0] - $scope.axesMargins.x.width,
+                        size[1] - $scope.axesMargins.y.height
+                    )
+                );
+
+
+                var dsz = [size[0] / lastSize[0], size[1] / lastSize[1]];
                 // If an axis is shorter than this, don't display it -- the ticks will
                 // be cramped and unreadable
                 var minAxisDisplayLen = 50;
@@ -905,8 +942,9 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                 for (var i in geometry.basis) {
 
                     var dim = geometry.basis[i];
+                    var cfg = axisCfg[dim];
 
-                    var screenDim = axisCfg[dim].screenDim;
+                    var screenDim = cfg.screenDim;
                     var isHorizontal = screenDim === 'x';
                     var axisEnds = isHorizontal ? ['◄', '►'] : ['▼', '▲'];
                     var perpScreenDim = isHorizontal ? 'y' : 'x';
@@ -918,9 +956,13 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     // sort the external edges so we'll preferentially pick the left and bottom
                     var externalEdges = $scope.boundObj.externalVpEdgesForDimension(dim)
                         .sort(vtkAxisService.edgeSorter(perpScreenDim, ! isHorizontal));
-                    var seg = geometry.bestEdgeAndSectionInBounds(externalEdges, $scope.boundObj.boundingRect(), dim, false);
+                    var seg = geometry.bestEdgeAndSectionInBounds(
+                        externalEdges, screenRect, dim, false
+                    );
+                    //srdbg(dim, 'best edge', seg);
 
                     if (! seg) {
+                        // param to show arrow ends?
                         /*
                         // all possible axis ends offscreen, so try a centerline
                         var cl = $scope.boundObj.vpCenterLineForDimension(dim);
@@ -938,7 +980,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                         continue;
                     }
                     d3self.select(axisSelector).style('opacity', 1.0);
-                    //d3self.select(axisSelector).style('stroke', $scope.axisCfg[dim].color);
+                    //d3self.select(axisSelector).style('stroke', $scope.cfg.color);
 
                     var fullSeg = seg.full;
                     var clippedSeg = seg.clipped;
@@ -950,6 +992,10 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     var axisTop = sortedPts[0].y;
                     var axisRight = sortedPts[1].x;
                     var axisBottom = sortedPts[1].y;
+                    //var axisLeft = sortedPts[0].x * dsz[0];
+                    //var axisTop = sortedPts[0].y * dsz[1];
+                    //var axisRight = sortedPts[1].x * dsz[0];
+                    //var axisBottom = sortedPts[1].y * dsz[1];
 
                     var newRange = Math.min(fullSeg.length(), clippedSeg.length());
                     var radAngle = Math.atan(clippedSeg.slope());
@@ -963,8 +1009,8 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
 
                     var allPts = geometry.sortInDimension(fullSeg.points().concat(clippedSeg.points()), screenDim, false);
 
-                    var limits = reverseOnScreen ? [axisCfg[dim].max, axisCfg[dim].min] : [axisCfg[dim].min, axisCfg[dim].max];
-                    var newDom = [axisCfg[dim].min, axisCfg[dim].max];
+                    var limits = reverseOnScreen ? [cfg.max, cfg.min] : [cfg.min, cfg.max];
+                    var newDom = [cfg.min, cfg.max];
                     // 1st 2, last 2 points
                     for (var m = 0; m < allPts.length; m += 2) {
                         // a point may coincide with its successor
@@ -981,6 +1027,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     }
                     var xform = 'translate(' + axisLeft + ',' + axisTop + ') ' +
                         'rotate(' + angle + ')';
+                    //srdbg('xform', xform, dsz);
 
                     axes[dim].scale.domain(newDom).nice();
                     axes[dim].scale.range([reverseOnScreen ? newRange : 0, reverseOnScreen ? 0 : newRange]);
@@ -1009,7 +1056,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
 
                     d3self.select(axisSelector).attr('transform', xform);
 
-                    var dimLabel = axisCfg[dim].dimLabel;
+                    var dimLabel = cfg.dimLabel;
                     d3self.selectAll(axisSelector + '-end')
                         .style('opacity', showAxisEnds ? 1 : 0);
 
@@ -1048,6 +1095,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                         .attr('transform', labelXform)
                         .style('opacity', (showAxisEnds || newRange < minAxisDisplayLen) ? 0 : 1);
                 }
+                lastSize = size;
             }
 
             function init() {
@@ -1078,9 +1126,10 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                 refresh();
             });
 
+            // may not need this refresh?
             $scope.$watch('boundObj', function (d) {
                 if (d) {
-                    refresh();
+                    //refresh();
                 }
             });
 
@@ -1126,7 +1175,7 @@ SIREPO.app.service('vtkAxisService', function(appState, panelState, requestSende
 });
 
 // General-purpose vtk display
-SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plotting, plotToPNG, vtkPlotting, vtkService, vtkUtils, utilities) {
+SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plotting, plotToPNG, vtkPlotting, vtkService, vtkUtils, utilities, $window) {
 
     return {
         restrict: 'A',
@@ -1355,6 +1404,10 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 setMarkerVisible();
             };
 
+            $scope.$on('$destroy', function() {
+                $($window).off('resize', resize);
+            });
+
             function cacheCanvas() {
                 if (! snapshotCtx) {
                     return;
@@ -1379,6 +1432,11 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 }
             }
 
+            function resize(e) {
+                //srdbg('VTK RESIZE');
+                refresh();
+            }
+
             appState.whenModelsLoaded($scope, function () {
                 $scope.$on('vtk.selected', function (e, d) {
                     $scope.$applyAsync(function () {
@@ -1387,6 +1445,8 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 });
                 $scope.init();
             });
+
+            $($window).resize(resize);
         },
 
         //link: function link(scope, element) {

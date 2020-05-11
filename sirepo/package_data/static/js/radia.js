@@ -1024,12 +1024,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 var b = renderer.computeVisiblePropBounds();
                 radiaService.objBounds = b;
                 //srdbg('bnds', b);
-                var points = new window.Float32Array([
-                    b[0], b[2], b[4], b[1], b[2], b[4], b[1], b[3], b[4], b[0], b[3], b[4],
-                    b[0], b[2], b[5], b[1], b[2], b[5], b[1], b[3], b[5], b[0], b[3], b[5],
-                ]);
                 //srdbg('l', [Math.abs(b[1] - b[0]), Math.abs(b[3] - b[2]), Math.abs(b[5] - b[4])]);
-                //srdbg('ctr', [(b[1] - b[0]) / 2, (b[3] - b[2]) / 2, (b[5] - b[4]) / 2]);
+                //srdbg('ctr', [(b[1] + b[0]) / 2, (b[3] + b[2]) / 2, (b[5] + b[4]) / 2]);
 
                 var padPct = 0.1;
                 var l = [
@@ -1040,7 +1036,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     return (1 + padPct) * c;
                 });
 
-
                 var bndBox = cm.buildBox(l, [(b[1] + b[0]) / 2, (b[3] + b[2]) / 2, (b[5] + b[4]) / 2]);
                 bndBox.actor.getProperty().setRepresentationToWireframe();
                 //var lf = vtk.Filters.General.vtkLineFilter.newInstance();
@@ -1048,7 +1043,15 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 renderer.addActor(bndBox.actor);
                 var vpb = vtkPlotting.vpBox(bndBox.source, renderer);
                 renderWindow.render();
-                vpb.initializeWorld();
+                vpb.defaultCfg.edgeCfg.z.sense = -1;
+                vpb.initializeWorld(
+                    {
+                        edgeCfg: {
+                            x: {sense: 1},
+                            y: {sense: 1},
+                            z: {sense: -1},
+                        }
+                    });
                 $scope.axisObj = vpb;
 
                 var acfg = {};
@@ -1058,7 +1061,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     acfg[dim].label = dim + ' [mm]';
                     acfg[dim].max = b[2 * i + 1];
                     acfg[dim].min = b[2 * i];
-                    acfg[dim].numPoints = 100;
+                    acfg[dim].numPoints = 2;
                     acfg[dim].screenDim = dim === 'z' ? 'y' : 'x';
                 });
                 $scope.axisCfg = acfg;
