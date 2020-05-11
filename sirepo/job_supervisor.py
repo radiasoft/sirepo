@@ -67,7 +67,6 @@ _PARALLEL_STATUS_FIELDS = frozenset((
     'percentComplete',
 ))
 
-_UNTIMED_OPS = frozenset((job.OP_ALIVE, job.OP_CANCEL, job.OP_ERROR, job.OP_KILL, job.OP_OK))
 cfg = None
 
 #: how many times restart request when Awaited() raised
@@ -152,9 +151,8 @@ def init():
             parallel_premium=(2, float, 'maximum run-time for parallel job for premium user (except sbatch)'),
             sequential=(.1, float, 'maximum run-time for sequential job'),
         ),
-        purge_free_after_days=(1000, int, 'how many days to wait before purging a free users simulation'),
-        purge_free_start=('02:00:00', str, 'time to first start purging free users simulations (%H:%M:%S)'),
-        purge_free_period=('01:00:00', str, 'how often to purge free users simulations after start time (%H:%M:%S)'),
+        purge_non_premium_after_days=(1000, int, 'how many days to wait before purging non-premium users simulations'),
+        purge_non_premium_task_secs=(None, _cfg_secs, 'when to clean up simulation runs of non-premium users (%H:%M:%S)'),
         sbatch_poll_secs=(15, int, 'how often to poll squeue and parallel status'),
     )
     _NEXT_REQUEST_SECONDS = PKDict({
@@ -185,7 +183,6 @@ def init():
         pykern.pkio.mkdir_parent(_DB_DIR)
     tornado.ioloop.IOLoop.current().add_callback(
         _ComputeJob.purge_free_simulations,
-        init=True,
     )
 
 
@@ -195,9 +192,23 @@ async def terminate():
     await job_driver.terminate()
 
 
+def _cfg_secs(value):
+    try:
+        return int(value)
+    except Exception:
+        pass
+    t = datetime.datetime.strptime(value, '%H:%M:%S')
+    return int(datetime.timedelta(
+        hours=t.hour,
+        minutes=t.minute,
+        seconds=t.second,
+    ).total_seconds())
+
+
 class _ComputeJob(PKDict):
 
     instances = PKDict()
+    _purged_jids_cache = set()
 
     def __init__(self, req, **kwargs):
         super().__init__(
@@ -257,7 +268,7 @@ class _ComputeJob(PKDict):
         )
 
     @classmethod
-    async def purge_free_simulations(cls, init=False):
+    async def purge_free_simulations(cls):
         def _get_uids_and_files():
             r = []
             u = None
@@ -265,8 +276,9 @@ class _ComputeJob(PKDict):
             for f in pkio.sorted_glob(_DB_DIR.join('*{}'.format(
                     sirepo.simulation_db.JSON_SUFFIX,
             ))):
-                n = sirepo.sim_data.uid_from_jid(f.basename)
-                if n in p or f.mtime() > _too_old:
+                n = sirepo.sim_data.uid_from_jid(f.purebasename)
+                if n in p or f.mtime() > _too_old \
+                   or f.purebasename in cls._purged_jids_cache:
                     continue
                 if u != n:
                     # POSIT: Uid is the first part of each db file. The files are
@@ -286,33 +298,36 @@ class _ComputeJob(PKDict):
             # at anytime so we need to check that they haven't
             if d.lastUpdateTime > _too_old:
                 return
-            if d.status == job.FREE_USER_PURGED:
+            if d.status == job.JOB_RUN_PURGED:
                 return
             p = sirepo.simulation_db.simulation_run_dir(d)
             pkio.unchecked_remove(p)
-            d.status = job.FREE_USER_PURGED
+            d.status = job.JOB_RUN_PURGED
             cls.__db_write_file(d)
-            jids_purged.append(db_file.purebasename)
+            cls._purged_jids_cache.add(db_file.purebasename)
 
+        if not cfg.purge_non_premium_task_secs:
+            return
         s = sirepo.srtime.utc_now()
         u = None
         f = None
         try:
             _too_old = sirepo.srtime.utc_now_as_float() - (
-                cfg.purge_free_after_days * 24 * 60 * 60
+                cfg.purge_non_premium_after_days * 24 * 60 * 60
             )
 
-            jids_purged = []
             for u, v in _get_uids_and_files():
                 with sirepo.auth.set_user(u):
                     for f in v:
                         _purge_sim(f)
                 await tornado.gen.sleep(0)
-            pkdlog('jids={}', jids_purged)
         except Exception as e:
             pkdlog('u={} f={} error={} stack={}', u, f, e, pkdexc())
         finally:
-            cls._purge_free_simulations_set(s, init)
+            tornado.ioloop.IOLoop.current().call_later(
+                cfg.purge_non_premium_task_secs,
+                cls.purge_free_simulations,
+            )
 
     @classmethod
     async def receive(cls, req):
@@ -592,7 +607,7 @@ class _ComputeJob(PKDict):
                     for x in filter(lambda e: e != c, o):
                         x.destroy(cancel=True)
                     if timed_out_op:
-                        self.db.cancelledAfterSecs = timed_out_op.maxRunSecs
+                        self.db.cancelledAfterSecs = timed_out_op.max_run_secs
                     if c:
                         c.msg.opIdsToCancel = [x.opId for x in o]
                         c.send()
@@ -666,6 +681,7 @@ class _ComputeJob(PKDict):
             simName=req.content.data.models.simulation.name,
             status=job.PENDING,
         )
+        self._purged_jids_cache.discard(self.__db_file(self.db.computeJid).purebasename)
         c = self.db.computeJobSerial
         try:
             for i in range(_MAX_RETRIES):
@@ -739,18 +755,10 @@ class _ComputeJob(PKDict):
 # these values are never sent directly, only msg which can be camelcase
             computeJob=self,
             kind=req.kind,
-            maxRunSecs=self._get_max_run_secs(
-                opName,
-                r,
-                req,
-            ),
-            msg=PKDict(req.content).pksetdefault(jobRunMode=r),
+            msg=PKDict(req.copy_content()).pksetdefault(jobRunMode=r),
             opName=opName,
-            req_content=req.copy_content(),
             task=asyncio.current_task(),
         )
-#TODO(robnagler) move into _Op()
-        job_driver.assign_instance_op(req, r, o)
         if 'dataFileKey' in kwargs:
             kwargs['dataFileUri'] = job.supervisor_file_uri(
                 o.driver.cfg.supervisor_uri,
@@ -760,58 +768,6 @@ class _ComputeJob(PKDict):
         o.msg.pkupdate(**kwargs)
         self.ops.append(o)
         return o
-
-    def _get_max_run_secs(self, op_name, run_mode, req):
-        if op_name in _UNTIMED_OPS or \
-            (run_mode == sirepo.job.SBATCH and op_name == job.OP_RUN):
-            return 0
-        t = cfg.max_hours[req.kind]
-        if op_name == sirepo.job.OP_ANALYSIS:
-            t = cfg.max_hours.analysis
-        elif req.kind == job.PARALLEL and req.content.get('isPremiumUser'):
-            t = cfg.max_hours['parallel_premium']
-        return t * 3600
-
-    @classmethod
-    def _purge_free_simulations_set(cls, previous_start, init):
-        def _call_at(time):
-            tornado.ioloop.IOLoop.current().call_at(
-                sirepo.srtime.to_timestamp(time),
-                _ComputeJob.purge_free_simulations,
-            )
-
-        def _get_start():
-            t = datetime.datetime.combine(
-                datetime.date.fromtimestamp(sirepo.srtime.to_timestamp(n)),
-                datetime.datetime.min.time(),
-            )
-            return t + _get_timedelta(cfg.purge_free_start)
-
-        def _get_timedelta(time_str):
-            t = datetime.datetime.strptime(time_str, "%H:%M:%S")
-            return datetime.timedelta(
-                hours=t.hour,
-                minutes=t.minute,
-                seconds=t.second,
-            )
-        n = sirepo.srtime.utc_now()
-        s = _get_start()
-        p = _get_timedelta(cfg.purge_free_period)
-
-        if not init:
-            # TODO(e-carlin): This will drift away from s because
-            # call_at doesn't guarantee the callback is called at
-            # exactly the time provided. Using previous_start should
-            # make the drift inconsequentially small.
-            _call_at(previous_start + p)
-            return
-        if s > n:
-            _call_at(s)
-            return
-        t = s + p
-        while t < n:
-            t += p
-        _call_at(t)
 
     def _req_is_valid(self, req):
         return (
@@ -935,10 +891,15 @@ class _Op(PKDict):
             do_not_send=False,
             internal_error=None,
             opId=job.unique_key(),
-            _reply_q=sirepo.tornado.Queue(),
             run_dir_slot=self.computeJob.run_dir_slot_q.sr_slot_proxy(self),
+            _reply_q=sirepo.tornado.Queue(),
         )
         self.msg.update(opId=self.opId, opName=self.opName)
+        self.driver = job_driver.assign_instance_op(self)
+        self.cpu_slot = self.driver.cpu_slot_q.sr_slot_proxy(self)
+        q = self.driver.op_slot_q.get(self.opName)
+        self.op_slot = q and q.sr_slot_proxy(self)
+        self.max_run_secs = self._get_max_run_secs()
         pkdlog('{} runDir={}', self, self.msg.get('runDir'))
 
     def destroy(self, cancel=True, internal_error=None):
@@ -989,16 +950,16 @@ class _Op(PKDict):
 
     async def run_timeout(self):
         """Can be any op that's timed"""
-        pkdlog('{} maxRunSecs={}', self, self.maxRunSecs)
+        pkdlog('{} max_run_secs={}', self, self.max_run_secs)
         await self.computeJob._receive_api_runCancel(
-            ServerReq(content=self.req_content),
+            ServerReq(content=self.msg),
             timed_out_op=self,
         )
 
     def send(self):
-        if self.maxRunSecs:
+        if self.max_run_secs:
             self.timer = tornado.ioloop.IOLoop.current().call_later(
-                self.maxRunSecs,
+                self.max_run_secs,
                 self.run_timeout,
             )
         self.driver.send(self)
@@ -1013,6 +974,16 @@ class _Op(PKDict):
             pkdlog('{} status={} stack={}', self, status, pkdexc())
             self.computeJob.set_status(self, None, exception=e)
             raise
+
+    def _get_max_run_secs(self):
+        if self.driver.op_is_untimed(self):
+            return 0
+        t = cfg.max_hours[self.kind]
+        if self.opName == sirepo.job.OP_ANALYSIS:
+            t = cfg.max_hours.analysis
+        elif self.kind == job.PARALLEL and self.msg.get('isPremiumUser'):
+            t = cfg.max_hours['parallel_premium']
+        return t * 3600
 
     def __hash__(self):
         return hash((self.opId,))

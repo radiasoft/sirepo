@@ -464,30 +464,37 @@ def save_sequential_report_data(data, run_dir):
         report = data.models[report_name]
         plots = []
         col_names, rows = _read_data_file(py.path.local(run_dir).join(_ZGOUBI_TWISS_FILE))
+        error = ''
         for f in ('y1', 'y2', 'y3'):
             if report[f] == 'none':
                 continue
             points = column_data(report[f], col_names, rows)
-            assert not any(map(lambda x: math.isnan(x), points)), \
-                'Twiss data could not be computed for {}'.format(
+            if any(map(lambda x: math.isnan(x), points)):
+                error = 'Twiss data could not be computed for {}'.format(
                     template_common.enum_text(_SCHEMA, enum_name, report[f]),
                 )
+                break
             plots.append(PKDict(
                 points=points,
                 label=template_common.enum_text(_SCHEMA, enum_name, report[f]),
             ))
-        #TODO(pjm): use template_common
-        x = column_data('sums', col_names, rows)
-        res = PKDict(
-            title='',
-            x_range=[min(x), max(x)],
-            y_label='',
-            x_label='s [m]',
-            x_points=x,
-            plots=plots,
-            y_range=template_common.compute_plot_color_and_range(plots),
-            summaryData=_read_twiss_header(run_dir),
-        )
+        if error:
+            res = PKDict(
+                error=error,
+            )
+        else:
+            #TODO(pjm): use template_common
+            x = column_data('sums', col_names, rows)
+            res = PKDict(
+                title='',
+                x_range=[min(x), max(x)],
+                y_label='',
+                x_label='s [m]',
+                x_points=x,
+                plots=plots,
+                y_range=template_common.compute_plot_color_and_range(plots),
+                summaryData=_read_twiss_header(run_dir),
+            )
     elif report_name == 'twissSummaryReport':
         res = PKDict(
             #TODO(pjm): x_range requied by sirepo-plotting.js

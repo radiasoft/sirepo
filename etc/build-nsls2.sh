@@ -32,7 +32,7 @@ build_nsls2_guest_main() {
     cd ../sirepo
     pip uninstall sirepo >& /dev/null || true
     pip install -r requirements.txt
-    pip install sirepo
+    pip install .
     sirepo srw create_predefined
     cd /
     rm -rf "$_build_nsls2_guest_d"
@@ -46,9 +46,8 @@ build_nsls2_host_main() {
     mkdir "$d"
     cp -a "$s" "$d"
     cd "$d"
-    ls -al
     mkdir sirepo
-    cp -a ../../{LICENSE,README.md,requirements.txt,setup.py,sirepo} sirepo
+    cp -a ../../{LICENSE,README.md,requirements.txt,setup.py,sirepo,.git} sirepo
     mkdir -p SRW/env/work/srw_python
     cp -a ~/src/ochubar/SRW/env/work/srw_python/[a-z]*py SRW/env/work/srw_python
     cp -a ~/src/ochubar/SRW/{cpp,Makefile} SRW
@@ -62,7 +61,7 @@ USER vagrant
 ADD --chown=vagrant:vagrant . $_build_nsls2_guest_d
 RUN bash $_build_nsls2_guest_d/$s
 EOF
-    docker build --rm=true --network=host --tag=radiasoft/sirepo:nsls2 .
+    docker build --rm=true --tag=radiasoft/sirepo:nsls2 .
     cd ..
     rm -rf "$d"
     build_nsls2_docker_clean

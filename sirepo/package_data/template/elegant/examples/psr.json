@@ -4,8 +4,6 @@
         "beamlines": [
             {
                 "angle": 0,
-                "count": 3,
-                "distance": 9.022400000000001,
                 "id": 7,
                 "items": [
                     8,
@@ -17,13 +15,10 @@
                     8
                 ],
                 "l": 0,
-                "length": 9.022400000000001,
                 "name": "BL1"
             },
             {
                 "angle": 0,
-                "count": 4,
-                "distance": 9.022400000000001,
                 "id": 20,
                 "items": [
                     8,
@@ -37,13 +32,10 @@
                     19
                 ],
                 "l": 0,
-                "length": 9.0224,
                 "name": "BL2"
             },
             {
                 "angle": 0,
-                "count": 4,
-                "distance": 9.022400000000001,
                 "id": 22,
                 "items": [
                     19,
@@ -57,13 +49,10 @@
                     8
                 ],
                 "l": 0,
-                "length": 9.022400000000001,
                 "name": "BL3"
             },
             {
                 "angle": 6.283185307179589,
-                "count": 31,
-                "distance": 5.2834528846640675e-14,
                 "id": 13,
                 "items": [
                     16,
@@ -79,13 +68,10 @@
                     7
                 ],
                 "l": 0,
-                "length": 90.22400000000006,
                 "name": "RING1"
             },
             {
                 "angle": 6.283185307179589,
-                "count": 34,
-                "distance": 5.2834528846640675e-14,
                 "id": 23,
                 "items": [
                     7,
@@ -100,7 +86,6 @@
                     7
                 ],
                 "l": 0,
-                "length": 90.22400000000006,
                 "name": "RING2"
             }
         ],
@@ -189,7 +174,7 @@
                 "always_change_p0": "0",
                 "centroid": "1",
                 "combine_bunch_statistics": "0",
-                "concat_order": 2,
+                "concat_order": 0,
                 "correction_iterations": "1",
                 "default_order": "2",
                 "echo_lattice": "0",

@@ -40,13 +40,13 @@ class DockerDriver(job_driver.DriverBase):
 
     __users = PKDict()
 
-    def __init__(self, req, host):
-        super().__init__(req)
+    def __init__(self, op, host):
+        super().__init__(op)
         self.update(
             _cname=self._cname_join(),
             _idle_timer=None,
             _image=self._get_image(),
-            _user_dir=pkio.py_path(req.content.userDir),
+            _user_dir=pkio.py_path(op.msg.userDir),
             host=host,
         )
         host.instances[self.kind].append(self)
@@ -60,11 +60,11 @@ class DockerDriver(job_driver.DriverBase):
         pkio.unchecked_remove(self._agent_exec_dir)
 
     @classmethod
-    def get_instance(cls, req):
+    def get_instance(cls, op):
         # SECURITY: must only return instances for authorized user
-        u = cls.__users.get(req.content.uid)
+        u = cls.__users.get(op.msg.uid)
         if u:
-            d = u.get(req.kind)
+            d = u.get(op.kind)
             if d:
                 return d
             # jobs of different kinds for the same user need to go to the
@@ -73,14 +73,14 @@ class DockerDriver(job_driver.DriverBase):
             h = list(u.values())[0].host
         else:
             # least used host
-            h = min(cls.__hosts.values(), key=lambda h: len(h.instances[req.kind]))
-        return cls(req, h)
+            h = min(cls.__hosts.values(), key=lambda h: len(h.instances[op.kind]))
+        return cls(op, h)
 
     @classmethod
     def init_class(cls, job_supervisor):
         cls.cfg = pkconfig.init(
             agent_starting_secs=(
-                cls._AGENT_STARTING_SECS,
+                cls._AGENT_STARTING_SECS_DEFAULT,
                 int,
                 'how long to wait for agent start',
             ),

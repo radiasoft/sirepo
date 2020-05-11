@@ -57,6 +57,11 @@ class CodeVar(object):
             self.postfix_variables,
         )
 
+    def eval_var_with_assert(self, expr):
+        (v, err) = self.eval_var(expr)
+        assert not err, err
+        return float(v)
+
     def get_expr_dependencies(self, expr, depends=None, visited=None):
         # expr must be in postfix format
         if depends is None:

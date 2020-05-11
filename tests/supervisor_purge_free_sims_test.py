@@ -17,8 +17,8 @@ _PURGE_FREE_AFTER_DAYS = 1
 def setup_module(module):
     os.environ.update(
         SIREPO_JOB_SUPERVISOR_JOB_CACHE_SECS=str(_CACHE_AND_SIM_PURGE_PERIOD),
-        SIREPO_JOB_SUPERVISOR_PURGE_FREE_AFTER_DAYS=str(_PURGE_FREE_AFTER_DAYS),
-        SIREPO_JOB_SUPERVISOR_PURGE_FREE_PERIOD='00:00:0{}'.format(_CACHE_AND_SIM_PURGE_PERIOD),
+        SIREPO_JOB_SUPERVISOR_PURGE_NON_PREMIUM_AFTER_DAYS=str(_PURGE_FREE_AFTER_DAYS),
+        SIREPO_JOB_SUPERVISOR_PURGE_NON_PREMIUM_TASK_SECS='00:00:0{}'.format(_CACHE_AND_SIM_PURGE_PERIOD),
     )
 
 
@@ -90,7 +90,7 @@ def test_myapp_free_user_sim_purged(auth_fc):
         params=PKDict(days=_PURGE_FREE_AFTER_DAYS + 1),
     )
     time.sleep(_CACHE_AND_SIM_PURGE_PERIOD + 1)
-    _status_eq(next_req_free, 'free_user_purged')
+    _status_eq(next_req_free, 'job_run_purged')
     _check_run_dir(should_exist=0)
     fc.sr_email_login(user_premium)
     _status_eq(next_req_premium, 'completed')

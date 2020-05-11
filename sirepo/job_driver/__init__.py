@@ -25,7 +25,7 @@ KILL_TIMEOUT_SECS = 3
 #: map of driver names to class
 _CLASSES = None
 
-#: default class when not determined by request
+#: default class when not determined by op
 _DEFAULT_CLASS = None
 
 _DEFAULT_MODULE = 'local'
@@ -33,6 +33,8 @@ _DEFAULT_MODULE = 'local'
 cfg = None
 
 OPS_THAT_NEED_SLOTS = frozenset((job.OP_ANALYSIS, job.OP_RUN))
+
+_UNTIMED_OPS = frozenset((job.OP_ALIVE, job.OP_CANCEL, job.OP_ERROR, job.OP_KILL, job.OP_OK))
 
 
 class AgentMsg(PKDict):
@@ -42,40 +44,38 @@ class AgentMsg(PKDict):
         DriverBase.receive(self)
 
 
-def assign_instance_op(req, jobRunMode, op):
-    if jobRunMode == job.SBATCH:
-        res = _CLASSES[job.SBATCH].get_instance(req)
+def assign_instance_op(op):
+    m = op.msg
+    if m.jobRunMode == job.SBATCH:
+        res = _CLASSES[job.SBATCH].get_instance(op)
     else:
-        res = _DEFAULT_CLASS.get_instance(req)
-    assert req.content.uid == res.uid, \
-        'req.content.uid={} is not same as db.uid={} for jid={}'.format(
-            req.content.uid,
+        res = _DEFAULT_CLASS.get_instance(op)
+    assert m.uid == res.uid, \
+        'op.msg.uid={} is not same as db.uid={} for jid={}'.format(
+            m.uid,
             res.uid,
-            req.content.computeJid,
+            m.computeJid,
         )
-    op.driver = res
-    op.driver.ops[op.opId] = op
-    op.cpu_slot = op.driver.cpu_slot_q.sr_slot_proxy(op)
-    q = op.driver.op_slot_q.get(op.opName)
-    op.op_slot = q and q.sr_slot_proxy(op)
+    res.ops[op.opId] = op
+    return res
 
 
 class DriverBase(PKDict):
 
     __instances = PKDict()
 
-    _AGENT_STARTING_SECS = 5
+    _AGENT_STARTING_SECS_DEFAULT = 5
 
-    def __init__(self, req):
+    def __init__(self, op):
         super().__init__(
             driver_details=PKDict({'type': self.__class__.__name__}),
-            kind=req.kind,
+            kind=op.kind,
             ops=PKDict(),
             #TODO(robnagler) sbatch could override OP_RUN, but not OP_ANALYSIS
             # because OP_ANALYSIS touches the directory sometimes. Reasonably
             # there should only be one OP_ANALYSIS running on an agent at one time.
             op_slot_q=PKDict({k: job_supervisor.SlotQueue() for k in OPS_THAT_NEED_SLOTS}),
-            uid=req.content.uid,
+            uid=op.msg.uid,
             _agentId=job.unique_key(),
             _agent_start_lock=tornado.locks.Lock(),
             _agent_starting_timeout=None,
@@ -133,6 +133,9 @@ class DriverBase(PKDict):
             ),
             libFileList=[f.basename for f in d.listdir()],
         )
+
+    def op_is_untimed(self, op):
+        return op.opName in _UNTIMED_OPS
 
     def pkdebug_str(self):
         return pkdformat(
@@ -235,7 +238,7 @@ class DriverBase(PKDict):
                 # All awaits must be after this. If a call hangs the timeout
                 # handler will cancel this task
                 self._agent_starting_timeout = tornado.ioloop.IOLoop.current().call_later(
-                    self._AGENT_STARTING_SECS,
+                    self.cfg.agent_starting_secs,
                     self._agent_starting_timeout_handler,
                 )
                 # POSIT: CancelledError isn't smothered by any of the below calls
@@ -254,7 +257,7 @@ class DriverBase(PKDict):
             self._agent_starting_timeout = None
 
     def _agent_starting_timeout_handler(self):
-        pkdlog('{} timeout={}', self, self._AGENT_STARTING_SECS)
+        pkdlog('{} timeout={}', self, self.cfg.agent_starting_secs)
         self.free_resources(internal_error='timeout waiting for agent to start')
 
     def _has_remote_agent(self):

@@ -51,19 +51,25 @@ class MadXParser(lattice.LatticeParser):
                 name=seq.name,
                 items=[],
             )
-            #TODO(pjm): need to realign elements which are not "at" entry
-            # assert 'refer' not in seq or seq.refer.lower() == 'entry', \
-            #     'unsupported sequence refer: {}: {}'.format(seq.name, seq.refer)
+            alignment = seq.refer.lower() if 'refer' in seq else 'centre'
+            assert alignment in ('entry', 'centre', 'exit'), \
+                'invalid sequence alignment: {}'.format(alignment)
             prev = None
             for item in seq['items']:
                 el = util.id_map[item[0]]
                 at = self._eval_var(code_var, item[1])
+                length = self._eval_var(code_var, el.get('l', 0))
+                entry = at
+                if alignment == 'centre':
+                    entry = at - length / 2
+                elif alignment == 'exit':
+                    entry = at - length
                 if prev is not None:
-                    d = self._get_drift(drifts, at - prev)
+                    d = self._get_drift(drifts, entry - prev)
                     if d:
                         beamline['items'].append(d)
                 beamline['items'].append(el._id)
-                prev = at + self._eval_var(code_var, el.get('l', 0))
+                prev = entry + length
             if len(beamline['items']):
                 if 'l' in seq:
                     d = self._get_drift(drifts, self._eval_var(code_var, seq.l) - prev)

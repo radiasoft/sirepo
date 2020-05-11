@@ -29,20 +29,20 @@ class LocalDriver(job_driver.DriverBase):
 
     __cpu_slot_q = PKDict()
 
-    def __init__(self, req):
-        super().__init__(req)
+    def __init__(self, op):
+        super().__init__(op)
         self.update(
-            _agent_exec_dir=pkio.py_path(req.content.userDir).join(
+            _agent_exec_dir=pkio.py_path(op.msg.userDir).join(
                 'agent-local',
                 self._agentId,
             ),
             _agent_exit=tornado.locks.Event(),
         )
-        self.cpu_slot_q = self.__cpu_slot_q[req.kind]
+        self.cpu_slot_q = self.__cpu_slot_q[op.kind]
         self.__instances[self.kind].append(self)
 
     @classmethod
-    def get_instance(cls, req):
+    def get_instance(cls, op):
         # TODO(robnagler) need to introduce concept of parked drivers for reallocation.
         # a driver is freed as soon as it completes all its outstanding ops. For
         # _run(), this is an outstanding op, which holds the driver until the _run()
@@ -60,17 +60,17 @@ class LocalDriver(job_driver.DriverBase):
         # need to have an allocation per user, e.g. 2 sequential and one 1 parallel.
         # _Slot() may have to understand this, because related to parking. However,
         # we are parking a driver so maybe that's a (local) driver mechanism
-        for d in cls.__instances[req.kind]:
+        for d in cls.__instances[op.kind]:
             # SECURITY: must only return instances for authorized user
-            if d.uid == req.content.uid:
+            if d.uid == op.msg.uid:
                 return d
-        return cls(req)
+        return cls(op)
 
     @classmethod
     def init_class(cls, job_supervisor):
         cls.cfg = pkconfig.init(
             agent_starting_secs=(
-                cls._AGENT_STARTING_SECS,
+                cls._AGENT_STARTING_SECS_DEFAULT,
                 int,
                 'how long to wait for agent start',
             ),
