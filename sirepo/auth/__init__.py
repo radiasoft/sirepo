@@ -61,9 +61,6 @@ _UWSGI_LOG_KEY_USER = 'sirepo_user'
 #: For formatting the size parameter to an avatar_uri
 _AVATAR_SIZE = 40
 
-#: uwsgi object for logging
-_uwsgi = None
-
 #: methods + deprecated_methods
 valid_methods = None
 
@@ -661,7 +658,7 @@ def _parse_display_name(value):
 
 
 def _set_log_user():
-    if not _uwsgi:
+    if not _app.sirepo_uwsgi:
         # Only works for uWSGI (service.uwsgi). sirepo.service.http uses
         # the limited http server for development only. This uses
         # werkzeug.serving.WSGIRequestHandler.log which hardwires the
@@ -673,7 +670,7 @@ def _set_log_user():
         u = cookie.unchecked_get_value(_COOKIE_STATE) + '-' + u
     else:
         u = '-'
-    _app.uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, u)
+    _app.sirepo_uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, u)
 
 
 def _validate_method(module, sim_type=None):
