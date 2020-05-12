@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkconst
 from pykern import pkio
+from pykern import pkjinja
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
@@ -519,6 +520,11 @@ def api_staticFile(path_info=None):
     Returns:
         flask.Response: flask.send_from_directory response
     """
+    if re.match(r'en/.*html', path_info):
+        return pkjinja.render_file(
+            simulation_db.STATIC_FOLDER.join(path_info) + '.jinja',
+            cfg
+        )
     return flask.send_from_directory(
         str(simulation_db.STATIC_FOLDER),
         path_info,
@@ -704,5 +710,6 @@ def static_dir(dir_name):
 cfg = pkconfig.init(
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
     db_dir=pkconfig.ReplacedBy('sirepo.srdb.root'),
+    google_tag_manager_id=('XXX', str, 'GOOGLY'),
     job_queue=pkconfig.ReplacedBy('sirepo.runner.job_class'),
 )
