@@ -710,6 +710,5 @@ def static_dir(dir_name):
 cfg = pkconfig.init(
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
     db_dir=pkconfig.ReplacedBy('sirepo.srdb.root'),
-    google_tag_manager_id=('XXX', str, 'GOOGLY'),
     job_queue=pkconfig.ReplacedBy('sirepo.runner.job_class'),
 )
