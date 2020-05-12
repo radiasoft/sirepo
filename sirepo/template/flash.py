@@ -86,7 +86,7 @@ _DEFAULT_VALUES = {
             'y3': 'Burning rate',
         },
     },
-    'CapLaser': {
+    'CapLaserBELLA': {
         'varAnimation': {
             'var': 'tele',
         },
@@ -261,7 +261,7 @@ _DEFAULT_VALUES = {
         'physics:Diffuse:Unsplit': {
             'diff_thetaImplct': 1.0,
         },
-        'Simulation:magnetoHD:CapLaser': {
+        'Simulation:magnetoHD:CapLaserBELLA': {
             'sim_peakField': 3.2e3,
             'sim_period': 400e-9,
             'sim_rhoWall': 2.7,
@@ -429,7 +429,7 @@ _PLOT_COLUMNS = {
         ['burned mass', 9],
         ['burning rate', 12],
     ],
-    'CapLaser': [
+    'CapLaserBELLA': [
         ['x-momentum', 2],
         ['y-momentum', 3],
         ['E kinetic', 6],
