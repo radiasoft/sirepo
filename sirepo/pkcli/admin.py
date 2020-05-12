@@ -49,10 +49,7 @@ def audit_proprietary_lib_files(*uid):
                 )
 
     def _link_or_unlink_proprietary_files(sim_type, should_link):
-        for f in proprietary_code_dir(sim_type).listdir(
-                fil=lambda x: x.check(file=True),
-                sort=True,
-        ):
+        for f in pkio.sorted_glob(proprietary_code_dir(sim_type).join('*')):
             p = simulation_db.simulation_lib_dir(sim_type).join(f.basename)
             if not should_link:
                 pkio.unchecked_remove(p)
@@ -114,7 +111,7 @@ def setup_dev_proprietary_code(sim_type, rpm_url):
 
     urllib.request.urlretrieve(
         rpm_url,
-        d.join(getattr(s, '{}_RPM'.format(sim_type.upper()))),
+        d.join(s.proprietary_code_rpm()),
     )
 
 

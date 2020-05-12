@@ -13,8 +13,7 @@ import sirepo.util
 
 class SimData(sirepo.sim_data.SimDataBase):
 
-    FLASH_RPM = 'flash.rpm'
-    _FLASH_EXE_PREFIX = 'flash4'
+    _FLASH_PREFIX = 'flash4'
     _FLASH_SETUP_UNITS_PREFIX = 'setup_units'
 
     @classmethod
@@ -33,7 +32,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         import distutils.spawn
         p = distutils.spawn.find_executable(
             '{}-{}'.format(
-                cls._FLASH_EXE_PREFIX,
+                cls._FLASH_PREFIX,
                 data.models.simulation.flashType,
             ),
         )
@@ -47,7 +46,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             '..',
             '..',
             'share',
-            cls._FLASH_EXE_PREFIX,
+            cls._FLASH_PREFIX,
             f'{cls._FLASH_SETUP_UNITS_PREFIX}-{data.models.simulation.flashType}',
         )
 

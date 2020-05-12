@@ -462,6 +462,10 @@ class SimDataBase(object):
         return 2 if cls.is_parallel(data) else 1
 
     @classmethod
+    def proprietary_code_rpm(cls):
+        return f'{cls.sim_type()}.rpm'
+
+    @classmethod
     def resource_dir(cls):
         return cls._memoize(resource_dir().join(cls.sim_type()))
 

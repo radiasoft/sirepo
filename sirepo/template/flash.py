@@ -414,7 +414,7 @@ def _extract_rpm(data):
     #SECURITY: No user defined input in cmd so shell=True is ok
     subprocess.check_output(
         "rpm2cpio '{}' | cpio --extract --make-directories".format(
-            _SIM_DATA.lib_file_abspath(_SIM_DATA.FLASH_RPM),
+            _SIM_DATA.lib_file_abspath(_SIM_DATA.proprietary_code_rpm()),
         ),
         cwd='/',
         shell=True,
