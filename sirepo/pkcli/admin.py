@@ -30,7 +30,7 @@ _PROPRIETARY_CODE_DIR = 'proprietary_code'
 def audit_proprietary_lib_files(*uid):
     """Add/removes proprietary files based on a user's roles
 
-    For example, add the Flash executable if user has the flash role.
+    For example, add the Flash rpm if user has the flash role.
 
     Args:
         *uid: Uid(s) of the user(s) to audit. If None all users will be audited.
@@ -49,16 +49,15 @@ def audit_proprietary_lib_files(*uid):
                 )
 
     def _link_or_unlink_proprietary_files(sim_type, should_link):
-        d = proprietary_code_dir(sim_type)
-        for e in simulation_db.examples(sim_type):
-            b = sim_data.get_class(sim_type).proprietary_lib_file_basename(e)
-            p = simulation_db.simulation_lib_dir(sim_type).join(b)
+        for f in pkio.sorted_glob(proprietary_code_dir(sim_type).join('*')):
+            p = simulation_db.simulation_lib_dir(sim_type).join(f.basename)
             if not should_link:
                 pkio.unchecked_remove(p)
                 continue
             try:
+                assert f.check(file=True), f'{f} not found'
                 p.mksymlinkto(
-                    d.join(b),
+                    f,
                     absolute=False,
                 )
             except py.error.EEXIST:
@@ -91,6 +90,29 @@ def create_examples():
             for example in simulation_db.examples(sim_type):
                 if example.models.simulation.name not in names:
                     _create_example(example)
+
+
+def setup_dev_proprietary_code(sim_type, rpm_url):
+    """Get an rpm and put it in the proprietary code dir for a sim type.
+
+    Args:
+      sim_type (str): simulation type
+      rpm_url (str): Url of the rpm (file:// or http://)
+    """
+    import sirepo.pkcli.admin
+    import urllib.request
+
+    assert pkconfig.channel_in('dev'), \
+        'Only to be used in dev. channel={}'.format(pkconfig.cfg.channel)
+
+    d = sirepo.pkcli.admin.proprietary_code_dir(sim_type)
+    pkio.mkdir_parent(d)
+    s = sirepo.sim_data.get_class(sim_type)
+
+    urllib.request.urlretrieve(
+        rpm_url,
+        d.join(s.proprietary_code_rpm()),
+    )
 
 
 def move_user_sims(target_uid=''):

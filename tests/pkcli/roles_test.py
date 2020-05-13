@@ -13,6 +13,7 @@ def test_flash_change_role_change_lib_files(auth_fc):
     import sirepo.auth
     import sirepo.auth_db
     import sirepo.pkcli.roles
+    import sirepo.server
 
     def _change_role(add=True):
         f = getattr(sirepo.pkcli.roles, 'add_roles')
@@ -29,7 +30,8 @@ def test_flash_change_role_change_lib_files(auth_fc):
             [x.basename for x in pkio.walk_tree(fc.sr_user_dir(), _proprietary_file)],
         )
 
-    _proprietary_file = 'CapLaser.zip'
+    pkunit.data_dir().join('db').copy(sirepo.server._app.sirepo_db_dir)
+    _proprietary_file = 'flash.rpm'
     fc = auth_fc
     fc.sr_email_register('a@b.c', sim_type='flash')
 
