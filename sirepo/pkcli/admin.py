@@ -65,8 +65,8 @@ def audit_proprietary_lib_files(*uid):
                 pass
 
     server.init()
-    t = feature_config.cfg().proprietary_sim_types
-    if not t or not t.issubset(feature_config.cfg().sim_types):
+    t = feature_config.cfg().proprietary_sim_types.intersection(feature_config.cfg().sim_types)
+    if not t:
         return
     for u in uid or auth_db.all_uids():
         _audit_user(u, t)
