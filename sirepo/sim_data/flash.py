@@ -27,18 +27,19 @@ class SimData(sirepo.sim_data.SimDataBase):
             )
 
     @classmethod
-    def flash_exe_path(cls, data):
+    def flash_exe_path(cls, data, unchecked=False):
         from pykern import pkio
         import distutils.spawn
-        p = distutils.spawn.find_executable(
-            '{}-{}'.format(
-                cls._FLASH_PREFIX,
-                data.models.simulation.flashType,
-            ),
+        n = '{}-{}'.format(
+            cls._FLASH_PREFIX,
+            data.models.simulation.flashType,
         )
+        p = distutils.spawn.find_executable(n)
         if p:
             return pkio.py_path(p)
-        return  None
+        if unchecked:
+            return  None
+        raise AssertionError(f'unable to find executable={n}')
 
     @classmethod
     def flash_setup_units_path(cls, data):

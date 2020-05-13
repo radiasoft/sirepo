@@ -53,7 +53,7 @@ def audit_proprietary_lib_files(*uid):
             p = simulation_db.simulation_lib_dir(sim_type).join(f.basename)
             if not should_link:
                 pkio.unchecked_remove(p)
-                return
+                continue
             try:
                 assert f.check(file=True), f'{f} not found'
                 p.mksymlinkto(
