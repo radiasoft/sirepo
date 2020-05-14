@@ -3153,7 +3153,6 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
         ].join(''),
         controller: function($scope, $element) {
             $scope.sbatchQueueFieldIsDirty = false;
-            var model = appState.models[$scope.simState.model];
             var max = {
                 Hours: {
                     debug: 0.5,
@@ -3167,48 +3166,27 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                 }
             };
 
-            function setHoursAndCores() {
-                if (! (model.sbatchQueue in max.Hours)) {
-                    return;
-                }
-                trimHoursAndCores();
-            }
-
-            function setQueueAndHoursAndCores() {
-                if (model.sbatchHours <= max.Hours.debug && model.sbatchCores <= max.Cores.debug) {
-                    model.sbatchQueue = 'debug';
-                    return;
-                }
-                model.sbatchQueue = 'regular';
-                trimHoursAndCores(model.sbatchQueue);
-            }
-
-            function trimHoursAndCores(queue) {
-                if (! queue) {
-                    queue = model.sbatchQueue;
-                }
+            function trimHoursAndCores() {
+                var m = appState.models[$scope.simState.model];
                 ['Hours', 'Cores'].forEach(function(e) {
-                    model['sbatch' + e] = Math.min(
-                        model['sbatch' + e],
-                        max[e][queue]
+                    var q = m.sbatchQueue;
+                    if (! (q in max[e])) {
+                        return;
+                    }
+                    m['sbatch' + e] = Math.min(
+                        m['sbatch' + e],
+                        max[e][q]
                     );
                 });
             }
 
-            function onChange() {
-                if (! $scope.sbatchQueueFieldIsDirty) {
-                    setQueueAndHoursAndCores();
-                    return;
-                }
-                setHoursAndCores();
-            }
-
             ['sbatchCores', 'sbatchHours', 'sbatchQueue'].forEach(function(e) {
-                appState.watchModelFields($scope, [$scope.simState.model + '.' + e], onChange);
+                appState.watchModelFields($scope, [$scope.simState.model + '.' + e], trimHoursAndCores);
             });
 
             $scope.showCoresAndHours = function() {
-                return model && model.jobRunMode === 'sbatch';
+                var m = appState.models[$scope.simState.model];
+                return m && m.jobRunMode === 'sbatch';
             };
         }
     };
