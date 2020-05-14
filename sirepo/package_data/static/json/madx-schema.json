@@ -1,5 +1,10 @@
 {
     "dynamicFiles": {
+        "externalLibs": {
+        },
+        "sirepoLibs": {
+            "js": ["madx.js"]
+        }
     },
     "enum": {
         "ApertureType": [
