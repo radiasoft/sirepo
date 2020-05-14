@@ -3151,31 +3151,19 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                 '<div data-model-field="\'sbatchQueue\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"  data-ng-click="sbatchQueueFieldIsDirty = true"></div>',
             '</div>',
         ].join(''),
-        controller: function($scope, $element) {
+        controller: function($scope, authState) {
             $scope.sbatchQueueFieldIsDirty = false;
-            var max = {
-                Hours: {
-                    debug: 0.5,
-                    premium: 48,
-                    regular: 48,
-                },
-                Cores: {
-                    debug: 2048,
-                    premium: 56704,
-                    regular: 61824,
-                }
-            };
-
             function trimHoursAndCores() {
                 var m = appState.models[$scope.simState.model];
                 ['Hours', 'Cores'].forEach(function(e) {
                     var q = m.sbatchQueue;
-                    if (! (q in max[e])) {
+                    var maxes = authState.sbatchQueueMaxes[e.toLowerCase()];
+                    if (! (q in maxes)) {
                         return;
                     }
                     m['sbatch' + e] = Math.min(
                         m['sbatch' + e],
-                        max[e][q]
+                        maxes[q]
                     );
                 });
             }
