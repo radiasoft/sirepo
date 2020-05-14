@@ -94,7 +94,7 @@ def test_myapp_basic(fc):
             r'https://www.googletagmanager.com/gtm.js\?id=',
             pkcompat.from_bytes(r.data)
         ),
-        'Found improper google tag mgr script in /en/landing.html',
+        'Unexpected injection of google tag mgr',
     )
 
 

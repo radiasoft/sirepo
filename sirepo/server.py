@@ -20,6 +20,7 @@ from sirepo import srschema
 from sirepo import uri_router
 import flask
 import importlib
+import os
 import re
 import sirepo.sim_data
 import sirepo.srdb
@@ -710,5 +711,6 @@ def static_dir(dir_name):
 cfg = pkconfig.init(
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
     db_dir=pkconfig.ReplacedBy('sirepo.srdb.root'),
+    google_tag_manager_id=(os.environ.get('SIREPO_SERVER_GOOGLE_TAG_MANAGER_ID', None), str, 'tag mgr id from google'),
     job_queue=pkconfig.ReplacedBy('sirepo.runner.job_class'),
 )
