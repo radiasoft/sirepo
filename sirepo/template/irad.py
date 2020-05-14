@@ -11,33 +11,25 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
+import sirepo.sim_data
 
-SIM_TYPE = 'irad'
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 CT_FILE = 'ct.zip'
 RTDOSE_FILE = 'rtdose.zip'
 RTSTRUCT_FILE = 'rtstruct-data.json'
 
-_SCHEMA = simulation_db.get_schema(SIM_TYPE)
-_VTI_FILE = 'index.json'
-
-def get_application_data(data, **kwargs):
-    if data['method'] == 'roi_points':
-        return _read_roi_file(data['simulationId'])
-    assert False, 'no handler for method: {}'.format(data['method'])
+_FRAME_FILENAME = PKDict({
+    _SCHEMA.constants.dicomFrame: CT_FILE,
+    _SCHEMA.constants.doseFrame: RTDOSE_FILE,
+    _SCHEMA.constants.roiFrame: RTSTRUCT_FILE,
+})
 
 
 def get_data_file(run_dir, model, frame, **kwargs):
     sim_id = simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME)).simulationId
-    if frame == 1:
-        filename = sim_file(sim_id, CT_FILE)
-    elif frame == 2:
-        filename = sim_file(sim_id, RTDOSE_FILE)
-    else:
-        assert False, 'invalid frame: {}'.format(frame)
     return PKDict(
-        uri=_VTI_FILE,
-        filename=pkio.py_path(filename),
+        filename=pkio.py_path(sim_file(sim_id, _FRAME_FILENAME[frame])),
     )
 
 
@@ -47,11 +39,3 @@ def sim_file(sim_id, filename):
 
 def write_parameters(data, run_dir, is_parallel):
     pass
-
-
-def _read_roi_file(sim_id):
-    return simulation_db.read_json(_roi_file(sim_id))
-
-
-def _roi_file(sim_id):
-    return sim_file(sim_id, RTSTRUCT_FILE)

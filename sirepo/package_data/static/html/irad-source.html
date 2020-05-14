@@ -5,10 +5,17 @@
         <div data-dicom-object-selector=""></div>
       </div>
     </div>
-    <div class="col-md-10">
+    <div class="col-md-10" data-ng-if="source.dicomReports">
       <div class="row">
+        <div data-ng-if="source.downloadStatus()" class="col-sm-12">
+          <div class="progress" style="height: 28px; margin-bottom: 5px">
+            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%; font-size: 24px">
+              <span class="glyphicon glyphicon-hourglass"></span> {{ source.downloadStatus() }}
+            </div>
+          </div>
+        </div>
         <div class="col-md-6 irad-col-nopadding">
-          <div data-report-panel="dicomTranspose" data-model-name="dicomReport" data-panel-title="{{ source.iradService.dicomTitle('t') }}"></div>
+          <div data-report-panel="dicomPlot" data-model-data="source.dicomReports[0]" data-view-name="dicomReport" data-panel-title="{{ source.dicomReports[0].title() }}"></div>
         </div>
         <div data-ng-show="source.showReport('3d')" class="col-md-6 irad-col-nopadding">
           <div data-report-panel="dicom3d" data-model-name="dicom3DReport"></div>
@@ -18,10 +25,10 @@
         </div>
         <div class="clearfix"></div>
         <div class="col-md-6 irad-col-nopadding">
-          <div data-report-panel="dicomSagittal" data-model-name="dicomReport" data-panel-title="{{ source.iradService.dicomTitle('s') }}"></div>
+          <div data-report-panel="dicomPlot" data-model-data="source.dicomReports[1]" data-view-name="dicomReport" data-panel-title="{{ source.dicomReports[1].title() }}"></div>
         </div>
         <div class="col-md-6 irad-col-nopadding">
-          <div data-report-panel="dicomCoronal" data-model-name="dicomReport" data-panel-title="{{ source.iradService.dicomTitle('c') }}"></div>
+          <div data-report-panel="dicomPlot" data-model-data="source.dicomReports[2]" data-view-name="dicomReport" data-panel-title="{{ source.dicomReports[2].title() }}"></div>
         </div>
       </div>
     </div>

@@ -11,6 +11,9 @@
         ]
     },
     "constants": {
+        "dicomFrame": 1,
+        "doseFrame": 2,
+        "roiFrame": 3
     },
     "dynamicFiles": {
         "externalLibs": {

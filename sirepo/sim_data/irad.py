@@ -21,6 +21,21 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
+        if 'dicomReports' not in dm:
+            dm.dicomReports = [
+                PKDict(
+                    id=1,
+                    dicomPlane='t',
+                ),
+                PKDict(
+                    id=2,
+                    dicomPlane='s',
+                ),
+                PKDict(
+                    id=3,
+                    dicomPlane='c',
+                ),
+            ]
 
 
     @classmethod

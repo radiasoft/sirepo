@@ -84,3 +84,22 @@
 .irad-pad-right {
   padding-right: 5px;
 }
+
+.irad-dicom-slider {
+  height: 15px;
+  background: black;
+  -webkit-appearance: none;
+}
+.irad-dicom-slider::-webkit-slider-thumb {
+  width: 20px;
+  height: 15px;
+  background: #337ab7;
+  cursor:pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.irad-dicom-slider::-moz-range-thumb {
+  width: 20px;
+  background: #337ab7;
+  cursor:pointer;
+}
