@@ -43,6 +43,8 @@ _PID_FILE = 'job_agent.pid'
 
 _PY2_CODES = frozenset(())
 
+_SBATCH_QUEUES = ('debug', 'realtime', 'regular')
+
 cfg = None
 
 
@@ -651,6 +653,8 @@ class _SbatchRun(_SbatchCmd):
     def _sbatch_script(self):
         i = self.msg.shifterImage
         s = o = ''
+        assert self.msg.sbatchQueue in _SBATCH_QUEUES, \
+            f'sbatchQueue={self.msg.sbatchQueue} not a valid queue {_SBATCH_QUEUES}'
         if i:
 #TODO(robnagler) provide via sbatch driver
             o = f'''#SBATCH --image={i}

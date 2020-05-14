@@ -3170,29 +3170,33 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                 if (! (model.sbatchQueue in max.Hours)) {
                     return;
                 }
-                ['Hours', 'Cores'].forEach(function(e) {
-                    model['sbatch' + e] = Math.min(
-                        model['sbatch' + e],
-                        max[e][model.sbatchQueue]
-                    );
-                });
+                trimHoursAndCores()
             }
 
-            function setQueue() {
+            function setQueueAndHoursAndCores() {
                 if (model.sbatchHours <= max.Hours.debug && model.sbatchCores <= max.Cores.debug) {
                     model.sbatchQueue = 'debug';
                     return;
                 }
-                if (model.sbatchHours <= max.Hours.regular && model.sbatchCores <=  max.Cores.regular) {
-                    model.sbatchQueue = 'regular';
-                    return;
+                model.sbatchQueue = 'regular';
+                trimHoursAndCores(model.sbatchQueue);
+            }
+
+            function trimHoursAndCores(queue) {
+                if (! queue) {
+                    queue = model.sbatchQueue
                 }
-                model.sbatchQueue = 'realtime';
+                ['Hours', 'Cores'].forEach(function(e) {
+                    model['sbatch' + e] = Math.min(
+                        model['sbatch' + e],
+                        max[e][queue]
+                    );
+                });
             }
 
             function onChange() {
                 if (! $scope.sbatchQueueFieldIsDirty) {
-                    setQueue();
+                    setQueueAndHoursAndCores();
                     return;
                 }
                 setHoursAndCores();

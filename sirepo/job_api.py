@@ -257,6 +257,10 @@ def _request_content(kwargs):
 
 
 def _run_mode(request_content):
+    def _validate_value(value, *obj_types):
+        assert type(value) in obj_types and value > 0, \
+            f'value={value} expecting a {obj_type} > 0'
+
     if 'models' not in request_content.data:
         return request_content
 #TODO(robnagler) make sure this is set for animation sim frames
@@ -274,6 +278,8 @@ def _run_mode(request_content):
                 request_content.computeJid,
             )
         )
+    _validate_value(m.sbatchCores, int)
+    _validate_value(m.sbatchHours, float, int)
     return request_content.pkupdate(
         jobRunMode=j,
         sbatchCores=m.sbatchCores,
