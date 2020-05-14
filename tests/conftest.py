@@ -125,7 +125,6 @@ def pytest_collection_modifyitems(session, config, items):
         srw='srwl_bl',
         synergia='synergia',
         warp='warp',
-        zgoubi='zgoubi',
     )
     all_codes = set(sirepo.feature_config.ALL_CODES)
     codes = set()

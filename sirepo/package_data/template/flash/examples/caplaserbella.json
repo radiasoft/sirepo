@@ -384,7 +384,7 @@
             "vel_pert_amp": 0,
             "vel_pert_wavelength1": 1
         },
-        "Simulation:magnetoHD:CapLaser": {
+        "Simulation:magnetoHD:CapLaserBELLA": {
             "sim_condWall": 150000,
             "sim_eosFill": "eos_gam",
             "sim_eosWall": "eos_tab",
@@ -778,7 +778,7 @@
         "simFolder": {},
         "simulation": {
             "documentationUrl": "",
-            "flashType": "CapLaser",
+            "flashType": "CapLaserBELLA",
             "folder": "/Examples",
             "isExample": true,
             "name": "Cap Laser",
