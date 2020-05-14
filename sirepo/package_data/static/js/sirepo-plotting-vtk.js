@@ -178,7 +178,15 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
             },
 
             userMatrix: function () {
-                var m = transform.matrix.flat();
+                // Array.flat() doesn't exist in MS browsers
+                // var m = transform.matrix.flat();
+                var matrix = transform.matrix;
+                var m = [];
+                for (var i = 0; i < matrix.length; i++) {
+                    for (var j = 0; j < matrix[i].length; j++) {
+                        m.push(matrix[i][j]);
+                    }
+                }
                 m.splice(3, 0, 0);
                 m.splice(7, 0, 0);
                 m.push(0);
