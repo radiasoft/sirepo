@@ -3154,15 +3154,16 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
         controller: function($scope, $element) {
             $scope.sbatchQueueFieldIsDirty = false;
             var model = appState.models[$scope.simState.model];
-            var coresPerNode = 32;
             var max = {
                 Hours: {
-                    debug: 0.4,
-                    regular: 47
+                    debug: 0.5,
+                    premium: 48,
+                    regular: 48,
                 },
                 Cores: {
-                    debug: 62 * coresPerNode,
-                    regular: 1932 * coresPerNode
+                    debug: 2048,
+                    premium: 56704,
+                    regular: 61824,
                 }
             };
 
@@ -3170,7 +3171,7 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                 if (! (model.sbatchQueue in max.Hours)) {
                     return;
                 }
-                trimHoursAndCores()
+                trimHoursAndCores();
             }
 
             function setQueueAndHoursAndCores() {
@@ -3184,7 +3185,7 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
 
             function trimHoursAndCores(queue) {
                 if (! queue) {
-                    queue = model.sbatchQueue
+                    queue = model.sbatchQueue;
                 }
                 ['Hours', 'Cores'].forEach(function(e) {
                     model['sbatch' + e] = Math.min(

@@ -257,9 +257,9 @@ def _request_content(kwargs):
 
 
 def _run_mode(request_content):
-    def _validate_value(value, *obj_types):
-        assert type(value) in obj_types and value > 0, \
-            f'value={value} expecting a {obj_type} > 0'
+    def _validate_value(value, *types):
+        assert type(value) in types and value > 0, \
+            f'value={value} expecting a {types} > 0'
 
     if 'models' not in request_content.data:
         return request_content

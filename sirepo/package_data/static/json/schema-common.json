@@ -235,6 +235,7 @@
             ],
             "SbatchQueue": [
                 ["debug", "debug"],
+                ["premium", "premium"],
                 ["realtime", "realtime"],
                 ["regular", "regular"]
             ]
