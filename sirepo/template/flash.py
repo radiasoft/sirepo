@@ -19,10 +19,6 @@ import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
-_FLASH_UNITS_PATH = {
-    'RTFlame': '/home/vagrant/src/FLASH4.5/object/setup_units',
-    'CapLaser': '/home/vagrant/src/FLASH4.5/CapLaser/setup_units',
-}
 _GRID_EVOLUTION_FILE = 'flash.dat'
 _PLOT_FILE_PREFIX = 'flash_hdf5_plt_cnt_'
 
@@ -90,7 +86,7 @@ _DEFAULT_VALUES = {
             'y3': 'Burning rate',
         },
     },
-    'CapLaser': {
+    'CapLaserBELLA': {
         'varAnimation': {
             'var': 'tele',
         },
@@ -265,7 +261,7 @@ _DEFAULT_VALUES = {
         'physics:Diffuse:Unsplit': {
             'diff_thetaImplct': 1.0,
         },
-        'Simulation:magnetoHD:CapLaser': {
+        'Simulation:magnetoHD:CapLaserBELLA': {
             'sim_peakField': 3.2e3,
             'sim_period': 400e-9,
             'sim_rhoWall': 2.7,
@@ -410,6 +406,22 @@ def _cell_size(f, refine_max):
     assert False, 'no blocks with appropriate refine level'
 
 
+def _extract_rpm(data):
+    import subprocess
+
+    if _SIM_DATA.flash_exe_path(data, unchecked=True):
+        return
+    subprocess.check_output(
+        "rpm2cpio '{}' | cpio --extract --make-directories".format(
+            _SIM_DATA.lib_file_abspath(_SIM_DATA.proprietary_code_rpm()),
+        ),
+        cwd='/',
+        #SECURITY: No user defined input in cmd so shell=True is ok
+        shell=True,
+        stderr=subprocess.STDOUT,
+    )
+
+
 #TODO(pjm): plot columns are hard-coded for flashType
 _PLOT_COLUMNS = {
     'RTFlame': [
@@ -417,17 +429,19 @@ _PLOT_COLUMNS = {
         ['burned mass', 9],
         ['burning rate', 12],
     ],
-    'CapLaser': [
+    'CapLaserBELLA': [
         ['x-momentum', 2],
         ['y-momentum', 3],
         ['E kinetic', 6],
     ],
 }
 
+
 def _generate_parameters_file(data):
+    _extract_rpm(data)
     res = ''
     names = {}
-    for line in pkio.read_text(_FLASH_UNITS_PATH[data.models.simulation.flashType]).split('\n'):
+    for line in pkio.read_text(_SIM_DATA.flash_setup_units_path(data)).split('\n'):
         name = ''
         #TODO(pjm): share with setup_params parser
         for part in line.split('/'):

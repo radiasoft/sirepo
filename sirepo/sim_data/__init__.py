@@ -422,7 +422,7 @@ class SimDataBase(object):
         if isinstance(obj, pkconfig.STRING_TYPES):
             res = obj
         elif isinstance(obj, dict):
-            res = obj.get('frameReport') or obj.get('report')
+            res = obj.get('frameReport') or obj.get('report') or obj.get('computeModel')
         else:
             raise AssertionError('obj={} is unsupported type={}', obj, type(obj))
         assert res and _MODEL_RE.search(res), \
@@ -460,6 +460,10 @@ class SimDataBase(object):
             int: number of seconds to poll
         """
         return 2 if cls.is_parallel(data) else 1
+
+    @classmethod
+    def proprietary_code_rpm(cls):
+        return f'{cls.sim_type()}.rpm'
 
     @classmethod
     def resource_dir(cls):
@@ -649,6 +653,10 @@ class SimDataBase(object):
         dm = data.models
         if dm.simulation.get('isExample') and dm.simulation.folder == '/':
             dm.simulation.folder = '/Examples'
+
+
+def uid_from_jid(jid):
+    return jid.split(_JOB_ID_SEP)[0]
 
 
 def _init():

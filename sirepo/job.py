@@ -30,6 +30,9 @@ OP_SBATCH_LOGIN = 'sbatch_login'
 #: path supervisor registers to receive messages from agent
 AGENT_URI = '/job-agent-websocket'
 
+#: path supervisor registers to receive srtime adjustments from server
+SERVER_SRTIME_URI = '/job-api-srtime'
+
 #: path supervisor registers to receive requests from server
 SERVER_URI = '/job-api-request'
 
@@ -77,6 +80,7 @@ RUNNER_STATUS_FILE = 'status'
 CANCELED = 'canceled'
 COMPLETED = 'completed'
 ERROR = 'error'
+JOB_RUN_PURGED = 'job_run_purged'
 MISSING = 'missing'
 PENDING = 'pending'
 RUNNING = 'running'

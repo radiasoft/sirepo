@@ -10,7 +10,7 @@ lattice_file = """
 "D2": DRIF,l=0.45
 "D3": DRIF,l=0.3
 "D4": DRIF,l=1.48646
-"M1": DRIF,l=0
+"M1": DRIF
 "Q1": QUAD,k1=-0.55040428581,l=0.5
 "Q2": QUAD,k1=0.40048073035,l=0.5
 "B1": CSBEND,angle="36 pi * 180 /",l=2.54948

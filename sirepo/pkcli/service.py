@@ -20,9 +20,27 @@ import os
 import py
 import re
 import signal
-import sirepo.srdb
 import socket
 import subprocess
+
+_cfg = None
+
+
+def cfg():
+    global _cfg
+    if not _cfg:
+        _cfg = pkconfig.init(
+            ip=('0.0.0.0', _cfg_ip, 'what IP address to open'),
+            nginx_proxy_port=(8080, _cfg_int(5001, 32767), 'port on which nginx_proxy listens'),
+            port=(8000, _cfg_int(5001, 32767), 'port on which uwsgi or http listens'),
+            processes=(1, _cfg_int(1, 16), 'how many uwsgi processes to start'),
+            run_dir=(None, str, 'where to run the program (defaults db_dir)'),
+            # uwsgi got hung up with 1024 threads on a 4 core VM with 4GB
+            # so limit to 128, which is probably more than enough with
+            # this application.
+            threads=(10, _cfg_int(1, 128), 'how many uwsgi threads in each process'),
+        )
+    return _cfg
 
 
 def flask():
@@ -36,8 +54,8 @@ def flask():
         import werkzeug.serving
         werkzeug.serving.click = None
         app.run(
-            host=cfg.ip,
-            port=cfg.port,
+            host=cfg().ip,
+            port=cfg().port,
             threaded=True,
             use_reloader=use_reloader,
         )
@@ -102,8 +120,7 @@ def nginx_proxy():
     run_dir = _run_dir().join('nginx_proxy').ensure(dir=True)
     with pkio.save_chdir(run_dir):
         f = run_dir.join('default.conf')
-        values = dict(pkcollections.map_items(cfg))
-        pkjinja.render_resource('nginx_proxy.conf', values, output=f)
+        pkjinja.render_resource('nginx_proxy.conf', cfg(), output=f)
         cmd = [
             'docker',
             'run',
@@ -119,7 +136,7 @@ def uwsgi():
     """Starts UWSGI server"""
     run_dir = _run_dir()
     with pkio.save_chdir(run_dir):
-        values = dict(pkcollections.map_items(cfg))
+        values = cfg().copy()
         values['logto'] = None if pkconfig.channel_in('dev') else str(run_dir.join('uwsgi.log'))
         # uwsgi.py must be first, because values['uwsgi_py'] referenced by uwsgi.yml
         for f in ('uwsgi.py', 'uwsgi.yml'):
@@ -168,20 +185,8 @@ def _cfg_ip(value):
 
 def _run_dir():
     from sirepo import server
+    import sirepo.srdb
 
-    if not isinstance(cfg.run_dir, type(py.path.local())):
-        cfg.run_dir = pkio.mkdir_parent(cfg.run_dir) if cfg.run_dir else sirepo.srdb.root()
-    return cfg.run_dir
-
-
-cfg = pkconfig.init(
-    ip=('0.0.0.0', _cfg_ip, 'what IP address to open'),
-    nginx_proxy_port=(8080, _cfg_int(5001, 32767), 'port on which nginx_proxy listens'),
-    port=(8000, _cfg_int(5001, 32767), 'port on which uwsgi or http listens'),
-    processes=(1, _cfg_int(1, 16), 'how many uwsgi processes to start'),
-    run_dir=(None, str, 'where to run the program (defaults db_dir)'),
-    # uwsgi got hung up with 1024 threads on a 4 core VM with 4GB
-    # so limit to 128, which is probably more than enough with
-    # this application.
-    threads=(10, _cfg_int(1, 128), 'how many uwsgi threads in each process'),
-)
+    if not isinstance(cfg().run_dir, type(py.path.local())):
+        cfg().run_dir = pkio.mkdir_parent(cfg().run_dir) if cfg().run_dir else sirepo.srdb.root()
+    return cfg().run_dir

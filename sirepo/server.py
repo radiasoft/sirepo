@@ -31,7 +31,7 @@ import werkzeug.exceptions
 
 
 #TODO(pjm): this import is required to work-around template loading in listSimulations, see #1151
-if any(k in feature_config.cfg().sim_types for k in ('flash', 'rs4pi', 'synergia', 'warppba', 'warpvnd')):
+if any(k in feature_config.cfg().sim_types for k in ('flash', 'rs4pi', 'radia', 'synergia', 'warppba', 'warpvnd')):
     import h5py
 
 #: See sirepo.srunit
@@ -252,7 +252,11 @@ def api_getApplicationData(filename=None):
         if 'filename' in req:
             assert isinstance(res, pkconst.PY_PATH_LOCAL_TYPE), \
                 '{}: template did not return a file'.format(res)
-            return http_reply.gen_file_as_attachment(res, filename=req.filename)
+            return http_reply.gen_file_as_attachment(
+                res,
+                filename=req.filename,
+                content_type=req.req_data.get('contentType', None)
+            )
         return http_reply.gen_json(res)
 
 
@@ -495,7 +499,7 @@ def api_srUnit():
     v = getattr(flask.current_app, SRUNIT_TEST_IN_REQUEST)
     if v.want_user:
         import sirepo.auth
-        sirepo.auth.init_mock()
+        sirepo.auth.set_user_for_utils()
     if v.want_cookie:
         import sirepo.cookie
         sirepo.cookie.set_sentinel()

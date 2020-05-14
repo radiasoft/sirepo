@@ -50,6 +50,10 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                     actor.setMapper(this.m);
                     this.actor = actor;
                 },
+                setMapper: function (mapper) {
+                    this.mapper = mapper;
+                    this.actor.setMapper(mapper);
+                },
                 setSource: function (source) {
                     this.mapper.setInputConnection(source.getOutputPort());
                     this.source = source;
@@ -90,9 +94,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
             // arbitrary vtk source, transformed
             buildFromSource: function(src) {
                 // add transform
-                var ab = actorBundle(src);
-                ab.actor.setUserMatrix(this.userMatrix());
-                return ab;
+                return actorBundle(src);
             },
 
             buildLine: function(labP1, labP2, colorArray) {
@@ -127,7 +129,9 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 });
 
                 var ab = actorBundle(ps);
-                ab.actor.getProperty().setColor(colorArray[0], colorArray[1], colorArray[2]);
+                //ab.actor.getProperty().setColor(...(colorArray || [1, 1, 1]));
+                var ca = colorArray || [1, 1, 1];
+                ab.actor.getProperty().setColor(ca[0], ca[1], ca[2]);
                 ab.actor.getProperty().setLighting(false);
                 return ab;
             },
@@ -292,6 +296,51 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
         }
     };
 
+    self.cylinderSection = function(center, axis, radius, height, planes) {
+        var startAxis = [0, 0, 1];
+        var startOrigin = [0, 0, 0];
+        var cylBounds = [-radius, radius, -radius, radius, -height/2.0, height/2.0];
+        var cyl = vtk.Common.DataModel.vtkCylinder.newInstance({
+            radius: radius,
+            center: startOrigin,
+            axis: startAxis
+        });
+
+        var pl = planes.map(function (p) {
+            return vtk.Common.DataModel.vtkPlane.newInstance({
+                normal: p.norm || startAxis,
+                origin: p.origin || startOrigin
+            });
+        });
+
+        // perform the sectioning
+        var f = [cyl];
+        f.concat(pl);
+        var section = vtk.Common.DataModel.vtkImplicitBoolean.newInstance({
+            operation: 'Intersection',
+            functions: f
+            //functions: [cyl, ...pl]
+        });
+
+        var sectionSample = vtk.Imaging.Hybrid.vtkSampleFunction.newInstance({
+            implicitFunction: section,
+            modelBounds: cylBounds,
+            sampleDimensions: [32, 32, 32]
+        });
+
+        var sectionSource = vtk.Filters.General.vtkImageMarchingCubes.newInstance();
+        sectionSource.setInputConnection(sectionSample.getOutputPort());
+        // this transformation adapted from VTK cylinder source - we don't "untranslate" because we want to
+        // rotate in place, not around the global origin
+        vtk.Common.Core.vtkMatrixBuilder
+            .buildFromRadian()
+            //.translate(...center)
+            .translate(center[0], center[1], center[2])
+            .rotateFromDirections(startAxis, axis)
+            .apply(sectionSource.getOutputData().getPoints().getData());
+       return sectionSource;
+    };
+
     self.setColorScalars = function(data, color) {
         var pts = data.getPoints();
         var n = color.length * (pts.getData().length / pts.getNumberOfComponents());
@@ -312,32 +361,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
         );
 
         data.modified();
-    };
-
-
-    self.sirepoLogo3D = function() {
-        var source = vtk.Filters.General.vtkAppendPolyData.newInstance();
-        var r2 = 1.0;
-        var r1 = r2 / 2.0;
-        var R = 3 * r2;
-        for (var i = 0; i < 8; ++i) {
-            var th = (i + 1) * Math.PI / 4;
-            var s = vtk.Filters.Sources.vtkSphereSource.newInstance({
-                radius: r2 - (i * (r2 -r1) / 7),
-                center: [R * Math.sin(th),  R * Math.cos(th), 0],
-                thetaResolution: 24,
-                phiResolution: 24,
-            }).getOutputData();
-            if (i === 0) {
-                self.setColorScalars(s, [31, 91, 165]);
-                source.setInputData(s);
-            }
-            else {
-                self.setColorScalars(s, [154, 195, 85]);
-                source.addInputData(s);
-            }
-        }
-        return self.coordMapper().buildFromSource(source);
     };
 
     self.stlFileType = 'stl-file';
@@ -396,7 +419,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
 
         vpObj.source = vtkSource;
         vpObj.wCoord = worldCoord;
-        vpObj.worldCorners = wCorners();  //[];
+        vpObj.worldCorners = wCorners();
         vpObj.worldEdges = {};
 
         vpObj.viewportCorners = [];
@@ -673,7 +696,10 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
     };
 
     self.removeActors = function(renderer, actorArr) {
-        if (! actorArr ) {
+        if (! actorArr) {
+            renderer.getActors().forEach(function(actor) {
+                renderer.removeActor(actor);
+            });
             return;
         }
         actorArr.forEach(function(actor) {
@@ -734,29 +760,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
     };
 
     return self;
-});
-
-// General-purpose vtk display
-SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender, frameCache, geometry, plotting, vtkManager, vtkPlotting, layoutService, plotToPNG, utilities) {
-
-    return {
-        restrict: 'A',
-        //transclude: {
-        //    visabilityControlSlot: '?visabilityControl',
-        //},
-        scope: {
-            modelName: '@',
-            reportId: '<',
-        },
-        templateUrl: '/static/html/vtk-display.html' + SIREPO.SOURCE_CACHE_KEY,
-        controller: function($scope, $element) {
-            //TODO (mvk): fill in with common vtk stuff
-        },
-
-        link: function link(scope, element) {
-            vtkPlotting.vtkPlot(scope, element);
-        },
-    };
 });
 
 SIREPO.app.directive('stlFileChooser', function(validationService, vtkPlotting) {
@@ -898,29 +901,590 @@ SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUplo
 
 
 // will be axis display
-SIREPO.app.directive('vtkAxes', function(appState, panelState, requestSender, frameCache, plotting, vtkManager, vtkPlotting, layoutService, utilities, plotUtilities, geometry) {
-
+SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, requestSender, plotting, vtkAxisService, vtkPlotting, layoutService, utilities, geometry) {
     return {
         restrict: 'A',
         scope: {
-            width: '<',
+            axisCfg: '<',
+            boundObj: '<',
             height: '<',
-            vtkObj: '<',
+            width: '<',
         },
         template: [
-            '<g data-ng-repeat="dim in geometry.basis" class="{{ dim }} axis"></g>',
-            '<text class="{{ dim }}-axis-label"></text>',
-            '<text class="{{ dim }} axis-end low"></text>',
-            '<text class="{{ dim }} axis-end high"></text>',
+            '<svg data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}">',
+            '<g class="vtk-axes">',
+                '<g data-ng-repeat="dim in geometry.basis">',
+                    '<g class="{{ dim }} axis"></g>',
+                    '<text class="{{ dim }}-axis-label"></text>',
+                    '<text class="{{ dim }} axis-end low"></text>',
+                    '<text class="{{ dim }} axis-end high"></text>',
+                '</g>',
+            '</g>',
+            '</svg>',
         ].join(''),
         controller: function($scope, $element) {
+
+            $scope.axesMargins = {
+                x: { width: 16.0, height: 0.0 },
+                y: { width: 0.0, height: 16.0 }
+            };
+            $scope.geometry = geometry;
+            $scope.margin = {top: 50, right: 23, bottom: 50, left: 75};
+            //$scope.width = $scope.height = 0;
+
+            var d3self = d3.selectAll($element);
+
+            var axes = {
+                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh, utilities),
+                y: layoutService.plotAxis($scope.margin, 'y', 'bottom', refresh, utilities),
+                z: layoutService.plotAxis($scope.margin, 'z', 'left', refresh, utilities)
+            };
+
+            var axisCfgDefault = {};
+            geometry.basis.forEach(function (dim) {
+                axisCfgDefault[dim] = {};
+                axisCfgDefault[dim].dimLabel = dim;
+                axisCfgDefault[dim].label = dim;
+                axisCfgDefault[dim].max = 1;
+                axisCfgDefault[dim].min = 0;
+                axisCfgDefault[dim].numPoints = 10;
+                axisCfgDefault[dim].screenDim = dim === 'z' ? 'y' : 'x';
+            });
+
+            var axisCfg = axisCfgDefault;
+
+            function refresh() {
+                //srdbg('axes refresh', $scope, $scope.boundObj);
+
+                // If an axis is shorter than this, don't display it -- the ticks will
+                // be cramped and unreadable
+                var minAxisDisplayLen = 50;
+
+                for (var i in geometry.basis) {
+
+                    var dim = geometry.basis[i];
+
+                    var screenDim = axisCfg[dim].screenDim;
+                    var isHorizontal = screenDim === 'x';
+                    var axisEnds = isHorizontal ? ['◄', '►'] : ['▼', '▲'];
+                    var perpScreenDim = isHorizontal ? 'y' : 'x';
+
+                    var showAxisEnds = false;
+                    var axisSelector = '.' + dim + '.axis';
+                    var axisLabelSelector = '.' + dim + '-axis-label';
+
+                    // sort the external edges so we'll preferentially pick the left and bottom
+                    var externalEdges = $scope.boundObj.externalVpEdgesForDimension(dim)
+                        .sort(vtkAxisService.edgeSorter(perpScreenDim, ! isHorizontal));
+                    var seg = geometry.bestEdgeAndSectionInBounds(externalEdges, $scope.boundObj.boundingRect(), dim, false);
+
+                    if (! seg) {
+                        /*
+                        // all possible axis ends offscreen, so try a centerline
+                        var cl = $scope.boundObj.vpCenterLineForDimension(dim);
+                        seg = geometry.bestEdgeAndSectionInBounds([cl], $scope.boundObj.boundingRect(), dim, false);
+                        if (! seg) {
+                            // don't draw axes
+                            d3self.select(axisSelector).style('opacity', 0.0);
+                            d3self.select(axisLabelSelector).style('opacity', 0.0);
+                            continue;
+                        }
+                        showAxisEnds = true;
+                        */
+                        d3self.select(axisSelector).style('opacity', 0.0);
+                        d3self.select(axisLabelSelector).style('opacity', 0.0);
+                        continue;
+                    }
+                    d3self.select(axisSelector).style('opacity', 1.0);
+
+                    var fullSeg = seg.full;
+                    var clippedSeg = seg.clipped;
+                    var reverseOnScreen = vtkAxisService.shouldReverseOnScreen(
+                        $scope.boundObj.vpEdgesForDimension(dim)[seg.index], screenDim
+                    );
+                    var sortedPts = geometry.sortInDimension(clippedSeg.points(), screenDim, false);
+                    var axisLeft = sortedPts[0].x;
+                    var axisTop = sortedPts[0].y;
+                    var axisRight = sortedPts[1].x;
+                    var axisBottom = sortedPts[1].y;
+
+                    var newRange = Math.min(fullSeg.length(), clippedSeg.length());
+                    var radAngle = Math.atan(clippedSeg.slope());
+                    if (! isHorizontal) {
+                        radAngle -= Math.PI / 2;
+                        if (radAngle < -Math.PI / 2) {
+                            radAngle += Math.PI;
+                        }
+                    }
+                    var angle = (180 * radAngle / Math.PI);
+
+                    var allPts = geometry.sortInDimension(fullSeg.points().concat(clippedSeg.points()), screenDim, false);
+
+                    var limits = reverseOnScreen ? [axisCfg[dim].max, axisCfg[dim].min] : [axisCfg[dim].min, axisCfg[dim].max];
+                    var newDom = [axisCfg[dim].min, axisCfg[dim].max];
+                    // 1st 2, last 2 points
+                    for (var m = 0; m < allPts.length; m += 2) {
+                        // a point may coincide with its successor
+                        var d = allPts[m].dist(allPts[m + 1]);
+                        if (d != 0) {
+                            var j = Math.floor(m / 2);
+                            var k = reverseOnScreen ? 1 - j : j;
+                            var l1 = limits[j];
+                            var l2 = limits[1 - j];
+                            var part = (l1 - l2) * d / fullSeg.length();
+                            var newLimit = l1 - part;
+                            newDom[k] = newLimit;
+                        }
+                    }
+                    var xform = 'translate(' + axisLeft + ',' + axisTop + ') ' +
+                        'rotate(' + angle + ')';
+
+                    axes[dim].scale.domain(newDom).nice();
+                    axes[dim].scale.range([reverseOnScreen ? newRange : 0, reverseOnScreen ? 0 : newRange]);
+
+                    // this places the axis tick labels on the appropriate side of the axis
+                    var outsideCorner = geometry.sortInDimension($scope.boundObj.vpCorners(), perpScreenDim, isHorizontal)[0];
+                    var bottomOrLeft = outsideCorner.equals(sortedPts[0]) || outsideCorner.equals(sortedPts[1]);
+                    if (isHorizontal) {
+                        axes[dim].svgAxis.orient(bottomOrLeft ? 'bottom' : 'top');
+                    }
+                    else {
+                        axes[dim].svgAxis.orient(bottomOrLeft ? 'left' : 'right');
+                    }
+
+
+                    if (showAxisEnds) {
+                        axes[dim].svgAxis.ticks(0);
+                        d3self.select(axisSelector).call(axes[dim].svgAxis);
+                    }
+                    else {
+                        axes[dim].updateLabelAndTicks({
+                            width: newRange,
+                            height: newRange
+                        }, d3.select);
+                    }
+
+                    d3self.select(axisSelector).attr('transform', xform);
+
+                    var dimLabel = axisCfg[dim].dimLabel;
+                    d3self.selectAll(axisSelector + '-end')
+                        .style('opacity', showAxisEnds ? 1 : 0);
+
+                    var tf = axes[dim].svgAxis.tickFormat();
+                    if (tf) {
+                        d3self.select(axisSelector + '-end.low')
+                            .text(axisEnds[0] + ' ' + dimLabel + ' ' + tf(reverseOnScreen ? newDom[1] : newDom[0]) + axes[dim].unitSymbol + axes[dim].units)
+                            .attr('x', axisLeft)
+                            .attr('y', axisTop)
+                            .attr('transform', 'rotate(' + (angle) + ', ' + axisLeft + ', ' + axisTop + ')');
+
+                        d3self.select(axisSelector + '-end.high')
+                            .attr('text-anchor', 'end')
+                            .text(tf(reverseOnScreen ? newDom[0] : newDom[1]) + axes[dim].unitSymbol + axes[dim].units + ' ' + dimLabel + ' ' + axisEnds[1])
+                            .attr('x', axisRight)
+                            .attr('y', axisBottom)
+                            .attr('transform', 'rotate(' + (angle) + ', ' + axisRight + ', ' + axisBottom + ')');
+                    }
+
+                    // counter-rotate the tick labels
+                    var labels = d3self.selectAll(axisSelector + ' text');
+                    labels.attr('transform', 'rotate(' + (-angle) + ')');
+                    d3self.select(axisSelector + ' .domain').style({'stroke': 'none'});
+                    d3self.select(axisSelector).style('opacity', newRange < minAxisDisplayLen ? 0 : 1);
+
+                    var labelSpace = 2 * plotting.tickFontSize(d3self.select(axisSelector + '-label'));
+                    var labelSpaceX = (isHorizontal ? Math.sin(radAngle) : Math.cos(radAngle)) * labelSpace;
+                    var labelSpaceY = (isHorizontal ? Math.cos(radAngle) : Math.sin(radAngle)) * labelSpace;
+                    var labelX = axisLeft + (bottomOrLeft ? -1 : 1) * labelSpaceX + (axisRight - axisLeft) / 2.0;
+                    var labelY = axisTop + (bottomOrLeft ? 1 : -1) * labelSpaceY + (axisBottom - axisTop) / 2.0;
+                    var labelXform = 'rotate(' + (isHorizontal ? 0 : -90) + ' ' + labelX + ' ' + labelY + ')';
+
+                    d3self.select('.' + dim + '-axis-label')
+                        .attr('x', labelX)
+                        .attr('y', labelY)
+                        .attr('transform', labelXform)
+                        .style('opacity', (showAxisEnds || newRange < minAxisDisplayLen) ? 0 : 1);
+                }
+            }
+
+            function init() {
+                //srdbg('axes init');
+                for (var dim in axes) {
+                    axes[dim].init();
+                    axes[dim].svgAxis.tickSize(0);
+                }
+                rebuildAxes();
+            }
+
+            function rebuildAxes() {
+                //srdbg('update axes', axisCfg);
+                for (var dim in axes) {
+                    var cfg = axisCfg[dim];
+                    axes[dim].values = plotting.linearlySpacedArray(cfg.min, cfg.max, cfg.numPoints);
+                    axes[dim].scale.domain([cfg.min, cfg.max]);
+                    axes[dim].parseLabelAndUnits(cfg.label);
+                }
+            }
+
+            appState.whenModelsLoaded($scope, function() {
+                init();
+            });
+
+            $scope.$on('axes.refresh', function () {
+                //srdbg('axes.refresh');
+                refresh();
+            });
+
+            $scope.$watch('boundObj', function (d) {
+                if (d) {
+                    refresh();
+                }
+            });
+
+            $scope.$watch('axisCfg', function (d) {
+                if (d) {
+                    axisCfg = $scope.axisCfg;
+                    rebuildAxes();
+                    refresh();
+                }
+            });
         },
 
     };
 });
 
 // will be axis functions
-SIREPO.app.service('vtkAxisService', function(appState, panelState, requestSender, frameCache, plotting, vtkManager, vtkPlotting, layoutService, utilities, plotUtilities, geometry) {
+SIREPO.app.service('vtkAxisService', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, geometry) {
+
+    var svc = {};
+
+    svc.edgeSorter = function(dim, shouldReverse) {
+        return function(e1, e2) {
+            if (! e1) {
+                if (! e2) {
+                    return 0;
+                }
+                return 1;
+            }
+            if (! e2) {
+                return -1;
+            }
+            var pt1 = geometry.sortInDimension(e1.points(), dim, shouldReverse)[0];
+            var pt2 = geometry.sortInDimension(e2.points(), dim, shouldReverse)[0];
+            return (shouldReverse ? -1 : 1) * (pt2[dim] - pt1[dim]);
+        };
+    };
+
+    svc.shouldReverseOnScreen = function(edge, screenDim) {
+        return edge.points()[1][screenDim] < edge.points()[0][screenDim];
+    };
+
+    return svc;
+});
+
+// General-purpose vtk display
+SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plotting, plotToPNG, vtkPlotting, vtkService, vtkUtils, utilities) {
+
+    return {
+        restrict: 'A',
+        //transclude: {
+        //    visabilityControlSlot: '?visabilityControl',
+        //},
+        scope: {
+            axisCfg: '<',
+            axisObj: '<',
+            enableAxes: '=',
+            enableSelection: '=',
+            eventHandlers: '<',
+            modelName: '@',
+            reportId: '<',
+            showBorder: '@',
+        },
+        templateUrl: '/static/html/vtk-display.html' + SIREPO.SOURCE_CACHE_KEY,
+        controller: function($scope, $element) {
+
+            $scope.vtkUtils = vtkUtils;
+            $scope.markerState = {
+                enabled: true,
+            };
+            $scope.modeText = {};
+            $scope.modeText[vtkUtils.INTERACTION_MODE_MOVE] = 'Click and drag to rotate';
+            $scope.modeText[vtkUtils.INTERACTION_MODE_SELECT] = 'Control-click an object to select';
+            $scope.selection = null;
+
+            // common
+            var api = {
+                getMode: getInteractionMode,
+                setBg: setBgColor,
+                setCam: setCam,
+                setMarker: setMarker,
+            };
+
+            var cam = null;
+            var canvas3d = null;
+            var didPan = false;
+            var fsRenderer = null;
+            var isDragging = false;
+            var isPointerUp = true;
+            var marker = null;
+            var renderer = null;
+            var renderWindow = null;
+            var snapshotCanvas = null;
+            var snapshotCtx = null;
+
+            function getInteractionMode() {
+                return $scope.interactionMode;
+            }
+
+            // supplement or override these event handlers
+            var eventHandlers = {
+                onpointerdown: function (evt) {
+                    isDragging = false;
+                    isPointerUp = false;
+                },
+                onpointermove: function (evt) {
+                    if (isPointerUp) {
+                        return;
+                    }
+                    isDragging = true;
+                    didPan = didPan || evt.shiftKey;
+                    $scope.side = null;
+                    utilities.debounce(refresh, 100)();
+                },
+                onpointerup: function (evt) {
+                    isDragging = false;
+                    isPointerUp = true;
+                    refresh(true);
+                },
+                onwheel: function (evt) {
+                    utilities.debounce(
+                        function() {
+                            refresh(true);
+                        },
+                        100)();
+                }
+            };
+
+            function ondblclick(evt) {
+                setCam();
+                refresh();
+            }
+
+            function setBgColor(hexColor) {
+                renderer.setBackground(vtk.Common.Core.vtkMath.hex2float(hexColor));
+            }
+
+            function setCam(pos, vu) {
+                if (! fsRenderer) {
+                    return;
+                }
+                var cam = renderer.get().activeCamera;
+                //cam.setPosition(...(pos || [1, 0, 0]));
+                var p = pos || [1, 0, 0];
+                cam.setPosition(p[0], p[1], p[2]);
+                cam.setFocalPoint(0, 0, 0);
+                //cam.setViewUp(...(vu || [0, 0, 1]));
+                var v = vu || [0, 0, 1];
+                cam.setViewUp(v[0], v[1], v[2]);
+                renderer.resetCamera();
+                if (marker) {
+                    marker.updateMarkerOrientation();
+                }
+                renderWindow.render();
+            }
+
+            function setMarker(m) {
+                marker = m;
+                setMarkerVisible();
+            }
+
+            function setMarkerVisible() {
+                if (! marker) {
+                    return;
+                }
+                marker.setEnabled($scope.markerState.enabled);
+                renderWindow.render();
+            }
+
+            $scope.hasMarker = function() {
+                return ! ! marker;
+            };
+
+            $scope.init = function() {
+                //srdbg('vtk init', $scope);
+                var rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
+                fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
+                    background: [1, 1, 1, 1],
+                    container: rw,
+                    listenWindowResize: false,
+                });
+                renderer = fsRenderer.getRenderer();
+                renderWindow = fsRenderer.getRenderWindow();
+                var interactor = renderWindow.getInteractor();
+                var mainView = renderWindow.getViews()[0];
+
+                cam = renderer.get().activeCamera;
+
+                var worldCoord = vtk.Rendering.Core.vtkCoordinate.newInstance({
+                    renderer: renderer
+                });
+                worldCoord.setCoordinateSystemToWorld();
+
+                var hdlrs = $scope.eventHandlers || {};
+                // double click handled separately
+                rw.addEventListener('dblclick', function (evt) {
+                    ondblclick(evt);
+                    if (hdlrs.ondblclick) {
+                        hdlrs.ondblclick(evt);
+                    }
+                });
+                Object.keys(eventHandlers).forEach(function (k) {
+                    rw[k] = function (evt) {
+                        eventHandlers[k](evt);
+                        if (hdlrs[k]) {
+                            hdlrs[k](evt);
+                        }
+                    };
+                });
+
+                canvas3d = $($element).find('canvas')[0];
+
+                // this canvas is used to store snapshots of the 3d canvas
+                snapshotCanvas = document.createElement('canvas');
+                snapshotCtx = snapshotCanvas.getContext('2d');
+                plotToPNG.addCanvas(snapshotCanvas, $scope.reportId);
+
+                // allow ancestor scopes access to the renderer etc.
+                $scope.$emit('vtk-init', {
+                    api: api,
+                    objects: {
+                        camera: cam,
+                        renderer: renderer,
+                        window: renderWindow,
+                    }
+                });
+            };
+
+            $scope.canvasGeometry = function() {
+                var vtkCanvasHolder = $($element).find('.vtk-canvas-holder')[0];
+                return {
+                    pos: $(vtkCanvasHolder).position(),
+                    size: {
+                        width: $(vtkCanvasHolder).width(),
+                        height: $(vtkCanvasHolder).height()
+                    }
+                };
+            };
+
+            $scope.interactionMode = vtkUtils.INTERACTION_MODE_MOVE;
+
+            $scope.setInteractionMode = function(mode) {
+                $scope.interactionMode = mode;
+                //renderWindow.getInteractor().setRecognizeGestures(mode === vtkUtils.INTERACTION_MODE_MOVE);
+            };
+
+            $scope.axisDirs = {
+                dir: 1,
+                x: {
+                    camViewUp: [0, 0, 1]
+                },
+                y: {
+                    camViewUp: [0, 0, 1]
+                },
+                z: {
+                    camViewUp: [0, 1, 0]
+                }
+            };
+            $scope.side = 'x';
+            $scope.showSide = function(side) {
+                if (side == $scope.side) {
+                    $scope.axisDirs.dir *= -1;
+                }
+                $scope.side = side;
+                var cp = geometry.basisVectors[side].map(function (c) {
+                    return c * $scope.axisDirs.dir;
+                });
+                setCam(cp, $scope.axisDirs[side].camViewUp);
+                refresh();
+            };
+
+            $scope.toggleMarker = function() {
+                setMarkerVisible();
+            };
+
+            function cacheCanvas() {
+                if (! snapshotCtx) {
+                    return;
+                }
+                var w = parseInt(canvas3d.getAttribute('width'));
+                var h = parseInt(canvas3d.getAttribute('height'));
+                snapshotCanvas.width = w;
+                snapshotCanvas.height = h;
+                // this call makes sure the buffer is fresh (it appears)
+                fsRenderer.getOpenGLRenderWindow().traverseAllPasses();
+                snapshotCtx.drawImage(canvas3d, 0, 0, w, h);
+            }
+
+            function refresh(doCacheCanvas) {
+
+                if ($scope.axisObj) {
+                    $scope.$broadcast('axes.refresh');
+                }
+
+                if (doCacheCanvas) {
+                    cacheCanvas();
+                }
+            }
+
+            appState.whenModelsLoaded($scope, function () {
+                $scope.$on('vtk.selected', function (e, d) {
+                    $scope.$applyAsync(function () {
+                        $scope.selection = d;
+                    });
+                });
+                $scope.init();
+            });
+        },
+
+        //link: function link(scope, element) {
+        //    vtkPlotting.vtkPlot(scope, element);
+        //},
+    };
+});
+
+// general-purpose vtk methods
+SIREPO.app.service('vtkService', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, geometry) {
     var svc = {};
     return svc;
+});
+
+SIREPO.app.factory('vtkUtils', function() {
+
+    var self = {};
+
+    self.INTERACTION_MODE_MOVE = 'move';
+    self.INTERACTION_MODE_SELECT = 'select';
+    self.INTERACTION_MODES = [self.INTERACTION_MODE_MOVE, self.INTERACTION_MODE_SELECT];
+
+    // Converts vtk colors ranging from 0 -> 255 to 0.0 -> 1.0
+    // can't map, because we will still have a UINT8 array
+    self.rgbToFloat = function (rgb) {
+        var sc = [];
+        for (var i = 0; i < rgb.length; ++i) {
+            sc.push(rgb[i] / 255.0);
+        }
+        return sc;
+    };
+
+    // Converts vtk colors ranging from 0 -> 255 to 0.0 -> 1.0
+    // can't map, because we will still have a UINT8 array
+    self.floatToRGB = function (f) {
+        var rgb = new window.Uint8Array(f.length);
+        for (var i = 0; i < rgb.length; ++i) {
+            rgb[i] = Math.floor(255 * f[i]);
+        }
+        return rgb;
+    };
+
+    return self;
 });

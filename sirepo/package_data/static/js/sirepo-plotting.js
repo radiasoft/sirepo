@@ -350,6 +350,13 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 .clamp(true);
         },
 
+        colorScale: function(min, max, colorMap) {
+            return d3.scale.linear()
+                .domain(linearlySpacedArray(min, max, colorMap.length))
+                .range(colorMap)
+                .clamp(true);
+        },
+
         colorsFromHexString: function(color, range) {
             if (! (/^#([0-9a-f]{2}){3}$/i).test(color)) {
                 throw new Error(color + ': Invalid color string');
@@ -641,6 +648,19 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             }
         },
 
+        // takes a 24-bit color integer and returns an rgb array with values 0 -> <range>
+        // (typically 256 or 1.0)
+        //rgbFromInt: function(c, range=256.0)  {
+        rgbFromInt: function(c, range)  {
+            if (angular.isUndefined(range)) {
+                range = 256.0;
+            }
+            var b = range * ((c % 256) / 256.0);
+            var g = range * ((((c - b) / 256) % 256) / 256.0);
+            var r = range * (((c - b - 256 * g) / (256 * 256)) / 256.0);
+            return [r, g, b];
+        },
+
         scaleFunction: function(modelName) {
             // returns the scaling function (ex. Math.log) or null
             var scale = null;
@@ -754,12 +774,16 @@ SIREPO.app.directive('animationButtons', function() {
     };
 });
 
-SIREPO.app.directive('colorPicker', function() {
+SIREPO.app.directive('colorPicker', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {
-            color: '=',
-            defaultColor: '<'
+            color: '<',
+            defaultColor: '<',
+            field: '=',
+            modelName: '<',
+            model: '=',
+            form: '<',
         },
         template: [
             '<div>',
@@ -768,15 +792,16 @@ SIREPO.app.directive('colorPicker', function() {
                     '<div class="container col-sm-8">',
                         '<div data-ng-repeat="r in range(rows) track by $index" class="row">',
                             '<li data-ng-repeat="c in range(cols) track by $index" style="display: inline-block">',
-                                '<button data-ng-if="pcIndex(r, c) < pickerColors.length" class="sr-color-button" data-ng-class="{\'selected\': getColor(color).toUpperCase() == getPickerColor(r, c).toUpperCase()}" data-ng-style="bgColorStyle(getPickerColor(r, c))" data-ng-click="setColor(getPickerColor(r, c))"></button>',
+                                '<button data-ng-if="pcIndex(r, c) < pickerColors.length" class="sr-color-button" data-ng-class="{\'selected\': getColor(model[field]).toUpperCase() == getPickerColor(r, c).toUpperCase()}" data-ng-style="bgColorStyle(getPickerColor(r, c))" data-ng-click="setColor(getPickerColor(r, c))"></button>',
                             '</li>',
                         '<div>',
                     '<div>',
                 '</ul>',
             '</div>',
         ].join(''),
-        controller: function($scope, $element) {
+        controller: function($scope) {
 
+            var origColor = null;
             $scope.pickerColors = [
                 '#000000', '#222222', '#444444', '#666666', '#888888', '#aaaaaa', '#cccccc', '#ffffff',
                 '#0000ff', '#337777', '#3377bf', '#6992ff', '#33bb33', '#33ff33', '#00ff00', '#bbff77',
@@ -800,7 +825,8 @@ SIREPO.app.directive('colorPicker', function() {
                 return $scope.pickerColors[$scope.pcIndex(row, col)];
             };
             $scope.getColor = function(color) {
-                return color || $scope.color || $scope.defaultColor;
+                //return color || $scope.color || $scope.defaultColor;
+                return color || ($scope.model || {})[$scope.field] || $scope.defaultColor;
             };
 
             $scope.bgColorStyle = function(c) {
@@ -810,8 +836,34 @@ SIREPO.app.directive('colorPicker', function() {
             };
 
             $scope.setColor = function(color) {
-                $scope.color = color;
+                $scope.model[$scope.field] = color;
+                // emit change for immediate feedback
+                $scope.$emit($scope.modelName + '.' + $scope.field, color);
+                $scope.form.$setDirty();
+                //TODO(mvk): since this is not a normal control we need to store the original state somehow
+                /*
+                if (color !== origColor) {
+                    $scope.form.$setDirty();
+                }
+                else {
+                    if ($scope.form.$$controls.filter(function (c) {
+                            return c.$dirty;
+                        }).length) {
+                        $scope.form.$setDirty();
+                    }
+                    else {
+                        $scope.form.$setPristine();
+                    }
+                }
+                 */
             };
+
+            appState.whenModelsLoaded($scope, function () {
+                if (! $scope.model) {
+                    return;
+                }
+                origColor = $scope.model[$scope.field];
+            });
         },
     };
 });

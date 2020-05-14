@@ -235,17 +235,17 @@ def import_file(req, test_data=None, **kwargs):
     text = pkcompat.from_bytes(req.file_stream.read())
     if 'simulationId' in req.req_data:
         input_data = simulation_db.read_simulation_json(SIM_TYPE, sid=req.req_data.simulationId)
-    if re.search(r'.ele$', req.filename, re.IGNORECASE):
+    if re.search(r'\.ele$', req.filename, re.IGNORECASE):
         data = elegant_command_importer.import_file(text)
-    elif re.search(r'.lte$', req.filename, re.IGNORECASE):
+    elif re.search(r'\.lte$', req.filename, re.IGNORECASE):
         data = elegant_lattice_importer.import_file(text, input_data)
         if input_data:
             _map_commands_to_lattice(data)
-    elif re.search(r'.madx$', req.filename, re.IGNORECASE):
+    elif re.search(r'\.madx$', req.filename, re.IGNORECASE):
         from sirepo.template import madx_converter, madx_parser
         data = madx_converter.from_madx(
             SIM_TYPE,
-            madx_parser.parse_file(text))
+            madx_parser.parse_file(text, downcase_variables=True))
     else:
         raise IOError('invalid file extension, expecting .ele or .lte')
     data.models.simulation.name = re.sub(r'\.(lte|ele|madx)$', '', req.filename, flags=re.IGNORECASE)
@@ -279,9 +279,7 @@ def prepare_sequential_output_file(run_dir, data):
 
 def python_source_for_model(data, model):
     if model == 'madx':
-        from sirepo.template import madx, madx_converter
-        mad = madx_converter.to_madx(SIM_TYPE, data)
-        return madx.python_source_for_model(mad, None)
+        return _export_madx(data)
     return generate_parameters_file(data, is_parallel=True) + '''
 with open('elegant.lte', 'w') as f:
     f.write(lattice_file)
@@ -437,7 +435,7 @@ def _command_file_extension(model):
 
 def _compute_percent_complete(data, last_element, step):
     if step > 1:
-        cmd = _find_first_command(data, 'run_control')
+        cmd = LatticeUtil.find_first_command(data, 'run_control')
         if cmd and cmd.n_steps:
             n_steps = 0
             if code_variable.CodeVar.is_var_value(cmd.n_steps):
@@ -472,6 +470,27 @@ def _correct_halo_gaussian_distribution_type(m):
     # the halo(gaussian) value will get validated/escaped to halogaussian, change it back
     if 'distribution_type' in m and 'halogaussian' in m.distribution_type:
         m.distribution_type = m.distribution_type.replace('halogaussian', 'halo(gaussian)')
+
+
+def _export_madx(data):
+    from sirepo.template import madx, madx_converter
+    mad = madx_converter.to_madx(SIM_TYPE, data)
+    madx_beam = LatticeUtil.find_first_command(mad, 'beam')
+    madx_beam.particle = 'electron'
+    change_particle = LatticeUtil.find_first_command(data, 'change_particle')
+    if change_particle:
+        madx_beam.particle = change_particle.name
+    run_setup = LatticeUtil.find_first_command(data, 'run_setup')
+    cv = _code_var(data.models.rpnVariables)
+    if cv.eval_var_with_assert(run_setup.p_central) != 0:
+        # mass in MeV
+        mass = template_common.ParticleEnergy.PARTICLE[madx_beam.particle].mass * 1e3
+        pc = run_setup.p_central * mass
+    else:
+        pc = cv.eval_var_with_assert(run_setup.p_central_mev)
+    # energy in GeV
+    madx_beam.pc = pc * 1e-3
+    return madx.python_source_for_model(mad, None)
 
 
 def _extract_report_data(xFilename, frame_args, page_count=0):
@@ -604,13 +623,6 @@ def _file_info(filename, run_dir, id, output_index):
             pass
 
 
-def _find_first_command(data, command_type):
-    for m in data.models.commands:
-        if m._type == command_type:
-            return m
-    return None
-
-
 def _format_field_value(state, model, field, el_type):
     value = model[field]
     if el_type.endswith('StringArray'):
@@ -683,7 +695,7 @@ def _generate_bunch_simulation(data, v):
             v.bunchInputFile = _SIM_DATA.lib_file_name_with_model_field('bunchFile', 'sourceFile', v.bunchFile_sourceFile)
             v.bunchFileType = _sdds_beam_type_from_file(v.bunchInputFile)
     if str(data.models.bunch.p_central_mev) == '0':
-        run_setup = _find_first_command(data, 'run_setup')
+        run_setup = LatticeUtil.find_first_command(data, 'run_setup')
         if run_setup and run_setup.expand_for:
             v.bunchExpandForFile = 'expand_for = "{}",'.format(
                 _SIM_DATA.lib_file_name_with_model_field('command_run_setup', 'expand_for', run_setup.expand_for))
@@ -727,21 +739,21 @@ def _generate_twiss_simulation(data, v):
     max_id = _SIM_DATA.elegant_max_id(data)
     sim = data.models.simulation
     sim.simulationMode = 'serial'
-    run_setup = _find_first_command(data, 'run_setup') or PKDict(
+    run_setup = LatticeUtil.find_first_command(data, 'run_setup') or PKDict(
         _id=max_id + 1,
         _type='run_setup',
         lattice='Lattice',
         p_central_mev=data.models.bunch.p_central_mev,
     )
     run_setup.use_beamline = sim.activeBeamlineId
-    twiss_output = _find_first_command(data, 'twiss_output') or PKDict(
+    twiss_output = LatticeUtil.find_first_command(data, 'twiss_output') or PKDict(
         _id=max_id + 2,
         _type='twiss_output',
         filename='1',
     )
     twiss_output.final_values_only = '0'
     twiss_output.output_at_each_step = '0'
-    change_particle = _find_first_command(data, 'change_particle')
+    change_particle = LatticeUtil.find_first_command(data, 'change_particle')
     data.models.commands = [
         run_setup,
         twiss_output,

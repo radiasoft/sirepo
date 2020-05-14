@@ -5,6 +5,7 @@ u"""OPAL execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkcollections import PKDict
@@ -14,6 +15,7 @@ from sirepo.template import code_variable
 from sirepo.template import lattice
 from sirepo.template import sdds_util
 from sirepo.template import template_common
+from sirepo.template.template_common import ParticleEnergy
 from sirepo.template.lattice import LatticeUtil
 import h5py
 import numpy as np
@@ -25,8 +27,6 @@ _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 OPAL_INPUT_FILE = 'opal.in'
 OPAL_OUTPUT_FILE = 'opal.out'
-
-WANT_BROWSER_FRAME_CACHE = True
 
 _DIM_INDEX = PKDict(
     x=0,
@@ -42,22 +42,22 @@ _TWISS_FILE_NAME = 'twiss.out'
 #TODO(pjm): parse from opal files into schema
 _OPAL_PI = 3.14159265358979323846
 _OPAL_CONSTANTS = PKDict(
-    PI=_OPAL_PI,
-    TWOPI=_OPAL_PI * 2.0,
-    RADDEG=180.0 / _OPAL_PI,
-    DEGRAD=_OPAL_PI / 180.0,
-    E=2.7182818284590452354,
-    EMASS=0.51099892e-03,
-    PMASS=0.93827204e+00,
-    HMMASS=0.939277e+00,
-    UMASS=238 * 0.931494027e+00,
-    CMASS=12 * 0.931494027e+00,
-    MMASS=0.10565837,
-    DMASS=2*0.931494027e+00,
-    XEMASS=124*0.931494027e+00,
-    CLIGHT=299792458.0,
-    P0=1,
-    SEED=123456789,
+    pi=_OPAL_PI,
+    twopi=_OPAL_PI * 2.0,
+    raddeg=180.0 / _OPAL_PI,
+    degrad=_OPAL_PI / 180.0,
+    e=2.7182818284590452354,
+    emass=0.51099892e-03,
+    pmass=0.93827204e+00,
+    hmmass=0.939277e+00,
+    umass=238 * 0.931494027e+00,
+    cmass=12 * 0.931494027e+00,
+    mmass=0.10565837,
+    dmass=2*0.931494027e+00,
+    xemass=124*0.931494027e+00,
+    clight=299792458.0,
+    p0=1,
+    seed=123456789,
 )
 
 
@@ -112,6 +112,10 @@ def get_application_data(data, **kwargs):
     if data.method == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_frames)
     if data.method == 'rpn_value':
+        # accept array of values enclosed in curly braces
+        if re.search(r'^\{.*\}$', data.value):
+            data.result = ''
+            return data
         v, err = _code_var(data.variables).eval_var(data.value)
         if err:
             data.error = err
@@ -137,6 +141,37 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
     elif 'elementAnimation' in model:
         return _file_name_for_element_animation(run_dir, model)
     raise AssertionError('unknown model={}'.format(model))
+
+
+def import_file(req, unit_test_mode=False, **kwargs):
+    from sirepo.template import opal_parser
+    text = pkcompat.from_bytes(req.file_stream.read())
+    if re.search(r'\.in$', req.filename, re.IGNORECASE):
+        data, input_files = opal_parser.parse_file(
+            text,
+            filename=req.filename)
+        missing_files = []
+        for infile in input_files:
+            if not _SIM_DATA.lib_file_exists(infile.lib_filename):
+                missing_files.append(infile)
+        if len(missing_files):
+            return PKDict(
+                error='Missing data files',
+                missingFiles=missing_files,
+            )
+    elif re.search(r'\.madx$', req.filename, re.IGNORECASE):
+        from sirepo.template import madx_converter, madx_parser
+        madx = madx_parser.parse_file(text)
+        data = madx_converter.from_madx(SIM_TYPE, madx)
+        data.models.simulation.name = re.sub(r'\.madx$', '', req.filename, flags=re.IGNORECASE)
+        _fixup_madx(madx, data)
+    else:
+        raise IOError('invalid file extension, expecting .in or .madx')
+    return data
+
+
+def opal_code_var(variables):
+    return _code_var(variables)
 
 
 def post_execution_processing(
@@ -176,6 +211,8 @@ def prepare_sequential_output_file(run_dir, data):
 
 
 def python_source_for_model(data, model):
+    if model == 'madx':
+        return _export_madx(data)
     return _generate_parameters_file(data)
 
 
@@ -336,6 +373,7 @@ def _code_var(variables):
     return code_variable.CodeVar(
         variables,
         code_variable.PurePythonEval(_OPAL_CONSTANTS),
+        case_insensitive=True,
     )
 
 
@@ -365,6 +403,17 @@ def _column_data(col, col_names, rows):
     for row in rows:
         res.append(float(row[idx]))
     return res
+
+
+def _export_madx(data):
+    from sirepo.template import madx, madx_converter
+    mad = madx_converter.to_madx(SIM_TYPE, data)
+    madx_beam = LatticeUtil.find_first_command(mad, 'beam')
+    opal_beam = LatticeUtil.find_first_command(data, 'beam')
+    energy = template_common.ParticleEnergy.compute_energy(SIM_TYPE, madx_beam.particle, opal_beam.copy())
+    madx_beam.particle = opal_beam.particle
+    madx_beam.pc = energy.pc
+    return madx.python_source_for_model(mad, None)
 
 
 def _field_units(units, field):
@@ -405,6 +454,34 @@ def _find_run_method(commands):
     return 'THIN'
 
 
+def _fixup_madx(madx, data):
+    import sirepo.template.madx
+    cv = sirepo.template.madx.madx_code_var(madx.models.rpnVariables)
+    import pykern.pkjson
+    assert _has_command(madx, 'beam'), \
+        'MAD-X file missing BEAM command'
+    beam = LatticeUtil.find_first_command(madx, 'beam')
+    if beam.energy == 1 and (beam.pc != 0 or beam.gamma != 0 or beam.beta != 0 or beam.brho != 0):
+        # unset the default mad-x value if other energy fields are set
+        beam.energy = 0
+    particle = beam.particle.lower()
+    LatticeUtil.find_first_command(data, 'beam').particle = particle.upper()
+    energy = ParticleEnergy.compute_energy('madx', particle, beam.copy())
+    LatticeUtil.find_first_command(data, 'beam').pc = energy.pc
+    LatticeUtil.find_first_command(data, 'track').line = data.models.simulation.visualizationBeamlineId
+    for el in data.models.elements:
+        if el.type == 'SBEND' or el.type == 'RBEND':
+            # mad-x is GeV (total energy), designenergy is MeV (kinetic energy)
+            el.designenergy = round(
+                (energy.energy - ParticleEnergy.PARTICLE[particle].mass) * 1e3,
+                6,
+            )
+            # this is different than the opal default of "2 * sin(angle / 2) / length"
+            # but matches elegant and synergia
+            el.k0 = cv.eval_var_with_assert(el.angle) / cv.eval_var_with_assert(el.l)
+            el.gap = 2 * cv.eval_var_with_assert(el.hgap)
+
+
 def _format_field_value(state, model, field, el_type):
     value = model[field]
     if el_type == 'Boolean':
@@ -428,7 +505,8 @@ def _format_field_value(state, model, field, el_type):
         #     value = '"{}"'.format(value)
     elif re.search(r'String', el_type):
         if len(str(value)):
-            value = '"{}"'.format(value)
+            if not re.search(r'^\s*\{.*\}$', value):
+                value = '"{}"'.format(value)
     elif LatticeUtil.is_command(model):
         if el_type != 'RPNValue' and len(str(value)):
             value = '"{}"'.format(value)
@@ -497,33 +575,35 @@ def _generate_lattice(util, code_var, beamline_id):
 def _generate_beamline(util, code_var, count_by_name, beamline_id, edge, names):
     res = ''
     run_method = _find_run_method(util.data.models.commands)
-    for item_id in util.id_map[beamline_id]['items']:
-        item = util.id_map[item_id]
+    items = util.id_map[abs(beamline_id)]['items']
+    if beamline_id < 0:
+        items = reversed(items)
+    for item_id in items:
+        item = util.id_map[abs(item_id)]
         if 'type' in item:
             # element
             name = item.name
             if name not in count_by_name:
                 count_by_name[name] = 0
             name = '"{}#{}"'.format(name, count_by_name[name])
-            names.append(name)
             count_by_name[item.name] += 1
             if run_method == 'OPAL-CYCL' or run_method == 'CYCLOTRON-T':
                 res += '{}: {};\n'.format(name, item.name)
+                names.append(name)
+                continue
+            length = code_var.eval_var(item.l)[0]
+            if item.type == 'DRIFT' and length < 0:
+                # don't include reverse drifts, for positioning only
+                pass
             else:
                 res += '{}: {},elemedge={};\n'.format(name, item.name, edge)
-            edge += code_var.eval_var(item.l)[0]
+                names.append(name)
+            edge += length
         else:
             # beamline
             text, edge = _generate_beamline(util, code_var, count_by_name, item_id, edge, names)
             res += text
     return res, edge
-
-
-def _find_first_command(data, command_type):
-    for cmd in data.models.commands:
-        if cmd._type == command_type:
-            return cmd
-    assert False, 'command not found: {}'.format(command_type)
 
 
 def _generate_parameters_file(data):
@@ -534,8 +614,8 @@ def _generate_parameters_file(data):
 
     if 'bunchReport' in report:
         # keep only first distribution and beam in command list
-        beam = _find_first_command(data, 'beam')
-        distribution = _find_first_command(data, 'distribution')
+        beam = LatticeUtil.find_first_command(data, 'beam')
+        distribution = LatticeUtil.find_first_command(data, 'distribution')
         v.beamName = beam.name
         v.distributionName = distribution.name
         # these need to get set to default or distribution won't generate in 1 step
@@ -543,7 +623,7 @@ def _generate_parameters_file(data):
         distribution.nbin = 0
         distribution.emissionsteps = 1
         data.models.commands = [
-            _find_first_command(data, 'option'),
+            LatticeUtil.find_first_command(data, 'option'),
             beam,
             distribution,
         ]
@@ -551,11 +631,9 @@ def _generate_parameters_file(data):
         if report == 'twissReport':
             beamline_id = util.select_beamline().id
         else:
-            beamline_id = _find_first_command(util.data, 'track').line or util.select_beamline().id
+            beamline_id = LatticeUtil.find_first_command(util.data, 'track').line or util.select_beamline().id
         v.lattice = _generate_lattice(util, code_var, beamline_id)
         v.use_beamline = util.select_beamline().name
-
-
     v.update(dict(
         variables=_generate_variables(code_var, data),
         header_commands=_generate_commands(util, True),
@@ -580,12 +658,18 @@ def _generate_variable(name, variables, visited):
 def _generate_variables(code_var, data):
     res = ''
     visited = PKDict()
-
     for name in sorted(code_var.variables):
         for dependency in code_var.get_expr_dependencies(code_var.postfix_variables[name]):
             res += _generate_variable(dependency, code_var.variables, visited)
         res += _generate_variable(name, code_var.variables, visited)
     return res
+
+
+def _has_command(data, command_type):
+    for cmd in data.models.commands:
+        if cmd._type == command_type:
+            return True
+    return False
 
 
 def _iterate_hdf5_steps(path, callback, state):
@@ -654,12 +738,12 @@ def _read_data_file(path):
                 continue
             line = re.sub('\0', '', line)
             if mode == 'header':
-                col_names = re.split('\s+', line.lower())
+                col_names = re.split(r'\s+', line.lower())
             elif mode == 'data':
                 #TODO(pjm): separate overlapped columns. Instead should explicitly set field dimensions
-                line = re.sub('(\d)(\-\d)', r'\1 \2', line)
+                line = re.sub(r'(\d)(\-\d)', r'\1 \2', line)
                 line = re.sub(r'(\.\d{3})(\d+\.)', r'\1 \2', line)
-                rows.append(re.split('\s+', line))
+                rows.append(re.split(r'\s+', line))
     return col_names, rows
 
 
@@ -681,4 +765,4 @@ def _units(twiss_field):
 
 
 def _units_from_hdf5(h5file, field):
-    return _field_units(str(h5file.attrs['{}Unit'.format(field.name)]), field)
+    return _field_units(pkcompat.from_bytes(h5file.attrs['{}Unit'.format(field.name)]), field)

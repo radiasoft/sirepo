@@ -26,6 +26,7 @@ NON_ALPHA_CODES = frozenset((
 ALPHA_CODES = frozenset((
     'flash',
     'irad',
+    'radia',
     'madx',
     'myapp',
     'rcscon',

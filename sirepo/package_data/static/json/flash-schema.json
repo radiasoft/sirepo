@@ -1,7 +1,7 @@
 {
     "enum": {
         "flashType": [
-            ["CapLaser", "CapLaser"],
+            ["CapLaserBELLA", "CapLaserBELLA"],
             ["RTFlame", "RTFlame"]
         ],
         "physics:Gravity:Constant:gdirec": [
@@ -163,11 +163,11 @@
             ["hybrid", "hybrid"],
             ["limited", "limited"]
         ],
-        "Simulation:magnetoHD:CapLaser:sim_eosFill": [
+        "Simulation:magnetoHD:CapLaserBELLA:sim_eosFill": [
             ["eos_tab", "eos_tab"],
             ["eos_gam", "eos_gam"]
         ],
-        "Simulation:magnetoHD:CapLaser:sim_eosWall": [
+        "Simulation:magnetoHD:CapLaserBELLA:sim_eosWall": [
             ["eos_tab", "eos_tab"],
             ["eos_gam", "eos_gam"]
         ],
@@ -885,10 +885,10 @@
             "op_fillLowTemp": ["op_fillLowTemp", "Float", 0.0],
             "op_wallLowTemp": ["op_wallLowTemp", "Float", 0.0]
         },
-        "Simulation:magnetoHD:CapLaser": {
+        "Simulation:magnetoHD:CapLaserBELLA": {
             "sim_condWall": ["sim_condWall", "Float", 195000.0, "Wall conductivity at the gas/wall interface"],
-            "sim_eosFill": ["Fill EOS Type", "Simulation:magnetoHD:CapLaser:sim_eosFill", "eos_gam"],
-            "sim_eosWall": ["Wall EOS Type", "Simulation:magnetoHD:CapLaser:sim_eosWall", "eos_tab"],
+            "sim_eosFill": ["Fill EOS Type", "Simulation:magnetoHD:CapLaserBELLA:sim_eosFill", "eos_gam"],
+            "sim_eosWall": ["Wall EOS Type", "Simulation:magnetoHD:CapLaserBELLA:sim_eosWall", "eos_tab"],
             "sim_peakField": ["sim_peakField", "Float", 2400.0, "peak field in gauss at capillary wall"],
             "sim_period": ["sim_period", "Float", 3e-07, "circuit period in seconds"],
             "sim_rhoFill": ["Fill Initial Density", "Float", 2.655e-07],
@@ -1483,8 +1483,8 @@
                 "allowDtSTSDominate"
             ]
         },
-        "Simulation:magnetoHD:CapLaser": {
-            "title": "CapLaser Settings",
+        "Simulation:magnetoHD:CapLaserBELLA": {
+            "title": "CapLaserBELLA Settings",
             "basic": [
                 ["Main", [
                     "sim_zminWall",

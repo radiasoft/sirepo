@@ -448,12 +448,17 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
 
 SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
     var rpnBooleanValues = null;
+    var self = this;
+    self.isCaseInsensitive = false;
 
     function clearBooleanValues() {
         rpnBooleanValues = null;
     }
 
-    this.computeRpnValue = function(value, callback) {
+    self.computeRpnValue = function(value, callback) {
+        if (self.isCaseInsensitive) {
+            value = value.toLowerCase ? value.toLowerCase() : value;
+        }
         if (value in appState.models.rpnCache) {
             callback(appState.models.rpnCache[value]);
             return;
@@ -474,7 +479,7 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
             });
     };
 
-    this.getRpnBooleanForField = function(model, field) {
+    self.getRpnBooleanForField = function(model, field) {
         if (appState.isLoaded() && model && field) {
             if (! rpnBooleanValues) {
                 rpnBooleanValues = [];
@@ -496,9 +501,12 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
         return null;
     };
 
-    this.getRpnValue = function(v) {
-        if (angular.isUndefined(v)) {
+    self.getRpnValue = function(v) {
+        if (angular.isUndefined(v) || v === null) {
             return v;
+        }
+        if (self.isCaseInsensitive) {
+            v = v.toLowerCase ? v.toLowerCase() : v;
         }
         if (appState.models.rpnCache && v in appState.models.rpnCache) {
             return appState.models.rpnCache[v];
@@ -510,18 +518,18 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
         return value;
     };
 
-    this.getRpnValueForField = function(model, field) {
+    self.getRpnValueForField = function(model, field) {
         if (appState.isLoaded() && model && field) {
             var v = model[field];
             if (SIREPO.NUMBER_REGEXP.test(v)) {
                 return '';
             }
-            return this.getRpnValue(v);
+            return self.getRpnValue(v);
         }
         return '';
     };
 
-    this.recomputeCache = function(varName, value) {
+    self.recomputeCache = function(varName, value) {
         var recomputeRequired = false;
         var re = new RegExp("\\b" + varName + "\\b");
         for (var k in appState.models.rpnCache) {

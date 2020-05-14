@@ -28,6 +28,10 @@
             "longName": "OPAL",
             "shortName": "OPAL"
         },
+        "radia": {
+            "longName": "Radia",
+            "shortName": "Radia"
+        },
         "rcscon": {
             "longName": "RCSCON",
             "shortName": "RCSCON"
