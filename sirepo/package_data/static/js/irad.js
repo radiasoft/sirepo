@@ -203,15 +203,18 @@ SIREPO.app.directive('dicomOrientationMarker', function(geometry, vtkPlotting) {
         controller: function($scope) {
             var marker;
             function init(event, fsRenderer) {
+                var coordMapper = vtkPlotting.coordMapper(
+                    // the coordinate system may depend on the data?
+                    geometry.transform([
+                        [1, 0, 0],
+                        [0, -1, 0],
+                        [0, 0, 1]
+                    ])
+                );
+                var actor = coordMapper.buildFromSource(homunculus()).actor;
+                actor.setUserMatrix(coordMapper.userMatrix());
                 marker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
-                    actor: vtkPlotting.coordMapper(
-                        // the coordinate system may depend on the data?
-                        geometry.transform([
-                            [1, 0, 0],
-                            [0, -1, 0],
-                            [0, 0, 1]
-                        ])
-                    ).buildFromSource(homunculus()).actor,
+                    actor: actor,
                     interactor: fsRenderer.getRenderWindow().getInteractor(),
                     viewportCorner: vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT,
                     viewportSize: 0.15,
@@ -302,7 +305,7 @@ SIREPO.app.directive('dicomOrientationMarker', function(geometry, vtkPlotting) {
     };
 });
 
-SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, panelState, plotting, requestSender, utilities, vtkPlotting, vtkToPNG) {
+SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, plotting, utilities, vtkToPNG) {
     return {
         restrict: 'A',
         scope: {
@@ -366,10 +369,10 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, panelS
             };
 
             function refresh(event, reader, frame) {
-                if (frame == 1) {
+                if (frame == SIREPO.APP_SCHEMA.constants.dicomFrame) {
                     dicomSpacing = reader.getOutputData().getSpacing();
                 }
-                if (frame == 2 && ! showRTDose) {
+                if (frame == SIREPO.APP_SCHEMA.constants.doseFrame && ! showRTDose) {
                     return;
                 }
                 actor = vtk.Rendering.Core.vtkVolume.newInstance();
@@ -381,7 +384,7 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, panelS
                 var metadata = reader.getOutputData().get().metadata;
 
                 var ofun, ctfun;
-                if (frame == 1) {
+                if (frame == SIREPO.APP_SCHEMA.constants.dicomFrame) {
                     //mapper.setSampleDistance(0.7);
                     setVolumeProperties(reader, actor, VOLUME_SHADING.beige);
 
@@ -820,6 +823,9 @@ function imageFeature(isOverlay) {
             colorScale = null;
         },
         draw: function(canvas, xDomain, yDomain) {
+            if (! isValidHeatmap()) {
+                return;
+            }
             var xZoomDomain = xAxisScale.domain();
             var yZoomDomain = yAxisScale.domain();
             var zoomWidth = xZoomDomain[1] - xZoomDomain[0];
@@ -993,11 +999,11 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
 
             function loadData3d(event, reader, frame) {
                 var data = createData3d(reader.getOutputData());
-                if (frame == 1) {
+                if (frame == SIREPO.APP_SCHEMA.constants.dicomFrame) {
                     data3d = data;
                     $scope.maxFrame = data3d.dim[$scope.model.dicomPlane == 't' ? 2 : $scope.model.dicomPlane == 'c' ? 1 : 0];
                 }
-                else if (frame == 2) {
+                else if (frame == SIREPO.APP_SCHEMA.constants.doseFrame) {
                     dose3d = data;
                 }
                 renderData();
@@ -1104,15 +1110,9 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
             function resetZoom() {
                 zoom = d3.behavior.zoom();
                 select('.plot-viewport').call(zoom);
-                // if (rs4piService.isMouseWheelMode('zoom')) {
-                    zoom.x(xAxisScale)
-                        .y(yAxisScale)
-                        .on('zoom', refresh);
-                // }
-                // else if (rs4piService.isMouseWheelMode('advanceFrame')) {
-                   // zoom.x(frameScale)
-                   //     .on('zoom', advanceFrame);
-                // }
+                zoom.x(xAxisScale)
+                    .y(yAxisScale)
+                    .on('zoom', refresh);
             }
 
             function select(selector) {
@@ -1133,6 +1133,9 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                     slicePosition = data3d.bounds[4] + idx * data3d.spacing[2];
                     if (data === dose3d) {
                         idx = Math.round((slicePosition - data.bounds[4]) / data.spacing[2]);
+                        if (idx < 0 || idx > dim[2]) {
+                            return res;
+                        }
                     }
                     width = dim[0];
                     height = dim[1];
