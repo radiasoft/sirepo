@@ -204,47 +204,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
         stlReaders = {};
     };
 
-    self.cylinderSection = function(center, axis, radius, height, planes) {
-        var startAxis = [0, 0, 1];
-        var startOrigin = [0, 0, 0];
-        var cylBounds = [-radius, radius, -radius, radius, -height/2.0, height/2.0];
-        var cyl = vtk.Common.DataModel.vtkCylinder.newInstance({
-            radius: radius,
-            center: startOrigin,
-            axis: startAxis
-        });
-
-        var pl = planes.map(function (p) {
-            return vtk.Common.DataModel.vtkPlane.newInstance({
-                normal: p.norm || startAxis,
-                origin: p.origin || startOrigin
-            });
-        });
-
-        // perform the sectioning
-        var section = vtk.Common.DataModel.vtkImplicitBoolean.newInstance({
-            operation: 'Intersection',
-            functions: [cyl, pl[0], pl[1], pl[2], pl[3]]
-        });
-
-        var sectionSample = vtk.Imaging.Hybrid.vtkSampleFunction.newInstance({
-            implicitFunction: section,
-            modelBounds: cylBounds,
-            sampleDimensions: [32, 32, 32]
-        });
-
-        var sectionSource = vtk.Filters.General.vtkImageMarchingCubes.newInstance();
-        sectionSource.setInputConnection(sectionSample.getOutputPort());
-        // this transformation adapted from VTK cylinder source - we don't "untranslate" because we want to
-        // rotate in place, not around the global origin
-        vtk.Common.Core.vtkMatrixBuilder
-            .buildFromRadian()
-            .translate(center[0], center[1], center[2])
-            .rotateFromDirections(startAxis, axis)
-            .apply(sectionSource.getOutputData().getPoints().getData());
-       return sectionSource;
-    };
-
     self.getSTLReader = function(file) {
         return stlReaders[file];
     };
@@ -314,12 +273,9 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
         });
 
         // perform the sectioning
-        var f = [cyl];
-        f.concat(pl);
         var section = vtk.Common.DataModel.vtkImplicitBoolean.newInstance({
             operation: 'Intersection',
-            functions: f
-            //functions: [cyl, ...pl]
+            functions: [cyl, pl[0], pl[1], pl[2], pl[3]]
         });
 
         var sectionSample = vtk.Imaging.Hybrid.vtkSampleFunction.newInstance({
