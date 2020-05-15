@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkconst
 from pykern import pkio
-from pykern import pkjinja
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
@@ -20,7 +19,6 @@ from sirepo import srschema
 from sirepo import uri_router
 import flask
 import importlib
-import os
 import re
 import sirepo.sim_data
 import sirepo.srdb
