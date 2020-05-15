@@ -70,6 +70,8 @@ visible_methods = None
 #: visible_methods excluding guest
 non_guest_methods = None
 
+#: flask app
+_app = None
 
 @api_perm.require_cookie_sentinel
 def api_authCompleteRegistration():
@@ -658,7 +660,7 @@ def _parse_display_name(value):
 
 
 def _set_log_user():
-    if not _app.sirepo_uwsgi:
+    if not _app or not _app.sirepo_uwsgi:
         # Only works for uWSGI (service.uwsgi). sirepo.service.http uses
         # the limited http server for development only. This uses
         # werkzeug.serving.WSGIRequestHandler.log which hardwires the
