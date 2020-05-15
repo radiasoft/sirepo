@@ -8,12 +8,12 @@ from __future__ import absolute_import, division, print_function
 import pytest
 import os
 
-_NO_SUCH_ID = '__NO_SUCH_GOOGLE_TAG_ID__'
+_TEST_ID = '__NO_SUCH_STRING_IN_PAGE__'
 
 
 def setup_module(module):
     os.environ.update(
-        SIREPO_SERVER_GOOGLE_TAG_MANAGER_ID=_NO_SUCH_ID,
+        SIREPO_SERVER_GOOGLE_TAG_MANAGER_ID=_TEST_ID,
     )
 
 
@@ -27,16 +27,14 @@ def test_injection(fc):
     r = fc.get('myapp')
     pkok(
         not re.search(
-            r'https://www.googletagmanager.com/gtm.js\?id=',
+            r'googletag',
             pkcompat.from_bytes(r.data)
         ),
-        'Unexpected injection of google tag mgr'
+        'Unexpected injection of googletag data={}',
+        r.data
     )
 
     # test successful injection
     r = fc.get('/en/landing.html')
-    pkok(
-        re.search(_NO_SUCH_ID, pkcompat.from_bytes(r.data)),
-        'Missing injection of google tag mgr'
-    )
+    pkre(_TEST_ID, pkcompat.from_bytes(r.data))
 

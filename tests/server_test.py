@@ -91,7 +91,7 @@ def test_myapp_basic(fc):
     r = fc.get('/en/landing.html')
     pkok(
         not re.search(
-            r'https://www.googletagmanager.com/gtm.js\?id=',
+            r'googletag',
             pkcompat.from_bytes(r.data)
         ),
         'Unexpected injection of google tag mgr',
