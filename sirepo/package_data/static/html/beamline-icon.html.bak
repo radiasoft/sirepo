@@ -1,5 +1,6 @@
-<svg class="srw-beamline-item-icon" viewbox="0 0 50 60" data-ng-switch="item.type" >
+<svg class="srw-beamline-item-icon" viewbox="0 0 100 60" data-ng-switch="item.type" >
     <g data-ng-switch-when="lens">
+        <!--
         <style type="text/css">
             .le-st0{fill:#BBD8F1;}
             .le-st1{fill:#6396B6;}
@@ -55,6 +56,7 @@
                     C101.1,29.2,100.4,29.6,99.7,29.6z"/>
             </g>
         </g>
+        -->
     </g>
     <g data-ng-switch-when="aperture">
         <style type="text/css">
@@ -120,7 +122,7 @@
             .el-st0{enable-background:new    ;}
             .el-st1{fill:#6B8198;}
             .el-st2{fill:#697F95;}
-            .el-st3{clip-path:url(#SVGID_2_);enable-background:new    ;}
+            .el-st3{clip-path:url(#EL_SVGID_2_);enable-background:new    ;}
             .el-st4{fill:#70879E;}
             .el-st5{fill:#738BA2;}
             .el-st6{fill:#768FA7;}
@@ -149,11 +151,11 @@
                         </g>
                         <g class="el-st0">
                             <defs>
-                                <path id="SVGID_1_" class="el-st0" d="M53.5,23.6l-5.7,7c-2.8,3.4-9.6,5-16.4,4.8c-8.3-0.1-16.5-2.8-17.5-7.9l5.7-7
+                                <path id="EL_SVGID_1_" class="el-st0" d="M53.5,23.6l-5.7,7c-2.8,3.4-9.6,5-16.4,4.8c-8.3-0.1-16.5-2.8-17.5-7.9l5.7-7
                                     c1,5,9.3,7.7,17.5,7.9C43.9,28.5,50.7,26.9,53.5,23.6z"/>
                             </defs>
-                            <clipPath id="SVGID_2_">
-                                <use xlink:href="#SVGID_1_"  style="overflow:visible;"/>
+                            <clipPath id="EL_SVGID_2_">
+                                <use xlink:href="#EL_SVGID_1_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="el-st3">
                                 <path class="el-st4" d="M13.8,27.5l5.7-7c0,0.1,0,0.2,0.1,0.3l-5.7,7C13.9,27.7,13.8,27.6,13.8,27.5"/>
@@ -386,7 +388,7 @@
             .sm-st0{enable-background:new    ;}
             .sm-st1{fill:#68922C;}
             .sm-st2{fill:#69942D;}
-            .sm-st3{clip-path:url(#SVGID_2_);enable-background:new    ;}
+            .sm-st3{clip-path:url(#SM_SVGID_2_);enable-background:new    ;}
             .sm-st4{fill:#6B972E;}
             .sm-st5{fill:#6D9A2F;}
             .sm-st6{fill:#6F9D30;}
@@ -412,11 +414,11 @@
                     </g>
                     <g class="sm-st0">
                         <defs>
-                            <path id="SVGID_1_" class="sm-st0" d="M61,26.5l-5.2,7.6C51.1,41,42.7,44.4,34.3,44.2C23.5,44,12.7,37.9,10.1,25.8l5.2-7.6
+                            <path id="SM_SVGID_1_" class="sm-st0" d="M61,26.5l-5.2,7.6C51.1,41,42.7,44.4,34.3,44.2C23.5,44,12.7,37.9,10.1,25.8l5.2-7.6
                                 C18,30.3,28.7,36.4,39.5,36.6C47.9,36.7,56.3,33.4,61,26.5z"/>
                         </defs>
-                        <clipPath id="SVGID_2_">
-                            <use xlink:href="#SVGID_1_"  style="overflow:visible;"/>
+                        <clipPath id="SM_SVGID_2_">
+                            <use xlink:href="#SM_VGID_1_"  style="overflow:visible;"/>
                         </clipPath>
                         <g class="sm-st3">
                             <path class="sm-st4" d="M10.1,25.8l5.2-7.6c0,0.1,0,0.2,0.1,0.3l-5.2,7.6C10.2,26,10.1,25.9,10.1,25.8"/>
@@ -646,7 +648,7 @@
     <g data-ng-switch-when="mask">
         <style type="text/css">
             .ma-st0{enable-background:new    ;}
-            .ma-st1{clip-path:url(#SVGID_2_);enable-background:new    ;}
+            .ma-st1{clip-path:url(#MA_SVGID_2_);enable-background:new    ;}
             .ma-st2{fill:#4A6722;}
             .ma-st3{fill:#4D6B23;}
             .ma-st4{fill:#506F24;}
@@ -657,23 +659,23 @@
             .ma-st9{fill:#5E832B;}
             .ma-st10{fill:#61872C;}
             .ma-st11{fill:#648B2D;}
-            .ma-st12{clip-path:url(#SVGID_4_);enable-background:new    ;}
-            .ma-st13{clip-path:url(#SVGID_6_);enable-background:new    ;}
-            .ma-st14{clip-path:url(#SVGID_8_);enable-background:new    ;}
-            .ma-st15{clip-path:url(#SVGID_10_);enable-background:new    ;}
-            .ma-st16{clip-path:url(#SVGID_12_);enable-background:new    ;}
-            .ma-st17{clip-path:url(#SVGID_14_);enable-background:new    ;}
-            .ma-st18{clip-path:url(#SVGID_16_);enable-background:new    ;}
-            .ma-st19{clip-path:url(#SVGID_18_);enable-background:new    ;}
-            .ma-st20{clip-path:url(#SVGID_20_);enable-background:new    ;}
-            .ma-st21{clip-path:url(#SVGID_22_);enable-background:new    ;}
-            .ma-st22{clip-path:url(#SVGID_24_);enable-background:new    ;}
-            .ma-st23{clip-path:url(#SVGID_26_);enable-background:new    ;}
-            .ma-st24{clip-path:url(#SVGID_28_);enable-background:new    ;}
-            .ma-st25{clip-path:url(#SVGID_30_);enable-background:new    ;}
-            .ma-st26{clip-path:url(#SVGID_32_);enable-background:new    ;}
-            .ma-st27{clip-path:url(#SVGID_34_);enable-background:new    ;}
-            .ma-st28{clip-path:url(#SVGID_36_);enable-background:new    ;}
+            .ma-st12{clip-path:url(#MA_SVGID_4_);enable-background:new    ;}
+            .ma-st13{clip-path:url(#MA_SVGID_6_);enable-background:new    ;}
+            .ma-st14{clip-path:url(#MA_SVGID_8_);enable-background:new    ;}
+            .ma-st15{clip-path:url(#MA_SVGID_10_);enable-background:new    ;}
+            .ma-st16{clip-path:url(#MA_SVGID_12_);enable-background:new    ;}
+            .ma-st17{clip-path:url(#MA_SVGID_14_);enable-background:new    ;}
+            .ma-st18{clip-path:url(#MA_SVGID_16_);enable-background:new    ;}
+            .ma-st19{clip-path:url(#MA_SVGID_18_);enable-background:new    ;}
+            .ma-st20{clip-path:url(#MA_SVGID_20_);enable-background:new    ;}
+            .ma-st21{clip-path:url(#MA_SVGID_22_);enable-background:new    ;}
+            .ma-st22{clip-path:url(#MA_SVGID_24_);enable-background:new    ;}
+            .ma-st23{clip-path:url(#MA_SVGID_26_);enable-background:new    ;}
+            .ma-st24{clip-path:url(#MA_SVGID_28_);enable-background:new    ;}
+            .ma-st25{clip-path:url(#MA_SVGID_30_);enable-background:new    ;}
+            .ma-st26{clip-path:url(#MA_SVGID_32_);enable-background:new    ;}
+            .ma-st27{clip-path:url(#MA_SVGID_34_);enable-background:new    ;}
+            .ma-st28{clip-path:url(#MA_SVGID_36_);enable-background:new    ;}
             .ma-st29{fill:#76A436;}
             .ma-st30{fill:#517125;}
             .ma-st31{fill:#3A53A4;}
@@ -684,11 +686,11 @@
                     <g class="ma-st0">
                         <g class="ma-st0">
                             <defs>
-                                <path id="SVGID_1_" class="ma-st0" d="M32.6,37.2l2.1-0.3c-1.3,0.2-2.3,1.3-2.3,2.7c0,1.5,1.2,2.8,2.7,2.8L33,42.6
+                                <path id="MA_SVGID_1_" class="ma-st0" d="M32.6,37.2l2.1-0.3c-1.3,0.2-2.3,1.3-2.3,2.7c0,1.5,1.2,2.8,2.7,2.8L33,42.6
                                     c-1.5,0-2.7-1.2-2.7-2.8C30.3,38.5,31.3,37.4,32.6,37.2z"/>
                             </defs>
-                            <clipPath id="SVGID_2_">
-                                <use xlink:href="#SVGID_1_"  style="overflow:visible;"/>
+                            <clipPath id="MA_SVGID_2_">
+                                <use xlink:href="#MA_SVGID_1_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="ma-st1">
                                 <path class="ma-st2" d="M32.6,37.2l2.1-0.3c-0.7,0.1-1.3,0.5-1.7,1.1l-2.1,0.3C31.2,37.7,31.9,37.3,32.6,37.2"/>
@@ -712,10 +714,10 @@
                         </g>
                         <g class="ma-st0">
                             <defs>
-                                <path id="SVGID_3_" class="ma-st0" d="M35.6,42.3l-2.1,0.3c-0.1,0-0.3,0-0.5,0l2.1-0.3C35.3,42.3,35.4,42.3,35.6,42.3z"/>
+                                <path id="MA_SVGID_3_" class="ma-st0" d="M35.6,42.3l-2.1,0.3c-0.1,0-0.3,0-0.5,0l2.1-0.3C35.3,42.3,35.4,42.3,35.6,42.3z"/>
                             </defs>
-                            <clipPath id="SVGID_4_">
-                                <use xlink:href="#SVGID_3_"  style="overflow:visible;"/>
+                            <clipPath id="MA_SVGID_4_">
+                                <use xlink:href="#MA_SVGID_3_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="ma-st12">
                                 <path class="ma-st5" d="M33,42.6l2.1-0.3c0,0,0,0,0,0L33,42.6C33,42.6,33,42.6,33,42.6"/>
@@ -725,11 +727,11 @@
                         </g>
                         <g class="ma-st0">
                             <defs>
-                                <path id="SVGID_5_" class="ma-st0" d="M32.6,24.6l2.1-0.3c-1.3,0.2-2.3,1.3-2.3,2.7c0,1.5,1.2,2.8,2.7,2.8L33,30.1
+                                <path id="MA_SVGID_5_" class="ma-st0" d="M32.6,24.6l2.1-0.3c-1.3,0.2-2.3,1.3-2.3,2.7c0,1.5,1.2,2.8,2.7,2.8L33,30.1
                                     c-1.5,0-2.7-1.2-2.7-2.8C30.3,26,31.3,24.8,32.6,24.6z"/>
                             </defs>
-                            <clipPath id="SVGID_6_">
-                                <use xlink:href="#SVGID_5_"  style="overflow:visible;"/>
+                            <clipPath id="MA_SVGID_6_">
+                                <use xlink:href="#MA_SVGID_5_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="ma-st13">
                                 <path class="ma-st2" d="M32.6,24.6l2.1-0.3c-0.7,0.1-1.3,0.5-1.7,1.1l-2.1,0.3C31.3,25.1,31.9,24.7,32.6,24.6"/>
@@ -753,10 +755,10 @@
                         </g>
                         <g class="ma-st0">
                             <defs>
-                                <path id="SVGID_7_" class="ma-st0" d="M35.6,29.7l-2.1,0.3c-0.1,0-0.3,0-0.5,0l2.1-0.3C35.3,29.7,35.5,29.7,35.6,29.7z"/>
+                                <path id="MA_SVGID_7_" class="ma-st0" d="M35.6,29.7l-2.1,0.3c-0.1,0-0.3,0-0.5,0l2.1-0.3C35.3,29.7,35.5,29.7,35.6,29.7z"/>
                             </defs>
-                            <clipPath id="SVGID_8_">
-                                <use xlink:href="#SVGID_7_"  style="overflow:visible;"/>
+                            <clipPath id="MA_SVGID_8_">
+                                <use xlink:href="#MA_SVGID_7_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="ma-st14">
                                 <path class="ma-st5" d="M33,30.1l2.1-0.3c0,0,0,0,0,0L33,30.1C33.1,30.1,33,30.1,33,30.1"/>
@@ -766,11 +768,11 @@
                         </g>
                         <g class="ma-st0">
                             <defs>
-                                <path id="SVGID_9_" class="ma-st0" d="M32.6,12.1l2.1-0.3c-1.3,0.2-2.3,1.3-2.3,2.7c0,1.5,1.2,2.8,2.7,2.8l-2.1,0.3
+                                <path id="MA_SVGID_9_" class="ma-st0" d="M32.6,12.1l2.1-0.3c-1.3,0.2-2.3,1.3-2.3,2.7c0,1.5,1.2,2.8,2.7,2.8l-2.1,0.3
                                     c-1.5,0-2.7-1.2-2.7-2.8C30.3,13.4,31.3,12.3,32.6,12.1z"/>
                             </defs>
-                            <clipPath id="SVGID_10_">
-                                <use xlink:href="#SVGID_9_"  style="overflow:visible;"/>
+                            <clipPath id="MA_SVGID_10_">
+                                <use xlink:href="#MA_SVGID_9_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="ma-st15">
                                 <path class="ma-st2" d="M32.6,12.1l2.1-0.3c-0.7,0.1-1.3,0.5-1.7,1.1l-2.1,0.3C31.3,12.6,31.9,12.2,32.6,12.1"/>
@@ -794,10 +796,10 @@
                         </g>
                         <g class="ma-st0">
                             <defs>
-                                <path id="SVGID_11_" class="ma-st0" d="M35.6,17.2l-2.1,0.3c-0.1,0-0.3,0-0.5,0l2.1-0.3C35.4,17.2,35.5,17.2,35.6,17.2z"/>
+                                <path id="MA_SVGID_11_" class="ma-st0" d="M35.6,17.2l-2.1,0.3c-0.1,0-0.3,0-0.5,0l2.1-0.3C35.4,17.2,35.5,17.2,35.6,17.2z"/>
                             </defs>
-                            <clipPath id="SVGID_12_">
-                                <use xlink:href="#SVGID_11_"  style="overflow:visible;"/>
+                            <clipPath id="MA_SVGID_12_">
+                                <use xlink:href="#MA_SVGID_11_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="ma-st16">
                                 <path class="ma-st5" d="M33.1,17.5l2.1-0.3c0,0,0,0,0,0L33.1,17.5C33.1,17.5,33.1,17.5,33.1,17.5"/>
@@ -807,11 +809,11 @@
                         </g>
                         <g class="ma-st0">
                             <defs>
-                                <path id="SVGID_13_" class="ma-st0" d="M45.9,37.3l2.1-0.3c-1.3,0.2-2.3,1.3-2.3,2.7c0,1.5,1.2,2.8,2.7,2.8l-2.1,0.3
+                                <path id="MA_SVGID_13_" class="ma-st0" d="M45.9,37.3l2.1-0.3c-1.3,0.2-2.3,1.3-2.3,2.7c0,1.5,1.2,2.8,2.7,2.8l-2.1,0.3
                                     c-1.5,0-2.7-1.2-2.7-2.8C43.7,38.6,44.6,37.5,45.9,37.3z"/>
                             </defs>
-                            <clipPath id="SVGID_14_">
-                                <use xlink:href="#SVGID_13_"  style="overflow:visible;"/>
+                            <clipPath id="MA_SVGID_14_">
+                                <use xlink:href="#MA_SVGID_13_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="ma-st17">
                                 <path class="ma-st2" d="M45.9,37.3l2.1-0.3c-0.7,0.1-1.3,0.5-1.7,1.1l-2.1,0.3C44.6,37.8,45.2,37.4,45.9,37.3"/>
@@ -835,10 +837,10 @@
                         </g>
                         <g class="ma-st0">
                             <defs>
-                                <path id="SVGID_15_" class="ma-st0" d="M49,42.3l-2.1,0.3c-0.1,0-0.3,0-0.4,0l2.1-0.3C48.7,42.4,48.8,42.4,49,42.3z"/>
+                                <path id="MA_SVGID_15_" class="ma-st0" d="M49,42.3l-2.1,0.3c-0.1,0-0.3,0-0.4,0l2.1-0.3C48.7,42.4,48.8,42.4,49,42.3z"/>
                             </defs>
-                            <clipPath id="SVGID_16_">
-                                <use xlink:href="#SVGID_15_"  style="overflow:visible;"/>
+                            <clipPath id="MA_SVGID_16_">
+                                <use xlink:href="#MA_SVGID_15_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="ma-st18">
                                 <path class="ma-st5" d="M46.4,42.7l2.1-0.3c0,0,0,0,0,0L46.4,42.7C46.4,42.7,46.4,42.7,46.4,42.7"/>
@@ -848,11 +850,11 @@
                         </g>
                         <g class="ma-st0">
                             <defs>
-                                <path id="SVGID_17_" class="ma-st0" d="M46,24.7l2.1-0.3c-1.3,0.2-2.3,1.3-2.3,2.7c0,1.5,1.2,2.8,2.7,2.8l-2.1,0.3
+                                <path id="MA_SVGID_17_" class="ma-st0" d="M46,24.7l2.1-0.3c-1.3,0.2-2.3,1.3-2.3,2.7c0,1.5,1.2,2.8,2.7,2.8l-2.1,0.3
                                     c-1.5,0-2.7-1.2-2.7-2.8C43.7,26,44.7,24.9,46,24.7z"/>
                             </defs>
-                            <clipPath id="SVGID_18_">
-                                <use xlink:href="#SVGID_17_"  style="overflow:visible;"/>
+                            <clipPath id="MA_SVGID_18_">
+                                <use xlink:href="#MA_SVGID_17_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="ma-st19">
                                 <path class="ma-st2" d="M46,24.7l2.1-0.3c-0.7,0.1-1.3,0.5-1.7,1.1l-2.1,0.3C44.6,25.2,45.3,24.8,46,24.7"/>
@@ -876,10 +878,10 @@
                         </g>
                         <g class="ma-st0">
                             <defs>
-                                <path id="SVGID_19_" class="ma-st0" d="M49,29.8l-2.1,0.3c-0.1,0-0.3,0-0.4,0l2.1-0.3C48.7,29.8,48.8,29.8,49,29.8z"/>
+                                <path id="MA_SVGID_19_" class="ma-st0" d="M49,29.8l-2.1,0.3c-0.1,0-0.3,0-0.4,0l2.1-0.3C48.7,29.8,48.8,29.8,49,29.8z"/>
                             </defs>
-                            <clipPath id="SVGID_20_">
-                                <use xlink:href="#SVGID_19_"  style="overflow:visible;"/>
+                            <clipPath id="MA_SVGID_20_">
+                                <use xlink:href="#MA_SVGID_19_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="ma-st20">
                                 <path class="ma-st5" d="M46.4,30.2l2.1-0.3c0,0,0,0,0,0L46.4,30.2C46.4,30.2,46.4,30.2,46.4,30.2"/>
@@ -889,11 +891,11 @@
                         </g>
                         <g class="ma-st0">
                             <defs>
-                                <path id="SVGID_21_" class="ma-st0" d="M46,12.2l2.1-0.3c-1.3,0.2-2.3,1.3-2.3,2.7c0,1.5,1.2,2.8,2.7,2.8l-2.1,0.3
+                                <path id="MA_SVGID_21_" class="ma-st0" d="M46,12.2l2.1-0.3c-1.3,0.2-2.3,1.3-2.3,2.7c0,1.5,1.2,2.8,2.7,2.8l-2.1,0.3
                                     c-1.5,0-2.7-1.2-2.7-2.8C43.7,13.5,44.7,12.4,46,12.2z"/>
                             </defs>
-                            <clipPath id="SVGID_22_">
-                                <use xlink:href="#SVGID_21_"  style="overflow:visible;"/>
+                            <clipPath id="MA_SVGID_22_">
+                                <use xlink:href="#MA_SVGID_21_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="ma-st21">
                                 <path class="ma-st2" d="M46,12.2l2.1-0.3c-0.7,0.1-1.3,0.5-1.7,1.1l-2.1,0.3C44.7,12.7,45.3,12.3,46,12.2"/>
@@ -917,10 +919,10 @@
                         </g>
                         <g class="ma-st0">
                             <defs>
-                                <path id="SVGID_23_" class="ma-st0" d="M49,17.2l-2.1,0.3c-0.1,0-0.3,0-0.4,0l2.1-0.3C48.7,17.3,48.9,17.3,49,17.2z"/>
+                                <path id="MA_SVGID_23_" class="ma-st0" d="M49,17.2l-2.1,0.3c-0.1,0-0.3,0-0.4,0l2.1-0.3C48.7,17.3,48.9,17.3,49,17.2z"/>
                             </defs>
-                            <clipPath id="SVGID_24_">
-                                <use xlink:href="#SVGID_23_"  style="overflow:visible;"/>
+                            <clipPath id="MA_SVGID_24_">
+                                <use xlink:href="#MA_SVGID_23_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="ma-st22">
                                 <path class="ma-st5" d="M46.4,17.6l2.1-0.3c0,0,0,0,0,0L46.4,17.6C46.5,17.6,46.4,17.6,46.4,17.6"/>
@@ -930,11 +932,11 @@
                         </g>
                         <g class="ma-st0">
                             <defs>
-                                <path id="SVGID_25_" class="ma-st0" d="M59.3,37.3l2.1-0.3c-1.3,0.2-2.3,1.3-2.3,2.7c0,1.5,1.2,2.8,2.7,2.8l-2.1,0.3
+                                <path id="MA_SVGID_25_" class="ma-st0" d="M59.3,37.3l2.1-0.3c-1.3,0.2-2.3,1.3-2.3,2.7c0,1.5,1.2,2.8,2.7,2.8l-2.1,0.3
                                     c-1.5,0-2.7-1.2-2.7-2.8C57,38.7,58,37.5,59.3,37.3z"/>
                             </defs>
-                            <clipPath id="SVGID_26_">
-                                <use xlink:href="#SVGID_25_"  style="overflow:visible;"/>
+                            <clipPath id="MA_SVGID_26_">
+                                <use xlink:href="#MA_SVGID_25_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="ma-st23">
                                 <path class="ma-st2" d="M59.3,37.3l2.1-0.3c-0.7,0.1-1.3,0.5-1.7,1.1l-2.1,0.3C58,37.8,58.6,37.4,59.3,37.3"/>
@@ -957,10 +959,10 @@
                         </g>
                         <g class="ma-st0">
                             <defs>
-                                <path id="SVGID_27_" class="ma-st0" d="M62.3,42.4l-2.1,0.3c-0.1,0-0.3,0-0.5,0l2.1-0.3C62,42.5,62.2,42.4,62.3,42.4z"/>
+                                <path id="MA_SVGID_27_" class="ma-st0" d="M62.3,42.4l-2.1,0.3c-0.1,0-0.3,0-0.5,0l2.1-0.3C62,42.5,62.2,42.4,62.3,42.4z"/>
                             </defs>
-                            <clipPath id="SVGID_28_">
-                                <use xlink:href="#SVGID_27_"  style="overflow:visible;"/>
+                            <clipPath id="MA_SVGID_28_">
+                                <use xlink:href="#MA_SVGID_27_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="ma-st24">
                                 <path class="ma-st5" d="M59.7,42.8l2.1-0.3c0,0,0,0,0,0L59.7,42.8C59.8,42.8,59.8,42.8,59.7,42.8"/>
@@ -970,11 +972,11 @@
                         </g>
                         <g class="ma-st0">
                             <defs>
-                                <path id="SVGID_29_" class="ma-st0" d="M59.3,24.8l2.1-0.3c-1.3,0.2-2.3,1.3-2.3,2.7c0,1.5,1.2,2.8,2.7,2.8l-2.1,0.3
+                                <path id="MA_SVGID_29_" class="ma-st0" d="M59.3,24.8l2.1-0.3c-1.3,0.2-2.3,1.3-2.3,2.7c0,1.5,1.2,2.8,2.7,2.8l-2.1,0.3
                                     c-1.5,0-2.7-1.2-2.7-2.8C57.1,26.1,58,25,59.3,24.8z"/>
                             </defs>
-                            <clipPath id="SVGID_30_">
-                                <use xlink:href="#SVGID_29_"  style="overflow:visible;"/>
+                            <clipPath id="MA_SVGID_30_">
+                                <use xlink:href="#MA_SVGID_29_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="ma-st25">
                                 <path class="ma-st2" d="M59.3,24.8l2.1-0.3c-0.7,0.1-1.3,0.5-1.7,1.1l-2.1,0.3C58,25.3,58.6,24.9,59.3,24.8"/>
@@ -998,10 +1000,10 @@
                         </g>
                         <g class="ma-st0">
                             <defs>
-                                <path id="SVGID_31_" class="ma-st0" d="M62.4,29.9l-2.1,0.3c-0.1,0-0.3,0-0.5,0l2.1-0.3C62.1,29.9,62.2,29.9,62.4,29.9z"/>
+                                <path id="MA_SVGID_31_" class="ma-st0" d="M62.4,29.9l-2.1,0.3c-0.1,0-0.3,0-0.5,0l2.1-0.3C62.1,29.9,62.2,29.9,62.4,29.9z"/>
                             </defs>
-                            <clipPath id="SVGID_32_">
-                                <use xlink:href="#SVGID_31_"  style="overflow:visible;"/>
+                            <clipPath id="MA_SVGID_32_">
+                                <use xlink:href="#MA_SVGID_31_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="ma-st26">
                                 <path class="ma-st5" d="M59.8,30.2l2.1-0.3c0,0,0,0,0,0L59.8,30.2C59.8,30.2,59.8,30.2,59.8,30.2"/>
@@ -1011,11 +1013,11 @@
                         </g>
                         <g class="ma-st0">
                             <defs>
-                                <path id="SVGID_33_" class="ma-st0" d="M59.4,12.2l2.1-0.3c-1.3,0.2-2.3,1.3-2.3,2.7c0,1.5,1.2,2.8,2.7,2.8l-2.1,0.3
+                                <path id="MA_SVGID_33_" class="ma-st0" d="M59.4,12.2l2.1-0.3c-1.3,0.2-2.3,1.3-2.3,2.7c0,1.5,1.2,2.8,2.7,2.8l-2.1,0.3
                                     c-1.5,0-2.7-1.2-2.7-2.8C57.1,13.6,58.1,12.4,59.4,12.2z"/>
                             </defs>
-                            <clipPath id="SVGID_34_">
-                                <use xlink:href="#SVGID_33_"  style="overflow:visible;"/>
+                            <clipPath id="MA_SVGID_34_">
+                                <use xlink:href="#MA_SVGID_33_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="ma-st27">
                                 <path class="ma-st2" d="M59.4,12.2l2.1-0.3c-0.7,0.1-1.3,0.5-1.7,1.1l-2.1,0.3C58,12.7,58.7,12.3,59.4,12.2"/>
@@ -1039,10 +1041,10 @@
                         </g>
                         <g class="ma-st0">
                             <defs>
-                                <path id="SVGID_35_" class="ma-st0" d="M62.4,17.3l-2.1,0.3c-0.1,0-0.3,0-0.5,0l2.1-0.3C62.1,17.3,62.2,17.3,62.4,17.3z"/>
+                                <path id="MA_SVGID_35_" class="ma-st0" d="M62.4,17.3l-2.1,0.3c-0.1,0-0.3,0-0.5,0l2.1-0.3C62.1,17.3,62.2,17.3,62.4,17.3z"/>
                             </defs>
-                            <clipPath id="SVGID_36_">
-                                <use xlink:href="#SVGID_35_"  style="overflow:visible;"/>
+                            <clipPath id="MA_SVGID_36_">
+                                <use xlink:href="#MA_SVGID_35_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="ma-st28">
                                 <path class="ma-st5" d="M59.8,17.7l2.1-0.3c0,0,0,0,0,0L59.8,17.7C59.8,17.7,59.8,17.7,59.8,17.7"/>
@@ -1098,7 +1100,7 @@
     <g data-ng-switch-when="watch">
         <style type="text/css">
             .wt-st0{enable-background:new    ;}
-            .wt-st1{clip-path:url(#SVGID_2_);enable-background:new    ;}
+            .wt-st1{clip-path:url(#WT_SVGID_2_);enable-background:new    ;}
             .wt-st2{fill:#40667B;}
             .wt-st3{fill:#436A80;}
             .wt-st4{fill:#456E85;}
@@ -1106,7 +1108,7 @@
             .wt-st6{fill:#4A768E;}
             .wt-st7{fill:#4D7A93;}
             .wt-st8{fill:#588BA8;}
-            .wt-st9{clip-path:url(#SVGID_4_);enable-background:new    ;}
+            .wt-st9{clip-path:url(#WT_SVGID_4_);enable-background:new    ;}
             .wt-st10{fill:#4F7D98;}
             .wt-st11{fill:#52819C;}
             .wt-st12{fill:#5485A1;}
@@ -1129,10 +1131,10 @@
                     <g class="wt-st0">
                         <g class="wt-st0">
                             <defs>
-                                <path id="SVGID_1_" class="wt-st0" d="M22.7,10.6l1-1.2c1.7-2.2,4.3-3.7,7.5-4.2l-1,1.2C27,6.9,24.4,8.5,22.7,10.6z"/>
+                                <path id="WT_SVGID_1_" class="wt-st0" d="M22.7,10.6l1-1.2c1.7-2.2,4.3-3.7,7.5-4.2l-1,1.2C27,6.9,24.4,8.5,22.7,10.6z"/>
                             </defs>
-                            <clipPath id="SVGID_2_">
-                                <use xlink:href="#SVGID_1_"  style="overflow:visible;"/>
+                            <clipPath id="WT_SVGID_2_">
+                                <use xlink:href="#WT_SVGID_1_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="wt-st1">
                                 <path class="wt-st2" d="M22.7,10.6l1-1.2c0.9-1.1,2-2.1,3.3-2.8l-1,1.2C24.7,8.6,23.6,9.5,22.7,10.6"/>
@@ -1149,11 +1151,11 @@
                         </g>
                         <g class="wt-st0">
                             <defs>
-                                <path id="SVGID_3_" class="wt-st0" d="M45.1,26.4l-1,1.2c2.2-2.7,3-6.4,2-10.3c-1.8-7-8.9-11.9-16-10.9l1-1.2
+                                <path id="WT_SVGID_3_" class="wt-st0" d="M45.1,26.4l-1,1.2c2.2-2.7,3-6.4,2-10.3c-1.8-7-8.9-11.9-16-10.9l1-1.2
                                     c7-1,14.2,3.9,16,10.9C48.1,20,47.2,23.7,45.1,26.4z"/>
                             </defs>
-                            <clipPath id="SVGID_4_">
-                                <use xlink:href="#SVGID_3_"  style="overflow:visible;"/>
+                            <clipPath id="WT_SVGID_4_">
+                                <use xlink:href="#WT_SVGID_3_"  style="overflow:visible;"/>
                             </clipPath>
                             <g class="wt-st9">
                                 <path class="wt-st7" d="M30.1,6.5l1-1.2c0.2,0,0.3,0,0.5-0.1l-1,1.2C30.5,6.4,30.3,6.5,30.1,6.5"/>
