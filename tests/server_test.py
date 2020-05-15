@@ -94,7 +94,8 @@ def test_myapp_basic(fc):
             r'googletag',
             pkcompat.from_bytes(r.data)
         ),
-        'Unexpected injection of google tag mgr',
+        'Unexpected injection of googletag data={}',
+        r.data
     )
 
 
