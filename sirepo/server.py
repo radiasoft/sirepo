@@ -36,6 +36,12 @@ import werkzeug.exceptions
 if any(k in feature_config.cfg().sim_types for k in ('flash', 'rs4pi', 'radia', 'synergia', 'warppba', 'warpvnd')):
     import h5py
 
+#: If google_tag_manager_id set, string to insert in landing pages for google analytics
+_google_tag_manager = None
+
+#: what to match in landing pages to insert `_google_tag_manager`
+_google_tag_manager_re = re.compile('(?=</head>)', flags=re.IGNORECASE)
+
 #: See sirepo.srunit
 SRUNIT_TEST_IN_REQUEST = 'srunit_test_in_request'
 
@@ -521,10 +527,10 @@ def api_staticFile(path_info=None):
     Returns:
         flask.Response: flask.send_from_directory response
     """
-    if re.match(r'en/.*html', path_info):
-        return pkjinja.render_file(
-            simulation_db.STATIC_FOLDER.join(path_info) + '.jinja',
-            cfg
+    if _google_tag_manager and re.match(r'en/.*html', path_info or ''):
+        return _google_tag_manager_re.sub(
+            _google_tag_manager,
+            pkio.read_text(simulation_db.STATIC_FOLDER.join(path_info)),
         )
     return flask.send_from_directory(
         str(simulation_db.STATIC_FOLDER),
@@ -599,6 +605,12 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
 def init(uwsgi=None, use_reloader=False):
     """Initialize globals and populate simulation dir"""
     global _app
+
+    global _google_tag_manager
+    if cfg.google_tag_manager_id:
+        _google_tag_manager = f'''<script>
+    (function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}})(window,document,'script','dataLayer','{cfg.google_tag_manager_id}');
+    </script>'''
 
     if _app:
         return
@@ -711,6 +723,6 @@ def static_dir(dir_name):
 cfg = pkconfig.init(
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
     db_dir=pkconfig.ReplacedBy('sirepo.srdb.root'),
-    google_tag_manager_id=(os.environ.get('SIREPO_SERVER_GOOGLE_TAG_MANAGER_ID', None), str, 'tag mgr id from google'),
+    google_tag_manager_id=(None, str, 'enable google analytics with this id'),
     job_queue=pkconfig.ReplacedBy('sirepo.runner.job_class'),
 )
