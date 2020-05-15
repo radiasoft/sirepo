@@ -627,18 +627,15 @@ class _ComputeJob(PKDict):
                 c.destroy(cancel=False)
 
     async def _receive_api_runSimulation(self, req, recursion_depth=0):
-        def _set_error(op, compute_job_serial):
+        def _set_error(compute_job_serial, internal_error):
             if self.db.computeJobSerial != compute_job_serial:
                 # Another run has started
                 return
             self.__db_update(
                 error='Server error',
-                internalError=op.internal_error,
+                internalError=internal_error,
                 status=job.ERROR,
             )
-            # _run destroys in the happy path (never got to _run here)
-            if op:
-                op.destroy(cancel=False)
 
         f = req.content.data.get('forceRun')
         if self._is_running_pending():
@@ -675,6 +672,7 @@ class _ComputeJob(PKDict):
             nextRequestSeconds=self.db.nextRequestSeconds,
         )
         t = int(time.time())
+        s = self.db.status
         self.__db_init(req, prev_db=self.db)
         self.__db_update(
             computeJobQueued=t,
@@ -715,11 +713,19 @@ class _ComputeJob(PKDict):
                 raise
             # There was a timeout getting the run started. Set the
             # error and let the user know. The timeout has destroyed
-            # the op so don't need to in _set_error
-            _set_error(None, c)
+            # the op so don't need to
+            _set_error(c, o.internal_error)
             return self._status_reply(req)
-        except Exception:
-            _set_error(o, c)
+        except Exception as e:
+            # _run destroys in the happy path (never got to _run here)
+            o.destroy(cancel=False)
+            if isinstance(e, sirepo.util.SRException) and\
+               e.sr_args.params.get('nonJobExc'):
+                self.__db_update(
+                    status=s,
+                )
+            else:
+                _set_error(c, o.internal_error)
             raise
 
     async def _receive_api_runStatus(self, req):

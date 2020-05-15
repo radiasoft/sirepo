@@ -1826,6 +1826,7 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
     };
 });
 
+
 SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService, frameCache, panelState, persistentSimulation, srwService) {
     return {
         restrict: 'A',
@@ -1872,7 +1873,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             //TODO(pjm): share with simStatusPanel directive in sirepo-components.js
                 '<div data-ng-if="simState.showJobSettings()">',
                   '<div class="form-group form-group-sm">',
-                    '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>',
+                    '<div class="col-sm-14" data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>',
                     '<div data-sbatch-options="simState"></div>',
                   '</div>',
                 '</div>',
@@ -1886,7 +1887,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             var clientFields = ['colorMap', 'aspectRatio', 'plotScale'];
             var serverFields = ['intensityPlotsWidth', 'rotateAngle', 'rotateReshape'];
             var oldModel = null;
-            $scope.frameCount = 0;
 
             function copyModel() {
                 oldModel = appState.cloneModel($scope.model);
@@ -1903,8 +1903,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 if (data.method && data.method != appState.models.fluxAnimation.method) {
                     // the output file on the server was generated with a different flux method
                     $scope.simState.timeData = {};
-                    $scope.frameCount = 0;
-                    frameCache.setFrameCount($scope.frameCount);
+                    frameCache.setFrameCount(0);
                     return;
                 }
                 if (data.percentComplete) {
@@ -1912,11 +1911,10 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     $scope.particleCount = data.particleCount;
                 }
                 if (data.frameCount) {
-                    if (data.frameCount != $scope.frameCount) {
-                        $scope.frameCount = data.frameCount;
-                        $scope.frameIndex = data.frameIndex;
-                        frameCache.setFrameCount($scope.frameCount);
-                        frameCache.setCurrentFrame($scope.model, $scope.frameIndex);
+
+                    if (data.frameCount != frameCache.getFrameCount($scope.model)) {
+                        frameCache.setFrameCount(data.frameCount);
+                        frameCache.setCurrentFrame($scope.model, data.frameIndex);
                     }
                     srwService.setShowCalcCoherence(data.calcCoherence);
                 }
@@ -1967,8 +1965,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 $scope.$on($scope.model + '.changed', function() {
                     if ($scope.simState.isReadyForModelChanges && hasReportParameterChanged()) {
                         $scope.cancelPersistentSimulation();
-                        $scope.frameCount = 0;
-                        frameCache.setFrameCount($scope.frameCount);
+                        frameCache.setFrameCount(0);
                         $scope.percentComplete = 0;
                         $scope.particleNumber = 0;
                     }
@@ -1984,7 +1981,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
        },
     };
 });
-
 //TODO(pjm): move this to sirepo-components and share with warpvnd
 SIREPO.app.service('vtkToPNG', function(plotToPNG, utilities) {
     this.pngCanvas = function(reportId, vtkRenderer, panel) {

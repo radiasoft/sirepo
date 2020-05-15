@@ -3066,34 +3066,38 @@ SIREPO.app.directive('sbatchLoginModal', function() {
               '</div>',
             '</div>',
         ].join(''),
-        controller: function(requestSender, $scope) {
+        controller: function(requestSender, $scope, $rootScope, authState) {
             $scope.otp = '';
             $scope.password = '';
             $scope.username = '';
             var awaitingSendResponse = false;
             var el = $('#sbatch-login-modal');
-            var onHidden = null;
             var errorResponse = null;
+            var onHidden = null;
 
             el.on('hidden.bs.modal', function() {
-                $scope.otp = '';
-                $scope.password = '';
-                $scope.username = '';
-                $scope.sbatchLoginModalForm.$setPristine();
                 var r = {'state': 'error', 'error': 'Please try again.'};
                 if (errorResponse) {
                     r = {'state': 'error', 'error': errorResponse};
                 }
-                errorResponse = null;
+                if (authState.sbatchLoginSuccess) {
+                    $rootScope.$broadcast('sbatchLoginSuccess');
+                }
                 onHidden(r);
                 onHidden = null;
+                errorResponse = null;
+                $scope.otp = '';
+                $scope.password = '';
+                $scope.username = '';
+                $scope.sbatchLoginModalForm.$setPristine();
                 $scope.$apply();
             });
 
             function handleResponse(data) {
-                if (data.hasOwnProperty('state') && data.state == 'error') {
+                if (data.state == 'error') {
                     errorResponse = data.error;
                 }
+                authState.sbatchLoginSuccess = data.loginSuccess;
                 el.modal('hide');
             }
 
@@ -3104,6 +3108,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                 if (onHidden === null) {
                     onHidden = data.errorCallback;
                 }
+                authState.sbatchLoginSuccess = false;
                 $scope.otp = '';
                 $scope.password = '';
                 awaitingSendResponse = false;
@@ -3151,6 +3156,7 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                 '<div data-ng-show="showNERSCFields()">',
                     '<div data-model-field="\'sbatchQueue\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"  data-ng-click="sbatchQueueFieldIsDirty = true"></div>',
                 '</div>',
+                '<div class="col-sm-12 text-right {{textInfoOrDanger()}}" data-ng-show="connectionStatusMessage()">{{ connectionStatusMessage() }}</div>',
             '</div>',
         ].join(''),
         controller: function($scope, authState) {
@@ -3174,14 +3180,27 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                 appState.watchModelFields($scope, [$scope.simState.model + '.' + e], trimHoursAndCores);
             });
 
+            $scope.connectionStatusMessage = function () {
+                if  (authState.sbatchLoginSuccess === undefined) {
+                    return null;
+                }
+                return authState.jobRunModeMap[appState.models[$scope.simState.model].jobRunMode]
+                    + (authState.sbatchLoginSuccess ? '' : ' no') + ' connection established';
+            };
+
             $scope.showNERSCFields = function() {
                 var n = authState.jobRunModeMap.sbatch;
                 return n && n.toLowerCase().includes('nersc');
             };
 
+
             $scope.showSbatchOptions = function() {
                 var m = appState.models[$scope.simState.model];
                 return m && m.jobRunMode === 'sbatch';
+            };
+
+            $scope.textInfoOrDanger = function () {
+                return authState.sbatchLoginSuccess? 'text-info': 'text-danger';
             };
         }
     };

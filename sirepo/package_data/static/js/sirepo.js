@@ -2295,6 +2295,12 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             return ! state.isProcessing();
         };
 
+        state.resetSimulation = function() {
+            setSimulationStatus({state: 'missing'});
+            frameCache.setFrameCount(0);
+            appState.whenModelsLoaded($scope, runStatus);
+        };
+
         state.runSimulation = function() {
             if (state.isStateRunning()) {
                 return;
@@ -2336,11 +2342,11 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             return appState.ucfirst(simulationStatus().state);
         };
 
-        setSimulationStatus({state: 'missing'});
-        frameCache.setFrameCount(0);
+        state.resetSimulation();
         $scope.$on('$destroy', clearSimulation);
-        appState.whenModelsLoaded($scope, runStatus);
-
+        $scope.$on('sbatchLoginSuccess', function() {
+            state.resetSimulation();
+        });
         return state;
     };
     return self;
