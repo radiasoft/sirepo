@@ -101,7 +101,7 @@ def get_application_data(data, **kwargs):
             g_id = radia_tk.load_bin(b)
     except IOError:
         # No Radia dump file
-        return {}
+        return PKDict()
     if data.method == 'get_field':
         f_type = data.get('fieldType')
         #pkdp('FT {}', f_type)
@@ -132,7 +132,8 @@ def get_application_data(data, **kwargs):
     if data.method == 'get_geom':
         g_types = data.get('geomTypes', ['lines', 'polygons'])
         res = _read_or_generate(g_id, data)
-        res.data = [{k: d[k] for k in d.keys() if k in g_types} for d in res.data]
+        rd = res.data if 'data' in res else []
+        res.data = [{k: d[k] for k in d.keys() if k in g_types} for d in rd]
         return res
     if data.method == 'save_field':
         #pkdp('DATA {}', data)
@@ -307,7 +308,6 @@ def _generate_field_data(g_id, name, f_type, f_paths):
         f = radia_tk.get_magnetization(g_id)
     elif f_type in radia_tk.POINT_FIELD_TYPES:
         f = radia_tk.get_field(g_id, f_type, _build_field_points(f_paths))
-        f = radia_tk.get_field(g_id, f_type, _build_field_points(f_paths))
     return radia_tk.vector_field_to_data(g_id, name, f, radia_tk.FIELD_UNITS[f_type])
 
 
@@ -425,7 +425,7 @@ def _read_path(sim_id, h5path):
         with h5py.File(_geom_file(sim_id), 'r') as hf:
             return template_common.h5_to_dict(hf, path=h5path)
     except IOError:
-        return {}
+        return PKDict()
 
 
 def _read_data(sim_id, view_type, field_type):

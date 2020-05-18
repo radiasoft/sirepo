@@ -1635,9 +1635,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     inData,
                     function(d) {
                         //srdbg('got app data', d);
-                        if (d && d.data) {
+                        if (d && d.data && d.data.length) {
                             if ($scope.isViewTypeFields()) {
                                 // get the lines in a separate call - downside is longer wait
+                                delete inData.fieldType;
                                 inData.geomTypes = ['lines'];
                                 inData.method = 'get_geom';
                                 inData.viewType = VIEW_TYPE_OBJECTS;
