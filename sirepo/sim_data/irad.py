@@ -21,6 +21,12 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
+        cls._init_models(
+            dm,
+            (
+                'dicomSettings',
+            ),
+        )
         if 'dicomReports' not in dm:
             dm.dicomReports = [
                 PKDict(
@@ -36,7 +42,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                     dicomPlane='c',
                 ),
             ]
-
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):

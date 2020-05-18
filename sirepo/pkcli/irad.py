@@ -257,7 +257,8 @@ def _write_rtstruct_file(files):
         for contour in roi_contour.ContourSequence:
             if contour.ContourGeometricType != 'CLOSED_PLANAR':
                 continue
-            ct_z = contour.ContourData[2]
+            #TODO(pjm): this is tied to irad.js zFrame formatting
+            ct_z = '{:.1f}'.format(float(contour.ContourData[2]))
             if ct_z not in roi['contour']:
                 roi['contour'][ct_z] = []
             data = _float_list(contour.ContourData)

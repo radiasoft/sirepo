@@ -45,6 +45,12 @@
         "dicomReport": {},
         "dvhReport": {
             "toggle": ["Toggle", "ReportToggle", "3d"]
+        },
+        "dicomSettings": {
+            "showRTDose": ["RTDOSE", "Boolean", "1"],
+            "showCT": ["CT", "Boolean", "1"],
+            "showRTStruct": ["RTSTRUCT", "Boolean", "1"],
+            "showRTPlan": ["RTPLAN", "Boolean", "0"]
         }
     },
     "view": {
