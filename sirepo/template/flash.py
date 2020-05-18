@@ -86,7 +86,7 @@ _DEFAULT_VALUES = {
             'y3': 'Burning rate',
         },
     },
-    'CapLaser': {
+    'CapLaserBELLA': {
         'varAnimation': {
             'var': 'tele',
         },
@@ -261,7 +261,7 @@ _DEFAULT_VALUES = {
         'physics:Diffuse:Unsplit': {
             'diff_thetaImplct': 1.0,
         },
-        'Simulation:magnetoHD:CapLaser': {
+        'Simulation:magnetoHD:CapLaserBELLA': {
             'sim_peakField': 3.2e3,
             'sim_period': 400e-9,
             'sim_rhoWall': 2.7,
@@ -375,7 +375,6 @@ def sim_frame_varAnimation(frame_args):
 
 
 def write_parameters(data, run_dir, is_parallel):
-    _extract_zip(data, run_dir)
     pkio.write_text(
         #TODO: generate python instead
         run_dir.join('flash.par'),
@@ -407,15 +406,20 @@ def _cell_size(f, refine_max):
     assert False, 'no blocks with appropriate refine level'
 
 
-def _extract_zip(data, run_dir):
-    import os
-    import sirepo.pkcli.flash
-    import stat
-    import zipfile
-    zipfile.ZipFile(run_dir.join(_SIM_DATA.proprietary_lib_file_basename(data))).extractall()
-    # extractall() doesn't maintain file permissions
-    # https://bugs.python.org/issue15795
-    os.chmod(run_dir.join(_SIM_DATA.EXE_NAME), stat.S_IXUSR)
+def _extract_rpm(data):
+    import subprocess
+
+    if _SIM_DATA.flash_exe_path(data, unchecked=True):
+        return
+    subprocess.check_output(
+        "rpm2cpio '{}' | cpio --extract --make-directories".format(
+            _SIM_DATA.lib_file_abspath(_SIM_DATA.proprietary_code_rpm()),
+        ),
+        cwd='/',
+        #SECURITY: No user defined input in cmd so shell=True is ok
+        shell=True,
+        stderr=subprocess.STDOUT,
+    )
 
 
 #TODO(pjm): plot columns are hard-coded for flashType
@@ -425,7 +429,7 @@ _PLOT_COLUMNS = {
         ['burned mass', 9],
         ['burning rate', 12],
     ],
-    'CapLaser': [
+    'CapLaserBELLA': [
         ['x-momentum', 2],
         ['y-momentum', 3],
         ['E kinetic', 6],
@@ -434,9 +438,10 @@ _PLOT_COLUMNS = {
 
 
 def _generate_parameters_file(data):
+    _extract_rpm(data)
     res = ''
     names = {}
-    for line in pkio.read_text(_SIM_DATA.SETUP_UNITS_FILE).split('\n'):
+    for line in pkio.read_text(_SIM_DATA.flash_setup_units_path(data)).split('\n'):
         name = ''
         #TODO(pjm): share with setup_params parser
         for part in line.split('/'):
