@@ -298,16 +298,12 @@ class _ComputeJob(PKDict):
             # at anytime so we need to check that they haven't
             if d.lastUpdateTime > _too_old:
                 return
+            cls._purged_jids_cache.add(db_file.purebasename)
             if d.status == job.JOB_RUN_PURGED:
-                cls._purged_jids_cache.add(db_file.purebasename)
                 return
             p = sirepo.simulation_db.simulation_run_dir(d)
             pkio.unchecked_remove(p)
-            _update_db(d)
-            cls._purged_jids_cache.add(db_file.purebasename)
-
-        def _update_db(db):
-            n = cls.__db_init_new(db, db)
+            n = cls.__db_init_new(d, d)
             n.status = job.JOB_RUN_PURGED
             cls.__db_write_file(n)
 
