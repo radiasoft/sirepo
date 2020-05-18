@@ -298,13 +298,14 @@ class _ComputeJob(PKDict):
             # at anytime so we need to check that they haven't
             if d.lastUpdateTime > _too_old:
                 return
+            cls._purged_jids_cache.add(db_file.purebasename)
             if d.status == job.JOB_RUN_PURGED:
                 return
             p = sirepo.simulation_db.simulation_run_dir(d)
             pkio.unchecked_remove(p)
-            d.status = job.JOB_RUN_PURGED
-            cls.__db_write_file(d)
-            cls._purged_jids_cache.add(db_file.purebasename)
+            n = cls.__db_init_new(d, d)
+            n.status = job.JOB_RUN_PURGED
+            cls.__db_write_file(n)
 
         if not cfg.purge_non_premium_task_secs:
             return
@@ -378,51 +379,55 @@ class _ComputeJob(PKDict):
         return _DB_DIR.join(computeJid + sirepo.simulation_db.JSON_SUFFIX)
 
     def __db_init(self, req, prev_db=None):
-        c = req.content
-        self.db = PKDict(
+        self.db = self.__db_init_new(req.content, prev_db)
+        return self.db
+
+    @classmethod
+    def __db_init_new(cls, data, prev_db=None):
+        db = PKDict(
             alert=None,
             cancelledAfterSecs=None,
-            computeJid=c.computeJid,
-            computeJobHash=c.computeJobHash,
+            computeJid=data.computeJid,
+            computeJobHash=data.computeJobHash,
             computeJobSerial=0,
             computeJobStart=0,
             computeJobQueued=0,
             driverDetails=PKDict(),
             error=None,
             jobStatusMessage=None,
-            history=self.__db_init_history(prev_db),
-            isParallel=c.isParallel,
-            isPremiumUser=c.get('isPremiumUser'),
+            history=cls.__db_init_history(prev_db),
+            isParallel=data.isParallel,
+            isPremiumUser=data.get('isPremiumUser'),
             lastUpdateTime=0,
             simName=None,
-            simulationId=c.simulationId,
-            simulationType=c.simulationType,
-#TODO(robnagler) when would req come in with status?
-            status=req.get('status', job.MISSING),
-            uid=c.uid,
+            simulationId=data.simulationId,
+            simulationType=data.simulationType,
+            status=job.MISSING,
+            uid=data.uid,
         )
-        r = c.get('jobRunMode')
+        r = data.get('jobRunMode')
         if not r:
-            assert c.api != 'api_runSimulation', \
-                'api_runSimulation must have a jobRunMode content={}'.format(c)
+            assert data.api != 'api_runSimulation', \
+                'api_runSimulation must have a jobRunMode content={}'.format(data)
             # __db_init() will be called when runDirNotFound.
             # The api_* that initiated the request may not have
             # a jobRunMode (ex api_downloadDataFile). In that
             # case use the existing jobRunMode because the
             # request doesn't care about the jobRunMode
-            r = self.db.jobRunMode
+            r = prev_db.jobRunMode
 
-        self.db.pkupdate(
+        db.pkupdate(
             jobRunMode=r,
             nextRequestSeconds=_NEXT_REQUEST_SECONDS[r],
         )
-        if self.db.isParallel:
-            self.db.parallelStatus = PKDict(
+        if db.isParallel:
+            db.parallelStatus = PKDict(
                 ((k, 0) for k in _PARALLEL_STATUS_FIELDS),
             )
-        return self.db
+        return db
 
-    def __db_init_history(self, prev_db):
+    @classmethod
+    def __db_init_history(cls, prev_db):
         if prev_db is None:
             return []
         return prev_db.history + [
