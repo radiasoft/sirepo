@@ -51,6 +51,9 @@ LIB_FILE_LIST_URI = '/list.json'
 #: where user lib file directories are linked for static download (job_supervisor)
 LIB_FILE_ROOT = None
 
+# POSIT: These are the same queues as in schema-common.common.enum.SbatchQueue
+SBATCH_QUEUES = ('debug', 'realtime', 'regular')
+
 #: where user data files come in (job_supervisor)
 DATA_FILE_ROOT = None
 

@@ -254,7 +254,7 @@ def _request_content(kwargs):
 
 
 def _run_mode(request_content):
-    def _validate_value(value, *types):
+    def _validate_number(value, *types):
         assert type(value) in types and value > 0, \
             f'value={value} expecting a {types} > 0'
 
@@ -275,11 +275,12 @@ def _run_mode(request_content):
                 request_content.computeJid,
             )
         )
-    _validate_value(m.sbatchCores, int)
-    _validate_value(m.sbatchHours, float, int)
-    return request_content.pkupdate(
-        jobRunMode=j,
-        sbatchCores=m.sbatchCores,
-        sbatchHours=m.sbatchHours,
-        sbatchQueue=m.sbatchQueue,
-    )
+    _validate_number(m.sbatchCores, int)
+    _validate_number(m.sbatchHours, float, int)
+    assert m.sbatchQueue in sirepo.job.SBATCH_QUEUES, \
+        f'sbatchQueue={m.sbatchQueue} not a valid queue {sirepo.job.SBATCH_QUEUES}'
+    request_content.jobRunMode = j
+    for f in ('Cores', 'Hours', 'Queue'):
+        n = f'sbatch{f}'
+        setattr(request_content, n, getattr(m, n))
+    return request_content
