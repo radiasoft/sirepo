@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo.pkcli import admin
+import pykern.pkcli
 import sirepo.auth
 import sirepo.auth.email
 import sirepo.auth_db
@@ -46,6 +47,8 @@ def list_roles(uid_or_email):
     return sirepo.auth_db.UserRole.search_all_for_column('role', uid=u)
 
 
+# TODO(e-carlin): This only works for email auth or using a uid
+# doesn't work for other auth methods (ex GitHub)
 def _check_uid_or_email_and_roles(uid_or_email, roles):
     sirepo.server.init()
 
@@ -54,10 +57,10 @@ def _check_uid_or_email_and_roles(uid_or_email, roles):
         u = sirepo.auth.email.AuthEmailUser.search_by(user_name=uid_or_email)
     else:
         u = sirepo.auth_db.UserRegistration.search_by(uid=uid_or_email)
-    assert u, \
-        'uid_or_email={} not found'.format(uid_or_email)
+    if not u:
+        pykern.pkcli.command_error('uid_or_email={} not found', uid_or_email)
     if roles:
         a = sirepo.auth.get_all_roles()
         assert set(roles).issubset(a), \
-            'roles={} not a subset valid roles={}'.format(roles, a)
+            'roles={} not a subset valid all_roles={}'.format(roles, a)
     return u.uid
