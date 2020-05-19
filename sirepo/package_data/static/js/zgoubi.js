@@ -95,7 +95,7 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
     var self = this;
     self.latticeService = latticeService;
     self.advancedNames = ['AUTOREF',  'TOSCA', 'YMY'];
-    self.basicNames = ['BEND', 'CAVITE', 'CHANGREF', 'CHANGREF2', 'COLLIMA', 'DRIFT', 'FFA', 'FFA_SPI', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'SOLENOID', 'SPINR'];
+    self.basicNames = ['BEND', 'CAVITE', 'CHANGREF', 'CHANGREF2', 'COLLIMA', 'DRIFT', 'DIPOLE', 'FFA', 'FFA_SPI', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'SOLENOID', 'SPINR'];
     var scaling = null;
 
     function updateScaling() {
