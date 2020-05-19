@@ -77,7 +77,7 @@ def run(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     if data.report == 'dvhReport':
         sim_id = data.models.simulation.simulationId
-        filename = template.sim_file(sim_id, 'dvh-data.json')
+        filename = template.sim_file(sim_id, _DVH_FILE_NAME)
         template_common.write_sequential_result(simulation_db.read_json(filename))
     elif data.report == 'dicom3DReport':
         template_common.write_sequential_result({
@@ -129,7 +129,7 @@ def _compute_dvh(roi_numbers, rtstruct, rtdose):
         })
     return {
         'title': '',
-        'aspectRatio': 3.0 / 4.0,
+        'aspectRatio': 1,
         'x_range': [0, max_x / 100.0, max_x],
         'y_label': 'Volume [%]',
         'x_label': 'Dose [gy]',

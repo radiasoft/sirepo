@@ -13,6 +13,7 @@
     "constants": {
         "dicomFrame": 1,
         "doseFrame": 2,
+        "inProgressText": "Working",
         "roiFrame": 3
     },
     "dynamicFiles": {
@@ -43,14 +44,13 @@
         "components": {},
         "dicom3DReport": {},
         "dicomReport": {},
-        "dvhReport": {
-            "toggle": ["Toggle", "ReportToggle", "3d"]
-        },
+        "dvhReport": {},
         "dicomSettings": {
             "showRTDose": ["RTDOSE", "Boolean", "1"],
             "showCT": ["CT", "Boolean", "1"],
             "showRTStruct": ["RTSTRUCT", "Boolean", "1"],
-            "showRTPlan": ["RTPLAN", "Boolean", "0"]
+            "showRTPlan": ["RTPLAN", "Boolean", "0"],
+            "toggle3D": ["Toggle", "ReportToggle", "3d"]
         }
     },
     "view": {

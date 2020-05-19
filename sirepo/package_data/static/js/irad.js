@@ -106,6 +106,7 @@ SIREPO.app.factory('iradService', function(appState, panelState, requestSender, 
 
     self.setActiveROI = function(roiNumber) {
         appState.models.dicomSettings.activeRoiNumber = roiNumber;
+        appState.saveQuietly('dicomSettings');
         $rootScope.$broadcast('irad-roi-activated', roiNumber);
     };
 
@@ -133,7 +134,7 @@ SIREPO.app.controller('SourceController', function (appState, iradService, $scop
             }
             return false;
         }
-        return appState.models.dvhReport.toggle == toggle;
+        return appState.models.dicomSettings.toggle3D == toggle;
     };
 
     //TODO(pjm): work-around to turn off plot legend on DVH report
@@ -500,6 +501,7 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, plotti
                 var roi = activeROI ? iradService.getROIPoints()[activeROI] : null;
                 if (! roi) {
                     fsRenderer.getRenderWindow().render();
+                    pngCanvas.copyCanvas(null, true);
                     return;
                 }
                 var i, j, segment;
@@ -657,6 +659,7 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, plotti
                 }
                 //var startTime = new Date().getTime();
                 fsRenderer.getRenderWindow().render();
+                pngCanvas.copyCanvas(null, true);
                 //console.log('elapsed render seconds:', (new Date().getTime() - startTime) / 1000);
             }
 
@@ -1116,6 +1119,9 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
             }
 
             function renderData() {
+                if (! data3d) {
+                    return;
+                }
 
                 if ($scope.model.frameIdx > 1e100) {
                     $scope.model.frameIdx = parseInt(
@@ -1450,8 +1456,8 @@ SIREPO.app.directive('toggleReportButton', function(appState) {
 
             $scope.toggleReport = function() {
                 if (appState.isLoaded()) {
-                    appState.models.dvhReport.toggle = $scope.selected;
-                    appState.saveChanges('dvhReport');
+                    appState.models.dicomSettings.toggle3D = $scope.selected;
+                    appState.saveChanges('dicomSettings');
                 }
             };
         },

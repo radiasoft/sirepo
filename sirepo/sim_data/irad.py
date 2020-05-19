@@ -35,11 +35,11 @@ class SimData(sirepo.sim_data.SimDataBase):
                 ),
                 PKDict(
                     id=2,
-                    dicomPlane='s',
+                    dicomPlane='c',
                 ),
                 PKDict(
                     id=3,
-                    dicomPlane='c',
+                    dicomPlane='s',
                 ),
             ]
 

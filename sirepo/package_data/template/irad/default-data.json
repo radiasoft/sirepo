@@ -3,9 +3,7 @@
         "simulation": {},
         "dicom3DReport": {},
         "dicomReport": {},
-        "dvhReport": {
-            "toggle": "3d"
-        }
+        "dvhReport": {}
     },
     "simulationType": "irad"
 }
