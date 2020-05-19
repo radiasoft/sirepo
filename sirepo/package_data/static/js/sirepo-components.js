@@ -3080,7 +3080,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                 if (errorResponse) {
                     r = {'state': 'error', 'error': errorResponse};
                 }
-                sbatchLoginStatusService.loginSuccess()
+                sbatchLoginStatusService.loginSuccess();
                 onHidden(r);
                 onHidden = null;
                 errorResponse = null;
