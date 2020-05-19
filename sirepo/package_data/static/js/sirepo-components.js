@@ -3066,7 +3066,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
               '</div>',
             '</div>',
         ].join(''),
-        controller: function(requestSender, $scope, $rootScope, authState) {
+        controller: function(requestSender, $scope, $rootScope, sbatchLoginStatusService) {
             $scope.otp = '';
             $scope.password = '';
             $scope.username = '';
@@ -3080,9 +3080,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                 if (errorResponse) {
                     r = {'state': 'error', 'error': errorResponse};
                 }
-                if (authState.sbatchLoginSuccess) {
-                    $rootScope.$broadcast('sbatchLoginSuccess');
-                }
+                sbatchLoginStatusService.loginSuccess()
                 onHidden(r);
                 onHidden = null;
                 errorResponse = null;
@@ -3097,7 +3095,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                 if (data.state === 'error') {
                     errorResponse = data.error;
                 }
-                authState.sbatchLoginSuccess = data.loginSuccess;
+                sbatchLoginStatusService.loggedIn = data.loginSuccess;
                 el.modal('hide');
             }
 
@@ -3108,7 +3106,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                 if (onHidden === null) {
                     onHidden = data.errorCallback;
                 }
-                authState.sbatchLoginSuccess = false;
+                sbatchLoginStatusService.loggedIn = false;
                 $scope.otp = '';
                 $scope.password = '';
                 awaitingSendResponse = false;
@@ -3159,7 +3157,7 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                 '<div class="col-sm-12 text-right {{textClass()}}" data-ng-show="connectionStatusMessage()">{{ connectionStatusMessage() }}</div>',
             '</div>',
         ].join(''),
-        controller: function($scope, authState) {
+        controller: function($scope, authState, sbatchLoginStatusService) {
             $scope.sbatchQueueFieldIsDirty = false;
             function trimHoursAndCores() {
                 var m = appState.models[$scope.simState.model];
@@ -3181,11 +3179,11 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
             });
 
             $scope.connectionStatusMessage = function () {
-                if  (authState.sbatchLoginSuccess === undefined) {
+                if  (sbatchLoginStatusService.loggedIn === undefined) {
                     return null;
                 }
                 var s = 'conntected to ' + authState.jobRunModeMap[appState.models[$scope.simState.model].jobRunMode];
-                s = (authState.sbatchLoginSuccess ? '' : 'not ') + s;
+                s = (sbatchLoginStatusService.loggedIn ? '' : 'not ') + s;
                 return s.charAt(0).toUpperCase() + s.slice(1);
             };
 
@@ -3201,7 +3199,7 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
             };
 
             $scope.textClass = function () {
-                return authState.sbatchLoginSuccess? 'text-info' : 'text-danger';
+                return sbatchLoginStatusService.loggedIn ? 'text-info' : 'text-danger';
             };
         }
     };
@@ -3736,6 +3734,19 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
             }
         }
     };
+});
+
+SIREPO.app.service('sbatchLoginStatusService', function($rootScope) {
+    var self = this;
+    self.loggedIn = undefined;
+
+    self.loginSuccess = function() {
+        if (! self.loggedIn) {
+            return;
+        }
+        $rootScope.$broadcast('sbatchLoginSuccess');
+    };
+
 });
 
 SIREPO.app.service('utilities', function($window, $interval) {
