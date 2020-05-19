@@ -254,10 +254,6 @@ def _request_content(kwargs):
 
 
 def _run_mode(request_content):
-    def _validate_number(value, *types):
-        assert type(value) in types and value > 0, \
-            f'value={value} expecting a {types} > 0'
-
     if 'models' not in request_content.data:
         return request_content
 #TODO(robnagler) make sure this is set for animation sim frames
@@ -275,12 +271,30 @@ def _run_mode(request_content):
                 request_content.computeJid,
             )
         )
-    _validate_number(m.sbatchCores, int)
-    _validate_number(m.sbatchHours, float, int)
-    assert m.sbatchQueue in sirepo.job.SBATCH_QUEUES, \
-        f'sbatchQueue={m.sbatchQueue} not a valid queue {sirepo.job.SBATCH_QUEUES}'
     request_content.jobRunMode = j
-    for f in ('Cores', 'Hours', 'Queue'):
-        n = f'sbatch{f}'
-        setattr(request_content, n, getattr(m, n))
+    return _validate_and_add_sbatch_fields(request_content, m)
+
+
+def _validate_and_add_sbatch_fields(request_content, compute_model):
+    def _element_of_list(field, list):
+        def _v(value):
+            assert value in list, \
+                f'value={value} not in enum={list}'
+        _validate_and_add(field, _v)
+
+    def _number(field, *types):
+        def _v(value):
+            assert type(value) in types and value > 0, \
+                f'value={value} expecting a {types} > 0'
+        _validate_and_add(field, _v)
+
+    def _validate_and_add(field, validate):
+        v = getattr(compute_model, field)
+        validate(v)
+        setattr(request_content, field, v)
+
+    _number('sbatchCores', int)
+    _number('sbatchHours', float, int)
+    if  'nersc' in simulation_db.cfg.sbatch_display.lower():
+        _element_of_list('sbatchQueue', sirepo.job.SBATCH_QUEUES)
     return request_content

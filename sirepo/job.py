@@ -52,7 +52,7 @@ LIB_FILE_LIST_URI = '/list.json'
 LIB_FILE_ROOT = None
 
 # POSIT: These are the same queues as in schema-common.common.enum.SbatchQueue
-SBATCH_QUEUES = ('debug', 'realtime', 'regular')
+SBATCH_QUEUES = ('debug', 'premium', 'realtime', 'regular')
 
 #: where user data files come in (job_supervisor)
 DATA_FILE_ROOT = None
