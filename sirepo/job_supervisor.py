@@ -713,17 +713,15 @@ class _ComputeJob(PKDict):
                 raise
             # There was a timeout getting the run started. Set the
             # error and let the user know. The timeout has destroyed
-            # the op so don't need to
+            # the op so don't need to destroy here
             _set_error(c, o.internal_error)
             return self._status_reply(req)
         except Exception as e:
             # _run destroys in the happy path (never got to _run here)
             o.destroy(cancel=False)
-            if isinstance(e, sirepo.util.SRException) and\
-               e.sr_args.params.get('nonJobExc'):
-                self.__db_update(
-                    status=s,
-                )
+            if isinstance(e, sirepo.util.SRException) and \
+               e.sr_args.params.get('isGeneral'):
+                self.__db_update(status=s)
             else:
                 _set_error(c, o.internal_error)
             raise

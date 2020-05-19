@@ -3094,7 +3094,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
             });
 
             function handleResponse(data) {
-                if (data.state == 'error') {
+                if (data.state === 'error') {
                     errorResponse = data.error;
                 }
                 authState.sbatchLoginSuccess = data.loginSuccess;
@@ -3124,7 +3124,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                         {
                             otp: $scope.otp,
                             password: $scope.password,
-                            report: data.report,
+                            computeModel: data.computeModel,
                             simulationId: data.simulationId,
                             simulationType: data.simulationType,
                             username: $scope.username,
@@ -3156,7 +3156,7 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                 '<div data-ng-show="showNERSCFields()">',
                     '<div data-model-field="\'sbatchQueue\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"  data-ng-click="sbatchQueueFieldIsDirty = true"></div>',
                 '</div>',
-                '<div class="col-sm-12 text-right {{textInfoOrDanger()}}" data-ng-show="connectionStatusMessage()">{{ connectionStatusMessage() }}</div>',
+                '<div class="col-sm-12 text-right {{textClass()}}" data-ng-show="connectionStatusMessage()">{{ connectionStatusMessage() }}</div>',
             '</div>',
         ].join(''),
         controller: function($scope, authState) {
@@ -3184,8 +3184,9 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                 if  (authState.sbatchLoginSuccess === undefined) {
                     return null;
                 }
-                return authState.jobRunModeMap[appState.models[$scope.simState.model].jobRunMode]
-                    + (authState.sbatchLoginSuccess ? '' : ' no') + ' connection established';
+                var s = 'conntected to ' + authState.jobRunModeMap[appState.models[$scope.simState.model].jobRunMode];
+                s = (authState.sbatchLoginSuccess ? '' : 'not ') + s;
+                return s.charAt(0).toUpperCase() + s.slice(1);
             };
 
             $scope.showNERSCFields = function() {
@@ -3199,8 +3200,8 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                 return m && m.jobRunMode === 'sbatch';
             };
 
-            $scope.textInfoOrDanger = function () {
-                return authState.sbatchLoginSuccess? 'text-info': 'text-danger';
+            $scope.textClass = function () {
+                return authState.sbatchLoginSuccess? 'text-info' : 'text-danger';
             };
         }
     };

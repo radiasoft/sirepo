@@ -1826,7 +1826,6 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
     };
 });
 
-
 SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService, frameCache, panelState, persistentSimulation, srwService) {
     return {
         restrict: 'A',
@@ -1981,6 +1980,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
        },
     };
 });
+
 //TODO(pjm): move this to sirepo-components and share with warpvnd
 SIREPO.app.service('vtkToPNG', function(plotToPNG, utilities) {
     this.pngCanvas = function(reportId, vtkRenderer, panel) {

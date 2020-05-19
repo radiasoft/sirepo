@@ -213,9 +213,9 @@ scancel -u $USER >& /dev/null || true
             PKDict(
                 host=self.cfg.host,
                 isModal=True,
-                nonJobExc=True,
+                isGeneral=True,
                 reason=reason,
-                report=msg.computeModel,
+                computeModel=msg.computeModel,
                 simulationId=msg.simulationId,
                 simulationType=msg.simulationType,
             ),
