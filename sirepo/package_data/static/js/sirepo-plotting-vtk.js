@@ -880,6 +880,11 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     '<text class="{{ dim }} axis-end low"></text>',
                     '<text class="{{ dim }} axis-end high"></text>',
                 '</g>',
+                '<g data-ng-repeat="dim in geometry.basis">',
+                    '<g class="{{ dim }}-axis-central" data-ng-show="axisCfg[dim].showCentral">',
+                        '<line style="stroke: gray;" stroke-dasharray="5,5" data-ng-attr-x1="{{ centralAxes[dim].x[0] }}" data-ng-attr-y1="{{ centralAxes[dim].y[0] }}" data-ng-attr-x2="{{ centralAxes[dim].x[1] }}" data-ng-attr-y2="{{ centralAxes[dim].y[1] }}" />',
+                    '</g>',
+                '</g>',
             '</g>',
             '</svg>',
         ].join(''),
@@ -889,9 +894,18 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                 x: { width: 16.0, height: 0.0 },
                 y: { width: 0.0, height: 16.0 }
             };
+            $scope.centralAxes = {
+                x: { x: [-0.5, 0.5], y: [-0.5, 0.5] },
+                y: { x: [-0.5, 0.5], y: [-0.5, 0.5] },
+                z: { x: [-0.5, 0.5], y: [-0.5, 0.5] },
+            };
             $scope.geometry = geometry;
             $scope.margin = {top: 50, right: 23, bottom: 50, left: 75};
-            //$scope.width = $scope.height = 0;
+
+            $scope.isDegenerate = function(dim) {
+                return $scope.centralAxes[dim].x[0] === $scope.centralAxes[dim].x[1] &&
+                    $scope.centralAxes[dim].y[0] === $scope.centralAxes[dim].y[1];
+            };
 
             var axes = {
                 x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh, utilities),
@@ -905,10 +919,11 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                 axisCfgDefault[dim].color = '#ff0000';
                 axisCfgDefault[dim].dimLabel = dim;
                 axisCfgDefault[dim].label = dim;
-                axisCfgDefault[dim].max = 1;
-                axisCfgDefault[dim].min = 0;
+                axisCfgDefault[dim].max = -0.5;
+                axisCfgDefault[dim].min = 0.5;
                 axisCfgDefault[dim].numPoints = 10;
                 axisCfgDefault[dim].screenDim = dim === 'z' ? 'y' : 'x';
+                axisCfgDefault[dim].showCentral = false;
             });
 
             var axisCfg = axisCfgDefault;
@@ -932,7 +947,6 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                         size[1] - $scope.axesMargins.y.height
                     )
                 );
-
 
                 var dsz = [size[0] / lastSize[0], size[1] / lastSize[1]];
                 // If an axis is shorter than this, don't display it -- the ticks will
@@ -960,6 +974,10 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                         externalEdges, screenRect, dim, false
                     );
                     //srdbg(dim, 'best edge', seg);
+                    var cl = $scope.boundObj.vpCenterLineForDimension(dim);
+                    var cli = screenRect.boundaryIntersectionsWithSeg(cl);
+                    $scope.centralAxes[dim].x = [cli[0].x, cli[1].x];
+                    $scope.centralAxes[dim].y = [cli[0].y, cli[1].y];
 
                     if (! seg) {
                         // param to show arrow ends?
@@ -1094,6 +1112,10 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                         .attr('y', labelY)
                         .attr('transform', labelXform)
                         .style('opacity', (showAxisEnds || newRange < minAxisDisplayLen) ? 0 : 1);
+
+                    // these optional axes go through (0, 0, 0)
+
+
                 }
                 lastSize = size;
             }

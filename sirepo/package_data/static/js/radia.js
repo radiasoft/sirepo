@@ -854,6 +854,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             var actorInfo = {};
             var alphaDelegate = null;
+            var beamAxis = [[-1, 0, 0], [1, 0, 0]];
             var cm = vtkPlotting.coordMapper();
             var colorbar = null;
             var colorbarPtr = null;
@@ -1038,6 +1039,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
                 var bndBox = cm.buildBox(l, [(b[1] + b[0]) / 2, (b[3] + b[2]) / 2, (b[5] + b[4]) / 2]);
                 bndBox.actor.getProperty().setRepresentationToWireframe();
+                // NOTE: vtkLineFilter exists but is not included in the default vtk build
                 //var lf = vtk.Filters.General.vtkLineFilter.newInstance();
 
                 renderer.addActor(bndBox.actor);
@@ -1063,6 +1065,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     acfg[dim].min = b[2 * i];
                     acfg[dim].numPoints = 2;
                     acfg[dim].screenDim = dim === 'z' ? 'y' : 'x';
+                    acfg[dim].showCentral = dim === appState.models.geometry.beamAxis;
                 });
                 $scope.axisCfg = acfg;
 
