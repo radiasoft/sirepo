@@ -231,5 +231,5 @@ def test_token_expired(auth_fc):
     )
     login_url = r.uri
     srtime.adjust_time(1)
-    r = fc.get(login_url)
+    r = fc.sr_email_confirm(fc, r)
     s = fc.sr_auth_state(isLoggedIn=False)
