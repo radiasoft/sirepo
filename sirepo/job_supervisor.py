@@ -451,6 +451,10 @@ class _ComputeJob(PKDict):
                 h.setdefault(k, None)
         return d
 
+    def __db_restore(self, db):
+        self.db = db
+        self.__db_write()
+
     def __db_update(self, **kwargs):
         self.db.pkupdate(**kwargs)
         return self.__db_write()
@@ -673,7 +677,8 @@ class _ComputeJob(PKDict):
         )
         t = int(time.time())
         s = self.db.status
-        self.__db_init(req, prev_db=self.db)
+        d = self.db
+        self.__db_init(req, prev_db=d)
         self.__db_update(
             computeJobQueued=t,
             computeJobSerial=t,
@@ -721,7 +726,7 @@ class _ComputeJob(PKDict):
             o.destroy(cancel=False)
             if isinstance(e, sirepo.util.SRException) and \
                e.sr_args.params.get('isGeneral'):
-                self.__db_update(status=s)
+                self.__db_restore(d)
             else:
                 _set_error(c, o.internal_error)
             raise
