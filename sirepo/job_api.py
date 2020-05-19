@@ -276,26 +276,14 @@ def _run_mode(request_content):
 
 
 def _validate_and_add_sbatch_fields(request_content, compute_model):
-    def _element_of_list(field, list):
-        def _v(value):
-            assert value in list, \
-                f'value={value} not in enum={list}'
-        _validate_and_add(field, _v)
-
-    def _number(field, *types):
-        def _v(value):
-            assert type(value) in types and value > 0, \
-                f'value={value} expecting a {types} > 0'
-        _validate_and_add(field, _v)
-
-    def _validate_and_add(field, validate):
-        v = getattr(compute_model, field)
-        validate(v)
-        setattr(request_content, field, v)
-
-    _number('sbatchCores', int)
-    _number('sbatchHours', float, int)
+    m = compute_model
+    c = request_content
     d = simulation_db.cfg.get('sbatch_display')
     if d and 'nersc' in d.lower():
-        _element_of_list('sbatchQueue', sirepo.job.SBATCH_QUEUES)
+        assert m.sbatchQueue in sirepo.job.NERSC_QUEUES, \
+            f'sbatchQueue={m.sbatchQueue} not in NERSC_QUEUES={sirepo.job.NERSC_QUEUES}'
+        c.sbatchQueue = m.sbatchQueue
+    for f in 'sbatchCores', 'sbatchHours':
+        assert m[f] > 0, f'{f}={m[f]} must be greater than 0'
+        c[f] = m[f]
     return request_content

@@ -162,7 +162,7 @@
             "result": ["Result", "String", ""],
             "sbatchCores": ["Cores", "Integer", 1],
             "sbatchHours": ["Hours", "Float", 0.4],
-            "sbatchQueue": ["Queue", "SbatchQueue", "debug"]
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"]
         }
     },
     "view": {

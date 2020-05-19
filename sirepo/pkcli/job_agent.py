@@ -651,8 +651,8 @@ class _SbatchRun(_SbatchCmd):
     def _sbatch_script(self):
         i = self.msg.shifterImage
         s = o = ''
+#POSIT: job_api has validated values
         if i:
-#TODO(robnagler) provide via sbatch driver
             o = f'''#SBATCH --image={i}
 #SBATCH --constraint=haswell
 #SBATCH --qos={self.msg.sbatchQueue}

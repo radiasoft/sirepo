@@ -162,7 +162,7 @@
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "sbatchCores": ["Cores", "Integer", 4],
             "sbatchHours": ["Hours", "Float", 0.4],
-            "sbatchQueue": ["Queue", "SbatchQueue", "debug"]
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"]
         },
         "beamAnimation": {
             "x": ["X Value", "XValue", "z"],

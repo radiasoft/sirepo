@@ -228,16 +228,16 @@
                 ["15", "15"],
                 ["20", "20"]
             ],
-            "PlotRangeType": [
-                ["none", "None"],
-                ["fit", "Fit Data"],
-                ["fixed", "Fixed"]
-            ],
-            "SbatchQueue": [
+            "NERSCQueue": [
                 ["debug", "debug"],
                 ["premium", "premium"],
                 ["realtime", "realtime"],
                 ["regular", "regular"]
+            ],
+            "PlotRangeType": [
+                ["none", "None"],
+                ["fit", "Fit Data"],
+                ["fixed", "Fixed"]
             ]
         },
         "localRoutes": {

@@ -52,7 +52,7 @@ LIB_FILE_LIST_URI = '/list.json'
 LIB_FILE_ROOT = None
 
 # POSIT: These are the same queues as in schema-common.common.enum.SbatchQueue
-SBATCH_QUEUES = ('debug', 'premium', 'realtime', 'regular')
+NERSC_QUEUES = frozenset(('debug', 'premium', 'realtime', 'regular'))
 
 #: where user data files come in (job_supervisor)
 DATA_FILE_ROOT = None
@@ -105,8 +105,8 @@ RUN_MODES = frozenset((SEQUENTIAL, PARALLEL, SBATCH))
 #: categories of jobs
 KINDS = frozenset((SEQUENTIAL, PARALLEL))
 
-#: Max values for each sbatch queue
-SBATCH_QUEUE_MAXES = PKDict(
+#: Max values for each nersc queue
+NERSC_QUEUE_MAX = PKDict(
     hours=PKDict(
         debug=0.5,
         premium=48,

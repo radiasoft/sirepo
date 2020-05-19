@@ -546,7 +546,7 @@ def _auth_state():
         visibleMethods=visible_methods,
     )
     if 'sbatch' in v.jobRunModeMap:
-        v.sbatchQueueMaxes=job.SBATCH_QUEUE_MAXES
+        v.sbatchQueueMaxes=job.NERSC_QUEUE_MAX
     u = cookie.unchecked_get_value(_COOKIE_USER)
     if v.isLoggedIn:
         if v.method == METHOD_GUEST:
