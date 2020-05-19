@@ -211,12 +211,13 @@ scancel -u $USER >& /dev/null || true
         raise util.SRException(
             'sbatchLogin',
             PKDict(
+                host=self.cfg.host,
                 isModal=True,
+                isGeneral=True,
                 reason=reason,
+                computeModel=msg.computeModel,
                 simulationId=msg.simulationId,
                 simulationType=msg.simulationType,
-                report=msg.computeModel,
-                host=self.cfg.host,
             ),
         )
 
