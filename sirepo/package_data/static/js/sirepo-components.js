@@ -3137,22 +3137,49 @@ SIREPO.app.directive('sbatchLoginModal', function() {
 
 });
 
-SIREPO.app.directive('sbatchCoresAndHours', function(appState) {
+SIREPO.app.directive('sbatchOptions', function(appState) {
     return {
         restrict: 'A',
         scope: {
-            simState: '=sbatchCoresAndHours',
+            simState: '=sbatchOptions',
         },
         template: [
             '<div class="clearfix"></div>',
-            '<div style="margin-top: 10px" data-ng-show="showCoresAndHours()">',
+            '<div style="margin-top: 10px" data-ng-show="showSbatchOptions()">',
                 '<div data-model-field="\'sbatchHours\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>',
                 '<div data-model-field="\'sbatchCores\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>',
+                '<div data-ng-show="showNERSCFields()">',
+                    '<div data-model-field="\'sbatchQueue\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"  data-ng-click="sbatchQueueFieldIsDirty = true"></div>',
+                '</div>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, authState) {
+            $scope.sbatchQueueFieldIsDirty = false;
+            function trimHoursAndCores() {
+                var m = appState.models[$scope.simState.model];
+                ['Hours', 'Cores'].forEach(function(e) {
+                    var q = m.sbatchQueue;
+                    var maxes = authState.sbatchQueueMaxes[e.toLowerCase()];
+                    if (! (q in maxes)) {
+                        return;
+                    }
+                    m['sbatch' + e] = Math.min(
+                        m['sbatch' + e],
+                        maxes[q]
+                    );
+                });
+            }
 
-            $scope.showCoresAndHours = function() {
+            ['sbatchCores', 'sbatchHours', 'sbatchQueue'].forEach(function(e) {
+                appState.watchModelFields($scope, [$scope.simState.model + '.' + e], trimHoursAndCores);
+            });
+
+            $scope.showNERSCFields = function() {
+                var n = authState.jobRunModeMap.sbatch;
+                return n && n.toLowerCase().includes('nersc');
+            };
+
+            $scope.showSbatchOptions = function() {
                 var m = appState.models[$scope.simState.model];
                 return m && m.jobRunMode === 'sbatch';
             };
@@ -3207,7 +3234,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               '<div data-ng-if="simState.showJobSettings()">',
                 '<div class="form-group form-group-sm">',
                   '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>',
-                  '<div data-sbatch-cores-and-hours="simState"></div>',
+                  '<div data-sbatch-options="simState"></div>',
                 '</div>',
               '</div>',
               '<div data-cancelled-due-to-timeout-alert="simState"></div>',

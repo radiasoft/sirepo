@@ -1873,7 +1873,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 '<div data-ng-if="simState.showJobSettings()">',
                   '<div class="form-group form-group-sm">',
                     '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>',
-                    '<div data-sbatch-cores-and-hours="simState"></div>',
+                    '<div data-sbatch-options="simState"></div>',
                   '</div>',
                 '</div>',
                 '<div class="col-sm-6 pull-right">',
