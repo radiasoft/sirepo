@@ -295,6 +295,7 @@ def _validate_and_add_sbatch_fields(request_content, compute_model):
 
     _number('sbatchCores', int)
     _number('sbatchHours', float, int)
-    if  'nersc' in simulation_db.cfg.sbatch_display.lower():
+    d = simulation_db.cfg.get('sbatch_display')
+    if d and 'nersc' in d.lower():
         _element_of_list('sbatchQueue', sirepo.job.SBATCH_QUEUES)
     return request_content
