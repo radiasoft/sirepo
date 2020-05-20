@@ -31,7 +31,7 @@ SIREPO.app.config(function() {
         },
         elementPic: {
             aperture: ['COLLIMA'],
-            bend: ['AUTOREF', 'BEND', 'CHANGREF', 'CHANGREF_VALUE', 'FFA', 'FFA_SPI', 'MULTIPOL'],
+            bend: ['AUTOREF', 'BEND', 'DIPOLE', 'CHANGREF', 'CHANGREF_VALUE', 'FFA', 'FFA_SPI', 'MULTIPOL'],
             drift: ['DRIFT'],
             magnet: ['QUADRUPO', 'SEXTUPOL', 'TOSCA'],
             rf: ['CAVITE'],
@@ -95,15 +95,15 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
     var self = this;
     self.latticeService = latticeService;
     self.advancedNames = ['AUTOREF',  'TOSCA', 'YMY'];
-    self.basicNames = ['BEND', 'CAVITE', 'CHANGREF', 'CHANGREF2', 'COLLIMA', 'DRIFT', 'FFA', 'FFA_SPI', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'SOLENOID', 'SPINR'];
+    self.basicNames = ['BEND', 'CAVITE', 'CHANGREF', 'CHANGREF2', 'COLLIMA', 'DRIFT', 'DIPOLE', 'FFA', 'FFA_SPI', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'SOLENOID', 'SPINR'];
     var scaling = null;
 
     function updateScaling() {
-        var MAX_SCALING_FAMILY = 7;
+        var max = SIREPO.APP_SCHEMA.constants.maxScalingFamily;
         scaling = {};
         appState.models.elements.some(function(m) {
             if (m.type == 'SCALING' && m.IOPT == '1') {
-                for (var i = 1; i <= MAX_SCALING_FAMILY; i++) {
+                for (var i = 1; i <= max; i++) {
                     var key = m['NAMEF' + i];
                     if (m['LBL' + i]) {
                         key += '.' + m['LBL' + i];
@@ -166,6 +166,13 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
             if (item.subElements.length > 1 && item.subElements[item.subElements.length - 1].transformType == 'none') {
                 item.subElements.pop();
             }
+        }
+        else if (item.type == 'DIPOLE') {
+            item.l = item.RM * (
+                item.OMEGA_E - item.OMEGA_S +
+                    Math.tan(item.ACN - item.OMEGA_E) +
+                    Math.tan(item.AT - item.ACN + item.OMEGA_S));
+            item.angle = item.AT;
         }
         else if (item.type == 'MULTIPOL') {
             item.color = '';
@@ -241,6 +248,11 @@ SIREPO.app.controller('SourceController', function(appState, latticeService, pan
         panelState.showTab('bunch', 2, bunch.method == 'MCOBJET3');
         panelState.showTab('bunch', 3, bunch.method == 'MCOBJET3');
         panelState.showTab('bunch', 4, bunch.method == 'OBJET2.1');
+        panelState.showTab('bunch', 5, bunch.method.indexOf('OBJET3') == 0);
+        panelState.showTab('bunch', 6, bunch.method.indexOf('OBJET3') == 0);
+        panelState.showField('bunch', 'FNAME', bunch.method == 'OBJET3');
+        panelState.showField('bunch', 'FNAME2', bunch.method == 'OBJET3.1');
+        panelState.showField('bunch', 'FNAME3', bunch.method == 'OBJET3.2');
     }
 
     function processBunchTwiss() {

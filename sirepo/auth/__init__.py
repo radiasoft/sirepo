@@ -5,23 +5,24 @@ u"""Authentication
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdlog, pkdp
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import api_perm
+from sirepo import auth_db
 from sirepo import cookie
 from sirepo import http_reply
 from sirepo import http_request
-from sirepo import auth_db
+from sirepo import job
 from sirepo import util
 import contextlib
-import sirepo.uri
-import sirepo.feature_config
-import sirepo.template
 import datetime
 import importlib
+import sirepo.feature_config
+import sirepo.template
+import sirepo.uri
 import werkzeug.exceptions
 
 
@@ -544,6 +545,8 @@ def _auth_state():
         userName=None,
         visibleMethods=visible_methods,
     )
+    if 'sbatch' in v.jobRunModeMap:
+        v.sbatchQueueMaxes=job.NERSC_QUEUE_MAX
     u = cookie.unchecked_get_value(_COOKIE_USER)
     if v.isLoggedIn:
         if v.method == METHOD_GUEST:
