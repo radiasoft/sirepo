@@ -95,8 +95,6 @@ class SimData(sirepo.sim_data.SimDataBase):
             return 'bunchReport'
         if 'opticsReport' in analysis_model or analysis_model in ('twissReport2', 'twissSummaryReport'):
             return 'twissReport2'
-        if 'tunesReport' == analysis_model:
-            return 'twissReport'
         if 'twissReport' == analysis_model:
             return 'twissReport'
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
