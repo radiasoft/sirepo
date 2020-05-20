@@ -3095,7 +3095,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                 if (data.state === 'error') {
                     errorResponse = data.error;
                 }
-                sbatchLoginStatusService.loggedIn = data.loginSuccess;
+                sbatchLoginStatusService.loggedIn = data.loginSuccess ? true: false;
                 el.modal('hide');
             }
 
@@ -3126,7 +3126,8 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                             simulationId: data.simulationId,
                             simulationType: data.simulationType,
                             username: $scope.username,
-                        }
+                        },
+                        handleResponse
                     );
                 };
                 el.modal('show');
