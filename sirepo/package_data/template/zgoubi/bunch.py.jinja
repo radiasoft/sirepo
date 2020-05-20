@@ -17,7 +17,7 @@ line.add(core.FAKE_ELEM("""
 {{ bunch_alpha_X }} {{ bunch_beta_X }} {{ bunch_emit_X }} {{ bunch_n_cutoff_X }} {{ bunch_n_cutoff2_X }}
 123456 234567 345678
 """))
-{% else %}
+{% elif bunch_method == 'OBJET2.1' %}
 line.add(core.FAKE_ELEM("""
 'OBJET'
 {{ bunch_rigidity }}
@@ -28,8 +28,28 @@ line.add(core.FAKE_ELEM("""
 {% endfor %}
 {{ '1 ' * bunch_particleCount2 }}
 """))
+{% else %}
+line.add(core.FAKE_ELEM("""
+'OBJET'
+{{ bunch_rigidity }}
+{% if bunch_method == 'OBJET3' %}
+3
+{% elif bunch_method == 'OBJET3.1' %}
+3.1
+{% else %}
+3.2
 {% endif %}
+{{ bunch_IT1 }} {{ bunch_IT2 }} {{ bunch_ITStep }}
+{{ bunch_IP1 }} {{ bunch_IP2 }} {{ bunch_IPStep }}
+{{ bunch_YF }} {{ bunch_TF }} {{ bunch_ZF }} {{ bunch_PF }} {{ bunch_SF }} {{ bunch_DPF }} {{ bunch_TiF }} {{ bunch_TAG }}
+{{ bunch_YR }} {{ bunch_TR }} {{ bunch_ZR }} {{ bunch_PR }} {{ bunch_SR }} {{ bunch_DPR }} {{ bunch_TiR }}
+{{ bunch_InitC }}
+{% if bunch_method == 'OBJET3' %}{{ bunch_FNAME }}{% elif bunch_method == 'OBJET3.1' %}{{ bunch_FNAME2 }}{% else %}{{ bunch_FNAME3 }}{% endif %}
+"""))
+{% endif %}
+{% if particle_particleType != 'None' %}
 line.add(core.FAKE_ELEM("""
 'PARTICUL'
 {{ particleDef }}
 """))
+{% endif %}

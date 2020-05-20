@@ -228,6 +228,12 @@
                 ["15", "15"],
                 ["20", "20"]
             ],
+            "NERSCQueue": [
+                ["debug", "debug"],
+                ["premium", "premium"],
+                ["realtime", "realtime"],
+                ["regular", "regular"]
+            ],
             "PlotRangeType": [
                 ["none", "None"],
                 ["fit", "Fit Data"],

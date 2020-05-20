@@ -3066,34 +3066,36 @@ SIREPO.app.directive('sbatchLoginModal', function() {
               '</div>',
             '</div>',
         ].join(''),
-        controller: function(requestSender, $scope) {
+        controller: function(requestSender, $scope, $rootScope, sbatchLoginStatusService) {
             $scope.otp = '';
             $scope.password = '';
             $scope.username = '';
             var awaitingSendResponse = false;
             var el = $('#sbatch-login-modal');
-            var onHidden = null;
             var errorResponse = null;
+            var onHidden = null;
 
             el.on('hidden.bs.modal', function() {
-                $scope.otp = '';
-                $scope.password = '';
-                $scope.username = '';
-                $scope.sbatchLoginModalForm.$setPristine();
                 var r = {'state': 'error', 'error': 'Please try again.'};
                 if (errorResponse) {
                     r = {'state': 'error', 'error': errorResponse};
                 }
-                errorResponse = null;
+                sbatchLoginStatusService.loginSuccess();
                 onHidden(r);
                 onHidden = null;
+                errorResponse = null;
+                $scope.otp = '';
+                $scope.password = '';
+                $scope.username = '';
+                $scope.sbatchLoginModalForm.$setPristine();
                 $scope.$apply();
             });
 
             function handleResponse(data) {
-                if (data.hasOwnProperty('state') && data.state == 'error') {
+                if (data.state === 'error') {
                     errorResponse = data.error;
                 }
+                sbatchLoginStatusService.loggedIn = data.loginSuccess;
                 el.modal('hide');
             }
 
@@ -3104,6 +3106,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                 if (onHidden === null) {
                     onHidden = data.errorCallback;
                 }
+                sbatchLoginStatusService.loggedIn = false;
                 $scope.otp = '';
                 $scope.password = '';
                 awaitingSendResponse = false;
@@ -3119,7 +3122,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                         {
                             otp: $scope.otp,
                             password: $scope.password,
-                            report: data.report,
+                            computeModel: data.computeModel,
                             simulationId: data.simulationId,
                             simulationType: data.simulationType,
                             username: $scope.username,
@@ -3137,24 +3140,66 @@ SIREPO.app.directive('sbatchLoginModal', function() {
 
 });
 
-SIREPO.app.directive('sbatchCoresAndHours', function(appState) {
+SIREPO.app.directive('sbatchOptions', function(appState) {
     return {
         restrict: 'A',
         scope: {
-            simState: '=sbatchCoresAndHours',
+            simState: '=sbatchOptions',
         },
         template: [
             '<div class="clearfix"></div>',
-            '<div style="margin-top: 10px" data-ng-show="showCoresAndHours()">',
+            '<div style="margin-top: 10px" data-ng-show="showSbatchOptions()">',
                 '<div data-model-field="\'sbatchHours\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>',
                 '<div data-model-field="\'sbatchCores\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>',
+                '<div data-ng-show="showNERSCFields()">',
+                    '<div data-model-field="\'sbatchQueue\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"  data-ng-click="sbatchQueueFieldIsDirty = true"></div>',
+                '</div>',
+                '<div class="col-sm-12 text-right {{textClass()}}" data-ng-show="connectionStatusMessage()">{{ connectionStatusMessage() }}</div>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, authState, sbatchLoginStatusService) {
+            $scope.sbatchQueueFieldIsDirty = false;
+            function trimHoursAndCores() {
+                var m = appState.models[$scope.simState.model];
+                ['Hours', 'Cores'].forEach(function(e) {
+                    var q = m.sbatchQueue;
+                    var maxes = authState.sbatchQueueMaxes[e.toLowerCase()];
+                    if (! (q in maxes)) {
+                        return;
+                    }
+                    m['sbatch' + e] = Math.min(
+                        m['sbatch' + e],
+                        maxes[q]
+                    );
+                });
+            }
 
-            $scope.showCoresAndHours = function() {
+            ['sbatchCores', 'sbatchHours', 'sbatchQueue'].forEach(function(e) {
+                appState.watchModelFields($scope, [$scope.simState.model + '.' + e], trimHoursAndCores);
+            });
+
+            $scope.connectionStatusMessage = function () {
+                if  (sbatchLoginStatusService.loggedIn === undefined) {
+                    return null;
+                }
+                var s = 'conntected to ' + authState.jobRunModeMap[appState.models[$scope.simState.model].jobRunMode];
+                s = (sbatchLoginStatusService.loggedIn ? '' : 'not ') + s;
+                return s.charAt(0).toUpperCase() + s.slice(1);
+            };
+
+            $scope.showNERSCFields = function() {
+                var n = authState.jobRunModeMap.sbatch;
+                return n && n.toLowerCase().includes('nersc');
+            };
+
+
+            $scope.showSbatchOptions = function() {
                 var m = appState.models[$scope.simState.model];
                 return m && m.jobRunMode === 'sbatch';
+            };
+
+            $scope.textClass = function () {
+                return sbatchLoginStatusService.loggedIn ? 'text-info' : 'text-danger';
             };
         }
     };
@@ -3207,7 +3252,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               '<div data-ng-if="simState.showJobSettings()">',
                 '<div class="form-group form-group-sm">',
                   '<div data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>',
-                  '<div data-sbatch-cores-and-hours="simState"></div>',
+                  '<div data-sbatch-options="simState"></div>',
                 '</div>',
               '</div>',
               '<div data-cancelled-due-to-timeout-alert="simState"></div>',
@@ -3689,6 +3734,19 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
             }
         }
     };
+});
+
+SIREPO.app.service('sbatchLoginStatusService', function($rootScope) {
+    var self = this;
+    self.loggedIn = undefined;
+
+    self.loginSuccess = function() {
+        if (! self.loggedIn) {
+            return;
+        }
+        $rootScope.$broadcast('sbatchLoginSuccess');
+    };
+
 });
 
 SIREPO.app.service('utilities', function($window, $interval) {

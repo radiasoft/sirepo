@@ -483,15 +483,12 @@ def _export_madx(data):
     run_setup = LatticeUtil.find_first_command(data, 'run_setup')
     cv = _code_var(data.models.rpnVariables)
     if cv.eval_var_with_assert(run_setup.p_central) != 0:
-        name = 'electron'
-        if change_particle:
-            name = change_particle.name.lower()
         # mass in MeV
-        mass = template_common.ParticleEnergy.PARTICLE[name].mass * 1e3
+        mass = template_common.ParticleEnergy.PARTICLE[madx_beam.particle].mass * 1e3
         pc = run_setup.p_central * mass
     else:
         pc = cv.eval_var_with_assert(run_setup.p_central_mev)
-    # mass in GeV
+    # energy in GeV
     madx_beam.pc = pc * 1e-3
     return madx.python_source_for_model(mad, None)
 

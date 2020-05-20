@@ -104,6 +104,14 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _lib_file_basenames(cls, data):
         res = []
+        bunch = data.models.bunch
+        for info in (
+            ['OBJET3', 'FNAME'],
+            ['OBJET3.1', 'FNAME2'],
+            ['OBJET3.2', 'FNAME3'],
+        ):
+            if bunch.method == info[0] and bunch[info[1]]:
+                res.append(cls.lib_file_name_with_model_field('bunch', info[1], bunch[info[1]]))
         for el in data.models.elements:
             if el.type == 'TOSCA' and el.magnetFile:
                 res.append(cls.lib_file_name_with_model_field('TOSCA', 'magnetFile', el.magnetFile))

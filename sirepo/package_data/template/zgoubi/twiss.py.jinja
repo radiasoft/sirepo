@@ -12,11 +12,12 @@ line.add(core.OBJET5(
     DR={{ bunchCoordinates[0]['D'] }},
 {% endif %}
 ))
+{% if particle_particleType != 'None' %}
 line.add(core.FAKE_ELEM("""
 'PARTICUL'
 {{ particleDef }}
 """))
-
+{% endif %}
 line.add(core.FAKE_ELEM("""
 'OPTIONS'
 1 1
