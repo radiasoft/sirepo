@@ -271,8 +271,19 @@ def _run_mode(request_content):
                 request_content.computeJid,
             )
         )
-    return request_content.pkupdate(
-        jobRunMode=j,
-        sbatchCores=m.sbatchCores,
-        sbatchHours=m.sbatchHours,
-    )
+    request_content.jobRunMode = j
+    return _validate_and_add_sbatch_fields(request_content, m)
+
+
+def _validate_and_add_sbatch_fields(request_content, compute_model):
+    m = compute_model
+    c = request_content
+    d = simulation_db.cfg.get('sbatch_display')
+    if d and 'nersc' in d.lower():
+        assert m.sbatchQueue in sirepo.job.NERSC_QUEUES, \
+            f'sbatchQueue={m.sbatchQueue} not in NERSC_QUEUES={sirepo.job.NERSC_QUEUES}'
+        c.sbatchQueue = m.sbatchQueue
+    for f in 'sbatchCores', 'sbatchHours':
+        assert m[f] > 0, f'{f}={m[f]} must be greater than 0'
+        c[f] = m[f]
+    return request_content

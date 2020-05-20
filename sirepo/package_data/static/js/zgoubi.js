@@ -31,7 +31,7 @@ SIREPO.app.config(function() {
         },
         elementPic: {
             aperture: ['COLLIMA'],
-            bend: ['AUTOREF', 'BEND', 'CHANGREF', 'CHANGREF_VALUE', 'FFA', 'FFA_SPI', 'MULTIPOL'],
+            bend: ['AUTOREF', 'BEND', 'DIPOLE', 'CHANGREF', 'CHANGREF_VALUE', 'FFA', 'FFA_SPI', 'MULTIPOL'],
             drift: ['DRIFT'],
             magnet: ['QUADRUPO', 'SEXTUPOL', 'TOSCA'],
             rf: ['CAVITE'],
@@ -95,7 +95,7 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
     var self = this;
     self.latticeService = latticeService;
     self.advancedNames = ['AUTOREF',  'TOSCA', 'YMY'];
-    self.basicNames = ['BEND', 'CAVITE', 'CHANGREF', 'CHANGREF2', 'COLLIMA', 'DRIFT', 'FFA', 'FFA_SPI', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'SOLENOID', 'SPINR'];
+    self.basicNames = ['BEND', 'CAVITE', 'CHANGREF', 'CHANGREF2', 'COLLIMA', 'DRIFT', 'DIPOLE', 'FFA', 'FFA_SPI', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'SOLENOID', 'SPINR'];
     var scaling = null;
 
     function updateScaling() {
@@ -166,6 +166,13 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
             if (item.subElements.length > 1 && item.subElements[item.subElements.length - 1].transformType == 'none') {
                 item.subElements.pop();
             }
+        }
+        else if (item.type == 'DIPOLE') {
+            item.l = item.RM * (
+                item.OMEGA_E - item.OMEGA_S +
+                    Math.tan(item.ACN - item.OMEGA_E) +
+                    Math.tan(item.AT - item.ACN + item.OMEGA_S));
+            item.angle = item.AT;
         }
         else if (item.type == 'MULTIPOL') {
             item.color = '';
