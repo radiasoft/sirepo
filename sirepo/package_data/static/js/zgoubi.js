@@ -167,6 +167,13 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
                 item.subElements.pop();
             }
         }
+        else if (item.type == 'DIPOLE') {
+            item.l = item.RM * (
+                item.OMEGA_E - item.OMEGA_S +
+                    Math.tan(item.ACN - item.OMEGA_E) +
+                    Math.tan(item.AT - item.ACN + item.OMEGA_S));
+            item.angle = item.AT;
+        }
         else if (item.type == 'MULTIPOL') {
             item.color = '';
             if (item.B_2) {

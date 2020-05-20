@@ -332,7 +332,7 @@ def _zgoubi_collima(command):
 
 
 def _zgoubi_dipole(command):
-    return _parse_command(command, [
+    res = _parse_command(command, [
         'IL',
         'AT RM',
         'ACN B_0 N B G',
@@ -349,6 +349,10 @@ def _zgoubi_dipole(command):
         'XPAS',
         'KPOS RE TE RS TS',
     ])
+    if res.KPOS == '1':
+        res.DP = res.RE
+        _remove_fields(res, ['RE', 'TE', 'RS', 'TS'])
+    return res
 
 
 def _zgoubi_drift(command):
