@@ -1594,18 +1594,6 @@
                             "XI_E",
                             "SHIFT_E"
                         ]],
-                        ["Lateral", [
-                            "NCL",
-                            "CL_0",
-                            "CL_1",
-                            "CL_2",
-                            "CL_3",
-                            "CL_4",
-                            "CL_5",
-                            "LAM_L",
-                            "XI_L",
-                            "SHIFT_L"
-                        ]],
                         ["Exit", [
                             "NCS",
                             "CS_0",
@@ -1629,15 +1617,6 @@
                             "U1_E",
                             "U2_E",
                             "R2_E"
-                        ]],
-                        ["Lateral", [
-                            "OMEGA_L",
-                            "THETA_L",
-                            "R1_L",
-                            "U1_L",
-                            "U2_L",
-                            "R2_L",
-                            "R3"
                         ]],
                         ["Exit", [
                             "OMEGA_S",
