@@ -331,6 +331,26 @@ def _zgoubi_collima(command):
     assert False, 'unsupported COLLIMA IFORM: {}'.format(iform)
 
 
+def _zgoubi_dipole(command):
+    return _parse_command(command, [
+        'IL',
+        'AT RM',
+        'ACN B_0 N B G',
+        'LAM_E XI_E',
+        'NCE CE_0 CE_1 CE_2 CE_3 CE_4 CE_5 SHIFT_E',
+        'OMEGA_E THETA_E R1_E U1_E U2_E R2_E',
+        'LAM_S XI_S',
+        'NCS CS_0 CS_1 CS_2 CS_3 CS_4 CS_5 SHIFT_S',
+        'OMEGA_S THETA_S R1_S U1_S U2_S R2_S',
+        'LAM_L XI_L',
+        'NCL CL_0 CL_1 CL_2 CL_3 CL_4 CL_5 SHIFT_L',
+        'OMEGA_L THETA_L R1_L U1_L U2_L R2_L R3',
+        'IORDRE Resol',
+        'XPAS',
+        'KPOS RE TE RS TS',
+    ])
+
+
 def _zgoubi_drift(command):
     return _parse_command(command, [
         'l',
