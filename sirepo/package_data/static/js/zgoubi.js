@@ -31,7 +31,7 @@ SIREPO.app.config(function() {
         },
         elementPic: {
             aperture: ['COLLIMA'],
-            bend: ['AUTOREF', 'BEND', 'CHANGREF', 'CHANGREF_VALUE', 'FFA', 'FFA_SPI', 'MULTIPOL'],
+            bend: ['AUTOREF', 'BEND', 'DIPOLE', 'CHANGREF', 'CHANGREF_VALUE', 'FFA', 'FFA_SPI', 'MULTIPOL'],
             drift: ['DRIFT'],
             magnet: ['QUADRUPO', 'SEXTUPOL', 'TOSCA'],
             rf: ['CAVITE'],

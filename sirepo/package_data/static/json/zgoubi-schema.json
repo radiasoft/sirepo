@@ -803,14 +803,13 @@
             "R2_L": ["Lateral Radii $R_2$ [m]", "Float", 1e4],
             "R3": ["Lateral Radii $R_3$ [m]", "Float", 1e4],
             "IORDRE": ["Polynomial Interpolation", "MeshPolynomialInterpolation", "2", "IORDRE"],
-            "RESOL": ["Resolution", "Float", 1.0, "Resol"],
+            "Resol": ["Resolution", "Float", 1.0, "Resol"],
             "XPAS": ["Integration Step [m]", "Float", "0.02", "XPAS"],
             "KPOS": ["Alignment", "ElementAlignment", "1", "KPOS"],
             "RE": ["Entrance Frame Radius [m]", "Float", 0, "RE"],
             "TE": ["Entrance Frame Angle [rad]", "Float", 0, "TE"],
             "RS": ["Exit Frame Radius [m]", "Float", 0, "RS"],
-            "TS": ["Exit Frame Angle [rad]", "Float", 0, "TS"],
-            "DP": ["Reference Relative Momentum", "Float", 0, "DP"]
+            "TS": ["Exit Frame Angle [rad]", "Float", 0, "TS"]
         },
         "DRIFT": {
             "name": ["Name", "ValidatedString"],
@@ -1565,7 +1564,7 @@
                     "N",
                     "B",
                     "G",
-                    "RESOL",
+                    "Resol",
                     "XPAS",
                     "KPOS",
                     "IORDRE",
@@ -1579,7 +1578,6 @@
                             "TS"
                         ]]
                     ],
-                    "DP",
                     "IL"
                 ]],
                 ["Dipole Fringe Fields", [
