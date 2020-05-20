@@ -663,7 +663,7 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
             };
 
             $scope.showAdmJobs = function() {
-                return SIREPO.APP_SCHEMA.feature_config.job && authState.roles.includes('adm');
+                return authState.roles.includes('adm');
             };
         },
     };

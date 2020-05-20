@@ -95,7 +95,6 @@ def _init():
 
     _cfg = pkconfig.init(
         api_modules=((), set, 'optional api modules, e.g. status'),
-        job=(True, bool, '[new] job execution architecture (replaces runner)'),
         jspec=dict(
             derbenevskrinsky_force_formula=(pkconfig.channel_in_internal_test(), bool, 'Include Derbenev-Skrinsky force forumla'),
         ),
@@ -112,8 +111,4 @@ def _init():
             display_test_boxes=(pkconfig.channel_in_internal_test(), bool, 'Display test boxes to visualize 3D -> 2D projections'),
         ),
     )
-    # can't check proprietary_sim_types against sim_types, because
-    # may not overlap (flash is always proprietary)
-    assert _cfg.job, \
-        'sirepo.feature_config.job must be true ("runner" unsupported)'
     return _cfg
