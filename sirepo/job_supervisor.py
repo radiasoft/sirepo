@@ -175,7 +175,6 @@ def init():
                     _DB_DIR,
                 ),
                 env=PKDict(os.environ).pkupdate(
-                    PYENV_VERSION='py2',
                     SIREPO_AUTH_LOGGED_IN_USER='unused',
                 ),
             )
