@@ -141,6 +141,13 @@ def _init_model_units():
         return ModelUnits.scale_value(v, 'cm_to_m', is_native)
 
     return ModelUnits(PKDict(
+        bunch=PKDict(
+            YR='cm_to_m',
+            TR='mrad_to_rad',
+            ZR='cm_to_m',
+            PR='mrad_to_rad',
+            SR='cm_to_m',
+        ),
         AUTOREF=PKDict(
             XCE='cm_to_m',
             YCE='cm_to_m',

@@ -1,6 +1,7 @@
 {
     "constants": {
-        "helpUserManualURL": "https://zgoubi.sourceforge.io/ZGOUBI_DOCS/Zgoubi.pdf"
+        "helpUserManualURL": "https://zgoubi.sourceforge.io/ZGOUBI_DOCS/Zgoubi.pdf",
+        "maxScalingFamily": 16
     },
     "appModes": {
         "default": {
@@ -31,7 +32,14 @@
         ],
         "BunchMethod": [
             ["MCOBJET3", "Random Distribution"],
-            ["OBJET2.1", "Specific Coordinates"]
+            ["OBJET2.1", "Specific Coordinates"],
+            ["OBJET3", "From File (zgoubi.fai format)"],
+            ["OBJET3.1", "From File (Y, T, Z, P, S, D)"],
+            ["OBJET3.2", "From File (X, Y, Z, PX, PY, PZ)"]
+        ],
+        "BunchRayTrace": [
+            ["0", "Initial Coordinates FO(J, I)"],
+            ["1", "Current Coordinates F(J, I)"]
         ],
         "CaviteFormat": [
             ["0", "Element inactive"],
@@ -240,7 +248,8 @@
             ["MUON+", "Positive Muon"],
             ["MUON-", "Negative Muon"],
             ["PROTON", "Proton"],
-            ["Other", "Other"]
+            ["Other", "Other"],
+            ["None", "Not Selected"]
         ],
         "PhaseSpaceCoordinate": [
             ["Y", "Y"],
@@ -442,7 +451,32 @@
             "beta_X": ["Longitudinal Beta [m]", "Float", 1.0, "", 1e-99],
             "emit_X": ["Longitudinal Emittance", "Float", 1e-6],
             "n_cutoff_X": ["Longitudinal Cutoff 1", "Float", 3.0],
-            "n_cutoff2_X": ["Longitudinal Cutoff 2", "Float", 0.0]
+            "n_cutoff2_X": ["Longitudinal Cutoff 2", "Float", 0.0],
+            "FNAME": ["Particle File", "InputFile", ""],
+            "FNAME2": ["Particle File", "InputFile", ""],
+            "FNAME3": ["Particle File", "InputFile", ""],
+            "IT1": ["Particle Start", "Integer", 1],
+            "IT2": ["Particle End", "Integer", 999],
+            "ITStep": ["Particle Step", "Integer", 1],
+            "IP1": ["Pass Start", "Integer", 1],
+            "IP2": ["Pass End", "Integer", 999],
+            "IPStep": ["Pass Step", "Integer", 1],
+            "YF": ["Scale Y", "Float", 1],
+            "TF": ["Scale Y'", "Float", 1],
+            "ZF": ["Scale Z", "Float", 1],
+            "PF": ["Scale Z'", "Float", 1],
+            "SF": ["Scale S", "Float", 1],
+            "DPF": ["Scale DP", "Float", 1],
+            "TiF": ["Scale Ti", "Float", 1],
+            "YR": ["Offset Y [m]", "Float", 0],
+            "TR": ["Offset Y' [rad]", "Float", 0],
+            "ZR": ["Offset Z [m]", "Float", 0],
+            "PR": ["Offset Z' [rad]", "Float", 0],
+            "SR": ["Offset S [m]", "Float", 0],
+            "DPR": ["Offset DP", "Float", 0],
+            "TiR": ["Offset Ti", "Float", 0],
+            "TAG": ["Tagging Letter", "String", "*", "TAG allows retaining only particles with identical tagging letter LET"],
+            "InitC": ["Ray Tracing Start", "BunchRayTrace", "0"]
         },
         "bunchAnimation": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "Y"],
@@ -1063,7 +1097,10 @@
                     "particle.G",
                     "particle.Tau",
                     "rigidity",
-                    "method"
+                    "method",
+                    "FNAME",
+                    "FNAME2",
+                    "FNAME3"
                 ]],
                 ["Distribution", [
                     "particleCount",
@@ -1132,6 +1169,44 @@
                     "particleCoordinate.P",
                     "particleCoordinate.X",
                     "particleCoordinate.D"
+                ]],
+                ["Selection", [
+                    [
+                        ["Particle", [
+                            "IT1",
+                            "IT2",
+                            "ITStep"
+                        ]],
+                        ["Pass", [
+                            "IP1",
+                            "IP2",
+                            "IPStep"
+                        ]]
+                    ],
+                    "TAG",
+                    "InitC"
+                ]],
+                ["Scale and Offset", [
+                    [
+                        ["Scale", [
+                            "YF",
+                            "TF",
+                            "ZF",
+                            "PF",
+                            "SF",
+                            "DPF",
+                            "TiF"
+                        ]],
+                        ["Offset", [
+                            "YR",
+                            "TR",
+                            "ZR",
+                            "PR",
+                            "SR",
+                            "DPR",
+                            "TiR"
+                        ]]
+                    ]
                 ]],
                 ["Spin and SR Loss", [
                     "SPNTRK.KSO",

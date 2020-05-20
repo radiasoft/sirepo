@@ -99,11 +99,11 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
     var scaling = null;
 
     function updateScaling() {
-        var MAX_SCALING_FAMILY = 7;
+        var max = SIREPO.APP_SCHEMA.constants.maxScalingFamily;
         scaling = {};
         appState.models.elements.some(function(m) {
             if (m.type == 'SCALING' && m.IOPT == '1') {
-                for (var i = 1; i <= MAX_SCALING_FAMILY; i++) {
+                for (var i = 1; i <= max; i++) {
                     var key = m['NAMEF' + i];
                     if (m['LBL' + i]) {
                         key += '.' + m['LBL' + i];
@@ -241,6 +241,11 @@ SIREPO.app.controller('SourceController', function(appState, latticeService, pan
         panelState.showTab('bunch', 2, bunch.method == 'MCOBJET3');
         panelState.showTab('bunch', 3, bunch.method == 'MCOBJET3');
         panelState.showTab('bunch', 4, bunch.method == 'OBJET2.1');
+        panelState.showTab('bunch', 5, bunch.method.indexOf('OBJET3') == 0);
+        panelState.showTab('bunch', 6, bunch.method.indexOf('OBJET3') == 0);
+        panelState.showField('bunch', 'FNAME', bunch.method == 'OBJET3');
+        panelState.showField('bunch', 'FNAME2', bunch.method == 'OBJET3.1');
+        panelState.showField('bunch', 'FNAME3', bunch.method == 'OBJET3.2');
     }
 
     function processBunchTwiss() {
