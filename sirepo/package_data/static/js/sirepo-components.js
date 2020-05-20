@@ -3154,6 +3154,7 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                 '<div data-model-field="\'sbatchCores\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>',
                 '<div data-ng-show="showNERSCFields()">',
                     '<div data-model-field="\'sbatchQueue\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"  data-ng-click="sbatchQueueFieldIsDirty = true"></div>',
+                    '<div data-model-field="\'sbatchProject\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>',
                 '</div>',
                 '<div class="col-sm-12 text-right {{textClass()}}" data-ng-show="connectionStatusMessage()">{{ connectionStatusMessage() }}</div>',
             '</div>',
