@@ -283,7 +283,7 @@ def _validate_and_add_sbatch_fields(request_content, compute_model):
         assert m.sbatchQueue in sirepo.job.NERSC_QUEUES, \
             f'sbatchQueue={m.sbatchQueue} not in NERSC_QUEUES={sirepo.job.NERSC_QUEUES}'
         c.sbatchQueue = m.sbatchQueue
-        c.sbatchRepo = m.sbatchRepo
+        c.sbatchProject = m.sbatchProject
     for f in 'sbatchCores', 'sbatchHours':
         assert m[f] > 0, f'{f}={m[f]} must be greater than 0'
         c[f] = m[f]

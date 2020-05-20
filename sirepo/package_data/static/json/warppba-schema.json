@@ -163,7 +163,7 @@
             "sbatchCores": ["Cores", "Integer", 4],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
-            "sbatchRepo": ["Repository", "OptionalString", ""]
+            "sbatchProject": ["Project", "OptionalString", ""]
         },
         "beamAnimation": {
             "x": ["X Value", "XValue", "z"],

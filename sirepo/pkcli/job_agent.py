@@ -651,24 +651,17 @@ class _SbatchRun(_SbatchCmd):
         await c._await_exit()
 
     def _sbatch_script(self):
-        def _assert_account():
-            if not self.msg.sbatchRepo:
+        def _assert_project():
+            p = self.msg.sbatchProject
+            if not p:
                 return ''
-            r = subprocess.run(
-                # Info on sed https://stackoverflow.com/a/49430740/5518313
-                # -n == --silent. --silent is not available on BSD
-                "hpssquota | sed -n '/^-\{76\}/,//{//!p;}' | cut -d' ' -f1",
-                #SECURITY: No user defined input in cmd so shell=True is ok
-                shell=True,
-                capture_output=True,
-                check=True,
-                text=True,
-            ).stdout.strip().split('\n')
-            for e in r:
-                if e == self.msg.sbatchRepo :
-                    return f'#SBATCH --account={self.msg.sbatchRepo}'
-            else:
-                raise AssertionError(f'sbatchRepo={self.msg.sbatchRepo} not valid. r={r}')
+            o = subprocess.check_output(['hpssquota'], text=True)
+            assert re.search(r'^[-\w]+$', p), \
+                f'invalid NERSC project={r}'
+            assert re.search(r'{}\s+\d+\.'.format(p), o), \
+                f'sbatchProject={p} is invalid. hpssquota={o}'
+            return f'#SBATCH --account={p}'
+
         i = self.msg.shifterImage
         s = o = ''
 #POSIT: job_api has validated values
@@ -677,7 +670,7 @@ class _SbatchRun(_SbatchCmd):
 #SBATCH --constraint=haswell
 #SBATCH --qos={self.msg.sbatchQueue}
 #SBATCH --tasks-per-node=32
-{_assert_account()}'''
+{_assert_project()}'''
             s = '--cpu-bind=cores shifter'
         f = self.run_dir.join(self.jid + '.sbatch')
         f.write(f'''#!/bin/bash
