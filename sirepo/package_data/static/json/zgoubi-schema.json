@@ -743,6 +743,74 @@
             "C3": ["Horizontal Center [m]", "Float", 0],
             "C4": ["Vertical Center [m]", "Float", 0]
         },
+        "DIPOLE": {
+            "name": ["Name", "ValidatedString"],
+            "AT": ["Total Angular Extent of the Dipole [rad]", "Float", 0.0, "AT"],
+            "IL": ["Save Step-by-Step Coordinates and Fields", "Integer", "0", "IL"],
+            "RM": ["Reference Radius [m]", "Float", 0.0, "RM"],
+            "ACN": ["Azimuth for positioning of EFB [rad]", "Float", 0.0, "ACN"],
+            "B_0": ["Field at Pole Tip [kG]", "Float", 0.0, "B_0"],
+            "N": ["1st order field index", "Float", 0.0, "N"],
+            "B": ["2nd order field index", "Float", 0.0, "N'"],
+            "G": ["3rd order field index", "Float", 0.0, "N''"],
+            "LAM_E": ["Entrance Fringe Field Extent [m]", "Float", 0.0],
+            "XI_E": ["Entrance Spiral Angle [rad]", "Float", 0.0, "$\\xi$"],
+            "NCE": ["Number of Components", "Integer", 6],
+            "CE_0": ["Entrance Fringe Field Coefficients $C_0$", "Float", 0.0],
+            "CE_1": ["Entrance Fringe Field Coefficients $C_1$", "Float", 0.0],
+            "CE_2": ["Entrance Fringe Field Coefficients $C_2$", "Float", 0.0],
+            "CE_3": ["Entrance Fringe Field Coefficients $C_3$", "Float", 0.0],
+            "CE_4": ["Entrance Fringe Field Coefficients $C_4$", "Float", 0.0],
+            "CE_5": ["Entrance Fringe Field Coefficients $C_5$", "Float", 0.0],
+            "SHIFT_E": ["Entrance Fringe Shift [m]", "Float", 0.0, "shift"],
+            "OMEGA_E": ["Entrance Azimuth with Respect to ACN [rad]", "Float", 0.0, "$\\omega^+$ or $\\omega^-$"],
+            "THETA_E": ["Entrance Wedge Angle [rad]", "Float", 0.0, "$\\theta$"],
+            "R1_E": ["Entrance Radii $R_1$ [m]", "Float", 1e4],
+            "U1_E": ["Entrance Extent $U_1$ [m]", "Float", -1e4],
+            "U2_E": ["Entrance Extent $U_2$ [m]", "Float", 1e4],
+            "R2_E": ["Entrance Radii $R_2$ [m]", "Float", 1e4],
+            "LAM_S": ["Exit Fringe Field Extent [m]", "Float", 0.0],
+            "XI_S": ["Exit Spiral Angle [rad]", "Float", 0.0, "$\\xi$"],
+            "NCS": ["Number of Components", "Integer", 6],
+            "CS_0": ["Exit Fringe Field Coefficients $C_0$", "Float", 0.0],
+            "CS_1": ["Exit Fringe Field Coefficients $C_1$", "Float", 0.0],
+            "CS_2": ["Exit Fringe Field Coefficients $C_2$", "Float", 0.0],
+            "CS_3": ["Exit Fringe Field Coefficients $C_3$", "Float", 0.0],
+            "CS_4": ["Exit Fringe Field Coefficients $C_4$", "Float", 0.0],
+            "CS_5": ["Exit Fringe Field Coefficients $C_5$", "Float", 0.0],
+            "SHIFT_S": ["Exit Fringe Shift [m]", "Float", 0.0, "shift"],
+            "OMEGA_S": ["Exit Azimuth with Respect to ACN [rad]", "Float", 0.0, "$\\omega+$"],
+            "THETA_S": ["Exit Wedge Angle [rad]", "Float", 0.0, "$\\theta$"],
+            "R1_S": ["Exit Radii $R_1$ [m]", "Float", 1e4],
+            "U1_S": ["Exit Extent $U_1$ [m]", "Float", -1e4],
+            "U2_S": ["Exit Extent $U_2$ [m]", "Float", 1e4],
+            "R2_S": ["Exit Radii $R_2$ [m]", "Float", 1e4],
+            "LAM_L": ["Exit Fringe Field Extent [m]", "Float", 0.0],
+            "XI_L": ["Exit Spiral Angle [rad]", "Float", 0.0, "$\\xi$"],
+            "NCL": ["Number of Components", "Integer", 6],
+            "CL_0": ["Lateral Fringe Field Coefficients $C_0$", "Float", 0.0],
+            "CL_1": ["Lateral Fringe Field Coefficients $C_1$", "Float", 0.0],
+            "CL_2": ["Lateral Fringe Field Coefficients $C_2$", "Float", 0.0],
+            "CL_3": ["Lateral Fringe Field Coefficients $C_3$", "Float", 0.0],
+            "CL_4": ["Lateral Fringe Field Coefficients $C_4$", "Float", 0.0],
+            "CL_5": ["Lateral Fringe Field Coefficients $C_5$", "Float", 0.0],
+            "SHIFT_L": ["Lateral Fringe Shift [m]", "Float", 0.0, "shift"],
+            "OMEGA_L": ["Lateral Azimuth with Respect to ACN [rad]", "Float", 0.0, "$\\omega+$"],
+            "THETA_L": ["Lateral Wedge Angle [rad]", "Float", 0.0, "$\\theta$"],
+            "R1_L": ["Lateral Radii $R_1$ [m]", "Float", 1e4],
+            "U1_L": ["Lateral Extent $U_1$ [m]", "Float", -1e4],
+            "U2_L": ["Lateral Extent $U_2$ [m]", "Float", 1e4],
+            "R2_L": ["Lateral Radii $R_2$ [m]", "Float", 1e4],
+            "R3": ["Lateral Radii $R_3$ [m]", "Float", 1e4],
+            "IORDRE": ["Polynomial Interpolation", "MeshPolynomialInterpolation", "2", "IORDRE"],
+            "Resol": ["Resolution", "Float", 1.0, "Resol"],
+            "XPAS": ["Integration Step [m]", "Float", "0.02", "XPAS"],
+            "KPOS": ["Alignment", "ElementAlignment", "1", "KPOS"],
+            "RE": ["Entrance Frame Radius [m]", "Float", 0, "RE"],
+            "TE": ["Entrance Frame Angle [rad]", "Float", 0, "TE"],
+            "RS": ["Exit Frame Radius [m]", "Float", 0, "RS"],
+            "TS": ["Exit Frame Angle [rad]", "Float", 0, "TS"]
+        },
         "DRIFT": {
             "name": ["Name", "ValidatedString"],
             "l": ["Length [m]", "Float", 0.0, "XL"]
@@ -1481,6 +1549,85 @@
                 "C2",
                 "C3",
                 "C4"
+            ]
+        },
+        "DIPOLE": {
+            "title": "Dipole",
+            "description": "Dipole Magnet",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "AT",
+                    "RM",
+                    "ACN",
+                    "B_0",
+                    "N",
+                    "B",
+                    "G",
+                    "Resol",
+                    "XPAS",
+                    "KPOS",
+                    "IORDRE",
+                    [
+                        ["Entrance", [
+                            "RE",
+                            "TE"
+                        ]],
+                        ["Exit", [
+                            "RS",
+                            "TS"
+                        ]]
+                    ],
+                    "IL"
+                ]],
+                ["Dipole Fringe Fields", [
+                    [
+                        ["Entrance", [
+                            "NCE",
+                            "CE_0",
+                            "CE_1",
+                            "CE_2",
+                            "CE_3",
+                            "CE_4",
+                            "CE_5",
+                            "LAM_E",
+                            "XI_E",
+                            "SHIFT_E"
+                        ]],
+                        ["Exit", [
+                            "NCS",
+                            "CS_0",
+                            "CS_1",
+                            "CS_2",
+                            "CS_3",
+                            "CS_4",
+                            "CS_5",
+                            "LAM_S",
+                            "XI_S",
+                            "SHIFT_S"
+                        ]]
+                    ]
+                ]],
+                ["Dipole Angles", [
+                    [
+                        ["Entrance", [
+                            "OMEGA_E",
+                            "THETA_E",
+                            "R1_E",
+                            "U1_E",
+                            "U2_E",
+                            "R2_E"
+                        ]],
+                        ["Exit", [
+                            "OMEGA_S",
+                            "THETA_S",
+                            "R1_S",
+                            "U1_S",
+                            "U2_S",
+                            "R2_S"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "DRIFT": {
