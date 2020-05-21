@@ -5,23 +5,24 @@ u"""Authentication
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdlog, pkdp
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import api_perm
+from sirepo import auth_db
 from sirepo import cookie
 from sirepo import http_reply
 from sirepo import http_request
-from sirepo import auth_db
+from sirepo import job
 from sirepo import util
 import contextlib
-import sirepo.uri
-import sirepo.feature_config
-import sirepo.template
 import datetime
 import importlib
+import sirepo.feature_config
+import sirepo.template
+import sirepo.uri
 import werkzeug.exceptions
 
 
@@ -70,6 +71,8 @@ visible_methods = None
 #: visible_methods excluding guest
 non_guest_methods = None
 
+#: flask app
+_app = None
 
 @api_perm.require_cookie_sentinel
 def api_authCompleteRegistration():
@@ -542,6 +545,8 @@ def _auth_state():
         userName=None,
         visibleMethods=visible_methods,
     )
+    if 'sbatch' in v.jobRunModeMap:
+        v.sbatchQueueMaxes=job.NERSC_QUEUE_MAX
     u = cookie.unchecked_get_value(_COOKIE_USER)
     if v.isLoggedIn:
         if v.method == METHOD_GUEST:
@@ -658,7 +663,7 @@ def _parse_display_name(value):
 
 
 def _set_log_user():
-    if not _app.sirepo_uwsgi:
+    if not _app or not _app.sirepo_uwsgi:
         # Only works for uWSGI (service.uwsgi). sirepo.service.http uses
         # the limited http server for development only. This uses
         # werkzeug.serving.WSGIRequestHandler.log which hardwires the

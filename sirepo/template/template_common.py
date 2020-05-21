@@ -188,6 +188,7 @@ class ParticleEnergy(object):
         assert energy.gamma >= 1, \
             'energy gamma out of range: {}'.format(energy.gamma)
         energy.energy = energy.gamma * particle.mass
+        energy.kinetic_energy = energy.energy - particle.mass
         energy.beta = math.sqrt(1.0 - 1.0 / (energy.gamma ** 2))
         energy.pc = energy.gamma * energy.beta * particle.mass
         energy.brho = energy.pc / (abs(particle.charge) * cls.SPEED_OF_LIGHT * 1e-9)

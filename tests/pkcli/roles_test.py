@@ -43,3 +43,15 @@ def test_flash_change_role_change_lib_files(auth_fc):
     _check_file(exists=True)
     _change_role(add=False)
     _check_file(exists=False)
+
+
+def test_flash_list_role_by_email(auth_fc):
+    from pykern import pkunit
+    import sirepo.pkcli.roles
+
+    e = 'a@b.c'
+    r = ['premium']
+    auth_fc.sr_email_register(e, sim_type='flash')
+    sirepo.pkcli.roles.add_roles(e, *r)
+    pkunit.pkeq(r, sirepo.pkcli.roles.list_roles(e))
+    pkunit.pkeq(r, sirepo.pkcli.roles.list_roles(auth_fc.sr_auth_state().uid))
