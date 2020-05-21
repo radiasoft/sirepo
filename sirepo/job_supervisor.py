@@ -275,7 +275,7 @@ class _ComputeJob(PKDict):
             for f in pkio.sorted_glob(_DB_DIR.join('*{}'.format(
                     sirepo.simulation_db.JSON_SUFFIX,
             ))):
-                n = sirepo.sim_data.uid_from_jid(f.purebasename)
+                n = sirepo.sim_data.split_jid(f.purebasename).uid
                 if n in p or f.mtime() > _too_old \
                    or f.purebasename in cls._purged_jids_cache:
                     continue
@@ -300,6 +300,11 @@ class _ComputeJob(PKDict):
             cls._purged_jids_cache.add(db_file.purebasename)
             if d.status == job.JOB_RUN_PURGED:
                 return
+            # compute_model isn't guaranteed to be in data but simulation_db.simulation_run_dir()
+            # expects it
+            d.pksetdefault(
+                computeModel=sirepo.sim_data.split_jid(db_file.purebasename).compute_model
+            )
             p = sirepo.simulation_db.simulation_run_dir(d)
             pkio.unchecked_remove(p)
             n = cls.__db_init_new(d, d)

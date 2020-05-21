@@ -655,8 +655,13 @@ class SimDataBase(object):
             dm.simulation.folder = '/Examples'
 
 
-def uid_from_jid(jid):
-    return jid.split(_JOB_ID_SEP)[0]
+def split_jid(jid):
+    """Reverse of parse_jid. Take a jid and split it into its parts"""
+    s = jid.split(_JOB_ID_SEP)
+    r = PKDict()
+    for i, k in enumerate(('uid', 'simulation_id', 'compute_model')):
+       r[k] = s[i]
+    return r
 
 
 def _init():
