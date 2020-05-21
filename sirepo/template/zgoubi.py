@@ -37,9 +37,6 @@ _ELEMENT_NAME_MAP = PKDict({
     'FFAG-SPI': 'FFA-SPI',
 })
 
-#TODO(pjm): could be determined from schema ParticleSelector enum
-_MAX_FILTER_PLOT_PARTICLES = 10
-
 _TUNES_FILE = 'tunesFromFai_spctra.Out'
 
 _ZGOUBI_COMMAND_FILE = 'zgoubi.dat'
@@ -296,7 +293,7 @@ def background_percent_complete(report, run_dir, is_running):
         in_file = run_dir.join('{}.json'.format(template_common.INPUT_BASE_NAME))
         if in_file.exists():
             data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-            show_tunes_report = _particle_count(data) <= _MAX_FILTER_PLOT_PARTICLES \
+            show_tunes_report = _particle_count(data) <= _SCHEMA.constants.maxFilterPlotParticles \
                 and data.models.simulationSettings.npass >= 10
             show_spin_3d = data.models.SPNTRK.KSO == '1'
         count = read_frame_count(run_dir)
@@ -605,7 +602,7 @@ def _extract_animation(frame_args):
     it_index = int(col_names.index('IT'))
     kex_index = int(col_names.index('KEX'))
     it_filter = None
-    if _particle_count(frame_args.sim_in) <= _MAX_FILTER_PLOT_PARTICLES:
+    if _particle_count(frame_args.sim_in) <= _SCHEMA.constants.maxFilterPlotParticles:
         if frame_args.particleSelector != 'all':
             it_filter = frame_args.particleSelector
 
