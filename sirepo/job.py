@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 """Common functionality that is shared between the server, supervisor, and driver.
 
-Because this is going to be shared across the server, supervisor, and driver it
-must be py2 compatible.
-
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
