@@ -266,6 +266,7 @@ def get_schema(sim_type):
             feature_config=feature_config.for_sim_type(t)
         ),
     )
+    schema.feature_config = feature_config.for_sim_type(t)
     schema.simulationType = t
     _SCHEMA_CACHE[t] = schema
 
@@ -443,7 +444,7 @@ def parse_sim_ser(data):
             return None
 
 
-def prepare_simulation(data, run_dir=None):
+def prepare_simulation(data, run_dir):
     """Create and install files, update parameters, and generate command.
 
     Copies files into the simulation directory (``run_dir``)
@@ -452,7 +453,7 @@ def prepare_simulation(data, run_dir=None):
 
     Args:
         data (dict): report and model parameters
-        run_dir (py.path.local): defaults to `simulation_run_dir`
+        run_dir (py.path.local): dir simulation will be run in
     Returns:
         list, py.path: pkcli command, simulation directory
     """

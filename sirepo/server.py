@@ -629,9 +629,11 @@ def init(uwsgi=None, use_reloader=False):
 
 
 def init_apis(app, *args, **kwargs):
+    import sirepo.job
+
     for e, _ in simulation_db.SCHEMA_COMMON['customErrors'].items():
         app.register_error_handler(int(e), _handle_error)
-    importlib.import_module('sirepo.job').init_by_server(app)
+    sirepo.job.init_by_server(app)
 
 
 def _handle_error(error):
