@@ -465,15 +465,39 @@ SIREPO.app.directive('beamlineIcon', function() {
         },
         template: '<ng-include src="iconUrl()" onload="iconLoaded()"/>',
         controller: function($scope, $element) {
+            var adjustmentsByType = {
+                // height, x, y
+                aperture: [15, 5, 5],
+                crl: [0, 5, 2],
+                crystal: [-20, 28, -20],
+                ellipsoidMirror: [0, 10, 10],
+                fiber: [15],
+                grating: [-20, 20, -5],
+                lens: [5],
+                mask: [5, 0, 5],
+                mirror: [15, 5, 12],
+                obstacle: [-15, 10, -2],
+                sample: [20, -10, 10],
+                sphericalMirror: [10, 10, 7],
+                toroidalMirror: [15, 0, 7],
+                watch: [0, 15, 10],
+                zonePlate: [20, -10, -5],
+            };
+
             $scope.iconUrl = function() {
                 return'/static/svg/' +  $scope.item.type + '.svg' + SIREPO.SOURCE_CACHE_KEY;
             };
 
             $scope.iconLoaded = function () {
-                var vb = $($element).find('svg.srw-beamline-item-icon').prop('viewBox');
-                var ar = vb.baseVal.width / vb.baseVal.height;
-                vb.baseVal.width = 100;
-                vb.baseVal.height = ar * vb.baseVal.width;
+                var vb = $($element).find('svg.srw-beamline-item-icon').prop('viewBox').baseVal;
+                vb.width = 100;
+                vb.height = 50;
+                var adjust = adjustmentsByType[$scope.item.type];
+                if (adjust) {
+                    vb.height += adjust[0] || 0;
+                    vb.x -= adjust[1] || 0;
+                    vb.y -= adjust[2] || 0;
+                }
             };
 
         },
