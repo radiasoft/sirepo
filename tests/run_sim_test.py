@@ -26,11 +26,7 @@ def test_myapp_status(fc):
             simulationType=d.simulationType,
         ),
     )
-
-    if sirepo.feature_config.cfg().job == 1:
-        pkunit.pkeq('missing', r.state)
-    else:
-        pkunit.pkeq('stopped', r.state)
+    pkunit.pkeq('missing', r.state)
 
 
 def test_myapp_cancel_error(fc):

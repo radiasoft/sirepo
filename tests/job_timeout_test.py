@@ -14,7 +14,6 @@ def setup_module(module):
     os.environ.update(
         SIREPO_JOB_SUPERVISOR_MAX_HOURS_PARALLEL_PREMIUM='0.002',
         SIREPO_JOB_SUPERVISOR_MAX_HOURS_ANALYSIS='0.001',
-        SIREPO_FEATURE_CONFIG_JOB='1',
     )
 
 
