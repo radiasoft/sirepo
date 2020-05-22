@@ -290,21 +290,16 @@ class _ComputeJob(PKDict):
             if r:
                 yield u, r
 
-        def _purge_sim(db_file):
-            d = pkcollections.json_load_any(db_file)
+        def _purge_sim(compute_jid):
+            d = cls.__db_load(compute_jid)
             # OPTIMIZATION: We assume the uids_of_paid_users doesn't change very
             # frequently so we don't need to check again. A user could run a sim
             # at anytime so we need to check that they haven't
             if d.lastUpdateTime > _too_old:
                 return
-            cls._purged_jids_cache.add(db_file.purebasename)
+            cls._purged_jids_cache.add(compute_jid)
             if d.status == job.JOB_RUN_PURGED:
                 return
-            # compute_model isn't guaranteed to be in data but simulation_db.simulation_run_dir()
-            # expects it
-            d.pksetdefault(
-                computeModel=sirepo.sim_data.split_jid(db_file.purebasename).compute_model
-            )
             p = sirepo.simulation_db.simulation_run_dir(d)
             pkio.unchecked_remove(p)
             n = cls.__db_init_new(d, d)
@@ -324,7 +319,7 @@ class _ComputeJob(PKDict):
             for u, v in _get_uids_and_files():
                 with sirepo.auth.set_user(u):
                     for f in v:
-                        _purge_sim(f)
+                        _purge_sim(f.purebasename)
                 await tornado.gen.sleep(0)
         except Exception as e:
             pkdlog('u={} f={} error={} stack={}', u, f, e, pkdexc())
@@ -393,6 +388,7 @@ class _ComputeJob(PKDict):
             cancelledAfterSecs=None,
             computeJid=data.computeJid,
             computeJobHash=data.computeJobHash,
+            computeModel=data.computeModel,
             computeJobSerial=0,
             computeJobStart=0,
             computeJobQueued=0,
@@ -453,6 +449,9 @@ class _ComputeJob(PKDict):
             d.setdefault(k, None)
             for h in d.history:
                 h.setdefault(k, None)
+        d.setdefault(
+            computeModel=sirepo.sim_data.split_jid(compute_jid).compute_model,
+        )
         return d
 
     def __db_restore(self, db):
