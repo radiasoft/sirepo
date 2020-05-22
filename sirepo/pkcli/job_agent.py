@@ -16,6 +16,7 @@ import datetime
 import json
 import os
 import re
+import shutil
 import signal
 import sirepo.auth
 import sirepo.tornado
@@ -644,11 +645,23 @@ class _SbatchRun(_SbatchCmd):
                 opName=job.OP_ANALYSIS,
             ),
             send_reply=False,
+            op_id=self.msg.opId,
         )
         await c.start()
         await c._await_exit()
 
     def _sbatch_script(self):
+        def _assert_project():
+            p = self.msg.sbatchProject
+            if not p:
+                return ''
+            o = subprocess.check_output(['hpssquota'], text=True)
+            assert re.search(r'^[-\w]+$', p), \
+                f'invalid NERSC project={r}'
+            assert re.search(r'{}\s+\d+\.'.format(p), o), \
+                f'sbatchProject={p} is invalid. hpssquota={o}'
+            return f'#SBATCH --account={p}'
+
         i = self.msg.shifterImage
         s = o = ''
 #POSIT: job_api has validated values
@@ -656,7 +669,8 @@ class _SbatchRun(_SbatchCmd):
             o = f'''#SBATCH --image={i}
 #SBATCH --constraint=haswell
 #SBATCH --qos={self.msg.sbatchQueue}
-#SBATCH --tasks-per-node=32'''
+#SBATCH --tasks-per-node=32
+{_assert_project()}'''
             s = '--cpu-bind=cores shifter'
         f = self.run_dir.join(self.jid + '.sbatch')
         f.write(f'''#!/bin/bash

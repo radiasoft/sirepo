@@ -85,6 +85,7 @@ def upgrade_runner_to_job_db(db_dir):
             computeJobHash=c.compute_job_hash(i), # TODO(e-carlin): Another user cookie problem
             computeJobSerial=t,
             computeJobStart=t,
+            computeModel=c.compute_model(i),
             error=None,
             history=[],
             isParallel=c.is_parallel(i),

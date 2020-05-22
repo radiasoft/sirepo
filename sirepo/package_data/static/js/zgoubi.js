@@ -365,7 +365,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
                 frameCache.setFrameCount(data.frameCount - 1, 'energyAnimation');
                 frameCache.setFrameCount(data.frameCount - 1, 'elementStepAnimation');
                 frameCache.setFrameCount(data.frameCount - 1, 'particleAnimation');
-                updateTunesReport(data.showTunesReport);
+                updateTunesReport(data.showTunesReport, data.lastUpdateTime);
             }
             self.hasPlotFile = data.hasPlotFile;
             self.showSpin3d = data.showSpin3d;
@@ -391,10 +391,11 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
                 || (model.showAllFrames == '1' && zgoubiService.showParticleSelector()));
     }
 
-    function updateTunesReport(showTunesReport) {
+    function updateTunesReport(showTunesReport, lastUpdateTime) {
         // tunesReport is tied to the current animation data
         // only show if particle count is <= 10 and number of turnes is >= 10
         appState.models.tunesReport.showTunesReport = showTunesReport;
+        appState.models.tunesReport.lastUpdateTime = lastUpdateTime;
         // need to wait for report to become visible so it can respond to changes
         panelState.waitForUI(function() {
             appState.saveChanges('tunesReport');
@@ -519,8 +520,6 @@ SIREPO.app.factory('magnetService', function() {
 
 SIREPO.app.factory('zgoubiService', function(appState, panelState) {
     var self = {};
-    //TODO(pjm): could be determined from schema ParticleSelector enum
-    var MAX_FILTER_PLOT_PARTICLES = 10;
 
     function particleCount() {
         var bunch = appState.models.bunch;
@@ -535,7 +534,7 @@ SIREPO.app.factory('zgoubiService', function(appState, panelState) {
     };
 
     self.showParticleSelector = function() {
-        return particleCount() <= MAX_FILTER_PLOT_PARTICLES;
+        return particleCount() <= SIREPO.APP_SCHEMA.constants.maxFilterPlotParticles;
     };
 
     self.processParticleCount2 = function(model) {

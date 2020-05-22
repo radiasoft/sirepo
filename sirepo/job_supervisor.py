@@ -175,7 +175,6 @@ def init():
                     _DB_DIR,
                 ),
                 env=PKDict(os.environ).pkupdate(
-                    PYENV_VERSION='py2',
                     SIREPO_AUTH_LOGGED_IN_USER='unused',
                 ),
             )
@@ -276,7 +275,7 @@ class _ComputeJob(PKDict):
             for f in pkio.sorted_glob(_DB_DIR.join('*{}'.format(
                     sirepo.simulation_db.JSON_SUFFIX,
             ))):
-                n = sirepo.sim_data.uid_from_jid(f.purebasename)
+                n = sirepo.sim_data.split_jid(jid=f.purebasename).uid
                 if n in p or f.mtime() > _too_old \
                    or f.purebasename in cls._purged_jids_cache:
                     continue
@@ -291,14 +290,14 @@ class _ComputeJob(PKDict):
             if r:
                 yield u, r
 
-        def _purge_sim(db_file):
-            d = pkcollections.json_load_any(db_file)
+        def _purge_sim(jid):
+            d = cls.__db_load(jid)
             # OPTIMIZATION: We assume the uids_of_paid_users doesn't change very
             # frequently so we don't need to check again. A user could run a sim
             # at anytime so we need to check that they haven't
             if d.lastUpdateTime > _too_old:
                 return
-            cls._purged_jids_cache.add(db_file.purebasename)
+            cls._purged_jids_cache.add(jid)
             if d.status == job.JOB_RUN_PURGED:
                 return
             p = sirepo.simulation_db.simulation_run_dir(d)
@@ -320,7 +319,7 @@ class _ComputeJob(PKDict):
             for u, v in _get_uids_and_files():
                 with sirepo.auth.set_user(u):
                     for f in v:
-                        _purge_sim(f)
+                        _purge_sim(jid=f.purebasename)
                 await tornado.gen.sleep(0)
         except Exception as e:
             pkdlog('u={} f={} error={} stack={}', u, f, e, pkdexc())
@@ -329,7 +328,6 @@ class _ComputeJob(PKDict):
                 cfg.purge_non_premium_task_secs,
                 cls.purge_free_simulations,
             )
-
     @classmethod
     async def receive(cls, req):
         if req.content.get('api') != 'api_runStatus':
@@ -389,15 +387,16 @@ class _ComputeJob(PKDict):
             cancelledAfterSecs=None,
             computeJid=data.computeJid,
             computeJobHash=data.computeJobHash,
+            computeJobQueued=0,
             computeJobSerial=0,
             computeJobStart=0,
-            computeJobQueued=0,
+            computeModel=data.computeModel,
             driverDetails=PKDict(),
             error=None,
-            jobStatusMessage=None,
             history=cls.__db_init_history(prev_db),
             isParallel=data.isParallel,
             isPremiumUser=data.get('isPremiumUser'),
+            jobStatusMessage=None,
             lastUpdateTime=0,
             simName=None,
             simulationId=data.simulationId,
@@ -449,6 +448,9 @@ class _ComputeJob(PKDict):
             d.setdefault(k, None)
             for h in d.history:
                 h.setdefault(k, None)
+        d.pksetdefault(
+            computeModel=lambda: sirepo.sim_data.split_jid(compute_jid).compute_model,
+        )
         return d
 
     def __db_restore(self, db):

@@ -178,14 +178,21 @@ disown
                         e,
                         pkdexc(),
                     )
-        except Exception as e:
-            if isinstance(e, OSError) and e.errno == errno.EHOSTUNREACH:
+        except asyncssh.misc.PermissionDenied:
+            pkdlog('{}', pkdexc())
+            self._srdb_root = None
+            self._raise_sbatch_login_srexception('invalid-creds', op.msg)
+        except asyncssh.misc.ProtocolError:
+            pkdlog('{}', pkdexc())
+            raise sirepo.util.UserAlert(
+                f'Unable to connect to {self.cfg.host}. Please try again later.',
+            )
+        except OSError as e:
+            pkdlog('{}', pkdexc())
+            if e.errno == errno.EHOSTUNREACH:
                 raise sirepo.util.UserAlert(
-                    'Host {} unreachable. Please try again later.'.format(self.cfg.host),
+                    f'Host {self.cfg.host} unreachable. Please try again later.',
                 )
-            if isinstance(e, asyncssh.misc.PermissionDenied):
-                self._srdb_root = None
-                self._raise_sbatch_login_srexception('invalid-creds', op.msg)
             raise
         finally:
             self.pkdel('_creds')

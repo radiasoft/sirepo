@@ -214,7 +214,7 @@ def _do_prepare_simulation(msg, template):
     return PKDict(
         cmd=simulation_db.prepare_simulation(
             msg.data,
-            run_dir=msg.runDir,
+            msg.runDir,
         )[0],
     )
 

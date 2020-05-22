@@ -663,7 +663,7 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
             };
 
             $scope.showAdmJobs = function() {
-                return SIREPO.APP_SCHEMA.feature_config.job && authState.roles.indexOf('adm') >= 0;
+                return authState.roles.indexOf('adm') >= 0;
             };
         },
     };
@@ -3095,7 +3095,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                 if (data.state === 'error') {
                     errorResponse = data.error;
                 }
-                sbatchLoginStatusService.loggedIn = data.loginSuccess;
+                sbatchLoginStatusService.loggedIn = data.loginSuccess ? true: false;
                 el.modal('hide');
             }
 
@@ -3126,7 +3126,8 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                             simulationId: data.simulationId,
                             simulationType: data.simulationType,
                             username: $scope.username,
-                        }
+                        },
+                        handleResponse
                     );
                 };
                 el.modal('show');
@@ -3153,6 +3154,7 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                 '<div data-model-field="\'sbatchCores\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>',
                 '<div data-ng-show="showNERSCFields()">',
                     '<div data-model-field="\'sbatchQueue\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"  data-ng-click="sbatchQueueFieldIsDirty = true"></div>',
+                    '<div data-model-field="\'sbatchProject\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>',
                 '</div>',
                 '<div class="col-sm-12 text-right {{textClass()}}" data-ng-show="connectionStatusMessage()">{{ connectionStatusMessage() }}</div>',
             '</div>',
