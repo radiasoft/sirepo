@@ -657,11 +657,10 @@ class SimDataBase(object):
 
 def split_jid(jid):
     """Reverse of parse_jid. Take a jid and split it into its parts"""
-    s = jid.split(_JOB_ID_SEP)
-    r = PKDict()
-    for i, k in enumerate(('uid', 'simulation_id', 'compute_model')):
-       r[k] = s[i]
-    return r
+    return PKDict(zip(
+        ('uid', 'simulation_id', 'compute_model'),
+        jid.split(_JOB_ID_SEP),
+    ))
 
 
 def _init():
