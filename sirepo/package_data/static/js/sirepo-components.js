@@ -323,7 +323,7 @@ SIREPO.app.directive('cancelledDueToTimeoutAlert', function(authState) {
             };
 
             $scope.premiumOrEnterprise = function() {
-                if (authState.roles.includes('premium')) {
+                if (authState.roles.indexOf('premium') >= 0) {
                     return 'Enterprise';
                 }
                 return 'Premium';
@@ -663,7 +663,7 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
             };
 
             $scope.showAdmJobs = function() {
-                return SIREPO.APP_SCHEMA.feature_config.job && authState.roles.includes('adm');
+                return SIREPO.APP_SCHEMA.feature_config.job && authState.roles.indexOf('adm') >= 0;
             };
         },
     };
@@ -3111,7 +3111,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                 $scope.password = '';
                 awaitingSendResponse = false;
                 $scope.host = data.host;
-                $scope.showOtp = data.host.includes('nersc');
+                $scope.showOtp = data.host.indexOf('nersc') >= 0;
                 $scope.showWarning = data.reason === 'invalid-creds';
                 $scope.warningText = 'Your credentials were invalid. Please try again.';
                 $scope.submit = function() {
@@ -3189,7 +3189,7 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
 
             $scope.showNERSCFields = function() {
                 var n = authState.jobRunModeMap.sbatch;
-                return n && n.toLowerCase().includes('nersc');
+                return n && n.toLowerCase().indexOf('nersc') >= 0;
             };
 
 
