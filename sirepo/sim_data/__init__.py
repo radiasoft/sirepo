@@ -656,9 +656,15 @@ class SimDataBase(object):
 
 
 def split_jid(jid):
-    """Reverse of parse_jid. Take a jid and split it into its parts"""
+    """Split jid into named parts
+
+    Args:
+        jid (str): properly formed job identifier
+    Returns:
+        PKDict: parts named uid, sid, compute_model.
+    """
     return PKDict(zip(
-        ('uid', 'simulation_id', 'compute_model'),
+        ('uid', 'sid', 'compute_model'),
         jid.split(_JOB_ID_SEP),
     ))
 
