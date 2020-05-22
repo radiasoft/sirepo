@@ -655,8 +655,18 @@ class SimDataBase(object):
             dm.simulation.folder = '/Examples'
 
 
-def uid_from_jid(jid):
-    return jid.split(_JOB_ID_SEP)[0]
+def split_jid(jid):
+    """Split jid into named parts
+
+    Args:
+        jid (str): properly formed job identifier
+    Returns:
+        PKDict: parts named uid, sid, compute_model.
+    """
+    return PKDict(zip(
+        ('uid', 'sid', 'compute_model'),
+        jid.split(_JOB_ID_SEP),
+    ))
 
 
 def _init():

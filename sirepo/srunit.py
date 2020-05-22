@@ -171,7 +171,7 @@ class _TestClient(flask.testing.FlaskClient):
         self.sr_sim_type = None
         self.sr_uid = None
 
-    def sr_animation_run(self, sim_name, compute_model, reports, **kwargs):
+    def sr_animation_run(self, sim_name, compute_model, reports=None, **kwargs):
         from pykern import pkunit
         from pykern.pkcollections import PKDict
         from pykern.pkdebug import pkdp, pkdlog

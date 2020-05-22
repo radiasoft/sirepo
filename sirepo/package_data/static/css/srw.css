@@ -278,12 +278,12 @@ path.srw-dash-stroke {
 }
 
 svg.srw-beamline-item-icon {
-  width: 50px;
+  width: 70px;
   height: 60px;
 }
 
 .srw-toolbar-button svg.srw-beamline-item-icon {
-  width: 30px;
+  width: 70px;
   height: 35px;
 }
 

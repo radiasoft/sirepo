@@ -78,7 +78,9 @@ def _beamline_steps(beamline_map, element_map, beamline_id):
 
 def _bunch_match_twiss(cfg_dir, data):
     bunch = data.models.bunch
-    if bunch.match_twiss_parameters == '1' and ('bunchReport' in data.report or data.report == 'animation'):
+    if bunch.match_twiss_parameters == '1' \
+       and bunch.method == 'MCOBJET3' \
+       and ('bunchReport' in data.report or data.report == 'animation'):
         report = data['report']
         data['report'] = 'twissReport2'
         template.write_parameters(data, py.path.local(cfg_dir), False, 'twiss.py')
@@ -128,6 +130,9 @@ def _validate_estimate_output_file_size(data, res):
     count = bunch.particleCount
     if bunch.method == 'OBJET2.1':
         count = bunch.particleCount2
+    elif re.search(r'^OBJET3', bunch.method):
+        #TODO(pjm): just an estimate, need to read/filter data file
+        count = 10
     settings = data.models.simulationSettings
     line_size = 800
     fai_size = line_size * settings.npass / (settings.ip or 1) * float(count)
