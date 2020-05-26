@@ -260,7 +260,7 @@ def setup_magnetic_measurement_files(filename, v):
     f = None
     r = 0
     try:
-        import mpi4py
+        import mpi4py.MPI
         if mpi4py.MPI.COMM_WORLD.Get_size() > 1:
             c = mpi4py.MPI.COMM_WORLD
             r = c.Get_rank()
