@@ -4,7 +4,9 @@ title, "{{ simulation_name }}";
 {{ lattice }}
 
 {% if useBeamline %}
-{{ beam }}
-use, sequence={{ useBeamline }};
+{{ commands }}
+
+{% if not hasTwiss %}
 twiss, file={{ twissOutputFilename }};
+{% endif %}
 {% endif %}

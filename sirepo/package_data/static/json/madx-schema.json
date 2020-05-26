@@ -242,8 +242,7 @@
             "dpx": ["dpx", "RPNValue", "0.0"],
             "dpy": ["dpy", "RPNValue", "0.0"],
             "dx": ["dx", "RPNValue", "0.0"],
-            "dy": ["dy", "RPNValue", "0.0"],
-            "file": ["Twiss output file", "SafePath", ""]
+            "dy": ["dy", "RPNValue", "0.0"]
         },
         "command_use": {
             "sequence": ["BEAMLINE", "LatticeBeamlineList", ""],
@@ -937,6 +936,25 @@
                 ]]
             ]
         },
+        "command_twiss": {
+            "title": "twiss",
+            "description": "Compute Twiss parameters and set initial conditions.",
+            "advanced": [
+                "alfx",
+                "alfy",
+                "betx",
+                "bety",
+                "dpx",
+                "dpy",
+                "dx",
+                "dy"
+            ]
+        },
+        "command_use": {
+            "advanced": [
+                "sequence"
+            ]
+        },
         "simulationStatus": {
             "title": "Simulation Status",
             "basic": [
@@ -951,8 +969,7 @@
         "twissReport": {
             "title": "Twiss Parameters",
             "advanced": [
-                ["Main", ["y1", "y2", "y3", "includeLattice"]],
-                ["Initial Conditions", ["y1"]]
+                ["Main", ["y1", "y2", "y3", "includeLattice"]]
             ]
         },
         "BEAMBEAM": {

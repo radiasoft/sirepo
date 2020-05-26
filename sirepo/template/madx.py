@@ -29,8 +29,6 @@ import sirepo.sim_data
 
 
 _FILE_TYPES = ['ele', 'lte', 'madx']
-# TODO(e-carlin): The madx convetion is name.madx for in
-# and name.out for out. What do we want to do?
 MADX_INPUT_FILENAME = 'madx.in'
 MADX_OUTPUT_FILENAME = 'madx.out'
 TWISS_OUTPUT_FILENAME = 'twiss.tfs'
@@ -55,11 +53,6 @@ _MADX_CONSTANTS = PKDict(
 )
 
 _METHODS = template_common.RPN_METHODS.extend([])
-
-
-class MadxElementIterator(lattice.ElementIterator):
-    def is_ignore_field(self, field):
-        return field == 'name'
 
 
 def get_application_data(data, **kwargs):
@@ -98,14 +91,9 @@ def get_application_data(data, **kwargs):
         )
         return data
 
-def background_percent_complete(report, run_dir, is_running):
-    # TODO(e-carlin): impl
-    return PKDict(
-        percentComplete=0,
-        frameCount=0,
-    )
 
-
+# TODO(e-carlin): need to clean this up. copied from elegant
+# ex _map_commands_to_lattice doesn't exist in this file only in elegant
 def import_file(req, test_data=None, **kwargs):
     ft = '|'.join(_FILE_TYPES)
     if not re.search(r'\.({})$'.format(ft), req.filename, re.IGNORECASE):
@@ -273,17 +261,18 @@ def _extract_report_twissReport(data, run_dir):
     )
 
 
-def _format_field_value(state, model, field, el_type):
-    value = model[field]
-    return [field, value]
-
-
-def _generate_beam(beam):
-    res = 'beam'
-    for k in ('mass', 'charge', 'gamma', 'sigt'):
-        if k in beam:
-            res += f', {k}={beam[k]}'
-    return res + ';'
+def _generate_commands(util):
+    res = '';
+    for c in util.iterate_models(
+            lattice.ElementIterator(None, _format_field_value), 'commands'
+    ).result:
+        res += f'{c[0]._type}'
+        for f in c[1]:
+           res += f', {f[0]}={f[1]}'
+        if c[0]._type == 'twiss':
+            res += f', file={TWISS_OUTPUT_FILENAME}'
+        res += ';\n'
+    return res
 
 
 def _generate_lattice(util):
@@ -296,16 +285,17 @@ def _generate_lattice(util):
 def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     util = LatticeUtil(data, _SCHEMA)
+    c = _generate_commands(util)
     code_var = _code_var(data.models.rpnVariables)
     v.twissOutputFilename = TWISS_OUTPUT_FILENAME
     v.lattice = _generate_lattice(util)
     v.variables = _generate_variables(code_var, data)
     if data.models.simulation.visualizationBeamlineId:
         v.useBeamline = util.id_map[data.models.simulation.visualizationBeamlineId].name
-
-    beam = util.find_first_command(data, 'beam')
-    if beam:
-        v.beam = _generate_beam(beam)
+        v.commands = _generate_commands(util)
+        v.hasTwiss = bool(util.find_first_command(data, 'twiss'))
+        if not v.hasTwiss:
+            v.twissOutputFilename = TWISS_OUTPUT_FILENAME
     return template_common.render_jinja(SIM_TYPE, v, 'parameters.madx')
 
 
@@ -325,3 +315,10 @@ def _generate_variables(code_var, data):
             res += _generate_variable(dependency, code_var.variables, visited)
         res += _generate_variable(name, code_var.variables, visited)
     return res
+
+
+def _format_field_value(state, model, field, el_type):
+    v = model[field]
+    if el_type == 'LatticeBeamlineList':
+        v = state.id_map[int(v)].name
+    return [field, v]

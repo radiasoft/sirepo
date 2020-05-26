@@ -24,16 +24,11 @@
       {
         "_id": 106,
         "_type": "use",
-        "name": null,
-        "period": "BL",
-        "sequence": ""
-      },
+        "sequence": 104
+    },
       {
         "_id": 107,
-        "_type": "use",
-        "name": null,
-        "period": "",
-        "sequence": "BL"
+        "_type": "twiss"
       }
     ],
     "elements": [
@@ -88,6 +83,12 @@
       "notes": "",
       "simulationSerial": 0,
       "visualizationBeamlineId": 104
+    },
+    "twissReport": {
+        "includeLattice": "1",
+        "y1": "betx",
+        "y2": "bety",
+        "y3": "dx"
     }
   },
   "simulationType": "madx",

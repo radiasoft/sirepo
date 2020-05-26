@@ -17,23 +17,23 @@ class MadXParser(lattice.LatticeParser):
     def __init__(self):
         self.ignore_commands = set([
             'aperture', 'assign', 'beta0', 'coguess', 'constraint',
-            'correct', 'create', 'ealign', 'efcomp', 'emit', 'endedit',
-            'endmatch', 'eoption', 'esave', 'exec', 'fill', 'global',
-            'install', 'jacobian', 'lmdif', 'lmdif', 'makethin', 'match',
-            'observe', 'option', 'plot', 'print', 'readtable', 'reflect',
-            'return', 'run', 'save', 'savebeta', 'select',
-            'select_ptc_normal', 'seqedit', 'set', 'setplot', 'setvars',
-            'setvars_lin', 'show', 'simplex', 'sixtrack', 'sodd', 'start',
-            'stop', 'survey', 'sxfread', 'sxfwrite', 'system', 'touschek',
-            'twiss', 'use_macro', 'usekick', 'usemonitor', 'value',
-            'vary', 'weight', 'wire', 'write',
+            'correct', 'create', 'ealign', 'efcomp', 'emit',
+            'endedit', 'endmatch', 'eoption', 'esave', 'exec', 'fill',
+            'global', 'install', 'jacobian', 'lmdif', 'lmdif',
+            'makethin', 'match', 'observe', 'option', 'plot', 'print',
+            'readtable', 'reflect', 'return', 'run', 'save',
+            'savebeta', 'select', 'select_ptc_normal', 'seqedit',
+            'set', 'setplot', 'setvars', 'setvars_lin', 'show',
+            'simplex', 'sixtrack', 'sodd', 'start', 'stop', 'survey',
+            'sxfread', 'sxfwrite', 'system', 'touschek', 'use_macro',
+            'usekick', 'usemonitor', 'value', 'vary', 'weight',
+            'wire', 'write',
         ])
         super().__init__(sirepo.sim_data.get_class('madx'))
 
     def parse_file(self, lattice_text, downcase_variables=False):
         from sirepo.template import madx
         res = super().parse_file(lattice_text)
-        pkdp('PARSED MADX {}', res)
         cv = madx.madx_code_var(self.data.models.rpnVariables)
         self._code_variables_to_float(cv)
         self.__convert_sequences_to_beamlines(cv)
