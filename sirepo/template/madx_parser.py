@@ -80,5 +80,6 @@ class MadXParser(lattice.LatticeParser):
         del data.models['sequences']
         util.sort_elements_and_beamlines()
 
+
 def parse_file(lattice_text, downcase_variables=False):
     return MadXParser().parse_file(lattice_text, downcase_variables)

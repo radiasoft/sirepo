@@ -1,9 +1,60 @@
 {
+    "constants": {
+        "advancedNames": [
+            "BEAMBEAM",
+            "CHANGEREF",
+            "CRABCAVITY",
+            "DIPEDGE",
+            "HACDIPOLE",
+            "HKICKER",
+            "HMONITOR",
+            "INSTRUMENT",
+            "MATRIX",
+            "MONITOR",
+            "MULTIPOLE",
+            "NLLENS",
+            "OCTUPOLE",
+            "PLACEHOLDER",
+            "RFCAVITY",
+            "RFMULTIPOLE",
+            "SOLENOID",
+            "SROTATION",
+            "TRANSLATION",
+            "TWCAVITY",
+            "VACDIPOLE",
+            "VKICKER",
+            "VMONITOR",
+            "XROTATION",
+            "YROTATION"
+        ],
+        "basicNames": [
+            "SBEND",
+            "RBEND",
+            "DRIFT",
+            "COLLIMATOR",
+            "ECOLLIMATOR",
+            "RCOLLIMATOR",
+            "KICKER",
+            "MARKER",
+            "QUADRUPOLE",
+            "SEXTUPOLE"
+        ]
+    },
     "dynamicFiles": {
         "externalLibs": {
+            "js": [
+                "split-1.3.5.min.js"
+            ]
         },
         "sirepoLibs": {
-            "js": ["madx.js"]
+            "js": [
+                "madx.js",
+                "sirepo-command.js",
+                "sirepo-lattice.js"
+            ],
+             "css": [
+                 "lattice.css"
+            ]
         }
     },
     "enum": {
@@ -37,9 +88,60 @@
             ["other", "Other"]
         ]
     },
+    "localRoutes": {
+        "source": {
+          "config": {
+            "controller": "MadXSourceController as source",
+            "templateUrl": "/static/html/elegant-source.html"
+          }
+        },
+        "lattice": {
+            "route": "/lattice/:simulationId",
+            "config": {
+            "controller": "LatticeController as lattice",
+            "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
+          }
+        }
+    },
     "model": {
         "simulation": {
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
+        },
+        "bunch": {
+            "p_central_mev": ["Central momentum of the beamline [MeV/c]", "RPNValue", "", "Central momentum of the beamline in MeV/c, about which expansions are done. This corresponds to p_central_mev field of the run_setup command.", 0],
+            "n_particles_per_bunch": ["Particles Per Bunch", "Integer", 1, "Number of particles in each bunch (max 10,000,000)", 1, 10000000],
+            "symmetrize": ["Symmetrize", "RPNBoolean", "0", "If non-zero, the distribution is symmetric under changes of sign in the coordinates. Automatically results in a zero centroid for all coordinates."],
+            "centroid": ["Centroid", "Float6StringArray", "0, 0, 0, 0, 0, 0", "Centroid offsets for each of the six coordinates.", "X, X', Y, Y', T, P"],
+            "time_start": ["Time Start", "RPNValue", "0.0", "The central value of the time coordinate for the bunch."],
+            "momentum_chirp": ["Momentum Chirp", "RPNValue", "0.0", "Permits imparting an additional momentum chirp to the beam, in units of 1/m. E.g., a value of 1 indicates that a 1mm long bunch has a linear variation in momentum of 0.1% from end-to-end. A positive chirp is needed to provide compression of a bunch with an ordinary R₅₆<0 four-dipole chicane."],
+            "distribution_type": ["Distribution Type", "DistributionTypeStringArray", "gaussian, gaussian, gaussian", "Distribution type for each plane. May be \"gaussian\", \"hard-edge\", \"uniform-ellipse\", \"shell\", \"dynamic-aperture\", \"line\", or \"halo(gaussian)\". For the transverse plane, the interpretation of the emittance is different for the different beam types. For gaussian beams, the emittances are rms values. For all other types, √ε*β times the distribution cutoff defines the edge of the beam in position space, while √ε*(1+α^2)/β times the distribution cutoff defines the edge of the beam in slope space. A hard-edge beam is a uniformly-filled parallelogram in phase space. A uniform-ellipse beam is a uniformly-filled ellipse in phase space. A shell beam is a hollow ellipse in phase space. A dynamic aperture beam has zero slope and uniform spacing in position coordinates. A line beam is a line in phase space. A \"halo(gaussian)\" beam is the part of the gaussian distribution beyond the distribution cutoff.", "X, Y, Z"],
+            "distribution_cutoff": ["Distribution Cutoff", "Integer3StringArray", "2, 2, 2", "Distribution cutoff parameters for each plane. For gaussian distributions, this is the number of sigmas to use. For other distributions (except dynamic aperture), this number simply multiplies the sizes. This is potentially confusing and hence it is suggested that the distribution cutoff be set to 1 for nongaussian beams. The exception is \"dynamic-aperture\" distribution type. In this case, the cutoff value is the number of grid points in the dimension in question.", "X, Y, Z"],
+            "enforce_rms_values": ["Enforce RMS Values", "BooleanStringArray", "0, 0, 0", "Flags, one for each plane, indicating whether to force the distribution to have the specified RMS properties.", "X, Y, Z"],
+            "limit_invariants": ["Limit Invariants", "Integer", 0, "If non-zero, the distribution cutoffs are applied to the invariants, rather than to the coordinates. This is useful for gaussian beams when the distribution cutoff is small."],
+            "limit_in_4d": ["Limit In 4D", "RPNBoolean", "0", "If non-zero, then the transverse distribution is taken to be a 4-d gaussian or uniform distribution. One of these must be chosen using the distribution_type control. It must be the same for x and y. This is useful, for example, if you want to make a cylindrically symmetric beam."],
+            "emit_x": ["Horizontal Geometric Emittance [m]", "RPNValue", "0.0", "", 0],
+            "emit_nx": ["Horizontal Normalized Emittance", "RPNValue", "0.0", "", 0],
+            "beta_x": ["Horizontal Beta [m]", "RPNValue", "1.0", "", 1e-99],
+            "alpha_x": ["Horizontal Alpha", "RPNValue", "0.0", ""],
+            "eta_x": ["Horizontal Eta", "RPNValue", "0.0", ""],
+            "etap_x": ["Horizontal Etap", "RPNValue", "0.0", ""],
+            "emit_y": ["Vertical Geometric Emittance [m]", "RPNValue", "0.0", "", 0],
+            "emit_ny": ["Vertical Normalized Emittance", "RPNValue", "0.0", "", 0],
+            "beta_y": ["Vertical Beta [m]", "RPNValue", "1.0", "", 1e-99],
+            "alpha_y": ["Vertical Alpha", "RPNValue", "0.0", ""],
+            "eta_y": ["Vertical Eta", "RPNValue", "0.0", ""],
+            "etap_y": ["Vertical Etap", "RPNValue", "0.0", ""],
+            "longitudinalMethod": ["Longitudinal Method", "LongitudinalBunchMethod"],
+            "emit_z": ["Longitudinal Geometric Emittance [m]", "RPNValue", "0.0", "Provide another way to specify the longitudinal phase space, either separately from or in combination with sigma_dp, sigma_s, and dp_s_coupling. Basically, which values elegant uses depends on what one sets to nonzero values. If one sets emit_z, then sigma_dp, sigma_s, and dp_s_coupling are ignored. If one doesn't set emit_z, then elegant uses sigma_dp and sigma_s; it additionally uses alpha_z if it is nonzero, otherwise it uses dp_s_coupling. For reference, the relationship between them is C = Σ₅₆ / √Σ₅₅Σ₆₆}} = -α / √1+α^2}. Note that to impart a chirp that results in compression for R₅₆<0 (e.g., a normal four-dipole chicane), one must have αz<0 or C>0.", 0],
+            "beta_z": ["Longitudinal Beta [m]", "RPNValue", "0.0", "", 0],
+            "alpha_z": ["Longitudinal Alpha", "RPNValue", "0.0", ""],
+            "sigma_s": ["Sigma s [m]", "RPNValue", "0.0", "Fractional momentum spread, δ, and bunch length. Note that sigma_s is actually the length in βz*c*t, so that for βz<<1 the length of the bunch in time will be greater than one might expect."],
+            "sigma_dp": ["Sigma dp", "RPNValue", "0.0"],
+            "dp_s_coupling": ["dp s Coupling", "RPNValue", "0.0", "Specifies the coupling between s and δ, defined as ⟨ s δ ⟩/(σsσδ).", -1, 1],
+            "halton_sequence": ["Halton Sequence", "BooleanStringArray", "0, 0, 0", "This provides a \"quiet-start\" feature by choosing Halton sequences in place of random number generation. There are three new variables that control this feature. halton_sequence is an array of three flags that permit turning on Halton sequence generation for the horizontal, vertical, or longitudinal planes. For example, halton_sequence[0] = 3*1 will turn on Halton sequences for all three planes, while halton_sequence[2] = 1, will turn it on for the longitudinal plane only.", "X, Y, Z"],
+            "halton_radix": ["Halton Radix", "Integer6StringArray", "0, 0, 0, 0, 0, 0", "halton_radix is an array of six integers that permit giving the radix for each sequence (i.e., x, x', y, y', t, p). Each radix must be a prime number. One should never use the same prime for two sequences, unless one randomizes the order of the sequences relative to each other (see the next item). If these are left at zero, then elegant chooses values that eliminate phase-space banding to some extent. The user is cautioned to plot all coordinate combinations for the initial phase space to ensure that no unacceptable banding is present. A suggested way to use Halton sequences is to set halton_radix[0] = 2, 3, 2, 3, 2, 3 and to set randomize_order[0] = 2, 2, 2,. This avoids banding that may result from choosing larger radix values.", "X, X', Y, Y', T, P"],
+            "optimized_halton": ["Optimized Halton", "RPNBoolean", "0", "optimized_halton uses the improved halton sequence. (Algorithm 659, Collected Algorithm from ACM. Derandom Algorithm is added by Hongmei CHI (CS/FSU)). It avoids the banding problem automatically and the halton_radix values are ignored."],
+            "randomize_order": ["Randomize Order", "RandomizeStringArray", "0, 0, 0", "Allows randomizing the order of assigned coordinates for the pairs (x, x'), (y, y'), and (t,p). 0 means no randomization; 1 means randomize (x, x', y, y', t, p) values independently, which destroys any x-x', y-y', and t-p correlations; 2 means randomize (x, x'), (y, y'), and (t, p) in pair-wise fashion. This is used with Halton sequences to remove banding. It is suggested that that the user employ sddsanalyzebeam to verify that the beam properties when randomization is used.", "X, Y, Z"]
         },
         "command_beam": {
             "particle": ["PARTICLE", "ParticleType", "positron"],
@@ -68,8 +170,24 @@
             "sequence": ["BEAMLINE", "LatticeBeamlineList", ""],
             "period": ["BEAMLINE", "LatticeBeamlineList", ""]
         },
-        "BEAMBEAM": {
+        "twissReport": {
+            "title": "Twiss Parameters",
+            "advanced": [
+                "y1",
+                "y2",
+                "y3",
+                "includeLattice"
+            ]
+        },
+        "_APERTURE_ELEMENT": {
             "name": ["Name", "ValidatedString"],
+            "apertype": ["APERTYPE", "ApertureType", "circle"],
+            "aperture": ["APERTURE", "FloatArray", "0"],
+            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
+            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+        },
+        "BEAMBEAM": {
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "sigx": ["SIGX", "RPNValue", "0.0"],
             "sigy": ["SIGY", "RPNValue", "0.0"],
             "xma": ["XMA", "RPNValue", "0.0"],
@@ -77,31 +195,19 @@
             "charge": ["CHARGE", "RPNValue", "1.0"],
             "bbshape": ["BBSHAPE", "BeambeamBbshape", "1"],
             "width": ["WIDTH", "RPNValue", "0.0"],
-            "bbdir": ["BBDIR", "BeambeamBbdir", "-1"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "bbdir": ["BBDIR", "BeambeamBbdir", "-1"]
         },
         "CHANGEREF": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "patch_ang": ["PATCH_ANG", "FloatArray", "0 0 0"],
-            "patch_trans": ["PATCH_TRANS", "FloatArray", "0 0 0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "patch_trans": ["PATCH_TRANS", "FloatArray", "0 0 0"]
         },
         "COLLIMATOR": {
-            "name": ["Name", "ValidatedString"],
-            "l": ["L", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
+            "l": ["L", "RPNValue", "0.0"]
         },
         "CRABCAVITY": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L", "RPNValue", "0.0"],
             "volt": ["VOLT", "RPNValue", "0.0"],
             "lag": ["LAG", "RPNValue", "0.0"],
@@ -112,51 +218,35 @@
             "rv4": ["RV4", "Integer", 0],
             "rph1": ["RPH1", "Integer", 0],
             "rph2": ["RPH2", "Integer", 0],
-            "lagf": ["LAGF", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "lagf": ["LAGF", "RPNValue", "0.0"]
         },
         "DIPEDGE": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "h": ["H", "RPNValue", "0.0"],
             "e1": ["E1", "RPNValue", "0.0"],
             "fint": ["FINT", "RPNValue", "0.0"],
             "hgap": ["HGAP", "RPNValue", "0.0"],
-            "tilt": ["TILT", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "tilt": ["TILT", "RPNValue", "0.0"]
         },
         "DRIFT": {
             "name": ["Name", "ValidatedString"],
             "l": ["L", "RPNValue", "0.0"]
         },
         "ECOLLIMATOR": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L", "RPNValue", "0.0"],
             "xsize": ["XSIZE", "RPNValue", "0.0"],
-            "ysize": ["YSIZE", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "ysize": ["YSIZE", "RPNValue", "0.0"]
         },
         "ELSEPARATOR": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L", "RPNValue", "0.0"],
             "ex": ["EX", "RPNValue", "0.0"],
             "ey": ["EY", "RPNValue", "0.0"],
-            "tilt": ["TILT", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "tilt": ["TILT", "RPNValue", "0.0"]
         },
         "HACDIPOLE": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L", "RPNValue", "0.0"],
             "volt": ["VOLT", "RPNValue", "0.0"],
             "freq": ["FREQ", "RPNValue", "0.0"],
@@ -164,55 +254,31 @@
             "ramp1": ["RAMP1", "Integer", 0],
             "ramp2": ["RAMP2", "Integer", 0],
             "ramp3": ["RAMP3", "Integer", 0],
-            "ramp4": ["RAMP4", "Integer", 0],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "ramp4": ["RAMP4", "Integer", 0]
         },
         "HKICKER": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L", "RPNValue", "0.0"],
             "kick": ["KICK", "RPNValue", "0.0"],
-            "tilt": ["TILT", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "tilt": ["TILT", "RPNValue", "0.0"]
         },
         "HMONITOR": {
-            "name": ["Name", "ValidatedString"],
-            "l": ["L", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
+            "l": ["L", "RPNValue", "0.0"]
         },
         "INSTRUMENT": {
-            "name": ["Name", "ValidatedString"],
-            "l": ["L", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
+            "l": ["L", "RPNValue", "0.0"]
         },
         "KICKER": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L", "RPNValue", "0.0"],
             "hkick": ["HKICK", "RPNValue", "0.0"],
             "vkick": ["VKICK", "RPNValue", "0.0"],
-            "tilt": ["TILT", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "tilt": ["TILT", "RPNValue", "0.0"]
         },
         "MARKER": {
-            "name": ["Name", "ValidatedString"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "_super": ["_", "model", "_APERTURE_ELEMENT"]
         },
         "MATRIX": {
             "name": ["Name", "ValidatedString"],
@@ -477,66 +543,42 @@
             "tm665": ["TM665", "RPNValue", "0.0"]
         },
         "MONITOR": {
-            "name": ["Name", "ValidatedString"],
-            "l": ["L", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
+            "l": ["L", "RPNValue", "0.0"]
         },
         "MULTIPOLE": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "lrad": ["LRAD", "RPNValue", "0.0"],
             "tilt": ["TILT", "RPNValue", "0.0"],
             "knl": ["KNL", "FloatArray", "0"],
-            "ksl": ["KSL", "FloatArray", "0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "ksl": ["KSL", "FloatArray", "0"]
         },
         "NLLENS": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "knll": ["KNLL", "RPNValue", "0.0"],
-            "cnll": ["CNLL", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "cnll": ["CNLL", "RPNValue", "0.0"]
         },
         "OCTUPOLE": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L", "RPNValue", "0.0"],
             "k3": ["K3", "RPNValue", "0.0"],
             "k3s": ["K3S", "RPNValue", "0.0"],
-            "tilt": ["TILT", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "tilt": ["TILT", "RPNValue", "0.0"]
         },
         "PLACEHOLDER": {
-            "name": ["Name", "ValidatedString"],
-            "l": ["L", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
+            "l": ["L", "RPNValue", "0.0"]
         },
         "QUADRUPOLE": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L", "RPNValue", "0.0"],
             "k1": ["K1", "RPNValue", "0.0"],
             "k1s": ["K1S", "RPNValue", "0.0"],
             "tilt": ["TILT", "RPNValue", "0.0"],
-            "thick": ["THICK", "Boolean", "0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "thick": ["THICK", "Boolean", "0"]
         },
         "RBEND": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L", "RPNValue", "0.0"],
             "angle": ["ANGLE", "RPNValue", "0.0"],
             "tilt": ["TILT", "RPNValue", "0.0"],
@@ -550,36 +592,24 @@
             "h1": ["H1", "RPNValue", "0.0"],
             "h2": ["H2", "RPNValue", "0.0"],
             "add_angle": ["ADD_ANGLE", "FloatArray", "0 0 0 0 0"],
-            "thick": ["THICK", "Boolean", "0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "thick": ["THICK", "Boolean", "0"]
         },
         "RCOLLIMATOR": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L", "RPNValue", "0.0"],
             "xsize": ["XSIZE", "RPNValue", "0.0"],
-            "ysize": ["YSIZE", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "ysize": ["YSIZE", "RPNValue", "0.0"]
         },
         "RFCAVITY": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L", "RPNValue", "0.0"],
             "volt": ["VOLT", "RPNValue", "0.0"],
             "lag": ["LAG", "RPNValue", "0.0"],
             "harmon": ["HARMON", "Integer", 0],
-            "freq": ["FREQ", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "freq": ["FREQ", "RPNValue", "0.0"]
         },
         "RFMULTIPOLE": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "volt": ["VOLT", "RPNValue", "0.0"],
             "lag": ["LAG", "RPNValue", "0.0"],
             "harmon": ["HARMON", "Integer", 0],
@@ -589,14 +619,10 @@
             "knl": ["KNL", "FloatArray", "0"],
             "ksl": ["KSL", "FloatArray", "0"],
             "pnl": ["PNL", "FloatArray", "0"],
-            "psl": ["PSL", "FloatArray", "0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "psl": ["PSL", "FloatArray", "0"]
         },
         "SBEND": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L", "RPNValue", "0.0"],
             "angle": ["ANGLE", "RPNValue", "0.0"],
             "tilt": ["TILT", "RPNValue", "0.0"],
@@ -609,40 +635,24 @@
             "hgap": ["HGAP", "RPNValue", "0.0"],
             "h1": ["H1", "RPNValue", "0.0"],
             "h2": ["H2", "RPNValue", "0.0"],
-            "thick": ["THICK", "Boolean", "0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "thick": ["THICK", "Boolean", "0"]
         },
         "SEXTUPOLE": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L", "RPNValue", "0.0"],
             "k2": ["K2", "RPNValue", "0.0"],
             "k2s": ["K2S", "RPNValue", "0.0"],
-            "tilt": ["TILT", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "tilt": ["TILT", "RPNValue", "0.0"]
         },
         "SOLENOID": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L", "RPNValue", "0.0"],
             "ks": ["KS", "RPNValue", "0.0"],
-            "ksi": ["KSI", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "ksi": ["KSI", "RPNValue", "0.0"]
         },
         "SROTATION": {
-            "name": ["Name", "ValidatedString"],
-            "angle": ["ANGLE", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
+            "angle": ["ANGLE", "RPNValue", "0.0"]
         },
         "TRANSLATION": {
             "name": ["Name", "ValidatedString"],
@@ -651,20 +661,16 @@
             "ds": ["DS", "RPNValue", "0.0"]
         },
         "TWCAVITY": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L", "RPNValue", "0.0"],
             "volt": ["VOLT", "RPNValue", "0.0"],
             "freq": ["FREQ", "RPNValue", "0.0"],
             "lag": ["LAG", "RPNValue", "0.0"],
             "psi": ["PSI", "RPNValue", "0.0"],
-            "delta_lag": ["DELTA_LAG", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "delta_lag": ["DELTA_LAG", "RPNValue", "0.0"]
         },
         "VACDIPOLE": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L", "RPNValue", "0.0"],
             "volt": ["VOLT", "RPNValue", "0.0"],
             "freq": ["FREQ", "RPNValue", "0.0"],
@@ -672,45 +678,928 @@
             "ramp1": ["RAMP1", "Integer", 0],
             "ramp2": ["RAMP2", "Integer", 0],
             "ramp3": ["RAMP3", "Integer", 0],
-            "ramp4": ["RAMP4", "Integer", 0],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "ramp4": ["RAMP4", "Integer", 0]
         },
         "VKICKER": {
-            "name": ["Name", "ValidatedString"],
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L", "RPNValue", "0.0"],
             "kick": ["KICK", "RPNValue", "0.0"],
-            "tilt": ["TILT", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "tilt": ["TILT", "RPNValue", "0.0"]
         },
         "VMONITOR": {
-            "name": ["Name", "ValidatedString"],
-            "l": ["L", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
+            "l": ["L", "RPNValue", "0.0"]
         },
         "XROTATION": {
-            "name": ["Name", "ValidatedString"],
-            "angle": ["ANGLE", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
+            "angle": ["ANGLE", "RPNValue", "0.0"]
         },
         "YROTATION": {
-            "name": ["Name", "ValidatedString"],
-            "angle": ["ANGLE", "RPNValue", "0.0"],
-            "apertype": ["APERTYPE", "ApertureType", "circle"],
-            "aperture": ["APERTURE", "FloatArray", "0"],
-            "aper_offset": ["APER_OFFSET", "FloatArray", "0"],
-            "aper_tol": ["APER_TOL", "FloatArray", "0 0 0"]
+            "_super": ["_", "model", "_APERTURE_ELEMENT"],
+            "angle": ["ANGLE", "RPNValue", "0.0"]
+        }
+    },
+    "view": {
+        "beamlineReport": {
+            "title": "Lattice",
+            "hasDataFile": false,
+            "advanced": [
+                "notes"
+            ]
+        },
+        "bunch": {
+            "title": "Bunch",
+            "basic": [
+                "bunchSource.inputSource",
+                "n_particles_per_bunch",
+                "p_central_mev"
+            ],
+            "advanced": [
+                [
+                    "Main",
+                    [
+                        "p_central_mev",
+                        "n_particles_per_bunch",
+                        "momentum_chirp"
+                    ]
+                ],
+                [
+                    "Distribution",
+                    [
+                        "distribution_type",
+                        "distribution_cutoff",
+                        "enforce_rms_values",
+                        "limit_invariants",
+                        "limit_in_4d"
+                    ]
+                ],
+                [
+                    "Emittance",
+                    [
+                        [
+                            [
+                                "Horizontal",
+                                [
+                                    "emit_x",
+                                    "emit_nx",
+                                    "beta_x",
+                                    "alpha_x",
+                                    "eta_x",
+                                    "etap_x"
+                                ]
+                            ],
+                            [
+                                "Vertical",
+                                [
+                                    "emit_y",
+                                    "emit_ny",
+                                    "beta_y",
+                                    "alpha_y",
+                                    "eta_y",
+                                    "etap_y"
+                                ]
+                            ]
+                        ],
+                        "longitudinalMethod",
+                        "sigma_s",
+                        "sigma_dp",
+                        "dp_s_coupling",
+                        "emit_z",
+                        "beta_z",
+                        "alpha_z"
+                    ]
+                ],
+                [
+                    "Halton Sequence",
+                    [
+                        "halton_sequence",
+                        "optimized_halton",
+                        "halton_radix",
+                        "randomize_order"
+                    ]
+                ],
+                [
+                    "Position",
+                    [
+                        "symmetrize",
+                        "centroid",
+                        "time_start"
+                    ]
+                ]
+            ]
+        },
+        "twissReport": {
+            "title": "Twiss Parameters",
+            "advanced": [
+                "y1",
+                "y2",
+                "y3",
+                "includeLattice"
+            ]
+        },
+        "BEAMBEAM": {
+            "title": "BGGEXP",
+            "description": "A straight magnetic field element using generalized gradient expansion.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "sigx",
+                "sigy",
+                "xma",
+                "yma",
+                "charge",
+                "bbshape",
+                "width",
+                "bbdir",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "CHANGEREF": {
+            "title": "CHANGEREF",
+            "description": "CHANGEREF",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "patch_ang",
+                "patch_trans",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "COLLIMATOR": {
+            "title": "COLLIMATOR",
+            "description": "A general collimator.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "CRABCAVITY": {
+            "title": "CRABCAVITY",
+            "description": "CRABCAVITY",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "volt",
+                "lag",
+                "freq",
+                "rv1",
+                "rv2",
+                "rv3",
+                "rv4",
+                "rph1",
+                "rph2",
+                "lagf",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "DIPEDGE": {
+            "title": "DIPEDGE",
+            "description": "DIPEDGE",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "h",
+                "e1",
+                "fint",
+                "hgap",
+                "tilt",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "DRIFT": {
+            "title": "DRIFT",
+            "description": "A drift space implemented as a matrix, up to 2nd order",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l"
+            ]
+        },
+        "ECOLLIMATOR": {
+            "title": "ECOL",
+            "description": "An elliptical collimator.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "xsize",
+                "ysize",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "HACDIPOLE": {
+            "title": "HACDIPOLE",
+            "description": "HACDIPOLE",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "volt",
+                "freq",
+                "lag",
+                "ramp1",
+                "ramp2",
+                "ramp3",
+                "ramp4",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "HKICKER": {
+            "title": "HKICKER",
+            "description": "A horizontal steering dipole implemented as a matrix, up to 2nd order.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "kick",
+                "tilt",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "HMONITOR": {
+            "title": "HMONITOR",
+            "description": "A horizontal position monitor, accepting a rpn equation for the readout as a function of the actual position (x).",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "INSTRUMENT": {
+            "title": "INSTRUMENT",
+            "description": "INSTRUMENT",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "KICKER": {
+            "title": "KICKER",
+            "description": "A combined horizontal-vertical steering magnet implemented as a matrix, up to 2nd order. For time-dependent kickers, see BUMPER.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "hkick",
+                "vkick",
+                "tilt",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "MARKER": {
+            "title": "MARKER",
+            "description": "A marker, equivalent to a zero-length drift space.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "MATRIX": {
+            "title": "MATRIX",
+            "description": "Explicit matrix",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "kick1",
+                "kick6",
+                "rm11",
+                "rm66",
+                "tm111",
+                "tm666",
+                "kick2",
+                "kick3",
+                "kick4",
+                "kick5",
+                "rm12",
+                "rm13",
+                "rm14",
+                "rm15",
+                "rm16",
+                "rm21",
+                "rm22",
+                "rm23",
+                "rm24",
+                "rm25",
+                "rm26",
+                "rm31",
+                "rm32",
+                "rm33",
+                "rm34",
+                "rm35",
+                "rm36",
+                "rm41",
+                "rm42",
+                "rm43",
+                "rm44",
+                "rm45",
+                "rm46",
+                "rm51",
+                "rm52",
+                "rm53",
+                "rm54",
+                "rm55",
+                "rm56",
+                "rm61",
+                "rm62",
+                "rm63",
+                "rm64",
+                "rm65",
+                "tm112",
+                "tm113",
+                "tm114",
+                "tm115",
+                "tm116",
+                "tm121",
+                "tm122",
+                "tm123",
+                "tm124",
+                "tm125",
+                "tm126",
+                "tm131",
+                "tm132",
+                "tm133",
+                "tm134",
+                "tm135",
+                "tm136",
+                "tm141",
+                "tm142",
+                "tm143",
+                "tm144",
+                "tm145",
+                "tm146",
+                "tm151",
+                "tm152",
+                "tm153",
+                "tm154",
+                "tm155",
+                "tm156",
+                "tm161",
+                "tm162",
+                "tm163",
+                "tm164",
+                "tm165",
+                "tm166",
+                "tm211",
+                "tm212",
+                "tm213",
+                "tm214",
+                "tm215",
+                "tm216",
+                "tm221",
+                "tm222",
+                "tm223",
+                "tm224",
+                "tm225",
+                "tm226",
+                "tm231",
+                "tm232",
+                "tm233",
+                "tm234",
+                "tm235",
+                "tm236",
+                "tm241",
+                "tm242",
+                "tm243",
+                "tm244",
+                "tm245",
+                "tm246",
+                "tm251",
+                "tm252",
+                "tm253",
+                "tm254",
+                "tm255",
+                "tm256",
+                "tm261",
+                "tm262",
+                "tm263",
+                "tm264",
+                "tm265",
+                "tm266",
+                "tm311",
+                "tm312",
+                "tm313",
+                "tm314",
+                "tm315",
+                "tm316",
+                "tm321",
+                "tm322",
+                "tm323",
+                "tm324",
+                "tm325",
+                "tm326",
+                "tm331",
+                "tm332",
+                "tm333",
+                "tm334",
+                "tm335",
+                "tm336",
+                "tm341",
+                "tm342",
+                "tm343",
+                "tm344",
+                "tm345",
+                "tm346",
+                "tm351",
+                "tm352",
+                "tm353",
+                "tm354",
+                "tm355",
+                "tm356",
+                "tm361",
+                "tm362",
+                "tm363",
+                "tm364",
+                "tm365",
+                "tm366",
+                "tm411",
+                "tm412",
+                "tm413",
+                "tm414",
+                "tm415",
+                "tm416",
+                "tm421",
+                "tm422",
+                "tm423",
+                "tm424",
+                "tm425",
+                "tm426",
+                "tm431",
+                "tm432",
+                "tm433",
+                "tm434",
+                "tm435",
+                "tm436",
+                "tm441",
+                "tm442",
+                "tm443",
+                "tm444",
+                "tm445",
+                "tm446",
+                "tm451",
+                "tm452",
+                "tm453",
+                "tm454",
+                "tm455",
+                "tm456",
+                "tm461",
+                "tm462",
+                "tm463",
+                "tm464",
+                "tm465",
+                "tm466",
+                "tm511",
+                "tm512",
+                "tm513",
+                "tm514",
+                "tm515",
+                "tm516",
+                "tm521",
+                "tm522",
+                "tm523",
+                "tm524",
+                "tm525",
+                "tm526",
+                "tm531",
+                "tm532",
+                "tm533",
+                "tm534",
+                "tm535",
+                "tm536",
+                "tm541",
+                "tm542",
+                "tm543",
+                "tm544",
+                "tm545",
+                "tm546",
+                "tm551",
+                "tm552",
+                "tm553",
+                "tm554",
+                "tm555",
+                "tm556",
+                "tm561",
+                "tm562",
+                "tm563",
+                "tm564",
+                "tm565",
+                "tm566",
+                "tm611",
+                "tm612",
+                "tm613",
+                "tm614",
+                "tm615",
+                "tm616",
+                "tm621",
+                "tm622",
+                "tm623",
+                "tm624",
+                "tm625",
+                "tm626",
+                "tm631",
+                "tm632",
+                "tm633",
+                "tm634",
+                "tm635",
+                "tm636",
+                "tm641",
+                "tm642",
+                "tm643",
+                "tm644",
+                "tm645",
+                "tm646",
+                "tm651",
+                "tm652",
+                "tm653",
+                "tm654",
+                "tm655",
+                "tm656",
+                "tm661",
+                "tm662",
+                "tm663",
+                "tm664",
+                "tm665"
+            ]
+        },
+        "MONITOR": {
+            "title": "MONITOR",
+            "description": "A two-plane position monitor, accepting two rpn equations for the readouts as a function of the actual positions (x and y).",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "MULTIPOLE": {
+            "title": "MULTIPOLE",
+            "description": "A canonical kick multipole.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "lrad",
+                "tilt",
+                "knl",
+                "ksl",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "NLLENS": {
+            "title": "NLLENS",
+            "description": "NLLENS",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "knll",
+                "cnll",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "OCTUPOLE": {
+            "title": "OCTUPOLE",
+            "description": "An octupole implemented as a third-order matrix",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "k3",
+                "k3s",
+                "tilt",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "PLACEHOLDER": {
+            "title": "PLACEHOLDER",
+            "description": "PLACEHOLDER",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "QUADRUPOLE": {
+            "title": "QUAD",
+            "description": "A quadrupole implemented as a matrix, up to 3rd order.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "k1",
+                "k1s",
+                "tilt",
+                "thick"
+            ]
+        },
+        "RBEND": {
+            "title": "RBEND",
+            "description": "RBEND",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "angle",
+                "tilt",
+                "k1",
+                "k2",
+                "e1",
+                "e2",
+                "fint",
+                "fintx",
+                "hgap",
+                "h1",
+                "h2",
+                "add_angle",
+                "thick",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "RCOLLIMATOR": {
+            "title": "RCOLLIMATOR",
+            "description": "A rectangular collimator.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "xsize",
+                "ysize",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "RFCAVITY": {
+            "title": "RFCAVITY",
+            "description": "A first-order matrix RF cavity with exact phase dependence.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "volt",
+                "lag",
+                "harmon",
+                "freq",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "RFMULTIPOLE": {
+            "title": "RFMULTIPOLE",
+            "description": "RFMULTIPOLE",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "volt",
+                "lag",
+                "harmon",
+                "freq",
+                "lrad",
+                "tilt",
+                "knl",
+                "ksl",
+                "pnl",
+                "psl",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "SBEND": {
+            "title": "SBEND",
+            "description": "A canonical kick sector dipole magnet.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "angle",
+                "k1",
+                "k2",
+                "e1",
+                "e2",
+                "tilt",
+                "h1",
+                "h2",
+                "hgap",
+                "fint",
+                "fintx",
+                "thick",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "SEXTUPOLE": {
+            "title": "SEXTUPOLE",
+            "description": "A sextupole implemented as a matrix, up to 3rd order",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "k2",
+                "k2s",
+                "tilt",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "SOLENOID": {
+            "title": "SOLENOID",
+            "description": "A solenoid implemented as a matrix, up to 2nd order.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "ks",
+                "ksi",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "SROTATION": {
+            "title": "SROTATION",
+            "description": "SROTATION",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "angle",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "TRANSLATION": {
+            "title": "TRANSLATION",
+            "description": "TRANSLATION",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "dx",
+                "dy",
+                "ds"
+            ]
+        },
+        "TWCAVITY": {
+            "title": "TWCAVITY",
+            "description": "TWCAVITY",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "volt",
+                "freq",
+                "lag",
+                "psi",
+                "delta_lag",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "VACDIPOLE": {
+            "title": "VACDIPOLE",
+            "description": "VACDIPOLE",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "volt",
+                "freq",
+                "lag",
+                "ramp1",
+                "ramp2",
+                "ramp3",
+                "ramp4",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "VKICKER": {
+            "title": "VKICKER",
+            "description": "A vertical steering dipole implemented as a matrix, up to 2nd order.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "kick",
+                "tilt",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "VMONITOR": {
+            "title": "VMONITOR",
+            "description": "A vertical position monitor, accepting a rpn equation for the readout as a function of the actual position (y).",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "XROTATION": {
+            "title": "XROTATION",
+            "description": "XROTATION",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "angle",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
+        },
+        "YROTATION": {
+            "title": "YROTATION",
+            "description": "YROTATION",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "angle",
+                "apertype",
+                "aperture",
+                "aper_offset",
+                "aper_tol"
+            ]
         }
     }
 }

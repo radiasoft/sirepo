@@ -116,6 +116,80 @@ _FIELD_MAP = PKDict(
             ['SROT', 'tilt=angle'],
         ],
     ],
+    madx=[
+        ['DRIFT',
+            ['DRIFT', 'l']
+        ],
+        ['SBEND',
+            ['SBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'tilt', 'hgap', 'fint']
+        ],
+        ['RBEND',
+            ['RBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'tilt', 'hgap', 'fint']
+        ],
+        ['QUADRUPOLE',
+            ['QUADRUPOLE', 'l', 'k1', 'tilt']
+        ],
+        ['SEXTUPOLE',
+            ['SEXTUPOLE', 'l', 'k2', 'tilt']
+        ],
+        ['OCTUPOLE',
+            ['OCTUPOLE', 'l', 'k3', 'tilt']
+        ],
+        ['SOLENOID',
+            ['SOLENOID', 'l', 'ks'],
+        ],
+        ['MULTIPOLE',
+            ['MULTIPOLE', 'l=lrad', 'tilt', 'knl'],
+        ],
+        ['HKICKER',
+            ['HKICKER', 'l', 'kick', 'tilt']
+        ],
+        ['VKICKER',
+            ['VKICKER', 'l', 'kick', 'tilt']
+        ],
+        ['KICKER',
+            ['KICKER', 'l', 'hkick', 'vkick', 'tilt']
+        ],
+        ['MARKER',
+            ['MARKER'],
+        ],
+        ['PLACEHOLDER',
+            ['PLACEHOLDER', 'l'],
+        ],
+        ['INSTRUMENT',
+            ['INSTRUMENT', 'l'],
+        ],
+        ['ECOLLIMATOR',
+            ['ECOLLIMATOR', 'l'],
+        ],
+        ['RCOLLIMATOR',
+            ['RCOLLIMATOR', 'l'],
+        ],
+        ['COLLIMATOR apertype=ELLIPSE',
+            ['COLLIMATOR', 'l'],
+        ],
+        ['COLLIMATOR apertype=RECTANGLE',
+            ['RCOLLIMATOR', 'l'],
+        ],
+        ['RFCAVITY',
+            ['RFCAVITY', 'l', 'volt', 'freq']
+        ],
+        ['TWCAVITY',
+            ['TWCAVITY', 'l', 'voltage=volt', 'frequency=freq'],
+        ],
+        ['HMONITOR',
+            ['HMONITOR', 'l'],
+        ],
+        ['VMONITOR',
+            ['VMONITOR', 'l'],
+        ],
+        ['MONITOR',
+            ['MONITOR', 'l']
+        ],
+        ['SROTATION',
+            ['SROTATION', 'tilt=angle'],
+        ],
+    ],
     opal=[
         ['DRIFT',
             ['DRIFT', 'l'],
@@ -201,6 +275,30 @@ def to_madx(from_sim_type, data):
 
 
 def _convert(name, data, direction):
+    #handle madx -> madx
+    #if name == 'madx':
+    #    to_class = sirepo.sim_data.get_class(name)
+    #    res = simulation_db.default_data(to_class.sim_type())
+    #    for bl in data.models.beamlines:
+    #        res.models.beamlines.append(PKDict(
+    #            name=bl.name,
+    #            items=bl['items'],
+    #            id=bl.id,
+    #        ))
+    #    max_id = 0
+    #    for el in data.models.elements:
+    #        fields = field_map[el.type]
+    #        values = to_class.model_defaults(fields[0])
+    #        values.name = el.name
+    #        values.type = el.type
+    #        values._id = el._id
+    #        max_id = max(max_id, el._id)
+    #        for idx in range(1, len(fields)):
+    #            f1 = f2 = fields[idx]
+    #            values[f1] = el[f2]
+    #        res.models.elements.append(values)
+
+
     assert name in _FIELD_MAP
     if direction == 'from':
         field_map = _FIELD_MAP[name].from_madx

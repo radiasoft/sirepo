@@ -5,6 +5,7 @@ u"""MAD-X execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkcollections import PKDict
@@ -44,6 +45,31 @@ _MADX_CONSTANTS = PKDict(
 class MadxElementIterator(lattice.ElementIterator):
     def is_ignore_field(self, field):
         return field == 'name'
+
+
+def import_file(req, test_data=None, **kwargs):
+    # input_data is passed by test cases only
+    input_data = test_data
+    text = pkcompat.from_bytes(req.file_stream.read())
+    if 'simulationId' in req.req_data:
+        input_data = simulation_db.read_simulation_json(SIM_TYPE, sid=req.req_data.simulationId)
+    if re.search(r'\.ele$', req.filename, re.IGNORECASE):
+        data = elegant_command_importer.import_file(text)
+    elif re.search(r'\.lte$', req.filename, re.IGNORECASE):
+        data = elegant_lattice_importer.import_file(text, input_data)
+        if input_data:
+            _map_commands_to_lattice(data)
+    elif re.search(r'\.madx$', req.filename, re.IGNORECASE):
+        from sirepo.template import madx_converter, madx_parser
+        data = madx_converter.from_madx(
+            SIM_TYPE,
+            madx_parser.parse_file(text, downcase_variables=True))
+    else:
+        raise IOError('invalid file extension, expecting .ele or .lte')
+    data.models.simulation.name = re.sub(r'\.(lte|ele|madx)$', '', req.filename, flags=re.IGNORECASE)
+    if input_data and not test_data:
+        simulation_db.delete_simulation(SIM_TYPE, input_data.models.simulation.simulationId)
+    return data
 
 
 def madx_code_var(variables):
