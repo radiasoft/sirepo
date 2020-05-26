@@ -12,3 +12,13 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         pass
+
+    @classmethod
+    def _compute_job_fields(cls, data, r, compute_model):
+        # TODO(e-carlin): impl
+        return []
+
+    @classmethod
+    def _lib_file_basenames(cls, data):
+        # TODO(e-carlin): impl
+        return []

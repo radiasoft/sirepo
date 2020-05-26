@@ -19,11 +19,19 @@ from sirepo.template import madx_converter, madx_parser
 from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
+import copy
 import math
 import numpy as np
+import pykern.pkinspect
 import re
 import sirepo.sim_data
 
+
+# TODO(e-carlin): The madx convetion is name.madx for in
+# and name.out for out. What do we want to do?
+MADX_INPUT_FILENAME = 'madx.in'
+MADX_OUTPUT_FILENAME = 'madx.out'
+TWISS_OUTPUT_FILENAME = 'twiss.tfs'
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
@@ -48,6 +56,14 @@ _MADX_CONSTANTS = PKDict(
 class MadxElementIterator(lattice.ElementIterator):
     def is_ignore_field(self, field):
         return field == 'name'
+
+
+def background_percent_complete(report, run_dir, is_running):
+    # TODO(e-carlin): impl
+    return PKDict(
+        percentComplete=0,
+        frameCount=0,
+    )
 
 
 def import_file(req, test_data=None, **kwargs):
@@ -82,6 +98,27 @@ def python_source_for_model(data, model):
     return _generate_parameters_file(data)
 
 
+def save_sequential_report_data(data, run_dir):
+    template_common.write_sequential_result(
+        _extract_report_data(data, run_dir),
+        run_dir=run_dir,
+    )
+
+
+def write_parameters(data, run_dir, is_parallel):
+    """Write the parameters file
+
+    Args:
+        data (dict): input
+        run_dir (py.path): where to write
+        is_parallel (bool): run in background?
+    """
+    pkio.write_text(
+        run_dir.join(MADX_INPUT_FILENAME),
+        _generate_parameters_file(data),
+    )
+
+
 def _code_var(variables):
     return code_variable.CodeVar(
         variables,
@@ -90,9 +127,40 @@ def _code_var(variables):
     )
 
 
+def _extract_report_data(data, run_dir):
+   return getattr(
+       pykern.pkinspect.this_module(),
+       '_extract_report_' + data.report,
+   )(data, run_dir)
+
+
+def _extract_report_twissReport(data, run_dir):
+    t = madx_parser.parse_tfs_file(run_dir.join(TWISS_OUTPUT_FILENAME))
+    m = data.models[data.report]
+    plots = []
+    for f in ('y1', 'y2', 'y3'):
+        plots.append(
+            PKDict(field=m[f], points=t[m[f]], label=f'{m[f]} [m]')
+        )
+    return template_common.parameter_plot(
+        t.s,
+        plots,
+        m,
+        PKDict(title=data.models.simulation.name, y_label='', x_label='s[m]')
+    )
+
+
 def _format_field_value(state, model, field, el_type):
     value = model[field]
     return [field, value]
+
+
+def _generate_beam(beam):
+    res = 'beam'
+    for k in ('mass', 'charge', 'gamma', 'sigt'):
+        if k in beam:
+            res += f', {k}={beam[k]}'
+    return res + ';'
 
 
 def _generate_lattice(util):
@@ -106,14 +174,15 @@ def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     util = LatticeUtil(data, _SCHEMA)
     code_var = _code_var(data.models.rpnVariables)
+    v.twissOutputFilename = TWISS_OUTPUT_FILENAME
     v.lattice = _generate_lattice(util)
     v.variables = _generate_variables(code_var, data)
     if data.models.simulation.visualizationBeamlineId:
         v.useBeamline = util.id_map[data.models.simulation.visualizationBeamlineId].name
+
     beam = util.find_first_command(data, 'beam')
     if beam:
-        v.beamParticle = beam.particle
-        v.beamPC = beam.pc
+        v.beam = _generate_beam(beam)
     return template_common.render_jinja(SIM_TYPE, v, 'parameters.madx')
 
 

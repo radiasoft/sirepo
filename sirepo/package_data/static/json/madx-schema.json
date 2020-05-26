@@ -112,6 +112,13 @@
             "controller": "LatticeController as lattice",
             "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
           }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+              "controller": "VisualizationController as visualization",
+              "templateUrl": "/static/html/elegant-visualization.html"
+            }
         }
     },
     "model": {
@@ -841,44 +848,12 @@
                 "notes"
             ]
         },
-
-        "command_beam": {
-            "title": "Beam",
-            "description": "The BEAM statement defines data for the particles in a beam.",
+        "simulationStatus": {
+            "title": "Simulation Status",
             "basic": [
-                "particle",
-                "bcurrent",
-                "npart"
+                "simulation.visualizationBeamlineId"
             ],
-            "advanced": [
-                ["Main", [
-                    "particle",
-                    "mass",
-                    "charge",
-                    "energy",
-                    "sige",
-                    "pc",
-                    "gamma",
-                    "beta",
-                    "brho",
-                    "radiate"
-                ]],
-                ["Emittance", [
-                    "ex",
-                    "exn",
-                    "ey",
-                    "eyn",
-                    "et"
-                ]],
-                ["Bunch", [
-                    "bv",
-                    "bunched",
-                    "kbunch",
-                    "bcurrent",
-                    "npart",
-                    "sigt"
-                ]]
-            ]
+            "advanced": []
         },
         "twissReport": {
             "title": "Twiss Parameters",

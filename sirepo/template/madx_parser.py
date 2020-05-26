@@ -5,6 +5,7 @@ u"""MAD-X parser.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template import lattice
@@ -83,3 +84,33 @@ class MadXParser(lattice.LatticeParser):
 
 def parse_file(lattice_text, downcase_variables=False):
     return MadXParser().parse_file(lattice_text, downcase_variables)
+
+
+def parse_tfs_file(tfs_file):
+    text = pkio.read_text(tfs_file)
+    mode = 'header'
+    col_names = []
+    rows = []
+    for line in text.split("\n"):
+        if mode == 'header':
+            # header row starts with *
+            if re.search('^\*\s', line):
+                col_names = re.split('\s+', line)
+                col_names = col_names[1:]
+                mode = 'data'
+        elif mode == 'data':
+            # data rows after header, start with blank
+            if re.search('^\s+\S', line):
+                data = re.split('\s+', line)
+                rows.append(data[1:])
+    res = PKDict(map(lambda x: (x.lower(), []), col_names))
+    for i in range(len(col_names)):
+        name = col_names[i].lower()
+        if name:
+            for row in rows:
+                res[name].append(row[i])
+    # special case if dy and/or dpy are missing, default to 0s
+    for opt_col in ('dy', 'dpy'):
+        if opt_col not in res:
+            res[opt_col] = ['0'] * len(res['dx'])
+    return res
