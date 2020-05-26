@@ -278,10 +278,7 @@ def undulator_example():
         radia.TrfZerPara(grp, zero, [0, 0, 1])  # reflect in the (x,y) plane
         radia.TrfZerPerp(grp, zero, [0, 1, 0])  # reflect in the (z,x) plane
 
-        # appears that a container with symmetries must live in another container, or
-        # ObjDrwVTK() will not apply the symmetry
-        return radia.ObjCnt([grp]), pole, magnet
-        #return grp, pole, magnet
+        return grp, pole, magnet
 
     def materials(h, m, smat, rm):
         """

@@ -48,7 +48,7 @@ def field_integral(g_id, f_type, p1, p2):
 
 def geom_to_data(g_id, name=None, divide=True):
     d_arr = []
-    if not divide:
+    if not divide or len(radia.ObjCntStuf(g_id)) == 0:
         d_arr.append(template_common.to_pkdict(radia.ObjDrwVTK(g_id, 'Axes->No')))
     else:
         for g in radia.ObjCntStuf(g_id):
