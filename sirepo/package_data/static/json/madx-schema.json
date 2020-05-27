@@ -77,6 +77,10 @@
             ["0", "Opposite beam does not move"],
             ["1", "Beams move in same direction"]
         ],
+        "BunchInputSource": [
+            ["sdds_beam", "SDDS Input File"],
+            ["bunched_beam", "Twiss Parameters"]
+        ],
         "ParticleType": [
             ["positron", "Positron"],
             ["electron", "Electron"],
@@ -92,7 +96,7 @@
         "source": {
           "config": {
             "controller": "MadXSourceController as source",
-            "templateUrl": "/static/html/elegant-source.html"
+            "templateUrl": "/static/html/madx-source.html"
           }
         },
         "lattice": {
@@ -142,6 +146,19 @@
             "halton_radix": ["Halton Radix", "Integer6StringArray", "0, 0, 0, 0, 0, 0", "halton_radix is an array of six integers that permit giving the radix for each sequence (i.e., x, x', y, y', t, p). Each radix must be a prime number. One should never use the same prime for two sequences, unless one randomizes the order of the sequences relative to each other (see the next item). If these are left at zero, then elegant chooses values that eliminate phase-space banding to some extent. The user is cautioned to plot all coordinate combinations for the initial phase space to ensure that no unacceptable banding is present. A suggested way to use Halton sequences is to set halton_radix[0] = 2, 3, 2, 3, 2, 3 and to set randomize_order[0] = 2, 2, 2,. This avoids banding that may result from choosing larger radix values.", "X, X', Y, Y', T, P"],
             "optimized_halton": ["Optimized Halton", "RPNBoolean", "0", "optimized_halton uses the improved halton sequence. (Algorithm 659, Collected Algorithm from ACM. Derandom Algorithm is added by Hongmei CHI (CS/FSU)). It avoids the banding problem automatically and the halton_radix values are ignored."],
             "randomize_order": ["Randomize Order", "RandomizeStringArray", "0, 0, 0", "Allows randomizing the order of assigned coordinates for the pairs (x, x'), (y, y'), and (t,p). 0 means no randomization; 1 means randomize (x, x', y, y', t, p) values independently, which destroys any x-x', y-y', and t-p correlations; 2 means randomize (x, x'), (y, y'), and (t, p) in pair-wise fashion. This is used with Halton sequences to remove banding. It is suggested that that the user employ sddsanalyzebeam to verify that the beam properties when randomization is used.", "X, Y, Z"]
+        },
+        "bunchFile": {
+            "sourceFile": ["Beam File", "InputFile", "1"]
+        },
+        "bunchReport": {
+            "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
+            "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
+            "histogramBins": ["Histogram Bins", "Integer"],
+            "colorMap": ["Color Map", "ColorMap", "afmhot"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "bunchSource": {
+            "inputSource": ["Bunch Source", "BunchInputSource", "bunched_beam"]
         },
         "command_beam": {
             "particle": ["PARTICLE", "ParticleType", "positron"],
@@ -786,6 +803,31 @@
                         "time_start"
                     ]
                 ]
+            ]
+        },
+        "bunchFile": {
+            "title": "Bunch",
+            "basic": [
+                "bunchSource.inputSource",
+                "sourceFile",
+                "bunch.p_central_mev"
+            ],
+            "advanced": []
+        },
+        "bunchReport": {
+            "title": "Bunch Report",
+            "advanced": [
+                [
+                    ["Horizontal",
+                        ["x"]
+                    ],
+                    ["Vertical",
+                        ["y"]
+                    ]
+                ],
+                "histogramBins",
+                "colorMap",
+                "notes"
             ]
         },
         "twissReport": {
