@@ -584,16 +584,38 @@ varParam = srwl_bl.srwl_uti_ext_options([
 
 def setup_magnetic_measurement_files(filename, v):
     import os
-    import re
-    import zipfile
-    z = zipfile.ZipFile(filename)
-    z.extractall()
-    for f in z.namelist():
-        if re.search(r'\.txt', f):
-            v.und_mfs = os.path.basename(f)
-            v.und_mdir = os.path.dirname(f) or './'
-            return
-    raise RuntimeError('missing magnetic measurement index *.txt file')
+    c = None
+    f = None
+    r = 0
+    try:
+        import mpi4py.MPI
+        if mpi4py.MPI.COMM_WORLD.Get_size() > 1:
+            c = mpi4py.MPI.COMM_WORLD
+            r = c.Get_rank()
+    except Exception:
+        pass
+    if r == 0:
+        try:
+            import zipfile
+            z = zipfile.ZipFile(filename)
+            f = [x for x in z.namelist() if x.endswith('.txt')]
+            if len(f) != 1:
+                raise RuntimeError(
+                    '{} magnetic measurement index (*.txt) file={}'.format(
+                        'too many' if len(f) > 0 else 'missing',
+                        filename,
+                    )
+                )
+            f = f[0]
+            z.extractall()
+        except Exception:
+            if c:
+                c.Abort(1)
+            raise
+    if c:
+        f = c.bcast(f, root=0)
+    v.und_mfs = os.path.basename(f)
+    v.und_mdir = os.path.dirname(f) or './'
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=True)
