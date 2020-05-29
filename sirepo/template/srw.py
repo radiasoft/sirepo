@@ -852,10 +852,13 @@ def _compute_PGM_value(model):
 
         #for key in parms_list:
         #    model[key] = None
+    pkdlog("grazingAngle={} nvz-sin(grazingAngle)={} cff={}",
+           model['grazingAngle'], np.fabs(model['nvz'])-np.fabs(np.sin(model['grazingAngle']/1000)), model['cff'])
     return model
 
 def _compute_grating_orientation(model):
     if not model['grazingAngle']:
+        pkdlog("grazingAngle is missing, return old data")
         return model
     parms_list = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy']
     try:
@@ -883,6 +886,7 @@ def _compute_grating_orientation(model):
             _ang_graz=model['grazingAngle'],
             _ang_roll=model['rollAngle'],
         )
+        pkdlog("updating nvz from {} to {} with grazingAngle= {}mrad", model['nvz'], opGr.mirSub.nvz, model['grazingAngle'])
         model['nvx'] = opGr.mirSub.nvx
         model['nvy'] = opGr.mirSub.nvy
         model['nvz'] = opGr.mirSub.nvz
