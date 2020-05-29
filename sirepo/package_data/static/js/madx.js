@@ -357,7 +357,7 @@ SIREPO.app.controller('CommandController', function(commandService, panelState) 
     };
 
     self.titleForName = function(name) {
-        return SIREPO.APP_SCHEMA.view[commandService.commandModelName(name)].description;
+        return (SIREPO.APP_SCHEMA.view[commandService.commandModelName(name)] || {}).description;
     };
 });
 

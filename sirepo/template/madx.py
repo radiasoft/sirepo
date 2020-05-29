@@ -18,12 +18,15 @@ from sirepo.template import lattice
 from sirepo.template import madx_converter, madx_parser
 from sirepo.template import sdds_util
 from sirepo.template import template_common
+from sirepo.template.template_common import ParticleEnergy
 from sirepo.template.lattice import LatticeUtil
 import math
 import numpy as np
 import re
 import sirepo.sim_data
 
+
+_FILE_TYPES = ['ele', 'lte', 'madx']
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
@@ -44,13 +47,55 @@ _MADX_CONSTANTS = PKDict(
     erad=2.8179403267e-15,
 )
 
+_METHODS = template_common.RPN_METHODS.extend([])
+
 
 class MadxElementIterator(lattice.ElementIterator):
     def is_ignore_field(self, field):
         return field == 'name'
 
 
+def get_application_data(data, **kwargs):
+    if 'method' not in data:
+        raise RuntimeError('no application data method')
+    if data.method not in _METHODS:
+        raise RuntimeError('unknown application data method: {}'.format(data.method))
+    #if data.method in template_common.RPN_METHODS:
+    #    return template_common.get_rpn_data(data, _SCHEMA, _MADX_CONSTANTS)
+    cv = code_variable.CodeVar(
+        data.variables,
+        code_variable.PurePythonEval(_MADX_CONSTANTS),
+        case_insensitive=True,
+    )
+    if data.method == 'rpn_value':
+        # accept array of values enclosed in curly braces
+        if re.search(r'^\{.*\}$', data.value):
+            data.result = ''
+            return data
+        v, err = cv.eval_var(data.value)
+        if err:
+            data.error = err
+        else:
+            data.result = v
+        return data
+    if data.method == 'recompute_rpn_cache_values':
+        cv(data.variables).recompute_cache(data.cache)
+        return data
+    if data.method == 'validate_rpn_delete':
+        model_data = simulation_db.read_json(
+            simulation_db.sim_data_file(data.simulationType, data.simulationId))
+        data.error = cv(data.variables).validate_var_delete(
+            data.name,
+            model_data,
+            _SCHEMA
+        )
+        return data
+
+
 def import_file(req, test_data=None, **kwargs):
+    ft = '|'.join(_FILE_TYPES)
+    if not re.search(r'\.({})$'.format(ft), req.filename, re.IGNORECASE):
+        raise IOError('invalid file extension, expecting one of {}'.format(_FILE_TYPES))
     # input_data is passed by test cases only
     input_data = test_data
     text = pkcompat.from_bytes(req.file_stream.read())
@@ -63,14 +108,27 @@ def import_file(req, test_data=None, **kwargs):
         if input_data:
             _map_commands_to_lattice(data)
     elif re.search(r'\.madx$', req.filename, re.IGNORECASE):
-        data = madx_converter.from_madx(
-            SIM_TYPE,
-            madx_parser.parse_file(text, downcase_variables=True))
+        #madx = madx_parser.parse_file(text, downcase_variables=True)
+        #data = madx_converter.from_madx(
+        #    SIM_TYPE,
+        #    madx_parser.parse_file(text, downcase_variables=True)
+        #)
+        #mm = madx_parser.parse_file(text, downcase_variables=True)
+        #pkdp('MADX {} VS DATA {}', mm, data)
+        madx_converter.fixup_madx(madx_parser.parse_file(text, downcase_variables=True))
     else:
         raise IOError('invalid file extension, expecting .ele or .lte')
-    data.models.simulation.name = re.sub(r'\.(lte|ele|madx)$', '', req.filename, flags=re.IGNORECASE)
+    data.models.simulation.name = re.sub(
+        r'\.({})$'.format(ft),
+        '',
+        req.filename,
+        flags=re.IGNORECASE
+    )
     if input_data and not test_data:
-        simulation_db.delete_simulation(SIM_TYPE, input_data.models.simulation.simulationId)
+        simulation_db.delete_simulation(
+            SIM_TYPE,
+            input_data.models.simulation.simulationId
+        )
     return data
 
 
@@ -88,6 +146,32 @@ def _code_var(variables):
         code_variable.PurePythonEval(_MADX_CONSTANTS),
         case_insensitive=True,
     )
+
+
+def _fixup_madx(madx, data):
+    cv = madx_code_var(madx.models.rpnVariables)
+    assert LatticeUtil.has_command(madx, 'beam'), \
+        'MAD-X file missing BEAM command'
+    beam = LatticeUtil.find_first_command(madx, 'beam')
+    if beam.energy == 1 and (beam.pc != 0 or beam.gamma != 0 or beam.beta != 0 or beam.brho != 0):
+        # unset the default mad-x value if other energy fields are set
+        beam.energy = 0
+    particle = beam.particle.lower() or 'other'
+    LatticeUtil.find_first_command(data, 'beam').particle = particle.upper()
+    energy = ParticleEnergy.compute_energy('madx', particle, beam.copy())
+    LatticeUtil.find_first_command(data, 'beam').pc = energy.pc
+    LatticeUtil.find_first_command(data, 'track').line = data.models.simulation.visualizationBeamlineId
+    for el in data.models.elements:
+        if el.type == 'SBEND' or el.type == 'RBEND':
+            # mad-x is GeV (total energy), designenergy is MeV (kinetic energy)
+            el.designenergy = round(
+                (energy.energy - ParticleEnergy.PARTICLE[particle].mass) * 1e3,
+                6,
+            )
+            # this is different than the opal default of "2 * sin(angle / 2) / length"
+            # but matches elegant and synergia
+            el.k0 = cv.eval_var_with_assert(el.angle) / cv.eval_var_with_assert(el.l)
+            el.gap = 2 * cv.eval_var_with_assert(el.hgap)
 
 
 def _format_field_value(state, model, field, el_type):
