@@ -116,6 +116,7 @@
     },
     "model": {
         "simulation": {
+            "enableParticleTracking": ["Enable Particle Tracking", "Boolean", "0"],
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
         },
         "bunch": {
@@ -846,12 +847,14 @@
             "title": "Beam",
             "description": "The BEAM statement defines data for the particles in a beam.",
             "basic": [
+                "simulation.enableParticleTracking",
                 "particle",
                 "bcurrent",
                 "npart"
             ],
             "advanced": [
                 ["Main", [
+                    "simulation.enableParticleTracking",
                     "particle",
                     "mass",
                     "charge",

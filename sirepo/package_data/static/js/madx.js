@@ -308,6 +308,11 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
 
     var cmds = ['beam'];
 
+    self.isParticleTrackingEnabled = function () {
+        srdbg(appState.models);
+        return appState.models.simulation.enableParticleTracking;
+    };
+
     function saveCommandList(type) {
         $.extend(
             commandService.findFirstCommand(type),
