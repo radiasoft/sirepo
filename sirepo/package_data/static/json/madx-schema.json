@@ -90,6 +90,25 @@
             ["negmuon", "Negative Muon"],
             ["ion", "Ion"],
             ["other", "Other"]
+        ],
+        "TwissParameter": [
+            ["alfx", "alfx"],
+            ["alfy", "alfy"],
+            ["angle", "angle"],
+            ["betx", "betx"],
+            ["bety", "bety"],
+            ["dpx", "dpx"],
+            ["dpy", "dpy"],
+            ["dx", "dx"],
+            ["dy", "dy"],
+            ["gamma", "gamma"],
+            ["k1l", "k1l"],
+            ["l", "l"],
+            ["mux", "mux"],
+            ["muy", "muy"],
+            ["px", "px"],
+            ["py", "py"],
+            ["none", "None"]
         ]
     },
     "localRoutes": {
@@ -112,12 +131,22 @@
             "controller": "LatticeController as lattice",
             "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
           }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+              "controller": "VisualizationController as visualization",
+              "templateUrl": "/static/html/elegant-visualization.html"
+            }
         }
     },
     "model": {
         "simulation": {
             "enableParticleTracking": ["Enable Particle Tracking", "Boolean", "0"],
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
+        },
+        "beamlineReport": {
+            "notes": ["Notes", "Text", ""]
         },
         "bunch": {
             "p_central_mev": ["Central momentum of the beamline [MeV/c]", "RPNValue", "", "Central momentum of the beamline in MeV/c, about which expansions are done. This corresponds to p_central_mev field of the run_setup command.", 0],
@@ -200,13 +229,10 @@
             "value": ["Value", "RPNValue"]
         },
         "twissReport": {
-            "title": "Twiss Parameters",
-            "advanced": [
-                "y1",
-                "y2",
-                "y3",
-                "includeLattice"
-            ]
+            "y1": ["Y1 Value", "TwissParameter", "betx"],
+            "y2": ["Y2 Value", "TwissParameter", "bety"],
+            "y3": ["Y3 Value", "TwissParameter", "dx"],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"]
         },
         "_APERTURE_ELEMENT": {
             "name": ["Name", "ValidatedString"],
@@ -842,10 +868,8 @@
                 "notes"
             ]
         },
-
-        "command_beam": {
-            "title": "Beam",
-            "description": "The BEAM statement defines data for the particles in a beam.",
+        "simulationStatus": {
+            "title": "Simulation Status",
             "basic": [
                 "simulation.enableParticleTracking",
                 "particle",
@@ -886,10 +910,8 @@
         "twissReport": {
             "title": "Twiss Parameters",
             "advanced": [
-                "y1",
-                "y2",
-                "y3",
-                "includeLattice"
+                ["Main", ["y1", "y2", "y3", "includeLattice"]],
+                ["Initial Conditions", ["y1"]]
             ]
         },
         "BEAMBEAM": {

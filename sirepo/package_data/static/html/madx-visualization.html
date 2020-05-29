@@ -1,0 +1,57 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6 col-xl-4">
+
+      <div data-basic-editor-panel="" data-view-name="simulationStatus" data-want-buttons="">
+       <div data-cancelled-due-to-timeout-alert="visualization.simState"></div>
+          <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="visualization.simState.isProcessing()">
+            <div class="col-sm-12" data-pending-link-to-simulations="" data-sim-state="visualization.simState"></div>
+            <div class="col-sm-12" data-ng-show="visualization.simState.isStateRunning()">
+              <div>
+                {{ visualization.runningStatusText() }}
+                <div data-simulation-status-timer="visualization.simState.timeData"></div>
+              </div>
+              <div class="progress">
+                <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': visualization.simState.isInitializing() }" role="progressbar" aria-valuenow="{{ visualization.simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ visualization.simState.getPercentComplete() }}%">
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 pull-right">
+              <button class="btn btn-default" data-ng-click="visualization.simState.cancelSimulation()">End Simulation</button>
+            </div>
+          </form>
+          <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="visualization.simState.isStopped()">
+            <div class="col-sm-12">
+              Simulation
+              <span>{{ visualization.simState.stateAsText() }}</span><span data-ng-show="visualization.simState.hasTimeData()">:
+              <span data-simulation-status-timer="visualization.simState.timeData"></span>
+              </span>
+              <br><br>
+              <div class="well well-lg" data-ng-show="visualization.simulationAlerts || visualization.simState.hasFrames()">
+                <div data-ng-if="visualization.simulationAlerts">
+                  <div class="text-warning"><strong>{{ visualization.errorHeader() }}</strong></div>
+                  <p class="elegant-error-box">{{ visualization.simulationAlerts }}</p>
+                  <br>
+                </div>
+                <a data-ng-href="{{ visualization.logFileURL() }}" target="_blank">View elegant log</a>
+              </div>
+            </div>
+            <!--<div data-run-simulation-fields=""></div>-->
+            <div class="col-sm-6 pull-right" data-ng-show="visualization.simState.isStopped()">
+              <button class="btn btn-default" data-ng-click="visualization.startSimulation()">Start New Simulation</button>
+            </div>
+          </form>
+      </div>
+    </div>
+
+    <div class="col-md-6 col-xl-4" data-ng-show="visualization.simState.hasFrames()">
+        <div data-parameter-table=""></div>
+    </div>
+    <div class="clearfix"></div>
+    <div data-ng-repeat="item in visualization.outputFiles" data-column-for-aspect-ratio="{{ item.modelAccess.modelKey }}" data-ng-if="visualization.simState.hasFrames()">
+      <div data-report-panel="{{ item.reportType }}" data-model-data="item.modelAccess" data-panel-title="{{ appState.models[item.modelAccess.modelKey].panelTitle }}"></div>
+    </div>
+
+  </div> <!-- /row -->
+</div> <!-- /container -->
+<div data-element-animation-modal-editor="" data-ng-repeat="item in visualization.outputFiles" data-report-info="item"></div>

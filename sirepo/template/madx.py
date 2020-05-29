@@ -20,13 +20,20 @@ from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template.template_common import ParticleEnergy
 from sirepo.template.lattice import LatticeUtil
+import copy
 import math
 import numpy as np
+import pykern.pkinspect
 import re
 import sirepo.sim_data
 
 
 _FILE_TYPES = ['ele', 'lte', 'madx']
+# TODO(e-carlin): The madx convetion is name.madx for in
+# and name.out for out. What do we want to do?
+MADX_INPUT_FILENAME = 'madx.in'
+MADX_OUTPUT_FILENAME = 'madx.out'
+TWISS_OUTPUT_FILENAME = 'twiss.tfs'
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
@@ -91,6 +98,13 @@ def get_application_data(data, **kwargs):
         )
         return data
 
+def background_percent_complete(report, run_dir, is_running):
+    # TODO(e-carlin): impl
+    return PKDict(
+        percentComplete=0,
+        frameCount=0,
+    )
+
 
 def import_file(req, test_data=None, **kwargs):
     ft = '|'.join(_FILE_TYPES)
@@ -135,9 +149,37 @@ def import_file(req, test_data=None, **kwargs):
 def madx_code_var(variables):
     return _code_var(variables)
 
+def prepare_sequential_output_file(run_dir, data):
+    r = data.report
+    if r == 'twissReport':
+        f = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
+        if f.exists():
+            f.remove()
+            save_sequential_report_data(data, run_dir)
 
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
+
+
+def save_sequential_report_data(data, run_dir):
+    template_common.write_sequential_result(
+        _extract_report_data(data, run_dir),
+        run_dir=run_dir,
+    )
+
+
+def write_parameters(data, run_dir, is_parallel):
+    """Write the parameters file
+
+    Args:
+        data (dict): input
+        run_dir (py.path): where to write
+        is_parallel (bool): run in background?
+    """
+    pkio.write_text(
+        run_dir.join(MADX_INPUT_FILENAME),
+        _generate_parameters_file(data),
+    )
 
 
 def _code_var(variables):
@@ -148,35 +190,42 @@ def _code_var(variables):
     )
 
 
-def _fixup_madx(madx, data):
-    cv = madx_code_var(madx.models.rpnVariables)
-    assert LatticeUtil.has_command(madx, 'beam'), \
-        'MAD-X file missing BEAM command'
-    beam = LatticeUtil.find_first_command(madx, 'beam')
-    if beam.energy == 1 and (beam.pc != 0 or beam.gamma != 0 or beam.beta != 0 or beam.brho != 0):
-        # unset the default mad-x value if other energy fields are set
-        beam.energy = 0
-    particle = beam.particle.lower() or 'other'
-    LatticeUtil.find_first_command(data, 'beam').particle = particle.upper()
-    energy = ParticleEnergy.compute_energy('madx', particle, beam.copy())
-    LatticeUtil.find_first_command(data, 'beam').pc = energy.pc
-    LatticeUtil.find_first_command(data, 'track').line = data.models.simulation.visualizationBeamlineId
-    for el in data.models.elements:
-        if el.type == 'SBEND' or el.type == 'RBEND':
-            # mad-x is GeV (total energy), designenergy is MeV (kinetic energy)
-            el.designenergy = round(
-                (energy.energy - ParticleEnergy.PARTICLE[particle].mass) * 1e3,
-                6,
-            )
-            # this is different than the opal default of "2 * sin(angle / 2) / length"
-            # but matches elegant and synergia
-            el.k0 = cv.eval_var_with_assert(el.angle) / cv.eval_var_with_assert(el.l)
-            el.gap = 2 * cv.eval_var_with_assert(el.hgap)
+def _extract_report_data(data, run_dir):
+   return getattr(
+       pykern.pkinspect.this_module(),
+       '_extract_report_' + data.report,
+   )(data, run_dir)
+
+
+def _extract_report_twissReport(data, run_dir):
+    t = madx_parser.parse_tfs_file(run_dir.join(TWISS_OUTPUT_FILENAME))
+    m = data.models[data.report]
+    plots = []
+    for f in ('y1', 'y2', 'y3'):
+        if m[f] == 'none':
+            continue
+        plots.append(
+            PKDict(field=m[f], points=t[m[f]], label=f'{m[f]} [m]')
+        )
+    return template_common.parameter_plot(
+        t.s,
+        plots,
+        m,
+        PKDict(title=data.models.simulation.name, y_label='', x_label='s[m]')
+    )
 
 
 def _format_field_value(state, model, field, el_type):
     value = model[field]
     return [field, value]
+
+
+def _generate_beam(beam):
+    res = 'beam'
+    for k in ('mass', 'charge', 'gamma', 'sigt'):
+        if k in beam:
+            res += f', {k}={beam[k]}'
+    return res + ';'
 
 
 def _generate_lattice(util):
@@ -190,14 +239,15 @@ def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     util = LatticeUtil(data, _SCHEMA)
     code_var = _code_var(data.models.rpnVariables)
+    v.twissOutputFilename = TWISS_OUTPUT_FILENAME
     v.lattice = _generate_lattice(util)
     v.variables = _generate_variables(code_var, data)
     if data.models.simulation.visualizationBeamlineId:
         v.useBeamline = util.id_map[data.models.simulation.visualizationBeamlineId].name
+
     beam = util.find_first_command(data, 'beam')
     if beam:
-        v.beamParticle = beam.particle
-        v.beamPC = beam.pc
+        v.beam = _generate_beam(beam)
     return template_common.render_jinja(SIM_TYPE, v, 'parameters.madx')
 
 
