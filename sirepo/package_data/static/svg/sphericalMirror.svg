@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 24.0.1, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg  class="srw-beamline-item-icon" version="1.1" id="Circular_Cylinder" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px"
+	 y="0px" viewBox="0 0 612 792" style="enable-background:new 0 0 612 792;" xml:space="preserve">
+<style type="text/css">
+	.circular-cylinder-st0{enable-background:new    ;}
+	.circular-cylinder-st1{fill:#68922C;}
+	.circular-cylinder-st2{fill:#69942D;}
+	.circular-cylinder-st3{clip-path:url(#CIRCULAR_CYLINDER_SVGID_2_);enable-background:new    ;}
+	.circular-cylinder-st4{fill:#6B972E;}
+	.circular-cylinder-st5{fill:#6D9A2F;}
+	.circular-cylinder-st6{fill:#6F9D30;}
+	.circular-cylinder-st7{fill:#72A031;}
+	.circular-cylinder-st8{fill:#67912C;}
+	.circular-cylinder-st9{fill:#658F2B;}
+	.circular-cylinder-st10{fill:#638C29;}
+	.circular-cylinder-st11{fill:#618928;}
+	.circular-cylinder-st12{fill:#5F8627;}
+	.circular-cylinder-st13{fill:#5D8326;}
+	.circular-cylinder-st14{fill:#7BAC36;}
+	.circular-cylinder-st15{fill:#67922C;}
+	.circular-cylinder-st16{fill:#58595B;}
+</style>
+<g>
+	<g>
+		<g class="circular-cylinder-st0">
+			<g>
+				<polygon class="circular-cylinder-st1" points="1.6,24.5 6.8,16.8 15.3,16.7 10.1,24.3 				"/>
+			</g>
+			<g>
+				<polygon class="circular-cylinder-st2" points="10.1,24.3 15.3,16.7 15.4,18.2 10.1,25.8 				"/>
+			</g>
+			<g class="circular-cylinder-st0">
+				<defs>
+					<path id="CIRCULAR_CYLINDER_SVGID_1_" class="circular-cylinder-st0" d="M61,26.5l-5.2,7.6C51.1,41,42.7,44.4,34.3,44.2C23.5,44,12.7,37.9,10.1,25.8l5.2-7.6
+						C18,30.3,28.7,36.4,39.5,36.6C47.9,36.7,56.3,33.4,61,26.5z"/>
+				</defs>
+				<clipPath id="CIRCULAR_CYLINDER_SVGID_2_">
+					<use xlink:href="#CIRCULAR_CYLINDER_SVGID_1_"  style="overflow:visible;"/>
+				</clipPath>
+				<g class="circular-cylinder-st3">
+					<path class="circular-cylinder-st4" d="M10.1,25.8l5.2-7.6c0,0.1,0,0.2,0.1,0.3l-5.2,7.6C10.2,26,10.1,25.9,10.1,25.8"/>
+					<path class="circular-cylinder-st5" d="M10.2,26.1l5.2-7.6c0.2,0.9,0.4,1.7,0.7,2.5l-5.2,7.6C10.6,27.8,10.4,27,10.2,26.1"/>
+					<path class="circular-cylinder-st6" d="M10.9,28.6l5.2-7.6c0.3,1,0.7,1.9,1.2,2.8l-5.2,7.6C11.6,30.5,11.2,29.6,10.9,28.6"/>
+					<path class="circular-cylinder-st7" d="M12.1,31.4l5.2-7.6c2.1,4.2,5.4,7.3,9.2,9.4l-5.2,7.6C17.4,38.7,14.2,35.5,12.1,31.4"/>
+					<path class="circular-cylinder-st6" d="M21.3,40.8l5.2-7.6c1,0.6,2,1,3.1,1.5l-5.2,7.6C23.3,41.9,22.3,41.4,21.3,40.8"/>
+					<path class="circular-cylinder-st5" d="M24.4,42.3l5.2-7.6c0.9,0.4,1.8,0.7,2.8,0.9l-5.2,7.6C26.2,42.9,25.3,42.6,24.4,42.3"/>
+					<path class="circular-cylinder-st4" d="M27.2,43.2l5.2-7.6c0.9,0.2,1.8,0.4,2.7,0.6l-5.2,7.6C29,43.6,28.1,43.4,27.2,43.2"/>
+					<path class="circular-cylinder-st2" d="M29.9,43.8l5.2-7.6c0.9,0.2,1.8,0.3,2.7,0.3l-5.2,7.6C31.7,44.1,30.8,43.9,29.9,43.8"/>
+					<path class="circular-cylinder-st8" d="M32.6,44.1l5.2-7.6c0.6,0,1.2,0.1,1.8,0.1c0.3,0,0.6,0,0.9,0l-5.2,7.6c-0.3,0-0.6,0-0.9,0
+						C33.7,44.2,33.2,44.2,32.6,44.1"/>
+					<path class="circular-cylinder-st9" d="M35.3,44.2l5.2-7.6c0.9,0,1.8-0.1,2.7-0.2L38,44C37.1,44.1,36.2,44.2,35.3,44.2"/>
+					<path class="circular-cylinder-st10" d="M38,44l5.2-7.6c0.9-0.1,1.9-0.2,2.8-0.4l-5.2,7.6C39.9,43.8,38.9,43.9,38,44"/>
+					<path class="circular-cylinder-st11" d="M40.8,43.6L46,36c1-0.2,2-0.5,2.9-0.8l-5.2,7.6C42.8,43.1,41.8,43.4,40.8,43.6"/>
+					<path class="circular-cylinder-st12" d="M43.7,42.8l5.2-7.6c1.1-0.4,2.2-0.8,3.3-1.3L47,41.5C46,42,44.9,42.5,43.7,42.8"/>
+					<path class="circular-cylinder-st13" d="M47,41.5l5.2-7.6c3.5-1.7,6.5-4.1,8.7-7.4l-5.2,7.6C53.5,37.4,50.5,39.8,47,41.5"/>
+				</g>
+			</g>
+			<g>
+				<path class="circular-cylinder-st14" d="M66.8,24.3L67.3,48L2.6,48.6l-1-24.1l8.5-0.2l0.1,1.5C12.7,37.9,23.5,44,34.3,44.2
+					c11.6,0.2,23.3-6.4,25-19.7L66.8,24.3z"/>
+			</g>
+			<g>
+				<polygon class="circular-cylinder-st2" points="66.8,24.3 72,16.6 72.5,40.4 67.3,48 				"/>
+			</g>
+			<g>
+				<polygon class="circular-cylinder-st15" points="59.3,24.5 64.6,16.9 72,16.6 66.8,24.3 				"/>
+			</g>
+		</g>
+	</g>
+</g>
+<g>
+	<g>
+		<path class="circular-cylinder-st16" d="M38,35.5c-0.5,0-1-0.2-1.3-0.6l-0.1-0.1c-0.7-0.7-0.6-1.9,0.1-2.6c0.7-0.7,1.9-0.6,2.6,0.1l0.1,0.1
+			c0.7,0.7,0.6,1.9-0.1,2.6C38.9,35.4,38.5,35.5,38,35.5z M33,30.1c-0.5,0-1-0.2-1.3-0.6l-0.1-0.1c-0.7-0.7-0.6-1.9,0.1-2.6
+			c0.7-0.7,1.9-0.6,2.6,0.1l0.1,0.1c0.7,0.7,0.6,1.9-0.1,2.6C33.9,30,33.5,30.1,33,30.1z M28,24.7c-0.5,0-1-0.2-1.3-0.6L26.6,24
+			c-0.7-0.7-0.6-1.9,0.1-2.6c0.7-0.7,1.9-0.6,2.6,0.1l0.1,0.1c0.7,0.7,0.6,1.9-0.1,2.6C28.9,24.6,28.4,24.7,28,24.7z M23,19.4
+			c-0.5,0-1-0.2-1.3-0.6l-0.1-0.1c-0.7-0.7-0.6-1.9,0.1-2.6c0.7-0.7,1.9-0.6,2.6,0.1l0.1,0.1c0.7,0.7,0.6,1.9-0.1,2.6
+			C23.9,19.2,23.4,19.4,23,19.4z M18,14c-0.5,0-1-0.2-1.3-0.6l-0.1-0.1c-0.7-0.7-0.6-1.9,0.1-2.6c0.7-0.7,1.9-0.6,2.6,0.1l0.1,0.1
+			c0.7,0.7,0.6,1.9-0.1,2.6C18.9,13.8,18.4,14,18,14z M13,8.6c-0.5,0-1-0.2-1.3-0.6l-0.1-0.1c-0.7-0.7-0.6-1.9,0.1-2.6
+			c0.7-0.7,1.9-0.6,2.6,0.1l0.1,0.1C15,6.3,15,7.4,14.2,8.1C13.9,8.4,13.4,8.6,13,8.6z"/>
+	</g>
+	<path class="circular-cylinder-st16" d="M42.4,30.5c-0.5,0.1-1-0.1-1.4-0.4c-0.8-0.6-0.9-1.8-0.2-2.6l0.1-0.1c0.6-0.8,1.8-0.9,2.6-0.2
+		c0.8,0.6,0.9,1.8,0.2,2.6l-0.1,0.1C43.3,30.3,42.9,30.5,42.4,30.5z"/>
+	<path class="circular-cylinder-st16" d="M47.2,24.9c-0.5,0.1-1-0.1-1.4-0.4c-0.8-0.6-0.9-1.8-0.2-2.6l0.1-0.1c0.6-0.8,1.8-0.9,2.6-0.2
+		c0.8,0.6,0.9,1.8,0.2,2.6l-0.1,0.1C48,24.6,47.6,24.8,47.2,24.9z"/>
+	<path class="circular-cylinder-st16" d="M51.9,19.3c-0.5,0.1-1-0.1-1.4-0.4c-0.8-0.6-0.9-1.8-0.2-2.6l0.1-0.1c0.6-0.8,1.8-0.9,2.6-0.2
+		c0.8,0.6,0.9,1.8,0.2,2.6l-0.1,0.1C52.8,19,52.4,19.2,51.9,19.3z"/>
+	<path class="circular-cylinder-st16" d="M56.6,13.6c-0.5,0.1-1-0.1-1.4-0.4c-0.8-0.6-0.9-1.8-0.2-2.6l0.1-0.1c0.6-0.8,1.8-0.9,2.6-0.2
+		c0.8,0.6,0.9,1.8,0.2,2.6L57.8,13C57.5,13.4,57.1,13.6,56.6,13.6z"/>
+	<path class="circular-cylinder-st16" d="M61.4,8c-0.5,0.1-1-0.1-1.4-0.4c-0.8-0.6-0.9-1.8-0.2-2.6l0.1-0.1c0.6-0.8,1.8-0.9,2.6-0.2
+		c0.8,0.6,0.9,1.8,0.2,2.6l-0.1,0.1C62.2,7.7,61.8,8,61.4,8z"/>
+</g>
+</svg>

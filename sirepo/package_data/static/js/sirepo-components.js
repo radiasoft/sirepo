@@ -323,7 +323,7 @@ SIREPO.app.directive('cancelledDueToTimeoutAlert', function(authState) {
             };
 
             $scope.premiumOrEnterprise = function() {
-                if (authState.roles.includes('premium')) {
+                if (authState.roles.indexOf('premium') >= 0) {
                     return 'Enterprise';
                 }
                 return 'Premium';
@@ -663,7 +663,7 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
             };
 
             $scope.showAdmJobs = function() {
-                return SIREPO.APP_SCHEMA.feature_config.job && authState.roles.includes('adm');
+                return authState.roles.indexOf('adm') >= 0;
             };
         },
     };
@@ -3111,7 +3111,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                 $scope.password = '';
                 awaitingSendResponse = false;
                 $scope.host = data.host;
-                $scope.showOtp = data.host.includes('nersc');
+                $scope.showOtp = data.host.indexOf('nersc') >= 0;
                 $scope.showWarning = data.reason === 'invalid-creds';
                 $scope.warningText = 'Your credentials were invalid. Please try again.';
                 $scope.submit = function() {
@@ -3184,14 +3184,20 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                 if  (sbatchLoginStatusService.loggedIn === undefined) {
                     return null;
                 }
-                var s = 'conntected to ' + authState.jobRunModeMap[appState.models[$scope.simState.model].jobRunMode];
-                s = (sbatchLoginStatusService.loggedIn ? '' : 'not ') + s;
+                var s = 'connected to ' +
+                    authState.jobRunModeMap[appState.models[$scope.simState.model].jobRunMode];
+                if (sbatchLoginStatusService.loggedIn) {
+                    s += '. To start press "' + $scope.simState.startButtonLabel() + '"';
+                }
+                else {
+                    s = 'not ' + s;
+                }
                 return s.charAt(0).toUpperCase() + s.slice(1);
             };
 
             $scope.showNERSCFields = function() {
                 var n = authState.jobRunModeMap.sbatch;
-                return n && n.toLowerCase().includes('nersc');
+                return n && n.toLowerCase().indexOf('nersc') >= 0;
             };
 
 
@@ -3278,7 +3284,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             };
 
             $scope.startButtonLabel = function() {
-                return callSimState('startButtonLabel') || 'Start New Simulation';
+                return callSimState('startButtonLabel');
             };
 
             $scope.stopButtonLabel = function() {

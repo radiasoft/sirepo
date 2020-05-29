@@ -7,7 +7,6 @@ export SIREPO_AUTH_EMAIL_SMTP_PASSWORD='n/a'
 export SIREPO_AUTH_EMAIL_SMTP_SERVER='dev'
 export SIREPO_AUTH_EMAIL_SMTP_USER='n/a'
 export SIREPO_AUTH_METHODS='email:guest'
-export SIREPO_FEATURE_CONFIG_JOB=1
 export SIREPO_MPI_CORES=2
 case ${1:-} in
     docker|local)

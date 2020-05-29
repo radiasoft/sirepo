@@ -292,7 +292,6 @@ def _job_supervisor_setup(request, cfg=None):
     p = '8002'
     cfg.pkupdate(
         PYKERN_PKDEBUG_WANT_PID_TIME='1',
-        SIREPO_FEATURE_CONFIG_JOB='1',
         SIREPO_PKCLI_JOB_SUPERVISOR_IP=i,
         SIREPO_PKCLI_JOB_SUPERVISOR_PORT=p,
     )
@@ -320,10 +319,6 @@ def _job_supervisor_setup(request, cfg=None):
 
 
 def _job_supervisor_start(request, cfg=None):
-    import os
-    if os.environ.get('SIREPO_FEATURE_CONFIG_JOB', '1') != '1':
-        return None, None
-
     from pykern import pkunit
     from pykern.pkcollections import PKDict
     import subprocess

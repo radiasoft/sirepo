@@ -2332,6 +2332,10 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
                 ? 1 : 0;
         };
 
+        state.startButtonLabel = function() {
+            return 'Start New Simulation';
+        };
+
         state.stateAsText = function() {
             if (state.isStateError()) {
                 var e = state.getError();
