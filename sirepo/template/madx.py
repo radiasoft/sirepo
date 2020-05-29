@@ -12,7 +12,10 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import code_variable
+from sirepo.template import elegant_command_importer
+from sirepo.template import elegant_lattice_importer
 from sirepo.template import lattice
+from sirepo.template import madx_converter, madx_parser
 from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
@@ -60,7 +63,6 @@ def import_file(req, test_data=None, **kwargs):
         if input_data:
             _map_commands_to_lattice(data)
     elif re.search(r'\.madx$', req.filename, re.IGNORECASE):
-        from sirepo.template import madx_converter, madx_parser
         data = madx_converter.from_madx(
             SIM_TYPE,
             madx_parser.parse_file(text, downcase_variables=True))

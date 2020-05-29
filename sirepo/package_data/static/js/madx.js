@@ -303,25 +303,70 @@ SIREPO.app.factory('madxService', function(appState, commandService, requestSend
     return self;
 });
 
-SIREPO.app.controller('MadXSourceController', function(appState, latticeService, panelState, $scope) {
+SIREPO.app.controller('SourceController', function(appState, commandService, latticeService, panelState, $scope) {
     var self = this;
 
-    self.isBunchSource = function(name) {
-        if (appState.isLoaded()) {
-            return appState.models.bunchSource.inputSource == name;
-        }
-        return false;
-    };
+    var cmds = ['beam'];
+
+    function saveCommandList(type) {
+        $.extend(
+            commandService.findFirstCommand(type),
+            appState.models[commandService.commandModelName(type)]
+        );
+        appState.saveChanges('commands');
+    }
+
+    appState.whenModelsLoaded($scope, function() {
+        cmds.forEach(function(type) {
+            var cmd = commandService.findFirstCommand(type);
+            if (! cmd) {
+                cmd = appState.models[commandService.createCommand(type)];
+                appState.models.commands.push(cmd);
+                appState.saveChanges('commands');
+            }
+            var name = commandService.commandModelName(type);
+            appState.models[name] = appState.clone(cmd);
+            appState.applicationState()[name] = appState.cloneModel(name);
+
+            $scope.$on(name + '.changed', function() {
+                saveCommandList(type);
+            });
+            $('#sr-command_beam-basicEditor h5').hide();
+            $('#sr-command_distribution-basicEditor h5').hide();
+        });
+    });
 
     latticeService.initSourceController(self);
+});
+
+SIREPO.app.controller('CommandController', function(commandService, panelState) {
+    var self = this;
+    self.activeTab = 'basic';
+    self.basicNames = [
+        'attlist', 'beam', 'distribution', 'eigen',
+        'envelope', 'fieldsolver', 'filter', 'geometry',
+        'list', 'matrix', 'micado', 'option',
+        'particlematterinteraction', 'select', 'start', 'survey',
+        'threadall', 'threadbpm', 'track', 'twiss',
+        'twiss3', 'twisstrack', 'wake',
+    ];
+    self.advancedNames = [];
+
+    self.createElement = function(name) {
+        panelState.showModalEditor(commandService.createCommand(name));
+    };
+
+    self.titleForName = function(name) {
+        return SIREPO.APP_SCHEMA.view[commandService.commandModelName(name)].description;
+    };
 });
 
 SIREPO.app.controller('LatticeController', function(latticeService) {
     var self = this;
     self.latticeService = latticeService;
 
-    self.advancedNames = SIREPO.APP_SCHEMA.constants.advancedNames;
-    self.basicNames =SIREPO.APP_SCHEMA.constants.basicNames;
+    self.advancedNames = SIREPO.APP_SCHEMA.constants.advancedElementNames;
+    self.basicNames = SIREPO.APP_SCHEMA.constants.basicElementNames;
 
     self.titleForName = function(name) {
         return SIREPO.APP_SCHEMA.view[name].description;
@@ -553,7 +598,7 @@ SIREPO.app.directive('appHeader', function(appState, madxService, latticeService
                   //'<li class="sim-section" data-ng-if="hasSourceCommand()" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
-                  //'<li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>',
+                  '<li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>',
                   //'<li class="sim-section" data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
                 '</div>',
               '</app-header-right-sim-loaded>',

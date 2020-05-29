@@ -1,6 +1,6 @@
 {
     "constants": {
-        "advancedNames": [
+        "advancedElementNames": [
             "BEAMBEAM",
             "CHANGEREF",
             "CRABCAVITY",
@@ -27,7 +27,7 @@
             "XROTATION",
             "YROTATION"
         ],
-        "basicNames": [
+        "basicElementNames": [
             "SBEND",
             "RBEND",
             "DRIFT",
@@ -95,9 +95,16 @@
     "localRoutes": {
         "source": {
           "config": {
-            "controller": "MadXSourceController as source",
+            "controller": "SourceController as source",
             "templateUrl": "/static/html/madx-source.html"
           }
+        },
+        "control": {
+            "route": "/control/:simulationId",
+            "config": {
+              "controller": "CommandController as control",
+              "template": "<div data-command-tab=\"\" data-controller=\"control\"></div>"
+            }
         },
         "lattice": {
             "route": "/lattice/:simulationId",
@@ -186,6 +193,10 @@
         "command_use": {
             "sequence": ["BEAMLINE", "LatticeBeamlineList", ""],
             "period": ["BEAMLINE", "LatticeBeamlineList", ""]
+        },
+        "rpnVariable": {
+            "name": ["Name", "String"],
+            "value": ["Value", "RPNValue"]
         },
         "twissReport": {
             "title": "Twiss Parameters",
@@ -828,6 +839,45 @@
                 "histogramBins",
                 "colorMap",
                 "notes"
+            ]
+        },
+
+        "command_beam": {
+            "title": "Beam",
+            "description": "The BEAM statement defines data for the particles in a beam.",
+            "basic": [
+                "particle",
+                "bcurrent",
+                "npart"
+            ],
+            "advanced": [
+                ["Main", [
+                    "particle",
+                    "mass",
+                    "charge",
+                    "energy",
+                    "sige",
+                    "pc",
+                    "gamma",
+                    "beta",
+                    "brho",
+                    "radiate"
+                ]],
+                ["Emittance", [
+                    "ex",
+                    "exn",
+                    "ey",
+                    "eyn",
+                    "et"
+                ]],
+                ["Bunch", [
+                    "bv",
+                    "bunched",
+                    "kbunch",
+                    "bcurrent",
+                    "npart",
+                    "sigt"
+                ]]
             ]
         },
         "twissReport": {
