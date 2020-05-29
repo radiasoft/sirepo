@@ -144,6 +144,9 @@
         "simulation": {
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
         },
+        "beamlineReport": {
+            "notes": ["Notes", "Text", ""]
+        },
         "bunch": {
             "p_central_mev": ["Central momentum of the beamline [MeV/c]", "RPNValue", "", "Central momentum of the beamline in MeV/c, about which expansions are done. This corresponds to p_central_mev field of the run_setup command.", 0],
             "n_particles_per_bunch": ["Particles Per Bunch", "Integer", 1, "Number of particles in each bunch (max 10,000,000)", 1, 10000000],
@@ -874,10 +877,8 @@
         "twissReport": {
             "title": "Twiss Parameters",
             "advanced": [
-                "y1",
-                "y2",
-                "y3",
-                "includeLattice"
+                ["Main", ["y1", "y2", "y3", "includeLattice"]],
+                ["Initial Conditions", ["y1"]]
             ]
         },
         "BEAMBEAM": {
