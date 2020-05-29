@@ -93,6 +93,13 @@ def import_file(req, test_data=None, **kwargs):
 def madx_code_var(variables):
     return _code_var(variables)
 
+def prepare_sequential_output_file(run_dir, data):
+    r = data.report
+    if r == 'twissReport':
+        f = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
+        if f.exists():
+            f.remove()
+            save_sequential_report_data(data, run_dir)
 
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
@@ -139,6 +146,8 @@ def _extract_report_twissReport(data, run_dir):
     m = data.models[data.report]
     plots = []
     for f in ('y1', 'y2', 'y3'):
+        if m[f] == 'none':
+            continue
         plots.append(
             PKDict(field=m[f], points=t[m[f]], label=f'{m[f]} [m]')
         )

@@ -90,6 +90,17 @@
             ["negmuon", "Negative Muon"],
             ["ion", "Ion"],
             ["other", "Other"]
+        ],
+        "TwissParameter": [
+            ["alfx", "alfx"],
+            ["betx", "betx"],
+            ["mux", "mux"],
+            ["dx", "dx"],
+            ["dpx", "dpx"],
+            ["alfy", "alfy"],
+            ["bety", "bety"],
+            ["muy", "muy"],
+            ["none", "None"]
         ]
     },
     "localRoutes": {
@@ -206,13 +217,10 @@
             "value": ["Value", "RPNValue"]
         },
         "twissReport": {
-            "title": "Twiss Parameters",
-            "advanced": [
-                "y1",
-                "y2",
-                "y3",
-                "includeLattice"
-            ]
+            "y1": ["Y1 Value", "TwissParameter", "betx"],
+            "y2": ["Y2 Value", "TwissParameter", "bety"],
+            "y3": ["Y3 Value", "TwissParameter", "dx"],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"]
         },
         "_APERTURE_ELEMENT": {
             "name": ["Name", "ValidatedString"],
