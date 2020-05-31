@@ -1066,10 +1066,6 @@
             "title": "Crystal",
             "basic": [],
             "advanced": [
-                ["Main", [
-                    "title",
-                    "position"
-                ]],
                 ["Material", [
                     [
                         ["Material of the crystal", [
@@ -1096,7 +1092,9 @@
                         ]]
                     ]
                 ]],
-                ["Geometry", [
+                ["Geometry & Orientation", [
+                    "title",
+                    "position",
                     "energy",
 		            "useCase",
                     "diffractionAngle",
