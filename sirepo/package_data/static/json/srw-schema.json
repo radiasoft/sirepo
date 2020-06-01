@@ -360,7 +360,7 @@
     "model": {
         "aperture": {
             "title": ["Element Name", "String", "Aperture"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "shape": ["Shape", "ApertureShape", "r"],
             "horizontalSize": ["Horizontal Size [mm]", "Float", 1, "", 1e-99],
             "verticalSize": ["Vertical Size [mm]", "Float", 1, "", 1e-99],
@@ -401,7 +401,7 @@
         },
         "crl": {
             "title": ["Element Name", "String", "CRL"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "focalPlane": ["Focal Plane", "FocalPlane", "2"],
             "material": ["Material of the CRL", "CRLMaterial", "Be"],
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod", "server"],
@@ -422,7 +422,7 @@
         },
         "crystal": {
             "title": ["Element Name", "String", "Crystal"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path[m]", "Float"],
             "material": ["Material", "CrystalMaterial", "Si (SRW)"],
             "h": ["h", "MillerIndicesRange", "1"],
             "k": ["k", "MillerIndicesRange", "1"],
@@ -489,7 +489,7 @@
         },
         "ellipsoidMirror": {
             "title": ["Element Name", "String", "Elliptical Cylinder Mirror"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "firstFocusLength": ["Distance from Source to Mirror Center (p) [m]", "Float", 20],
             "focalLength": ["Distance from Mirror Center to Second Focus (q) [m]", "Float", 1.7],
             "tangentialSize": ["Tangential Size [m]", "Float", 0.5],
@@ -509,7 +509,7 @@
         },
         "fiber": {
             "title": ["Element Name", "String", "Fiber"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "focalPlane": ["Focal Plane", "FocalPlane", "1", "Horizontal (fiber is parallel to vertical axis), Vertical (fiber is parallel to horizontal axis)"],
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod", "server"],
             "externalMaterial": ["External Material", "CRLMaterial", "User-defined"],
@@ -585,7 +585,7 @@
         },
         "grating": {
             "title": ["Element Name", "String", "Grating"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "tangentialSize": ["Tangential Size [m]", "Float", 0.2],
             "sagittalSize": ["Sagittal Size [m]", "Float", 0.02],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 20.5103398240],
@@ -645,7 +645,7 @@
         },
         "lens": {
             "title": ["Element Name", "String", "Lens"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "horizontalFocalLength": ["Horizontal Focal Length [m]", "Float", 3],
             "verticalFocalLength": ["Vertical Focal Length [m]", "Float", 1.0e+23],
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
@@ -653,7 +653,7 @@
         },
         "mask": {
             "title": ["Element Name", "String", "Mask"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "material": ["Material of the mask", "CRLMaterial", "User-defined"],
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod", "server"],
             "refractiveIndex": ["Refractive Index Decrement of Material", "Float", 1.0, "Tooltip"],
@@ -676,7 +676,7 @@
         },
         "mirror": {
             "title": ["Element Name", "String", "Planar Mirror"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile", "mirror_1d.dat"],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 3.1415926],
@@ -716,7 +716,7 @@
         },
         "obstacle": {
             "title": ["Element Name", "String", "Obstacle"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "shape": ["Shape", "ApertureShape", "r"],
             "horizontalSize": ["Horizontal Size [mm]", "Float", 0.5, "", 1e-99],
             "verticalSize": ["Vertical Size [mm]", "Float", 0.5, "", 1e-99],
@@ -763,7 +763,7 @@
         },
         "sample": {
             "title": ["Element Name", "String", "Sample"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "imageFile": ["Image or NumPy File", "ImageFile", "sample.tif"],
             "resolution": ["Resolution [nm/pixel]", "Float", 2.480469],
             "thickness": ["Thickness [µm]", "Float", 10],
@@ -835,7 +835,7 @@
         },
         "sphericalMirror": {
             "title": ["Element Name", "String", "Circular Cylinder Mirror"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "radius": ["Radius of Surface Curvature [m]", "Float", 1049],
             "tangentialSize": ["Tangential Size [m]", "Float", 0.3],
             "sagittalSize": ["Sagittal Size [m]", "Float", 0.11],
@@ -862,7 +862,7 @@
         },
         "toroidalMirror": {
             "title": ["Element Name", "String", "Toroid Mirror"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "tangentialRadius": ["Tangential Radius [m]", "Float", 7592.12],
             "sagittalRadius": ["Sagittal Radius [m]", "Float", 0.186],
             "tangentialSize": ["Tangential Size [m]", "Float", 0.96],
@@ -914,7 +914,7 @@
         },
         "watch": {
             "title": ["Element Name", "SafePath", "Watchpoint"],
-            "position": ["Nominal Position [m]", "Float"]
+            "position": ["Position along Optical Path [m]", "Float"]
         },
         "watchpointReport": {
             "polarization": ["Polarization Component to Extract", "Polarization"],
@@ -930,7 +930,7 @@
         },
         "zonePlate": {
             "title": ["Element Name", "String", "Zone Plate"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "numberOfZones": ["Number of Zones", "Integer", 100],
             "outerRadius": ["Outer Zone Radius [mm]", "Float", 0.1],
             "thickness": ["Thickness [µm]", "Float", 10],
