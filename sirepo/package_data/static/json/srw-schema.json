@@ -1066,17 +1066,32 @@
             "title": "Crystal",
             "basic": [],
             "advanced": [
-                ["Geometry", [
+                ["Name&Position", [
                     "title",
-                    "position",
-                    "energy",
+                    "position"
+                ]],
+                ["Geometry", [
 		            "useCase",
-                    "diffractionAngle",
                     "asymmetryAngle",
                     "crystalThickness",
                     "dSpacing"
                 ]],
-                ["Material&Polarizability", [
+                ["Orientation",[
+                    "energy",
+                    "diffractionAngle",
+                    [
+                        ["Outward normal vector", [
+                            "nvx",
+                            "nvy",
+                            "nvz"
+                        ]],
+                        ["Central tangential vector", [
+                            "tvx",
+                            "tvy"
+                        ]]
+                    ]
+                ]],
+                ["Material", [
                     [
                         ["Material of the crystal", [
                             "material"
@@ -1097,19 +1112,6 @@
                             "psi0i",
                             "psiHi",
                             "psiHBi"
-                        ]]
-                    ]
-                ]],
-                ["Orientation",[
-                    [
-                        ["Outward normal vector", [
-                            "nvx",
-                            "nvy",
-                            "nvz"
-                        ]],
-                        ["Central tangential vector", [
-                            "tvx",
-                            "tvy"
                         ]]
                     ]
                 ]],
@@ -1354,17 +1356,9 @@
             "title": "Grating",
             "basic": [],
             "advanced": [
-                ["Geometry", [
+                ["Name&Position", [
                     "title",
                     "position",
-                    "energyAvg",
-                    "computeParametersFrom",
-                    "cff",
-                    "grazingAngle",
-                    "rollAngle",
-                    "diffractionOrder",
-                    "tangentialSize",
-                    "sagittalSize",
                     [
                         ["Horizontal", [
                             "horizontalOffset"
@@ -1374,15 +1368,23 @@
                         ]]
                     ]
                 ]],
-                ["Groove Parameters", [
-                    "*Groove Density Polynomial:\n$a_0 + a_1 y + a_2 y^2 + a_3 y^3 + a_4 y^4$",
+                ["Geometry", [
+                    "*Groove Density Parameters:\n$a_0 + a_1 y + a_2 y^2 + a_3 y^3 + a_4 y^4$",
                     "grooveDensity0",
                     "grooveDensity1",
                     "grooveDensity2",
                     "grooveDensity3",
-                    "grooveDensity4"
+                    "grooveDensity4",
+                    "tangentialSize",
+                    "sagittalSize"
                 ]],
                 ["Orientation", [
+                    "energyAvg",
+                    "diffractionOrder",
+                    "computeParametersFrom",
+                    "cff",
+                    "grazingAngle",
+                    "rollAngle",
                     [
                         ["Outward normal vector", [
                             "nvx",
