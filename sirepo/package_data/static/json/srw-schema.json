@@ -1352,19 +1352,9 @@
             "title": "Grating",
             "basic": [],
             "advanced": [
-		        ["Main", [
-		            "title",
-		            "position"
-	        	]],
-                ["Groove Parameters", [
-                    "*Groove Density Polynomial:\n$a_0 + a_1 y + a_2 y^2 + a_3 y^3 + a_4 y^4$",
-                    "grooveDensity0",
-                    "grooveDensity1",
-                    "grooveDensity2",
-                    "grooveDensity3",
-                    "grooveDensity4"
-                ]],
                 ["Geometry", [
+                    "title",
+                    "position",
                     "energyAvg",
                     "computeParametersFrom",
                     "cff",
@@ -1380,7 +1370,17 @@
                         ["Vertical", [
                             "verticalOffset"
                         ]]
-                    ],
+                    ]
+                ]],
+                ["Groove Parameters", [
+                    "*Groove Density Polynomial:\n$a_0 + a_1 y + a_2 y^2 + a_3 y^3 + a_4 y^4$",
+                    "grooveDensity0",
+                    "grooveDensity1",
+                    "grooveDensity2",
+                    "grooveDensity3",
+                    "grooveDensity4"
+                ]],
+                ["Orientation", [
                     [
                         ["Outward normal vector", [
                             "nvx",
