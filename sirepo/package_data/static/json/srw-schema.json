@@ -1066,7 +1066,7 @@
             "title": "Crystal",
             "basic": [],
             "advanced": [
-                ["Material", [
+                ["Material&Polarizability", [
                     [
                         ["Material of the crystal", [
                             "material"
@@ -1076,16 +1076,14 @@
                             "k",
                             "l"
                         ]]
-                    ]
-                ]],
-                ["Polarizability", [
+                    ],
                     [
-                        ["Real part", [
+                        ["Polarizability's Real part", [
                             "psi0r",
                             "psiHr",
                             "psiHBr"
                         ]],
-                        ["Imaginary part", [
+                        ["Polarizability's Imaginary part", [
                             "psi0i",
                             "psiHi",
                             "psiHBi"
