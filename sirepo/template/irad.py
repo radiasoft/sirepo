@@ -23,13 +23,19 @@ _FRAME_FILENAME = PKDict({
     _SCHEMA.constants.dicomFrame: CT_FILE,
     _SCHEMA.constants.doseFrame: RTDOSE_FILE,
     _SCHEMA.constants.roiFrame: RTSTRUCT_FILE,
+    _SCHEMA.constants.dose2Frame: 'rtdose2.zip',
+    _SCHEMA.constants.dose3Frame: 'rtdose3.zip',
 })
 
 
 def get_data_file(run_dir, model, frame, **kwargs):
     sim_id = simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME)).simulationId
+    path = pkio.py_path(sim_file(sim_id, _FRAME_FILENAME[frame]))
+    if not path.exists() and frame in (_SCHEMA.constants.dose2Frame, _SCHEMA.constants.dose3Frame):
+        # no alternate dose exists, use main dose instead
+        path = pkio.py_path(sim_file(sim_id, RTDOSE_FILE))
     return PKDict(
-        filename=pkio.py_path(sim_file(sim_id, _FRAME_FILENAME[frame])),
+        filename=path,
     )
 
 

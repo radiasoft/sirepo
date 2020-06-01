@@ -64,12 +64,17 @@ def process_dicom_files(cfg_dir):
     files = _dicom_files(cfg_dir)
     ctinfo = _write_ct_vti_file(files)
     pkdlog('ct: {}', ctinfo)
-    rtdose = _write_rtdose_file(files)
-    pkdlog('rtdose: {}', rtdose)
+    rtdose = _write_rtdose_file(files, files.rtdose)
+    pkdlog('rtdose 1: {}', rtdose)
+    for idx in range(len(files.additional_rtdose)):
+        rtdose = _write_rtdose_file(files, files.additional_rtdose[idx], 'rtdose{}.zip'.format(idx + 2))
+        pkdlog('rtdose {}: {}', idx + 2, rtdose)
     pkdlog('creating rtstruct')
     rois = _write_rtstruct_file(files)
     pkdlog('computing dvh')
-    _write_dvh_file(files, rois)
+    _write_dvh_file(files, rois, files.rtdose)
+    for idx in range(len(files.additional_rtdose)):
+        _write_dvh_file(files, rois, files.additional_rtdose[idx], 'dvh-data{}.json'.format(idx + 2))
     pkdlog('done')
 
 
@@ -144,6 +149,7 @@ def _dicom_files(dirname):
         rtdose=None,
         rtstruct=None,
         position=None,
+        additional_rtdose=[],
     )
     for path in pkio.walk_tree(dirname):
         if not pkio.has_file_extension(str(path), 'dcm'):
@@ -157,7 +163,10 @@ def _dicom_files(dirname):
             files.ctmap[int(v.InstanceNumber)] = str(path)
             files.position = v.PatientPosition
         elif v.SOPClassUID == _DICOM_CLASS.RT_DOSE:
-            files.rtdose = str(path)
+            if files.rtdose:
+                files.additional_rtdose.append(str(path))
+            else:
+                files.rtdose = str(path)
         elif v.SOPClassUID == _DICOM_CLASS.RT_STRUCT:
             files.rtstruct = str(path)
     assert files.rtdose and files.rtstruct, 'Missing RTSTRUCT and/or RTDOSE'
@@ -214,13 +223,13 @@ def _write_ct_vti_file(files):
     return ctinfo
 
 
-def _write_dvh_file(files, rois):
-    with open (_DVH_FILE_NAME, 'w') as f:
-        json.dump(_compute_dvh(rois.keys(), files.rtstruct, files.rtdose), f)
+def _write_dvh_file(files, rois, rtdose, filename=_DVH_FILE_NAME):
+    with open (filename, 'w') as f:
+        json.dump(_compute_dvh(rois.keys(), files.rtstruct, rtdose), f)
 
 
-def _write_rtdose_file(files):
-    rtdose = pydicom.dcmread(files.rtdose)
+def _write_rtdose_file(files, rtdose_path, filename=_VTI_RTDOSE_ZIP_FILE):
+    rtdose = pydicom.dcmread(rtdose_path)
     doseinfo = _extract_dcm_info(files, None, rtdose)
     doseinfo.DoseMax = int(rtdose.pixel_array.max())
     doseinfo.DoseGridScaling = rtdose.DoseGridScaling
@@ -237,7 +246,7 @@ def _write_rtdose_file(files):
         for di in range(rtdose.pixel_array.shape[0]):
             for yi in range(rtdose.pixel_array.shape[1]):
                 rtdose.pixel_array[di][yi].tofile(f)
-    _write_vti_file(_VTI_RTDOSE_ZIP_FILE, doseinfo)
+    _write_vti_file(filename, doseinfo)
     return doseinfo
 
 

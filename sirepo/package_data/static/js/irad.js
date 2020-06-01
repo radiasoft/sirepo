@@ -4,6 +4,8 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 SIREPO.appReportTypes = [
     '<div data-ng-switch-when="dicomPlot" data-dicom-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+    '<div data-ng-switch-when="dicomComparePlot" data-dicom-plot="" data-is-compare-plot="1" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+    '<div data-ng-switch-when="doseDifferencePlot" data-dicom-plot="" data-is-difference-plot="1" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
     '<div data-ng-switch-when="dicom3d" data-dicom-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
 ].join('');
 SIREPO.appPanelHeadingButtons = [
@@ -15,12 +17,12 @@ SIREPO.appPanelHeadingButtons = [
     '</div>',
 ].join('');
 
-SIREPO.app.factory('iradService', function(appState, panelState, requestSender, simulationQueue, $rootScope) {
+SIREPO.app.factory('iradService', function(appState, panelState, requestSender, simulationQueue, utilities, $rootScope) {
     var self = {};
-    var roiPoints;
+    var dicomReader, doseFrames, doseReader, dose2Reader, roiPoints;
     self.downloadStatus = '';
 
-    function downloadFiles() {
+    function downloadFiles(callback) {
         if (! appState.isLoaded()) {
             return;
         }
@@ -30,14 +32,16 @@ SIREPO.app.factory('iradService', function(appState, panelState, requestSender, 
                 self.downloadStatus = 'Loading Dose';
                 panelState.waitForUI(function() {
                     downloadVTIDataFile(SIREPO.APP_SCHEMA.constants.doseFrame, function() {
-                        panelState.waitForUI(downloadROIDataFile);
+                        panelState.waitForUI(function() {
+                            downloadROIDataFile(callback);
+                        });
                     });
                 });
             });
         });
     }
 
-    function downloadROIDataFile() {
+    function downloadROIDataFile(callback) {
         if (! appState.isLoaded()) {
             return;
         }
@@ -50,6 +54,9 @@ SIREPO.app.factory('iradService', function(appState, panelState, requestSender, 
                     self.downloadStatus = '';
                     roiPoints = data.regionOfInterest;
                     $rootScope.$broadcast('irad-roi-available');
+                    if (callback) {
+                        callback();
+                    }
                 }
             });
     }
@@ -63,7 +70,16 @@ SIREPO.app.factory('iradService', function(appState, panelState, requestSender, 
             loadData: true,
         }).then(function() {
             if (isValidSimulation(simId)) {
-                $rootScope.$broadcast('irad-vti-available', reader, frame);
+                if (frame == SIREPO.APP_SCHEMA.constants.dicomFrame) {
+                    dicomReader = reader;
+                }
+                else if (frame == SIREPO.APP_SCHEMA.constants.doseFrame) {
+                    doseReader = reader;
+                }
+                else if (frame == SIREPO.APP_SCHEMA.constants.dose2Frame) {
+                    dose2Reader = reader;
+                }
+                $rootScope.$broadcast('irad-vti-available', frame);
                 callback();
             }
         });
@@ -91,17 +107,49 @@ SIREPO.app.factory('iradService', function(appState, panelState, requestSender, 
         return appState.models.dicomSettings.activeRoiNumber;
     };
 
+    self.getDicomReader = function() {
+        return dicomReader;
+    };
+
+    self.getDoseReader = function() {
+        return doseReader;
+    };
+
+    self.getDose2Reader = function() {
+        return dose2Reader;
+    };
+
     self.getROIPoints = function() {
         return roiPoints;
     };
 
-    self.loadDataFiles = function() {
+    self.loadDataFiles = function(callback) {
+        if (roiPoints) {
+            if (callback) {
+                callback();
+            }
+            return;
+        }
         self.downloadStatus = 'Initializing Data Files';
-        //panelState.requestData('dicom3DReport', downloadFiles);
         simulationQueue.addTransientItem(
             'dicom3DReport',
             appState.applicationState(),
-            downloadFiles);
+            function() {
+                downloadFiles(callback);
+            });
+    };
+
+    self.loadDose2File = function() {
+        if (dose2Reader) {
+            return;
+        }
+        self.downloadStatus = 'Loading Dose 2';
+        panelState.waitForUI(function() {
+            downloadVTIDataFile(SIREPO.APP_SCHEMA.constants.dose2Frame, function() {
+                self.downloadStatus = '';
+                $rootScope.$digest();
+            });
+        });
     };
 
     self.setActiveROI = function(roiNumber) {
@@ -110,8 +158,26 @@ SIREPO.app.factory('iradService', function(appState, panelState, requestSender, 
         $rootScope.$broadcast('irad-roi-activated', roiNumber);
     };
 
+    var triggerDoseComparison = utilities.debounce(
+        function(dicomPlane, doseFrames) {
+            $rootScope.$broadcast('irad-compute-dose-comparison', dicomPlane, doseFrames[dicomPlane]);
+        }, 100);
+
+    self.setDosePixels = function(dicomPlane, isCompareDose, zFrame, dosePixels, doseDomain) {
+        if (! doseFrames) {
+            doseFrames = {};
+        }
+        if (! doseFrames[dicomPlane]) {
+            doseFrames[dicomPlane] = [];
+        }
+        doseFrames[dicomPlane][isCompareDose ? 1 : 0] = [zFrame, dosePixels, doseDomain];
+        if (doseFrames[dicomPlane].length == 2 && doseFrames[dicomPlane][0][0] == doseFrames[dicomPlane][1][0]) {
+            triggerDoseComparison(dicomPlane, doseFrames);
+        }
+    };
+
     $rootScope.$on('modelsUnloaded', function() {
-        roiPoints = null;
+        roiPoints = doseFrames = dicomReader = doseReader = null;
         self.downloadStatus = '';
     });
 
@@ -119,13 +185,42 @@ SIREPO.app.factory('iradService', function(appState, panelState, requestSender, 
     return self;
 });
 
+SIREPO.app.controller('DoseController', function (appState, iradService, $scope) {
+    var self = this;
+    self.iradService = iradService;
+
+    function reportForId(id) {
+        if (appState.isLoaded()) {
+            return appState.models.dicomReports[id - 1];
+        }
+        return null;
+    }
+
+    appState.whenModelsLoaded($scope, function() {
+        self.dicomReports = [];
+        appState.models.dicomReports.forEach(function(report) {
+            self.dicomReports.push({
+                modelKey: 'dicomReport' + report.id,
+                getData: function() {
+                    return reportForId(report.id);
+                },
+                title: function(name) {
+                    var model = reportForId(report.id);
+                    return (name || appState.enumDescription('DicomPlane', model.dicomPlane))
+                        + (isNaN(model.slicePosition)
+                           ? ''
+                           : (' ' + model.slicePosition.toFixed(3) + 'mm'));
+                },
+            });
+        });
+        iradService.loadDataFiles(iradService.loadDose2File);
+    });
+});
+
 SIREPO.app.controller('SourceController', function (appState, iradService, $scope) {
     var self = this;
+    self.iradService = iradService;
     var doseListener;
-
-    self.downloadStatus = function() {
-        return iradService.downloadStatus;
-    };
 
     self.showReport = function(toggle) {
         if (! appState.isLoaded()) {
@@ -202,6 +297,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               '<app-header-right-sim-loaded>',
 		'<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-user"></span> DICOM Viewer</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'dose\')}"><a href data-ng-click="nav.openSection(\'dose\')"><span class="glyphicon glyphicon-picture"></span> Dose Comparison</a></li>',
 		'</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
@@ -384,17 +480,24 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, plotti
                 },
             };
 
-            function refresh(event, reader, frame) {
+            function refresh(event, frame) {
+                var reader;
                 if (frame == SIREPO.APP_SCHEMA.constants.dicomFrame) {
+                    reader = iradService.getDicomReader();
                     dicomSpacing = reader.getOutputData().getSpacing();
                 }
-                if (frame == SIREPO.APP_SCHEMA.constants.doseFrame && ! showRTDose) {
+                // else if (frame == SIREPO.APP_SCHEMA.constants.doseFrame) {
+                //     reader = iradService.getDoseReader();
+                //     if (! showRTDose) {
+                //         return;
+                //     }
+                // }
+                else {
                     return;
                 }
                 actor = vtk.Rendering.Core.vtkVolume.newInstance();
                 var mapper = vtk.Rendering.Core.vtkVolumeMapper.newInstance();
                 actor.setMapper(mapper);
-                //mapper.setInputConnection(reader.getOutputPort());
                 var renderer = fsRenderer.getRenderer();
                 mapper.setInputConnection(reader.getOutputPort());
                 var metadata = reader.getOutputData().get().metadata;
@@ -682,9 +785,18 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, plotti
                 $scope.$broadcast('sr-dicom-init', fsRenderer);
             };
 
-            $scope.$on('irad-roi-available', showActiveRoi);
-            $scope.$on('irad-roi-activated', showActiveRoi);
-            $scope.$on('irad-vti-available', refresh);
+            $scope.initData = function() {
+                if (iradService.getROIPoints()) {
+                    refresh(null, SIREPO.APP_SCHEMA.constants.dicomFrame);
+                    refresh(null, SIREPO.APP_SCHEMA.constants.doseFrame);
+                    showActiveRoi();
+                }
+                else {
+                    $scope.$on('irad-roi-available', showActiveRoi);
+                    $scope.$on('irad-vti-available', refresh);
+                }
+                $scope.$on('irad-roi-activated', showActiveRoi);
+            };
 
             $scope.resize = function() {
                 if (! utilities.isFullscreen()) {
@@ -699,7 +811,10 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, plotti
             };
         },
         link: function link(scope, element) {
-            plotting.linkPlot(scope, element);
+            appState.whenModelsLoaded(scope, function() {
+                plotting.linkPlot(scope, element);
+                scope.initData();
+            });
         },
     };
 });
@@ -873,7 +988,10 @@ function imageFeature(isOverlay) {
     function isValidHeatmap() {
         return heatmap && heatmap.length;
     }
-    var DOSE_CUTOFF = 10;
+
+    //TODO(pjm): should be controlled by UI
+    //var DOSE_CUTOFF = 10;
+    var DOSE_CUTOFF = 3;
 
     return {
         DOSE_CUTOFF: DOSE_CUTOFF,
@@ -937,7 +1055,6 @@ function imageFeature(isOverlay) {
                         imageData.data[++p] = c.g;
                         imageData.data[++p] = c.b;
                         imageData.data[++p] = doseTransparency;
-                        //TODO(pjm): add adjustable % cut-off
                         if (v < DOSE_CUTOFF) {
                             imageData.data[p] = 0;
                         }
@@ -974,9 +1091,11 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
         scope: {
             modelName: '@',
             modelData: '=',
+            isComparePlot: '@',
+            isDifferencePlot: '@',
         },
         template: [
-          '<div style="position: relative" ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">',
+          '<div style="position: relative; background: black" ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">',
             '<canvas ng-attr-style="position: absolute; left: {{ margin.left }}px; top: {{ margin.top }}px;"></canvas>',
             '<div><svg class="sr-plot" style="position: relative;" ng-attr-width="{{ margin.left + margin.right + canvasWidth }}" ng-attr-height="{{ margin.top + margin.bottom + canvasHeight}}">',
               '<g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">',
@@ -1014,7 +1133,6 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
 
             $scope.rangeChanged = function() {
                 if (data3d) {
-                    renderData();
                     appState.saveQuietly('dicomReports');
                 }
             };
@@ -1055,14 +1173,22 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                 return Math.abs(values[values.length - 1] - values[0]);
             }
 
-            function loadData3d(event, reader, frame) {
-                var data = createData3d(reader.getOutputData());
+            function loadData3d(event, frame) {
                 if (frame == SIREPO.APP_SCHEMA.constants.dicomFrame) {
-                    data3d = data;
+                    data3d = createData3d(iradService.getDicomReader().getOutputData());
                     $scope.maxFrame = data3d.dim[$scope.model.dicomPlane == 't' ? 2 : $scope.model.dicomPlane == 'c' ? 1 : 0];
                 }
                 else if (frame == SIREPO.APP_SCHEMA.constants.doseFrame) {
-                    dose3d = data;
+                    if ($scope.isComparePlot || $scope.isDifferencePlot) {
+                        return;
+                    }
+                    dose3d = createData3d(iradService.getDoseReader().getOutputData());
+                }
+                else if (frame == SIREPO.APP_SCHEMA.constants.dose2Frame) {
+                    if (! $scope.isComparePlot) {
+                        return;
+                    }
+                    dose3d = createData3d(iradService.getDose2Reader().getOutputData());
                 }
                 renderData();
             }
@@ -1083,7 +1209,6 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                             $scope.model.frameIdx--;
                         }
                         $scope.$applyAsync();
-                        renderData();
                         appState.saveQuietly('dicomReports');
                         return;
                     }
@@ -1101,7 +1226,7 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                     }
                 }
 
-                if (dose3d && appState.models.dicomSettings.showRTDose == '1') {
+                if (dose3d && appState.models.dicomSettings.showRTDose == '1' && ! $scope.isDifferencePlot) {
                     var doseDomain = domainForPlane(dose3d);
                     var offset = (dicomDomain[1][1] - doseDomain[1][1])
                         - (doseDomain[0][1] - dicomDomain[0][1]);
@@ -1118,6 +1243,96 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                 resetZoom();
             }
 
+            function computeDoseComparison(event, dicomPlane, doseFrame) {
+                if (dicomPlane != $scope.model.dicomPlane || ! $scope.isDifferencePlot) {
+                    return;
+                }
+                var dose1Pixels = doseFrame[0][1];
+                var dose1Domain = doseFrame[0][2];
+                var dose2Pixels = doseFrame[1][1];
+                var dose2Domain = doseFrame[1][2];
+
+                //console.log('1, 2 domain:', dose1Domain, dose2Domain);
+                //console.log('1, 2 pixels:', dose1Pixels[0].length, dose1Pixels.length, ' ', dose2Pixels[0].length, dose2Pixels.length);
+                var xdomain = [
+                    Math.min(dose1Domain[0][0], dose2Domain[0][0]),
+                    Math.max(dose1Domain[1][0], dose2Domain[1][0]),
+                ];
+                var ydomain = [
+                    Math.min(dose1Domain[0][1], dose2Domain[0][1]),
+                    Math.max(dose1Domain[1][1], dose2Domain[1][1]),
+                ];
+
+                var xStep = Math.min(
+                    (dose1Domain[1][0] - dose1Domain[0][0]) / dose1Pixels[0].length,
+                    (dose2Domain[1][0] - dose2Domain[0][0]) / dose2Pixels[0].length);
+                var yStep = Math.min(
+                    (dose1Domain[1][1] - dose1Domain[0][1]) / dose1Pixels.length,
+                    (dose2Domain[1][1] - dose2Domain[0][1]) / dose2Pixels.length);
+
+                var dosePixels = [];
+                var maxDose = 0;
+                var yIdx = 0;
+                for (var y = ydomain[0]; y < ydomain[1]; yIdx++, y = ydomain[0] + yIdx * yStep) {
+                    var row = [];
+                    dosePixels.push(row);
+                    var yIdx1 = Math.round((y - dose1Domain[0][1]) / yStep);
+                    var yIdx2 = Math.round((y - dose2Domain[0][1]) / yStep);
+                    var xIdx = 0;
+                    for (var x = xdomain[0]; x < xdomain[1]; xIdx++, x = xdomain[0] + xIdx * xStep) {
+                        var v1 = 0;
+                        var v2 = 0;
+                        //TODO(pjm): combine into a shared function for x/y
+                        if (yIdx1 < 0 || yIdx1 >= dose1Pixels.length) {
+                        }
+                        else {
+                            var xIdx1 = Math.round((x - dose1Domain[0][0]) / xStep);
+                            if (xIdx1 < 0 || xIdx1 > dose1Pixels[0].length) {
+                            }
+                            else {
+                                v1 = dose1Pixels[yIdx1][xIdx1];
+                            }
+                        }
+                        if (yIdx2 < 0 || yIdx2 >= dose2Pixels.length) {
+                        }
+                        else {
+                            var xIdx2 = Math.round((x - dose2Domain[0][0]) / xStep);
+                            if (xIdx2 < 0 || xIdx2 > dose2Pixels[0].length) {
+                            }
+                            else {
+                                v2 = dose2Pixels[yIdx2][xIdx2];
+                            }
+                        }
+                        var diff = v2 - v1;
+                        row.push(diff);
+                        if (diff > maxDose) {
+                            maxDose = diff;
+                        }
+                    }
+                }
+
+                //TODO(pjm): copied from renderData()
+                var colorMap = plotting.colorMapOrDefault('jet');
+                //var maxDose = 40; //dose3d.metadata.DoseMax * dose3d.metadata.DoseGridScaling;
+                var colorScale = d3.scale.linear()
+                    .domain(plotting.linearlySpacedArray(doseFeature.DOSE_CUTOFF, maxDose * 0.8, colorMap.length))
+                    .range(colorMap)
+                    .clamp(true);
+                var transparency = appState.models.dicomSettings.showCT == '1' ? 56 : 100;
+                doseFeature.setColorScale(colorScale, transparency);
+                doseFeature.load(dosePixels);
+                doseFeature.prepareImage({});
+                var offset = (dicomDomain[1][1] - ydomain[1])
+                    - (ydomain[0] - dicomDomain[0][1]);
+                doseFeature.draw(
+                    canvas, xdomain, [
+                        ydomain[0] + offset,
+                        ydomain[1] + offset,
+                    ]);;
+            }
+
+            $scope.$on('irad-compute-dose-comparison', computeDoseComparison);
+
             function renderData() {
                 if (! data3d) {
                     return;
@@ -1128,27 +1343,34 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                         data3d.dim[
                             $scope.model.dicomPlane == 't'
                                 ? 2
-                                : $scope.model.dicomPlane == '2'
+                                : $scope.model.dicomPlane == 's'
                                 ? 1 : 0
                         ] / 2);
                 }
 
-                var pixels = sliceArray(data3d, data3d.metadata.RescaleIntercept, data3d.metadata.RescaleSlope);
                 if (roiFeature) {
                     roiFeature.load(zFrame);
                 }
                 if (dose3d) {
-                    var dosePixels = sliceArray(dose3d, 0, dose3d.metadata.DoseGridScaling);
+                    var dosePixels;
+                    if ($scope.isDifferencePlot) {
+                        return;
+                    }
+                    else {
+                        dosePixels = sliceArray(dose3d, 0, dose3d.metadata.DoseGridScaling);
+                        iradService.setDosePixels($scope.model.dicomPlane, $scope.isComparePlot, zFrame, dosePixels, domainForPlane(dose3d));
+                    }
+
                     //var colorMap = plotting.colorMapFromModel($scope.modelName);
                     var colorMap = plotting.colorMapOrDefault('jet');
+//TODO(pjm): use one maxDose
                     var maxDose = dose3d.metadata.DoseMax * dose3d.metadata.DoseGridScaling;
                     var colorScale = d3.scale.linear()
-                        //TODO(pjm): add adjustable % cut-off
                         .domain(plotting.linearlySpacedArray(doseFeature.DOSE_CUTOFF, maxDose * 0.8, colorMap.length))
                         .range(colorMap)
                         .clamp(true);
                     //TODO(pjm): model data
-                    var transparency = 56;
+                    var transparency = appState.models.dicomSettings.showCT == '1' ? 56 : 100;
                     doseFeature.setColorScale(colorScale, transparency);
                     doseFeature.load(dosePixels);
                     doseFeature.prepareImage({});
@@ -1162,6 +1384,7 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                     xAxisScale.domain(getRange(xValues));
                     yAxisScale.domain(getRange(yValues));
                 }
+                var pixels = sliceArray(data3d, data3d.metadata.RescaleIntercept, data3d.metadata.RescaleSlope);
                 dicomFeature.load(pixels);
                 dicomFeature.prepareImage(appState.models.dicomSettings.showCT == '1');
                 if (roiFeature) {
@@ -1175,8 +1398,19 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                 select('.plot-viewport').call(zoom);
                 zoom.x(xAxisScale)
                     .y(yAxisScale)
-                    .on('zoom', refresh);
+                    .on('zoom', function() {
+                        $rootScope.$broadcast('irad-dicom-zoom', $scope.model.dicomPlane, xAxisScale, yAxisScale);
+                    });
             }
+
+            $scope.$on('irad-dicom-zoom', function(evt, plane, x, y) {
+                // keep zoom/pan in sync across all common planes
+                if (plane == $scope.model.dicomPlane) {
+                    xAxisScale.domain(x.domain());
+                    yAxisScale.domain(y.domain());
+                    refresh();
+                }
+            });
 
             function select(selector) {
                 var e = d3.select($scope.element);
@@ -1296,9 +1530,13 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                 var w = $($window);
                 if ($scope.canvasHeight > w.height()) {
                     // full screen - don't extend past height
-                    var scale = w.height() / $scope.canvasHeight;
+                    var scale = w.height() / $scope.canvasHeight * 0.9;
                     $scope.canvasWidth *= scale;
                     $scope.canvasHeight *= scale;
+                }
+                else if ($scope.canvasWidth > $scope.canvasHeight) {
+                    $scope.margin.top = ($scope.canvasWidth - $scope.canvasHeight) / 2;
+                    $scope.margin.bottom = ($scope.canvasWidth - $scope.canvasHeight) / 2;
                 }
                 xAxisScale.range([0, $scope.canvasWidth]);
                 yAxisScale.range([$scope.canvasHeight, 0]);
@@ -1311,20 +1549,39 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                 return yValues[yValues.length - 1] + yValues[0];
             };
 
-            $scope.$on('irad-roi-available', function() {
-                if (dicomDomain && roiFeature) {
-                    roiFeature.clear();
-                    refresh();
+            $scope.initData = function() {
+                if (iradService.getROIPoints()) {
+                    loadData3d(null, SIREPO.APP_SCHEMA.constants.dicomFrame);
+                    loadData3d(null, SIREPO.APP_SCHEMA.constants.doseFrame);
+                    if (dicomDomain && roiFeature) {
+                        roiFeature.clear();
+                        refresh();
+                    }
+                    if (iradService.getDose2Reader()) {
+                        loadData3d(null, SIREPO.APP_SCHEMA.constants.dose2Frame);
+                    }
+                    else {
+                        iradService.loadDose2File();
+                    }
                 }
-            });
+                else {
+                    $scope.$on('irad-vti-available', loadData3d);
+                    $scope.$on('irad-roi-available', function() {
+                        if (dicomDomain && roiFeature) {
+                            roiFeature.clear();
+                            refresh();
+                        }
+                    });
+                }
 
-            $scope.$on('irad-vti-available', loadData3d);
-
-            $scope.$on('dicomSettings.changed', renderData);
+                $scope.$on('dicomSettings.changed', renderData);
+                $scope.$watch('model.frameIdx', renderData);
+            };
         },
         link: function link(scope, element) {
             appState.whenModelsLoaded(scope, function() {
                 plotting.linkPlot(scope, element);
+                scope.initData();
             });
         },
     };
@@ -1336,12 +1593,12 @@ SIREPO.app.directive('dicomObjectSelector', function(appState, iradService) {
         scope: {},
         template: [
             //TODO(pjm): move style into classes
-            '<div data-ng-repeat="row in rows" style="padding: 0.5ex 0;">',
+            '<div data-ng-repeat="row in rows" style="padding: 0.5ex 0; white-space: nowrap; overflow: hidden">',
               '<div>',
-                '<div data-ng-if="row.items" style="display: inline-block; cursor: pointer; margin-right: 5px;" data-ng-click="toggleExpanded(row)">',
+                '<div data-ng-if="row.items" style="display: inline-block; cursor: pointer; margin-right: 5px; white-space: nowrap" data-ng-click="toggleExpanded(row)">',
                   '<span class="glyphicon" data-ng-class="row.isExpanded ? \'glyphicon-collapse-up\' : \'glyphicon-collapse-down\'"></span>',
                 '</div>',
-                '<div style="display: inline-block; cursor: pointer" data-ng-click="toggleSelected(row)">',
+                '<div style="display: inline-block; cursor: pointer; white-space: nowrap" data-ng-click="toggleSelected(row)">',
                   '<span class="glyphicon" data-ng-class="appState.models.dicomSettings[row.field] == \'1\' ? \'glyphicon-check\' : \'glyphicon-unchecked\'"></span>',
                   ' {{ row.name }}',
                 '</div>',
@@ -1367,6 +1624,9 @@ SIREPO.app.directive('dicomObjectSelector', function(appState, iradService) {
             };
 
             function init() {
+                if ($scope.rows) {
+                    return;
+                }
                 $scope.rows = [];
                 ['showCT', 'showRTDose', 'showRTStruct', 'showRTPlan'].forEach(function(f) {
                     var info = SIREPO.APP_SCHEMA.model.dicomSettings[f];
@@ -1435,9 +1695,15 @@ SIREPO.app.directive('dicomObjectSelector', function(appState, iradService) {
                 }
             };
 
-            appState.whenModelsLoaded($scope, init);
-
-            $scope.$on('irad-roi-available', loadROIs);
+            appState.whenModelsLoaded($scope, function() {
+                init();
+                if (iradService.getROIPoints()) {
+                    loadROIs();
+                }
+                else {
+                    $scope.$on('irad-roi-available', loadROIs);
+                }
+            });
         },
     };
 });
@@ -1460,6 +1726,25 @@ SIREPO.app.directive('toggleReportButton', function(appState) {
                     appState.saveChanges('dicomSettings');
                 }
             };
+        },
+    };
+});
+
+SIREPO.app.directive('downloadStatus', function(iradService) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div data-ng-if="iradService.downloadStatus" class="col-sm-12">',
+              '<div class="progress" style="height: 28px; margin-bottom: 5px">',
+                '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%; font-size: 24px">',
+                  '<span class="glyphicon glyphicon-hourglass"></span> {{ iradService.downloadStatus }}',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.iradService = iradService;
         },
     };
 });

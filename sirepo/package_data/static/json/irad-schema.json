@@ -12,9 +12,11 @@
     },
     "constants": {
         "dicomFrame": 1,
+        "dose2Frame": 3,
+        "dose3Frame": 4,
         "doseFrame": 2,
         "inProgressText": "Working",
-        "roiFrame": 3
+        "roiFrame": 5
     },
     "dynamicFiles": {
         "externalLibs": {
@@ -37,6 +39,13 @@
             "config": {
                 "controller": "SourceController as source",
                 "templateUrl": "/static/html/irad-source.html"
+            }
+        },
+        "dose": {
+            "route": "/dose/:simulationId",
+            "config": {
+                "controller": "DoseController as dose",
+                "templateUrl": "/static/html/irad-dose-comparison.html"
             }
         }
     },
