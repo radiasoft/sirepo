@@ -1273,13 +1273,13 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                 var dosePixels = [];
                 var maxDose = 0;
                 var yIdx = 0;
-                for (var y = ydomain[0]; y < ydomain[1]; yIdx++, y = ydomain[0] + yIdx * yStep) {
+                for (var y = ydomain[0]; y < ydomain[1]; y = ydomain[0] + yIdx * yStep) {
                     var row = [];
                     dosePixels.push(row);
                     var yIdx1 = Math.round((y - dose1Domain[0][1]) / yStep);
                     var yIdx2 = Math.round((y - dose2Domain[0][1]) / yStep);
                     var xIdx = 0;
-                    for (var x = xdomain[0]; x < xdomain[1]; xIdx++, x = xdomain[0] + xIdx * xStep) {
+                    for (var x = xdomain[0]; x < xdomain[1]; x = xdomain[0] + xIdx * xStep) {
                         var v1 = 0;
                         var v2 = 0;
                         //TODO(pjm): combine into a shared function for x/y
@@ -1308,7 +1308,9 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                         if (diff > maxDose) {
                             maxDose = diff;
                         }
+                        xIdx++;
                     }
+                    yIdx++;
                 }
 
                 //TODO(pjm): copied from renderData()
@@ -1328,7 +1330,7 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                     canvas, xdomain, [
                         ydomain[0] + offset,
                         ydomain[1] + offset,
-                    ]);;
+                    ]);
             }
 
             $scope.$on('irad-compute-dose-comparison', computeDoseComparison);
