@@ -1066,6 +1066,16 @@
             "title": "Crystal",
             "basic": [],
             "advanced": [
+                ["Geometry", [
+                    "title",
+                    "position",
+                    "energy",
+		            "useCase",
+                    "diffractionAngle",
+                    "asymmetryAngle",
+                    "crystalThickness",
+                    "dSpacing"
+                ]],
                 ["Material&Polarizability", [
                     [
                         ["Material of the crystal", [
@@ -1090,15 +1100,7 @@
                         ]]
                     ]
                 ]],
-                ["Geometry & Orientation", [
-                    "title",
-                    "position",
-                    "energy",
-		            "useCase",
-                    "diffractionAngle",
-                    "asymmetryAngle",
-                    "crystalThickness",
-                    "dSpacing",
+                ["Orientation",[
                     [
                         ["Outward normal vector", [
                             "nvx",
