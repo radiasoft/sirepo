@@ -129,7 +129,8 @@ def import_file(req, test_data=None, **kwargs):
         #)
         #mm = madx_parser.parse_file(text, downcase_variables=True)
         #pkdp('MADX {} VS DATA {}', mm, data)
-        madx_converter.fixup_madx(madx_parser.parse_file(text, downcase_variables=True))
+        data = madx_parser.parse_file(text, downcase_variables=True)
+        madx_converter.fixup_madx(data)
     else:
         raise IOError('invalid file extension, expecting .ele or .lte')
     data.models.simulation.name = re.sub(
