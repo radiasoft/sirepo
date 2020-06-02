@@ -629,11 +629,11 @@ def init(uwsgi=None, use_reloader=False):
 
 
 def init_apis(app, *args, **kwargs):
+    import sirepo.job
+
     for e, _ in simulation_db.SCHEMA_COMMON['customErrors'].items():
         app.register_error_handler(int(e), _handle_error)
-    importlib.import_module(
-        'sirepo.' + ('job' if feature_config.cfg().job else 'runner')
-    ).init_by_server(app)
+    sirepo.job.init_by_server(app)
 
 
 def _handle_error(error):
@@ -722,5 +722,4 @@ cfg = pkconfig.init(
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
     db_dir=pkconfig.ReplacedBy('sirepo.srdb.root'),
     google_tag_manager_id=(None, str, 'enable google analytics with this id'),
-    job_queue=pkconfig.ReplacedBy('sirepo.runner.job_class'),
 )

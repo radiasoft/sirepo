@@ -32,15 +32,10 @@ WANT_BROWSER_FRAME_CACHE = True
 
 TUNES_INPUT_FILE = 'tunesFromFai.In'
 
-ZGOUBI_LOG_FILE = 'sr_zgoubi.log'
-
 _ELEMENT_NAME_MAP = PKDict({
     'FFAG': 'FFA',
     'FFAG-SPI': 'FFA-SPI',
 })
-
-#TODO(pjm): could be determined from schema ParticleSelector enum
-_MAX_FILTER_PLOT_PARTICLES = 10
 
 _TUNES_FILE = 'tunesFromFai_spctra.Out'
 
@@ -298,7 +293,7 @@ def background_percent_complete(report, run_dir, is_running):
         in_file = run_dir.join('{}.json'.format(template_common.INPUT_BASE_NAME))
         if in_file.exists():
             data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-            show_tunes_report = _particle_count(data) <= _MAX_FILTER_PLOT_PARTICLES \
+            show_tunes_report = _particle_count(data) <= _SCHEMA.constants.maxFilterPlotParticles \
                 and data.models.simulationSettings.npass >= 10
             show_spin_3d = data.models.SPNTRK.KSO == '1'
         count = read_frame_count(run_dir)
@@ -429,6 +424,14 @@ def import_file(req, unit_test_mode=False, **kwargs):
         pkcompat.from_bytes(req.file_stream.read()),
         unit_test_mode=unit_test_mode,
     )
+
+
+def post_execution_processing(success_exit=True, is_parallel=False, run_dir=None, **kwargs):
+    if success_exit:
+        return None
+    if not is_parallel:
+        return _parse_zgoubi_log(run_dir)
+    return None
 
 
 def prepare_sequential_output_file(run_dir, data):
@@ -599,7 +602,7 @@ def _extract_animation(frame_args):
     it_index = int(col_names.index('IT'))
     kex_index = int(col_names.index('KEX'))
     it_filter = None
-    if _particle_count(frame_args.sim_in) <= _MAX_FILTER_PLOT_PARTICLES:
+    if _particle_count(frame_args.sim_in) <= _SCHEMA.constants.maxFilterPlotParticles:
         if frame_args.particleSelector != 'all':
             it_filter = frame_args.particleSelector
 
@@ -738,11 +741,10 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
         elif el.type == 'SCALING':
             #TODO(pjm): convert to fake element jinja template
             form = 'line.add(core.FAKE_ELEM(""" \'SCALING\'\n{} {}\n{}"""))\n'
-            #TODO(pjm): keep in sync with zgoubi.js
-            _MAX_SCALING_FAMILY = 7
+            max_family = _SCHEMA.constants.maxScalingFamily
             count = 0
             scale_values = ''
-            for idx in range(1, _MAX_SCALING_FAMILY + 1):
+            for idx in range(1, max_family + 1):
                 # NAMEF1, SCL1, LBL1
                 if el.get('NAMEF{}'.format(idx), 'none') != 'none':
                     count += 1
@@ -786,6 +788,11 @@ def _generate_pyzgoubi_element(el, schema_type=None):
 
 
 def _generate_parameters_file(data):
+    bunch = data.models.bunch
+    zgoubi_importer.MODEL_UNITS.scale_to_native('bunch', bunch)
+    for f in ('FNAME', 'FNAME2', 'FNAME3'):
+        if bunch[f]:
+            bunch[f] = _SIM_DATA.lib_file_name_with_model_field('bunch', f, bunch[f])
     res, v = template_common.generate_parameters_file(data)
     report = data.report if 'report' in data else ''
     if report == 'tunesReport':
@@ -793,7 +800,7 @@ def _generate_parameters_file(data):
     v.zgoubiCommandFile = _ZGOUBI_COMMAND_FILE
     v.particleDef = _generate_particle(data.models.particle)
     v.beamlineElements = _generate_beamline_elements(report, data)
-    v.bunchCoordinates = data.models.bunch.coordinates
+    v.bunchCoordinates = bunch.coordinates
     res += template_common.render_jinja(SIM_TYPE, v, 'base.py')
     if 'twissReport' in report or 'opticsReport' in report or report == 'twissSummaryReport':
         v.fitYRange = [-10, 10]
@@ -846,6 +853,8 @@ def _parse_zgoubi_log(run_dir):
         if re.search('all particles lost', line):
             res += '{}\n'.format(line)
             continue
+        if re.search('charge found null', line):
+            res += '{}\n'.format(line)
         match = re.search(r'Enjob occured at element # (\d+)', line)
         if match:
             res += '{}\n'.format(line)
