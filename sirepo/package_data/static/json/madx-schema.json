@@ -91,6 +91,20 @@
             ["ion", "Ion"],
             ["other", "Other"]
         ],
+        "PhaseSpaceCoordinate": [
+            ["x", "x"],
+            ["px", "Px"],
+            ["y", "y"],
+            ["py", "Py"],
+            ["z", "z"],
+            ["pz", "Pz"],
+            ["q", "q"]
+        ],
+        "SpaceCoordinate": [
+            ["x", "x"],
+            ["y", "y"],
+            ["z", "z"]
+        ],
         "TwissParameter": [
             ["alfx", "alfx"],
             ["alfy", "alfy"],
@@ -238,6 +252,10 @@
         "rpnVariable": {
             "name": ["Name", "String"],
             "value": ["Value", "RPNValue"]
+        },
+        "twissEllipseReport": {
+            "dim": ["Dimension", "SpaceCoordinate", "x"],
+            "notes": ["Notes", "Text", ""]
         },
         "twissReport": {
             "y1": ["Y1 Value", "TwissParameter", "betx"],
@@ -925,6 +943,10 @@
                 "simulation.visualizationBeamlineId"
             ],
             "advanced": []
+        },
+        "twissEllipseReport": {
+            "title": "Twiss Report",
+            "advanced": ["dim"]
         },
         "twissReport": {
             "title": "Twiss Parameters",

@@ -192,11 +192,64 @@ def _code_var(variables):
 
 
 def _extract_report_data(data, run_dir):
-   return getattr(
+    if 'twissEllipse' in data.report:
+        return _extract_report_twissEllipseReport(data, run_dir)
+    return getattr(
        pykern.pkinspect.this_module(),
        '_extract_report_' + data.report,
-   )(data, run_dir)
+    )(data, run_dir)
 
+
+def _extract_report_twissEllipseReport(data, run_dir):
+    util = LatticeUtil(data, _SCHEMA)
+    m = util.find_first_command(data, 'twiss')
+    #pkdp('TWISS FOUND {}', m)
+    # must an initial twiss always exist?
+    if not m:
+        return template_common.parameter_plot([], [], None, PKDict())
+    r_model = data.models[data.report]
+    dim = r_model.dim
+    plots = []
+    n_pts = 100
+    theta = np.arange(0, 2. * np.pi, 2. * np.pi / n_pts)
+    a = 'alf{}'.format(dim)
+    b = 'bet{}'.format(dim)
+    #pkdp('ELLIPSE A {} B {}', a, b)
+    es = 'e{}'.format(dim)
+    e = m[es] if es in m else 1.0
+    phi = _ellipse_rot(m[a], m[b])
+    th = theta + phi
+    #pkdp('ELLIPSE ROT {} TH {}', phi, th)
+    #cth2 = np.cos(th) * np.cos(th)
+    #sth2 = np.sin(th) * np.sin(th)
+    #pkdp('ELLIPSE C2 {} S2 {}', cth2, sth2)
+    #sa = (1. / (m[b] * e))
+    #sb = m[b] * e
+    #pkdp('ELLIPSE SA {} SB {}', sa, sb)
+    r_inv = np.sqrt(
+        (1. / (m[b] * e)) * np.cos(th) * np.cos(th) + m[b] * e * np.sin(th) * np.sin(th)
+    )
+    r = np.divide(1.0, r_inv)
+    x = r * np.cos(th)
+    y = r * np.sin(th)
+    p = PKDict(field=dim, points=y.tolist(), label=f'{dim} [m]')
+    plots.append(
+        p
+    )
+    return template_common.parameter_plot(
+        x.tolist(),
+        plots,
+        {},
+        PKDict(title=data.models.simulation.name, y_label='', x_label='s[m]')
+    )
+
+
+def _ellipse_rot(a, b):
+    if a == 0:
+        return 0
+    return 0.5 * math.atan(
+        2. * a * b / (1 + a * a - b * b)
+    )
 
 def _extract_report_twissReport(data, run_dir):
     t = madx_parser.parse_tfs_file(run_dir.join(TWISS_OUTPUT_FILENAME))

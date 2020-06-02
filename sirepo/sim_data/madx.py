@@ -5,18 +5,33 @@ u"""simulation data operations
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
-        pass
+        dm = data.models
+        if 'twissEllipseReport1' not in dm:
+            for i in range(1, 3):
+                m = dm['twissEllipseReport{}'.format(i)] = PKDict()
+                cls.update_model_defaults(m, 'twissEllipseReport')
+                m.dim = 'x' if i == 1 else 'y'
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         # TODO(e-carlin): impl
         return []
+
+    @classmethod
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if 'bunchReport' in analysis_model:
+            return 'bunchReport'
+        #if 'twissEllipseReport' in analysis_model:
+        #    return 'twissEllipseReport'
+        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def _lib_file_basenames(cls, data):

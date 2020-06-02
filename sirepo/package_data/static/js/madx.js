@@ -309,8 +309,31 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
     var cmds = ['beam'];
 
     self.isParticleTrackingEnabled = function () {
-        srdbg(appState.models);
-        return appState.models.simulation.enableParticleTracking;
+        //srdbg(appState.models);
+        return (appState.models.simulation || {}).enableParticleTracking;
+    };
+
+    self.reportModel = function() {
+        return self.isParticleTrackingEnabled() ? 'bunchReport' : 'twissEllipseReport';
+    };
+
+    self.reports = function() {
+        return self.isParticleTrackingEnabled() ? self.bunchReports : self.ellipseReports;
+    };
+
+    self.plotType = function() {
+        return self.isParticleTrackingEnabled() ? 'heatmap' : 'parameter';
+    };
+
+    self.headings = function() {
+        return self.isParticleTrackingEnabled() ? self.bunchReportHeading : self.twissEllipseReportHeading;
+    };
+
+    self.twissEllipseReportHeading = function(modelKey) {
+        if (! appState.isLoaded()) {
+            return;
+        }
+        return 'TWISS ELLIPSE';
     };
 
     function saveCommandList(type) {
@@ -338,6 +361,18 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
             });
             $('#sr-command_beam-basicEditor h5').hide();
             $('#sr-command_distribution-basicEditor h5').hide();
+        });
+
+        // [1, 2, 3]?
+        self.ellipseReports = [1, 2].map(function(id) {
+            var modelKey = 'twissEllipseReport' + id;
+            return {
+                id: id,
+                modelKey: modelKey,
+                getData: function() {
+                    return appState.models[modelKey];
+                },
+            };
         });
     });
 
@@ -640,7 +675,6 @@ SIREPO.app.directive('appHeader', function(appState, madxService, latticeService
             };
 
             $scope.showImportModal = function() {
-                srdbg('IMPORT MODAL');
                 $('#simulation-import').modal('show');
             };
         },
