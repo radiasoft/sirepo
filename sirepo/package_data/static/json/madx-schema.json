@@ -234,6 +234,18 @@
             "radiate": ["RADIATE", "Boolean", "0"],
             "bv": ["BV", "Integer", 1]
         },
+        "command_select": {
+            "class": ["class", "OptionalString", ""],
+            "clear": ["clear", "Boolean", "0"],
+            "column": ["column", "OptionalString", ""],
+            "flag": ["flag", "OptionalString", ""],
+            "full": ["full", "Boolean", "0"],
+            "pattern": ["pattern", "OptionalString", ""],
+            "range": ["range", "OptionalString", ""],
+            "sequence": ["sequence", "OptionalString", ""],
+            "slice": ["slice", "Integer", 1],
+            "thick": ["thick", "Boolean", "0"]
+        },
         "command_show": {
             "command": ["command", "String", ""]
         },
@@ -937,6 +949,20 @@
                     "npart",
                     "sigt"
                 ]]
+            ]
+        },
+        "command_select": {
+            "advanced": [
+                "class",
+                "clear",
+                "column",
+                "flag",
+                "full",
+                "pattern",
+                "range",
+                "sequence",
+                "slice",
+                "thick"
             ]
         },
         "command_show": {

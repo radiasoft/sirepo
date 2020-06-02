@@ -319,6 +319,8 @@ def _generate_variables(code_var, data):
 
 def _format_field_value(state, model, field, el_type):
     v = model[field]
-    if el_type == 'LatticeBeamlineList':
+    if el_type == 'Boolean':
+        v = 'true' if v == '1' else 'false'
+    elif el_type == 'LatticeBeamlineList':
         v = state.id_map[int(v)].name
     return [field, v]
