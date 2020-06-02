@@ -210,29 +210,29 @@ def _extract_report_twissEllipseReport(data, run_dir):
     r_model = data.models[data.report]
     dim = r_model.dim
     plots = []
-    n_pts = 100
-    theta = np.arange(0, 2. * np.pi, 2. * np.pi / n_pts)
-    a = 'alf{}'.format(dim)
-    b = 'bet{}'.format(dim)
+    n_pts = 200
+    theta = np.arange(0, 2. * np.pi * (n_pts / (n_pts - 1)), 2. * np.pi / n_pts)
+    alf = 'alf{}'.format(dim)
+    bet = 'bet{}'.format(dim)
+    a = m[alf]
+    b = m[bet]
+    g = (1. + a * a) / b
     #pkdp('ELLIPSE A {} B {}', a, b)
-    es = 'e{}'.format(dim)
-    e = m[es] if es in m else 1.0
-    phi = _ellipse_rot(m[a], m[b])
-    th = theta + phi
-    #pkdp('ELLIPSE ROT {} TH {}', phi, th)
-    #cth2 = np.cos(th) * np.cos(th)
-    #sth2 = np.sin(th) * np.sin(th)
-    #pkdp('ELLIPSE C2 {} S2 {}', cth2, sth2)
-    #sa = (1. / (m[b] * e))
-    #sb = m[b] * e
-    #pkdp('ELLIPSE SA {} SB {}', sa, sb)
-    r_inv = np.sqrt(
-        (1. / (m[b] * e)) * np.cos(th) * np.cos(th) + m[b] * e * np.sin(th) * np.sin(th)
+    eta = 'e{}'.format(dim)
+    e = m[eta] if eta in m else 1.0
+    phi = _ellipse_rot(a, b)
+    th = theta - phi
+    #pkdp('ELLIPSE ROT {}', phi)
+    mj = math.sqrt(e * b)
+    mn = 1.0 / mj
+    r = np.power(
+        mn * np.cos(th) * np.cos(th) + mj * np.sin(th) * np.sin(th),
+        -0.5
     )
-    r = np.divide(1.0, r_inv)
-    x = r * np.cos(th)
-    y = r * np.sin(th)
-    p = PKDict(field=dim, points=y.tolist(), label=f'{dim} [m]')
+    #pkdp('ELLIPSE R(TH) {}', r)
+    x = r * np.cos(theta)
+    y = r * np.sin(theta)
+    p = PKDict(field=dim, points=y.tolist(), label=f'{dim}\' [rad]')
     plots.append(
         p
     )
@@ -240,7 +240,11 @@ def _extract_report_twissEllipseReport(data, run_dir):
         x.tolist(),
         plots,
         {},
-        PKDict(title=data.models.simulation.name, y_label='', x_label='s[m]')
+        PKDict(
+            title=f'{data.models.simulation.name} a{dim} = {a} b{dim} = {b} g{dim} = {g}',
+            y_label='',
+            x_label=f'{dim} [m]'
+        )
     )
 
 
