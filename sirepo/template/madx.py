@@ -25,17 +25,36 @@ import math
 import numpy as np
 import pykern.pkinspect
 import re
+import scipy.constants
 import sirepo.sim_data
 
 
-_FILE_TYPES = ['ele', 'lte', 'madx']
-MADX_INPUT_FILENAME = 'madx.in'
-MADX_OUTPUT_FILENAME = 'madx.out'
-TWISS_OUTPUT_FILENAME = 'twiss.tfs'
+MADX_INPUT_FILE = 'madx.in'
 
-_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+MADX_OUTPUT_FILE = 'madx.out'
+
+_FILE_TYPES = ['ele', 'lte', 'madx']
+
+_FIELD_LABEL = PKDict(
+    alfx='alfx [1]',
+    alfy='alfy [1]',
+    betx='betx [m]',
+    bety='bety [m]',
+    dpx='dpx [1]',
+    dpy='dpy [1]',
+    dx='dx[m]',
+    dy='dy [m]',
+    mux='mux [2π]',
+    muy='muy [2π]',
+    px='px [1]',
+    py='py [1]',
+    s='s [m]',
+    x='x [m]',
+    y='y [m]',
+)
 
 _PI = 4 * math.atan(1)
+
 _MADX_CONSTANTS = PKDict(
     pi=_PI,
     twopi=_PI * 2.0,
@@ -52,8 +71,30 @@ _MADX_CONSTANTS = PKDict(
     erad=2.8179403267e-15,
 )
 
+_MADX_PTC_PARTICLES_FILE = 'ptc_particles.madx'
+
+_MADX_PTC_TRACK_DUMP_FILE = 'ptc_track_dump'
+
+_MADX_PTC_TRACK_DUMP_FILE_EXTENSION = 'tfs'
+
+_MADX_TWISS_OUTPUT_FILE = 'twiss.tfs'
+
 _METHODS = template_common.RPN_METHODS.extend([])
 
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+
+
+
+def background_percent_complete(report, run_dir, is_running):
+    if is_running:
+        return PKDict(
+            percentComplete=0,
+            frameCount=0,
+        )
+    return PKDict(
+        percentComplete=100,
+        frameCount=1,
+    )
 
 def get_application_data(data, **kwargs):
     if 'method' not in data:
@@ -146,8 +187,17 @@ def prepare_sequential_output_file(run_dir, data):
             f.remove()
             save_sequential_report_data(data, run_dir)
 
+# TODO(e-carlin): fixme - I don't return python
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
+
+
+def sim_frame(frame_args):
+    d = frame_args.sim_in
+    d.report = frame_args.frameReport
+    m = d.models[d.report]
+    m.update((k, frame_args[k]) for k in frame_args.keys() & m.keys())
+    return _extract_report_data(d, frame_args.run_dir)
 
 
 def save_sequential_report_data(data, run_dir):
@@ -166,7 +216,11 @@ def write_parameters(data, run_dir, is_parallel):
         is_parallel (bool): run in background?
     """
     pkio.write_text(
-        run_dir.join(MADX_INPUT_FILENAME),
+        run_dir.join(_MADX_PTC_PARTICLES_FILE),
+        _generate_ptc_particles_file(data),
+    )
+    pkio.write_text(
+        run_dir.join(MADX_INPUT_FILE),
         _generate_parameters_file(data),
     )
 
@@ -180,11 +234,14 @@ def _code_var(variables):
 
 
 def _extract_report_data(data, run_dir):
-    if 'twissEllipse' in data.report:
+    r = data.get('report', data.get('frameReport'))
+    if 'twissEllipse' in r:
         return _extract_report_twissEllipseReport(data, run_dir)
+    elif r.startswith('twiss'):
+        return _extract_report_twissReport(data, run_dir)
     return getattr(
-       pykern.pkinspect.this_module(),
-       '_extract_report_' + data.report,
+        pykern.pkinspect.this_module(),
+        '_extract_report_' + r,
     )(data, run_dir)
 
 
@@ -243,21 +300,44 @@ def _ellipse_rot(a, b):
         2. * a * b / (1 + a * a - b * b)
     )
 
-def _extract_report_twissReport(data, run_dir):
-    t = madx_parser.parse_tfs_file(run_dir.join(TWISS_OUTPUT_FILENAME))
+def _extract_report_ptcAnimation(data, run_dir):
+    def _to_floats(vals):
+        return list(map(lambda v: float(v), vals))
+
     m = data.models[data.report]
+    t = madx_parser.parse_tfs_file(
+        run_dir.join(
+            # POSIT: We are using the onetable option so madx appends one to the filename
+            f'{_MADX_PTC_TRACK_DUMP_FILE}one.{_MADX_PTC_TRACK_DUMP_FILE_EXTENSION}',
+        ),
+    )
+    return template_common.heatmap(
+        [_to_floats(t[m.x]), _to_floats(t[m.y])],
+        m,
+        PKDict(
+            x_label=_FIELD_LABEL[m.x],
+            y_label=_FIELD_LABEL[m.y],
+            title=data.models.simulation.name,
+        ),
+    )
+
+
+def _extract_report_twissReport(data, run_dir):
+    t = madx_parser.parse_tfs_file(run_dir.join(_MADX_TWISS_OUTPUT_FILE))
     plots = []
+    m = data.models[data.report]
     for f in ('y1', 'y2', 'y3'):
         if m[f] == 'none':
             continue
         plots.append(
-            PKDict(field=m[f], points=t[m[f]], label=f'{m[f]} [m]')
+            PKDict(field=m[f], points=t[m[f]], label=_FIELD_LABEL[m[f]])
         )
+    x = m.get('x') or 's'
     return template_common.parameter_plot(
-        t.s,
+        t[x],
         plots,
         m,
-        PKDict(title=data.models.simulation.name, y_label='', x_label='s[m]')
+        PKDict(title=data.models.simulation.name, y_label='', x_label=_FIELD_LABEL[x])
     )
 
 
@@ -269,8 +349,14 @@ def _generate_commands(util):
         res += f'{c[0]._type}'
         for f in c[1]:
            res += f', {f[0]}={f[1]}'
-        if c[0]._type == 'twiss':
-            res += f', file={TWISS_OUTPUT_FILENAME}'
+        t = c[0]._type
+        if t == 'twiss':
+            res += f', file={_MADX_TWISS_OUTPUT_FILE}'
+        elif t == 'ptc_track':
+            res += (f', dump=true, onetable=true file={_MADX_PTC_TRACK_DUMP_FILE}'
+                    f', extension=.{_MADX_PTC_TRACK_DUMP_FILE_EXTENSION}')
+        elif t == 'call':
+            res += f', file={_MADX_PTC_PARTICLES_FILE}'
         res += ';\n'
     return res
 
@@ -287,7 +373,7 @@ def _generate_parameters_file(data):
     util = LatticeUtil(data, _SCHEMA)
     c = _generate_commands(util)
     code_var = _code_var(data.models.rpnVariables)
-    v.twissOutputFilename = TWISS_OUTPUT_FILENAME
+    v.twissOutputFilename = _MADX_TWISS_OUTPUT_FILE
     v.lattice = _generate_lattice(util)
     v.variables = _generate_variables(code_var, data)
     if data.models.simulation.visualizationBeamlineId:
@@ -295,8 +381,16 @@ def _generate_parameters_file(data):
         v.commands = _generate_commands(util)
         v.hasTwiss = bool(util.find_first_command(data, 'twiss'))
         if not v.hasTwiss:
-            v.twissOutputFilename = TWISS_OUTPUT_FILENAME
+            v.twissOutputFilename = _MADX_TWISS_OUTPUT_FILE
     return template_common.render_jinja(SIM_TYPE, v, 'parameters.madx')
+
+
+def _generate_ptc_particles_file(data):
+    return template_common.render_jinja(
+        SIM_TYPE,
+        PKDict(start_commands=_ptc_start_commands(data)),
+        _MADX_PTC_PARTICLES_FILE,
+    )
 
 
 def _generate_variable(name, variables, visited):
@@ -319,6 +413,86 @@ def _generate_variables(code_var, data):
 
 def _format_field_value(state, model, field, el_type):
     v = model[field]
-    if el_type == 'LatticeBeamlineList':
+    if el_type == 'Boolean':
+        v = 'true' if v == '1' else 'false'
+    elif el_type == 'LatticeBeamlineList':
         v = state.id_map[int(v)].name
     return [field, v]
+
+
+# TODO(e-carlin): copied from https://github.com/radiasoft/rscon/blob/d3abdaf5c1c6d41797a4c96317e3c644b871d5dd/webcon/madx_examples/FODO_example_PTC.ipynb
+def _ptc_particles(beam_gamma = 7.0, x_emittance = 1.0e-6, y_emittance = 1.0e-6,
+                 beta_x = 29.528, beta_y = 7.347, alpha_x = -3.237, alpha_y = 0.986, n_particles = 1000
+                 ):
+    ## beta is the beam velocity over the speed of light
+    beta = np.sqrt(1. - 1. / beam_gamma **2.)
+
+    ## p0 is the baeam momentum
+    p0 = beta * beam_gamma * scipy.constants.c * scipy.constants.m_p
+
+    ## Beam kenetic energ
+    E0 = (beam_gamma - 1.) * scipy.constants.m_p * scipy.constants.c ** 2.
+
+    ##
+    n_part = n_particles
+    ex = x_emittance
+    ey = y_emittance
+
+    ## Gamma is a derived twiss parameter from alpha and beta
+    gamma_x = (1. + alpha_x ** 2.) / beta_x
+    gamma_y = (1. + alpha_y ** 2.) / beta_y
+
+    ## rms beam size
+    xx = beta_x * ex
+    yy = beta_y * ey
+
+    ## x-xp correlation
+    xxp = - alpha_x * ex
+    yyp = - alpha_y * ey
+
+    ## rms size in momentum
+    xpxp = ex * gamma_x
+    ypyp = ey * gamma_y
+
+    ## covariance matrix for gaussian beam
+    ## in the future we will want to be able to define
+    ## centroid values, and also x-y correlation terms
+    mean = [0, 0, 0, 0]
+    cov = [[xx, xxp, 0 , 0],
+           [xxp, xpxp, 0, 0],
+           [0, 0, yy, yyp],
+           [0, 0, yyp, ypyp]]
+
+    transverse = np.random.multivariate_normal(mean, cov, n_part)
+
+    x = transverse[:,0]
+    xp = transverse[:,1]
+    y = transverse[:,2]
+    yp = transverse[:,3]
+
+    ## for now the longitudional coordinates are set to zero. This just means there
+    # is no longitudioanl distribuion. We can change this soon.
+    long_part = np.random.multivariate_normal([0, 0], [[0, 0],[0, 0]], n_part)
+
+    particles = np.column_stack([x, xp, y, yp, long_part[:,0], long_part[:,1]])
+
+    return particles
+
+
+def _ptc_start_commands(data):
+    p = _ptc_particles(n_particles=data.models.simulation.numberOfParticles)
+    v = PKDict(
+        x=p[:,0],
+        px=p[:,1],
+        y=p[:,2],
+        py=p[:,3],
+        t=p[:,4],
+        pt=p[:,5],
+    )
+    r = ''
+    for i in range(len(v.x)):
+        r += 'ptc_start'
+        for f in ('x', 'px', 'y', 'py', 't', 'pt'):
+           r += f', {f}={v[f][i]}'
+        r +=';\n'
+    return r

@@ -8,6 +8,15 @@ SIREPO.app.config(function() {
     SIREPO.appMadxExport = true;
     SIREPO.appImportText = 'Import a lattice (.madx) file';
     SIREPO.appFieldEditors += [
+        '<div data-ng-switch-when="Float2StringArray" class="col-sm-7">',
+          '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="2"></div>',
+        '</div>',
+        '<div data-ng-switch-when="Integer2StringArray" class="col-sm-7">',
+          '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="2"></div>',
+        '</div>',
+        '<div data-ng-switch-when="Float6StringArray" class="col-sm-7">',
+          '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="6"></div>',
+        '</div>',
     ].join('');
     SIREPO.appDownloadLinks = [
     ].join('');
@@ -286,6 +295,27 @@ SIREPO.app.factory('madxService', function(appState, commandService, requestSend
         appState.saveChanges('commands');
     });
 
+    commandService.canDeleteCommand = function(command) {
+        commandService.deleteCommandWarning = '';
+        // Each of these fields must be present at least once
+        if (
+            [
+                'call',
+                'ptc_create_universe',
+                'ptc_create_layout',
+                'ptc_observe', 'ptc_track',
+                'ptc_track_end',
+                'ptc_end'
+            ].indexOf(command._type) >= 0
+        ) {
+            if (commandService.findAllComands(command._type).length == 1) {
+                commandService.deleteCommandWarning = commandService.formatCommandName(command) + ' is the only ' + command._type;
+                return false;
+            }
+        }
+        return true;
+    };
+
     // overrides commandService.commandFileExtension for elegant file extensions
     commandService.commandFileExtension = function(command) {
         //TODO(pjm): keep in sync with template/elegant.py _command_file_extension()
@@ -309,7 +339,6 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
     var cmds = ['beam'];
 
     self.isParticleTrackingEnabled = function () {
-        //srdbg(appState.models);
         return (appState.models.simulation || {}).enableParticleTracking;
     };
 
@@ -383,12 +412,11 @@ SIREPO.app.controller('CommandController', function(commandService, panelState) 
     var self = this;
     self.activeTab = 'basic';
     self.basicNames = [
-        'attlist', 'beam', 'distribution', 'eigen',
-        'envelope', 'fieldsolver', 'filter', 'geometry',
-        'list', 'matrix', 'micado', 'option',
-        'particlematterinteraction', 'select', 'start', 'survey',
-        'threadall', 'threadbpm', 'track', 'twiss',
-        'twiss3', 'twisstrack', 'wake',
+        'beam', 'exit', 'help', 'option', 'resbeam',
+        'ptc_create_layout', 'ptc_create_universe', 'ptc_end',
+        'ptc_normal', 'ptc_observe', 'ptc_start', 'ptc_track',
+        'ptc_track_end', 'select', 'set', 'show', 'sodd', 'system',
+        'title', 'twiss', 'use', 'value'
     ];
     self.advancedNames = [];
 
@@ -437,158 +465,9 @@ SIREPO.app.controller('VisualizationController', function(appState, madxService,
     function handleStatus(data) {
         self.simulationAlerts = data.alert || '';
         if (data.frameCount) {
-            frameCache.setFrameCount(parseInt(data.frameCount));
-            loadElementReports(data.outputInfo);
-        }
-        if (self.simState.isStopped()) {
-            if (! data.frameCount) {
-                if (data.state == 'completed' && ! self.simulationAlerts) {
-                    // completed with no output, show link to log
-                    self.simulationAlerts = 'No output produced. View the ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName  + ' log for more information.';
-                }
-                self.outputFiles = [];
-                self.outputFileMap = {};
-            }
+            frameCache.setFrameCount(1);
         }
     }
-    self.errorHeader = function() {
-        if(! self.simulationAlerts || self.simulationAlerts == '') {
-            return '';
-        }
-        return SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName + ' ' + (self.simulationAlerts.toLowerCase().indexOf('error') >= 0 ? 'Errors:' : 'Warnings:');
-    };
-
-    function loadElementReports(outputInfo) {
-        self.outputFiles = [];
-        self.outputFileMap = {};
-        var similarRowCounts = {};
-
-        outputInfo.forEach(function (info) {
-            if (info.isAuxFile) {
-                return;
-            }
-            if (! info.columns) {
-                return;
-            }
-            panelState.setError(info.modelKey, null);
-            var outputFile = {
-                info: info,
-                reportType: info.isHistogram ? 'heatmap' : 'parameterWithLattice',
-                viewName: (info.isHistogram ? 'heatmap' : 'plot') + 'FrameAnimation',
-                filename: info.filename,
-                modelAccess: {
-                    modelKey: info.modelKey,
-                },
-            };
-            self.outputFiles.push(outputFile);
-            self.outputFileMap[outputFile.filename] = outputFile;
-            var rowCountsKey = info.rowCounts.join(' ');
-            if (!(rowCountsKey in similarRowCounts)) {
-                similarRowCounts[rowCountsKey] = [];
-            }
-            similarRowCounts[rowCountsKey].push(info.filename);
-            info.similarFiles = similarRowCounts[rowCountsKey];
-        });
-
-        self.outputFiles.forEach(function (outputFile, i) {
-            var info = outputFile.info;
-            var modelKey = outputFile.modelAccess.modelKey;
-            var m = null;
-            if (appState.models[modelKey]) {
-                m = appState.models[modelKey];
-                m.xFileId = info.id;
-                m.xFile = info.filename;
-                m.y1File = info.filename;
-                if (info.plottableColumns.indexOf(m.x) < 0) {
-                    m.x = info.plottableColumns[0];
-                }
-                if (! m.plotRangeType) {
-                    m.plotRangeType = 'none';
-                }
-            }
-            else {
-                m = appState.models[modelKey] = {
-                    xFile: info.filename,
-                    y1File: info.filename,
-                    x: info.plottableColumns[0],
-                    xFileId: info.id,
-                };
-                // Only display the first outputFile
-                if (i > 0 && ! panelState.isHidden(modelKey)) {
-                    panelState.toggleHidden(modelKey);
-                }
-            }
-            appState.setModelDefaults(m, 'elementAnimation');
-            m.valueList = {
-                x: info.plottableColumns,
-                y1: info.plottableColumns,
-                xFile: [m.xFile],
-                y1File: [m.xFile],
-                y2File: info.similarFiles,
-                y3File: info.similarFiles,
-            };
-            m.panelTitle = cleanFilename(m.xFile);
-            yFileUpdate(modelKey);
-            appState.saveQuietly(modelKey);
-            frameCache.setFrameCount(info.pageCount, modelKey);
-            if (! info.pageCount) {
-                panelState.setError(modelKey, 'No output was generated for this report.');
-            }
-            appState.watchModelFields(
-                $scope,
-                [modelKey + '.y2File', modelKey + '.y3File'],
-                function () {
-                    yFileUpdate(modelKey);
-                });
-        });
-        $rootScope.$broadcast('elementAnimation.outputInfo', outputInfo);
-    }
-
-    function yFileUpdate(modelKey) {
-        var m = appState.models[modelKey];
-        if (! m.y1 && m.y) {
-            m.y1 = m.y;
-        }
-        ['y1', 'y2', 'y3'].forEach(function(f) {
-            var field = f + 'File';
-            if (m.valueList[field].indexOf(m[field]) < 0) {
-                m[field] = m.xFile;
-            }
-            var info = self.outputFileMap[m[field]].info;
-            m[field + 'Id'] = info.id;
-            var cols = m.valueList[f] = appState.clone(info.plottableColumns);
-            if (f != 'y1') {
-                cols.unshift('None');
-            }
-            if (!m[f] || cols.indexOf(m[f]) < 0) {
-                if (f == 'y1') {
-                    m[f] = defaultYColumn(cols, m.x);
-                }
-                else {
-                    m[f] = 'None';
-                }
-            }
-        });
-    }
-
-    self.logFileURL = function() {
-        return madxService.dataFileURL(self.simState.model, -1);
-    };
-
-    self.runningStatusText = function() {
-        if (appState.isLoaded()) {
-            var res = self.simState.stateAsText();
-            var sim = appState.applicationState().simulation;
-            if (sim.backtracking == '1') {
-                res += ' Backtrace';
-            }
-            if (sim.simulationMode == 'parallel') {
-                res += ' in Parallel';
-            }
-            return res + self.simState.dots;
-        }
-        return '';
-    };
 
     self.startSimulation = function() {
         self.simState.saveAndRunSimulation('simulation');
@@ -599,14 +478,6 @@ SIREPO.app.controller('VisualizationController', function(appState, madxService,
         madxService.computeModel(),
         handleStatus
     );
-
-    // override persistentSimulation settings
-    self.simState.isInitializing = function() {
-        if (self.simState.percentComplete === 0 && self.simState.isProcessing()) {
-            return true;
-        }
-        return self.simState.isStatePending();
-    };
 });
 
 SIREPO.app.directive('appFooter', function() {
@@ -1175,39 +1046,7 @@ SIREPO.app.directive('inputFileXY', function() {
     };
 });
 
-SIREPO.app.directive('enumList', function() {
-    return {
-        restrict: 'A',
-        scope: {
-            field: '=',
-            info: '<',
-            typeList: '<',
-        },
-        template: [
-            '<div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >',
-                '<label style="margin-right: 1ex">{{valueLabels[$index] || \'Plane \' + $index}}</label>',
-                '<select ',
-                    'class="form-control elegant-list-value" data-ng-model="values[$index]" data-ng-change="didChange()"',
-                    'data-ng-options="item[0] as item[1] for item in typeList">',
-                '</select>',
-            '</div>'
-        ].join(''),
-        controller: function($scope) {
-            $scope.values = null;
-            $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/);
-            $scope.didChange = function() {
-                $scope.field = $scope.values.join(', ');
-            };
-            $scope.parseValues = function() {
-                if ($scope.field && ! $scope.values) {
-                    $scope.values = $scope.field.split(/\s*,\s*/);
-                }
-                return $scope.values;
-            };
-        },
-    };
-});
-
+// TODO(e-carlin): share with elegant
 SIREPO.app.directive('numberList', function() {
     return {
         restrict: 'A',
@@ -1219,15 +1058,15 @@ SIREPO.app.directive('numberList', function() {
         },
         template: [
             '<div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >',
-            '<label style="margin-right: 1ex">{{valueLabels[$index] || \'Plane \' + $index}}</label>',
-            '<input class="form-control elegant-list-value" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
+            '<label style="margin-right: 1ex">{{ valueLabels[$index] }}</label>',
+            '<input class="form-control sr-number-list" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
             '</div>'
         ].join(''),
         controller: function($scope) {
             $scope.values = null;
             $scope.numberType = $scope.type.toLowerCase();
             //TODO(pjm): share implementation with enumList
-            $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/);
+            $scope.valueLabels = $scope.info[4];
             $scope.didChange = function() {
                 $scope.field = $scope.values.join(', ');
             };

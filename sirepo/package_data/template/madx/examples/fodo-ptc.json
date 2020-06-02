@@ -204,5 +204,6 @@
             "y3": "dx"
         }
     },
-    "simulationType": "madx"
+    "simulationType": "madx",
+    "version": "20200605.131802"
 }

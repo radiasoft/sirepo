@@ -1217,7 +1217,7 @@ SIREPO.app.directive('enumList', function() {
             '<div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >',
                 '<label style="margin-right: 1ex">{{valueLabels[$index] || \'Plane \' + $index}}</label>',
                 '<select ',
-                    'class="form-control elegant-list-value" data-ng-model="values[$index]" data-ng-change="didChange()"',
+                    'class="form-control sr-number-list" data-ng-model="values[$index]" data-ng-change="didChange()"',
                     'data-ng-options="item[0] as item[1] for item in typeList">',
                 '</select>',
             '</div>'
@@ -1250,7 +1250,7 @@ SIREPO.app.directive('numberList', function() {
         template: [
             '<div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >',
             '<label style="margin-right: 1ex">{{valueLabels[$index] || \'Plane \' + $index}}</label>',
-            '<input class="form-control elegant-list-value" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
+            '<input class="form-control sr-number-list" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
             '</div>'
         ].join(''),
         controller: function($scope) {
