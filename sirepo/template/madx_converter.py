@@ -326,11 +326,16 @@ def _convert(name, data, direction):
         if f in data.models.simulation:
             res.models.simulation[f] = data.models.simulation[f]
     if direction == 'to' and to_class.sim_type() == 'madx':
-        beam = to_class.model_defaults('command_beam')
-        beam._type = 'beam'
-        beam.name = 'BEAM1'
-        beam._id = max_id + 1
-        res.models.commands.append(beam)
+        def _create_command(command):
+            nonlocal max_id
+            c = to_class.model_defaults(f'command_{command}')
+            c._type = command
+            max_id += 1
+            c._id = max_id
+            res.models.commands.append(c)
+            return c
+        _, u = map(_create_command, ('beam', 'use'))
+        u.sequence = data.models.simulation.visualizationBeamlineId
     return res
 
 
