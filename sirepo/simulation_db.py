@@ -263,11 +263,10 @@ def get_schema(sim_type):
     pkcollections.mapping_merge(
         schema,
         PKDict(
-            feature_config=feature_config.for_sim_type(t).pkupdate(
-                job=feature_config.cfg().job,
-            ),
+            feature_config=feature_config.for_sim_type(t)
         ),
     )
+    schema.feature_config = feature_config.for_sim_type(t)
     schema.simulationType = t
     _SCHEMA_CACHE[t] = schema
 
@@ -295,30 +294,6 @@ def generate_json(data, pretty=False):
         str: formatted data
     """
     return util.json_dump(data, pretty=pretty)
-
-
-def hack_nfs_write_status(status, run_dir):
-    """Deprecated, the job_supervisor stores the status
-
-    Verify status file exists before writing.
-
-    NFS doesn't propagate files immediately so there
-    is a race condition when the celery worker starts.
-    This file handles this case.
-
-    Args:
-        status (str): pending, running, completed, canceled
-        run_dir (py.path): where to write the file
-    """
-    if feature_config.cfg().job:
-        return
-    fn = run_dir.join(sirepo.job.RUNNER_STATUS_FILE)
-    for i in range(cfg.nfs_tries):
-        if fn.check(file=True):
-            break
-        time.sleep(cfg.nfs_sleep)
-    # Try once always
-    write_status(status, run_dir)
 
 
 def iterate_simulation_datafiles(simulation_type, op, search=None):
@@ -469,27 +444,20 @@ def parse_sim_ser(data):
             return None
 
 
-def prepare_simulation(data, run_dir=None):
+def prepare_simulation(data, run_dir):
     """Create and install files, update parameters, and generate command.
 
     Copies files into the simulation directory (``run_dir``)
     Updates the parameters in ``data`` and save.
-    Generate the pkcli command to pass to task runner.
+    Generate the pkcli command.
 
     Args:
         data (dict): report and model parameters
-        run_dir (py.path.local): defaults to `simulation_run_dir`
+        run_dir (py.path.local): dir simulation will be run in
     Returns:
         list, py.path: pkcli command, simulation directory
     """
     import sirepo.sim_data
-    if run_dir is None:
-        # This is the legacy (pre-runner-daemon) code path
-        run_dir = simulation_run_dir(data, remove_dir=True)
-        #TODO(robnagler) create a lock_dir -- what node/pid/thread to use?
-        #   probably can only do with celery.
-        pkio.mkdir_parent(run_dir)
-        write_status('pending', run_dir)
     sim_type = data.simulationType
     template = sirepo.template.import_module(data)
     s = sirepo.sim_data.get_class(sim_type)
@@ -536,49 +504,6 @@ def read_json(filename):
         object: json converted to python
     """
     return json_load(json_filename(filename))
-
-
-def read_result(run_dir):
-    """Deprecated, use template_common.read_sequential_result
-
-    Read result data file from simulation
-
-    Args:
-        run_dir (py.path): where to find output
-
-    Returns:
-        dict: result (possibly error)
-    """
-    fn = json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
-    res = None
-    err = None
-    try:
-        res = read_json(fn)
-    except Exception as e:
-        pkdc('{}: exception={}', fn, e)
-        err = pkdexc()
-        if pkio.exception_is_not_found(e):
-            #TODO(robnagler) change POSIT matches _SUBPROCESS_ERROR_RE
-            err = 'ERROR: Terminated unexpectedly'
-            # Not found so return run.log as err
-            rl = run_dir.join(template_common.RUN_LOG)
-            try:
-                e = pkio.read_text(rl)
-                if _RUN_LOG_CANCEL_RE.search(e):
-                    err = None
-                elif e:
-                    err = e
-            except Exception as e:
-                if not pkio.exception_is_not_found(e):
-                    pkdlog('{}: error reading log: {}', rl, pkdexc())
-        else:
-            pkdlog('{}: error reading output: {}', fn, err)
-    if err:
-        res = PKDict(state=sirepo.job.ERROR, error=err)
-    elif not res or 'state' not in res:
-        # Old simulation or other error, just say is canceled so restarts
-        res = PKDict(state=sirepo.job.CANCELED)
-    return res
 
 
 def read_simulation_json(sim_type, *args, **kwargs):
@@ -899,22 +824,6 @@ def write_result(result, run_dir=None):
         template = sirepo.template.import_module(read_json(input_file))
         if hasattr(template, 'clean_run_dir'):
             template.clean_run_dir(run_dir)
-
-
-def write_status(status, run_dir):
-    """Deprecated, status is now stored in the job_supervisor
-
-    Write status to simulation
-
-    Args:
-        status (str): pending, running, completed, canceled
-        run_dir (py.path): where to write the file
-    """
-    if not feature_config.cfg().job:
-        pkio.atomic_write(
-            run_dir.join(sirepo.job.RUNNER_STATUS_FILE),
-            status.encode(),
-        )
 
 
 def _create_lib_and_examples(simulation_type):

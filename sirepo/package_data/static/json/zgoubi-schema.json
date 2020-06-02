@@ -1,7 +1,8 @@
 {
     "constants": {
         "helpUserManualURL": "https://zgoubi.sourceforge.io/ZGOUBI_DOCS/Zgoubi.pdf",
-        "maxScalingFamily": 16
+        "maxScalingFamily": 16,
+        "maxFilterPlotParticles": 10
     },
     "appModes": {
         "default": {

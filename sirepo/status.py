@@ -14,6 +14,7 @@ from sirepo import server
 from sirepo import simulation_db
 from sirepo import uri_router
 import datetime
+import random
 import re
 import time
 
@@ -65,14 +66,18 @@ def _run_tests():
         raise RuntimeError('failed to find sid in resp={}'.format(res.data))
     i = m.group(1)
     d = simulation_db.read_simulation_json(simulation_type, sid=i)
+    try:
+        d.models.electronBeam.current = d.models.electronBeam.current + (random.random() / 10)
+    except AttributeError:
+        assert _SIM_TYPE == 'myapp', \
+            f'{_SIM_TYPE} should be myapp or have models.electronBeam.current'
+        pass
     d.simulationId = i
     d.report = _SIM_REPORT
     r = None
     try:
-        uri_router.call_api('runSimulation', data=d)
+        resp = uri_router.call_api('runSimulation', data=d)
         for _ in range(_MAX_CALLS):
-            time.sleep(_SLEEP)
-            resp = uri_router.call_api('runStatus', data=d)
             r = simulation_db.json_load(resp.data)
             if r.state == 'error':
                 raise RuntimeError('simulation error: resp={}'.format(r))
@@ -83,6 +88,8 @@ def _run_tests():
                         raise RuntimeError('received bad report output: resp={}', r)
                 return
             d = r.nextRequest
+            resp = uri_router.call_api('runStatus', data=d)
+            time.sleep(_SLEEP)
         raise RuntimeError(
             'simulation timed out: seconds={} resp='.format(_MAX_CALLS * _SLEEP, r),
         )

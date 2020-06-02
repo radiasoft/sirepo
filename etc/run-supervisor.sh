@@ -1,6 +1,5 @@
 #!/bin/bash
 export PYKERN_PKDEBUG_WANT_PID_TIME=1
-export SIREPO_FEATURE_CONFIG_JOB=1
 export SIREPO_MPI_CORES=2
 docker_image="radiasoft/sirepo:dev"
 case ${1:-} in

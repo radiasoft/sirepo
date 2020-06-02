@@ -520,8 +520,6 @@ SIREPO.app.factory('magnetService', function() {
 
 SIREPO.app.factory('zgoubiService', function(appState, panelState) {
     var self = {};
-    //TODO(pjm): could be determined from schema ParticleSelector enum
-    var MAX_FILTER_PLOT_PARTICLES = 10;
 
     function particleCount() {
         var bunch = appState.models.bunch;
@@ -536,7 +534,7 @@ SIREPO.app.factory('zgoubiService', function(appState, panelState) {
     };
 
     self.showParticleSelector = function() {
-        return particleCount() <= MAX_FILTER_PLOT_PARTICLES;
+        return particleCount() <= SIREPO.APP_SCHEMA.constants.maxFilterPlotParticles;
     };
 
     self.processParticleCount2 = function(model) {
