@@ -234,6 +234,9 @@
             "radiate": ["RADIATE", "Boolean", "0"],
             "bv": ["BV", "Integer", 1]
         },
+        "command_show": {
+            "command": ["command", "String", ""]
+        },
         "command_twiss": {
             "alfx": ["alfx", "RPNValue", "0.0"],
             "alfy": ["alfy", "RPNValue", "0.0"],
@@ -934,6 +937,11 @@
                     "npart",
                     "sigt"
                 ]]
+            ]
+        },
+        "command_show": {
+            "advanced": [
+                "command"
             ]
         },
         "command_twiss": {

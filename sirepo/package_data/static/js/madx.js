@@ -382,7 +382,7 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
 SIREPO.app.controller('CommandController', function(commandService, panelState) {
     var self = this;
     self.activeTab = 'basic';
-    self.basicNames = ['beam', 'twiss', 'use'];
+    self.basicNames = ['beam', 'show', 'twiss', 'use'];
     self.advancedNames = [];
 
     self.createElement = function(name) {
