@@ -422,13 +422,13 @@
         },
         "crystal": {
             "title": ["Element Name", "String", "Crystal"],
-            "position": ["Position along Optical Path[m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "material": ["Material", "CrystalMaterial", "Si (SRW)"],
             "h": ["h", "MillerIndicesRange", "1"],
             "k": ["k", "MillerIndicesRange", "1"],
             "l": ["l", "MillerIndicesRange", "1"],
-            "energy": ["Average photon energy the crystal should be oriented for [eV]", "Float", 9000],
-	        "useCase": ["Geometry type", "GeometryType", "1"],
+            "energy": ["Photon energy [eV] to orient crystal for", "Float", 9000],
+	        "useCase": ["Use case", "GeometryType", "1"],
             "diffractionAngle": ["Diffraction plane (roll) angle [rad]", "DiffractionPlaneAngle", "0"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 0.0],
             "asymmetryAngle": ["Asymmetry angle [rad]", "Float", 0.0],
@@ -599,7 +599,7 @@
             "outoptvz": ["Longitudinal", "Float", 0.991339164950],
             "outframevx": ["Horizontal", "Float", 1.0],
             "outframevy": ["Vertical", "Float", 0],
-            "energyAvg": ["Average photon energy the grating should be oriented for [eV]", "Float", 1000],
+            "energyAvg": ["Photon energy [eV] to orient grating for", "Float", 1000],
 	        "cff": ["Cff Parameter (cos(beta)/cos(alpha))", "Float", 1.75],
             "rollAngle": ["Roll Angle [rad]", "Float", 3.1415926],
             "diffractionOrder": ["Diffraction Order", "Float", 1],
@@ -1033,9 +1033,19 @@
             "title": "CRL",
             "basic": [],
             "advanced": [
-                ["Geometry", [
+                ["Name & Position", [
                     "title",
                     "position",
+                    [
+                        ["Horizontal", [
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]],
+                ["Geometry", [
                     "focalPlane",
                     "shape",
                     "tipRadius",
@@ -1044,12 +1054,10 @@
                     "focalDistance",
                     [
                         ["Horizontal", [
-                            "horizontalApertureSize",
-                            "horizontalOffset"
+                            "horizontalApertureSize"
                         ]],
                         ["Vertical", [
-                            "verticalApertureSize",
-                            "verticalOffset"
+                            "verticalApertureSize"
                         ]]
                     ]
                 ]],
@@ -1066,18 +1074,17 @@
             "title": "Crystal",
             "basic": [],
             "advanced": [
-                ["Name&Position", [
+                ["Name & Position", [
                     "title",
                     "position"
                 ]],
                 ["Geometry", [
-		            "useCase",
                     "asymmetryAngle",
-                    "crystalThickness",
-                    "dSpacing"
+                    "crystalThickness"
                 ]],
                 ["Orientation",[
                     "energy",
+                    "useCase",
                     "diffractionAngle",
                     [
                         ["Outward normal vector", [
@@ -1113,7 +1120,8 @@
                             "psiHi",
                             "psiHBi"
                         ]]
-                    ]
+                    ],
+                    "dSpacing"
                 ]],
                 ["Height Profile", [
                     "heightProfileFile",
@@ -1184,13 +1192,9 @@
             "title": "Elliptical Cylinder Mirror",
             "basic": [],
             "advanced": [
-                ["Geometry", [
+                ["Name & Position", [
                     "title",
                     "position",
-                    "firstFocusLength",
-                    "focalLength",
-                    "tangentialSize",
-                    "sagittalSize",
                     [
                         ["Horizontal", [
                             "horizontalOffset"
@@ -1199,6 +1203,12 @@
                             "verticalOffset"
                         ]]
                     ]
+                ]],
+                ["Geometry", [
+                    "firstFocusLength",
+                    "focalLength",
+                    "tangentialSize",
+                    "sagittalSize"
                 ]],
                 ["Orientation", [
                     "grazingAngle",
@@ -1356,7 +1366,7 @@
             "title": "Grating",
             "basic": [],
             "advanced": [
-                ["Name&Position", [
+                ["Name & Position", [
                     "title",
                     "position",
                     [
@@ -1770,12 +1780,9 @@
             "title": "Circular Cylinder Mirror",
             "basic": [],
             "advanced": [
-                ["Geometry", [
+                ["Name & Position", [
                     "title",
                     "position",
-                    "radius",
-                    "tangentialSize",
-                    "sagittalSize",
                     [
                         ["Horizontal", [
                             "horizontalOffset"
@@ -1784,6 +1791,11 @@
                             "verticalOffset"
                         ]]
                     ]
+                ]],
+                ["Geometry", [
+                    "radius",
+                    "tangentialSize",
+                    "sagittalSize"
                 ]],
                 ["Orientation", [
                     "grazingAngle",
@@ -1843,9 +1855,19 @@
             "title": "Toroid Mirror",
             "basic": [],
             "advanced": [
-                ["Geometry", [
+                ["Name & Position", [
                     "title",
                     "position",
+                    [
+                       ["Horizontal", [
+                           "horizontalPosition"
+                       ]],
+                       ["Vertical", [
+                           "verticalPosition"
+                       ]]
+                    ]
+                ]],
+                ["Geometry", [
                     [
                         ["Tangential", [
                             "tangentialRadius",
@@ -1855,14 +1877,6 @@
                             "sagittalRadius",
                             "sagittalSize"
                         ]]
-                    ],
-                    [
-                       ["Horizontal", [
-                           "horizontalPosition"
-                       ]],
-                       ["Vertical", [
-                           "verticalPosition"
-                       ]]
                     ],
                     "apertureShape"
                 ]],
