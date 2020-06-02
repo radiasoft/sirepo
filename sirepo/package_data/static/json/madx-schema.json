@@ -234,6 +234,10 @@
             "radiate": ["RADIATE", "Boolean", "0"],
             "bv": ["BV", "Integer", 1]
         },
+        "command_exit": {},
+        "command_help": {
+            "statement": ["statement", "String", ""]
+        },
         "command_select": {
             "class": ["class", "OptionalString", ""],
             "clear": ["clear", "Boolean", "0"],
@@ -951,6 +955,8 @@
                 ]]
             ]
         },
+        "command_exit": {"advanced": []},
+        "command_help": {"advanced": [ "statement"]},
         "command_select": {
             "advanced": [
                 "class",
