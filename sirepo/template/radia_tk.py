@@ -47,19 +47,31 @@ def field_integral(g_id, f_type, p1, p2):
 
 
 def geom_to_data(g_id, name=None, divide=True):
-    d_arr = []
-    if not divide or len(radia.ObjCntStuf(g_id)) == 0:
-        d_arr.append(template_common.to_pkdict(radia.ObjDrwVTK(g_id, 'Axes->No')))
+    n = (name if name is not None else str(g_id)) + '.Geom'
+    pd = PKDict(name=n, id=g_id, data=[])
+    d = template_common.to_pkdict(radia.ObjDrwVTK(g_id, 'Axes->No'))
+    n_verts = len(d.polygons.vertices)
+    c = radia.ObjCntStuf(g_id)
+    l = len(c)
+    if not divide or l == 0:
+        pd.data = [d]
     else:
-        for g in radia.ObjCntStuf(g_id):
-        #for g in get_geom_tree(g_id):
+        d_arr = []
+        n_s_verts = 0
+        # for g in get_geom_tree(g_id):
+        for g in c:
             # for fully recursive array
             # for g in get_all_geom(geom):
-            d_arr.append(template_common.to_pkdict(radia.ObjDrwVTK(g, 'Axes->No')))
-
-    n = name if name is not None else str(g_id)
-    return PKDict(name=n + '.Geom', id=g_id, data=d_arr)
-
+            s_d = template_common.to_pkdict(radia.ObjDrwVTK(g, 'Axes->No'))
+            n_s_verts += len(s_d.polygons.vertices)
+            d_arr.append(s_d)
+        # if the number of vertices of the container is more than the total
+        # across its elements, a symmetry or other "additive" transformation has
+        # been applied and we cannot get at the individual elements
+        if n_verts > n_s_verts:
+            d_arr = [d]
+        pd.data=d_arr
+    return pd
 
 def get_all_geom(g_id):
     g_arr = []

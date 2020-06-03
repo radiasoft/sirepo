@@ -305,7 +305,6 @@ def undulator_example():
     mp, mm = materials(iron_h, iron_m, 'NdFeB', 1.2)
 
     # then build the undulator
-    #TODO(mvk): the symmetries are not applied to the geometry?
     und, pl, mg = undulator(lp, mp, nsp, lm, mm, nsm, gap, offset, n_periods)
 
     return und
@@ -335,8 +334,7 @@ def wiggler_example():
     # and reflect in the (x,y) plane [plane through (0,0,0) with normal (0,0,1)]
     radia.TrfZerPara(geom, [0, 0, 0], [0, 0, 1])
 
-    return radia.ObjCnt([geom])
-    #return geom
+    return geom
 
 
 def build(name):
