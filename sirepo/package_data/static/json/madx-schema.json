@@ -105,6 +105,11 @@
             ["y", "y"],
             ["z", "z"]
         ],
+        "TriStateBool": [
+            ["", "NOT SELECTED"],
+            ["true", "true"],
+            ["false", "false"]
+        ],
         "TwissParameter": [
             ["alfx", "alfx"],
             ["alfy", "alfy"],
@@ -239,7 +244,23 @@
             "statement": ["statement", "String", ""]
         },
         "command_option": {
-            "echo": ["echo", "Boolean", ""]
+            "bborbit": ["bborbit", "TriStateBool", "", "The closed orbit is modified by beam-beam kicks"],
+            "debug": ["debug", "TriStateBool", "", "Issues debugging information"],
+            "echo": ["echo", "TriStateBool", "", "Echoes the input on the standard output file"],
+            "echomacro": ["echomacro", "TriStateBool", "", "Issues macro expansion printout for debugging"],
+            "info": ["info", "TriStateBool", "", "Issues information statements"],
+            "no_fatal_stop": ["no_fatal_stop", "TriStateBool", "", "Prevents madx from stopping in case of a fatal error"],
+            "rbarc": ["rbarc", "TriStateBool", "", "Converts the RBEND straight length into the arc length"],
+            "reset": ["reset", "TriStateBool", "", "Resets all options to their defaults"],
+            "sympl": ["sympl", "TriStateBool", "", "All element matrices are symplectified in Twiss"],
+            "tell": ["tell", "TriStateBool", "", "Prints the current value of all options"],
+            "thin_foc": ["thin_foc", "TriStateBool", "", "Enables the 1/ρ2focusing of thin dipoles"],
+            "threader": ["threader", "TriStateBool", "", "Enables the threader for closed orbit finding in Twiss"],
+            "trace": ["trace", "TriStateBool", "", "Prints the system time after each command"],
+            "twiss_print": ["twiss_print", "TriStateBool", "", "Controls whether the twiss command produces output"],
+            "verbose": ["verbose", "TriStateBool", "", "Issues additional printout in makethin"],
+            "verify": ["verify", "TriStateBool", "", "Issues a warning if an undefined variable is used"],
+            "warn": ["warn", "TriStateBool", "", "Issues warning statements"]
         },
         "command_select": {
             "class": ["class", "OptionalString", ""],
@@ -965,7 +986,23 @@
         "command_help": {"advanced": [ "statement"]},
         "command_option": {
             "advanced": [
-                "echo"
+                "bborbit",
+                "debug",
+                "echo",
+                "echomacro",
+                "info",
+                "no_fatal_stop",
+                "rbarc",
+                "reset",
+                "sympl",
+                "tell",
+                "thin_foc",
+                "threader",
+                "trace",
+                "twiss_print",
+                "verbose",
+                "verify",
+                "warn"
             ]
         },
         "command_select": {
