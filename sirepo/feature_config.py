@@ -36,7 +36,8 @@ ALPHA_CODES = frozenset((
 ALL_CODES = NON_ALPHA_CODES.union(ALPHA_CODES)
 
 
-_DEFAULT_PROPRIETARY_CODES = ('flash',)
+#: codes which we include in dev for testing
+_DEV_PROPRIETARY_CODES = ('flash',)
 
 
 #: Configuration
@@ -80,14 +81,14 @@ def _init():
     def _cfg_sim_types(value):
         res = pkconfig.parse_set(value)
         if not res:
-            return tuple(_codes())
+            return frozenset(_codes())
         for c in res:
             assert c in _codes(), \
                 'invalid sim_type={}, expected one of={}'.format(c, _codes())
         if 'jspec' in res:
             res = set(res)
             res.add('elegant')
-        return tuple(res)
+        return frozenset(res)
 
     def _codes():
         return ALL_CODES if pkconfig.channel_in_internal_test() \
@@ -98,7 +99,11 @@ def _init():
         jspec=dict(
             derbenevskrinsky_force_formula=(pkconfig.channel_in_internal_test(), bool, 'Include Derbenev-Skrinsky force forumla'),
         ),
-        proprietary_sim_types=(_DEFAULT_PROPRIETARY_CODES, set, 'codes that require authorization'),
+        proprietary_sim_types=(
+            _DEV_PROPRIETARY_CODES if pkconfig.channel_in('dev') else tuple(),
+            set,
+            'codes that require authorization',
+        ),
         #TODO(robnagler) make sim_type config
         rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
         sim_types=(None, _cfg_sim_types, 'simulation types (codes) to be imported'),
@@ -111,4 +116,6 @@ def _init():
             display_test_boxes=(pkconfig.channel_in_internal_test(), bool, 'Display test boxes to visualize 3D -> 2D projections'),
         ),
     )
+    if _cfg.proprietary_sim_types:
+        _cfg.sim_types = _cfg.sim_types.union(_cfg.proprietary_sim_types)
     return _cfg
