@@ -77,36 +77,19 @@ def _init():
     from pykern import pkconfig
     global _cfg
 
-    @pkconfig.parse_none
-    def _cfg_sim_types(value):
-        res = pkconfig.parse_set(value)
-        if not res:
-            return frozenset(_codes())
-        for c in res:
-            assert c in _codes(), \
-                'invalid sim_type={}, expected one of={}'.format(c, _codes())
-        if 'jspec' in res:
-            res = set(res)
-            res.add('elegant')
-        return frozenset(res)
-
-    def _codes():
-        return ALL_CODES if pkconfig.channel_in_internal_test() \
-            else NON_ALPHA_CODES
-
     _cfg = pkconfig.init(
         api_modules=((), set, 'optional api modules, e.g. status'),
         jspec=dict(
             derbenevskrinsky_force_formula=(pkconfig.channel_in_internal_test(), bool, 'Include Derbenev-Skrinsky force forumla'),
         ),
         proprietary_sim_types=(
-            _DEV_PROPRIETARY_CODES if pkconfig.channel_in('dev') else tuple(),
+            _DEV_PROPRIETARY_CODES if pkconfig.channel_in('dev') else set(),
             set,
             'codes that require authorization',
         ),
         #TODO(robnagler) make sim_type config
         rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
-        sim_types=(None, _cfg_sim_types, 'simulation types (codes) to be imported'),
+        sim_types=(set(), set, 'simulation types (codes) to be imported'),
         srw=dict(
             mask_in_toolbar=(pkconfig.channel_in_internal_test(), bool, 'Show the mask element in toolbar'),
             beamline3d=(pkconfig.channel_in_internal_test(), bool, 'Show 3D beamline plot'),
@@ -116,6 +99,15 @@ def _init():
             display_test_boxes=(pkconfig.channel_in_internal_test(), bool, 'Display test boxes to visualize 3D -> 2D projections'),
         ),
     )
+    a = ALL_CODES if pkconfig.channel_in_internal_test() else NON_ALPHA_CODES
+    s = set(_cfg.sim_types) if _cfg.sim_types else set(a)
     if _cfg.proprietary_sim_types:
-        _cfg.sim_types = _cfg.sim_types.union(_cfg.proprietary_sim_types)
+        s.update(_cfg.proprietary_sim_types)
+    # need more cases like this
+    if 'jspec' in s and 'elegant' not in s:
+        s.add('elegant')
+    x = s.difference(a)
+    assert not x, \
+        'sim_type(s) invalid={} expected={}'.format(x, a)
+    _cfg.sim_types = frozenset(s)
     return _cfg
