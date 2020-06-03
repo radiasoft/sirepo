@@ -238,6 +238,9 @@
         "command_help": {
             "statement": ["statement", "String", ""]
         },
+        "command_option": {
+            "echo": ["echo", "Boolean", ""]
+        },
         "command_select": {
             "class": ["class", "OptionalString", ""],
             "clear": ["clear", "Boolean", "0"],
@@ -266,6 +269,9 @@
         "command_use": {
             "sequence": ["BEAMLINE", "LatticeBeamlineList", ""],
             "period": ["BEAMLINE", "LatticeBeamlineList", ""]
+        },
+        "command_value": {
+            "expression": ["expression", "RPNValue", ""]
         },
         "rpnVariable": {
             "name": ["Name", "String"],
@@ -957,6 +963,11 @@
         },
         "command_exit": {"advanced": []},
         "command_help": {"advanced": [ "statement"]},
+        "command_option": {
+            "advanced": [
+                "echo"
+            ]
+        },
         "command_select": {
             "advanced": [
                 "class",
@@ -993,6 +1004,11 @@
         "command_use": {
             "advanced": [
                 "sequence"
+            ]
+        },
+        "command_value": {
+            "advanced": [
+                "expression"
             ]
         },
         "simulationStatus": {
