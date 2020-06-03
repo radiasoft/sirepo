@@ -101,9 +101,10 @@ def _init():
     )
     a = ALL_CODES if pkconfig.channel_in_internal_test() else NON_ALPHA_CODES
     s = set(_cfg.sim_types) if _cfg.sim_types else set(a)
-    if _cfg.proprietary_sim_types:
-        s.update(_cfg.proprietary_sim_types)
-    # need more cases like this
+    s.update(_cfg.proprietary_sim_types)
+    # jspec imports elegant, but elegant won't work if it is not a valid
+    # sim_type so need to include here. Need a better model of
+    # dependencies between codes.
     if 'jspec' in s and 'elegant' not in s:
         s.add('elegant')
     x = s.difference(a)
