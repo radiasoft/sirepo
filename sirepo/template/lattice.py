@@ -412,6 +412,14 @@ class LatticeUtil(object):
         return None
 
     @classmethod
+    def has_command(cls, data, command_type):
+        for cmd in data.models.commands:
+            if cmd._type == command_type:
+                return True
+        return False
+
+
+    @classmethod
     def is_command(cls, model):
         """Is the model a command or a lattice element?
         """
