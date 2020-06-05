@@ -42,6 +42,7 @@ def default_command(in_file):
         job.init()
         f = pkio.py_path(in_file)
         msg = pkjson.load_any(f)
+        pkdp('JOB CMD {}', msg.jobCmd)
     #TODO(e-carlin): find common place to serialize/deserialize paths
         msg.runDir = pkio.py_path(msg.runDir)
         f.remove()
@@ -88,6 +89,7 @@ def _do_cancel(msg, template):
 
 
 def _do_compute(msg, template):
+    pkdp('JOB DO CMP')
     msg.runDir = pkio.py_path(msg.runDir)
     with msg.runDir.join(template_common.RUN_LOG).open('w') as run_log:
         p = subprocess.Popen(
@@ -209,6 +211,7 @@ def _do_get_simulation_frame(msg, template):
 
 
 def _do_prepare_simulation(msg, template):
+    pkdp('CMD PREP SIM')
     if 'libFileList' in msg:
         msg.data.libFileList = msg.libFileList
     return PKDict(

@@ -170,6 +170,9 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
             return;
         }
         var bunch = appState.models[modelKey];
+        if (! bunch) {
+            return '';
+        }
         var key = bunch.x + '-' + bunch.y;
         return (plotTitle[key] || (bunch.x + ' / ' + bunch.y)) + ' Phase Space';
     };

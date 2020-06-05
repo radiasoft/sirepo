@@ -294,6 +294,9 @@
         "command_value": {
             "expression": ["expression", "RPNValue", ""]
         },
+        "particleTracking": {
+            "numParticles": ["Number of particles", "Integer", 100, "", 1, 1000]
+        },
         "rpnVariable": {
             "name": ["Name", "String"],
             "value": ["Value", "RPNValue"]

@@ -19,6 +19,18 @@ class SimData(sirepo.sim_data.SimDataBase):
                 m = dm['twissEllipseReport{}'.format(i)] = PKDict()
                 cls.update_model_defaults(m, 'twissEllipseReport')
                 m.dim = 'x' if i == 1 else 'y'
+        if 'bunchReport1' not in dm:
+            for i in range(1, 5):
+                m = dm['bunchReport{}'.format(i)] = PKDict()
+                cls.update_model_defaults(m, 'bunchReport')
+                if i == 1:
+                    m.y = 'px'
+                elif i == 2:
+                    m.x = 'y'
+                    m.y = 'py'
+                elif i == 4:
+                    m.x = 'z'
+                    m.y = 'pz'
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
@@ -27,8 +39,8 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
-        if 'bunchReport' in analysis_model:
-            return 'bunchReport'
+        #if 'bunchReport' in analysis_model:
+        #    return 'bunchReport'
         #if 'twissEllipseReport' in analysis_model:
         #    return 'twissEllipseReport'
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)

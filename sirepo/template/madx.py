@@ -138,6 +138,7 @@ def import_file(req, test_data=None, **kwargs):
 def madx_code_var(variables):
     return _code_var(variables)
 
+
 def prepare_sequential_output_file(run_dir, data):
     r = data.report
     if r == 'twissReport':
@@ -145,6 +146,7 @@ def prepare_sequential_output_file(run_dir, data):
         if f.exists():
             f.remove()
             save_sequential_report_data(data, run_dir)
+
 
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
@@ -165,6 +167,7 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
+    pkdp('WRITE P ||? {}', is_parallel)
     pkio.write_text(
         run_dir.join(MADX_INPUT_FILENAME),
         _generate_parameters_file(data),
@@ -182,6 +185,8 @@ def _code_var(variables):
 def _extract_report_data(data, run_dir):
     if 'twissEllipse' in data.report:
         return _extract_report_twissEllipseReport(data, run_dir)
+    #if 'bunchReport' in data.report:
+    #    return _extract_report_bunchReport(data, run_dir)
     return getattr(
        pykern.pkinspect.this_module(),
        '_extract_report_' + data.report,
@@ -236,6 +241,54 @@ def _extract_report_twissEllipseReport(data, run_dir):
     )
 
 
+def _extract_report_bunchReport(data, run_dir):
+    pkdp('EXTRACT BUNCH')
+    util = LatticeUtil(data, _SCHEMA)
+    m = util.find_first_command(data, 'twiss')
+    #pkdp('TWISS FOUND {}', m)
+    # must an initial twiss always exist?
+    if not m:
+        return template_common.parameter_plot([], [], None, PKDict())
+    r_model = data.models[data.report]
+    dim = r_model.dim
+    plots = []
+    n_pts = 200
+    theta = np.arange(0, 2. * np.pi * (n_pts / (n_pts - 1)), 2. * np.pi / n_pts)
+    alf = 'alf{}'.format(dim)
+    bet = 'bet{}'.format(dim)
+    a = m[alf]
+    b = m[bet]
+    g = (1. + a * a) / b
+    #pkdp('ELLIPSE A {} B {}', a, b)
+    eta = 'e{}'.format(dim)
+    e = m[eta] if eta in m else 1.0
+    phi = _ellipse_rot(a, b)
+    th = theta - phi
+    #pkdp('ELLIPSE ROT {}', phi)
+    mj = math.sqrt(e * b)
+    mn = 1.0 / mj
+    r = np.power(
+        mn * np.cos(th) * np.cos(th) + mj * np.sin(th) * np.sin(th),
+        -0.5
+    )
+    #pkdp('ELLIPSE R(TH) {}', r)
+    x = r * np.cos(theta)
+    y = r * np.sin(theta)
+    p = PKDict(field=dim, points=y.tolist(), label=f'{dim}\' [rad]')
+    plots.append(
+        p
+    )
+    return template_common.parameter_plot(
+        x.tolist(),
+        plots,
+        {},
+        PKDict(
+            title=f'{data.models.simulation.name} a{dim} = {a} b{dim} = {b} g{dim} = {g}',
+            y_label='',
+            x_label=f'{dim} [m]'
+        )
+    )
+
 def _ellipse_rot(a, b):
     if a == 0:
         return 0
@@ -262,7 +315,7 @@ def _extract_report_twissReport(data, run_dir):
 
 
 def _generate_commands(util):
-    res = '';
+    res = ''
     for c in util.iterate_models(
             lattice.ElementIterator(None, _format_field_value), 'commands'
     ).result:
@@ -283,6 +336,7 @@ def _generate_lattice(util):
 
 
 def _generate_parameters_file(data):
+    pkdp('GEN P')
     res, v = template_common.generate_parameters_file(data)
     util = LatticeUtil(data, _SCHEMA)
     c = _generate_commands(util)
@@ -318,6 +372,7 @@ def _generate_variables(code_var, data):
 
 
 def _format_field_value(state, model, field, el_type):
+    #pkdp('FORMAT ST {} M {} F {} T {}', state, model, field, el_type)
     v = model[field]
     if el_type == 'Boolean':
         v = 'true' if v == '1' else 'false'
