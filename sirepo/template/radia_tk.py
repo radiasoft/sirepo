@@ -138,7 +138,7 @@ def solve(g_id, prec, max_iter, solve_method):
 
 
 def vector_field_to_data(g_id, name, pv_arr, units):
-    # format is [[[px, py, 1pz], [vx, vy, vx]], ...]
+    # format is [[[px, py, pz], [vx, vy, vx]], ...]
     # convert to webGL object
 
     v_data = new_geom_object()
