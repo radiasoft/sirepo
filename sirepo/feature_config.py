@@ -80,9 +80,10 @@ def _init():
     global _cfg
 
     _cfg = pkconfig.init(
+        # No secrets should be stored here (see sirepo.job.agent_env)
         api_modules=((), set, 'optional api modules, e.g. status'),
         jspec=dict(
-            derbenevskrinsky_force_formula=(pkconfig.channel_in_internal_test(), bool, 'Include Derbenev-Skrinsky force forumla'),
+            derbenevskrinsky_force_formula=(pkconfig.channel_in_internal_test(), bool, 'Include Derbenev-Skrinsky force formula'),
         ),
         proprietary_sim_types=(
             _DEV_PROPRIETARY_CODES if pkconfig.channel_in('dev') else set(),
