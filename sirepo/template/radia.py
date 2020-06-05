@@ -303,12 +303,12 @@ def _fields_file(sim_id):
     return _get_res_file(sim_id, _FIELDS_FILE)
 
 
-def _generate_field_data(g_id, name, f_type, f_paths):
-    if f_type == radia_tk.FIELD_TYPE_MAG_M:
+def _generate_field_data(g_id, name, field_type, field_paths):
+    if field_type == radia_tk.FIELD_TYPE_MAG_M:
         f = radia_tk.get_magnetization(g_id)
-    elif f_type in radia_tk.POINT_FIELD_TYPES:
-        f = radia_tk.get_field(g_id, f_type, _build_field_points(f_paths))
-    return radia_tk.vector_field_to_data(g_id, name, f, radia_tk.FIELD_UNITS[f_type])
+    elif field_type in radia_tk.POINT_FIELD_TYPES:
+        f = radia_tk.get_field(g_id, field_type, _build_field_points(field_paths))
+    return radia_tk.vector_field_to_data(g_id, name, f, radia_tk.FIELD_UNITS[field_type])
 
 
 def _generate_field_integrals(g_id, f_paths):
@@ -395,10 +395,10 @@ def _geom_file(sim_id):
     return _get_res_file(sim_id, _GEOM_FILE)
 
 
-def _geom_h5_path(v_type, f_type=None):
-    p = 'geometry/' + v_type
-    if f_type is not None:
-        p += '/' + f_type
+def _geom_h5_path(view_type, field_type=None):
+    p = 'geometry/' + view_type
+    if field_type is not None:
+        p += '/' + field_type
     return p
 
 
@@ -420,16 +420,19 @@ def _get_sdds():
     return _cfg.sdds
 
 
-def _read_path(sim_id, h5path):
+def _read_h5_path(sim_id, h5path):
     try:
         with h5py.File(_geom_file(sim_id), 'r') as hf:
             return template_common.h5_to_dict(hf, path=h5path)
-    except IOError:
-        return PKDict()
+    except IOError as e:
+        if pkio.exception_is_not_found(e):
+            # need to generate file
+            return None
+        #return PKDict()
 
 
 def _read_data(sim_id, view_type, field_type):
-    res = _read_path(sim_id, _geom_h5_path(view_type, field_type))
+    res = _read_h5_path(sim_id, _geom_h5_path(view_type, field_type))
     res.solution = _read_solution(sim_id)
     return res
 
@@ -451,43 +454,43 @@ def _read_or_generate(geom_id, data):
 
 def _read_solution(sim_id):
     try:
-        return _read_path(sim_id, 'solution')
+        return _read_h5_path(sim_id, 'solution')
     except KeyError:
         # not solved yet
-        return []
+        return None
 
 
-def _rot_flat_list(l, r):
-    return r.apply(numpy.reshape(l, (-1, 3)))
+def _rotate_flat_vector_list(vectors, scipy_rotation):
+    return scipy_rotation.apply(numpy.reshape(vectors, (-1, 3)))
 
 
-def _save_field_csv(f_type, vectors, rot, file_path):
-    #pkdp('SAVE TYPE {} V {} PATH {}', f_type, vectors, file_path)
+def _save_field_csv(field_type, vectors, scipy_rotation, path):
+    #pkdp('SAVE TYPE {} V {} PATH {}', field_type, vectors, path)
     # rotate so the beam axis is aligned with z
-    data = ['x,y,z,' + f_type + 'x,' + f_type + 'y,' + f_type + 'z']
+    data = ['x,y,z,' + field_type + 'x,' + field_type + 'y,' + field_type + 'z']
     # mm -> m
-    pts = 0.001 * _rot_flat_list(vectors.vertices, rot).flatten()
+    pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation).flatten()
     #pkdp('v {} to pts {}', vectors.vertices, pts)
     mags = numpy.array(vectors.magnitudes)
-    dirs = _rot_flat_list(vectors.directions, rot).flatten()
+    dirs = _rotate_flat_vector_list(vectors.directions, scipy_rotation).flatten()
     for i in range(len(mags)):
         j = 3 * i
         r = pts[j:j + 3]
         r = numpy.append(r, mags[i] * dirs[j:j + 3])
         data.append(','.join(map(str, r)))
-    pkio.write_text(file_path, '\n'.join(data))
-    return file_path
+    pkio.write_text(path, '\n'.join(data))
+    return path
 
 
-def _save_fm_sdds(name, vectors, rot, file_path):
+def _save_fm_sdds(name, vectors, scipy_rotation, path):
     s = _get_sdds()
     s.setDescription('Field Map for ' + name, 'x(m), y(m), z(m), Bx(T), By(T), Bz(T)')
     # mm -> m
-    pts = 0.001 * _rot_flat_list(vectors.vertices, rot)
+    pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation)
     ind = numpy.lexsort((pts[:, 0], pts[:, 1], pts[:, 2]))
     pts = pts[ind]
     mag = vectors.magnitudes
-    dirs = _rot_flat_list(vectors.directions, rot)
+    dirs = _rotate_flat_vector_list(vectors.directions, scipy_rotation)
     v = [mag[j // 3] * d for (j, d) in enumerate(dirs)]
     fld = numpy.reshape(v, (-1, 3))[ind]
     # can we use tmp_dir before it gets deleted?
@@ -499,5 +502,5 @@ def _save_fm_sdds(name, vectors, rot, file_path):
         col_data.append([fld[:, i].tolist()])
     for i, n in enumerate(_FIELD_MAP_COLS):
         s.setColumnValueLists(n, col_data[i])
-    s.save(str(file_path))
-    return file_path
+    s.save(str(path))
+    return path
