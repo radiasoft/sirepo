@@ -573,7 +573,7 @@ class SimDataBase(object):
                     verify=sirepo.job.cfg.verify_tls,
                 )
                 r.raise_for_status()
-                p.write(r.content)
+                p.write_binary(r.content)
                 return p
         elif not cfg.lib_file_resource_only:
             p.append(
