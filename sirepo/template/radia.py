@@ -99,9 +99,12 @@ def get_application_data(data, **kwargs):
         with open(str(_dmp_file(sim_id)), 'rb') as f:
             b = f.read()
             g_id = radia_tk.load_bin(b)
-    except IOError:
-        # No Radia dump file
-        return PKDict()
+    except IOError as e:
+        if pkio.exception_is_not_found(e):
+            # No Radia dump file
+            return PKDict(warning='No Radia dump')
+        # propagate other errors
+        #return PKDict()
     if data.method == 'get_field':
         f_type = data.get('fieldType')
         #pkdp('FT {}', f_type)
@@ -428,12 +431,16 @@ def _read_h5_path(sim_id, h5path):
         if pkio.exception_is_not_found(e):
             # need to generate file
             return None
-        #return PKDict()
+    except KeyError:
+        # no such path in file
+        return None
+    # propagate other errors
 
 
 def _read_data(sim_id, view_type, field_type):
     res = _read_h5_path(sim_id, _geom_h5_path(view_type, field_type))
-    res.solution = _read_solution(sim_id)
+    if res:
+        res.solution = _read_solution(sim_id)
     return res
 
 
@@ -453,11 +460,7 @@ def _read_or_generate(geom_id, data):
 
 
 def _read_solution(sim_id):
-    try:
-        return _read_h5_path(sim_id, 'solution')
-    except KeyError:
-        # not solved yet
-        return None
+    return _read_h5_path(sim_id, 'solution')
 
 
 def _rotate_flat_vector_list(vectors, scipy_rotation):
@@ -465,10 +468,9 @@ def _rotate_flat_vector_list(vectors, scipy_rotation):
 
 
 def _save_field_csv(field_type, vectors, scipy_rotation, path):
-    #pkdp('SAVE TYPE {} V {} PATH {}', field_type, vectors, path)
-    # rotate so the beam axis is aligned with z
+    # reserve first line for a header
     data = ['x,y,z,' + field_type + 'x,' + field_type + 'y,' + field_type + 'z']
-    # mm -> m
+    # mm -> m, rotate so the beam axis is aligned with z
     pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation).flatten()
     #pkdp('v {} to pts {}', vectors.vertices, pts)
     mags = numpy.array(vectors.magnitudes)
