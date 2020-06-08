@@ -412,6 +412,14 @@ class LatticeUtil(object):
         return None
 
     @classmethod
+    def has_command(cls, data, command_type):
+        for cmd in data.models.commands:
+            if cmd._type == command_type:
+                return True
+        return False
+
+
+    @classmethod
     def is_command(cls, model):
         """Is the model a command or a lattice element?
         """
@@ -425,7 +433,7 @@ class LatticeUtil(object):
         names = (name, ) if name else ('commands', 'elements')
         for name in names:
             for m in self.data.models[name]:
-                model_schema = self.schema.model[LatticeUtil.model_name_for_data(m)]
+                model_schema = self.schema.model[self.model_name_for_data(m)]
                 iterator.start(m)
                 for k in sorted(m):
                     if k in model_schema:
@@ -485,18 +493,16 @@ class LatticeUtil(object):
     def type_for_data(cls, model):
         return model['_type' if cls.is_command(model) else 'type']
 
-    @staticmethod
-    def __add_beamlines(beamline, beamlines, ordered_beamlines):
+    def __add_beamlines(self, beamline, beamlines, ordered_beamlines):
         if beamline in ordered_beamlines:
             return
         for bid in beamline['items']:
             bid = abs(bid)
             if bid in beamlines and 'type' not in beamlines[bid]:
-                LatticeUtil.__add_beamlines(beamlines[bid], beamlines, ordered_beamlines)
+                self.__add_beamlines(beamlines[bid], beamlines, ordered_beamlines)
         ordered_beamlines.append(beamline)
 
-    @staticmethod
-    def __build_id_map(data):
+    def __build_id_map(self, data):
         """Returns a map of beamlines and elements, (id => model).
         """
         res = {}
@@ -519,7 +525,7 @@ class LatticeUtil(object):
         for bid in sorted(self.id_map):
             model = self.id_map[bid]
             if 'type' not in model and not self.is_command(model):
-                LatticeUtil.__add_beamlines(model, self.id_map, ordered_beamlines)
+                self.__add_beamlines(model, self.id_map, ordered_beamlines)
         res = ''
         for bl in ordered_beamlines:
             if bl['items']:

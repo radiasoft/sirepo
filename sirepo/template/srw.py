@@ -471,6 +471,7 @@ def import_file(req, tmp_dir, **kwargs):
                     r.data,
                 )
             if 'error' in r:
+                pkdc('runSimulation error msg={}', r)
                 raise sirepo.util.UserAlert(r.get('error'))
             if PARSED_DATA_ATTR in r:
                 break
@@ -493,6 +494,7 @@ def import_file(req, tmp_dir, **kwargs):
         r.models.simulation.simulationId = i
         r = simulation_db.save_simulation_json(r, do_validate=True)
     except Exception:
+        #TODO(robnagler) need to clean up simulations except in dev
         raise
         if i:
             try:

@@ -95,6 +95,9 @@ class DriverBase(PKDict):
         op.cpu_slot.free()
         if op.op_slot:
             op.op_slot.free()
+        if 'lib_dir_symlink' in op:
+            # lib_dir_symlink is unique_key so not dangerous to remove
+            pykern.pkio.unchecked_remove(op.pkdel('lib_dir_symlink'))
 
     def free_resources(self, internal_error=None):
         """Remove holds on all resources and remove self from data structures"""
@@ -119,8 +122,6 @@ class DriverBase(PKDict):
         )
 
     def make_lib_dir_symlink(self, op):
-        if not self._has_remote_agent():
-            return
         m = op.msg
         with sirepo.auth.set_user(m.uid):
             d = sirepo.simulation_db.simulation_lib_dir(m.simulationType)
@@ -262,9 +263,6 @@ class DriverBase(PKDict):
     def _agent_starting_timeout_handler(self):
         pkdlog('{} timeout={}', self, self.cfg.agent_starting_secs)
         self.free_resources(internal_error='timeout waiting for agent to start')
-
-    def _has_remote_agent(self):
-        return False
 
     def _receive(self, msg):
         c = msg.content

@@ -30,7 +30,7 @@ def test_myapp_free_user_sim_purged(auth_fc):
 
     def _check_run_dir(should_exist=0):
         f = pkio.walk_tree(fc.sr_user_dir(), file_re=m)
-        pkunit.pkeq(should_exist, len(f))
+        pkunit.pkeq(should_exist, len(f), 'incorrect file count')
 
     def _make_user_premium(uid):
         sirepo.auth_db.UserRole.add_roles(uid, [sirepo.auth.ROLE_PREMIUM])
@@ -69,7 +69,7 @@ def test_myapp_free_user_sim_purged(auth_fc):
     _check_run_dir(should_exist=0)
     fc.sr_email_login(user_premium)
     _status_eq(next_req_premium, 'completed')
-    _check_run_dir(should_exist=6)
+    _check_run_dir(should_exist=7)
 
 
 def test_elegant_no_frame_after_purge(auth_fc):

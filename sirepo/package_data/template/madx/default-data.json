@@ -1,17 +1,21 @@
 {
-    "models": {
-        "beamlines": [],
-        "commands": [],
-        "elements": [],
-        "rpnCache": {},
-        "rpnVariables": [],
-        "simulation": {
-            "documentationUrl": "",
-            "folder": "/",
-            "name": "default name",
-            "notes": "",
-            "visualizationBeamlineId": ""
-        }
+  "models": {
+    "beamlines": [],
+    "commands": [],
+    "elements": [],
+    "rpnCache": {},
+    "rpnVariables": [],
+    "simulation": {
+      "documentationUrl": "",
+      "folder": "/",
+      "notes": ""
     },
-    "simulationType": "madx"
+    "twissReport": {
+        "includeLattice": "1",
+        "y1": "betx",
+        "y2": "bety",
+        "y3": "dx"
+    }
+  },
+  "simulationType": "madx"
 }

@@ -10,6 +10,7 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
+from sirepo.template import code_variable
 import math
 import numpy
 import pykern.pkrunpy
@@ -35,6 +36,8 @@ OUTPUT_BASE_NAME = 'out'
 
 #: Python file (not all simulations)
 PARAMETERS_PYTHON_FILE = 'parameters.py'
+
+RPN_METHODS = ['rpn_value', 'recompute_rpn_cache_values', 'validate_rpn_delete']
 
 #: stderr and stdout
 RUN_LOG = 'run.log'
@@ -157,11 +160,15 @@ class ParticleEnergy(object):
 
     @classmethod
     def compute_energy(cls, sim_type, particle, energy):
+        p = cls.PARTICLE[particle] if particle in cls.PARTICLE else PKDict(
+            mass=energy.mass,
+            charge=energy.charge
+        )
         for f in cls.ENERGY_PRIORITY[sim_type]:
             if f in energy and energy[f] != 0:
                 v = energy[f]
                 handler = '_ParticleEnergy__set_from_{}'.format(f)
-                getattr(cls, handler)(cls.PARTICLE[particle], energy)
+                getattr(cls, handler)(p, energy)
                 energy[f] = v
                 return energy
         assert False, 'missing energy field: {}'.format(energy)

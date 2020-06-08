@@ -300,3 +300,7 @@ svg.srw-beamline-item-icon {
 a:focus, a.srw-tab:focus {
   outline: none;
 }
+
+.srw-processed-image {
+  border: solid 1px black;
+}

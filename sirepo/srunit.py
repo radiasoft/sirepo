@@ -26,7 +26,7 @@ app = None
 _JAVASCRIPT_REDIRECT_RE = re.compile(r'window.location = "([^"]+)"')
 
 #: set by conftest.py
-CONFTEST_ALL_CODES = None
+CONFTEST_DEFAULT_CODES = None
 
 
 def flask_client(cfg=None, sim_types=None, job_run_mode=None):
@@ -39,7 +39,7 @@ def flask_client(cfg=None, sim_types=None, job_run_mode=None):
 
     Args:
         cfg (dict): extra configuration for reset_state_for_testing
-        sim_types (str): value for SIREPO_FEATURE_CONFIG_SIM_TYPES [CONFTEST_ALL_CODES]
+        sim_types (str): value for SIREPO_FEATURE_CONFIG_SIM_TYPES [CONFTEST_DEFAULT_CODES]
 
     Returns:
         FlaskClient: for local requests to Flask server
@@ -49,7 +49,7 @@ def flask_client(cfg=None, sim_types=None, job_run_mode=None):
     a = 'srunit_flask_client'
     if not cfg:
         cfg = PKDict()
-    t = sim_types or CONFTEST_ALL_CODES
+    t = sim_types or CONFTEST_DEFAULT_CODES
     if t:
         if isinstance(t, (tuple, list)):
             t = ':'.join(t)
@@ -82,7 +82,7 @@ def init_auth_db():
     return fc, fc.sr_post('listSimulations', {'simulationType': fc.sr_sim_type})
 
 
-def sim_data(sim_name=None, sim_type=None, sim_types=CONFTEST_ALL_CODES, cfg=None):
+def sim_data(sim_name=None, sim_type=None, sim_types=CONFTEST_DEFAULT_CODES, cfg=None):
     """Get simulation data
 
     Args:

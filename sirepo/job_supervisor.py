@@ -931,9 +931,6 @@ class _Op(PKDict):
         for x in 'run_callback', 'timer':
             if x in self:
                 tornado.ioloop.IOLoop.current().remove_timeout(self.pkdel(x))
-        if 'lib_dir_symlink' in self:
-            # lib_dir_symlink is unique_key so not dangerous to remove
-            pykern.pkio.unchecked_remove(self.pkdel('lib_dir_symlink'))
         self.computeJob.destroy_op(self)
         self.driver.destroy_op(self)
 
