@@ -9,7 +9,7 @@ from __future__ import absolute_import, division, print_function
 
 
 #: Codes on beta and prod
-NON_ALPHA_CODES = frozenset((
+_NON_ALPHA_FOSS_CODES = frozenset((
     'elegant',
     'jspec',
     'opal',
@@ -23,8 +23,7 @@ NON_ALPHA_CODES = frozenset((
 ))
 
 #: Codes on dev and alpha
-ALPHA_CODES = frozenset((
-    'flash',
+_ALPHA_FOSS_CODES = frozenset((
     'radia',
     'madx',
     'myapp',
@@ -32,11 +31,15 @@ ALPHA_CODES = frozenset((
     'rs4pi',
 ))
 
-#: All possible codes
-ALL_CODES = NON_ALPHA_CODES.union(ALPHA_CODES)
+#: All possible open source codes
+_FOSS_CODES = _NON_ALPHA_FOSS_CODES.union(_ALPHA_FOSS_CODES)
 
 
-_DEFAULT_PROPRIETARY_CODES = ('flash',)
+#: codes which we include in dev for testing
+_DEV_PROPRIETARY_CODES = frozenset(('flash',))
+
+#: all executable codes
+VALID_CODES = _FOSS_CODES.union(_DEV_PROPRIETARY_CODES)
 
 
 #: Configuration
@@ -76,32 +79,20 @@ def _init():
     from pykern import pkconfig
     global _cfg
 
-    @pkconfig.parse_none
-    def _cfg_sim_types(value):
-        res = pkconfig.parse_set(value)
-        if not res:
-            return tuple(_codes())
-        for c in res:
-            assert c in _codes(), \
-                'invalid sim_type={}, expected one of={}'.format(c, _codes())
-        if 'jspec' in res:
-            res = set(res)
-            res.add('elegant')
-        return tuple(res)
-
-    def _codes():
-        return ALL_CODES if pkconfig.channel_in_internal_test() \
-            else NON_ALPHA_CODES
-
     _cfg = pkconfig.init(
+        # No secrets should be stored here (see sirepo.job.agent_env)
         api_modules=((), set, 'optional api modules, e.g. status'),
         jspec=dict(
-            derbenevskrinsky_force_formula=(pkconfig.channel_in_internal_test(), bool, 'Include Derbenev-Skrinsky force forumla'),
+            derbenevskrinsky_force_formula=(pkconfig.channel_in_internal_test(), bool, 'Include Derbenev-Skrinsky force formula'),
         ),
-        proprietary_sim_types=(_DEFAULT_PROPRIETARY_CODES, set, 'codes that require authorization'),
+        proprietary_sim_types=(
+            _DEV_PROPRIETARY_CODES if pkconfig.channel_in('dev') else set(),
+            set,
+            'codes that require authorization',
+        ),
         #TODO(robnagler) make sim_type config
         rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
-        sim_types=(None, _cfg_sim_types, 'simulation types (codes) to be imported'),
+        sim_types=(set(), set, 'simulation types (codes) to be imported'),
         srw=dict(
             mask_in_toolbar=(pkconfig.channel_in_internal_test(), bool, 'Show the mask element in toolbar'),
             beamline3d=(pkconfig.channel_in_internal_test(), bool, 'Show 3D beamline plot'),
@@ -111,4 +102,19 @@ def _init():
             display_test_boxes=(pkconfig.channel_in_internal_test(), bool, 'Display test boxes to visualize 3D -> 2D projections'),
         ),
     )
+    s = set(
+        _cfg.sim_types or (
+            _FOSS_CODES if pkconfig.channel_in_internal_test() else _NON_ALPHA_FOSS_CODES
+        )
+    )
+    s.update(_cfg.proprietary_sim_types)
+    # jspec imports elegant, but elegant won't work if it is not a valid
+    # sim_type so need to include here. Need a better model of
+    # dependencies between codes.
+    if 'jspec' in s and 'elegant' not in s:
+        s.add('elegant')
+    x = s.difference(VALID_CODES)
+    assert not x, \
+        'sim_type(s) invalid={} expected={}'.format(x, VALID_CODES)
+    _cfg.sim_types = frozenset(s)
     return _cfg

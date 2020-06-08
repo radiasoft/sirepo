@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
+import pykern.pkdebug
 import sirepo.srdb
 import sirepo.util
 import re
@@ -167,11 +168,18 @@ cd '{}'
 
 
 def agent_env(env=None, uid=None):
+    x = pkconfig.to_environ((
+        'pykern.*',
+        'sirepo.feature_config.*',
+    ))
+    for k in x.keys():
+        assert not pykern.pkdebug.SECRETS_RE.search(k), \
+            'unexpected secret key={} match={}'.format(
+                k,
+                pykern.pkdebug.SECRETS_RE,
+            )
     env = (env or PKDict()).pksetdefault(
-        **pkconfig.to_environ((
-            'pykern.*',
-            'sirepo.feature_config.job',
-        ))
+        **x,
     ).pksetdefault(
         PYTHONPATH='',
         PYTHONSTARTUP='',
