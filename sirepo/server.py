@@ -255,9 +255,7 @@ def api_getApplicationData(filename=None):
     req = http_request.parse_post(template=True, filename=filename or None)
     with simulation_db.tmp_dir() as d:
         res = req.template.get_application_data(req.req_data, tmp_dir=d)
-        if 'filename' in req:
-            assert isinstance(res, pkconst.PY_PATH_LOCAL_TYPE), \
-                '{}: template did not return a file'.format(res)
+        if 'filename' in req and isinstance(res, pkconst.PY_PATH_LOCAL_TYPE):
             return http_reply.gen_file_as_attachment(
                 res,
                 filename=req.filename,

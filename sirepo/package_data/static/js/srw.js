@@ -37,6 +37,9 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="OutputImageFormat">',
           '<div data-sample-preview=""></div>',
         '</div>',
+        '<div data-ng-switch-when="SampleRandomShapeArray" class="col-sm-7">',
+          '<div data-sample-random-shapes="" data-model="model" data-field="field"></div>',
+        '</div>',
     ].join('');
     SIREPO.appDownloadLinks = [
         '<li data-lineout-csv-link="x"></li>',
@@ -458,14 +461,31 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
     }
 
     function updateSampleFields(item) {
-        ['areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd'].forEach(function(f) {
-            panelState.showField('sample', f, item.cropArea == '1');
+        ['imageFile', 'rotateAngle', 'rotateReshape', 'cutoffBackgroundNoise', 'backgroundColor', 'invert', 'tileImage', 'tileRows', 'tileColumns', 'cropArea', 'resolution'].forEach(function(f) {
+            panelState.showField('sample', f, item.sampleSource == 'file');
         });
-        ['tileRows', 'tileColumns'].forEach(function(f) {
-            panelState.showField('sample', f, item.tileImage == '1');
+        ['dens', 'obj_type', 'r_min_bw_obj', 'size_dist', 'ang_dist', 'rand_alg', 'rx', 'ry', 'nx', 'ny', 'rand_obj_size', 'obj_size_ratio', 'rand_poly_side', 'poly_sides', 'rand_shapes'].forEach(function(f) {
+            panelState.showField('sample', f, item.sampleSource == 'randomDisk');
         });
-        panelState.showField('sample', 'rotateReshape', item.rotateAngle);
-        panelState.showField('sample', 'backgroundColor', item.cutoffBackgroundNoise);
+        panelState.showRow('sample', 'areaXStart', item.sampleSource == 'file');
+        panelState.showRow('sample', 'obj_size_min', item.sampleSource == 'randomDisk');
+        if (item.sampleSource == 'file') {
+            ['areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd'].forEach(function(f) {
+                panelState.showField('sample', f, item.cropArea == '1');
+            });
+            ['tileRows', 'tileColumns'].forEach(function(f) {
+                panelState.showField('sample', f, item.tileImage == '1');
+            });
+            panelState.showField('sample', 'rotateReshape', item.rotateAngle);
+            panelState.showField('sample', 'backgroundColor', item.cutoffBackgroundNoise);
+        }
+        else if (item.sampleSource == 'randomDisk') {
+            panelState.showField('sample', 'rand_obj_size', item.obj_type != '4' && item.obj_type != '5');
+            panelState.showField('sample', 'rand_poly_side', item.obj_type == '4');
+            panelState.showField('sample', 'obj_size_ratio', item.obj_type != '4' && item.obj_type != '5' && item.rand_obj_size == '0');
+            panelState.showField('sample', 'poly_sides', item.obj_type == '4' && item.rand_poly_side == '0');
+            panelState.showField('sample', 'rand_shapes', item.obj_type == '5');
+        }
     }
 
     function updateVectorFields(item) {
@@ -650,7 +670,7 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         });
         beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energy', 'h', 'k', 'l'], computeCrystalInit, true);
         beamlineService.watchBeamlineField($scope, 'crystal', ['diffractionAngle', 'dSpacing', 'asymmetryAngle', 'psi0r', 'psi0i', 'rotationAngle'], computeCrystalOrientation, true);
-        beamlineService.watchBeamlineField($scope, 'sample', ['cropArea', 'tileImage', 'rotateAngle', 'cutoffBackgroundNoise'], updateSampleFields);
+        beamlineService.watchBeamlineField($scope, 'sample', ['sampleSource', 'cropArea', 'tileImage', 'rotateAngle', 'cutoffBackgroundNoise', 'obj_type', 'rand_obj_size', 'rand_poly_side'], updateSampleFields);
         $scope.$on('beamline.changed', syncFirstElementPositionToDistanceFromSource);
         $scope.$on('simulation.changed', function() {
             updatePhotonEnergyHelpText();
@@ -1833,16 +1853,26 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
 
             $scope.loadImageFile = function() {
                 if (! appState.isLoaded() || imageData || $scope.isLoading) {
-                    return '';
+                    return;
                 }
                 $scope.isLoading = true;
                 downloadImage('png', function(filename, response) {
                     imageData = response.data;
                     $scope.isLoading = false;
-                    var urlCreator = window.URL || window.webkitURL;
-                    $('.srw-processed-image')[0].src = urlCreator.createObjectURL(imageData);
+                    if (imageData.type == 'application/json') {
+                        // an error message has been returned
+                        imageData.text().then(function(text) {
+                            $scope.errorMessage = JSON.parse(text).error;
+                            $scope.$digest();
+                        });
+                    }
+                    else {
+                        var urlCreator = window.URL || window.webkitURL;
+                        if ($('.srw-processed-image').length) {
+                            $('.srw-processed-image')[0].src = urlCreator.createObjectURL(imageData);
+                        }
+                    }
                 });
-                return '';
             };
 
             $scope.downloadProcessedImage = function() {
@@ -1854,6 +1884,48 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                     function(filename, response) {
                         saveAs(response.data, filename);
                     });
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('sampleRandomShapes', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<div data-ng-repeat="shape in shapes track by shape.id" style="display: inline-block; margin-right: 1em">',
+              '<div class="checkbox"><label><input type="checkbox" value="{{ shape.id }}" data-ng-click="toggle(shape)" data-ng-checked="isChecked(shape)">{{ shape.name }}</label></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.shapes = ['Rectangle', 'Ellipse', 'Triangle', 'Polygon'].map(
+                function(name, idx) {
+                    return {
+                        name: name,
+                        id: idx + 1,
+                        checked: false,
+                    };
+                });
+            $scope.isChecked = function(shape) {
+                if ($scope.model && $scope.field && $scope.model[$scope.field]) {
+                    return $scope.model && $scope.model[$scope.field].indexOf(shape.id) >= 0;
+                }
+                return false;
+            };
+            $scope.toggle = function(shape) {
+                var m = $scope.model;
+                if (m) {
+                    if ($scope.isChecked(shape)) {
+                        m[$scope.field].splice(m[$scope.field].indexOf(shape.id), 1);
+                    }
+                    else {
+                        m[$scope.field].push(shape.id);
+                    }
+                }
             };
         },
     };
