@@ -976,8 +976,10 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     //srdbg(dim, 'best edge', seg);
                     var cl = $scope.boundObj.vpCenterLineForDimension(dim);
                     var cli = screenRect.boundaryIntersectionsWithSeg(cl);
-                    $scope.centralAxes[dim].x = [cli[0].x, cli[1].x];
-                    $scope.centralAxes[dim].y = [cli[0].y, cli[1].y];
+                    if (cli && cli.length == 2) {
+                        $scope.centralAxes[dim].x = [cli[0].x, cli[1].x];
+                        $scope.centralAxes[dim].y = [cli[0].y, cli[1].y];
+                    }
 
                     if (! seg) {
                         // param to show arrow ends?
@@ -1444,7 +1446,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             }
 
             function refresh(doCacheCanvas) {
-                
+
                 if ($scope.axisObj) {
                     $scope.$broadcast('axes.refresh');
                 }

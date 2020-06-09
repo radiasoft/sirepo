@@ -76,12 +76,12 @@ def extract_report_data(run_dir, sim_in):
         v_type = sim_in.models.magnetDisplay.viewType
         f_type = sim_in.models.magnetDisplay.fieldType if v_type == VIEW_TYPE_FIELD\
             else None
-        simulation_db.write_result(
+        template_common.write_sequential_result(
             _read_data(sim_in.simulationId, v_type, f_type),
-            run_dir=run_dir
+            run_dir=run_dir,
         )
         return
-    simulation_db.write_result(PKDict(), run_dir=run_dir)
+    assert False, 'unknown report: {}'.format(sim_in.report)
 
 
 # if the file exists but the data we seek does not, have Radia generate it here.  We

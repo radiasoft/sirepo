@@ -20,7 +20,7 @@ SIREPO.app.config(function() {
         //'<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
         //'</ul>',
         '</div>',
-    ];
+    ].join('');
 });
 
 SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, requestSender) {
@@ -231,7 +231,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     $scope.svc = radiaService;
 
     self.solution = [];
-    
+
     function handleStatus(data) {
         //srdbg('SIM STATUS', data);
         if (data.error) {
