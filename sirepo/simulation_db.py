@@ -254,7 +254,7 @@ def get_schema(sim_type):
 
     """
     t = sirepo.template.assert_sim_type(sim_type) if sim_type is not None \
-        else feature_config.cfg().sim_types[0]
+        else list(feature_config.cfg().sim_types)[0]
     if t in _SCHEMA_CACHE:
         return _SCHEMA_CACHE[t]
     schema = read_json(

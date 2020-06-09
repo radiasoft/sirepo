@@ -9,7 +9,7 @@ from pykern import pkio
 from pykern import pksubprocess
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
-from sirepo.template import sdds_util, template_common
+from sirepo.template import sdds_util, template_common, madx_parser
 import re
 import shutil
 import sirepo.sim_data
@@ -68,7 +68,7 @@ _FIELD_UNITS = {
 def _extract_twiss_report(data):
     report = data['models'][data['report']]
     report['x'] = _X_FIELD
-    values = _parse_madx(_elegant_to_madx(data['models']['ring']))
+    values = madx_parser.parse_tfs_file(_elegant_to_madx(data['models']['ring']))
     x = _float_list(values[report['x']])
     y_range = None
     plots = []

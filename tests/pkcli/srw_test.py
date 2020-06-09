@@ -15,4 +15,4 @@ def test_srw_create_predefined():
     d = pkunit.empty_work_dir()
     sirepo.pkcli.srw.create_predefined(d)
     j = pkjson.load_any(d.listdir()[0])
-    pkunit.pkeq(20, len(j.beams))
+    pkunit.pkeq(22, len(j.beams))

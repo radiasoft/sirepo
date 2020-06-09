@@ -64,7 +64,7 @@ def audit_proprietary_lib_files(*uid):
                 pass
 
     server.init()
-    t = feature_config.cfg().proprietary_sim_types.intersection(feature_config.cfg().sim_types)
+    t = feature_config.cfg().proprietary_sim_types
     if not t:
         return
     for u in uid or auth_db.all_uids():
@@ -99,13 +99,12 @@ def setup_dev_proprietary_code(sim_type, rpm_url):
       sim_type (str): simulation type
       rpm_url (str): Url of the rpm (file:// or http://)
     """
-    import sirepo.pkcli.admin
     import urllib.request
 
     assert pkconfig.channel_in('dev'), \
         'Only to be used in dev. channel={}'.format(pkconfig.cfg.channel)
 
-    d = sirepo.pkcli.admin.proprietary_code_dir(sim_type)
+    d = proprietary_code_dir(sim_type)
     pkio.mkdir_parent(d)
     s = sirepo.sim_data.get_class(sim_type)
 

@@ -21,6 +21,8 @@ QUARTER: LINE=(M0,L0,Q1,M1,L2,Q2,M2,L2,Q3,M3,L2,BM,L2,SD,L1,Q4,M4,L1,SF,L2,BM,L2
 CSR: LINE=(QUARTER,QUARTER,QUARTER,QUARTER);
 
 
-beam, particle=positron, pc=0.0;
+beam;
 use, sequence=CSR;
-twiss, file="twiss.tfs";
+
+
+twiss, file=twiss.tfs;

@@ -211,9 +211,6 @@ scancel -u $USER >& /dev/null || true
 '''
         return res
 
-    def _has_remote_agent(self):
-        return True
-
     def _raise_sbatch_login_srexception(self, reason, msg):
         raise util.SRException(
             'sbatchLogin',
