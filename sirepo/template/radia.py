@@ -13,6 +13,7 @@ from pykern.pkcollections import PKDict
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
+from scipy.spatial.transform import Rotation
 from sirepo import simulation_db
 from sirepo.template import template_common
 from sirepo.template import radia_tk
@@ -25,6 +26,11 @@ import sirepo.sim_data
 import sirepo.util
 import time
 
+_BEAM_AXIS_ROTATIONS = PKDict(
+    x=Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
+    y=Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
+    z=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+)
 _DMP_FILE = 'geom.dat'
 _FIELD_MAP_COLS = ['x', 'y', 'z', 'Bx', 'By', 'Bz']
 _FIELD_MAP_UNITS = ['m', 'm', 'm', 'T', 'T', 'T']
@@ -47,19 +53,19 @@ _cfg = PKDict(sdds=None)
 
 def background_percent_complete(report, run_dir, is_running):
     res = PKDict(
-        percentComplete=100,
+        percentComplete=0,
         frameCount=0,
         errors='',  #errors,
     )
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if is_running:
-        data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+        #data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         res.percentComplete = 0.0  #_compute_percent_complete(data, last_element)
         return res
-    #output_info = _output_info(run_dir)
     return PKDict(
         percentComplete=100,
         frameCount=1,
-        outputInfo=[],  #output_info,
+        outputInfo=[_read_solution(data.simulationId)],  #output_info,
         lastUpdateTime=time.time(),  #output_info[0]['lastUpdateTime'],
         errors='',  #errors,
     )
@@ -70,12 +76,12 @@ def extract_report_data(run_dir, sim_in):
         v_type = sim_in.models.magnetDisplay.viewType
         f_type = sim_in.models.magnetDisplay.fieldType if v_type == VIEW_TYPE_FIELD\
             else None
-        simulation_db.write_result(
+        template_common.write_sequential_result(
             _read_data(sim_in.simulationId, v_type, f_type),
-            run_dir=run_dir
+            run_dir=run_dir,
         )
         return
-    simulation_db.write_result(PKDict(), run_dir=run_dir)
+    assert False, 'unknown report: {}'.format(sim_in.report)
 
 
 # if the file exists but the data we seek does not, have Radia generate it here.  We
@@ -88,13 +94,17 @@ def get_application_data(data, **kwargs):
         raise RuntimeError('unknown application data method: {}'.format(data.method))
 
     g_id = -1
+    sim_id = data.simulationId
     try:
-        with open(str(_dmp_file(data.simulationId)), 'rb') as f:
+        with open(str(_dmp_file(sim_id)), 'rb') as f:
             b = f.read()
             g_id = radia_tk.load_bin(b)
-    except IOError:
-        # No Radia dump file
-        return {}
+    except IOError as e:
+        if pkio.exception_is_not_found(e):
+            # No Radia dump file
+            return PKDict(warning='No Radia dump')
+        # propagate other errors
+        #return PKDict()
     if data.method == 'get_field':
         f_type = data.get('fieldType')
         #pkdp('FT {}', f_type)
@@ -102,7 +112,7 @@ def get_application_data(data, **kwargs):
             #TODO(mvk): won't work for subsets of available paths, figure that out
             pass
             #try:
-            #    res = _read_data(data.simulationId, data.viewType, f_type)
+            #    res = _read_data(sim_id, data.viewType, f_type)
             #except KeyError:
             #    res = None
             #pkdp('READ RES {}', res)
@@ -114,26 +124,44 @@ def get_application_data(data, **kwargs):
             #    if len(old_pts) == len(new_pts) and numpy.allclose(new_pts, old_pts):
             #        return res
         #return _read_or_generate(g_id, data)
-        return _generate_field_data(g_id, data.name, f_type, data.fieldPaths)
+        res = _generate_field_data(
+            g_id, data.name, f_type, data.get('fieldPaths', None)
+        )
+        res.solution = _read_solution(sim_id)
+        return res
+
     if data.method == 'get_field_integrals':
         return _generate_field_integrals(g_id, data.fieldPaths)
     if data.method == 'get_geom':
         g_types = data.get('geomTypes', ['lines', 'polygons'])
         res = _read_or_generate(g_id, data)
-        res.data = [{k: d[k] for k in d.keys() if k in g_types} for d in res.data]
+        rd = res.data if 'data' in res else []
+        res.data = [{k: d[k] for k in d.keys() if k in g_types} for d in rd]
         return res
     if data.method == 'save_field':
         #pkdp('DATA {}', data)
         data.method = 'get_field'
         res = get_application_data(data)
+        file_path = simulation_db.simulation_lib_dir(SIM_TYPE).join(
+            sim_id + '_' + res.name + '.' + data.fileType
+        )
+        # we save individual field paths, so there will be one item in the list
+        vectors = res.data[0].vectors
+        #pkdp('DATUM {}', datum)
         if data.fileType == 'sdds':
-            # we save individual field paths, so there will be one item in the list
             return _save_fm_sdds(
                 res.name,
-                res.data[0],
-                simulation_db.simulation_lib_dir(SIM_TYPE).join(
-                    data.simulationId + '_' + res.name + '.' + data.fileType
-                ))
+                vectors,
+                _BEAM_AXIS_ROTATIONS[data.beamAxis],
+                file_path
+            )
+        elif data.fileType == 'csv':
+            return _save_field_csv(
+                data.fieldType,
+                vectors,
+                _BEAM_AXIS_ROTATIONS[data.beamAxis],
+                file_path
+            )
         return res
 
 
@@ -278,12 +306,12 @@ def _fields_file(sim_id):
     return _get_res_file(sim_id, _FIELDS_FILE)
 
 
-def _generate_field_data(g_id, name, f_type, f_paths):
-    if f_type == radia_tk.FIELD_TYPE_MAG_M:
+def _generate_field_data(g_id, name, field_type, field_paths):
+    if field_type == radia_tk.FIELD_TYPE_MAG_M:
         f = radia_tk.get_magnetization(g_id)
-    elif f_type in radia_tk.POINT_FIELD_TYPES:
-        f = radia_tk.get_field(g_id, f_type, _build_field_points(f_paths))
-    return radia_tk.vector_field_to_data(g_id, name, f, radia_tk.FIELD_UNITS[f_type])
+    elif field_type in radia_tk.POINT_FIELD_TYPES:
+        f = radia_tk.get_field(g_id, field_type, _build_field_points(field_paths))
+    return radia_tk.vector_field_to_data(g_id, name, f, radia_tk.FIELD_UNITS[field_type])
 
 
 def _generate_field_integrals(g_id, f_paths):
@@ -325,9 +353,10 @@ def _generate_obj_data(g_id, name):
 def _generate_parameters_file(data):
     report = data.get('report', '')
     res, v = template_common.generate_parameters_file(data)
+    sim_id = data.simulationId
     g = data.models.geometry
 
-    v['dmpFile'] = _dmp_file(data.simulationId)
+    v['dmpFile'] = _dmp_file(sim_id)
     v['isExample'] = data.models.simulation.isExample
     v['geomName'] = g.name
     disp = data.models.magnetDisplay
@@ -336,7 +365,7 @@ def _generate_parameters_file(data):
     if v_type not in VIEW_TYPES:
         raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
     v['viewType'] = v_type
-    v['dataFile'] = _geom_file(data.simulationId)
+    v['dataFile'] = _geom_file(sim_id)
     if v_type == VIEW_TYPE_FIELD:
         f_type = disp.fieldType
         if f_type not in radia_tk.FIELD_TYPES:
@@ -369,10 +398,10 @@ def _geom_file(sim_id):
     return _get_res_file(sim_id, _GEOM_FILE)
 
 
-def _geom_h5_path(v_type, f_type=None):
-    p = 'geometry/' + v_type
-    if f_type is not None:
-        p += '/' + f_type
+def _geom_h5_path(view_type, field_type=None):
+    p = 'geometry/' + view_type
+    if field_type is not None:
+        p += '/' + field_type
     return p
 
 
@@ -394,13 +423,25 @@ def _get_sdds():
     return _cfg.sdds
 
 
-def _read_data(sim_id, view_type, field_type):
+def _read_h5_path(sim_id, h5path):
     try:
         with h5py.File(_geom_file(sim_id), 'r') as hf:
-            g = template_common.h5_to_dict(hf, path=_geom_h5_path(view_type, field_type))
-        return g
-    except IOError:
-        return {}
+            return template_common.h5_to_dict(hf, path=h5path)
+    except IOError as e:
+        if pkio.exception_is_not_found(e):
+            # need to generate file
+            return None
+    except KeyError:
+        # no such path in file
+        return None
+    # propagate other errors
+
+
+def _read_data(sim_id, view_type, field_type):
+    res = _read_h5_path(sim_id, _geom_h5_path(view_type, field_type))
+    if res:
+        res.solution = _read_solution(sim_id)
+    return res
 
 
 def _read_or_generate(geom_id, data):
@@ -418,15 +459,40 @@ def _read_or_generate(geom_id, data):
         return get_application_data(data)
 
 
-def _save_fm_sdds(name, f_data, file_path):
+def _read_solution(sim_id):
+    return _read_h5_path(sim_id, 'solution')
+
+
+def _rotate_flat_vector_list(vectors, scipy_rotation):
+    return scipy_rotation.apply(numpy.reshape(vectors, (-1, 3)))
+
+
+def _save_field_csv(field_type, vectors, scipy_rotation, path):
+    # reserve first line for a header
+    data = ['x,y,z,' + field_type + 'x,' + field_type + 'y,' + field_type + 'z']
+    # mm -> m, rotate so the beam axis is aligned with z
+    pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation).flatten()
+    #pkdp('v {} to pts {}', vectors.vertices, pts)
+    mags = numpy.array(vectors.magnitudes)
+    dirs = _rotate_flat_vector_list(vectors.directions, scipy_rotation).flatten()
+    for i in range(len(mags)):
+        j = 3 * i
+        r = pts[j:j + 3]
+        r = numpy.append(r, mags[i] * dirs[j:j + 3])
+        data.append(','.join(map(str, r)))
+    pkio.write_text(path, '\n'.join(data))
+    return path
+
+
+def _save_fm_sdds(name, vectors, scipy_rotation, path):
     s = _get_sdds()
     s.setDescription('Field Map for ' + name, 'x(m), y(m), z(m), Bx(T), By(T), Bz(T)')
-    # cm -> m for elegant - might need to have this as a param in general
-    pts = 0.01 * numpy.reshape(f_data.vectors.vertices, (-1, 3))
+    # mm -> m
+    pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation)
     ind = numpy.lexsort((pts[:, 0], pts[:, 1], pts[:, 2]))
     pts = pts[ind]
-    mag = f_data.vectors.magnitudes
-    dirs = f_data.vectors.directions
+    mag = vectors.magnitudes
+    dirs = _rotate_flat_vector_list(vectors.directions, scipy_rotation)
     v = [mag[j // 3] * d for (j, d) in enumerate(dirs)]
     fld = numpy.reshape(v, (-1, 3))[ind]
     # can we use tmp_dir before it gets deleted?
@@ -438,5 +504,5 @@ def _save_fm_sdds(name, f_data, file_path):
         col_data.append([fld[:, i].tolist()])
     for i, n in enumerate(_FIELD_MAP_COLS):
         s.setColumnValueLists(n, col_data[i])
-    s.save(str(file_path))
-    return file_path
+    s.save(str(path))
+    return path
