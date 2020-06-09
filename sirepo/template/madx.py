@@ -29,6 +29,7 @@ import sirepo.sim_data
 
 
 _FILE_TYPES = ['ele', 'lte', 'madx']
+_INITIAL_REPORTS = ['twissEllipseReport', 'bunchReport']
 MADX_INPUT_FILENAME = 'madx.in'
 MADX_OUTPUT_FILENAME = 'madx.out'
 TWISS_OUTPUT_FILENAME = 'twiss.tfs'
@@ -135,6 +136,11 @@ def import_file(req, test_data=None, **kwargs):
     return data
 
 
+def is_initial_report(rpt):
+    #pkdp('INIT RPT {}?', re.sub(r'\d+$', '', rpt) in _INITIAL_REPORTS)
+    return re.sub(r'\d+$', '', rpt) in _INITIAL_REPORTS
+
+
 def madx_code_var(variables):
     return _code_var(variables)
 
@@ -167,9 +173,9 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
-    pkdp('WRITE P ||? {}', is_parallel)
+    path = 'bunch.py' if is_initial_report(data.report) else MADX_INPUT_FILENAME
     pkio.write_text(
-        run_dir.join(MADX_INPUT_FILENAME),
+        run_dir.join(path),
         _generate_parameters_file(data),
     )
 
@@ -185,12 +191,103 @@ def _code_var(variables):
 def _extract_report_data(data, run_dir):
     if 'twissEllipse' in data.report:
         return _extract_report_twissEllipseReport(data, run_dir)
-    #if 'bunchReport' in data.report:
-    #    return _extract_report_bunchReport(data, run_dir)
+    if 'bunchReport' in data.report:
+        return _extract_report_bunchReport(data, run_dir)
     return getattr(
        pykern.pkinspect.this_module(),
        '_extract_report_' + data.report,
     )(data, run_dir)
+
+
+
+def _ptc_particles(twiss_params, num_particles):
+    #pkdp('BUILD {} PARTS FROM {}', num_particles, twiss_params)
+    mean = [0, 0, 0, 0]
+    cov = []
+    for dim in twiss_params:
+        m1 = 1 if dim == 'x' else 0
+        m2 = 1 - m1
+        tp = PKDict(twiss_params[dim])
+        dd = tp.beta * tp.emittance
+        ddp = -tp.alpha * tp.emittance
+        dpdp = tp.emittance * tp.gamma
+        cov.append([m1 * dd, m1 * ddp, m2 * dd, m2 * ddp])
+        cov.append([m1 * ddp, m1 * dpdp, m2 * ddp, m2 * dpdp])
+
+    transverse = np.random.multivariate_normal(mean, cov, num_particles)
+    x = transverse[:, 0]
+    xp = transverse[:, 1]
+    y = transverse[:, 2]
+    yp = transverse[:, 3]
+
+    long_part = np.random.multivariate_normal([0, 0], [[0, 0], [0, 0]], num_particles)
+
+    particles = np.column_stack([x, xp, y, yp, long_part[:, 0], long_part[:, 1]])
+    return PKDict(
+        x=PKDict(pos=particles[:,0], p=particles[:,1]),
+        y=PKDict(pos=particles[:,2], p=particles[:,3]),
+        t=PKDict(pos=particles[:,4], p=particles[:,5]),
+    )
+
+def _extract_report_bunchReport(data, run_dir):
+    #pkdp('EXTRACT BUNCH {}', data)
+    util = LatticeUtil(data, _SCHEMA)
+    m = util.find_first_command(data, 'twiss')
+    if not m:
+        return template_common.parameter_plot([], [], None, PKDict())
+    r_model = data.models[data.report]
+    #pkdp('BUNCH MDL {}', r_model)
+    x_axis = r_model.x
+    y_axis = r_model.y
+    # read from file?  store on model?
+    parts = _ptc_particles(_get_initial_twiss_params(data), 1000)
+    if x_axis[0] == 'x':
+        x = parts.x.pos
+        y = parts.x.p
+    else:
+        x = parts.y.pos
+        y = parts.y.p
+
+    return template_common.heatmap(
+        [x, y],
+        PKDict(histogramBins=100),
+        PKDict(
+            x_label=x_axis,
+            y_label=y_axis,
+            title='BUNCH',
+        )
+    )
+
+
+def _twiss_ellipse_rotation(alpha, beta):
+    if alpha == 0:
+        return 0
+    return 0.5 * math.atan(
+        2. * alpha * beta / (1 + alpha * alpha - beta * beta)
+    )
+
+
+def _get_initial_twiss_params(data):
+    p = PKDict(
+        x=PKDict(),
+        y=PKDict()
+    )
+    util = LatticeUtil(data, _SCHEMA)
+    m = util.find_first_command(data, 'twiss')
+    # must an initial twiss always exist?
+    if not m:
+        return p
+    for dim in ('x', 'y'):
+        alf = 'alf{}'.format(dim)
+        bet = 'bet{}'.format(dim)
+        eta = 'e{}'.format(dim)
+        a = m[alf]
+        b = m[bet]
+        p[dim].alpha = a
+        p[dim].beta = b
+        p[dim].emittance = m[eta] if eta in m else 1.0
+        p[dim].gamma = (1. + a * a) / b
+    return p
 
 
 def _extract_report_twissEllipseReport(data, run_dir):
@@ -213,7 +310,7 @@ def _extract_report_twissEllipseReport(data, run_dir):
     #pkdp('ELLIPSE A {} B {}', a, b)
     eta = 'e{}'.format(dim)
     e = m[eta] if eta in m else 1.0
-    phi = _ellipse_rot(a, b)
+    phi = _twiss_ellipse_rotation(a, b)
     th = theta - phi
     #pkdp('ELLIPSE ROT {}', phi)
     mj = math.sqrt(e * b)
@@ -240,61 +337,6 @@ def _extract_report_twissEllipseReport(data, run_dir):
         )
     )
 
-
-def _extract_report_bunchReport(data, run_dir):
-    pkdp('EXTRACT BUNCH')
-    util = LatticeUtil(data, _SCHEMA)
-    m = util.find_first_command(data, 'twiss')
-    #pkdp('TWISS FOUND {}', m)
-    # must an initial twiss always exist?
-    if not m:
-        return template_common.parameter_plot([], [], None, PKDict())
-    r_model = data.models[data.report]
-    dim = r_model.dim
-    plots = []
-    n_pts = 200
-    theta = np.arange(0, 2. * np.pi * (n_pts / (n_pts - 1)), 2. * np.pi / n_pts)
-    alf = 'alf{}'.format(dim)
-    bet = 'bet{}'.format(dim)
-    a = m[alf]
-    b = m[bet]
-    g = (1. + a * a) / b
-    #pkdp('ELLIPSE A {} B {}', a, b)
-    eta = 'e{}'.format(dim)
-    e = m[eta] if eta in m else 1.0
-    phi = _ellipse_rot(a, b)
-    th = theta - phi
-    #pkdp('ELLIPSE ROT {}', phi)
-    mj = math.sqrt(e * b)
-    mn = 1.0 / mj
-    r = np.power(
-        mn * np.cos(th) * np.cos(th) + mj * np.sin(th) * np.sin(th),
-        -0.5
-    )
-    #pkdp('ELLIPSE R(TH) {}', r)
-    x = r * np.cos(theta)
-    y = r * np.sin(theta)
-    p = PKDict(field=dim, points=y.tolist(), label=f'{dim}\' [rad]')
-    plots.append(
-        p
-    )
-    return template_common.parameter_plot(
-        x.tolist(),
-        plots,
-        {},
-        PKDict(
-            title=f'{data.models.simulation.name} a{dim} = {a} b{dim} = {b} g{dim} = {g}',
-            y_label='',
-            x_label=f'{dim} [m]'
-        )
-    )
-
-def _ellipse_rot(a, b):
-    if a == 0:
-        return 0
-    return 0.5 * math.atan(
-        2. * a * b / (1 + a * a - b * b)
-    )
 
 def _extract_report_twissReport(data, run_dir):
     t = madx_parser.parse_tfs_file(run_dir.join(TWISS_OUTPUT_FILENAME))
@@ -312,6 +354,16 @@ def _extract_report_twissReport(data, run_dir):
         m,
         PKDict(title=data.models.simulation.name, y_label='', x_label='s[m]')
     )
+
+
+def _format_field_value(state, model, field, el_type):
+    #pkdp('M {} F {} VAL {} T {}', model, field, model[field], el_type)
+    v = model[field]
+    if el_type == 'Boolean':
+        v = 'true' if v == '1' else 'false'
+    elif el_type == 'LatticeBeamlineList':
+        v = state.id_map[int(v)].name
+    return [field, v]
 
 
 def _generate_commands(util):
@@ -336,8 +388,21 @@ def _generate_lattice(util):
 
 
 def _generate_parameters_file(data):
-    pkdp('GEN P')
     res, v = template_common.generate_parameters_file(data)
+
+    v.report = re.sub(r'\d+$', '', data.report)
+    if v.report in _INITIAL_REPORTS:
+        # these reports do not require running madx first
+        #pkdp('INIT RPT MDOELS {}', data.models)
+        v.initialTwissParameters = _get_initial_twiss_params(data)
+        #pkdp('TWISS {}', v.initialTwissParameters)
+        v.numParticles = data.models.particleTracking.numParticles
+        v.particleFile = simulation_db.simulation_dir(SIM_TYPE, data.simulationId) \
+            .join(data.report).join('ptc_particles.txt')
+        res = template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
+        #pkdp('GENED P {}', res)
+        return res
+
     util = LatticeUtil(data, _SCHEMA)
     c = _generate_commands(util)
     code_var = _code_var(data.models.rpnVariables)

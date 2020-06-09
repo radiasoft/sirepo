@@ -24,6 +24,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 m = dm['bunchReport{}'.format(i)] = PKDict()
                 cls.update_model_defaults(m, 'bunchReport')
                 if i == 1:
+                    m.x = 'x'
                     m.y = 'px'
                 elif i == 2:
                     m.x = 'y'
@@ -31,6 +32,14 @@ class SimData(sirepo.sim_data.SimDataBase):
                 elif i == 4:
                     m.x = 'z'
                     m.y = 'pz'
+        if 'initialTwissParams' not in dm:
+            for dim in ['x', 'y']:
+                m = dm['initialTwissParams'] = PKDict()
+                cls.update_model_defaults(m, 'initialTwissParams')
+                m.dim = dim
+        if 'particleTracking' not in dm:
+            m = dm['particleTracking'] = PKDict()
+            cls.update_model_defaults(m, 'particleTracking')
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):

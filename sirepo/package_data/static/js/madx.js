@@ -364,7 +364,7 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
             });
 
             $scope.$watch('pt', function (d) {
-                srdbg('PT CH', d);
+                //srdbg('PT CH', d);
             });
             $('#sr-command_beam-basicEditor h5').hide();
             $('#sr-command_distribution-basicEditor h5').hide();
