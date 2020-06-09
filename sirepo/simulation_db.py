@@ -802,30 +802,6 @@ def write_json(filename, data):
     util.json_dump(data, path=json_filename(filename), pretty=True)
 
 
-def write_result(result, run_dir=None):
-    """Write simulation result to standard output.
-
-    Args:
-        result (dict): will set state to completed
-        run_dir (py.path): Defaults to current dir
-    """
-    if not run_dir:
-        run_dir = pkio.py_path()
-    fn = json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
-    if fn.exists():
-        # Don't overwrite first written file, because first write is
-        # closest to the reason is stopped (e.g. canceled)
-        return
-    result.setdefault('state', 'completed')
-    write_json(fn, result)
-    write_status(result['state'], run_dir)
-    input_file = json_filename(template_common.INPUT_BASE_NAME, run_dir)
-    if input_file.exists():
-        template = sirepo.template.import_module(read_json(input_file))
-        if hasattr(template, 'clean_run_dir'):
-            template.clean_run_dir(run_dir)
-
-
 def _create_lib_and_examples(simulation_type):
     import sirepo.sim_data
 
