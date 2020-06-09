@@ -6,7 +6,7 @@
         <div data-basic-editor-panel="" data-view-name="command_distribution"></div>
       </div>-->
     </div>
-    <div data-ng-repeat="item in source.reports() track by item.id">
+    <div data-ng-repeat="item in source.reports() track by item.modelKey">
       <div class="col-md-6 col-xl-4">
         <div data-report-panel="{{ source.plotType() }}" data-model-name="{{ source.reportModel() }}" data-model-data="item" data-panel-title="{{ source.headings()(item) }}"></div>
       </div>
