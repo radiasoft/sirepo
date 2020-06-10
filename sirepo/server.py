@@ -602,14 +602,13 @@ def init(uwsgi=None, use_reloader=False):
     """Initialize globals and populate simulation dir"""
     global _app
 
+    if _app:
+        return
     global _google_tag_manager
     if cfg.google_tag_manager_id:
         _google_tag_manager = f'''<script>
     (function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}})(window,document,'script','dataLayer','{cfg.google_tag_manager_id}');
     </script>'''
-
-    if _app:
-        return
     #: Flask app instance, must be bound globally
     _app = flask.Flask(
         __name__,
@@ -619,19 +618,18 @@ def init(uwsgi=None, use_reloader=False):
     _app.config.update(
         PROPAGATE_EXCEPTIONS=True,
     )
-    _app.sirepo_db_dir = sirepo.srdb.root()
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
     uri_router.init(_app, simulation_db)
     return _app
 
 
-def init_apis(app, *args, **kwargs):
+def init_apis(*args, **kwargs):
     import sirepo.job
 
     for e, _ in simulation_db.SCHEMA_COMMON['customErrors'].items():
-        app.register_error_handler(int(e), _handle_error)
-    sirepo.job.init_by_server(app)
+        _app.register_error_handler(int(e), _handle_error)
+    sirepo.job.init_by_server(_app)
 
 
 def _handle_error(error):

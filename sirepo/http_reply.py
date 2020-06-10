@@ -201,15 +201,14 @@ def headers_for_no_cache(resp):
     return resp
 
 
-def init(app, **imports):
-    global MIME_TYPE, _RELOAD_JS_ROUTES, _app
+def init(**imports):
+    global MIME_TYPE, _RELOAD_JS_ROUTES
 
-    _app = app
     sirepo.util.setattr_imports(imports)
     MIME_TYPE = PKDict(
         html='text/html',
         js='application/javascript',
-        json=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
+        json='application/json',
         py='text/x-python',
         madx='text/plain',
     )
@@ -287,7 +286,7 @@ def _gen_exception_reply_Redirect(args):
 
 def _gen_exception_reply_Response(args):
     r = args.response
-    assert isinstance(r, _app.response_class), \
+    assert isinstance(r, flask.current_app.response_class), \
         'invalid class={} response={}'.format(type(r), r)
     return r
 

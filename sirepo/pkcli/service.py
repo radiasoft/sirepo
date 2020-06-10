@@ -22,6 +22,7 @@ import re
 import signal
 import socket
 import subprocess
+import time
 
 _cfg = None
 
@@ -45,10 +46,13 @@ def cfg():
 
 def flask():
     from sirepo import server
+    import sirepo.pkcli.setup_dev
 
     with pkio.save_chdir(_run_dir()):
-        use_reloader = pkconfig.channel_in('dev')
-        app = server.init(use_reloader=use_reloader)
+        sirepo.pkcli.setup_dev.default_command()
+        # above will throw better assertion, but just in case
+        assert pkconfig.channel_in('dev')
+        app = server.init(use_reloader=True)
         # avoid WARNING: Do not use the development server in a production environment.
         app.env = 'development'
         import werkzeug.serving
@@ -57,7 +61,7 @@ def flask():
             host=cfg().ip,
             port=cfg().port,
             threaded=True,
-            use_reloader=use_reloader,
+            use_reloader=True,
         )
 
 
@@ -95,13 +99,14 @@ def http():
         ))
 
     e = PKDict(os.environ)
-    e. SIREPO_JOB_DRIVER_MODULES = 'local'
+    e.SIREPO_JOB_DRIVER_MODULES = 'local'
     processes = []
-    with pkio.save_chdir(_run_dir()), _handle_signals(
-            (signal.SIGINT, signal.SIGTERM),
-    ):
+    with pkio.save_chdir(_run_dir()), \
+        _handle_signals((signal.SIGINT, signal.SIGTERM)):
         try:
             _start(['job_supervisor'])
+            # Avoid race condition on creating auth db
+            time.sleep(.3)
             _start(['service', 'flask'])
             p, _ = os.wait()
         except ChildProcessError:
