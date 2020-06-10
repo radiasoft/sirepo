@@ -507,6 +507,27 @@
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
+        "ellipsoidMirror02": {
+            "title": ["Element Name", "String", "Ellipsoid Mirror"],
+            "position": ["Position along Optical Path [m]", "Float"],
+            "firstFocusLength": ["Distance from Source to Mirror Center (p) [m]", "Float", 20],
+            "focalLength": ["Distance from Mirror Center to Second Focus (q) [m]", "Float", 1.7],
+            "sagittalRadius": ["Sagittal Radius of Surface Curvature at Center [m]", "Float", 0.01],
+            "tangentialSize": ["Tangential Size [m]", "Float", 0.5],
+            "sagittalSize": ["Sagittal Size [m]", "Float", 0.01],
+            "grazingAngle": ["Grazing Angle [mrad]", "Float", 3.6],
+            "autocomputeVectors": ["Auto-compute Vectors", "AutocomputeVectors", "horizontal"],
+            "normalVectorX": ["Horizontal", "Float", 0.9999935200069984],
+            "normalVectorY": ["Vertical", "Float", 0],
+            "normalVectorZ": ["Longitudinal", "Float", -0.0035999922240050387],
+            "tangentialVectorX": ["Horizontal", "Float", -0.0035999922240050387],
+            "tangentialVectorY": ["Vertical", "Float", 0],
+            "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
+            "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
+            "heightAmplification": ["Height Amplification Coefficient", "Float", 1],
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
+        },
         "fiber": {
             "title": ["Element Name", "String", "Fiber"],
             "position": ["Position along Optical Path [m]", "Float"],
@@ -601,7 +622,7 @@
             "outframevy": ["Vertical", "Float", 0],
             "energyAvg": ["Photon energy [eV] to orient grating for", "Float", 1000],
 	        "cff": ["Cff Parameter (cos(beta)/cos(alpha))", "Float", 1.75],
-            "rollAngle": ["Roll Angle [rad]", "Float", 3.1415926],
+            "rollAngle": ["Roll Angle [rad]", "Float", 0],
             "diffractionOrder": ["Diffraction Order", "Float", 1],
             "grooveDensity0": ["a₀ [lines/mm]", "Float", 350.0],
             "grooveDensity1": ["a₁ [lines/mm²]", "Float", 0],
@@ -1209,6 +1230,51 @@
                     "focalLength",
                     "tangentialSize",
                     "sagittalSize"
+                ]],
+                ["Orientation", [
+                    "grazingAngle",
+                    "autocomputeVectors",
+                    [
+                        ["Coordinates of Central Normal Vector", [
+                            "normalVectorX",
+                            "normalVectorY",
+                            "normalVectorZ"
+                        ]],
+                        ["Coordinates of Central Tangential Vector", [
+                            "tangentialVectorX",
+                            "tangentialVectorY"
+                        ]]
+                    ]
+                ]],
+                ["Height Profile", [
+                    "heightProfileFile",
+                    "orientation",
+                    "heightAmplification"
+                ]]
+            ]
+        },
+        "ellipsoidMirror02": {
+            "title": "Ellipsoid Mirror",
+            "basic": [],
+            "advanced": [
+                ["Name & Position", [
+                    "title",
+                    "position",
+                    [
+                        ["Horizontal", [
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]],
+                ["Geometry", [
+                    "firstFocusLength",
+                    "focalLength",
+                    "tangentialSize",
+                    "sagittalSize",
+                    "sagittalRadius"
                 ]],
                 ["Orientation", [
                     "grazingAngle",

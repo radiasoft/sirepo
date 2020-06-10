@@ -244,7 +244,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
 
 SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState, beamlineService, panelState, requestSender, simulationQueue, srwService, $scope, $location) {
     var self = this;
-    var grazingAngleElements = ['ellipsoidMirror', 'sphericalMirror', 'toroidalMirror'];
+    var grazingAngleElements = ['ellipsoidMirror', 'ellipsoidMirror02', 'sphericalMirror', 'toroidalMirror'];
     // tabs: single, multi, beamline3d
     var activeTab = 'single';
     self.mirrorReportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
@@ -256,7 +256,7 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
     self.beamlineModels = ['beamline', 'propagation', 'postPropagation'];
     self.toolbarItemNames = [
         ['Refractive/Diffractive optics and transmission objects', ['lens', 'crl', 'zonePlate', 'fiber', 'aperture', 'obstacle', 'mask', 'sample']],
-        ['Mirrors', ['mirror', 'sphericalMirror', 'ellipsoidMirror', 'toroidalMirror']],
+        ['Mirrors', ['mirror', 'sphericalMirror', 'ellipsoidMirror', 'ellipsoidMirror02', 'toroidalMirror']],
         ['Elements of monochromator', ['crystal', 'grating']],
         'watch',
     ];

@@ -334,6 +334,9 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 if (newItem.type == 'ellipsoidMirror') {
                     newItem.firstFocusLength = newItem.position;
                 }
+                if (newItem.type == 'ellipsoidMirror02') {
+                    newItem.firstFocusLength = newItem.position;
+                }
                 if (newItem.type == 'watch') {
                     appState.models[beamlineService.watchpointReportName(newItem.id)] = appState.setModelDefaults(
                         appState.cloneModel('initialIntensityReport'), 'watchpointReport');
@@ -474,6 +477,10 @@ SIREPO.app.directive('beamlineIcon', function() {
                 '<rect x="23" y="36" width="5" height="24" class="srw-aperture" />',
               '</g>',
               '<g data-ng-switch-when="ellipsoidMirror">',
+                '<path d="M30 2 C40 10 40 50 30 58 L43 58 L43 2 L30 2" class="srw-mirror" />',
+                '<ellipse cx="27" cy="30" rx="10" ry="28" class="srw-curvature" />',
+              '</g>',
+              '<g data-ng-switch-when="ellipsoidMirror02">',
                 '<path d="M30 2 C40 10 40 50 30 58 L43 58 L43 2 L30 2" class="srw-mirror" />',
                 '<ellipse cx="27" cy="30" rx="10" ry="28" class="srw-curvature" />',
               '</g>',
@@ -822,7 +829,7 @@ SIREPO.app.directive('beamlineToolbar', function(appState) {
                     }
                 }
                 var item = appState.setModelDefaults({type: name}, name);
-                var MIRROR_TYPES = ['mirror', 'sphericalMirror', 'ellipsoidMirror', 'toroidalMirror'];
+                var MIRROR_TYPES = ['mirror', 'sphericalMirror', 'ellipsoidMirror', 'ellipsoidMirror02', 'toroidalMirror'];
                 if (MIRROR_TYPES.indexOf(item.type) >= 0) {
                     item.title = item.title.replace(' Mirror', '');
                 }

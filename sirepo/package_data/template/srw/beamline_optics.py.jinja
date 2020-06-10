@@ -110,6 +110,24 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             ))
             pp.append(v.op_{{ item.name }}_pp)
             {{ height_profile(item) }}
+{% elif item.type == 'ellipsoidMirror02' %}
+            el.append(srwlib.SRWLOptMirEl(
+                _p={{ field(item, 'firstFocusLength') }},
+                _q={{ field(item, 'focalLength') }},
+                _ang_graz={{ field(item, 'grazingAngle') }},
+                _size_tang={{ field(item, 'tangentialSize') }},
+                _size_sag={{ field(item, 'sagittalSize') }},
+                _r_sag={{ field(item, 'sagittalRadius') }},
+                _nvx={{ field(item, 'normalVectorX') }},
+                _nvy={{ field(item, 'normalVectorY') }},
+                _nvz={{ field(item, 'normalVectorZ') }},
+                _tvx={{ field(item, 'tangentialVectorX') }},
+                _tvy={{ field(item, 'tangentialVectorY') }},
+                _x={{ field(item, 'horizontalOffset') }},
+                _y={{ field(item, 'verticalOffset') }},
+            ))
+            pp.append(v.op_{{ item.name }}_pp)
+            {{ height_profile(item) }}
 {% elif item.type == 'fiber' %}
             el.append(srwlib.srwl_opt_setup_cyl_fiber(
                 _foc_plane={{ field(item, 'focalPlane') }},
