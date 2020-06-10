@@ -5,7 +5,6 @@ u"""response generation
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkconst
 from pykern import pkio
@@ -103,7 +102,7 @@ def gen_json(value, pretty=False, response_kwargs=None):
     """
     app = flask.current_app
     if not response_kwargs:
-        response_kwargs = pkcollections.Dict()
+        response_kwargs = PKDict()
     return app.response_class(
         simulation_db.generate_json(value, pretty=pretty),
         mimetype=MIME_TYPE.json,
@@ -152,7 +151,7 @@ def gen_redirect_for_anchor(uri, **kwargs):
     return render_static(
         'javascript-redirect',
         'html',
-        pkcollections.Dict(redirect_uri=uri, **kwargs),
+        PKDict(redirect_uri=uri, **kwargs),
     )
 
 
@@ -207,7 +206,7 @@ def init(app, **imports):
 
     _app = app
     sirepo.util.setattr_imports(imports)
-    MIME_TYPE = pkcollections.Dict(
+    MIME_TYPE = PKDict(
         html='text/html',
         js='application/javascript',
         json=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
