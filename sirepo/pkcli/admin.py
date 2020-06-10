@@ -104,9 +104,9 @@ def setup_dev_proprietary_code(sim_type, rpm_url):
     assert pkconfig.channel_in('dev'), \
         'Only to be used in dev. channel={}'.format(pkconfig.cfg.channel)
 
+    s = sim_data.get_class(sim_type)
     d = proprietary_code_dir(sim_type)
     pkio.mkdir_parent(d)
-    s = sirepo.sim_data.get_class(sim_type)
 
     urllib.request.urlretrieve(
         rpm_url,
