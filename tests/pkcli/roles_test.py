@@ -5,7 +5,14 @@ u"""Test role management operations
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+import os
 import pytest
+
+def setup_module(module):
+    os.environ.update(
+        SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES='flash',
+    )
+
 
 def test_flash_change_role_change_lib_files(auth_fc):
     from pykern import pkio
