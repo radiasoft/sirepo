@@ -1,0 +1,34 @@
+
+<ul class="nav nav-tabs">
+    <li role="presentation" data-ng-class="{active: ! is3dPreview }"><a class="srw-tab" href data-ng-click="toggle3dPreview()"><strong>Layout</strong></a></li>
+    <li role="presentation" data-ng-class="{active: is3dPreview }"><a class="srw-tab" href data-ng-click="toggle3dPreview()"><strong><span class="glyphicon glyphicon-option-vertical"></span> 3D Preview</strong></a></li>
+</ul>
+
+<div data-ng-show="! is3dPreview">
+  <p class="lead text-center" style="margin-bottom: 0"><small><em>{{ instructions }}</em></small></p>
+  <div>
+    <!-- NOTE: the <div> and <svg> must be on the same line for the png code to work! -->
+    <div style="-webkit-user-select: none"><svg class="sr-plot">
+        <g data-ng-attr-transform="translate({{ margin.left }}, {{ margin.top }})">
+            <g data-ng-attr-transform="translate(0, {{ tileOffset() }})">
+              <text class="focus-text" text-anchor="end" data-ng-attr-x="{{ width }}" y="-10" dy=".35em"></text>
+              <g class="x axis" data-ng-attr-transform="translate(0, {{ height }})"></g>
+              <g class="x axis grid" data-ng-attr-transform="translate(0, {{ height }})"></g>
+              <g class="y axis"></g>
+              <g class="y axis grid"></g>
+              <text class="y-axis-label" transform="rotate(-90)" data-ng-attr-x="{{ -height / 2 }}" data-ng-attr-y="-{{ margin.left }}" dy="1em"></text>
+              <text class="x-axis-label" ng-attr-x="{{ width / 2 }}" ng-attr-y="{{ height + 26 }}" dy="1em"></text>
+              <text class="x-base" text-anchor="end" ng-attr-x="{{ width + margin.right - 5 }}" ng-attr-y="{{ height + 40 }}"></text>
+              <svg class="plot-viewport" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}" data-ng-drop="true" data-ng-drag-move="dragMove($data, $event)" data-ng-drop-success="dropSuccess($data, $event)">
+                  <defs>
+                  </defs>
+                  <rect class="overlay mouse-zoom" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}"></rect>
+              </svg>
+            </g>
+        </g>
+      </svg></div>
+  </div>
+</div>
+<div data-ng-if="is3dPreview">
+ <div class="vtk-canvas-holder" data-conductors-3d="" data-report-id="reportId" data-parent-controller="source"></div>
+</div>

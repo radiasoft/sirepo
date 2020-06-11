@@ -861,7 +861,876 @@ SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUplo
     };});
 
 
-// will be axis display
+SIREPO.app.directive('3dBuilder', function(appState, frameCache, panelState, requestSender, plotting, vtkAxisService, vtkPlotting, layoutService, utilities, geometry) {
+    return {
+        restrict: 'A',
+        scope: {
+        },
+        template: [
+        ].join(''),
+        controller: function($scope, $element) {
+
+            var d3self = d3.selectAll($element);
+
+            function refresh() {
+            }
+
+            function init() {
+            }
+
+            appState.whenModelsLoaded($scope, function() {
+                init();
+            });
+
+        },
+
+    };
+});
+
+// elevations tab + vtk tab
+SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, plotting, warpvndService) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+            reportId: '<',
+        },
+        templateUrl: '/static/html/3d-builder.html' + SIREPO.SOURCE_CACHE_KEY,
+        controller: function($scope) {
+            var ELEVATIONS = {
+                front: 'front',
+                side: 'side',
+                top: 'top'
+            };
+
+            var insetWidthPct = 0.07;
+            var insetMargin = 16.0;
+
+            $scope.margin = {top: 20, right: 20, bottom: 45, left: 70};
+            $scope.width = $scope.height = 0;
+            $scope.is3dPreview = false;
+
+            var dragCarat, dragShape, dragStart, yRange, zoom;
+            var planeLine = 0.0;
+            var plateSize = 0;
+            var plateSpacing = 0;
+            var axes = {
+                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
+                y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
+                z: layoutService.plotAxis($scope.margin, 'z', 'left', refresh),
+            };
+
+            function alignShapeOnGrid(shape) {
+                var grid = appState.models.simulationGrid;
+                var isFront = shape.elev === ELEVATIONS.front;
+                var numV = isFront ? grid.num_x : grid.num_y;
+                var gWidth = isFront ? grid.channel_width : grid.channel_height;
+                var n = toMicron(gWidth / (numV * 2));
+                var yCenter = shape.y - shape.height / 2;
+                shape.y = alignValue(yCenter, n) + shape.height / 2;
+
+                // iterate shapes (and anode)
+                //   if drag-shape right edge overlaps, but is less than the drag-shape midpoint:
+                //      set drag-shape right edge to shape left edge
+                var anodeLeft = toMicron(plateSpacing);
+                var shapeCenter = shape.x + shape.width / 2;
+                var shapeRight = shape.x + shape.width;
+                if (shapeRight > anodeLeft && shapeCenter < anodeLeft) {
+                    shape.x = anodeLeft - shape.width;
+                    return;
+                }
+                var typeMap = warpvndService.conductorTypeMap();
+                appState.models.conductors.forEach(function(m) {
+                    if (m.id != shape.id) {
+                        var conductorLeft = toMicron(m.zCenter - typeMap[m.conductorTypeId].zLength / 2);
+                        if (shapeRight > conductorLeft && shapeCenter < conductorLeft) {
+                            shape.x = conductorLeft - shape.width;
+                            return;
+                        }
+                        var conductorRight = toMicron(+m.zCenter + typeMap[m.conductorTypeId].zLength / 2);
+                        if (shapeRight > conductorRight && shapeCenter < conductorRight) {
+                            shape.x = conductorRight - shape.width;
+                            return;
+                        }
+                    }
+                });
+            }
+
+            function alignValue(p, n) {
+                var pn = fmod(p, n);
+                var v = pn < n
+                    ? p - pn
+                    : p + n - pn;
+                if (Math.abs(v) < 1e-16) {
+                    return 0;
+                }
+                return v;
+            }
+
+            function caratData(elev) {
+                var zRange = warpvndService.getZRange();
+                var xRange = warpvndService.getXRange();
+                var yRange = warpvndService.getYRange();
+                var res = [];
+                [1, 2, 3].forEach(function(i) {
+                    if (elev === ELEVATIONS.front) {
+                        res.push(caratField(elev, i, 'x', zRange));
+                        res.push(caratField(elev, i, 'z', xRange));
+                    }
+                    else {
+                        res.push(caratField(elev, i, 'y', zRange));
+                        res.push(caratField(elev, i, 'z', yRange));
+                    }
+                });
+                return res;
+            }
+
+            function caratField(elev, index, dimension, range) {
+                var rpt ='fieldComparisonAnimation';
+                var cell = 'Cell' + index;
+                var field = (elev === ELEVATIONS.front ?
+                    (dimension == 'x' ? 'z': 'x') :
+                    (dimension == 'y' ? 'z': 'y')) + cell;
+                if (appState.models[rpt][field] >= range.length) {
+                    appState.models[rpt][field] = range.length - 1;
+                }
+                return {
+                    elev: elev,
+                    index: index,
+                    field: field,
+                    pos: appState.models[rpt][field],
+                    dimension: dimension,
+                    range: range,
+                };
+            }
+
+            function caratText(d) {
+                return d.range[d.pos].toFixed(5);
+            }
+
+            function clearDragShadow() {
+                d3.selectAll('.warpvnd-drag-shadow').remove();
+            }
+
+            function d3DragCarat(d) {
+                /*jshint validthis: true*/
+                var vertAxis = d.elev === ELEVATIONS.front ? axes.y : axes.z;
+                var p = d.dimension === 'x' || d.dimension === 'y'
+                    ? axes.x.scale.invert(d3.event.x) * 1e6
+                    : vertAxis.scale.invert(d3.event.y) * 1e6;
+                var halfWidth = (d.range[1] - d.range[0]) / 2.0;
+                for (var i = 0; i < d.range.length; i++) {
+                    if (d.range[i] + halfWidth >= p) {
+                        d.pos = i;
+                        break;
+                    }
+                }
+                d3.select(this).call(updateCarat);
+            }
+
+            function d3DragEndCarat(d) {
+                var rpt = 'fieldComparisonAnimation';
+                if (d.pos != appState.models[rpt][d.field]) {
+                    appState.models[rpt][d.field] = d.pos;
+                    appState.models[rpt].dimension = d.dimension;
+                    appState.saveChanges(rpt);
+                }
+            }
+
+            function d3DragEndShape(shape) {
+                var conductorPosition = warpvndService.findConductor(shape.id);
+                $scope.$applyAsync(function() {
+                    if (isShapeInBounds(shape)) {
+                        conductorPosition.zCenter = formatMicron(shape.x + shape.width / 2);
+                        var ctr = formatMicron(shape.y - shape.height / 2);
+                        if (shape.elev == ELEVATIONS.front) {
+                            conductorPosition.xCenter = ctr;
+                        }
+                        else {
+                            conductorPosition.yCenter = ctr;
+                        }
+                        appState.saveChanges('conductors');
+                    }
+                    else {
+                        appState.cancelChanges('conductors');
+                        $scope.source.deleteConductorPrompt(shape);
+                    }
+                });
+                hideShapeLocation();
+            }
+
+            function d3DragLine() {
+                var grid = appState.models.simulationGrid;
+                var oldPlaneLine = planeLine;
+                planeLine = axes.z.scale.invert(d3.event.y);
+                var depth = toMicron(grid.channel_height / 2.0);
+                if (planeLine < -depth) {
+                    planeLine = -depth;
+                }
+                else if (planeLine > depth) {
+                    planeLine = depth;
+                }
+                var halfWidth = (yRange[1] - yRange[0]) / 2.0;
+                for (var i = 0; i < yRange.length; i++) {
+                    if (yRange[i] + halfWidth >= planeLine * 1e6) {
+                        planeLine = yRange[i] / 1e6;
+                        break;
+                    }
+                }
+                if (oldPlaneLine != planeLine) {
+                    drawShapes();
+                }
+                updateDragLine();
+            }
+
+            function d3DragShape(shape) {
+                /*jshint validthis: true*/
+                var xdomain = axes.x.scale.domain();
+                var xPixelSize = (xdomain[1] - xdomain[0]) / $scope.width;
+                shape.x = dragStart.x + xPixelSize * d3.event.x;
+                var ydomain = shape.elev === ELEVATIONS.front ? axes.y.scale.domain() : axes.z.scale.domain();
+                var yPixelSize = (ydomain[1] - ydomain[0]) / $scope.height;
+                shape.y = dragStart.y - yPixelSize * d3.event.y;
+                alignShapeOnGrid(shape);
+                d3.select(this).call(updateShapeAttributes);
+                showShapeLocation(shape);
+            }
+
+            function d3DragStartShape(shape) {
+                d3.event.sourceEvent.stopPropagation();
+                dragStart = appState.clone(shape);
+                showShapeLocation(shape);
+            }
+
+            function doesShapeCrossGridLine(shape) {
+                var isFront = shape.elev == ELEVATIONS.front;
+                var grid = appState.models.simulationGrid;
+                var numV = isFront ? grid.num_x : grid.num_y;
+                var gWidth = isFront ? grid.channel_width : grid.channel_height;
+                var halfgWidth = toMicron(gWidth / 2.0);
+                var cellHeight = toMicron(gWidth / numV);
+
+                var numZ = grid.num_z;
+                var cellWidth = toMicron(plateSpacing / numZ);
+
+                // pathological?
+                if ( cellHeight === 0 || cellWidth === 0 ) {
+                    return true;
+                }
+
+                // shape always crosses grid line if big enough
+                if ( shape.height >= cellHeight || shape.width >= cellWidth ) {
+                    return true;
+                }
+
+                // translate coordinate system
+                var vOffset = numV % 2 === 0 ? 0.0 : cellHeight / 2.0;
+
+                // closest grid lines below top and below bottom
+                var top = Math.floor((shape.y + vOffset) / cellHeight);
+                var bottom =  Math.floor((shape.y - shape.height + vOffset) / cellHeight);
+
+                // note that we do not need to translate coordinates here, since the 1st grid line is
+                // always at 0 in the horizontal direction
+                var leftInCellUnits = shape.x / cellWidth;
+                var rightInCellUnits = (shape.x + shape.width) / cellWidth;
+
+                 // closest grid lines left nad right of shape
+                var left = Math.floor(leftInCellUnits);
+                var right =  Math.floor(rightInCellUnits);
+
+                // if the top of the shape extends above the top of the channel, it
+                // is ignored.  If the bottom goes below, it is not
+                return (shape.y < halfgWidth && top != bottom) || left != right;
+            }
+
+            function drawCathodeAndAnode(elev) {
+                var grid = appState.models.simulationGrid;
+                var info = plotInfoForElevation(elev);
+                var viewport = select(info.viewportClass);
+                viewport.selectAll('.warpvnd-plate').remove();
+                var channel = toMicron(grid[info.heightField] / 2.0);
+                var h = info.axis.scale(-channel) - info.axis.scale(channel);
+                var w = axes.x.scale(0) - axes.x.scale(-plateSize);
+                var reflects = appState.models.anode.isReflector === '1';
+                viewport.append('rect')
+                    .attr('class', 'warpvnd-plate warpvnd-plate-no-voltage')
+                    .attr('x', axes.x.scale(-plateSize))
+                    .attr('y', info.axis.scale(channel))
+                    .attr('width', w)
+                    .attr('height', h)
+                    .on('dblclick', function() { editPlate('cathode'); })
+                    .append('title').text('Cathode');
+                var ar = viewport.append('rect')
+                    .attr('class', 'warpvnd-plate')
+                    .classed('warpvnd-plate-voltage', ! reflects);
+                if (reflects) {
+                    ar.attr('fill', 'url(#reflectionPattern-anode)')
+                        .attr('stroke', SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
+                }
+                ar.attr('x', axes.x.scale(toMicron(plateSpacing)))
+                    .attr('y', info.axis.scale(channel))
+                    .attr('width', w)
+                    .attr('height', h)
+                    .on('dblclick', function() { editPlate('anode'); })
+                    .append('title').text('Anode' + (reflects ? ' (reflector)' : ''));
+            }
+
+            function drawCathodeAndAnodes() {
+                drawCathodeAndAnode('front');
+                if (warpvndService.is3D()) {
+                    drawCathodeAndAnode('top');
+                }
+            }
+
+            function drawCarats(elev) {
+                var info = plotInfoForElevation(elev);
+                d3.select(info.viewportClass).selectAll('.warpvnd-cell-selector').remove();
+                d3.select(info.viewportClass).selectAll('.warpvnd-cell-selector')
+                    .data(caratData(elev))
+                    .enter().append('path')
+                    .attr('class', 'warpvnd-cell-selector')
+                    .attr('d', function(d) {
+                        return d.dimension === 'x' || d.dimension === 'y'
+                            ? 'M0,-14L7,0 -7,0Z'
+                            : 'M0,-7L0,7 14,0Z';
+                    })
+                    .style('cursor', function(d) {
+                        return d.dimension === 'x' || d.dimension === 'y' ? 'ew-resize' : 'ns-resize';
+                    })
+                    .style('fill', function(d) {
+                        return CELL_COLORS[d.index - 1];
+                    })
+                    .call(updateCarat)
+                    .call(dragCarat).append('title')
+                    .text(caratText);
+            }
+
+            function drawConductors(typeMap, elev) {
+                var grid = appState.models.simulationGrid;
+                var info = plotInfoForElevation(elev);
+                var shapes = [];
+                appState.models.conductors
+                    .forEach(function(conductorPosition) {
+                        var conductorType = typeMap[conductorPosition.conductorTypeId];
+                        var w = toMicron(conductorType.zLength);
+                        var h = toMicron(conductorType[info.lengthField]);
+                        var d = toMicron(conductorType.yLength);
+                        var x = toMicron(conductorPosition.zCenter) - w / 2;
+                        var y = toMicron(conductorPosition[info.centerField]) + h / 2;
+                        shapes.push({
+                            x: x,
+                            y: y,
+                            plane: toMicron(conductorPosition.yCenter),
+                            width: w,
+                            height: h,
+                            depth: d,
+                            id: conductorPosition.id,
+                            conductorType: conductorType,
+                            elev: elev,
+                            isReflector: conductorType.isReflector,
+                        });
+                        var dy = toMicron(grid[info.heightField]);
+                        var y0 = -dy / 2;
+                        var y1 = dy / 2;
+                        var dy1 = y1 - y;
+                        var dy2 = (y - h) - y0;
+                        var t = 0.05 * dy;
+                        $scope.conductorNearBoundary = $scope.conductorNearBoundary || dy1 < t || dy2 < t;
+                    });
+                var ds = d3.select(info.viewportClass).selectAll('.warpvnd-shape')
+                    .data(shapes);
+                ds.exit().remove();
+                ds.enter().append('rect')
+                    .on('dblclick', editPosition);
+                ds.call(updateShapeAttributes);
+                ds.call(dragShape);
+                if (! $scope.isDomainTiled || elev !== ELEVATIONS.front) {
+                    return;
+                }
+                // just once per set of conductors
+                drawTiledConductors(shapes);
+            }
+
+            function drawTiledConductors(shapes) {
+                var dr = d3.select('#tile-master').selectAll('.warpvnd-shape').data(shapes);
+                dr.exit().remove();
+                dr.enter().append('rect');
+                dr.call(updateTiles);
+            }
+
+            function drawShapes() {
+                $scope.conductorNearBoundary = false;
+                var typeMap = warpvndService.conductorTypeMap();
+                drawConductors(typeMap, ELEVATIONS.front);
+                drawCarats(ELEVATIONS.front);
+                if (warpvndService.is3D()) {
+                    drawConductors(typeMap, ELEVATIONS.top);
+                    drawCarats(ELEVATIONS.top);
+                }
+            }
+
+            function editPlate(name) {
+                d3.event.stopPropagation();
+                $scope.$applyAsync(function() {
+                    panelState.showModalEditor(name);
+                });
+            }
+
+            function editPosition(shape) {
+                d3.event.stopPropagation();
+                $scope.$applyAsync(function() {
+                    $scope.source.editConductor(shape.id);
+                });
+            }
+
+            function fmod(a,b) {
+                return formatNumber(Number((a - (Math.floor(a / b) * b))));
+            }
+
+            function formatMicron(v, decimals) {
+                return formatNumber(v * 1e6, decimals);
+            }
+
+            function formatNumber(v, decimals) {
+                return v.toPrecision(decimals || 8);
+            }
+
+            function hideShapeLocation() {
+                select('.focus-text').text('');
+            }
+
+            function isMouseInBounds(evt) {
+                d3.event = evt.event;
+                var p = d3.mouse(d3.select('.plot-viewport').node());
+                d3.event = null;
+                return p[0] >= 0 && p[0] < $scope.width && p[1] >= 0 && p[1] < $scope.height
+                     ? p
+                     : null;
+            }
+
+            function isShapeInBounds(shape) {
+                var vAxis = shape.elev === ELEVATIONS.front ? axes.y : axes.z;
+                var bounds = {
+                    top: shape.y,
+                    bottom: shape.y - shape.height,
+                    left: shape.x,
+                    right: shape.x + shape.width,
+                };
+                if (bounds.right < axes.x.domain[0] || bounds.left > axes.x.domain[1]
+                    || bounds.top < vAxis.domain[0] || bounds.bottom > vAxis.domain[1]) {
+                    return false;
+                }
+                return true;
+            }
+
+            function plotInfoForElevation(elev) {
+                if (elev === ELEVATIONS.front) {
+                    return {
+                        viewportClass: '.plot-viewport',
+                        axis: axes.y,
+                        heightField: 'channel_width',
+                        centerField: 'xCenter',
+                        lengthField: 'xLength',
+                    };
+                }
+                else if (elev === ELEVATIONS.top) {
+                    return {
+                        viewportClass: '.z-plot-viewport',
+                        axis: axes.z,
+                        heightField: 'channel_height',
+                        centerField: 'yCenter',
+                        lengthField: 'yLength',
+                    };
+                }
+                throw new Error('invalid elev: ' + elev);
+            }
+
+            function zPanelHeight() {
+                return warpvndService.is3D() ? $scope.zHeight + $scope.zMargin() : 0;
+            }
+
+            function refresh() {
+                if (! axes.x.domain) {
+                    return;
+                }
+                if (layoutService.plotAxis.allowUpdates) {
+                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
+                    if (isNaN(width)) {
+                        return;
+                    }
+                    width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
+                    $scope.width = width;
+                    $scope.height = ASPECT_RATIO * $scope.width;
+                    select('svg')
+                        .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
+                        .attr('height', $scope.plotHeight());
+                    select('.z-plot')
+                        .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
+                        .attr('height', $scope.zHeight + $scope.margin.bottom);
+                    axes.x.scale.range([0, $scope.width]);
+                    axes.y.scale.range([$scope.height, 0]);
+                    axes.z.scale.range([$scope.zHeight, 0]);
+                    axes.x.grid.tickSize(-$scope.height);
+                    axes.y.grid.tickSize(-$scope.width);
+                    axes.z.grid.tickSize(-$scope.width);
+
+                }
+                if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
+                    select('.overlay').attr('class', 'overlay mouse-zoom');
+                    select('.z-plot-viewport .overlay').attr('class', 'overlay mouse-zoom');
+                    axes.y.scale.domain(axes.y.domain);
+                }
+                else {
+                    select('.overlay').attr('class', 'overlay mouse-move-ew');
+                    select('.z-plot-viewport .overlay').attr('class', 'overlay mouse-move-ew');
+                }
+
+
+
+                axes.y.grid.tickValues(plotting.linearlySpacedArray(-channel / 2, channel / 2, grid.num_x + 1));
+                var depth = toMicron(grid.channel_height);
+                axes.z.grid.tickValues(plotting.linearlySpacedArray(-depth / 2, depth / 2, grid.num_y + 1));
+                resetZoom();
+                select('.plot-viewport').call(zoom);
+                select('.z-plot-viewport').call(zoom);
+                $.each(axes, function(dim, axis) {
+                    axis.updateLabelAndTicks({
+                        width: $scope.width,
+                        height: $scope.height,
+                    }, select);
+                    axis.grid.ticks(axis.tickCount);
+                    select('.' + dim + '.axis.grid').call(axis.grid);
+                });
+                drawShapes();
+            }
+
+            function replot() {
+                var newXDomain = [-plateSize, toMicron(plateSpacing) + plateSize];
+                if (! axes.x.domain || ! appState.deepEquals(axes.x.domain, newXDomain)) {
+                    axes.x.domain = newXDomain;
+                    axes.x.scale.domain(axes.x.domain);
+                    $scope.xRange = appState.clone(axes.x.domain);
+                }
+                var channel = toMicron(grid.channel_width / 2.0);
+                var newYDomain = [- channel, channel];
+                if (! axes.y.domain || ! appState.deepEquals(axes.y.domain, newYDomain)) {
+                    axes.y.domain = newYDomain;
+                    axes.y.scale.domain(axes.y.domain);
+                }
+                if (true) {
+                    yRange = warpvndService.getYRange();
+                    var depth = toMicron(grid.channel_height / 2.0);
+                    var newZDomain = [- depth, depth];
+                    if (! axes.z.domain || ! appState.deepEquals(axes.z.domain, newZDomain)) {
+                        axes.z.domain = newZDomain;
+                        axes.z.scale.domain(axes.z.domain);
+                    }
+                    if (select('.z-plot-viewport line.cross-hair').empty()) {
+                        select('.z-plot-viewport')
+                            .append('line')
+                            .attr('class', 'cross-hair')
+                            .attr('x1', 0);
+                    }
+                    if (select('.z-plot-viewport line.plane-dragline').empty()) {
+                        var dragLine = d3.behavior.drag()
+                            .on('drag', d3DragLine)
+                            .on('dragstart', function() {
+                                d3.event.sourceEvent.stopPropagation();
+                            });
+                        select('.z-plot-viewport')
+                            .append('line')
+                            .attr('class', 'plane-dragline plane-dragline-y selectable-path')
+                            .attr('x1', 0)
+                            .call(dragLine);
+                    }
+                }
+                $scope.resize();
+            }
+
+            function resetZoom() {
+                zoom = axes.x.createZoom($scope);
+            }
+
+            function updateCarat(selection) {
+                var grid = appState.models.simulationGrid;
+                selection.attr('transform', function(d) {
+                    var vertAxis = d.elev === ELEVATIONS.front ? axes.y : axes.z;
+                    if (d.dimension === 'x' || d.dimension === 'y') {
+                        var info = plotInfoForElevation(d.elev);
+                        var h = -grid[info.heightField] / 2.0;
+                        return 'translate(' +
+                            axes.x.scale(toMicron(d.range[d.pos])) + ',' +
+                            vertAxis.scale(toMicron(h)) + ')';
+                    }
+                    return 'translate(' + '0' + ',' + vertAxis.scale(toMicron(d.range[d.pos])) + ')';
+                });
+                selection.select('title').text(caratText);
+            }
+
+            function updateDragLine() {
+                var l1 = select('.z-plot-viewport line.cross-hair');
+                var l2 = select('.z-plot-viewport line.plane-dragline');
+                var y = axes.z.scale(planeLine);
+                [l1, l2].forEach(function(line) {
+                    line.attr('x1', 0)
+                        .attr('x2', $scope.width)
+                        .attr('y1', y)
+                        .attr('y2', y);
+                });
+                select('.z-plot .focus-text').text('Y=' + formatNumber(planeLine * 1e6, 4) + 'µm');
+            }
+
+            function select(selector) {
+                var e = d3.select($scope.element);
+                return selector ? e.select(selector) : e;
+            }
+
+            function shapeColor(hexColor, alpha) {
+                var comp = plotting.colorsFromHexString(hexColor);
+                return 'rgb(' + comp[0] + ', ' + comp[1] + ', ' + comp[2] + ', ' + (alpha || 1.0) + ')';
+            }
+
+            function shapeFromConductorTypeAndPoint(conductorType, p) {
+                var w = toMicron(conductorType.zLength);
+                var h = toMicron(conductorType.xLength);
+                return {
+                    width: w,
+                    height: h,
+                    x: axes.x.scale.invert(p[0]) - w / 2,
+                    y: axes.y.scale.invert(p[1]) + h / 2,
+                };
+            }
+
+            function showShapeLocation(shape) {
+                var axis = shape.elev === ELEVATIONS.front ? 'X' : 'Y';
+                select('.focus-text').text(
+                    'Center: Z=' + formatMicron(shape.x + shape.width / 2, 4)
+                        + 'µm, ' + axis + '=' + formatMicron(shape.y - shape.height / 2, 4) + 'µm');
+            }
+
+            function toMicron(v) {
+                return v * 1e-6;
+            }
+
+            function updateDragShadow(conductorType, p) {
+                clearDragShadow();
+                var shape = shapeFromConductorTypeAndPoint(conductorType, p);
+                alignShapeOnGrid(shape);
+                showShapeLocation(shape);
+                d3.select('.plot-viewport')
+                    .append('rect').attr('class', 'warpvnd-shape warpvnd-drag-shadow')
+                    .attr('x', function() { return axes.x.scale(shape.x); })
+                    .attr('y', function() { return axes.y.scale(shape.y); })
+                    .attr('width', function() {
+                        return axes.x.scale(shape.x + shape.width) - axes.x.scale(shape.x);
+                    })
+                    .attr('height', function() { return axes.y.scale(shape.y) - axes.y.scale(shape.y + shape.height); });
+            }
+
+            function updateShapeAttributes(selection) {
+                selection
+                    .attr('class', 'warpvnd-shape')
+                    .attr('id', function (d) {
+                        return 'shape-' + d.elev + '-' + d.id;
+                    })
+                    .classed('warpvnd-shape-noncrossing', function(d) {
+                        return !  doesShapeCrossGridLine(d);
+                    })
+                    .classed('warpvnd-shape-voltage', function(d) {
+                        return d.isReflector !== '1' && d.conductorType.voltage > 0;
+                    })
+                    .classed('warpvnd-shape-no-voltage', function(d) {
+                        return d.isReflector !== '1' && d.conductorType.voltage == 0;
+                    })
+                    .classed('warpvnd-shape-inactive', function(d) {
+                        var halfDepth = d.depth / 2;
+                        if (planeLine >= d.plane - halfDepth && planeLine <= d.plane + halfDepth) {
+                            return false;
+                        }
+                        return true;
+                    })
+                    .attr('x', function(d) { return axes.x.scale(d.x); })
+                    .attr('y', function(d) {
+                        var axis = d.elev === ELEVATIONS.front
+                            ? axes.y
+                            : axes.z;
+                        return axis.scale(d.y);
+                    })
+                    .attr('width', function(d) {
+                        return axes.x.scale(d.x + d.width) - axes.x.scale(d.x);
+                    })
+                    .attr('height', function(d) {
+                        var axis = d.elev === ELEVATIONS.front
+                            ? axes.y
+                            : axes.z;
+                        return axis.scale(d.y) - axis.scale(d.y + d.height);
+                    })
+                    .attr('style', function(d) {
+                        if(d.conductorType.color && doesShapeCrossGridLine(d)) {
+                            return 'fill:' + shapeColor(d.conductorType.color, 0.3) + '; ' +
+                                'stroke: ' + shapeColor(d.conductorType.color);
+                        }
+                    });
+                var tooltip = selection.select('title');
+                if (tooltip.empty()) {
+                    tooltip = selection.append('title');
+                }
+                tooltip.text(function(d) {
+                    return d.objectType.name;
+                });
+            }
+
+
+            $scope.allInsetSize = function() {
+                return {
+                    width: 3 * $scope.tileInsetSize().width,
+                    height: 3 * $scope.tileInsetSize().height,
+                };
+            };
+
+            $scope.destroy = function() {
+                if (zoom) {
+                    zoom.on('zoom', null);
+                }
+                $('.plot-viewport').off();
+            };
+
+            $scope.dragMove = function(conductorType, evt) {
+                var p = isMouseInBounds(evt);
+                if (p) {
+                    d3.select('.sr-drag-clone').attr('class', 'sr-drag-clone sr-drag-clone-hidden');
+                    updateDragShadow(conductorType, p);
+                }
+                else {
+                    clearDragShadow();
+                    d3.select('.sr-drag-clone').attr('class', 'sr-drag-clone');
+                    hideShapeLocation();
+                }
+            };
+
+            $scope.dropSuccess = function(conductorType, evt) {
+                var p = isMouseInBounds(evt);
+                if (p) {
+                    var shape = shapeFromConductorTypeAndPoint(conductorType, p);
+                    alignShapeOnGrid(shape);
+                    appState.models.conductors.push({
+                        id: appState.maxId(appState.models.conductors) + 1,
+                        conductorTypeId: conductorType.id,
+                        zCenter: formatMicron(shape.x + shape.width / 2),
+                        xCenter: formatMicron(shape.y - shape.height / 2),
+                        yCenter: formatMicron(planeLine),
+                    });
+                    appState.saveChanges('conductors');
+                }
+            };
+
+            $scope.init = function() {
+                if (! appState.isLoaded()) {
+                    appState.whenModelsLoaded($scope, $scope.init);
+                    return;
+                }
+                var grid = appState.models.simulationGrid;
+                plateSpacing = grid.plate_spacing;
+                select('svg').attr('height', plotting.initialHeight($scope));
+                $.each(axes, function(dim, axis) {
+                    axis.init();
+                    axis.grid = axis.createAxis();
+                });
+                $.each(insetAxes, function(dim, axis) {
+                    axis.init();
+                });
+                resetZoom();
+                dragShape = d3.behavior.drag()
+                    .origin(function(d) { return d; })
+                    .on('drag', d3DragShape)
+                    .on('dragstart', d3DragStartShape)
+                    .on('dragend', d3DragEndShape);
+                dragCarat = d3.behavior.drag()
+                    .on('drag', d3DragCarat)
+                    .on('dragstart', function() {
+                        d3.event.sourceEvent.stopPropagation();
+                    })
+                    .on('dragend', d3DragEndCarat);
+                axes.x.parseLabelAndUnits('z [m]');
+                axes.y.parseLabelAndUnits('x [m]');
+                axes.z.parseLabelAndUnits('y [m]');
+                replot();
+            };
+
+           $scope.plotHeight = function() {
+                var ph = $scope.plotOffset() + $scope.margin.top + $scope.margin.bottom + zPanelHeight();
+                return ph;
+            };
+
+            $scope.plotOffset = function() {
+                return $scope.height + $scope.tileOffset();
+            };
+
+
+            $scope.resize = function() {
+                if (select().empty()) {
+                    return;
+                }
+                refresh();
+            };
+
+            $scope.tileInsetSize = function() {
+                var w = 0;
+                var h = 0;
+                var grid = appState.models.simulationGrid;
+                if ($scope.isDomainTiled) {
+                    w = insetWidthPct * $scope.width;
+                    h = warpvndService.is3D() ? w *  (grid.channel_width / grid.channel_height) : insetWidthPct * $scope.height;
+                }
+                return {
+                    width: w,
+                    height: h
+                };
+            };
+
+            $scope.tileInsetOffset = function() {
+                return {
+                    x: warpvndService.is3D() ? $scope.tileInsetSize().width : 0,
+                    y: 0
+                };
+            };
+
+            $scope.tileOffset = function() {
+                return $scope.isDomainTiled ? insetMargin + $scope.allInsetSize().height : 0;
+            };
+
+            $scope.toggle3dPreview = function() {
+                $scope.is3dPreview = !$scope.is3dPreview;
+            };
+
+            $scope.toggleTiledDomain = function() {
+                $scope.isDomainTiled = ! $scope.isDomainTiled;
+                refresh();
+            };
+
+            appState.whenModelsLoaded($scope, function() {
+                $scope.is3dPreview = $scope.source.usesSTL();
+                var grid = appState.models.simulationGrid;
+                $scope.$on('cancelChanges', function(e, name) {
+                    if (name == 'conductors') {
+                        replot();
+                    }
+                });
+                $scope.$on('conductorGridReport.changed', replot);
+                $scope.$on('simulationGrid.changed', function() {
+                    plateSpacing = grid.plate_spacing;
+                    replot();
+                });
+                $scope.$on('fieldComparisonAnimation.changed', replot);
+            });
+        },
+        link: function link(scope, element) {
+            plotting.linkPlot(scope, element);
+        },
+    };
+});
+
 SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, requestSender, plotting, vtkAxisService, vtkPlotting, layoutService, utilities, geometry) {
     return {
         restrict: 'A',

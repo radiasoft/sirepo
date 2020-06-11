@@ -120,6 +120,39 @@
       background-color: white;
     }
 
+    .sr-toolbar-button {
+        background-color: #fff;
+        display: inline-block;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 6px 3px;
+        margin: 2px;
+    }
+
+    .sr-toolbar-button.dragging {
+      opacity: 0.8;
+      /* required for chrome and safari to show element on top */
+      position: relative;
+    }
+
+    .sr-toolbar-button, .sr-beamline-element {
+        -moz-user-select: -moz-none;
+        -khtml-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+
+    svg.toolbar-item-icon {
+      width: 70px;
+      height: 60px;
+    }
+
+    .sr-toolbar-button svg.srw-beamline-item-icon {
+      width: 70px;
+      height: 35px;
+    }
+
     .sr-beamline-popover {
       max-width: none;
       width: 100%;

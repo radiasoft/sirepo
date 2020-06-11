@@ -2971,6 +2971,117 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
     };
 });
 
+
+SIREPO.app.directive('toolbar', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            toolbarItems: '=toolbar',
+            parentController: '=',
+        },
+        template: [
+            '<div class="row">',
+              '<div class="col-sm-12">',
+                '<div class="text-center bg-info sr-toolbar-holder">',
+                  '<div class="sr-toolbar-section" data-ng-repeat="section in ::sectionItems">',
+                    '<div class="sr-toolbar-section-header"><span class="sr-toolbar-section-title">{{ ::section.type }}</span></div>',
+                    '<span data-ng-repeat="item in ::section.contents" class="sr-toolbar-button sr-beamline-image" data-ng-drag="true" data-ng-drag-data="item">',
+                      '<span data-toolbar-icon="" data-item="item"></span><br>{{ ::item.title }}',
+                    '</span>',
+                  '</div>',
+                  '<span data-ng-repeat="item in ::standaloneItems" class="sr-toolbar-button sr-beamline-image" data-ng-drag="true" data-ng-drag-data="item">',
+                    '<span data-beamline-icon="" data-item="item"></span><br>{{ ::item.title }}',
+                  '</span>',
+                '</div>',
+              '</div>',
+            '</div>',
+            '<div class="sr-editor-holder" style="display:none">',
+              '<div data-ng-repeat="item in ::allItems">',
+                '<div class="sr-beamline-editor" id="sr-{{ ::item.type }}-editor" data-beamline-item-editor="" data-model-name="{{ ::item.type }}" data-parent-controller="parentController" ></div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.allItems = [];
+            var items = $scope.toolbarItems || SIREPO.APP_SCHEMA.constants.toolbarItems || [];
+            srdbg('items', items);
+            function addItem(name, items) {
+                var item = appState.setModelDefaults({type: name}, name);
+                items.push(item);
+                $scope.allItems.push(item);
+            }
+
+            function initToolbarItems() {
+                /*
+                var sections = [];
+                var standalone = [];
+                items.forEach(function(section) {
+                    var items = [];
+                    if (angular.isArray(section)) {
+                        section[1].forEach(function(name) {
+                            addItem(name, items);
+                        });
+                        sections.push([section[0], items]);
+                    }
+                    else {
+                        addItem(section, standalone);
+                    }
+                });
+                //$scope.sectionItems = sections;
+                //$scope.standaloneItems = standalone;
+                
+                 */
+                $scope.sectionItems = items.filter(function (item) {
+                    return isSection(item);
+                });
+                $scope.standaloneItems = items.filter(function (item) {
+                    return ! isSection(item);
+                });
+                $scope.allItems = items;
+            }
+
+            function isSection(item) {
+                return item.contents && item.contents.length;
+            }
+            initToolbarItems();
+        },
+    };
+});
+
+SIREPO.app.directive('toolbarIcon', function() {
+    return {
+        scope: {
+            item: '=',
+        },
+        template: '<ng-include src="iconUrl()" onload="iconLoaded()"/>',
+        controller: function($scope, $element) {
+            var adjustmentsByType = {
+            };
+
+            $scope.iconUrl = function() {
+                return '/static/svg/' +  $scope.item.type + '.svg' + SIREPO.SOURCE_CACHE_KEY;
+            };
+
+            $scope.iconLoaded = function () {
+                /*
+                var vb = $($element).find('svg.sr-beamline-item-icon').prop('viewBox').baseVal;
+                vb.width = 100;
+                vb.height = 50;
+                var adjust = adjustmentsByType[$scope.item.name];
+                if (adjust) {
+                    vb.height += adjust[0] || 0;
+                    vb.x -= adjust[1] || 0;
+                    vb.y -= adjust[2] || 0;
+                }
+
+                 */
+            };
+
+        },
+    };
+});
+
+
 SIREPO.app.directive('3dSliceWidget', function(appState, panelState) {
     return {
         restrict: 'A',

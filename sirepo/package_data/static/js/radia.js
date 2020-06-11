@@ -212,6 +212,11 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
 
 SIREPO.app.controller('RadiaSourceController', function (appState, panelState, $scope) {
     var self = this;
+    self.toolbarItems = SIREPO.APP_SCHEMA.constants.toolbarItems;
+
+    self.isEditable = function() {
+        return true;
+    };
 
     appState.whenModelsLoaded($scope, function() {
         // initial setup
@@ -319,6 +324,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
                 '<div data-sim-sections="">',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-magnet"></span> Design</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
                 '</div>',
               '</app-header-right-sim-loaded>',

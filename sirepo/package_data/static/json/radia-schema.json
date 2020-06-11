@@ -14,7 +14,18 @@
             "filePath": ["fileName"],
             "linePath": ["beginX", "beginY", "beginZ", "endX", "endY", "endZ"],
             "manualPath": ["ptX", "ptY", "ptZ"]
-        }
+        },
+        "toolbarItems": [
+            {
+                "type": "Basic objects",
+                "contents": [
+                    {
+                        "title": "Box",
+                        "type": "box"
+                    }
+                ]
+            }
+        ]
     },
     "dynamicFiles": {
         "externalLibs": {
@@ -31,6 +42,11 @@
             ["y", "y"],
             ["z", "z"]
         ],
+        "DivisionType": [
+            ["cyl", "Cylindrical"],
+            ["", "None"],
+            ["pln", "Planar"]
+        ],
         "FieldScaling": [
             ["uniform", "Uniform"],
             ["linear", "Linear"],
@@ -42,6 +58,20 @@
             ["A", "A"],
             ["H", "H"],
             ["J", "J"]
+        ],
+        "MaterialType": [
+            ["NdFeB", "Neodymium Iron Boron"],
+            ["SmCo5", "Samarium Cobalt (SmCo5)"],
+            ["Sm2Co17", "Samarium Cobalt (Sm2Co17)"],
+            ["Ferrite", "Ferrite"],
+            ["Xc06", "Industeel"],
+            ["Steel37", "Steel37"],
+            ["Steel42", "Steel42"],
+            ["AFK502", "Aperam 502"],
+            ["AFK1", "Aperam 1"]
+        ],
+        "ObjectType": [
+            ["ObjRecMag", "Box"]
         ],
         "PathType": [
             ["line", "Line"],
@@ -66,6 +96,13 @@
         "magnetViewer": []
     },
     "localRoutes": {
+        "source": {
+            "route": "/source/:simulationId",
+            "config": {
+                "controller": "RadiaSourceController as src",
+                "templateUrl": "/static/html/radia-source.html"
+            }
+        },
         "visualization": {
             "route": "/visualization/:simulationId",
             "config": {
@@ -75,6 +112,18 @@
         }
     },
     "model": {
+        "box": {
+            "_super": ["_", "model", "geomObject"],
+            "ctrX": ["Center x (mm)", "Float", 0.0],
+            "ctrY": ["Center y (mm)", "Float", 0.0],
+            "ctrZ": ["Center z (mm)", "Float", 0.0],
+            "lenX": ["X length (mm)", "Float", 10.0, "", 0],
+            "lenY": ["Y length (mm)", "Float", 10.0, "", 0],
+            "lenZ": ["Z length (mm)", "Float", 10.0, "", 0],
+            "magX": ["Magentization x (T)", "Float", 0.0, "", 0],
+            "magY": ["Magentization y (T)", "Float", 0.0, "", 0],
+            "magZ": ["Magentization z (T)", "Float", 0.0, "", 0]
+        },
         "circlePath": {
             "_super": ["_", "model", "fieldPath"],
             "ctrX": ["Center x (mm)", "Float", 0.0],
@@ -118,12 +167,16 @@
             "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
             "name": ["Name", "String", ""]
         },
+        "geomGroup": {
+            "_super": ["_", "model", "geomObject"]
+        },
         "geomObject": {
             "color": ["Color", "Color", "#cccccc"],
+            "division": ["Divide", "DivisionType", ""],
             "id": ["_", "String", ""],
-            "material": ["Material", "String", ""],
+            "material": ["Material", "MaterialType", "NdFeB"],
             "name": ["Name", "String", ""],
-            "type": ["Type", "String", ""]
+            "type": ["Type", "ObjectType", "ObjRecMag"]
         },
         "linePath": {
             "_super": ["_", "model", "fieldPath"],
@@ -217,8 +270,17 @@
         },
         "geomObject": {
             "title": "Object",
+            "basic": [
+                "name",
+                "type",
+                "material",
+                "color"
+            ],
             "advanced": [
                 "name",
+                "type",
+                "material",
+                "division",
                 "color"
             ]
         },
