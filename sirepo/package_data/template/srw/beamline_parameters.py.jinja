@@ -48,7 +48,7 @@
     {{- fields(item, 'f', ('horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset')) }}
 {% elif item.type == 'sample' %}
     {{- fields(item, 's', ('imageFile', 'outputImageFormat')) }}
-    {{- fields(item, 'f', ('position', 'resolution', 'thickness', 'refractiveIndex', 'attenuationLength', 'horizontalCenterCoordinate', 'verticalCenterCoordinate', 'rotateAngle', 'cutoffBackgroundNoise', 'rx', 'ry', 'dens', 'r_min_bw_obj', 'obj_size_min', 'ang_min', 'obj_size_max', 'ang_max', 'obj_size_ratio')) }}
+    {{- fields(item, 'f', ('position', 'resolution', 'thickness', 'refractiveIndex', 'attenuationLength', 'horizontalCenterCoordinate', 'verticalCenterCoordinate', 'rotateAngle', 'cutoffBackgroundNoise', 'rx', 'ry', 'dens', 'r_min_bw_obj', 'edge_frac', 'obj_size_min', 'ang_min', 'obj_size_max', 'ang_max', 'obj_size_ratio')) }}
     {{- fields(item, 'i', ('cropArea', 'transmissionImage', 'areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd', 'rotateReshape', 'backgroundColor', 'tileImage', 'tileRows', 'tileColumns', 'shiftX', 'shiftY', 'invert', 'nx', 'ny', 'obj_type', 'size_dist', 'ang_dist', 'rand_alg', 'poly_sides', 'rand_shapes')) }}
     {{- fields(item, 'b', ('rand_obj_size', 'rand_poly_side')) }}
 {% elif item.type == 'sphericalMirror' %}
