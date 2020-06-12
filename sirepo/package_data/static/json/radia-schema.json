@@ -171,11 +171,13 @@
             "_super": ["_", "model", "geomObject"]
         },
         "geomObject": {
+            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x (mm), y (mm), z (mm)"],
             "color": ["Color", "Color", "#cccccc"],
             "division": ["Divide", "DivisionType", ""],
             "id": ["_", "String", ""],
             "material": ["Material", "MaterialType", "NdFeB"],
             "name": ["Name", "String", ""],
+            "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"],
             "type": ["Type", "ObjectType", "ObjRecMag"]
         },
         "linePath": {
@@ -183,6 +185,8 @@
             "beginX": ["x1 (mm)", "Float", -10.0],
             "beginY": ["y1 (mm)", "Float", 0.0],
             "beginZ": ["z1 (mm)", "Float", 0.0],
+            "begin": ["Start", "FloatStringArray", "-10.0, 0, 0", "Start point", "x, y, z"],
+            "end": ["End", "FloatStringArray", "10.0, 0, 0", "End point", "x, y, z"],
             "endX": ["x2 (mm)", "Float", 10.0],
             "endY": ["y2 (mm)", "Float", 0.0],
             "endZ": ["z2 (mm)", "Float", 0.0],
@@ -274,6 +278,8 @@
                 "name",
                 "type",
                 "material",
+                "center",
+                "size",
                 "color"
             ],
             "advanced": [
@@ -281,6 +287,8 @@
                 "type",
                 "material",
                 "division",
+                "center",
+                "size",
                 "color"
             ]
         },
@@ -288,9 +296,11 @@
             "title": "Line",
             "basic": [
                 "name",
+                "begin",
                 "beginX",
                 "beginY",
                 "beginZ",
+                "end",
                 "endX",
                 "endY",
                 "endZ",

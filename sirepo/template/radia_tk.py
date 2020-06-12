@@ -50,6 +50,7 @@ def geom_to_data(g_id, name=None, divide=True):
     n = (name if name is not None else str(g_id)) + '.Geom'
     pd = PKDict(name=n, id=g_id, data=[])
     d = template_common.to_pkdict(radia.ObjDrwVTK(g_id, 'Axes->No'))
+    d.update(_geom_bnds(g_id))
     n_verts = len(d.polygons.vertices)
     c = radia.ObjCntStuf(g_id)
     l = len(c)
@@ -63,6 +64,7 @@ def geom_to_data(g_id, name=None, divide=True):
             # for fully recursive array
             # for g in get_all_geom(geom):
             s_d = template_common.to_pkdict(radia.ObjDrwVTK(g, 'Axes->No'))
+            s_d.update(_geom_bnds(g))
             n_s_verts += len(s_d.polygons.vertices)
             d_arr.append(s_d)
         # if the number of vertices of the container is more than the total
@@ -72,6 +74,7 @@ def geom_to_data(g_id, name=None, divide=True):
             d_arr = [d]
         pd.data=d_arr
     return pd
+
 
 def get_all_geom(g_id):
     g_arr = []
@@ -160,6 +163,22 @@ def vector_field_to_data(g_id, name, pv_arr, units):
     v_data.vectors.units = units
 
     return PKDict(name=name + '.Field', id=g_id, data=[v_data])
+
+
+def _geom_bnds(g_id):
+    bnds = radia.ObjGeoLim(g_id)
+    return PKDict(
+        center=[
+            0.5 * (bnds[1] + bnds[0]),
+            0.5 * (bnds[3] + bnds[2]),
+            0.5 * (bnds[5] + bnds[4]),
+        ],
+        size=[
+            abs(bnds[1] - bnds[0]),
+            abs(bnds[3] - bnds[2]),
+            abs(bnds[5] - bnds[4]),
+        ]
+    )
 
 
 class RadiaGeomMgr:

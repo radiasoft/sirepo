@@ -537,6 +537,9 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                '<div data-ng-switch-when="Range" data-ng-class="fieldClass">',
                   '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field" data-field-delegate="fieldDelegate"></div>',
                '</div>',
+                '<div data-ng-switch-when="FloatStringArray" class="col-sm-7">',
+                  '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
+                '</div>',
               SIREPO.appFieldEditors,
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
@@ -2848,6 +2851,39 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
             appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
             $scope.getJobs();
 
+        },
+    };
+});
+
+SIREPO.app.directive('numberList', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            info: '<',
+            type: '@',
+            count: '@',
+        },
+        template: [
+            '<div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >',
+            '<label style="margin-right: 1ex">{{ valueLabels[$index] || \'Plane \' + $index }}</label>',
+            '<input class="form-control sr-list-value" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
+            '</div>'
+        ].join(''),
+        controller: function($scope) {
+            $scope.values = null;
+            $scope.numberType = $scope.type.toLowerCase();
+            //TODO(pjm): share implementation with enumList
+            $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/);
+            $scope.didChange = function() {
+                $scope.field = $scope.values.join(', ');
+            };
+            $scope.parseValues = function() {
+                if ($scope.field && ! $scope.values) {
+                    $scope.values = $scope.field.split(/\s*,\s*/);
+                }
+                return $scope.values;
+            };
         },
     };
 });

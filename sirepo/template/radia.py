@@ -38,6 +38,7 @@ _FIELDS_FILE = 'fields.h5'
 _GEOM_DIR = 'geometry'
 _GEOM_FILE = 'geom.h5'
 _METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'save_field']
+_REPORTS = ['geometry', 'reset']
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
 
@@ -72,6 +73,9 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def extract_report_data(run_dir, sim_in):
+    assert sim_in.report in _REPORTS, 'unknown report: {}'.format(sim_in.report)
+    if 'reset' in sim_in.report:
+        template_common.write_sequential_result({}, run_dir=run_dir)
     if 'geometry' in sim_in.report:
         v_type = sim_in.models.magnetDisplay.viewType
         f_type = sim_in.models.magnetDisplay.fieldType if v_type == VIEW_TYPE_FIELD\
@@ -80,8 +84,6 @@ def extract_report_data(run_dir, sim_in):
             _read_data(sim_in.simulationId, v_type, f_type),
             run_dir=run_dir,
         )
-        return
-    assert False, 'unknown report: {}'.format(sim_in.report)
 
 
 # if the file exists but the data we seek does not, have Radia generate it here.  We
@@ -134,6 +136,7 @@ def get_application_data(data, **kwargs):
         return _generate_field_integrals(g_id, data.fieldPaths)
     if data.method == 'get_geom':
         g_types = data.get('geomTypes', ['lines', 'polygons'])
+        g_types.extend(['center', 'size'])
         res = _read_or_generate(g_id, data)
         rd = res.data if 'data' in res else []
         res.data = [{k: d[k] for k in d.keys() if k in g_types} for d in rd]
@@ -446,20 +449,24 @@ def _read_data(sim_id, view_type, field_type):
 
 def _read_or_generate(geom_id, data):
     f_type = data.get('fieldType', None)
-    try:
-        return _read_data(data.simulationId, data.viewType, f_type)
-    except KeyError:
-        # No such path, so generate the data and write to the existing file
-        with h5py.File(_geom_file(data.simulationId), 'a') as hf:
-            template_common.dict_to_h5(
-                _generate_data(geom_id, data, add_lines=False),
-                hf,
-                path=_geom_h5_path(data.viewType, f_type)
-            )
-        return get_application_data(data)
+    res = _read_data(data.simulationId, data.viewType, f_type)
+    if res:
+        return res
+    # No such file or path, so generate the data and write to the existing file
+    with h5py.File(_geom_file(data.simulationId), 'a') as hf:
+        template_common.dict_to_h5(
+            _generate_data(geom_id, data, add_lines=False),
+            hf,
+            path=_geom_h5_path(data.viewType, f_type)
+        )
+    return get_application_data(data)
 
 
 def _read_solution(sim_id):
+    return _read_h5_path(sim_id, 'solution')
+
+
+def _read_extents(sim_id):
     return _read_h5_path(sim_id, 'solution')
 
 

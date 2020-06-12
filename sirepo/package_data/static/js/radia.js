@@ -257,6 +257,11 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         frameCache.setFrameCount(data.frameCount);
     }
 
+    self.resetSimulation = function() {
+        self.solution = [];
+        self.simState.resetSimulation();
+    };
+
     self.startSimulation = function() {
         self.solution = [];
         $scope.$broadcast('solveStarted', self.simState);
@@ -1019,6 +1024,12 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             appState.models.geometry.objects.push(gObj);
                             didModifyGeom = true;
                         }
+                        if (! gObj.center || ! gObj.size) {
+                            var b = bundle.actor.getBounds();
+                            gObj.center = [0.5 * (b[1] + b[0]), 0.5 * (b[3] + b[2]), 0.5 * (b[5] + b[4])];
+                            gObj.size = [Math.abs(b[1] - b[0]), Math.abs(b[3] - b[2]), Math.abs(b[5] - b[4])];
+                            didModifyGeom = true;
+                        }
                         if (
                             t === radiaVtkUtils.GEOM_TYPE_LINES &&
                             appState.models.magnetDisplay.viewType == VIEW_TYPE_FIELDS
@@ -1639,11 +1650,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     inData.fieldPaths = appState.models.fieldPaths.paths;
                 }
 
-                //srdbg('getting app data...');
+                srdbg('getting app data...');
                 requestSender.getApplicationData(
                     inData,
                     function(d) {
-                        //srdbg('got app data', d);
+                        srdbg('got app data', d);
                         if (d && d.data && d.data.length) {
                             if ($scope.isViewTypeFields()) {
                                 // get the lines in a separate call - downside is longer wait
@@ -1668,7 +1679,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         if (d.error) {
                             throw new Error(d.error);
                         }
-                        //srdbg('no app data, requesting');
+                        srdbg('no app data, requesting');
                         panelState.clear('geometry');
                         panelState.requestData('geometry', setupSceneData, true);
                     });
