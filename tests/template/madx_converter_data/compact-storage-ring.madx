@@ -23,6 +23,4 @@ CSR: LINE=(QUARTER,QUARTER,QUARTER,QUARTER);
 
 beam;
 use, sequence=CSR;
-
-
 twiss, file=twiss.tfs;

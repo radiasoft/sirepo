@@ -1,0 +1,194 @@
+{
+    "models": {
+        "beamlines": [
+            {
+                "id": 106,
+                "items": [
+                    101,
+                    104,
+                    102,
+                    105,
+                    103
+                ],
+                "name": "BL"
+            }
+        ],
+        "command_beam": {
+            "_id": 107,
+            "_type": "beam",
+            "gamma": "gamma",
+            "mass": "e0*nn",
+            "sigt": 1
+        },
+        "commands": [
+            {
+                "_id": 107,
+                "_type": "beam",
+                "gamma": "gamma",
+                "mass": "e0*nn",
+                "sigt": 1
+            },
+            {
+                "_id": 109,
+                "_type": "twiss",
+                "alfx": -3.237,
+                "alfy": 0.986,
+                "betx": 29.528,
+                "bety": 7.347,
+                "dpx": -0.281,
+                "dpy": 0,
+                "dx": -2.57,
+                "dy": 0
+            },
+            {
+                "_id": 110,
+                "_type": "ptc_create_universe",
+                "name": "PT1",
+                "ntpsa": "0",
+                "sector_nmul": 10,
+                "sector_nmul_max": 10,
+                "symprint": "1"
+            },
+            {
+                "_id": 111,
+                "_type": "ptc_create_layout",
+                "errors_out": "0",
+                "even": "1",
+                "exact": "0",
+                "magnet_name": "",
+                "method": 2,
+                "model": 2,
+                "name": "PT1",
+                "nst": 1,
+                "offset_deltap": 0,
+                "resplit": "0",
+                "thin": 0.001,
+                "time": "1",
+                "xbend": -1
+            },
+            {
+                "_id": 114,
+                "_type": "ptc_track",
+                "beam_envelope": "0",
+                "closed_orbit": "0",
+                "deltap": 0,
+                "element_by_element": "0",
+                "ffile": 1,
+                "icase": 6,
+                "maxaper": "0, 0, 0, 0, 0, 0",
+                "name": "PT1",
+                "norm": 1,
+                "norm_out": "0",
+                "radiation": "0",
+                "radiation_energy_loss": "0",
+                "radiation_model1": "0",
+                "radiation_quadr": "0",
+                "space_charge": "0",
+                "turns": 0
+            },
+            {
+                "_id": 115,
+                "_type": "ptc_track_end",
+                "name": "PT1"
+            },
+            {
+                "_id": 116,
+                "_type": "ptc_end",
+                "name": "PT1"
+            }
+        ],
+        "elements": [
+            {
+                "_id": 101,
+                "l": 1,
+                "name": "D1",
+                "type": "DRIFT"
+            },
+            {
+                "_id": 102,
+                "l": 1,
+                "name": "D2",
+                "type": "DRIFT"
+            },
+            {
+                "_id": 103,
+                "l": 1,
+                "name": "D3",
+                "type": "DRIFT"
+            },
+            {
+                "_id": 104,
+                "_super": "_APERTURE_ELEMENT",
+                "k1": 5,
+                "l": 0.1,
+                "name": "QUAD1",
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 105,
+                "_super": "_APERTURE_ELEMENT",
+                "k1": -5,
+                "l": 0.1,
+                "name": "QUAD2",
+                "type": "QUADRUPOLE"
+            }
+        ],
+        "rpnCache": {},
+        "rpnVariables": [
+            {
+                "name": "e0",
+                "value": 0.938
+            },
+            {
+                "name": "nn",
+                "value": 1
+            },
+            {
+                "name": "q",
+                "value": 1
+            },
+            {
+                "name": "gamma",
+                "value": 7.84
+            }
+        ],
+        "ptcAnimation": {
+            "x": "x",
+            "y": "px",
+            "histogramBins": 200
+        },
+        "simulation": {
+            "activeBeamlineId": 106,
+            "documentationUrl": "",
+            "folder": "/Examples",
+            "isExample": true,
+            "name": "FODO PTC",
+            "notes": "",
+            "numberOfParticles": 1000,
+            "visualizationBeamlineId": 106
+        },
+        "twissAnimation": {
+            "includeLattice": "1",
+            "x": "s",
+            "y1": "betx",
+            "y2": "bety",
+            "y3": "dx"
+        },
+        "twissEllipseReport1": {
+            "dim": "x",
+            "notes": ""
+        },
+        "twissEllipseReport2": {
+            "dim": "y",
+            "notes": ""
+        },
+        "twissReport": {
+            "includeLattice": "1",
+            "y1": "betx",
+            "y2": "bety",
+            "y3": "dx"
+        }
+    },
+    "simulationType": "madx",
+    "version": "20200605.131802"
+}

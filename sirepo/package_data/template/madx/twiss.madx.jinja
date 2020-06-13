@@ -1,0 +1,8 @@
+title, "{{ simulation_name }}";
+
+{{ variables }}
+{{ lattice }}
+
+beam;
+use, sequence={{ useBeamline }};
+twiss, file={{ twissOutputFilename }};
