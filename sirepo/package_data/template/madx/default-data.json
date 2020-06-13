@@ -45,7 +45,7 @@
         },
         "simulation": {
             "documentationUrl": "",
-            "folder": "/Examples",
+            "folder": "/",
             "name": "",
             "notes": "",
             "numberOfParticles": 1000
