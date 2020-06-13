@@ -300,10 +300,10 @@ SIREPO.app.factory('madxService', function(appState, commandService, requestSend
         // Each of these fields must be present at least once
         if (
             [
-                'call',
+                'beam',
                 'ptc_create_universe',
                 'ptc_create_layout',
-                'ptc_observe', 'ptc_track',
+                'ptc_track',
                 'ptc_track_end',
                 'ptc_end'
             ].indexOf(command._type) >= 0
@@ -412,11 +412,11 @@ SIREPO.app.controller('CommandController', function(commandService, panelState) 
     var self = this;
     self.activeTab = 'basic';
     self.basicNames = [
-        'beam', 'exit', 'help', 'option', 'resbeam',
+        'beam', 'option', 'resbeam',
         'ptc_create_layout', 'ptc_create_universe', 'ptc_end',
         'ptc_normal', 'ptc_observe', 'ptc_start', 'ptc_track',
-        'ptc_track_end', 'select', 'set', 'show', 'sodd', 'system',
-        'title', 'twiss', 'use', 'value'
+        'ptc_track_end', 'select', 'set', 'show', 'sodd',
+        'twiss',
     ];
     self.advancedNames = [];
 
@@ -507,8 +507,8 @@ SIREPO.app.directive('appHeader', function(appState, madxService, latticeService
               '<app-header-right-sim-loaded>',
 		        '<div data-ng-if="nav.isLoaded()" data-sim-sections="">',
                   //'<li class="sim-section" data-ng-if="hasSourceCommand()" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
                   '<li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>',
                   '<li class="sim-section" data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
                 '</div>',

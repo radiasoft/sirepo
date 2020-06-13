@@ -79,7 +79,7 @@ _MADX_PTC_TRACK_DUMP_FILE_EXTENSION = 'tfs'
 
 _MADX_TWISS_OUTPUT_FILE = 'twiss.tfs'
 
-_METHODS = template_common.RPN_METHODS.extend([])
+_METHODS = template_common.RPN_METHODS + []
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
@@ -97,10 +97,9 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 def get_application_data(data, **kwargs):
-    if 'method' not in data:
-        raise RuntimeError('no application data method')
-    if data.method not in _METHODS:
-        raise RuntimeError('unknown application data method: {}'.format(data.method))
+    assert 'method' in data
+    assert data.method in _METHODS, \
+        'unknown application data method: {}'.format(data.method)
     #if data.method in template_common.RPN_METHODS:
     #    return template_common.get_rpn_data(data, _SCHEMA, _MADX_CONSTANTS)
     cv = code_variable.CodeVar(
@@ -179,6 +178,12 @@ def import_file(req, test_data=None, **kwargs):
 def madx_code_var(variables):
     return _code_var(variables)
 
+def prepare_for_client(data):
+    if 'models' not in data:
+        return data
+    data.models.rpnCache = madx_code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
+    return data
+
 def prepare_sequential_output_file(run_dir, data):
     r = data.report
     if r == 'twissReport':
@@ -225,6 +230,26 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
+def _add_call_and_observe_commands(data, util):
+    commands = data.models.commands
+    # set the selected beamline depending on the lattice or visualization
+    idx = next(i for i, cmd in enumerate(commands) if cmd._type == 'beam')
+    commands.insert(idx + 1, PKDict(
+        _type='use',
+        sequence=util.select_beamline().id,
+    ))
+    # insert call and ptc_observe commands after ptc_create_layout
+    idx = next(i for i, cmd in enumerate(commands) if cmd._type == 'ptc_create_layout')
+    commands.insert(idx + 1, PKDict(
+        _type='call',
+        file=_MADX_PTC_PARTICLES_FILE,
+    ))
+    commands.insert(idx + 2, PKDict(
+        _type='ptc_observe',
+        place='{}$END'.format(util.select_beamline().name.upper()),
+    ))
+
+
 def _code_var(variables):
     return code_variable.CodeVar(
         variables,
@@ -259,8 +284,8 @@ def _extract_report_twissEllipseReport(data, run_dir):
     theta = np.arange(0, 2. * np.pi * (n_pts / (n_pts - 1)), 2. * np.pi / n_pts)
     alf = 'alf{}'.format(dim)
     bet = 'bet{}'.format(dim)
-    a = m[alf]
-    b = m[bet]
+    a = float(m[alf])
+    b = float(m[bet])
     g = (1. + a * a) / b
     #pkdp('ELLIPSE A {} B {}', a, b)
     eta = 'e{}'.format(dim)
@@ -355,8 +380,8 @@ def _generate_commands(util):
         elif t == 'ptc_track':
             res += (f', dump=true, onetable=true file={_MADX_PTC_TRACK_DUMP_FILE}'
                     f', extension=.{_MADX_PTC_TRACK_DUMP_FILE_EXTENSION}')
-        elif t == 'call':
-            res += f', file={_MADX_PTC_PARTICLES_FILE}'
+        # elif t == 'call':
+        #     res += f', file={_MADX_PTC_PARTICLES_FILE}'
         res += ';\n'
     return res
 
@@ -371,17 +396,21 @@ def _generate_lattice(util):
 def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     util = LatticeUtil(data, _SCHEMA)
-    c = _generate_commands(util)
+    report = data.get('report', '')
     code_var = _code_var(data.models.rpnVariables)
     v.twissOutputFilename = _MADX_TWISS_OUTPUT_FILE
     v.lattice = _generate_lattice(util)
     v.variables = _generate_variables(code_var, data)
-    if data.models.simulation.visualizationBeamlineId:
-        v.useBeamline = util.id_map[data.models.simulation.visualizationBeamlineId].name
-        v.commands = _generate_commands(util)
-        v.hasTwiss = bool(util.find_first_command(data, 'twiss'))
-        if not v.hasTwiss:
-            v.twissOutputFilename = _MADX_TWISS_OUTPUT_FILE
+
+    v.useBeamline = util.select_beamline().name
+    if report == 'twissReport':
+        v.twissOutputFilename = _MADX_TWISS_OUTPUT_FILE
+        return template_common.render_jinja(SIM_TYPE, v, 'twiss.madx')
+    _add_call_and_observe_commands(data, util)
+    v.commands = _generate_commands(util)
+    v.hasTwiss = bool(util.find_first_command(data, 'twiss'))
+    if not v.hasTwiss:
+        v.twissOutputFilename = _MADX_TWISS_OUTPUT_FILE
     return template_common.render_jinja(SIM_TYPE, v, 'parameters.madx')
 
 

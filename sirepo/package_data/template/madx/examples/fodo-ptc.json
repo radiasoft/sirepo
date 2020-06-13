@@ -29,11 +29,6 @@
                 "sigt": 1
             },
             {
-                "_id": 108,
-                "_type": "use",
-                "sequence": 106
-            },
-            {
                 "_id": 109,
                 "_type": "twiss",
                 "alfx": -3.237,
@@ -70,16 +65,6 @@
                 "thin": 0.001,
                 "time": "1",
                 "xbend": -1
-            },
-            {
-                "_id": 112,
-                "_type": "call"
-            },
-            {
-                "_id": 113,
-                "_type": "ptc_observe",
-                "name": "PT1",
-                "place": "d3"
             },
             {
                 "_id": 114,
@@ -175,7 +160,7 @@
         "simulation": {
             "activeBeamlineId": 106,
             "documentationUrl": "",
-            "folder": "/",
+            "folder": "/Examples",
             "isExample": true,
             "name": "FODO PTC",
             "notes": "",
