@@ -325,10 +325,8 @@ def _ellipse_rot(a, b):
         2. * a * b / (1 + a * a - b * b)
     )
 
-def _extract_report_ptcAnimation(data, run_dir):
-    def _to_floats(vals):
-        return list(map(lambda v: float(v), vals))
 
+def _extract_report_ptcAnimation(data, run_dir):
     m = data.models[data.report]
     t = madx_parser.parse_tfs_file(
         run_dir.join(
@@ -355,11 +353,11 @@ def _extract_report_twissReport(data, run_dir):
         if m[f] == 'none':
             continue
         plots.append(
-            PKDict(field=m[f], points=t[m[f]], label=_FIELD_LABEL[m[f]])
+            PKDict(field=m[f], points=_to_floats(t[m[f]]), label=_FIELD_LABEL[m[f]])
         )
     x = m.get('x') or 's'
     return template_common.parameter_plot(
-        t[x],
+        _to_floats(t[x]),
         plots,
         m,
         PKDict(title=data.models.simulation.name, y_label='', x_label=_FIELD_LABEL[x])
@@ -525,3 +523,7 @@ def _ptc_start_commands(data):
            r += f', {f}={v[f][i]}'
         r +=';\n'
     return r
+
+
+def _to_floats(values):
+    return [float(v) for v in values]
