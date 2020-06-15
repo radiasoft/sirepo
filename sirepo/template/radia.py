@@ -360,7 +360,8 @@ def _generate_parameters_file(data):
     g = data.models.geometry
 
     v['dmpFile'] = _dmp_file(sim_id)
-    v['isExample'] = data.models.simulation.isExample
+    v['isExample'] = data.models.simulation.get('isExample', False)
+    v['objects'] = g.objects or []
     v['geomName'] = g.name
     disp = data.models.magnetDisplay
     v_type = disp.viewType

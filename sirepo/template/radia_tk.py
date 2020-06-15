@@ -32,6 +32,13 @@ FIELD_UNITS = PKDict({
 })
 
 
+def build_box(center, size, material, magnetization):
+    pkdp('BUILD BOX CTR {} SZ {} MAT {} MAG {}', center, size, material, magnetization)
+    g_id = radia.ObjRecMag(center, size)
+    #radia.MatApl(g_id, radia.MatStd(material, magnetization))
+    return g_id
+
+
 # these methods pulled out so as not to depend on a manager
 def dump(g_id):
     return radia.UtiDmp(g_id, 'asc')

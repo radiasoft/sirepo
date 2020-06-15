@@ -74,7 +74,7 @@
             ["AFK1", "Aperam 1"]
         ],
         "ObjectType": [
-            ["ObjRecMag", "Box"]
+            ["box", "Box"]
         ],
         "PathType": [
             ["line", "Line"],
@@ -174,7 +174,7 @@
             "material": ["Material", "MaterialType", "NdFeB"],
             "name": ["Name", "String", ""],
             "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"],
-            "type": ["Type", "ObjectType", "ObjRecMag"]
+            "type": ["Type", "ObjectType", "box"]
         },
         "linePath": {
             "_super": ["_", "model", "fieldPath"],

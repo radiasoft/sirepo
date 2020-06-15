@@ -1,6 +1,8 @@
 from __future__ import absolute_import, division, print_function
 
 import h5py
+import re
+from pykern.pkcollections import PKDict
 from sirepo.template import radia_tk
 from sirepo.template import radia_examples
 from sirepo.template import template_common
@@ -11,7 +13,15 @@ VIEW_TYPE_FIELD = 'fields'
 {% if isExample %}
 g_id = radia_examples.build('{{ geomName }}')
 {% else %}
-g_id = -1
+for obj in {{ objects }}:
+    o = PKDict(obj)
+    ctr = [float(x) for x in re.split(r'\s*,\s*', o.center)]
+    sz = [float(x) for x in re.split(r'\s*,\s*', o.size)]
+    m = [float(x) for x in re.split(r'\s*,\s*', o.magnetization)]
+    if o.type == 'box':
+        g_id = radia_tk.build_box(ctr, sz, o.material, m)
+    else:
+        g_id = -1
 {% endif %}
 
 
