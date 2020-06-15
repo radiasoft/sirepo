@@ -274,7 +274,7 @@
         ],
         "SampleSource": [
             ["file", "Input File"],
-            ["randomDisk", "Random 2D Disk"]
+            ["randomDisk", "Random 2D Objects"]
         ],
         "SimulationState": [
             ["initial", "Initial State"],
@@ -786,16 +786,17 @@
             "invert": ["Invert Image Colors", "Boolean", "0"],
             "outputImageFormat": ["Output Image Format", "OutputImageFormat", "tif"],
 
-            "rx": ["Horizontal Transmission Range [m]", "Float", 2e-4],
+            "rx": ["Horizontal Transmission Range [m]", "Float", 1e-5],
             "nx": ["Horizontal Transmission Points ", "Integer", 1001, "", 1],
-            "ry": ["Vertical Transmission Range [m]", "Float", 2e-4],
+            "ry": ["Vertical Transmission Range [m]", "Float", 1e-5],
             "ny": ["Vertical Transmission Points ", "Integer", 1001, "", 1],
-            "dens": ["Density [particles per mm²]", "Float", 1000, "", 1],
+            "dens": ["Density [particles per mm²]", "Float", 2e7, "", 1],
             "obj_type": ["Object Shape", "SampleObjectType", "1"],
-            "r_min_bw_obj": ["Minimum Shape Distance [m]", "Float", 1e-5],
-            "obj_size_min": ["Minimum Object Size [m]", "Float", 1e-5],
+            "r_min_bw_obj": ["Minimum Shape Distance [m]", "Float", 1e-9],
+            "edge_frac": ["Edge Fraction", "Float", 0.02, "How close to the edge can an object be placed on the object plane"],
+            "obj_size_min": ["Minimum Object Size [m]", "Float", 1e-7],
             "ang_min": ["Minimum Object Rotation [deg]", "Float", 0],
-            "obj_size_max": ["Maximum Object Size [m]", "Float", 2e-5],
+            "obj_size_max": ["Maximum Object Size [m]", "Float", 1.2e-7],
             "ang_max": ["Maximum Object Rotation [deg]", "Float", 45],
             "size_dist": ["Size Distribution", "SampleSizeDistribution", "1"],
             "ang_dist": ["Rotation Distribution", "SampleRotationDistribution", "1"],
@@ -1638,10 +1639,12 @@
             "title": "Sample",
             "basic": [],
             "advanced": [
-                ["Image Manipulation", [
+                ["Source", [
                     "title",
                     "position",
-                    "sampleSource",
+                    "sampleSource"
+                ]],
+                ["Image Manipulation", [
                     "imageFile",
                     "rotateAngle",
                     "rotateReshape",
@@ -1663,7 +1666,9 @@
                             "areaYEnd",
                             "shiftY"
                         ]]
-                    ],
+                    ]
+                ]],
+                ["Random 2D Objects", [
                     "rand_alg",
                     "obj_type",
                     "rand_obj_size",
@@ -1672,6 +1677,7 @@
                     "poly_sides",
                     "rand_shapes",
                     "r_min_bw_obj",
+                    "edge_frac",
                     [
                         ["Minimum", [
                             "obj_size_min",

@@ -112,6 +112,6 @@ def parse_tfs_file(tfs_file):
                 res[name].append(row[i])
     # special case if dy and/or dpy are missing, default to 0s
     for opt_col in ('dy', 'dpy'):
-        if opt_col not in res:
+        if opt_col not in res and 'dx' in res:
             res[opt_col] = ['0'] * len(res['dx'])
     return res

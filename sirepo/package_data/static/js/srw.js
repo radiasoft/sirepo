@@ -461,14 +461,14 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
     }
 
     function updateSampleFields(item) {
-        ['imageFile', 'rotateAngle', 'rotateReshape', 'cutoffBackgroundNoise', 'backgroundColor', 'invert', 'tileImage', 'tileRows', 'tileColumns', 'cropArea', 'resolution'].forEach(function(f) {
+        panelState.showTab('sample', 2, item.sampleSource == 'file');
+        panelState.showTab('sample', 3, item.sampleSource == 'randomDisk');
+        ['resolution'].forEach(function(f) {
             panelState.showField('sample', f, item.sampleSource == 'file');
         });
-        ['dens', 'obj_type', 'r_min_bw_obj', 'size_dist', 'ang_dist', 'rand_alg', 'rx', 'ry', 'nx', 'ny', 'rand_obj_size', 'obj_size_ratio', 'rand_poly_side', 'poly_sides', 'rand_shapes'].forEach(function(f) {
+        ['dens', 'rx', 'ry', 'nx', 'ny'].forEach(function(f) {
             panelState.showField('sample', f, item.sampleSource == 'randomDisk');
         });
-        panelState.showRow('sample', 'areaXStart', item.sampleSource == 'file');
-        panelState.showRow('sample', 'obj_size_min', item.sampleSource == 'randomDisk');
         if (item.sampleSource == 'file') {
             ['areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd'].forEach(function(f) {
                 panelState.showField('sample', f, item.cropArea == '1');
