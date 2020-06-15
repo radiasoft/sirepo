@@ -178,7 +178,7 @@ def examples(app):
 
 
 def find_global_simulation(sim_type, sid, checked=False):
-    paths = pkio.sorted_glob(user_dir_name().join('*', sim_type, sid))
+    paths = pkio.sorted_glob(user_path().join('*', sim_type, sid))
     if len(paths) == 1:
         return str(paths[0])
     if len(paths) == 0:
@@ -351,6 +351,18 @@ def lib_dir_from_sim_dir(sim_dir):
     return _sim_from_path(sim_dir)[1].join(_REL_LIB_DIR)
 
 
+def logged_in_user_path():
+    """Get logged in user's simulation directory
+
+    Returns:
+        py.path: user is valid and so is directory
+    """
+    return user_path(
+        sirepo.auth.logged_in_user(check_path=False),
+        check=True,
+    )
+
+
 def move_user_simulations(from_uid, to_uid):
     """Moves all non-example simulations `from_uid` into `to_uid`.
 
@@ -363,7 +375,7 @@ def move_user_simulations(from_uid, to_uid):
     """
     with _global_lock:
         for path in glob.glob(
-                str(user_dir_name(from_uid).join('*', '*', SIMULATION_DATA_FILE)),
+                str(user_path(from_uid).join('*', '*', SIMULATION_DATA_FILE)),
         ):
             data = read_json(path)
             sim = data['models']['simulation']
@@ -601,29 +613,32 @@ def sim_data_file(sim_type, sim_id):
     return simulation_dir(sim_type, sim_id).join(SIMULATION_DATA_FILE)
 
 
-def simulation_dir(simulation_type, sid=None):
+def simulation_dir(simulation_type, sid=None, uid=None):
     """Generates simulation directory from sid and simulation_type
 
     Args:
         simulation_type (str): srw, warppba, ...
         sid (str): simulation id (optional)
+        uid (str): user id [logged_in_user]
     """
-    d = _user_dir().join(sirepo.template.assert_sim_type(simulation_type))
+    p = user_path(uid) if uid else logged_in_user_path()
+    d = p.join(sirepo.template.assert_sim_type(simulation_type))
     if not sid:
         return d
     return d.join(assert_sid(sid))
 
 
-def simulation_lib_dir(simulation_type):
+def simulation_lib_dir(simulation_type, uid=None):
     """String name for user library dir
 
     Args:
         simulation_type: which app is this for
+        uid (str): user id [logged_in_user]
 
     Return:
         py.path: directory name
     """
-    return simulation_dir(simulation_type).join(_LIB_DIR)
+    return simulation_dir(simulation_type, uid=uid).join(_LIB_DIR)
 
 
 def simulation_run_dir(req_or_data, remove_dir=False):
@@ -676,7 +691,7 @@ def tmp_dir(chdir=False):
     """
     d = None
     try:
-        d = cfg.tmp_dir or _random_id(_user_dir().join(_TMP_DIR))['path']
+        d = cfg.tmp_dir or _random_id(logged_in_user_path().join(_TMP_DIR))['path']
         pkio.unchecked_remove(d)
         pkio.mkdir_parent(d)
         if chdir:
@@ -690,7 +705,7 @@ def tmp_dir(chdir=False):
 
 
 def uid_from_dir_name(dir_name):
-    """Extract user id from user_dir_name
+    """Extract user id from user_path
 
     Args:
         dir_name (py.path): must be top level user dir or sim_dir
@@ -700,7 +715,7 @@ def uid_from_dir_name(dir_name):
     """
     r = re.compile(
         r'^{}/({})(?:$|/)'.format(
-            re.escape(str(user_dir_name())),
+            re.escape(str(user_path())),
             _ID_PARTIAL_RE_STR,
         ),
     )
@@ -728,7 +743,7 @@ def user_create(login_callback):
     Returns:
         str: New user id
     """
-    uid = _random_id(user_dir_name())['id']
+    uid = _random_id(user_path())['id']
     # Must logged in before calling simulation_dir
     login_callback(uid)
     for simulation_type in feature_config.cfg().sim_types:
@@ -736,18 +751,22 @@ def user_create(login_callback):
     return uid
 
 
-def user_dir_name(uid=None):
-    """String name for user name
+def user_path(uid=None, check=False):
+    """Path for uid or root of all users
 
     Args:
-        uid (str): properly formated user name (optional)
+        uid (str): properly formated user name [None]
+        check (bool): assert directory exists (only if uid) [False]
     Return:
-        py.path: directory name
+        py.path: root user's
     """
     d = sirepo.srdb.root().join(USER_ROOT_DIR)
     if not uid:
         return d
-    return d.join(uid)
+    d = d.join(uid)
+    if check and not d.check():
+        sirepo.auth.user_dir_not_found(d, uid)
+    return d
 
 
 def validate_serial(req_data):
@@ -1014,19 +1033,6 @@ def _timestamp(time=None):
     elif not isinstance(time, datetime.datetime):
         time = datetime.datetime.fromtimestamp(time)
     return time.strftime('%Y%m%d.%H%M%S')
-
-
-def _user_dir():
-    """User for the session
-
-    Returns:
-        str: unique id for user
-    """
-    uid = sirepo.auth.logged_in_user()
-    d = user_dir_name(uid)
-    if not d.check():
-        sirepo.auth.user_dir_not_found(d, uid)
-    return d
 
 
 _init()

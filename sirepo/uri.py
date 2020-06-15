@@ -16,6 +16,10 @@ except ImportError:
     from urllib import urlencode, quote
 
 
+#: allows us to search more easily for use of http root
+ROOT = '/'
+
+
 def api(*args, **kwargs):
     """Alias for `uri_router.uri_for_api`"""
     return uri_router.uri_for_api(*args, **kwargs)
@@ -31,7 +35,7 @@ def app_root(sim_type):
         str: formatted URI
     """
     t = http_request.sim_type(sim_type)
-    return '/' if t is None else '/' + t
+    return ROOT if t is None else ROOT + t
 
 
 def default_local_route_name(schema):

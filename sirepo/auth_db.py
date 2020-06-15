@@ -5,9 +5,7 @@ u"""Auth database
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-import sirepo.auth
 import sqlalchemy
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
@@ -40,11 +38,11 @@ def all_uids():
     return UserRegistration.search_all_for_column('uid')
 
 
-def init(srdb_root, migrate_db_file=True):
+def init(migrate_db_file=True):
     global _session, _engine, UserDbBase, UserRegistration, UserRole
     assert not _session
 
-    f = _db_filename(srdb_root)
+    f = _db_filename()
     if migrate_db_file:
         _migrate_db_file(f)
     _engine = sqlalchemy.create_engine(
@@ -121,6 +119,7 @@ def init(srdb_root, migrate_db_file=True):
             with thread_lock:
                 for r in roles:
                     UserRole(uid=uid, role=r).save()
+                audit_proprietary_lib_files(uid)
 
         @classmethod
         def delete_roles(cls, uid, roles):
@@ -131,17 +130,65 @@ def init(srdb_root, migrate_db_file=True):
                     cls.role.in_(roles),
                 ).delete(synchronize_session='fetch')
                 cls._session.commit()
+                audit_proprietary_lib_files(uid)
+
+        @classmethod
+        def has_role(cls, uid, role):
+            with thread_lock:
+                return bool(cls.search_by(uid=uid, role=role))
 
         @classmethod
         def uids_of_paid_users(cls):
+            import sirepo.auth
+
             return [
                 x[0] for x in cls._session.query(cls).with_entities(cls.uid).filter(
                     cls.role.in_(sirepo.auth.PAID_USER_ROLES),
                 ).distinct().all()
             ]
 
+
     # only creates tables that don't already exist
     UserDbBase.metadata.create_all(_engine)
+
+
+def audit_proprietary_lib_files(uid):
+    """Add/removes proprietary files based on a user's roles
+
+    For example, add the Flash rpm if user has the flash role.
+
+    Args:
+        uid: user to audit
+    """
+    import py
+    import pykern.pkio
+    import sirepo.auth
+    import sirepo.feature_config
+    import sirepo.simulation_db
+    import sirepo.srdb
+
+    x = sirepo.feature_config.cfg().proprietary_sim_types
+    if not x:
+        return
+    for t in x:
+        r = UserRole.has_role(
+            uid,
+            sirepo.auth.role_for_sim_type(t),
+        )
+        for f in pykern.pkio.sorted_glob(
+            sirepo.srdb.proprietary_code_dir(t).join('*'),
+        ):
+#TODO(robnagler) ensure no collision on names with uploaded files
+# (restrict suffixes in user uploads)
+            p = sirepo.simulation_db.simulation_lib_dir(t, uid=uid).join(f.basename)
+            if not r:
+                pykern.pkio.unchecked_remove(p)
+                continue
+            assert f.check(file=True), f'{f} not found'
+            try:
+                p.mksymlinkto(f, absolute=False)
+            except py.error.EEXIST:
+                pass
 
 
 def init_model(callback):
@@ -150,8 +197,10 @@ def init_model(callback):
         UserDbBase.metadata.create_all(_engine)
 
 
-def _db_filename(srdb_root):
-    return srdb_root.join(_SQLITE3_BASENAME)
+def _db_filename():
+    import sirepo.srdb
+
+    return sirepo.srdb.root().join(_SQLITE3_BASENAME)
 
 
 def _migrate_db_file(fn):

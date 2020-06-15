@@ -18,7 +18,7 @@ def upgrade():
         return m.group(1) + str(int(m.group(2)) + 1)
 
     server.init()
-    for d in pkio.sorted_glob(simulation_db.user_dir_name().join('*/warppba')):
+    for d in pkio.sorted_glob(simulation_db.user_path().join('*/warppba')):
         for fn in pkio.sorted_glob(d.join('*/sirepo-data.json')):
             with open(str(fn)) as f:
                 t = f.read()
@@ -122,7 +122,7 @@ def upgrade_runner_to_job_db(db_dir):
     db_dir = pkio.py_path(db_dir)
     pkio.mkdir_parent(db_dir)
     for f in pkio.walk_tree(
-            simulation_db.user_dir_name(),
+            simulation_db.user_path(),
             '^(?!.*src/).*/{}$'.format(sirepo.job.RUNNER_STATUS_FILE),
 
     ):

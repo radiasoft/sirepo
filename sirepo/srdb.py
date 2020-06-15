@@ -19,39 +19,53 @@ _DEFAULT_ROOT = 'run'
 #: Configured root either by server_set_root or cfg
 _root = None
 
+#: internal config (always use `root`)
+_cfg = None
+
+
+#: subdir of where proprietary codes live
+_PROPRIETARY_CODE_DIR = 'proprietary_code'
+
+
+def proprietary_code_dir(sim_type):
+    """Directory for proprietary code binaries
+
+    Args:
+        sim_type (str): not validated code name
+    """
+    return root().join(_PROPRIETARY_CODE_DIR, sim_type)
+
 
 def root():
     return _root or _init_root()
 
 
-@pkconfig.parse_none
-def _cfg_root(value):
-    """Config value or root package's parent or cwd with `_DEFAULT_ROOT`"""
-    return value
-
-
 def _init_root():
-    global cfg, _root
-    cfg = pkconfig.init(
+    global _cfg, _root
+
+    def _cfg_root(v):
+        """Config value or root package's parent or cwd with `_DEFAULT_ROOT`"""
+        if not os.path.isabs(v):
+            pkconfig.raise_error(f'{v}: SIREPO_SRDB_ROOT must be absolute')
+        if not os.path.isdir(v):
+            pkconfig.raise_error(f'{v}: SIREPO_SRDB_ROOT must be a directory and exist')
+        return pkio.py_path(v)
+
+    _cfg = pkconfig.init(
         root=(None, _cfg_root, 'where database resides'),
     )
-    v = cfg.root
-    if v:
-        assert os.path.isabs(v), \
-            '{}: SIREPO_SRDB_ROOT must be absolute'.format(v)
-        assert os.path.isdir(v), \
-            '{}: SIREPO_SRDB_ROOT must be a directory and exist'.format(v)
-        v = pkio.py_path(v)
-    else:
-        assert pkconfig.channel_in('dev'), \
-            'SIREPO_SRDB_ROOT must be configured except in DEV'
-        fn = sys.modules[pkinspect.root_package(_init_root)].__file__
-        root = pkio.py_path(pkio.py_path(pkio.py_path(fn).dirname).dirname)
-        # Check to see if we are in our dev directory. This is a hack,
-        # but should be reliable.
-        if not root.join('requirements.txt').check():
-            # Don't run from an install directory
-            root = pkio.py_path('.')
-        v = pkio.mkdir_parent(root.join(_DEFAULT_ROOT))
-    _root = v
-    return v
+    _root = _cfg.root
+    if _root:
+        return _root
+    assert pkconfig.channel_in('dev'), \
+        'SIREPO_SRDB_ROOT must be configured except in dev'
+    r = pkio.py_path(
+        sys.modules[pkinspect.root_package(_init_root)].__file__,
+    ).dirpath().dirpath()
+    # Check to see if we are in our dev directory. This is a hack,
+    # but should be reliable.
+    if not r.join('requirements.txt').check():
+        # Don't run from an install directory
+        r = pkio.py_path('.')
+    _root = pkio.mkdir_parent(r.join(_DEFAULT_ROOT))
+    return _root
