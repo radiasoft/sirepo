@@ -861,16 +861,17 @@ SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUplo
     };});
 
 
-// elevations tab + vtk tab
+// elevations tab + vtk tab (or all in 1 tab?)
 SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, plotting) {
     return {
         restrict: 'A',
         scope: {
             modelName: '@',
+            objectModel: '@',
         },
         templateUrl: '/static/html/3d-builder.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
-            var ASPECT_RATIO = 4.0 / 7;
+            var ASPECT_RATIO = 1.0;  //4.0 / 7;
             var ELEVATIONS = {
                 front: 'front',
                 side: 'side',
@@ -879,6 +880,7 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
 
             var insetWidthPct = 0.07;
             var insetMargin = 16.0;
+            var scale = SIREPO.APP_SCHEMA.constants.objectScale || 1.0;
 
             $scope.margin = {top: 20, right: 20, bottom: 45, left: 70};
             $scope.width = $scope.height = 0;
@@ -892,7 +894,7 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
             };
 
             function clearDragShadow() {
-                d3.selectAll('.object-drag-shadow').remove();
+                d3.selectAll('.vtk-object-layout-drag-shadow').remove();
             }
 
             function d3DragEndShape(shape) {
@@ -936,23 +938,27 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
             }
 
 
+
             function drawObjects(typeMap, elev) {
                 var shapes = [];
-                appState.models[$scope.modelName].objects
+                (appState.models[$scope.modelName].objects || [])
                     .forEach(function(o) {
-                        srdbg('obj', o);
+                        srdbg('draw obj', o);
+                        var center = angular.isString(o.center) ? stringToFloatArray(o.center) : o.center;
+                        var size = angular.isString(o.size) ? stringToFloatArray(o.size) : o.size;
                         shapes.push({
-                            origin: [
-                                o.center[0] - o.size[0] / 2,
-                                o.center[1] + o.size[1] / 2,
-                                o.center[2] - o.size[2] / 2
-                            ],
-                            size: o.size,
-                            id: o.id,
+                            color: o.color,
                             elev: elev,
+                            id: o.id,
+                            name: o.name,
+                            shape: o.layoutShape || 'rect',
+                            width: size[1],
+                            height: size[2],
+                            x: center[1] - size[1] / 2,
+                            y: center[2] + size[2] / 2,
                         });
                     });
-                var ds = d3.select('.plot-viewport').selectAll('.object-shape')
+                var ds = d3.select('.plot-viewport').selectAll('.vtk-object-layout-shape')
                     .data(shapes);
                 ds.exit().remove();
                 ds.enter().append('rect')
@@ -1128,34 +1134,53 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                 return 'rgb(' + comp[0] + ', ' + comp[1] + ', ' + comp[2] + ', ' + (alpha || 1.0) + ')';
             }
 
-            function shapeFromObjectTypeAndPoint(conductorType, p) {
-                var w = toMicron(conductorType.zLength);
-                var h = toMicron(conductorType.xLength);
+            function shapeFromObjectTypeAndPoint(obj, p) {
+                // should validate model on server
+                var model = appState.setModelDefaults({}, obj.model);
+                var size = model.size;
+                if (angular.isString(size)) {
+                    size = stringToFloatArray(size);
+                }
                 return {
-                    width: w,
-                    height: h,
-                    x: axes.x.scale.invert(p[0]) - w / 2,
-                    y: axes.y.scale.invert(p[1]) + h / 2,
+                    color: model.color,
+                    elev: ELEVATIONS.front,
+                    name: model.name,
+                    shape: model.layoutShape || 'rect',
+                    width: size[1],
+                    height: size[2],
+                    id: model.id,
+                    x: axes.x.scale.invert(p[0]) - size[1] / 2,
+                    y: axes.y.scale.invert(p[1]) + size[2] / 2,
                 };
             }
 
             function showShapeLocation(shape) {
+                /*
                 var axis = shape.elev === ELEVATIONS.front ? 'X' : 'Y';
                 select('.focus-text').text(
                     'Center: Z=' + formatMicron(shape.x + shape.width / 2, 4)
                         + 'µm, ' + axis + '=' + formatMicron(shape.y - shape.height / 2, 4) + 'µm');
+
+                 */
+            }
+
+            function stringToFloatArray(str) {
+                return str.split(/\s*,\s*/)
+                    .map(function (v) {
+                        return scale * parseFloat(v);
+                    });
             }
 
             function toMicron(v) {
                 return v * 1e-6;
             }
 
-            function updateDragShadow(conductorType, p) {
+            function updateDragShadow(obj, p) {
                 clearDragShadow();
-                var shape;  // = shapeFromConductorTypeAndPoint(conductorType, p);
+                var shape = shapeFromObjectTypeAndPoint(obj, p);
                 showShapeLocation(shape);
                 d3.select('.plot-viewport')
-                    .append('rect').attr('class', 'warpvnd-shape warpvnd-drag-shadow')
+                    .append('rect').attr('class', 'vtk-object-layout-shape vtk-object-layout-drag-shadow')
                     .attr('x', function() { return axes.x.scale(shape.x); })
                     .attr('y', function() { return axes.y.scale(shape.y); })
                     .attr('width', function() {
@@ -1166,30 +1191,26 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
 
             function updateShapeAttributes(selection) {
                 selection
-                    .attr('class', 'object-shape')
+                    .attr('class', 'vtk-object-layout-shape')
                     .attr('id', function (d) {
                         return 'shape-' + d.elev + '-' + d.id;
                     })
-                    .attr('x', function(d) { return axes.x.scale(d.x); })
+                    .attr('x', function(d) {
+                        return axes.x.scale(d.x);
+                    })
                     .attr('y', function(d) {
-                        var axis = d.elev === ELEVATIONS.front
-                            ? axes.y
-                            : axes.z;
-                        return axis.scale(d.y);
+                        return axes.y.scale(d.y);
                     })
                     .attr('width', function(d) {
                         return axes.x.scale(d.x + d.width) - axes.x.scale(d.x);
                     })
                     .attr('height', function(d) {
-                        var axis = d.elev === ELEVATIONS.front
-                            ? axes.y
-                            : axes.z;
-                        return axis.scale(d.y) - axis.scale(d.y + d.height);
+                        return axes.y.scale(d.y) - axes.y.scale(d.y + d.height);
                     })
                     .attr('style', function(d) {
-                        if(d.conductorType.color) {
-                            return 'fill:' + shapeColor(d.conductorType.color, 0.3) + '; ' +
-                                'stroke: ' + shapeColor(d.conductorType.color);
+                        if (d.color) {
+                            return 'fill:' + shapeColor(d.color, 0.3) + '; ' +
+                                'stroke: ' + shapeColor(d.color);
                         }
                     });
                 var tooltip = selection.select('title');
@@ -1197,7 +1218,7 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                     tooltip = selection.append('title');
                 }
                 tooltip.text(function(d) {
-                    return d.objectType.name;
+                    return d.name;
                 });
             }
 
@@ -1208,11 +1229,11 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                 $('.plot-viewport').off();
             };
 
-            $scope.dragMove = function(conductorType, evt) {
+            $scope.dragMove = function(obj, evt) {
                 var p = isMouseInBounds(evt);
                 if (p) {
                     d3.select('.sr-drag-clone').attr('class', 'sr-drag-clone sr-drag-clone-hidden');
-                    updateDragShadow(conductorType, p);
+                    updateDragShadow(obj, p);
                 }
                 else {
                     clearDragShadow();
@@ -1221,19 +1242,25 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                 }
             };
 
-            $scope.dropSuccess = function(conductorType, evt) {
+            $scope.dropSuccess = function(obj, evt) {
                 var p = isMouseInBounds(evt);
-                srdbg('DROP AT', p, 'FROM', evt);
+                srdbg('DROP', obj,  'AT', p, 'FROM', evt);
                 if (p) {
-                    //var shape = shapeFromConductorTypeAndPoint(conductorType, p);
-                    //appState.models.conductors.push({
-                     //   id: appState.maxId(appState.models.conductors) + 1,
-                     //   conductorTypeId: conductorType.id,
-                     //   zCenter: formatMicron(shape.x + shape.width / 2),
-                     //   xCenter: formatMicron(shape.y - shape.height / 2),
-                     //   yCenter: formatMicron(planeLine),
-                    //});
-                    //appState.saveChanges('conductors');
+                    var shape = shapeFromObjectTypeAndPoint(obj, p);
+                    srdbg('shape', shape);
+                    /*
+                    appState.models.conductors.push({
+                        id: appState.maxId(appState.models.conductors) + 1,
+                        conductorTypeId: conductorType.id,
+                        zCenter: formatMicron(shape.x + shape.width / 2),
+                        xCenter: formatMicron(shape.y - shape.height / 2),
+                        yCenter: formatMicron(planeLine),
+                    });
+                    appState.saveChanges($scope.modelName);
+                    
+                     */
+                    $scope.$emit('layout.object.dropped', obj);
+                    //$scope.$broadcast('object.dropped', obj);
                 }
             };
 
@@ -1242,7 +1269,6 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                     appState.whenModelsLoaded($scope, $scope.init);
                     return;
                 }
-                var grid = appState.models.simulationGrid;
                 select('svg').attr('height', plotting.initialHeight($scope));
                 $.each(axes, function(dim, axis) {
                     axis.init();
@@ -1285,9 +1311,8 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
             };
 
             appState.whenModelsLoaded($scope, function() {
-                var grid = appState.models.simulationGrid;
                 $scope.$on('cancelChanges', function(e, name) {
-                    if (name == 'conductors') {
+                    if (name == $scope.modelName) {
                         replot();
                     }
                 });

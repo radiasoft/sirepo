@@ -218,11 +218,25 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, $
         return true;
     };
 
+    function addGeomObj(objModel) {
+        if (! appState.models.geometry.objects) {
+            appState.models.geometry.objects = [];
+        }
+        appState.models.geometry.objects.push(objModel);
+        appState.saveChanges('geometry');
+    }
+
     appState.whenModelsLoaded($scope, function() {
         // initial setup
         //appState.watchModelFields($scope, ['model.field'], function() {
         //});
         //srdbg('RadiaSourceController');
+        $scope.$on('layout.object.dropped', function (e, o) {
+            var m = appState.setModelDefaults({}, o.model);
+            srdbg('dropped', o, '->', m);
+            m.name = o.type;
+            addGeomObj(m);
+        });
     });
 });
 

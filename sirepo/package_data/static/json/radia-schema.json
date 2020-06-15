@@ -7,6 +7,7 @@
     "constants": {
         "defaultGeomColor": "#ffffff",
         "inProgressText": "Solving",
+        "objectScale": 0.001,
         "pathPtsFileType": "path-pts",
         "pathDetailFields": {
             "circlePath": ["ctrX", "ctrY", "ctrZ", "radius", "theta", "phi"],
@@ -20,6 +21,8 @@
                 "type": "Basic objects",
                 "contents": [
                     {
+                        "layoutShape": "rect",
+                        "model": "box",
                         "title": "Box",
                         "type": "box"
                     }
@@ -114,15 +117,7 @@
     "model": {
         "box": {
             "_super": ["_", "model", "geomObject"],
-            "ctrX": ["Center x (mm)", "Float", 0.0],
-            "ctrY": ["Center y (mm)", "Float", 0.0],
-            "ctrZ": ["Center z (mm)", "Float", 0.0],
-            "lenX": ["X length (mm)", "Float", 10.0, "", 0],
-            "lenY": ["Y length (mm)", "Float", 10.0, "", 0],
-            "lenZ": ["Z length (mm)", "Float", 10.0, "", 0],
-            "magX": ["Magentization x (T)", "Float", 0.0, "", 0],
-            "magY": ["Magentization y (T)", "Float", 0.0, "", 0],
-            "magZ": ["Magentization z (T)", "Float", 0.0, "", 0]
+            "magnetization": ["Magentization (T)", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"]
         },
         "circlePath": {
             "_super": ["_", "model", "fieldPath"],
@@ -175,6 +170,7 @@
             "color": ["Color", "Color", "#cccccc"],
             "division": ["Divide", "DivisionType", ""],
             "id": ["_", "String", ""],
+            "layoutShape":  ["_", "String", "rect"],
             "material": ["Material", "MaterialType", "NdFeB"],
             "name": ["Name", "String", ""],
             "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"],
