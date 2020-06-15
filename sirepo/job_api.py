@@ -17,7 +17,6 @@ import pykern.pkio
 import re
 import requests
 import sirepo.auth
-import sirepo.auth_db
 import sirepo.http_reply
 import sirepo.http_request
 import sirepo.job

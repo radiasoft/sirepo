@@ -143,7 +143,6 @@ def init_apis(*args, **kwargs):
         'Do not set $SIREPO_AUTH_LOGGED_IN_USER in server'
     uri_router = importlib.import_module('sirepo.uri_router')
     simulation_db = importlib.import_module('sirepo.simulation_db')
-    auth_db.init()
     p = pkinspect.this_module().__name__
     visible_methods = []
     valid_methods = cfg.methods.union(cfg.deprecated_methods)
