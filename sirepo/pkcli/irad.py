@@ -210,16 +210,24 @@ def _write_ct_vti_file(files):
     ctinfo = None
     #instance_numbers = sorted(files.ctmap.keys()) if files.position == 'HFS' else reversed(sorted(files.ctmap.keys()))
     instance_numbers = sorted(files.ctmap.keys())
-    if pydicom.dcmread(files.ctmap[instance_numbers[0]]).ImagePositionPatient[2] \
+    first = pydicom.dcmread(files.ctmap[instance_numbers[0]])
+    if first.ImagePositionPatient[2] \
        > pydicom.dcmread(files.ctmap[instance_numbers[-1]]).ImagePositionPatient[2]:
         instance_numbers = reversed(instance_numbers)
+    is_flipped_lr = first.ImageOrientationPatient[0] == -1
     for idx in instance_numbers:
         frame = pydicom.dcmread(files.ctmap[idx])
         ctinfo = _extract_dcm_info(files, ctinfo, frame)
         pkio.mkdir_parent(_PIXEL_DATA_DIR)
         with open(_PIXEL_DATA_FILE, 'ab') as f:
-            frame.pixel_array.tofile(f)
-    _write_vti_file(_VTI_CT_ZIP_FILE, ctinfo)
+            pixels = frame.pixel_array
+            if is_flipped_lr:
+                pixels = np.fliplr(pixels)
+            pixels.tofile(f)
+    origin = ctinfo.ImagePositionPatient
+    if is_flipped_lr:
+        origin[0] = first.ImagePositionPatient[0] - first.PixelSpacing[0] * (first.Columns - 1)
+    _write_vti_file(_VTI_CT_ZIP_FILE, ctinfo, origin)
     return ctinfo
 
 
@@ -279,7 +287,7 @@ def _write_rtstruct_file(files):
         }, f)
     return rois
 
-def _write_vti_file(filename, info):
+def _write_vti_file(filename, info, origin=None):
     vti = copy.deepcopy(_VTI_TEMPLATE)
     vti.spacing = [
         info.PixelSpacing[0],
@@ -297,7 +305,7 @@ def _write_vti_file(filename, info):
     for f in ('RescaleSlope', 'RescaleIntercept', 'DoseMax', 'DoseGridScaling'):
         if f in info:
             vti.metadata[f] = info[f]
-    vti.origin = info.ImagePositionPatient
+    vti.origin = origin or info.ImagePositionPatient
     vti.pointData.arrays[0].data.size = info.Rows * info.Columns * info.Count
     vti.pointData.arrays[0].data.dataType = 'Int{}Array'.format(info.BitsAllocated)
     pkio.unchecked_remove(filename)
