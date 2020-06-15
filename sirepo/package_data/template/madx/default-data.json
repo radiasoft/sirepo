@@ -1,21 +1,76 @@
 {
-  "models": {
-    "beamlines": [],
-    "commands": [],
-    "elements": [],
-    "rpnCache": {},
-    "rpnVariables": [],
-    "simulation": {
-      "documentationUrl": "",
-      "folder": "/",
-      "notes": ""
+    "models": {
+        "beamlines": [],
+        "commands": [
+            {
+                "_id": 107,
+                "_type": "beam",
+                "pc": 1
+            },
+            {
+                "_id": 109,
+                "_type": "twiss",
+                "betx": 1,
+                "bety": 1
+            },
+            {
+                "_id": 110,
+                "_type": "ptc_create_universe"
+            },
+            {
+                "_id": 111,
+                "_type": "ptc_create_layout",
+                "model": 2
+            },
+            {
+                "_id": 114,
+                "_type": "ptc_track",
+                "icase": 6
+            },
+            {
+                "_id": 115,
+                "_type": "ptc_track_end"
+            },
+            {
+                "_id": 116,
+                "_type": "ptc_end"
+            }
+        ],
+        "elements": [],
+        "rpnVariables": [],
+        "ptcAnimation": {
+            "x": "x",
+            "y": "px",
+            "histogramBins": 200
+        },
+        "simulation": {
+            "documentationUrl": "",
+            "folder": "/",
+            "name": "",
+            "notes": "",
+            "numberOfParticles": 1000
+        },
+        "twissAnimation": {
+            "includeLattice": "1",
+            "x": "s",
+            "y1": "betx",
+            "y2": "bety",
+            "y3": "dx"
+        },
+        "twissEllipseReport1": {
+            "dim": "x",
+            "notes": ""
+        },
+        "twissEllipseReport2": {
+            "dim": "y",
+            "notes": ""
+        },
+        "twissReport": {
+            "includeLattice": "1",
+            "y1": "betx",
+            "y2": "bety",
+            "y3": "dx"
+        }
     },
-    "twissReport": {
-        "includeLattice": "1",
-        "y1": "betx",
-        "y2": "bety",
-        "y3": "dx"
-    }
-  },
-  "simulationType": "madx"
+    "simulationType": "madx"
 }
