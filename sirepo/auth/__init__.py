@@ -593,12 +593,12 @@ def _init():
         return
     global logged_in_user, user_dir_not_found
 
-    def logged_in_user():
+    def logged_in_user(*args, **kwargs):
         return cfg.logged_in_user
 
-    def user_dir_not_found(d, u):
+    def user_dir_not_found(user_dir, *args, **kwargs):
         # can't raise in a lambda so do something like this
-        raise AssertionError('user_dir={} not found'.format(d))
+        raise AssertionError('user_dir={} not found'.format(user_dir))
 
     cfg.deprecated_methods = set()
     cfg.methods = set((METHOD_GUEST,))
