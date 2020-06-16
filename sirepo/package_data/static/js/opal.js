@@ -61,12 +61,6 @@ SIREPO.app.factory('opalService', function(appState, commandService, latticeServ
     commandService.hideCommandName = true;
     rpnService.isCaseInsensitive = true;
 
-    function findCommands(type) {
-        return appState.models.commands.filter(function(cmd) {
-            return cmd._type == type;
-        });
-    }
-
     self.computeModel = function(analysisModel) {
         return 'animation';
     };
@@ -75,7 +69,7 @@ SIREPO.app.factory('opalService', function(appState, commandService, latticeServ
         commandService.deleteCommandWarning = '';
         // can't delete a command which is in use by other commands
         //TODO(pjm) for now check track use of beam, fieldsolver and distribution
-        findCommands('track').some(function(track) {
+        commandService.findAllComands('track').some(function(track) {
             if (command._id  == track.beam
                 || command._id == track.run_beam
                 || command._id == track.run_fieldsolver
@@ -89,7 +83,7 @@ SIREPO.app.factory('opalService', function(appState, commandService, latticeServ
         }
         // can't delete the last option, beam, distribution, fieldsolver or track
         if (['option', 'beam', 'distribution', 'fieldsolver', 'track'].indexOf(command._type) >= 0) {
-            if (findCommands(command._type).length == 1) {
+            if (commandService.findAllComands(command._type).length == 1) {
                 commandService.deleteCommandWarning = commandService.formatCommandName(command) + ' is the only ' + command._type;
                 return false;
             }

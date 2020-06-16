@@ -27,23 +27,27 @@ def run(cfg_dir):
 
 
 def run_background(cfg_dir):
-    # TODO(e-carlin): No info on running madx in parallel
-    # The visualization tab will call this
     _run_madx()
 
 
 def _run_madx():
-    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    if template.is_initial_report(data.report):
-        template_common.exec_parameters('bunch.py')
+    #data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    #if template.is_initial_report(data.report):
+    #    template_common.exec_parameters('bunch.py')
         #pksubprocess.check_call_with_signals(
         #    ['madx', 'bunch.py'],
         #    msg=pkdlog,
         #    output='BUNCHOUT.DAT',
         #)
-    else:
-        pksubprocess.check_call_with_signals(
-            ['madx', template.MADX_INPUT_FILENAME],
-            msg=pkdlog,
-            output=template.MADX_OUTPUT_FILENAME,
-        )
+    #else:
+    #    pksubprocess.check_call_with_signals(
+    #        ['madx', template.MADX_INPUT_FILENAME],
+    #        msg=pkdlog,
+    #        output=template.MADX_OUTPUT_FILENAME,
+    #    )
+    pksubprocess.check_call_with_signals(
+        ['madx', template.MADX_INPUT_FILE],
+        msg=pkdlog,
+        output=template.MADX_OUTPUT_FILE,
+    )
+

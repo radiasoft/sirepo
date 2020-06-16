@@ -32,7 +32,7 @@ def adjust_time(days):
     def _adjust_supervisor_srtime():
         import sirepo.job_api
 
-        if sirepo.util.in_flask_app_context():
+        if sirepo.util.flask_app():
             sirepo.job_api.adjust_supervisor_srtime(d)
 
     global _timedelta

@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.sim_data
+from sirepo.template.lattice import LatticeUtil
 
 class SimData(sirepo.sim_data.SimDataBase):
 
@@ -40,10 +41,16 @@ class SimData(sirepo.sim_data.SimDataBase):
         if 'particleTracking' not in dm:
             m = dm['particleTracking'] = PKDict()
             cls.update_model_defaults(m, 'particleTracking')
+        for container in ('commands', 'elements'):
+            for m in dm[container]:
+                cls.update_model_defaults(m, LatticeUtil.model_name_for_data(m))
+
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         # TODO(e-carlin): impl
+        if r == 'twissReport':
+            return ['beamlines', 'elements', 'commands', 'simulation.activeBeamlineId', 'rpnVariables']
         return []
 
     @classmethod

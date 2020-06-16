@@ -22,5 +22,5 @@ def test_myapp_user_dir_deleted(fc):
         PKDict(simulationType=fc.sr_sim_type),
         raw_response=True,
     )
-    pkunit.pkre('^<!DOCTYPE html.*APP_NAME:', pkcompat.from_bytes(r.data))
+    pkunit.pkre('^<!DOCTYPE html.*class="landing', pkcompat.from_bytes(r.data))
     fc.sr_auth_state(displayName=None, isLoggedIn=False, method=None)

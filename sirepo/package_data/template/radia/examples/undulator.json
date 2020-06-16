@@ -2,6 +2,7 @@
     "models": {
         "geometry": {
             "name": "Undulator",
+            "beamAxis": "y",
             "objects": [
                 {
                     "color": "#ff00ff",

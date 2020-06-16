@@ -15,27 +15,29 @@ import sirepo.auth_db
 import sirepo.server
 
 
-def add_roles(uid_or_email, *args):
+def add_roles(uid_or_email, *roles):
     """Assign roles to a user
     Args:
         uid_or_email (str): Uid or email of the user
-        *args: The roles to assign to the user
+        *roles: The roles to assign to the user
     """
-    u = _check_uid_or_email_and_roles(uid_or_email, args)
-    sirepo.auth_db.UserRole.add_roles(u, args)
-    admin.audit_proprietary_lib_files(u)
+    sirepo.auth_db.UserRole.add_roles(
+        _parse_args(uid_or_email, roles),
+        roles,
+    )
 
 
 
-def delete_roles(uid_or_email, *args):
+def delete_roles(uid_or_email, *roles):
     """Remove roles assigned to user
     Args:
         uid_or_email (str): Uid or email of the user
-        *args: The roles to delete
+        *roles (args): The roles to delete
     """
-    u = _check_uid_or_email_and_roles(uid_or_email, args)
-    sirepo.auth_db.UserRole.delete_roles(u, args)
-    admin.audit_proprietary_lib_files(u)
+    sirepo.auth_db.UserRole.delete_roles(
+        _parse_args(uid_or_email, roles),
+        roles,
+    )
 
 
 def list_roles(uid_or_email):
@@ -43,13 +45,15 @@ def list_roles(uid_or_email):
     Args:
         uid_or_email (str): Uid or email of the user
     """
-    u = _check_uid_or_email_and_roles(uid_or_email, [])
-    return sirepo.auth_db.UserRole.search_all_for_column('role', uid=u)
+    return sirepo.auth_db.UserRole.search_all_for_column(
+        'role',
+        uid=_parse_args(uid_or_email, []),
+    )
 
 
 # TODO(e-carlin): This only works for email auth or using a uid
 # doesn't work for other auth methods (ex GitHub)
-def _check_uid_or_email_and_roles(uid_or_email, roles):
+def _parse_args(uid_or_email, roles):
     sirepo.server.init()
 
     # POSIT: Uid's are from the base62 charset so an '@' implies an email.

@@ -5,6 +5,7 @@ u"""FLASH execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkcollections import PKDict
@@ -336,7 +337,7 @@ def sim_frame_varAnimation(frame_args):
         grid = np.zeros(dim)
         values = f[field]
         amr_grid = []
-        for i in xrange(len(node_type)):
+        for i in range(len(node_type)):
             if node_type[i] == 1:
                 bounds = bounding_box[i]
                 _apply_to_grid(grid, values[i, 0], bounds, size, xdomain, ydomain)
@@ -389,17 +390,17 @@ def _apply_to_grid(grid, values, bounds, cell_size, xdomain, ydomain):
     yi = _rounded_int((bounds[1][0] - ydomain[0]) / cell_size[1]) * ysize
     xscale = _rounded_int((bounds[0][1] - bounds[0][0]) / cell_size[0])
     yscale = _rounded_int((bounds[1][1] - bounds[1][0]) / cell_size[1])
-    for x in xrange(xsize):
-        for y in xrange(ysize):
-            for x1 in xrange(xscale):
-                for y1 in xrange(yscale):
+    for x in range(xsize):
+        for y in range(ysize):
+            for x1 in range(xscale):
+                for y1 in range(yscale):
                     grid[yi + (y * yscale) + y1][xi + (x * xscale) + x1] = values[y][x]
 
 
 def _cell_size(f, refine_max):
     refine_level = f['refine level']
     while refine_max > 0:
-        for i in xrange(len(refine_level)):
+        for i in range(len(refine_level)):
             if refine_level[i] == refine_max:
                 return f['block size'][i]
         refine_max -= 1
@@ -480,7 +481,7 @@ def _parameters(f):
     res = {}
     for name in ('integer scalars', 'integer runtime parameters', 'real scalars', 'real runtime parameters'):
         for v in f[name]:
-            res[v[0].strip()] = v[1]
+            res[pkcompat.from_bytes(v[0].strip())] = v[1]
     return res
 
 

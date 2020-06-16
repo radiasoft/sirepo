@@ -1,4 +1,9 @@
 {
+    "appModes": {
+        "default": {
+            "localRoute": "lattice"
+        }
+    },
     "constants": {
         "advancedElementNames": [
             "BEAMBEAM",
@@ -53,7 +58,8 @@
                 "sirepo-lattice.js"
             ],
              "css": [
-                 "lattice.css"
+                 "lattice.css",
+                 "command.css"
             ]
         }
     },
@@ -100,6 +106,12 @@
             ["pz", "Pz"],
             ["q", "q"]
         ],
+        "PtcParameter": [
+            ["px", "px"],
+            ["py", "py"],
+            ["x", "x"],
+            ["y", "y"]
+        ],
         "SpaceCoordinate": [
             ["x", "x"],
             ["y", "y"],
@@ -113,21 +125,29 @@
         "TwissParameter": [
             ["alfx", "alfx"],
             ["alfy", "alfy"],
-            ["angle", "angle"],
             ["betx", "betx"],
             ["bety", "bety"],
             ["dpx", "dpx"],
             ["dpy", "dpy"],
             ["dx", "dx"],
             ["dy", "dy"],
-            ["gamma", "gamma"],
-            ["k1l", "k1l"],
-            ["l", "l"],
             ["mux", "mux"],
             ["muy", "muy"],
-            ["px", "px"],
-            ["py", "py"],
+            ["s", "s"],
             ["none", "None"]
+        ]
+    },
+    "frameIdFields": {
+        "twissAnimation": [
+            "x",
+            "y1",
+            "y2",
+            "y3"
+        ],
+        "ptcAnimation": [
+            "x",
+            "y",
+            "histogramBins"
         ]
     },
     "localRoutes": {
@@ -155,14 +175,18 @@
             "route": "/visualization/:simulationId",
             "config": {
               "controller": "VisualizationController as visualization",
-              "templateUrl": "/static/html/elegant-visualization.html"
+              "templateUrl": "/static/html/madx-visualization.html"
             }
         }
     },
     "model": {
+        "beamline": {
+            "name": ["Name", "ValidatedString"]
+        },
         "simulation": {
             "enableParticleTracking": ["Particle Tracking", "Boolean", "0"],
-            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
+            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""],
+            "numberOfParticles": ["Number Of Particles", "Integer", 1000, "Number of particles to track."]
         },
         "beamlineReport": {
             "notes": ["Notes", "Text", ""]
@@ -172,32 +196,32 @@
             "n_particles_per_bunch": ["Particles Per Bunch", "Integer", 1, "Number of particles in each bunch (max 10,000,000)", 1, 10000000],
             "symmetrize": ["Symmetrize", "RPNBoolean", "0", "If non-zero, the distribution is symmetric under changes of sign in the coordinates. Automatically results in a zero centroid for all coordinates."],
             "centroid": ["Centroid", "Float6StringArray", "0, 0, 0, 0, 0, 0", "Centroid offsets for each of the six coordinates.", "X, X', Y, Y', T, P"],
-            "time_start": ["Time Start", "RPNValue", "0.0", "The central value of the time coordinate for the bunch."],
-            "momentum_chirp": ["Momentum Chirp", "RPNValue", "0.0", "Permits imparting an additional momentum chirp to the beam, in units of 1/m. E.g., a value of 1 indicates that a 1mm long bunch has a linear variation in momentum of 0.1% from end-to-end. A positive chirp is needed to provide compression of a bunch with an ordinary R₅₆<0 four-dipole chicane."],
+            "time_start": ["Time Start", "RPNValue", 0.0, "The central value of the time coordinate for the bunch."],
+            "momentum_chirp": ["Momentum Chirp", "RPNValue", 0.0, "Permits imparting an additional momentum chirp to the beam, in units of 1/m. E.g., a value of 1 indicates that a 1mm long bunch has a linear variation in momentum of 0.1% from end-to-end. A positive chirp is needed to provide compression of a bunch with an ordinary R₅₆<0 four-dipole chicane."],
             "distribution_type": ["Distribution Type", "DistributionTypeStringArray", "gaussian, gaussian, gaussian", "Distribution type for each plane. May be \"gaussian\", \"hard-edge\", \"uniform-ellipse\", \"shell\", \"dynamic-aperture\", \"line\", or \"halo(gaussian)\". For the transverse plane, the interpretation of the emittance is different for the different beam types. For gaussian beams, the emittances are rms values. For all other types, √ε*β times the distribution cutoff defines the edge of the beam in position space, while √ε*(1+α^2)/β times the distribution cutoff defines the edge of the beam in slope space. A hard-edge beam is a uniformly-filled parallelogram in phase space. A uniform-ellipse beam is a uniformly-filled ellipse in phase space. A shell beam is a hollow ellipse in phase space. A dynamic aperture beam has zero slope and uniform spacing in position coordinates. A line beam is a line in phase space. A \"halo(gaussian)\" beam is the part of the gaussian distribution beyond the distribution cutoff.", "X, Y, Z"],
             "distribution_cutoff": ["Distribution Cutoff", "Integer3StringArray", "2, 2, 2", "Distribution cutoff parameters for each plane. For gaussian distributions, this is the number of sigmas to use. For other distributions (except dynamic aperture), this number simply multiplies the sizes. This is potentially confusing and hence it is suggested that the distribution cutoff be set to 1 for nongaussian beams. The exception is \"dynamic-aperture\" distribution type. In this case, the cutoff value is the number of grid points in the dimension in question.", "X, Y, Z"],
             "enforce_rms_values": ["Enforce RMS Values", "BooleanStringArray", "0, 0, 0", "Flags, one for each plane, indicating whether to force the distribution to have the specified RMS properties.", "X, Y, Z"],
             "limit_invariants": ["Limit Invariants", "Integer", 0, "If non-zero, the distribution cutoffs are applied to the invariants, rather than to the coordinates. This is useful for gaussian beams when the distribution cutoff is small."],
             "limit_in_4d": ["Limit In 4D", "RPNBoolean", "0", "If non-zero, then the transverse distribution is taken to be a 4-d gaussian or uniform distribution. One of these must be chosen using the distribution_type control. It must be the same for x and y. This is useful, for example, if you want to make a cylindrically symmetric beam."],
-            "emit_x": ["Horizontal Geometric Emittance [m]", "RPNValue", "0.0", "", 0],
-            "emit_nx": ["Horizontal Normalized Emittance", "RPNValue", "0.0", "", 0],
-            "beta_x": ["Horizontal Beta [m]", "RPNValue", "1.0", "", 1e-99],
-            "alpha_x": ["Horizontal Alpha", "RPNValue", "0.0", ""],
-            "eta_x": ["Horizontal Eta", "RPNValue", "0.0", ""],
-            "etap_x": ["Horizontal Etap", "RPNValue", "0.0", ""],
-            "emit_y": ["Vertical Geometric Emittance [m]", "RPNValue", "0.0", "", 0],
-            "emit_ny": ["Vertical Normalized Emittance", "RPNValue", "0.0", "", 0],
-            "beta_y": ["Vertical Beta [m]", "RPNValue", "1.0", "", 1e-99],
-            "alpha_y": ["Vertical Alpha", "RPNValue", "0.0", ""],
-            "eta_y": ["Vertical Eta", "RPNValue", "0.0", ""],
-            "etap_y": ["Vertical Etap", "RPNValue", "0.0", ""],
+            "emit_x": ["Horizontal Geometric Emittance [m]", "RPNValue", 0.0, "", 0],
+            "emit_nx": ["Horizontal Normalized Emittance", "RPNValue", 0.0, "", 0],
+            "beta_x": ["Horizontal Beta [m]", "RPNValue", 1.0, "", 1e-99],
+            "alpha_x": ["Horizontal Alpha", "RPNValue", 0.0, ""],
+            "eta_x": ["Horizontal Eta", "RPNValue", 0.0, ""],
+            "etap_x": ["Horizontal Etap", "RPNValue", 0.0, ""],
+            "emit_y": ["Vertical Geometric Emittance [m]", "RPNValue", 0.0, "", 0],
+            "emit_ny": ["Vertical Normalized Emittance", "RPNValue", 0.0, "", 0],
+            "beta_y": ["Vertical Beta [m]", "RPNValue", 1.0, "", 1e-99],
+            "alpha_y": ["Vertical Alpha", "RPNValue", 0.0, ""],
+            "eta_y": ["Vertical Eta", "RPNValue", 0.0, ""],
+            "etap_y": ["Vertical Etap", "RPNValue", 0.0, ""],
             "longitudinalMethod": ["Longitudinal Method", "LongitudinalBunchMethod"],
-            "emit_z": ["Longitudinal Geometric Emittance [m]", "RPNValue", "0.0", "Provide another way to specify the longitudinal phase space, either separately from or in combination with sigma_dp, sigma_s, and dp_s_coupling. Basically, which values elegant uses depends on what one sets to nonzero values. If one sets emit_z, then sigma_dp, sigma_s, and dp_s_coupling are ignored. If one doesn't set emit_z, then elegant uses sigma_dp and sigma_s; it additionally uses alpha_z if it is nonzero, otherwise it uses dp_s_coupling. For reference, the relationship between them is C = Σ₅₆ / √Σ₅₅Σ₆₆}} = -α / √1+α^2}. Note that to impart a chirp that results in compression for R₅₆<0 (e.g., a normal four-dipole chicane), one must have αz<0 or C>0.", 0],
-            "beta_z": ["Longitudinal Beta [m]", "RPNValue", "0.0", "", 0],
-            "alpha_z": ["Longitudinal Alpha", "RPNValue", "0.0", ""],
-            "sigma_s": ["Sigma s [m]", "RPNValue", "0.0", "Fractional momentum spread, δ, and bunch length. Note that sigma_s is actually the length in βz*c*t, so that for βz<<1 the length of the bunch in time will be greater than one might expect."],
-            "sigma_dp": ["Sigma dp", "RPNValue", "0.0"],
-            "dp_s_coupling": ["dp s Coupling", "RPNValue", "0.0", "Specifies the coupling between s and δ, defined as ⟨ s δ ⟩/(σsσδ).", -1, 1],
+            "emit_z": ["Longitudinal Geometric Emittance [m]", "RPNValue", 0.0, "Provide another way to specify the longitudinal phase space, either separately from or in combination with sigma_dp, sigma_s, and dp_s_coupling. Basically, which values elegant uses depends on what one sets to nonzero values. If one sets emit_z, then sigma_dp, sigma_s, and dp_s_coupling are ignored. If one doesn't set emit_z, then elegant uses sigma_dp and sigma_s; it additionally uses alpha_z if it is nonzero, otherwise it uses dp_s_coupling. For reference, the relationship between them is C = Σ₅₆ / √Σ₅₅Σ₆₆}} = -α / √1+α^2}. Note that to impart a chirp that results in compression for R₅₆<0 (e.g., a normal four-dipole chicane), one must have αz<0 or C>0.", 0],
+            "beta_z": ["Longitudinal Beta [m]", "RPNValue", 0.0, "", 0],
+            "alpha_z": ["Longitudinal Alpha", "RPNValue", 0.0, ""],
+            "sigma_s": ["Sigma s [m]", "RPNValue", 0.0, "Fractional momentum spread, δ, and bunch length. Note that sigma_s is actually the length in βz*c*t, so that for βz<<1 the length of the bunch in time will be greater than one might expect."],
+            "sigma_dp": ["Sigma dp", "RPNValue", 0.0],
+            "dp_s_coupling": ["dp s Coupling", "RPNValue", 0.0, "Specifies the coupling between s and δ, defined as ⟨ s δ ⟩/(σsσδ).", -1, 1],
             "halton_sequence": ["Halton Sequence", "BooleanStringArray", "0, 0, 0", "This provides a \"quiet-start\" feature by choosing Halton sequences in place of random number generation. There are three new variables that control this feature. halton_sequence is an array of three flags that permit turning on Halton sequence generation for the horizontal, vertical, or longitudinal planes. For example, halton_sequence[0] = 3*1 will turn on Halton sequences for all three planes, while halton_sequence[2] = 1, will turn it on for the longitudinal plane only.", "X, Y, Z"],
             "halton_radix": ["Halton Radix", "Integer6StringArray", "0, 0, 0, 0, 0, 0", "halton_radix is an array of six integers that permit giving the radix for each sequence (i.e., x, x', y, y', t, p). Each radix must be a prime number. One should never use the same prime for two sequences, unless one randomizes the order of the sequences relative to each other (see the next item). If these are left at zero, then elegant chooses values that eliminate phase-space banding to some extent. The user is cautioned to plot all coordinate combinations for the initial phase space to ensure that no unacceptable banding is present. A suggested way to use Halton sequences is to set halton_radix[0] = 2, 3, 2, 3, 2, 3 and to set randomize_order[0] = 2, 2, 2,. This avoids banding that may result from choosing larger radix values.", "X, X', Y, Y', T, P"],
             "optimized_halton": ["Optimized Halton", "RPNBoolean", "0", "optimized_halton uses the improved halton sequence. (Algorithm 659, Collected Algorithm from ACM. Derandom Algorithm is added by Hongmei CHI (CS/FSU)). It avoids the banding problem automatically and the halton_radix values are ignored."],
@@ -218,30 +242,30 @@
         },
         "command_beam": {
             "particle": ["PARTICLE", "ParticleType", "positron"],
-            "mass": ["MASS", "RPNValue", "0.0005109989461"],
-            "charge": ["CHARGE", "RPNValue", "1"],
-            "energy": ["ENERGY", "RPNValue", "1"],
-            "pc": ["PC", "RPNValue", "0.0"],
-            "gamma": ["GAMMA", "RPNValue", "0.0"],
-            "beta": ["BETA", "RPNValue", "0.0"],
-            "brho": ["BRHO", "RPNValue", "0.0"],
-            "ex": ["EX", "RPNValue", "1.0"],
-            "exn": ["EXN", "RPNValue", "0.0"],
-            "ey": ["EY", "RPNValue", "1.0"],
-            "eyn": ["EYN", "RPNValue", "0.0"],
-            "et": ["ET", "RPNValue", "0.001"],
-            "sigt": ["SIGT", "RPNValue", "1.0"],
-            "sige": ["SIGE", "RPNValue", "0.001"],
+            "mass": ["MASS", "RPNValue", 0.0005109989461],
+            "charge": ["CHARGE", "RPNValue", 1],
+            "energy": ["ENERGY", "RPNValue", 1],
+            "pc": ["PC", "RPNValue", 0.0],
+            "gamma": ["GAMMA", "RPNValue", 0.0],
+            "beta": ["BETA", "RPNValue", 0.0],
+            "brho": ["BRHO", "RPNValue", 0.0],
+            "ex": ["EX", "RPNValue", 1.0],
+            "exn": ["EXN", "RPNValue", 0.0],
+            "ey": ["EY", "RPNValue", 1.0],
+            "eyn": ["EYN", "RPNValue", 0.0],
+            "et": ["ET", "RPNValue", 0.001],
+            "sequence": ["SEQUENCE", "OptionalString", ""],
+            "sigt": ["SIGT", "RPNValue", 1.0],
+            "sige": ["SIGE", "RPNValue", 0.001],
             "kbunch": ["KBUNCH", "Integer", 1],
             "npart": ["NPART", "Integer", 1],
-            "bcurrent": ["BCURRENT", "RPNValue", "0.0"],
+            "bcurrent": ["BCURRENT", "RPNValue", 0.0],
             "bunched": ["BUNCHED", "Boolean", "1"],
             "radiate": ["RADIATE", "Boolean", "0"],
             "bv": ["BV", "Integer", 1]
         },
-        "command_exit": {},
-        "command_help": {
-            "statement": ["statement", "String", ""]
+        "command_call": {
+            "file": ["file", "String", ""]
         },
         "command_option": {
             "bborbit": ["bborbit", "TriStateBool", "", "The closed orbit is modified by beam-beam kicks"],
@@ -262,6 +286,52 @@
             "verify": ["verify", "TriStateBool", "", "Issues a warning if an undefined variable is used"],
             "warn": ["warn", "TriStateBool", "", "Issues warning statements"]
         },
+        "command_ptc_create_layout": {
+            "time": ["time", "Boolean", "1", "Which coordinate system to use depending on 5D or 6D calculation."],
+            "model": ["model", "Integer", 1, "(1) Drift-Kick-Drift, (2) Matrix-Kick-Matrix, (3) Delta-Matrix-Kick-Matrix"],
+            "method": ["method", "Integer", 2, "Integration order"],
+            "nst": ["nst", "Integer", 1, "Number of integration steps"],
+            "exact": ["exact", "Boolean", "0", "If true exact Hamiltonian is used"],
+            "offset_deltap": ["offset_deltap", "Float", 0.0, "Relative momentum deviation of the reference particle."],
+            "errors_out": ["errors_out", "Boolean", "0", "Write out multiple errors in EFCOMP table format"],
+            "magnet_name": ["magnet_name", "OptionalString", "", "Magnet names to be used for error write out"],
+            "resplit": ["resplit", "Boolean", "0", "Apply the PTC split procedure"],
+            "thin": ["thin", "Float", 0.001],
+            "xbend": ["xbend", "Float", -1.0],
+            "even": ["even", "Boolean", "1", "Even number of splits when using RESPLIT"]
+        },
+        "command_ptc_create_universe": {
+            "sector_nmul_max": ["sector_nmul_max", "Integer", 10],
+            "sector_nmul": ["sector_nmulmax", "Integer", 10],
+            "ntpsa": ["ntpsa", "Boolean", "0"],
+            "symprint": ["symprint", "Boolean", "1"]
+        },
+        "command_ptc_end": {},
+        "command_ptc_normal": {
+            "closed_orbit": ["closed_orbit", "Boolean", "0", "Turn on the closed orbit calculation."],
+            "deltap": ["deltap", "Float", 0.0, "Relative momentum offset for reference closed orbit"],
+            "icase": ["icase", "Integer", 4, "Dimensionality of the phase-space (4, 5 or 6)"],
+            "map_table": ["map_table", "Boolean", 0, "Turn on the map-table in memory"],
+            "no": ["no", "Integer", 1, "The order of the map."],
+            "normal": ["normal", "Boolean", 0, "Turn on the calculation of the Normal Form"]
+        },
+        "command_ptc_observe": {
+            "place": ["place", "String", ""]
+        },
+        "command_ptc_start": {
+            "x": ["x", "Float", 0.0, "Canonical coordinate"],
+            "px": ["px", "Float", 0.0, "Canonical coordinate"],
+            "y": ["y", "Float", 0.0, "Canonical coordinate"],
+            "py": ["py", "Float", 0.0, "Canonical coordinate"],
+            "t": ["t", "Float", 0.0, "Canonical coordinate"],
+            "pt": ["pt", "Float", 0.0, "Canonical coordinate"],
+            "fx": ["fx", "Float", 0.0, "Action-angle coordinates"],
+            "phix": ["phix", "Float", 0.0, "Action-angle coordinates"],
+            "fy": ["fy", "Float", 0.0, "Action-angle coordinates"],
+            "phiy": ["phiy", "Float", 0.0, "Action-angle coordinates"],
+            "ft": ["ft", "Float", 0.0, "Action-angle coordinates"],
+            "phit": ["phit", "Float", 0.0, "Action-angle coordinates"]
+        },
         "command_select": {
             "class": ["class", "OptionalString", ""],
             "clear": ["clear", "Boolean", "0"],
@@ -274,25 +344,58 @@
             "slice": ["slice", "Integer", 1],
             "thick": ["thick", "Boolean", "0"]
         },
+        "command_ptc_track": {
+            "deltap": ["deltap", "Float", 0.0, "Relative momentum offset for reference closed orbit (used for 5D case ONLY)"],
+            "icase": ["icase", "Integer", 4, "User-defined dimensionality of the phase-space (4, 5 or 6)"],
+            "closed_orbit": ["closed_orbit", "Boolean", "0", "Turn on the closed orbit calculation"],
+            "element_by_element": ["element_by_element", "Boolean", "0", "Switch from the default turn-by-turn tracking to the element-by-element tracking"],
+            "turns": ["turns", "Integer", 0, "Number of turns to be tracked"],
+            "maxaper": ["maxaper", "Float6StringArray", "0, 0, 0, 0, 0, 0", "Upper limits for the particle coordinates"],
+            "norm": ["norm", "Integer", 1, "Order of the Normal Form"],
+            "norm_out": ["norm_out", "Boolean", "0", "Transform canonical variables to action-angle variables"],
+            "ffile": ["ffile", "Integer", 1, "Printing coordinates after every FFILE turns"],
+            "radiation": ["radiation", "Boolean", "0", "Turn on the synchrotron radiation calculated by an internal procedure of PTC"],
+            "radiation_model1": ["radiation_model1", "Boolean", "0", "Turn on the radiation according to the method given in the Ref"],
+            "radiation_energy_loss": ["radiation_energy_loss", "Boolean", "0", "Adds the energy loss for radiation_model1"],
+            "radiation_quadr": ["radiation_quadr", "Boolean", "0", "Adds the radiation in quadrupoles"],
+            "beam_envelope": ["beam_envelope", "Boolean", "0", "Turn on the calculations of the beam envelope with PTC"],
+            "space_charge": ["space_charge", "Boolean", "0", "Turn on the simulations of the space charge forces between particles"]
+        },
+        "command_ptc_track_end": {},
+        "command_set": {
+            "format": ["format", "OptionalString", "Format output. Must double-quote each format."],
+            "sequence": ["sequence", "OptionalString", "Select the sequence"]
+        },
         "command_show": {
             "command": ["command", "String", ""]
         },
+        "command_sodd": {
+            "detune": ["detune", "Boolean", "0", "If true, the detune subroutine is executed"],
+            "distort1": ["distort1", "Boolean", "0", "If true, the distort1 subroutine is executed"],
+            "distort2": ["distort2", "Boolean", "0", "If true, the distort2 subroutine is executed"],
+            "multipole_order_range": ["multipole_order_range", "Integer2StringArray", "0, 0", "Longitudinal interval of the beam line (in m)", "start, stop"],
+            "noprint ": ["noprint", "Boolean", "0", "If true, no file or internal table will be created to keep the results"],
+            "nosixtrack": ["nosixtrack", "Boolean", "0", "If true, the input file fc.34 will not be generated internally by invoking the conversion routine of sixtrack and the user should provide it before the execution of the sodd command"],
+            "print_all": ["print_all", "Boolean", "0", "If true, the files and internal tables containing results at each multipole will be generated"],
+            "print_at_end": ["print_at_end", "Boolean", "0", "If true, the files and internal tables containing results at the end of the position range will be generated"],
+            "start_stop": ["start_stop", "Float2StringArray", "0, 0", "Longitudinal interval of the beam line (in m)", "start, stop"]
+        },
+        "command_resbeam": {
+            "sequence": ["sequence", "OptionalString", ""]
+        },
         "command_twiss": {
-            "alfx": ["alfx", "RPNValue", "0.0"],
-            "alfy": ["alfy", "RPNValue", "0.0"],
-            "betx": ["betx", "RPNValue", "0.0"],
-            "bety": ["bety", "RPNValue", "0.0"],
-            "dpx": ["dpx", "RPNValue", "0.0"],
-            "dpy": ["dpy", "RPNValue", "0.0"],
-            "dx": ["dx", "RPNValue", "0.0"],
-            "dy": ["dy", "RPNValue", "0.0"]
+            "alfx": ["alfx", "RPNValue", 0.0],
+            "alfy": ["alfy", "RPNValue", 0.0],
+            "betx": ["betx", "RPNValue", 0.0],
+            "bety": ["bety", "RPNValue", 0.0],
+            "dpx": ["dpx", "RPNValue", 0.0],
+            "dpy": ["dpy", "RPNValue", 0.0],
+            "dx": ["dx", "RPNValue", 0.0],
+            "dy": ["dy", "RPNValue", 0.0]
         },
         "command_use": {
             "sequence": ["BEAMLINE", "LatticeBeamlineList", ""],
             "period": ["BEAMLINE", "LatticeBeamlineList", ""]
-        },
-        "command_value": {
-            "expression": ["expression", "RPNValue", ""]
         },
         "initialTwissParams": {
             "alpha": ["Alpha", "Float", 0.0],
@@ -304,6 +407,11 @@
         "particleTracking": {
             "numParticles": ["Number of particles", "Integer", 1000, "", 1, 100000]
         },
+        "ptcAnimation": {
+            "x": ["Horizontal Value to Plot", "PtcParameter", "x"],
+            "y": ["Vertical Value to Plot", "PtcParameter", "px"],
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
         "rpnVariable": {
             "name": ["Name", "String"],
             "value": ["Value", "RPNValue"]
@@ -311,6 +419,13 @@
         "twissEllipseReport": {
             "dim": ["Dimension", "SpaceCoordinate", "x"],
             "notes": ["Notes", "Text", ""]
+        },
+        "twissAnimation": {
+            "x": ["Horizontal Value to Plot", "TwissParameter", "s"],
+            "y1": ["Vertical Value to Plot", "TwissParameter", "betx"],
+            "y2": ["Vertical Value to Plot", "TwissParameter", "bety"],
+            "y3": ["Vertical Value to Plot", "TwissParameter", "dx"],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"]
         },
         "twissReport": {
             "y1": ["Y1 Value", "TwissParameter", "betx"],
@@ -327,13 +442,13 @@
         },
         "BEAMBEAM": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "sigx": ["SIGX", "RPNValue", "0.0"],
-            "sigy": ["SIGY", "RPNValue", "0.0"],
-            "xma": ["XMA", "RPNValue", "0.0"],
-            "yma": ["YMA", "RPNValue", "0.0"],
-            "charge": ["CHARGE", "RPNValue", "1.0"],
+            "sigx": ["SIGX", "RPNValue", 0.0],
+            "sigy": ["SIGY", "RPNValue", 0.0],
+            "xma": ["XMA", "RPNValue", 0.0],
+            "yma": ["YMA", "RPNValue", 0.0],
+            "charge": ["CHARGE", "RPNValue", 1.0],
             "bbshape": ["BBSHAPE", "BeambeamBbshape", "1"],
-            "width": ["WIDTH", "RPNValue", "0.0"],
+            "width": ["WIDTH", "RPNValue", 0.0],
             "bbdir": ["BBDIR", "BeambeamBbdir", "-1"]
         },
         "CHANGEREF": {
@@ -343,53 +458,53 @@
         },
         "COLLIMATOR": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"]
+            "l": ["L", "RPNValue", 0.0]
         },
         "CRABCAVITY": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"],
-            "volt": ["VOLT", "RPNValue", "0.0"],
-            "lag": ["LAG", "RPNValue", "0.0"],
-            "freq": ["FREQ", "RPNValue", "0.0"],
+            "l": ["L", "RPNValue", 0.0],
+            "volt": ["VOLT", "RPNValue", 0.0],
+            "lag": ["LAG", "RPNValue", 0.0],
+            "freq": ["FREQ", "RPNValue", 0.0],
             "rv1": ["RV1", "Integer", 0],
             "rv2": ["RV2", "Integer", 0],
             "rv3": ["RV3", "Integer", 0],
             "rv4": ["RV4", "Integer", 0],
             "rph1": ["RPH1", "Integer", 0],
             "rph2": ["RPH2", "Integer", 0],
-            "lagf": ["LAGF", "RPNValue", "0.0"]
+            "lagf": ["LAGF", "RPNValue", 0.0]
         },
         "DIPEDGE": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "h": ["H", "RPNValue", "0.0"],
-            "e1": ["E1", "RPNValue", "0.0"],
-            "fint": ["FINT", "RPNValue", "0.0"],
-            "hgap": ["HGAP", "RPNValue", "0.0"],
-            "tilt": ["TILT", "RPNValue", "0.0"]
+            "h": ["H", "RPNValue", 0.0],
+            "e1": ["E1", "RPNValue", 0.0],
+            "fint": ["FINT", "RPNValue", 0.0],
+            "hgap": ["HGAP", "RPNValue", 0.0],
+            "tilt": ["TILT", "RPNValue", 0.0]
         },
         "DRIFT": {
             "name": ["Name", "ValidatedString"],
-            "l": ["L", "RPNValue", "0.0"]
+            "l": ["L", "RPNValue", 0.0]
         },
         "ECOLLIMATOR": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"],
-            "xsize": ["XSIZE", "RPNValue", "0.0"],
-            "ysize": ["YSIZE", "RPNValue", "0.0"]
+            "l": ["L", "RPNValue", 0.0],
+            "xsize": ["XSIZE", "RPNValue", 0.0],
+            "ysize": ["YSIZE", "RPNValue", 0.0]
         },
         "ELSEPARATOR": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"],
-            "ex": ["EX", "RPNValue", "0.0"],
-            "ey": ["EY", "RPNValue", "0.0"],
-            "tilt": ["TILT", "RPNValue", "0.0"]
+            "l": ["L", "RPNValue", 0.0],
+            "ex": ["EX", "RPNValue", 0.0],
+            "ey": ["EY", "RPNValue", 0.0],
+            "tilt": ["TILT", "RPNValue", 0.0]
         },
         "HACDIPOLE": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"],
-            "volt": ["VOLT", "RPNValue", "0.0"],
-            "freq": ["FREQ", "RPNValue", "0.0"],
-            "lag": ["LAG", "RPNValue", "0.0"],
+            "l": ["L", "RPNValue", 0.0],
+            "volt": ["VOLT", "RPNValue", 0.0],
+            "freq": ["FREQ", "RPNValue", 0.0],
+            "lag": ["LAG", "RPNValue", 0.0],
             "ramp1": ["RAMP1", "Integer", 0],
             "ramp2": ["RAMP2", "Integer", 0],
             "ramp3": ["RAMP3", "Integer", 0],
@@ -397,364 +512,364 @@
         },
         "HKICKER": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"],
-            "kick": ["KICK", "RPNValue", "0.0"],
-            "tilt": ["TILT", "RPNValue", "0.0"]
+            "l": ["L", "RPNValue", 0.0],
+            "kick": ["KICK", "RPNValue", 0.0],
+            "tilt": ["TILT", "RPNValue", 0.0]
         },
         "HMONITOR": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"]
+            "l": ["L", "RPNValue", 0.0]
         },
         "INSTRUMENT": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"]
+            "l": ["L", "RPNValue", 0.0]
         },
         "KICKER": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"],
-            "hkick": ["HKICK", "RPNValue", "0.0"],
-            "vkick": ["VKICK", "RPNValue", "0.0"],
-            "tilt": ["TILT", "RPNValue", "0.0"]
+            "l": ["L", "RPNValue", 0.0],
+            "hkick": ["HKICK", "RPNValue", 0.0],
+            "vkick": ["VKICK", "RPNValue", 0.0],
+            "tilt": ["TILT", "RPNValue", 0.0]
         },
         "MARKER": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"]
         },
         "MATRIX": {
             "name": ["Name", "ValidatedString"],
-            "l": ["L", "RPNValue", "0.0"],
-            "kick1": ["KICK1", "RPNValue", "0.0"],
-            "kick6": ["KICK6", "RPNValue", "0.0"],
-            "rm11": ["RM11", "RPNValue", "1.0"],
-            "rm66": ["RM66", "RPNValue", "1.0"],
-            "tm111": ["TM111", "RPNValue", "0.0"],
-            "tm666": ["TM666", "RPNValue", "0.0"],
-            "kick2": ["KICK2", "RPNValue", "0.0"],
-            "kick3": ["KICK3", "RPNValue", "0.0"],
-            "kick4": ["KICK4", "RPNValue", "0.0"],
-            "kick5": ["KICK5", "RPNValue", "0.0"],
-            "rm12": ["RM12", "RPNValue", "0.0"],
-            "rm13": ["RM13", "RPNValue", "0.0"],
-            "rm14": ["RM14", "RPNValue", "0.0"],
-            "rm15": ["RM15", "RPNValue", "0.0"],
-            "rm16": ["RM16", "RPNValue", "0.0"],
-            "rm21": ["RM21", "RPNValue", "0.0"],
-            "rm22": ["RM22", "RPNValue", "1.0"],
-            "rm23": ["RM23", "RPNValue", "0.0"],
-            "rm24": ["RM24", "RPNValue", "0.0"],
-            "rm25": ["RM25", "RPNValue", "0.0"],
-            "rm26": ["RM26", "RPNValue", "0.0"],
-            "rm31": ["RM31", "RPNValue", "0.0"],
-            "rm32": ["RM32", "RPNValue", "0.0"],
-            "rm33": ["RM33", "RPNValue", "1.0"],
-            "rm34": ["RM34", "RPNValue", "0.0"],
-            "rm35": ["RM35", "RPNValue", "0.0"],
-            "rm36": ["RM36", "RPNValue", "0.0"],
-            "rm41": ["RM41", "RPNValue", "0.0"],
-            "rm42": ["RM42", "RPNValue", "0.0"],
-            "rm43": ["RM43", "RPNValue", "0.0"],
-            "rm44": ["RM44", "RPNValue", "1.0"],
-            "rm45": ["RM45", "RPNValue", "0.0"],
-            "rm46": ["RM46", "RPNValue", "0.0"],
-            "rm51": ["RM51", "RPNValue", "0.0"],
-            "rm52": ["RM52", "RPNValue", "0.0"],
-            "rm53": ["RM53", "RPNValue", "0.0"],
-            "rm54": ["RM54", "RPNValue", "0.0"],
-            "rm55": ["RM55", "RPNValue", "1.0"],
-            "rm56": ["RM56", "RPNValue", "0.0"],
-            "rm61": ["RM61", "RPNValue", "0.0"],
-            "rm62": ["RM62", "RPNValue", "0.0"],
-            "rm63": ["RM63", "RPNValue", "0.0"],
-            "rm64": ["RM64", "RPNValue", "0.0"],
-            "rm65": ["RM65", "RPNValue", "0.0"],
-            "tm112": ["TM112", "RPNValue", "0.0"],
-            "tm113": ["TM113", "RPNValue", "0.0"],
-            "tm114": ["TM114", "RPNValue", "0.0"],
-            "tm115": ["TM115", "RPNValue", "0.0"],
-            "tm116": ["TM116", "RPNValue", "0.0"],
-            "tm121": ["TM121", "RPNValue", "0.0"],
-            "tm122": ["TM122", "RPNValue", "0.0"],
-            "tm123": ["TM123", "RPNValue", "0.0"],
-            "tm124": ["TM124", "RPNValue", "0.0"],
-            "tm125": ["TM125", "RPNValue", "0.0"],
-            "tm126": ["TM126", "RPNValue", "0.0"],
-            "tm131": ["TM131", "RPNValue", "0.0"],
-            "tm132": ["TM132", "RPNValue", "0.0"],
-            "tm133": ["TM133", "RPNValue", "0.0"],
-            "tm134": ["TM134", "RPNValue", "0.0"],
-            "tm135": ["TM135", "RPNValue", "0.0"],
-            "tm136": ["TM136", "RPNValue", "0.0"],
-            "tm141": ["TM141", "RPNValue", "0.0"],
-            "tm142": ["TM142", "RPNValue", "0.0"],
-            "tm143": ["TM143", "RPNValue", "0.0"],
-            "tm144": ["TM144", "RPNValue", "0.0"],
-            "tm145": ["TM145", "RPNValue", "0.0"],
-            "tm146": ["TM146", "RPNValue", "0.0"],
-            "tm151": ["TM151", "RPNValue", "0.0"],
-            "tm152": ["TM152", "RPNValue", "0.0"],
-            "tm153": ["TM153", "RPNValue", "0.0"],
-            "tm154": ["TM154", "RPNValue", "0.0"],
-            "tm155": ["TM155", "RPNValue", "0.0"],
-            "tm156": ["TM156", "RPNValue", "0.0"],
-            "tm161": ["TM161", "RPNValue", "0.0"],
-            "tm162": ["TM162", "RPNValue", "0.0"],
-            "tm163": ["TM163", "RPNValue", "0.0"],
-            "tm164": ["TM164", "RPNValue", "0.0"],
-            "tm165": ["TM165", "RPNValue", "0.0"],
-            "tm166": ["TM166", "RPNValue", "0.0"],
-            "tm211": ["TM211", "RPNValue", "0.0"],
-            "tm212": ["TM212", "RPNValue", "0.0"],
-            "tm213": ["TM213", "RPNValue", "0.0"],
-            "tm214": ["TM214", "RPNValue", "0.0"],
-            "tm215": ["TM215", "RPNValue", "0.0"],
-            "tm216": ["TM216", "RPNValue", "0.0"],
-            "tm221": ["TM221", "RPNValue", "0.0"],
-            "tm222": ["TM222", "RPNValue", "0.0"],
-            "tm223": ["TM223", "RPNValue", "0.0"],
-            "tm224": ["TM224", "RPNValue", "0.0"],
-            "tm225": ["TM225", "RPNValue", "0.0"],
-            "tm226": ["TM226", "RPNValue", "0.0"],
-            "tm231": ["TM231", "RPNValue", "0.0"],
-            "tm232": ["TM232", "RPNValue", "0.0"],
-            "tm233": ["TM233", "RPNValue", "0.0"],
-            "tm234": ["TM234", "RPNValue", "0.0"],
-            "tm235": ["TM235", "RPNValue", "0.0"],
-            "tm236": ["TM236", "RPNValue", "0.0"],
-            "tm241": ["TM241", "RPNValue", "0.0"],
-            "tm242": ["TM242", "RPNValue", "0.0"],
-            "tm243": ["TM243", "RPNValue", "0.0"],
-            "tm244": ["TM244", "RPNValue", "0.0"],
-            "tm245": ["TM245", "RPNValue", "0.0"],
-            "tm246": ["TM246", "RPNValue", "0.0"],
-            "tm251": ["TM251", "RPNValue", "0.0"],
-            "tm252": ["TM252", "RPNValue", "0.0"],
-            "tm253": ["TM253", "RPNValue", "0.0"],
-            "tm254": ["TM254", "RPNValue", "0.0"],
-            "tm255": ["TM255", "RPNValue", "0.0"],
-            "tm256": ["TM256", "RPNValue", "0.0"],
-            "tm261": ["TM261", "RPNValue", "0.0"],
-            "tm262": ["TM262", "RPNValue", "0.0"],
-            "tm263": ["TM263", "RPNValue", "0.0"],
-            "tm264": ["TM264", "RPNValue", "0.0"],
-            "tm265": ["TM265", "RPNValue", "0.0"],
-            "tm266": ["TM266", "RPNValue", "0.0"],
-            "tm311": ["TM311", "RPNValue", "0.0"],
-            "tm312": ["TM312", "RPNValue", "0.0"],
-            "tm313": ["TM313", "RPNValue", "0.0"],
-            "tm314": ["TM314", "RPNValue", "0.0"],
-            "tm315": ["TM315", "RPNValue", "0.0"],
-            "tm316": ["TM316", "RPNValue", "0.0"],
-            "tm321": ["TM321", "RPNValue", "0.0"],
-            "tm322": ["TM322", "RPNValue", "0.0"],
-            "tm323": ["TM323", "RPNValue", "0.0"],
-            "tm324": ["TM324", "RPNValue", "0.0"],
-            "tm325": ["TM325", "RPNValue", "0.0"],
-            "tm326": ["TM326", "RPNValue", "0.0"],
-            "tm331": ["TM331", "RPNValue", "0.0"],
-            "tm332": ["TM332", "RPNValue", "0.0"],
-            "tm333": ["TM333", "RPNValue", "0.0"],
-            "tm334": ["TM334", "RPNValue", "0.0"],
-            "tm335": ["TM335", "RPNValue", "0.0"],
-            "tm336": ["TM336", "RPNValue", "0.0"],
-            "tm341": ["TM341", "RPNValue", "0.0"],
-            "tm342": ["TM342", "RPNValue", "0.0"],
-            "tm343": ["TM343", "RPNValue", "0.0"],
-            "tm344": ["TM344", "RPNValue", "0.0"],
-            "tm345": ["TM345", "RPNValue", "0.0"],
-            "tm346": ["TM346", "RPNValue", "0.0"],
-            "tm351": ["TM351", "RPNValue", "0.0"],
-            "tm352": ["TM352", "RPNValue", "0.0"],
-            "tm353": ["TM353", "RPNValue", "0.0"],
-            "tm354": ["TM354", "RPNValue", "0.0"],
-            "tm355": ["TM355", "RPNValue", "0.0"],
-            "tm356": ["TM356", "RPNValue", "0.0"],
-            "tm361": ["TM361", "RPNValue", "0.0"],
-            "tm362": ["TM362", "RPNValue", "0.0"],
-            "tm363": ["TM363", "RPNValue", "0.0"],
-            "tm364": ["TM364", "RPNValue", "0.0"],
-            "tm365": ["TM365", "RPNValue", "0.0"],
-            "tm366": ["TM366", "RPNValue", "0.0"],
-            "tm411": ["TM411", "RPNValue", "0.0"],
-            "tm412": ["TM412", "RPNValue", "0.0"],
-            "tm413": ["TM413", "RPNValue", "0.0"],
-            "tm414": ["TM414", "RPNValue", "0.0"],
-            "tm415": ["TM415", "RPNValue", "0.0"],
-            "tm416": ["TM416", "RPNValue", "0.0"],
-            "tm421": ["TM421", "RPNValue", "0.0"],
-            "tm422": ["TM422", "RPNValue", "0.0"],
-            "tm423": ["TM423", "RPNValue", "0.0"],
-            "tm424": ["TM424", "RPNValue", "0.0"],
-            "tm425": ["TM425", "RPNValue", "0.0"],
-            "tm426": ["TM426", "RPNValue", "0.0"],
-            "tm431": ["TM431", "RPNValue", "0.0"],
-            "tm432": ["TM432", "RPNValue", "0.0"],
-            "tm433": ["TM433", "RPNValue", "0.0"],
-            "tm434": ["TM434", "RPNValue", "0.0"],
-            "tm435": ["TM435", "RPNValue", "0.0"],
-            "tm436": ["TM436", "RPNValue", "0.0"],
-            "tm441": ["TM441", "RPNValue", "0.0"],
-            "tm442": ["TM442", "RPNValue", "0.0"],
-            "tm443": ["TM443", "RPNValue", "0.0"],
-            "tm444": ["TM444", "RPNValue", "0.0"],
-            "tm445": ["TM445", "RPNValue", "0.0"],
-            "tm446": ["TM446", "RPNValue", "0.0"],
-            "tm451": ["TM451", "RPNValue", "0.0"],
-            "tm452": ["TM452", "RPNValue", "0.0"],
-            "tm453": ["TM453", "RPNValue", "0.0"],
-            "tm454": ["TM454", "RPNValue", "0.0"],
-            "tm455": ["TM455", "RPNValue", "0.0"],
-            "tm456": ["TM456", "RPNValue", "0.0"],
-            "tm461": ["TM461", "RPNValue", "0.0"],
-            "tm462": ["TM462", "RPNValue", "0.0"],
-            "tm463": ["TM463", "RPNValue", "0.0"],
-            "tm464": ["TM464", "RPNValue", "0.0"],
-            "tm465": ["TM465", "RPNValue", "0.0"],
-            "tm466": ["TM466", "RPNValue", "0.0"],
-            "tm511": ["TM511", "RPNValue", "0.0"],
-            "tm512": ["TM512", "RPNValue", "0.0"],
-            "tm513": ["TM513", "RPNValue", "0.0"],
-            "tm514": ["TM514", "RPNValue", "0.0"],
-            "tm515": ["TM515", "RPNValue", "0.0"],
-            "tm516": ["TM516", "RPNValue", "0.0"],
-            "tm521": ["TM521", "RPNValue", "0.0"],
-            "tm522": ["TM522", "RPNValue", "0.0"],
-            "tm523": ["TM523", "RPNValue", "0.0"],
-            "tm524": ["TM524", "RPNValue", "0.0"],
-            "tm525": ["TM525", "RPNValue", "0.0"],
-            "tm526": ["TM526", "RPNValue", "0.0"],
-            "tm531": ["TM531", "RPNValue", "0.0"],
-            "tm532": ["TM532", "RPNValue", "0.0"],
-            "tm533": ["TM533", "RPNValue", "0.0"],
-            "tm534": ["TM534", "RPNValue", "0.0"],
-            "tm535": ["TM535", "RPNValue", "0.0"],
-            "tm536": ["TM536", "RPNValue", "0.0"],
-            "tm541": ["TM541", "RPNValue", "0.0"],
-            "tm542": ["TM542", "RPNValue", "0.0"],
-            "tm543": ["TM543", "RPNValue", "0.0"],
-            "tm544": ["TM544", "RPNValue", "0.0"],
-            "tm545": ["TM545", "RPNValue", "0.0"],
-            "tm546": ["TM546", "RPNValue", "0.0"],
-            "tm551": ["TM551", "RPNValue", "0.0"],
-            "tm552": ["TM552", "RPNValue", "0.0"],
-            "tm553": ["TM553", "RPNValue", "0.0"],
-            "tm554": ["TM554", "RPNValue", "0.0"],
-            "tm555": ["TM555", "RPNValue", "0.0"],
-            "tm556": ["TM556", "RPNValue", "0.0"],
-            "tm561": ["TM561", "RPNValue", "0.0"],
-            "tm562": ["TM562", "RPNValue", "0.0"],
-            "tm563": ["TM563", "RPNValue", "0.0"],
-            "tm564": ["TM564", "RPNValue", "0.0"],
-            "tm565": ["TM565", "RPNValue", "0.0"],
-            "tm566": ["TM566", "RPNValue", "0.0"],
-            "tm611": ["TM611", "RPNValue", "0.0"],
-            "tm612": ["TM612", "RPNValue", "0.0"],
-            "tm613": ["TM613", "RPNValue", "0.0"],
-            "tm614": ["TM614", "RPNValue", "0.0"],
-            "tm615": ["TM615", "RPNValue", "0.0"],
-            "tm616": ["TM616", "RPNValue", "0.0"],
-            "tm621": ["TM621", "RPNValue", "0.0"],
-            "tm622": ["TM622", "RPNValue", "0.0"],
-            "tm623": ["TM623", "RPNValue", "0.0"],
-            "tm624": ["TM624", "RPNValue", "0.0"],
-            "tm625": ["TM625", "RPNValue", "0.0"],
-            "tm626": ["TM626", "RPNValue", "0.0"],
-            "tm631": ["TM631", "RPNValue", "0.0"],
-            "tm632": ["TM632", "RPNValue", "0.0"],
-            "tm633": ["TM633", "RPNValue", "0.0"],
-            "tm634": ["TM634", "RPNValue", "0.0"],
-            "tm635": ["TM635", "RPNValue", "0.0"],
-            "tm636": ["TM636", "RPNValue", "0.0"],
-            "tm641": ["TM641", "RPNValue", "0.0"],
-            "tm642": ["TM642", "RPNValue", "0.0"],
-            "tm643": ["TM643", "RPNValue", "0.0"],
-            "tm644": ["TM644", "RPNValue", "0.0"],
-            "tm645": ["TM645", "RPNValue", "0.0"],
-            "tm646": ["TM646", "RPNValue", "0.0"],
-            "tm651": ["TM651", "RPNValue", "0.0"],
-            "tm652": ["TM652", "RPNValue", "0.0"],
-            "tm653": ["TM653", "RPNValue", "0.0"],
-            "tm654": ["TM654", "RPNValue", "0.0"],
-            "tm655": ["TM655", "RPNValue", "0.0"],
-            "tm656": ["TM656", "RPNValue", "0.0"],
-            "tm661": ["TM661", "RPNValue", "0.0"],
-            "tm662": ["TM662", "RPNValue", "0.0"],
-            "tm663": ["TM663", "RPNValue", "0.0"],
-            "tm664": ["TM664", "RPNValue", "0.0"],
-            "tm665": ["TM665", "RPNValue", "0.0"]
+            "l": ["L", "RPNValue", 0.0],
+            "kick1": ["KICK1", "RPNValue", 0.0],
+            "kick6": ["KICK6", "RPNValue", 0.0],
+            "rm11": ["RM11", "RPNValue", 1.0],
+            "rm66": ["RM66", "RPNValue", 1.0],
+            "tm111": ["TM111", "RPNValue", 0.0],
+            "tm666": ["TM666", "RPNValue", 0.0],
+            "kick2": ["KICK2", "RPNValue", 0.0],
+            "kick3": ["KICK3", "RPNValue", 0.0],
+            "kick4": ["KICK4", "RPNValue", 0.0],
+            "kick5": ["KICK5", "RPNValue", 0.0],
+            "rm12": ["RM12", "RPNValue", 0.0],
+            "rm13": ["RM13", "RPNValue", 0.0],
+            "rm14": ["RM14", "RPNValue", 0.0],
+            "rm15": ["RM15", "RPNValue", 0.0],
+            "rm16": ["RM16", "RPNValue", 0.0],
+            "rm21": ["RM21", "RPNValue", 0.0],
+            "rm22": ["RM22", "RPNValue", 1.0],
+            "rm23": ["RM23", "RPNValue", 0.0],
+            "rm24": ["RM24", "RPNValue", 0.0],
+            "rm25": ["RM25", "RPNValue", 0.0],
+            "rm26": ["RM26", "RPNValue", 0.0],
+            "rm31": ["RM31", "RPNValue", 0.0],
+            "rm32": ["RM32", "RPNValue", 0.0],
+            "rm33": ["RM33", "RPNValue", 1.0],
+            "rm34": ["RM34", "RPNValue", 0.0],
+            "rm35": ["RM35", "RPNValue", 0.0],
+            "rm36": ["RM36", "RPNValue", 0.0],
+            "rm41": ["RM41", "RPNValue", 0.0],
+            "rm42": ["RM42", "RPNValue", 0.0],
+            "rm43": ["RM43", "RPNValue", 0.0],
+            "rm44": ["RM44", "RPNValue", 1.0],
+            "rm45": ["RM45", "RPNValue", 0.0],
+            "rm46": ["RM46", "RPNValue", 0.0],
+            "rm51": ["RM51", "RPNValue", 0.0],
+            "rm52": ["RM52", "RPNValue", 0.0],
+            "rm53": ["RM53", "RPNValue", 0.0],
+            "rm54": ["RM54", "RPNValue", 0.0],
+            "rm55": ["RM55", "RPNValue", 1.0],
+            "rm56": ["RM56", "RPNValue", 0.0],
+            "rm61": ["RM61", "RPNValue", 0.0],
+            "rm62": ["RM62", "RPNValue", 0.0],
+            "rm63": ["RM63", "RPNValue", 0.0],
+            "rm64": ["RM64", "RPNValue", 0.0],
+            "rm65": ["RM65", "RPNValue", 0.0],
+            "tm112": ["TM112", "RPNValue", 0.0],
+            "tm113": ["TM113", "RPNValue", 0.0],
+            "tm114": ["TM114", "RPNValue", 0.0],
+            "tm115": ["TM115", "RPNValue", 0.0],
+            "tm116": ["TM116", "RPNValue", 0.0],
+            "tm121": ["TM121", "RPNValue", 0.0],
+            "tm122": ["TM122", "RPNValue", 0.0],
+            "tm123": ["TM123", "RPNValue", 0.0],
+            "tm124": ["TM124", "RPNValue", 0.0],
+            "tm125": ["TM125", "RPNValue", 0.0],
+            "tm126": ["TM126", "RPNValue", 0.0],
+            "tm131": ["TM131", "RPNValue", 0.0],
+            "tm132": ["TM132", "RPNValue", 0.0],
+            "tm133": ["TM133", "RPNValue", 0.0],
+            "tm134": ["TM134", "RPNValue", 0.0],
+            "tm135": ["TM135", "RPNValue", 0.0],
+            "tm136": ["TM136", "RPNValue", 0.0],
+            "tm141": ["TM141", "RPNValue", 0.0],
+            "tm142": ["TM142", "RPNValue", 0.0],
+            "tm143": ["TM143", "RPNValue", 0.0],
+            "tm144": ["TM144", "RPNValue", 0.0],
+            "tm145": ["TM145", "RPNValue", 0.0],
+            "tm146": ["TM146", "RPNValue", 0.0],
+            "tm151": ["TM151", "RPNValue", 0.0],
+            "tm152": ["TM152", "RPNValue", 0.0],
+            "tm153": ["TM153", "RPNValue", 0.0],
+            "tm154": ["TM154", "RPNValue", 0.0],
+            "tm155": ["TM155", "RPNValue", 0.0],
+            "tm156": ["TM156", "RPNValue", 0.0],
+            "tm161": ["TM161", "RPNValue", 0.0],
+            "tm162": ["TM162", "RPNValue", 0.0],
+            "tm163": ["TM163", "RPNValue", 0.0],
+            "tm164": ["TM164", "RPNValue", 0.0],
+            "tm165": ["TM165", "RPNValue", 0.0],
+            "tm166": ["TM166", "RPNValue", 0.0],
+            "tm211": ["TM211", "RPNValue", 0.0],
+            "tm212": ["TM212", "RPNValue", 0.0],
+            "tm213": ["TM213", "RPNValue", 0.0],
+            "tm214": ["TM214", "RPNValue", 0.0],
+            "tm215": ["TM215", "RPNValue", 0.0],
+            "tm216": ["TM216", "RPNValue", 0.0],
+            "tm221": ["TM221", "RPNValue", 0.0],
+            "tm222": ["TM222", "RPNValue", 0.0],
+            "tm223": ["TM223", "RPNValue", 0.0],
+            "tm224": ["TM224", "RPNValue", 0.0],
+            "tm225": ["TM225", "RPNValue", 0.0],
+            "tm226": ["TM226", "RPNValue", 0.0],
+            "tm231": ["TM231", "RPNValue", 0.0],
+            "tm232": ["TM232", "RPNValue", 0.0],
+            "tm233": ["TM233", "RPNValue", 0.0],
+            "tm234": ["TM234", "RPNValue", 0.0],
+            "tm235": ["TM235", "RPNValue", 0.0],
+            "tm236": ["TM236", "RPNValue", 0.0],
+            "tm241": ["TM241", "RPNValue", 0.0],
+            "tm242": ["TM242", "RPNValue", 0.0],
+            "tm243": ["TM243", "RPNValue", 0.0],
+            "tm244": ["TM244", "RPNValue", 0.0],
+            "tm245": ["TM245", "RPNValue", 0.0],
+            "tm246": ["TM246", "RPNValue", 0.0],
+            "tm251": ["TM251", "RPNValue", 0.0],
+            "tm252": ["TM252", "RPNValue", 0.0],
+            "tm253": ["TM253", "RPNValue", 0.0],
+            "tm254": ["TM254", "RPNValue", 0.0],
+            "tm255": ["TM255", "RPNValue", 0.0],
+            "tm256": ["TM256", "RPNValue", 0.0],
+            "tm261": ["TM261", "RPNValue", 0.0],
+            "tm262": ["TM262", "RPNValue", 0.0],
+            "tm263": ["TM263", "RPNValue", 0.0],
+            "tm264": ["TM264", "RPNValue", 0.0],
+            "tm265": ["TM265", "RPNValue", 0.0],
+            "tm266": ["TM266", "RPNValue", 0.0],
+            "tm311": ["TM311", "RPNValue", 0.0],
+            "tm312": ["TM312", "RPNValue", 0.0],
+            "tm313": ["TM313", "RPNValue", 0.0],
+            "tm314": ["TM314", "RPNValue", 0.0],
+            "tm315": ["TM315", "RPNValue", 0.0],
+            "tm316": ["TM316", "RPNValue", 0.0],
+            "tm321": ["TM321", "RPNValue", 0.0],
+            "tm322": ["TM322", "RPNValue", 0.0],
+            "tm323": ["TM323", "RPNValue", 0.0],
+            "tm324": ["TM324", "RPNValue", 0.0],
+            "tm325": ["TM325", "RPNValue", 0.0],
+            "tm326": ["TM326", "RPNValue", 0.0],
+            "tm331": ["TM331", "RPNValue", 0.0],
+            "tm332": ["TM332", "RPNValue", 0.0],
+            "tm333": ["TM333", "RPNValue", 0.0],
+            "tm334": ["TM334", "RPNValue", 0.0],
+            "tm335": ["TM335", "RPNValue", 0.0],
+            "tm336": ["TM336", "RPNValue", 0.0],
+            "tm341": ["TM341", "RPNValue", 0.0],
+            "tm342": ["TM342", "RPNValue", 0.0],
+            "tm343": ["TM343", "RPNValue", 0.0],
+            "tm344": ["TM344", "RPNValue", 0.0],
+            "tm345": ["TM345", "RPNValue", 0.0],
+            "tm346": ["TM346", "RPNValue", 0.0],
+            "tm351": ["TM351", "RPNValue", 0.0],
+            "tm352": ["TM352", "RPNValue", 0.0],
+            "tm353": ["TM353", "RPNValue", 0.0],
+            "tm354": ["TM354", "RPNValue", 0.0],
+            "tm355": ["TM355", "RPNValue", 0.0],
+            "tm356": ["TM356", "RPNValue", 0.0],
+            "tm361": ["TM361", "RPNValue", 0.0],
+            "tm362": ["TM362", "RPNValue", 0.0],
+            "tm363": ["TM363", "RPNValue", 0.0],
+            "tm364": ["TM364", "RPNValue", 0.0],
+            "tm365": ["TM365", "RPNValue", 0.0],
+            "tm366": ["TM366", "RPNValue", 0.0],
+            "tm411": ["TM411", "RPNValue", 0.0],
+            "tm412": ["TM412", "RPNValue", 0.0],
+            "tm413": ["TM413", "RPNValue", 0.0],
+            "tm414": ["TM414", "RPNValue", 0.0],
+            "tm415": ["TM415", "RPNValue", 0.0],
+            "tm416": ["TM416", "RPNValue", 0.0],
+            "tm421": ["TM421", "RPNValue", 0.0],
+            "tm422": ["TM422", "RPNValue", 0.0],
+            "tm423": ["TM423", "RPNValue", 0.0],
+            "tm424": ["TM424", "RPNValue", 0.0],
+            "tm425": ["TM425", "RPNValue", 0.0],
+            "tm426": ["TM426", "RPNValue", 0.0],
+            "tm431": ["TM431", "RPNValue", 0.0],
+            "tm432": ["TM432", "RPNValue", 0.0],
+            "tm433": ["TM433", "RPNValue", 0.0],
+            "tm434": ["TM434", "RPNValue", 0.0],
+            "tm435": ["TM435", "RPNValue", 0.0],
+            "tm436": ["TM436", "RPNValue", 0.0],
+            "tm441": ["TM441", "RPNValue", 0.0],
+            "tm442": ["TM442", "RPNValue", 0.0],
+            "tm443": ["TM443", "RPNValue", 0.0],
+            "tm444": ["TM444", "RPNValue", 0.0],
+            "tm445": ["TM445", "RPNValue", 0.0],
+            "tm446": ["TM446", "RPNValue", 0.0],
+            "tm451": ["TM451", "RPNValue", 0.0],
+            "tm452": ["TM452", "RPNValue", 0.0],
+            "tm453": ["TM453", "RPNValue", 0.0],
+            "tm454": ["TM454", "RPNValue", 0.0],
+            "tm455": ["TM455", "RPNValue", 0.0],
+            "tm456": ["TM456", "RPNValue", 0.0],
+            "tm461": ["TM461", "RPNValue", 0.0],
+            "tm462": ["TM462", "RPNValue", 0.0],
+            "tm463": ["TM463", "RPNValue", 0.0],
+            "tm464": ["TM464", "RPNValue", 0.0],
+            "tm465": ["TM465", "RPNValue", 0.0],
+            "tm466": ["TM466", "RPNValue", 0.0],
+            "tm511": ["TM511", "RPNValue", 0.0],
+            "tm512": ["TM512", "RPNValue", 0.0],
+            "tm513": ["TM513", "RPNValue", 0.0],
+            "tm514": ["TM514", "RPNValue", 0.0],
+            "tm515": ["TM515", "RPNValue", 0.0],
+            "tm516": ["TM516", "RPNValue", 0.0],
+            "tm521": ["TM521", "RPNValue", 0.0],
+            "tm522": ["TM522", "RPNValue", 0.0],
+            "tm523": ["TM523", "RPNValue", 0.0],
+            "tm524": ["TM524", "RPNValue", 0.0],
+            "tm525": ["TM525", "RPNValue", 0.0],
+            "tm526": ["TM526", "RPNValue", 0.0],
+            "tm531": ["TM531", "RPNValue", 0.0],
+            "tm532": ["TM532", "RPNValue", 0.0],
+            "tm533": ["TM533", "RPNValue", 0.0],
+            "tm534": ["TM534", "RPNValue", 0.0],
+            "tm535": ["TM535", "RPNValue", 0.0],
+            "tm536": ["TM536", "RPNValue", 0.0],
+            "tm541": ["TM541", "RPNValue", 0.0],
+            "tm542": ["TM542", "RPNValue", 0.0],
+            "tm543": ["TM543", "RPNValue", 0.0],
+            "tm544": ["TM544", "RPNValue", 0.0],
+            "tm545": ["TM545", "RPNValue", 0.0],
+            "tm546": ["TM546", "RPNValue", 0.0],
+            "tm551": ["TM551", "RPNValue", 0.0],
+            "tm552": ["TM552", "RPNValue", 0.0],
+            "tm553": ["TM553", "RPNValue", 0.0],
+            "tm554": ["TM554", "RPNValue", 0.0],
+            "tm555": ["TM555", "RPNValue", 0.0],
+            "tm556": ["TM556", "RPNValue", 0.0],
+            "tm561": ["TM561", "RPNValue", 0.0],
+            "tm562": ["TM562", "RPNValue", 0.0],
+            "tm563": ["TM563", "RPNValue", 0.0],
+            "tm564": ["TM564", "RPNValue", 0.0],
+            "tm565": ["TM565", "RPNValue", 0.0],
+            "tm566": ["TM566", "RPNValue", 0.0],
+            "tm611": ["TM611", "RPNValue", 0.0],
+            "tm612": ["TM612", "RPNValue", 0.0],
+            "tm613": ["TM613", "RPNValue", 0.0],
+            "tm614": ["TM614", "RPNValue", 0.0],
+            "tm615": ["TM615", "RPNValue", 0.0],
+            "tm616": ["TM616", "RPNValue", 0.0],
+            "tm621": ["TM621", "RPNValue", 0.0],
+            "tm622": ["TM622", "RPNValue", 0.0],
+            "tm623": ["TM623", "RPNValue", 0.0],
+            "tm624": ["TM624", "RPNValue", 0.0],
+            "tm625": ["TM625", "RPNValue", 0.0],
+            "tm626": ["TM626", "RPNValue", 0.0],
+            "tm631": ["TM631", "RPNValue", 0.0],
+            "tm632": ["TM632", "RPNValue", 0.0],
+            "tm633": ["TM633", "RPNValue", 0.0],
+            "tm634": ["TM634", "RPNValue", 0.0],
+            "tm635": ["TM635", "RPNValue", 0.0],
+            "tm636": ["TM636", "RPNValue", 0.0],
+            "tm641": ["TM641", "RPNValue", 0.0],
+            "tm642": ["TM642", "RPNValue", 0.0],
+            "tm643": ["TM643", "RPNValue", 0.0],
+            "tm644": ["TM644", "RPNValue", 0.0],
+            "tm645": ["TM645", "RPNValue", 0.0],
+            "tm646": ["TM646", "RPNValue", 0.0],
+            "tm651": ["TM651", "RPNValue", 0.0],
+            "tm652": ["TM652", "RPNValue", 0.0],
+            "tm653": ["TM653", "RPNValue", 0.0],
+            "tm654": ["TM654", "RPNValue", 0.0],
+            "tm655": ["TM655", "RPNValue", 0.0],
+            "tm656": ["TM656", "RPNValue", 0.0],
+            "tm661": ["TM661", "RPNValue", 0.0],
+            "tm662": ["TM662", "RPNValue", 0.0],
+            "tm663": ["TM663", "RPNValue", 0.0],
+            "tm664": ["TM664", "RPNValue", 0.0],
+            "tm665": ["TM665", "RPNValue", 0.0]
         },
         "MONITOR": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"]
+            "l": ["L", "RPNValue", 0.0]
         },
         "MULTIPOLE": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "lrad": ["LRAD", "RPNValue", "0.0"],
-            "tilt": ["TILT", "RPNValue", "0.0"],
+            "lrad": ["LRAD", "RPNValue", 0.0],
+            "tilt": ["TILT", "RPNValue", 0.0],
             "knl": ["KNL", "FloatArray", "0"],
             "ksl": ["KSL", "FloatArray", "0"]
         },
         "NLLENS": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "knll": ["KNLL", "RPNValue", "0.0"],
-            "cnll": ["CNLL", "RPNValue", "0.0"]
+            "knll": ["KNLL", "RPNValue", 0.0],
+            "cnll": ["CNLL", "RPNValue", 0.0]
         },
         "OCTUPOLE": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"],
-            "k3": ["K3", "RPNValue", "0.0"],
-            "k3s": ["K3S", "RPNValue", "0.0"],
-            "tilt": ["TILT", "RPNValue", "0.0"]
+            "l": ["L", "RPNValue", 0.0],
+            "k3": ["K3", "RPNValue", 0.0],
+            "k3s": ["K3S", "RPNValue", 0.0],
+            "tilt": ["TILT", "RPNValue", 0.0]
         },
         "PLACEHOLDER": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"]
+            "l": ["L", "RPNValue", 0.0]
         },
         "QUADRUPOLE": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"],
-            "k1": ["K1", "RPNValue", "0.0"],
-            "k1s": ["K1S", "RPNValue", "0.0"],
-            "tilt": ["TILT", "RPNValue", "0.0"],
+            "l": ["L", "RPNValue", 0.0],
+            "k1": ["K1", "RPNValue", 0.0],
+            "k1s": ["K1S", "RPNValue", 0.0],
+            "tilt": ["TILT", "RPNValue", 0.0],
             "thick": ["THICK", "Boolean", "0"]
         },
         "RBEND": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"],
-            "angle": ["ANGLE", "RPNValue", "0.0"],
-            "tilt": ["TILT", "RPNValue", "0.0"],
-            "k1": ["K1", "RPNValue", "0.0"],
-            "k2": ["K2", "RPNValue", "0.0"],
-            "e1": ["E1", "RPNValue", "0.0"],
-            "e2": ["E2", "RPNValue", "0.0"],
-            "fint": ["FINT", "RPNValue", "0.0"],
+            "l": ["L", "RPNValue", 0.0],
+            "angle": ["ANGLE", "RPNValue", 0.0],
+            "tilt": ["TILT", "RPNValue", 0.0],
+            "k1": ["K1", "RPNValue", 0.0],
+            "k2": ["K2", "RPNValue", 0.0],
+            "e1": ["E1", "RPNValue", 0.0],
+            "e2": ["E2", "RPNValue", 0.0],
+            "fint": ["FINT", "RPNValue", 0.0],
             "fintx": ["FINTX", "RPNValue", -1],
-            "hgap": ["HGAP", "RPNValue", "0.0"],
-            "h1": ["H1", "RPNValue", "0.0"],
-            "h2": ["H2", "RPNValue", "0.0"],
+            "hgap": ["HGAP", "RPNValue", 0.0],
+            "h1": ["H1", "RPNValue", 0.0],
+            "h2": ["H2", "RPNValue", 0.0],
             "add_angle": ["ADD_ANGLE", "FloatArray", "0 0 0 0 0"],
             "thick": ["THICK", "Boolean", "0"]
         },
         "RCOLLIMATOR": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"],
-            "xsize": ["XSIZE", "RPNValue", "0.0"],
-            "ysize": ["YSIZE", "RPNValue", "0.0"]
+            "l": ["L", "RPNValue", 0.0],
+            "xsize": ["XSIZE", "RPNValue", 0.0],
+            "ysize": ["YSIZE", "RPNValue", 0.0]
         },
         "RFCAVITY": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"],
-            "volt": ["VOLT", "RPNValue", "0.0"],
-            "lag": ["LAG", "RPNValue", "0.0"],
+            "l": ["L", "RPNValue", 0.0],
+            "volt": ["VOLT", "RPNValue", 0.0],
+            "lag": ["LAG", "RPNValue", 0.0],
             "harmon": ["HARMON", "Integer", 0],
-            "freq": ["FREQ", "RPNValue", "0.0"]
+            "freq": ["FREQ", "RPNValue", 0.0]
         },
         "RFMULTIPOLE": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "volt": ["VOLT", "RPNValue", "0.0"],
-            "lag": ["LAG", "RPNValue", "0.0"],
+            "volt": ["VOLT", "RPNValue", 0.0],
+            "lag": ["LAG", "RPNValue", 0.0],
             "harmon": ["HARMON", "Integer", 0],
-            "freq": ["FREQ", "RPNValue", "0.0"],
-            "lrad": ["LRAD", "RPNValue", "0.0"],
-            "tilt": ["TILT", "RPNValue", "0.0"],
+            "freq": ["FREQ", "RPNValue", 0.0],
+            "lrad": ["LRAD", "RPNValue", 0.0],
+            "tilt": ["TILT", "RPNValue", 0.0],
             "knl": ["KNL", "FloatArray", "0"],
             "ksl": ["KSL", "FloatArray", "0"],
             "pnl": ["PNL", "FloatArray", "0"],
@@ -762,58 +877,58 @@
         },
         "SBEND": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"],
-            "angle": ["ANGLE", "RPNValue", "0.0"],
-            "tilt": ["TILT", "RPNValue", "0.0"],
-            "k1": ["K1", "RPNValue", "0.0"],
-            "k2": ["K2", "RPNValue", "0.0"],
-            "e1": ["E1", "RPNValue", "0.0"],
-            "e2": ["E2", "RPNValue", "0.0"],
-            "fint": ["FINT", "RPNValue", "0.0"],
+            "l": ["L", "RPNValue", 0.0],
+            "angle": ["ANGLE", "RPNValue", 0.0],
+            "tilt": ["TILT", "RPNValue", 0.0],
+            "k1": ["K1", "RPNValue", 0.0],
+            "k2": ["K2", "RPNValue", 0.0],
+            "e1": ["E1", "RPNValue", 0.0],
+            "e2": ["E2", "RPNValue", 0.0],
+            "fint": ["FINT", "RPNValue", 0.0],
             "fintx": ["FINTX", "RPNValue", -1],
-            "hgap": ["HGAP", "RPNValue", "0.0"],
-            "h1": ["H1", "RPNValue", "0.0"],
-            "h2": ["H2", "RPNValue", "0.0"],
+            "hgap": ["HGAP", "RPNValue", 0.0],
+            "h1": ["H1", "RPNValue", 0.0],
+            "h2": ["H2", "RPNValue", 0.0],
             "thick": ["THICK", "Boolean", "0"]
         },
         "SEXTUPOLE": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"],
-            "k2": ["K2", "RPNValue", "0.0"],
-            "k2s": ["K2S", "RPNValue", "0.0"],
-            "tilt": ["TILT", "RPNValue", "0.0"]
+            "l": ["L", "RPNValue", 0.0],
+            "k2": ["K2", "RPNValue", 0.0],
+            "k2s": ["K2S", "RPNValue", 0.0],
+            "tilt": ["TILT", "RPNValue", 0.0]
         },
         "SOLENOID": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"],
-            "ks": ["KS", "RPNValue", "0.0"],
-            "ksi": ["KSI", "RPNValue", "0.0"]
+            "l": ["L", "RPNValue", 0.0],
+            "ks": ["KS", "RPNValue", 0.0],
+            "ksi": ["KSI", "RPNValue", 0.0]
         },
         "SROTATION": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "angle": ["ANGLE", "RPNValue", "0.0"]
+            "angle": ["ANGLE", "RPNValue", 0.0]
         },
         "TRANSLATION": {
             "name": ["Name", "ValidatedString"],
-            "dx": ["DX", "RPNValue", "0.0"],
-            "dy": ["DY", "RPNValue", "0.0"],
-            "ds": ["DS", "RPNValue", "0.0"]
+            "dx": ["DX", "RPNValue", 0.0],
+            "dy": ["DY", "RPNValue", 0.0],
+            "ds": ["DS", "RPNValue", 0.0]
         },
         "TWCAVITY": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"],
-            "volt": ["VOLT", "RPNValue", "0.0"],
-            "freq": ["FREQ", "RPNValue", "0.0"],
-            "lag": ["LAG", "RPNValue", "0.0"],
-            "psi": ["PSI", "RPNValue", "0.0"],
-            "delta_lag": ["DELTA_LAG", "RPNValue", "0.0"]
+            "l": ["L", "RPNValue", 0.0],
+            "volt": ["VOLT", "RPNValue", 0.0],
+            "freq": ["FREQ", "RPNValue", 0.0],
+            "lag": ["LAG", "RPNValue", 0.0],
+            "psi": ["PSI", "RPNValue", 0.0],
+            "delta_lag": ["DELTA_LAG", "RPNValue", 0.0]
         },
         "VACDIPOLE": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"],
-            "volt": ["VOLT", "RPNValue", "0.0"],
-            "freq": ["FREQ", "RPNValue", "0.0"],
-            "lag": ["LAG", "RPNValue", "0.0"],
+            "l": ["L", "RPNValue", 0.0],
+            "volt": ["VOLT", "RPNValue", 0.0],
+            "freq": ["FREQ", "RPNValue", 0.0],
+            "lag": ["LAG", "RPNValue", 0.0],
             "ramp1": ["RAMP1", "Integer", 0],
             "ramp2": ["RAMP2", "Integer", 0],
             "ramp3": ["RAMP3", "Integer", 0],
@@ -821,24 +936,30 @@
         },
         "VKICKER": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"],
-            "kick": ["KICK", "RPNValue", "0.0"],
-            "tilt": ["TILT", "RPNValue", "0.0"]
+            "l": ["L", "RPNValue", 0.0],
+            "kick": ["KICK", "RPNValue", 0.0],
+            "tilt": ["TILT", "RPNValue", 0.0]
         },
         "VMONITOR": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "l": ["L", "RPNValue", "0.0"]
+            "l": ["L", "RPNValue", 0.0]
         },
         "XROTATION": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "angle": ["ANGLE", "RPNValue", "0.0"]
+            "angle": ["ANGLE", "RPNValue", 0.0]
         },
         "YROTATION": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "angle": ["ANGLE", "RPNValue", "0.0"]
+            "angle": ["ANGLE", "RPNValue", 0.0]
         }
     },
     "view": {
+        "beamline": {
+            "title": "Beamline",
+            "advanced": [
+                "name"
+            ]
+        },
         "beamlineReport": {
             "title": "Lattice",
             "hasDataFile": false,
@@ -966,6 +1087,7 @@
                 ["Main", [
                     "simulation.enableParticleTracking",
                     "particleTracking.numParticles",
+                    "sequence",
                     "particle",
                     "mass",
                     "charge",
@@ -994,8 +1116,6 @@
                 ]]
             ]
         },
-        "command_exit": {"advanced": []},
-        "command_help": {"advanced": [ "statement"]},
         "command_option": {
             "advanced": [
                 "bborbit",
@@ -1017,6 +1137,62 @@
                 "warn"
             ]
         },
+        "command_ptc_create_universe": {
+            "advanced": [
+                "sector_nmul_max",
+                "sector_nmul",
+                "ntpsa",
+                "symprint"
+            ]
+        },
+        "command_ptc_create_layout": {
+            "advanced": [
+                "time",
+                "model",
+                "method",
+                "nst",
+                "exact",
+                "offset_deltap",
+                "errors_out",
+                "magnet_name",
+                "resplit",
+                "thin",
+                "xbend",
+                "even"
+            ]
+        },
+        "command_ptc_end": {"advanced": []},
+        "command_ptc_normal": {
+            "advanced": [
+                "closed_orbit",
+                "deltap",
+                "icase",
+                "map_table",
+                "no",
+                "normal"
+            ]
+        },
+        "command_ptc_observe": {
+            "advanced": [
+                "place"
+            ]
+        },
+        "command_ptc_start": {
+            "advanced": [
+                "x",
+                "px",
+                "y",
+                "py",
+                "t",
+                "pt",
+                "fx",
+                "phix",
+                "fy",
+                "phiy",
+                "ft",
+                "phit"
+            ]
+        },
         "command_select": {
             "advanced": [
                 "class",
@@ -1031,9 +1207,53 @@
                 "thick"
             ]
         },
+        "command_ptc_track": {
+            "advanced": [
+                "deltap",
+                "icase",
+                "closed_orbit",
+                "element_by_element",
+                "turns",
+                "maxaper",
+                "norm",
+                "norm_out",
+                "ffile",
+                "radiation",
+                "radiation_model1",
+                "radiation_energy_loss",
+                "radiation_quadr",
+                "beam_envelope",
+                "space_charge"
+            ]
+        },
+        "command_ptc_track_end": {"advanced": []},
+        "command_set": {
+            "advanced": [
+                "format",
+                "sequence"
+            ]
+        },
         "command_show": {
             "advanced": [
                 "command"
+            ]
+        },
+        "command_sodd": {
+            "advanced": [
+                "detune",
+                "distort1",
+                "distort2",
+                "multipole_order_range",
+                "noprint ",
+                "nosixtrack",
+                "print_all",
+                "print_at_end",
+                "start_stop"
+            ]
+        },
+        "command_resbeam": {
+            "advanced": [
+                "sequence"
             ]
         },
         "command_twiss": {
@@ -1050,9 +1270,18 @@
                 "dy"
             ]
         },
-        "command_use": {
+        "ptcAnimation": {
+            "title": "PTC Track",
             "advanced": [
-                "sequence"
+                [
+                    ["Horizontal",
+                        ["x"]
+                    ],
+                    ["Vertical",
+                        ["y"]
+                    ]
+                ],
+                "histogramBins"
             ]
         },
         "command_value": {
@@ -1063,13 +1292,32 @@
         "simulationStatus": {
             "title": "Simulation Status",
             "basic": [
-                "simulation.visualizationBeamlineId"
+                "simulation.visualizationBeamlineId",
+                "simulation.numberOfParticles"
             ],
             "advanced": []
         },
         "twissEllipseReport": {
             "title": "Twiss Report",
             "advanced": ["dim"]
+        },
+        "twissAnimation": {
+            "title": "Twiss Parameters",
+            "advanced": [
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1",
+                            "y2",
+                            "y3"
+                        ]]
+                    ],
+                    "includeLattice"
+                ]]
+            ]
         },
         "twissReport": {
             "title": "Twiss Parameters",

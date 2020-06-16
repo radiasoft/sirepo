@@ -28,17 +28,5 @@ def run_background(cfg_dir):
         cfg_dir (str): directory to run warpvnd in
     """
     # limit to 1 until we do parallel properly
-    res = PKDict()
     mpi.cfg.cores = 1
-    simulation_db.write_json(py.path.local(cfg_dir).join(template.MPI_SUMMARY_FILE), {
-        'mpiCores': mpi.cfg.cores,
-    })
-    try:
-        template_common.exec_parameters_with_mpi()
-    except Exception as e:
-        res.error = str(e)
-    simulation_db.write_result(res)
-
-
-def _script():
-    return pkio.read_text(template_common.PARAMETERS_PYTHON_FILE)
+    template_common.exec_parameters_with_mpi()

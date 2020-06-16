@@ -107,16 +107,14 @@ def avatar_uri(model, size):
     )
 
 
-def init_apis(app, *args, **kwargs):
-    global cfg, _app
+def init_apis(*args, **kwargs):
+    global cfg
     cfg = pkconfig.init(
         key=pkconfig.Required(str, 'Github key'),
         secret=pkconfig.Required(str, 'Github secret'),
         callback_uri=(None, str, 'Github callback URI (defaults to api_authGithubAuthorized)'),
     )
     auth_db.init_model(_init_model)
-    app.session_interface = _FlaskSessionInterface()
-    _app = app
 
 
 class _FlaskSession(dict, flask.sessions.SessionMixin):
@@ -152,6 +150,10 @@ def _init_model(base):
 
 
 def _oauth_client():
+    global _app
+    if not _app:
+        _app = util.flask_app()
+        _app.session_interface = _FlaskSessionInterface()
     r = authlib.integrations.flask_client.OAuth(_app)
     r.register(
         access_token_params=None,

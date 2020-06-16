@@ -29,7 +29,7 @@ def _cfg_uid(value):
     from sirepo import simulation_db
     if value and value == 'dev-no-validate' and pkconfig.channel_in_internal_test():
         return value
-    assert simulation_db.user_dir_name(value).check(dir=True), \
+    assert simulation_db.user_path(value).check(dir=True), \
         'uid={} does not exist'.format(value)
     return value
 
