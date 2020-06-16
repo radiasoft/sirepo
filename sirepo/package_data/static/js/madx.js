@@ -341,7 +341,7 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
     $scope.pt = false;
     self.isParticleTrackingEnabled = function () {
         //srdbg(appState.models);
-        $scope.pt = ! ! (appState.models.simulation || {}).enableParticleTracking;
+        $scope.pt = ((appState.models.simulation || {}).enableParticleTracking === '1');
         //srdbg('PT?', $scope.pt);
         return $scope.pt;
     };

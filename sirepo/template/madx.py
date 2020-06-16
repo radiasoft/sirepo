@@ -283,34 +283,6 @@ def _extract_report_data(data, run_dir):
 
 
 
-def _ptc_particles(twiss_params, num_particles):
-    #pkdp('BUILD {} PARTS FROM {}', num_particles, twiss_params)
-    mean = [0, 0, 0, 0]
-    cov = []
-    for dim in twiss_params:
-        m1 = 1 if dim == 'x' else 0
-        m2 = 1 - m1
-        tp = PKDict(twiss_params[dim])
-        dd = tp.beta * tp.emittance
-        ddp = -tp.alpha * tp.emittance
-        dpdp = tp.emittance * tp.gamma
-        cov.append([m1 * dd, m1 * ddp, m2 * dd, m2 * ddp])
-        cov.append([m1 * ddp, m1 * dpdp, m2 * ddp, m2 * dpdp])
-
-    transverse = np.random.multivariate_normal(mean, cov, num_particles)
-    x = transverse[:, 0]
-    xp = transverse[:, 1]
-    y = transverse[:, 2]
-    yp = transverse[:, 3]
-
-    long_part = np.random.multivariate_normal([0, 0], [[0, 0], [0, 0]], num_particles)
-
-    particles = np.column_stack([x, xp, y, yp, long_part[:, 0], long_part[:, 1]])
-    return PKDict(
-        x=PKDict(pos=particles[:,0], p=particles[:,1]),
-        y=PKDict(pos=particles[:,2], p=particles[:,3]),
-        t=PKDict(pos=particles[:,4], p=particles[:,5]),
-    )
 
 def _extract_report_bunchReport(data, run_dir):
     #pkdp('EXTRACT BUNCH {}', data)
@@ -323,7 +295,10 @@ def _extract_report_bunchReport(data, run_dir):
     x_axis = r_model.x
     y_axis = r_model.y
     # read from file?  store on model?
-    parts = _ptc_particles(_get_initial_twiss_params(data), 1000)
+    parts = _ptc_particles(
+        _get_initial_twiss_params(data),
+        data.models.simulation.numberOfParticles
+    )
     if x_axis[0] == 'x':
         x = parts.x.pos
         y = parts.x.p
@@ -418,14 +393,6 @@ def _extract_report_twissEllipseReport(data, run_dir):
             y_label='',
             x_label=f'{dim} [m]'
         )
-    )
-
-
-def _ellipse_rot(a, b):
-    if a == 0:
-        return 0
-    return 0.5 * math.atan(
-        2. * a * b / (1 + a * a - b * b)
     )
 
 
@@ -576,74 +543,120 @@ def _format_field_value(state, model, field, el_type):
 
 
 # TODO(e-carlin): copied from https://github.com/radiasoft/rscon/blob/d3abdaf5c1c6d41797a4c96317e3c644b871d5dd/webcon/madx_examples/FODO_example_PTC.ipynb
-def _ptc_particles(beam_gamma = 7.0, x_emittance = 1.0e-6, y_emittance = 1.0e-6,
-                 beta_x = 29.528, beta_y = 7.347, alpha_x = -3.237, alpha_y = 0.986, n_particles = 1000
-                 ):
+#def _ptc_particles(beam_gamma = 7.0, x_emittance = 1.0e-6, y_emittance = 1.0e-6,
+#                 beta_x = 29.528, beta_y = 7.347, alpha_x = -3.237, alpha_y = 0.986, n_particles = 1000
+#                 ):
     ## beta is the beam velocity over the speed of light
-    beta = np.sqrt(1. - 1. / beam_gamma **2.)
+#    beta = np.sqrt(1. - 1. / beam_gamma **2.)
 
-    ## p0 is the baeam momentum
-    p0 = beta * beam_gamma * scipy.constants.c * scipy.constants.m_p
+    ## p0 is the beam momentum
+#    p0 = beta * beam_gamma * scipy.constants.c * scipy.constants.m_p
 
     ## Beam kenetic energ
-    E0 = (beam_gamma - 1.) * scipy.constants.m_p * scipy.constants.c ** 2.
+#    E0 = (beam_gamma - 1.) * scipy.constants.m_p * scipy.constants.c ** 2.
 
     ##
-    n_part = n_particles
-    ex = x_emittance
-    ey = y_emittance
+#    n_part = n_particles
+#    ex = x_emittance
+#    ey = y_emittance
 
     ## Gamma is a derived twiss parameter from alpha and beta
-    gamma_x = (1. + alpha_x ** 2.) / beta_x
-    gamma_y = (1. + alpha_y ** 2.) / beta_y
+#    gamma_x = (1. + alpha_x ** 2.) / beta_x
+#    gamma_y = (1. + alpha_y ** 2.) / beta_y
 
     ## rms beam size
-    xx = beta_x * ex
-    yy = beta_y * ey
+#    xx = beta_x * ex
+#    yy = beta_y * ey
 
     ## x-xp correlation
-    xxp = - alpha_x * ex
-    yyp = - alpha_y * ey
+#    xxp = - alpha_x * ex
+#    yyp = - alpha_y * ey
 
     ## rms size in momentum
-    xpxp = ex * gamma_x
-    ypyp = ey * gamma_y
+#    xpxp = ex * gamma_x
+#    ypyp = ey * gamma_y
 
     ## covariance matrix for gaussian beam
     ## in the future we will want to be able to define
     ## centroid values, and also x-y correlation terms
-    mean = [0, 0, 0, 0]
-    cov = [[xx, xxp, 0 , 0],
-           [xxp, xpxp, 0, 0],
-           [0, 0, yy, yyp],
-           [0, 0, yyp, ypyp]]
+#    mean = [0, 0, 0, 0]
+#    cov = [[xx, xxp, 0 , 0],
+#           [xxp, xpxp, 0, 0],
+#           [0, 0, yy, yyp],
+#           [0, 0, yyp, ypyp]]
 
-    transverse = np.random.multivariate_normal(mean, cov, n_part)
+#    transverse = np.random.multivariate_normal(mean, cov, n_part)
 
-    x = transverse[:,0]
-    xp = transverse[:,1]
-    y = transverse[:,2]
-    yp = transverse[:,3]
+#    x = transverse[:,0]
+#    xp = transverse[:,1]
+##    y = transverse[:,2]
+#    yp = transverse[:,3]
 
     ## for now the longitudional coordinates are set to zero. This just means there
     # is no longitudioanl distribuion. We can change this soon.
-    long_part = np.random.multivariate_normal([0, 0], [[0, 0],[0, 0]], n_part)
+#    long_part = np.random.multivariate_normal([0, 0], [[0, 0],[0, 0]], n_part)
 
-    particles = np.column_stack([x, xp, y, yp, long_part[:,0], long_part[:,1]])
+#    particles = np.column_stack([x, xp, y, yp, long_part[:,0], long_part[:,1]])
 
-    return particles
+#    return particles
+
+# condensed version of https://github.com/radiasoft/rscon/blob/d3abdaf5c1c6d41797a4c96317e3c644b871d5dd/webcon/madx_examples/FODO_example_PTC.ipynb
+def _ptc_particles(twiss_params, num_particles):
+    #pkdp('BUILD {} PARTS FROM {}', num_particles, twiss_params)
+    mean = [0, 0, 0, 0]
+    cov = []
+    for dim in twiss_params:
+        m1 = 1 if dim == 'x' else 0
+        m2 = 1 - m1
+        tp = PKDict(twiss_params[dim])
+        dd = tp.beta * tp.emittance
+        ddp = -tp.alpha * tp.emittance
+        dpdp = tp.emittance * tp.gamma
+        cov.append([m1 * dd, m1 * ddp, m2 * dd, m2 * ddp])
+        cov.append([m1 * ddp, m1 * dpdp, m2 * ddp, m2 * dpdp])
+
+    transverse = np.random.multivariate_normal(mean, cov, num_particles)
+    x = transverse[:, 0]
+    xp = transverse[:, 1]
+    y = transverse[:, 2]
+    yp = transverse[:, 3]
+
+    # for now the longitudional coordinates are set to zero. This just means there
+    # is no longitudinal distribuion. We can change this soon.
+    long_part = np.random.multivariate_normal([0, 0], [[0, 0], [0, 0]], num_particles)
+
+    particles = np.column_stack([x, xp, y, yp, long_part[:, 0], long_part[:, 1]])
+    return PKDict(
+        x=PKDict(pos=particles[:,0], p=particles[:,1]),
+        y=PKDict(pos=particles[:,2], p=particles[:,3]),
+        t=PKDict(pos=particles[:,4], p=particles[:,5]),
+    )
 
 
 def _ptc_start_commands(data):
-    p = _ptc_particles(n_particles=data.models.simulation.numberOfParticles)
-    v = PKDict(
-        x=p[:,0],
-        px=p[:,1],
-        y=p[:,2],
-        py=p[:,3],
-        t=p[:,4],
-        pt=p[:,5],
+    #p = _ptc_particles(n_particles=data.models.simulation.numberOfParticles)
+    p = _ptc_particles(
+        _get_initial_twiss_params(data),
+        data.models.simulation.numberOfParticles
     )
+
+    v = PKDict(
+        x=p.x.pos,
+        px=p.x.p,
+        y=p.y.pos,
+        py=p.y.p,
+        t=p.t.pos,
+        pt=p.t.p,
+    )
+
+    #v = PKDict(
+    #    x=p[:,0],
+    #    px=p[:,1],
+    #    y=p[:,2],
+    #    py=p[:,3],
+    #    t=p[:,4],
+    #    pt=p[:,5],
+    #)
     r = ''
     for i in range(len(v.x)):
         r += 'ptc_start'

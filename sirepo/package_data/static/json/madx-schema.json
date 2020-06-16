@@ -1071,7 +1071,8 @@
                 "histogramBins",
                 "colorMap",
                 "notes"
-            ]
+            ],
+            "basic": []
         },
         "command_beam": {
             "title": "Beam",
