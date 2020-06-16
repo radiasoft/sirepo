@@ -282,8 +282,6 @@ def _extract_report_data(data, run_dir):
     )(data, run_dir)
 
 
-
-
 def _extract_report_bunchReport(data, run_dir):
     #pkdp('EXTRACT BUNCH {}', data)
     util = LatticeUtil(data, _SCHEMA)
@@ -299,12 +297,10 @@ def _extract_report_bunchReport(data, run_dir):
         _get_initial_twiss_params(data),
         data.models.simulation.numberOfParticles
     )
-    if x_axis[0] == 'x':
-        x = parts.x.pos
-        y = parts.x.p
-    else:
-        x = parts.y.pos
-        y = parts.y.p
+    x_dim = x_axis[-1]
+    y_dim = y_axis[-1]
+    x = parts[x_dim].pos if x_axis[0] == x_dim else parts[x_dim].p
+    y = parts[y_dim].pos if y_axis[0] == y_dim else parts[y_dim].p
 
     return template_common.heatmap(
         [x, y],

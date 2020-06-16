@@ -21,18 +21,12 @@ class SimData(sirepo.sim_data.SimDataBase):
                 cls.update_model_defaults(m, 'twissEllipseReport')
                 m.dim = 'x' if i == 1 else 'y'
         if 'bunchReport1' not in dm:
-            for i in range(1, 5):
-                m = dm['bunchReport{}'.format(i)] = PKDict()
+            b_params = [('x', 'px'), ('y', 'py'), ('x', 'y'), ('z', 'pz')]
+            for (i, p) in enumerate(b_params):
+                m = dm['bunchReport{}'.format(i - 1)] = PKDict()
                 cls.update_model_defaults(m, 'bunchReport')
-                if i == 1:
-                    m.x = 'x'
-                    m.y = 'px'
-                elif i == 2:
-                    m.x = 'y'
-                    m.y = 'py'
-                elif i == 4:
-                    m.x = 'z'
-                    m.y = 'pz'
+                m.x = b_params[i][0]
+                m.y = b_params[i][1]
         if 'initialTwissParams' not in dm:
             for dim in ['x', 'y']:
                 m = dm['initialTwissParams'] = PKDict()
