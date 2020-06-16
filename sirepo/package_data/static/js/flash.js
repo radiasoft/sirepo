@@ -33,9 +33,53 @@ SIREPO.app.controller('PhysicsController', function (flashService) {
     self.flashService = flashService;
 });
 
-SIREPO.app.controller('SourceController', function (flashService) {
+SIREPO.app.controller('SourceController', function (flashService, appState, $scope) {
     var self = this;
     self.flashService = flashService;
+
+    function fieldClass(field) {
+        return '.model-' + field.replace(/:/g, '\\:');
+    }
+
+    function setReadOnly() {
+        function readOnly(field) {
+                $(fieldClass(field) + ' input').prop('readonly', true);
+        }
+
+        ['Wall', 'Fill'].forEach(function(x) {
+            ['ion', 'rad'].forEach(function(y) {
+                readOnly('Simulation:magnetoHD:CapLaserBELLA-sim_t' + y + x);
+            });
+        });
+        // TODO(e-carlin): If we support more than alumina for wall species
+        // then we should remove this readonly or keep it and update the Z and A
+        // when the species changes.
+        ['A', 'Z'].forEach(function(x) {readOnly('Multispecies-ms_wall' + x);});
+    }
+
+    function makeTempsEqual(modelField) {
+        var t =  modelField.includes('Fill') ? 'Fill' : 'Wall';
+        var s = modelField.split('.');
+        ['ion', 'rad'].forEach(function(f) {
+            appState.models['Simulation:magnetoHD:CapLaserBELLA']['sim_t' + f + t] =
+                appState.models[s[0]][s[1]];
+        });
+    }
+
+    appState.whenModelsLoaded($scope, function() {
+        // Must be done on sr-tabSelected because changing tabs clears the
+        // readonly prop. This puts readonly back on.
+        $scope.$on('sr-tabSelected', setReadOnly);
+        appState.watchModelFields(
+            $scope,
+            ['Wall', 'Fill'].map(
+                function(x) {
+                    return 'Simulation:magnetoHD:CapLaserBELLA.sim_tele'+x;
+                }
+            ),
+            makeTempsEqual
+        );
+    });
 });
 
 SIREPO.app.controller('VisualizationController', function (appState, flashService, frameCache, persistentSimulation, $scope, $window) {

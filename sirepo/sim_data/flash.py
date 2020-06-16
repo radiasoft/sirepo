@@ -6,6 +6,7 @@ u"""simulation data operations
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
+from pykern.pkdebug import pkdp
 import sirepo.sim_data
 import sirepo.util
 
@@ -25,6 +26,19 @@ class SimData(sirepo.sim_data.SimDataBase):
                 plot_var_5='magz',
                 plot_var_6='depo',
             )
+            if not dm.Multispecies.ms_fillSpecies:
+                m = dm.Multispecies
+                m.ms_fillSpecies = 'hydrogen'
+                m.ms_wallSpecies = 'alumina'
+                m.eos_fillTableFile = 'helium-fill-imx.cn4'
+                m.eos_wallTableFile = 'alumina-wall-imx.cn4'
+                m.eos_fillSubType = 'ionmix4'
+                m.eos_wallSubType = 'ionmix4'
+                m = dm['physics:materialProperties:Opacity:Multispecies']
+                m.op_fillFileName = 'helium-fill-imx.cn4'
+                m.op_wallFileName  = 'alumina-wall-imx.cn4'
+                m.op_fillFileType = 'ionmix4'
+                m.op_wallFileType = 'ionmix4'
 
     @classmethod
     def flash_exe_path(cls, data, unchecked=False):
@@ -61,5 +75,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         if t == 'RTFlame':
             return ['helm_table.dat']
         if t == 'CapLaserBELLA':
-            return ['al-imx-004.cn4', 'h-imx-004.cn4']
+            return [
+                'alumina-wall-imx.cn4',
+                'argon-fill-imx.cn4',
+                'helium-fill-imx.cn4',
+                'hydrogen-fill-imx.cn4',
+            ]
         raise AssertionError('invalid flashType: {}'.format(t))

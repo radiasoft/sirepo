@@ -112,6 +112,11 @@
             ["E_internal", "E_internal"],
             ["MagEnergy", "MagEnergy"]
         ],
+        "FillSpecies": [
+            ["hydrogen", "Hyrdogen Gas"],
+            ["helium", "Helium Gas"],
+            ["argon", "Argon Gas"]
+        ],
         "FramesPerSecond": [
             ["1", "1"],
             ["2", "2"],
@@ -125,26 +130,10 @@
             ["eos_gam", "eos_gam"],
             ["eos_tab", "eos_tab"]
         ],
-        "Multispecies:eos_fillSubType": [
-            ["-none-", "-none-"],
-            ["ionmix", "ionmix"],
-            ["ionmix4", "ionmix4"],
-            ["ionmix6", "ionmix6"],
-            ["propaceos", "propaceos"],
-            ["opacplot", "opacplot"]
-        ],
         "Multispecies:eos_wallEosType": [
             ["-none-", "-none-"],
             ["eos_gam", "eos_gam"],
             ["eos_tab", "eos_tab"]
-        ],
-        "Multispecies:eos_wallSubType": [
-            ["-none-", "-none-"],
-            ["ionmix", "ionmix"],
-            ["ionmix4", "ionmix4"],
-            ["ionmix6", "ionmix6"],
-            ["propaceos", "propaceos"],
-            ["opacplot", "opacplot"]
         ],
         "RiemannSolver": [
             ["HHLD", "HLLD"],
@@ -214,6 +203,9 @@
             ["velx", "velx"],
             ["kapa", "kapa"],
             ["flam", "flam"]
+        ],
+        "WallSpecies": [
+            ["alumina", "Alumina"]
         ],
         "DiffuseBoundaryType": [
             ["dirichlet", "dirichlet"],
@@ -335,11 +327,6 @@
             ["op_tabpe", "op_tabpe"],
             ["op_tabro", "op_tabro"]
         ],
-        "physics:materialProperties:Opacity:Multispecies:op_fillFileType": [
-            ["ionmix", "ionmix"],
-            ["ionmix4", "ionmix4"],
-            ["NOT SPECIFIED", "NOT SPECIFIED"]
-        ],
         "physics:materialProperties:Opacity:Multispecies:op_fillTrans": [
             ["op_undefined", "op_undefined"],
             ["op_constant", "op_constant"],
@@ -363,11 +350,6 @@
             ["op_tabpa", "op_tabpa"],
             ["op_tabpe", "op_tabpe"],
             ["op_tabro", "op_tabro"]
-        ],
-        "physics:materialProperties:Opacity:Multispecies:op_wallFileType": [
-            ["ionmix", "ionmix"],
-            ["ionmix4", "ionmix4"],
-            ["NOT SPECIFIED", "NOT SPECIFIED"]
         ],
         "physics:materialProperties:Opacity:Multispecies:op_wallTrans": [
             ["op_undefined", "op_undefined"],
@@ -824,12 +806,12 @@
         "Multispecies": {
             "eos_fillEosType": ["Fill EOS Type", "Multispecies:eos_fillEosType", "-none-"],
             "eos_fillGroupName": ["eos_fillGroupName", "String", "-none-"],
-            "eos_fillSubType": ["Fill EOS Subtype", "Multispecies:eos_fillSubType", "-none-"],
-            "eos_fillTableFile": ["Fill Table File", "String", "-none-"],
+            "eos_fillSubType": ["Fill EOS Subtype", "String", ""],
+            "eos_fillTableFile": ["Fill Table File", "String", ""],
             "eos_wallEosType": ["Wall EOS Type", "Multispecies:eos_wallEosType", "-none-"],
             "eos_wallGroupName": ["eos_wallGroupName", "String", "-none-"],
-            "eos_wallSubType": ["Wall EOS Subtype", "Multispecies:eos_wallSubType", "-none-"],
-            "eos_wallTableFile": ["Wall Table File", "String", "-none-"],
+            "eos_wallSubType": ["Wall EOS Subtype", "String", ""],
+            "eos_wallTableFile": ["Wall Table File", "String", ""],
             "ms_fillA": ["Fill Protons and Neutrons in Nucleus", "Float", -999.0],
             "ms_fillAElems_1": ["ms_fillAElems_1", "Float", -999.0],
             "ms_fillAElems_2": ["ms_fillAElems_2", "Float", -999.0],
@@ -848,6 +830,7 @@
             "ms_fillNegative": ["ms_fillNegative", "Float", -999.0],
             "ms_fillNeutral": ["ms_fillNeutral", "Float", -999.0],
             "ms_fillNumElems": ["ms_fillNumElems", "Integer", 0],
+            "ms_fillSpecies": ["Species", "FillSpecies", ""],
             "ms_fillZ": ["Fill Atomic Number", "Float", -999.0],
             "ms_fillZElems_1": ["ms_fillZElems_1", "Integer", -999],
             "ms_fillZElems_2": ["ms_fillZElems_2", "Integer", -999],
@@ -874,6 +857,7 @@
             "ms_wallNegative": ["ms_wallNegative", "Float", -999.0],
             "ms_wallNeutral": ["ms_wallNeutral", "Float", -999.0],
             "ms_wallNumElems": ["ms_wallNumElems", "Integer", 0],
+            "ms_wallSpecies": ["Species", "WallSpecies", ""],
             "ms_wallZ": ["Wall Atomic Number", "Float", -999.0],
             "ms_wallZElems_1": ["ms_wallZElems_1", "Integer", -999],
             "ms_wallZElems_2": ["ms_wallZElems_2", "Integer", -999],
@@ -909,16 +893,16 @@
             "op_fillAbsorbConstant": ["op_fillAbsorbConstant", "Float", -1.0],
             "op_fillEmiss": ["Fill Emiss", "physics:materialProperties:Opacity:Multispecies:op_fillEmiss", "op_undefined"],
             "op_fillEmissConstant": ["op_fillEmissConstant", "Float", -1.0],
-            "op_fillFileName": ["Fill Filename", "String", "NOT SPECIFIED"],
-            "op_fillFileType": ["Fill File Type", "physics:materialProperties:Opacity:Multispecies:op_fillFileType", "NOT SPECIFIED"],
+            "op_fillFileName": ["Fill Filename", "String", ""],
+            "op_fillFileType": ["Fill File Type", "String", ""],
             "op_fillTrans": ["Fill Trans", "physics:materialProperties:Opacity:Multispecies:op_fillTrans", "op_undefined"],
             "op_fillTransConstant": ["op_fillTransConstant", "Float", -1.0],
             "op_wallAbsorb": ["Wall Absorb", "physics:materialProperties:Opacity:Multispecies:op_wallAbsorb", "op_undefined"],
             "op_wallAbsorbConstant": ["op_wallAbsorbConstant", "Float", -1.0],
             "op_wallEmiss": ["Wall Emiss", "physics:materialProperties:Opacity:Multispecies:op_wallEmiss", "op_undefined"],
             "op_wallEmissConstant": ["op_wallEmissConstant", "Float", -1.0],
-            "op_wallFileName": ["Wall Filename", "String", "NOT SPECIFIED"],
-            "op_wallFileType": ["Wall File Type", "physics:materialProperties:Opacity:Multispecies:op_wallFileType", "NOT SPECIFIED"],
+            "op_wallFileName": ["Wall Filename", "String", ""],
+            "op_wallFileType": ["Wall File Type", "String", ""],
             "op_wallTrans": ["Wall Trans", "physics:materialProperties:Opacity:Multispecies:op_wallTrans", "op_undefined"],
             "op_wallTransConstant": ["op_wallTransConstant", "Float", -1.0],
             "opacity_ignoreLowTemp": ["opacity_ignoreLowTemp", "Boolean", "1", "control parameter indicating if the low temperature capability should be\nignored"],
@@ -1508,19 +1492,17 @@
                 ["Multispecies", [
                     [
                         ["Fill", [
+                            "Multispecies.ms_fillSpecies",
                             "Multispecies.ms_fillA",
                             "Multispecies.ms_fillZ",
                             "Multispecies.eos_fillEosType",
-                            "Multispecies.eos_fillSubType",
-                            "Multispecies.eos_fillTableFile",
                             "Multispecies.ms_fillZMin"
                         ]],
                         ["Wall", [
+                            "Multispecies.ms_wallSpecies",
                             "Multispecies.ms_wallA",
                             "Multispecies.ms_wallZ",
                             "Multispecies.eos_wallEosType",
-                            "Multispecies.eos_wallSubType",
-                            "Multispecies.eos_wallTableFile",
                             "Multispecies.ms_wallZMin"
                         ]]
                     ]
@@ -1563,15 +1545,11 @@
                     ["Fill", [
                         "physics:materialProperties:Opacity:Multispecies.op_fillAbsorb",
                         "physics:materialProperties:Opacity:Multispecies.op_fillEmiss",
-                        "physics:materialProperties:Opacity:Multispecies.op_fillFileName",
-                        "physics:materialProperties:Opacity:Multispecies.op_fillFileType",
                         "physics:materialProperties:Opacity:Multispecies.op_fillTrans"
                     ]],
                     ["Wall", [
                         "physics:materialProperties:Opacity:Multispecies.op_wallAbsorb",
                         "physics:materialProperties:Opacity:Multispecies.op_wallEmiss",
-                        "physics:materialProperties:Opacity:Multispecies.op_wallFileName",
-                        "physics:materialProperties:Opacity:Multispecies.op_wallFileType",
                         "physics:materialProperties:Opacity:Multispecies.op_wallTrans"
                     ]]
                 ]
