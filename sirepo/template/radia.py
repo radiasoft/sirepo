@@ -51,6 +51,12 @@ VIEW_TYPES = [VIEW_TYPE_OBJ, VIEW_TYPE_FIELD]
 _cfg = PKDict(sdds=None)
 
 
+def append_h5(data, h5path, file_path):
+    #pkdp('ADDING DATA TO F {} AT P {}', file_path, h5path)
+    with h5py.File(file_path, 'a') as hf:
+        template_common.dict_to_h5(data, hf, path=h5path)
+
+
 def background_percent_complete(report, run_dir, is_running):
     res = PKDict(
         percentComplete=0,
@@ -174,7 +180,7 @@ def write_parameters(data, run_dir, is_parallel):
     pkio.unchecked_remove(_geom_file(data.simulationId), _dmp_file(data.simulationId))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data),
+        _generate_parameters_file(data, run_dir),
     )
 
 
@@ -350,7 +356,7 @@ def _generate_obj_data(g_id, name):
     return radia_tk.geom_to_data(g_id, name=name)
 
 
-def _generate_parameters_file(data):
+def _generate_parameters_file(data, run_dir):
     report = data.get('report', '')
     res, v = template_common.generate_parameters_file(data)
     sim_id = data.simulationId
@@ -383,7 +389,7 @@ def _generate_parameters_file(data):
     if 'reset' in report:
         radia_tk.reset()
         data.report = 'geometry'
-        return _generate_parameters_file(data)
+        return _generate_parameters_file(data, run_dir)
     v['h5ObjPath'] = _geom_h5_path(VIEW_TYPE_OBJ)
     v['h5FieldPath'] = _geom_h5_path(VIEW_TYPE_FIELD, f_type)
 
