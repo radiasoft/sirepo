@@ -60,6 +60,12 @@ SIREPO.app.factory('commandService', function(appState, latticeService, panelSta
         panelState.showModalEditor(modelName);
     };
 
+    self.findAllComands =  function(type) {
+        return appState.models.commands.filter(function(cmd) {
+            return cmd._type == type;
+        });
+    };
+
     self.findFirstCommand = function(type) {
         var res;
         appState.models.commands.some(function(cmd) {

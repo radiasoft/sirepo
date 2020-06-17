@@ -12,7 +12,7 @@ from pykern import pkinspect
 from pykern import pkio
 from pykern import pkjson
 from pykern import pkresource
-from pykern.pkdebug import pkdp
+from pykern.pkdebug import pkdp, pkdexc, pkdc
 import hashlib
 import importlib
 import inspect
@@ -566,14 +566,14 @@ class SimDataBase(object):
 
         p = [cls.lib_file_resource_dir().join(basename)]
         if cfg.lib_file_uri:
-            if basename in data.libFileList:
+            if basename in cfg.lib_file_list:
                 p = pkio.py_path(basename)
                 r = requests.get(
                     cfg.lib_file_uri + basename,
                     verify=sirepo.job.cfg.verify_tls,
                 )
                 r.raise_for_status()
-                p.write(r.content)
+                p.write_binary(r.content)
                 return p
         elif not cfg.lib_file_resource_only:
             p.append(
@@ -671,8 +671,10 @@ def split_jid(jid):
 
 def _init():
     global cfg
+
     cfg = pkconfig.init(
         lib_file_resource_only=(False, bool, 'used by utility programs'),
+        lib_file_list=(None, lambda v: pkio.read_text(v).split('\n'), 'directory listing of remote lib'),
         lib_file_uri=(None, str, 'where to get files from when remote'),
     )
 

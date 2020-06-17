@@ -251,6 +251,31 @@
             ["1", "Automatic"],
             ["2", "Manual"]
         ],
+        "SampleObjectType": [
+            ["1", "Rectangle"],
+            ["2", "Ellipse"],
+            ["3", "Triangle"],
+            ["4", "Polygon"],
+            ["5", "Random Shapes"]
+        ],
+        "SampleRandomAlgorithm": [
+            ["1", "Uniform Seeding"],
+            ["2", "Random Walk"]
+        ],
+        "SampleRotationDistribution": [
+            ["1", "Uniform"],
+            ["2", "Normal (Gaussian)"],
+            ["3", "Flory–Schulz"]
+        ],
+        "SampleSizeDistribution": [
+            ["1", "Uniform"],
+            ["2", "Normal (Gaussian)"],
+            ["3", "Flory–Schulz"]
+        ],
+        "SampleSource": [
+            ["file", "Input File"],
+            ["randomDisk", "Random 2D Objects"]
+        ],
         "SimulationState": [
             ["initial", "Initial State"],
             ["running", "Running"],
@@ -733,6 +758,7 @@
         "sample": {
             "title": ["Element Name", "String", "Sample"],
             "position": ["Nominal Position [m]", "Float"],
+            "sampleSource": ["Source", "SampleSource", "file"],
             "imageFile": ["Image or NumPy File", "ImageFile", "sample.tif"],
             "resolution": ["Resolution [nm/pixel]", "Float", 2.480469],
             "thickness": ["Thickness [µm]", "Float", 10],
@@ -749,7 +775,7 @@
             "areaYEnd": ["Vertical End Coordinate [pixels]", "Integer", 834],
             "rotateAngle": ["Rotate Angle [deg]", "Float", 0, "Positive values rotate the image counterclockwise, negative - clockwise"],
             "rotateReshape": ["Fit Whole Image after Rotation?", "Boolean", "0", "If set to Yes, the output image is adapted so that the input image is contained completely in the output one"],
-            "cutoffBackgroundNoise": ["Cutoff Background Noise Ratio", "Float", 0.5, "The ratio for cutoff the background noise (between 0 and 1)"],
+            "cutoffBackgroundNoise": ["Cutoff Background Noise Ratio", "Float", 0.5, "The ratio for cutoff the background noise (between 0 and 1)", 0, 1],
             "backgroundColor": ["Background Color", "Integer", 0, "The background color code to use instead of the background noise (0=black, 255=white)", 0, 255],
             "tileImage": ["Tile Sample?", "Boolean", "0", "Tile the cut area of the image with the provided number of rows and columns"],
             "tileRows": ["Number of Rows", "Integer", 1],
@@ -758,7 +784,28 @@
             "shiftX": ["Horizontal Shift [pixels]", "Integer", 0],
             "shiftY": ["Vertical Shift [pixels]", "Integer", 0],
             "invert": ["Invert Image Colors", "Boolean", "0"],
-            "outputImageFormat": ["Output Image Format", "OutputImageFormat", "tif"]
+            "outputImageFormat": ["Output Image Format", "OutputImageFormat", "tif"],
+
+            "rx": ["Horizontal Transmission Range [m]", "Float", 1e-5],
+            "nx": ["Horizontal Transmission Points ", "Integer", 1001, "", 1],
+            "ry": ["Vertical Transmission Range [m]", "Float", 1e-5],
+            "ny": ["Vertical Transmission Points ", "Integer", 1001, "", 1],
+            "dens": ["Density [particles per mm²]", "Float", 2e7, "", 1],
+            "obj_type": ["Object Shape", "SampleObjectType", "1"],
+            "r_min_bw_obj": ["Minimum Shape Distance [m]", "Float", 1e-9],
+            "edge_frac": ["Edge Fraction", "Float", 0.02, "How close to the edge can an object be placed on the object plane"],
+            "obj_size_min": ["Minimum Object Size [m]", "Float", 1e-7],
+            "ang_min": ["Minimum Object Rotation [deg]", "Float", 0],
+            "obj_size_max": ["Maximum Object Size [m]", "Float", 1.2e-7],
+            "ang_max": ["Maximum Object Rotation [deg]", "Float", 45],
+            "size_dist": ["Size Distribution", "SampleSizeDistribution", "1"],
+            "ang_dist": ["Rotation Distribution", "SampleRotationDistribution", "1"],
+            "rand_alg": ["Randomization Algorithm", "SampleRandomAlgorithm", "1", "Uniform Seeding: Algorithm will create a uniform set of objects based on: density, minimum and maximum object size, and the minimum distance between objects. It then applies random seeded noise to the point locations. <br> 2D Random Walk: Each object will be placed using a random 2D random walk."],
+            "rand_obj_size": ["Random Height to Width Ratio", "Boolean", "0"],
+            "obj_size_ratio": ["Height to Width Ratio", "Float", 0.5],
+            "rand_poly_side": ["Random Polygon Side Count", "Boolean", "0"],
+            "poly_sides": ["Polygon Side Count", "Integer", 6, "", 3, 12],
+            "rand_shapes": ["Random Shapes", "SampleRandomShapeArray", [1,2,3,4]]
         },
         "simulation": {
             "distanceFromSource": ["Distance From Source [m]", "Float", 20],
@@ -1592,9 +1639,12 @@
             "title": "Sample",
             "basic": [],
             "advanced": [
-                ["Image Manipulation", [
+                ["Source", [
                     "title",
                     "position",
+                    "sampleSource"
+                ]],
+                ["Image Manipulation", [
                     "imageFile",
                     "rotateAngle",
                     "rotateReshape",
@@ -1605,7 +1655,6 @@
                     "tileRows",
                     "tileColumns",
                     "cropArea",
-		    "transmissionImage",
                     [
                         ["Horizontal", [
                             "areaXStart",
@@ -1617,17 +1666,45 @@
                             "areaYEnd",
                             "shiftY"
                         ]]
+                    ]
+                ]],
+                ["Random 2D Objects", [
+                    "rand_alg",
+                    "obj_type",
+                    "rand_obj_size",
+                    "obj_size_ratio",
+                    "rand_poly_side",
+                    "poly_sides",
+                    "rand_shapes",
+                    "r_min_bw_obj",
+                    "edge_frac",
+                    [
+                        ["Minimum", [
+                            "obj_size_min",
+                            "ang_min"
+                        ]],
+                        ["Maximum", [
+                            "obj_size_max",
+                            "ang_max"
+                        ]]
                     ],
-		    "outputImageFormat"
+                    "size_dist",
+                    "ang_dist"
                 ]],
                 ["Physical Properties", [
                     "resolution",
                     "thickness",
+		    "transmissionImage",
+                    "dens",
                     [
                         ["Horizontal", [
+                            "rx",
+                            "nx",
                             "horizontalCenterCoordinate"
                         ]],
                         ["Vertical", [
+                            "ry",
+                            "ny",
                             "verticalCenterCoordinate"
                         ]]
                     ]
@@ -1637,6 +1714,9 @@
                     "method",
                     "refractiveIndex",
                     "attenuationLength"
+                ]],
+                ["Image Preview", [
+		    "outputImageFormat"
                 ]]
             ]
         },

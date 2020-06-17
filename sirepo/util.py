@@ -161,6 +161,12 @@ def err(obj, fmt='', *args, **kwargs):
     return '{}: '.format(obj) + fmt.format(*args, **kwargs)
 
 
+def flask_app():
+    import flask
+
+    return flask.current_app or None
+
+
 def json_dump(obj, path=None, pretty=False, **kwargs):
     """Formats as json as string, and writing atomically to disk
 
@@ -177,11 +183,6 @@ def json_dump(obj, path=None, pretty=False, **kwargs):
     if path:
         pykern.pkio.atomic_write(path, res)
     return res
-
-
-def in_flask_app_context():
-    import flask
-    return bool(flask.current_app)
 
 
 def raise_bad_request(*args, **kwargs):

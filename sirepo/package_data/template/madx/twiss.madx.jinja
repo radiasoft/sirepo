@@ -3,10 +3,6 @@ title, "{{ simulation_name }}";
 {{ variables }}
 {{ lattice }}
 
-{% if useBeamline %}
-{{ commands }}
-
-{% if not hasTwiss %}
+beam;
+use, sequence={{ useBeamline }};
 twiss, file={{ twissOutputFilename }};
-{% endif %}
-{% endif %}

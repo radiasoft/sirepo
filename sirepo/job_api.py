@@ -17,7 +17,6 @@ import pykern.pkio
 import re
 import requests
 import sirepo.auth
-import sirepo.auth_db
 import sirepo.http_reply
 import sirepo.http_request
 import sirepo.job
@@ -248,7 +247,7 @@ def _request_content(kwargs):
         uid=sirepo.auth.logged_in_user(),
     ).pkupdate(
         computeJid=s.parse_jid(d, uid=b.uid),
-        userDir=str(sirepo.simulation_db.user_dir_name(b.uid)),
+        userDir=str(sirepo.simulation_db.user_path(b.uid)),
     )
     return _run_mode(b)
 

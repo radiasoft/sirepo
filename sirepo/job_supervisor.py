@@ -160,8 +160,7 @@ def init():
         job.SBATCH: cfg.sbatch_poll_secs,
         job.SEQUENTIAL: 1,
     })
-    sirepo.auth_db.init(sirepo.srdb.root(), migrate_db_file=False)
-    if sirepo.simulation_db.user_dir_name().exists():
+    if sirepo.simulation_db.user_path().exists():
         if not _DB_DIR.exists():
             pkdlog('calling upgrade_runner_to_job_db path={}', _DB_DIR)
             import subprocess
@@ -931,9 +930,6 @@ class _Op(PKDict):
         for x in 'run_callback', 'timer':
             if x in self:
                 tornado.ioloop.IOLoop.current().remove_timeout(self.pkdel(x))
-        if 'lib_dir_symlink' in self:
-            # lib_dir_symlink is unique_key so not dangerous to remove
-            pykern.pkio.unchecked_remove(self.pkdel('lib_dir_symlink'))
         self.computeJob.destroy_op(self)
         self.driver.destroy_op(self)
 

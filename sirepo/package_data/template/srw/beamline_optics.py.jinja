@@ -186,7 +186,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
                 _y={{ field(item, 'verticalOffset') }},
             ))
             pp.append(v.op_{{ item.name }}_pp)
-{% elif item.type == 'sample' %}
+{% elif item.type == 'sample' and item.sampleSource == 'file' %}
             el.append(srwl_uti_smp.srwl_opt_setup_transm_from_file(
                 file_path={{ field(item, 'imageFile') }},
                 resolution={{ field(item, 'resolution') }},
@@ -216,6 +216,43 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
                 is_save_images=True,
                 prefix='{{ item.name }}_sample',
                 output_image_format={{ field(item, 'outputImageFormat') }},
+            ))
+            pp.append(v.op_{{ item.name }}_pp)
+{% elif item.type == 'sample' and item.sampleSource == 'randomDisk' %}
+            el.append(srwl_uti_smp.srwl_opt_setup_smp_rnd_obj2d(
+                _thickness={{ field(item, 'thickness') }},
+                _delta={{ field(item, 'refractiveIndex') }},
+                _atten_len={{ field(item, 'attenuationLength') }},
+                _rx={{ field(item, 'rx') }},
+                _ry={{ field(item, 'ry') }},
+                _xc={{ field(item, 'horizontalCenterCoordinate') }},
+                _yc={{ field(item, 'verticalCenterCoordinate') }},
+                _nx={{ field(item, 'nx') }},
+                _ny={{ field(item, 'ny') }},
+                _dens={{ field(item, 'dens') }},
+                _obj_type={{ field(item, 'obj_type') }},
+                _r_min_bw_obj={{ field(item, 'r_min_bw_obj') }},
+                _edge_frac={{ field(item, 'edge_frac') }},
+                _obj_size_min={{ field(item, 'obj_size_min') }},
+                _obj_size_max={{ field(item, 'obj_size_max') }},
+                _size_dist={{ field(item, 'size_dist') }},
+                _ang_min={{ field(item, 'ang_min') }},
+                _ang_max={{ field(item, 'ang_max') }},
+                _ang_dist={{ field(item, 'ang_dist') }},
+                _rand_alg={{ field(item, 'rand_alg') }},
+{% if item.obj_type in ('1', '2', '3') %}
+                _obj_par1={{ field(item, 'obj_size_ratio') }},
+{% elif item.obj_type == '4' %}
+                _obj_par1={{ field(item, 'poly_sides') }},
+{% elif item.obj_type == '5' %}
+                _obj_par1={{ field(item, 'rand_shapes') }},
+{% endif %}
+{% if item.obj_type in ('1', '2', '3') %}
+                _obj_par2={{ field(item, 'rand_obj_size') }},
+{% elif item.obj_type == '4' %}
+                _obj_par2={{ field(item, 'rand_poly_side') }},
+{% endif %}
+                _ext_tr={{ field(item, 'transmissionImage') }},
             ))
             pp.append(v.op_{{ item.name }}_pp)
 {% elif item.type == 'sphericalMirror' %}

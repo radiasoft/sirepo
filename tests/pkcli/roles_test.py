@@ -5,7 +5,14 @@ u"""Test role management operations
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+import os
 import pytest
+
+def setup_module(module):
+    os.environ.update(
+        SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES='flash',
+    )
+
 
 def test_flash_change_role_change_lib_files(auth_fc):
     from pykern import pkio
@@ -13,7 +20,7 @@ def test_flash_change_role_change_lib_files(auth_fc):
     import sirepo.auth
     import sirepo.auth_db
     import sirepo.pkcli.roles
-    import sirepo.server
+    import sirepo.srdb
 
     def _change_role(add=True):
         f = getattr(sirepo.pkcli.roles, 'add_roles')
@@ -30,7 +37,7 @@ def test_flash_change_role_change_lib_files(auth_fc):
             [x.basename for x in pkio.walk_tree(fc.sr_user_dir(), _proprietary_file)],
         )
 
-    pkunit.data_dir().join('db').copy(sirepo.server._app.sirepo_db_dir)
+    pkunit.data_dir().join('db').copy(sirepo.srdb.root())
     _proprietary_file = 'flash.rpm'
     fc = auth_fc
     fc.sr_email_register('a@b.c', sim_type='flash')

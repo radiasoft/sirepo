@@ -105,7 +105,7 @@ class CodeVar(object):
     def infix_to_postfix(cls, expr):
         try:
             if cls.is_var_value(expr):
-                rpn = CodeVar.__parse_expr_infix(expr)
+                rpn = cls.__parse_expr_infix(expr)
                 expr = rpn
         except Exception as e:
             pass
@@ -120,8 +120,8 @@ class CodeVar(object):
             return True
         return False
 
-    @staticmethod
-    def __parse_expr_infix(expr):
+    @classmethod
+    def __parse_expr_infix(cls, expr):
         """Use Python parser (ast) and return depth first (RPN) tree"""
 
         # https://bitbucket.org/takluyver/greentreesnakes/src/587ad72894bc7595bc30e33affaa238ac32f0740/astpp.py?at=default&fileviewer=file-view-default
@@ -165,8 +165,7 @@ class CodeVar(object):
             '{}: must be an expression'.format(tree)
         return ' '.join(_do(tree))
 
-    @classmethod
-    def __variables_by_name(cls, variables, case_insensitive):
+    def __variables_by_name(self, variables, case_insensitive):
         res = PKDict()
         for v in variables:
             n = v['name']
@@ -178,11 +177,10 @@ class CodeVar(object):
             res[n] = value
         return res
 
-    @classmethod
-    def __variables_to_postfix(cls, variables):
+    def __variables_to_postfix(self, variables):
         res = PKDict()
         for name in variables:
-            res[name] = cls.infix_to_postfix(variables[name])
+            res[name] = self.infix_to_postfix(variables[name])
         return res
 
 
@@ -249,9 +247,8 @@ class PurePythonEval(object):
             if err:
                 return None, err
             variables[d] = v
-        return PurePythonEval.__eval_python_stack(self, expr, variables)
+        return self.__eval_python_stack(expr, variables)
 
-    @staticmethod
     def __eval_python_stack(self, expr, variables):
         if not CodeVar.is_var_value(expr):
             return expr, None

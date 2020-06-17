@@ -24,6 +24,10 @@
             "longName": "JSPEC",
             "shortName": "JSPEC"
         },
+        "madx": {
+            "longName": "MadX",
+            "shortName": "madx"
+        },
         "opal": {
             "longName": "OPAL",
             "shortName": "OPAL"

@@ -6249,10 +6249,12 @@
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
+                "input_file",
+                "simple_input",
                 "l",
-                "angle",
                 "l1",
                 "l2",
+                "angle",
                 "e1",
                 "e2",
                 "tilt",
@@ -6261,10 +6263,8 @@
                 "dz",
                 "factor",
                 "threshold",
-                "input_file",
                 "n_kicks",
                 "verbose",
-                "simple_input",
                 "group"
             ]
         },

@@ -9,9 +9,29 @@ from pykern import pkio, pkcollections, pkresource
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
+from sirepo.template import code_variable
+from sirepo.template.template_common import ParticleEnergy
+from sirepo.template.lattice import LatticeUtil
 import copy
+import math
 import sirepo.sim_data
 
+_PI = 4 * math.atan(1)
+_MADX_CONSTANTS = PKDict(
+    pi=_PI,
+    twopi=_PI * 2.0,
+    raddeg=180.0 / _PI,
+    degrad=_PI / 180.0,
+    e=math.exp(1),
+    emass=0.510998928e-03,
+    pmass=0.938272046e+00,
+    nmass=0.931494061+00,
+    mumass=0.1056583715,
+    clight=299792458.0,
+    qelect=1.602176565e-19,
+    hbar=6.58211928e-25,
+    erad=2.8179403267e-15,
+)
 
 _MADX_SIM_DATA = sirepo.sim_data.get_class('madx')
 _MADX_SCHEMA = _MADX_SIM_DATA.schema()
@@ -192,6 +212,51 @@ _FIELD_MAP = PKDict(
 )
 
 
+def fixup_madx(madx, data=None):
+    cv = code_variable.CodeVar(
+        madx.models.rpnVariables,
+        code_variable.PurePythonEval(_MADX_CONSTANTS),
+        case_insensitive=True,
+    )
+    assert LatticeUtil.has_command(madx, 'beam'), \
+        'MAD-X file missing BEAM command'
+    if not data:
+        data = madx
+    beam = LatticeUtil.find_first_command(madx, 'beam')
+    beam_sub = beam.copy()
+    rpns = [r.name for r in madx.models.rpnVariables]
+    #pp = []
+    for q in beam_sub:
+        for n in rpns:
+            if n in str(beam_sub[q]):
+                beam_sub[q] = cv.eval_var_with_assert(beam[q])
+                #pp.append(q)
+                break
+    #for p in pp:
+    #    beam_sub[p] = cv.eval_var_with_assert(beam[p])
+    if beam.energy == 1 and (beam.pc != 0 or beam.gamma != 0 or beam.beta != 0 or beam.brho != 0):
+        # unset the default mad-x value if other energy fields are set
+        beam.energy = 0
+    particle = beam.particle.lower() or 'other'
+    LatticeUtil.find_first_command(data, 'beam').particle = particle.upper()
+    energy = ParticleEnergy.compute_energy('madx', particle, beam_sub)
+    LatticeUtil.find_first_command(data, 'beam').pc = energy.pc
+    t = LatticeUtil.find_first_command(data, 'track')
+    if t:
+        t.line = data.models.simulation.visualizationBeamlineId
+    for el in data.models.elements:
+        if el.type == 'SBEND' or el.type == 'RBEND':
+            # mad-x is GeV (total energy), designenergy is MeV (kinetic energy)
+            el.designenergy = round(
+                (energy.energy - ParticleEnergy.PARTICLE[particle].mass) * 1e3,
+                6,
+            )
+            # this is different than the opal default of "2 * sin(angle / 2) / length"
+            # but matches elegant and synergia
+            el.k0 = cv.eval_var_with_assert(el.angle) / cv.eval_var_with_assert(el.l)
+            el.gap = 2 * cv.eval_var_with_assert(el.hgap)
+
+
 def from_madx(to_sim_type, mad_data):
     return _convert(to_sim_type, mad_data, 'from')
 
@@ -201,6 +266,8 @@ def to_madx(from_sim_type, data):
 
 
 def _convert(name, data, direction):
+    if name == 'madx':
+        return data
     assert name in _FIELD_MAP
     if direction == 'from':
         field_map = _FIELD_MAP[name].from_madx
@@ -259,11 +326,7 @@ def _convert(name, data, direction):
         if f in data.models.simulation:
             res.models.simulation[f] = data.models.simulation[f]
     if direction == 'to' and to_class.sim_type() == 'madx':
-        beam = to_class.model_defaults('command_beam')
-        beam._type = 'beam'
-        beam.name = 'BEAM1'
-        beam._id = max_id + 1
-        res.models.commands.append(beam)
+        res.report = 'twissReport'
     return res
 
 

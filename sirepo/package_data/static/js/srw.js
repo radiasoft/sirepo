@@ -20,7 +20,7 @@ SIREPO.app.config(function() {
           '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
         '</div>',
         '<div data-ng-switch-when="ImageFile" class="col-sm-7">',
-          '<div data-image-file-field="" data-model="model" data-field="field"></div>',
+          '<div data-file-field="field" data-file-type="sample" data-model="model" data-selection-required="true" data-empty-selection-text="Select Image File"></div>',
         '</div>',
         '<div data-ng-switch-when="MagneticZipFile" class="col-sm-7">',
           '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
@@ -33,6 +33,12 @@ SIREPO.app.config(function() {
         '</div>',
         '<div data-ng-switch-when="WatchPoint" data-ng-class="fieldClass">',
           '<div data-watch-point-list="" data-model="model" data-field="field" data-model-name="modelName"></div>',
+        '</div>',
+        '<div data-ng-switch-when="OutputImageFormat">',
+          '<div data-sample-preview=""></div>',
+        '</div>',
+        '<div data-ng-switch-when="SampleRandomShapeArray" class="col-sm-7">',
+          '<div data-sample-random-shapes="" data-model="model" data-field="field"></div>',
         '</div>',
     ].join('');
     SIREPO.appDownloadLinks = [
@@ -455,13 +461,31 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
     }
 
     function updateSampleFields(item) {
-        ['areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd'].forEach(function(f) {
-            panelState.showField('sample', f, item.cropArea == '1');
+        panelState.showTab('sample', 2, item.sampleSource == 'file');
+        panelState.showTab('sample', 3, item.sampleSource == 'randomDisk');
+        ['resolution'].forEach(function(f) {
+            panelState.showField('sample', f, item.sampleSource == 'file');
         });
-        ['tileRows', 'tileColumns'].forEach(function(f) {
-            panelState.showField('sample', f, item.tileImage == '1');
+        ['dens', 'rx', 'ry', 'nx', 'ny'].forEach(function(f) {
+            panelState.showField('sample', f, item.sampleSource == 'randomDisk');
         });
-        panelState.showField('sample', 'rotateReshape', item.rotateAngle);
+        if (item.sampleSource == 'file') {
+            ['areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd'].forEach(function(f) {
+                panelState.showField('sample', f, item.cropArea == '1');
+            });
+            ['tileRows', 'tileColumns'].forEach(function(f) {
+                panelState.showField('sample', f, item.tileImage == '1');
+            });
+            panelState.showField('sample', 'rotateReshape', item.rotateAngle);
+            panelState.showField('sample', 'backgroundColor', item.cutoffBackgroundNoise);
+        }
+        else if (item.sampleSource == 'randomDisk') {
+            panelState.showField('sample', 'rand_obj_size', item.obj_type != '4' && item.obj_type != '5');
+            panelState.showField('sample', 'rand_poly_side', item.obj_type == '4');
+            panelState.showField('sample', 'obj_size_ratio', item.obj_type != '4' && item.obj_type != '5' && item.rand_obj_size == '0');
+            panelState.showField('sample', 'poly_sides', item.obj_type == '4' && item.rand_poly_side == '0');
+            panelState.showField('sample', 'rand_shapes', item.obj_type == '5');
+        }
     }
 
     function updateVectorFields(item) {
@@ -646,7 +670,7 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         });
         beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energy', 'h', 'k', 'l'], computeCrystalInit, true);
         beamlineService.watchBeamlineField($scope, 'crystal', ['diffractionAngle', 'dSpacing', 'asymmetryAngle', 'psi0r', 'psi0i', 'rotationAngle'], computeCrystalOrientation, true);
-        beamlineService.watchBeamlineField($scope, 'sample', ['cropArea', 'tileImage', 'rotateAngle'], updateSampleFields);
+        beamlineService.watchBeamlineField($scope, 'sample', ['sampleSource', 'cropArea', 'tileImage', 'rotateAngle', 'cutoffBackgroundNoise', 'obj_type', 'rand_obj_size', 'rand_poly_side'], updateSampleFields);
         $scope.$on('beamline.changed', syncFirstElementPositionToDistanceFromSource);
         $scope.$on('simulation.changed', function() {
             updatePhotonEnergyHelpText();
@@ -1410,62 +1434,6 @@ SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload,
     };
 });
 
-SIREPO.app.directive('imageFileField', function(appState, requestSender, $http, errorService) {
-    return {
-        restrict: 'A',
-        scope: {
-            field: '=',
-            model: '=',
-        },
-        template: [
-            '<div data-file-field="field" data-file-type="sample" data-model="model" data-selection-required="true" data-empty-selection-text="Select Image File">',
-              '<a href target="_self" title="Download Processed Image" class="btn btn-default" data-ng-click="downloadProcessedImage()"><span class="glyphicon glyphicon-filter"></span></a>',
-            '</div>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.downloadProcessedImage = function() {
-                if (!appState.isLoaded()) {
-                    return;
-                }
-                var m = $scope.model.imageFile.match(/(([^\/]+)\.\w+)$/);
-                if (!m) {
-                    throw new Error($scope.model.imageFile + ': invalid imageFile name');
-                }
-                var fn = m[2] + '_processed.' + $scope.model.outputImageFormat;
-
-                //TODO(pjm): refactor this into a method in sirepo.js, remove $http
-                var url = requestSender.formatUrl({
-                    routeName: 'getApplicationData',
-                    '<filename>': fn
-                });
-                var err = function (response) {
-                    errorService.alertText('Download failed: status=' + response.status);
-                };
-                //TODO: Error handling
-                $http.post(
-                    url,
-                    {
-                        'simulationId': appState.models.simulation.simulationId,
-                        'simulationType': SIREPO.APP_SCHEMA.simulationType,
-                        'method': 'processedImage',
-                        'baseImage': m[1],
-                        'model': $scope.model,
-                    },
-                    {responseType: 'blob'}
-                ).then(
-                    function (response) {
-                        if (response.status == 200) {
-                            saveAs(response.data, fn);
-                            return;
-                        }
-                        err(response);
-                    },
-                    err);
-            };
-        },
-    };
-});
-
 SIREPO.app.directive('mirrorFileField', function(appState, panelState) {
     return {
         restrict: 'A',
@@ -1822,6 +1790,143 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
             };
 
             initParameters();
+        },
+    };
+});
+
+SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
+    return {
+        restrict: 'A',
+        template: [
+            '<div class="col-xs-5" style="white-space: nowrap">',
+              '<select class="form-control" style="display: inline-block" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select> ',
+              '<a href target="_self" title="Download Processed Image" class="btn btn-default" data-ng-click="downloadProcessedImage()"><span class="glyphicon glyphicon-cloud-download"></span></a>',
+            '</div>',
+            '<div class="col-sm-12">',
+              '<div class="lead text-center">',
+                '<span data-ng-if="errorMessage">{{ errorMessage }}</span>',
+                '<span data ng-if="isLoading && ! errorMessage">Loading image ...</span>',
+                '</div>',
+              '{{ loadImageFile() }}',
+              '<img class="img-responsive srw-processed-image" />',
+            '</div>',
+          ].join(''),
+        controller: function($scope) {
+            var imageData;
+            $scope.isLoading = false;
+            $scope.errorMessage = '';
+
+            function downloadImage(format, callback) {
+                var filename = $scope.model.imageFile.match(/([^\/]+)\.\w+$/)[1] + '_processed.' + format;
+                var url = requestSender.formatUrl({
+                    routeName: 'getApplicationData',
+                    '<filename>': filename,
+                });
+                var m = appState.clone($scope.model);
+                m.outputImageFormat = format;
+                $http.post(
+                    url,
+                    {
+                        'simulationId': appState.models.simulation.simulationId,
+                        'simulationType': SIREPO.APP_SCHEMA.simulationType,
+                        'method': 'processedImage',
+                        'baseImage': $scope.model.imageFile,
+                        'model': m,
+                    },
+                    {
+                        responseType: 'blob',
+                    }
+                ).then(
+                    function (response) {
+                        if (response.status == 200) {
+                            callback(filename, response);
+                            return;
+                        }
+                        error(response);
+                    },
+                    error);
+            }
+
+            function error(response) {
+                $scope.errorMessage = 'An error occurred creating the preview image';
+            }
+
+            $scope.loadImageFile = function() {
+                if (! appState.isLoaded() || imageData || $scope.isLoading) {
+                    return;
+                }
+                $scope.isLoading = true;
+                downloadImage('png', function(filename, response) {
+                    imageData = response.data;
+                    $scope.isLoading = false;
+                    if (imageData.type == 'application/json') {
+                        // an error message has been returned
+                        imageData.text().then(function(text) {
+                            $scope.errorMessage = JSON.parse(text).error;
+                            $scope.$digest();
+                        });
+                    }
+                    else {
+                        var urlCreator = window.URL || window.webkitURL;
+                        if ($('.srw-processed-image').length) {
+                            $('.srw-processed-image')[0].src = urlCreator.createObjectURL(imageData);
+                        }
+                    }
+                });
+            };
+
+            $scope.downloadProcessedImage = function() {
+                if (! appState.isLoaded()) {
+                    return;
+                }
+                downloadImage(
+                    $scope.model.outputImageFormat,
+                    function(filename, response) {
+                        saveAs(response.data, filename);
+                    });
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('sampleRandomShapes', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<div data-ng-repeat="shape in shapes track by shape.id" style="display: inline-block; margin-right: 1em">',
+              '<div class="checkbox"><label><input type="checkbox" value="{{ shape.id }}" data-ng-click="toggle(shape)" data-ng-checked="isChecked(shape)">{{ shape.name }}</label></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.shapes = ['Rectangle', 'Ellipse', 'Triangle', 'Polygon'].map(
+                function(name, idx) {
+                    return {
+                        name: name,
+                        id: idx + 1,
+                        checked: false,
+                    };
+                });
+            $scope.isChecked = function(shape) {
+                if ($scope.model && $scope.field && $scope.model[$scope.field]) {
+                    return $scope.model && $scope.model[$scope.field].indexOf(shape.id) >= 0;
+                }
+                return false;
+            };
+            $scope.toggle = function(shape) {
+                var m = $scope.model;
+                if (m) {
+                    if ($scope.isChecked(shape)) {
+                        m[$scope.field].splice(m[$scope.field].indexOf(shape.id), 1);
+                    }
+                    else {
+                        m[$scope.field].push(shape.id);
+                    }
+                }
+            };
         },
     };
 });

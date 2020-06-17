@@ -11,7 +11,6 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import auth
 from sirepo import auth_db
 from sirepo import feature_config
-from sirepo import server
 from sirepo import sim_data
 from sirepo import simulation_db
 from sirepo import srdb
@@ -24,8 +23,6 @@ import os.path
 import re
 import shutil
 
-_PROPRIETARY_CODE_DIR = 'proprietary_code'
-
 
 def audit_proprietary_lib_files(*uid):
     """Add/removes proprietary files based on a user's roles
@@ -33,50 +30,27 @@ def audit_proprietary_lib_files(*uid):
     For example, add the Flash rpm if user has the flash role.
 
     Args:
-        *uid: Uid(s) of the user(s) to audit. If None all users will be audited.
+        *uid: UID(s) of the user(s) to audit. If None, all users will be audited.
     """
-    import py
+    import sirepo.server
 
-    def _audit_user(uid, proprietary_sim_types):
-        with auth.set_user(uid):
-            for t in proprietary_sim_types:
-                _link_or_unlink_proprietary_files(
-                    t,
-                    auth.check_user_has_role(
-                        auth.role_for_sim_type(t),
-                        raise_forbidden=False,
-                    ),
-                )
+    sirepo.server.init()
+    import sirepo.auth_db
+    import sirepo.auth
 
-    def _link_or_unlink_proprietary_files(sim_type, should_link):
-        for f in pkio.sorted_glob(proprietary_code_dir(sim_type).join('*')):
-            p = simulation_db.simulation_lib_dir(sim_type).join(f.basename)
-            if not should_link:
-                pkio.unchecked_remove(p)
-                continue
-            try:
-                assert f.check(file=True), f'{f} not found'
-                p.mksymlinkto(
-                    f,
-                    absolute=False,
-                )
-            except py.error.EEXIST:
-                pass
-
-    server.init()
-    t = feature_config.cfg().proprietary_sim_types.intersection(feature_config.cfg().sim_types)
-    if not t:
-        return
-    for u in uid or auth_db.all_uids():
-        _audit_user(u, t)
+    #TODO(robnagler) locking
+    for u in uid or all_uids():
+        with sirepo.auth.set_user(u):
+            sirepo.auth_db.audit_proprietary_lib_files(u)
 
 
 def create_examples():
     """Adds missing app examples to all users.
     """
-    server.init()
+    import sirepo.server
 
-    for d in pkio.sorted_glob(simulation_db.user_dir_name().join('*')):
+    sirepo.server.init()
+    for d in pkio.sorted_glob(simulation_db.user_path().join('*')):
         if _is_src_dir(d):
             continue;
         uid = simulation_db.uid_from_dir_name(d)
@@ -90,29 +64,6 @@ def create_examples():
             for example in simulation_db.examples(sim_type):
                 if example.models.simulation.name not in names:
                     _create_example(example)
-
-
-def setup_dev_proprietary_code(sim_type, rpm_url):
-    """Get an rpm and put it in the proprietary code dir for a sim type.
-
-    Args:
-      sim_type (str): simulation type
-      rpm_url (str): Url of the rpm (file:// or http://)
-    """
-    import sirepo.pkcli.admin
-    import urllib.request
-
-    assert pkconfig.channel_in('dev'), \
-        'Only to be used in dev. channel={}'.format(pkconfig.cfg.channel)
-
-    d = sirepo.pkcli.admin.proprietary_code_dir(sim_type)
-    pkio.mkdir_parent(d)
-    s = sirepo.sim_data.get_class(sim_type)
-
-    urllib.request.urlretrieve(
-        rpm_url,
-        d.join(s.proprietary_code_rpm()),
-    )
 
 
 def move_user_sims(target_uid=''):
@@ -148,9 +99,6 @@ def move_user_sims(target_uid=''):
         pkdlog(lib_file)
         shutil.move(lib_file, target)
 
-
-def proprietary_code_dir(sim_type):
-    return srdb.root().join(_PROPRIETARY_CODE_DIR, sim_type)
 
 def _create_example(example):
     simulation_db.save_new_example(example)

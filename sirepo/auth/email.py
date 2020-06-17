@@ -123,7 +123,7 @@ def avatar_uri(model, size):
     )
 
 
-def init_apis(app, *args, **kwargs):
+def init_apis(*args, **kwargs):
     global cfg
     cfg = pkconfig.init(
         #TODO(robnagler) validate email
@@ -134,18 +134,6 @@ def init_apis(app, *args, **kwargs):
         smtp_user=pkconfig.Required(str, 'SMTP auth user'),
     )
     auth_db.init_model(_init_model)
-    if pkconfig.channel_in('dev') and cfg.smtp_server == _DEV_SMTP_SERVER:
-        return
-    app.config.update(
-        MAIL_USE_TLS=True,
-        MAIL_PORT=587,
-        MAIL_SERVER=cfg.smtp_server,
-        MAIL_USERNAME=cfg.smtp_user,
-        MAIL_PASSWORD=cfg.smtp_password,
-    )
-    global _smtp
-    _smtp = flask_mail.Mail(app)
-
 
 def _init_model(base):
     """Creates AuthEmailUser bound to dynamic `db` variable"""
@@ -189,10 +177,21 @@ def _parse_email(data):
 
 
 def _send_login_email(user, uri):
+    global _smtp
     if not _smtp:
-        assert pkconfig.channel_in('dev')
-        pkdlog('{}', uri)
-        return http_reply.gen_json_ok({'uri': uri})
+        if not (pkconfig.channel_in('dev') and cfg.smtp_server == _DEV_SMTP_SERVER):
+            a = sirepo.util.flask_app()
+            a.config.update(
+                MAIL_USE_TLS=True,
+                MAIL_PORT=587,
+                MAIL_SERVER=cfg.smtp_server,
+                MAIL_USERNAME=cfg.smtp_user,
+                MAIL_PASSWORD=cfg.smtp_password,
+            )
+            _smtp = flask_mail.Mail(a)
+        else:
+            pkdlog('{}', uri)
+            return http_reply.gen_json_ok({'uri': uri})
     login_text = u'sign in to' if user.user_name else \
         u'confirm your email and finish creating'
     msg = flask_mail.Message(

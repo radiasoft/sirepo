@@ -126,7 +126,7 @@ def pytest_collection_modifyitems(session, config, items):
         synergia='synergia',
         warp='warp',
     )
-    all_codes = set(sirepo.feature_config.ALL_CODES)
+    valid_codes = sirepo.feature_config.VALID_CODES
     codes = set()
     import_fail = PKDict()
     res = set()
@@ -139,17 +139,17 @@ def pytest_collection_modifyitems(session, config, items):
         if 'sbatch' in i.fspath.basename and slurm_not_installed:
             i.add_marker(pytest.mark.skip(reason="slurm not installed"))
             continue
-        c = [x for x in all_codes if x in i.name]
+        c = [x for x in valid_codes if x in i.name]
         if not c:
             continue
         c = c[0]
         if c in import_fail:
             i.add_marker(import_fail[c])
             continue
-        if c not in all_codes:
+        if c not in valid_codes:
             i.add_marker(
                 pytest.mark.skip(
-                    reason='skipping code={} not in codes={}'.format(c, all_codes),
+                    reason='skipping code={} not in valid_codes={}'.format(c, valid_codes),
                 ),
             )
             continue
@@ -166,7 +166,7 @@ def pytest_collection_modifyitems(session, config, items):
         return
     codes.add('myapp')
     import sirepo.srunit
-    sirepo.srunit.CONFTEST_ALL_CODES = ':'.join(codes)
+    sirepo.srunit.CONFTEST_DEFAULT_CODES = ':'.join(codes)
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -345,7 +345,7 @@ def _job_supervisor_start(request, cfg=None):
 def _sim_type(request):
     import sirepo.feature_config
 
-    for c in sirepo.feature_config.ALL_CODES:
+    for c in sirepo.feature_config.VALID_CODES:
         f = request.function
         n = getattr(f, 'func_name', None) or getattr(f, '__name__')
         if c in n or c in str(request.fspath.purebasename):

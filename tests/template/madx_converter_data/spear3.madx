@@ -64,6 +64,6 @@ IRNW: LINE=(DM1,SQNW,IR,DM10);
 RING: LINE=(MMM,BL13,CEL,BL12,CEL,BL11,CEL,CEL,BL4,CEL,BL5,CEL,BL6,CEL,-IRSE,IRNE,CEL,BL9,CEL,BL10,CEL,BL7,CEL,CEL,CEL,CEL,-IRNW,IRSW);
 
 
-beam, particle=positron, pc=0.0;
+beam;
 use, sequence=RING;
-twiss, file="twiss.tfs";
+twiss, file=twiss.tfs;
