@@ -18,7 +18,9 @@ SIREPO.appPanelHeadingButtons = [
 ].join('');
 
 SIREPO.app.factory('iradService', function(appState, panelState, requestSender, simulationQueue, utilities, $rootScope) {
-    var self = {};
+    var self = {
+        maxDose: 0,
+    };
     var dicomReader, doseFrames, doseReader, dose2Reader, roiPoints;
     var doseComparisonTriggerPerPlane = {
         s: doseComparisonTrigger('s'),
@@ -186,6 +188,7 @@ SIREPO.app.factory('iradService', function(appState, panelState, requestSender, 
 
     $rootScope.$on('modelsUnloaded', function() {
         dicomReader = doseFrames = doseReader = dose2Reader = roiPoints = null;
+        self.maxDose = 0;
         self.downloadStatus = '';
     });
 
@@ -435,8 +438,10 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, plotti
             reportId: '<',
         },
         template: [
-            '<div data-ng-if="! is3dViewActivated" data-ng-click="activate3dView()">',
-              '<div style="background: black; color: white; cursor: pointer; margin-bottom: 0; padding-top: 48%; padding-bottom: 48%" class="lead text-center">Click to view 3D model</div>',
+            '<div data-ng-if="! is3dViewActivated">',
+              '<div style="background: black; color: white; margin-bottom: 0; padding-top: 48%; padding-bottom: 48%">',
+                '<div style="cursor: pointer" class="lead text-center"  data-ng-click="activate3dView()" data-ng-if="iradService.getROIPoints()">Click to view 3D model</div>',
+              '</div>',
             '</div>',
             '<div data-ng-if="is3dViewActivated">',
               '<div data-dicom-orientation-marker=""></div>',
@@ -446,6 +451,7 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, plotti
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
+            $scope.iradService = iradService;
             var fsRenderer, pngCanvas;
             var actor = null;
             var roiActors = [];
@@ -781,6 +787,9 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, plotti
             }
 
             $scope.activate3dView = function() {
+                if (! iradService.getROIPoints()) {
+                    return;
+                }
                 $scope.is3dViewActivated = true;
                 appState.whenModelsLoaded($scope, function() {
                     plotting.linkPlot($scope, $element);
@@ -1154,6 +1163,89 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                 }
             };
 
+            function computeDoseComparison(event, dicomPlane, doseFrame) {
+                if (dicomPlane != $scope.model.dicomPlane || ! $scope.isDifferencePlot) {
+                    return;
+                }
+                var dose1Pixels = doseFrame[0][1];
+                var dose1Domain = doseFrame[0][2];
+                var dose2Pixels = doseFrame[1][1];
+                var dose2Domain = doseFrame[1][2];
+                if (! (dose1Pixels && dose2Pixels)) {
+                    return;
+                }
+                if (! dose2Pixels.length) {
+                    xdomain = null;
+                    refresh();
+                    return;
+                }
+                xdomain = [
+                    Math.min(dose1Domain[0][0], dose2Domain[0][0]),
+                    Math.max(dose1Domain[1][0], dose2Domain[1][0]),
+                ];
+                ydomain = [
+                    Math.min(dose1Domain[0][1], dose2Domain[0][1]),
+                    Math.max(dose1Domain[1][1], dose2Domain[1][1]),
+                ];
+                var x1Step = (dose1Domain[1][0] - dose1Domain[0][0]) / dose1Pixels[0].length;
+                var x2Step = (dose2Domain[1][0] - dose2Domain[0][0]) / dose2Pixels[0].length;
+                var xStep = Math.min(x1Step, x2Step);
+                var y1Step = (dose1Domain[1][1] - dose1Domain[0][1]) / dose1Pixels.length;
+                var y2Step = (dose2Domain[1][1] - dose2Domain[0][1]) / dose2Pixels.length;
+                var yStep = Math.min(y1Step, y2Step);
+
+                var dosePixels = [];
+                var maxDose = 0;
+                var yIdx = 0;
+                var offset = 0;
+                if (dicomPlane == 'c' || dicomPlane == 's') {
+                    //TODO(pjm): another odd offset adjustment
+                    offset = Math.round(((ydomain[1] - dose2Domain[1][1]) - (dose2Domain[0][1] - ydomain[0])) / y2Step);
+                }
+                for (var y = ydomain[0]; y < ydomain[1]; y = ydomain[0] + yIdx * yStep) {
+                    var row = [];
+                    dosePixels.push(row);
+                    var yIdx1 = Math.round((y - dose1Domain[0][1]) / y1Step);
+                    var yIdx2 = Math.round((y - dose2Domain[0][1]) / y2Step);
+                    yIdx2 -= offset;
+                    var xIdx = 0;
+                    for (var x = xdomain[0]; x < xdomain[1]; x = xdomain[0] + xIdx * xStep) {
+                        var v1 = 0;
+                        var v2 = 0;
+                        //TODO(pjm): combine into a shared function for x/y
+                        if (yIdx1 < 0 || yIdx1 >= dose1Pixels.length) {
+                        }
+                        else {
+                            var xIdx1 = Math.round((x - dose1Domain[0][0]) / x1Step);
+                            if (xIdx1 < 0 || xIdx1 > dose1Pixels[0].length) {
+                            }
+                            else {
+                                v1 = dose1Pixels[yIdx1][xIdx1];
+                            }
+                        }
+                        if (yIdx2 < 0 || yIdx2 >= dose2Pixels.length) {
+                        }
+                        else {
+                            var xIdx2 = Math.round((x - dose2Domain[0][0]) / x2Step);
+                            if (xIdx2 < 0 || xIdx2 > dose2Pixels[0].length) {
+                            }
+                            else {
+                                v2 = dose2Pixels[yIdx2][xIdx2];
+                            }
+                        }
+                        var diff = Math.abs(v2 - v1);
+                        row.push(diff);
+                        if (diff > maxDose) {
+                            maxDose = diff;
+                        }
+                        xIdx++;
+                    }
+                    yIdx++;
+                }
+                renderDose(dosePixels, maxDose);
+                refresh();
+            }
+
             function createData3d(data) {
                 return {
                     pointData: data.get().pointData.get().arrays[0].data.getData(),
@@ -1242,11 +1334,16 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                         roiFeature.clear();
                     }
                 }
-                var offset;
+                var offset = 0;
                 if (appState.models.dicomSettings.showRTDose == '1') {
-                    if ($scope.isDifferencePlot && xdomain) {
-                        offset = (dicomDomain[1][1] - ydomain[1])
-                            - (ydomain[0] - dicomDomain[0][1]);
+                    if ($scope.isDifferencePlot) {
+                        if (! xdomain) {
+                            return;
+                        }
+                        if ($scope.model.dicomPlane == 't') {
+                            offset = (dicomDomain[1][1] - ydomain[1])
+                                - (ydomain[0] - dicomDomain[0][1]);
+                        }
                         doseFeature.draw(
                             canvas, xdomain, [
                                 ydomain[0] + offset,
@@ -1255,8 +1352,11 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                     }
                     else if (dose3d) {
                         var doseDomain = domainForPlane(dose3d);
-                        offset = (dicomDomain[1][1] - doseDomain[1][1])
-                            - (doseDomain[0][1] - dicomDomain[0][1]);
+                        if ($scope.model.dicomPlane == 't') {
+                            //TODO(pjm): why is offset required for transverse only?
+                            offset = (dicomDomain[1][1] - doseDomain[1][1])
+                                - (doseDomain[0][1] - dicomDomain[0][1]);
+                        }
                         doseFeature.draw(
                             canvas, [
                                 doseDomain[0][0],
@@ -1269,81 +1369,6 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                 }
                 resetZoom();
             }
-
-            function computeDoseComparison(event, dicomPlane, doseFrame) {
-                if (dicomPlane != $scope.model.dicomPlane || ! $scope.isDifferencePlot) {
-                    return;
-                }
-                var dose1Pixels = doseFrame[0][1];
-                var dose1Domain = doseFrame[0][2];
-                var dose2Pixels = doseFrame[1][1];
-                var dose2Domain = doseFrame[1][2];
-                if (! (dose1Pixels && dose2Pixels)) {
-                    return;
-                }
-                xdomain = [
-                    Math.min(dose1Domain[0][0], dose2Domain[0][0]),
-                    Math.max(dose1Domain[1][0], dose2Domain[1][0]),
-                ];
-                ydomain = [
-                    Math.min(dose1Domain[0][1], dose2Domain[0][1]),
-                    Math.max(dose1Domain[1][1], dose2Domain[1][1]),
-                ];
-
-                var xStep = Math.min(
-                    (dose1Domain[1][0] - dose1Domain[0][0]) / dose1Pixels[0].length,
-                    (dose2Domain[1][0] - dose2Domain[0][0]) / dose2Pixels[0].length);
-                var yStep = Math.min(
-                    (dose1Domain[1][1] - dose1Domain[0][1]) / dose1Pixels.length,
-                    (dose2Domain[1][1] - dose2Domain[0][1]) / dose2Pixels.length);
-
-                var dosePixels = [];
-                var maxDose = 0;
-                var yIdx = 0;
-                for (var y = ydomain[0]; y < ydomain[1]; y = ydomain[0] + yIdx * yStep) {
-                    var row = [];
-                    dosePixels.push(row);
-                    var yIdx1 = Math.round((y - dose1Domain[0][1]) / yStep);
-                    var yIdx2 = Math.round((y - dose2Domain[0][1]) / yStep);
-                    var xIdx = 0;
-                    for (var x = xdomain[0]; x < xdomain[1]; x = xdomain[0] + xIdx * xStep) {
-                        var v1 = 0;
-                        var v2 = 0;
-                        //TODO(pjm): combine into a shared function for x/y
-                        if (yIdx1 < 0 || yIdx1 >= dose1Pixels.length) {
-                        }
-                        else {
-                            var xIdx1 = Math.round((x - dose1Domain[0][0]) / xStep);
-                            if (xIdx1 < 0 || xIdx1 > dose1Pixels[0].length) {
-                            }
-                            else {
-                                v1 = dose1Pixels[yIdx1][xIdx1];
-                            }
-                        }
-                        if (yIdx2 < 0 || yIdx2 >= dose2Pixels.length) {
-                        }
-                        else {
-                            var xIdx2 = Math.round((x - dose2Domain[0][0]) / xStep);
-                            if (xIdx2 < 0 || xIdx2 > dose2Pixels[0].length) {
-                            }
-                            else {
-                                v2 = dose2Pixels[yIdx2][xIdx2];
-                            }
-                        }
-                        var diff = v2 - v1;
-                        row.push(diff);
-                        if (diff > maxDose) {
-                            maxDose = diff;
-                        }
-                        xIdx++;
-                    }
-                    yIdx++;
-                }
-                renderDose(dosePixels, maxDose);
-                refresh();
-            }
-
-            $scope.$on('irad-compute-dose-comparison', computeDoseComparison);
 
             function initROI() {
                 if (dicomDomain && roiFeature) {
@@ -1370,23 +1395,22 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                         ] / 2);
                 }
 
+                // load slice here, sets zFrame
+                var pixels = sliceArray(data3d, data3d.metadata.RescaleIntercept, data3d.metadata.RescaleSlope);
                 if (roiFeature) {
                     roiFeature.load(zFrame);
                 }
                 if (dose3d) {
-                    var dosePixels;
                     if ($scope.isDifferencePlot) {
                         return;
                     }
-                    else {
-                        dosePixels = sliceArray(dose3d, 0, dose3d.metadata.DoseGridScaling);
-                        iradService.setDosePixels(
-                            $scope.model.dicomPlane,
-                            $scope.isComparePlot,
-                            zFrame,
-                            dosePixels,
-                            domainForPlane(dose3d));
-                    }
+                    var dosePixels = sliceArray(dose3d, 0, dose3d.metadata.DoseGridScaling);
+                    iradService.setDosePixels(
+                        $scope.model.dicomPlane,
+                        $scope.isComparePlot,
+                        zFrame,
+                        dosePixels,
+                        domainForPlane(dose3d));
                     //TODO(pjm): use one maxDose
                     renderDose(
                         dosePixels,
@@ -1401,7 +1425,6 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                     xAxisScale.domain(getRange(xValues));
                     yAxisScale.domain(getRange(yValues));
                 }
-                var pixels = sliceArray(data3d, data3d.metadata.RescaleIntercept, data3d.metadata.RescaleSlope);
                 dicomFeature.load(pixels);
                 dicomFeature.prepareImage(appState.models.dicomSettings.showCT == '1');
                 if (roiFeature) {
@@ -1411,6 +1434,10 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
             }
 
             function renderDose(dosePixels, maxDose) {
+                if (maxDose > iradService.maxDose) {
+                    iradService.maxDose = maxDose;
+                }
+                maxDose = iradService.maxDose;
                 //var colorMap = plotting.colorMapFromModel($scope.modelName);
                 var colorMap = plotting.colorMapOrDefault('jet');
                 var colorScale = d3.scale.linear()
@@ -1488,6 +1515,7 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                     xmax = dim[0];
                     ymax = dim[2];
                     for (yi = 0; yi < ymax; ++yi) {
+                        //TODO(pjm): why are c and s pixels flipped?
                         res[ymax - yi - 1] = [];
                         for (xi = 0; xi < xmax; ++xi) {
                             res[ymax - yi - 1][xi] = voxels[yi * (width * height) + idx * width + xi] * rescaleSlope + rescaleIntercept;
@@ -1592,6 +1620,7 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                 }
                 $scope.$on('dicomSettings.changed', renderData);
                 $scope.$watch('model.frameIdx', renderData);
+                $scope.$on('irad-compute-dose-comparison', computeDoseComparison);
             };
         },
         link: function link(scope, element) {
