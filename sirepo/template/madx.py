@@ -283,31 +283,29 @@ def _extract_report_data(data, run_dir):
 
 
 def _extract_report_bunchReport(data, run_dir):
-    #pkdp('EXTRACT BUNCH {}', data)
     util = LatticeUtil(data, _SCHEMA)
     m = util.find_first_command(data, 'twiss')
     if not m:
         return template_common.parameter_plot([], [], None, PKDict())
-    r_model = data.models[data.report]
-    #pkdp('BUNCH MDL {}', r_model)
-    x_axis = r_model.x
-    y_axis = r_model.y
     # read from file?  store on model?
     parts = _ptc_particles(
         _get_initial_twiss_params(data),
         data.models.simulation.numberOfParticles
     )
-    x_dim = x_axis[-1]
-    y_dim = y_axis[-1]
-    x = parts[x_dim].pos if x_axis[0] == x_dim else parts[x_dim].p
-    y = parts[y_dim].pos if y_axis[0] == y_dim else parts[y_dim].p
+    labels = []
+    res = []
+    r_model = data.models[data.report]
+    for dim in ('x', 'y'):
+        c = _SCHEMA.constants.phaseSpaceParticleMap[r_model[dim]]
+        res.append(parts[c[0]][c[1]])
+        labels.append(r_model[dim])
 
     return template_common.heatmap(
-        [x, y],
+        res,
         PKDict(histogramBins=100),
         PKDict(
-            x_label=x_axis,
-            y_label=y_axis,
+            x_label=labels[0],
+            y_label=labels[1],
             title='BUNCH',
         )
     )

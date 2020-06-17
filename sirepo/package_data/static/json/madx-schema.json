@@ -43,7 +43,15 @@
             "MARKER",
             "QUADRUPOLE",
             "SEXTUPOLE"
-        ]
+        ],
+        "phaseSpaceParticleMap": {
+            "x":  ["x", "pos"],
+            "y":  ["y", "pos"],
+            "t":  ["t", "pos"],
+            "px":  ["x", "p"],
+            "py":  ["y", "p"],
+            "pt":  ["t", "p"]
+        }
     },
     "dynamicFiles": {
         "externalLibs": {
