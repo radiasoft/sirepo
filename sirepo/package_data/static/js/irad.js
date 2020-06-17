@@ -36,10 +36,10 @@ SIREPO.app.factory('iradService', function(appState, panelState, requestSender, 
         }
         self.downloadStatus = 'Loading DICOM';
         panelState.waitForUI(function() {
-            downloadVTIDataFile(SIREPO.APP_SCHEMA.constants.dicomFrame, function() {
+            downloadVTIDataFile(SIREPO.APP_SCHEMA.constants.dicomFrameId, function() {
                 self.downloadStatus = 'Loading Dose';
                 panelState.waitForUI(function() {
-                    downloadVTIDataFile(SIREPO.APP_SCHEMA.constants.doseFrame, function() {
+                    downloadVTIDataFile(SIREPO.APP_SCHEMA.constants.doseFrameId, function() {
                         panelState.waitForUI(function() {
                             downloadROIDataFile(callback);
                         });
@@ -56,7 +56,7 @@ SIREPO.app.factory('iradService', function(appState, panelState, requestSender, 
         self.downloadStatus = 'Loading Regions of Interest';
         var simId = appState.models.simulation.simulationId;
         requestSender.sendRequest(
-            urlForFrame(simId, SIREPO.APP_SCHEMA.constants.roiFrame),
+            urlForFrame(simId, SIREPO.APP_SCHEMA.constants.roiFrameId),
             function(data) {
                 if (isValidSimulation(simId)) {
                     self.downloadStatus = '';
@@ -85,13 +85,13 @@ SIREPO.app.factory('iradService', function(appState, panelState, requestSender, 
             loadData: true,
         }).then(function() {
             if (isValidSimulation(simId)) {
-                if (frame == SIREPO.APP_SCHEMA.constants.dicomFrame) {
+                if (frame == SIREPO.APP_SCHEMA.constants.dicomFrameId) {
                     dicomReader = reader;
                 }
-                else if (frame == SIREPO.APP_SCHEMA.constants.doseFrame) {
+                else if (frame == SIREPO.APP_SCHEMA.constants.doseFrameId) {
                     doseReader = reader;
                 }
-                else if (frame == SIREPO.APP_SCHEMA.constants.dose2Frame) {
+                else if (frame == SIREPO.APP_SCHEMA.constants.dose2FrameId) {
                     dose2Reader = reader;
                 }
                 $rootScope.$broadcast('irad-vti-available', frame);
@@ -160,7 +160,7 @@ SIREPO.app.factory('iradService', function(appState, panelState, requestSender, 
         }
         self.downloadStatus = 'Loading Dose 2';
         panelState.waitForUI(function() {
-            downloadVTIDataFile(SIREPO.APP_SCHEMA.constants.dose2Frame, function() {
+            downloadVTIDataFile(SIREPO.APP_SCHEMA.constants.dose2FrameId, function() {
                 self.downloadStatus = '';
                 $rootScope.$digest();
             });
@@ -283,7 +283,7 @@ SIREPO.app.controller('SourceController', function (appState, iradService, $scop
     });
 });
 
-SIREPO.app.directive('appFooter', function() {
+SIREPO.app.directive('appFooter', function(appState, requestSender, $location) {
     return {
 	restrict: 'A',
 	scope: {
@@ -292,6 +292,20 @@ SIREPO.app.directive('appFooter', function() {
         template: [
             '<div data-common-footer="nav"></div>',
 	].join(''),
+        controller: function($scope) {
+            $scope.$on('$routeChangeSuccess', function() {
+                if ($location.path() == SIREPO.APP_SCHEMA.localRoutes.simulations.route) {
+                    // hide the New Simulation link
+                    $('.sr-new-simulation-item').hide();
+                    appState.listSimulations(function(sims) {
+                        if (! sims.length) {
+                            // user has no sims, open a new link to the demo sim
+                            requestSender.localRedirectHome(SIREPO.APP_SCHEMA.constants.demoSims[0]);
+                        }
+                    });
+                }
+            });
+        },
     };
 });
 
@@ -502,11 +516,11 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, plotti
 
             function refresh(event, frame) {
                 var reader;
-                if (frame == SIREPO.APP_SCHEMA.constants.dicomFrame) {
+                if (frame == SIREPO.APP_SCHEMA.constants.dicomFrameId) {
                     reader = iradService.getDicomReader();
                     dicomSpacing = reader.getOutputData().getSpacing();
                 }
-                // else if (frame == SIREPO.APP_SCHEMA.constants.doseFrame) {
+                // else if (frame == SIREPO.APP_SCHEMA.constants.doseFrameId) {
                 //     reader = iradService.getDoseReader();
                 //     if (! showRTDose) {
                 //         return;
@@ -523,7 +537,7 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, plotti
                 var metadata = reader.getOutputData().get().metadata;
 
                 var ofun, ctfun;
-                if (frame == SIREPO.APP_SCHEMA.constants.dicomFrame) {
+                if (frame == SIREPO.APP_SCHEMA.constants.dicomFrameId) {
                     //mapper.setSampleDistance(0.7);
                     setVolumeProperties(reader, actor, VOLUME_SHADING.beige);
 
@@ -818,8 +832,8 @@ SIREPO.app.directive('dicom3d', function(appState, geometry, iradService, plotti
 
             $scope.initData = function() {
                 if (iradService.getROIPoints()) {
-                    refresh(null, SIREPO.APP_SCHEMA.constants.dicomFrame);
-                    refresh(null, SIREPO.APP_SCHEMA.constants.doseFrame);
+                    refresh(null, SIREPO.APP_SCHEMA.constants.dicomFrameId);
+                    refresh(null, SIREPO.APP_SCHEMA.constants.doseFrameId);
                     showActiveRoi();
                 }
                 else {
@@ -1283,17 +1297,17 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
             }
 
             function loadData3d(event, frame) {
-                if (frame == SIREPO.APP_SCHEMA.constants.dicomFrame) {
+                if (frame == SIREPO.APP_SCHEMA.constants.dicomFrameId) {
                     data3d = createData3d(iradService.getDicomReader().getOutputData());
                     $scope.maxFrame = data3d.dim[$scope.model.dicomPlane == 't' ? 2 : $scope.model.dicomPlane == 'c' ? 1 : 0];
                 }
-                else if (frame == SIREPO.APP_SCHEMA.constants.doseFrame) {
+                else if (frame == SIREPO.APP_SCHEMA.constants.doseFrameId) {
                     if ($scope.isComparePlot || $scope.isDifferencePlot) {
                         return;
                     }
                     dose3d = createData3d(iradService.getDoseReader().getOutputData());
                 }
-                else if (frame == SIREPO.APP_SCHEMA.constants.dose2Frame) {
+                else if (frame == SIREPO.APP_SCHEMA.constants.dose2FrameId) {
                     if (! $scope.isComparePlot) {
                         return;
                     }
@@ -1376,7 +1390,7 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
                     refresh();
                 }
                 if (iradService.getDose2Reader()) {
-                    loadData3d(null, SIREPO.APP_SCHEMA.constants.dose2Frame);
+                    loadData3d(null, SIREPO.APP_SCHEMA.constants.dose2FrameId);
                 }
             }
 
@@ -1611,8 +1625,8 @@ SIREPO.app.directive('dicomPlot', function(appState, panelState, plotting, iradS
             $scope.initData = function() {
                 $scope.$on('irad-vti-available', loadData3d);
                 if (iradService.getROIPoints()) {
-                    loadData3d(null, SIREPO.APP_SCHEMA.constants.dicomFrame);
-                    loadData3d(null, SIREPO.APP_SCHEMA.constants.doseFrame);
+                    loadData3d(null, SIREPO.APP_SCHEMA.constants.dicomFrameId);
+                    loadData3d(null, SIREPO.APP_SCHEMA.constants.doseFrameId);
                     initROI();
                 }
                 else {

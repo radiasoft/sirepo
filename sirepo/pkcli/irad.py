@@ -81,13 +81,10 @@ def process_dicom_files(cfg_dir):
 def run(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     if data.report == 'dvhReport':
-        sim_id = data.models.simulation.simulationId
-        filename = template.sim_file(sim_id, _DVH_FILE_NAME)
+        filename = template.lib_file_for_sim(data, _DVH_FILE_NAME)
         template_common.write_sequential_result(simulation_db.read_json(filename))
     elif data.report == 'dicom3DReport':
-        template_common.write_sequential_result({
-            'simulationId': data.models.simulation.simulationId,
-        })
+        template_common.write_sequential_result({})
     else:
         assert False, 'unknown report: {}'.format(data.report)
 

@@ -11,12 +11,12 @@
         ]
     },
     "constants": {
-        "dicomFrame": 1,
-        "dose2Frame": 3,
-        "dose3Frame": 4,
-        "doseFrame": 2,
+        "demoSims": ["iraddemo"],
+        "dicomFrameId": 1,
+        "dose2FrameId": 3,
+        "doseFrameId": 2,
         "inProgressText": "Working",
-        "roiFrame": 5
+        "roiFrameId": 5
     },
     "dynamicFiles": {
         "externalLibs": {
@@ -60,6 +60,9 @@
             "showRTStruct": ["RTSTRUCT", "Boolean", "1"],
             "showRTPlan": ["RTPLAN", "Boolean", "0"],
             "toggle3D": ["Toggle", "ReportToggle", "3d"]
+        },
+        "simulation": {
+            "libFilePrefix": ["", "String"]
         }
     },
     "view": {

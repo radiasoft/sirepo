@@ -20,28 +20,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
-        dm = data.models
-        cls._init_models(
-            dm,
-            (
-                'dicomSettings',
-            ),
-        )
-        if 'dicomReports' not in dm:
-            dm.dicomReports = [
-                PKDict(
-                    id=1,
-                    dicomPlane='t',
-                ),
-                PKDict(
-                    id=2,
-                    dicomPlane='c',
-                ),
-                PKDict(
-                    id=3,
-                    dicomPlane='s',
-                ),
-            ]
+        pass
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
@@ -49,4 +28,12 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _lib_file_basenames(cls, data):
-        return []
+        prefix = data.models.simulation.libFilePrefix
+        #TODO(pjm): share list and prefix formatting with template.irad
+        return ['{}-{}'.format(prefix, v) for v in [
+            'ct.zip',
+            'dvh-data.json',
+            'rtdose.zip',
+            'rtdose2.zip',
+            'rtstruct-data.json',
+        ]]

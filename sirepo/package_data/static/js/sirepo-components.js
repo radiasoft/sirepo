@@ -1988,7 +1988,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                     '</li>',
                 '</ul>',
                 '<ul class="nav navbar-nav" data-ng-show="nav.isActive(\'simulations\')">',
-                    '<li><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
+                    '<li class="sr-new-simulation-item"><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
                     '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
                     '<li data-ng-transclude="appHeaderRightSimListSlot"></li>',
                 '</ul>',
