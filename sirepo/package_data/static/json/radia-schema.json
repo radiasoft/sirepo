@@ -328,6 +328,14 @@
                 "ptZ"
             ]
         },
+        "simulation": {
+            "title": "Simulation",
+            "advanced": [
+                "name",
+                "folder",
+                "geometry.beamAxis"
+            ]
+        },
         "solver": {
             "title": "Solver",
             "basic": [

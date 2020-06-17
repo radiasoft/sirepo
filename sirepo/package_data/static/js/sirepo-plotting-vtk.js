@@ -868,6 +868,7 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
         scope: {
             modelName: '@',
             objectModel: '@',
+            source: '=controller',
         },
         templateUrl: '/static/html/3d-builder.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
@@ -883,6 +884,7 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
             var scale = SIREPO.APP_SCHEMA.constants.objectScale || 1.0;
 
             $scope.margin = {top: 20, right: 20, bottom: 45, left: 70};
+            //$scope.source = panelState.findParentAttribute($scope, 'source');
             $scope.width = $scope.height = 0;
             $scope.is3dPreview = false;
 
@@ -898,22 +900,22 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
             }
 
             function d3DragEndShape(shape) {
-                var conductorPosition = warpvndService.findConductor(shape.id);
                 $scope.$applyAsync(function() {
                     if (isShapeInBounds(shape)) {
-                        conductorPosition.zCenter = formatMicron(shape.x + shape.width / 2);
-                        var ctr = formatMicron(shape.y - shape.height / 2);
-                        if (shape.elev == ELEVATIONS.front) {
-                            conductorPosition.xCenter = ctr;
+                        var o = $scope.source.getObject(shape.id);
+                        if (! o) {
+                            return;
                         }
-                        else {
-                            conductorPosition.yCenter = ctr;
-                        }
-                        appState.saveChanges('conductors');
+                        o.center = [
+                            shape.x + shape.width / 2,
+                            shape.y - shape.height / 2,
+                            shape.depth / 2
+                        ].join(',');
+                        appState.saveChanges($scope.modelName);
                     }
                     else {
-                        appState.cancelChanges('conductors');
-                        $scope.source.deleteConductorPrompt(shape);
+                        appState.cancelChanges($scope.modelName);
+                        //$scope.source.deleteConductorPrompt(shape);
                     }
                 });
                 hideShapeLocation();
@@ -943,7 +945,7 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                 var shapes = [];
                 (appState.models[$scope.modelName].objects || [])
                     .forEach(function(o) {
-                        srdbg('draw obj', o);
+                        //srdbg('draw obj', o);
                         var center = angular.isString(o.center) ? stringToFloatArray(o.center) : o.center;
                         var size = angular.isString(o.size) ? stringToFloatArray(o.size) : o.size;
                         shapes.push({
@@ -952,6 +954,7 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                             id: o.id,
                             name: o.name,
                             shape: o.layoutShape || 'rect',
+                            depth: size[0],
                             width: size[1],
                             height: size[2],
                             x: center[1] - size[1] / 2,
@@ -977,7 +980,7 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
             function editPosition(shape) {
                 d3.event.stopPropagation();
                 $scope.$applyAsync(function() {
-                    $scope.source.editConductor(shape.id);
+                    $scope.source.editObject(shape.id);
                 });
             }
 
@@ -1007,6 +1010,7 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
             }
 
             function isShapeInBounds(shape) {
+                /*
                 var vAxis = shape.elev === ELEVATIONS.front ? axes.y : axes.z;
                 var bounds = {
                     top: shape.y,
@@ -1018,6 +1022,8 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                     || bounds.top < vAxis.domain[0] || bounds.bottom > vAxis.domain[1]) {
                     return false;
                 }
+
+                 */
                 return true;
             }
 
@@ -1099,20 +1105,20 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
 
             function replot() {
                 // total x extent
-                var newXDomain = [-0.5, 0.5];
+                var newXDomain = [-0.025, 0.025];
                 if (! axes.x.domain || ! appState.deepEquals(axes.x.domain, newXDomain)) {
                     axes.x.domain = newXDomain;
                     axes.x.scale.domain(axes.x.domain);
                     $scope.xRange = appState.clone(axes.x.domain);
                 }
                 // total y extent
-                var newYDomain = [-0.5, 0.5];
+                var newYDomain = [-0.025, 0.025];
                 if (! axes.y.domain || ! appState.deepEquals(axes.y.domain, newYDomain)) {
                     axes.y.domain = newYDomain;
                     axes.y.scale.domain(axes.y.domain);
                 }
                 // total z extent
-                var newZDomain = [-0.5, 0.5];
+                var newZDomain = [-0.025, 0.025];
                 if (! axes.z.domain || ! appState.deepEquals(axes.z.domain, newZDomain)) {
                     axes.z.domain = newZDomain;
                     axes.z.scale.domain(axes.z.domain);
@@ -1146,6 +1152,7 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                     elev: ELEVATIONS.front,
                     name: model.name,
                     shape: model.layoutShape || 'rect',
+                    depth: size[0],
                     width: size[1],
                     height: size[2],
                     id: model.id,

@@ -212,16 +212,33 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
 
 SIREPO.app.controller('RadiaSourceController', function (appState, panelState, $scope) {
     var self = this;
+    var geomObjs = [];
     self.toolbarItems = SIREPO.APP_SCHEMA.constants.toolbarItems;
 
     self.isEditable = function() {
         return true;
     };
 
-    function addGeomObj(objModel) {
-        if (! appState.models.geometry.objects) {
-            appState.models.geometry.objects = [];
+    self.editObject = function(id) {
+        var o = self.getObject(id);
+        if (! o) {
+            return;
         }
+        appState.models.geomObject = o;
+        panelState.showModalEditor('geomObject');
+    };
+
+    self.getObject = function(id) {
+        for (var i in geomObjs) {
+            if (geomObjs[i].id == id) {
+                return geomObjs[i];
+            }
+        }
+        return null;
+    }
+
+    function addGeomObj(objModel) {
+        objModel.id  = appState.models.geometry.objects.length;
         appState.models.geometry.objects.push(objModel);
         appState.saveChanges('geometry');
     }
@@ -231,6 +248,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, $
         //appState.watchModelFields($scope, ['model.field'], function() {
         //});
         //srdbg('RadiaSourceController');
+        if (! appState.models.geometry.objects) {
+            appState.models.geometry.objects = [];
+        }
+        geomObjs = appState.models.geometry.objects;
         $scope.$on('layout.object.dropped', function (e, o) {
             var m = appState.setModelDefaults({}, o.model);
             srdbg('dropped', o, '->', m);

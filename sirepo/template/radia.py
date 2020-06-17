@@ -361,7 +361,7 @@ def _generate_parameters_file(data):
 
     v['dmpFile'] = _dmp_file(sim_id)
     v['isExample'] = data.models.simulation.get('isExample', False)
-    v['objects'] = g.objects or []
+    v['objects'] = g.get('objects', [])
     v['geomName'] = g.name
     disp = data.models.magnetDisplay
     v_type = disp.viewType
