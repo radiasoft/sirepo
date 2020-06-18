@@ -42,7 +42,6 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-        # TODO(e-carlin): impl
         if 'bunchReport' in compute_model:
             # this can't be the right way to do this...
             return [compute_model + '.x', compute_model + '.y']
