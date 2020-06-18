@@ -101,8 +101,6 @@ def get_application_data(data, **kwargs):
     assert 'method' in data
     assert data.method in _METHODS, \
         'unknown application data method: {}'.format(data.method)
-    #if data.method in template_common.RPN_METHODS:
-    #    return template_common.get_rpn_data(data, _SCHEMA, _MADX_CONSTANTS)
     cv = code_variable.CodeVar(
         data.variables,
         code_variable.PurePythonEval(_MADX_CONSTANTS),
@@ -151,13 +149,6 @@ def import_file(req, test_data=None, **kwargs):
         if input_data:
             _map_commands_to_lattice(data)
     elif re.search(r'\.madx$', req.filename, re.IGNORECASE):
-        #madx = madx_parser.parse_file(text, downcase_variables=True)
-        #data = madx_converter.from_madx(
-        #    SIM_TYPE,
-        #    madx_parser.parse_file(text, downcase_variables=True)
-        #)
-        #mm = madx_parser.parse_file(text, downcase_variables=True)
-        #pkdp('MADX {} VS DATA {}', mm, data)
         data = madx_parser.parse_file(text, downcase_variables=True)
         madx_converter.fixup_madx(data)
     else:
@@ -177,7 +168,6 @@ def import_file(req, test_data=None, **kwargs):
 
 
 def is_initial_report(rpt):
-    #pkdp('INIT RPT {}?', re.sub(r'\d+$', '', rpt) in _INITIAL_REPORTS)
     return re.sub(r'\d+$', '', rpt) in _INITIAL_REPORTS
 
 
@@ -229,7 +219,6 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
-    #path = 'bunch.py' if is_initial_report(data.report) else MADX_INPUT_FILENAME
     pkio.write_text(
         run_dir.join(_MADX_PTC_PARTICLES_FILE),
         _generate_ptc_particles_file(data),
@@ -345,7 +334,6 @@ def _get_initial_twiss_params(data):
 def _extract_report_twissEllipseReport(data, run_dir):
     util = LatticeUtil(data, _SCHEMA)
     m = util.find_first_command(data, 'twiss')
-    #pkdp('TWISS FOUND {}', m)
     # must an initial twiss always exist?
     if not m:
         return template_common.parameter_plot([], [], None, PKDict())
@@ -359,19 +347,16 @@ def _extract_report_twissEllipseReport(data, run_dir):
     a = float(m[alf])
     b = float(m[bet])
     g = (1. + a * a) / b
-    #pkdp('ELLIPSE A {} B {}', a, b)
     eta = 'e{}'.format(dim)
     e = m[eta] if eta in m else 1.0
     phi = _twiss_ellipse_rotation(a, b)
     th = theta - phi
-    #pkdp('ELLIPSE ROT {}', phi)
     mj = math.sqrt(e * b)
     mn = 1.0 / mj
     r = np.power(
         mn * np.cos(th) * np.cos(th) + mj * np.sin(th) * np.sin(th),
         -0.5
     )
-    #pkdp('ELLIPSE R(TH) {}', r)
     x = r * np.cos(theta)
     y = r * np.sin(theta)
     p = PKDict(field=dim, points=y.tolist(), label=f'{dim}\' [rad]')
@@ -429,7 +414,6 @@ def _extract_report_twissReport(data, run_dir):
 
 
 def _format_field_value(state, model, field, el_type):
-    #pkdp('M {} F {} VAL {} T {}', model, field, model[field], el_type)
     v = model[field]
     if el_type == 'Boolean':
         v = 'true' if v == '1' else 'false'
@@ -471,14 +455,11 @@ def _generate_parameters_file(data):
     v.report = re.sub(r'\d+$', '', data.report)
     if v.report in _INITIAL_REPORTS:
         # these reports do not require running madx first
-        #pkdp('INIT RPT MDOELS {}', data.models)
         v.initialTwissParameters = _get_initial_twiss_params(data)
-        #pkdp('TWISS {}', v.initialTwissParameters)
         v.numParticles = data.models.particleTracking.numParticles
         v.particleFile = simulation_db.simulation_dir(SIM_TYPE, data.simulationId) \
             .join(data.report).join('ptc_particles.txt')
         res = template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
-        #pkdp('GENED P {}', res)
         return res
 
     util = LatticeUtil(data, _SCHEMA)
@@ -527,7 +508,6 @@ def _generate_variables(code_var, data):
 
 
 def _format_field_value(state, model, field, el_type):
-    #pkdp('FORMAT ST {} M {} F {} T {}', state, model, field, el_type)
     v = model[field]
     if el_type == 'Boolean':
         v = 'true' if v == '1' else 'false'
@@ -536,67 +516,8 @@ def _format_field_value(state, model, field, el_type):
     return [field, v]
 
 
-# TODO(e-carlin): copied from https://github.com/radiasoft/rscon/blob/d3abdaf5c1c6d41797a4c96317e3c644b871d5dd/webcon/madx_examples/FODO_example_PTC.ipynb
-#def _ptc_particles(beam_gamma = 7.0, x_emittance = 1.0e-6, y_emittance = 1.0e-6,
-#                 beta_x = 29.528, beta_y = 7.347, alpha_x = -3.237, alpha_y = 0.986, n_particles = 1000
-#                 ):
-    ## beta is the beam velocity over the speed of light
-#    beta = np.sqrt(1. - 1. / beam_gamma **2.)
-
-    ## p0 is the beam momentum
-#    p0 = beta * beam_gamma * scipy.constants.c * scipy.constants.m_p
-
-    ## Beam kenetic energ
-#    E0 = (beam_gamma - 1.) * scipy.constants.m_p * scipy.constants.c ** 2.
-
-    ##
-#    n_part = n_particles
-#    ex = x_emittance
-#    ey = y_emittance
-
-    ## Gamma is a derived twiss parameter from alpha and beta
-#    gamma_x = (1. + alpha_x ** 2.) / beta_x
-#    gamma_y = (1. + alpha_y ** 2.) / beta_y
-
-    ## rms beam size
-#    xx = beta_x * ex
-#    yy = beta_y * ey
-
-    ## x-xp correlation
-#    xxp = - alpha_x * ex
-#    yyp = - alpha_y * ey
-
-    ## rms size in momentum
-#    xpxp = ex * gamma_x
-#    ypyp = ey * gamma_y
-
-    ## covariance matrix for gaussian beam
-    ## in the future we will want to be able to define
-    ## centroid values, and also x-y correlation terms
-#    mean = [0, 0, 0, 0]
-#    cov = [[xx, xxp, 0 , 0],
-#           [xxp, xpxp, 0, 0],
-#           [0, 0, yy, yyp],
-#           [0, 0, yyp, ypyp]]
-
-#    transverse = np.random.multivariate_normal(mean, cov, n_part)
-
-#    x = transverse[:,0]
-#    xp = transverse[:,1]
-##    y = transverse[:,2]
-#    yp = transverse[:,3]
-
-    ## for now the longitudional coordinates are set to zero. This just means there
-    # is no longitudioanl distribuion. We can change this soon.
-#    long_part = np.random.multivariate_normal([0, 0], [[0, 0],[0, 0]], n_part)
-
-#    particles = np.column_stack([x, xp, y, yp, long_part[:,0], long_part[:,1]])
-
-#    return particles
-
 # condensed version of https://github.com/radiasoft/rscon/blob/d3abdaf5c1c6d41797a4c96317e3c644b871d5dd/webcon/madx_examples/FODO_example_PTC.ipynb
 def _ptc_particles(twiss_params, num_particles):
-    #pkdp('BUILD {} PARTS FROM {}', num_particles, twiss_params)
     mean = [0, 0, 0, 0]
     cov = []
     for dim in twiss_params:
@@ -628,7 +549,6 @@ def _ptc_particles(twiss_params, num_particles):
 
 
 def _ptc_start_commands(data):
-    #p = _ptc_particles(n_particles=data.models.simulation.numberOfParticles)
     p = _ptc_particles(
         _get_initial_twiss_params(data),
         data.models.simulation.numberOfParticles
@@ -643,14 +563,6 @@ def _ptc_start_commands(data):
         pt=p.t.p,
     )
 
-    #v = PKDict(
-    #    x=p[:,0],
-    #    px=p[:,1],
-    #    y=p[:,2],
-    #    py=p[:,3],
-    #    t=p[:,4],
-    #    pt=p[:,5],
-    #)
     r = ''
     for i in range(len(v.x)):
         r += 'ptc_start'
