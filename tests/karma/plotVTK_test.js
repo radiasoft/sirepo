@@ -154,8 +154,9 @@ describe('geometry', function() {
         var lArr = [l1, l2];
         var lIn = r1.segmentsInside(lArr);
         expect(lIn.length).toBe(1);
-        //TODO(pjm): fails with irad changes
-        //expect(lIn[0].equals(l1)).toBeTruthy();
+        expect(lIn[0].p1.equals(l1.p1)).toBeTruthy();
+        expect(lIn[0].p2.equals(l1.p2)).toBeTruthy();
+        expect(lIn[0].ext == l1.ext).toBeTruthy();
 
         expect(r1.intersectsRect(r2)).toBeTruthy();
         expect(r2.intersectsRect(r1)).toBeTruthy();
