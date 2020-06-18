@@ -272,10 +272,6 @@ def _extract_report_data(data, run_dir):
 
 
 def _extract_report_bunchReport(data, run_dir):
-    util = LatticeUtil(data, _SCHEMA)
-    m = util.find_first_command(data, 'twiss')
-    if not m:
-        return template_common.parameter_plot([], [], None, PKDict())
     # read from file?  store on model?
     parts = _ptc_particles(
         _get_initial_twiss_params(data),
@@ -411,15 +407,6 @@ def _extract_report_twissReport(data, run_dir):
         m,
         PKDict(title=data.models.simulation.name, y_label='', x_label=_FIELD_LABEL[x])
     )
-
-
-def _format_field_value(state, model, field, el_type):
-    v = model[field]
-    if el_type == 'Boolean':
-        v = 'true' if v == '1' else 'false'
-    elif el_type == 'LatticeBeamlineList':
-        v = state.id_map[int(v)].name
-    return [field, v]
 
 
 def _generate_commands(util):
