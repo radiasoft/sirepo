@@ -486,9 +486,6 @@
             "eta": ["Emittance", "Float", 1.0],
             "gamma": ["Gamma", "Float", 1.0]
         },
-        "particleTracking": {
-            "numParticles": ["Number of particles", "Integer", 1000, "", 1, 100000]
-        },
         "ptcAnimation": {
             "x": ["Horizontal Value to Plot", "PtcParameter", "x"],
             "y": ["Vertical Value to Plot", "PtcParameter", "px"],
@@ -1161,7 +1158,7 @@
             "description": "The BEAM statement defines data for the particles in a beam.",
             "basic": [
                 "simulation.enableParticleTracking",
-                "particleTracking.numParticles",
+                "simulation.numberOfParticles",
                 "particle",
                 "bcurrent",
                 "npart"
@@ -1169,7 +1166,7 @@
             "advanced": [
                 ["Main", [
                     "simulation.enableParticleTracking",
-                    "particleTracking.numParticles",
+                    "simulation.numberOfParticles",
                     "sequence",
                     "particle",
                     "mass",
