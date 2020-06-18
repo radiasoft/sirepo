@@ -196,9 +196,12 @@ def _init():
                 ).distinct().all()
             ]
 
-
-    # only creates tables that don't already exist
-    UserDbBase.metadata.create_all(_engine)
+    #TODO(pjm): work-around for #2585
+    try:
+        # only creates tables that don't already exist
+        UserDbBase.metadata.create_all(_engine)
+    except sqlalchemy.exc.OperationalError:
+        pass
 
 
 def _migrate_db_file(fn):
