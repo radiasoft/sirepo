@@ -23,7 +23,7 @@ _NON_ALPHA_FOSS_CODES = frozenset((
 ))
 
 #: Codes on dev and alpha
-ALPHA_CODES = frozenset((
+_ALPHA_FOSS_CODES = frozenset((
     'irad',
     'radia',
     'madx',
