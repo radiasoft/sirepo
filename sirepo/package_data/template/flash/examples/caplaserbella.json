@@ -656,6 +656,9 @@
             "rt_timeGroups": "0",
             "rt_useMGD": "1"
         },
+        "physics:materialProperties:Conductivity": {
+            "useConductivity": "1"
+        },
         "physics:materialProperties:Opacity": {
             "useOpacity": "1"
         },
@@ -771,6 +774,9 @@
         "physics:sourceTerms:Flame:FlameSpeed:Constant": {
             "fl_fsConstFlameSpeed": 1,
             "fl_fsConstFlameWidth": 1
+        },
+        "physics:sourceTerms:Heatexchange": {
+            "useHeatExchange": "1"
         },
         "physics:sourceTerms:Heatexchange:Spitzer": {
             "hx_dtFactor": 1e+100,
