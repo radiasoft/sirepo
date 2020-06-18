@@ -38,8 +38,9 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
             if (source) {
                 m.setInputConnection(source.getOutputPort());
             }
-            var a = vtk.Rendering.Core.vtkActor.newInstance();
-            a.setMapper(m);
+            var a = vtk.Rendering.Core.vtkActor.newInstance({
+                mapper: m
+            });
 
             return {
                 actor: a,
@@ -179,6 +180,23 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 planeBundle.source.setPoint1(vp1[0], vp1[1], vp1[2]);
                 planeBundle.source.setPoint2(vp2[0], vp2[1], vp2[2]);
             },
+
+            userMatrix: function () {
+                // Array.flat() doesn't exist in MS browsers
+                // var m = transform.matrix.flat();
+                var matrix = transform.matrix;
+                var m = [];
+                for (var i = 0; i < matrix.length; i++) {
+                    for (var j = 0; j < matrix[i].length; j++) {
+                        m.push(matrix[i][j]);
+                    }
+                }
+                m.splice(3, 0, 0);
+                m.splice(7, 0, 0);
+                m.push(0);
+                m.push (0, 0, 0, 1);
+                return m;
+            }
         };
     };
 
@@ -255,12 +273,9 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
         });
 
         // perform the sectioning
-        var f = [cyl];
-        f.concat(pl);
         var section = vtk.Common.DataModel.vtkImplicitBoolean.newInstance({
             operation: 'Intersection',
-            functions: f
-            //functions: [cyl, ...pl]
+            functions: [cyl, pl[0], pl[1], pl[2], pl[3]]
         });
 
         var sectionSample = vtk.Imaging.Hybrid.vtkSampleFunction.newInstance({
@@ -282,7 +297,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
        return sectionSource;
     };
 
-    self.setColorSclars = function(data, color) {
+    self.setColorScalars = function(data, color) {
         var pts = data.getPoints();
         var n = color.length * (pts.getData().length / pts.getNumberOfComponents());
         var pd = data.getPointData();
