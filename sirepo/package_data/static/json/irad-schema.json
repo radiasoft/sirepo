@@ -1,0 +1,86 @@
+{
+    "enum": {
+        "DicomPlane": [
+            ["c", "Coronal"],
+            ["t", "Transverse"],
+            ["s", "Sagittal"]
+        ],
+        "ReportToggle": [
+            ["3d", "3D"],
+            ["dvh", "DVH"]
+        ]
+    },
+    "constants": {
+        "demoSims": ["iraddemo"],
+        "dicomFrameId": 1,
+        "dose2FrameId": 3,
+        "doseFrameId": 2,
+        "inProgressText": "Working",
+        "roiFrameId": 5
+    },
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "vtk.js"
+            ]
+        },
+        "sirepoLibs": {
+            "js": ["irad.js"],
+            "css": [
+                "vtk.css",
+                "irad.css"
+            ]
+        }
+    },
+    "frameIdFields": {
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/irad-source.html"
+            }
+        },
+        "dose": {
+            "route": "/dose/:simulationId",
+            "config": {
+                "controller": "DoseController as dose",
+                "templateUrl": "/static/html/irad-dose-comparison.html"
+            }
+        }
+    },
+    "model": {
+        "components": {},
+        "dicom3DReport": {},
+        "dicomReport": {},
+        "dvhReport": {},
+        "dicomSettings": {
+            "showRTDose": ["RTDOSE", "Boolean", "1"],
+            "showCT": ["CT", "Boolean", "1"],
+            "showRTStruct": ["RTSTRUCT", "Boolean", "1"],
+            "showRTPlan": ["RTPLAN", "Boolean", "0"],
+            "toggle3D": ["Toggle", "ReportToggle", "3d"]
+        },
+        "simulation": {
+            "libFilePrefix": ["", "String"]
+        }
+    },
+    "view": {
+        "components": {
+            "title": "Components",
+            "advanced": []
+        },
+        "dicom3DReport": {
+            "title": "3D DICOM",
+            "advanced": []
+        },
+        "dicomReport": {
+            "title": "DICOM",
+            "advanced": []
+        },
+        "dvhReport": {
+            "title": "Dose Volume Histogram",
+            "advanced": []
+        }
+    }
+}

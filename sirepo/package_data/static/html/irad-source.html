@@ -1,0 +1,30 @@
+<div class="container-fluid">
+  <div class="row irad-pad-right">
+    <div class="col-sm-2">
+      <div data-simple-panel="components">
+        <div data-dicom-object-selector=""></div>
+      </div>
+    </div>
+    <div class="col-sm-10" data-ng-if="source.dicomReports" style="max-width: calc(100vh - 120px)">
+      <div class="row">
+        <div data-download-status=""></div>
+        <div class="col-sm-6 irad-col-nopadding">
+          <div data-report-panel="dicomPlot" data-model-data="source.dicomReports[0]" data-view-name="dicomReport" data-panel-title="{{ source.dicomReports[0].title() }}"></div>
+        </div>
+        <div data-ng-show="source.showReport('3d')" class="col-sm-6 irad-col-nopadding">
+          <div data-report-panel="dicom3d" data-model-name="dicom3DReport"></div>
+        </div>
+        <div data-ng-show="source.showReport('dvh')" class="col-sm-6">
+          <div data-report-panel="parameter" data-model-name="dvhReport"></div>
+        </div>
+        <div class="clearfix"></div>
+        <div class="col-sm-6 irad-col-nopadding">
+          <div data-report-panel="dicomPlot" data-model-data="source.dicomReports[1]" data-view-name="dicomReport" data-panel-title="{{ source.dicomReports[1].title() }}"></div>
+        </div>
+        <div class="col-sm-6 irad-col-nopadding">
+          <div data-report-panel="dicomPlot" data-model-data="source.dicomReports[2]" data-view-name="dicomReport" data-panel-title="{{ source.dicomReports[2].title() }}"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

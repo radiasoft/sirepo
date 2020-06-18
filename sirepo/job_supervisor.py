@@ -160,7 +160,6 @@ def init():
         job.SBATCH: cfg.sbatch_poll_secs,
         job.SEQUENTIAL: 1,
     })
-    sirepo.auth_db.init(migrate_db_file=False)
     if sirepo.simulation_db.user_path().exists():
         if not _DB_DIR.exists():
             pkdlog('calling upgrade_runner_to_job_db path={}', _DB_DIR)
