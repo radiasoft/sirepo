@@ -20,7 +20,9 @@ _GEOM_FILE = 'geom.h5'
 
 
 def run(cfg_dir):
+    pkdp('RUN IN {}', cfg_dir)
     r = template_common.exec_parameters()
+    pkdp('DONE RUNNING, GID {}', r.g_id)
     with open(_DMP_FILE, 'wb') as f:
         f.write(sirepo.template.radia_tk.dump_bin(r.g_id))
     template.append_h5(r.g_obj_data, r.g_obj_h5_path, _GEOM_FILE)
@@ -30,6 +32,10 @@ def run(cfg_dir):
         template.append_h5(r.g_field_data, r.g_field_h5_path, _GEOM_FILE)
 
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    # save the run_dir so we can refer to it later
+    if 'radiaReq' not in data.models.geometry:
+        data.models.geometry.radiaReq = PKDict()
+    data.models.geometry.radiaReq.runDir = py.path.local(cfg_dir)
     template.extract_report_data(py.path.local(cfg_dir), data)
 
 

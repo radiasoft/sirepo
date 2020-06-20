@@ -116,6 +116,7 @@
         "geometry": {
             "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
             "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
+            "radiaId": ["_", "Integer", -1],
             "name": ["Name", "String", ""]
         },
         "geomObject": {
@@ -123,6 +124,7 @@
             "id": ["_", "String", ""],
             "material": ["Material", "String", ""],
             "name": ["Name", "String", ""],
+            "radiaId": ["_", "Integer", -1],
             "type": ["Type", "String", ""]
         },
         "linePath": {

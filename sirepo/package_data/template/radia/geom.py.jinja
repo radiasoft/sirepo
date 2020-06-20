@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 import h5py
+from pykern.pkdebug import pkdc, pkdp
 from sirepo.template import radia_tk
 from sirepo.template import radia_examples
 from sirepo.template import template_common
@@ -8,12 +9,16 @@ from sirepo.template import template_common
 VIEW_TYPE_OBJ = 'objects'
 VIEW_TYPE_FIELD = 'fields'
 
+pkdp('START GEOM.PY.JINJA')
+{% if gId == -1 %}
 {% if isExample %}
 g_id = radia_examples.build('{{ geomName }}')
 {% else %}
 g_id = -1
 {% endif %}
-
+{% else %}
+g_id = {{ gId }}
+{% endif %}
 
 # always store the object
 g_obj_data = radia_tk.geom_to_data(g_id, name='{{ geomName }}')

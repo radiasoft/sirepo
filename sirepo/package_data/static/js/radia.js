@@ -574,15 +574,20 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             };
 
             function updateTable() {
-               requestSender.getApplicationData(
-                    {
+                /*
+                var inData = {
                         fieldPaths: $scope.paths,
                         method: 'get_field_integrals',
                         simulationId: appState.models.simulation.simulationId,
-                    },
+                    };
+                appState.models.geometry.radiaReq = inData;
+                appState.saveQuietly('geometry');
+                requestSender.getApplicationData(
+                    inData,
                     function(d) {
                         $scope.integrals = d;
                     });
+                */
             }
 
             $scope.$on('fieldPaths.changed', function () {
@@ -946,7 +951,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function buildScene() {
-                //srdbg('buildScene', sceneData.data);
+                srdbg('buildScene', sceneData.data);
                 var name = sceneData.name;
                 var data = sceneData.data;
 
@@ -1573,6 +1578,20 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setupSceneData(data) {
+                if (data.runInfo) {
+                    var needsSave = false;
+                    if (data.runInfo.radiaId && data.runInfo.radiaId != appState.models.geometry.radiaId) {
+                        appState.models.geometry.radiaId = data.runInfo.radiaId;
+                        needsSave = true;
+                    }
+                    if (data.runInfo.runDir && data.runInfo.runDir != appState.models.geometry.runDir) {
+                        appState.models.geometry.runDir = data.runInfo.runDir;
+                        needsSave = true;
+                    }
+                    if (needsSave) {
+                        appState.saveQuietly('geometry');
+                    }
+                }
                 sceneData = data;
                 buildScene();
                 if (! initDone) {
@@ -1622,8 +1641,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 var inData = {
                     method: 'get_geom',
                     name: appState.models.geometry.name,
-                    viewType: appState.models.magnetDisplay.viewType,
+                    radiaId: appState.models.geometry.radiaId,
+                    runDir: appState.models.geometry.runDir,
                     simulationId: appState.models.simulation.simulationId,
+                    viewType: appState.models.magnetDisplay.viewType,
                 };
                 if ($scope.isViewTypeFields()) {
                     inData.fieldType = appState.models.magnetDisplay.fieldType;
@@ -1633,11 +1654,30 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     inData.fieldPaths = appState.models.fieldPaths.paths;
                 }
 
-                //srdbg('getting app data...');
+                srdbg('getting app data...', inData);
+                /*
+                appState.models.geometry.radiaReq = inData;
+                appState.saveQuietly('geometry');
+                panelState.clear('geometry');
+                //panelState.requestData('geometry', setupSceneData, false);
+                panelState.requestData('geometry', function (d) {
+                    srdbg('got app data', d);
+                    if ($scope.isViewTypeFields()) {
+                        // get the lines in a separate call - downside is longer wait
+                        delete inData.fieldType;
+                        inData.geomTypes = ['lines'];
+                        inData.method = 'get_geom';
+                        inData.viewType = VIEW_TYPE_OBJECTS;
+                        panelState.requestData('geometry', setupSceneData, false);
+                    }
+                    setupSceneData(d);
+                }, false);
+                */
+
                 requestSender.getApplicationData(
                     inData,
                     function(d) {
-                        //srdbg('got app data', d);
+                        srdbg('got app data', d);
                         if (d && d.data && d.data.length) {
                             if ($scope.isViewTypeFields()) {
                                 // get the lines in a separate call - downside is longer wait
@@ -1662,10 +1702,12 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         if (d.error) {
                             throw new Error(d.error);
                         }
-                        //srdbg('no app data, requesting');
+                        srdbg('no app data, requesting');
                         panelState.clear('geometry');
                         panelState.requestData('geometry', setupSceneData, true);
                     });
+
+
             }
 
             $scope.eventHandlers = {

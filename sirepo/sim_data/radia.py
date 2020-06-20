@@ -11,7 +11,6 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
     ANALYSIS_ONLY_FIELDS = frozenset(('colorMap', 'name', 'notes', 'scaling'))
-    GEOM_FILE = 'geom.h5'
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
@@ -21,10 +20,13 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
         #pkdp('_compute_model {}', analysis_model)
-        if analysis_model in (
-            'solver',
-        ):
-            return 'animation'
+        # put everything in geometry?
+        if analysis_model in ('solver',):
+            #pkdp('analysis_model {} -> geometry', analysis_model)
+            return 'geometry'
+        if analysis_model in ('geometry', 'reset',):
+            #pkdp('analysis_model {} -> geometry', analysis_model)
+            return 'geometry'
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
