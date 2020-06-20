@@ -580,8 +580,8 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                         method: 'get_field_integrals',
                         simulationId: appState.models.simulation.simulationId,
                     };
-                appState.models.geometry.radiaReq = inData;
-                appState.saveQuietly('geometry');
+                appState.models.radiaReq = inData;
+                appState.saveQuietly('radiaReq');
                 requestSender.getApplicationData(
                     inData,
                     function(d) {
@@ -1578,18 +1578,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setupSceneData(data) {
-                if (data.runInfo) {
-                    var needsSave = false;
-                    if (data.runInfo.radiaId && data.runInfo.radiaId != appState.models.geometry.radiaId) {
-                        appState.models.geometry.radiaId = data.runInfo.radiaId;
-                        needsSave = true;
-                    }
-                    if (data.runInfo.runDir && data.runInfo.runDir != appState.models.geometry.runDir) {
-                        appState.models.geometry.runDir = data.runInfo.runDir;
-                        needsSave = true;
-                    }
-                    if (needsSave) {
-                        appState.saveQuietly('geometry');
+                // save the runDir if it is missing or changed
+                if (data.runDir && data.runDir != appState.models.radiaReq.runDir) {
+                    if (data.runDir) {
+                        appState.models.radiaReq.runDir = data.runDir;
+                        appState.saveQuietly('radiaReq');
                     }
                 }
                 sceneData = data;
@@ -1633,7 +1626,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function updateViewer() {
-                //srdbg('update v');
+                srdbg('update v');
                 sceneData = {};
                 actorInfo = {};
                 radiaService.objBounds = null;
@@ -1641,8 +1634,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 var inData = {
                     method: 'get_geom',
                     name: appState.models.geometry.name,
-                    radiaId: appState.models.geometry.radiaId,
-                    runDir: appState.models.geometry.runDir,
+                    runDir: appState.models.radiaReq.runDir,
                     simulationId: appState.models.simulation.simulationId,
                     viewType: appState.models.magnetDisplay.viewType,
                 };
@@ -1653,6 +1645,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 if (radiaService.pointFieldTypes.indexOf(appState.models.magnetDisplay.fieldType) >= 0 ) {
                     inData.fieldPaths = appState.models.fieldPaths.paths;
                 }
+                // store inData on the model, so that we can refer to it if
+                // getApplicationData fails
+                appState.models.radiaReq = inData;
+                appState.saveQuietly('radiaReq');
 
                 srdbg('getting app data...', inData);
                 /*
@@ -1717,6 +1713,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             };
 
             appState.whenModelsLoaded($scope, function () {
+                if (! appState.models.radiaReq) {
+                    appState.models.radiaReq = {};
+                }
                 $scope.model = appState.models[$scope.modelName];
                 $scope.gModel = appState.models.geometry;
                 appState.watchModelFields($scope, watchFields, updateLayout);
@@ -1774,7 +1773,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             });
 
             $scope.$on('magnetDisplay.changed', function (e, d) {
-                //srdbg('MDC', e, d);
+                srdbg('MDC', e, d);
                 // does not seem the best way...
                 var interval = null;
                 interval = $interval(function() {
@@ -1787,12 +1786,14 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             });
 
             $scope.$on('framesCleared', function () {
+                srdbg('framesCleared');
                 updateViewer();
             });
             $scope.$on('framesLoaded', function (e, d) {
                 if (! initDone) {
                     return;
                 }
+                srdbg('framesLoaded');
                 updateViewer();
             });
 

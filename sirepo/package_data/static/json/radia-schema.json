@@ -158,6 +158,9 @@
             "density": ["Density", "Float", 1.0],
             "name": ["Name", "String", ""]
         },
+        "radiaReq": {
+
+        },
         "reset": {
         },
         "simulation": {

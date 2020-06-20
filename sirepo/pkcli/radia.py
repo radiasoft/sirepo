@@ -33,9 +33,9 @@ def run(cfg_dir):
 
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     # save the run_dir so we can refer to it later
-    if 'radiaReq' not in data.models.geometry:
-        data.models.geometry.radiaReq = PKDict()
-    data.models.geometry.radiaReq.runDir = py.path.local(cfg_dir)
+    #if 'radiaReq' not in data.models.geometry:
+    #    data.models.geometry.radiaReq = PKDict()
+    #data.models.geometry.radiaReq.runDir = py.path.local(cfg_dir)
     template.extract_report_data(py.path.local(cfg_dir), data)
 
 

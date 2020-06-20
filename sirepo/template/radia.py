@@ -77,7 +77,7 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def extract_report_data(run_dir, sim_in):
-    pkdp('EXTRACT RPT {} REQ {}', sim_in.report, sim_in.models.geometry.radiaReq)
+    pkdp('EXTRACT RPT {} REQ {}', sim_in.report, sim_in.models.radiaReq)
     if sim_in.report in ('geometry', 'solver',):
         v_type = sim_in.models.magnetDisplay.viewType
         f_type = sim_in.models.magnetDisplay.fieldType if v_type == VIEW_TYPE_FIELD\
@@ -90,8 +90,17 @@ def extract_report_data(run_dir, sim_in):
         #    _read_data(run_dir, v_type, f_type),
         #    run_dir=run_dir,
         #)
+        # radiaReq should be set by the client
+        req = sim_in.models.radiaReq
+        req.runDir = run_dir
+        res = get_application_data(req)
+        #res = get_application_data(sim_in.models.radiaReq) if \
+        #    sim_in.models.radiaReq.get('method', None) else \
+        #    _read_data(run_dir, v_type, f_type)
+        #res.runInfo=PKDict(runDir=run_dir)
+        # include the run_dir so that get_application_data can refer it later
         template_common.write_sequential_result(
-            get_application_data(sim_in.models.geometry.radiaReq),
+            res,
             run_dir=run_dir,
         )
         return
@@ -134,9 +143,7 @@ def get_application_data(data, **kwargs):
         pkdp('NO RUN DIR')
         return PKDict(warning='No runDir')
     pkdp('USE RUN DIR {}', run_dir)
-    res = PKDict(
-        runInfo=PKDict(runDir=run_dir)
-    )
+    res = PKDict(runDir=run_dir)
     #g_id = -1
     #try:
     #    with open(str(_dmp_file(run_dir)), 'rb') as f:
@@ -407,17 +414,6 @@ def _generate_parameters_file(data, run_dir=None):
     if run_dir:
         pkdp('READ {}', str(_dmp_file(run_dir)))
         g_id = _load_radia_bin(run_dir)
-        #try:
-        #    with open(str(_dmp_file(run_dir)), 'rb') as f:
-        #        b = f.read()
-        #        g_id = radia_tk.load_bin(b)
-        #        pkdp('FOUND GID {}', g_id)
-        #except IOError as e:
-        #    # No Radia dump file is OK
-        #    pkdp('ERR ON READ {}', e)
-        #    if pkio.exception_is_not_found(e):
-        #        pkdp('{} NOT FOUND', str(_dmp_file(run_dir)))
-        #        pass
     report = data.get('report', '')
     res, v = template_common.generate_parameters_file(data)
     g = data.models.geometry
@@ -505,6 +501,7 @@ def _load_radia_bin(run_dir):
     except IOError as e:
         # No Radia dump file is OK; propagate other errors
         if pkio.exception_is_not_found(e):
+            pkdp('NO DMP FILE IN {}', run_dir)
             pass
     return g_id
 
