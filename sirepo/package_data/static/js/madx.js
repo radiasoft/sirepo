@@ -338,8 +338,10 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
 
     var cmds = ['beam'];
 
+    $scope.pt = false;
     self.isParticleTrackingEnabled = function () {
-        return (appState.models.simulation || {}).enableParticleTracking;
+        $scope.pt = ((appState.models.simulation || {}).enableParticleTracking === '1');
+        return $scope.pt;
     };
 
     self.reportModel = function() {
@@ -388,8 +390,13 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
             $scope.$on(name + '.changed', function() {
                 saveCommandList(type);
             });
+
+            $scope.$watch('pt', function (d) {
+                //srdbg('PT CH', d);
+            });
             $('#sr-command_beam-basicEditor h5').hide();
             $('#sr-command_distribution-basicEditor h5').hide();
+
         });
 
         // [1, 2, 3]?

@@ -43,7 +43,15 @@
             "MARKER",
             "QUADRUPOLE",
             "SEXTUPOLE"
-        ]
+        ],
+        "phaseSpaceParticleMap": {
+            "x":  ["x", "pos"],
+            "y":  ["y", "pos"],
+            "t":  ["t", "pos"],
+            "px":  ["x", "p"],
+            "py":  ["y", "p"],
+            "pt":  ["t", "p"]
+        }
     },
     "dynamicFiles": {
         "externalLibs": {
@@ -102,9 +110,8 @@
             ["px", "Px"],
             ["y", "y"],
             ["py", "Py"],
-            ["z", "z"],
-            ["pz", "Pz"],
-            ["q", "q"]
+            ["t", "t"],
+            ["pt", "P"]
         ],
         "PtcParameter": [
             ["px", "px"],
@@ -471,6 +478,13 @@
         "command_use": {
             "sequence": ["BEAMLINE", "LatticeBeamlineList", "", "Name of the sequence to be loaded and expanded."],
             "period": ["BEAMLINE", "LatticeBeamlineList", "", "Name of the sequence to be loaded and expanded."]
+        },
+        "initialTwissParams": {
+            "alpha": ["Alpha", "Float", 0.0],
+            "beta": ["Beta", "Float", 1.0],
+            "dim": ["Dimension", "SpaceCoordinate", "x"],
+            "eta": ["Emittance", "Float", 1.0],
+            "gamma": ["Gamma", "Float", 1.0]
         },
         "ptcAnimation": {
             "x": ["Horizontal Value to Plot", "PtcParameter", "x"],
@@ -1136,13 +1150,15 @@
                 "histogramBins",
                 "colorMap",
                 "notes"
-            ]
+            ],
+            "basic": []
         },
         "command_beam": {
             "title": "Beam",
             "description": "The BEAM statement defines data for the particles in a beam.",
             "basic": [
                 "simulation.enableParticleTracking",
+                "simulation.numberOfParticles",
                 "particle",
                 "bcurrent",
                 "npart"
@@ -1150,6 +1166,7 @@
             "advanced": [
                 ["Main", [
                     "simulation.enableParticleTracking",
+                    "simulation.numberOfParticles",
                     "sequence",
                     "particle",
                     "mass",
@@ -1345,6 +1362,11 @@
                     ]
                 ],
                 "histogramBins"
+            ]
+        },
+        "command_value": {
+            "advanced": [
+                "expression"
             ]
         },
         "simulationStatus": {

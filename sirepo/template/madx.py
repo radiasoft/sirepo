@@ -34,6 +34,7 @@ MADX_INPUT_FILE = 'madx.in'
 MADX_OUTPUT_FILE = 'madx.out'
 
 _FILE_TYPES = ['ele', 'lte', 'madx']
+_INITIAL_REPORTS = ['twissEllipseReport', 'bunchReport']
 
 _FIELD_LABEL = PKDict(
     alfx='alfx [1]',
@@ -100,8 +101,6 @@ def get_application_data(data, **kwargs):
     assert 'method' in data
     assert data.method in _METHODS, \
         'unknown application data method: {}'.format(data.method)
-    #if data.method in template_common.RPN_METHODS:
-    #    return template_common.get_rpn_data(data, _SCHEMA, _MADX_CONSTANTS)
     cv = code_variable.CodeVar(
         data.variables,
         code_variable.PurePythonEval(_MADX_CONSTANTS),
@@ -150,13 +149,6 @@ def import_file(req, test_data=None, **kwargs):
         if input_data:
             _map_commands_to_lattice(data)
     elif re.search(r'\.madx$', req.filename, re.IGNORECASE):
-        #madx = madx_parser.parse_file(text, downcase_variables=True)
-        #data = madx_converter.from_madx(
-        #    SIM_TYPE,
-        #    madx_parser.parse_file(text, downcase_variables=True)
-        #)
-        #mm = madx_parser.parse_file(text, downcase_variables=True)
-        #pkdp('MADX {} VS DATA {}', mm, data)
         data = madx_parser.parse_file(text, downcase_variables=True)
         madx_converter.fixup_madx(data)
     else:
@@ -175,14 +167,20 @@ def import_file(req, test_data=None, **kwargs):
     return data
 
 
+def is_initial_report(rpt):
+    return re.sub(r'\d+$', '', rpt) in _INITIAL_REPORTS
+
+
 def madx_code_var(variables):
     return _code_var(variables)
+
 
 def prepare_for_client(data):
     if 'models' not in data:
         return data
     data.models.rpnCache = madx_code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
     return data
+
 
 def prepare_sequential_output_file(run_dir, data):
     r = data.report
@@ -191,6 +189,7 @@ def prepare_sequential_output_file(run_dir, data):
         if f.exists():
             f.remove()
             save_sequential_report_data(data, run_dir)
+
 
 # TODO(e-carlin): fixme - I don't return python
 def python_source_for_model(data, model):
@@ -262,6 +261,8 @@ def _extract_report_data(data, run_dir):
     r = data.get('report', data.get('frameReport'))
     if 'twissEllipse' in r:
         return _extract_report_twissEllipseReport(data, run_dir)
+    elif 'bunchReport' in data.report:
+        return _extract_report_bunchReport(data, run_dir)
     elif r.startswith('twiss'):
         return _extract_report_twissReport(data, run_dir)
     return getattr(
@@ -270,10 +271,65 @@ def _extract_report_data(data, run_dir):
     )(data, run_dir)
 
 
+def _extract_report_bunchReport(data, run_dir):
+    # read from file?  store on model?
+    parts = _ptc_particles(
+        _get_initial_twiss_params(data),
+        data.models.simulation.numberOfParticles
+    )
+    labels = []
+    res = []
+    r_model = data.models[data.report]
+    for dim in ('x', 'y'):
+        c = _SCHEMA.constants.phaseSpaceParticleMap[r_model[dim]]
+        res.append(parts[c[0]][c[1]])
+        labels.append(r_model[dim])
+
+    return template_common.heatmap(
+        res,
+        PKDict(histogramBins=100),
+        PKDict(
+            x_label=labels[0],
+            y_label=labels[1],
+            title='BUNCH',
+        )
+    )
+
+
+def _twiss_ellipse_rotation(alpha, beta):
+    if alpha == 0:
+        return 0
+    return 0.5 * math.atan(
+        2. * alpha * beta / (1 + alpha * alpha - beta * beta)
+    )
+
+
+def _get_initial_twiss_params(data):
+    p = PKDict(
+        x=PKDict(),
+        y=PKDict()
+    )
+    util = LatticeUtil(data, _SCHEMA)
+    m = util.find_first_command(data, 'twiss')
+    # must an initial twiss always exist?
+    if not m:
+        return p
+    for dim in ('x', 'y'):
+        alf = 'alf{}'.format(dim)
+        bet = 'bet{}'.format(dim)
+        eta = 'e{}'.format(dim)
+        a = m[alf]
+        b = m[bet]
+        p[dim].alpha = a
+        p[dim].beta = b
+        p[dim].emittance = m[eta] if eta in m else 1.0
+        p[dim].gamma = (1. + a * a) / b
+    return p
+
+
 def _extract_report_twissEllipseReport(data, run_dir):
     util = LatticeUtil(data, _SCHEMA)
     m = util.find_first_command(data, 'twiss')
-    #pkdp('TWISS FOUND {}', m)
     # must an initial twiss always exist?
     if not m:
         return template_common.parameter_plot([], [], None, PKDict())
@@ -287,19 +343,16 @@ def _extract_report_twissEllipseReport(data, run_dir):
     a = float(m[alf])
     b = float(m[bet])
     g = (1. + a * a) / b
-    #pkdp('ELLIPSE A {} B {}', a, b)
     eta = 'e{}'.format(dim)
     e = m[eta] if eta in m else 1.0
-    phi = _ellipse_rot(a, b)
+    phi = _twiss_ellipse_rotation(a, b)
     th = theta - phi
-    #pkdp('ELLIPSE ROT {}', phi)
     mj = math.sqrt(e * b)
     mn = 1.0 / mj
     r = np.power(
         mn * np.cos(th) * np.cos(th) + mj * np.sin(th) * np.sin(th),
         -0.5
     )
-    #pkdp('ELLIPSE R(TH) {}', r)
     x = r * np.cos(theta)
     y = r * np.sin(theta)
     p = PKDict(field=dim, points=y.tolist(), label=f'{dim}\' [rad]')
@@ -315,14 +368,6 @@ def _extract_report_twissEllipseReport(data, run_dir):
             y_label='',
             x_label=f'{dim} [m]'
         )
-    )
-
-
-def _ellipse_rot(a, b):
-    if a == 0:
-        return 0
-    return 0.5 * math.atan(
-        2. * a * b / (1 + a * a - b * b)
     )
 
 
@@ -365,7 +410,7 @@ def _extract_report_twissReport(data, run_dir):
 
 
 def _generate_commands(util):
-    res = '';
+    res = ''
     for c in util.iterate_models(
             lattice.ElementIterator(None, _format_field_value), 'commands'
     ).result:
@@ -393,6 +438,17 @@ def _generate_lattice(util):
 
 def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
+
+    v.report = re.sub(r'\d+$', '', data.report)
+    if v.report in _INITIAL_REPORTS:
+        # these reports do not require running madx first
+        v.initialTwissParameters = _get_initial_twiss_params(data)
+        v.numParticles = data.models.simulation.numberOfParticles
+        v.particleFile = simulation_db.simulation_dir(SIM_TYPE, data.simulationId) \
+            .join(data.report).join('ptc_particles.txt')
+        res = template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
+        return res
+
     util = LatticeUtil(data, _SCHEMA)
     report = data.get('report', '')
     code_var = _code_var(data.models.rpnVariables)
@@ -447,75 +503,53 @@ def _format_field_value(state, model, field, el_type):
     return [field, v]
 
 
-# TODO(e-carlin): copied from https://github.com/radiasoft/rscon/blob/d3abdaf5c1c6d41797a4c96317e3c644b871d5dd/webcon/madx_examples/FODO_example_PTC.ipynb
-def _ptc_particles(beam_gamma = 7.0, x_emittance = 1.0e-6, y_emittance = 1.0e-6,
-                 beta_x = 29.528, beta_y = 7.347, alpha_x = -3.237, alpha_y = 0.986, n_particles = 1000
-                 ):
-    ## beta is the beam velocity over the speed of light
-    beta = np.sqrt(1. - 1. / beam_gamma **2.)
-
-    ## p0 is the baeam momentum
-    p0 = beta * beam_gamma * scipy.constants.c * scipy.constants.m_p
-
-    ## Beam kenetic energ
-    E0 = (beam_gamma - 1.) * scipy.constants.m_p * scipy.constants.c ** 2.
-
-    ##
-    n_part = n_particles
-    ex = x_emittance
-    ey = y_emittance
-
-    ## Gamma is a derived twiss parameter from alpha and beta
-    gamma_x = (1. + alpha_x ** 2.) / beta_x
-    gamma_y = (1. + alpha_y ** 2.) / beta_y
-
-    ## rms beam size
-    xx = beta_x * ex
-    yy = beta_y * ey
-
-    ## x-xp correlation
-    xxp = - alpha_x * ex
-    yyp = - alpha_y * ey
-
-    ## rms size in momentum
-    xpxp = ex * gamma_x
-    ypyp = ey * gamma_y
-
-    ## covariance matrix for gaussian beam
-    ## in the future we will want to be able to define
-    ## centroid values, and also x-y correlation terms
+# condensed version of https://github.com/radiasoft/rscon/blob/d3abdaf5c1c6d41797a4c96317e3c644b871d5dd/webcon/madx_examples/FODO_example_PTC.ipynb
+def _ptc_particles(twiss_params, num_particles):
     mean = [0, 0, 0, 0]
-    cov = [[xx, xxp, 0 , 0],
-           [xxp, xpxp, 0, 0],
-           [0, 0, yy, yyp],
-           [0, 0, yyp, ypyp]]
+    cov = []
+    for dim in twiss_params:
+        m1 = 1 if dim == 'x' else 0
+        m2 = 1 - m1
+        tp = PKDict(twiss_params[dim])
+        dd = tp.beta * tp.emittance
+        ddp = -tp.alpha * tp.emittance
+        dpdp = tp.emittance * tp.gamma
+        cov.append([m1 * dd, m1 * ddp, m2 * dd, m2 * ddp])
+        cov.append([m1 * ddp, m1 * dpdp, m2 * ddp, m2 * dpdp])
 
-    transverse = np.random.multivariate_normal(mean, cov, n_part)
+    transverse = np.random.multivariate_normal(mean, cov, num_particles)
+    x = transverse[:, 0]
+    xp = transverse[:, 1]
+    y = transverse[:, 2]
+    yp = transverse[:, 3]
 
-    x = transverse[:,0]
-    xp = transverse[:,1]
-    y = transverse[:,2]
-    yp = transverse[:,3]
+    # for now the longitudional coordinates are set to zero. This just means there
+    # is no longitudinal distribuion. We can change this soon.
+    long_part = np.random.multivariate_normal([0, 0], [[0, 0], [0, 0]], num_particles)
 
-    ## for now the longitudional coordinates are set to zero. This just means there
-    # is no longitudioanl distribuion. We can change this soon.
-    long_part = np.random.multivariate_normal([0, 0], [[0, 0],[0, 0]], n_part)
-
-    particles = np.column_stack([x, xp, y, yp, long_part[:,0], long_part[:,1]])
-
-    return particles
+    particles = np.column_stack([x, xp, y, yp, long_part[:, 0], long_part[:, 1]])
+    return PKDict(
+        x=PKDict(pos=particles[:,0], p=particles[:,1]),
+        y=PKDict(pos=particles[:,2], p=particles[:,3]),
+        t=PKDict(pos=particles[:,4], p=particles[:,5]),
+    )
 
 
 def _ptc_start_commands(data):
-    p = _ptc_particles(n_particles=data.models.simulation.numberOfParticles)
-    v = PKDict(
-        x=p[:,0],
-        px=p[:,1],
-        y=p[:,2],
-        py=p[:,3],
-        t=p[:,4],
-        pt=p[:,5],
+    p = _ptc_particles(
+        _get_initial_twiss_params(data),
+        data.models.simulation.numberOfParticles
     )
+
+    v = PKDict(
+        x=p.x.pos,
+        px=p.x.p,
+        y=p.y.pos,
+        py=p.y.p,
+        t=p.t.pos,
+        pt=p.t.p,
+    )
+
     r = ''
     for i in range(len(v.x)):
         r += 'ptc_start'
