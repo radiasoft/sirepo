@@ -113,6 +113,8 @@ def get_application_data(data, **kwargs):
         solution=_read_solution(run_dir)
     )
     g_id = _load_radia_bin(run_dir)
+    if g_id < 0:
+        return PKDict(warning='No dump file')
     if data.method == 'get_field':
         f_type = data.get('fieldType')
         if f_type in radia_tk.POINT_FIELD_TYPES:
