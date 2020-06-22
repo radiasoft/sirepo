@@ -9,7 +9,6 @@ from sirepo.template import template_common
 VIEW_TYPE_OBJ = 'objects'
 VIEW_TYPE_FIELD = 'fields'
 
-pkdp('START GEOM.PY.JINJA')
 {% if gId == -1 %}
 {% if isExample %}
 g_id = radia_examples.build('{{ geomName }}')
@@ -28,7 +27,6 @@ g_solution_data = None
 g_solution_h5_path = 'solution'
 {% if doSolve %}
 g_solution_data = radia_tk.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
-pkdp('SOL {}', g_solution_data)
 {% endif %}
 
 g_field_data = None
