@@ -20,9 +20,7 @@ _GEOM_FILE = 'geom.h5'
 
 
 def run(cfg_dir):
-    pkdp('RUN IN {}', cfg_dir)
     r = template_common.exec_parameters()
-    pkdp('DONE RUNNING, GID {}', r.g_id)
     with open(_DMP_FILE, 'wb') as f:
         f.write(sirepo.template.radia_tk.dump_bin(r.g_id))
     template.append_h5(r.g_obj_data, r.g_obj_h5_path, _GEOM_FILE)

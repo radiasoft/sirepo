@@ -30,11 +30,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._init_models(data.models)
         cls._organize_example(data)
 
-    #@classmethod
-    #def _compute_job_fields(cls, data, *args, **kwargs):
-    #    return [
-    #        data.report,
-    #    ]
 
     @classmethod
     def _lib_file_basenames(cls, data):

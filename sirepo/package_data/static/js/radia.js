@@ -128,12 +128,22 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         return (appState.models.fieldTypes || {}).path;
     };
 
-    self.getRadiaData = function(inData, handler, regenOnFail) {
+    self.getRadiaData = function(inData, handler) {
         // store inData on the model, so that we can refer to it if
         // getApplicationData fails
         appState.models.radiaReq = inData;
         appState.saveQuietly('radiaReq');
-        requestSender.getApplicationData(inData, handler);
+        requestSender.getApplicationData(inData, function (d) {
+            if (d.error) {
+                throw new Error(d.error);
+            }
+            // capture the runDir
+            if (d.runDir && d.runDir != appState.models.radiaReq.runDir) {
+                appState.models.radiaReq.runDir = d.runDir;
+                appState.saveQuietly('radiaReq');
+            }
+            handler(d);
+        });
     };
 
     self.getSelectedObj = function() {
@@ -241,7 +251,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     self.solution = [];
 
     function handleStatus(data) {
-        srdbg('SIM STATUS', data);
+        //srdbg('SIM STATUS', data);
         if (data.error) {
             throw new Error('Solver failed: ' + data.error);
         }
@@ -249,7 +259,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         SINGLE_PLOTS.forEach(function(name) {
             frameCache.setFrameCount(0, name);
         });
-        if ('percentComplete' in data && ! data.error) {
+        if ('percentComplete' in data) {
             if (data.percentComplete === 100 && ! self.simState.isProcessing()) {
                 self.solution = data.outputInfo[0];
                 SINGLE_PLOTS.forEach(function(name) {
@@ -257,14 +267,16 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
                 });
             }
         }
+        // temp (?) workaround for hash mismatch
+        if ('data' in data && data.state == 'completed') {
+            $scope.$broadcast('solved', data);
+        }
         frameCache.setFrameCount(data.frameCount);
     }
 
-    self.startSimulation = function() {
-        self.solution = [];
-        $scope.$broadcast('solveStarted', self.simState);
-        self.simState.saveAndRunSimulation('simulation');
-    };
+    function hasSolution() {
+        return (self.solution || []).length;
+    }
 
     self.simState = persistentSimulation.initSimulationState(
         $scope,
@@ -272,9 +284,13 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         handleStatus
     );
 
+    self.simState.getFrameCount = function(modelKey) {
+        return hasSolution() ? 1 : 0;
+    };
+
     self.simState.notRunningMessage = function() {
         var msg = 'Complete - ';
-        if (! (self.solution || []).length) {
+        if (! hasSolution()) {
             return msg + 'No solution found';
         }
         return msg + self.solution[3] + ' steps ' +
@@ -588,16 +604,9 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                     runDir: appState.models.radiaReq.runDir,
                     simulationId: appState.models.simulation.simulationId,
                 };
-                //radiaService.getRadiaData(inData, function(d) {
-                //    $scope.integrals = d;
-                //});
-                appState.models.radiaReq = inData;
-                appState.saveQuietly('radiaReq');
-                requestSender.getApplicationData(
-                    inData,
-                    function(d) {
-                        $scope.integrals = d;
-                    });
+                radiaService.getRadiaData(inData, function(d) {
+                    $scope.integrals = d;
+                });
             }
 
             $scope.$on('fieldPaths.changed', function () {
@@ -827,12 +836,12 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
         restrict: 'A',
         scope: {
             modelName: '@',
+            viz: '<',
         },
         template: [
             '<div class="col-md-6">',
                 '<div class="row" data-basic-editor-panel="" data-view-name="{{ modelName }}">',
                     '<div data-vtk-display="" class="vtk-display" data-ng-class="{\'col-sm-11\': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true"></div>',
-                    //'<div data-vtk-axes="" data-width="canvasGeometry().size.width" data-height="canvasGeometry().size.height" data-bound-obj="beamAxisObj" data-axis-cfg="beamAxisCfg"></div>',
                     '<div class="col-sm-1" style="padding-left: 0" data-ng-if="isViewTypeFields()">',
                         '<div class="colorbar"></div>',
                     '</div>',
@@ -961,7 +970,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function buildScene() {
-                srdbg('buildScene', sceneData.data);
+                //srdbg('buildScene', sceneData.data);
                 var name = sceneData.name;
                 var data = sceneData.data;
 
@@ -1588,13 +1597,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setupSceneData(data) {
-                // save the runDir if it is missing or changed
-                if (data.runDir && data.runDir != appState.models.radiaReq.runDir) {
-                    if (data.runDir) {
-                        appState.models.radiaReq.runDir = data.runDir;
-                        appState.saveQuietly('radiaReq');
-                    }
-                }
+
                 sceneData = data;
                 buildScene();
                 if (! initDone) {
@@ -1636,7 +1639,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function updateViewer() {
-                srdbg('update v');
+                //srdbg('update v');
                 sceneData = {};
                 actorInfo = {};
                 radiaService.objBounds = null;
@@ -1655,44 +1658,19 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 if (radiaService.pointFieldTypes.indexOf(appState.models.magnetDisplay.fieldType) >= 0 ) {
                     inData.fieldPaths = appState.models.fieldPaths.paths;
                 }
-                // store inData on the model, so that we can refer to it if
-                // getApplicationData fails
-                appState.models.radiaReq = inData;
-                appState.saveQuietly('radiaReq');
 
-                srdbg('getting app data...', inData);
-                /*
-                appState.models.geometry.radiaReq = inData;
-                appState.saveQuietly('geometry');
-                panelState.clear('geometry');
-                //panelState.requestData('geometry', setupSceneData, false);
-                panelState.requestData('geometry', function (d) {
-                    srdbg('got app data', d);
-                    if ($scope.isViewTypeFields()) {
-                        // get the lines in a separate call - downside is longer wait
-                        delete inData.fieldType;
-                        inData.geomTypes = ['lines'];
-                        inData.method = 'get_geom';
-                        inData.viewType = VIEW_TYPE_OBJECTS;
-                        panelState.requestData('geometry', setupSceneData, false);
-                    }
-                    setupSceneData(d);
-                }, false);
-                */
-
-                //requestSender.getApplicationData(
+                //srdbg('getting app data...', inData);
                 radiaService.getRadiaData(
                     inData,
                     function(d) {
-                        srdbg('got app data', d);
+                        //srdbg('got app data', d);
                         if (d && d.data && d.data.length) {
+                            $scope.viz.simState.state ='completed';
+                            $scope.viz.solution = d.solution;
                             setupSceneData(d);
                             return;
                         }
-                        if (d.error) {
-                            throw new Error(d.error);
-                        }
-                        srdbg('no app data, requesting');
+                        //srdbg('no app data, requesting');
                         panelState.clear('geometry');
                         panelState.requestData('geometry', setupSceneData, true);
                     });
@@ -1767,7 +1745,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             });
 
             $scope.$on('magnetDisplay.changed', function (e, d) {
-                srdbg('MDC', e, d);
+                //srdbg('MDC', e, d);
                 // does not seem the best way...
                 var interval = null;
                 interval = $interval(function() {
@@ -1780,14 +1758,17 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             });
 
             $scope.$on('framesCleared', function () {
-                srdbg('framesCleared');
+                //srdbg('framesCleared');
                 updateViewer();
             });
             $scope.$on('framesLoaded', function (e, d) {
                 if (! initDone) {
                     return;
                 }
-                srdbg('framesLoaded');
+                //srdbg('framesLoaded');
+                updateViewer();
+            });
+            $scope.$on('solved', function (e, d) {
                 updateViewer();
             });
 

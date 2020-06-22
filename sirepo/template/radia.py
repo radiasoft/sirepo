@@ -36,7 +36,7 @@ _FIELD_MAP_COLS = ['x', 'y', 'z', 'Bx', 'By', 'Bz']
 _FIELD_MAP_UNITS = ['m', 'm', 'm', 'T', 'T', 'T']
 _GEOM_DIR = 'geometry'
 _GEOM_FILE = 'geom.h5'
-_METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'save_field']
+_METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'save_field', 'solve']
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
 
@@ -76,7 +76,6 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def extract_report_data(run_dir, sim_in):
-    pkdp('EXTRACT RPT {} REQ {}', sim_in.report, sim_in.models.radiaReq)
     if sim_in.report in ('geometry', 'solver',):
         # radiaReq should be set by the client - we know the run_dir so add it to the
         # input for get_application_data
@@ -101,7 +100,7 @@ def extract_report_data(run_dir, sim_in):
 # if the file exists but the data we seek does not, have Radia generate it here.  We
 # should only have to blow away the file after a solve (???)
 def get_application_data(data, **kwargs):
-    pkdp('get_application_data from {} kw {}', data, kwargs)
+    #pkdp('get_application_data from {} kw {}', data, kwargs)
     if 'method' not in data:
         raise RuntimeError('no application data method')
     if data.method not in _METHODS:
@@ -180,9 +179,6 @@ def python_source_for_model(data, model):
 
 
 def write_parameters(data, run_dir, is_parallel):
-    # remove centralized geom files?
-    #pkio.unchecked_remove(_geom_file(data.simulationId), _dmp_file(data.simulationId))
-    pkdp('WRITE PRM FOR RPT {}', data.report)
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, run_dir),
