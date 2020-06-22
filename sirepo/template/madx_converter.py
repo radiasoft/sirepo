@@ -212,51 +212,6 @@ _FIELD_MAP = PKDict(
 )
 
 
-def fixup_madx(madx, data=None):
-    cv = code_variable.CodeVar(
-        madx.models.rpnVariables,
-        code_variable.PurePythonEval(_MADX_CONSTANTS),
-        case_insensitive=True,
-    )
-    assert LatticeUtil.has_command(madx, 'beam'), \
-        'MAD-X file missing BEAM command'
-    if not data:
-        data = madx
-    beam = LatticeUtil.find_first_command(madx, 'beam')
-    beam_sub = beam.copy()
-    rpns = [r.name for r in madx.models.rpnVariables]
-    #pp = []
-    for q in beam_sub:
-        for n in rpns:
-            if n in str(beam_sub[q]):
-                beam_sub[q] = cv.eval_var_with_assert(beam[q])
-                #pp.append(q)
-                break
-    #for p in pp:
-    #    beam_sub[p] = cv.eval_var_with_assert(beam[p])
-    if beam.energy == 1 and (beam.pc != 0 or beam.gamma != 0 or beam.beta != 0 or beam.brho != 0):
-        # unset the default mad-x value if other energy fields are set
-        beam.energy = 0
-    particle = beam.particle.lower() or 'other'
-    LatticeUtil.find_first_command(data, 'beam').particle = particle.upper()
-    energy = ParticleEnergy.compute_energy('madx', particle, beam_sub)
-    LatticeUtil.find_first_command(data, 'beam').pc = energy.pc
-    t = LatticeUtil.find_first_command(data, 'track')
-    if t:
-        t.line = data.models.simulation.visualizationBeamlineId
-    for el in data.models.elements:
-        if el.type == 'SBEND' or el.type == 'RBEND':
-            # mad-x is GeV (total energy), designenergy is MeV (kinetic energy)
-            el.designenergy = round(
-                (energy.energy - ParticleEnergy.PARTICLE[particle].mass) * 1e3,
-                6,
-            )
-            # this is different than the opal default of "2 * sin(angle / 2) / length"
-            # but matches elegant and synergia
-            el.k0 = cv.eval_var_with_assert(el.angle) / cv.eval_var_with_assert(el.l)
-            el.gap = 2 * cv.eval_var_with_assert(el.hgap)
-
-
 def from_madx(to_sim_type, mad_data):
     return _convert(to_sim_type, mad_data, 'from')
 

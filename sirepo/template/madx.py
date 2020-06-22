@@ -33,7 +33,6 @@ MADX_INPUT_FILE = 'madx.in'
 
 MADX_OUTPUT_FILE = 'madx.out'
 
-_FILE_TYPES = ['ele', 'lte', 'madx']
 _INITIAL_REPORTS = ['twissEllipseReport', 'bunchReport']
 
 _FIELD_LABEL = PKDict(
@@ -131,39 +130,19 @@ def get_application_data(data, **kwargs):
         return data
 
 
-# TODO(e-carlin): need to clean this up. copied from elegant
-# ex _map_commands_to_lattice doesn't exist in this file only in elegant
-def import_file(req, test_data=None, **kwargs):
-    ft = '|'.join(_FILE_TYPES)
-    if not re.search(r'\.({})$'.format(ft), req.filename, re.IGNORECASE):
-        raise IOError('invalid file extension, expecting one of {}'.format(_FILE_TYPES))
-    # input_data is passed by test cases only
-    input_data = test_data
+def import_file(req, **kwargs):
     text = pkcompat.from_bytes(req.file_stream.read())
-    if 'simulationId' in req.req_data:
-        input_data = simulation_db.read_simulation_json(SIM_TYPE, sid=req.req_data.simulationId)
-    if re.search(r'\.ele$', req.filename, re.IGNORECASE):
-        data = elegant_command_importer.import_file(text)
-    elif re.search(r'\.lte$', req.filename, re.IGNORECASE):
-        data = elegant_lattice_importer.import_file(text, input_data)
-        if input_data:
-            _map_commands_to_lattice(data)
-    elif re.search(r'\.madx$', req.filename, re.IGNORECASE):
-        data = madx_parser.parse_file(text, downcase_variables=True)
-        madx_converter.fixup_madx(data)
-    else:
-        raise IOError('invalid file extension, expecting .ele or .lte')
+    assert re.search(r'\.madx$', req.filename, re.IGNORECASE), \
+        'invalid file extension, expecting .madx'
+    data = madx_parser.parse_file(text, downcase_variables=True)
+    _fixup_madx(data)
+    # TODO(e-carlin): need to clean this up. copied from elegant
     data.models.simulation.name = re.sub(
-        r'\.({})$'.format(ft),
+        r'\.madx$',
         '',
         req.filename,
         flags=re.IGNORECASE
     )
-    if input_data and not test_data:
-        simulation_db.delete_simulation(
-            SIM_TYPE,
-            input_data.models.simulation.simulationId
-        )
     return data
 
 
@@ -294,6 +273,30 @@ def _extract_report_bunchReport(data, run_dir):
             title='BUNCH',
         )
     )
+
+
+def _fixup_madx(madx):
+    # move imported beam over default-data.json beam
+    # remove duplicate twiss
+    # remove "use" commands
+    beam_idx = None
+    found_twiss = False
+    res = []
+    for cmd in madx.models.commands:
+        if cmd._type == 'use':
+            continue
+        if cmd._type == 'beam':
+            if beam_idx is None:
+                beam_idx = madx.models.commands.index(cmd)
+            else:
+                res[beam_idx] = cmd
+                continue
+        elif cmd._type == 'twiss':
+            if found_twiss:
+                continue
+            found_twiss = True
+        res.append(cmd)
+    madx.models.commands = res
 
 
 def _twiss_ellipse_rotation(alpha, beta):
