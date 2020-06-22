@@ -71,7 +71,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
                 req_data=req.req_data,
                 suffix=s,
             )
-            assert not r.state == 'error', f'r={r}'
+            assert not r.state == 'error', f'error state in request=={r}'
             f = d.listdir()
             if len(f) > 0:
                 assert len(f) == 1, \
