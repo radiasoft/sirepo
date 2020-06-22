@@ -442,6 +442,15 @@ def _generate_parameters_file(data):
     _extract_rpm(data)
     res = ''
     names = {}
+
+    if data.models.simulation.flashType == 'CapLaserBELLA':
+        for k in ('fill', 'wall'):
+            f = f"{data.models.Multispecies[f'ms_{k}Species']}-{k}-imx.cn4"
+            data.models.Multispecies[f'eos_{k}TableFile'] = f
+            data.models[
+                'physics:materialProperties:Opacity:Multispecies'
+            ][f'op_{k}FileName'] = f
+
     for line in pkio.read_text(_SIM_DATA.flash_setup_units_path(data)).split('\n'):
         name = ''
         #TODO(pjm): share with setup_params parser
@@ -450,26 +459,27 @@ def _generate_parameters_file(data):
                 name += (':' if len(name) else '') + part
         names[name] = line
     for m in sorted(data.models):
-        if m in names:
-            if m not in _SCHEMA.model:
-                # old model which was removed from schema
+        if m not in names:
+            continue
+        if m not in _SCHEMA.model:
+            # old model which was removed from schema
+            continue
+        schema = _SCHEMA.model[m]
+        heading = '# {}\n'.format(names[m])
+        has_heading = False
+        for f in sorted(data.models[m]):
+            if f not in schema:
                 continue
-            schema = _SCHEMA.model[m]
-            heading = '# {}\n'.format(names[m])
-            has_heading = False
-            for f in sorted(data.models[m]):
-                if f not in schema:
-                    continue
-                v = data.models[m][f]
-                if v != schema[f][2]:
-                    if not has_heading:
-                        has_heading = True
-                        res += heading
-                    if schema[f][1] == 'Boolean':
-                        v = '.TRUE.' if v == '1' else '.FALSE.'
-                    res += '{} = "{}"\n'.format(f, v)
-            if has_heading:
-                res += '\n'
+            v = data.models[m][f]
+            if v != schema[f][2]:
+                if not has_heading:
+                    has_heading = True
+                    res += heading
+                if schema[f][1] == 'Boolean':
+                    v = '.TRUE.' if v == '1' else '.FALSE.'
+                res += '{} = "{}"\n'.format(f, v)
+        if has_heading:
+            res += '\n'
     return res
 
 
