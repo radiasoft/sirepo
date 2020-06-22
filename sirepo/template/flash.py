@@ -52,7 +52,7 @@ _DEFAULT_VALUES = {
             'zmax': 750000,
             'zmin': -750000,
         },
-        'Grid:paramesh': {
+        'Gridparamesh': {
             'lrefine_max': 3,
             'nblockx': 4,
             'refine_var_1': 'dens',
@@ -62,7 +62,7 @@ _DEFAULT_VALUES = {
             'plot_var_1': 'dens',
             'plotFileIntervalTime': 0.01,
         },
-        'Simulation:RTFlame': {
+        'SimulationRTFlame': {
             'flame_initial_position': 2000000,
             'spert_ampl1': 200000,
             'spert_ampl2': 200000,
@@ -70,15 +70,15 @@ _DEFAULT_VALUES = {
             'spert_wl1': 1500000,
             'spert_wl2': 125000,
         },
-        'physics:Gravity:Constant': {
+        'physicsGravityConstant': {
             'gconst': -1900000000,
         },
-        'physics:sourceTerms:Flame:FlameEffects:EIP': {
+        'physicssourceTermsFlameFlameEffectsEIP': {
             'flame_deltae': 280000000000000000,
             'sumyi_burned': 0.072917,
             'sumyi_unburned': 0.041667,
         },
-        'physics:sourceTerms:Flame:FlameSpeed:Constant': {
+        'physicssourceTermsFlameFlameSpeedConstant': {
             'fl_fsConstFlameSpeed': 2000000,
         },
         'gridEvolutionAnimation': {
@@ -97,7 +97,7 @@ _DEFAULT_VALUES = {
             'xr_boundary_type': 'user',
             'yl_boundary_type': 'outflow',
             'yr_boundary_type': 'outflow',
-            'zl_boundary_type':'reflect',
+            'zl_boundary_type': 'reflect',
             'zr_boundary_type': 'reflect',
             'geometry': 'cylindrical',
             'xmin': 0.0,
@@ -105,14 +105,14 @@ _DEFAULT_VALUES = {
             'ymin': -500.0e-04,
             'ymax': 500.0e-04,
         },
-        'Grid:paramesh': {
+        'Gridparamesh': {
             'flux_correct': '0',
             'lrefine_max': 2,
             'lrefine_min': 1,
             'nblockx': 1,
             'nblocky': 4,
         },
-        'Grid:paramesh:paramesh4:Paramesh4dev': {
+        'Gridparameshparamesh4Paramesh4dev': {
             'gr_pmrpCurvilinear': '1',
             'gr_pmrpCurvilinearConserve': '1',
             'gr_pmrpForceConsistency': '0',
@@ -140,13 +140,13 @@ _DEFAULT_VALUES = {
             'eos_fillSubType': 'ionmix4',
             'eos_fillTableFile': 'h-imx-004.cn4',
         },
-        'physics:Hydro': {
+        'physicsHydro': {
             'cfl': 0.3,
         },
-        'physics:Eos:Tabulated:Hdf5TableRead': {
+        'physicsEosTabulatedHdf5TableRead': {
             'eos_useLogTables': '0',
         },
-        'physics:Hydro:unsplit': {
+        'physicsHydrounsplit': {
             'hy_fPresInMomFlux': 0.0,
             'hy_fullSpecMsFluxHandling': '0',
             'order': 3,
@@ -156,7 +156,7 @@ _DEFAULT_VALUES = {
             'smallx': 1.0e-99,
             'use_avisc': '1',
         },
-        'physics:Hydro:unsplit:MHD_StaggeredMesh': {
+        'physicsHydrounsplitMHD_StaggeredMesh': {
             'E_modification': '0',
             'energyFix': '1',
             'prolMethod': 'balsara_prol',
@@ -171,13 +171,13 @@ _DEFAULT_VALUES = {
             'plotFileIntervalTime': 1e-10,
             'io_writeMscalarIntegrals': '1',
         },
-        'physics:RadTrans': {
+        'physicsRadTrans': {
             'rt_dtFactor': 1.0e+100,
         },
-        'physics:sourceTerms:Heatexchange:Spitzer': {
+        'physicssourceTermsHeatexchangeSpitzer': {
             'hx_dtFactor': 1.0e+100,
         },
-        'physics:RadTrans:MGD': {
+        'physicsRadTransMGD': {
             'rt_useMGD': '1',
             'rt_mgdNumGroups': 6,
             'rt_mgdBounds_1': 1e-1,
@@ -195,7 +195,7 @@ _DEFAULT_VALUES = {
             'rt_mgdZlBoundaryType': 'reflecting',
             'rt_mgdZrBoundaryType': 'reflecting',
         },
-        'physics:materialProperties:Opacity:Multispecies': {
+        'physicsmaterialPropertiesOpacityMultispecies': {
             'op_fillAbsorb': 'op_tabpa',
             'op_fillEmiss': 'op_tabpe',
             'op_fillTrans': 'op_tabro',
@@ -207,7 +207,7 @@ _DEFAULT_VALUES = {
             'op_wallFileType': 'ionmix4',
             'op_wallFileName': 'al-imx-004.cn4',
         },
-        'physics:sourceTerms:EnergyDeposition:Laser': {
+        'physicssourceTermsEnergyDepositionLaser': {
             'ed_maxRayCount': 10000,
             'ed_numberOfPulses': 1,
             'ed_numberOfSections_1': 4,
@@ -239,12 +239,12 @@ _DEFAULT_VALUES = {
             'ed_gridType_1': 'statistical1D',
             'ed_gridnRadialTics_1': 1024,
         },
-        'physics:sourceTerms:EnergyDeposition:Laser:LaserIO': {
+        'physicssourceTermsEnergyDepositionLaserLaserIO': {
             'ed_useLaserIO': '1',
             'ed_laserIOMaxNumberOfPositions': 10000,
             'ed_laserIOMaxNumberOfRays':  128,
         },
-        'physics:Diffuse': {
+        'physicsDiffuse': {
             'diff_useEleCond': '1',
             'diff_eleFlMode': 'fl_larsen',
             'diff_eleFlCoef': 0.06,
@@ -259,10 +259,10 @@ _DEFAULT_VALUES = {
             'useDiffuseComputeDtVisc': '0',
             'dt_diff_factor': 0.3,
         },
-        'physics:Diffuse:Unsplit': {
+        'physicsDiffuseUnsplit': {
             'diff_thetaImplct': 1.0,
         },
-        'Simulation:magnetoHD:CapLaserBELLA': {
+        'SimulationCapLaserBELLA': {
             'sim_peakField': 3.2e3,
             'sim_period': 400e-9,
             'sim_rhoWall': 2.7,
@@ -448,16 +448,13 @@ def _generate_parameters_file(data):
             f = f"{data.models.Multispecies[f'ms_{k}Species']}-{k}-imx.cn4"
             data.models.Multispecies[f'eos_{k}TableFile'] = f
             data.models[
-                'physics:materialProperties:Opacity:Multispecies'
+                'physicsmaterialPropertiesOpacityMultispecies'
             ][f'op_{k}FileName'] = f
 
     for line in pkio.read_text(_SIM_DATA.flash_setup_units_path(data)).split('\n'):
-        name = ''
-        #TODO(pjm): share with setup_params parser
-        for part in line.split('/'):
-            if not re.search('Main$', part):
-                name += (':' if len(name) else '') + part
-        names[name] = line
+        names[
+            ''.join(filter(lambda x: not re.search('Main$', x), line.split('/')))
+        ] = line
     for m in sorted(data.models):
         if m not in names:
             continue
@@ -477,6 +474,13 @@ def _generate_parameters_file(data):
                     res += heading
                 if schema[f][1] == 'Boolean':
                     v = '.TRUE.' if v == '1' else '.FALSE.'
+                if m == 'SimulationCapLaserBELLA' and \
+                   f == 'sim_currFile' and data.models[m]['sim_currType'] == '2':
+                    v = _SIM_DATA.lib_file_name_with_model_field(
+                        'SimulationCapLaserBELLA',
+                        'sim_currFile',
+                        v,
+                    )
                 res += '{} = "{}"\n'.format(f, v)
         if has_heading:
             res += '\n'

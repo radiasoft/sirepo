@@ -65,7 +65,7 @@
             "zmin": 0.0,
             "zr_boundary_type": "periodic"
         },
-        "Grid:paramesh": {
+        "Gridparamesh": {
             "convertToConsvdInMeshInterp": "1",
             "derefine_cutoff_1": 0.2,
             "derefine_cutoff_2": 0.2,
@@ -150,12 +150,12 @@
             "y_refine_center": 0.0,
             "z_refine_center": 0.0
         },
-        "Grid:paramesh:paramesh4": {
+        "Gridparameshparamesh4": {
             "enableMaskedGCFill": "0",
             "gr_sanitizeDataMode": 1,
             "gr_sanitizeVerbosity": 5
         },
-        "Grid:paramesh:paramesh4:Paramesh4dev": {
+        "Gridparameshparamesh4Paramesh4dev": {
             "gr_pmrpAdvanceAllLevels": "0",
             "gr_pmrpAmrErrorChecking": "0",
             "gr_pmrpCartesianPm": "0",
@@ -200,7 +200,7 @@
             "gr_pmrpTimingMpix": "0",
             "gr_pmrpVarDt": "0"
         },
-        "Grid:paramesh:paramesh4:Paramesh4dev:flash_avoid_orrery": {
+        "Gridparameshparamesh4Paramesh4devflash_avoid_orrery": {
             "use_flash_surr_blks_fill": "1",
             "use_reduced_orrery": "1"
         },
@@ -359,7 +359,7 @@
             "op_fillLowTemp": 0.0,
             "op_wallLowTemp": 0.0
         },
-        "Simulation:RTFlame": {
+        "SimulationRTFlame": {
             "dens_unburned": 100000000.0,
             "flame_initial_position": 0.0,
             "particle_attribute_1": "dens",
@@ -384,7 +384,7 @@
             "vel_pert_amp": 0.0,
             "vel_pert_wavelength1": 1.0
         },
-        "Simulation:magnetoHD:CapLaserBELLA": {
+        "SimulationCapLaserBELLA": {
             "sim_condWall": 195000.0,
             "sim_eosFill": "eos_gam",
             "sim_eosWall": "eos_tab",
@@ -406,7 +406,7 @@
             "y2": "y-momentum",
             "y3": "E_kinetic"
         },
-        "physics:Diffuse": {
+        "physicsDiffuse": {
             "diff_eleFlCoef": 1.0,
             "diff_eleFlMode": "fl_none",
             "diff_eleXlBoundaryType": "outflow",
@@ -438,23 +438,23 @@
             "useDiffuseTherm": "1",
             "useDiffuseVisc": "1"
         },
-        "physics:Diffuse:Unsplit": {
+        "physicsDiffuseUnsplit": {
             "diff_ionThetaImplct": 0.5,
             "diff_thetaImplct": 0.5,
             "diff_updEint": "0"
         },
-        "physics:Eos:Tabulated:Hdf5TableRead": {
+        "physicsEosTabulatedHdf5TableRead": {
             "eos_useLogTables": "1"
         },
-        "physics:Gravity": {
+        "physicsGravity": {
             "grav_boundary_type": "isolated",
             "useGravity": "1"
         },
-        "physics:Gravity:Constant": {
+        "physicsGravityConstant": {
             "gconst": -981.0,
             "gdirec": "x"
         },
-        "physics:Hydro": {
+        "physicsHydro": {
             "UnitSystem": "none",
             "cfl": 0.8,
             "threadHydroBlockList": "0",
@@ -464,7 +464,7 @@
             "use_cma_advection": "0",
             "use_cma_flattening": "0"
         },
-        "physics:Hydro:unsplit": {
+        "physicsHydrounsplit": {
             "EOSforRiemann": "0",
             "LimitedSlopeBeta": 1.0,
             "RiemannSolver": "HLLC",
@@ -508,7 +508,7 @@
             "use_upwindTVD": "0",
             "wenoMethod": "WENO5"
         },
-        "physics:Hydro:unsplit:MHD_StaggeredMesh": {
+        "physicsHydrounsplitMHD_StaggeredMesh": {
             "E_modification": "1",
             "E_upwind": "0",
             "ForceHydroLimit": "0",
@@ -525,11 +525,11 @@
             "use_Biermann": "0",
             "use_Biermann1T": "0"
         },
-        "physics:RadTrans": {
+        "physicsRadTrans": {
             "rt_dtFactor": 0.1,
             "useRadTrans": "1"
         },
-        "physics:RadTrans:MGD": {
+        "physicsRadTransMGD": {
             "rt_computeDt": "0",
             "rt_groupBarrier": "0",
             "rt_mgdBoundEntry": "grbd_manual",
@@ -654,10 +654,10 @@
             "rt_timeGroups": "0",
             "rt_useMGD": "0"
         },
-        "physics:materialProperties:Opacity": {
+        "physicsmaterialPropertiesOpacity": {
             "useOpacity": "1"
         },
-        "physics:materialProperties:Opacity:Multispecies": {
+        "physicsmaterialPropertiesOpacityMultispecies": {
             "op_fillAbsorb": "op_undefined",
             "op_fillAbsorbConstant": -1.0,
             "op_fillEmiss": "op_undefined",
@@ -677,7 +677,7 @@
             "opacity_ignoreLowTemp": "1",
             "opacity_writeOpacityInfo": "0"
         },
-        "physics:sourceTerms:EnergyDeposition:Laser": {
+        "physicssourceTermsEnergyDepositionLaser": {
             "ed_RungeKuttaMethod": "CashKarp45",
             "ed_cellStepTolerance": 1e-06,
             "ed_cellTimeEnergyDeposition": "0",
@@ -746,12 +746,12 @@
             "threadRayTrace": "0",
             "useEnergyDeposition": "1"
         },
-        "physics:sourceTerms:EnergyDeposition:Laser:LaserIO": {
+        "physicssourceTermsEnergyDepositionLaserLaserIO": {
             "ed_laserIOMaxNumberOfPositions": -1,
             "ed_laserIOMaxNumberOfRays": -1,
             "ed_useLaserIO": "0"
         },
-        "physics:sourceTerms:Flame": {
+        "physicssourceTermsFlame": {
             "fl_b": 3.2,
             "fl_epsilon_0": 0.001,
             "fl_epsilon_1": 0.001,
@@ -759,18 +759,18 @@
             "fl_kpp_fact": 1.309,
             "useFlame": "1"
         },
-        "physics:sourceTerms:Flame:FlameEffects:EIP": {
+        "physicssourceTermsFlameFlameEffectsEIP": {
             "flame_deltae": 0.0,
             "sumyi_burned": 1.0,
             "sumyi_unburned": 1.0,
             "ye_burned": 0.5,
             "ye_unburned": 0.5
         },
-        "physics:sourceTerms:Flame:FlameSpeed:Constant": {
+        "physicssourceTermsFlameFlameSpeedConstant": {
             "fl_fsConstFlameSpeed": 1.0,
             "fl_fsConstFlameWidth": 1.0
         },
-        "physics:sourceTerms:Heatexchange:Spitzer": {
+        "physicssourceTermsHeatexchangeSpitzer": {
             "hx_dtFactor": 0.5,
             "hx_ieTimeCoef": 1.0,
             "hx_relTol": -1.0
