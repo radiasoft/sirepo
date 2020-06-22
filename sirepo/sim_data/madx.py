@@ -32,9 +32,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                 m = dm['initialTwissParams'] = PKDict()
                 cls.update_model_defaults(m, 'initialTwissParams')
                 m.dim = dim
-        if 'particleTracking' not in dm:
-            m = dm['particleTracking'] = PKDict()
-            cls.update_model_defaults(m, 'particleTracking')
         for container in ('commands', 'elements'):
             for m in dm[container]:
                 cls.update_model_defaults(m, LatticeUtil.model_name_for_data(m))

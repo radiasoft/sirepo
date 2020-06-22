@@ -443,7 +443,7 @@ def _generate_parameters_file(data):
     if v.report in _INITIAL_REPORTS:
         # these reports do not require running madx first
         v.initialTwissParameters = _get_initial_twiss_params(data)
-        v.numParticles = data.models.particleTracking.numParticles
+        v.numParticles = data.models.simulation.numberOfParticles
         v.particleFile = simulation_db.simulation_dir(SIM_TYPE, data.simulationId) \
             .join(data.report).join('ptc_particles.txt')
         res = template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
