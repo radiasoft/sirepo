@@ -34,7 +34,6 @@ _BEAM_AXIS_ROTATIONS = PKDict(
 _DMP_FILE = 'geom.dat'
 _FIELD_MAP_COLS = ['x', 'y', 'z', 'Bx', 'By', 'Bz']
 _FIELD_MAP_UNITS = ['m', 'm', 'm', 'T', 'T', 'T']
-#_FIELDS_FILE = 'fields.h5'
 _GEOM_DIR = 'geometry'
 _GEOM_FILE = 'geom.h5'
 _METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'save_field']
@@ -79,26 +78,11 @@ def background_percent_complete(report, run_dir, is_running):
 def extract_report_data(run_dir, sim_in):
     pkdp('EXTRACT RPT {} REQ {}', sim_in.report, sim_in.models.radiaReq)
     if sim_in.report in ('geometry', 'solver',):
-        v_type = sim_in.models.magnetDisplay.viewType
-        f_type = sim_in.models.magnetDisplay.fieldType if v_type == VIEW_TYPE_FIELD\
-            else None
-        #template_common.write_sequential_result(
-        #    _read_data(sim_in.simulationId, v_type, f_type),
-        #    run_dir=run_dir,
-        #)
-        #template_common.write_sequential_result(
-        #    _read_data(run_dir, v_type, f_type),
-        #    run_dir=run_dir,
-        #)
-        # radiaReq should be set by the client
+        # radiaReq should be set by the client - we know the run_dir so add it to the
+        # input for get_application_data
         req = sim_in.models.radiaReq
         req.runDir = run_dir
         res = get_application_data(req)
-        #res = get_application_data(sim_in.models.radiaReq) if \
-        #    sim_in.models.radiaReq.get('method', None) else \
-        #    _read_data(run_dir, v_type, f_type)
-        #res.runInfo=PKDict(runDir=run_dir)
-        # include the run_dir so that get_application_data can refer it later
         template_common.write_sequential_result(
             res,
             run_dir=run_dir,
@@ -122,47 +106,21 @@ def get_application_data(data, **kwargs):
         raise RuntimeError('no application data method')
     if data.method not in _METHODS:
         raise RuntimeError('unknown application data method: {}'.format(data.method))
-
-    #pkdp('METHOD {} GID {} ', data.method, data.radiaId)
-    #g_id = -1
-    #sim_id = data.simulationId
-    #try:
-    #    with open(str(_dmp_file(sim_id)), 'rb') as f:
-    #        b = f.read()
-    #        g_id = radia_tk.load_bin(b)
-    #except IOError as e:
-    #    if pkio.exception_is_not_found(e):
-    #        # No Radia dump file
-    #        return PKDict(warning='No Radia dump')
-    #    # propagate other errors
-    #g_id = data.get('radiaId', -1)
-    #pkdp('GID {}', g_id)
-    #run_dir = kwargs.get('run_dir', None)
     run_dir = data.get('runDir', None)
     if not run_dir:
-        pkdp('NO RUN DIR')
         return PKDict(warning='No runDir')
-    pkdp('USE RUN DIR {}', run_dir)
-    res = PKDict(runDir=run_dir)
-    #g_id = -1
-    #try:
-    #    with open(str(_dmp_file(run_dir)), 'rb') as f:
-    #        b = f.read()
-    #        g_id = radia_tk.load_bin(b)
-    #except IOError as e:
-    #    if pkio.exception_is_not_found(e):
-    #        # No Radia dump file
-    #        return PKDict(warning='No Radia dump')
-    #    # propagate other errors
+    res = PKDict(
+        runDir=run_dir,
+        solution=_read_solution(run_dir)
+    )
     g_id = _load_radia_bin(run_dir)
-    pkdp('GOT GID {} FROM {}', g_id, run_dir)
     if data.method == 'get_field':
         f_type = data.get('fieldType')
         if f_type in radia_tk.POINT_FIELD_TYPES:
             #TODO(mvk): won't work for subsets of available paths, figure that out
             pass
             #try:
-            #    res = _read_data(sim_id, data.viewType, f_type)
+            #    res = _read_data(run_dir, data.viewType, f_type)
             #except KeyError:
             #    res = None
             #pkdp('READ RES {}', res)
@@ -177,10 +135,15 @@ def get_application_data(data, **kwargs):
         res.pkupdate(_generate_field_data(
             g_id, data.name, f_type, data.get('fieldPaths', None)
         ))
-        #res.solution = _read_solution(sim_id)
-        res.solution = _read_solution(run_dir)
+        #res.solution = _read_solution(run_dir)
+        # moved addition of lines from client
+        data.fieldType = None
+        data.geomTypes = ['lines']
+        data.method = 'get_geom'
+        data.viewType = VIEW_TYPE_OBJ
+        new_res = get_application_data(data)
+        res.data += new_res.data
         return res
-
     if data.method == 'get_field_integrals':
         return res.pkupdate(_generate_field_integrals(g_id, data.fieldPaths))
     if data.method == 'get_geom':
@@ -193,9 +156,6 @@ def get_application_data(data, **kwargs):
         data.method = 'get_field'
         res = get_application_data(data)
         file_path = kwargs['tmp_dir'].join(res.name + '.' + data.fileType)
-        #file_path = simulation_db.simulation_lib_dir(SIM_TYPE).join(
-        #    sim_id + '_' + res.name + '.' + data.fileType
-        #)
         # we save individual field paths, so there will be one item in the list
         vectors = res.data[0].vectors
         if data.fileType == 'sdds':
@@ -349,16 +309,8 @@ def _build_geom(data):
         return -1
 
 
-#def _dmp_file(sim_id):
-#    return _get_res_file(sim_id, _DMP_FILE)
-
-
 def _dmp_file(run_dir):
     return _get_res_file(run_dir, _DMP_FILE)
-
-
-#def _fields_file(sim_id):
-#    return _get_res_file(sim_id, _FIELDS_FILE)
 
 
 def _generate_field_data(g_id, name, field_type, field_paths):
@@ -384,7 +336,7 @@ def _generate_field_integrals(g_id, f_paths):
         return PKDict(error=e.message)
 
 
-def _generate_data(g_id, in_data, add_lines=True):
+def _generate_data(g_id, in_data):
     try:
         o = _generate_obj_data(g_id, in_data.name)
         if in_data.viewType == VIEW_TYPE_OBJ:
@@ -393,8 +345,6 @@ def _generate_data(g_id, in_data, add_lines=True):
             g = _generate_field_data(
                 g_id, in_data.name, in_data.fieldType, in_data.get('fieldPaths', None)
             )
-            if add_lines:
-                _add_obj_lines(g, o)
             return g
     except RuntimeError as e:
         pkdc('Radia error {}', e.message)
@@ -410,15 +360,12 @@ def _generate_parameters_file(data, run_dir=None):
     # if run_dir None, always generate radia stuff (full python) and solve
     # and include all fields?
     g_id = -1
-    pkdp('LOOK IN DIR {}', run_dir)
     if run_dir:
-        pkdp('READ {}', str(_dmp_file(run_dir)))
         g_id = _load_radia_bin(run_dir)
     report = data.get('report', '')
     res, v = template_common.generate_parameters_file(data)
     g = data.models.geometry
 
-    pkdp('GOT GID {}', g_id)
     v['gId'] = g_id
     v['isExample'] = data.models.simulation.get('isExample', False)
     v['geomName'] = g.name
@@ -456,9 +403,6 @@ def _generate_parameters_file(data, run_dir=None):
     )
 
 
-#def _geom_file(sim_id):
-#    return _get_res_file(sim_id, _GEOM_FILE)
-
 def _geom_file(run_dir):
     return _get_res_file(run_dir, _GEOM_FILE)
 
@@ -469,10 +413,6 @@ def _geom_h5_path(view_type, field_type=None):
         p += '/' + field_type
     return p
 
-
-#def _get_res_file(sim_id, filename):
-#    return simulation_db.simulation_dir(SIM_TYPE, sim_id) \
-#        .join(_GEOM_DIR).join(filename)
 
 def _get_res_file(run_dir, filename):
     #return run_dir.join(filename)
@@ -501,15 +441,12 @@ def _load_radia_bin(run_dir):
     except IOError as e:
         # No Radia dump file is OK; propagate other errors
         if pkio.exception_is_not_found(e):
-            pkdp('NO DMP FILE IN {}', run_dir)
             pass
     return g_id
 
 
-#def _read_h5_path(sim_id, h5path):
 def _read_h5_path(run_dir, h5path):
     try:
-        #with h5py.File(_geom_file(sim_id), 'r') as hf:
         with h5py.File(_geom_file(run_dir), 'r') as hf:
             return template_common.h5_to_dict(hf, path=h5path)
     except IOError as e:
@@ -522,12 +459,9 @@ def _read_h5_path(run_dir, h5path):
     # propagate other errors
 
 
-#def _read_data(sim_id, view_type, field_type):
 def _read_data(run_dir, view_type, field_type):
-    #res = _read_h5_path(sim_id, _geom_h5_path(view_type, field_type))
     res = _read_h5_path(run_dir, _geom_h5_path(view_type, field_type))
     if res:
-        #res.solution = _read_solution(sim_id)
         res.solution = _read_solution(run_dir)
     return res
 
@@ -535,22 +469,16 @@ def _read_data(run_dir, view_type, field_type):
 def _read_or_generate(geom_id, data, run_dir):
     f_type = data.get('fieldType', None)
     try:
-        #return _read_data(data.simulationId, data.viewType, f_type)
         return _read_data(run_dir, data.viewType, f_type)
     except KeyError:
         # No such path, so generate the data and write to the existing file
-        #with h5py.File(_geom_file(data.simulationId), 'a') as hf:
         with h5py.File(_geom_file(run_dir), 'a') as hf:
             template_common.dict_to_h5(
-                _generate_data(geom_id, data, add_lines=False),
+                _generate_data(geom_id, data),
                 hf,
                 path=_geom_h5_path(data.viewType, f_type)
             )
         return get_application_data(data)
-
-
-#def _read_solution(sim_id):
-#    return _read_h5_path(sim_id, 'solution')
 
 
 def _read_solution(run_dir):

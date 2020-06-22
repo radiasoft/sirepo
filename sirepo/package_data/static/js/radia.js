@@ -128,6 +128,14 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         return (appState.models.fieldTypes || {}).path;
     };
 
+    self.getRadiaData = function(inData, handler, regenOnFail) {
+        // store inData on the model, so that we can refer to it if
+        // getApplicationData fails
+        appState.models.radiaReq = inData;
+        appState.saveQuietly('radiaReq');
+        requestSender.getApplicationData(inData, handler);
+    };
+
     self.getSelectedObj = function() {
         return self.selectedObj;
     };
@@ -233,7 +241,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     self.solution = [];
 
     function handleStatus(data) {
-        //srdbg('SIM STATUS', data);
+        srdbg('SIM STATUS', data);
         if (data.error) {
             throw new Error('Solver failed: ' + data.error);
         }
@@ -574,12 +582,15 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             };
 
             function updateTable() {
-                /*
                 var inData = {
-                        fieldPaths: $scope.paths,
-                        method: 'get_field_integrals',
-                        simulationId: appState.models.simulation.simulationId,
-                    };
+                    fieldPaths: $scope.paths,
+                    method: 'get_field_integrals',
+                    runDir: appState.models.radiaReq.runDir,
+                    simulationId: appState.models.simulation.simulationId,
+                };
+                //radiaService.getRadiaData(inData, function(d) {
+                //    $scope.integrals = d;
+                //});
                 appState.models.radiaReq = inData;
                 appState.saveQuietly('radiaReq');
                 requestSender.getApplicationData(
@@ -587,7 +598,6 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                     function(d) {
                         $scope.integrals = d;
                     });
-                */
             }
 
             $scope.$on('fieldPaths.changed', function () {
@@ -1670,28 +1680,12 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }, false);
                 */
 
-                requestSender.getApplicationData(
+                //requestSender.getApplicationData(
+                radiaService.getRadiaData(
                     inData,
                     function(d) {
                         srdbg('got app data', d);
                         if (d && d.data && d.data.length) {
-                            if ($scope.isViewTypeFields()) {
-                                // get the lines in a separate call - downside is longer wait
-                                delete inData.fieldType;
-                                inData.geomTypes = ['lines'];
-                                inData.method = 'get_geom';
-                                inData.viewType = VIEW_TYPE_OBJECTS;
-                                requestSender.getApplicationData(
-                                    inData,
-                                    function(g) {
-                                        if (g && g.data) {
-                                            d.data = d.data.concat(g.data);
-                                        }
-                                        setupSceneData(d);
-                                    }
-                                );
-                                return;
-                            }
                             setupSceneData(d);
                             return;
                         }

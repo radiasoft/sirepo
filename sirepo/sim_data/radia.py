@@ -14,18 +14,14 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-        res = cls._non_analysis_fields(data, r) + []
+        #res = cls._non_analysis_fields(data, r) + []
+        res = []
         return res
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
-        #pkdp('_compute_model {}', analysis_model)
-        # put everything in geometry?
-        if analysis_model in ('solver',):
-            #pkdp('analysis_model {} -> geometry', analysis_model)
-            return 'geometry'
-        if analysis_model in ('geometry', 'reset',):
-            #pkdp('analysis_model {} -> geometry', analysis_model)
+        # funnel everything into geometry so they all use the same run_dir
+        if analysis_model in ('geometry', 'reset', 'solver',):
             return 'geometry'
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
@@ -43,7 +39,6 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _lib_file_basenames(cls, data):
         res = []
-        #pkdp('LIB FILES FROM {}', data)
         if 'fieldType' in data:
             res.append(cls.lib_file_name_with_model_field(
                 'fieldPath',
