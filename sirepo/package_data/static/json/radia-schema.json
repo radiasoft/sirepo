@@ -25,6 +25,23 @@
                         "model": "box",
                         "title": "Box",
                         "type": "box"
+                    },
+                    {
+                        "layoutShape": "rect",
+                        "model": "group",
+                        "title": "Group",
+                        "type": "group"
+                    }
+                ]
+            },
+            {
+                "type": "Complex objects",
+                "contents": [
+                    {
+                        "layoutShape": "rect",
+                        "model": "undulatorGroup",
+                        "title": "UndulatorGroup",
+                        "type": "undulatorGroup"
                     }
                 ]
             }
@@ -163,18 +180,20 @@
             "name": ["Name", "String", ""]
         },
         "geomGroup": {
-            "_super": ["_", "model", "geomObject"]
+            "_super": ["_", "model", "radiaObject"]
         },
         "geomObject": {
-            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x (mm), y (mm), z (mm)"],
+            "_super": ["_", "model", "radiaObject"],
             "color": ["Color", "Color", "#cccccc"],
             "division": ["Divide", "DivisionType", ""],
-            "id": ["_", "String", ""],
-            "layoutShape":  ["_", "String", "rect"],
             "material": ["Material", "MaterialType", "NdFeB"],
-            "name": ["Name", "String", ""],
-            "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"],
             "type": ["Type", "ObjectType", "box"]
+        },
+        "geomUndulatorGroup": {
+            "_super": ["_", "model", "geomGroup"],
+            "baseGroup": [""],
+            "gap": ["Gap", "Float", 1.0],
+            "numPeriods": ["Number of Periods", "Integer", 1, "", 1]
         },
         "linePath": {
             "_super": ["_", "model", "fieldPath"],
@@ -208,6 +227,13 @@
         "material": {
             "density": ["Density", "Float", 1.0],
             "name": ["Name", "String", ""]
+        },
+        "radiaObject": {
+            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x (mm), y (mm), z (mm)"],
+            "id": ["_", "String", ""],
+            "layoutShape":  ["_", "String", "rect"],
+            "name": ["Name", "String", ""],
+            "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"]
         },
         "reset": {
         },
