@@ -63,7 +63,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
         t.mksymlinkto(d, absolute=True)
         try:
-            _request(
+            r = _request(
                 computeJobHash='unused',
                 dataFileKey=t.basename,
                 frame=int(frame),
@@ -71,6 +71,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
                 req_data=req.req_data,
                 suffix=s,
             )
+            assert not r.state == 'error', f'error state in request=={r}'
             f = d.listdir()
             if len(f) > 0:
                 assert len(f) == 1, \
