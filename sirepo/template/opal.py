@@ -482,10 +482,19 @@ def _fixup_madx(madx, data):
             el.gap = 2 * cv.eval_var_with_assert(el.hgap)
 
 
+def _fix_opal_float(value):
+    if value and not code_variable.CodeVar.is_var_value(value):
+        # need to format values as floats, OPAL has overflow issues with large integers
+        return float(value)
+    return value
+
+
 def _format_field_value(state, model, field, el_type):
     value = model[field]
     if el_type == 'Boolean':
         value = 'true' if value == '1' else 'false'
+    elif el_type == 'RPNValue':
+        value = _fix_opal_float(value)
     elif el_type == 'InputFile':
         value = '"{}"'.format(
             _SIM_DATA.lib_file_name_with_model_field(LatticeUtil.model_name_for_data(model), field, value))
@@ -494,15 +503,6 @@ def _format_field_value(state, model, field, el_type):
         value = '"{}.{}.{}"'.format(model.name, field, ext)
     elif re.search(r'List$', el_type):
         value = state.id_map[int(value)].name
-    # elif LatticeUtil.is_command(model):
-        #TODO(pjm): determine the general case where values need quotes
-        # if model._type == 'run' and field == 'method':
-        #     value = '"{}"'.format(value)
-        #value = '"{}"'.format(value)
-        # if el_type == 'Boolean' or el_type == 'RPNValue':
-        #     pass
-        # elif value:
-        #     value = '"{}"'.format(value)
     elif re.search(r'String', el_type):
         if len(str(value)):
             if not re.search(r'^\s*\{.*\}$', value):
@@ -650,7 +650,7 @@ def _generate_parameters_file(data):
 def _generate_variable(name, variables, visited):
     res = ''
     if name not in visited:
-        res += 'REAL {} = {};\n'.format(name, variables[name])
+        res += 'REAL {} = {};\n'.format(name, _fix_opal_float(variables[name]))
         visited[name] = True
     return res
 

@@ -2,18 +2,18 @@
 Title, string="CTF3 RF Photoinjector";
 
 REAL qb = 2e-10;
-REAL bf = 2998;
+REAL bf = 2998.0;
 REAL bc = qb * bf * 1e6;
 
 
-OPT1: option,autophase=4,psdumpfreq=50,statdumpfreq=1,version=10900;
+OPT1: option,autophase=4.0,psdumpfreq=50.0,statdumpfreq=1.0,version=10900.0;
 
 D1: DRIFT,l=0.48;
 D2: DRIFT,l=0.08;
 D3: DRIFT,l=4.16;
 DR1: DRIFT,l=-0.04986;
 FIND1_MQ10: QUADRUPOLE,l=0.1;
-FINSS_RGUN: RFCAVITY,fmapfn="RFCAVITY-fmapfn.CTF3_Ez_ASTRA.opal",freq=BF,l=0.34986,lag=-3.5 / 180.0 * PI,type=STANDING,volt=100;
+FINSS_RGUN: RFCAVITY,fmapfn="RFCAVITY-fmapfn.CTF3_Ez_ASTRA.opal",freq=BF,l=0.34986,lag=-3.5 / 180.0 * PI,type=STANDING,volt=100.0;
 FIND1_MSOL10: SOLENOID,fmapfn="SOLENOID-fmapfn.NEW_SINGLE_SOL_NOFRINGE_ASTRA.opal",ks=0.206,l=0.6;
 GUNSOURCE: SOURCE;
 
@@ -30,9 +30,9 @@ GUNSOURCE: SOURCE;
 Injector: LINE=("GUNSOURCE#0","FINSS_RGUN#0","FIND1_MSOL10#0","D1#0","FIND1_MQ10#0","D2#0","FIND1_MQ10#1","D2#1","FIND1_MQ10#2","D3#0");
 
 
-FS1: fieldsolver,bboxincr=1,fstype="FFT",mt=32,mx=16,my=16,parfftx=true,parffty=true;
-DIST1: distribution,ekin=0.4,emitted=true,maxstepssi=500,nbin=5,sigmax=0.000395,sigmay=0.000395,tfall=7.45e-12,tpulsefwhm=1.04e-11,trise=7.45e-12,type="GUNGAUSSFLATTOPTH";
-BEAM1: beam,bcurrent=BC,bfreq=BF,npart=20000,particle="ELECTRON",pc=P0;
-T1: track,beam=beam1,dt=1e-12,line=Injector,maxsteps=4000,zstop=100;
+FS1: fieldsolver,bboxincr=1.0,fstype="FFT",mt=32.0,mx=16.0,my=16.0,parfftx=true,parffty=true;
+DIST1: distribution,ekin=0.4,emitted=true,maxstepssi=500.0,nbin=5.0,sigmax=0.000395,sigmay=0.000395,tfall=7.45e-12,tpulsefwhm=1.04e-11,trise=7.45e-12,type="GUNGAUSSFLATTOPTH";
+BEAM1: beam,bcurrent=BC,bfreq=BF,npart=20000.0,particle="ELECTRON",pc=P0;
+T1: track,beam=beam1,dt=1e-12,line=Injector,maxsteps=4000.0,zstop=100.0;
  run, beam=beam1,distribution=Dist1,fieldsolver=Fs1,method="PARALLEL-T";
 endtrack;
