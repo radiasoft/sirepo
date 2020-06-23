@@ -78,17 +78,7 @@ def audit_proprietary_lib_files(uid):
                 pass
 
 
-def init_model(callback):
-    with thread_lock:
-        callback(UserDbBase)
-        UserDbBase.metadata.create_all(_engine)
-
-
-def _db_filename():
-    return sirepo.srdb.root().join(_SQLITE3_BASENAME)
-
-
-def _init():
+def init():
     global _session, _engine, UserDbBase, UserRegistration, UserRole
     assert not _session
 
@@ -195,13 +185,17 @@ def _init():
                     cls.role.in_(sirepo.auth.PAID_USER_ROLES),
                 ).distinct().all()
             ]
+    UserDbBase.metadata.create_all(_engine)
 
-    #TODO(pjm): work-around for #2585
-    try:
-        # only creates tables that don't already exist
+
+def init_model(callback):
+    with thread_lock:
+        callback(UserDbBase)
         UserDbBase.metadata.create_all(_engine)
-    except sqlalchemy.exc.OperationalError:
-        pass
+
+
+def _db_filename():
+    return sirepo.srdb.root().join(_SQLITE3_BASENAME)
 
 
 def _migrate_db_file(fn):
@@ -255,6 +249,3 @@ def _migrate_db_file(fn):
         raise
     x.rename(o + '-migrated')
     pkdlog('migrated user.db to auth.db')
-
-
-_init()
