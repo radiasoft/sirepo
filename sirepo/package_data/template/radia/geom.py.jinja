@@ -22,11 +22,15 @@ g_id = {{ gId }}
 # always store the object
 g_obj_data = radia_tk.geom_to_data(g_id, name='{{ geomName }}')
 g_obj_h5_path = '{{ h5ObjPath }}'
+with h5py.File('{{ dataFile }}', 'a') as hf:
+    template_common.dict_to_h5(g_obj_data, hf, path='{{ h5ObjPath }}')
 
 g_solution_data = None
 g_solution_h5_path = 'solution'
 {% if doSolve %}
 g_solution_data = radia_tk.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
+with h5py.File('{{ dataFile }}', 'a') as hf:
+    template_common.dict_to_h5(g_solution_data, hf, path='solution')
 {% endif %}
 
 g_field_data = None
@@ -39,5 +43,8 @@ if '{{ viewType }}' == VIEW_TYPE_FIELD:
         f = radia_tk.get_field(g_id, f_type, {{ fieldPoints }})
     g_field_data = radia_tk.vector_field_to_data(g_id, '{{ geomName }}', f, radia_tk.FIELD_UNITS[f_type])
 
+    with h5py.File('{{ dataFile }}', 'a') as hf:
+        template_common.dict_to_h5(g_field_data, hf, path='{{ h5FieldPath }}')
 
-
+with open('{{ dmpFile }}', 'wb') as f:
+    f.write(radia_tk.dump_bin(g_id))

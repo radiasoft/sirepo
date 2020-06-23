@@ -364,6 +364,9 @@ def _generate_parameters_file(data, run_dir=None):
     res, v = template_common.generate_parameters_file(data)
     g = data.models.geometry
 
+    v['dmpFile'] = _dmp_file(run_dir)
+    v['dataFile'] = _geom_file(run_dir)
+
     v['gId'] = g_id
     v['isExample'] = data.models.simulation.get('isExample', False)
     v['geomName'] = g.name

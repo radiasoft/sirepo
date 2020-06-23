@@ -21,14 +21,6 @@ _GEOM_FILE = 'geom.h5'
 
 def run(cfg_dir):
     r = template_common.exec_parameters()
-    with open(_DMP_FILE, 'wb') as f:
-        f.write(sirepo.template.radia_tk.dump_bin(r.g_id))
-    template.append_h5(r.g_obj_data, r.g_obj_h5_path, _GEOM_FILE)
-    if r.g_solution_data:
-        template.append_h5(r.g_solution_data, r.g_solution_h5_path, _GEOM_FILE)
-    if r.g_field_data:
-        template.append_h5(r.g_field_data, r.g_field_h5_path, _GEOM_FILE)
-
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     template.extract_report_data(py.path.local(cfg_dir), data)
 

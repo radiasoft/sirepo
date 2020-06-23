@@ -13,6 +13,17 @@ class SimData(sirepo.sim_data.SimDataBase):
     ANALYSIS_ONLY_FIELDS = frozenset(('colorMap', 'name', 'notes', 'scaling'))
 
     @classmethod
+    def fixup_old_data(cls, data):
+        cls._init_models(data.models)
+        cls._organize_example(data)
+
+    @classmethod
+    def is_parallel(cls, data_or_model):
+        if data_or_model in ('solver',):
+            return True
+        return super(SimData, cls).is_parallel(data_or_model)
+
+    @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         #res = cls._non_analysis_fields(data, r) + []
         res = []
@@ -24,12 +35,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         if analysis_model in ('geometry', 'reset', 'solver',):
             return 'geometry'
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
-
-    @classmethod
-    def fixup_old_data(cls, data):
-        cls._init_models(data.models)
-        cls._organize_example(data)
-
 
     @classmethod
     def _lib_file_basenames(cls, data):
