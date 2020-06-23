@@ -3040,7 +3040,7 @@ SIREPO.app.directive('toolbar', function(appState) {
         controller: function($scope) {
             $scope.allItems = [];
             var items = $scope.toolbarItems || SIREPO.APP_SCHEMA.constants.toolbarItems || [];
-            srdbg('items', items);
+            //srdbg('items', items);
             function addItem(name, items) {
                 var item = appState.setModelDefaults({type: name}, name);
                 items.push(item);

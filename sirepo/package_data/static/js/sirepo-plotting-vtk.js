@@ -882,6 +882,7 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
             var insetWidthPct = 0.07;
             var insetMargin = 16.0;
             var scale = SIREPO.APP_SCHEMA.constants.objectScale || 1.0;
+            var invScale = 1.0 /scale;
 
             $scope.margin = {top: 20, right: 20, bottom: 45, left: 70};
             //$scope.source = panelState.findParentAttribute($scope, 'source');
@@ -906,12 +907,14 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                         if (! o) {
                             return;
                         }
-                        o.center = [
-                            shape.x + shape.width / 2,
-                            shape.y - shape.height / 2,
-                            shape.depth / 2
-                        ].join(',');
-                        appState.saveChanges($scope.modelName);
+                        o.center = floatArrayToString([
+                            (shape.x + shape.width / 2),
+                            (shape.y + shape.height / 2),
+                            (shape.depth / 2)
+                        ]);
+                        appState.saveChanges($scope.modelName, function (d) {
+                            replot();
+                        });
                     }
                     else {
                         appState.cancelChanges($scope.modelName);
@@ -939,8 +942,6 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                 showShapeLocation(shape);
             }
 
-
-
             function drawObjects(typeMap, elev) {
                 var shapes = [];
                 (appState.models[$scope.modelName].objects || [])
@@ -948,24 +949,28 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                         //srdbg('draw obj', o);
                         var center = angular.isString(o.center) ? stringToFloatArray(o.center) : o.center;
                         var size = angular.isString(o.size) ? stringToFloatArray(o.size) : o.size;
+                        //srdbg('draw ctr', center, 'sz', size);
+                        //TODO(mvk): shape dimensions depend on elevation view
                         shapes.push({
                             color: o.color,
                             elev: elev,
                             id: o.id,
                             name: o.name,
                             shape: o.layoutShape || 'rect',
-                            depth: size[0],
-                            width: size[1],
-                            height: size[2],
-                            x: center[1] - size[1] / 2,
-                            y: center[2] + size[2] / 2,
+                            depth: size[2],
+                            width: size[0],
+                            height: size[1],
+                            x: center[0] - size[0] / 2,
+                            y: center[1] - size[1] / 2,
                         });
+                        var s = shapes[shapes.length - 1];
+                        //srdbg('draw at', s.x, s.y);
                     });
                 var ds = d3.select('.plot-viewport').selectAll('.vtk-object-layout-shape')
                     .data(shapes);
                 ds.exit().remove();
                 ds.enter().append('rect')
-                    .on('dblclick', editPosition);
+                    .on('dblclick', editObject);
                 ds.call(updateShapeAttributes);
                 ds.call(dragShape);
             }
@@ -977,11 +982,17 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                 drawObjects();
             }
 
-            function editPosition(shape) {
+            function editObject(shape) {
                 d3.event.stopPropagation();
                 $scope.$applyAsync(function() {
-                    $scope.source.editObject(shape.id);
+                    $scope.source.editObjectWithId(shape.id);
                 });
+            }
+
+            function floatArrayToString(arr) {
+                return arr.map(function (v) {
+                    return invScale * v;
+                }).join(',');
             }
 
             function fmod(a,b) {
@@ -1127,7 +1138,7 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
             }
 
             function resetZoom() {
-                zoom = axes.x.createZoom($scope);
+                zoom = axes.x.createZoom($scope).y(axes.y.scale);
             }
 
             function select(selector) {
@@ -1152,12 +1163,12 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                     elev: ELEVATIONS.front,
                     name: model.name,
                     shape: model.layoutShape || 'rect',
-                    depth: size[0],
-                    width: size[1],
-                    height: size[2],
+                    depth: size[2],
+                    width: size[0],
+                    height: size[1],
                     id: model.id,
-                    x: axes.x.scale.invert(p[0]) - size[1] / 2,
-                    y: axes.y.scale.invert(p[1]) + size[2] / 2,
+                    x: axes.x.scale.invert(p[0]) + size[0] / 2,
+                    y: axes.y.scale.invert(p[1]) + size[1] / 2,
                 };
             }
 
@@ -1254,20 +1265,12 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                 srdbg('DROP', obj,  'AT', p, 'FROM', evt);
                 if (p) {
                     var shape = shapeFromObjectTypeAndPoint(obj, p);
-                    srdbg('shape', shape);
-                    /*
-                    appState.models.conductors.push({
-                        id: appState.maxId(appState.models.conductors) + 1,
-                        conductorTypeId: conductorType.id,
-                        zCenter: formatMicron(shape.x + shape.width / 2),
-                        xCenter: formatMicron(shape.y - shape.height / 2),
-                        yCenter: formatMicron(planeLine),
-                    });
-                    appState.saveChanges($scope.modelName);
-                    
-                     */
+                    obj.center = floatArrayToString([
+                        shape.x + shape.width / 2,
+                        shape.y + shape.height / 2,
+                        0,
+                    ]);
                     $scope.$emit('layout.object.dropped', obj);
-                    //$scope.$broadcast('object.dropped', obj);
                 }
             };
 
@@ -1290,9 +1293,9 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                     .on('drag', d3DragShape)
                     .on('dragstart', d3DragStartShape)
                     .on('dragend', d3DragEndShape);
-                axes.x.parseLabelAndUnits('z [m]');
-                axes.y.parseLabelAndUnits('x [m]');
-                axes.z.parseLabelAndUnits('y [m]');
+                axes.x.parseLabelAndUnits('x [m]');
+                axes.y.parseLabelAndUnits('y [m]');
+                axes.z.parseLabelAndUnits('z [m]');
                 replot();
             };
 
@@ -1318,10 +1321,16 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
             };
 
             appState.whenModelsLoaded($scope, function() {
-                $scope.$on('cancelChanges', function(e, name) {
+                $scope.$on($scope.modelName + '.changed', function(e, name) {
                     if (name == $scope.modelName) {
-                        replot();
+                        refresh();
                     }
+                });
+                $scope.$on('cancelChanges', function(e, name) {
+                    refresh();
+                    //if (name == $scope.modelName) {
+                    //    refresh();
+                    //}
                 });
             });
         },

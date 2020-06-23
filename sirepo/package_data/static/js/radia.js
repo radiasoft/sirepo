@@ -124,6 +124,17 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         saveAs(new Blob([d3.csv.format(points)], {type: "text/csv;charset=utf-8"}), fileName);
     };
 */
+
+    self.getObject = function(id) {
+        var objs = appState.models.geometry.objects || [];
+        for (var i in objs) {
+            if (objs[i].id == id) {
+                return objs[i];
+            }
+        }
+        return null;
+    };
+
     self.getPathType = function() {
         return (appState.models.fieldTypes || {}).path;
     };
@@ -210,37 +221,38 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
     return self;
 });
 
-SIREPO.app.controller('RadiaSourceController', function (appState, panelState, $scope) {
+SIREPO.app.controller('RadiaSourceController', function (appState, panelState, radiaService, $scope) {
     var self = this;
     var geomObjs = [];
+
+    self.selectedObject = null;
     self.toolbarItems = SIREPO.APP_SCHEMA.constants.toolbarItems;
 
     self.isEditable = function() {
         return true;
     };
 
-    self.editObject = function(id) {
+    self.editObjectWithId = function(id) {
         var o = self.getObject(id);
         if (! o) {
             return;
         }
+        self.editObject(o);
+    };
+
+    self.editObject = function(o) {
+        self.selectedObject = o;
         appState.models.geomObject = o;
         panelState.showModalEditor('geomObject');
     };
 
     self.getObject = function(id) {
-        for (var i in geomObjs) {
-            if (geomObjs[i].id == id) {
-                return geomObjs[i];
-            }
-        }
-        return null;
-    }
+        return radiaService.getObject(id);
+    };
 
-    function addGeomObj(objModel) {
+    function addObject(objModel) {
         objModel.id  = appState.models.geometry.objects.length;
         appState.models.geometry.objects.push(objModel);
-        appState.saveChanges('geometry');
     }
 
     appState.whenModelsLoaded($scope, function() {
@@ -252,11 +264,20 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, $
             appState.models.geometry.objects = [];
         }
         geomObjs = appState.models.geometry.objects;
+        $scope.$on('geomObject.changed', function(e, o) {
+            if (! self.selectedObject.id) {
+                addObject(self.selectedObject);
+            }
+            appState.saveChanges('geometry', function (d) {
+                self.selectedObject = null;
+            });
+        });
         $scope.$on('layout.object.dropped', function (e, o) {
             var m = appState.setModelDefaults({}, o.model);
-            srdbg('dropped', o, '->', m);
+            //srdbg('dropped', o, '->', m);
+            m.center = o.center;
             m.name = o.type;
-            addGeomObj(m);
+            self.editObject(m);
         });
     });
 });
@@ -1012,7 +1033,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             continue;
                         }
                         var isPoly = t === radiaVtkUtils.GEOM_TYPE_POLYS;
-                        var gObj = getGeomObj(id) || {};
+                        var gObj = radiaService.getGeomObj(id) || {};
                         //srdbg('got obj', gObj);
                         var gColor = gObj.color ? vtk.Common.Core.vtkMath.hex2float(gObj.color) : null;
                         var pdti = radiaVtkUtils.objToPolyData(sceneDatum, [t], gColor);

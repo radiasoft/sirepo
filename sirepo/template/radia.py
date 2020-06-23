@@ -292,15 +292,6 @@ _FIELD_PT_BUILDERS = {
 }
 
 
-def _build_geom(data):
-    g_name = data.models.geometry.name
-    if data.models.simulation.isExample:
-        return radia_examples.build(g_name)
-    else:
-        #TODO(mvk): build from model data
-        return -1
-
-
 def _dmp_file(sim_id):
     return _get_res_file(sim_id, _DMP_FILE)
 
