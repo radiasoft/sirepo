@@ -442,7 +442,7 @@ def _generate_lattice(util):
 def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
 
-    v.report = re.sub(r'\d+$', '', data.report)
+    v.report = re.sub(r'\d+$', '', data.get('report', ''))
     if v.report in _INITIAL_REPORTS:
         # these reports do not require running madx first
         v.initialTwissParameters = _get_initial_twiss_params(data)
