@@ -875,9 +875,14 @@ def _init():
     fn = STATIC_FOLDER.join('json/schema-common{}'.format(JSON_SUFFIX))
     with open(str(fn)) as f:
         SCHEMA_COMMON = json_load(f)
-    # In development, you can touch schema-common to get a new version
-    SCHEMA_COMMON.version = _timestamp(fn.mtime()) if pkconfig.channel_in('dev') \
-        else sirepo.__version__
+    # In development, any schema update creates a new version
+    if pkconfig.channel_in('dev'):
+        SCHEMA_COMMON.version = max([
+            _timestamp(pkio.py_path(fn).mtime()) \
+            for fn in glob.glob(str(STATIC_FOLDER.join('json/*{}'.format(JSON_SUFFIX))))
+        ])
+    else:
+        SCHEMA_COMMON.version = sirepo.__version__
     JOB_RUN_MODE_MAP = PKDict(
         sequential='Serial',
         parallel='{} cores (SMP)'.format(sirepo.mpi.cfg.cores),
