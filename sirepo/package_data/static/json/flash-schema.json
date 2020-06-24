@@ -885,6 +885,9 @@
             "sim_tradWall": ["Wall Radiation Temp.", "Float", 290.11375],
             "sim_zminWall": ["Wall Minimum Zbar", "Float", 0.0]
         },
+        "physics:materialProperties:Conductivity": {
+            "useConductivity": ["Use Conductivity", "Boolean", "1", "whether the conductivity material property is being used"]
+        },
         "physics:materialProperties:Opacity": {
             "useOpacity": ["Use Opacity", "Boolean", "1", "flags whether the Opacity unit is being used at all"]
         },
@@ -1274,6 +1277,9 @@
             "fl_fsConstFlameSpeed": ["Constant Flame Speed", "Float", 1.0, "fl_fsConstFlameSpeed"],
             "fl_fsConstFlameWidth": ["Constant Flame Width", "Float", 1.0, "fl_fsConstFlameWidth"]
         },
+        "physics:sourceTerms:Heatexchange": {
+            "useHeatExchange": ["Use Heat Exchange", "Boolean", "0", "Use heat exchange"]
+        },
         "physics:sourceTerms:Heatexchange:Spitzer": {
             "hx_dtFactor": ["hx_dtFactor", "Float", 0.5, "", 0.0],
             "hx_ieTimeCoef": ["hx_ieTimeCoef", "Float", 1.0, "Constant coefficient for scaling ion/ele coupling time", 0.0],
@@ -1472,6 +1478,7 @@
             "basic": [
                 ["Main", [
                     "sim_zminWall",
+                    "physics:sourceTerms:Heatexchange.useHeatExchange",
                     [
                         ["Fill", [
                             "sim_eosFill",
@@ -1541,6 +1548,7 @@
             "title": "Material Properties",
             "basic": [
                 "physics:materialProperties:Opacity.useOpacity",
+                "physics:materialProperties:Conductivity.useConductivity",
                 [
                     ["Fill", [
                         "physics:materialProperties:Opacity:Multispecies.op_fillAbsorb",
