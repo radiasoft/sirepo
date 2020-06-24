@@ -247,6 +247,8 @@
             "name": ["Name", "String", ""],
             "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"]
         },
+        "radiaReq": {
+        },
         "reset": {
         },
         "simulation": {

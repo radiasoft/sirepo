@@ -130,6 +130,13 @@ def get_application_data(data, **kwargs):
             g_id, data.name, f_type, data.get('fieldPaths', None)
         )
         res.solution = _read_solution(sim_id)
+        # moved addition of lines from client
+        data.fieldType = None
+        data.geomTypes = ['lines']
+        data.method = 'get_geom'
+        data.viewType = VIEW_TYPE_OBJ
+        new_res = get_application_data(data)
+        res.data += new_res.data
         return res
 
     if data.method == 'get_field_integrals':

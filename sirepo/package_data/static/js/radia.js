@@ -139,6 +139,24 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         return (appState.models.fieldTypes || {}).path;
     };
 
+    self.getRadiaData = function(inData, handler) {
+        // store inData on the model, so that we can refer to it if
+        // getApplicationData fails
+        appState.models.radiaReq = inData;
+        appState.saveQuietly('radiaReq');
+        requestSender.getApplicationData(inData, function (d) {
+            if (d.error) {
+                throw new Error(d.error);
+            }
+            // capture the runDir
+            if (d.runDir && d.runDir != appState.models.radiaReq.runDir) {
+                appState.models.radiaReq.runDir = d.runDir;
+                appState.saveQuietly('radiaReq');
+            }
+            handler(d);
+        });
+    };
+
     self.getSelectedObj = function() {
         return self.selectedObj;
     };
@@ -675,15 +693,15 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             };
 
             function updateTable() {
-               requestSender.getApplicationData(
-                    {
-                        fieldPaths: $scope.paths,
-                        method: 'get_field_integrals',
-                        simulationId: appState.models.simulation.simulationId,
-                    },
-                    function(d) {
-                        $scope.integrals = d;
-                    });
+                var inData = {
+                    fieldPaths: $scope.paths,
+                    method: 'get_field_integrals',
+                    runDir: appState.models.radiaReq.runDir,
+                    simulationId: appState.models.simulation.simulationId,
+                };
+                radiaService.getRadiaData(inData, function(d) {
+                    $scope.integrals = d;
+                });
             }
 
             $scope.$on('fieldPaths.changed', function () {
@@ -913,6 +931,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
         restrict: 'A',
         scope: {
             modelName: '@',
+            viz: '<',
         },
         template: [
             '<div class="col-md-6">',
@@ -1744,39 +1763,22 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     inData.fieldPaths = appState.models.fieldPaths.paths;
                 }
 
-                srdbg('getting app data...');
-                requestSender.getApplicationData(
+                //srdbg('getting app data...');
+                radiaService.getRadiaData(
                     inData,
                     function(d) {
-                        srdbg('got app data', d);
+                        //srdbg('got app data', d);
                         if (d && d.data && d.data.length) {
-                            if ($scope.isViewTypeFields()) {
-                                // get the lines in a separate call - downside is longer wait
-                                delete inData.fieldType;
-                                inData.geomTypes = ['lines'];
-                                inData.method = 'get_geom';
-                                inData.viewType = VIEW_TYPE_OBJECTS;
-                                requestSender.getApplicationData(
-                                    inData,
-                                    function(g) {
-                                        if (g && g.data) {
-                                            d.data = d.data.concat(g.data);
-                                        }
-                                        setupSceneData(d);
-                                    }
-                                );
-                                return;
-                            }
+                            $scope.viz.simState.state ='completed';
+                            $scope.viz.solution = d.solution;
                             setupSceneData(d);
                             return;
                         }
-                        if (d.error) {
-                            throw new Error(d.error);
-                        }
-                        srdbg('no app data, requesting');
+                        //srdbg('no app data, requesting');
                         panelState.clear('geometry');
                         panelState.requestData('geometry', setupSceneData, true);
                     });
+
             }
 
             $scope.eventHandlers = {
