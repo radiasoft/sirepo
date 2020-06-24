@@ -712,7 +712,7 @@
             "ed_ignoreBoundaryCondition_1": "0",
             "ed_initialRaySpeed_1": 1,
             "ed_irradVarName": "lase",
-            "ed_laser3Din2D": "0",
+            "ed_laser3Din2D": "1",
             "ed_laser3Din2DwedgeAngle": 0,
             "ed_lensSemiAxisMajor_1": 0.001,
             "ed_lensX_1": 0,

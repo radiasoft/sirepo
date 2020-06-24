@@ -1121,19 +1121,18 @@
             "ed_gaussianExponent_1": ["Gaussian Exponent", "Float", -1.7976931348623157e+308, "The gaussian exponent for beam 1"],
             "ed_gaussianRadiusMajor_1": ["Major Gaussian Radius", "Float", -1.7976931348623157e+308, "The gaussian e-folding length along the major semiaxis for beam 1"],
             "ed_gaussianRadiusMinor_1": ["Minor Gaussian Radius", "Float", -1.7976931348623157e+308, "The gaussian e-folding length along the minor semiaxis for beam 1"],
-            "ed_gradOrder": ["ed_gradOrder", "physics:sourceTerms:EnergyDeposition:Laser:ed_gradOrder", 2, "Gradient order. 1 = no gradient, 2 = first order differencing"],
+            "ed_gradOrder": ["Gradient Order", "physics:sourceTerms:EnergyDeposition:Laser:ed_gradOrder", 2, "Gradient order. 1 = no gradient, 2 = first order differencing"],
             "ed_gridDeltaSemiAxisMajor_1": ["ed_gridDeltaSemiAxisMajor_1", "Float", -1.7976931348623157e+308, "The tic spacing for the major semiaxis for delta defined grids 1"],
             "ed_gridDeltaSemiAxisMinor_1": ["ed_gridDeltaSemiAxisMinor_1", "Float", -1.7976931348623157e+308, "The tic spacing for the minor semiaxis for delta defined grids 1"],
             "ed_gridType_1": ["Type of Beam Grid", "physics:sourceTerms:EnergyDeposition:Laser:ed_gridType_1", " ", "The type of beam grid 1"],
-            "ed_gridnAngularTics_1": ["ed_gridnAngularTics_1", "Integer", -9007199254740991, "The number of angular ray positions for radial type grids 1"],
             "ed_gridnRadialTics_1": ["ed_gridnRadialTics_1", "Integer", -9007199254740991, "The number of radial ray positions for radial type grids 1"],
             "ed_gridnSemiAxisMajorTics_1": ["ed_gridnSemiAxisMajorTics_1", "Integer", -9007199254740991, "Number of major semiaxis ray positions for rectangular type grids 1"],
             "ed_gridnSemiAxisMinorTics_1": ["ed_gridnSemiAxisMinorTics_1", "Integer", -9007199254740991, "Number of minor semiaxis ray positions for rectangular type grids 1"],
             "ed_ignoreBoundaryCondition_1": ["ed_ignoreBoundaryCondition_1", "Boolean", "0", "Option to ignore domain boundary conditions for beam 1"],
             "ed_initialRaySpeed_1": ["ed_initialRaySpeed_1", "Float", 1.0, "The initial ray speed [in units of c] for beam 1"],
             "ed_irradVarName": ["ed_irradVarName", "String", "lase", "Name of the variable used for storing the computed laser radiation field\nenergy density; the default is \"lase\". Note that \"lase\" should refer to\nLASE_VAR in the Flash code, and a VARIABLE statement should be used to\ndeclare the variable. Further note that the VARIABLE statement should\ndeclare TYPE: PER_VOLUME."],
-            "ed_laser3Din2D": ["ed_laser3Din2D", "Boolean", "0", "Use the 3D rays in a 2D cylindrical grid ray tracing?"],
-            "ed_laser3Din2DwedgeAngle": ["ed_laser3Din2DwedgeAngle", "Float", 0.0, "Wedge angle (degrees, must be < 180) for laser 3D in 2D simulations"],
+            "ed_laser3Din2D": ["3D Ray Tracing", "Boolean", "0", "Use the 3D rays in a 2D cylindrical grid ray tracing?"],
+            "ed_laser3Din2DwedgeAngle": ["Wedge Angle", "Float", 0.0, "3D in 2D wedge angle (degrees, must be < 180) for laser 3D in 2D simulations"],
             "ed_lensSemiAxisMajor_1": ["Lens Semi Axis Major", "Float", -1.7976931348623157e+308, "Lens major elliptical semiaxis length for beam 1"],
             "ed_lensX_1": ["Lens X", "Float", -1.7976931348623157e+308, "The x coordinate of the lens for beam 1"],
             "ed_lensY_1": ["Lens Y", "Float", -1.7976931348623157e+308, "The y coordinate of the lens for beam 1"],
@@ -1254,9 +1253,9 @@
             "use_Biermann1T": ["use_Biermann1T", "Boolean", "0", "Switch to add the 1T Battery term for B-field generation"]
         },
         "physics:sourceTerms:EnergyDeposition:Laser:LaserIO": {
-            "ed_laserIOMaxNumberOfPositions": ["ed_laserIOMaxNumberOfPositions", "Integer", -1, "Maximum number of positions to store for each IO ray"],
-            "ed_laserIOMaxNumberOfRays": ["ed_laserIOMaxNumberOfRays", "Integer", -1, "Maximum number of IO rays to write out accross each process"],
-            "ed_useLaserIO": ["ed_useLaserIO", "Boolean", "0", "This flag controls whether Laser IO is active"]
+            "ed_laserIOMaxNumberOfPositions": ["Max Ray Positions", "Integer", -1, "Maximum number of positions to store for each IO ray"],
+            "ed_laserIOMaxNumberOfRays": ["Max Rays", "Integer", -1, "Maximum number of IO rays to write out accross each process"],
+            "ed_useLaserIO": ["Use Laser IO", "Boolean", "0", "This flag controls whether Laser IO is active"]
         },
         "physics:sourceTerms:Flame": {
             "fl_b": ["Flame Width", "Float", 3.2, "flame width parameter in units of cells (fl_b)"],
@@ -1569,12 +1568,17 @@
         "physics:sourceTerms:EnergyDeposition:Laser": {
             "title": "Energy Deposition - Laser",
             "basic": [
-                ["Main", [
+                ["Bulk", [
                     "ed_maxRayCount",
-                    "ed_numberOfPulses",
-                    "ed_numberOfBeams"
+                    "ed_gradOrder",
+                    "ed_laser3Din2D",
+                    "ed_laser3Din2DwedgeAngle",
+                    "physics:sourceTerms:EnergyDeposition:Laser:LaserIO.ed_useLaserIO",
+                    "physics:sourceTerms:EnergyDeposition:Laser:LaserIO.ed_laserIOMaxNumberOfPositions",
+                    "physics:sourceTerms:EnergyDeposition:Laser:LaserIO.ed_laserIOMaxNumberOfRays"
                 ]],
                 ["Pulse 1", [
+                    "ed_numberOfPulses",
                     "ed_numberOfSections_1",
                     [
                         ["Time", [
@@ -1606,12 +1610,14 @@
                             "ed_targetZ_1"
                         ]]
                     ],
+                    "ed_numberOfBeams",
                     "ed_lensSemiAxisMajor_1",
                     "ed_crossSectionFunctionType_1",
                     "ed_numberOfRays_1",
                     "ed_pulseNumber_1",
                     "ed_wavelength_1",
                     "ed_gridType_1",
+                    "ed_gridnRadialTics_1",
                     "ed_gaussianExponent_1",
                     [
                         ["Major", [

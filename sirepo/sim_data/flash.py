@@ -39,6 +39,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 m.op_wallFileName  = 'alumina-wall-imx.cn4'
                 m.op_fillFileType = 'ionmix4'
                 m.op_wallFileType = 'ionmix4'
+        dm['physics:sourceTerms:EnergyDeposition:Laser'].pkdel('ed_gridnAngularTics_1')
 
     @classmethod
     def flash_exe_path(cls, data, unchecked=False):
