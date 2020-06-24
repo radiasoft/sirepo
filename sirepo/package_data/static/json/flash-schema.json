@@ -1478,6 +1478,7 @@
             "basic": [
                 ["Main", [
                     "sim_zminWall",
+                    "physics:sourceTerms:Heatexchange.useHeatExchange",
                     [
                         ["Fill", [
                             "sim_eosFill",
