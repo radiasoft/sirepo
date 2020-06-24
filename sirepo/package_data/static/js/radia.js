@@ -224,6 +224,11 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
 SIREPO.app.controller('RadiaSourceController', function (appState, panelState, radiaService, $scope) {
     var self = this;
     var geomObjs = [];
+    var editorFields = [
+         'box.magnetization',
+         'geomObject.symmetryType',
+         'geomObject.doDivide',
+    ];
 
     self.selectedObject = null;
     self.toolbarItems = SIREPO.APP_SCHEMA.constants.toolbarItems;
@@ -255,22 +260,51 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
         appState.models.geometry.objects.push(objModel);
     }
 
+    function updateObjectEditor() {
+        var o = appState.models.geomObject;
+        srdbg('update', o);
+        panelState.showField(
+            'geomObject',
+            'division',
+            o.doDivide == '1'
+        );
+        panelState.showField(
+            'geomObject',
+            'symmetryPlane',
+            o.symmetryType != 'none'
+        );
+        var mag = appState.models.box.magnetization.split(/\s*,\s*/).map(function (m) {
+            return parseFloat(m);
+        });
+        panelState.showField(
+            'geomObject',
+            'material',
+            Math.hypot(mag[0], mag[1], mag[2]) > 0
+        );
+    }
+
     appState.whenModelsLoaded($scope, function() {
         // initial setup
-        //appState.watchModelFields($scope, ['model.field'], function() {
-        //});
+        appState.watchModelFields($scope, editorFields, function(d) {
+            srdbg('saw you', d);
+            updateObjectEditor();
+        });
         //srdbg('RadiaSourceController');
         if (! appState.models.geometry.objects) {
             appState.models.geometry.objects = [];
         }
         geomObjs = appState.models.geometry.objects;
         $scope.$on('geomObject.changed', function(e, o) {
-            if (! self.selectedObject.id) {
+            srdbg('sel', self.selectedObject);
+            if (angular.isUndefined(self.selectedObject.id) || self.selectedObject.id == '') {
                 addObject(self.selectedObject);
             }
             appState.saveChanges('geometry', function (d) {
                 self.selectedObject = null;
             });
+        });
+        $scope.$on('geomObject.editor.show', function(e, o) {
+            updateObjectEditor();
         });
         $scope.$on('layout.object.dropped', function (e, o) {
             var m = appState.setModelDefaults({}, o.model);
@@ -1033,7 +1067,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             continue;
                         }
                         var isPoly = t === radiaVtkUtils.GEOM_TYPE_POLYS;
-                        var gObj = radiaService.getGeomObj(id) || {};
+                        //var gObj = radiaService.getObject(id) || {};
+                        var gObj = radiaService.getObject(i) || {};
                         //srdbg('got obj', gObj);
                         var gColor = gObj.color ? vtk.Common.Core.vtkMath.hex2float(gObj.color) : null;
                         var pdti = radiaVtkUtils.objToPolyData(sceneDatum, [t], gColor);
@@ -1066,7 +1101,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         bundle.actor.getProperty().setLighting(isPoly);
                         var info = addActor(id, gname, bundle.actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
                         gColor = getColor(info);
-                        //srdbg('add obj', gObj, isPoly);
+                        srdbg('add obj', gObj, isPoly);
                         if (isPoly && $.isEmptyObject(gObj)) {
                             gObj = appState.setModelDefaults(gObj, 'geomObject');
                             gObj.name = id;
@@ -1074,10 +1109,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             if (gColor) {
                                 gObj.color = vtk.Common.Core.vtkMath.floatRGB2HexCode(vtkUtils.rgbToFloat(gColor));
                             }
+                            /*
                             if (! appState.models.geometry.objects) {
                                 appState.models.geometry.objects = [];
                             }
                             appState.models.geometry.objects.push(gObj);
+
+                             */
                             didModifyGeom = true;
                         }
                         if (! gObj.center || ! gObj.size) {

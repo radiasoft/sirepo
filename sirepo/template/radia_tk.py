@@ -32,11 +32,20 @@ FIELD_UNITS = PKDict({
 })
 
 
-def build_box(center, size, material, magnetization):
-    pkdp('BUILD BOX CTR {} SZ {} MAT {} MAG {}', center, size, material, magnetization)
-    g_id = radia.ObjRecMag(center, size)
-    #radia.MatApl(g_id, radia.MatStd(material, magnetization))
+def build_box(center, size, material, magnetization, division):
+    #pkdp('BUILD BOX CTR {} SZ {} MAT {} MAG {}', center, size, material, magnetization)
+    n_mag = numpy.linalg.norm(magnetization)
+    pkdp('BUILD BOX CTR {} SZ {} MAT {} MAG {} NM {}', center, size, material, magnetization, n_mag)
+    g_id = radia.ObjRecMag(center, size, magnetization)
+    radia.ObjDivMag(g_id, division)
+    # do not apply a material unless a magentization of some magnitude has been set
+    if n_mag > 0:
+        radia.MatApl(g_id, radia.MatStd(material, n_mag))
     return g_id
+
+
+def build_container(g_ids):
+    return radia.ObjCnt(g_ids)
 
 
 # these methods pulled out so as not to depend on a manager

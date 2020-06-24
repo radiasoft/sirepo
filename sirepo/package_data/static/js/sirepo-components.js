@@ -540,6 +540,9 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 '<div data-ng-switch-when="FloatStringArray" class="col-sm-7">',
                   '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
                 '</div>',
+                '<div data-ng-switch-when="IntStringArray" class="col-sm-7">',
+                  '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count=""></div>',
+                '</div>',
               SIREPO.appFieldEditors,
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',

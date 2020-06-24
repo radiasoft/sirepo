@@ -13,15 +13,20 @@ VIEW_TYPE_FIELD = 'fields'
 {% if isExample %}
 g_id = radia_examples.build('{{ geomName }}')
 {% else %}
+# put all objects in a container for now
+objs = []
 for obj in {{ objects }}:
     o = PKDict(obj)
     ctr = [float(x) for x in re.split(r'\s*,\s*', o.center)]
     sz = [float(x) for x in re.split(r'\s*,\s*', o.size)]
     m = [float(x) for x in re.split(r'\s*,\s*', o.magnetization)]
+    div = [int(x) for x in re.split(r'\s*,\s*', o.division)]
     if o.type == 'box':
-        g_id = radia_tk.build_box(ctr, sz, o.material, m)
+        g_id = radia_tk.build_box(ctr, sz, o.material, m, div)
+        objs.append(g_id)
     else:
         g_id = -1
+g_id = radia_tk.build_container(objs)
 {% endif %}
 
 
