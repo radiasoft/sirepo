@@ -20,6 +20,11 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
+        for m in list(dm.keys()):
+            n = m.replace(':', '').replace('magnetoHD', '')
+            if m != n:
+                dm[n] = dm[m]
+                del dm[m]
         cls._init_models(dm)
         if dm.simulation.flashType == 'CapLaserBELLA':
             dm.IO.update(
@@ -34,12 +39,12 @@ class SimData(sirepo.sim_data.SimDataBase):
                 m.eos_wallTableFile = 'alumina-wall-imx.cn4'
                 m.eos_fillSubType = 'ionmix4'
                 m.eos_wallSubType = 'ionmix4'
-                m = dm['physics:materialProperties:Opacity:Multispecies']
+                m = dm['physicsmaterialPropertiesOpacityMultispecies']
                 m.op_fillFileName = 'helium-fill-imx.cn4'
                 m.op_wallFileName  = 'alumina-wall-imx.cn4'
                 m.op_fillFileType = 'ionmix4'
                 m.op_wallFileType = 'ionmix4'
-        dm['physics:sourceTerms:EnergyDeposition:Laser'].pkdel('ed_gridnAngularTics_1')
+        dm['physicssourceTermsEnergyDepositionLaser'].pkdel('ed_gridnAngularTics_1')
 
     @classmethod
     def flash_exe_path(cls, data, unchecked=False):
@@ -76,10 +81,17 @@ class SimData(sirepo.sim_data.SimDataBase):
         if t == 'RTFlame':
             return ['helm_table.dat']
         if t == 'CapLaserBELLA':
-            return [
+            r = [
                 'alumina-wall-imx.cn4',
                 'argon-fill-imx.cn4',
                 'helium-fill-imx.cn4',
                 'hydrogen-fill-imx.cn4',
             ]
+            if data.models['SimulationCapLaserBELLA'].sim_currType == '2':
+                r.append(cls.lib_file_name_with_model_field(
+                    'SimulationCapLaserBELLA',
+                    'sim_currFile',
+                    data.models['SimulationCapLaserBELLA'].sim_currFile,
+                ))
+            return r
         raise AssertionError('invalid flashType: {}'.format(t))

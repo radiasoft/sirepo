@@ -33,7 +33,7 @@ SIREPO.app.controller('PhysicsController', function (flashService) {
     self.flashService = flashService;
 });
 
-SIREPO.app.controller('SourceController', function (flashService, appState, $scope) {
+SIREPO.app.controller('SourceController', function (flashService, appState, $scope, panelState) {
     var self = this;
     self.flashService = flashService;
 
@@ -48,7 +48,7 @@ SIREPO.app.controller('SourceController', function (flashService, appState, $sco
 
         ['Wall', 'Fill'].forEach(function(x) {
             ['ion', 'rad'].forEach(function(y) {
-                readOnly('Simulation:magnetoHD:CapLaserBELLA-sim_t' + y + x);
+                readOnly('SimulationCapLaserBELLA-sim_t' + y + x);
             });
         });
         // TODO(e-carlin): If we support more than alumina for wall species
@@ -61,12 +61,32 @@ SIREPO.app.controller('SourceController', function (flashService, appState, $sco
         var t =  modelField.includes('Fill') ? 'Fill' : 'Wall';
         var s = modelField.split('.');
         ['ion', 'rad'].forEach(function(f) {
-            appState.models['Simulation:magnetoHD:CapLaserBELLA']['sim_t' + f + t] =
-                appState.models[s[0]][s[1]];
+            appState.models.SimulationCapLaserBELLA['sim_t' + f + t] = appState.models[s[0]][s[1]];
         });
     }
 
+    function proccessCurrType(modelField) {
+        function showField(field, isShown) {
+            panelState.showField(s[0], field, isShown);
+        }
+
+        function showFileDialog(isShown) {
+            showField('sim_currFile', isShown);
+            ['sim_peakCurr', 'sim_riseTime'].forEach(function(f) {
+                showField(f, !isShown);
+            });
+        }
+
+        var s = modelField.split('.');
+        var v = appState.models[s[0]][s[1]];
+        showFileDialog(!(v === '0' || v === '1'));
+    }
+
     appState.whenModelsLoaded($scope, function() {
+
+        if (! flashService.isFlashType('CapLaserBELLA')) {
+            return;
+        }
         // Must be done on sr-tabSelected because changing tabs clears the
         // readonly prop. This puts readonly back on.
         $scope.$on('sr-tabSelected', setReadOnly);
@@ -74,11 +94,14 @@ SIREPO.app.controller('SourceController', function (flashService, appState, $sco
             $scope,
             ['Wall', 'Fill'].map(
                 function(x) {
-                    return 'Simulation:magnetoHD:CapLaserBELLA.sim_tele'+x;
+                    return 'SimulationCapLaserBELLA.sim_tele'+x;
                 }
             ),
             makeTempsEqual
         );
+        var t = 'SimulationCapLaserBELLA.sim_currType';
+        proccessCurrType(t);
+        appState.watchModelFields($scope, [t], proccessCurrType);
     });
 });
 

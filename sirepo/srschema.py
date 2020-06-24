@@ -157,8 +157,8 @@ def validate(schema):
             raise AssertionError(util.err(sch_ntfy[n], 'notification must reference a cookie in the schema'))
     for sc in sch_cookies:
         _validate_cookie_def(sch_cookies[sc])
-    for type in schema.dynamicModules:
-        for src in schema.dynamicModules[type]:
+    for t in schema.dynamicModules:
+        for src in schema.dynamicModules[t]:
             pkresource.filename(src[1:])
 
 
