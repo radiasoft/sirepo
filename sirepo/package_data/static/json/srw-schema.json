@@ -371,6 +371,18 @@
         }
     },
     "model": {
+        "_INTENSITY_REPORT_3D": {
+            "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
+            "plotScale": ["Plot Scale", "PlotScale", "linear"],
+            "rotateAngle": ["Rotate Angle [deg]", "Float", 0, "Positive values rotate the image clockwise, negative - counterclockwise"],
+            "rotateReshape": ["Fit Whole Image after Rotation?", "Boolean", "1", "If set to Yes, the output image is adapted so that the input image is contained completely in the output one"],
+            "useIntensityLimits": ["Use Intensity Limits", "Boolean", "0"],
+            "minIntensityLimit": ["Minimum Intensity", "Float", 0],
+            "maxIntensityLimit": ["Maximum Intensity", "Float", 1e30],
+            "notes": ["Notes", "Text", ""]
+        },
         "aperture": {
             "title": ["Element Name", "String", "Aperture"],
             "position": ["Nominal Position [m]", "Float"],
@@ -613,17 +625,11 @@
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "initialIntensityReport": {
+            "_super": ["_", "model", "_INTENSITY_REPORT_3D"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "copyCharacteristic": ["Use Characteristic Across Reports", "Boolean", "0"],
-            "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
-            "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
-            "plotScale": ["Plot Scale", "PlotScale", "linear"],
-            "rotateAngle": ["Rotate Angle [deg]", "Float", 0, "Positive values rotate the image clockwise, negative - counterclockwise"],
-            "rotateReshape": ["Fit Whole Image after Rotation?", "Boolean", "1", "If set to Yes, the output image is adapted so that the input image is contained completely in the output one"],
-            "colorMap": ["Color Map", "ColorMap", "grayscale"],
-            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
-            "notes": ["Notes", "Text", ""]
+            "fieldUnits": ["Intensity Units", "FieldUnits", "1"]
         },
         "intensityReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
@@ -687,6 +693,7 @@
             "notes": ["Notes", "Text", ""]
         },
         "multiElectronAnimation": {
+            "_super": ["_", "model", "_INTENSITY_REPORT_3D"],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "sbatchCores": ["Cores", "Integer", 128],
             "sbatchHours": ["Hours", "Float", 0.4],
@@ -695,14 +702,7 @@
             "stokesParameter": ["Representation of Stokes Parameters", "StokesParameter", "0"],
             "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", 1000, "Number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation"],
             "integrationMethod": ["Multi-electron Integration Approximation Method", "MultiElectronIntegrationMethod", "0"],
-            "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
-            "plotScale": ["Plot Scale", "PlotScale", "linear"],
-            "rotateAngle": ["Rotate Angle [deg]", "Float", 0, "Positive values rotate the image clockwise, negative - counterclockwise"],
-            "rotateReshape": ["Fit Whole Image after Rotation?", "Boolean", "1", "If set to Yes, the output image is adapted so that the input image is contained completely in the output one"],
             "photonEnergyBandWidth": ["Photon Energy Band Width [eV]", "Float", 0],
-            "colorMap": ["Color Map", "ColorMap", "grayscale"],
-            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
-            "notes": ["Notes", "Text", ""],
             "watchpointId": ["Evaluate at Watchpoint", "WatchPoint", 0],
             "calcCoherence": ["Calculate Degree of Coherence in Addition to Intensity", "Boolean", "0"]
         },
@@ -721,6 +721,7 @@
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "powerDensityReport": {
+            "_super": ["_", "model", "_INTENSITY_REPORT_3D"],
             "distanceFromSource": ["Distance From Source [m]", "Float"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
@@ -730,14 +731,7 @@
             "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "method": ["Power Density Computation Method", "PowerDensityMethod"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer", 100],
-            "verticalPointCount": ["Number of Points vs Vertical Position", "Integer", 100],
-            "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
-            "plotScale": ["Plot Scale", "PlotScale", "linear"],
-            "rotateAngle": ["Rotate Angle [deg]", "Float", 0, "Positive values rotate the image clockwise, negative - counterclockwise"],
-            "rotateReshape": ["Fit Whole Image after Rotation?", "Boolean", "1", "If set to Yes, the output image is adapted so that the input image is contained completely in the output one"],
-            "colorMap": ["Color Map", "ColorMap", "grayscale"],
-            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
-            "notes": ["Notes", "Text", ""]
+            "verticalPointCount": ["Number of Points vs Vertical Position", "Integer", 100]
         },
         "propagationParameters": {
             "0": ["Auto-resize before propagation", "Boolean", "0"],
@@ -823,14 +817,13 @@
         "simulationStatus": {
         },
         "sourceIntensityReport": {
+            "_super": ["_", "model", "_INTENSITY_REPORT_3D"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "distanceFromSource": ["Distance From Source [m]", "Float"],
             "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
-            "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
-            "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
 	    "initialPosition": ["Initial Longitudinal Position for SR Calculation (effective if smaller than final position)", "Float", 0.0],
@@ -838,16 +831,11 @@
             "photonEnergy": ["Photon Energy [eV]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "precision": ["Relative Precision", "Float", 0.01],
-            "rotateAngle": ["Rotate Angle [deg]", "Float", 0, "Positive values rotate the image clockwise, negative - counterclockwise"],
-            "rotateReshape": ["Fit Whole Image after Rotation?", "Boolean", "1", "If set to Yes, the output image is adapted so that the input image is contained completely in the output one"],
             "sampleFactor": ["Sampling Factor", "Float"],
             "samplingMethod": ["Sampling Method", "SamplingMethod"],
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
-            "verticalRange": ["Range of Vertical Position [mm]", "Float"],
-            "colorMap": ["Color Map", "ColorMap", "grayscale"],
-            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
-            "notes": ["Notes", "Text", ""]
+            "verticalRange": ["Range of Vertical Position [mm]", "Float"]
         },
         "sphericalMirror": {
             "title": ["Element Name", "String", "Circular Cylinder Mirror"],
@@ -933,16 +921,10 @@
             "position": ["Nominal Position [m]", "Float"]
         },
         "watchpointReport": {
+            "_super": ["_", "model", "_INTENSITY_REPORT_3D"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
-            "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
-            "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
-            "plotScale": ["Plot Scale", "PlotScale", "linear"],
-            "rotateAngle": ["Rotate Angle [deg]", "Float", 0, "Positive values rotate the image clockwise, negative - counterclockwise"],
-            "rotateReshape": ["Fit Whole Image after Rotation?", "Boolean", "1", "If set to Yes, the output image is adapted so that the input image is contained completely in the output one"],
-            "colorMap": ["Color Map", "ColorMap", "grayscale"],
-            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
-            "notes": ["Notes", "Text", ""]
+            "fieldUnits": ["Intensity Units", "FieldUnits", "1"]
         },
         "zonePlate": {
             "title": ["Element Name", "String", "Zone Plate"],
@@ -962,6 +944,26 @@
         }
     },
     "view": {
+        "_INTENSITY_REPORT_3D": {
+            "basic": [],
+            "advanced": [
+                ["Scale", [
+                    "intensityPlotsWidth",
+                    "plotScale",
+                    "useIntensityLimits",
+                    "minIntensityLimit",
+                    "maxIntensityLimit"
+                ]],
+		["Rotation", [
+		    "rotateAngle",
+		    "rotateReshape"
+		]],
+                ["Other", [
+                    "colorMap",
+                    "aspectRatio"
+                ]]
+            ]
+        },
         "arbitraryMagField": {
             "title": "Arbitrary Magnetic Field",
 	    "basic": [],
@@ -1413,6 +1415,7 @@
             ]
         },
         "initialIntensityReport": {
+            "_super": ["_", "view", "_INTENSITY_REPORT_3D"],
             "title": "Initial Intensity",
             "basic": [],
             "advanced": [
@@ -1423,18 +1426,6 @@
                     "copyCharacteristic",
                     "fieldUnits",
                     "notes"
-                ]],
-                ["Scale", [
-                    "intensityPlotsWidth",
-                    "plotScale"
-                ]],
-		["Rotation", [
-		    "rotateAngle",
-		    "rotateReshape"
-		]],
-                ["Other", [
-                    "colorMap",
-                    "aspectRatio"
                 ]]
             ]
         },
@@ -1551,6 +1542,7 @@
             ]
         },
         "multiElectronAnimation": {
+            "_super": ["_", "view", "_INTENSITY_REPORT_3D"],
             "title": "Partially Coherent Intensity",
             "basic": [],
             "advanced": [
@@ -1563,18 +1555,6 @@
                     "photonEnergyBandWidth",
                     "calcCoherence",
                     "notes"
-                ]],
-                ["Scale", [
-                    "intensityPlotsWidth",
-                    "plotScale"
-                ]],
-		["Rotation", [
-		    "rotateAngle",
-		    "rotateReshape"
-		]],
-                ["Other", [
-                    "colorMap",
-                    "aspectRatio"
                 ]]
             ]
         },
@@ -1598,6 +1578,7 @@
             ]
         },
         "powerDensityReport": {
+            "_super": ["_", "view", "_INTENSITY_REPORT_3D"],
             "title": "Power Density",
             "basic": [],
             "advanced": [
@@ -1620,18 +1601,6 @@
                 ["Accuracy", [
                     "method",
                     "precision"
-                ]],
-                ["Scale", [
-                    "intensityPlotsWidth",
-                    "plotScale"
-                ]],
-		["Rotation", [
-		    "rotateAngle",
-		    "rotateReshape"
-		]],
-                ["Other", [
-                    "colorMap",
-                    "aspectRatio"
                 ]]
             ]
         },
@@ -1754,6 +1723,7 @@
             "advanced": []
         },
         "sourceIntensityReport": {
+            "_super": ["_", "view", "_INTENSITY_REPORT_3D"],
             "title": "Intensity",
             "basic": [],
             "advanced": [
@@ -1784,18 +1754,6 @@
                     "precision",
                     "initialPosition",
                     "finalPosition"
-                ]],
-                ["Scale", [
-                    "intensityPlotsWidth",
-                    "plotScale"
-                ]],
-		["Rotation", [
-		    "rotateAngle",
-		    "rotateReshape"
-		]],
-                ["Other", [
-                    "colorMap",
-                    "aspectRatio"
                 ]]
             ]
         },
@@ -1974,6 +1932,7 @@
             ]
         },
         "watchpointReport": {
+            "_super": ["_", "view", "_INTENSITY_REPORT_3D"],
             "title": "Watchpoint",
             "basic": [],
             "advanced": [
@@ -1983,18 +1942,6 @@
                     "characteristic",
                     "fieldUnits",
                     "notes"
-                ]],
-                ["Scale", [
-                    "intensityPlotsWidth",
-                    "plotScale"
-                ]],
-		["Rotation", [
-		    "rotateAngle",
-		    "rotateReshape"
-		]],
-                ["Other", [
-                    "colorMap",
-                    "aspectRatio"
                 ]]
             ]
         },
