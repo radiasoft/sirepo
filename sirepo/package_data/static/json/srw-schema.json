@@ -316,6 +316,11 @@
         "UndulatorType": [
             ["u_i", "Idealized"],
             ["u_t", "Tabulated"]
+        ],
+        "WavefrontShiftTreatment": [
+            ["1", "1 - Horizontal Position"],
+            ["2", "2 - Vertical Position"],
+            ["3", "3 - Horizontal and Vertical Position"]
         ]
     },
     "dynamicFiles": {
@@ -773,7 +778,7 @@
             "6": ["Horizontal resolution modification factor at resizing", "Float", 1],
             "7": ["Vertical range modification factor at resizing", "Float", 1],
             "8": ["Vertical resolution modification factor at resizing", "Float", 1],
-            "9": ["Type of Wavefront Shift\nbefore Resizing", "Float", 1, "<div style='text-align: left'>1. means Horizontal Position <br/> 2. means Vertical Position <br/> 3. means Horizontal and Vertical Position </div>"],
+            "9": ["Type of Wavefront Shift\nbefore Resizing", "WavefrontShiftTreatment", "1", "<div style='text-align: left'>1. means Horizontal Position <br/> 2. means Vertical Position <br/> 3. means Horizontal and Vertical Position </div>"],
             "10": ["New Horizontal Wavefront\nCenter Position after Shift", "Float", 1],
             "11": ["New Vertical Wavefront\nCenter Position after Shift", "Float", 1],
             "12": ["Orientation of the Output Optical Axis vector in the Incident Beam Frame:\nHorizontal Coordinate", "Float", 0],
