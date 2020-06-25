@@ -23,6 +23,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         'colorMap',
         'copyCharacteristic',
         'intensityPlotsWidth',
+        'maxIntensityLimit',
+        'minIntensityLimit',
         'notes',
         'plotAxisX',
         'plotAxisY',
@@ -30,6 +32,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         'plotScale',
         'rotateAngle',
         'rotateReshape',
+        'useIntensityLimits',
     ))
 
     SRW_RUN_ALL_MODEL = 'simulation'
