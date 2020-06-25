@@ -105,7 +105,7 @@
       width: 68px;
       margin-bottom: 5px;
 
-      background-image: url('/img/heading-decoration.png');
+      background-image: url('/en/img/heading-decoration.png');
       background-position: center center;
       background-repeat: no-repeat;
     }
@@ -252,18 +252,29 @@
           display: inline-block;
           text-transform: uppercase;
           vertical-align: middle;
+        }
 
-          > a {
-            color: white;
+        button {
+          vertical-align: middle;
+          text-transform: uppercase;
+          border: none;
+          background: none;
+        }
 
-            &:hover {
-              color: $blue_nav;
-            }
+        button span,
+        > li > a {
+          color: white;
+        }
 
-            &:not(.supported-codes)::after {
-              content: none;
-            }
-          }
+        button:hover span,
+        li.open button span,
+        > li > a:hover {
+          color: $blue_nav;
+        }
+
+        button span,
+        > li > a::after {
+          content: none;
         }
 
         > li ~ li {
@@ -275,70 +286,25 @@
         position: relative;
         cursor: pointer;
 
-        &:hover {
-          .supported-codes-dropdown {
-            visibility: visible;
-            opacity: 1;
-          }
-        }
+        // &:hover {
+        //   .supported-codes-dropdown {
+        //     visibility: visible;
+        //     opacity: 1;
+        //   }
+        // }
 
         > * {
           vertical-align: middle;
         }
 
-        &:hover {
-          > a {
-            color: $blue_nav;
-          }
-
-          &::after {
-            background-color: $blue_nav;
-          }
-        }
-
-        &::after {
-          content: '';
-          display: inline-block;
-          margin-left: 8px;
-          height: 20px;
-          width: 20px;
-          border-radius: 10px;
+        li a:hover {
           background-color: white;
-          vertical-align: middle;
+          color: $blue_nav;
         }
-
-        &::before {
-          content: '';
-          display: inline-block;
-          position: absolute;
-          right: 5px;
-          top: 11px;
-
-          border-top: 7px solid $blue_medium;
-          border-left: 5px solid transparent;
-          border-right: 5px solid transparent;
-        }
-      }
-
-      .supported-codes-dropdown {
-        position: absolute;
-        visibility: hidden;
-        opacity: 0;
-        z-index: -1;
-        top: 100%;
-        right: 0;
-        width: 100%;
-        transition: height 500ms;
-
-        transition: visibility 250ms, opacity 250ms;
-        transition-delay: 100ms, 100ms;
-
-        border-top: 5px solid transparent;
 
         > ul {
           padding: 10px 20px;
           background-color: white;
-
           box-shadow: 0 2px 5px rgba(0,0,0,0.8);
 
           > li {
@@ -348,6 +314,8 @@
             margin: 0;
 
             a {
+              font-weight: bold;
+              letter-spacing: 1px;
               color: $blue_medium;
             }
           }
@@ -487,7 +455,6 @@
     padding-bottom: 0;
     margin-bottom: 160px;
     transform: translateZ(0.1px);
-    z-index: 1;
 
     &::before {
       content: '';
@@ -559,7 +526,7 @@
     &::before {
       content: '';
       position: absolute;
-      background-image: url('/img/curve-header-left.png');
+      background-image: url('/en/img/curve-header-left.png');
       background-size: cover;
       bottom: 2px;
       left: -60px;
@@ -571,7 +538,7 @@
     &::after {
       content: '';
       position: absolute;
-      background-image: url('/img/curve-header-right.png');
+      background-image: url('/en/img/curve-header-right.png');
       background-size: cover;
       bottom: 25px;
       right: -60px;
@@ -625,7 +592,7 @@
     &::after {
       content: '';
       position: absolute;
-      background-image: url('/img/explore-curve-bottom.png');
+      background-image: url('/en/img/explore-curve-bottom.png');
       background-position: bottom right;
 
       bottom: -65px;
@@ -693,7 +660,7 @@
 
   .perks {
     background-color: $blue_light;
-    background-image: url('/img/perks-bg.jpg');
+    background-image: url('/en/img/perks-bg.jpg');
     background-position: right top;
     background-repeat: no-repeat;
     background-blend-mode: multiply;
@@ -713,14 +680,14 @@
     color: white;
     z-index: 2;
 
-    background-image: url('/img/get-started-curve-top.png');
+    background-image: url('/en/img/get-started-curve-top.png');
     background-position: left -217px;
     background-repeat: no-repeat;
 
     &::after {
       content: '';
       position: absolute;
-      background-image: url('/img/get-started-curve-bottom.png');
+      background-image: url('/en/img/get-started-curve-bottom.png');
       background-position: bottom right;
 
       bottom: -65px;
@@ -737,7 +704,7 @@
 
     h3 {
       &::before {
-        background-image: url('/img/heading-decoration-dark.png');
+        background-image: url('/en/img/heading-decoration-dark.png');
       }
     }
 
@@ -962,7 +929,7 @@
     z-index: 2; // To prevent explore curve lines from overlapping if there's no news articles
 
     background-color: $gray_dark;
-    background-image: url('/img/footer-bg.jpg');
+    background-image: url('/en/img/footer-bg.jpg');
     background-size: cover;
 
     color: $gray_light;

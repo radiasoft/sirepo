@@ -12,6 +12,8 @@
   background-blend-mode: multiply;
   font-family: 'Titillium Web', sans-serif;
   color: white;
+  /** General Styles */
+  /** End General Styles */
 }
 .landing .max-width-container {
   padding: 0 60px 60px 60px;
@@ -838,7 +840,8 @@
     height: 50px;
     width: 50px;
     line-height: 50px;
-    border-radius: 25px; }
+    border-radius: 25px;
+  }
 }
 /* Medium Devices, Desktops */
 @media only screen and (max-width: 991px) {
@@ -1068,5 +1071,8 @@
   }
   .landing .header-media-wrapper video, .landing .header-media-wrapper img {
     width: 450%;
-    margin-left: -175%; }
+    margin-left: -175%;
+  }
 }
+
+/*# sourceMappingURL=landing.css.map */
