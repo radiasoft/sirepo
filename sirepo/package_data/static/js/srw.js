@@ -199,6 +199,12 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         );
     };
 
+    self.processIntensityLimit = function(modelName, modelKey) {
+        ['minIntensityLimit', 'maxIntensityLimit'].forEach(function(f) {
+            panelState.showField(modelName, f, appState.models[modelKey || modelName].useIntensityLimits == '1');
+        });
+    };
+
     self.setShowCalcCoherence = function(isShown) {
         self.showCalcCoherence = isShown;
     };
@@ -520,6 +526,9 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         }
         panelState.showField('watchpointReport', 'fieldUnits', srwService.isGaussianBeam());
         panelState.showField('initialIntensityReport', 'fieldUnits', srwService.isGaussianBeam());
+        if (appState.models[name] && appState.models[name].useIntensityLimits) {
+            srwService.processIntensityLimit(name);
+        }
     };
 
     self.isActiveTab = function(tab) {
@@ -671,6 +680,11 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energy', 'h', 'k', 'l'], computeCrystalInit, true);
         beamlineService.watchBeamlineField($scope, 'crystal', ['diffractionAngle', 'dSpacing', 'asymmetryAngle', 'psi0r', 'psi0i', 'rotationAngle'], computeCrystalOrientation, true);
         beamlineService.watchBeamlineField($scope, 'sample', ['sampleSource', 'cropArea', 'tileImage', 'rotateAngle', 'cutoffBackgroundNoise', 'obj_type', 'rand_obj_size', 'rand_poly_side'], updateSampleFields);
+        ['initialIntensityReport', 'multiElectronAnimation'].forEach(function(m) {
+            appState.watchModelFields($scope, [m + '.useIntensityLimits'], function() {
+                srwService.processIntensityLimit(m);
+            });
+        });
         $scope.$on('beamline.changed', syncFirstElementPositionToDistanceFromSource);
         $scope.$on('simulation.changed', function() {
             updatePhotonEnergyHelpText();
@@ -726,7 +740,6 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
 
 SIREPO.app.controller('SRWSourceController', function (appState, panelState, requestSender, srwService, $scope) {
     var self = this;
-    // required for $watch below
     $scope.appState = appState;
     self.srwService = srwService;
 
@@ -937,10 +950,14 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
             panelState.showField(name, 'magneticField', ! srwService.isApplicationMode('calculator'));
             processIntensityReport(name);
             srwService.updateSimulationGridFields();
+            srwService.processIntensityLimit(name);
         }
         else if (name === 'trajectoryReport') {
             processTrajectoryReport();
             processTrajectoryAxis();
+        }
+        else if (name == 'powerDensityReport') {
+            srwService.processIntensityLimit(name);
         }
     };
 
@@ -1037,6 +1054,11 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         appState.watchModelFields(
             $scope, ['sourceIntensityReport.samplingMethod'],
             srwService.updateSimulationGridFields);
+        ['powerDensityReport', 'sourceIntensityReport'].forEach(function(m) {
+            appState.watchModelFields($scope, [m + '.useIntensityLimits'], function() {
+                srwService.processIntensityLimit(m);
+            });
+        });
     });
 });
 
@@ -1739,7 +1761,7 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
                     '</td>',
                   '</tr>',
                   '<tr class="warning">',
-                    '<td class="input-sm">Final post-propagation (resize)</td>',
+                    '<td class="input-sm">Final post-propagation</td>',
                     '<td class="sr-center" style="vertical-align: middle" data-ng-repeat="paramInfo in ::parameterInfo track by $index">',
                       '<div data-propagation-parameter-field-editor="" data-param="postPropagation" data-param-info="paramInfo" data-disabled="isControlDisabledForParams(postPropagation)"></div>',
                     '</td>',
@@ -1977,7 +1999,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             //TODO(pjm): share with simStatusPanel directive in sirepo-components.js
                 '<div data-ng-if="simState.showJobSettings()">',
                   '<div class="form-group form-group-sm">',
-                    '<div class="col-sm-14" data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>',
+                    '<div class="col-sm-12" data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>',
                     '<div data-sbatch-options="simState"></div>',
                   '</div>',
                 '</div>',
@@ -2666,6 +2688,28 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+// field handlers for watchpointReports.
+// normal model editors have unique names and don't require separate directives like this
+SIREPO.app.directive('watchpointHandler', function(appState, beamlineService, panelState, srwService) {
+    return {
+        restrict: 'A',
+        controller: function($scope) {
+            var modelKey = beamlineService.watchpointReportName($scope.item.id);
+
+            function processIntensityLimit() {
+                srwService.processIntensityLimit('watchpointReport', modelKey);
+            }
+
+            appState.watchModelFields(
+                $scope,
+                [modelKey + '.useIntensityLimits'],
+                processIntensityLimit);
+
+            $scope.$on('sr-tabSelected', processIntensityLimit);
         },
     };
 });

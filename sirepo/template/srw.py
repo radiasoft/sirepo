@@ -11,6 +11,7 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import crystal
+from sirepo import job
 from sirepo import simulation_db
 from sirepo.template import srw_common
 from sirepo.template import template_common
@@ -61,6 +62,8 @@ _DATA_FILE_FOR_MODEL = PKDict({
 })
 
 _LOG_DIR = '__srwl_logs__'
+
+_JSON_MESSAGE_EXPANSION = 20
 
 _TABULATED_UNDULATOR_DATA_DIR = 'tabulatedUndulator'
 
@@ -314,10 +317,7 @@ def extract_report_data(filename, sim_in):
     })
     rep_name = _SIM_DATA.WATCHPOINT_REPORT if _SIM_DATA.is_watchpoint(r) else r
     if _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
-        width_pixels = int(report_model['intensityPlotsWidth'])
-        rotate_angle = report_model.get('rotateAngle', 0)
-        rotate_reshape = report_model.get('rotateReshape', '0')
-        info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], width_pixels, rotate_angle, rotate_reshape)
+        info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], report_model)
     return info
 
 
@@ -1412,16 +1412,34 @@ def _process_intensity_reports(source_type, undulator_type):
     })
 
 
-def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rotate_reshape):
+def _remap_3d(info, allrange, z_label, z_units, report):
     x_range = [allrange[3], allrange[4], allrange[5]]
     y_range = [allrange[6], allrange[7], allrange[8]]
+    width_pixels = int(report.intensityPlotsWidth)
+    rotate_angle = report.get('rotateAngle', 0)
     ar2d = info['points']
     totLen = int(x_range[2] * y_range[2])
     n = len(ar2d) if totLen > len(ar2d) else totLen
     ar2d = np.reshape(ar2d[0:n], (y_range[2], x_range[2]))
+    if report.get('useIntensityLimits', '0') == '1':
+        ar2d[ar2d < report.minIntensityLimit] = report.minIntensityLimit
+        ar2d[ar2d > report.maxIntensityLimit] = report.maxIntensityLimit
     if not width_pixels:
         # upper limit is browser's max html canvas size
         width_pixels = _CANVAS_MAX_SIZE
+    if not job.cfg:
+        #TODO(pjm): maybe max_message_size should be kept on a smaller module?
+        job.init()
+    # roughly 20x size increase for json
+    if ar2d.size * _JSON_MESSAGE_EXPANSION > job.cfg.max_message_size:
+        max_width = int(math.sqrt(job.cfg.max_message_size / _JSON_MESSAGE_EXPANSION))
+        if max_width < width_pixels:
+            pkdlog(
+                'auto scaling dimensions to fit message size. size: {}, max_width: {}',
+                ar2d.size,
+                max_width,
+            )
+            width_pixels = max_width
     # rescale width and height to maximum of width_pixels
     if width_pixels and (width_pixels < x_range[2] or width_pixels < y_range[2]):
         x_resize = 1.0
@@ -1441,7 +1459,7 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rota
             pkdlog('Cannot resize the image - scipy.ndimage.zoom() cannot be imported.')
     # rotate 3D image
     if rotate_angle:
-        rotate_reshape = (rotate_reshape == "1")
+        rotate_reshape = report.get('rotateReshape', '0') == '1'
         try:
             from scipy import ndimage
             pkdc('Size before: {}  Dimensions: {}', ar2d.size, ar2d.shape)
@@ -1465,16 +1483,16 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rota
 
     if z_units:
         z_label = u'{} [{}]'.format(z_label, z_units)
-    return PKDict({
-        'x_range': x_range,
-        'y_range': y_range,
-        'x_label': info['x_label'],
-        'y_label': info['y_label'],
-        'z_label': _superscript(z_label),
-        'title': info['title'],
-        'subtitle': _superscript_2(info['subtitle']),
-        'z_matrix': ar2d.tolist(),
-    })
+    return PKDict(
+        x_range=x_range,
+        y_range=y_range,
+        x_label=info['x_label'],
+        y_label=info['y_label'],
+        z_label=_superscript(z_label),
+        title=info['title'],
+        subtitle=_superscript_2(info['subtitle']),
+        z_matrix=ar2d.tolist(),
+    )
 
 
 def _rotated_axis_range(x, y, theta):

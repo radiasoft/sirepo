@@ -352,7 +352,10 @@ class _Dispatcher(PKDict):
         s = None
         m = None
         try:
-            s = tornado.iostream.IOStream(connection)
+            s = tornado.iostream.IOStream(
+                connection,
+                max_buffer_size=job.cfg.max_message_size,
+            )
             while True:
                 m = await self._fastcgi_msg_q.get()
                 # Avoid issues with exceptions. We don't use q.join()
