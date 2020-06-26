@@ -1893,6 +1893,7 @@
         },
         "tabulatedUndulator": {
             "title": "Undulator (Idealized or Tabulated)",
+            "helpVideoURL": "https://vimeo.com/410318423/632634aa5d",
 	    "basic": [
 	        "undulatorSelector"
 	        ],
@@ -1996,6 +1997,7 @@
         },
         "undulator": {
             "title": "Idealized Undulator",
+            "helpVideoURL": "https://vimeo.com/410318423/632634aa5d",
 	    "basic": [],
             "advanced": [
                 "period",
