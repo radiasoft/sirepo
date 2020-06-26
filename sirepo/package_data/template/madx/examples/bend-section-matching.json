@@ -1,0 +1,203 @@
+{
+    "models": {
+        "beamlines": [
+            {
+                "id": 100,
+                "items": [
+                    104,
+                    101,
+                    105,
+                    102,
+                    103,
+                    102,
+                    105,
+                    102,
+                    104
+                ],
+                "name": "BL"
+            }
+        ],
+        "bunchReport1": {
+            "colorMap": "afmhot",
+            "notes": "",
+            "x": "x",
+            "y": "px"
+        },
+        "bunchReport2": {
+            "colorMap": "afmhot",
+            "notes": "",
+            "x": "y",
+            "y": "py"
+        },
+        "bunchReport3": {
+            "colorMap": "afmhot",
+            "notes": "",
+            "x": "x",
+            "y": "y"
+        },
+        "bunchReport4": {
+            "colorMap": "afmhot",
+            "notes": "",
+            "x": "t",
+            "y": "pt"
+        },
+        "commands": [
+            {
+                "_id": 106,
+                "_type": "beam",
+                "charge": "q",
+                "gamma": "gamma",
+                "mass": "e0*nn",
+                "sigt": 1.0
+            },
+            {
+                "_id": 107,
+                "_type": "twiss",
+                "alfx": -3.237,
+                "alfy": 0.986,
+                "betx": 29.528,
+                "bety": 7.347,
+                "dpx": -0.281,
+                "dx": -20.57,
+                "file": "1"
+            },
+            {
+                "_id": 108,
+                "_type": "match",
+                "sequence": 100
+            },
+            {
+                "_id": 109,
+                "_type": "constraint",
+                "sequence": 100,
+                "range": "#E"
+            },
+            {
+                "_id": 110,
+                "_type": "vary",
+                "name": "QF1->K1",
+                "step": 1E-6
+            },
+            {
+                "_id": 111,
+                "_type": "vary",
+                "name": "QD1->K1",
+                "step": 1E-6
+            },
+            {
+                "_id": 112,
+                "_type": "lmdif",
+                "calls": 500,
+                "tolerance": 1e-20
+            },
+            {
+                "_id": 113,
+                "_type": "endmatch"
+            },
+            {
+                "_id": 114,
+                "_type": "twiss",
+                "alfx": -3.237,
+                "alfy": 0.986,
+                "betx": 29.528,
+                "bety": 7.347,
+                "dpx": -0.281,
+                "dx": -20.57,
+                "file": "1"
+            }
+        ],
+        "elements": [
+            {
+                "_id": 101,
+                "l": 2.5,
+                "name": "D2.5",
+                "type": "DRIFT"
+            },
+            {
+                "_id": 102,
+                "l": 3.0,
+                "name": "D3.0",
+                "type": "DRIFT"
+            },
+            {
+                "_id": 103,
+                "_super": "_APERTURE_ELEMENT",
+                "k1": -5.0,
+                "l": 1.0,
+                "name": "QD",
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 104,
+                "_super": "_APERTURE_ELEMENT",
+                "k1": 5.0,
+                "l": 0.5,
+                "name": "QF",
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 105,
+                "_super": "_APERTURE_ELEMENT",
+                "angle": "15.0*degree",
+                "l": 1.0,
+                "name": "B",
+                "type": "SBEND"
+            }
+        ],
+        "initialTwissParams": {
+            "alpha": 0.0,
+            "beta": 1.0,
+            "dim": "y",
+            "eta": 1.0,
+            "gamma": 1.0
+        },
+        "rpnVariables": [
+            {
+                "name": "degree",
+                "value": "PI/180.0"
+            },
+            {
+                "name": "e0",
+                "value": 0.938
+            },
+            {
+                "name": "nn",
+                "value": 1.0
+            },
+            {
+                "name": "q",
+                "value": 1.0
+            },
+            {
+                "name": "gamma",
+                "value": 7.84
+            }
+        ],
+        "simulation": {
+            "activeBeamlineId": 100,
+            "documentationUrl": "",
+            "isExample": true,
+            "folder": "/Examples",
+            "name": "Bend Section Matching",
+            "notes": "",
+            "numberOfParticles": 1000,
+            "visualizationBeamlineId": 100
+        },
+        "twissEllipseReport1": {
+            "dim": "x",
+            "notes": ""
+        },
+        "twissEllipseReport2": {
+            "dim": "y",
+            "notes": ""
+        },
+        "twissReport": {
+            "includeLattice": "1",
+            "y1": "betx",
+            "y2": "bety",
+            "y3": "dx"
+        }
+    },
+    "simulationType": "madx",
+    "version": "20200626.092805"
+}

@@ -95,6 +95,11 @@
             ["sdds_beam", "SDDS Input File"],
             ["bunched_beam", "Twiss Parameters"]
         ],
+        "CommandVarySlope": [
+            ["1", "increase"],
+            ["-1", "decrease"],
+            ["-none-", "-none"]
+        ],
         "ParticleType": [
             ["positron", "Positron"],
             ["electron", "Electron"],
@@ -113,11 +118,23 @@
             ["t", "t"],
             ["pt", "P"]
         ],
-        "PtcParameter": [
+        "ElementAnimationParameter": [
+            ["alfx", "alfx"],
+            ["alfy", "alfy"],
+            ["betx", "betx"],
+            ["bety", "bety"],
+            ["dpx", "dpx"],
+            ["dpy", "dpy"],
+            ["dx", "dx"],
+            ["dy", "dy"],
+            ["mux", "mux"],
+            ["muy", "muy"],
             ["px", "px"],
             ["py", "py"],
+            ["s", "s"],
             ["x", "x"],
-            ["y", "y"]
+            ["y", "y"],
+            ["none", "None"]
         ],
         "SpaceCoordinate": [
             ["x", "x"],
@@ -146,6 +163,12 @@
     },
     "frameIdFields": {
         "twissAnimation": [
+            "x",
+            "y1",
+            "y2",
+            "y3"
+        ],
+        "animation": [
             "x",
             "y1",
             "y2",
@@ -274,6 +297,48 @@
         "command_call": {
             "file": ["FILE", "String", ""]
         },
+        "command_constraint": {
+            "sequence": ["SEQUENCE", "LatticeBeamlineList", "", "sequence for which the constraint applies"],
+            "range": ["RANGE", "STRING", "", "position where the constraint must be satisfied"],
+            "alfx": ["ALFX", "RPNValue", 0.0],
+            "alfy": ["ALFY", "RPNValue", 0.0],
+            "betx": ["BETX", "RPNValue", 0.0],
+            "bety": ["BETY", "RPNValue", 0.0],
+            "deltap": ["DELTAP", "RPNValue", 0.0],
+            "dpx": ["DPX", "RPNValue", 0.0],
+            "dpy": ["DPY", "RPNValue", 0.0],
+            "dx": ["DX", "RPNValue", 0.0],
+            "dy": ["DY", "RPNValue", 0.0],
+            "mux": ["MUX", "RPNValue", 0.0],
+            "muy": ["MUY", "RPNValue", 0.0],
+            "px": ["PX", "Float", 0.0, "Canonical coordinate"],
+            "py": ["PY", "Float", 0.0, "Canonical coordinate"],
+            "x": ["X", "Float", 0.0, "Canonical coordinate"],
+            "y": ["Y", "Float", 0.0, "Canonical coordinate"]
+        },
+        "command_lmdif": {
+            "calls": ["CALLS", "Integer", 1000, "Maximum number of calls to the penalty function"],
+            "tolerance": ["TOLERANCE", "Float", 1e-6, "Desired tolerance for the minimum"]
+        },
+        "command_match": {
+            "sequence": ["SEQUENCE", "LatticeBeamlineList", ""],
+            "alfx": ["ALFX", "RPNValue", 0.0],
+            "alfy": ["ALFY", "RPNValue", 0.0],
+            "betx": ["BETX", "RPNValue", 0.0],
+            "bety": ["BETY", "RPNValue", 0.0],
+            "deltap": ["DELTAP", "RPNValue", 0.0],
+            "dpx": ["DPX", "RPNValue", 0.0],
+            "dpy": ["DPY", "RPNValue", 0.0],
+            "dx": ["DX", "RPNValue", 0.0],
+            "dy": ["DY", "RPNValue", 0.0],
+            "mux": ["MUX", "RPNValue", 0.0],
+            "muy": ["MUY", "RPNValue", 0.0],
+            "px": ["PX", "Float", 0.0, "Canonical coordinate"],
+            "py": ["PY", "Float", 0.0, "Canonical coordinate"],
+            "x": ["X", "Float", 0.0, "Canonical coordinate"],
+            "y": ["Y", "Float", 0.0, "Canonical coordinate"]
+        },
+        "command_endmatch": {},
         "command_option": {
             "bborbit": ["BBORBIT", "TriStateBool", "", "The closed orbit is modified by beam-beam kicks"],
             "debug": ["DEBUG", "TriStateBool", "", "Issues debugging information"],
@@ -339,6 +404,11 @@
             "ft": ["FT", "Float", 0.0, "Action-angle coordinates"],
             "phit": ["PHIT", "Float", 0.0, "Action-angle coordinates"]
         },
+        "command_savebeta": {
+            "label": ["LABEL", "OptionalString", ""],
+            "place": ["PLACE", "OptionalString", ""],
+            "sequence": ["SEQUENCE", "LatticeBeamlineList", ""]
+        },
         "command_select": {
             "class": ["CLASS", "OptionalString", ""],
             "clear": ["CLEAR", "Boolean", "0"],
@@ -356,6 +426,7 @@
             "closed_orbit": ["CLOSED_ORBIT", "Boolean", "0", "Turn on the closed orbit calculation"],
             "deltap": ["DELTAP", "Float", 0.0, "Relative momentum offset for reference closed orbit (used for 5D case ONLY)"],
             "element_by_element": ["ELEMENT_BY_ELEMENT", "Boolean", "0", "Switch from the default turn-by-turn tracking to the element-by-element tracking"],
+            "file": ["FILE", "OutputFile", "", "The name of the file output will be written to"],
             "ffile": ["FFILE", "Integer", 1, "Printing coordinates after every FFILE turns"],
             "icase": ["ICASE", "Integer", 4, "User-defined dimensionality of the phase-space (4, 5 or 6)"],
             "maxaper": ["MAXAPER", "Float6StringArray", "0, 0, 0, 0, 0, 0", "Upper limits for the particle coordinates"],
@@ -411,6 +482,7 @@
             "dx": ["DX", "RPNValue", 0.0],
             "dy": ["DY", "RPNValue", 0.0],
             "energy": ["ENERGY", "RPNValue", 0.0],
+            "file": ["FILE", "OutputFile", "", "The name of the file TWISS output will be written to"],
             "keeporbit": ["KEEPORBIT", "OptionalString", "", "Store the orbit under this name at the start, and at all monitors."],
             "line": ["LINE", "OptionalString", "", "Name of a valid beamline for which the calculation of optical functions should be performed. "],
             "mux": ["MUX", "RPNValue", 0.0],
@@ -479,17 +551,29 @@
             "sequence": ["BEAMLINE", "LatticeBeamlineList", "", "Name of the sequence to be loaded and expanded."],
             "period": ["BEAMLINE", "LatticeBeamlineList", "", "Name of the sequence to be loaded and expanded."]
         },
+        "command_vary": {
+            "name": ["NAME", "String", "", "Name of the parameter or attribute to be varied"],
+            "step": ["STEP", "Float", 0.0, "Approximate initial step size for varying the parameter"],
+            "lower": ["LOWER", "Float", 0.0, "Lower limit for the parameter"],
+            "upper": ["UPPER", "Float", 0.0, "Upper limit for the parameter"],
+            "slope": ["SLOPE", "CommandVarySlope", "-none-", "Upper limit for the parameter"],
+            "opt": ["OPT", "Float", 0.0, "Optimal value for the parameter"]
+        },
+        "elementAnimation": {
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
+            "x": ["Horizontal Value to Plot", "ElementAnimationParameter", "s"],
+            "y": ["Vertical Value to Plot", "ElementAnimationParameter", "px"],
+            "y1": ["Vertical Value to Plot", "ElementAnimationParameter", "betx"],
+            "y2": ["Vertical Value to Plot", "ElementAnimationParameter", "bety"],
+            "y3": ["Vertical Value to Plot", "ElementAnimationParameter", "dx"]
+        },
         "initialTwissParams": {
             "alpha": ["Alpha", "Float", 0.0],
             "beta": ["Beta", "Float", 1.0],
             "dim": ["Dimension", "SpaceCoordinate", "x"],
             "eta": ["Emittance", "Float", 1.0],
             "gamma": ["Gamma", "Float", 1.0]
-        },
-        "ptcAnimation": {
-            "x": ["Horizontal Value to Plot", "PtcParameter", "x"],
-            "y": ["Vertical Value to Plot", "PtcParameter", "px"],
-            "histogramBins": ["Histogram Bins", "Integer", 200]
         },
         "rpnVariable": {
             "name": ["Name", "String"],
@@ -498,13 +582,6 @@
         "twissEllipseReport": {
             "dim": ["Dimension", "SpaceCoordinate", "x"],
             "notes": ["Notes", "Text", ""]
-        },
-        "twissAnimation": {
-            "x": ["Horizontal Value to Plot", "TwissParameter", "s"],
-            "y1": ["Vertical Value to Plot", "TwissParameter", "betx"],
-            "y2": ["Vertical Value to Plot", "TwissParameter", "bety"],
-            "y3": ["Vertical Value to Plot", "TwissParameter", "dx"],
-            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"]
         },
         "twissReport": {
             "y1": ["Y1 Value", "TwissParameter", "betx"],
@@ -1154,7 +1231,7 @@
             "basic": []
         },
         "command_beam": {
-            "title": "Beam",
+            "title": "beam",
             "description": "The BEAM statement defines data for the particles in a beam.",
             "basic": [
                 "simulation.enableParticleTracking",
@@ -1196,7 +1273,61 @@
                 ]]
             ]
         },
+        "command_constraint": {
+            "title": "constraint",
+            "advanced": [
+                "sequence",
+                "alfx",
+                "alfy",
+                "betx",
+                "bety",
+                "deltap",
+                "dpx",
+                "dpy",
+                "dx",
+                "dy",
+                "mux",
+                "muy",
+                "px",
+                "py",
+                "x",
+                "y"
+            ]
+        },
+        "command_lmdif": {
+            "title": "LMDIF",
+            "advanced": [
+                "calls",
+                "tolerance"
+            ]
+        },
+        "command_match": {
+            "title": "Match",
+            "advanced": [
+                "sequence",
+                "alfx",
+                "alfy",
+                "betx",
+                "bety",
+                "deltap",
+                "dpx",
+                "dpy",
+                "dx",
+                "dy",
+                "mux",
+                "muy",
+                "px",
+                "py",
+                "x",
+                "y"
+            ]
+        },
+        "command_endmatch": {
+            "title": "endmatch",
+            "advanced": []
+        },
         "command_option": {
+            "title": "option",
             "advanced": [
                 "bborbit",
                 "debug",
@@ -1218,6 +1349,7 @@
             ]
         },
         "command_ptc_create_universe": {
+            "title": "ptc_create_universe",
             "advanced": [
                 "sector_nmul_max",
                 "sector_nmul",
@@ -1226,6 +1358,7 @@
             ]
         },
         "command_ptc_create_layout": {
+            "title": "ptc_create_layout",
             "advanced": [
                 "time",
                 "model",
@@ -1241,8 +1374,12 @@
                 "even"
             ]
         },
-        "command_ptc_end": {"advanced": []},
+        "command_ptc_end": {
+            "title": "ptc_create_end",
+            "advanced": []
+        },
         "command_ptc_normal": {
+            "title": "ptc_normal",
             "advanced": [
                 "closed_orbit",
                 "deltap",
@@ -1253,11 +1390,13 @@
             ]
         },
         "command_ptc_observe": {
+            "title": "ptc_observe",
             "advanced": [
                 "place"
             ]
         },
         "command_ptc_start": {
+            "title": "ptc_start",
             "advanced": [
                 "x",
                 "px",
@@ -1273,7 +1412,16 @@
                 "phit"
             ]
         },
+        "command_savebeta": {
+            "title": "savebeta",
+            "advanced": [
+                "label",
+                "place",
+                "sequence"
+            ]
+        },
         "command_select": {
+            "title": "ptc_select",
             "advanced": [
                 "class",
                 "clear",
@@ -1288,6 +1436,7 @@
             ]
         },
         "command_ptc_track": {
+            "title": "ptc_track",
             "advanced": [
                 "deltap",
                 "icase",
@@ -1306,19 +1455,25 @@
                 "space_charge"
             ]
         },
-        "command_ptc_track_end": {"advanced": []},
+        "command_ptc_track_end": {
+            "title": "ptc_track_end",
+            "advanced": []
+        },
         "command_set": {
+            "title": "set",
             "advanced": [
                 "format",
                 "sequence"
             ]
         },
         "command_show": {
+            "title": "show",
             "advanced": [
                 "command"
             ]
         },
         "command_sodd": {
+            "title": "sodd",
             "advanced": [
                 "detune",
                 "distort1",
@@ -1332,6 +1487,7 @@
             ]
         },
         "command_resbeam": {
+            "title": "resbeam",
             "advanced": [
                 "sequence"
             ]
@@ -1347,10 +1503,28 @@
                 "dpx",
                 "dpy",
                 "dx",
-                "dy"
+                "dy",
+                "file"
+            ]
+        },
+        "command_value": {
+            "advanced": [
+                "expression"
+            ]
+        },
+        "command_vary": {
+            "title": "Vary",
+            "advanced": [
+                "name",
+                "step",
+                "lower",
+                "upper",
+                "slope",
+                "opt"
             ]
         },
         "ptcAnimation": {
+            "model": "elementAnimation",
             "title": "PTC Track",
             "advanced": [
                 [
@@ -1362,11 +1536,6 @@
                     ]
                 ],
                 "histogramBins"
-            ]
-        },
-        "command_value": {
-            "advanced": [
-                "expression"
             ]
         },
         "simulationStatus": {
@@ -1382,6 +1551,7 @@
             "advanced": ["dim"]
         },
         "twissAnimation": {
+            "model": "elementAnimation",
             "title": "Twiss Parameters",
             "advanced": [
                 ["Main", [
