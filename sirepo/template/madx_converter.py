@@ -16,23 +16,6 @@ import copy
 import math
 import sirepo.sim_data
 
-_PI = 4 * math.atan(1)
-_MADX_CONSTANTS = PKDict(
-    pi=_PI,
-    twopi=_PI * 2.0,
-    raddeg=180.0 / _PI,
-    degrad=_PI / 180.0,
-    e=math.exp(1),
-    emass=0.510998928e-03,
-    pmass=0.938272046e+00,
-    nmass=0.931494061+00,
-    mumass=0.1056583715,
-    clight=299792458.0,
-    qelect=1.602176565e-19,
-    hbar=6.58211928e-25,
-    erad=2.8179403267e-15,
-)
-
 _MADX_SIM_DATA = sirepo.sim_data.get_class('madx')
 _MADX_SCHEMA = _MADX_SIM_DATA.schema()
 
@@ -78,7 +61,8 @@ _FIELD_MAP = PKDict(
             ['SOLE', 'l', 'ks'],
         ],
         ['MULTIPOLE',
-            ['MULT', 'l=lrad', 'tilt', 'knl'],
+         #TODO(pjm): compute knl and order from first knl value in madx
+            ['MULT', 'tilt'],
         ],
         ['HKICKER',
             ['HKICK', 'l', 'kick', 'tilt'],
@@ -102,16 +86,16 @@ _FIELD_MAP = PKDict(
             ['DRIF', 'l'],
         ],
         ['ECOLLIMATOR',
-            ['ECOL', 'l', 'x_max=aperture[0]', 'y_max=aperture[1]'],
+            ['ECOL', 'l', 'x_max=xsize', 'y_max=ysize'],
         ],
         ['RCOLLIMATOR',
-            ['RCOL', 'l', 'x_max=aperture[0]', 'y_max=aperture[1]'],
+            ['RCOL', 'l', 'x_max=xsize', 'y_max=ysize'],
         ],
         ['COLLIMATOR apertype=ELLIPSE',
-            ['ECOL', 'l', 'x_max=aperture[0]', 'y_max=aperture[1]'],
+            ['ECOL', 'l', 'x_max=xsize', 'y_max=ysize'],
         ],
         ['COLLIMATOR apertype=RECTANGLE',
-            ['RCOL', 'l', 'x_max=aperture[0]', 'y_max=aperture[1]'],
+            ['RCOL', 'l', 'x_max=xsize', 'y_max=ysize'],
         ],
         ['RFCAVITY',
             ['RFCA', 'l', 'volt', 'freq'],
@@ -141,19 +125,19 @@ _FIELD_MAP = PKDict(
             ['DRIFT', 'l'],
         ],
         ['SBEND',
-            ['SBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'hgap', 'tilt=psi'],
+            ['SBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'hgap', 'psi=tilt'],
         ],
         ['RBEND',
-            ['RBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'hgap', 'tilt=psi'],
+            ['RBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'hgap', 'psi=tilt'],
         ],
         ['QUADRUPOLE',
-            ['QUADRUPOLE', 'l', 'k1', 'k1s', 'tilt=psi'],
+            ['QUADRUPOLE', 'l', 'k1', 'k1s', 'psi=tilt'],
         ],
         ['SEXTUPOLE',
-            ['SEXTUPOLE', 'l', 'k2', 'k2s', 'tilt=psi'],
+            ['SEXTUPOLE', 'l', 'k2', 'k2s', 'psi=tilt'],
         ],
         ['OCTUPOLE',
-            ['OCTUPOLE', 'l', 'k3', 'k3s', 'tilt=psi'],
+            ['OCTUPOLE', 'l', 'k3', 'k3s', 'psi=tilt'],
         ],
         ['SOLENOID',
          #TODO(pjm): compute dks from ksi?
@@ -161,16 +145,16 @@ _FIELD_MAP = PKDict(
         ],
         ['MULTIPOLE',
          #TODO(pjm): compute kn, ks from knl, ksl?
-            ['MULTIPOLE', 'l=lrad', 'tilt=psi'],
+            ['MULTIPOLE', 'psi=tilt'],
         ],
         ['HKICKER',
-            ['HKICKER', 'l', 'kick', 'tilt=psi'],
+            ['HKICKER', 'l', 'kick', 'psi=tilt'],
         ],
         ['VKICKER',
-            ['VKICKER', 'l', 'kick', 'tilt=psi'],
+            ['VKICKER', 'l', 'kick', 'psi=tilt'],
         ],
         ['KICKER',
-            ['KICKER', 'l', 'hkick', 'vkick', 'tilt=psi'],
+            ['KICKER', 'l', 'hkick', 'vkick', 'psi=tilt'],
         ],
         ['MARKER',
             ['MARKER'],
@@ -188,10 +172,10 @@ _FIELD_MAP = PKDict(
             ['RCOLLIMATOR', 'l', 'xsize', 'ysize'],
         ],
         ['COLLIMATOR apertype=ELLIPSE',
-            ['ECOLLIMATOR', 'l', 'xsize=aperture[0]', 'ysize=aperture[1]'],
+            ['ECOLLIMATOR', 'l', 'xsize', 'ysize'],
         ],
         ['COLLIMATOR apertype=RECTANGLE',
-            ['RCOLLIMATOR', 'l', 'xsize=aperture[0]', 'ysize=aperture[1]'],
+            ['RCOLLIMATOR', 'l', 'xsize', 'ysize'],
         ],
         ['RFCAVITY',
             ['RFCAVITY', 'l', 'volt', 'lag', 'harmon', 'freq'],
@@ -244,6 +228,7 @@ def _convert(name, data, direction):
             id=bl.id,
         ))
     max_id = 0
+
     for el in data.models.elements:
         if el.type not in field_map:
             #TODO(pjm): convert to a sim appropriate drift rather than skipping
@@ -261,7 +246,7 @@ def _convert(name, data, direction):
             f1 = f2 = fields[idx]
             if '=' in fields[idx]:
                 f1, f2 = fields[idx].split('=')
-                if direction == 'from' and from_class.sim_type() == 'madx':
+                if direction == 'to' and to_class.sim_type() == 'madx':
                     f2, f1 = f1, f2
             values[f1] = el[f2]
         # add any non-default values not in map to a comment
@@ -307,11 +292,8 @@ def _build_field_map(info):
 
 def _rpn_variables(to_class, data):
     res = data.models.rpnVariables
-    if to_class.sim_type() == 'madx':
+    if to_class.sim_type() in ('madx', 'opal'):
         return list(filter(lambda x: x.name not in _MADX_VARIABLES, res))
-    if to_class.sim_type() == 'opal':
-        #TODO(pjm): opal already has these default vars, add config for this
-        return res
     names = set([v.name for v in res])
     for name in _MADX_VARIABLES:
         if name not in names:
