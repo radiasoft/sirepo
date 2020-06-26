@@ -2882,7 +2882,7 @@ SIREPO.app.directive('numberList', function() {
                 $scope.field = $scope.values.join(', ');
             };
             $scope.parseValues = function() {
-                if ($scope.field && ! $scope.values) {
+                if ($scope.field) {
                     $scope.values = $scope.field.split(/\s*,\s*/);
                 }
                 return $scope.values;
