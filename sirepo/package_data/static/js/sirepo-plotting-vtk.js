@@ -913,13 +913,9 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                             shape.y - shape.height / 2,
                             ctr[2]
                         ]);
-                        srdbg('save', $scope.modelName);
                         $scope.source.saveObject(shape.id, function () {
                             replot();
                         });
-                        //appState.saveChanges($scope.modelName, function (d) {
-                        //    replot();
-                        //});
                     }
                     else {
                         appState.cancelChanges($scope.modelName);

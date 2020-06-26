@@ -261,9 +261,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
 
     self.editObject = function(o) {
         self.selectObject(o);
-        //self.selectedObject = o;
-        //appState.models.geomObject = o;
-        srdbg('edit', self.selectedObject);
         panelState.showModalEditor('geomObject');
     };
 
@@ -292,7 +289,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
             self.selectedObject = o;
             appState.models.geomObject = o;
         }
-        srdbg('selected', o);
         return o;
     };
 
@@ -303,6 +299,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     function addObject(o) {
         o.id  = appState.models.geometry.objects.length;
         appState.models.geometry.objects.push(o);
+    }
+
+    function newObjectName() {
+        appState.uniqueName(appState.models.geometry.objects, 'name', '{}');
     }
 
     function updateObjectEditor() {
@@ -338,7 +338,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
         geomObjs = appState.models.geometry.objects;
         $scope.$on('geomObject.changed', function() {
             var o = self.selectedObject;
-            srdbg('GEOMOBJ CH', o, appState.models.geometry.objects[0]);
             if (o.id !== 0 && (angular.isUndefined(o.id) || o.id === '')) {
                 addObject(o);
             }

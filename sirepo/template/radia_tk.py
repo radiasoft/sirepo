@@ -43,7 +43,6 @@ def apply_symmetry(g_id, symm_type, plane):
 
 def build_box(center, size, material, magnetization, division):
     n_mag = numpy.linalg.norm(magnetization)
-    pkdp('BUILD BOX CTR {} SZ {} MAT {} MAG {} NM {}', center, size, material, magnetization, n_mag)
     g_id = radia.ObjRecMag(center, size, magnetization)
     if division:
         radia.ObjDivMag(g_id, division)

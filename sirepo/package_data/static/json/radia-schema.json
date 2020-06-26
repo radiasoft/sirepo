@@ -189,7 +189,7 @@
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
             "color": ["Color", "Color", "#cccccc"],
-            "division": ["Divide", "IntStringArray", "1, 1, 1", "", "Nx, Ny, Nz"],
+            "division": ["Num Divisions", "IntStringArray", "1, 1, 1", "", "Nx, Ny, Nz"],
             "doDivide": ["Divide", "Boolean", "1"],
             "material": ["Material", "MaterialType", "NdFeB"],
             "type": ["Type", "ObjectType", "box"],
@@ -319,7 +319,7 @@
             "advanced": [
                 "name",
                 "type",
-                "box.magnetization",
+                "magnetization",
                 "material",
                 "doDivide",
                 "division",
