@@ -907,18 +907,22 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                         if (! o) {
                             return;
                         }
+                        var ctr = stringToFloatArray(o.center);
                         o.center = floatArrayToString([
-                            (shape.x + shape.width / 2),
-                            (shape.y + shape.height / 2),
-                            (shape.depth / 2)
+                            shape.x + shape.width / 2,
+                            shape.y - shape.height / 2,
+                            ctr[2]
                         ]);
-                        appState.saveChanges($scope.modelName, function (d) {
+                        srdbg('save', $scope.modelName);
+                        $scope.source.saveObject(shape.id, function () {
                             replot();
                         });
+                        //appState.saveChanges($scope.modelName, function (d) {
+                        //    replot();
+                        //});
                     }
                     else {
                         appState.cancelChanges($scope.modelName);
-                        //$scope.source.deleteConductorPrompt(shape);
                     }
                 });
                 hideShapeLocation();
@@ -957,14 +961,12 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                             id: o.id,
                             name: o.name,
                             shape: o.layoutShape || 'rect',
-                            depth: size[2],
                             width: size[0],
                             height: size[1],
+                            depth: size[2],
                             x: center[0] - size[0] / 2,
-                            y: center[1] - size[1] / 2,
+                            y: center[1] + size[1] / 2,
                         });
-                        var s = shapes[shapes.length - 1];
-                        //srdbg('draw at', s.x, s.y);
                     });
                 var ds = d3.select('.plot-viewport').selectAll('.vtk-object-layout-shape')
                     .data(shapes);
@@ -1116,6 +1118,7 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
 
             function replot() {
                 // total x extent
+                // add optional fit to objects
                 var newXDomain = [-0.025, 0.025];
                 if (! axes.x.domain || ! appState.deepEquals(axes.x.domain, newXDomain)) {
                     axes.x.domain = newXDomain;
@@ -1155,17 +1158,17 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                 // should validate model on server
                 var model = appState.setModelDefaults({}, obj.model);
                 var size = model.size;
-                if (angular.isString(size)) {
-                    size = stringToFloatArray(size);
-                }
+                size = stringToFloatArray(size);
+                // note that x, y are in *lab* coordinates, not screen - they get converted by
+                // d3.scale() later
                 return {
                     color: model.color,
                     elev: ELEVATIONS.front,
                     name: model.name,
                     shape: model.layoutShape || 'rect',
-                    depth: size[2],
                     width: size[0],
                     height: size[1],
+                    depth: size[2],
                     id: model.id,
                     x: axes.x.scale.invert(p[0]) + size[0] / 2,
                     y: axes.y.scale.invert(p[1]) + size[1] / 2,
@@ -1260,6 +1263,7 @@ SIREPO.app.directive('3dBuilder', function(appState, layoutService, panelState, 
                 }
             };
 
+            // called when dropping new objects, not existing
             $scope.dropSuccess = function(obj, evt) {
                 var p = isMouseInBounds(evt);
                 srdbg('DROP', obj,  'AT', p, 'FROM', evt);

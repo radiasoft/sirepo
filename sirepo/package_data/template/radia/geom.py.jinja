@@ -10,6 +10,16 @@ from sirepo.template import template_common
 VIEW_TYPE_OBJ = 'objects'
 VIEW_TYPE_FIELD = 'fields'
 
+_OBJ_TYPES = ('box', 'group',)
+
+def _split_comma_field(f, type):
+    arr = re.split(r'\s*,\s*', f)
+    if type == 'float':
+        return [float(x) for x in arr]
+    if type == 'int':
+        return [int(x) for x in arr]
+    return arr
+
 {% if isExample %}
 g_id = radia_examples.build('{{ geomName }}')
 {% else %}
@@ -17,15 +27,17 @@ g_id = radia_examples.build('{{ geomName }}')
 objs = []
 for obj in {{ objects }}:
     o = PKDict(obj)
-    ctr = [float(x) for x in re.split(r'\s*,\s*', o.center)]
-    sz = [float(x) for x in re.split(r'\s*,\s*', o.size)]
-    m = [float(x) for x in re.split(r'\s*,\s*', o.magnetization)]
-    div = [int(x) for x in re.split(r'\s*,\s*', o.division)]
+    if o.type not in _OBJ_TYPES:
+        continue
+    ctr = _split_comma_field(o.center, 'float')
+    sz = _split_comma_field(o.size, 'float')
+    m = _split_comma_field(o.magnetization, 'float')
+    div = _split_comma_field(o.division, 'int') if o.doDivide else None
     if o.type == 'box':
         g_id = radia_tk.build_box(ctr, sz, o.material, m, div)
-        objs.append(g_id)
-    else:
-        g_id = -1
+    if o.symmetryType is not 'none':
+        radia_tk.apply_symmetry(g_id, o.symmetryType, _split_comma_field(o.symmetryPlane, 'float'))
+    objs.append(g_id)
 g_id = radia_tk.build_container(objs)
 {% endif %}
 

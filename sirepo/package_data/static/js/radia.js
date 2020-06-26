@@ -243,17 +243,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     var self = this;
     var geomObjs = [];
     var editorFields = [
-         'box.magnetization',
+         'geomObject.magnetization',
          'geomObject.symmetryType',
          'geomObject.doDivide',
     ];
 
     self.selectedObject = null;
     self.toolbarItems = SIREPO.APP_SCHEMA.constants.toolbarItems;
-
-    self.isEditable = function() {
-        return true;
-    };
 
     self.editObjectWithId = function(id) {
         var o = self.getObject(id);
@@ -264,8 +260,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     };
 
     self.editObject = function(o) {
-        self.selectedObject = o;
-        appState.models.geomObject = o;
+        self.selectObject(o);
+        //self.selectedObject = o;
+        //appState.models.geomObject = o;
+        srdbg('edit', self.selectedObject);
         panelState.showModalEditor('geomObject');
     };
 
@@ -273,14 +271,42 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
         return radiaService.getObject(id);
     };
 
-    function addObject(objModel) {
-        objModel.id  = appState.models.geometry.objects.length;
-        appState.models.geometry.objects.push(objModel);
+    self.isEditable = function() {
+        return true;
+    };
+
+    self.saveObject = function(id, callback) {
+        if (! self.selectObjectWithId(id)) {
+            return;
+        }
+        appState.saveChanges('geomObject', function (d) {
+            self.selectedObject = null;
+            if (callback) {
+                callback(d);
+            }
+        });
+    };
+
+    self.selectObject = function(o) {
+        if (o) {
+            self.selectedObject = o;
+            appState.models.geomObject = o;
+        }
+        srdbg('selected', o);
+        return o;
+    };
+
+    self.selectObjectWithId = function(id) {
+        return self.selectObject(self.getObject(id));
+    };
+
+    function addObject(o) {
+        o.id  = appState.models.geometry.objects.length;
+        appState.models.geometry.objects.push(o);
     }
 
     function updateObjectEditor() {
         var o = appState.models.geomObject;
-        srdbg('update', o);
         panelState.showField(
             'geomObject',
             'division',
@@ -291,7 +317,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
             'symmetryPlane',
             o.symmetryType != 'none'
         );
-        var mag = appState.models.box.magnetization.split(/\s*,\s*/).map(function (m) {
+        var mag = o.magnetization.split(/\s*,\s*/).map(function (m) {
             return parseFloat(m);
         });
         panelState.showField(
@@ -304,21 +330,20 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     appState.whenModelsLoaded($scope, function() {
         // initial setup
         appState.watchModelFields($scope, editorFields, function(d) {
-            srdbg('saw you', d);
             updateObjectEditor();
         });
-        //srdbg('RadiaSourceController');
         if (! appState.models.geometry.objects) {
             appState.models.geometry.objects = [];
         }
         geomObjs = appState.models.geometry.objects;
-        $scope.$on('geomObject.changed', function(e, o) {
-            srdbg('sel', self.selectedObject);
-            if (angular.isUndefined(self.selectedObject.id) || self.selectedObject.id == '') {
-                addObject(self.selectedObject);
+        $scope.$on('geomObject.changed', function() {
+            var o = self.selectedObject;
+            srdbg('GEOMOBJ CH', o, appState.models.geometry.objects[0]);
+            if (o.id !== 0 && (angular.isUndefined(o.id) || o.id === '')) {
+                addObject(o);
             }
             appState.saveChanges('geometry', function (d) {
-                self.selectedObject = null;
+                //self.selectedObject = null;
             });
         });
         $scope.$on('geomObject.editor.show', function(e, o) {

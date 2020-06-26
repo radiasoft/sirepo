@@ -902,8 +902,8 @@ def _merge_subclasses(schema, item):
         model = item_schema[m]
         subclasses = []
         _unnest_subclasses(schema, item, m, subclasses)
-        for sub_class in subclasses:
-            _merge_dicts(item_schema[sub_class], model)
+        for s in subclasses:
+            _merge_dicts(item_schema[s], model)
 
 
 def _unnest_subclasses(schema, item, key, subclass_keys):

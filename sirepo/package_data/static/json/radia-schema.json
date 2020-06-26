@@ -138,8 +138,7 @@
     },
     "model": {
         "box": {
-            "_super": ["_", "model", "geomObject"],
-            "magnetization": ["Magentization (T)", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"]
+            "_super": ["_", "model", "geomObject"]
         },
         "circlePath": {
             "_super": ["_", "model", "fieldPath"],
@@ -188,6 +187,7 @@
             "_super": ["_", "model", "radiaObject"]
         },
         "geomObject": {
+            "_super": ["_", "model", "radiaObject"],
             "color": ["Color", "Color", "#cccccc"],
             "division": ["Divide", "IntStringArray", "1, 1, 1", "", "Nx, Ny, Nz"],
             "doDivide": ["Divide", "Boolean", "1"],
@@ -196,13 +196,11 @@
             "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x (mm), y (mm), z (mm)"],
             "id": ["_", "String", ""],
             "layoutShape":  ["_", "String", "rect"],
-            "name": ["Name", "String", ""],
-            "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"],
-            "symmetryType": ["Symmetry", "SymmetryType", "none"],
-            "symmetryPlane": ["Symmetry Plane", "FloatStringArray", "", "", "x, y, z"]
+            "magnetization": ["Magentization (T)", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"]
         },
         "geomUndulatorGroup": {
-            "_super": ["_", "model", "radiaObject"],
+            "_super": ["_", "model", "geomGroup"],
             "baseGroup": [""],
             "gap": ["Gap", "Float", 1.0],
             "numPeriods": ["Number of Periods", "Integer", 1, "", 1]
@@ -241,11 +239,11 @@
             "name": ["Name", "String", ""]
         },
         "radiaObject": {
-            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x (mm), y (mm), z (mm)"],
             "id": ["_", "String", ""],
             "layoutShape":  ["_", "String", "rect"],
             "name": ["Name", "String", ""],
-            "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"]
+            "symmetryType": ["Symmetry", "SymmetryType", "none"],
+            "symmetryPlane": ["Symmetry Plane", "FloatStringArray", "1.0, 0.0, 0.0", "", "x, y, z"]
         },
         "radiaReq": {
         },

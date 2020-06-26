@@ -31,13 +31,22 @@ FIELD_UNITS = PKDict({
     FIELD_TYPE_MAG_M: 'A/m',
 })
 
+_ZERO = [0, 0, 0]
+
+
+def apply_symmetry(g_id, symm_type, plane):
+    if symm_type == 'parallel':
+        radia.TrfZerPara(g_id, _ZERO, plane)
+    if symm_type == 'perpendicular':
+        radia.TrfZerPerp(g_id, _ZERO, plane)
+
 
 def build_box(center, size, material, magnetization, division):
-    #pkdp('BUILD BOX CTR {} SZ {} MAT {} MAG {}', center, size, material, magnetization)
     n_mag = numpy.linalg.norm(magnetization)
     pkdp('BUILD BOX CTR {} SZ {} MAT {} MAG {} NM {}', center, size, material, magnetization, n_mag)
     g_id = radia.ObjRecMag(center, size, magnetization)
-    radia.ObjDivMag(g_id, division)
+    if division:
+        radia.ObjDivMag(g_id, division)
     # do not apply a material unless a magentization of some magnitude has been set
     if n_mag > 0:
         radia.MatApl(g_id, radia.MatStd(material, n_mag))

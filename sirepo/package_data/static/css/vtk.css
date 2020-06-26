@@ -43,17 +43,43 @@
   stroke-width: 2;
 }
 
+.vtk-object-layout-shape-hover:hover {
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+
+.vtk-object-layout-shape-hover .vtk-object-layout-shape-close-icon:hover {
+  color: black;
+}
+
+.vtk-object-layout-shape-close-icon {
+  font-size: 20px;
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  cursor: default;
+  color: #aaa;
+}
+
+
 .vtk-object-layout-shape:hover {
   fill: lightgreen;
   filter: drop-shadow(2px 2px 2px #999);
 }
+
+.vtk-object-layout-shape-hover:hover .vtk-object-layout-shape-close-icon {
+  visibility: visible;
+}
+
 
 .vtk-object-layout-shape-inactive {
   opacity: 0.5;
 }
 
 .vtk-object-layout-drag-shadow {
-  fill: black;
-  stroke-width: 0;
-  filter: drop-shadow(2px 2px 2px #999);
+    fill: black;
+    opacity: 0.25;
+    stroke-width: 0;
+    filter: drop-shadow(2px 2px 2px #999);
 }
