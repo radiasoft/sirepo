@@ -206,22 +206,6 @@ def _beamline_element(obj, idx, title, elem_type, position):
         data['tangentialVectorX'] = obj.tvx
         data['tangentialVectorY'] = obj.tvy
 
-    elif elem_type == 'ellipsoidMirror02':
-        # Fixed values in srw.js:
-        data['heightAmplification'] = 1
-        data['heightProfileFile'] = None
-        data['orientation'] = 'x'
-
-        data['firstFocusLength'] = obj.p
-        data['focalLength'] = obj.q
-        data['grazingAngle'] = obj.grazingAngle * 1e3
-        data['normalVectorX'] = obj.nvx
-        data['normalVectorY'] = obj.nvy
-        data['normalVectorZ'] = obj.nvz
-        data['sagittalSize'] = obj.ds
-        data['tangentialSize'] = obj.dt
-        data['tangentialVectorX'] = obj.tvx
-        data['tangentialVectorY'] = obj.tvy
     elif elem_type == 'fiber':
         data['method'] = 'server'
         data['externalMaterial'] = 'User-defined'

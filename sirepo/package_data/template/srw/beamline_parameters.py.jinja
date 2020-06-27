@@ -29,9 +29,6 @@
 {% elif item.type == 'ellipsoidMirror' %}
     {{- fields(item, 's', ('heightProfileFile', 'orientation')) }}
     {{- fields(item, 'f', ('firstFocusLength', 'focalLength', 'grazingAngle', 'heightAmplification', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'horizontalOffset', 'verticalOffset')) }}
-{% elif item.type == 'ellipsoidMirror02' %}
-    {{- fields(item, 's', ('heightProfileFile', 'orientation')) }}
-    {{- fields(item, 'f', ('firstFocusLength', 'focalLength', 'grazingAngle', 'heightAmplification', 'tangentialSize', 'sagittalSize', 'sagittalRadius', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'horizontalOffset', 'verticalOffset')) }}
 {% elif item.type == 'fiber' %}
     {{- fields(item, 'f', ('focalPlane', 'externalRefractiveIndex', 'coreRefractiveIndex', 'externalAttenuationLength', 'coreAttenuationLength', 'externalDiameter', 'coreDiameter', 'horizontalCenterPosition', 'verticalCenterPosition')) }}
 {% elif item.type == 'grating' %}
