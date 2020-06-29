@@ -13,9 +13,10 @@ from pykern.pkdebug import pkdp, pkdc
 from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
-import sirepo.template.srw
 import copy
 import numpy as np
+import sirepo.job
+import sirepo.template.srw
 
 
 def create_predefined(out_dir=None):
@@ -74,19 +75,6 @@ def create_predefined(out_dir=None):
     return 'Created {}'.format(p)
 
 
-def fixup_old_data(in_json):
-    import pykern.pkio
-    import pykern.pkjson
-    import sirepo.template
-
-    return pykern.pkjson.dump_pretty(
-        sirepo.template.import_module('srw').fixup_old_data(
-            pykern.pkjson.load_any(pykern.pkio.py_path(in_json)),
-        ),
-        pretty=False,
-    )
-
-
 def python_to_json(run_dir='.', in_py='in.py', out_json='out.json'):
     """Run importer in run_dir trying to import py_file
 
@@ -110,6 +98,7 @@ def run(cfg_dir):
     Args:
         cfg_dir (str): directory to run srw in
     """
+    sirepo.job.init()
     sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     r = template_common.exec_parameters()
     # special case for importing python code

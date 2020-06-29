@@ -321,12 +321,6 @@ def extract_report_data(filename, sim_in):
     return info
 
 
-def fixup_old_data(data):
-    import sirepo.template.srw_fixup
-
-    return sirepo.template.srw_fixup.do(pkinspect.this_module(), data)
-
-
 def get_application_data(data, **kwargs):
     if data['method'] == 'model_list':
         res = []
@@ -1427,12 +1421,10 @@ def _remap_3d(info, allrange, z_label, z_units, report):
     if not width_pixels:
         # upper limit is browser's max html canvas size
         width_pixels = _CANVAS_MAX_SIZE
-    if not job.cfg:
-        #TODO(pjm): maybe max_message_size should be kept on a smaller module?
-        job.init()
+    job.init()
     # roughly 20x size increase for json
-    if ar2d.size * _JSON_MESSAGE_EXPANSION > job.cfg.max_message_size:
-        max_width = int(math.sqrt(job.cfg.max_message_size / _JSON_MESSAGE_EXPANSION))
+    if ar2d.size * _JSON_MESSAGE_EXPANSION > job.cfg.max_message_bytes:
+        max_width = int(math.sqrt(job.cfg.max_message_bytes / _JSON_MESSAGE_EXPANSION))
         if max_width < width_pixels:
             pkdlog(
                 'auto scaling dimensions to fit message size. size: {}, max_width: {}',
