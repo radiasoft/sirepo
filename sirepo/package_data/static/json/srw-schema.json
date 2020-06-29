@@ -273,7 +273,7 @@
             ["3", "Flory–Schulz"]
         ],
         "SampleSource": [
-            ["file", "Input File"],
+            ["file", "Image File"],
             ["randomDisk", "Random 2D Objects"]
         ],
         "SimulationState": [
@@ -752,8 +752,8 @@
         "sample": {
             "title": ["Element Name", "String", "Sample"],
             "position": ["Nominal Position [m]", "Float"],
-            "sampleSource": ["Source", "SampleSource", "file"],
-            "imageFile": ["Image or NumPy File", "ImageFile", "sample.tif"],
+            "sampleSource": ["Method", "SampleSource", "file"],
+            "imageFile": ["Image or NumPy File", "ImageFile", "sample.tif", ""],
             "resolution": ["Resolution [nm/pixel]", "Float", 2.480469],
             "thickness": ["Thickness [µm]", "Float", 10],
             "material": ["Material of the mask", "CRLMaterial", "Au"],
@@ -1608,7 +1608,7 @@
             "title": "Sample",
             "basic": [],
             "advanced": [
-                ["Source", [
+                ["Method", [
                     "title",
                     "position",
                     "sampleSource"
