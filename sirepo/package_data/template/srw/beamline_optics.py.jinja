@@ -76,17 +76,18 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
                 _psi_hbi={{ field(item, 'psiHBi') }},
                 _tc={{ field(item, 'crystalThickness') }},
                 _ang_as={{ field(item, 'asymmetryAngle') }},
-            )
-            crystal.set_orient(
                 _nvx={{ field(item, 'nvx') }},
                 _nvy={{ field(item, 'nvy') }},
                 _nvz={{ field(item, 'nvz') }},
                 _tvx={{ field(item, 'tvx') }},
                 _tvy={{ field(item, 'tvy') }},
+                _uc={{ field(item, 'uc') }},
+                _e_avg={{ field(item, 'energy') }},
+                _ang_roll={{ field(item, 'diffractionAngle') }}
             )
             el.append(crystal)
             pp.append(v.op_{{ item.name }}_pp)
-            {{ height_profile(item) }}
+	    {{ height_profile(item) }}
 {% elif item.type == 'drift' %}
             el.append(srwlib.SRWLOptD(
                 _L={{ field(item, 'length') }},
@@ -126,15 +127,15 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             mirror = srwlib.SRWLOptMirPl(
                 _size_tang={{ field(item, 'tangentialSize') }},
                 _size_sag={{ field(item, 'sagittalSize') }},
-                _nvx={{ field(item, 'normalVectorX') }},
-                _nvy={{ field(item, 'normalVectorY') }},
-                _nvz={{ field(item, 'normalVectorZ') }},
-                _tvx={{ field(item, 'tangentialVectorX') }},
-                _tvy={{ field(item, 'tangentialVectorY') }},
+                _nvx={{ field(item, 'nvx') }},
+                _nvy={{ field(item, 'nvy') }},
+                _nvz={{ field(item, 'nvz') }},
+                _tvx={{ field(item, 'tvx') }},
+                _tvy={{ field(item, 'tvy') }},
                 _x={{ field(item, 'horizontalOffset') }},
                 _y={{ field(item, 'verticalOffset') }},
             )
-            el.append(srwlib.SRWLOptG(
+            opEl=srwlib.SRWLOptG(
                 _mirSub=mirror,
                 _m={{ field(item, 'diffractionOrder') }},
                 _grDen={{ field(item, 'grooveDensity0') }},
@@ -142,8 +143,14 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
                 _grDen2={{ field(item, 'grooveDensity2') }},
                 _grDen3={{ field(item, 'grooveDensity3') }},
                 _grDen4={{ field(item, 'grooveDensity4') }},
-            ))
+                _e_avg={{ field(item, 'energyAvg') }},
+                _cff={{ field(item, 'cff') }},
+                _ang_graz={{ field(item, 'grazingAngle') }},
+                _ang_roll={{ field(item, 'rollAngle') }},
+            )
+            el.append(opEl)
             pp.append(v.op_{{ item.name }}_pp)
+    	    {{ height_profile(item) }}
 {% elif item.type == 'lens' %}
             el.append(srwlib.SRWLOptL(
                 _Fx={{ field(item, 'horizontalFocalLength') }},

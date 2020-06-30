@@ -45,6 +45,7 @@
                 "type": "watch"
             }
         ],
+        "beamline3DReport": {},
         "electronBeam": {
             "beamDefinition": "t",
             "beamSelector": "NSLS-II High Beta Day 1",

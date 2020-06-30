@@ -13,6 +13,9 @@
             "includeMode": true
         }
     },
+    "constants": {
+        "helpVideoURL": "https://vimeo.com/410318423/632634aa5d"
+    },
     "enum": {
         "AnalyticalTreatment": [
             ["0", "0 - Standard"],
@@ -63,6 +66,11 @@
             ["4", "Single-Electron Radiation Phase"],
             ["5", "Re(E): Real part of Single-Electron Electric Field"],
             ["6", "Im(E): Imaginary part of Single-Electron Electric Field"]
+        ],
+        "computeParametersFrom": [
+            ["1", "Cff"],
+            ["2", "Grazing Angle"],
+            ["3", "Manually"]
         ],
         "CRLMaterial": [
             ["User-defined", "User-defined"],
@@ -139,6 +147,10 @@
             ["1", "RMS Waist"],
             ["2", "RMS Divergence"]
         ],
+	"GeometryType": [
+	    ["1", "Bragg Reflection"],
+	    ["2", "Bragg Transmission"]
+	],
         "GridShape" : [
             ["0", "Circular Grids"],
             ["1", "Rectangular Grids"],
@@ -329,6 +341,12 @@
         "UndulatorType": [
             ["u_i", "Idealized"],
             ["u_t", "Tabulated"]
+        ],
+        "WavefrontShiftTreatment": [
+            ["0", "0 - No Shift"],
+            ["1", "1 - Horizontal Position"],
+            ["2", "2 - Vertical Position"],
+            ["3", "3 - Horizontal and Vertical Position"]
         ]
     },
     "dynamicFiles": {
@@ -385,7 +403,7 @@
         },
         "aperture": {
             "title": ["Element Name", "String", "Aperture"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "shape": ["Shape", "ApertureShape", "r"],
             "horizontalSize": ["Horizontal Size [mm]", "Float", 1, "", 1e-99],
             "verticalSize": ["Vertical Size [mm]", "Float", 1, "", 1e-99],
@@ -426,7 +444,7 @@
         },
         "crl": {
             "title": ["Element Name", "String", "CRL"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "focalPlane": ["Focal Plane", "FocalPlane", "2"],
             "material": ["Material of the CRL", "CRLMaterial", "Be"],
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod", "server"],
@@ -447,29 +465,34 @@
         },
         "crystal": {
             "title": ["Element Name", "String", "Crystal"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "material": ["Material", "CrystalMaterial", "Si (SRW)"],
             "h": ["h", "MillerIndicesRange", "1"],
             "k": ["k", "MillerIndicesRange", "1"],
             "l": ["l", "MillerIndicesRange", "1"],
-            "energy": ["Average photon energy the crystal should be oriented for [eV]", "Float", 9000],
-            "diffractionAngle": ["Diffraction plane angle [rad]", "DiffractionPlaneAngle", "0"],
+            "energy": ["Photon energy [eV] to orient crystal for", "Float", 9000],
+	        "useCase": ["Use case", "GeometryType", "1"],
+            "diffractionAngle": ["Diffraction plane (roll) angle [rad]", "DiffractionPlaneAngle", "0"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 0.0],
             "asymmetryAngle": ["Asymmetry angle [rad]", "Float", 0.0],
-            "rotationAngle": ["Rotation angle [rad]", "Float", 0.0],
             "crystalThickness": ["Crystal thickness [m]", "Float", 0.01],
-            "dSpacing": ["Crystal reflecting planes d-spacing [A]", "Float", ""],
-            "psi0r": ["0-th Fourier component", "Float", ""],
-            "psi0i": ["0-th Fourier component", "Float", ""],
-            "psiHr": ["H-th Fourier component", "Float", ""],
-            "psiHi": ["H-th Fourier component", "Float", ""],
-            "psiHBr": ["-H-th Fourier component", "Float", ""],
-            "psiHBi": ["-H-th Fourier component", "Float", ""],
-            "nvx": ["Horizontal coordinate", "Float", ""],
-            "nvy": ["Vertical coordinate", "Float", ""],
-            "nvz": ["Longitudinal coordinate", "Float", ""],
-            "tvx": ["Horizontal coordinate", "Float", ""],
-            "tvy": ["Vertical coordinate", "Float", ""],
+            "dSpacing": ["Crystal reflecting planes d-spacing [A]", "Float", 0],
+            "psi0r": ["0-th Fourier component", "Float", 0],
+            "psi0i": ["0-th Fourier component", "Float", 0],
+            "psiHr": ["H-th Fourier component", "Float", 0],
+            "psiHi": ["H-th Fourier component", "Float", 0],
+            "psiHBr": ["-H-th Fourier component", "Float", 0],
+            "psiHBi": ["-H-th Fourier component", "Float", 0],
+            "nvx": ["Horizontal coordinate", "Float", 0],
+            "nvy": ["Vertical coordinate", "Float", 0],
+            "nvz": ["Longitudinal coordinate", "Float", 0],
+            "tvx": ["Horizontal coordinate", "Float", 0],
+            "tvy": ["Vertical coordinate", "Float", 0],
+            "outoptvx": ["Horizontal", "Float", 0],
+            "outoptvy": ["Vertical", "Float", 0],
+            "outoptvz": ["Longitudinal", "Float", 0],
+            "outframevx": ["Horizontal", "Float", 0],
+            "outframevy": ["Vertical", "Float", 0],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
             "heightAmplification": ["Height Amplification Coefficient", "Float", 1]
@@ -509,7 +532,7 @@
         },
         "ellipsoidMirror": {
             "title": ["Element Name", "String", "Elliptical Cylinder Mirror"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "firstFocusLength": ["Distance from Source to Mirror Center (p) [m]", "Float", 20],
             "focalLength": ["Distance from Mirror Center to Second Focus (q) [m]", "Float", 1.7],
             "tangentialSize": ["Tangential Size [m]", "Float", 0.5],
@@ -529,7 +552,7 @@
         },
         "fiber": {
             "title": ["Element Name", "String", "Fiber"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "focalPlane": ["Focal Plane", "FocalPlane", "1", "Horizontal (fiber is parallel to vertical axis), Vertical (fiber is parallel to horizontal axis)"],
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod", "server"],
             "externalMaterial": ["External Material", "CRLMaterial", "User-defined"],
@@ -605,24 +628,35 @@
         },
         "grating": {
             "title": ["Element Name", "String", "Grating"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "tangentialSize": ["Tangential Size [m]", "Float", 0.2],
-            "sagittalSize": ["Sagittal Size [m]", "Float", 0.015],
-            "grazingAngle": ["Grazing Angle [mrad]", "Float", 12.9555790185373],
-            "autocomputeVectors": ["Auto-compute Vectors", "AutocomputeVectors", "horizontal"],
-            "normalVectorX": ["Horizontal", "Float", 0.99991607766],
-            "normalVectorY": ["Vertical", "Float", 0],
-            "normalVectorZ": ["Longitudinal", "Float", -0.0129552166147],
-            "tangentialVectorX": ["Horizontal", "Float", 0.0129552166147],
-            "tangentialVectorY": ["Vertical", "Float", 0],
+            "sagittalSize": ["Sagittal Size [m]", "Float", 0.02],
+            "grazingAngle": ["Grazing Angle [mrad]", "Float", 20.5103398240],
+            "nvx": ["Horizontal", "Float", 0],
+            "nvy": ["Vertical", "Float", -0.99978967],
+            "nvz": ["Longitudinal", "Float", -0.0205089],
+            "tvx": ["Horizontal", "Float", 0],
+            "tvy": ["Vertical", "Float", -0.0205089],
+            "outoptvx": ["Horizontal", "Float", 0],
+            "outoptvy": ["Vertical", "Float", -0.131326539724],
+            "outoptvz": ["Longitudinal", "Float", 0.991339164950],
+            "outframevx": ["Horizontal", "Float", 1.0],
+            "outframevy": ["Vertical", "Float", 0],
+            "energyAvg": ["Photon energy [eV] to orient grating for", "Float", 1000],
+	        "cff": ["Cff Parameter (cos(beta)/cos(alpha))", "Float", 1.75],
+            "rollAngle": ["Roll Angle [rad]", "Float", 0],
             "diffractionOrder": ["Diffraction Order", "Float", 1],
-            "grooveDensity0": ["a₀ [lines/mm]", "Float", 1800],
-            "grooveDensity1": ["a₁ [lines/mm²]", "Float", 0.08997],
-            "grooveDensity2": ["a₂ [lines/mm³]", "Float", 3.004e-6],
-            "grooveDensity3": ["a₃ [lines/mm⁴]", "Float", 9.7e-11],
+            "grooveDensity0": ["a₀ [lines/mm]", "Float", 350.0],
+            "grooveDensity1": ["a₁ [lines/mm²]", "Float", 0],
+            "grooveDensity2": ["a₂ [lines/mm³]", "Float", 0],
+            "grooveDensity3": ["a₃ [lines/mm⁴]", "Float", 0],
             "grooveDensity4": ["a₄ [lines/mm⁵]", "Float", 0],
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
-            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0],
+            "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
+            "computeParametersFrom": ["Compute Parameters from", "computeParametersFrom", "2"],
+            "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
+            "heightAmplification": ["Height Amplification Coefficient", "Float", 0.001]
         },
         "initialIntensityReport": {
             "_super": ["_", "model", "_INTENSITY_REPORT_3D"],
@@ -648,7 +682,7 @@
         },
         "lens": {
             "title": ["Element Name", "String", "Lens"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "horizontalFocalLength": ["Horizontal Focal Length [m]", "Float", 3],
             "verticalFocalLength": ["Vertical Focal Length [m]", "Float", 1.0e+23],
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
@@ -656,7 +690,7 @@
         },
         "mask": {
             "title": ["Element Name", "String", "Mask"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "material": ["Material of the mask", "CRLMaterial", "User-defined"],
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod", "server"],
             "refractiveIndex": ["Refractive Index Decrement of Material", "Float", 1.0, "Tooltip"],
@@ -679,7 +713,7 @@
         },
         "mirror": {
             "title": ["Element Name", "String", "Planar Mirror"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile", "mirror_1d.dat"],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 3.1415926],
@@ -703,6 +737,8 @@
             "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", 1000, "Number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation"],
             "integrationMethod": ["Multi-electron Integration Approximation Method", "MultiElectronIntegrationMethod", "0"],
             "photonEnergyBandWidth": ["Photon Energy Band Width [eV]", "Float", 0],
+            "horizontalPosition": ["Horizontal Center Position for Degree of Coherence Cuts [mm]", "Float", 0],
+            "verticalPosition": ["Vertical Center Position for Degree of Coherence Cuts [mm]", "Float", 0],
             "watchpointId": ["Evaluate at Watchpoint", "WatchPoint", 0],
             "calcCoherence": ["Calculate Degree of Coherence in Addition to Intensity", "Boolean", "0"]
         },
@@ -713,7 +749,7 @@
         },
         "obstacle": {
             "title": ["Element Name", "String", "Obstacle"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "shape": ["Shape", "ApertureShape", "r"],
             "horizontalSize": ["Horizontal Size [mm]", "Float", 0.5, "", 1e-99],
             "verticalSize": ["Vertical Size [mm]", "Float", 0.5, "", 1e-99],
@@ -743,6 +779,9 @@
             "6": ["Horizontal resolution modification factor at resizing", "Float", 1],
             "7": ["Vertical range modification factor at resizing", "Float", 1],
             "8": ["Vertical resolution modification factor at resizing", "Float", 1],
+            "9": ["Type of Wavefront Shift\nbefore Resizing", "WavefrontShiftTreatment", "0", "<div style='text-align: left'>1. means Horizontal Position <br/> 2. means Vertical Position <br/> 3. means Horizontal and Vertical Position </div>"],
+            "10": ["New Horizontal Wavefront\nCenter Position after Shift", "Float", 1],
+            "11": ["New Vertical Wavefront\nCenter Position after Shift", "Float", 1],
             "12": ["Orientation of the Output Optical Axis vector in the Incident Beam Frame:\nHorizontal Coordinate", "Float", 0],
             "13": ["Orientation of the Output Optical Axis vector in the Incident Beam Frame:\nVertical Coordinate", "Float", 0],
             "14": ["Orientation of the Output Optical Axis vector in the Incident Beam Frame:\nLongitudinal Coordinate", "Float", 0],
@@ -751,7 +790,7 @@
         },
         "sample": {
             "title": ["Element Name", "String", "Sample"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "sampleSource": ["Method", "SampleSource", "file"],
             "imageFile": ["Image or NumPy File", "ImageFile", "sample.tif", ""],
             "resolution": ["Resolution [nm/pixel]", "Float", 2.480469],
@@ -839,7 +878,7 @@
         },
         "sphericalMirror": {
             "title": ["Element Name", "String", "Circular Cylinder Mirror"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "radius": ["Radius of Surface Curvature [m]", "Float", 1049],
             "tangentialSize": ["Tangential Size [m]", "Float", 0.3],
             "sagittalSize": ["Sagittal Size [m]", "Float", 0.11],
@@ -866,7 +905,7 @@
         },
         "toroidalMirror": {
             "title": ["Element Name", "String", "Toroid Mirror"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "tangentialRadius": ["Tangential Radius [m]", "Float", 7592.12],
             "sagittalRadius": ["Sagittal Radius [m]", "Float", 0.186],
             "tangentialSize": ["Tangential Size [m]", "Float", 0.96],
@@ -918,7 +957,7 @@
         },
         "watch": {
             "title": ["Element Name", "SafePath", "Watchpoint"],
-            "position": ["Nominal Position [m]", "Float"]
+            "position": ["Position along Optical Path [m]", "Float"]
         },
         "watchpointReport": {
             "_super": ["_", "model", "_INTENSITY_REPORT_3D"],
@@ -928,7 +967,7 @@
         },
         "zonePlate": {
             "title": ["Element Name", "String", "Zone Plate"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float"],
             "numberOfZones": ["Number of Zones", "Integer", 100],
             "outerRadius": ["Outer Zone Radius [mm]", "Float", 0.1],
             "thickness": ["Thickness [µm]", "Float", 10],
@@ -1051,9 +1090,19 @@
             "title": "CRL",
             "basic": [],
             "advanced": [
-                ["Geometry", [
+                ["Name & Position", [
                     "title",
                     "position",
+                    [
+                        ["Horizontal", [
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]],
+                ["Geometry", [
                     "focalPlane",
                     "shape",
                     "tipRadius",
@@ -1062,12 +1111,10 @@
                     "focalDistance",
                     [
                         ["Horizontal", [
-                            "horizontalApertureSize",
-                            "horizontalOffset"
+                            "horizontalApertureSize"
                         ]],
                         ["Vertical", [
-                            "verticalApertureSize",
-                            "verticalOffset"
+                            "verticalApertureSize"
                         ]]
                     ]
                 ]],
@@ -1084,29 +1131,18 @@
             "title": "Crystal",
             "basic": [],
             "advanced": [
-                ["Main", [
+                ["Name & Position", [
                     "title",
                     "position"
                 ]],
-                ["Material", [
-                    [
-                        ["Material of the crystal", [
-                            "material"
-                        ]],
-                        ["Miller's indices", [
-                            "h",
-                            "k",
-                            "l"
-                        ]]
-                    ]
-                ]],
                 ["Geometry", [
-                    "energy",
-                    "diffractionAngle",
                     "asymmetryAngle",
-                    "rotationAngle",
-                    "crystalThickness",
-                    "dSpacing",
+                    "crystalThickness"
+                ]],
+                ["Orientation",[
+                    "energy",
+                    "useCase",
+                    "diffractionAngle",
                     [
                         ["Outward normal vector", [
                             "nvx",
@@ -1119,19 +1155,30 @@
                         ]]
                     ]
                 ]],
-                ["Polarizability", [
+                ["Material", [
                     [
-                        ["Real part", [
+                        ["Material of the crystal", [
+                            "material"
+                        ]],
+                        ["Miller's indices", [
+                            "h",
+                            "k",
+                            "l"
+                        ]]
+                    ],
+                    [
+                        ["Polarizability's Real part", [
                             "psi0r",
                             "psiHr",
                             "psiHBr"
                         ]],
-                        ["Imaginary part", [
+                        ["Polarizability's Imaginary part", [
                             "psi0i",
                             "psiHi",
                             "psiHBi"
                         ]]
-                    ]
+                    ],
+                    "dSpacing"
                 ]],
                 ["Height Profile", [
                     "heightProfileFile",
@@ -1202,13 +1249,9 @@
             "title": "Elliptical Cylinder Mirror",
             "basic": [],
             "advanced": [
-                ["Geometry", [
+                ["Name & Position", [
                     "title",
                     "position",
-                    "firstFocusLength",
-                    "focalLength",
-                    "tangentialSize",
-                    "sagittalSize",
                     [
                         ["Horizontal", [
                             "horizontalOffset"
@@ -1217,6 +1260,12 @@
                             "verticalOffset"
                         ]]
                     ]
+                ]],
+                ["Geometry", [
+                    "firstFocusLength",
+                    "focalLength",
+                    "tangentialSize",
+                    "sagittalSize"
                 ]],
                 ["Orientation", [
                     "grazingAngle",
@@ -1374,12 +1423,9 @@
             "title": "Grating",
             "basic": [],
             "advanced": [
-                ["Geometry", [
+                ["Name & Position", [
                     "title",
                     "position",
-                    "tangentialSize",
-                    "sagittalSize",
-                    "diffractionOrder",
                     [
                         ["Horizontal", [
                             "horizontalOffset"
@@ -1389,28 +1435,39 @@
                         ]]
                     ]
                 ]],
-                ["Orientation", [
-                    "grazingAngle",
-                    "autocomputeVectors",
-                    [
-                        ["Coordinates of Central Normal Vector", [
-                            "normalVectorX",
-                            "normalVectorY",
-                            "normalVectorZ"
-                        ]],
-                        ["Coordinates of Central Tangential Vector", [
-                            "tangentialVectorX",
-                            "tangentialVectorY"
-                        ]]
-                    ]
-                ]],
-                ["Groove Parameters", [
-                    "*Groove Density Polynomial:\n$a_0 + a_1 y + a_2 y^2 + a_3 y^3 + a_4 y^4$",
+                ["Geometry", [
+                    "*Groove Density Parameters:\n$a_0 + a_1 y + a_2 y^2 + a_3 y^3 + a_4 y^4$",
                     "grooveDensity0",
                     "grooveDensity1",
                     "grooveDensity2",
                     "grooveDensity3",
-                    "grooveDensity4"
+                    "grooveDensity4",
+                    "tangentialSize",
+                    "sagittalSize"
+                ]],
+                ["Orientation", [
+                    "energyAvg",
+                    "diffractionOrder",
+                    "computeParametersFrom",
+                    "cff",
+                    "grazingAngle",
+                    "rollAngle",
+                    [
+                        ["Outward normal vector", [
+                            "nvx",
+                            "nvy",
+                            "nvz"
+                        ]],
+                        ["Central tangential vector", [
+                            "tvx",
+                            "tvy"
+                        ]]
+                    ]
+                ]],
+                ["Height Profile", [
+                    "heightProfileFile",
+                    "orientation",
+                    "heightAmplification"
                 ]]
             ]
         },
@@ -1554,6 +1611,14 @@
                     "integrationMethod",
                     "photonEnergyBandWidth",
                     "calcCoherence",
+                    [
+                       ["Horizontal", [
+                           "horizontalPosition"
+                       ]],
+                       ["Vertical", [
+                           "verticalPosition"
+                       ]]
+                    ],
                     "notes"
                 ]]
             ]
@@ -1761,12 +1826,9 @@
             "title": "Circular Cylinder Mirror",
             "basic": [],
             "advanced": [
-                ["Geometry", [
+                ["Name & Position", [
                     "title",
                     "position",
-                    "radius",
-                    "tangentialSize",
-                    "sagittalSize",
                     [
                         ["Horizontal", [
                             "horizontalOffset"
@@ -1775,6 +1837,11 @@
                             "verticalOffset"
                         ]]
                     ]
+                ]],
+                ["Geometry", [
+                    "radius",
+                    "tangentialSize",
+                    "sagittalSize"
                 ]],
                 ["Orientation", [
                     "grazingAngle",
@@ -1800,6 +1867,7 @@
         },
         "tabulatedUndulator": {
             "title": "Undulator (Idealized or Tabulated)",
+            "helpVideoURL": "https://vimeo.com/410318423/632634aa5d",
 	    "basic": [
 	        "undulatorSelector"
 	        ],
@@ -1834,9 +1902,19 @@
             "title": "Toroid Mirror",
             "basic": [],
             "advanced": [
-                ["Geometry", [
+                ["Name & Position", [
                     "title",
                     "position",
+                    [
+                       ["Horizontal", [
+                           "horizontalPosition"
+                       ]],
+                       ["Vertical", [
+                           "verticalPosition"
+                       ]]
+                    ]
+                ]],
+                ["Geometry", [
                     [
                         ["Tangential", [
                             "tangentialRadius",
@@ -1846,14 +1924,6 @@
                             "sagittalRadius",
                             "sagittalSize"
                         ]]
-                    ],
-                    [
-                       ["Horizontal", [
-                           "horizontalPosition"
-                       ]],
-                       ["Vertical", [
-                           "verticalPosition"
-                       ]]
                     ],
                     "apertureShape"
                 ]],
@@ -1901,6 +1971,7 @@
         },
         "undulator": {
             "title": "Idealized Undulator",
+            "helpVideoURL": "https://vimeo.com/410318423/632634aa5d",
 	    "basic": [],
             "advanced": [
                 "period",

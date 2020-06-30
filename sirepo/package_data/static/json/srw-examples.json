@@ -47,36 +47,36 @@
         "image": "nsls-ii.png",
         "examples": [
             {
-                "name": "NSLS-II",
+                "name": "NSLS-II beamline",
                 "simulations": [
                     {
-                        "image": "nsls-ii-chx.png",
-                        "simulationName": "NSLS-II CHX beamline"
-                    },
-                    {
-                        "buttonText": "NSLS-II 3-ID\nHXN\nHard X-ray Nanoprobe",
+                        "image": "nsls-ii-hxn.png",
                         "simulationName": "NSLS-II HXN beamline"
                     },
                     {
-                        "buttonText": "NSLS-II 5-ID\nSRX\nSubmicron Resolution\nX-ray Spectroscopy",
+                        "image": "nsls-ii-srx.png",
                         "simulationName": "NSLS-II SRX beamline"
                     },
                     {
-                        "image": "nsls-ii-fmx.png",
-                        "simulationName": "NSLS-II FMX beamline"
+                        "image": "nsls-ii-chx.png",
+                        "simulationName": "NSLS-II CHX beamline"
                     },
                     {
                         "image": "nsls-ii-smi.png",
                         "simulationName": "NSLS-II SMI beamline"
                     },
                     {
-                        "buttonText": "NSLS-II 21-ID\nESM\nElectron Spectro-Microscopy",
+                        "image": "nsls-ii-fmx.png",
+                        "simulationName": "NSLS-II FMX beamline"
+                    },
+                    {
+                        "image": "nsls-ii-esm.png",
                         "simulationName": "NSLS-II ESM beamline"
                     }
                 ]
             },
             {
-                "name": "LCLS",
+                "name": "LCLS beamline",
                 "simulations": [
                     {
                         "name": "LCLS SXR",
