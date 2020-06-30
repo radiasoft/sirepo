@@ -214,9 +214,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     };
 
     self.updateSimulationGridFields = function() {
-        console.log("updating simulation grid fields");
         if (! appState.isLoaded()) {
-            console.log("loaded, do nothing");
             return;
         }
         ['simulation', 'sourceIntensityReport'].forEach(function(f) {
@@ -311,23 +309,6 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
                  ['energyAvg', 'cff', 'grazingAngle', 'orientation'].forEach(function(f) {
                     item[f] = data[f];
                 });
-                ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy'].forEach(function(f) {
-                    item[f] = data[f];
-                    formatOrientationOutput(item, data, f);
-                });
-            });
-    }
-
-    function computeGratingOrientation(item) {
-        console.warn("OBSOLETE!!");
-        updateGratingFields(item);
-        requestSender.getApplicationData(
-            {
-                method: 'compute_grating_orientation',
-                optical_element: item,
-                photon_energy: appState.models.simulation.photonEnergy,
-            },
-            function(data) {
                 ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy'].forEach(function(f) {
                     item[f] = data[f];
                     formatOrientationOutput(item, data, f);
@@ -448,10 +429,10 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
     function formatOrientationOutput(item, data, f) {
         item[f] = parseFloat(data[f]);
         if (item[f] === 1) {
-            item[f] = item[f].toFixed(1)
+            item[f] = item[f].toFixed(1);
         }
         else if (item[f] === 0) {
-            item[f] = item[f].toFixed(1)
+            item[f] = item[f].toFixed(1);
         }
         else {
             item[f] = item[f].toFixed(12);
@@ -651,11 +632,11 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
             }
             var p = propagation[beamline[i].id];
             if(beamline[i].type == 'grating' || beamline[i].type == 'crystal'){
-                    p[0][12] = beamline[i].outoptvx
-                    p[0][13] = beamline[i].outoptvy
-                    p[0][14] = beamline[i].outoptvz
-                    p[0][15] = beamline[i].outframevx
-                    p[0][16] = beamline[i].outframevy
+                p[0][12] = beamline[i].outoptvx;
+                p[0][13] = beamline[i].outoptvy;
+                p[0][14] = beamline[i].outoptvz;
+                p[0][15] = beamline[i].outframevx;
+                p[0][16] = beamline[i].outframevy;
             }
             if (beamline[i].type != 'watch') {
                 self.propagations.push({
@@ -1246,7 +1227,6 @@ SIREPO.app.directive('srElectronbeamEditor', function(appState, panelState, srwS
             });
 
             appState.whenModelsLoaded($scope, function() {
-                console.log('monitoring beamDefinition');
                 appState.watchModelFields($scope, ['electronBeam.beamDefinition'], processBeamFields);
                 appState.watchModelFields($scope, ['electronBeam.beamSelector', 'electronBeamPosition.driftCalculationMethod'], function() {
                     srwService.processBeamParameters();
@@ -1322,12 +1302,10 @@ SIREPO.app.directive('srTabulatedundulatorEditor', function(appState, panelState
 });
 
 SIREPO.app.directive('srSimulationgridEditor', function(appState, srwService) {
-    console.log("model loaded");
     return {
         restrict: 'A',
         controller: function($scope) {
             appState.whenModelsLoaded($scope, function() {
-                console.log("model loaded");
                 appState.watchModelFields(
                     $scope, ['simulation.samplingMethod', 'sourceIntensityReport.samplingMethod'],
                     srwService.updateSimulationGridFields);
