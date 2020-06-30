@@ -197,7 +197,7 @@ def _beamline_element(obj, idx, title, elem_type, position):
 
         data['firstFocusLength'] = obj.p
         data['focalLength'] = obj.q
-        data['grazingAngle'] = obj.grazingAngle * 1e3
+        data['grazingAngle'] = obj.angGraz * 1e3
         data['normalVectorX'] = obj.nvx
         data['normalVectorY'] = obj.nvy
         data['normalVectorZ'] = obj.nvz
@@ -688,7 +688,7 @@ def _parsed_dict(v, op):
             'beamline': beamline_elements,
             'electronBeam': electronBeam,
             'electronBeams': [],
-            'beamline3DReport': [],
+            'beamline3DReport': pkcollections.Dict({}),
             'fluxReport': pkcollections.Dict({
                 'azimuthalPrecision': v.sm_pra,
                 'distanceFromSource': v.op_r,
