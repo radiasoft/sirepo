@@ -772,18 +772,18 @@
             "folder": "/Light Source Facilities/NSLS-II/NSLS-II CHX beamline",
             "horizontalPointCount": 100,
             "horizontalPosition": 0,
-            "horizontalRange": 3,
+            "horizontalRange": 0.8,
             "isExample": true,
             "name": "NSLS-II CHX beamline (tabulated)",
             "notes": "",
             "outOfSessionSimulationId": "",
             "photonEnergy": 9648.975,
-            "sampleFactor": 1,
-            "samplingMethod": "2",
+            "sampleFactor": 0.2,
+            "samplingMethod": "1",
             "sourceType": "t",
             "verticalPointCount": 100,
             "verticalPosition": 0,
-            "verticalRange": 1
+            "verticalRange": 0.8
         },
         "sourceIntensityReport": {
             "aspectRatio": "1",
@@ -794,7 +794,7 @@
             "finalPosition": 0.0,
             "horizontalPointCount": 100,
             "horizontalPosition": 0,
-            "horizontalRange": 3,
+            "horizontalRange": 1.5,
             "initialPosition": 0.0,
             "intensityPlotsWidth": "0",
             "magneticField": 2,
@@ -810,7 +810,7 @@
             "samplingMethod": "2",
             "verticalPointCount": 100,
             "verticalPosition": 0,
-            "verticalRange": 1
+            "verticalRange": 1.5
         },
         "tabulatedUndulator": {
             "gap": 5.213,

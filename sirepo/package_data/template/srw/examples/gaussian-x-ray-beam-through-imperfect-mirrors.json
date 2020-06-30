@@ -653,8 +653,8 @@
             "precision": 0.01,
             "rotateAngle": 0,
             "rotateReshape": "1",
-            "sampleFactor": 2,
-            "samplingMethod": 1,
+            "sampleFactor": 1,
+            "samplingMethod": 2,
             "verticalPointCount": 100,
             "verticalPosition": 0,
             "verticalRange": 1.75601622

@@ -13,4 +13,4 @@ uwsgi:
   pidfile: {{ run_dir }}/uwsgi.pid
   need-app: true
   #TODO(robnagler) does not follow YAML spec, but works...
-  log-format: %(addr) - %(sirepo_user) [%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"
+  log-format: '%(addr) - %(sirepo_user) [%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"'

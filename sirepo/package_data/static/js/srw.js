@@ -214,7 +214,9 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     };
 
     self.updateSimulationGridFields = function() {
+        console.log("updating simulation grid fields");
         if (! appState.isLoaded()) {
+            console.log("loaded, do nothing");
             return;
         }
         ['simulation', 'sourceIntensityReport'].forEach(function(f) {
@@ -254,7 +256,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
 
 SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState, beamlineService, panelState, requestSender, simulationQueue, srwService, $scope, $location) {
     var self = this;
-    var grazingAngleElements = ['ellipsoidMirror', 'grating', 'sphericalMirror', 'toroidalMirror'];
+    var grazingAngleElements = ['ellipsoidMirror', 'sphericalMirror', 'toroidalMirror'];
     // tabs: single, multi, beamline3d
     var activeTab = 'single';
     self.mirrorReportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
@@ -296,14 +298,65 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
             });
     }
 
+    function computePGMValue(item) {
+        updateGratingFields(item);
+        //  computeFields('compute_PGM_value', item, ['energyAvg', 'cff', 'grazingAngle', 'orientation']);
+        requestSender.getApplicationData(
+            {
+                method: 'compute_PGM_value',
+                optical_element: item,
+                photon_energy: appState.models.simulation.photonEnergy,
+            },
+            function(data) {
+                 ['energyAvg', 'cff', 'grazingAngle', 'orientation'].forEach(function(f) {
+                    item[f] = data[f];
+                });
+                ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy'].forEach(function(f) {
+                    item[f] = data[f];
+                    formatOrientationOutput(item, data, f);
+                });
+            });
+    }
+
+    function computeGratingOrientation(item) {
+        console.warn("OBSOLETE!!");
+        updateGratingFields(item);
+        requestSender.getApplicationData(
+            {
+                method: 'compute_grating_orientation',
+                optical_element: item,
+                photon_energy: appState.models.simulation.photonEnergy,
+            },
+            function(data) {
+                ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy'].forEach(function(f) {
+                    item[f] = data[f];
+                    formatOrientationOutput(item, data, f);
+                });
+            });
+    }
+
     function computeCrystalInit(item) {
         if (item.material != 'Unknown') {
-            computeFields('compute_crystal_init', item, ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi']);
+            updateCrystalInitFields(item);
+            computeFields('compute_crystal_init', item, ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'orientation']);
         }
     }
 
     function computeCrystalOrientation(item) {
-        computeFields('compute_crystal_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle']);
+        updateCrystalOrientationFields(item);
+        //computeFields('compute_crystal_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy', 'orientation']);
+        requestSender.getApplicationData(
+            {
+                method: 'compute_crystal_orientation',
+                optical_element: item,
+                photon_energy: appState.models.simulation.photonEnergy,
+            },
+            function(data) {
+                ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy'].forEach(function(f) {
+                    item[f] = data[f];
+                    formatOrientationOutput(item, data, f);
+                });
+            });
     }
 
     function computeDeltaAttenCharacteristics(item) {
@@ -357,7 +410,7 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
     function computeVectors(item) {
         updateVectorFields(item);
         if (item.grazingAngle && item.autocomputeVectors != 'none') {
-            computeFields('compute_grazing_angle', item, ['normalVectorZ', 'normalVectorY', 'normalVectorX', 'tangentialVectorY', 'tangentialVectorX']);
+            computeFields('compute_grazing_orientation', item, ['normalVectorZ', 'normalVectorY', 'normalVectorX', 'tangentialVectorY', 'tangentialVectorX']);
         }
     }
 
@@ -389,6 +442,19 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         }
         else {
             item[f] = item[f].toFixed(6);
+        }
+    }
+
+    function formatOrientationOutput(item, data, f) {
+        item[f] = parseFloat(data[f]);
+        if (item[f] === 1) {
+            item[f] = item[f].toFixed(1)
+        }
+        else if (item[f] === 0) {
+            item[f] = item[f].toFixed(1)
+        }
+        else {
+            item[f] = item[f].toFixed(12);
         }
     }
 
@@ -424,6 +490,26 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
     function updateCRLFields(item) {
         panelState.enableField('crl', 'focalDistance', false);
         updateMaterialFields(item);
+    }
+
+    function updateCrystalInitFields(item) {
+        ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi'].forEach(function(f) {
+            panelState.enableField(item.type, f, false);
+        });
+    }
+
+    function updateCrystalOrientationFields(item) {
+        ['nvx', 'nvy', 'nvz', 'tvx', 'tvy'].forEach(function(f) {
+            panelState.enableField(item.type, f, false);
+        });
+    }
+
+    function updateGratingFields(item) {
+        panelState.enableField(item.type, 'cff', item.computeParametersFrom === '1');
+        panelState.enableField(item.type, 'grazingAngle', item.computeParametersFrom === '2');
+        ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy'].forEach(function(f) {
+            panelState.enableField(item.type, f, item.computeParametersFrom === '3');
+        });
     }
 
     function updateDualFields(item) {
@@ -515,10 +601,15 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
                     updateSampleFields(item);
                 }
             }
+            else if (name === 'grating'){
+                updateGratingFields(item);
+            }
             else if (name == 'crystal') {
-                if (item.materal != 'Unknown' && ! item.nvz) {
+                //if (item.materal != 'Unknown' && ! item.nvz) {
+                if (item.materal != 'Unknown') {
                     computeCrystalInit(item);
                 }
+                updateCrystalOrientationFields(item);
             }
             if (grazingAngleElements.indexOf(name) >= 0) {
                 updateVectorFields(item);
@@ -559,6 +650,13 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
                 ];
             }
             var p = propagation[beamline[i].id];
+            if(beamline[i].type == 'grating' || beamline[i].type == 'crystal'){
+                    p[0][12] = beamline[i].outoptvx
+                    p[0][13] = beamline[i].outoptvy
+                    p[0][14] = beamline[i].outoptvz
+                    p[0][15] = beamline[i].outframevx
+                    p[0][16] = beamline[i].outframevy
+            }
             if (beamline[i].type != 'watch') {
                 self.propagations.push({
                     item: beamline[i],
@@ -677,8 +775,10 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         ['mask', 'sample'].forEach(function(m) {
             beamlineService.watchBeamlineField($scope, m, ['method', 'material'], computeDeltaAttenCharacteristics);
         });
-        beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energy', 'h', 'k', 'l'], computeCrystalInit, true);
-        beamlineService.watchBeamlineField($scope, 'crystal', ['diffractionAngle', 'dSpacing', 'asymmetryAngle', 'psi0r', 'psi0i', 'rotationAngle'], computeCrystalOrientation, true);
+        beamlineService.watchBeamlineField($scope, 'grating', ['energyAvg', 'cff', 'grazingAngle', 'rollAngle', 'computeParametersFrom'], computePGMValue, true);
+        beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energy', 'diffractionAngle', 'h', 'k', 'l'], computeCrystalInit, true);
+        beamlineService.watchBeamlineField($scope, 'crystal', ['energy', 'diffractionAngle', 'useCase', 'dSpacing', 'asymmetryAngle', 'psi0r', 'psi0i'], computeCrystalOrientation, true);
+        beamlineService.watchBeamlineField($scope, 'sample', ['cropArea', 'tileImage', 'rotateAngle'], updateSampleFields);
         beamlineService.watchBeamlineField($scope, 'sample', ['sampleSource', 'cropArea', 'tileImage', 'rotateAngle', 'cutoffBackgroundNoise', 'obj_type', 'rand_obj_size', 'rand_poly_side'], updateSampleFields);
         ['initialIntensityReport', 'multiElectronAnimation'].forEach(function(m) {
             appState.watchModelFields($scope, [m + '.useIntensityLimits'], function() {
@@ -1146,6 +1246,7 @@ SIREPO.app.directive('srElectronbeamEditor', function(appState, panelState, srwS
             });
 
             appState.whenModelsLoaded($scope, function() {
+                console.log('monitoring beamDefinition');
                 appState.watchModelFields($scope, ['electronBeam.beamDefinition'], processBeamFields);
                 appState.watchModelFields($scope, ['electronBeam.beamSelector', 'electronBeamPosition.driftCalculationMethod'], function() {
                     srwService.processBeamParameters();
@@ -1221,10 +1322,12 @@ SIREPO.app.directive('srTabulatedundulatorEditor', function(appState, panelState
 });
 
 SIREPO.app.directive('srSimulationgridEditor', function(appState, srwService) {
+    console.log("model loaded");
     return {
         restrict: 'A',
         controller: function($scope) {
             appState.whenModelsLoaded($scope, function() {
+                console.log("model loaded");
                 appState.watchModelFields(
                     $scope, ['simulation.samplingMethod', 'sourceIntensityReport.samplingMethod'],
                     srwService.updateSimulationGridFields);
@@ -1656,12 +1759,14 @@ SIREPO.app.directive('propagationParameterFieldEditor', function() {
         template: [
             '<div data-ng-switch="::paramInfo.fieldType">',
               '<select data-ng-switch-when="AnalyticalTreatment" number-to-string class="input-sm" data-ng-model="param[paramInfo.fieldIndex]" data-ng-options="item[0] as item[1] for item in ::analyticalTreatmentEnum"></select>',
+              '<select data-ng-switch-when="WavefrontShiftTreatment" number-to-string class="input-sm" data-ng-model="param[paramInfo.fieldIndex]" data-ng-options="item[0] as item[1] for item in ::wavefrontShiftTreatmentEnum"></select>',
               '<input data-ng-disabled="disabled" data-ng-switch-when="Float" data-string-to-number="" type="text" class="srw-small-float" data-ng-class="{\'sr-disabled-text\': disabled}" data-ng-model="param[paramInfo.fieldIndex]">',
               '<input data-ng-disabled="disabled" data-ng-switch-when="Boolean" type="checkbox" data-ng-model="param[paramInfo.fieldIndex]" data-ng-true-value="1", data-ng-false-value="0">',
             '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.analyticalTreatmentEnum = SIREPO.APP_SCHEMA.enum.AnalyticalTreatment;
+            $scope.wavefrontShiftTreatmentEnum = SIREPO.APP_SCHEMA.enum.WavefrontShiftTreatment;
         },
     };
 });
@@ -1705,12 +1810,13 @@ SIREPO.app.directive('propagationParametersModal', function(appState) {
         ].join(''),
         controller: function($scope) {
             var activePropagationSection = 0;
-            $scope.propagationSections = ['Propagator and Resizing', 'Auto-Resize', 'Orientation'];
-            $scope.propagationInfo = [null, '<div style="text-align: left">Available for Standard Propagators</div>', null];
+            $scope.propagationSections = ['Propagator and Resizing', 'Auto-Resize', 'Orientation', 'Grid Shift'];
+            $scope.propagationInfo = [null, '<div style="text-align: left">Available for Standard Propagators</div>', null, null];
             $scope.parametersBySection = [
                 [3, 4, 5, 6, 7, 8],
                 [0, 1, 2],
                 [12, 13, 14, 15, 16],
+                [9,10,11],
             ];
 
             $scope.isPropagationSectionActive = function(index) {
@@ -2134,7 +2240,6 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
             var MAX_CONDENSED_LENGTH = 3;
             var MIN_CONDENSED_LENGTH = 0.7;
             var beamline, fsRenderer, labelCanvas, labels, orientationMarker, pngCanvas;
-            $scope.isClientOnly = true;
             $scope.dimensions = ['x', 'y', 'z'];
             $scope.viewDirection = null;
             $scope.selectedDimension = null;
@@ -2589,7 +2694,8 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                 return degrees * Math.PI / 180;
             }
 
-            function refresh() {
+            function refresh(colInfo) {
+                //TODO(pjm): use colInfo from beamline_orient.dat to set orientation
                 removeActors();
                 buildBeamline();
                 labels = [];
@@ -2619,6 +2725,8 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                 }
             }
 
+            $scope.clearData = function() {};
+
             $scope.destroy = function() {
                 window.removeEventListener('resize', fsRenderer.resize);
                 fsRenderer.getInteractor().unbindEvents();
@@ -2637,9 +2745,10 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                 labelCanvas = document.createElement('canvas');
                 fsRenderer.getInteractor().onAnimation(vtk.macro.debounce(updateOrientation, 250));
                 pngCanvas = vtkToPNG.pngCanvas($scope.reportId, fsRenderer, $element);
-                refresh();
-                $scope.$on('beamline.changed', refresh);
-                $scope.$on('beamline3DReport.changed', refresh);
+            };
+
+            $scope.load = function(json) {
+                refresh(json.cols);
             };
 
             $scope.resize = function() {};
