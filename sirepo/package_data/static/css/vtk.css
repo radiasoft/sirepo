@@ -39,8 +39,13 @@
 }
 
 .vtk-object-layout-shape {
-  cursor: move;
-  stroke-width: 2;
+    cursor: move;
+    stroke-width: 2;
+}
+
+.vtk-object-layout-shape-selected {
+    stroke: blue!important;
+    stroke-width: 3;
 }
 
 .vtk-object-layout-shape-hover:hover {
@@ -64,8 +69,8 @@
 
 
 .vtk-object-layout-shape:hover {
-  fill: lightgreen;
-  filter: drop-shadow(2px 2px 2px #999);
+    opacity: 0.75!important;
+    filter: drop-shadow(2px 2px 2px #999);
 }
 
 .vtk-object-layout-shape-hover:hover .vtk-object-layout-shape-close-icon {

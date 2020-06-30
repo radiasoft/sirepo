@@ -241,12 +241,20 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
 
 SIREPO.app.controller('RadiaSourceController', function (appState, panelState, radiaService, $scope) {
     var self = this;
-    var geomObjs = [];
     var editorFields = [
          'geomObject.magnetization',
          'geomObject.symmetryType',
          'geomObject.doDivide',
     ];
+
+    self.builderCfg = {
+        initDomian: {
+            x: [-0.025, 0.025],
+            y: [-0.025, 0.025],
+            z: [-0.025, 0.025],
+        },
+        fitToObjects: true,
+    };
 
     self.selectedObject = null;
     self.toolbarItems = SIREPO.APP_SCHEMA.constants.toolbarItems;
@@ -298,7 +306,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
 
     function addObject(o) {
         o.id  = appState.models.geometry.objects.length;
+        o.mapId = getMapId(o);
         appState.models.geometry.objects.push(o);
+    }
+
+    // used to the client-created object to a server-created Radia id
+    function getMapId(o) {
+        return o.name + '.' + o.id;
     }
 
     function newObjectName() {
@@ -335,7 +349,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
         if (! appState.models.geometry.objects) {
             appState.models.geometry.objects = [];
         }
-        geomObjs = appState.models.geometry.objects;
         $scope.$on('geomObject.changed', function() {
             var o = self.selectedObject;
             if (o.id !== 0 && (angular.isUndefined(o.id) || o.id === '')) {
@@ -1090,7 +1103,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function buildScene() {
-                //srdbg('buildScene', sceneData.data);
+                srdbg('buildScene', sceneData);
                 var name = sceneData.name;
                 var data = sceneData.data;
 
@@ -1787,7 +1800,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     inData.fieldPaths = appState.models.fieldPaths.paths;
                 }
 
-                //srdbg('getting app data...');
+                srdbg('getting app data...');
                 radiaService.getRadiaData(
                     inData,
                     function(d) {

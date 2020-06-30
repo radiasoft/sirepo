@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
+SIREPO.SCREEN_DIMS = ['x', 'y'];
 
 SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope) {
 
@@ -839,7 +840,9 @@ SIREPO.app.directive('colorPicker', function(appState, panelState) {
                 $scope.model[$scope.field] = color;
                 // emit change for immediate feedback
                 $scope.$emit($scope.modelName + '.' + $scope.field, color);
-                $scope.form.$setDirty();
+                if ($scope.form) {
+                    $scope.form.$setDirty();
+                }
                 //TODO(mvk): since this is not a normal control we need to store the original state somehow
                 /*
                 if (color !== origColor) {

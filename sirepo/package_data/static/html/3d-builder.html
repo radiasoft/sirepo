@@ -19,13 +19,32 @@
               <text class="y-axis-label" transform="rotate(-90)" data-ng-attr-x="{{ -height / 2 }}" data-ng-attr-y="-{{ margin.left }}" dy="1em"></text>
               <text class="x-axis-label" ng-attr-x="{{ width / 2 }}" ng-attr-y="{{ height + 26 }}" dy="1em"></text>
               <text class="x-base" text-anchor="end" ng-attr-x="{{ width + margin.right - 5 }}" ng-attr-y="{{ height + 40 }}"></text>
-              <svg class="plot-viewport" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}" data-ng-drop="true" data-ng-drag-move="dragMove($data, $event)" data-ng-drop-success="dropSuccess($data, $event)">
+              <svg class="plot-viewport elevation-front" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}" data-ng-drop="true" data-ng-drag-move="dragMove($data, $event)" data-ng-drop-success="dropSuccess($data, $event)">
                   <defs>
                   </defs>
                   <rect class="overlay mouse-zoom" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}"></rect>
               </svg>
             </g>
         </g>
+        <!--
+        <g data-ng-attr-transform="translate(0, {{ margin.top + height + zMargin() }})">
+          <defs>
+            <clippath id="zx-grid-clip">
+              <rect ng-attr-width="{{ width + 1 }}" ng-attr-height="{{ zHeight }}"></rect>
+            </clippath>
+          </defs>
+          <text class="focus-text" text-anchor="end" ng-attr-x="{{ width }}" y="-10" dy=".35em"></text>
+          <g class="z axis"></g>
+          <g class="z axis grid"></g>
+          <g clip-path="url(#zx-grid-clip)">
+              <g class="zx axis grid" ng-attr-transform="translate(0, {{ zHeight }})"></g>
+          </g>
+          <text class="z-axis-label" transform="rotate(-90)" ng-attr-x="{{ - zHeight / 2 }}" ng-attr-y="-{{ margin.left }}" dy="1em"></text>
+          <svg class="plot-viewport elevation-top" ng-attr-width="{{ width }}" ng-attr-height="{{ zHeight }}">
+              <rect class="overlay mouse-zoom" ng-attr-width="{{ width }}" ng-attr-height="{{ zHeight }}"></rect>
+          </svg>
+        </g>
+        -->
       </svg></div>
   </div>
 </div>

@@ -4,16 +4,7 @@
   </div>
   <div>
       <!-- display area -->
-      <div data-3d-builder="" data-model-name="geometry" data-object-model="geomObject" data-controller="src"></div>
-      <div class="row"><div class="srw-popup-container-lg col-sm-10 col-md-8 col-lg-6"></div></div>
-          <div class="row">
-            <form>
-              <div class="col-md-6 col-sm-8 pull-right" data-ng-show="checkIfDirty()">
-                <button data-ng-click="saveBeamlineChanges()" class="btn btn-primary" data-ng-show="beamlineService.isBeamlineValid()">Save Changes</button>
-                <button data-ng-click="cancelBeamlineChanges()" class="btn btn-default">Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
+      <!--<div data-3d-builder="" data-model-name="geometry" data-object-model="geomObject" data-controller="src"></div>-->
+      <div data-3d-builder="" data-model-name="geometry" data-cfg="src.builderCfg" data-controller="src"></div>
   </div>
 </div>

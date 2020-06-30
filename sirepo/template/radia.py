@@ -87,9 +87,8 @@ def extract_report_data(run_dir, sim_in):
 
 
 # if the file exists but the data we seek does not, have Radia generate it here.  We
-# should only have to blow away the file after a solve (???)
+# should only have to blow away the file after a solve or geometry change
 def get_application_data(data, **kwargs):
-    #pkdp('get_application_data from {}', data)
     if 'method' not in data:
         raise RuntimeError('no application data method')
     if data.method not in _METHODS:
@@ -106,10 +105,9 @@ def get_application_data(data, **kwargs):
             # No Radia dump file
             return PKDict(warning='No Radia dump')
         # propagate other errors
-        #return PKDict()
+    id_map = _read_id_map(sim_id)
     if data.method == 'get_field':
         f_type = data.get('fieldType')
-        #pkdp('FT {}', f_type)
         if f_type in radia_tk.POINT_FIELD_TYPES:
             #TODO(mvk): won't work for subsets of available paths, figure that out
             pass
@@ -117,12 +115,10 @@ def get_application_data(data, **kwargs):
             #    res = _read_data(sim_id, data.viewType, f_type)
             #except KeyError:
             #    res = None
-            #pkdp('READ RES {}', res)
             #if res:
             #    v = [d.vectors.vertices for d in res.data if 'vectors' in d]
             #    old_pts = [p for a in v for p in a]
             #    new_pts = _build_field_points(data.fieldPaths)
-            #pkdp('CHECK FOR CHANGE OLD {} VS NEW {}', old_pts, new_pts)
             #    if len(old_pts) == len(new_pts) and numpy.allclose(new_pts, old_pts):
             #        return res
         #return _read_or_generate(g_id, data)
@@ -130,6 +126,7 @@ def get_application_data(data, **kwargs):
             g_id, data.name, f_type, data.get('fieldPaths', None)
         )
         res.solution = _read_solution(sim_id)
+        res.idMap = id_map
         # moved addition of lines from client
         data.fieldType = None
         data.geomTypes = ['lines']
@@ -147,9 +144,9 @@ def get_application_data(data, **kwargs):
         res = _read_or_generate(g_id, data)
         rd = res.data if 'data' in res else []
         res.data = [{k: d[k] for k in d.keys() if k in g_types} for d in rd]
+        res.idMap = id_map
         return res
     if data.method == 'save_field':
-        #pkdp('DATA {}', data)
         data.method = 'get_field'
         res = get_application_data(data)
         file_path = simulation_db.simulation_lib_dir(SIM_TYPE).join(
@@ -157,7 +154,6 @@ def get_application_data(data, **kwargs):
         )
         # we save individual field paths, so there will be one item in the list
         vectors = res.data[0].vectors
-        #pkdp('DATUM {}', datum)
         if data.fileType == 'sdds':
             return _save_fm_sdds(
                 res.name,
@@ -218,7 +214,6 @@ def _build_field_line_pts(f_path):
     res = p1
     r = range(len(p1))
     n = int(f_path.numPoints) - 1
-    #pkdp('adding line p1 {} p2 {} N {} L {} R {}'.format(p1, p2, n + 1, len(p1), r))
     for i in range(1, n):
         res.extend(
             [p1[j] + i * (p2[j] - p1[j]) / n for j in r]
@@ -446,7 +441,11 @@ def _read_data(sim_id, view_type, field_type):
     return res
 
 
-def _read_or_generate(geom_id, data):
+def _read_id_map(sim_id):
+    return _read_h5_path(sim_id, 'idMap')
+
+
+def _read_or_generate(g_id, data):
     f_type = data.get('fieldType', None)
     res = _read_data(data.simulationId, data.viewType, f_type)
     if res:
@@ -454,7 +453,7 @@ def _read_or_generate(geom_id, data):
     # No such file or path, so generate the data and write to the existing file
     with h5py.File(_geom_file(data.simulationId), 'a') as hf:
         template_common.dict_to_h5(
-            _generate_data(geom_id, data, add_lines=False),
+            _generate_data(g_id, data, add_lines=False),
             hf,
             path=_geom_h5_path(data.viewType, f_type)
         )
@@ -462,10 +461,6 @@ def _read_or_generate(geom_id, data):
 
 
 def _read_solution(sim_id):
-    return _read_h5_path(sim_id, 'solution')
-
-
-def _read_extents(sim_id):
     return _read_h5_path(sim_id, 'solution')
 
 

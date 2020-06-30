@@ -188,15 +188,16 @@
         },
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
+            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x (mm), y (mm), z (mm)"],
             "color": ["Color", "Color", "#cccccc"],
             "division": ["Num Divisions", "IntStringArray", "1, 1, 1", "", "Nx, Ny, Nz"],
             "doDivide": ["Divide", "Boolean", "1"],
-            "material": ["Material", "MaterialType", "NdFeB"],
-            "type": ["Type", "ObjectType", "box"],
-            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x (mm), y (mm), z (mm)"],
             "id": ["_", "String", ""],
             "layoutShape":  ["_", "String", "rect"],
             "magnetization": ["Magentization (T)", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "mapId": ["_", "String", "???.0"],
+            "material": ["Material", "MaterialType", "NdFeB"],
+            "type": ["Type", "ObjectType", "box"],
             "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"]
         },
         "geomUndulatorGroup": {

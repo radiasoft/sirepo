@@ -10,6 +10,8 @@ from sirepo.template import template_common
 VIEW_TYPE_OBJ = 'objects'
 VIEW_TYPE_FIELD = 'fields'
 
+_OBJ_TYPE_BOX = 'box'
+_OBJ_TYPE_GROUP = 'group'
 _OBJ_TYPES = ('box', 'group',)
 
 def _split_comma_field(f, type):
@@ -25,6 +27,7 @@ g_id = radia_examples.build('{{ geomName }}')
 {% else %}
 # put all objects in a container for now
 objs = []
+id_map = PKDict()
 for obj in {{ objects }}:
     o = PKDict(obj)
     if o.type not in _OBJ_TYPES:
@@ -33,19 +36,21 @@ for obj in {{ objects }}:
     sz = _split_comma_field(o.size, 'float')
     m = _split_comma_field(o.magnetization, 'float')
     div = _split_comma_field(o.division, 'int') if o.doDivide else None
-    if o.type == 'box':
+    if o.type == _OBJ_TYPE_BOX:
         g_id = radia_tk.build_box(ctr, sz, o.material, m, div)
     if o.symmetryType is not 'none':
         radia_tk.apply_symmetry(g_id, o.symmetryType, _split_comma_field(o.symmetryPlane, 'float'))
+    id_map[o.mapId] = g_id
     objs.append(g_id)
 g_id = radia_tk.build_container(objs)
 {% endif %}
 
 
-# always store the object
+# always store the object and id map
 g_data = radia_tk.geom_to_data(g_id, name='{{ geomName }}')
 with h5py.File('{{ dataFile }}', 'a') as hf:
     template_common.dict_to_h5(g_data, hf, path='{{ h5ObjPath }}')
+    template_common.dict_to_h5(id_map, hf, path='idMap')
 
 {% if doSolve %}
 res = radia_tk.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
