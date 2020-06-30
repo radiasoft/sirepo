@@ -125,16 +125,18 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
 SIREPO.app.factory('authState', function(appDataService, appState, errorService, requestSender, $rootScope) {
     var self = appState.clone(SIREPO.authState);
 
-    if (SIREPO.authState.isGuestUser && ! SIREPO.authState.isLoginExpired) {
+    if (SIREPO.authState.isGuestUser
+        && SIREPO.authState.showGuestWarning
+        && ! SIREPO.authState.isLoginExpired) {
         appState.whenModelsLoaded(
             $rootScope,
             function() {
                 if (appDataService.isApplicationMode('default')) {
-                    // errorService.alertText(
-                    //     'You are accessing Sirepo as a guest. ' +
-                    //         'Guest sessions are regularly deleted. ' +
-                    //         'To ensure that your work is saved, please click on Save Your Work!.'
-                    // );
+                    errorService.alertText(
+                        'You are accessing Sirepo as a guest. ' +
+                            'Guest sessions are regularly deleted. ' +
+                            'To ensure that your work is saved, please click on Save Your Work!.'
+                    );
                 }
             }
         );

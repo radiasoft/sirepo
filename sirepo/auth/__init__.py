@@ -543,6 +543,7 @@ def _auth_state():
         method=cookie.unchecked_get_value(_COOKIE_METHOD),
         needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
         roles=[],
+        showGuestWarning=cfg.guest_warning,
         userName=None,
         visibleMethods=visible_methods,
     )
@@ -588,6 +589,7 @@ def _init():
         methods=((METHOD_GUEST,), set, 'for logging in'),
         deprecated_methods=(set(), set, 'for migrating to methods'),
         logged_in_user=(None, str, 'Only for sirepo.job_supervisor'),
+        guest_warning=(True, bool, 'show guest warning'),
     )
     if not cfg.logged_in_user:
         return
