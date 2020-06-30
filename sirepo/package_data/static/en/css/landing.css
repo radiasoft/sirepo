@@ -12,8 +12,6 @@
   background-blend-mode: multiply;
   font-family: 'Titillium Web', sans-serif;
   color: white;
-  /** General Styles */
-  /** End General Styles */
 }
 .landing .max-width-container {
   padding: 0 60px 60px 60px;
@@ -88,6 +86,9 @@
 .landing a:hover {
   text-decoration: none;
   color: #005eb4;
+}
+.landing img {
+  max-width: 100%;
 }
 .landing .btn-link {
   position: relative;
@@ -500,6 +501,34 @@
   width: 80%;
   max-width: 186px;
 }
+.landing .pricing-plans {
+  background-color: white;
+  background-position: left bottom;
+  background-repeat: no-repeat;
+}
+.landing .pricing-plans:not(:last-of-type) {
+  padding-bottom: 0;
+}
+.landing .pricing-plans .btn-link {
+  margin: 24px 0;
+}
+.landing .landing-plans {
+  background-color: #005eb4;
+  color: white;
+  z-index: 2;
+  background-image: url("/en/img/get-started-curve-top.png");
+  background-position: left -217px;
+  background-repeat: no-repeat;
+}
+.landing .landing-plans h3, .landing .landing-plans h4, .landing .landing-plans p {
+  color: white;
+}
+.landing .landing-plans .btn-link {
+  margin-top: 40px;
+}
+.landing .landing-plans .btn-link::before {
+  background-color: #00a2c5;
+}
 .landing .get-started {
   background-color: #005eb4;
   color: white;
@@ -671,6 +700,97 @@
   background-color: white;
   padding-bottom: 40px;
 }
+.landing .public-plans .plan {
+  border: 2px solid black;
+  border-radius: 15px;
+  overflow: hidden;
+}
+.landing .public-plans .plan .plan-name {
+  background-position: center bottom;
+  background-size: cover;
+  color: white;
+  margin-top: 0;
+  padding: 16px 0 32px;
+}
+.landing .public-plans .plan .dollars {
+  color: #00a2c5;
+}
+.landing .public-plans .plan ul {
+  list-style-type: none;
+  padding: 15px;
+}
+.landing .public-plans .plan ul li {
+  padding: 10px 0 10px 40px;
+  position: relative;
+}
+.landing .public-plans .plan ul li::before {
+  background-image: url("/en/img/circle-check.svg");
+  content: '';
+  display: block;
+  height: 30px;
+  left: 0;
+  margin-left: 0;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+}
+.landing .public-plans .plan ul li.paid::before {
+  background-image: url("/en/img/circle-x.svg");
+}
+.landing .public-plans .plan .disclaimer {
+  font-size: 12px;
+}
+.landing .private-plan {
+  border: 2px solid black;
+  border-radius: 15px;
+  overflow: hidden;
+}
+.landing .private-plan .private-bg {
+  background-position: center bottom;
+  background-size: cover;
+  height: 42px;
+  margin: 0 0 16px;
+  width: 100%;
+}
+.landing .private-plan .plan-features {
+  padding: 15px 30px;
+}
+.landing .private-plan .plan-features article {
+  padding-left: 40px;
+}
+.landing .private-plan .plan-features article h4 {
+  position: relative;
+}
+.landing .private-plan .plan-features article h4::before {
+  background-image: url("/en/img/circle-check.svg");
+  content: '';
+  display: block;
+  height: 30px;
+  left: -40px;
+  margin-left: 0;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+}
+.landing .faqs {
+  column-count: 3;
+  column-gap: 40px;
+}
+.landing .faqs .question {
+  -webkit-column-break-inside: avoid;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.landing .faqs .question a {
+  text-transform: none;
+  color: #005eb4;
+  font-style: italic;
+}
+.landing .faqs .question a::after {
+  content: none;
+}
 .landing .doe-footer {
   background-color: white;
   padding-bottom: 80px;
@@ -680,17 +800,34 @@
   display: flex;
   align-items: center;
 }
-.landing .doe-footer .doe-footer-content .doe-footer-image-container {
+.landing .doe-footer .doe-footer-content .doe-footer-image {
+  display: block;
+  flex-basis: 324px;
   flex-grow: 1;
-}
-.landing .doe-footer .doe-footer-content .doe-footer-image-container img {
-  width: 100%;
-  max-width: 281px;
 }
 .landing .doe-footer .doe-footer-content p {
   margin: 0 0 0 45px;
   font-size: 12px;
   color: #9b9b9b;
+}
+.landing .doe-footer .plans-footer-content {
+  padding-top: 20px;
+}
+.landing .doe-footer .plans-footer-content .plans-footer-image-container {
+  display: flex;
+  flex-wrap: wrap;
+}
+.landing .doe-footer .plans-footer-content .plans-footer-image-container .logo-doe {
+  flex-basis: 324px;
+  margin-right: 32px;
+}
+.landing .doe-footer .plans-footer-content .plans-footer-image-container .logo-nci {
+  flex-basis: 190px;
+}
+.landing .doe-footer .plans-footer-content p {
+  font-size: 12px;
+  color: #9b9b9b;
+  margin: 45px 0 0 0;
 }
 .landing .privacy, .landing .terms {
   background-color: white;
@@ -897,6 +1034,19 @@
   .landing .get-started .simulation-demos-intro {
     text-align: center;
   }
+  .landing .pricing-plans .btn-link {
+    margin: 24px 0;
+  }
+  .landing .public-plans .plan {
+    margin-bottom: 32px;
+  }
+  .landing .public-plans .btn-link {
+    margin: 24px;
+    width: calc(100% - 48px);
+  }
+  .landing .faqs {
+    column-count: 1;
+  }
   .landing header .main-nav .nav-items {
     margin-top: 20px;
   }
@@ -1046,6 +1196,9 @@
   .landing .doe-footer .doe-footer-content {
     flex-direction: column;
     text-align: center;
+  }
+  .landing .doe-footer .doe-footer-content .doe-footer-image {
+    flex-basis: auto;
   }
   .landing .doe-footer .doe-footer-content p {
     margin: 15px 0 0 0;

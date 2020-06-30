@@ -61,7 +61,7 @@
     padding: 0 60px 60px 60px;
   }
 
-  /** General Styles */
+  // General Styles
   .text-bold {
     font-weight: bold;
     letter-spacing: 1px;
@@ -149,6 +149,10 @@
     }
   }
 
+  img {
+    max-width: 100%;
+  }
+
   .btn-link {
     position: relative;
     display: inline-block;
@@ -215,7 +219,7 @@
     border-top-color: $gray_medium;
   }
 
-  /** End General Styles */
+  // End General Styles
 
   .header-strip {
     height: $header_strip_height;
@@ -675,6 +679,40 @@
     }
   }
 
+  .pricing-plans {
+    background-color: white;
+    background-position: left bottom;
+    background-repeat: no-repeat;
+    &:not(:last-of-type) {
+      padding-bottom: 0;
+    }
+
+    .btn-link {
+      margin: 24px 0;
+    }
+  }
+
+  .landing-plans {
+    background-color: $blue_medium;
+    color: white;
+    z-index: 2;
+
+    background-image: url('/en/img/get-started-curve-top.png');
+    background-position: left -217px;
+    background-repeat: no-repeat;
+
+    h3, h4, p {
+      color: white;
+    }
+
+    .btn-link {
+      margin-top: 40px;
+      &::before {
+        background-color: $teal;
+      }
+    }
+  }
+
   .get-started {
     background-color: $blue_medium;
     color: white;
@@ -854,6 +892,116 @@
     padding-bottom: 40px;
   }
 
+  .public-plans {
+    .plan {
+      border: 2px solid black;
+      border-radius: 15px;
+      overflow: hidden;
+
+      .plan-name {
+        background-position: center bottom;
+        background-size: cover;
+        color: white;
+        margin-top: 0;
+        padding: 16px 0 32px;
+      }
+
+      .dollars {
+        color: $teal;
+      }
+
+      ul {
+        list-style-type: none;
+        padding: 15px;
+
+        li {
+          padding: 10px 0 10px 40px;
+          position: relative;
+
+          &::before {
+            background-image: url('/en/img/circle-check.svg');
+            content: '';
+            display: block;
+            height: 30px;
+            left: 0;
+            margin-left: 0;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 30px;
+          }
+
+          &.paid::before {
+            background-image: url('/en/img/circle-x.svg');
+          }
+        }
+      }
+      .disclaimer {
+        font-size: 12px;
+      }
+    }
+  }
+
+  .private-plan {
+    border: 2px solid black;
+    border-radius: 15px;
+    overflow: hidden;
+
+    .private-bg {
+      background-position: center bottom;
+      background-size: cover;
+      height: 42px;
+      margin: 0 0 16px;
+      width: 100%;
+    }
+
+    .plan-features {
+      padding: 15px 30px;
+
+      article {
+        padding-left: 40px;
+
+        h4 {
+          position: relative;
+
+          &::before {
+            background-image: url('/en/img/circle-check.svg');
+            content: '';
+            display: block;
+            height: 30px;
+            left: -40px;
+            margin-left: 0;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 30px;
+          }
+        }
+      }
+    }
+  }
+
+  .faqs {
+    column-count: 3;
+    column-gap: 40px;
+
+    .question {
+      -webkit-column-break-inside: avoid;
+      page-break-inside: avoid;
+      break-inside: avoid;
+
+      a {
+        text-transform: none;
+        color: $blue_medium;
+        font-style: italic;
+
+        &::after {
+          content: none;
+        }
+      }
+    }
+  }
+
   .doe-footer {
     background-color: white;
     padding-bottom: 80px;
@@ -863,19 +1011,41 @@
       display: flex;
       align-items: center;
 
-      .doe-footer-image-container {
+      .doe-footer-image {
+        display: block;
+        flex-basis: 324px;
         flex-grow: 1;
-
-        img {
-          width: 100%;
-          max-width: 281px;
-        }
       }
 
       p {
         margin: 0 0 0 45px;
         font-size: 12px;
         color: $gray_medium;
+      }
+    }
+
+    .plans-footer-content {
+      padding-top: 20px;
+
+      .plans-footer-image-container {
+        display: flex;
+        flex-wrap: wrap;
+
+        .logo-doe {
+          flex-basis: 324px;
+          margin-right: 32px;
+        }
+
+        .logo-nci {
+          flex-basis: 190px;
+        }
+
+      }
+
+      p {
+        font-size: 12px;
+        color: $gray_medium;
+        margin: 45px 0 0 0;
       }
     }
   }

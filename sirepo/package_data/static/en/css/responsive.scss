@@ -85,6 +85,25 @@
       }
     }
 
+    .pricing-plans .btn-link {
+      margin: 24px 0;
+    }
+
+    .public-plans {
+      .plan {
+        margin-bottom: 32px;
+      }
+
+      .btn-link {
+        margin: 24px;
+        width: calc(100% - 48px);
+      }
+    }
+
+    .faqs {
+      column-count: 1;
+    }
+
     header {
       .main-nav {
         .nav-items {
@@ -259,6 +278,10 @@
       .doe-footer-content {
         flex-direction: column;
         text-align: center;
+
+        .doe-footer-image {
+          flex-basis: auto;
+        }
 
         p {
           margin: 15px 0 0 0;
