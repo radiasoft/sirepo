@@ -74,6 +74,9 @@
 .landing p, .landing li {
   font-size: 16px;
 }
+.landing .large-p {
+  font-size: 22px;
+}
 .landing ul {
   padding: 0;
 }
@@ -98,6 +101,7 @@
   padding: 10px 50px;
   font-size: 14px;
   overflow: hidden;
+  margin-top: 24px;
 }
 .landing .btn-link.full-width {
   padding-left: 10px;
@@ -346,7 +350,6 @@
   font-size: 24px;
 }
 .landing .intro .btn-link {
-  margin-top: 25px;
   padding: 10px 75px;
   font-size: 17px;
 }
@@ -445,7 +448,7 @@
   height: 315px;
   width: 1299px;
   max-width: 100%;
-  z-index: 1;
+  z-index: 3;
 }
 .landing .explore .explore-items {
   position: relative;
@@ -476,6 +479,8 @@
   position: relative;
 }
 .landing .discover .discover-item img {
+  border: 1px solid #b7d7de;
+  box-shadow: 10px 10px 0 #b7d7de;
   width: 100%;
 }
 .landing .discover .discover-item ~ .discover-item {
@@ -522,9 +527,6 @@
 }
 .landing .landing-plans h3, .landing .landing-plans h4, .landing .landing-plans p {
   color: white;
-}
-.landing .landing-plans .btn-link {
-  margin-top: 40px;
 }
 .landing .landing-plans .btn-link::before {
   background-color: #00a2c5;
@@ -760,6 +762,7 @@
   padding-left: 40px;
 }
 .landing .private-plan .plan-features article h4 {
+  color: #00a2c5;
   position: relative;
 }
 .landing .private-plan .plan-features article h4::before {
@@ -782,6 +785,10 @@
   -webkit-column-break-inside: avoid;
   page-break-inside: avoid;
   break-inside: avoid;
+  margin-bottom: 32px;
+}
+.landing .faqs .question:first-child h4 {
+  margin-top: 0;
 }
 .landing .faqs .question a {
   text-transform: none;
