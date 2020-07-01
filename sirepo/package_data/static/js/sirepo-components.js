@@ -1054,6 +1054,35 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
     };
 });
 
+SIREPO.app.directive('groupEditor', function($window) {
+    return {
+        restrict: 'A',
+        scope: {
+            group: '=',
+            objects: '<',
+        },
+        template: [
+            '<table table-layout: fixed" class="table table-hover">',
+                '<tr>',
+                  '<th>Contents</th>',
+                '</tr>',
+                '<tr>',
+                  '<th>Others</th>',
+                '</tr>',
+            '</table>',
+        ].join(''),
+        controller: function($scope) {
+            if (! $scope.group.objects) {
+                $scope.group.objects = [];
+            }
+
+            $scope.addObject = function(o) {
+                $scope.group.objects.push(o);
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('helpButton', function($window) {
     var HELP_WIKI_ROOT = 'https://github.com/radiasoft/sirepo/wiki/' + SIREPO.APP_NAME.toUpperCase() + '-';
     return {

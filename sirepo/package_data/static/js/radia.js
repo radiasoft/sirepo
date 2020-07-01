@@ -241,10 +241,16 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
 
 SIREPO.app.controller('RadiaSourceController', function (appState, panelState, radiaService, $scope) {
     var self = this;
+
     var editorFields = [
          'geomObject.magnetization',
          'geomObject.symmetryType',
          'geomObject.doDivide',
+    ];
+    var watchedModels = [
+        'geomObject',
+        'geomGroup',
+        'radiaObject'
     ];
 
     self.builderCfg = {
@@ -259,6 +265,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     self.selectedObject = null;
     self.toolbarItems = SIREPO.APP_SCHEMA.constants.toolbarItems;
 
+    self.editItem = function(o) {
+        self.editObject(o);
+    };
+
     self.editObjectWithId = function(id) {
         var o = self.getObject(id);
         if (! o) {
@@ -268,8 +278,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     };
 
     self.editObject = function(o) {
+        srdbg('RADIA', o);
         self.selectObject(o);
-        panelState.showModalEditor('geomObject');
+        //panelState.showModalEditor('geomObject');
+        panelState.showModalEditor(o.model);
     };
 
     self.getObject = function(id) {
@@ -280,6 +292,22 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
         return true;
     };
 
+    self.objectsOfType = function(type) {
+        return appState.models.geometry.objects.filter(function (o) {
+            return o.type === type;
+        });
+    };
+
+    self.objectTypes = function() {
+        var t = [];
+        appState.models.geometry.objects.forEach(function (o) {
+            if (t.indexOf(o.type) < 0) {
+                t.push(o.type);
+            }
+        });
+        return t.sort();
+    };
+    
     self.saveObject = function(id, callback) {
         if (! self.selectObjectWithId(id)) {
             return;
@@ -315,8 +343,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
         return o.name + '.' + o.id;
     }
 
-    function newObjectName() {
-        appState.uniqueName(appState.models.geometry.objects, 'name', '{}');
+    function newObjectName(o) {
+        return appState.uniqueName(appState.models.geometry.objects, 'name', o.name + ' {}');
     }
 
     function updateObjectEditor() {
@@ -331,7 +359,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
             'symmetryPlane',
             o.symmetryType != 'none'
         );
-        var mag = o.magnetization.split(/\s*,\s*/).map(function (m) {
+        var mag = (o.magnetization || SIREPO.ZERO_STR).split(/\s*,\s*/).map(function (m) {
             return parseFloat(m);
         });
         panelState.showField(
@@ -349,7 +377,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
         if (! appState.models.geometry.objects) {
             appState.models.geometry.objects = [];
         }
-        $scope.$on('geomObject.changed', function() {
+        $scope.$on('modelChanged', function(e, modelName) {
+            if (watchedModels.indexOf(modelName) < 0) {
+                return;
+            }
             var o = self.selectedObject;
             if (o.id !== 0 && (angular.isUndefined(o.id) || o.id === '')) {
                 addObject(o);
@@ -363,7 +394,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
         });
         $scope.$on('layout.object.dropped', function (e, o) {
             var m = appState.setModelDefaults({}, o.model);
-            //srdbg('dropped', o, '->', m);
             m.center = o.center;
             m.name = o.type;
             self.editObject(m);

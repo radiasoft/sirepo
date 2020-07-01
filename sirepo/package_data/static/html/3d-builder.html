@@ -1,10 +1,12 @@
 
-<ul class="nav nav-tabs">
-    <li role="presentation" data-ng-class="{active: ! is3dPreview }"><a class="srw-tab" href data-ng-click="toggle3dPreview()"><strong>Layout</strong></a></li>
+<!--<ul class="nav nav-tabs">-->
+    <!--<li role="presentation" data-ng-class="{active: ! is3dPreview }"><a class="srw-tab" href data-ng-click="toggle3dPreview()"><strong>Layout</strong></a></li>-->
     <!--<li role="presentation" data-ng-class="{active: is3dPreview }"><a class="srw-tab" href data-ng-click="toggle3dPreview()"><strong><span class="glyphicon glyphicon-option-vertical"></span> 3D Preview</strong></a></li>-->
-</ul>
+<!--</ul>-->
 
-<div data-ng-show="! is3dPreview">
+<div class="container-fluid">
+<div class="row">
+<div class="col-md-10 workspace">
   <p class="lead text-center" style="margin-bottom: 0"><small><em>{{ instructions }}</em></small></p>
   <div>
     <!-- NOTE: the <div> and <svg> must be on the same line for the png code to work! -->
@@ -47,6 +49,33 @@
         -->
       </svg></div>
   </div>
+</div>
+
+<div class="col-md-2 sr-pull-right-sm">
+      <div class="panel panel-info">
+        <div class="panel-heading"><span class="sr-panel-heading">My Objects</span></div>
+        <div class="panel-body">
+            <table data-ng-show="objects.length" style="width: 100%;  table-layout: fixed" class="table table-hover">
+              <colgroup>
+                <col>
+                <col style="width: 12ex">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                </tr>
+              </thead>
+              <tbody data-ng-repeat="object in objects track by object.id">
+                <tr>
+                  <td data-ng-click="editObject(object)" colspan="2" style="padding-left: 1em; cursor: pointer; white-space: nowrap"><div class="badge sr-badge-icon"><span>{{ object.name }}</span></div> </td>
+                </tr>
+              </tbody>
+            </table>
+        </div>
+      </div>
+    </div>
+</div>
+
 </div>
 <!--
 <div data-ng-if="is3dPreview">

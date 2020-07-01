@@ -18,32 +18,34 @@
         },
         "toolbarItems": [
             {
-                "type": "Basic objects",
+                "canDrag": true,
                 "contents": [
                     {
                         "layoutShape": "rect",
                         "model": "box",
                         "title": "Box",
                         "type": "box"
-                    },
-                    {
-                        "layoutShape": "rect",
-                        "model": "group",
-                        "title": "Group",
-                        "type": "group"
                     }
-                ]
+                ],
+                "type": "Objects"
             },
             {
-                "type": "Complex objects",
+                "canDrag": false,
                 "contents": [
                     {
                         "layoutShape": "rect",
+                        "model": "geomGroup",
+                        "title": "Add Group",
+                        "type": "group"
+                    },
+                    {
+                        "layoutShape": "rect",
                         "model": "undulatorGroup",
-                        "title": "UndulatorGroup",
+                        "title": "Build Undulator",
                         "type": "undulatorGroup"
                     }
-                ]
+                ],
+                "type": "Tools"
             }
         ]
     },
@@ -184,7 +186,8 @@
             "name": ["Name", "String", ""]
         },
         "geomGroup": {
-            "_super": ["_", "model", "radiaObject"]
+            "_super": ["_", "model", "radiaObject"],
+            "layoutShape":  ["_", "String", ""]
         },
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
@@ -241,6 +244,7 @@
         },
         "radiaObject": {
             "id": ["_", "String", ""],
+            "groupId": ["_", "String", ""],
             "layoutShape":  ["_", "String", "rect"],
             "name": ["Name", "String", ""],
             "symmetryType": ["Symmetry", "SymmetryType", "none"],
@@ -305,6 +309,15 @@
             "basic": [
                 "name",
                 "fileModel"
+            ]
+        },
+        "geomGroup": {
+            "title": "Group",
+            "basic": [
+                "name"
+            ],
+            "advanced": [
+                "name"
             ]
         },
         "geomObject": {

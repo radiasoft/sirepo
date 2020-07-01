@@ -626,6 +626,10 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
                 }
             }
         }
+        // add ref to model name if not already defined (???)
+        if (! model.model) {
+            model.model = modelName;
+        }
         return model;
     };
 
@@ -1426,6 +1430,19 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.showModalEditor = function(modelKey, template, scope) {
+        // if no associated view, check for a superclass that does have one
+        if (! appState.viewInfo(modelKey)) {
+            var m = appState.modelInfo(modelKey);
+            if (m._super) {
+                for (var i = SIREPO.INFO_INDEX_DEFAULT_VALUE; i < m._super.length; ++i) {
+                    if (appState.viewInfo(m._super[i])) {
+                        modelKey = m._super[i];
+                        break;
+                    }
+                }
+            }
+        }
+
         var editorId = '#' + self.modalId(modelKey);
         var showEvent = modelKey + '.editor.show';
         if ($(editorId).length) {
