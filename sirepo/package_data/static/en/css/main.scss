@@ -615,7 +615,7 @@
 
     .explore-items {
       position: relative;
-      z-index: 2;
+      z-index: 4;
       & > article:nth-child(2n + 1) {
         clear: both;
       }
@@ -950,6 +950,7 @@
   .private-plan {
     border: 2px solid black;
     border-radius: 15px;
+    margin-top: 40px;
     overflow: hidden;
 
     .private-bg {

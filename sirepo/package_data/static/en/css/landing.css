@@ -452,7 +452,7 @@
 }
 .landing .explore .explore-items {
   position: relative;
-  z-index: 2;
+  z-index: 4;
 }
 .landing .explore .explore-items > article:nth-child(2n + 1) {
   clear: both;
@@ -746,6 +746,7 @@
 .landing .private-plan {
   border: 2px solid black;
   border-radius: 15px;
+  margin-top: 40px;
   overflow: hidden;
 }
 .landing .private-plan .private-bg {
