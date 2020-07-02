@@ -90,6 +90,9 @@
   text-decoration: none;
   color: #005eb4;
 }
+.landing a:focus {
+  text-decoration: none;
+}
 .landing img {
   max-width: 100%;
 }

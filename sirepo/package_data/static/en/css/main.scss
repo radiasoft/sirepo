@@ -151,6 +151,10 @@
       text-decoration: none;
       color: $blue_medium;
     }
+
+    &:focus {
+      text-decoration: none;
+    }
   }
 
   img {
