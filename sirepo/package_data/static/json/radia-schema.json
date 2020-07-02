@@ -187,7 +187,8 @@
         },
         "geomGroup": {
             "_super": ["_", "model", "radiaObject"],
-            "layoutShape":  ["_", "String", ""]
+            "layoutShape":  ["_", "String", ""],
+            "objects": ["_", "Group", []]
         },
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
@@ -314,10 +315,12 @@
         "geomGroup": {
             "title": "Group",
             "basic": [
-                "name"
+                "name",
+                "objects"
             ],
             "advanced": [
-                "name"
+                "name",
+                "objects"
             ]
         },
         "geomObject": {

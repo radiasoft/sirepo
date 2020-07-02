@@ -12,6 +12,9 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">',
           '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
         '</div>',
+        '<div data-ng-switch-when="Group" class="col-sm-7">',
+          '<div data-group-editor="" data-field="model[field]" data-model="model" data-objects="appState.models.geometry.objects"></div>',
+        '</div>',
     ].join('');
     SIREPO.appPanelHeadingButtons = [
         '<div style="display: inline-block">',
