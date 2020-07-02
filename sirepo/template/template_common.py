@@ -118,6 +118,61 @@ class ModelUnits(object):
         return model
 
 
+class JupyterNotebook(object):
+    """Make a notebook
+    """
+
+    _CELL_TYPES = ('code', 'markdown')
+
+    @classmethod
+    def _base_dict(cls):
+        return PKDict(
+            cells=[],
+            nbformat=4,
+            nbformat_minor=4,
+            metadata=PKDict(
+                kernelspec=PKDict(
+                    display_name='Python 3',
+                    language='python',
+                    name='python3'
+                ),
+                language_info=PKDict(
+                    codemirror_mode=PKDict(
+                        name='ipython',
+                        version=3
+                    ),
+                    file_extension='.py',
+                    mimetype='text/x-python',
+                    name='python',
+                    nbconvert_exporter='python',
+                    pygments_lexer='ipython3',
+                    version='3.7.2'
+                )
+            )
+        )
+
+    def __init__(self, sim_type, data):
+        self.notebook = JupyterNotebook._base_dict()
+        self.add_markdown_cell('# {} - {}'.format(sim_type, data.models.simulation.name))
+
+        super(object, self).__init__()
+
+    def add_cell(self, cell_type, source_strings):
+        assert cell_type in self._CELL_TYPES, 'Invalid cell type {}'.format(cell_type)
+        cell = PKDict(
+            cell_type=cell_type,
+            metadata={},
+            source=source_strings
+        )
+        self.notebook.cells.append(cell)
+
+    def add_code_cell(self, source_strings):
+        self.add_cell('code', source_strings)
+
+    def add_markdown_cell(self, source_strings):
+        self.add_cell('markdown', source_strings)
+
+
 class ParticleEnergy(object):
     """Computes the energy related fields for a particle from one field.
     Units:

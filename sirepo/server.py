@@ -358,6 +358,20 @@ def api_homePageOld():
 
 
 @api_perm.require_user
+def api_jupyterNotebook(simulation_type, simulation_id, model=None, title=None):
+    req = http_request.parse_params(type=simulation_type, id=simulation_id, template=True)
+    m = model and req.sim_data.parse_model(model)
+    d = simulation_db.read_simulation_json(req.type, sid=req.id)
+    return _safe_attachment(
+        flask.make_response(
+            req.template.jupyter_notebook_for_model(d, m),
+        ),
+        d.models.simulation.name + ('-' + title if title else ''),
+        'ipynb'
+    )
+
+
+@api_perm.require_user
 def api_newSimulation():
     req = http_request.parse_post(template=True, folder=True, name=True)
     d = simulation_db.default_data(req.type)

@@ -109,6 +109,7 @@
         "importArchive": "/import-archive",
         "importFile": "/import-file/<simulation_type>",
         "jobSupervisorPing": "/job-supervisor-ping",
+        "jupyterNotebook": "/jupyter-notebook/<simulation_type>/<simulation_id>/?<model>/?<title>",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",

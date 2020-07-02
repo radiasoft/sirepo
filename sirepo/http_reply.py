@@ -207,6 +207,7 @@ def init(**imports):
     sirepo.util.setattr_imports(imports)
     MIME_TYPE = PKDict(
         html='text/html',
+        ipynb='application/x-ipynb+json',
         js='application/javascript',
         json='application/json',
         py='text/x-python',
