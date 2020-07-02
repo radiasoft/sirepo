@@ -40,3 +40,7 @@ The `start_date` indicates the first day that the article will be displayed. If 
 The `end_date` indicates the last day that the article will be displayed. If `end_date` is omitted, then the article will always be shown if the `start_date` has passed.
 
 The `markdown_file` specifies the Markdown file containing. the article content. The Markdown files should be alongside the `/news/article-index.json` file in the `news` directory.
+
+## Compiling SCSS
+
+Grunt is used to compile and map the SCSS files to CSS. Use a somewhat recent version of node and run `npm install` from the `sirepo/package_data/static/en` directory. Once installed `grunt watch` will execute any time a `.scss` file is saved.
