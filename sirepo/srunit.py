@@ -6,11 +6,14 @@ u"""Support for unit tests
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
+from pykern import pkjson
 from pykern.pkcollections import PKDict
+from sirepo.pkcli import service
 import flask
 import flask.testing
 import json
 import re
+import requests
 
 
 #: Default "app"
@@ -27,7 +30,6 @@ _JAVASCRIPT_REDIRECT_RE = re.compile(r'window.location = "([^"]+)"')
 
 #: set by conftest.py
 CONFTEST_DEFAULT_CODES = None
-
 
 def flask_client(cfg=None, sim_types=None, job_run_mode=None):
     """Return FlaskClient with easy access methods.
@@ -130,6 +132,10 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
         except AttributeError:
             pass
     return r
+
+
+def uwsgi_client():
+    return _UwsgiClient()
 
 
 def wrap_in_request(*args, **kwargs):
@@ -621,3 +627,27 @@ class _TestClient(flask.testing.FlaskClient):
                     pkdexc(),
                 )
             raise
+
+
+class _UwsgiClient(PKDict):
+
+    SR_SIM_TYPE_DEFAULT = MYAPP
+
+    def sr_post(self, route_or_uri, data, headers=None):
+        r = requests.post(
+            (
+                f'http://{service.cfg().ip}:{service.cfg().nginx_proxy_port}'
+                f'{self._server_route(route_or_uri)}'
+            ),
+            json=data,
+            headers=headers,
+        )
+        r.raise_for_status()
+        return pkjson.load_any(r.text)
+
+    def _server_route(self, route_or_uri):
+        from sirepo import simulation_db
+        import sirepo.uri
+
+        sirepo.uri.init(simulation_db=simulation_db)
+        return sirepo.uri.server_route(route_or_uri, None, None)
