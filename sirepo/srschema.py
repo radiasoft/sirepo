@@ -209,9 +209,8 @@ def _validate_model_name(model_name):
         model_name (str): name to validate
     """
 
-    m = re.findall(r'[^\w]', model_name)
-    if m:
-        raise AssertionError(util.err(model_name, 'model name includes invalid character(s): {}', m))
+    if not re.search('^[a-z_]\w*$', model_name, re.IGNORECASE):
+        raise AssertionError(util.err(model_name, 'model name must be a Python identifier'))
 
 def _validate_number(val, sch_field_info):
     """Ensure the value of a numeric field falls within the supplied limits (if any)
