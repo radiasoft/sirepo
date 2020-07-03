@@ -9,11 +9,12 @@ from pykern.pkcollections import PKDict
 import os
 import pytest
 
+_MAX_SECS_PARALLEL_PREMIUM = '4'
 
 def setup_module(module):
     os.environ.update(
-        SIREPO_JOB_SUPERVISOR_MAX_HOURS_PARALLEL_PREMIUM='0.002',
-        SIREPO_JOB_SUPERVISOR_MAX_HOURS_ANALYSIS='0.001',
+        SIREPO_JOB_SUPERVISOR_MAX_SECS_PARALLEL_PREMIUM=_MAX_SECS_PARALLEL_PREMIUM,
+        SIREPO_JOB_SUPERVISOR_MAX_SECS_ANALYSIS='2',
     )
 
 
@@ -39,7 +40,7 @@ def test_srw(fc):
         for _ in range(10):
             if r.state == 'canceled':
                 pkunit.pkeq(
-                    7.2,
+                    int(_MAX_SECS_PARALLEL_PREMIUM),
                     r.cancelledAfterSecs,
                 )
                 cancel = None
