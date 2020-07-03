@@ -129,6 +129,7 @@ def validate(schema):
         Values of default data (if any)
         Existence of dynamic modules
         Enums keyed by string value
+        Model names containing special characters
 
     Args:
         schema (pkcollections.Dict): app schema
@@ -142,6 +143,7 @@ def validate(schema):
             if not isinstance(values[0], pkconfig.STRING_TYPES):
                 raise AssertionError(util.err(name, 'enum values must be keyed by a string value: {}', type(values[0])))
     for model_name in sch_models:
+        _validate_model_name(model_name)
         sch_model = sch_models[model_name]
         for field_name in sch_model:
             sch_field_info = sch_model[field_name]
@@ -200,6 +202,16 @@ def _validate_enum(val, sch_field_info, sch_enums):
     if str(val) not in map(lambda enum: str(enum[0]), sch_enums[type]):
         raise AssertionError(util.err(sch_enums, 'enum {} value {} not in schema', type, val))
 
+def _validate_model_name(model_name):
+    """Ensure model name contain no special characters
+
+    Args:
+        model_name (str): name to validate
+    """
+
+    m = re.findall(r'[^\w]', model_name)
+    if m:
+        raise AssertionError(util.err(model_name, 'model name includes invalid character(s): {}', m))
 
 def _validate_number(val, sch_field_info):
     """Ensure the value of a numeric field falls within the supplied limits (if any)
