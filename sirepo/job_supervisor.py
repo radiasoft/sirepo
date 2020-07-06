@@ -145,14 +145,14 @@ def init():
     _DB_DIR = sirepo.srdb.root().join(_DB_SUBDIR)
     cfg = pkconfig.init(
         job_cache_secs=(300, int, 'when to re-read job state from disk'),
-        max_hours=dict(
-            analysis=(.04, float, 'maximum run-time for analysis job',),
-            parallel=(1, float, 'maximum run-time for parallel job (except sbatch)'),
-            parallel_premium=(2, float, 'maximum run-time for parallel job for premium user (except sbatch)'),
-            sequential=(.1, float, 'maximum run-time for sequential job'),
+        max_secs=dict(
+            analysis=(144, pkconfig.parse_seconds, 'maximum run-time for analysis job',),
+            parallel=(3600, pkconfig.parse_seconds, 'maximum run-time for parallel job (except sbatch)'),
+            parallel_premium=(3600*2, pkconfig.parse_seconds, 'maximum run-time for parallel job for premium user (except sbatch)'),
+            sequential=(360, pkconfig.parse_seconds, 'maximum run-time for sequential job'),
         ),
         purge_non_premium_after_days=(1000, int, 'how many days to wait before purging non-premium users simulations'),
-        purge_non_premium_task_secs=(None, _cfg_secs, 'when to clean up simulation runs of non-premium users (%H:%M:%S)'),
+        purge_non_premium_task_secs=(None, pkconfig.parse_seconds, 'when to clean up simulation runs of non-premium users (%H:%M:%S)'),
         sbatch_poll_secs=(15, int, 'how often to poll squeue and parallel status'),
     )
     _NEXT_REQUEST_SECONDS = PKDict({
@@ -189,19 +189,6 @@ async def terminate():
     from sirepo import job_driver
 
     await job_driver.terminate()
-
-
-def _cfg_secs(value):
-    try:
-        return int(value)
-    except Exception:
-        pass
-    t = datetime.datetime.strptime(value, '%H:%M:%S')
-    return int(datetime.timedelta(
-        hours=t.hour,
-        minutes=t.minute,
-        seconds=t.second,
-    ).total_seconds())
 
 
 class _ComputeJob(PKDict):
@@ -991,12 +978,11 @@ class _Op(PKDict):
     def _get_max_run_secs(self):
         if self.driver.op_is_untimed(self):
             return 0
-        t = cfg.max_hours[self.kind]
         if self.opName == sirepo.job.OP_ANALYSIS:
-            t = cfg.max_hours.analysis
-        elif self.kind == job.PARALLEL and self.msg.get('isPremiumUser'):
-            t = cfg.max_hours['parallel_premium']
-        return t * 3600
+            return cfg.max_secs.analysis
+        if self.kind == job.PARALLEL and self.msg.get('isPremiumUser'):
+            return cfg.max_secs['parallel_premium']
+        return cfg.max_secs[self.kind]
 
     def __hash__(self):
         return hash((self.opId,))

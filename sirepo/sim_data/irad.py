@@ -20,7 +20,22 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
-        pass
+        dm = data.models
+        cls._init_models(
+            dm,
+            (
+                'dicomSettings',
+                'dicomWindow',
+                'doseWindow',
+            ),
+        )
+
+    @classmethod
+    def lib_file_for_sim(cls, data, filename):
+        return '{}-{}'.format(
+            data.models.simulation.libFilePrefix,
+            filename,
+        )
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
@@ -28,12 +43,15 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _lib_file_basenames(cls, data):
-        prefix = data.models.simulation.libFilePrefix
-        #TODO(pjm): share list and prefix formatting with template.irad
-        return ['{}-{}'.format(prefix, v) for v in [
-            'ct.zip',
-            'dvh-data.json',
-            'rtdose.zip',
-            'rtdose2.zip',
-            'rtstruct-data.json',
-        ]]
+        r = data.get('report')
+        res = []
+        if not r:
+            #TODO(pjm): share filenames with template.irad
+            res += ['dvh-data.json', 'ct.zip','rtdose.zip','rtdose2.zip', 'rtstruct-data.json']
+        elif r == 'dvhReport':
+            res += ['dvh-data.json']
+        elif r == 'dicom3DReport':
+            res += ['ct.zip','rtdose.zip','rtdose2.zip', 'rtstruct-data.json']
+        else:
+            assert False, 'unknown report: {}'.format(r)
+        return [cls.lib_file_for_sim(data, v) for v in res]

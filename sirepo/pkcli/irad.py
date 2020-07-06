@@ -6,9 +6,9 @@
 """
 from __future__ import absolute_import, division, print_function
 from dicompylercore import dicomparser, dvhcalc
-from pykern.pkdebug import pkdlog, pkdp
 from pykern import pkio
 from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
 from zipfile import ZipFile
@@ -16,7 +16,10 @@ import copy
 import json
 import numpy as np
 import pydicom
+import sirepo.sim_data
 import sirepo.template.irad as template
+
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 _DICOM_CLASS = PKDict(
     CT_IMAGE='1.2.840.10008.5.1.4.1.1.2',
@@ -81,7 +84,7 @@ def process_dicom_files(cfg_dir):
 def run(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     if data.report == 'dvhReport':
-        filename = template.lib_file_for_sim(data, _DVH_FILE_NAME)
+        filename = _SIM_DATA.lib_file_for_sim(data, _DVH_FILE_NAME)
         template_common.write_sequential_result(simulation_db.read_json(filename))
     elif data.report == 'dicom3DReport':
         template_common.write_sequential_result({})
@@ -220,6 +223,7 @@ def _write_ct_vti_file(files):
             pixels = frame.pixel_array
             if is_flipped_lr:
                 pixels = np.fliplr(pixels)
+            pixels = pixels.astype(np.uint16)
             pixels.tofile(f)
     origin = ctinfo.ImagePositionPatient
     if is_flipped_lr:
@@ -250,7 +254,8 @@ def _write_rtdose_file(files, rtdose_path, filename=_VTI_RTDOSE_ZIP_FILE):
         #for di in reversed(range(rtdose.pixel_array.shape[0])):
         for di in range(rtdose.pixel_array.shape[0]):
             for yi in range(rtdose.pixel_array.shape[1]):
-                rtdose.pixel_array[di][yi].tofile(f)
+                pixels = rtdose.pixel_array[di][yi].astype(np.uint16)
+                pixels.tofile(f)
     _write_vti_file(filename, doseinfo)
     return doseinfo
 
@@ -304,7 +309,8 @@ def _write_vti_file(filename, info, origin=None):
             vti.metadata[f] = info[f]
     vti.origin = origin or info.ImagePositionPatient
     vti.pointData.arrays[0].data.size = info.Rows * info.Columns * info.Count
-    vti.pointData.arrays[0].data.dataType = 'Int{}Array'.format(info.BitsAllocated)
+    #vti.pointData.arrays[0].data.dataType = 'Int{}Array'.format(info.BitsAllocated)
+    vti.pointData.arrays[0].data.dataType = 'Uint16Array'
     pkio.unchecked_remove(filename)
     with ZipFile(filename, 'w') as vti_zip:
         vti_zip.writestr('index.json', json.dumps(vti))

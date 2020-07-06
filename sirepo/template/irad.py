@@ -28,18 +28,11 @@ _FRAME_FILENAME = PKDict({
 
 def get_data_file(run_dir, model, frame, **kwargs):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    path = lib_file_for_sim(data, _FRAME_FILENAME[frame])
+    path = pkio.py_path(_SIM_DATA.lib_file_for_sim(data, _FRAME_FILENAME[frame]))
     if not path.exists() and frame == _SCHEMA.constants.dose2FrameId:
         # no alternate dose exists, use main dose instead
-        path = lib_file_for_sim(data, RTDOSE_FILE)
+        path = pkio.py_path(_SIM_DATA.lib_file_for_sim(data, RTDOSE_FILE))
     return PKDict(filename=path);
-
-
-def lib_file_for_sim(data, filename):
-    return pkio.py_path('{}-{}'.format(
-        data.models.simulation.libFilePrefix,
-        filename,
-    ))
 
 
 def write_parameters(data, run_dir, is_parallel):
