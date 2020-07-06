@@ -30,9 +30,9 @@ import scipy.constants
 import sirepo.sim_data
 
 
-MADX_INPUT_FILE = 'madx.in'
+MADX_INPUT_FILE = 'in.madx'
 
-MADX_OUTPUT_FILE = 'madx.out'
+MADX_LOG_FILE = 'madx.log'
 
 _INITIAL_REPORTS = ['twissEllipseReport', 'bunchReport']
 
@@ -152,12 +152,12 @@ def get_application_data(data, **kwargs):
             data.result = v
         return data
     if data.method == 'recompute_rpn_cache_values':
-        cv(data.variables).recompute_cache(data.cache)
+        cv.recompute_cache(data.cache)
         return data
     if data.method == 'validate_rpn_delete':
         model_data = simulation_db.read_json(
             simulation_db.sim_data_file(data.simulationType, data.simulationId))
-        data.error = cv(data.variables).validate_var_delete(
+        data.error = cv.validate_var_delete(
             data.name,
             model_data,
             _SCHEMA
@@ -187,6 +187,12 @@ def is_initial_report(rpt):
 
 def madx_code_var(variables):
     return _code_var(variables)
+
+
+def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
+    if success_exit:
+        return None
+    return _parse_madx_log(run_dir)
 
 
 def prepare_for_client(data):
@@ -308,7 +314,6 @@ def _extract_report_bunchReport(data, run_dir):
         PKDict(
             x_label=labels[0],
             y_label=labels[1],
-            title='BUNCH',
         )
     )
 
@@ -335,7 +340,6 @@ def _extract_report_ptcAnimation(data, run_dir, filename):
         PKDict(
             x_label=_FIELD_LABEL[m.x],
             y_label=_FIELD_LABEL[m.y],
-            title=data.models.simulation.name,
         ),
     )
 
@@ -381,7 +385,7 @@ def _extract_report_twissEllipseReport(data, run_dir):
         plots,
         {},
         PKDict(
-            title=f'{data.models.simulation.name} a{dim} = {a} b{dim} = {b} g{dim} = {g}',
+            title=f'a{dim} = {a} b{dim} = {b} g{dim} = {g}',
             y_label='',
             x_label=f'{dim} [m]'
         )
@@ -403,7 +407,10 @@ def _extract_report_twissReport(data, run_dir, filename=_TWISS_OUTPUT_FILE):
         _to_floats(t[x]),
         plots,
         m,
-        PKDict(title=data.models.simulation.name, y_label='', x_label=_FIELD_LABEL[x])
+        PKDict(
+            y_label='',
+            x_label=_FIELD_LABEL[x],
+        )
     )
 
 
@@ -573,6 +580,19 @@ def _output_info(run_dir):
                 filename=n,
                 isHistogram='twiss' not in f.filename,
             ))
+    return res
+
+
+def _parse_madx_log(run_dir):
+    path = run_dir.join(MADX_LOG_FILE)
+    if not path.exists():
+        return ''
+    res = ''
+    with pkio.open_text(str(path)) as f:
+        for line in f:
+            if re.search(r'^\++ (error|warning):', line, re.IGNORECASE):
+                line = re.sub('^\++ ', '', line)
+                res += line + "\n"
     return res
 
 

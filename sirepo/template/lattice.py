@@ -66,6 +66,8 @@ class ElementIterator(ModelIterator):
             if value == default_value:
                 return True
             return str(value) == str(default_value)
+        if value is not None:
+            return False
         return True
 
 

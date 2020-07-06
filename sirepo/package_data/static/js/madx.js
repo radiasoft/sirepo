@@ -58,6 +58,7 @@ SIREPO.app.config(function() {
 
 SIREPO.app.factory('madxService', function(appState, commandService, requestSender, rpnService, $rootScope) {
     var self = {};
+    rpnService.isCaseInsensitive = true;
 
     self.computeModel = function(analysisModel) {
         return 'animation';
@@ -203,11 +204,11 @@ SIREPO.app.controller('CommandController', function(commandService, panelState) 
     var self = this;
     self.activeTab = 'basic';
     self.basicNames = [
-        'beam', 'option', 'resbeam',
+        'beam', 'constraint', 'lmdif', 'match', 'endmatch', 'option',
         'ptc_create_layout', 'ptc_create_universe', 'ptc_end',
-        'ptc_normal', 'ptc_observe', 'ptc_start', 'ptc_track',
-        'ptc_track_end', 'select', 'set', 'show', 'sodd',
-        'twiss',
+        'ptc_normal', 'ptc_observe', 'ptc_savebeta', 'ptc_start', 'ptc_select',
+        'ptc_track', 'ptc_track_end', 'resbeam', 'select', 'set', 'show',
+        'sodd', 'twiss', 'vary',
     ];
     self.advancedNames = [];
 
@@ -241,16 +242,6 @@ SIREPO.app.controller('VisualizationController', function(appState, madxService,
 
     function cleanFilename(fn) {
         return fn.replace(/\.(?:tfs)/g, '');
-    }
-
-    function defaultYColumn(columns, xCol) {
-        for (var i = 0; i < columns.length; i++) {
-            // Ignore "ElementOccurence" column
-            if (columns[i].indexOf('Element') < 0 && columns[i] != xCol ) {
-                return columns[i];
-            }
-        }
-        return columns[1];
     }
 
     function handleStatus(data) {
@@ -387,9 +378,6 @@ SIREPO.app.directive('elementAnimationModalEditor', function(appState, panelStat
             '<div data-modal-editor="" data-view-name="{{ viewName }}" data-model-data="modelAccess"></div>',
         ].join(''),
         controller: function($scope) {
-            var isFirstVisit = true;
-            var plotRangeWatchers = [];
-
             $scope.modelKey = $scope.reportInfo.modelAccess.modelKey;
             $scope.viewName = $scope.reportInfo.viewName;
             $scope.modelAccess = {

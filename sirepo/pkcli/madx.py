@@ -34,6 +34,5 @@ def _run_madx():
     pksubprocess.check_call_with_signals(
         ['madx', template.MADX_INPUT_FILE],
         msg=pkdlog,
-        output=template.MADX_OUTPUT_FILE,
+        output=template.MADX_LOG_FILE,
     )
-
