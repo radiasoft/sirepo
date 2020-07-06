@@ -38,7 +38,8 @@
                 "dpx": -0.281,
                 "dpy": 0,
                 "dx": -2.57,
-                "dy": 0
+                "dy": 0,
+                "file": "1"
             },
             {
                 "_id": 110,
@@ -97,6 +98,11 @@
                 "name": "PT1"
             }
         ],
+        "ptcAnimation114": {
+            "x": "x",
+            "y": "px",
+            "histogramBins": 200
+        },
         "elements": [
             {
                 "_id": 101,
@@ -152,11 +158,6 @@
                 "value": 7.84
             }
         ],
-        "ptcAnimation": {
-            "x": "x",
-            "y": "px",
-            "histogramBins": 200
-        },
         "simulation": {
             "activeBeamlineId": 106,
             "documentationUrl": "",
@@ -166,13 +167,6 @@
             "notes": "",
             "numberOfParticles": 1000,
             "visualizationBeamlineId": 106
-        },
-        "twissAnimation": {
-            "includeLattice": "1",
-            "x": "s",
-            "y1": "betx",
-            "y2": "bety",
-            "y3": "dx"
         },
         "twissEllipseReport1": {
             "dim": "x",
