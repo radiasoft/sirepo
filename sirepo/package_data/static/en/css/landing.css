@@ -93,9 +93,6 @@
 .landing a:focus {
   text-decoration: none;
 }
-.landing img {
-  max-width: 100%;
-}
 .landing .btn-link {
   position: relative;
   display: inline-block;
@@ -705,10 +702,18 @@
   background-color: white;
   padding-bottom: 40px;
 }
+.landing .public-plans {
+  display: flex;
+  margin: 0 -15px;
+}
 .landing .public-plans .plan {
   border: 2px solid black;
   border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  margin: 0 15px;
   overflow: hidden;
+  width: calc((100% / 3) - 30px);
 }
 .landing .public-plans .plan .plan-name {
   background-position: center bottom;
@@ -721,6 +726,7 @@
   color: #00a2c5;
 }
 .landing .public-plans .plan ul {
+  flex: 1;
   list-style-type: none;
   padding: 15px;
 }
@@ -1003,6 +1009,12 @@
     width: 200%;
     margin-left: -50%;
   }
+  .landing .header-decoration::before {
+    left: -30px;
+  }
+  .landing .header-decoration::after {
+    right: -30px;
+  }
   .landing .get-started .get-started-next,
   .landing .get-started .get-started-prev {
     position: absolute;
@@ -1048,8 +1060,12 @@
   .landing .pricing-plans .btn-link {
     margin: 24px 0;
   }
+  .landing .public-plans {
+    margin: 0 -15px;
+  }
   .landing .public-plans .plan {
-    margin-bottom: 32px;
+    margin: 0 5px;
+    width: calc((100% / 3) - 10px);
   }
   .landing .public-plans .btn-link {
     margin: 24px;
@@ -1137,6 +1153,14 @@
   }
   .landing .header-decoration::after {
     display: none;
+  }
+  .landing .public-plans {
+    display: block;
+    margin: 0;
+  }
+  .landing .public-plans .plan {
+    margin: 0 auto 32px;
+    width: 100%;
   }
   .landing .simulations .simulation-items {
     flex-direction: column;
