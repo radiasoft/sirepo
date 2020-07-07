@@ -38,6 +38,8 @@ WANT_BROWSER_FRAME_CACHE = True
 
 _ELEGANT_SEMAPHORE_FILE = 'run_setup.semaphore'
 
+_MPI_IO_WRITE_BUFFER_SIZE = '1048576'
+
 _FIELD_LABEL = PKDict(
     x='x [m]',
     xp="x' [rad]",
@@ -81,6 +83,9 @@ class CommandIterator(lattice.ElementIterator):
         super(CommandIterator, self).start(model)
         if model._type == 'run_setup':
             self.fields.append(['semaphore_file', _ELEGANT_SEMAPHORE_FILE])
+        elif model._type == 'global_settings':
+            self.fields.append(['mpi_io_write_buffer_size', _MPI_IO_WRITE_BUFFER_SIZE])
+
 
 class OutputFileIterator(lattice.ModelIterator):
     def __init__(self):
@@ -706,7 +711,8 @@ def _generate_bunch_simulation(data, v):
 def _generate_commands(filename_map, util):
     commands = util.iterate_models(
         CommandIterator(filename_map, _format_field_value),
-        'commands').result
+        'commands',
+    ).result
     res = ''
     for c in commands:
         res +=  '\n' + '&{}'.format(c[0]._type) + '\n'
@@ -717,6 +723,14 @@ def _generate_commands(filename_map, util):
 
 
 def _generate_full_simulation(data, v):
+    if not LatticeUtil.find_first_command(data, 'global_settings'):
+        data.models.commands.insert(
+            0,
+            PKDict(
+                _id=_SIM_DATA.elegant_max_id(data) + 1,
+                _type='global_settings',
+            ),
+        )
     util = LatticeUtil(data, _SCHEMA)
     if data.models.simulation.backtracking == '1':
         _setup_backtracking(util)

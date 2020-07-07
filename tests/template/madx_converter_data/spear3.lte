@@ -72,6 +72,10 @@ lattice_file = """
 
 elegant_file = """
 
+&global_settings
+  mpi_io_write_buffer_size = 1048576,
+&end
+
 &run_setup
   semaphore_file = run_setup.semaphore,
   centroid = "run_setup.centroid.sdds",

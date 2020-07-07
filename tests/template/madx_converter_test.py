@@ -16,23 +16,25 @@ def test_from_elegant_to_madx_and_back():
     from pykern.pkunit import pkeq
     from sirepo.template import elegant, madx, madx_converter, madx_parser
 
-    with pkunit.save_chdir_work():
+    with pkunit.save_chdir_work() as d:
         for name in ('SPEAR3', 'Compact Storage Ring', 'Los Alamos Proton Storage Ring'):
             data = _example_data(name)
             mad = madx_converter.to_madx(elegant.SIM_TYPE, data)
             outfile = name.lower().replace(' ', '-') + '.madx'
             actual = madx.python_source_for_model(mad, None)
             pkio.write_text(outfile, actual)
-            expect = pkio.read_text(pkunit.data_dir().join(outfile))
-            pkeq(expect, actual)
+            e = pkunit.data_dir().join(outfile)
+            expect = pkio.read_text(e)
+            pkeq(expect, actual, 'diff {} {}', e, d.join(outfile))
 
             data = madx_parser.parse_file(actual)
             lattice = madx_converter.from_madx(elegant.SIM_TYPE, data)
             outfile = name.lower().replace(' ', '-') + '.lte'
             actual = elegant.python_source_for_model(lattice, None)
             pkio.write_text(outfile, actual)
-            expect = pkio.read_text(pkunit.data_dir().join(outfile))
-            pkeq(expect, actual)
+            e = pkunit.data_dir().join(outfile)
+            expect = pkio.read_text(e)
+            pkeq(expect, actual, 'diff {} {}', e, d.join(outfile))
 
 
 def _example_data(simulation_name):
@@ -41,4 +43,4 @@ def _example_data(simulation_name):
     for data in simulation_db.examples(elegant.SIM_TYPE):
         if data.models.simulation.name == simulation_name:
             return simulation_db.fixup_old_data(data)[0]
-    assert False
+    raise AssertionError(f'failed to find example={simulation_name}')
