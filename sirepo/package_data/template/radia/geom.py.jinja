@@ -43,6 +43,8 @@ def _add_object(o):
             if m.mapId not in id_map:
                 # have not added this yet
                 grp.append(_add_object(m))
+            else:
+                grp.append(id_map[m.mapId] )
         g_id = radia_tk.build_container(grp)
     if o.symmetryType is not 'none':
         radia_tk.apply_symmetry(g_id, o.symmetryType, _split_comma_field(o.symmetryPlane, 'float'))
@@ -57,9 +59,7 @@ g_id = radia_examples.build('{{ geomName }}')
 id_map = PKDict()
 for obj in {{ objects }}:
     o = PKDict(obj)
-    if o.model not in _MODELS:
-        continue
-    if o.mapId in id_map:
+    if o.model not in _MODELS or o.mapId in id_map:
         continue
     g_id = _add_object(o)
     id_map[o.mapId] = g_id

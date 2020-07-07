@@ -337,6 +337,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
 
     function updateObjectEditor() {
         var o = self.selectedObject;  //appState.models.geomObject;
+        if (! o) {
+            return;
+        }
         panelState.showField(
             'geomObject',
             'division',
@@ -1178,7 +1181,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function buildScene() {
-                srdbg('buildScene', sceneData);
+                //srdbg('buildScene', sceneData);
                 var name = sceneData.name;
                 var data = sceneData.data;
 
@@ -1232,7 +1235,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         bundle.actor.getProperty().setLighting(isPoly);
                         var info = addActor(id, gname, bundle.actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
                         gColor = getColor(info);
-                        srdbg('add obj', gObj, isPoly);
+                        //srdbg('add obj', gObj, isPoly);
                         if (isPoly && $.isEmptyObject(gObj)) {
                             gObj = appState.setModelDefaults(gObj, 'geomObject');
                             gObj.name = id;
