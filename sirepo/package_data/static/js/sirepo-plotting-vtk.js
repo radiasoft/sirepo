@@ -1045,9 +1045,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
                     if (o.groupId) {
                         if (! groupShapes[o.groupId]) {
-                            var gObj = $scope.source.getObject(o.groupId);
                             groupShapes[o.groupId] = {
-                                color: gObj.color,
+                                color: $scope.source.getObject(o.groupId).color,
                                 elev: elevation,
                                 id: o.groupId,
                                 objs: [],
