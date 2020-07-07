@@ -157,10 +157,6 @@
     }
   }
 
-  img {
-    max-width: 100%;
-  }
-
   .btn-link {
     position: relative;
     display: inline-block;
@@ -902,10 +898,16 @@
   }
 
   .public-plans {
+    display: flex;
+    margin: 0 -15px;
     .plan {
       border: 2px solid black;
       border-radius: 15px;
+      display: flex;
+      flex-direction: column;
+      margin: 0 15px;
       overflow: hidden;
+      width: calc((100% / 3) - 30px);
 
       .plan-name {
         background-position: center bottom;
@@ -920,6 +922,7 @@
       }
 
       ul {
+        flex: 1;
         list-style-type: none;
         padding: 15px;
 
