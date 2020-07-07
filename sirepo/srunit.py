@@ -410,7 +410,12 @@ class _TestClient(flask.testing.FlaskClient):
             )
             if r.state == 'completed':
                 return r
-            cancel = r.get('nextRequest')
+            pkunit.pkok(
+                r.state in ('running', 'pending'),
+                'runSimulation did not start: reply={}',
+                r,
+            )
+            cancel = r.nextRequest
             for i in range(timeout):
                 if i != 0:
                     r = self.sr_post('runStatus', r.nextRequest)
