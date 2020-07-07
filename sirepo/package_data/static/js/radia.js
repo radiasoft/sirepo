@@ -311,7 +311,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     self.selectObject = function(o) {
         if (o) {
             self.selectedObject = o;
-            appState.models[o.model] = o;
+            appState.models[panelState.getBaseModelKey(o.model)] = o;
         }
         return o;
     };
@@ -336,7 +336,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     }
 
     function updateObjectEditor() {
-        var o = appState.models.geomObject;
+        var o = self.selectedObject;  //appState.models.geomObject;
         panelState.showField(
             'geomObject',
             'division',
@@ -897,7 +897,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
             };
 
             $scope.hasNoGroup = function(o) {
-                return o.id !== $scope.model.id && ! o.groupId;
+                return o.id !== $scope.model.id && (! o.groupId || o.groupId === '');
             };
 
             $scope.removeObject = function(o) {

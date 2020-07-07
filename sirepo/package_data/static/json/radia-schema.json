@@ -319,11 +319,15 @@
             "title": "Group",
             "basic": [
                 "name",
+                "symmetryType",
+                "symmetryPlane",
                 "color",
                 "members"
             ],
             "advanced": [
                 "name",
+                "symmetryType",
+                "symmetryPlane",
                 "color",
                 "members"
             ]
