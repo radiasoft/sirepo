@@ -1146,7 +1146,7 @@ SIREPO.app.directive('conductorTable', function(appState, warpvndService) {
             };
             $scope.toggleConductorType = function(conductorType) {
                 collapsed[conductorType.id] = ! collapsed[conductorType.id];
-            };
+            };'fill:'
             appState.whenModelsLoaded($scope, updateConductors);
             $scope.$on('conductors.changed', updateConductors);
         },

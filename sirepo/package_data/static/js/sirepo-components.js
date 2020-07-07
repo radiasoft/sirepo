@@ -1054,51 +1054,6 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
     };
 });
 
-SIREPO.app.directive('groupEditor', function(appState) {
-    return {
-        restrict: 'A',
-        scope: {
-            field: '=',
-            model: '=',
-            objects: '<',
-        },
-        template: [
-            '<table table-layout: fixed" class="table table-hover">',
-                '<tr>',
-                  '<th colspan="2">Contents</th>',
-                '</tr>',
-                '<tr data-ng-repeat="mObj in field">',
-                    '<td>{{ mObj.name }}</td>',
-                    '<td>Delete</td>',
-                '</tr>',
-                '<tr>',
-                  '<th>Others</th>',
-                '</tr>',
-                '<tr data-ng-repeat="obj in objects | filter:hasNoGroup">',
-                    '<td>{{ obj.name }}</td>',
-                    '<td>Add</td>',
-                '</tr>',
-            '</table>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.appState = appState;
-            if (! $scope.field) {
-                $scope.field = [];
-            }
-            srdbg('got sc', $scope);
-
-            $scope.addObject = function(o) {
-                o.groupId = $scope.model.id;
-                $scope.model.objects.push(o);
-            };
-
-            $scope.hasNoGroup = function(o) {
-                return ! o.groupId;
-            };
-        },
-    };
-});
-
 SIREPO.app.directive('helpButton', function($window) {
     var HELP_WIKI_ROOT = 'https://github.com/radiasoft/sirepo/wiki/' + SIREPO.APP_NAME.toUpperCase() + '-';
     return {

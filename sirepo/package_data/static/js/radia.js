@@ -13,7 +13,7 @@ SIREPO.app.config(function() {
           '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
         '</div>',
         '<div data-ng-switch-when="Group" class="col-sm-7">',
-          '<div data-group-editor="" data-field="model[field]" data-model="model" data-objects="appState.models.geometry.objects"></div>',
+          '<div data-group-editor="" data-field="model[field]" data-model="model"></div>',
         '</div>',
     ].join('');
     SIREPO.appPanelHeadingButtons = [
@@ -96,38 +96,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
             appState.models[t].ctrZ = (self.objBounds[5] + self.objBounds[4]) / 2.0;
         }
     };
-
-    /*
-    self.downloadPath = function(path, field) {
-        //srdbg('dl', path);
-        requestSender.getApplicationData(
-            {
-                fieldPaths: $scope.paths,
-                method: 'get_field_integrals',
-                simulationId: appState.models.simulation.simulationId,
-            },
-            function(d) {
-                $scope.integrals = d;
-            });
-
-        var CSV_HEADING = ['x', 'y', 'z', field + 'x', field + 'y', field + 'z'];
-        var fileName = panelState.fileNameFromText(path.name + ' ' + field, 'csv');
-        var points = [CSV_HEADING];
-        $scope.paths.forEach(function (p) {
-            var row = [];
-            row.push(
-                p.name,
-                p.beginX, p.beginY, p.beginZ, p.endX, p.endY, p.endZ
-            );
-            $scope.INTEGRABLE_FIELD_TYPES.forEach(function (t) {
-                row = row.concat($scope.integrals[p.name][t]);
-            });
-            points.push(row);
-        });
-        saveAs(new Blob([d3.csv.format(points)], {type: "text/csv;charset=utf-8"}), fileName);
-    };
-*/
-
+    
     self.getObject = function(id) {
         var objs = appState.models.geometry.objects || [];
         for (var i in objs) {
@@ -136,6 +105,10 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
             }
         }
         return null;
+    };
+
+    self.getObjects = function() {
+        return appState.models.geometry.objects || [];
     };
 
     self.getPathType = function() {
@@ -268,6 +241,16 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     self.selectedObject = null;
     self.toolbarItems = SIREPO.APP_SCHEMA.constants.toolbarItems;
 
+    self.deleteObject = function(o) {
+        var oIdx = appState.models.geometry.objects.indexOf(o);
+        if (oIdx < 0) {
+            return;
+        }
+        srdbg('delete obj', o, 'at', oIdx);
+        //appState.geometry.objects.splice(oIdx, 1);
+    };
+
+        
     self.editItem = function(o) {
         self.editObject(o);
     };
@@ -281,14 +264,16 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     };
 
     self.editObject = function(o) {
-        srdbg('RADIA', o);
         self.selectObject(o);
-        //panelState.showModalEditor('geomObject');
         panelState.showModalEditor(o.model);
     };
 
     self.getObject = function(id) {
         return radiaService.getObject(id);
+    };
+
+    self.getObjects = function() {
+        return radiaService.getObjects();
     };
 
     self.isEditable = function() {
@@ -326,7 +311,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     self.selectObject = function(o) {
         if (o) {
             self.selectedObject = o;
-            appState.models.geomObject = o;
+            appState.models[o.model] = o;
         }
         return o;
     };
@@ -866,6 +851,63 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
            appState.whenModelsLoaded($scope, function() {
                $scope.paths = appState.models.fieldPaths.paths;
            });
+        },
+    };
+});
+
+SIREPO.app.directive('groupEditor', function(appState, radiaService) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            model: '=',
+        },
+        template: [
+            '<table table-layout: fixed" class="table table-hover">',
+                '<tr data-ng-show="field.length > 0">',
+                  '<th>Members</th>',
+                  '<th></th>',
+                '</tr>',
+                '<tr data-ng-repeat="mObj in field">',
+                    //'<td>{{ mObj.name }}</td>',
+                    '<td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ mObj.name }}</span></div></td>',
+                    '<td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar">  <button data-ng-click="removeObject(mObj)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
+                '</tr>',
+                '<tr>',
+                  '<th>Ungrouped</th>',
+                '</tr>',
+                '<tr data-ng-repeat="obj in objects | filter:hasNoGroup">',
+                  '<td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ obj.name }}</span></div></td>',
+                  //'<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ element.description }}</span></td>',
+                  //'<td style="text-align: right">{{ elementLength(element) }}</td>',
+                  '<td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="addObject(obj)"><span class="glyphicon glyphicon-plus"></span></button> </div><div></td>',
+                '</tr>',
+            '</table>',
+        ].join(''),
+        controller: function($scope) {
+
+            $scope.objects = appState.models.geometry.objects;
+            if (! $scope.field) {
+                $scope.field = [];
+            }
+
+            $scope.addObject = function(o) {
+                o.groupId = $scope.model.id;
+                $scope.field.push(o);
+            };
+
+            $scope.hasNoGroup = function(o) {
+                return o.id !== $scope.model.id && ! o.groupId;
+            };
+
+            $scope.removeObject = function(o) {
+                o.groupId = null;
+                var oIdx = $scope.field.indexOf(o);
+                if (oIdx < 0) {
+                    return;
+                }
+                $scope.field.splice(oIdx, 1);
+            };
         },
     };
 });

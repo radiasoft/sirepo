@@ -187,13 +187,12 @@
         },
         "geomGroup": {
             "_super": ["_", "model", "radiaObject"],
-            "layoutShape":  ["_", "String", ""],
-            "objects": ["_", "Group", []]
+            "layoutShape":  ["_", "String", "rect"],
+            "members": ["_", "Group", []]
         },
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
             "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x (mm), y (mm), z (mm)"],
-            "color": ["Color", "Color", "#cccccc"],
             "division": ["Num Divisions", "IntStringArray", "1, 1, 1", "", "Nx, Ny, Nz"],
             "doDivide": ["Divide", "Boolean", "1"],
             "id": ["_", "String", ""],
@@ -209,6 +208,12 @@
             "baseGroup": [""],
             "gap": ["Gap", "Float", 1.0],
             "numPeriods": ["Number of Periods", "Integer", 1, "", 1]
+        },
+        "layoutObject": {
+            "color": ["Color", "Color", "#cccccc"],
+            "groupId": ["_", "String", ""],
+            "id": ["_", "String", ""],
+            "layoutShape":  ["_", "String", "rect"]
         },
         "linePath": {
             "_super": ["_", "model", "fieldPath"],
@@ -244,9 +249,7 @@
             "name": ["Name", "String", ""]
         },
         "radiaObject": {
-            "id": ["_", "String", ""],
-            "groupId": ["_", "String", ""],
-            "layoutShape":  ["_", "String", "rect"],
+            "_super": ["_", "model", "layoutObject"],
             "name": ["Name", "String", ""],
             "symmetryType": ["Symmetry", "SymmetryType", "none"],
             "symmetryPlane": ["Symmetry Plane", "FloatStringArray", "1.0, 0.0, 0.0", "", "x, y, z"]
@@ -316,11 +319,13 @@
             "title": "Group",
             "basic": [
                 "name",
-                "objects"
+                "color",
+                "members"
             ],
             "advanced": [
                 "name",
-                "objects"
+                "color",
+                "members"
             ]
         },
         "geomObject": {

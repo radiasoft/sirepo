@@ -55,19 +55,17 @@
       <div class="panel panel-info">
         <div class="panel-heading"><span class="sr-panel-heading">My Objects</span></div>
         <div class="panel-body">
-            <table data-ng-show="objects.length" style="width: 100%;  table-layout: fixed" class="table table-hover">
-              <colgroup>
-                <col>
-                <col style="width: 12ex">
-              </colgroup>
+            <table data-ng-show="objects.length" style="width: 100%;  table-layout: fixed" class="table">
               <thead>
                 <tr>
                   <th>Name</th>
+                  <th></th>
                 </tr>
               </thead>
-              <tbody data-ng-repeat="object in objects track by object.id">
+              <tbody data-ng-repeat="obj in objects track by obj.id">
                 <tr>
-                  <td data-ng-click="editObject(object)" colspan="2" style="padding-left: 1em; cursor: pointer; white-space: nowrap"><div class="badge sr-badge-icon"><span>{{ object.name }}</span></div> </td>
+                  <td data-ng-click="editObject(obj)" style="padding-left: 1em; cursor: pointer; white-space: nowrap"><span>{{ obj.name }}</span></td>
+                  <td data-ng-click= "deleteObject(obj)" style="padding-left: 1em; cursor: pointer; white-space: nowrap"><span class="glyphicon glyphicon-remove"></span> </td>
                 </tr>
               </tbody>
             </table>
