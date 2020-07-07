@@ -339,7 +339,7 @@ SIREPO.app.directive('appHeader', function(appState) {
             nav: '=appHeader',
         },
         template: [
-            '<div data-app-header-brand="nav" data-app-url="/old#/rslinac"></div>',
+            '<div data-app-header-brand="nav"></div>',
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',

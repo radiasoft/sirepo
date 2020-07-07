@@ -1337,10 +1337,13 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
     ].join('');
 
     function navHeader(mode, modeTitle) {
+        var appInfo = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME];
         return [
             '<div class="navbar-header">',
               '<a class="navbar-brand" href="/en/landing.html"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
-              '<div class="navbar-brand"><a href="/old#/srw">',SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName,'</a>',
+              '<div class="navbar-brand">',
+                '<a class="hidden-md hidden-sm" href="/light">', appInfo.longName, '</a>',
+                '<a class="hidden-xs hidden-lg hidden-xl" href="/light">', appInfo.shortName, '</a>',
                 '<span class="hidden-xs"> - </span>',
                 '<a class="hidden-xs" href="/light#/' + mode + '" class="hidden-xs">' + modeTitle + '</a>',
                 '<span class="hidden-xs" data-ng-if="nav.sectionTitle()"> - </span>',
