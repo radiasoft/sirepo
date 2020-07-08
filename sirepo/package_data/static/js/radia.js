@@ -806,7 +806,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
     };
 });
 
-SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, radiaService, radiaVtkUtils, requestSender, utilities, vtkPlotting, vtkUtils, $interval) {
+SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, radiaService, radiaVtkUtils, requestSender, utilities, vtkPlotting, vtkUtils, $document, $interval) {
 
     return {
         restrict: 'A',
@@ -1669,6 +1669,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             $scope.eventHandlers = {
+                keypress: function (evt) {
+                    // do nothing?  Stops vtk from changing render based on key presses
+                },
                 //ondblclick: function(evt) {
                 //    vtkAPI.setCam();
                 //}
@@ -1698,6 +1701,24 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 ptPicker.setPickFromList(true);
                 ptPicker.initializePickList();
                 renderWindow.getInteractor().onLeftButtonPress(handlePick);
+                //var ls = d.objects.listeners;
+                //var l = cntnr.addEventListener;
+                //srdbg('l', l);
+                //var b = angular.element($($document).find('body'))[0];
+                //srdbg('body', b, b.addEventListener);
+                //for (var evt in d.objects.listeners) {
+                //    var l = d.objects.listeners[evt];
+                //    srdbg('e', evt, 'l', l);
+                //    b.removeEventListener(e, l);
+                //}
+                //cntnr.addEventListener = function(type, listener) {
+                //    srdbg('TYPEE', type, 'LISNR', listener);
+                //    //l(type, listener);
+                //};
+                //cntnr.removeEventListener('keypress', renderWindow.getInteractor().handleKeyPress);
+                //renderWindow.getInteractor().unbindEvents();
+                //srdbg(renderWindow.getInteractor());
+                //srdbg(renderWindow.getInteractor().getInteractorStyle());
                 init();
             });
 
