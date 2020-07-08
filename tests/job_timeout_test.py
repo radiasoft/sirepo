@@ -62,7 +62,7 @@ def test_srw(fc):
             raise AssertionError('cancel failed')
 
 
-def test_myapp_analysis(fc):
+def issue_2647_test_myapp_analysis(fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdp
 
