@@ -221,6 +221,10 @@ def undulator_example():
         """
         zero = [0, 0, 0]
 
+        # colors
+        c_pole = [1, 0, 1]
+        c_block = [0, 1, 1]
+
         # full magnet will be assembled into this Radia group
         grp = radia.ObjCnt([])
 
@@ -230,7 +234,7 @@ def undulator_example():
         pole = radia.ObjFullMag(
             [pole_lengths[0] / 4, y, -pole_lengths[2] / 2 - gap_height / 2],
             [pole_lengths[0] / 2, pole_lengths[1] / 2, pole_lengths[2]],
-            zero, pole_segs, grp, pole_props, zero
+            zero, pole_segs, grp, pole_props, c_pole
         )
         y += pole_lengths[1] / 4
 
@@ -249,13 +253,13 @@ def undulator_example():
                 [
                     block_lengths[0] / 2, block_lengths[1], block_lengths[2]
                 ],
-                init_m, block_segs, grp, block_props, zero
+                init_m, block_segs, grp, block_props, c_block
             )
             y += (block_lengths[1] + pole_lengths[1]) / 2
             pole = radia.ObjFullMag(
                 [pole_lengths[0] / 4, y, -pole_lengths[2] / 2 - gap_height / 2],
                 [pole_lengths[0] / 2, pole_lengths[1], pole_lengths[2]],
-                zero, pole_segs, grp, pole_props, zero
+                zero, pole_segs, grp, pole_props, c_pole
             )
             y += pole_lengths[1] / 2
 
@@ -271,7 +275,7 @@ def undulator_example():
             [
                 block_lengths[0] / 2, block_lengths[1] / 2, block_lengths[2]
             ],
-            init_m, block_segs, grp, block_props, zero)
+            init_m, block_segs, grp, block_props, c_block)
 
         # use mirror symmetry to define the full undulator
         radia.TrfZerPerp(grp, zero, [1, 0, 0])  # reflect in the (y,z) plane
