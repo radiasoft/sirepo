@@ -82,9 +82,6 @@ def test_myapp_basic(fc):
     from pykern import pkunit, pkcompat
     from pykern.pkunit import pkok
 
-    r = fc.get('/old')
-    assert 'LandingPageController' in pkcompat.from_bytes(r.data), \
-        'Top level document is the landing page'
     r = fc.get('/robots.txt')
     pkunit.pkre('elegant.*myapp.*srw', pkcompat.from_bytes(r.data))
 
