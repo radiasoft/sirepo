@@ -14,7 +14,7 @@ _MAX_SECS_PARALLEL_PREMIUM = '4'
 def setup_module(module):
     os.environ.update(
         SIREPO_JOB_SUPERVISOR_MAX_SECS_PARALLEL_PREMIUM=_MAX_SECS_PARALLEL_PREMIUM,
-        SIREPO_JOB_SUPERVISOR_MAX_SECS_ANALYSIS='2',
+        SIREPO_JOB_SUPERVISOR_MAX_SECS_ANALYSIS='3',
     )
 
 
@@ -62,7 +62,7 @@ def test_srw(fc):
             raise AssertionError('cancel failed')
 
 
-def issue_2647_test_myapp_analysis(fc):
+def test_myapp_analysis(fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdp
 
