@@ -1386,14 +1386,19 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
               rightNav,
             '</div>',
             '<div data-ng-if="srwService.isApplicationMode(\'default\')">',
-              '<div data-app-header-brand="nav"></div>',
+              '<div data-app-header-brand="" data-app-url="{{ ::appURL() }}"></div>',
               '<div class="navbar-left" data-app-header-left="nav"></div>',
               rightNav,
             '</div>',
         ].join(''),
         controller: function($scope) {
-
             $scope.srwService = srwService;
+
+            $scope.appURL = function() {
+                return SIREPO.APP_HOST == 'BNL'
+                    ? '/light'
+                    : '/en/xray-beamlines.html';
+            };
 
             $scope.showImportModal = function() {
                 $('#srw-simulation-import').modal('show');

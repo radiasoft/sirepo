@@ -1888,39 +1888,32 @@ SIREPO.app.directive('appHeaderBrand', function() {
     var appInfo = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType];
 
     function brand() {
-        var res = [
-              '<span class="hidden-md hidden-sm">', appInfo.longName, '</span>',
-              '<span class="hidden-xs hidden-lg hidden-xl">', appInfo.shortName, '</span>',
+        return [
+            '<span class="hidden-md hidden-sm">', appInfo.longName, '</span>',
+            '<span class="hidden-xs hidden-lg hidden-xl">', appInfo.shortName, '</span>',
         ].join('');
-
-        var u = {
-            elegant: '/en/particle-accelerators.html',
-            srw: '/en/xray-beamlines.html'
-        }[SIREPO.APP_NAME];
-
-        if (! u) {
-            return res;
-        }
-        return  '<a data-ng-href="' + u + '">' + res + '</a>';
     }
 
     return {
         restrict: 'A',
         scope: {
-            nav: '=appHeaderBrand',
             appUrl: '@',
         },
         template: [
             '<div class="navbar-header">',
               '<a class="navbar-brand" href="/en/landing.html"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
               '<div class="navbar-brand">',
-                brand(),
+                '<div data-ng-if="appUrl">',
+                  '<a data-ng-href="{{ appUrl }}">',
+                    brand(),
+                  '</a>',
+                '</div>',
+                '<div data-ng-if="! appUrl">',
+                  brand(),
+                '</div>',
               '</div>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
-            //TODO(rjn) need to centeralize this
-        },
     };
 });
 

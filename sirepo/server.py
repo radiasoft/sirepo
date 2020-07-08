@@ -352,11 +352,6 @@ def api_homePage(path_info=None):
     return api_staticFile('en/' + (path_info or 'landing.html'))
 
 
-@api_perm.allow_visitor
-def api_homePageOld():
-    return _render_root_page('landing-page', PKDict())
-
-
 @api_perm.require_user
 def api_newSimulation():
     req = http_request.parse_post(template=True, folder=True, name=True)
@@ -657,6 +652,8 @@ def _render_root_page(page, values):
         source_cache_key=_source_cache_key(),
         static_files=simulation_db.static_libs(),
     ))
+    if cfg.app_host:
+        values.app_host = cfg.app_host
     return http_reply.render_static(page, 'html', values, cache_ok=True)
 
 
@@ -718,4 +715,5 @@ cfg = pkconfig.init(
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
     db_dir=pkconfig.ReplacedBy('sirepo.srdb.root'),
     google_tag_manager_id=(None, str, 'enable google analytics with this id'),
+    app_host=(None, str, 'sirepo application host environment name'),
 )

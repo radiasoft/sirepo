@@ -661,7 +661,7 @@ SIREPO.app.directive('appHeader', function(appState, elegantService, latticeServ
             nav: '=appHeader',
         },
         template: [
-            '<div data-app-header-brand="nav"></div>',
+            '<div data-app-header-brand="" data-app-url="/en/particle-accelerators.html"></div>',
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',

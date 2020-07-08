@@ -105,7 +105,6 @@
         "findByNameWithAuth": "/find-by-name-auth/<simulation_type>/<application_mode>/<simulation_name>",
         "getApplicationData": "/get-application-data/?<filename>",
         "homePage": "/en/*<path_info>",
-        "homePageOld": "/old",
         "importArchive": "/import-archive",
         "importFile": "/import-file/<simulation_type>",
         "jobSupervisorPing": "/job-supervisor-ping",
