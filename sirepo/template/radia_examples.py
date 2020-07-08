@@ -183,7 +183,7 @@ def undulator_example():
 
     # magnet-block segmentation
     nsm = [1 ,3, 1]
-    #cm = [0, 1, 1]    # assign color
+    cm = [0, 1, 1]    # assign color
 
     # ~iron type Va Permendur
     iron_h = [
@@ -327,6 +327,15 @@ def wiggler_example():
     rt3 = radia.ObjRaceTrk([0., 0., 76.], [10.0, 25.0], [90., 0.], 24, n1, j1)
     rt4 = radia.ObjRaceTrk([0., 0., 76.], [25.0, 55.0], [90., 0.], 24, n1, j2)
     rt5 = radia.ObjRaceTrk([0., 0., 60.], [150.0, 166.3], [0., 0.], 39, n2, -j2)
+
+    c1 = [0.0,1.0,1.0] # blue/green
+    c2 = [1.0,0.4,0.0] # orange-red
+    thcn = 0.001
+    radia.ObjDrwAtr(rt1, c1, thcn)
+    radia.ObjDrwAtr(rt2, c2, thcn)
+    radia.ObjDrwAtr(rt3, c1, thcn)
+    radia.ObjDrwAtr(rt4, c2, thcn)
+    radia.ObjDrwAtr(rt5, c2, thcn)
 
     # assemble into a group
     geom = radia.ObjCnt([rt1, rt2, rt3, rt4, rt5])
