@@ -1373,6 +1373,10 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         v.python_file = run_dir.join('user_python.py')
         pkio.write_text(v.python_file, data.models.backgroundImport.python)
         return template_common.render_jinja(SIM_TYPE, v, 'import.py')
+    if 'Animation' in report:
+        if report in data.models and 'jobRunMode' in data.models[report]:
+            if data.models[report].jobRunMode == 'sbatch':
+                v.sbatchBackup = '1'
     v['beamlineOptics'], v['beamlineOpticsParameters'] = _generate_beamline_optics(report, data, last_id)
 
     # und_g and und_ph API units are mm rather than m
