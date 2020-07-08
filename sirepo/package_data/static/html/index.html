@@ -17,9 +17,6 @@
         APP_NAME:  '{{ app_name }}',
         APP_VERSION: '{{ app_version }}',
         SOURCE_CACHE_KEY: '{{ source_cache_key }}',
-{%- if app_host %}
-        APP_HOST: '{{ app_host }}',
-{%- endif %}
       };
 
       SIREPO.setPageLoaderVisible = function() {

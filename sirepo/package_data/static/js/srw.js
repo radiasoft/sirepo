@@ -1395,9 +1395,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
             $scope.srwService = srwService;
 
             $scope.appURL = function() {
-                return SIREPO.APP_HOST == 'BNL'
-                    ? '/light'
-                    : '/en/xray-beamlines.html';
+                return SIREPO.APP_SCHEMA.feature_config.app_url;
             };
 
             $scope.showImportModal = function() {
