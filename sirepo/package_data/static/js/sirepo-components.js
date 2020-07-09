@@ -34,10 +34,11 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
                 '<li data-ng-repeat="page in pages" role="presentation" class="{{page.class}}" data-ng-class="{active: page.isActive}"><a href data-ng-click="setActivePage(page)">{{ page.name }}</a></li>',
               '</ul>',
               '<br data-ng-if="pages" />',
-              '<div class="lead text-center" style="white-space: pre-wrap;" data-ng-if="activePage.pageDescription"><span data-text-with-math="activePage.pageDescription"</span></div>',
+              '<div class="lead text-center" style="white-space: pre-wrap;" data-ng-if="::activePage.pageDescription"><span data-text-with-math="::activePage.pageDescription"</span></div>',
               '<div data-ng-repeat="f in (activePage ? activePage.items : advancedFields)">',
-                '<div class="form-group form-group-sm" data-ng-if="! isColumnField(f)" data-model-field="f" data-form="form" data-model-name="modelName" data-model-data="modelData"></div>',
-                '<div data-ng-if="isColumnField(f)" data-column-editor="" data-column-fields="f" data-model-name="modelName" data-model-data="modelData"></div>',
+                '<div class="lead text-center" data-ng-if="::isLabel(f)" style="white-space: pre-wrap;"><span data-text-with-math="::labelText(f)"</span></div>',
+                '<div class="form-group form-group-sm" data-ng-if="::isField(f)" data-model-field="f" data-form="form" data-model-name="modelName" data-model-data="modelData"></div>',
+                '<div data-ng-if="::isColumnField(f)" data-column-editor="" data-column-fields="f" data-model-name="modelName" data-model-data="modelData"></div>',
               '</div>',
               '<div data-ng-if="wantButtons" class="row">',
                 '<div class="col-sm-12 text-center" data-buttons="" data-model-name="modelName" data-model-data="modelData" data-fields="advancedFields"></div>',
@@ -66,7 +67,21 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
             $scope.isColumnField = function(f) {
                 return typeof(f) == 'string' ? false : true;
             };
-
+            $scope.isField = function(f) {
+                if ($scope.isColumnField(f) || $scope.isLabel(f)) {
+                    return false;
+                }
+                return true;
+            };
+            $scope.isLabel = function(f) {
+                if ($scope.isColumnField(f)) {
+                    return false;
+                }
+                return f.indexOf('*') === 0;
+            };
+            $scope.labelText = function(f) {
+                return f.substring(1);
+            };
             $scope.setActivePage = function(page) {
                 if ($scope.activePage) {
                     $scope.activePage.isActive = false;
@@ -97,13 +112,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
                     $scope.pages.push(page);
                     var fields = $scope.advancedFields[i][1];
                     for (var j = 0; j < fields.length; j++) {
-                        // tab page headings are indicated with a leading '*' character
-                        if (fields[j].indexOf('*') === 0) {
-                            page.pageDescription = fields[j].substring(1);
-                        }
-                        else {
-                            page.items.push(fields[j]);
-                        }
+                        page.items.push(fields[j]);
                     }
                 }
             }
@@ -1879,39 +1888,32 @@ SIREPO.app.directive('appHeaderBrand', function() {
     var appInfo = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType];
 
     function brand() {
-        var res = [
-              '<span class="hidden-md hidden-sm">', appInfo.longName, '</span>',
-              '<span class="hidden-xs hidden-lg hidden-xl">', appInfo.shortName, '</span>',
+        return [
+            '<span class="hidden-md hidden-sm">', appInfo.longName, '</span>',
+            '<span class="hidden-xs hidden-lg hidden-xl">', appInfo.shortName, '</span>',
         ].join('');
-
-        var u = {
-            elegant: '/en/particle-accelerators.html',
-            srw: '/en/xray-beamlines.html'
-        }[SIREPO.APP_NAME];
-
-        if (! u) {
-            return res;
-        }
-        return  '<a data-ng-href="' + u + '">' + res + '</a>';
     }
 
     return {
         restrict: 'A',
         scope: {
-            nav: '=appHeaderBrand',
             appUrl: '@',
         },
         template: [
             '<div class="navbar-header">',
               '<a class="navbar-brand" href="/en/landing.html"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
               '<div class="navbar-brand">',
-                brand(),
+                '<div data-ng-if="appUrl">',
+                  '<a data-ng-href="{{ appUrl }}">',
+                    brand(),
+                  '</a>',
+                '</div>',
+                '<div data-ng-if="! appUrl">',
+                  brand(),
+                '</div>',
               '</div>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
-            //TODO(rjn) need to centeralize this
-        },
     };
 });
 
