@@ -602,7 +602,10 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
 
            appState.whenModelsLoaded($scope, function() {
                $scope.model = appState.models[$scope.modelName];
-               updateTable();
+               // wait until we have some data to update
+               $scope.$on('radiaViewer.loaded', function () {
+                    updateTable();
+               });
             });
 
         },
@@ -818,7 +821,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
     };
 });
 
-SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, radiaService, radiaVtkUtils, requestSender, utilities, vtkPlotting, vtkUtils, $document, $interval) {
+SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, radiaService, radiaVtkUtils, requestSender, utilities, vtkPlotting, vtkUtils, $document, $interval, $rootScope) {
 
     return {
         restrict: 'A',
@@ -1585,6 +1588,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setupSceneData(data) {
+                $rootScope.$broadcast('radiaViewer.loaded');
                 sceneData = data;
                 buildScene();
                 if (! initDone) {
@@ -1713,24 +1717,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 ptPicker.setPickFromList(true);
                 ptPicker.initializePickList();
                 renderWindow.getInteractor().onLeftButtonPress(handlePick);
-                //var ls = d.objects.listeners;
-                //var l = cntnr.addEventListener;
-                //srdbg('l', l);
-                //var b = angular.element($($document).find('body'))[0];
-                //srdbg('body', b, b.addEventListener);
-                //for (var evt in d.objects.listeners) {
-                //    var l = d.objects.listeners[evt];
-                //    srdbg('e', evt, 'l', l);
-                //    b.removeEventListener(e, l);
-                //}
-                //cntnr.addEventListener = function(type, listener) {
-                //    srdbg('TYPEE', type, 'LISNR', listener);
-                //    //l(type, listener);
-                //};
-                //cntnr.removeEventListener('keypress', renderWindow.getInteractor().handleKeyPress);
-                //renderWindow.getInteractor().unbindEvents();
-                //srdbg(renderWindow.getInteractor());
-                //srdbg(renderWindow.getInteractor().getInteractorStyle());
                 init();
             });
 
@@ -1747,9 +1733,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             $scope.$on('fieldPaths.changed', function () {
                 if (! $scope.model.fieldPoints) {
                     $scope.model.fieldPoints = [];
-                }
-                if (! appState.models.fieldPaths.paths || ! appState.models.fieldPaths.paths.length) {
-                    return;
                 }
                 updateViewer();
             });
