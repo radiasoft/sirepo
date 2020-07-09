@@ -127,13 +127,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
     self.getPathType = function() {
         return (appState.models.fieldTypes || {}).path;
     };
-
-    self.getPathsOfType = function(type) {
-        return ((appState.models.fieldPaths || {}).paths || []).filter(function (p) {
-            return p.type === type;
-        });
-    };
-
+    
     self.getSelectedObj = function() {
         return self.selectedObj;
     };
