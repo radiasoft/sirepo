@@ -479,23 +479,10 @@ def _correct_halo_gaussian_distribution_type(m):
 
 def _export_madx(data):
     from sirepo.template import madx, madx_converter
-    mad = madx_converter.to_madx(SIM_TYPE, data)
-    madx_beam = LatticeUtil.find_first_command(mad, 'beam')
-    madx_beam.particle = 'electron'
-    change_particle = LatticeUtil.find_first_command(data, 'change_particle')
-    if change_particle:
-        madx_beam.particle = change_particle.name
-    run_setup = LatticeUtil.find_first_command(data, 'run_setup')
-    cv = _code_var(data.models.rpnVariables)
-    if cv.eval_var_with_assert(run_setup.p_central) != 0:
-        # mass in MeV
-        mass = template_common.ParticleEnergy.PARTICLE[madx_beam.particle].mass * 1e3
-        pc = run_setup.p_central * mass
-    else:
-        pc = cv.eval_var_with_assert(run_setup.p_central_mev)
-    # energy in GeV
-    madx_beam.pc = pc * 1e-3
-    return madx.python_source_for_model(mad, None)
+    return madx.python_source_for_model(
+        madx_converter.to_madx(SIM_TYPE, data),
+        None,
+    )
 
 
 def _extract_report_data(xFilename, frame_args, page_count=0):

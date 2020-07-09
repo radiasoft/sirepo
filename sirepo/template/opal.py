@@ -407,13 +407,10 @@ def _column_data(col, col_names, rows):
 
 def _export_madx(data):
     from sirepo.template import madx, madx_converter
-    mad = madx_converter.to_madx(SIM_TYPE, data)
-    madx_beam = LatticeUtil.find_first_command(mad, 'beam')
-    opal_beam = LatticeUtil.find_first_command(data, 'beam')
-    energy = template_common.ParticleEnergy.compute_energy(SIM_TYPE, madx_beam.particle, opal_beam.copy())
-    madx_beam.particle = opal_beam.particle
-    madx_beam.pc = energy.pc
-    return madx.python_source_for_model(mad, None)
+    return madx.python_source_for_model(
+        madx_converter.to_madx(SIM_TYPE, data),
+        None,
+    )
 
 
 def _field_units(units, field):
