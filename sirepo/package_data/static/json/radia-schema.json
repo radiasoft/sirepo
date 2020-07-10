@@ -251,8 +251,9 @@
         "radiaObject": {
             "_super": ["_", "model", "layoutObject"],
             "name": ["Name", "String", ""],
-            "symmetryType": ["Symmetry", "SymmetryType", "none"],
-            "symmetryPlane": ["Symmetry Plane", "FloatStringArray", "1.0, 0.0, 0.0", "", "x, y, z"]
+            "symmetryPlane": ["Symmetry Plane", "FloatStringArray", "1.0, 0.0, 0.0", "", "x, y, z"],
+            "symmetryPoint": ["Point in Symmetry Plane", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "symmetryType": ["Symmetry", "SymmetryType", "none"]
         },
         "radiaReq": {
         },
@@ -321,6 +322,7 @@
                 "name",
                 "symmetryType",
                 "symmetryPlane",
+                "symmetryPoint",
                 "color",
                 "members"
             ],
@@ -328,6 +330,7 @@
                 "name",
                 "symmetryType",
                 "symmetryPlane",
+                "symmetryPoint",
                 "color",
                 "members"
             ]
@@ -351,6 +354,7 @@
                 "division",
                 "symmetryType",
                 "symmetryPlane",
+                "symmetryPoint",
                 "center",
                 "size",
                 "color"

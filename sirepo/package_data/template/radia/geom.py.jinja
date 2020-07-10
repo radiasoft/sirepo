@@ -47,7 +47,12 @@ def _add_object(o):
                 grp.append(id_map[m.mapId] )
         g_id = radia_tk.build_container(grp)
     if o.symmetryType is not 'none':
-        radia_tk.apply_symmetry(g_id, o.symmetryType, _split_comma_field(o.symmetryPlane, 'float'))
+        radia_tk.apply_symmetry(
+            g_id,
+            o.symmetryType,
+            _split_comma_field(o.symmetryPlane, 'float'),
+            _split_comma_field(o.symmetryPoint, 'float'),
+        )
     id_map[o.mapId] = g_id
     objs.append(g_id)
     return g_id

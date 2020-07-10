@@ -350,6 +350,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
             'symmetryPlane',
             o.symmetryType != 'none'
         );
+        panelState.showField(
+            'geomObject',
+            'symmetryPoint',
+            o.symmetryType != 'none'
+        );
         var mag = (o.magnetization || SIREPO.ZERO_STR).split(/\s*,\s*/).map(function (m) {
             return parseFloat(m);
         });

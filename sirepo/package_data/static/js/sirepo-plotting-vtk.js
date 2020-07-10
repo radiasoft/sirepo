@@ -884,6 +884,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             var ELEVATION_INFO = {
                 front: {
                     class: '.plot-viewport elevation-front',
+                    planeNormal: [0, 0, 1],
                     x: {
                         axis: 'x',
                     },
@@ -893,6 +894,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 },
                 side: {
                     class: '.plot-viewport elevation-side',
+                    planeNormal: [1, 0, 0],
                     x: {
                         axis: 'z',
                     },
@@ -902,6 +904,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 },
                 top: {
                     class: '.plot-viewport elevation-top',
+                    planeNormal: [0, 1, 0],
                     x: {
                         axis: 'x',
                     },
@@ -947,7 +950,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 x: 1.0,
                 y: 1.0,
                 z: 1.0
-            }
+            };
             var axes = {
                 x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
                 y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
@@ -1002,6 +1005,12 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function drawObjects(elevation) {
+                //var pl1 = geometry.plane(elevation.planeNormal, geometry.point());
+                //srdbg(elevation, 'some pt in', pl, ':', pl.pointInPlane());
+                var pl1 = geometry.plane([1, 0, 0], geometry.point());
+                var pl2 = geometry.plane([0, 0, 1], geometry.point());
+                srdbg(elevation, 'int', pl1, pl2, ':', pl1.intersection(pl2).points());
+
                 var shapes = [];
                 var groupShapes = {};
                 $scope.objects.forEach(function(o) {
@@ -1160,6 +1169,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 return true;
             }
 
+            // replace with dict
             function plotInfoForElevation(elev) {
                 if (elev === ELEVATIONS.front) {
                     return {

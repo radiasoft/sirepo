@@ -34,11 +34,11 @@ FIELD_UNITS = PKDict({
 _ZERO = [0, 0, 0]
 
 
-def apply_symmetry(g_id, symm_type, plane):
+def apply_symmetry(g_id, symm_type, plane, point):
     if symm_type == 'parallel':
-        radia.TrfZerPara(g_id, _ZERO, plane)
+        radia.TrfZerPara(g_id, point, plane)
     if symm_type == 'perpendicular':
-        radia.TrfZerPerp(g_id, _ZERO, plane)
+        radia.TrfZerPerp(g_id, point, plane)
 
 
 def build_box(center, size, material, magnetization, division):
