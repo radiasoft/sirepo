@@ -215,13 +215,17 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
     return self;
 });
 
-SIREPO.app.controller('RadiaSourceController', function (appState, panelState, radiaService, $scope) {
+SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, vtkPlotting, $scope) {
     var self = this;
 
     var editorFields = [
          'geomObject.magnetization',
          'geomObject.symmetryType',
          'geomObject.doDivide',
+    ];
+    var groupModels = [
+        'geomGroup',
+        'geomUndulatorGroup'
     ];
     var watchedModels = [
         'geomObject',
@@ -239,6 +243,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     };
 
     self.selectedObject = null;
+    self.shapes = [];  //{};  // [];
     self.toolbarItems = SIREPO.APP_SCHEMA.constants.toolbarItems;
 
     self.deleteObject = function(o) {
@@ -250,7 +255,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
         //appState.geometry.objects.splice(oIdx, 1);
     };
 
-        
     self.editItem = function(o) {
         self.editObject(o);
     };
@@ -274,6 +278,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
 
     self.getObjects = function() {
         return radiaService.getObjects();
+    };
+
+    self.getShapes = function() {
+        return self.shapes;
     };
 
     self.isEditable = function() {
@@ -324,6 +332,43 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
         o.id  = appState.models.geometry.objects.length;
         o.mapId = getMapId(o);
         appState.models.geometry.objects.push(o);
+        addShapesForObject(o);
+        var center = stringToFloatArray(o.center);
+        var size = stringToFloatArray(o.size);
+    }
+
+    function addShapesForObject(o) {
+        var center = stringToFloatArray(o.center);
+        var size = stringToFloatArray(o.size);
+        var shape = plotting.plotShape(
+            o.id, o.name,
+            center, size,
+            o.color, 'solid', groupModels.indexOf(o.model) >= 0 ? 'dashed' : 'solid',
+            o.layoutShape
+        );
+        self.shapes.push(shape);
+        /*
+        if (o.symmetryType !== 'none') {
+            srdbg('reflect', o);
+            var pl = geometry.plane(
+                stringToFloatArray(o.symmetryPlane),
+                geometry.pointFromArr(stringToFloatArray(o.symmetryPoint))
+            );
+            var mCtr = pl.mirrorPoint(geometry.pointFromArr(center)).coords();
+            var mId = 65536 * o.id + shape.links.length;  // ??  for "virtual shapes"?
+            var mShape = vtkPlotting.plotShape(
+                mId, o.name,
+                mCtr, size,
+                o.color, shape.fillStyle, shape.strokeStyle,
+                o.layoutShape
+            );
+            shape.addLink(mShape, noop);
+            self.shapes.push(mShape);
+            //self.shapes[mId] = mShape;
+        }
+
+         */
+        //self.shapes[o.id] = shape;
     }
 
     // used to the client-created object to a server-created Radia id
@@ -331,8 +376,21 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
         return o.name + '.' + o.id;
     }
 
+    function mi() {
+
+    }
+
     function newObjectName(o) {
         return appState.uniqueName(appState.models.geometry.objects, 'name', o.name + ' {}');
+    }
+
+    function noop() { srdbg('DO SOMETHING'); }
+
+    function stringToFloatArray(str) {
+        return str.split(/\s*,\s*/)
+            .map(function (v) {
+                return (SIREPO.APP_SCHEMA.constants.objectScale || 1.0) * parseFloat(v);
+            });
     }
 
     function updateObjectEditor() {
@@ -373,6 +431,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
         if (! appState.models.geometry.objects) {
             appState.models.geometry.objects = [];
         }
+        appState.models.geometry.objects.forEach(function (o) {
+            addShapesForObject(o);
+        });
+        srdbg('have shapes', self.shapes);
+        
         $scope.$on('modelChanged', function(e, modelName) {
             if (watchedModels.indexOf(modelName) < 0) {
                 return;
@@ -901,7 +964,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
 
             $scope.addObject = function(o) {
                 o.groupId = $scope.model.id;
-                $scope.field.push(o);
+                $scope.field.push(o);  // $scope.field.push(o.id);
             };
 
             $scope.hasNoGroup = function(o) {
@@ -910,7 +973,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
 
             $scope.removeObject = function(o) {
                 o.groupId = null;
-                var oIdx = $scope.field.indexOf(o);
+                var oIdx = $scope.field.indexOf(o);  // var oIdx = $scope.field.indexOf(o.id);
                 if (oIdx < 0) {
                     return;
                 }

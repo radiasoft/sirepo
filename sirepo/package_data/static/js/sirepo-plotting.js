@@ -611,6 +611,41 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             });
         },
 
+        // create a 2d shape
+        plotShape: function(id, name, center, size, color, fillStyle, strokeStyle, layoutShape) {
+            var shape = {
+                addLink: function(otherShape, linkFunction) {
+                    this.links.push(self.plotShapeLink(id, otherShape.id, linkFunction));
+                },
+                color: color,
+                fillStyle: fillStyle,
+                strokeStyle: strokeStyle,
+                name: name,
+                layoutShape: layoutShape,
+                links: [],
+                id: id,
+                x: {
+                    center: center[0],
+                    length: size[0],
+                },
+                y: {
+                    center: center[1],
+                    length: size[1]
+                },
+            };
+            return shape;
+        },
+
+        // link on shape to another so that some aspect of the linked shape is tied to
+        // the main shape via a prvoided function
+        plotShapeLink: function(shapeId, linkedShapeId, linkFunction) {
+            return {
+                id: shapeId,
+                linkedId: linkedShapeId,
+                fn: linkFunction,
+            };
+        },
+
         recalculateDomainFromPoints: function(modelName, yScale, points, xDomain, invertAxis) {
             var ydom;
             var scaleFunction = this.scaleFunction(modelName);

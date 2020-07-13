@@ -233,6 +233,16 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
             });
     };
 
+    // create a 3d shape
+    self.plotShape = function(id, name, center, size, color, fillStyle, strokeStyle, layoutShape) {
+            var shape = plotting.plotShape(id, name, center, size, color, fillStyle, strokeStyle, layoutShape);
+            shape.z = {
+                center: center[2],
+                length: size[2],
+            };
+            return shape;
+    };
+
     self.removeSTLReader = function(file) {
         if (stlReaders[file]) {
             delete stlReaders[file];
@@ -1005,20 +1015,28 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function drawObjects(elevation) {
-                //var pl1 = geometry.plane(elevation.planeNormal, geometry.point());
-                //srdbg(elevation, 'some pt in', pl, ':', pl.pointInPlane());
-                var pl1 = geometry.plane([1, 0, 0], geometry.point());
-                var pl2 = geometry.plane([0, 0, 1], geometry.point());
-                srdbg(elevation, 'int', pl1, pl2, ':', pl1.intersection(pl2).points());
+                var pl1 = geometry.plane(elevation.planeNormal, geometry.point());
 
-                var shapes = [];
+                //srdbg(elevation, 'some pt in', pl1, ':', pl1.pointInPlane());
+                //var pl1 = geometry.plane([1, 0, 0], geometry.point());
+                var pl2 = geometry.plane([0, 1, 0], geometry.point());
+                //srdbg(elevation, 'int', pl1, pl2, ':', pl1.intersection(pl2).points());
+
+                //var shapes = [];
+                var shapes =  $scope.source.getShapes();
                 var groupShapes = {};
-                $scope.objects.forEach(function(o) {
+                //$scope.objects.forEach(function(o) {
+                $scope.source.getShapes().forEach(function(o) {
                     if (! o.layoutShape || o.layoutShape === '') {
                         return;
                     }
-                    var center = angular.isString(o.center) ? stringToFloatArray(o.center) : o.center;
-                    var size = angular.isString(o.size) ? stringToFloatArray(o.size) : o.size;
+                    //var center = angular.isString(o.center) ? stringToFloatArray(o.center) : o.center;
+                    //var size = angular.isString(o.size) ? stringToFloatArray(o.size) : o.size;
+                    //var ctrPt = geometry.pointFromArr(center);
+                    //var d = pl2.distToPoint(ctrPt);
+                    //srdbg('d ctr 2 plane', center, pl2.norm, d, 'closest pt', pl2.closestPointToPoint(ctrPt));
+                    //srdbg('mirror pt', center, 'in', pl2.norm, '->', pl2.mirrorPoint(ctrPt).coords());
+
                     //TODO(mvk): shape dimensions depend on elevation view
                     /*
                     var s = {
@@ -1037,6 +1055,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
                      */
 
+                    /*
                     shapes.push({
                         color: o.color,
                         elev: elevation,
@@ -1061,10 +1080,14 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                                 objs: [],
                             };
                         }
+                        //groupShapes[o.groupId].objs.push(o.id);
                         groupShapes[o.groupId].objs.push(o);
                     }
+
+                     */
                 });
 
+                /*
                 for (var groupId in groupShapes) {
                     var g = groupShapes[groupId];
                     var b = objectBounds(g.objs);
@@ -1077,6 +1100,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     g.fillStyle = null;
                     shapes.push(g);
                 }
+
+                 */
 
                 var ds = d3.select('.plot-viewport').selectAll('.vtk-object-layout-shape')
                     .data(shapes);
@@ -1320,6 +1345,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function shapeFromObjectTypeAndPoint(obj, p) {
+                srdbg('shapeFromObjectTypeAndPoint', obj, p);
                 // should validate model on server
                 var model = appState.setModelDefaults({}, obj.model);
                 var size = model.size || SIREPO.ZERO_STR;
@@ -1387,16 +1413,20 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         return 'shape-' + d.elev + '-' + d.id;
                     })
                     .attr('x', function(d) {
-                        return axes.x.scale(d.x);
+                        return axes.x.scale(d.x.center - d.x.length / 2);
+                        //return axes.x.scale(d.x);
                     })
                     .attr('y', function(d) {
-                        return axes.y.scale(d.y);
+                        return axes.y.scale(d.y.center + d.y.length / 2);
+                       // return axes.y.scale(d.y);
                     })
                     .attr('width', function(d) {
-                        return axes.x.scale(d.x + d.width) - axes.x.scale(d.x);
+                        return axes.x.scale(d.x.length);
+                        //return axes.x.scale(d.x + d.width) - axes.x.scale(d.x);
                     })
                     .attr('height', function(d) {
-                        return axes.y.scale(d.y) - axes.y.scale(d.y + d.height);
+                        return axes.y.scale(d.y.length);
+                        //return axes.y.scale(d.y) - axes.y.scale(d.y + d.height);
                     })
                     .attr('style', function(d) {
                         if (d.color) {
