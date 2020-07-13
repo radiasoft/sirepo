@@ -637,7 +637,7 @@ def _generate_parameters_file(data):
     res = ''
     names = {}
 
-    if 'CapLaser' in data.models.simulation.flashType:
+    if _has_species_selection(data.models.simulation.flashType):
         for k in ('fill', 'wall'):
             f = f"{data.models.Multispecies[f'ms_{k}Species']}-{k}-imx.cn4"
             data.models.Multispecies[f'eos_{k}TableFile'] = f
@@ -679,6 +679,10 @@ def _generate_parameters_file(data):
         if has_heading:
             res += '\n'
     return res
+
+
+def _has_species_selection(flash_type):
+    return flash_type in ('CapLaserBella', 'CapLaser3D')
 
 
 def _h5_file_list(run_dir):
