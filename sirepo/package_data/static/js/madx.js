@@ -5,7 +5,6 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
-    SIREPO.appMadxExport = true;
     SIREPO.appImportText = 'Import a lattice (.madx) file';
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="Float2StringArray" class="col-sm-7">',
@@ -23,35 +22,21 @@ SIREPO.app.config(function() {
     SIREPO.lattice = {
         canReverseBeamline: true,
         elementColor: {
-            BMAPXY: 'magenta',
-            FTABLE: 'magenta',
-            KOCT: 'lightyellow',
-            KQUAD: 'tomato',
-            KSEXT: 'lightgreen',
-            MATTER: 'black',
-            OCTU: 'yellow',
+            OCTUPOLE: 'yellow',
             QUADRUPOLE: 'red',
-            QUFRINGE: 'salmon',
-            SEXT: 'lightgreen',
-            VKICK: 'blue',
-            LMIRROR: 'lightblue',
-            REFLECT: 'blue',
+            SEXTUPOLE: 'lightgreen',
+            VKICKER: 'blue',
         },
         elementPic: {
-            alpha: ['ALPH'],
-            aperture: ['CLEAN', 'COLLIMATOR', 'ECOLLIMATOR', 'MAXAMP', 'PEPPOT', 'RCOL', 'SCRAPER'],
-            bend: ['BRAT', 'BUMPER', 'SBEND', 'CSRCSBEND', 'FMULT', 'FTABLE', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
-            drift: ['CSRDRIFT', 'DRIFT', 'EDRIFT', 'EMATRIX', 'LSCDRIFT'],
-            lens: ['LTHINLENS'],
-            magnet: ['BMAPXY', 'HKICK', 'KICKER', 'KOCT', 'KQUAD', 'KSEXT', 'MATTER', 'OCTU', 'QUADRUPOLE', 'QUFRINGE', 'SEXT', 'VKICK'],
-            malign: ['MALIGN'],
-            mirror: ['LMIRROR'],
-            recirc: ['RECIRC'],
-            rf: ['CEPL', 'FRFMODE', 'FTRFMODE', 'MODRF', 'MRFDF', 'RAMPP', 'RAMPRF', 'RFCA', 'RFCW', 'RFDF', 'RFMODE', 'RFTM110', 'RFTMEZ0', 'RMDF', 'TMCF', 'TRFMODE', 'TWLA', 'TWMTA', 'TWPL'],
-            solenoid: ['MAPSOLENOID', 'SOLE'],
-            undulator: ['CORGPIPE', 'CWIGGLER', 'GFWIGGLER', 'LSRMDLTR', 'MATR', 'UKICKMAP', 'WIGGLER'],
-            watch: ['HMON', 'MARK', 'MONI', 'VMON', 'WATCH'],
-            zeroLength: ['BRANCH', 'CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'MAGNIFY', 'MHISTOGRAM', 'PFILTER', 'REFLECT','REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SLICE', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
+            aperture: ['COLLIMATOR', 'ECOLLIMATOR', 'RCOLLIMATOR'],
+            bend: ['RBEND', 'SBEND'],
+            drift: ['DRIFT'],
+            lens: ['NLLENS'],
+            magnet: ['HACDIPOLE', 'HKICKER', 'KICKER', 'MATRIX', 'MULTIPOLE', 'OCTUPOLE', 'QUADRUPOLE', 'RFMULTIPOLE', 'SEXTUPOLE', 'VACDIPOLE', 'VKICKER'],
+            rf: ['CRABCAVITY', 'RFCAVITY', 'TWCAVITY'],
+            solenoid: ['SOLENOID'],
+            watch: ['INSTRUMENT', 'HMONITOR', 'MARKER', 'MONITOR', 'PLACEHOLDER', 'VMONITOR'],
+            zeroLength: ['BEAMBEAM', 'CHANGEREF', 'DIPEDGE', 'SROTATION', 'TRANSLATION', 'XROTATION', 'YROTATION'],
         },
     };
 });
@@ -62,40 +47,6 @@ SIREPO.app.factory('madxService', function(appState, commandService, requestSend
 
     self.computeModel = function(analysisModel) {
         return 'animation';
-    };
-
-    self.dataFileURL = function(model, index) {
-        if (! appState.isLoaded()) {
-            return '';
-        }
-        return requestSender.formatUrl('downloadDataFile', {
-            '<simulation_id>': appState.models.simulation.simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<model>': model,
-            '<frame>': index,
-        });
-
-    };
-
-    self.findFirstCommand = function(types, commands) {
-        if (! commands) {
-            if (! appState.isLoaded()) {
-                return null;
-            }
-            commands = appState.models.commands;
-        }
-        if (typeof(types) == 'string') {
-            types = [types];
-        }
-        for (var i = 0; i < commands.length; i++) {
-            var cmd = commands[i];
-            for (var j = 0; j < types.length; j++) {
-                if (cmd._type == types[j]) {
-                    return cmd;
-                }
-            }
-        }
-        return null;
     };
 
     appState.setAppService(self);

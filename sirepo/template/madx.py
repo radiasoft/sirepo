@@ -247,10 +247,11 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
-    pkio.write_text(
-        run_dir.join(_PTC_PARTICLES_FILE),
-        _generate_ptc_particles_file(data),
-    )
+    if data.report != 'twissReport':
+        pkio.write_text(
+            run_dir.join(_PTC_PARTICLES_FILE),
+            _generate_ptc_particles_file(data),
+        )
     pkio.write_text(
         run_dir.join(MADX_INPUT_FILE),
         _generate_parameters_file(data),

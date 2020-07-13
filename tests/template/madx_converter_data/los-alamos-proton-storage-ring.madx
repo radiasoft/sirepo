@@ -20,4 +20,6 @@ RING2: LINE=(BL1,BL2,BL3,BL1,BL1,BL1,BL2,BL3,BL1,BL1);
 
 beam;
 use, sequence=RING2;
-twiss, file=twiss.tfs;
+twiss, file="twiss.file.tfs";
+
+

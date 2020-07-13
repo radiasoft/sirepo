@@ -19,7 +19,8 @@ def test_from_elegant_to_madx_and_back():
     with pkunit.save_chdir_work() as d:
         for name in ('SPEAR3', 'Compact Storage Ring', 'Los Alamos Proton Storage Ring'):
             data = _example_data(name)
-            mad = madx_converter.to_madx(elegant.SIM_TYPE, data)
+            mad = madx_parser.parse_file(elegant.python_source_for_model(data, 'madx'))
+            madx._fixup_madx(mad)
             outfile = name.lower().replace(' ', '-') + '.madx'
             actual = madx.python_source_for_model(mad, None)
             pkio.write_text(outfile, actual)
