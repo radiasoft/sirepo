@@ -1214,7 +1214,7 @@ SIREPO.app.service('vtkAxisService', function(appState, panelState, requestSende
 });
 
 // General-purpose vtk display
-SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plotting, plotToPNG, vtkPlotting, vtkService, vtkUtils, utilities, $window) {
+SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plotting, plotToPNG, vtkPlotting, vtkService, vtkUtils, utilities, $document, $window) {
 
     return {
         restrict: 'A',
@@ -1344,6 +1344,21 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             $scope.init = function() {
                 //srdbg('vtk init', $scope);
                 var rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
+                var body = angular.element($($document).find('body'))[0];
+                var hdlrs = $scope.eventHandlers || {};
+
+                // vtk adds keypress event listeners to the BODY of the entire document, not the render
+                // container
+                var hasBodyEvt = Object.keys(hdlrs).some(function (e) {
+                    return ['keypress', 'keydown', 'keyup'].indexOf(e) >= 0;
+                });
+                if (hasBodyEvt) {
+                    var bodyAddEvtLsnr = body.addEventListener;
+                    body.addEventListener = function (type, listener) {
+                        bodyAddEvtLsnr(type, hdlrs[type] ? hdlrs[type] : listener);
+                    };
+                }
+
                 fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
                     background: [1, 1, 1, 1],
                     container: rw,
@@ -1361,7 +1376,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 });
                 worldCoord.setCoordinateSystemToWorld();
 
-                var hdlrs = $scope.eventHandlers || {};
                 // double click handled separately
                 rw.addEventListener('dblclick', function (evt) {
                     ondblclick(evt);
@@ -1390,6 +1404,8 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     api: api,
                     objects: {
                         camera: cam,
+                        container: fsRenderer.getContainer(),
+                        //listeners: lsnrs,
                         renderer: renderer,
                         window: renderWindow,
                     }
@@ -1444,7 +1460,11 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             };
 
             $scope.$on('$destroy', function() {
+                $element.off();
                 $($window).off('resize', resize);
+                fsRenderer.getInteractor().unbindEvents();
+                fsRenderer.delete();
+                plotToPNG.removeCanvas($scope.reportId);
             });
 
             function cacheCanvas() {
