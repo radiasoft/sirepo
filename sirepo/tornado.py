@@ -24,7 +24,7 @@ class Queue(tornado.queues.Queue):
             # on the queue and before this task finishes the await.
             x = super().get()
             return await x
-        except asyncio.CancelledError:
+        except (asyncio.CancelledError, concurrent.futures._base.CancelledError):
             if x:
                 try:
                     r = x.result()
