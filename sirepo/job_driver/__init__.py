@@ -243,11 +243,8 @@ class DriverBase(PKDict):
                 t = self.cfg.agent_starting_secs
                 if pkconfig.channel_in_internal_test():
                     x = op.msg.pkunchecked_nested_get('data.models.dog.favoriteTreat')
-                    pkdp(op.msg.data)
                     if x:
-                        pkdp(x)
                         x = re.search(r'agent_start_delay=(\d+)', x)
-                        pkdp(x)
                         if x:
                             self._agent_start_delay = int(x.group(1))
                             t += self._agent_start_delay

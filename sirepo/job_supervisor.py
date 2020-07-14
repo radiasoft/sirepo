@@ -566,7 +566,7 @@ class _ComputeJob(PKDict):
             )
             if timed_out_op in self.ops:
                 r.add(timed_out_op)
-            return list(r)
+            return r
 
         r = PKDict(state=job.CANCELED)
         if (
@@ -584,6 +584,7 @@ class _ComputeJob(PKDict):
         ):
             # job is not relevant, but let the user know it isn't running
             return r
+        candidates = _ops_to_cancel()
         c = None
         o = []
         # No matter what happens the job is cancelled
@@ -592,12 +593,12 @@ class _ComputeJob(PKDict):
         try:
             for i in range(_MAX_RETRIES):
                 try:
-                    if _ops_to_cancel():
+                    if _ops_to_cancel().intersection(candidates):
                         #TODO(robnagler) cancel run_op, not just by jid, which is insufficient (hash)
                         if not c:
                             c = self._create_op(job.OP_CANCEL, req)
                         await c.prepare_send()
-                        o = _ops_to_cancel()
+                        o = _ops_to_cancel().intersection(candidates)
                     elif c:
                         c.destroy()
                         c = None
