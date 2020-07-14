@@ -2638,11 +2638,12 @@ SIREPO.app.directive('stringToNumber', function() {
                 return true;
             }
 
+            // catch leading '-' or it will be impossible to enter
             ngModel.$parsers.push(function(value) {
                 if (ngModel.$isEmpty(value))  {
                     return null;
                 }
-                if (SIREPO.NUMBER_REGEXP.test(value)) {
+                if (value === '-' || SIREPO.NUMBER_REGEXP.test(value)) {
                     var v;
                     if (scope.numberType == 'integer') {
                         v = parseInt(parseFloat(value));
@@ -2655,12 +2656,14 @@ SIREPO.app.directive('stringToNumber', function() {
                         }
                         return v;
                     }
-                    v = parseFloat(value);
+                    v = parseFloat(value === '-' ? '-0' : value);
                     if (! isValid(v)) {
                         return undefined;
                     }
                     if (isFinite(v)) {
-                        return v;
+                        // a string like '1.0' will parse to '1' - if we return the parsed value, the user will never
+                        // be able to enter a decimal point
+                        return value;
                     }
                 }
                 return undefined;
@@ -2870,12 +2873,14 @@ SIREPO.app.directive('numberList', function() {
         template: [
             '<div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >',
             '<label style="margin-right: 1ex">{{ valueLabels[$index] || \'Plane \' + $index }}</label>',
-            '<input class="form-control sr-list-value" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
+            '<input class="form-control sr-list-value" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-min="min" data-max="max" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
             '</div>'
         ].join(''),
         controller: function($scope) {
             $scope.values = null;
             $scope.numberType = $scope.type.toLowerCase();
+            $scope.min = $scope.numberType === 'int' ? Number.MIN_SAFE_INTEGER : -Number.MAX_VALUE;
+            $scope.max = $scope.numberType === 'int' ? Number.MAX_SAFE_INTEGER : Number.MAX_VALUE;
             //TODO(pjm): share implementation with enumList
             $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/);
             $scope.didChange = function() {
