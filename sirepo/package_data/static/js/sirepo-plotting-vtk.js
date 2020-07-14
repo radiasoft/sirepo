@@ -235,12 +235,10 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
 
     // create a 3d shape
     self.plotShape = function(id, name, center, size, color, fillStyle, strokeStyle, layoutShape) {
-            var shape = plotting.plotShape(id, name, center, size, color, fillStyle, strokeStyle, layoutShape);
-            shape.z = {
-                center: center[2],
-                length: size[2],
-            };
-            return shape;
+        var shape = plotting.plotShape(id, name, center, size, color, fillStyle, strokeStyle, layoutShape);
+        shape.center.z = center[2];
+        shape.size.z = size[2];
+        return shape;
     };
 
     self.removeSTLReader = function(file) {
@@ -930,11 +928,9 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             var SCREEN_INFO = {
                 x: {
-                    direction: 1,
                     length: $scope.width / 2
                 },
                 y: {
-                    direction: -1,
                     length: $scope.height / 2
                 },
             };
@@ -981,8 +977,13 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         var ctr = stringToFloatArray(o.center);
                         var elev = shape.elev;
                         o.center = floatArrayToString([
-                            shape.x + shape.width / 2,
-                            shape.y - shape.height / 2,
+                            //shape.x + shape.width / 2,
+                            //shape.y - shape.height / 2,
+                            //shape.x + shape.size.x / 2,
+                            //shape.y - shape.size.y / 2,
+                            shape.center.x ,
+                            shape.center.y,
+                            //ctr[1], ctr[1],
                             ctr[2]
                         ]);
                         $scope.source.saveObject(shape.id, function () {
@@ -998,12 +999,15 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
 
             function d3DragShape(shape) {
-                for (var s in SCREEN_INFO) {
-                    var info = SCREEN_INFO[s];
-                    var dom = axes[shape.elev[s].axis].scale.domain();
-                    var pxsz = (dom[1] - dom[0]) / SCREEN_INFO[s].length;
-                    shape[s] = dragStart[s] + info.direction * pxsz * d3.event[s];
-                }
+                SIREPO.SCREEN_DIMS.forEach(function(dim) {
+                    var dom = axes[shape.elev[dim].axis].scale.domain();
+                    var pxsz = (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
+                    var ddim = SIREPO.SCREEN_INFO[dim].direction * pxsz * d3.event[dim];
+                    shape.center[dim] = dragStart.center[dim] +
+                        SIREPO.SCREEN_INFO[dim].direction * pxsz * d3.event[dim];
+                    shape[dim] = dragStart[dim] +
+                        SIREPO.SCREEN_INFO[dim].direction * pxsz * d3.event[dim];
+                });
                 d3.select(this).call(updateShapeAttributes);
                 showShapeLocation(shape);
             }
@@ -1015,12 +1019,12 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function drawObjects(elevation) {
-                var pl1 = geometry.plane(elevation.planeNormal, geometry.point());
+                //var pl1 = geometry.plane(elevation.planeNormal, geometry.point());
 
                 //srdbg(elevation, 'some pt in', pl1, ':', pl1.pointInPlane());
                 //var pl1 = geometry.plane([1, 0, 0], geometry.point());
                 var pl2 = geometry.plane([0, 1, 0], geometry.point());
-                //srdbg(elevation, 'int', pl1, pl2, ':', pl1.intersection(pl2).points());
+                ////srdbg(elevation, 'int', pl1, pl2, ':', pl1.intersection(pl2).points());
 
                 //var shapes = [];
                 var shapes =  $scope.source.getShapes();
@@ -1030,6 +1034,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     if (! o.layoutShape || o.layoutShape === '') {
                         return;
                     }
+                    o.elev = elevation;
                     //var center = angular.isString(o.center) ? stringToFloatArray(o.center) : o.center;
                     //var size = angular.isString(o.size) ? stringToFloatArray(o.size) : o.size;
                     //var ctrPt = geometry.pointFromArr(center);
@@ -1245,7 +1250,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     axes.x.grid.tickSize(-$scope.height);
                     axes.y.grid.tickSize(-$scope.width);
                     axes.z.grid.tickSize(-$scope.width);
-
                 }
                 if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
                     select('.overlay').attr('class', 'overlay mouse-zoom');
@@ -1263,7 +1267,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 axes.z.grid.tickValues(plotting.linearlySpacedArray(-depth / 2, depth / 2, 10));
                 resetZoom();
                 select('.plot-viewport').call(zoom);
-                select('.z-plot-viewport').call(zoom);
+                //select('.z-plot-viewport').call(zoom);
                 $.each(axes, function(dim, axis) {
                     var d = axes[dim].scale.domain();
                     var r = axes[dim].scale.range();
@@ -1283,41 +1287,27 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             function replot() {
                 // total x extent
                 // add optional fit to objects
-                var bnds = objectBounds();
+                var bnds = $scope.source.objectBounds();
                 var newDomain = $scope.cfg.initDomian;
-                geometry.basis.forEach(function (c) {
-                    var axis = axes[c];
+                geometry.basis.forEach(function (dim, i) {
+                    var axis = axes[dim];
                     if (! axis.domain ) {
-                        axis.domain = newDomain[c];
+                        axis.domain = newDomain[dim];
                     }
                     if ($scope.cfg.fitToObjects) {
-                        if (bnds[c][0] < axis.domain[0]) {
-                            newDomain[c][0] = fitDomainPct * bnds[c][0];
+                        if (bnds[i][0] < axis.domain[0]) {
+                            newDomain[dim][0] = fitDomainPct * bnds[i][0];
                         }
-                        if (bnds[c][1] > axis.domain[1]) {
-                            newDomain[c][1] = fitDomainPct * bnds[c][1];
+                        if (bnds[i][1] > axis.domain[1]) {
+                            newDomain[dim][1] = fitDomainPct * bnds[i][1];
                         }
                     }
-                    if (! axis.domain || ! appState.deepEquals(axis.domain, newDomain[c])) {
-                        axis.domain = newDomain[c];
+                    if (! axis.domain || ! appState.deepEquals(axis.domain, newDomain[dim])) {
+                        axis.domain = newDomain[dim];
                         axis.scale.domain(axis.domain);
                     }
                 });
                 $scope.resize();
-            }
-
-            function objectBounds(objs) {
-                var b = {};
-                geometry.basis.forEach(function (c, i) {
-                    b[c] = [Number.MAX_VALUE, -Number.MAX_VALUE];
-                    (objs || $scope.objects).forEach(function (o) {
-                        var ctr = stringToFloatArray(o.center || SIREPO.ZERO_STR);
-                        var sz = stringToFloatArray(o.size || SIREPO.ZERO_STR);
-                        b[c][0] = Math.min(b[c][0], ctr[i] - sz[i] / 2);
-                        b[c][1] = Math.max(b[c][1], ctr[i] + sz[i] / 2);
-                    });
-                });
-                return b;
             }
 
             function resetZoom() {
@@ -1345,18 +1335,21 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function shapeFromObjectTypeAndPoint(obj, p) {
-                srdbg('shapeFromObjectTypeAndPoint', obj, p);
                 // should validate model on server
                 var model = appState.setModelDefaults({}, obj.model);
                 var size = model.size || SIREPO.ZERO_STR;
                 size = stringToFloatArray(size);
                 // note that x, y are in *lab* coordinates, not screen - they get converted by
                 // d3.scale() later
+                var shape = $scope.source.shapeForObject(obj);
+                shape.x = axes.x.scale.invert(p[0]) + size[0] / 2;
+                shape.y = axes.y.scale.invert(p[1]) + size[1] / 2;
+                /*
                 return {
                     color: model.color,
                     elev: ELEVATIONS.front,
                     fillStyle: 'solid',
-                    lineStyle: 'solid',
+                    stokeStyle: 'solid',
                     name: model.name,
                     shape: model.layoutShape || LAYOUT_SHAPE_RECT,
                     width: size[0],
@@ -1366,6 +1359,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     x: axes.x.scale.invert(p[0]) + size[0] / 2,
                     y: axes.y.scale.invert(p[1]) + size[1] / 2,
                 };
+                 */
             }
 
             function showShapeLocation(shape) {
@@ -1389,18 +1383,35 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 return v * 1e-6;
             }
 
+            // called when placing a new object, not dragging an existing object
             function updateDragShadow(obj, p) {
                 clearDragShadow();
-                var shape = shapeFromObjectTypeAndPoint(obj, p);
+                //var shape = shapeFromObjectTypeAndPoint(obj, p);
+                var shape = $scope.source.shapeForObject(obj);
+                //shape.x.center = axes.x.scale.invert(p[0]) + shape.x.length/ 2;
+                //shape.y.center = axes.y.scale.invert(p[1]) + shape.y.length/ 2;
+                shape.x = shapeOrigin(shape, 'x'); // axes.x.scale.invert(p[0]) + shape.size[0]/ 2;
+                shape.x = shapeOrigin(shape, 'y'); //shape.y = axes.y.scale.invert(p[1]) + shape.size[1] / 2;
                 showShapeLocation(shape);
                 d3.select('.plot-viewport')
                     .append('rect').attr('class', 'vtk-object-layout-shape vtk-object-layout-drag-shadow')
-                    .attr('x', function() { return axes.x.scale(shape.x); })
-                    .attr('y', function() { return axes.y.scale(shape.y); })
-                    .attr('width', function() {
-                        return axes.x.scale(shape.x + shape.width) - axes.x.scale(shape.x);
-                    })
-                    .attr('height', function() { return axes.y.scale(shape.y) - axes.y.scale(shape.y + shape.height); });
+                    .attr('x', function() { return shapeOrigin(shape, 'x'); })
+                    .attr('y', function() { return shapeOrigin(shape, 'y'); })
+                    .attr('width', function() { return shapeSize(shape, 'x'); })
+                    .attr('height', function() { return shapeSize(shape, 'y'); });
+            }
+
+            function shapeOrigin(shape, dim) {
+                return axes[dim].scale(shape.center[dim] - SIREPO.SCREEN_INFO[dim].direction * shape.size[dim] / 2);
+                //return axes[dim].scale(shape[dim]);
+            }
+
+            function shapeSize(shape, dim) {
+                //return Math.abs(axes[dim].scale(shape[dim] + shape.size[dim]) - axes[dim].scale(shape[dim]));
+                return  Math.abs(
+                    axes[dim].scale(shape.center[dim] + shape.size[dim] / 2) -
+                    axes[dim].scale(shape.center[dim] - shape.size[dim] / 2)
+                );
             }
 
             function updateShapeAttributes(selection) {
@@ -1413,19 +1424,20 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         return 'shape-' + d.elev + '-' + d.id;
                     })
                     .attr('x', function(d) {
-                        return axes.x.scale(d.x.center - d.x.length / 2);
+                        //srdbg('att rx', d, d.x);
+                        return shapeOrigin(d, 'x');
                         //return axes.x.scale(d.x);
                     })
                     .attr('y', function(d) {
-                        return axes.y.scale(d.y.center + d.y.length / 2);
-                       // return axes.y.scale(d.y);
+                        return shapeOrigin(d, 'y');
+                        //return axes.y.scale(d.y);
                     })
                     .attr('width', function(d) {
-                        return axes.x.scale(d.x.length);
+                        return shapeSize(d, 'x');
                         //return axes.x.scale(d.x + d.width) - axes.x.scale(d.x);
                     })
                     .attr('height', function(d) {
-                        return axes.y.scale(d.y.length);
+                        return shapeSize(d, 'y');
                         //return axes.y.scale(d.y) - axes.y.scale(d.y + d.height);
                     })
                     .attr('style', function(d) {
@@ -1435,7 +1447,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                         }
                     })
                     .attr('stroke-dasharray', function (d) {
-                        return d.lineStyle === 'dashed' ? "5,5" : "";
+                        return d.strokeStyle === 'dashed' ? "5,5" : "";
                     });
                 var tooltip = selection.select('title');
                 if (tooltip.empty()) {
@@ -1475,10 +1487,15 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             };
 
             // called when dropping new objects, not existing
+            // BUSTED
             $scope.dropSuccess = function(obj, evt) {
                 var p = isMouseInBounds(evt);
                 if (p) {
-                    var shape = shapeFromObjectTypeAndPoint(obj, p);
+                    //var shape = shapeFromObjectTypeAndPoint(obj, p);
+                    var shape = $scope.source.shapeForObject(obj);
+                    //shape.center.x = axes.x.scale.invert(p[0]) + shape.size.x/ 2;
+                    //shape.center.y = axes.y.scale.invert(p[1]) + shape.length.y/ 2;
+                    //obj.center = floatArrayToString([shape.x.center, shape.y.center, 0]);
                     obj.center = floatArrayToString([
                         shape.x + shape.width / 2,
                         shape.y + shape.height / 2,
@@ -1495,6 +1512,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     return;
                 }
                 $scope.objects = appState.models[$scope.modelName].objects;
+                $scope.shapes = $scope.source.getShapes();
 
                 $scope.$on($scope.modelName + '.changed', function(e, name) {
                     if (name == $scope.modelName) {

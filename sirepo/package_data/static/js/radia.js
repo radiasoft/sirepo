@@ -252,7 +252,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             return;
         }
         srdbg('delete obj', o, 'at', oIdx);
-        //appState.geometry.objects.splice(oIdx, 1);
+        for (var i in (o.members || [])) {
+            o.members[i].groupId = '';
+        }
+        appState.models.geometry.objects.splice(oIdx, 1);
+        appState.saveChanges('geometry');
     };
 
     self.editItem = function(o) {
@@ -288,6 +292,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return true;
     };
 
+    self.objectBounds = function() {
+        return groupBounds();
+    };
+
     self.objectsOfType = function(type) {
         return appState.models.geometry.objects.filter(function (o) {
             return o.type === type;
@@ -309,6 +317,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             return;
         }
         appState.saveChanges('geomObject', function (d) {
+            loadShapes();
             self.selectedObject = null;
             if (callback) {
                 callback(d);
@@ -328,24 +337,41 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return self.selectObject(self.getObject(id));
     };
 
+    self.shapeForObject = function(o) {
+        var center = stringToFloatArray(o.center || '0, 0, 0');
+        var size = stringToFloatArray(o.size || '0, 0, 0');
+        var isGroup = false;
+        if (o.members && o.members.length) {
+            isGroup = true;
+            var b = groupBounds(o.members.map(function (id) {
+                return self.getObject(id);
+            }));
+            center = b.map(function (c) {
+                return (c[0] + c[1]) / 2;
+            });
+            size = b.map(function (c) {
+                return Math.abs((c[1] - c[0]));
+            });
+        }
+        return vtkPlotting.plotShape(
+            o.id, o.name,
+            center, size,
+            o.color, isGroup ? null : 'solid', isGroup ? 'dashed' : 'solid',
+            o.layoutShape
+        );
+    };
+
+
     function addObject(o) {
         o.id  = appState.models.geometry.objects.length;
         o.mapId = getMapId(o);
         appState.models.geometry.objects.push(o);
         addShapesForObject(o);
-        var center = stringToFloatArray(o.center);
-        var size = stringToFloatArray(o.size);
     }
 
+
     function addShapesForObject(o) {
-        var center = stringToFloatArray(o.center);
-        var size = stringToFloatArray(o.size);
-        var shape = plotting.plotShape(
-            o.id, o.name,
-            center, size,
-            o.color, 'solid', groupModels.indexOf(o.model) >= 0 ? 'dashed' : 'solid',
-            o.layoutShape
-        );
+        var shape = self.shapeForObject(o);
         self.shapes.push(shape);
         /*
         if (o.symmetryType !== 'none') {
@@ -376,6 +402,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return o.name + '.' + o.id;
     }
 
+    function loadShapes() {
+        self.shapes = [];
+        appState.models.geometry.objects.forEach(function (o) {
+            addShapesForObject(o);
+        });
+    }
+
     function mi() {
 
     }
@@ -385,6 +418,23 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function noop() { srdbg('DO SOMETHING'); }
+
+    function groupBounds(objs) {
+        var b = [
+            [Number.MAX_VALUE, -Number.MAX_VALUE],
+            [Number.MAX_VALUE, -Number.MAX_VALUE],
+            [Number.MAX_VALUE, -Number.MAX_VALUE]
+        ];
+        b.forEach(function (c, i) {
+            (objs || appState.models.geometry.objects).forEach(function (o) {
+                var ctr = stringToFloatArray(o.center || SIREPO.ZERO_STR);
+                var sz = stringToFloatArray(o.size || SIREPO.ZERO_STR);
+                c[0] = Math.min(c[0], ctr[i] - sz[i] / 2);
+                c[1] = Math.max(c[1], ctr[i] + sz[i] / 2);
+            });
+        });
+        return b;
+    }
 
     function stringToFloatArray(str) {
         return str.split(/\s*,\s*/)
@@ -431,10 +481,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         if (! appState.models.geometry.objects) {
             appState.models.geometry.objects = [];
         }
-        appState.models.geometry.objects.forEach(function (o) {
-            addShapesForObject(o);
-        });
-        srdbg('have shapes', self.shapes);
+        //appState.models.geometry.objects.forEach(function (o) {
+        //    addShapesForObject(o);
+        //});
+        loadShapes();
+        //srdbg('have shapes', self.shapes);
         
         $scope.$on('modelChanged', function(e, modelName) {
             if (watchedModels.indexOf(modelName) < 0) {
@@ -446,6 +497,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
             appState.saveChanges('geometry', function (d) {
                 //self.selectedObject = null;
+                loadShapes();
             });
         });
         $scope.$on('geomObject.editor.show', function(e, o) {
@@ -939,41 +991,68 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                   '<th>Members</th>',
                   '<th></th>',
                 '</tr>',
-                '<tr data-ng-repeat="mObj in field">',
+                '<tr data-ng-repeat="mId in field">',
                     //'<td>{{ mObj.name }}</td>',
-                    '<td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ mObj.name }}</span></div></td>',
-                    '<td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar">  <button data-ng-click="removeObject(mObj)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
+                    '<td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ getObject(mId).name }}</span></div></td>',
+                    '<td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar">  <button data-ng-click="removeObject(mId)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
                 '<tr>',
                   '<th>Ungrouped</th>',
                 '</tr>',
-                '<tr data-ng-repeat="obj in objects | filter:hasNoGroup">',
-                  '<td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ obj.name }}</span></div></td>',
+                '<tr data-ng-repeat="oId in getIds() | filter:hasNoGroup">',
+                  '<td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ getObject(oId).name }}</span></div></td>',
                   //'<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ element.description }}</span></td>',
                   //'<td style="text-align: right">{{ elementLength(element) }}</td>',
-                  '<td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="addObject(obj)"><span class="glyphicon glyphicon-plus"></span></button> </div><div></td>',
+                  '<td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="addObject(oId)"><span class="glyphicon glyphicon-plus"></span></button> </div><div></td>',
                 '</tr>',
             '</table>',
         ].join(''),
         controller: function($scope) {
 
             $scope.objects = appState.models.geometry.objects;
+            //$scope.ids = $scope.objects.map(function (o) {
+            //    return o.id;
+            //});
             if (! $scope.field) {
                 $scope.field = [];
             }
 
-            $scope.addObject = function(o) {
+            $scope.addObject = function(oId) {
+            //$scope.addObject = function(o) {
+                var o = $scope.getObject(oId);
                 o.groupId = $scope.model.id;
-                $scope.field.push(o);  // $scope.field.push(o.id);
+                $scope.field.push(o.id);
+                srdbg('added', o);
+                //$scope.field.push(o);
             };
 
-            $scope.hasNoGroup = function(o) {
-                return o.id !== $scope.model.id && (! o.groupId || o.groupId === '');
+            $scope.getIds = function() {
+                var i = $scope.objects.map(function (o) {
+                    return o.id;
+                });
+                srdbg('got ids', i);
+                return i;
             };
 
-            $scope.removeObject = function(o) {
-                o.groupId = null;
-                var oIdx = $scope.field.indexOf(o);  // var oIdx = $scope.field.indexOf(o.id);
+            $scope.getObject = function(oId) {
+                //srdbg(oId, radiaService.getObject(oId));
+                return radiaService.getObject(oId);
+            };
+
+            $scope.hasNoGroup = function(oId) {
+            //$scope.hasNoGroup = function(o) {
+                //return o.id !== $scope.model.id && (! o.groupId || o.groupId === '');
+                var o = $scope.getObject(oId);
+                srdbg(oId, o);
+                return oId !== $scope.model.id && (! o.groupId || o.groupId === '');
+            };
+
+            //$scope.removeObject = function(o) {
+            $scope.removeObject = function(oId) {
+                var o = $scope.getObject(oId);
+                o.groupId = '';
+                //var oIdx = $scope.field.indexOf(o.id);
+                var oIdx = $scope.field.indexOf(oId);
                 if (oIdx < 0) {
                     return;
                 }

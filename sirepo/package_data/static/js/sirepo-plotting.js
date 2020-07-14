@@ -5,6 +5,7 @@ var srdbg = SIREPO.srdbg;
 SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 SIREPO.SCREEN_DIMS = ['x', 'y'];
+SIREPO.SCREEN_INFO = {x: { direction: 1 },  y: { direction: -1 }};
 
 SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope) {
 
@@ -611,11 +612,18 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             });
         },
 
-        // create a 2d shape
+        // create a 2d shape for d3 to plot - note that x, y are required because d3 looks for those
+        // attribures
         plotShape: function(id, name, center, size, color, fillStyle, strokeStyle, layoutShape) {
             var shape = {
                 addLink: function(otherShape, linkFunction) {
                     this.links.push(self.plotShapeLink(id, otherShape.id, linkFunction));
+                },
+                center: {
+                    x: center[0], y: center[1]
+                },
+                size: {
+                    x: size[0], y: size[1]
                 },
                 color: color,
                 fillStyle: fillStyle,
@@ -624,14 +632,8 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 layoutShape: layoutShape,
                 links: [],
                 id: id,
-                x: {
-                    center: center[0],
-                    length: size[0],
-                },
-                y: {
-                    center: center[1],
-                    length: size[1]
-                },
+                x: center[0] + SIREPO.SCREEN_INFO.x.direction * size[0] / 2,
+                y: center[1] + SIREPO.SCREEN_INFO.y.direction * size[1] / 2,
             };
             return shape;
         },
