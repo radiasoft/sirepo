@@ -613,25 +613,33 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         },
 
         // create a 2d shape for d3 to plot - note that x, y are required because d3 looks for those
-        // attribures
+        // attributes
         plotShape: function(id, name, center, size, color, fillStyle, strokeStyle, layoutShape) {
             var shape = {
                 addLink: function(otherShape, linkFunction) {
-                    this.links.push(self.plotShapeLink(id, otherShape.id, linkFunction));
+                    this.links.push(self.plotShapeLink(this, otherShape, linkFunction));
+                },
+                runLinks: function() {
+                    var linkRes = [];
+                    this.links.forEach(function (l) {
+                        linkRes.push(l.fn(l.shape, l.linkedShape));
+                    });
+                    return linkRes;
                 },
                 center: {
                     x: center[0], y: center[1]
                 },
+                color: color,
+                draggable: true,
+                fillStyle: fillStyle,
+                id: id,
+                layoutShape: layoutShape,
+                links: [],
+                name: name,
                 size: {
                     x: size[0], y: size[1]
                 },
-                color: color,
-                fillStyle: fillStyle,
                 strokeStyle: strokeStyle,
-                name: name,
-                layoutShape: layoutShape,
-                links: [],
-                id: id,
                 x: center[0] + SIREPO.SCREEN_INFO.x.direction * size[0] / 2,
                 y: center[1] + SIREPO.SCREEN_INFO.y.direction * size[1] / 2,
             };
@@ -640,10 +648,10 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
 
         // link on shape to another so that some aspect of the linked shape is tied to
         // the main shape via a prvoided function
-        plotShapeLink: function(shapeId, linkedShapeId, linkFunction) {
+        plotShapeLink: function(shape, linkedShape, linkFunction) {
             return {
-                id: shapeId,
-                linkedId: linkedShapeId,
+                shape: shape,
+                linkedShape: linkedShape,
                 fn: linkFunction,
             };
         },

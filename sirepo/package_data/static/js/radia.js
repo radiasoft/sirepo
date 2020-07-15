@@ -251,9 +251,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         if (oIdx < 0) {
             return;
         }
-        srdbg('delete obj', o, 'at', oIdx);
         for (var i in (o.members || [])) {
-            o.members[i].groupId = '';
+            self.getObject(o.members[i]).groupId = '';
         }
         appState.models.geometry.objects.splice(oIdx, 1);
         appState.saveChanges('geometry');
@@ -282,6 +281,16 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.getObjects = function() {
         return radiaService.getObjects();
+    };
+
+
+    self.getShape = function(id) {
+        for (var i in self.shapes) {
+            if (self.shapes[i].id === id) {
+                return self.shapes[i];
+            }
+        }
+        return null;
     };
 
     self.getShapes = function() {
@@ -353,12 +362,16 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 return Math.abs((c[1] - c[0]));
             });
         }
-        return vtkPlotting.plotShape(
+        var shape = vtkPlotting.plotShape(
             o.id, o.name,
             center, size,
             o.color, isGroup ? null : 'solid', isGroup ? 'dashed' : 'solid',
             o.layoutShape
         );
+        if (isGroup) {
+            shape.outlineOffset = 5.0;
+        }
+        return shape;
     };
 
 
@@ -372,29 +385,26 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function addShapesForObject(o) {
         var shape = self.shapeForObject(o);
+        //srdbg('o', o, 'sh', shape);
         self.shapes.push(shape);
-        /*
         if (o.symmetryType !== 'none') {
-            srdbg('reflect', o);
             var pl = geometry.plane(
                 stringToFloatArray(o.symmetryPlane),
                 geometry.pointFromArr(stringToFloatArray(o.symmetryPoint))
             );
-            var mCtr = pl.mirrorPoint(geometry.pointFromArr(center)).coords();
-            var mId = 65536 * o.id + shape.links.length;  // ??  for "virtual shapes"?
+            var mCtr = pl.mirrorPoint(geometry.pointFromArr([shape.center.x, shape.center.y])).coords();
+            var mSz = [shape.size.x, shape.size.y, shape.size.z];
+            var mId = 65536 * (o.id + 1) + shape.links.length;  // ??  for "virtual shapes"?
             var mShape = vtkPlotting.plotShape(
                 mId, o.name,
-                mCtr, size,
+                mCtr, mSz,
                 o.color, shape.fillStyle, shape.strokeStyle,
                 o.layoutShape
             );
-            shape.addLink(mShape, noop);
+            mShape.draggable = false;
+            shape.addLink(mShape, mirror);
             self.shapes.push(mShape);
-            //self.shapes[mId] = mShape;
         }
-
-         */
-        //self.shapes[o.id] = shape;
     }
 
     // used to the client-created object to a server-created Radia id
@@ -409,15 +419,24 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         });
     }
 
-    function mi() {
-
+    function mirror(shape, mShape) {
+        var o = self.getObject(shape.id);
+        var pl = geometry.plane(
+            stringToFloatArray(o.symmetryPlane),
+            geometry.pointFromArr(stringToFloatArray(o.symmetryPoint))
+        );
+        var mCtr = pl.mirrorPoint(geometry.pointFromArr([shape.center.x, shape.center.y])).coords();
+        mShape.center.x = mCtr[0];
+        mShape.center.y = mCtr[1];
+        mShape.center.z = mCtr[2];
+        return mShape;
     }
 
     function newObjectName(o) {
         return appState.uniqueName(appState.models.geometry.objects, 'name', o.name + ' {}');
     }
 
-    function noop() { srdbg('DO SOMETHING'); }
+    function noop() { srdbg('DO NOTHING'); }
 
     function groupBounds(objs) {
         var b = [
@@ -1018,40 +1037,30 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
             }
 
             $scope.addObject = function(oId) {
-            //$scope.addObject = function(o) {
                 var o = $scope.getObject(oId);
                 o.groupId = $scope.model.id;
                 $scope.field.push(o.id);
-                srdbg('added', o);
-                //$scope.field.push(o);
             };
 
             $scope.getIds = function() {
                 var i = $scope.objects.map(function (o) {
                     return o.id;
                 });
-                srdbg('got ids', i);
                 return i;
             };
 
             $scope.getObject = function(oId) {
-                //srdbg(oId, radiaService.getObject(oId));
                 return radiaService.getObject(oId);
             };
 
             $scope.hasNoGroup = function(oId) {
-            //$scope.hasNoGroup = function(o) {
-                //return o.id !== $scope.model.id && (! o.groupId || o.groupId === '');
                 var o = $scope.getObject(oId);
-                srdbg(oId, o);
                 return oId !== $scope.model.id && (! o.groupId || o.groupId === '');
             };
 
-            //$scope.removeObject = function(o) {
             $scope.removeObject = function(oId) {
                 var o = $scope.getObject(oId);
                 o.groupId = '';
-                //var oIdx = $scope.field.indexOf(o.id);
                 var oIdx = $scope.field.indexOf(oId);
                 if (oIdx < 0) {
                     return;
