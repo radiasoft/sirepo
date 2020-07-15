@@ -38,7 +38,8 @@ def _add_object(o):
         g_id = radia_tk.build_box(ctr, sz, o.material, m, div)
     if o.model in _GROUP_MODELS:
         grp = []
-        for obj in o.members:
+        for obj_id in o.members:
+            obj = {{ objects }}[obj_id]
             m = PKDict(obj)
             if m.mapId not in id_map:
                 # have not added this yet

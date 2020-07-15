@@ -473,7 +473,6 @@ def _save_field_csv(field_type, vectors, scipy_rotation, path):
     data = ['x,y,z,' + field_type + 'x,' + field_type + 'y,' + field_type + 'z']
     # mm -> m, rotate so the beam axis is aligned with z
     pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation).flatten()
-    #pkdp('v {} to pts {}', vectors.vertices, pts)
     mags = numpy.array(vectors.magnitudes)
     dirs = _rotate_flat_vector_list(vectors.directions, scipy_rotation).flatten()
     for i in range(len(mags)):
