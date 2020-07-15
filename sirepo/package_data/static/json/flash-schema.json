@@ -1403,9 +1403,7 @@
                     ]
                 ]]
             ],
-            "advanced": [
-                "eosMode"
-            ]
+            "advanced": []
         },
         "physicsRadTrans": {
             "title": "Radiative Transfer",
@@ -1442,9 +1440,7 @@
                     "physicsRadTransMGD.rt_mgdBounds_7"
                 ]]
             ],
-            "advanced": [
-                "physicsRadTrans.rt_dtFactor"
-            ]
+            "advanced": []
         },
         "physicsHydro": {
             "title": "Hydrodynamics",
@@ -1460,9 +1456,7 @@
                 "physicsHydrounsplit.entropy",
                 "physicsHydrounsplit.shockDetect"
             ],
-            "advanced": [
-                "cfl"
-            ]
+            "advanced": []
         },
         "physicsDiffuse": {
             "title": "Diffusive Effects",
@@ -1488,20 +1482,17 @@
                     ]]
                 ]
             ],
-            "advanced": [
-                "useDiffuse"
-            ]
+            "advanced": []
          },
         "Driver": {
             "title": "Simulation Driver",
             "basic": [
                 "tmax",
                 "dtinit",
-                "IO.plotFileIntervalTime"
-            ],
-            "advanced": [
+                "IO.plotFileIntervalTime",
                 "allowDtSTSDominate"
-            ]
+            ],
+            "advanced": []
         },
         "SimulationCapLaser3D": {
             "title": "CapLaser 3D Settings",
@@ -1552,9 +1543,7 @@
                     ]
                 ]]
             ],
-            "advanced": [
-                "sim_eosFill"
-            ]
+            "advanced": []
         },
         "SimulationCapLaserBELLA": {
             "title": "CapLaserBELLA Settings",
@@ -1602,9 +1591,7 @@
                     ]
                 ]]
             ],
-            "advanced": [
-                "sim_eosFill"
-            ]
+            "advanced": []
         },
         "SimulationRTFlame": {
             "title": "RTFlame Settings",
@@ -1627,9 +1614,7 @@
                     ]]
                 ]
             ],
-            "advanced": [
-                "dens_unburned"
-            ]
+            "advanced": []
         },
         "physicsmaterialProperties": {
             "title": "Material Properties",
@@ -1650,9 +1635,7 @@
                     ]]
                 ]
             ],
-            "advanced": [
-                "useOpacity"
-            ]
+            "advanced": []
         },
         "physicssourceTermsEnergyDepositionLaser": {
             "title": "Energy Deposition - Laser",
@@ -1724,9 +1707,7 @@
                     ]
                 ]]
             ],
-            "advanced": [
-                "useEnergyDeposition"
-            ]
+            "advanced": []
         },
         "physicssourceTermsFlame": {
             "title": "Flame Effects",
@@ -1749,9 +1730,7 @@
                 "fl_kpp_fact",
                 "fl_b"
             ],
-            "advanced": [
-                "fl_b"
-            ]
+            "advanced": []
         },
         "physicsGravity": {
             "title": "Gravity",
@@ -1761,9 +1740,7 @@
                 "physicsGravityConstant.gconst",
                 "physicsGravityConstant.gdirec"
             ],
-            "advanced": [
-                "grav_boundary_type"
-            ]
+            "advanced": []
         }
     }
 }
