@@ -9,8 +9,24 @@ SIREPO.app.config(function() {
     SIREPO.SINGLE_FRAME_ANIMATION = ['gridEvolutionAnimation'];
 });
 
-SIREPO.app.factory('flashService', function(appState) {
+SIREPO.app.factory('flashService', function(appState, $rootScope) {
     var self = {};
+    self.originalGridgeometryEnum = [];
+    self.capLaserBELLAGridgeometyEnum = [];
+
+    function initGridgeometry() {
+        if (self.originalGridgeometryEnum.length) {
+            return;
+        }
+        var e = SIREPO.APP_SCHEMA.enum.Gridgeometry;
+        self.originalGridgeometryEnum = e;
+        e.forEach(function(v) {
+            if (self.isFlashType('CapLaserBELLA') && ['polar', 'spherical'].includes(v[0])) {
+                return;
+            }
+            self.capLaserBELLAGridgeometyEnum.push(v);
+        });
+    }
 
     self.computeModel = function(analysisModel) {
         return 'animation';
@@ -36,6 +52,13 @@ SIREPO.app.factory('flashService', function(appState) {
     };
 
     appState.setAppService(self);
+
+    appState.whenModelsLoaded($rootScope, function() {
+        initGridgeometry();
+        SIREPO.APP_SCHEMA.enum.Gridgeometry = self.isFlashType('CapLaserBELLA')
+            ? self.capLaserBELLAGridgeometyEnum
+            : self.originalGridgeometryEnum;
+    });
 
     return self;
 });
