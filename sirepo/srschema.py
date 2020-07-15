@@ -129,6 +129,7 @@ def validate(schema):
         Values of default data (if any)
         Existence of dynamic modules
         Enums keyed by string value
+        Model names containing special characters
 
     Args:
         schema (pkcollections.Dict): app schema
@@ -142,6 +143,7 @@ def validate(schema):
             if not isinstance(values[0], pkconfig.STRING_TYPES):
                 raise AssertionError(util.err(name, 'enum values must be keyed by a string value: {}', type(values[0])))
     for model_name in sch_models:
+        _validate_model_name(model_name)
         sch_model = sch_models[model_name]
         for field_name in sch_model:
             sch_field_info = sch_model[field_name]
@@ -157,8 +159,8 @@ def validate(schema):
             raise AssertionError(util.err(sch_ntfy[n], 'notification must reference a cookie in the schema'))
     for sc in sch_cookies:
         _validate_cookie_def(sch_cookies[sc])
-    for type in schema.dynamicModules:
-        for src in schema.dynamicModules[type]:
+    for t in schema.dynamicModules:
+        for src in schema.dynamicModules[t]:
             pkresource.filename(src[1:])
 
 
@@ -200,6 +202,15 @@ def _validate_enum(val, sch_field_info, sch_enums):
     if str(val) not in map(lambda enum: str(enum[0]), sch_enums[type]):
         raise AssertionError(util.err(sch_enums, 'enum {} value {} not in schema', type, val))
 
+def _validate_model_name(model_name):
+    """Ensure model name contain no special characters
+
+    Args:
+        model_name (str): name to validate
+    """
+
+    if not re.search('^[a-z_]\w*$', model_name, re.IGNORECASE):
+        raise AssertionError(util.err(model_name, 'model name must be a Python identifier'))
 
 def _validate_number(val, sch_field_info):
     """Ensure the value of a numeric field falls within the supplied limits (if any)

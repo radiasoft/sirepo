@@ -28,6 +28,7 @@
                 "crystalThickness": 0.01,
                 "dSpacing": 3.1355713563754857,
                 "energy": 8999.0,
+                "geometryType": 1,
                 "grazingAngle": 1.5707963,
                 "h": "1",
                 "heightAmplification": 1,
@@ -58,6 +59,7 @@
                 "crystalThickness": 0.01,
                 "dSpacing": 3.1355713563754857,
                 "energy": 8999.0,
+                "geometryType": 1,
                 "grazingAngle": -1.5707963,
                 "h": "1",
                 "heightAmplification": 1,
@@ -95,6 +97,7 @@
                 "verticalSize": 3.0
             }
         ],
+        "beamline3DReport": {},
         "electronBeam": {
             "beamDefinition": "t",
             "beamSelector": "NSLS-II Low Beta Day 1",

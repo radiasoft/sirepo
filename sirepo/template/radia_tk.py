@@ -168,8 +168,6 @@ def vector_field_to_data(g_id, name, pv_arr, units):
     # format is [[[px, py, pz], [vx, vy, vx]], ...]
     # UNLESS only one element?
     # convert to webGL object
-
-    #pkdp('PV ARR {} SH {}', pv_arr, numpy.shape(pv_arr))
     if len(numpy.shape(pv_arr)) == 2:
         pv_arr = [pv_arr]
     v_data = new_geom_object()

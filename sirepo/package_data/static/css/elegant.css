@@ -6,9 +6,3 @@
   overflow: auto;
   max-height: 180px;
 }
-.elegant-list-value {
-    display: inline-block;
-    width: 10em;
-    margin-right: 1em;
-    margin-bottom: 4px;
-}

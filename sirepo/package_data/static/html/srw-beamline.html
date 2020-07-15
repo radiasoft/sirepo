@@ -42,8 +42,8 @@
 
 <!-- modal dialogs -->
 <div data-modal-editor="" view-name="initialIntensityReport" data-parent-controller="beamline"></div>
-<div data-modal-editor="" view-name="multiElectronAnimation"></div>
-<div data-watchpoint-modal-editor="" data-ng-repeat="item in beamline.beamlineService.getWatchItems() track by item.id" data-parent-controller="beamline" data-item-id="item.id"></div>
+<div data-modal-editor="" view-name="multiElectronAnimation" data-parent-controller="beamline"></div>
+<div data-watchpoint-modal-editor="" data-ng-repeat="item in beamline.beamlineService.getWatchItems() track by item.id" data-parent-controller="beamline" data-item-id="item.id" data-watchpoint-handler=""></div>
 
 <div data-propagation-parameters-modal="" data-propagations="beamline.propagations" data-post-propagation="beamline.postPropagation"></div>
 

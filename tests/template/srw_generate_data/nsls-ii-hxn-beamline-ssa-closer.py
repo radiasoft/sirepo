@@ -70,13 +70,14 @@ def set_optics(v=None):
                 _psi_hbi=v.op_DCM_C1_psiHBi,
                 _tc=v.op_DCM_C1_tc,
                 _ang_as=v.op_DCM_C1_ang_as,
-            )
-            crystal.set_orient(
                 _nvx=v.op_DCM_C1_nvx,
                 _nvy=v.op_DCM_C1_nvy,
                 _nvz=v.op_DCM_C1_nvz,
                 _tvx=v.op_DCM_C1_tvx,
                 _tvy=v.op_DCM_C1_tvy,
+                _uc=v.op_DCM_C1_uc,
+                _e_avg=v.op_DCM_C1_energy,
+                _ang_roll=v.op_DCM_C1_diffractionAngle
             )
             el.append(crystal)
             pp.append(v.op_DCM_C1_pp)
@@ -93,13 +94,14 @@ def set_optics(v=None):
                 _psi_hbi=v.op_DCM_C2_psiHBi,
                 _tc=v.op_DCM_C2_tc,
                 _ang_as=v.op_DCM_C2_ang_as,
-            )
-            crystal.set_orient(
                 _nvx=v.op_DCM_C2_nvx,
                 _nvy=v.op_DCM_C2_nvy,
                 _nvz=v.op_DCM_C2_nvz,
                 _tvx=v.op_DCM_C2_tvx,
                 _tvy=v.op_DCM_C2_tvy,
+                _uc=v.op_DCM_C2_uc,
+                _e_avg=v.op_DCM_C2_energy,
+                _ang_roll=v.op_DCM_C2_diffractionAngle
             )
             el.append(crystal)
             pp.append(v.op_DCM_C2_pp)
@@ -383,16 +385,16 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['wm_ns', 'i', 5, 'saving periodicity (in terms of macro-electrons / coherent wavefronts) for intermediate intensity at multi-electron wavefront propagation calculation'],
     ['wm_ch', 'i', 0, 'type of a characteristic to be extracted after calculation of multi-electron wavefront propagation: #0- intensity (s0); 1- four Stokes components; 2- mutual intensity cut vs x; 3- mutual intensity cut vs y; 40- intensity(s0), mutual intensity cuts and degree of coherence vs X & Y'],
     ['wm_ap', 'i', 0, 'switch specifying representation of the resulting Stokes parameters: coordinate (0) or angular (1)'],
-    ['wm_x0', 'f', 0, 'horizontal center position for mutual intensity cut calculation'],
-    ['wm_y0', 'f', 0, 'vertical center position for mutual intensity cut calculation'],
+    ['wm_x0', 'f', 0.0, 'horizontal center position for mutual intensity cut calculation'],
+    ['wm_y0', 'f', 0.0, 'vertical center position for mutual intensity cut calculation'],
     ['wm_ei', 'i', 0, 'integration over photon energy is required (1) or not (0); if the integration is required, the limits are taken from w_e, w_ef'],
     ['wm_rm', 'i', 1, 'method for generation of pseudo-random numbers for e-beam phase-space integration: 1- standard pseudo-random number generator, 2- Halton sequences, 3- LPtau sequences (to be implemented)'],
     ['wm_am', 'i', 0, 'multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance'],
     ['wm_fni', 's', 'res_int_pr_me.dat', 'file name for saving propagated multi-e intensity distribution vs horizontal and vertical position'],
+    ['wm_fbk', '', '', 'create backup file(s) with propagated multi-e intensity distribution vs horizontal and vertical position and other radiation characteristics', 'store_true'],
 
     #to add options
     ['op_r', 'f', 20.0, 'longitudinal position of the first optical element [m]'],
-
     # Former appParam:
     ['rs_type', 's', 't', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
 
@@ -437,14 +439,17 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_DCM_C1_psiHBr', 'f', -8.107063544835198e-06, 'psiHBr'],
     ['op_DCM_C1_psiHBi', 'f', 2.509311323470587e-07, 'psiHBi'],
     ['op_DCM_C1_tc', 'f', 0.01, 'crystalThickness'],
+    ['op_DCM_C1_uc', 'f', 1, 'useCase'],
     ['op_DCM_C1_ang_as', 'f', 0.0, 'asymmetryAngle'],
-    ['op_DCM_C1_nvx', 'f', -0.9689738178863605, 'nvx'],
-    ['op_DCM_C1_nvy', 'f', 0.0, 'nvy'],
+    ['op_DCM_C1_nvx', 'f', -0.9689738178863608, 'nvx'],
+    ['op_DCM_C1_nvy', 'f', 6.5840770039163984e-09, 'nvy'],
     ['op_DCM_C1_nvz', 'f', -0.24716338776349875, 'nvz'],
-    ['op_DCM_C1_tvx', 'f', -0.24716338776349867, 'tvx'],
-    ['op_DCM_C1_tvy', 'f', 0.0, 'tvy'],
+    ['op_DCM_C1_tvx', 'f', -0.24716338776349875, 'tvx'],
+    ['op_DCM_C1_tvy', 'f', 1.6794496895008727e-09, 'tvy'],
     ['op_DCM_C1_ang', 'f', 0.2497517176345311, 'grazingAngle'],
     ['op_DCM_C1_amp_coef', 'f', 1.0, 'heightAmplification'],
+    ['op_DCM_C1_energy', 'f', 8000.0, 'energy'],
+    ['op_DCM_C1_diffractionAngle', 'f', 1.57079632, 'diffractionAngle'],
 
     # DCM_C2: crystal
     ['op_DCM_C2_hfn', 's', '', 'heightProfileFile'],
@@ -457,14 +462,17 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_DCM_C2_psiHBr', 'f', -8.107063544835198e-06, 'psiHBr'],
     ['op_DCM_C2_psiHBi', 'f', 2.509311323470587e-07, 'psiHBi'],
     ['op_DCM_C2_tc', 'f', 0.01, 'crystalThickness'],
+    ['op_DCM_C2_uc', 'f', 1, 'useCase'],
     ['op_DCM_C2_ang_as', 'f', 0.0, 'asymmetryAngle'],
-    ['op_DCM_C2_nvx', 'f', 0.9689738178863605, 'nvx'],
-    ['op_DCM_C2_nvy', 'f', 0.0, 'nvy'],
+    ['op_DCM_C2_nvx', 'f', 0.9689738178863608, 'nvx'],
+    ['op_DCM_C2_nvy', 'f', 6.5840770039163984e-09, 'nvy'],
     ['op_DCM_C2_nvz', 'f', -0.24716338776349875, 'nvz'],
-    ['op_DCM_C2_tvx', 'f', 0.24716338776349867, 'tvx'],
-    ['op_DCM_C2_tvy', 'f', 0.0, 'tvy'],
+    ['op_DCM_C2_tvx', 'f', 0.24716338776349875, 'tvx'],
+    ['op_DCM_C2_tvy', 'f', 1.6794496895008727e-09, 'tvy'],
     ['op_DCM_C2_ang', 'f', 0.2497517176345311, 'grazingAngle'],
     ['op_DCM_C2_amp_coef', 'f', 1.0, 'heightAmplification'],
+    ['op_DCM_C2_energy', 'f', 8000.0, 'energy'],
+    ['op_DCM_C2_diffractionAngle', 'f', -1.57079632, 'diffractionAngle'],
 
     # DCM_C2_HFM: drift
     ['op_DCM_C2_HFM_L', 'f', 2.219999999999999, 'length'],

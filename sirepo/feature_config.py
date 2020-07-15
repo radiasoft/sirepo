@@ -24,6 +24,7 @@ _NON_ALPHA_FOSS_CODES = frozenset((
 
 #: Codes on dev and alpha
 _ALPHA_FOSS_CODES = frozenset((
+    'irad',
     'radia',
     'madx',
     'myapp',
@@ -35,11 +36,11 @@ _ALPHA_FOSS_CODES = frozenset((
 _FOSS_CODES = _NON_ALPHA_FOSS_CODES.union(_ALPHA_FOSS_CODES)
 
 
-#: codes which we include in dev for testing
-_DEV_PROPRIETARY_CODES = frozenset(('flash',))
+#: codes for which we require dynamically loaded binaries
+_PROPRIETARY_CODES = frozenset(('flash',))
 
 #: all executable codes
-VALID_CODES = _FOSS_CODES.union(_DEV_PROPRIETARY_CODES)
+VALID_CODES = _FOSS_CODES.union(_PROPRIETARY_CODES)
 
 
 #: Configuration
@@ -85,17 +86,15 @@ def _init():
         jspec=dict(
             derbenevskrinsky_force_formula=(pkconfig.channel_in_internal_test(), bool, 'Include Derbenev-Skrinsky force formula'),
         ),
-        proprietary_sim_types=(
-            _DEV_PROPRIETARY_CODES if pkconfig.channel_in('dev') else set(),
-            set,
-            'codes that require authorization',
-        ),
-        #TODO(robnagler) make sim_type config
+        proprietary_sim_types=(set(), set, 'codes that require authorization'),
+        #TODO(robnagler) make this a sim_type config like srw and warpvnd
         rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
         sim_types=(set(), set, 'simulation types (codes) to be imported'),
         srw=dict(
             mask_in_toolbar=(pkconfig.channel_in_internal_test(), bool, 'Show the mask element in toolbar'),
             beamline3d=(pkconfig.channel_in_internal_test(), bool, 'Show 3D beamline plot'),
+            app_url=('/en/xray-beamlines.html', str, 'URL for SRW link'),
+            hide_guest_warning=(False, bool, 'Hide the guest warning in the UI'),
         ),
         warpvnd=dict(
             allow_3d_mode=(True, bool, 'Include 3D features in the Warp VND UI'),

@@ -1,0 +1,9 @@
+{
+    "models": {
+        "simulation": {},
+        "dicom3DReport": {},
+        "dicomReport": {},
+        "dvhReport": {}
+    },
+    "simulationType": "irad"
+}

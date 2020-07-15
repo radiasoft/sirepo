@@ -199,6 +199,12 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         );
     };
 
+    self.processIntensityLimit = function(modelName, modelKey) {
+        ['minIntensityLimit', 'maxIntensityLimit'].forEach(function(f) {
+            panelState.showField(modelName, f, appState.models[modelKey || modelName].useIntensityLimits == '1');
+        });
+    };
+
     self.setShowCalcCoherence = function(isShown) {
         self.showCalcCoherence = isShown;
     };
@@ -248,7 +254,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
 
 SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState, beamlineService, panelState, requestSender, simulationQueue, srwService, $scope, $location) {
     var self = this;
-    var grazingAngleElements = ['ellipsoidMirror', 'grating', 'sphericalMirror', 'toroidalMirror'];
+    var grazingAngleElements = ['ellipsoidMirror', 'sphericalMirror', 'toroidalMirror'];
     // tabs: single, multi, beamline3d
     var activeTab = 'single';
     self.mirrorReportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
@@ -290,14 +296,48 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
             });
     }
 
+    function computePGMValue(item) {
+        updateGratingFields(item);
+        //  computeFields('compute_PGM_value', item, ['energyAvg', 'cff', 'grazingAngle', 'orientation']);
+        requestSender.getApplicationData(
+            {
+                method: 'compute_PGM_value',
+                optical_element: item,
+                photon_energy: appState.models.simulation.photonEnergy,
+            },
+            function(data) {
+                 ['energyAvg', 'cff', 'grazingAngle', 'orientation'].forEach(function(f) {
+                    item[f] = data[f];
+                });
+                ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy'].forEach(function(f) {
+                    item[f] = data[f];
+                    formatOrientationOutput(item, data, f);
+                });
+            });
+    }
+
     function computeCrystalInit(item) {
         if (item.material != 'Unknown') {
-            computeFields('compute_crystal_init', item, ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi']);
+            updateCrystalInitFields(item);
+            computeFields('compute_crystal_init', item, ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'orientation']);
         }
     }
 
     function computeCrystalOrientation(item) {
-        computeFields('compute_crystal_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle']);
+        updateCrystalOrientationFields(item);
+        //computeFields('compute_crystal_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy', 'orientation']);
+        requestSender.getApplicationData(
+            {
+                method: 'compute_crystal_orientation',
+                optical_element: item,
+                photon_energy: appState.models.simulation.photonEnergy,
+            },
+            function(data) {
+                ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy'].forEach(function(f) {
+                    item[f] = data[f];
+                    formatOrientationOutput(item, data, f);
+                });
+            });
     }
 
     function computeDeltaAttenCharacteristics(item) {
@@ -351,7 +391,7 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
     function computeVectors(item) {
         updateVectorFields(item);
         if (item.grazingAngle && item.autocomputeVectors != 'none') {
-            computeFields('compute_grazing_angle', item, ['normalVectorZ', 'normalVectorY', 'normalVectorX', 'tangentialVectorY', 'tangentialVectorX']);
+            computeFields('compute_grazing_orientation', item, ['normalVectorZ', 'normalVectorY', 'normalVectorX', 'tangentialVectorY', 'tangentialVectorX']);
         }
     }
 
@@ -383,6 +423,19 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         }
         else {
             item[f] = item[f].toFixed(6);
+        }
+    }
+
+    function formatOrientationOutput(item, data, f) {
+        item[f] = parseFloat(data[f]);
+        if (item[f] === 1) {
+            item[f] = item[f].toFixed(1);
+        }
+        else if (item[f] === 0) {
+            item[f] = item[f].toFixed(1);
+        }
+        else {
+            item[f] = item[f].toFixed(12);
         }
     }
 
@@ -418,6 +471,26 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
     function updateCRLFields(item) {
         panelState.enableField('crl', 'focalDistance', false);
         updateMaterialFields(item);
+    }
+
+    function updateCrystalInitFields(item) {
+        ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi'].forEach(function(f) {
+            panelState.enableField(item.type, f, false);
+        });
+    }
+
+    function updateCrystalOrientationFields(item) {
+        ['nvx', 'nvy', 'nvz', 'tvx', 'tvy'].forEach(function(f) {
+            panelState.enableField(item.type, f, false);
+        });
+    }
+
+    function updateGratingFields(item) {
+        panelState.enableField(item.type, 'cff', item.computeParametersFrom === '1');
+        panelState.enableField(item.type, 'grazingAngle', item.computeParametersFrom === '2');
+        ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy'].forEach(function(f) {
+            panelState.enableField(item.type, f, item.computeParametersFrom === '3');
+        });
     }
 
     function updateDualFields(item) {
@@ -461,14 +534,14 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
     }
 
     function updateSampleFields(item) {
-        ['imageFile', 'rotateAngle', 'rotateReshape', 'cutoffBackgroundNoise', 'backgroundColor', 'invert', 'tileImage', 'tileRows', 'tileColumns', 'cropArea', 'resolution'].forEach(function(f) {
+        panelState.showTab('sample', 2, item.sampleSource == 'file');
+        panelState.showTab('sample', 3, item.sampleSource == 'randomDisk');
+        ['resolution'].forEach(function(f) {
             panelState.showField('sample', f, item.sampleSource == 'file');
         });
-        ['dens', 'obj_type', 'r_min_bw_obj', 'size_dist', 'ang_dist', 'rand_alg', 'rx', 'ry', 'nx', 'ny', 'rand_obj_size', 'obj_size_ratio', 'rand_poly_side', 'poly_sides', 'rand_shapes'].forEach(function(f) {
+        ['dens', 'rx', 'ry', 'nx', 'ny'].forEach(function(f) {
             panelState.showField('sample', f, item.sampleSource == 'randomDisk');
         });
-        panelState.showRow('sample', 'areaXStart', item.sampleSource == 'file');
-        panelState.showRow('sample', 'obj_size_min', item.sampleSource == 'randomDisk');
         if (item.sampleSource == 'file') {
             ['areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd'].forEach(function(f) {
                 panelState.showField('sample', f, item.cropArea == '1');
@@ -509,10 +582,15 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
                     updateSampleFields(item);
                 }
             }
+            else if (name === 'grating'){
+                updateGratingFields(item);
+            }
             else if (name == 'crystal') {
-                if (item.materal != 'Unknown' && ! item.nvz) {
+                //if (item.materal != 'Unknown' && ! item.nvz) {
+                if (item.materal != 'Unknown') {
                     computeCrystalInit(item);
                 }
+                updateCrystalOrientationFields(item);
             }
             if (grazingAngleElements.indexOf(name) >= 0) {
                 updateVectorFields(item);
@@ -520,6 +598,9 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         }
         panelState.showField('watchpointReport', 'fieldUnits', srwService.isGaussianBeam());
         panelState.showField('initialIntensityReport', 'fieldUnits', srwService.isGaussianBeam());
+        if (appState.models[name] && appState.models[name].useIntensityLimits) {
+            srwService.processIntensityLimit(name);
+        }
     };
 
     self.isActiveTab = function(tab) {
@@ -550,6 +631,13 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
                 ];
             }
             var p = propagation[beamline[i].id];
+            if(beamline[i].type == 'grating' || beamline[i].type == 'crystal'){
+                p[0][12] = beamline[i].outoptvx;
+                p[0][13] = beamline[i].outoptvy;
+                p[0][14] = beamline[i].outoptvz;
+                p[0][15] = beamline[i].outframevx;
+                p[0][16] = beamline[i].outframevy;
+            }
             if (beamline[i].type != 'watch') {
                 self.propagations.push({
                     item: beamline[i],
@@ -668,9 +756,16 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
         ['mask', 'sample'].forEach(function(m) {
             beamlineService.watchBeamlineField($scope, m, ['method', 'material'], computeDeltaAttenCharacteristics);
         });
-        beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energy', 'h', 'k', 'l'], computeCrystalInit, true);
-        beamlineService.watchBeamlineField($scope, 'crystal', ['diffractionAngle', 'dSpacing', 'asymmetryAngle', 'psi0r', 'psi0i', 'rotationAngle'], computeCrystalOrientation, true);
+        beamlineService.watchBeamlineField($scope, 'grating', ['energyAvg', 'cff', 'grazingAngle', 'rollAngle', 'computeParametersFrom'], computePGMValue, true);
+        beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energy', 'diffractionAngle', 'h', 'k', 'l'], computeCrystalInit, true);
+        beamlineService.watchBeamlineField($scope, 'crystal', ['energy', 'diffractionAngle', 'useCase', 'dSpacing', 'asymmetryAngle', 'psi0r', 'psi0i'], computeCrystalOrientation, true);
+        beamlineService.watchBeamlineField($scope, 'sample', ['cropArea', 'tileImage', 'rotateAngle'], updateSampleFields);
         beamlineService.watchBeamlineField($scope, 'sample', ['sampleSource', 'cropArea', 'tileImage', 'rotateAngle', 'cutoffBackgroundNoise', 'obj_type', 'rand_obj_size', 'rand_poly_side'], updateSampleFields);
+        ['initialIntensityReport', 'multiElectronAnimation'].forEach(function(m) {
+            appState.watchModelFields($scope, [m + '.useIntensityLimits'], function() {
+                srwService.processIntensityLimit(m);
+            });
+        });
         $scope.$on('beamline.changed', syncFirstElementPositionToDistanceFromSource);
         $scope.$on('simulation.changed', function() {
             updatePhotonEnergyHelpText();
@@ -726,7 +821,6 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
 
 SIREPO.app.controller('SRWSourceController', function (appState, panelState, requestSender, srwService, $scope) {
     var self = this;
-    // required for $watch below
     $scope.appState = appState;
     self.srwService = srwService;
 
@@ -937,10 +1031,14 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
             panelState.showField(name, 'magneticField', ! srwService.isApplicationMode('calculator'));
             processIntensityReport(name);
             srwService.updateSimulationGridFields();
+            srwService.processIntensityLimit(name);
         }
         else if (name === 'trajectoryReport') {
             processTrajectoryReport();
             processTrajectoryAxis();
+        }
+        else if (name == 'powerDensityReport') {
+            srwService.processIntensityLimit(name);
         }
     };
 
@@ -1037,6 +1135,11 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         appState.watchModelFields(
             $scope, ['sourceIntensityReport.samplingMethod'],
             srwService.updateSimulationGridFields);
+        ['powerDensityReport', 'sourceIntensityReport'].forEach(function(m) {
+            appState.watchModelFields($scope, [m + '.useIntensityLimits'], function() {
+                srwService.processIntensityLimit(m);
+            });
+        });
     });
 });
 
@@ -1234,10 +1337,13 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
     ].join('');
 
     function navHeader(mode, modeTitle) {
+        var appInfo = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME];
         return [
             '<div class="navbar-header">',
               '<a class="navbar-brand" href="/en/landing.html"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
-              '<div class="navbar-brand"><a href="/old#/srw">',SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName,'</a>',
+              '<div class="navbar-brand">',
+                '<a class="hidden-md hidden-sm" href="/light">', appInfo.longName, '</a>',
+                '<a class="hidden-xs hidden-lg hidden-xl" href="/light">', appInfo.shortName, '</a>',
                 '<span class="hidden-xs"> - </span>',
                 '<a class="hidden-xs" href="/light#/' + mode + '" class="hidden-xs">' + modeTitle + '</a>',
                 '<span class="hidden-xs" data-ng-if="nav.sectionTitle()"> - </span>',
@@ -1280,14 +1386,17 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
               rightNav,
             '</div>',
             '<div data-ng-if="srwService.isApplicationMode(\'default\')">',
-              '<div data-app-header-brand="nav"></div>',
+              '<div data-app-header-brand="" data-app-url="{{ ::appURL() }}"></div>',
               '<div class="navbar-left" data-app-header-left="nav"></div>',
               rightNav,
             '</div>',
         ].join(''),
         controller: function($scope) {
-
             $scope.srwService = srwService;
+
+            $scope.appURL = function() {
+                return SIREPO.APP_SCHEMA.feature_config.app_url;
+            };
 
             $scope.showImportModal = function() {
                 $('#srw-simulation-import').modal('show');
@@ -1634,12 +1743,14 @@ SIREPO.app.directive('propagationParameterFieldEditor', function() {
         template: [
             '<div data-ng-switch="::paramInfo.fieldType">',
               '<select data-ng-switch-when="AnalyticalTreatment" number-to-string class="input-sm" data-ng-model="param[paramInfo.fieldIndex]" data-ng-options="item[0] as item[1] for item in ::analyticalTreatmentEnum"></select>',
+              '<select data-ng-switch-when="WavefrontShiftTreatment" number-to-string class="input-sm" data-ng-model="param[paramInfo.fieldIndex]" data-ng-options="item[0] as item[1] for item in ::wavefrontShiftTreatmentEnum"></select>',
               '<input data-ng-disabled="disabled" data-ng-switch-when="Float" data-string-to-number="" type="text" class="srw-small-float" data-ng-class="{\'sr-disabled-text\': disabled}" data-ng-model="param[paramInfo.fieldIndex]">',
               '<input data-ng-disabled="disabled" data-ng-switch-when="Boolean" type="checkbox" data-ng-model="param[paramInfo.fieldIndex]" data-ng-true-value="1", data-ng-false-value="0">',
             '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.analyticalTreatmentEnum = SIREPO.APP_SCHEMA.enum.AnalyticalTreatment;
+            $scope.wavefrontShiftTreatmentEnum = SIREPO.APP_SCHEMA.enum.WavefrontShiftTreatment;
         },
     };
 });
@@ -1683,12 +1794,13 @@ SIREPO.app.directive('propagationParametersModal', function(appState) {
         ].join(''),
         controller: function($scope) {
             var activePropagationSection = 0;
-            $scope.propagationSections = ['Propagator and Resizing', 'Auto-Resize', 'Orientation'];
-            $scope.propagationInfo = [null, '<div style="text-align: left">Available for Standard Propagators</div>', null];
+            $scope.propagationSections = ['Propagator and Resizing', 'Auto-Resize', 'Orientation', 'Grid Shift'];
+            $scope.propagationInfo = [null, '<div style="text-align: left">Available for Standard Propagators</div>', null, null];
             $scope.parametersBySection = [
                 [3, 4, 5, 6, 7, 8],
                 [0, 1, 2],
                 [12, 13, 14, 15, 16],
+                [9,10,11],
             ];
 
             $scope.isPropagationSectionActive = function(index) {
@@ -1739,7 +1851,7 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
                     '</td>',
                   '</tr>',
                   '<tr class="warning">',
-                    '<td class="input-sm">Final post-propagation (resize)</td>',
+                    '<td class="input-sm">Final post-propagation</td>',
                     '<td class="sr-center" style="vertical-align: middle" data-ng-repeat="paramInfo in ::parameterInfo track by $index">',
                       '<div data-propagation-parameter-field-editor="" data-param="postPropagation" data-param-info="paramInfo" data-disabled="isControlDisabledForParams(postPropagation)"></div>',
                     '</td>',
@@ -1977,7 +2089,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             //TODO(pjm): share with simStatusPanel directive in sirepo-components.js
                 '<div data-ng-if="simState.showJobSettings()">',
                   '<div class="form-group form-group-sm">',
-                    '<div class="col-sm-14" data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>',
+                    '<div class="col-sm-12" data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>',
                     '<div data-sbatch-options="simState"></div>',
                   '</div>',
                 '</div>',
@@ -2086,31 +2198,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
     };
 });
 
-//TODO(pjm): move this to sirepo-components and share with warpvnd
-SIREPO.app.service('vtkToPNG', function(plotToPNG, utilities) {
-    this.pngCanvas = function(reportId, vtkRenderer, panel) {
-        var canvas = document.createElement('canvas');
-        var res = {
-            copyCanvas: function() {
-                var canvas3d = $(panel).find('canvas')[0];
-                canvas.width = parseInt(canvas3d.getAttribute('width'));
-                canvas.height = parseInt(canvas3d.getAttribute('height'));
-                // this call makes sure the buffer is fresh (it appears)
-                vtkRenderer.getOpenGLRenderWindow().traverseAllPasses();
-                canvas.getContext('2d').drawImage(canvas3d, 0, 0, canvas.width, canvas.height);
-            },
-            destroy: function() {
-                panel.off();
-                plotToPNG.removeCanvas(reportId);
-            },
-        };
-        plotToPNG.addCanvas(canvas, reportId);
-        $(panel).on('pointerup', res.copyCanvas);
-        $(panel).on('wheel', utilities.debounce(res.copyCanvas, 100));
-        return res;
-    };
-});
-
 SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkToPNG) {
     return {
         restrict: 'A',
@@ -2137,7 +2224,6 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
             var MAX_CONDENSED_LENGTH = 3;
             var MIN_CONDENSED_LENGTH = 0.7;
             var beamline, fsRenderer, labelCanvas, labels, orientationMarker, pngCanvas;
-            $scope.isClientOnly = true;
             $scope.dimensions = ['x', 'y', 'z'];
             $scope.viewDirection = null;
             $scope.selectedDimension = null;
@@ -2592,7 +2678,8 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                 return degrees * Math.PI / 180;
             }
 
-            function refresh() {
+            function refresh(colInfo) {
+                //TODO(pjm): use colInfo from beamline_orient.dat to set orientation
                 removeActors();
                 buildBeamline();
                 labels = [];
@@ -2622,6 +2709,8 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                 }
             }
 
+            $scope.clearData = function() {};
+
             $scope.destroy = function() {
                 window.removeEventListener('resize', fsRenderer.resize);
                 fsRenderer.getInteractor().unbindEvents();
@@ -2640,9 +2729,10 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                 labelCanvas = document.createElement('canvas');
                 fsRenderer.getInteractor().onAnimation(vtk.macro.debounce(updateOrientation, 250));
                 pngCanvas = vtkToPNG.pngCanvas($scope.reportId, fsRenderer, $element);
-                refresh();
-                $scope.$on('beamline.changed', refresh);
-                $scope.$on('beamline3DReport.changed', refresh);
+            };
+
+            $scope.load = function(json) {
+                refresh(json.cols);
             };
 
             $scope.resize = function() {};
@@ -2691,6 +2781,28 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+// field handlers for watchpointReports.
+// normal model editors have unique names and don't require separate directives like this
+SIREPO.app.directive('watchpointHandler', function(appState, beamlineService, panelState, srwService) {
+    return {
+        restrict: 'A',
+        controller: function($scope) {
+            var modelKey = beamlineService.watchpointReportName($scope.item.id);
+
+            function processIntensityLimit() {
+                srwService.processIntensityLimit('watchpointReport', modelKey);
+            }
+
+            appState.watchModelFields(
+                $scope,
+                [modelKey + '.useIntensityLimits'],
+                processIntensityLimit);
+
+            $scope.$on('sr-tabSelected', processIntensityLimit);
         },
     };
 });

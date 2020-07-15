@@ -244,7 +244,7 @@
             "distanceFromSource": 20,
             "fieldUnits": 1,
             "finalPosition": 0.5,
-            "horizontalPointCount": 120,
+            "horizontalPointCount": 100,
             "horizontalPosition": 0,
             "horizontalRange": 120,
             "initialPosition": -5.5,
@@ -260,7 +260,7 @@
             "rotateReshape": "1",
             "sampleFactor": 1,
             "samplingMethod": "2",
-            "verticalPointCount": 20,
+            "verticalPointCount": 100,
             "verticalPosition": 0,
             "verticalRange": 20
         },

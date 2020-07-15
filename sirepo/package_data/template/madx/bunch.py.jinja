@@ -1,0 +1,53 @@
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdp, pkdc, pkdlog
+import numpy
+
+def _ptc_particles(twiss_params, num_particles):
+    #pkdp('BUILD {} PARTS FROM {}', num_particles, twiss_params)
+    mean = [0, 0, 0, 0]
+    cov = []
+    for dim in twiss_params:
+        m1 = 1 if dim == 'x' else 0
+        m2 = 1 - m1
+        tp = PKDict(twiss_params[dim])
+        dd = tp.beta * tp.emittance
+        ddp = -tp.alpha * tp.emittance
+        dpdp = tp.emittance * tp.gamma
+        cov.append([m1 * dd, m1 * ddp, m2 * dd, m2 * ddp])
+        cov.append([m1 * ddp, m1 * dpdp, m2 * ddp, m2 * dpdp])
+
+    transverse = numpy.random.multivariate_normal(mean, cov, num_particles)
+    x = transverse[:, 0]
+    xp = transverse[:, 1]
+    y = transverse[:, 2]
+    yp = transverse[:, 3]
+
+    long_part = numpy.random.multivariate_normal([0, 0], [[0, 0], [0, 0]], num_particles)
+
+    particles = numpy.column_stack([x, xp, y, yp, long_part[:, 0], long_part[:, 1]])
+    return PKDict(
+        x=PKDict(pos=particles[:,0], p=particles[:,1]),
+        y=PKDict(pos=particles[:,2], p=particles[:,3]),
+        t=PKDict(pos=particles[:,4], p=particles[:,5]),
+    )
+
+def _save_particles(particle_dict, path):
+    str = ''
+    for i in range(0, len(particle_dict.x.pos)):
+        str += 'ptc_start, '
+        for dim in ('x', 'y', 't'):
+            str += '{}={}, p{}={}, '.format(dim, particle_dict[dim].pos[i], dim, particle_dict[dim].p[i])
+        str += ' ;\n'
+
+    with open(path, 'w') as f:
+        f.write(str)
+
+
+{% if report == 'bunchReport' %}
+p_dict = _ptc_particles(PKDict({{ initialTwissParameters }}), {{ numParticles }})
+#pkdp('PARTS {}', p_dict)
+_save_particles(
+    p_dict,
+    '{{ particleFile }}'
+)
+{% endif %}

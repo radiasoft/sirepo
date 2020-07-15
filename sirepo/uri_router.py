@@ -114,8 +114,6 @@ def init(app, simulation_db):
 
     from sirepo import feature_config
 
-    global _app
-    _app = app
     for n in _REQUIRED_MODULES + tuple(sorted(feature_config.cfg().api_modules)):
         register_api_module(importlib.import_module('sirepo.' + n))
     _init_uris(app, simulation_db)
@@ -124,7 +122,6 @@ def init(app, simulation_db):
         simulation_db=simulation_db,
     )
     sirepo.http_reply.init(
-        app,
         simulation_db=simulation_db,
     )
     sirepo.uri.init(
@@ -152,7 +149,7 @@ def register_api_module(module=None):
         return
     # prevent recursion
     _api_modules.append(m)
-    m.init_apis(_app)
+    m.init_apis()
     # It's ok if there are no APIs
     for n, o in inspect.getmembers(m):
         if n.startswith(_FUNC_PREFIX) and inspect.isfunction(o):

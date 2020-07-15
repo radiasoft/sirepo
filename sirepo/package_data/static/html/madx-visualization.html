@@ -26,15 +26,6 @@
               <span>{{ visualization.simState.stateAsText() }}</span><span data-ng-show="visualization.simState.hasTimeData()">:
               <span data-simulation-status-timer="visualization.simState.timeData"></span>
               </span>
-              <br><br>
-              <div class="well well-lg" data-ng-show="visualization.simulationAlerts || visualization.simState.hasFrames()">
-                <div data-ng-if="visualization.simulationAlerts">
-                  <div class="text-warning"><strong>{{ visualization.errorHeader() }}</strong></div>
-                  <p class="elegant-error-box">{{ visualization.simulationAlerts }}</p>
-                  <br>
-                </div>
-                <a data-ng-href="{{ visualization.logFileURL() }}" target="_blank">View elegant log</a>
-              </div>
             </div>
             <!--<div data-run-simulation-fields=""></div>-->
             <div class="col-sm-6 pull-right" data-ng-show="visualization.simState.isStopped()">
@@ -43,15 +34,10 @@
           </form>
       </div>
     </div>
-
-    <div class="col-md-6 col-xl-4" data-ng-show="visualization.simState.hasFrames()">
-        <div data-parameter-table=""></div>
-    </div>
     <div class="clearfix"></div>
     <div data-ng-repeat="item in visualization.outputFiles" data-column-for-aspect-ratio="{{ item.modelAccess.modelKey }}" data-ng-if="visualization.simState.hasFrames()">
-      <div data-report-panel="{{ item.reportType }}" data-model-data="item.modelAccess" data-panel-title="{{ appState.models[item.modelAccess.modelKey].panelTitle }}"></div>
+      <div data-report-panel="{{ item.reportType }}" data-model-data="item.modelAccess" data-panel-title="{{ item.panelTitle }}"></div>
     </div>
-
   </div> <!-- /row -->
 </div> <!-- /container -->
 <div data-element-animation-modal-editor="" data-ng-repeat="item in visualization.outputFiles" data-report-info="item"></div>

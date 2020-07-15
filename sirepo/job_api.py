@@ -17,7 +17,6 @@ import pykern.pkio
 import re
 import requests
 import sirepo.auth
-import sirepo.auth_db
 import sirepo.http_reply
 import sirepo.http_request
 import sirepo.job
@@ -64,7 +63,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
         t.mksymlinkto(d, absolute=True)
         try:
-            _request(
+            r = _request(
                 computeJobHash='unused',
                 dataFileKey=t.basename,
                 frame=int(frame),
@@ -72,6 +71,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
                 req_data=req.req_data,
                 suffix=s,
             )
+            assert not r.state == 'error', f'error state in request=={r}'
             f = d.listdir()
             if len(f) > 0:
                 assert len(f) == 1, \
@@ -248,7 +248,7 @@ def _request_content(kwargs):
         uid=sirepo.auth.logged_in_user(),
     ).pkupdate(
         computeJid=s.parse_jid(d, uid=b.uid),
-        userDir=str(sirepo.simulation_db.user_dir_name(b.uid)),
+        userDir=str(sirepo.simulation_db.user_path(b.uid)),
     )
     return _run_mode(b)
 

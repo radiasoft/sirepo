@@ -65,7 +65,7 @@
             "zmin": 0,
             "zr_boundary_type": "reflect"
         },
-        "Grid:paramesh": {
+        "Gridparamesh": {
             "convertToConsvdInMeshInterp": "1",
             "derefine_cutoff_1": 0.2,
             "derefine_cutoff_2": 0.2,
@@ -150,12 +150,12 @@
             "y_refine_center": 0,
             "z_refine_center": 0
         },
-        "Grid:paramesh:paramesh4": {
+        "Gridparameshparamesh4": {
             "enableMaskedGCFill": "0",
             "gr_sanitizeDataMode": 1,
             "gr_sanitizeVerbosity": 5
         },
-        "Grid:paramesh:paramesh4:Paramesh4dev": {
+        "Gridparameshparamesh4Paramesh4dev": {
             "gr_pmrpAdvanceAllLevels": "0",
             "gr_pmrpAmrErrorChecking": "0",
             "gr_pmrpCartesianPm": "0",
@@ -200,7 +200,7 @@
             "gr_pmrpTimingMpix": "0",
             "gr_pmrpVarDt": "0"
         },
-        "Grid:paramesh:paramesh4:Paramesh4dev:flash_avoid_orrery": {
+        "Gridparameshparamesh4Paramesh4devflash_avoid_orrery": {
             "use_flash_surr_blks_fill": "1",
             "use_reduced_orrery": "1"
         },
@@ -299,11 +299,11 @@
             "eos_fillEosType": "eos_tab",
             "eos_fillGroupName": "-none-",
             "eos_fillSubType": "ionmix4",
-            "eos_fillTableFile": "h-imx-004.cn4",
+            "eos_fillTableFile": "helium-fill-imx.cn4",
             "eos_wallEosType": "eos_tab",
             "eos_wallGroupName": "-none-",
             "eos_wallSubType": "ionmix4",
-            "eos_wallTableFile": "al-imx-004.cn4",
+            "eos_wallTableFile": "alumina-wall-imx.cn4",
             "ms_fillA": 1.00794,
             "ms_fillAElems_1": -999,
             "ms_fillAElems_2": -999,
@@ -322,6 +322,7 @@
             "ms_fillNegative": -999,
             "ms_fillNeutral": -999,
             "ms_fillNumElems": 0,
+            "ms_fillSpecies": "hydrogen",
             "ms_fillZ": 1,
             "ms_fillZElems_1": -999,
             "ms_fillZElems_2": -999,
@@ -330,7 +331,7 @@
             "ms_fillZElems_5": -999,
             "ms_fillZElems_6": -999,
             "ms_fillZMin": 0.001,
-            "ms_wallA": 26.9815386,
+            "ms_wallA": 101.96,
             "ms_wallAElems_1": -999,
             "ms_wallAElems_2": -999,
             "ms_wallAElems_3": -999,
@@ -348,7 +349,8 @@
             "ms_wallNegative": -999,
             "ms_wallNeutral": -999,
             "ms_wallNumElems": 0,
-            "ms_wallZ": 13,
+            "ms_wallSpecies": "alumina",
+            "ms_wallZ": 10.0,
             "ms_wallZElems_1": -999,
             "ms_wallZElems_2": -999,
             "ms_wallZElems_3": -999,
@@ -359,37 +361,10 @@
             "op_fillLowTemp": 0,
             "op_wallLowTemp": 0
         },
-        "Simulation:RTFlame": {
-            "dens_unburned": 100000000,
-            "flame_initial_position": 0,
-            "particle_attribute_1": "dens",
-            "particle_attribute_2": "temp",
-            "particle_attribute_4": "flam",
-            "refine_buf": 100000,
-            "refine_lead": 200000,
-            "refine_region_size": 6000000,
-            "refine_region_stepdown_size": 4500000,
-            "refine_uniform_region": "0",
-            "sim_ParticleRefineRegion": "0",
-            "sim_ParticleRefineRegionBottom": 6000000,
-            "sim_ParticleRefineRegionLevel": 2,
-            "sim_ParticleRefineRegionTop": 20000000,
-            "spert_ampl1": 0,
-            "spert_ampl2": 0,
-            "spert_phase1": 0,
-            "spert_phase2": 0,
-            "spert_wl1": 1,
-            "spert_wl2": 1,
-            "temp_unburned": 100000000,
-            "vel_pert_amp": 0,
-            "vel_pert_wavelength1": 1
-        },
-        "Simulation:magnetoHD:CapLaserBELLA": {
+        "SimulationCapLaserBELLA": {
             "sim_condWall": 150000,
             "sim_eosFill": "eos_gam",
             "sim_eosWall": "eos_tab",
-            "sim_peakField": 3200,
-            "sim_period": 4e-07,
             "sim_rhoFill": 1e-06,
             "sim_rhoWall": 2.7,
             "sim_teleFill": 11598,
@@ -398,7 +373,10 @@
             "sim_tionWall": 11598,
             "sim_tradFill": 11598,
             "sim_tradWall": 11598,
-            "sim_zminWall": 0
+            "sim_zminWall": 0,
+            "sim_currType": "1",
+            "sim_peakCurr": 3.1e2 ,
+            "sim_riseTime": 1.8e-9
         },
         "gridEvolutionAnimation": {
             "notes": "",
@@ -406,7 +384,7 @@
             "y2": "y-momentum",
             "y3": "E_kinetic"
         },
-        "physics:Diffuse": {
+        "physicsDiffuse": {
             "diff_eleFlCoef": 0.06,
             "diff_eleFlMode": "fl_larsen",
             "diff_eleXlBoundaryType": "neumann",
@@ -438,23 +416,23 @@
             "useDiffuseTherm": "1",
             "useDiffuseVisc": "1"
         },
-        "physics:Diffuse:Unsplit": {
+        "physicsDiffuseUnsplit": {
             "diff_ionThetaImplct": 0.5,
             "diff_thetaImplct": 1,
             "diff_updEint": "0"
         },
-        "physics:Eos:Tabulated:Hdf5TableRead": {
+        "physicsEosTabulatedHdf5TableRead": {
             "eos_useLogTables": "0"
         },
-        "physics:Gravity": {
+        "physicsGravity": {
             "grav_boundary_type": "isolated",
             "useGravity": "1"
         },
-        "physics:Gravity:Constant": {
+        "physicsGravityConstant": {
             "gconst": -981,
             "gdirec": "x"
         },
-        "physics:Hydro": {
+        "physicsHydro": {
             "UnitSystem": "none",
             "cfl": 0.3,
             "threadHydroBlockList": "0",
@@ -464,7 +442,7 @@
             "use_cma_advection": "0",
             "use_cma_flattening": "0"
         },
-        "physics:Hydro:unsplit": {
+        "physicsHydrounsplit": {
             "EOSforRiemann": "0",
             "LimitedSlopeBeta": 1,
             "RiemannSolver": "HLLC",
@@ -508,7 +486,7 @@
             "use_upwindTVD": "0",
             "wenoMethod": "WENO5"
         },
-        "physics:Hydro:unsplit:MHD_StaggeredMesh": {
+        "physicsHydrounsplitMHD_StaggeredMesh": {
             "E_modification": "0",
             "E_upwind": "0",
             "ForceHydroLimit": "0",
@@ -525,11 +503,11 @@
             "use_Biermann": "0",
             "use_Biermann1T": "0"
         },
-        "physics:RadTrans": {
+        "physicsRadTrans": {
             "rt_dtFactor": 1e+100,
             "useRadTrans": "1"
         },
-        "physics:RadTrans:MGD": {
+        "physicsRadTransMGD": {
             "rt_computeDt": "0",
             "rt_groupBarrier": "0",
             "rt_mgdBoundEntry": "grbd_manual",
@@ -654,15 +632,18 @@
             "rt_timeGroups": "0",
             "rt_useMGD": "1"
         },
-        "physics:materialProperties:Opacity": {
+        "physicsmaterialPropertiesConductivity": {
+            "useConductivity": "1"
+        },
+        "physicsmaterialPropertiesOpacity": {
             "useOpacity": "1"
         },
-        "physics:materialProperties:Opacity:Multispecies": {
+        "physicsmaterialPropertiesOpacityMultispecies": {
             "op_fillAbsorb": "op_tabpa",
             "op_fillAbsorbConstant": -1,
             "op_fillEmiss": "op_tabpe",
             "op_fillEmissConstant": -1,
-            "op_fillFileName": "h-imx-004.cn4",
+            "op_fillFileName": "helium-fill-imx.cn4",
             "op_fillFileType": "ionmix4",
             "op_fillTrans": "op_tabro",
             "op_fillTransConstant": -1,
@@ -670,14 +651,14 @@
             "op_wallAbsorbConstant": -1,
             "op_wallEmiss": "op_tabpe",
             "op_wallEmissConstant": -1,
-            "op_wallFileName": "al-imx-004.cn4",
+            "op_wallFileName": "alumina-wall-imx.cn4",
             "op_wallFileType": "ionmix4",
             "op_wallTrans": "op_tabro",
             "op_wallTransConstant": -1,
             "opacity_ignoreLowTemp": "1",
             "opacity_writeOpacityInfo": "0"
         },
-        "physics:sourceTerms:EnergyDeposition:Laser": {
+        "physicssourceTermsEnergyDepositionLaser": {
             "ed_RungeKuttaMethod": "CashKarp45",
             "ed_cellStepTolerance": 1e-06,
             "ed_cellTimeEnergyDeposition": "0",
@@ -685,7 +666,7 @@
             "ed_computeGradNeleX": "1",
             "ed_computeGradNeleY": "1",
             "ed_computeGradNeleZ": "1",
-            "ed_crossSectionFunctionType_1": "gaussian1D",
+            "ed_crossSectionFunctionType_1": "gaussian2D",
             "ed_cubicInterpolationZeroDerv": "0",
             "ed_depoReuseMaxSteps": -1,
             "ed_depoVarName": "depo",
@@ -699,7 +680,7 @@
             "ed_gradOrder": 2,
             "ed_gridDeltaSemiAxisMajor_1": -1.7976931348623157e+308,
             "ed_gridDeltaSemiAxisMinor_1": -1.7976931348623157e+308,
-            "ed_gridType_1": "statistical1D",
+            "ed_gridType_1": "radial2D",
             "ed_gridnAngularTics_1": -9007199254740991,
             "ed_gridnRadialTics_1": 1024,
             "ed_gridnSemiAxisMajorTics_1": -9007199254740991,
@@ -707,8 +688,8 @@
             "ed_ignoreBoundaryCondition_1": "0",
             "ed_initialRaySpeed_1": 1,
             "ed_irradVarName": "lase",
-            "ed_laser3Din2D": "0",
-            "ed_laser3Din2DwedgeAngle": 0,
+            "ed_laser3Din2D": "1",
+            "ed_laser3Din2DwedgeAngle": 0.1,
             "ed_lensSemiAxisMajor_1": 0.001,
             "ed_lensX_1": 0,
             "ed_lensY_1": -0.1,
@@ -731,8 +712,8 @@
             "ed_rayDeterminism": "0",
             "ed_rayZeroPower": 1e-06,
             "ed_saveOutOfDomainRays": "0",
-            "ed_semiAxisMajorTorsionAngle_1": -1.7976931348623157e+308,
-            "ed_semiAxisMajorTorsionAxis_1": " ",
+            "ed_semiAxisMajorTorsionAngle_1": 0.0,
+            "ed_semiAxisMajorTorsionAxis_1": "x",
             "ed_targetSemiAxisMajor_1": 0.001,
             "ed_targetSemiAxisMinor_1": 0.001,
             "ed_targetX_1": 0,
@@ -746,12 +727,12 @@
             "threadRayTrace": "0",
             "useEnergyDeposition": "1"
         },
-        "physics:sourceTerms:EnergyDeposition:Laser:LaserIO": {
+        "physicssourceTermsEnergyDepositionLaserLaserIO": {
             "ed_laserIOMaxNumberOfPositions": 10000,
             "ed_laserIOMaxNumberOfRays": 128,
             "ed_useLaserIO": "1"
         },
-        "physics:sourceTerms:Flame": {
+        "physicssourceTermsFlame": {
             "fl_b": 3.2,
             "fl_epsilon_0": 0.001,
             "fl_epsilon_1": 0.001,
@@ -759,18 +740,21 @@
             "fl_kpp_fact": 1.309,
             "useFlame": "1"
         },
-        "physics:sourceTerms:Flame:FlameEffects:EIP": {
+        "physicssourceTermsFlameFlameEffectsEIP": {
             "flame_deltae": 0,
             "sumyi_burned": 1,
             "sumyi_unburned": 1,
             "ye_burned": 0.5,
             "ye_unburned": 0.5
         },
-        "physics:sourceTerms:Flame:FlameSpeed:Constant": {
+        "physicssourceTermsFlameFlameSpeedConstant": {
             "fl_fsConstFlameSpeed": 1,
             "fl_fsConstFlameWidth": 1
         },
-        "physics:sourceTerms:Heatexchange:Spitzer": {
+        "physicssourceTermsHeatexchange": {
+            "useHeatExchange": "1"
+        },
+        "physicssourceTermsHeatexchangeSpitzer": {
             "hx_dtFactor": 1e+100,
             "hx_ieTimeCoef": 1,
             "hx_relTol": -1

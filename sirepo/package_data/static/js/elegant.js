@@ -661,7 +661,7 @@ SIREPO.app.directive('appHeader', function(appState, elegantService, latticeServ
             nav: '=appHeader',
         },
         template: [
-            '<div data-app-header-brand="nav"></div>',
+            '<div data-app-header-brand="" data-app-url="/en/particle-accelerators.html"></div>',
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
@@ -1217,7 +1217,7 @@ SIREPO.app.directive('enumList', function() {
             '<div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >',
                 '<label style="margin-right: 1ex">{{valueLabels[$index] || \'Plane \' + $index}}</label>',
                 '<select ',
-                    'class="form-control elegant-list-value" data-ng-model="values[$index]" data-ng-change="didChange()"',
+                    'class="form-control sr-number-list" data-ng-model="values[$index]" data-ng-change="didChange()"',
                     'data-ng-options="item[0] as item[1] for item in typeList">',
                 '</select>',
             '</div>'

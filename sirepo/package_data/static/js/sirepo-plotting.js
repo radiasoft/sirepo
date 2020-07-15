@@ -1074,6 +1074,9 @@ SIREPO.app.service('focusPointService', function(plotting) {
             mouseX = focusPoint.config.xAxis.scale(x);
             mouseY = focusPoint.config.yAxis.scale(y);
         }
+        if (isNaN(mouseX) || isNaN(mouseY)) {
+            return null;
+        }
         return {
             x: mouseX,
             y: mouseY
@@ -1871,7 +1874,12 @@ SIREPO.app.directive('focusCircle', function(focusPointService, plotting) {
                 var mouseCoords = focusPointService.dataCoordsToMouseCoords(
                     $scope.$parent.$parent.modelKey || $scope.$parent.$parent.modelName,
                     $scope.focusPoint);
-                $scope.select().attr('transform', 'translate(' + mouseCoords.x + ',' + mouseCoords.y + ')');
+                if (mouseCoords) {
+                    $scope.select().attr('transform', 'translate(' + mouseCoords.x + ',' + mouseCoords.y + ')');
+                }
+                else {
+                    hideFocusCircle();
+                }
             }
 
             $scope.$on('sr-plotEvent', function(event, args) {
@@ -2018,8 +2026,8 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
                     // just use the first focus point
                     var mouseCoords = focusPointService.dataCoordsToMouseCoords(
                         $scope.$parent.modelName, $scope.focusPoints[0]);
-                    var xf = currentXform();
-                    if (! isNaN(xf.tx) && ! isNaN(xf.ty)) {
+                    if (mouseCoords) {
+                        var xf = currentXform();
                         showPopup({mouseX: mouseCoords.x, mouseY: xf.ty}, true);
                     }
                 }
@@ -2052,7 +2060,7 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
                 var tNode = group.select('#x-text')
                     .text(xText)
                     .style('fill', '#000000')
-                    .attr('y', popupTitleSize().height)
+                    .attr('y', popupTitleSize().height + textMargin)
                     .attr('dy', '1em');
                 var tSize = tNode.node().getBBox();
                 var txtY = tSize.y + tSize.height;
@@ -2062,12 +2070,18 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
                     var fits = plotting.fitSplit(fmtText.yText, hNode, maxWidth);
                     var yGrp = group.select('#y-text-' + fpIndex);
                     yGrp.selectAll('text').remove();
+                    yGrp.selectAll('circle').remove();
                     fits.forEach(function(str) {
+                        yGrp.append('circle')
+                            .attr('r', '6')
+                            .style('stroke', color)
+                            .style('fill', color)
+                            .attr('cx', 13)
+                            .attr('cy', txtY + 8);
                         tNode = yGrp.append('text')
                             .text(str)
                             .attr('class', 'focus-text-popup')
-                            .style('fill', color)
-                            .attr('x', 0)
+                            .attr('x', 15)
                             .attr('dx', '0.5em')
                             .attr('y', txtY)
                             .attr('dy', '1em');
@@ -2079,7 +2093,9 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
                         .style('fill', color)
                         .attr('y', txtY)
                         .attr('dy', '1em');
-                    txtY += (tNode.node().getBBox().height + textMargin);
+                    if (fmtText.yText) {
+                        txtY += (tNode.node().getBBox().height);
+                    }
                 });
                 hNode.text('');
                 refreshWindow();
@@ -3122,7 +3138,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     }
                     else {
                         item.append('circle')
-                            .attr('r', 5)
+                            .attr('r', 7)
                             .attr('cx', 24 + itemWidth)
                             .attr('cy', 10 + count * 20)
                             .style('stroke', plot.color)
@@ -3672,6 +3688,40 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
         },
+    };
+});
+
+//TODO(pjm): share with warpvnd
+SIREPO.app.service('vtkToPNG', function(panelState, plotToPNG, utilities) {
+    this.pngCanvas = function(reportId, vtkRenderer, panel) {
+        var canvas = document.createElement('canvas');
+        var res = {
+            copyCanvas: function(event, doTransverse) {
+                panelState.waitForUI(function() {
+                    var canvas3d = $(panel).find('canvas')[0];
+                    canvas.width = parseInt(canvas3d.getAttribute('width'));
+                    canvas.height = parseInt(canvas3d.getAttribute('height'));
+                    if (doTransverse) {
+                        vtkRenderer.getOpenGLRenderWindow().traverseAllPasses();
+                    }
+                    else {
+                        vtkRenderer.getRenderWindow().render();
+                    }
+                    canvas.getContext('2d').drawImage(canvas3d, 0, 0, canvas.width, canvas.height);
+                });
+            },
+            destroy: function() {
+                panel.off();
+                plotToPNG.removeCanvas(reportId);
+            },
+        };
+        plotToPNG.addCanvas(canvas, reportId);
+        $(panel).on('pointerup', res.copyCanvas);
+        $(panel).on('wheel', utilities.debounce(
+            function() {
+                res.copyCanvas(null, true);
+            }, 100));
+        return res;
     };
 });
 

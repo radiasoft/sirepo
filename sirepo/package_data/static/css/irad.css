@@ -1,0 +1,106 @@
+
+.sr-plot .dicom-roi {
+  fill: none;
+  stroke-width: 4px;
+  stroke-dasharray: 5,5;
+  stroke-width: 2px;
+  fill-rule: evenodd;
+  pointer-events: none;
+}
+
+.sr-plot .dicom-roi-selected {
+  stroke-dasharray: 1,0;
+}
+
+.sr-plot .dicom-roi-drawing {
+  stroke-width: 2px;
+  stroke-dasharray: 1,0;
+}
+
+.sr-plot .dicom-dragpath {
+  stroke: #fff;
+  stroke-opacity: 0;
+  fill: none;
+  stroke-width: 15px;
+}
+
+.sr-plot .dicom-dragpath:hover {
+  stroke-opacity: 0.1;
+}
+
+.sr-plot .dicom-dragpath-move {
+  cursor: move;
+}
+
+.sr-plot .dicom-dragpath-select {
+  cursor: auto;
+}
+
+.sr-plot .dicom-roimode-draw {
+  cursor: crosshair;
+}
+
+.sr-plot .dicom-draw-start {
+  stroke: rgb(0,230,0);
+  stroke-width: 1px;
+  fill: none;
+}
+
+.dicom-button-panel {
+  margin-bottom: 1ex;
+}
+
+.irad-circle {
+  margin-bottom: -3px;
+  border: 1px solid black;
+  height: 17px;
+  border-radius:50%;
+  width: 17px;
+  display: inline-block;
+}
+
+/* bootstrap overrides */
+.irad-col-nopadding .panel-body {
+  padding: 0;
+}
+.col-md-2, .col-md-4, .col-md-6 {
+  padding-left: 5px;
+  padding-right: 5px;
+}
+.navbar {
+  margin-bottom: 5px;
+}
+.panel-heading {
+  padding: 5px 5px;
+}
+.panel {
+  margin-bottom: 5px;
+}
+
+/* sirepo overrides */
+.sr-panel-heading {
+  font-size: 16px;
+}
+.irad-pad-right {
+  padding-right: 5px;
+}
+
+.irad-dicom-slider {
+  height: 15px;
+  background: lightgray;
+  -webkit-appearance: none;
+  border: 1px solid #337ab7;
+}
+.irad-dicom-slider::-webkit-slider-thumb {
+  width: 20px;
+  height: 15px;
+  background: #337ab7;
+  cursor:pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.irad-dicom-slider::-moz-range-thumb {
+  width: 20px;
+  background: #337ab7;
+  cursor:pointer;
+}

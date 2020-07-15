@@ -12,10 +12,9 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import http_reply
 from sirepo import http_request
-from sirepo import uri_router
-import flask
-import flask_mail
 
+
+_mail = None
 
 @api_perm.allow_visitor
 def api_comsol():
@@ -24,6 +23,21 @@ def api_comsol():
 
 @api_perm.allow_visitor
 def api_comsolRegister():
+    import flask
+    import flask_mail
+    import sirepo.util
+
+    global _mail
+    if not _mail:
+        a = sirepo.util.flask_app()
+        a.config.update(
+            MAIL_USE_TLS=True,
+            MAIL_PORT=587,
+            MAIL_SERVER=cfg.mail_server,
+            MAIL_USERNAME=cfg.mail_username,
+            MAIL_PASSWORD=cfg.mail_password,
+        )
+        _mail = flask_mail.Mail(a)
     req = http_request.parse_json()
     msg = flask_mail.Message(
         subject='Sirepo / COMSOL Registration',
@@ -40,7 +54,7 @@ Email: {}
     return http_reply.gen_json_ok()
 
 
-def init_apis(app, *args, **kwargs):
+def init_apis(*args, **kwargs):
     global cfg
     cfg = pkconfig.init(
         mail_server=(None, str, 'Mail server'),
@@ -52,12 +66,3 @@ def init_apis(app, *args, **kwargs):
     assert cfg.mail_server and cfg.mail_username and cfg.mail_password \
         and cfg.mail_support_email and cfg.mail_recipient_email, \
         'Missing mail config'
-    app.config.update(
-        MAIL_USE_TLS=True,
-        MAIL_PORT=587,
-        MAIL_SERVER=cfg.mail_server,
-        MAIL_USERNAME=cfg.mail_username,
-        MAIL_PASSWORD=cfg.mail_password,
-    )
-    global _mail
-    _mail = flask_mail.Mail(app)

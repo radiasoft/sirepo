@@ -25,14 +25,14 @@ def run(cfg_dir):
         pkio.py_path(cfg_dir),
     )
 
+
 def run_background(cfg_dir):
-    # TODO(e-carlin): No info on running madx in parallel
-    # The visualization tab will call this
     _run_madx()
+
 
 def _run_madx():
     pksubprocess.check_call_with_signals(
-        ['madx', template.MADX_INPUT_FILENAME],
+        ['madx', template.MADX_INPUT_FILE],
         msg=pkdlog,
-        output=template.MADX_OUTPUT_FILENAME,
+        output=template.MADX_LOG_FILE,
     )

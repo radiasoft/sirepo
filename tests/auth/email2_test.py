@@ -21,11 +21,12 @@ def test_oauth_conversion(auth_fc, monkeypatch):
     from sirepo.auth import github
     from sirepo import github_srunit
     from sirepo import server
+    import sirepo.srdb
     import sirepo.util
     import shutil
 
-    pkio.unchecked_remove(server._app.sirepo_db_dir)
-    pkunit.data_dir().join('db').copy(server._app.sirepo_db_dir)
+    pkio.unchecked_remove(sirepo.srdb.root())
+    pkunit.data_dir().join('db').copy(sirepo.srdb.root())
     fc.cookie_jar.clear()
     fc.set_cookie('localhost', 'sirepo_dev', 'Z0FBQUFBQmN2bGQzaGc1MmpCRkxIOWNpWi1yd1JReXUxZG5FV2VqMjFwU2w2cmdOSXhlaWVkOC1VUzVkLVR5NzdiS080R3p1aGUwUEFfdmpmdDcxTmJlOUR2eXpJY2l1YUVWaUVVa3dCYXpnZGIwTV9fei1iTWNCdkp0eXJVY0Ffenc2SVoxSUlLYVM=')
     oc = github_srunit.MockOAuthClient(monkeypatch, 'emailer')

@@ -1,21 +1,30 @@
 {
-  "models": {
-    "beamlines": [],
-    "commands": [],
-    "elements": [],
-    "rpnCache": {},
-    "rpnVariables": [],
-    "simulation": {
-      "documentationUrl": "",
-      "folder": "/",
-      "notes": ""
+    "models": {
+        "beamlines": [],
+        "commands": [],
+        "elements": [],
+        "rpnVariables": [],
+        "simulation": {
+            "documentationUrl": "",
+            "folder": "/",
+            "name": "",
+            "notes": "",
+            "numberOfParticles": 1000
+        },
+        "twissEllipseReport1": {
+            "dim": "x",
+            "notes": ""
+        },
+        "twissEllipseReport2": {
+            "dim": "y",
+            "notes": ""
+        },
+        "twissReport": {
+            "includeLattice": "1",
+            "y1": "betx",
+            "y2": "bety",
+            "y3": "dx"
+        }
     },
-    "twissReport": {
-        "includeLattice": "1",
-        "y1": "betx",
-        "y2": "bety",
-        "y3": "dx"
-    }
-  },
-  "simulationType": "madx"
+    "simulationType": "madx"
 }

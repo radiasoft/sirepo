@@ -47,7 +47,10 @@ build_as_run_user() {
     sirepo srw create_predefined
     pip uninstall -y sirepo
     pip install .
-    PYKERN_PKDEBUG_WANT_PID_TIME=1 SIREPO_PYTEST_SKIP=job_test:animation_test:report_test bash test.sh
+    PYKERN_PKCLI_TEST_MAX_FAILURES=1 \
+        PYKERN_PKDEBUG_WANT_PID_TIME=1 \
+        SIREPO_PYTEST_SKIP=job_test:animation_test:report_test \
+        bash test.sh
     cd ..
 }
 

@@ -48,14 +48,14 @@ def default_command():
         static_path=sirepo.job.SUPERVISOR_SRV_ROOT.join(sirepo.job.LIB_FILE_URI),
         # tornado expects a trailing slash
         static_url_prefix=sirepo.job.LIB_FILE_URI + '/',
-        websocket_max_message_size=sirepo.job.cfg.max_message_size,
+        websocket_max_message_size=sirepo.job.cfg.max_message_bytes,
         websocket_ping_interval=sirepo.job.cfg.ping_interval_secs,
         websocket_ping_timeout=sirepo.job.cfg.ping_timeout_secs,
     )
     server = tornado.httpserver.HTTPServer(
         app,
         xheaders=True,
-        max_buffer_size=sirepo.job.cfg.max_message_size,
+        max_buffer_size=sirepo.job.cfg.max_message_bytes,
     )
     server.listen(cfg.port, cfg.ip)
     signal.signal(signal.SIGTERM, _sigterm)

@@ -187,10 +187,8 @@ def get_application_data(data, **kwargs):
 def get_beam_pos_report(run_dir, data):
     monitor_file = run_dir.join('../epicsServerAnimation/').join(MONITOR_LOGFILE)
     if not monitor_file.exists():
-        raise sirepo.util.UserAlert(
-            'no beam position history',
-            'monitor file={} does not exist',
-            monitor_file,
+        return PKDict(
+            error='no beam position history',
         )
     history, num_records, start_time = _read_monitor_file(monitor_file, True)
     if len(history) <= 0:
@@ -319,7 +317,9 @@ def get_fft(run_dir, data):
 def get_settings_report(run_dir, data):
     monitor_file = run_dir.join('../epicsServerAnimation/').join(MONITOR_LOGFILE)
     if not monitor_file.exists():
-        raise sirepo.util.UserAlert('no settings history', 'monitor file')
+        return PKDict(
+            error='no settings history',
+        )
     history, num_records, start_time = _read_monitor_file(monitor_file, True)
     o = data.models.correctorSettingReport.plotOrder
     plot_order = o if o is not None else 'time'
@@ -330,7 +330,9 @@ def get_settings_report(run_dir, data):
         x, plots, colors = _setting_plots_by_position(data, history, start_time)
         x_label = 'z [m]'
     if not len(plots):
-        raise sirepo.util.UserAlert('no settings history', 'no plots')
+        return PKDict(
+            error='no settings history',
+        )
     return template_common.parameter_plot(
         x.tolist(),
         plots,

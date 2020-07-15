@@ -166,7 +166,7 @@ class _Dispatcher(PKDict):
                         url=cfg.supervisor_uri,
                         validate_cert=sirepo.job.cfg.verify_tls,
                     ),
-                    max_message_size=job.cfg.max_message_size,
+                    max_message_size=job.cfg.max_message_bytes,
                     ping_interval=job.cfg.ping_interval_secs,
                     ping_timeout=job.cfg.ping_timeout_secs,
                 )
@@ -352,7 +352,10 @@ class _Dispatcher(PKDict):
         s = None
         m = None
         try:
-            s = tornado.iostream.IOStream(connection)
+            s = tornado.iostream.IOStream(
+                connection,
+                max_buffer_size=job.cfg.max_message_bytes,
+            )
             while True:
                 m = await self._fastcgi_msg_q.get()
                 # Avoid issues with exceptions. We don't use q.join()
@@ -362,7 +365,7 @@ class _Dispatcher(PKDict):
                 await self.job_cmd_reply(
                     m,
                     job.OP_ANALYSIS,
-                    await s.read_until(b'\n', job.cfg.max_message_size),
+                    await s.read_until(b'\n', job.cfg.max_message_bytes),
                 )
         except Exception as e:
             pkdlog('msg={} error={} stack={}', m, e, pkdexc())
@@ -870,7 +873,7 @@ class _ReadJsonlStream(_Stream):
         super().__init__(*args)
 
     async def _read_stream(self):
-        self.text = await self._stream.read_until(b'\n', job.cfg.max_message_size)
+        self.text = await self._stream.read_until(b'\n', job.cfg.max_message_bytes)
         pkdc('cmd={} stdout={}', self.cmd, self.text[:1000])
         await self.cmd.on_stdout_read(self.text)
 
@@ -881,16 +884,16 @@ class _ReadUntilCloseStream(_Stream):
 
     async def _read_stream(self):
         t = await self._stream.read_bytes(
-            job.cfg.max_message_size - len(self.text),
+            job.cfg.max_message_bytes - len(self.text),
             partial=True,
         )
         pkdlog('cmd={} stderr={}', self.cmd, t)
         await self.cmd.on_stderr_read(t)
         l = len(self.text) + len(t)
-        assert l < job.cfg.max_message_size, \
+        assert l < job.cfg.max_message_bytes, \
             'len(bytes)={} greater than max_message_size={}'.format(
                 l,
-                job.cfg.max_message_size,
+                job.cfg.max_message_bytes,
             )
         self.text.extend(t)
 

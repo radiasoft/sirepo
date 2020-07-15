@@ -31,17 +31,18 @@ def set_optics(v=None):
                 _psi_hbi=v.op_MOAT_1_psiHBi,
                 _tc=v.op_MOAT_1_tc,
                 _ang_as=v.op_MOAT_1_ang_as,
-            )
-            crystal.set_orient(
                 _nvx=v.op_MOAT_1_nvx,
                 _nvy=v.op_MOAT_1_nvy,
                 _nvz=v.op_MOAT_1_nvz,
                 _tvx=v.op_MOAT_1_tvx,
                 _tvy=v.op_MOAT_1_tvy,
+                _uc=v.op_MOAT_1_uc,
+                _e_avg=v.op_MOAT_1_energy,
+                _ang_roll=v.op_MOAT_1_diffractionAngle
             )
             el.append(crystal)
             pp.append(v.op_MOAT_1_pp)
-            mirror_file = v.op_MOAT_1_hfn
+	    mirror_file = v.op_MOAT_1_hfn
             assert os.path.isfile(mirror_file), \
                 'Missing input file {}, required by MOAT_1 beamline element'.format(mirror_file)
             el.append(srwlib.srwl_opt_setup_surf_height_1d(
@@ -69,13 +70,14 @@ def set_optics(v=None):
                 _psi_hbi=v.op_MOAT_2_psiHBi,
                 _tc=v.op_MOAT_2_tc,
                 _ang_as=v.op_MOAT_2_ang_as,
-            )
-            crystal.set_orient(
                 _nvx=v.op_MOAT_2_nvx,
                 _nvy=v.op_MOAT_2_nvy,
                 _nvz=v.op_MOAT_2_nvz,
                 _tvx=v.op_MOAT_2_tvx,
                 _tvy=v.op_MOAT_2_tvy,
+                _uc=v.op_MOAT_2_uc,
+                _e_avg=v.op_MOAT_2_energy,
+                _ang_roll=v.op_MOAT_2_diffractionAngle
             )
             el.append(crystal)
             pp.append(v.op_MOAT_2_pp)
@@ -370,7 +372,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['w_y', 'f', 0.0, 'central vertical position [m] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ry', 'f', 0.0004, 'range of vertical position [m] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ny', 'i', 100, 'number of points vs vertical position for calculation of intensity distribution'],
-    ['w_smpf', 'f', 1.5, 'sampling factor for calculation of intensity distribution vs horizontal and vertical position'],
+    ['w_smpf', 'f', 1.0, 'sampling factor for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_meth', 'i', 1, 'method to use for calculation of intensity distribution vs horizontal and vertical position: 0- "manual", 1- "auto-undulator", 2- "auto-wiggler"'],
     ['w_prec', 'f', 0.01, 'relative precision for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_u', 'i', 1, 'electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)'],
@@ -388,16 +390,16 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['wm_ns', 'i', 5, 'saving periodicity (in terms of macro-electrons / coherent wavefronts) for intermediate intensity at multi-electron wavefront propagation calculation'],
     ['wm_ch', 'i', 0, 'type of a characteristic to be extracted after calculation of multi-electron wavefront propagation: #0- intensity (s0); 1- four Stokes components; 2- mutual intensity cut vs x; 3- mutual intensity cut vs y; 40- intensity(s0), mutual intensity cuts and degree of coherence vs X & Y'],
     ['wm_ap', 'i', 0, 'switch specifying representation of the resulting Stokes parameters: coordinate (0) or angular (1)'],
-    ['wm_x0', 'f', 0, 'horizontal center position for mutual intensity cut calculation'],
-    ['wm_y0', 'f', 0, 'vertical center position for mutual intensity cut calculation'],
+    ['wm_x0', 'f', 0.0, 'horizontal center position for mutual intensity cut calculation'],
+    ['wm_y0', 'f', 0.0, 'vertical center position for mutual intensity cut calculation'],
     ['wm_ei', 'i', 0, 'integration over photon energy is required (1) or not (0); if the integration is required, the limits are taken from w_e, w_ef'],
     ['wm_rm', 'i', 1, 'method for generation of pseudo-random numbers for e-beam phase-space integration: 1- standard pseudo-random number generator, 2- Halton sequences, 3- LPtau sequences (to be implemented)'],
     ['wm_am', 'i', 0, 'multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance'],
     ['wm_fni', 's', 'res_int_pr_me.dat', 'file name for saving propagated multi-e intensity distribution vs horizontal and vertical position'],
+    ['wm_fbk', '', '', 'create backup file(s) with propagated multi-e intensity distribution vs horizontal and vertical position and other radiation characteristics', 'store_true'],
 
     #to add options
     ['op_r', 'f', 20.0, 'longitudinal position of the first optical element [m]'],
-
     # Former appParam:
     ['rs_type', 's', 'u', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
 
@@ -413,14 +415,17 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_MOAT_1_psiHBr', 'f', -1.229445079930407e-06, 'psiHBr'],
     ['op_MOAT_1_psiHBi', 'f', 6.002829909616196e-09, 'psiHBi'],
     ['op_MOAT_1_tc', 'f', 0.01, 'crystalThickness'],
+    ['op_MOAT_1_uc', 'f', 1, 'useCase'],
     ['op_MOAT_1_ang_as', 'f', 0.0, 'asymmetryAngle'],
-    ['op_MOAT_1_nvx', 'f', -0.0966554453405512, 'nvx'],
-    ['op_MOAT_1_nvy', 'f', 0.9905675873988612, 'nvy'],
+    ['op_MOAT_1_nvx', 'f', -0.9952720333251511, 'nvx'],
+    ['op_MOAT_1_nvy', 'f', 6.762770661390315e-09, 'nvy'],
     ['op_MOAT_1_nvz', 'f', -0.097126616747518, 'nvz'],
-    ['op_MOAT_1_tvx', 'f', -0.009432412528249381, 'tvx'],
-    ['op_MOAT_1_tvy', 'f', 0.09666751923327799, 'tvy'],
+    ['op_MOAT_1_tvx', 'f', -0.097126616747518, 'tvx'],
+    ['op_MOAT_1_tvy', 'f', 6.599653282587792e-10, 'tvy'],
     ['op_MOAT_1_ang', 'f', 0.0972799772892332, 'grazingAngle'],
     ['op_MOAT_1_amp_coef', 'f', 1.0, 'heightAmplification'],
+    ['op_MOAT_1_energy', 'f', 20358.0, 'energy'],
+    ['op_MOAT_1_diffractionAngle', 'f', 1.57079632, 'diffractionAngle'],
 
     # MOAT_1_MOAT_2: drift
     ['op_MOAT_1_MOAT_2_L', 'f', 0.04999999999999716, 'length'],
@@ -436,14 +441,17 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_MOAT_2_psiHBr', 'f', -1.229445079930407e-06, 'psiHBr'],
     ['op_MOAT_2_psiHBi', 'f', 6.002829909616196e-09, 'psiHBi'],
     ['op_MOAT_2_tc', 'f', 0.01, 'crystalThickness'],
+    ['op_MOAT_2_uc', 'f', 1, 'useCase'],
     ['op_MOAT_2_ang_as', 'f', 0.0, 'asymmetryAngle'],
-    ['op_MOAT_2_nvx', 'f', 0.0966554453405512, 'nvx'],
-    ['op_MOAT_2_nvy', 'f', 0.9905675873988612, 'nvy'],
+    ['op_MOAT_2_nvx', 'f', 0.9952720333251511, 'nvx'],
+    ['op_MOAT_2_nvy', 'f', 6.762770661390315e-09, 'nvy'],
     ['op_MOAT_2_nvz', 'f', -0.097126616747518, 'nvz'],
-    ['op_MOAT_2_tvx', 'f', 0.009432412528249381, 'tvx'],
-    ['op_MOAT_2_tvy', 'f', 0.09666751923327799, 'tvy'],
+    ['op_MOAT_2_tvx', 'f', 0.097126616747518, 'tvx'],
+    ['op_MOAT_2_tvy', 'f', 6.599653282587792e-10, 'tvy'],
     ['op_MOAT_2_ang', 'f', 0.0972799772892332, 'grazingAngle'],
     ['op_MOAT_2_amp_coef', 'f', 1.0, 'heightAmplification'],
+    ['op_MOAT_2_energy', 'f', 20358.0, 'energy'],
+    ['op_MOAT_2_diffractionAngle', 'f', -1.57079632, 'diffractionAngle'],
 
     # MOAT_2_HFM: drift
     ['op_MOAT_2_HFM_L', 'f', 2.892440000000004, 'length'],

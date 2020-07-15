@@ -6,6 +6,7 @@ u"""simulation data operations
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
+from pykern.pkdebug import pkdp
 import sirepo.sim_data
 import sirepo.util
 
@@ -19,12 +20,37 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
+        for m in list(dm.keys()):
+            n = m.replace(':', '').replace('magnetoHD', '')
+            if m != n:
+                dm[n] = dm[m]
+                del dm[m]
         cls._init_models(dm)
         if dm.simulation.flashType == 'CapLaserBELLA':
             dm.IO.update(
                 plot_var_5='magz',
                 plot_var_6='depo',
             )
+            if not dm.Multispecies.ms_fillSpecies:
+                m = dm.Multispecies
+                m.ms_fillSpecies = 'hydrogen'
+                m.ms_wallSpecies = 'alumina'
+                m.eos_fillTableFile = 'helium-fill-imx.cn4'
+                m.eos_wallTableFile = 'alumina-wall-imx.cn4'
+                m.eos_fillSubType = 'ionmix4'
+                m.eos_wallSubType = 'ionmix4'
+                m = dm['physicsmaterialPropertiesOpacityMultispecies']
+                m.op_fillFileName = 'helium-fill-imx.cn4'
+                m.op_wallFileName  = 'alumina-wall-imx.cn4'
+                m.op_fillFileType = 'ionmix4'
+                m.op_wallFileType = 'ionmix4'
+        dm['physicssourceTermsEnergyDepositionLaser'].pkdel('ed_gridnAngularTics_1')
+        for n in 'currType', 'eosFill', 'eosWall':
+            dm.pkdel(f'SimulationCapLaserBELLA{n}')
+        m = dm.physicssourceTermsHeatexchange
+        if 'useHeatExchange' in m:
+            m.useHeatexchange = m.useHeatExchange
+            m.pkdel('useHeatExchange')
 
     @classmethod
     def flash_exe_path(cls, data, unchecked=False):
@@ -60,6 +86,18 @@ class SimData(sirepo.sim_data.SimDataBase):
         t = data.models.simulation.flashType
         if t == 'RTFlame':
             return ['helm_table.dat']
-        if t == 'CapLaserBELLA':
-            return ['al-imx-004.cn4', 'h-imx-004.cn4']
+        if 'CapLaser' in t:
+            r = [
+                'alumina-wall-imx.cn4',
+                'argon-fill-imx.cn4',
+                'helium-fill-imx.cn4',
+                'hydrogen-fill-imx.cn4',
+            ]
+            if t == 'CapLaserBELLA'  and data.models['SimulationCapLaserBELLA'].sim_currType == '2':
+                r.append(cls.lib_file_name_with_model_field(
+                    'SimulationCapLaserBELLA',
+                    'sim_currFile',
+                    data.models['SimulationCapLaserBELLA'].sim_currFile,
+                ))
+            return r
         raise AssertionError('invalid flashType: {}'.format(t))

@@ -71,9 +71,6 @@ visible_methods = None
 #: visible_methods excluding guest
 non_guest_methods = None
 
-#: flask app
-_app = None
-
 @api_perm.require_cookie_sentinel
 def api_authCompleteRegistration():
     # Needs to be explicit, because we would need a special permission
@@ -125,10 +122,12 @@ def complete_registration(name=None):
 
 
 def get_all_roles():
-    r = [role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types]
-    r.append(ROLE_ADM)
-    r.append(ROLE_PREMIUM)
-    return r
+    return [
+        role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types
+    ] + [
+        ROLE_ADM,
+        ROLE_PREMIUM,
+    ]
 
 
 def guest_uids():
@@ -136,16 +135,15 @@ def guest_uids():
     return auth_db.UserRegistration.search_all_for_column('uid', display_name=None)
 
 
-def init_apis(app, *args, **kwargs):
-    global uri_router, simulation_db, _app, visible_methods, valid_methods, non_guest_methods
+def init_apis(*args, **kwargs):
+    global uri_router, simulation_db, visible_methods, valid_methods, non_guest_methods
     assert not _METHOD_MODULES
 
     assert not cfg.logged_in_user, \
         'Do not set $SIREPO_AUTH_LOGGED_IN_USER in server'
     uri_router = importlib.import_module('sirepo.uri_router')
     simulation_db = importlib.import_module('sirepo.simulation_db')
-    auth_db.init(app.sirepo_db_dir)
-    _app = app
+    auth_db.init()
     p = pkinspect.this_module().__name__
     visible_methods = []
     valid_methods = cfg.methods.union(cfg.deprecated_methods)
@@ -164,25 +162,30 @@ def is_premium_user():
     return check_user_has_role(ROLE_PREMIUM, raise_forbidden=False)
 
 
-def logged_in_user():
+def logged_in_user(check_path=True):
     """Get the logged in user
 
+    Args:
+        check_path (bool): call `simulation_db.user_path` [True]
     Returns:
         str: uid of authenticated user
     """
-    res = _get_user()
+    u = _get_user()
     if not _is_logged_in():
         raise util.SRException(
             'login',
             None,
             'user not logged in uid={}',
-            res,
+            u,
         )
-    assert res, 'no user in cookie: state={} method={}'.format(
-        cookie.unchecked_get_value(_COOKIE_STATE),
-        cookie.unchecked_get_value(_COOKIE_METHOD),
-    )
-    return res
+    assert u, \
+        'no user in cookie: state={} method={}'.format(
+            cookie.unchecked_get_value(_COOKIE_STATE),
+            cookie.unchecked_get_value(_COOKIE_METHOD),
+        )
+    if check_path:
+        simulation_db.user_path(u, check=True)
+    return u
 
 
 def login(module, uid=None, model=None, sim_type=None, display_name=None, is_mock=False, want_redirect=False):
@@ -305,7 +308,7 @@ def require_auth_basic():
     uid = m.require_user()
     if not uid:
         raise sirepo.util.Response(
-            _app.response_class(
+            sirepo.util.flask_app().response_class(
                 status=401,
                 headers={'WWW-Authenticate': 'Basic realm="*"'},
             ),
@@ -327,10 +330,9 @@ def require_sim_type(sim_type):
 
 
 def check_user_has_role(role, raise_forbidden=True):
-    u = _get_user()
-    with auth_db.thread_lock:
-        if sirepo.auth_db.UserRole.search_by(role=role, uid=u):
-            return True
+    u = logged_in_user()
+    if auth_db.UserRole.has_role(u, role):
+        return True
     if raise_forbidden:
         util.raise_forbidden('uid={} role={} not found'.format(u, role))
     return False
@@ -405,7 +407,7 @@ def set_user_for_utils(uid=None):
 @contextlib.contextmanager
 def set_user(uid):
     """Set the user (uid) for the context"""
-    assert not util.in_flask_app_context(), \
+    assert not util.flask_app(), \
         'Flask sets the user on the request'
     try:
         set_user_for_utils(uid=uid)
@@ -431,9 +433,8 @@ def user_dir_not_found(user_dir, uid):
         if u:
             u.delete()
     reset_state()
-    raise util.SRException(
-        'login',
-        PKDict(reload_js=True),
+    raise util.Redirect(
+        sirepo.uri.ROOT,
         'simulation_db dir={} not found, deleted uid={}',
         user_dir,
         uid,
@@ -572,6 +573,7 @@ def _auth_state():
 def _create_roles_for_user(uid, method):
     if not (pkconfig.channel_in('dev') and method == METHOD_GUEST):
         return
+
     auth_db.UserRole.add_roles(uid, get_all_roles())
 
 
@@ -591,12 +593,12 @@ def _init():
         return
     global logged_in_user, user_dir_not_found
 
-    def logged_in_user():
+    def logged_in_user(*args, **kwargs):
         return cfg.logged_in_user
 
-    def user_dir_not_found(d, u):
+    def user_dir_not_found(user_dir, *args, **kwargs):
         # can't raise in a lambda so do something like this
-        raise AssertionError('user_dir={} not found'.format(d))
+        raise AssertionError('user_dir={} not found'.format(user_dir))
 
     cfg.deprecated_methods = set()
     cfg.methods = set((METHOD_GUEST,))
@@ -663,7 +665,8 @@ def _parse_display_name(value):
 
 
 def _set_log_user():
-    if not _app or not _app.sirepo_uwsgi:
+    a = sirepo.util.flask_app()
+    if not a or not a.sirepo_uwsgi:
         # Only works for uWSGI (service.uwsgi). sirepo.service.http uses
         # the limited http server for development only. This uses
         # werkzeug.serving.WSGIRequestHandler.log which hardwires the
@@ -675,7 +678,7 @@ def _set_log_user():
         u = cookie.unchecked_get_value(_COOKIE_STATE) + '-' + u
     else:
         u = '-'
-    _app.sirepo_uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, u)
+    a.sirepo_uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, u)
 
 
 def _validate_method(module, sim_type=None):
