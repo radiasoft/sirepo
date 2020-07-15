@@ -2,6 +2,7 @@
     "enum": {
         "flashType": [
             ["CapLaserBELLA", "CapLaserBELLA"],
+            ["CapLaser3D", "CapLaser3D"],
             ["RTFlame", "RTFlame"]
         ],
         "physicsGravityConstantgdirec": [
