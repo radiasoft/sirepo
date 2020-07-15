@@ -1504,7 +1504,6 @@
                     "sim_peakField",
                     "sim_period",
                     "sim_riseTime",
-                    "physicssourceTermsHeatexchange.useHeatexchange",
                     "sim_zminWall",
                     "sim_rWall",
                     [
@@ -1543,7 +1542,9 @@
                     ]
                 ]]
             ],
-            "advanced": []
+            "advanced": [
+                "physicssourceTermsHeatexchange.useHeatexchange"
+            ]
         },
         "SimulationCapLaserBELLA": {
             "title": "CapLaserBELLA Settings",
@@ -1554,7 +1555,6 @@
                     "sim_peakCurr",
                     "sim_riseTime",
                     "sim_zminWall",
-                    "physicssourceTermsHeatexchange.useHeatexchange",
                     [
                         ["Fill", [
                             "sim_eosFill",
@@ -1591,7 +1591,9 @@
                     ]
                 ]]
             ],
-            "advanced": []
+            "advanced": [
+                "physicssourceTermsHeatexchange.useHeatexchange"
+            ]
         },
         "SimulationRTFlame": {
             "title": "RTFlame Settings",
