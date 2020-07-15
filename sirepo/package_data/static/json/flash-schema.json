@@ -1200,7 +1200,7 @@
             "ed_time_1_4": ["Laser Pulse Section 4", "Float", -1.0, "The time (s)  for laser pulse 1 section 4"],
             "ed_wavelength_1": ["Wavelength", "Float", -1.7976931348623157e+308, "The wave length [in microns] of beam 1"],
             "threadRayTrace": ["threadRayTrace", "Boolean", "0", "Use threading when tracing the rays through each block?"],
-            "useEnergyDeposition": ["useEnergyDeposition", "Boolean", "1", "Use Laser energy deposition?"]
+            "useEnergyDeposition": ["Use Energy Deposition", "Boolean", "1", "Use Laser energy deposition."]
         },
         "physicsEosTabulatedHdf5TableRead": {
             "eos_useLogTables": ["eos_useLogTables", "Boolean", "1"]
@@ -1644,6 +1644,7 @@
             "title": "Energy Deposition - Laser",
             "basic": [
                 ["Bulk", [
+                    "useEnergyDeposition",
                     "ed_maxRayCount",
                     "ed_gradOrder",
                     "ed_laser3Din2D",
