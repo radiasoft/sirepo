@@ -1621,7 +1621,7 @@
             "basic": [
                 "physicsmaterialPropertiesOpacity.useOpacity",
                 "physicsmaterialPropertiesConductivity.useConductivity",
-                "physicsmaterialPropertiesConductivity.useMagneticResistivity",
+                "physicsmaterialPropertiesMagneticResistivity.useMagneticResistivity",
                 [
                     ["Fill", [
                         "physicsmaterialPropertiesOpacityMultispecies.op_fillAbsorb",
