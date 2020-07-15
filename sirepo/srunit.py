@@ -6,9 +6,7 @@ u"""Support for unit tests
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
-from pykern import pkjson
 from pykern.pkcollections import PKDict
-from sirepo.pkcli import service
 import flask
 import flask.testing
 import json
@@ -30,6 +28,8 @@ _JAVASCRIPT_REDIRECT_RE = re.compile(r'window.location = "([^"]+)"')
 
 #: set by conftest.py
 CONFTEST_DEFAULT_CODES = None
+
+SR_SIM_TYPE_DEFAULT = MYAPP
 
 def flask_client(cfg=None, sim_types=None, job_run_mode=None):
     """Return FlaskClient with easy access methods.
@@ -134,8 +134,30 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
     return r
 
 
-def uwsgi_client():
-    return _UwsgiClient()
+class UwsgiClient(PKDict):
+
+
+    def sr_post(self, route_or_uri, data, headers=None):
+        from pykern import pkjson
+        from sirepo.pkcli import service
+
+        r = requests.post(
+            (
+                f'http://{service.cfg().ip}:{service.cfg().nginx_proxy_port}'
+                f'{self._server_route(route_or_uri)}'
+            ),
+            json=data,
+            headers=headers,
+        )
+        r.raise_for_status()
+        return pkjson.load_any(r.text)
+
+    def _server_route(self, route_or_uri):
+        from sirepo import simulation_db
+        import sirepo.uri
+
+        sirepo.uri.init(simulation_db=simulation_db)
+        return sirepo.uri.server_route(route_or_uri, None, None)
 
 
 def wrap_in_request(*args, **kwargs):
@@ -168,7 +190,6 @@ def wrap_in_request(*args, **kwargs):
 
 class _TestClient(flask.testing.FlaskClient):
 
-    SR_SIM_TYPE_DEFAULT = MYAPP
 
     def __init__(self, *args, **kwargs):
         self.sr_job_run_mode = kwargs.pop('job_run_mode')
@@ -527,7 +548,7 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             object: self
         """
-        self.sr_sim_type = sim_type or self.sr_sim_type or self.SR_SIM_TYPE_DEFAULT
+        self.sr_sim_type = sim_type or self.sr_sim_type or SR_SIM_TYPE_DEFAULT
         return self
 
     def sr_user_dir(self, uid=None):
@@ -627,27 +648,3 @@ class _TestClient(flask.testing.FlaskClient):
                     pkdexc(),
                 )
             raise
-
-
-class _UwsgiClient(PKDict):
-
-    SR_SIM_TYPE_DEFAULT = MYAPP
-
-    def sr_post(self, route_or_uri, data, headers=None):
-        r = requests.post(
-            (
-                f'http://{service.cfg().ip}:{service.cfg().nginx_proxy_port}'
-                f'{self._server_route(route_or_uri)}'
-            ),
-            json=data,
-            headers=headers,
-        )
-        r.raise_for_status()
-        return pkjson.load_any(r.text)
-
-    def _server_route(self, route_or_uri):
-        from sirepo import simulation_db
-        import sirepo.uri
-
-        sirepo.uri.init(simulation_db=simulation_db)
-        return sirepo.uri.server_route(route_or_uri, None, None)

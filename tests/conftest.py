@@ -23,12 +23,6 @@ def auth_fc_module(request):
         yield c
 
 
-@pytest.fixture
-def auth_uc_module(request):
-    with _auth_client_module(request, uwsgi=True) as c:
-        yield c
-
-
 def email_confirm(fc, resp, display_name=None):
     import re
     from pykern.pkcollections import PKDict
@@ -183,6 +177,12 @@ def pytest_configure(config):
     )
 
 
+@pytest.fixture
+def uwsgi_module(request):
+    with _auth_client_module(request, uwsgi=True) as c:
+        yield c
+
+
 @contextlib.contextmanager
 def _auth_client_module(request, uwsgi=False):
     import sirepo.srunit
@@ -328,7 +328,7 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
     import sirepo.srunit
     c = None
     if uwsgi:
-        c = sirepo.srunit.uwsgi_client()
+        c = sirepo.srunit.UwsgiClient()
     else:
         c = sirepo.srunit.flask_client(
             cfg=cfg,
@@ -350,6 +350,7 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
 def _subprocess_start(request, cfg=None, uwsgi=False):
     from pykern import pkunit
     from pykern.pkcollections import PKDict
+    import sirepo.srunit
     import time
 
     env, c = _subprocess_setup(request, cfg, uwsgi)
@@ -367,7 +368,7 @@ def _subprocess_start(request, cfg=None, uwsgi=False):
 
         for i in range(30):
             try:
-                r = c.sr_post('jobSupervisorPing', PKDict(simulationType=c.SR_SIM_TYPE_DEFAULT))
+                r = c.sr_post('jobSupervisorPing', PKDict(simulationType=sirepo.srunit.SR_SIM_TYPE_DEFAULT))
                 if r.state == 'ok':
                     break
             except requests.exceptions.ConnectionError:
