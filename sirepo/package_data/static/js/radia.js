@@ -234,12 +234,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     ];
 
     self.builderCfg = {
+        fitToObjects: true,
+        fixedDomain: false,
         initDomian: {
             x: [-0.025, 0.025],
             y: [-0.025, 0.025],
             z: [-0.025, 0.025],
         },
-        fitToObjects: true,
     };
 
     self.selectedObject = null;
@@ -385,24 +386,19 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function addShapesForObject(o) {
         var shape = self.shapeForObject(o);
-        //srdbg('o', o, 'sh', shape);
         self.shapes.push(shape);
         if (o.symmetryType !== 'none') {
-            var pl = geometry.plane(
-                stringToFloatArray(o.symmetryPlane),
-                geometry.pointFromArr(stringToFloatArray(o.symmetryPoint))
-            );
-            var mCtr = pl.mirrorPoint(geometry.pointFromArr([shape.center.x, shape.center.y])).coords();
-            var mSz = [shape.size.x, shape.size.y, shape.size.z];
-            var mId = 65536 * (o.id + 1) + shape.links.length;  // ??  for "virtual shapes"?
             var mShape = vtkPlotting.plotShape(
-                mId, o.name,
-                mCtr, mSz,
+                // ??  for "virtual shapes"?
+                65536 * (o.id + 1) + shape.links.length,
+                o.name,
+                [0, 0, 0], [shape.size.x, shape.size.y, shape.size.z],
                 o.color, shape.fillStyle, shape.strokeStyle,
                 o.layoutShape
             );
             mShape.draggable = false;
             shape.addLink(mShape, mirror);
+            mirror(shape, mShape);
             self.shapes.push(mShape);
         }
     }
@@ -435,8 +431,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     function newObjectName(o) {
         return appState.uniqueName(appState.models.geometry.objects, 'name', o.name + ' {}');
     }
-
-    function noop() { srdbg('DO NOTHING'); }
 
     function groupBounds(objs) {
         var b = [
