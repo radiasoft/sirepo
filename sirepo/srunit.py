@@ -11,7 +11,6 @@ import flask
 import flask.testing
 import json
 import re
-import requests
 
 
 #: Default "app"
@@ -140,6 +139,7 @@ class UwsgiClient(PKDict):
     def sr_post(self, route_or_uri, data, headers=None):
         from pykern import pkjson
         from sirepo.pkcli import service
+        import requests
 
         r = requests.post(
             (
