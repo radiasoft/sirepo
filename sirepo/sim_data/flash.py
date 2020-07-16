@@ -22,8 +22,9 @@ class SimData(sirepo.sim_data.SimDataBase):
     def fixup_old_data(cls, data):
         dm = data.models
         for m in list(dm.keys()):
-            n = m.replace(':', '').replace('magnetoHD', '')
-            n = re.sub('CapLaser$', 'CapLaserBELLA', n)
+            n = m
+            for x in (':', ''), ('magnetoHD', ''), ('CapLaser$', 'CapLaserBELLA'):
+                n = re.sub(x[0], x[1], n)
             if m != n:
                 dm[n] = dm[m]
                 del dm[m]
