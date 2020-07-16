@@ -43,6 +43,10 @@
     stroke-width: 2;
 }
 
+.vtk-object-layout-shape-undraggable {
+    cursor: not-allowed;
+}
+
 .vtk-object-layout-shape-selected {
     stroke: blue!important;
     stroke-width: 3;

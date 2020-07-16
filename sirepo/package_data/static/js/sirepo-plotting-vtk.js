@@ -252,8 +252,8 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
     };
 
     // create a 3d shape
-    self.plotShape = function(id, name, center, size, color, fillStyle, strokeStyle, layoutShape) {
-        var shape = plotting.plotShape(id, name, center, size, color, fillStyle, strokeStyle, layoutShape);
+    self.plotShape = function(id, name, center, size, color, alpha, fillStyle, strokeStyle, layoutShape) {
+        var shape = plotting.plotShape(id, name, center, size, color, alpha, fillStyle, strokeStyle, layoutShape);
         shape.center.z = center[2];
         shape.size.z = size[2];
         return shape;
@@ -1312,6 +1312,9 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     .classed('vtk-object-layout-shape-selected', function (d) {
                         return d.id === (selectedObject || {}).id;
                     })
+                    .classed('vtk-object-layout-shape-undraggable', function (d) {
+                        return ! d.draggable;
+                    })
                     .attr('id', function (d) {
                         return shapeSelectionId(d);
                     })
@@ -1329,7 +1332,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     })
                     .attr('style', function(d) {
                         if (d.color) {
-                            var fill = 'fill:' + (d.fillStyle ? shapeColor(d.color, 0.3) : 'none');
+                            var a = d.alpha === 0 ? 0 : (d.alpha || 1.0);
+                            var fill = 'fill:' + (d.fillStyle ? shapeColor(d.color, a) : 'none');
                             return fill + '; ' + 'stroke: ' + shapeColor(d.color);
                         }
                     })

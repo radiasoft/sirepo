@@ -115,25 +115,16 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         return (appState.models.fieldTypes || {}).path;
     };
 
-
     self.getRadiaData = function(inData, handler) {
         // store inData on the model, so that we can refer to it if
         // getApplicationData fails
-        //appState.models.radiaReq = inData;
-        //appState.saveQuietly('radiaReq');
         requestSender.getApplicationData(inData, function (d) {
             if (d.error) {
                 throw new Error(d.error);
             }
-            // capture the runDir
-            //if (d.runDir && d.runDir != appState.models.radiaReq.runDir) {
-            //    appState.models.radiaReq.runDir = d.runDir;
-            //    appState.saveQuietly('radiaReq');
-            //}
             handler(d);
         });
     };
-
 
     self.getSelectedObj = function() {
         return self.selectedObj;
@@ -352,7 +343,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.shapeForObject = function(o) {
         var center = stringToFloatArray(o.center || '0, 0, 0');
         var size = stringToFloatArray(o.size || '0, 0, 0');
-        var isGroup = false;
+        var isGroup = o.members && o.members.length;  //false;
+
         if (o.members && o.members.length) {
             isGroup = true;
             var b = groupBounds(o.members.map(function (id) {
@@ -365,18 +357,19 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 return Math.abs((c[1] - c[0]));
             });
         }
+
         var shape = vtkPlotting.plotShape(
             o.id, o.name,
             center, size,
-            o.color, isGroup ? null : 'solid', isGroup ? 'dashed' : 'solid',
+            o.color, 0.3, isGroup ? null : 'solid', isGroup ? 'dashed' : 'solid',
             o.layoutShape
         );
         if (isGroup) {
             shape.outlineOffset = 5.0;
+            shape.draggable = false;
         }
         return shape;
     };
-
 
     function addObject(o) {
         o.id  = appState.models.geometry.objects.length;
@@ -385,23 +378,49 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         addShapesForObject(o);
     }
 
-
     function addShapesForObject(o) {
-        var shape = self.shapeForObject(o);
-        self.shapes.push(shape);
+        var shape = self.getShape(o.id);
+        var gShape = null;
+        if (! shape) {
+            shape = self.shapeForObject(o);
+            self.shapes.push(shape);
+        }
+        if (o.groupId !== '') {
+            gShape = self.getShape(o.groupId);
+            if (! gShape) {
+                gShape = self.shapeForObject(self.getObject(o.groupId));
+                self.shapes.push(gShape);
+            }
+            shape.addLink(gShape, fit);
+        }
         if (o.symmetryType !== 'none') {
             var mShape = vtkPlotting.plotShape(
                 // ??  for "virtual shapes"?
                 65536 * (o.id + 1) + shape.links.length,
                 o.name,
                 [0, 0, 0], [shape.size.x, shape.size.y, shape.size.z],
-                o.color, shape.fillStyle, shape.strokeStyle,
+                o.color, 0.1, shape.fillStyle, shape.strokeStyle,
                 o.layoutShape
             );
             mShape.draggable = false;
             shape.addLink(mShape, mirror);
             mirror(shape, mShape);
             self.shapes.push(mShape);
+
+            // extend group bounds if this object is in a group
+            if (gShape) {
+                //fit(mShape, gShape);
+                //var gShape = self.getShape(o.groupId);
+                //if (! gShape) {
+                //    gShape = self.shapeForObject(self.getObject(o.groupId));
+                //    self.shapes.push(gShape);
+                //}
+                var newBounds = shapesBounds([gShape, mShape]);
+                for (var dim in newBounds) {
+                    gShape.size[dim] = Math.abs(newBounds[dim][1] - newBounds[dim][0]);
+                    gShape.center[dim] = newBounds[dim][0] + gShape.size[dim] / 2;
+                }
+            }
         }
     }
 
@@ -417,17 +436,39 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         });
     }
 
-    function mirror(shape, mShape) {
+    function mirror(shape, linkedShape) {
         var o = self.getObject(shape.id);
         var pl = geometry.plane(
             stringToFloatArray(o.symmetryPlane),
             geometry.pointFromArr(stringToFloatArray(o.symmetryPoint))
         );
-        var mCtr = pl.mirrorPoint(geometry.pointFromArr([shape.center.x, shape.center.y])).coords();
-        mShape.center.x = mCtr[0];
-        mShape.center.y = mCtr[1];
-        mShape.center.z = mCtr[2];
-        return mShape;
+        var mCtr = pl.mirrorPoint(geometry.pointFromArr([shape.center.x, shape.center.y, shape.center.z])).coords();
+        linkedShape.center.x = mCtr[0];
+        linkedShape.center.y = mCtr[1];
+        linkedShape.center.z = mCtr[2];
+        return linkedShape;
+    }
+
+    // shape - in group; linkedShape: group
+    function fit(shape, linkedShape) {
+        var o = self.getObject(shape.id);
+        var groupId = o.groupId;
+        if (groupId === '' || groupId !== linkedShape.id) {
+            linkedShape.center = shape.center;
+            linkedShape.size = shape.size;
+            return linkedShape;
+        }
+        var mShapes = self.getObject(groupId).members.map(function (mId) {
+            return self.getShape(mId);
+        });
+        // may be a duplicate, doesn't matter
+        mShapes.push(shape);
+        var newBounds = shapesBounds(mShapes);
+        for (var dim in newBounds) {
+            linkedShape.size[dim] = Math.abs(newBounds[dim][1] - newBounds[dim][0]);
+            linkedShape.center[dim] = newBounds[dim][0] + linkedShape.size[dim] / 2;
+        }
+        return linkedShape;
     }
 
     function newObjectName(o) {
@@ -447,6 +488,23 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 c[0] = Math.min(c[0], ctr[i] - sz[i] / 2);
                 c[1] = Math.max(c[1], ctr[i] + sz[i] / 2);
             });
+        });
+        return b;
+    }
+
+    function shapesBounds(shapes) {
+        var b = {
+            x: [Number.MAX_VALUE, -Number.MAX_VALUE],
+            y: [Number.MAX_VALUE, -Number.MAX_VALUE],
+            z: [Number.MAX_VALUE, -Number.MAX_VALUE]
+        };
+        shapes.forEach(function (s) {
+            for (var dim in b) {
+                b[dim] = [
+                    Math.min(b[dim][0], s.center[dim] - s.size[dim] / 2),
+                    Math.max(b[dim][1], s.center[dim] + s.size[dim] / 2)
+                ];
+            }
         });
         return b;
     }
