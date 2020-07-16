@@ -210,9 +210,6 @@ def _auth_client_module(request, uwsgi=False):
     from pykern import pkconfig
     pkconfig.reset_state_for_testing(cfg)
 
-    from pykern import pkunit
-    from pykern import pkio
-    cfg['SIREPO_SRDB_ROOT'] = str(pkio.mkdir_parent(pkunit.work_dir().join('db')))
     with _subprocess_start(request, cfg=cfg, uwsgi=uwsgi) as c:
         yield c
 
@@ -312,12 +309,15 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
     if not cfg:
         cfg = PKDict()
     i = '127.0.0.1'
+    from pykern import pkunit
+    from pykern import pkio
     # different port than default so can run tests when supervisor running
     p = '8002'
     cfg.pkupdate(
         PYKERN_PKDEBUG_WANT_PID_TIME='1',
         SIREPO_PKCLI_JOB_SUPERVISOR_IP=i,
         SIREPO_PKCLI_JOB_SUPERVISOR_PORT=p,
+        SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join('db'))),
     )
     if uwsgi:
         cfg.SIREPO_PKCLI_SERVICE_PORT = '8003'
@@ -341,9 +341,6 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
         # must be performed after fc initialized so work_dir is configured
         _config_sbatch_supervisor_env(env)
 
-    import sirepo.srdb
-    env.SIREPO_SRDB_ROOT = str(sirepo.srdb.root())
-
     _job_supervisor_check(env)
     return (env, c)
 
@@ -355,18 +352,17 @@ def _subprocess_start(request, cfg=None, uwsgi=False):
     import sirepo.srunit
     import time
 
+    def _subprocess(cmd):
+        p.append(subprocess.Popen(cmd, env=env, cwd=wd))
+
     env, c = _subprocess_setup(request, cfg, uwsgi)
+    wd = pkunit.work_dir()
     p = []
     try:
         if uwsgi:
-            p = [
-                subprocess.Popen(('sirepo', 'service', 'nginx-proxy'), env=env),
-                subprocess.Popen(('sirepo', 'service', 'uwsgi'), env=env),
-            ]
-        p.append(subprocess.Popen(
-            ['sirepo', 'job_supervisor'],
-            env=env,
-        ))
+            for s in ('nginx-proxy', 'uwsgi'):
+                _subprocess(('sirepo', 'service', s))
+        _subprocess(('sirepo', 'job_supervisor'))
 
         for i in range(30):
             try:
