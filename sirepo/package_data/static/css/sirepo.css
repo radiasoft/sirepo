@@ -919,6 +919,12 @@ li.sr-model-list-item > a {
   align-self: center;
 }
 
+.sr-checkbox {
+  vertical-align: middle;
+  width: 20px;
+  height: 20px;
+}
+
 .sr-page-load {
     display: none;
     position: absolute;

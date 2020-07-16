@@ -1,0 +1,33 @@
+import numpy as np
+import os
+
+{% if dataFile_inputsScaler != 'None' %}
+from sklearn.preprocessing import {{ dataFile_inputsScaler }}
+{% endif %}
+{% if dataFile_outputsScaler != 'None' and dataFile_outputsScaler != dataFile_inputsScaler %}
+from sklearn.preprocessing import {{ dataFile_outputsScaler }}
+{% endif %}
+
+
+def scale_columns(values, column_types, col_type, scaler):
+    if scaler:
+        columns = list(filter(lambda idx: column_types[idx] == col_type, range(len(column_types))))
+        if len(columns):
+            values[:, columns] = scaler().fit_transform(values[:, columns])
+        
+
+def scale_file(path, column_types, inputs_scaler, outputs_scaler):
+    v = np.genfromtxt(path, delimiter=',', skip_header={{ 1 if columnInfo_hasHeaderRow else 0 }})
+    scale_columns(v, column_types, 'input', inputs_scaler)
+    scale_columns(v, column_types, 'output', outputs_scaler)
+    os.remove(path)
+    np.savetxt(path, v, delimiter=',')
+    return v
+
+
+scaled = scale_file(
+    '{{ dataFileName }}',
+    {{ columnTypes }},
+    {{ dataFile_inputsScaler }},
+    {{ dataFile_outputsScaler }},
+)

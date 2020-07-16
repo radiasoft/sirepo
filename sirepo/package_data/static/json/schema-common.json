@@ -28,6 +28,10 @@
             "longName": "MadX",
             "shortName": "madx"
         },
+        "ml": {
+            "longName": "ML",
+            "shortName": "ML"
+        },
         "opal": {
             "longName": "OPAL",
             "shortName": "OPAL"

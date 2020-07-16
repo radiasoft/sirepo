@@ -25,9 +25,10 @@ _NON_ALPHA_FOSS_CODES = frozenset((
 #: Codes on dev and alpha
 _ALPHA_FOSS_CODES = frozenset((
     'irad',
-    'radia',
     'madx',
+    'ml',
     'myapp',
+    'radia',
     'rcscon',
     'rs4pi',
 ))

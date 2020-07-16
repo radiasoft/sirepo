@@ -1,0 +1,12 @@
+{
+    "models": {
+        "columnReports": [],
+        "simulation": {
+            "documentationUrl": "",
+            "folder": "/",
+            "name": "default",
+            "notes": ""
+        }
+    },
+    "simulationType": "ml"
+}
