@@ -15,13 +15,10 @@ SIREPO.app.config(function() {
           '<div data-rpn-boolean="" data-model="model" data-field="field"></div>',
         '</div>',
         '<div data-ng-switch-when="RPNValue">',
-          '<div data-ng-class="fieldClass">',
-            '<input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="isRequired()" />',
-          '</div>',
-          //TODO(pjm): fragile - hide rpnStaic value when in column mode, need better detection this case
-          '<div data-ng-hide="{{ fieldSize && fieldSize != \'2\' }}" class="col-sm-2">',
-            '<div data-rpn-static="" data-model="model" data-field="field"></div>',
-          '</div>',
+          '<div data-rpn-editor=""></div>',
+        '</div>',
+        '<div data-ng-switch-when="OptionalRPNValue">',
+          '<div data-rpn-editor=""></div>',
         '</div>',
     ].join('');
 });
@@ -2381,6 +2378,21 @@ SIREPO.app.directive('rpnStatic', function(rpnService) {
     };
 });
 
+SIREPO.app.directive('rpnEditor', function() {
+    return {
+        restrict: 'A',
+        template: [
+          '<div data-ng-class="fieldClass">',
+            '<input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="isRequired()" />',
+          '</div>',
+          //TODO(pjm): fragile - hide rpnStaic value when in column mode, need better detection this case
+          '<div data-ng-hide="{{ fieldSize && fieldSize != \'2\' }}" class="col-sm-2">',
+            '<div data-rpn-static="" data-model="model" data-field="field"></div>',
+          '</div>',
+        ].join(''),
+    };
+});
+
 SIREPO.app.directive('rpnValue', function(appState, rpnService) {
     var requestIndex = 0;
     return {
@@ -2394,6 +2406,9 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
             };
 
             scope.isRequired = function() {
+                if (scope.info && scope.info[1] == 'OptionalRPNValue') {
+                    return false;
+                }
                 if (appState.isLoaded()) {
                     if (scope.model && scope.model.isOptional) {
                         return false;
@@ -2455,7 +2470,7 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                     '<button type="button" class="close" data-ng-click="cancelChanges()"><span>&times;</span></button>',
                     '<span class="lead modal-title text-info">Variables</span>',
                   '</div>',
-                  '<div class="modal-body" style="height: 80vh; overflow-y: scroll;">',
+                  '<div class="modal-body" style="max-height: 80vh; overflow-y: scroll;">',
                     '<div class="container-fluid">',
                       '<form name="form" class="form-horizontal" autocomplete="off">',
                         '<div class="form-group form-group-sm">',

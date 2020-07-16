@@ -45,6 +45,12 @@ class SimData(sirepo.sim_data.SimDataBase):
                 m.op_fillFileType = 'ionmix4'
                 m.op_wallFileType = 'ionmix4'
         dm['physicssourceTermsEnergyDepositionLaser'].pkdel('ed_gridnAngularTics_1')
+        for n in 'currType', 'eosFill', 'eosWall':
+            dm.pkdel(f'SimulationCapLaserBELLA{n}')
+        m = dm.physicssourceTermsHeatexchange
+        if 'useHeatExchange' in m:
+            m.useHeatexchange = m.useHeatExchange
+            m.pkdel('useHeatExchange')
 
     @classmethod
     def flash_exe_path(cls, data, unchecked=False):
@@ -80,14 +86,14 @@ class SimData(sirepo.sim_data.SimDataBase):
         t = data.models.simulation.flashType
         if t == 'RTFlame':
             return ['helm_table.dat']
-        if t == 'CapLaserBELLA':
+        if 'CapLaser' in t:
             r = [
                 'alumina-wall-imx.cn4',
                 'argon-fill-imx.cn4',
                 'helium-fill-imx.cn4',
                 'hydrogen-fill-imx.cn4',
             ]
-            if data.models['SimulationCapLaserBELLA'].sim_currType == '2':
+            if t == 'CapLaserBELLA'  and data.models['SimulationCapLaserBELLA'].sim_currType == '2':
                 r.append(cls.lib_file_name_with_model_field(
                     'SimulationCapLaserBELLA',
                     'sim_currFile',

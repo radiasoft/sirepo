@@ -38,6 +38,7 @@ _FIELDS_FILE = 'fields.h5'
 _GEOM_DIR = 'geometry'
 _GEOM_FILE = 'geom.h5'
 _METHODS = ['get_field', 'get_field_integrals', 'get_geom', 'save_field']
+_REPORTS = ['geometry', 'reset']
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
 
@@ -72,6 +73,9 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def extract_report_data(run_dir, sim_in):
+    assert sim_in.report in _REPORTS, 'unknown report: {}'.format(sim_in.report)
+    if 'reset' in sim_in.report:
+        template_common.write_sequential_result({}, run_dir=run_dir)
     if 'geometry' in sim_in.report:
         v_type = sim_in.models.magnetDisplay.viewType
         f_type = sim_in.models.magnetDisplay.fieldType if v_type == VIEW_TYPE_FIELD\
@@ -80,8 +84,6 @@ def extract_report_data(run_dir, sim_in):
             _read_data(sim_in.simulationId, v_type, f_type),
             run_dir=run_dir,
         )
-        return
-    assert False, 'unknown report: {}'.format(sim_in.report)
 
 
 # if the file exists but the data we seek does not, have Radia generate it here.  We

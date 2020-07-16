@@ -139,8 +139,11 @@ def solve(g_id, prec, max_iter, solve_method):
 
 def vector_field_to_data(g_id, name, pv_arr, units):
     # format is [[[px, py, pz], [vx, vy, vx]], ...]
+    # UNLESS only one element?
     # convert to webGL object
 
+    if len(numpy.shape(pv_arr)) == 2:
+        pv_arr = [pv_arr]
     v_data = new_geom_object()
     v_data.vectors.lengths = []
     v_data.vectors.colors = []

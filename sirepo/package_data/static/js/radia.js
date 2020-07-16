@@ -127,7 +127,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
     self.getPathType = function() {
         return (appState.models.fieldTypes || {}).path;
     };
-
+    
     self.getSelectedObj = function() {
         return self.selectedObj;
     };
@@ -492,14 +492,16 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaServ
 SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            modelName: '@',
+        },
         template: [
             '<div class="col-md-6">',
                 '<div class="panel panel-info">',
                     '<div class="panel-heading">',
                         '<span class="sr-panel-heading">Field Integrals (T &#x00B7; mm)</span>',
                         '<div class="sr-panel-options pull-right">',
-                        '<a data-ng-click="download()" target="_blank" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
+                        '<a data-ng-show="hasPaths()" data-ng-click="download()" target="_blank" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
                         '</div>',
                     '</div>',
                     '<div class="panel-body">',
@@ -515,7 +517,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                             '</tr>',
                           '</thead>',
                           '<tbody>',
-                            '<tr data-ng-repeat="path in paths">',
+                            '<tr data-ng-repeat="path in linePaths()">',
                               '<td>{{ path.name }}</td>',
                               '<td>[{{ path.beginX }}, {{ path.beginY }}, {{ path.beginZ }}] &#x2192; [{{ path.endX }}, {{ path.endY }}, {{ path.endZ }}]</td>',
                               '<td>',
@@ -534,12 +536,11 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             $scope.HEADING = ['Line', 'Endpoints', 'Fields'];
             $scope.INTEGRABLE_FIELD_TYPES = ['B', 'H'];
             $scope.integrals = {};
-            $scope.paths = [];
 
             $scope.download = function() {
                 var fileName = panelState.fileNameFromText('Field Integrals', 'csv');
                 var data = [$scope.CSV_HEADING];
-                $scope.paths.forEach(function (p) {
+                $scope.linePaths().forEach(function (p) {
                     var row = [];
                     row.push(
                         p.name,
@@ -557,7 +558,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             };
 
             $scope.hasPaths = function() {
-                return $scope.paths && $scope.paths.length;
+                return $scope.linePaths().length;
             };
 
             $scope.format = function(vals) {
@@ -573,10 +574,14 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                 return p.type === 'line';
             };
 
+            $scope.linePaths = function () {
+                return (($scope.model || {}).paths || []).filter($scope.isLine);
+            };
+
             function updateTable() {
-               requestSender.getApplicationData(
+                requestSender.getApplicationData(
                     {
-                        fieldPaths: $scope.paths,
+                        fieldPaths: $scope.linePaths(),
                         method: 'get_field_integrals',
                         simulationId: appState.models.simulation.simulationId,
                     },
@@ -590,8 +595,11 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             });
 
            appState.whenModelsLoaded($scope, function() {
-               $scope.paths = (appState.models.fieldPaths.paths || []).filter($scope.isLine);
-               updateTable();
+               $scope.model = appState.models[$scope.modelName];
+               // wait until we have some data to update
+               $scope.$on('radiaViewer.loaded', function () {
+                    updateTable();
+               });
             });
 
         },
@@ -601,7 +609,9 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
 SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaService, utilities) {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            paths: '='
+        },
         template: [
             '<table data-ng-if="hasPaths()" style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">',
               '<colgroup>',
@@ -675,7 +685,6 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
            };
 
            appState.whenModelsLoaded($scope, function() {
-               $scope.paths = appState.models.fieldPaths.paths;
            });
         },
     };
@@ -694,7 +703,7 @@ SIREPO.app.directive('radiaFieldPaths', function(appState, panelState, radiaServ
                     '<div class="panel-heading"><span class="sr-panel-heading">Field Paths</span></div>',
                     '<div class="panel-body">',
                         '<button class="btn btn-info btn-xs pull-right" accesskey="p" data-ng-click="radiaService.newPath()"><span class="glyphicon glyphicon-plus"></span> New <u>P</u>ath</button>',
-                        '<div data-field-path-table=""></div>',
+                        '<div data-field-path-table="" data-paths="model.paths"></div>',
                         '<button class="btn btn-default col-sm-2 col-sm-offset-5" data-ng-show="hasPaths()" data-ng-click="confirmClear()">Clear</button>',
                     '</div>',
                 '</div>',
@@ -806,7 +815,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
     };
 });
 
-SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, radiaService, radiaVtkUtils, requestSender, utilities, vtkPlotting, vtkUtils, $interval) {
+SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, radiaService, radiaVtkUtils, requestSender, utilities, vtkPlotting, vtkUtils, $document, $interval, $rootScope) {
 
     return {
         restrict: 'A',
@@ -1573,6 +1582,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setupSceneData(data) {
+                $rootScope.$broadcast('radiaViewer.loaded');
                 sceneData = data;
                 buildScene();
                 if (! initDone) {
@@ -1669,6 +1679,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             $scope.eventHandlers = {
+                keypress: function (evt) {
+                    // do nothing?  Stops vtk from changing render based on key presses
+                },
                 //ondblclick: function(evt) {
                 //    vtkAPI.setCam();
                 //}
@@ -1714,9 +1727,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             $scope.$on('fieldPaths.changed', function () {
                 if (! $scope.model.fieldPoints) {
                     $scope.model.fieldPoints = [];
-                }
-                if (! appState.models.fieldPaths.paths || ! appState.models.fieldPaths.paths.length) {
-                    return;
                 }
                 updateViewer();
             });

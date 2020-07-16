@@ -126,7 +126,7 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
     var self = appState.clone(SIREPO.authState);
 
     if (SIREPO.authState.isGuestUser
-        && SIREPO.authState.showGuestWarning
+        && ! SIREPO.APP_SCHEMA.feature_config.hide_guest_warning
         && ! SIREPO.authState.isLoginExpired) {
         appState.whenModelsLoaded(
             $rootScope,

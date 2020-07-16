@@ -2,6 +2,7 @@
     "enum": {
         "flashType": [
             ["CapLaserBELLA", "CapLaserBELLA"],
+            ["CapLaser3D", "CapLaser3D"],
             ["RTFlame", "RTFlame"]
         ],
         "physicsGravityConstantgdirec": [
@@ -152,16 +153,16 @@
             ["hybrid", "hybrid"],
             ["limited", "limited"]
         ],
-        "SimulationCapLaserBELLAsim_currType": [
+        "SimulationCapLasersim_currType": [
             ["0", "Linear ramp"],
             ["1", "Exponential ramp"],
             ["2", "From external file"]
         ],
-        "SimulationCapLaserBELLAsim_eosFill": [
+        "SimulationCapLasersim_eosFill": [
             ["eos_tab", "eos_tab"],
             ["eos_gam", "eos_gam"]
         ],
-        "SimulationCapLaserBELLAsim_eosWall": [
+        "SimulationCapLasersim_eosWall": [
             ["eos_tab", "eos_tab"],
             ["eos_gam", "eos_gam"]
         ],
@@ -874,11 +875,32 @@
             "op_fillLowTemp": ["op_fillLowTemp", "Float", 0.0],
             "op_wallLowTemp": ["op_wallLowTemp", "Float", 0.0]
         },
+        "SimulationCapLaser3D": {
+            "sim_condWall": ["sim_condWall", "Float", 195000.0, "Wall conductivity at the gas/wall interface"],
+            "sim_eosFill": ["Fill EOS Type", "SimulationCapLasersim_eosFill", "eos_gam"],
+            "sim_eosWall": ["Wall EOS Type", "SimulationCapLasersim_eosWall", "eos_tab"],
+            "sim_currType": ["Current Calculation Type", "SimulationCapLasersim_currType", "1", "how to calculate the current"],
+            "sim_currFile": ["Current File", "InputFile", "", "file describing current over time"],
+            "sim_riseTime": ["Rise Time", "Float", 1.8e-9, "rise time to peak current in seconds"],
+            "sim_peakCurr": ["Peak Current", "Float", 3.1e2, "peak current at wall in amperes"],
+            "sim_peakField": ["Peak Field", "Float", 2.4e3, "peak field in gauss at capillary wall"],
+            "sim_period": ["Circuit Period", "Float", 300e-9 , "circuit period in seconds"],
+            "sim_rhoFill": ["Fill Initial Density", "Float", 2.655e-07],
+            "sim_rhoWall": ["Wall Initial Density", "Float", 2.7],
+            "sim_rWall": ["Wall Gas Radius", "Float", 250.0e-4, "wall radius for position of gas/wall interface"],
+            "sim_teleFill": ["Fill Electron Temp.", "Float", 290.11375],
+            "sim_teleWall": ["Wall Electron Temp.", "Float", 290.11375],
+            "sim_tionFill": ["Fill Ion Temp.", "Float", 290.11375],
+            "sim_tionWall": ["Wall Ion Temp.", "Float", 290.11375],
+            "sim_tradFill": ["Fill Radiation Temp.", "Float", 290.11375],
+            "sim_tradWall": ["Wall Radiation Temp.", "Float", 290.11375],
+            "sim_zminWall": ["Wall Minimum Zbar", "Float", 0.0]
+        },
         "SimulationCapLaserBELLA": {
             "sim_condWall": ["sim_condWall", "Float", 195000.0, "Wall conductivity at the gas/wall interface"],
-            "sim_eosFill": ["Fill EOS Type", "SimulationCapLaserBELLAsim_eosFill", "eos_gam"],
-            "sim_eosWall": ["Wall EOS Type", "SimulationCapLaserBELLAsim_eosWall", "eos_tab"],
-            "sim_currType": ["Current Calculation Type", "SimulationCapLaserBELLAsim_currType", "1", "how to calculate the current"],
+            "sim_eosFill": ["Fill EOS Type", "SimulationCapLasersim_eosFill", "eos_gam"],
+            "sim_eosWall": ["Wall EOS Type", "SimulationCapLasersim_eosWall", "eos_tab"],
+            "sim_currType": ["Current Calculation Type", "SimulationCapLasersim_currType", "1", "how to calculate the current"],
             "sim_currFile": ["Current File", "InputFile", "", "file describing current over time"],
             "sim_riseTime": ["Rise Time", "Float", 1.8e-9, "rise time to peak current in seconds"],
             "sim_peakCurr": ["Peak Current", "Float", 3.1e2, "peak current at wall in amperes"],
@@ -894,6 +916,9 @@
         },
         "physicsmaterialPropertiesConductivity": {
             "useConductivity": ["Use Conductivity", "Boolean", "1", "whether the conductivity material property is being used"]
+        },
+        "physicsmaterialPropertiesMagneticResistivity": {
+            "useMagneticResistivity": ["Use Magnetic Resistivity", "Boolean", "0", "whether the magnetic resistivity material property is being used"]
         },
         "physicsmaterialPropertiesOpacity": {
             "useOpacity": ["Use Opacity", "Boolean", "1", "flags whether the Opacity unit is being used at all"]
@@ -1175,7 +1200,7 @@
             "ed_time_1_4": ["Laser Pulse Section 4", "Float", -1.0, "The time (s)  for laser pulse 1 section 4"],
             "ed_wavelength_1": ["Wavelength", "Float", -1.7976931348623157e+308, "The wave length [in microns] of beam 1"],
             "threadRayTrace": ["threadRayTrace", "Boolean", "0", "Use threading when tracing the rays through each block?"],
-            "useEnergyDeposition": ["useEnergyDeposition", "Boolean", "1", "Use Laser energy deposition?"]
+            "useEnergyDeposition": ["Use Energy Deposition", "Boolean", "1", "Use Laser energy deposition."]
         },
         "physicsEosTabulatedHdf5TableRead": {
             "eos_useLogTables": ["eos_useLogTables", "Boolean", "1"]
@@ -1284,7 +1309,7 @@
             "fl_fsConstFlameWidth": ["Constant Flame Width", "Float", 1.0, "fl_fsConstFlameWidth"]
         },
         "physicssourceTermsHeatexchange": {
-            "useHeatExchange": ["Use Heat Exchange", "Boolean", "0", "Use heat exchange"]
+            "useHeatexchange": ["Use Heat Exchange", "Boolean", "0", "Use heat exchange"]
         },
         "physicssourceTermsHeatexchangeSpitzer": {
             "hx_dtFactor": ["hx_dtFactor", "Float", 0.5, "", 0.0],
@@ -1379,9 +1404,7 @@
                     ]
                 ]]
             ],
-            "advanced": [
-                "eosMode"
-            ]
+            "advanced": []
         },
         "physicsRadTrans": {
             "title": "Radiative Transfer",
@@ -1418,9 +1441,7 @@
                     "physicsRadTransMGD.rt_mgdBounds_7"
                 ]]
             ],
-            "advanced": [
-                "physicsRadTrans.rt_dtFactor"
-            ]
+            "advanced": []
         },
         "physicsHydro": {
             "title": "Hydrodynamics",
@@ -1436,9 +1457,7 @@
                 "physicsHydrounsplit.entropy",
                 "physicsHydrounsplit.shockDetect"
             ],
-            "advanced": [
-                "cfl"
-            ]
+            "advanced": []
         },
         "physicsDiffuse": {
             "title": "Diffusive Effects",
@@ -1464,31 +1483,30 @@
                     ]]
                 ]
             ],
-            "advanced": [
-                "useDiffuse"
-            ]
+            "advanced": []
          },
         "Driver": {
             "title": "Simulation Driver",
             "basic": [
                 "tmax",
                 "dtinit",
-                "IO.plotFileIntervalTime"
-            ],
-            "advanced": [
+                "IO.plotFileIntervalTime",
                 "allowDtSTSDominate"
-            ]
+            ],
+            "advanced": []
         },
-        "SimulationCapLaserBELLA": {
-            "title": "CapLaserBELLA Settings",
+        "SimulationCapLaser3D": {
+            "title": "CapLaser 3D Settings",
             "basic": [
                 ["Main", [
                     "sim_currType",
                     "sim_currFile",
                     "sim_peakCurr",
+                    "sim_peakField",
+                    "sim_period",
                     "sim_riseTime",
                     "sim_zminWall",
-                    "physicssourceTermsHeatexchange.useHeatExchange",
+                    "sim_rWall",
                     [
                         ["Fill", [
                             "sim_eosFill",
@@ -1512,21 +1530,70 @@
                             "Multispecies.ms_fillSpecies",
                             "Multispecies.ms_fillA",
                             "Multispecies.ms_fillZ",
-                            "Multispecies.eos_fillEosType",
-                            "Multispecies.ms_fillZMin"
+                            "Multispecies.ms_fillZMin",
+                            "Multispecies.eos_fillEosType"
                         ]],
                         ["Wall", [
                             "Multispecies.ms_wallSpecies",
                             "Multispecies.ms_wallA",
                             "Multispecies.ms_wallZ",
-                            "Multispecies.eos_wallEosType",
-                            "Multispecies.ms_wallZMin"
+                            "Multispecies.ms_wallZMin",
+                            "Multispecies.eos_wallEosType"
                         ]]
                     ]
                 ]]
             ],
             "advanced": [
-                "sim_eosFill"
+                "physicssourceTermsHeatexchange.useHeatexchange"
+            ]
+        },
+        "SimulationCapLaserBELLA": {
+            "title": "CapLaserBELLA Settings",
+            "basic": [
+                ["Main", [
+                    "sim_currType",
+                    "sim_currFile",
+                    "sim_peakCurr",
+                    "sim_riseTime",
+                    "sim_zminWall",
+                    [
+                        ["Fill", [
+                            "sim_eosFill",
+                            "sim_rhoFill",
+                            "sim_teleFill",
+                            "sim_tionFill",
+                            "sim_tradFill"
+                        ]],
+                        ["Wall", [
+                            "sim_eosWall",
+                            "sim_rhoWall",
+                            "sim_teleWall",
+                            "sim_tionWall",
+                            "sim_tradWall"
+                        ]]
+                    ]
+                ]],
+                ["Multispecies", [
+                    [
+                        ["Fill", [
+                            "Multispecies.ms_fillSpecies",
+                            "Multispecies.ms_fillA",
+                            "Multispecies.ms_fillZ",
+                            "Multispecies.ms_fillZMin",
+                            "Multispecies.eos_fillEosType"
+                        ]],
+                        ["Wall", [
+                            "Multispecies.ms_wallSpecies",
+                            "Multispecies.ms_wallA",
+                            "Multispecies.ms_wallZ",
+                            "Multispecies.ms_wallZMin",
+                            "Multispecies.eos_wallEosType"
+                        ]]
+                    ]
+                ]]
+            ],
+            "advanced": [
+                "physicssourceTermsHeatexchange.useHeatexchange"
             ]
         },
         "SimulationRTFlame": {
@@ -1550,15 +1617,14 @@
                     ]]
                 ]
             ],
-            "advanced": [
-                "dens_unburned"
-            ]
+            "advanced": []
         },
         "physicsmaterialProperties": {
             "title": "Material Properties",
             "basic": [
                 "physicsmaterialPropertiesOpacity.useOpacity",
                 "physicsmaterialPropertiesConductivity.useConductivity",
+                "physicsmaterialPropertiesMagneticResistivity.useMagneticResistivity",
                 [
                     ["Fill", [
                         "physicsmaterialPropertiesOpacityMultispecies.op_fillAbsorb",
@@ -1572,14 +1638,13 @@
                     ]]
                 ]
             ],
-            "advanced": [
-                "useOpacity"
-            ]
+            "advanced": []
         },
         "physicssourceTermsEnergyDepositionLaser": {
             "title": "Energy Deposition - Laser",
             "basic": [
                 ["Bulk", [
+                    "useEnergyDeposition",
                     "ed_maxRayCount",
                     "ed_gradOrder",
                     "ed_laser3Din2D",
@@ -1646,9 +1711,7 @@
                     ]
                 ]]
             ],
-            "advanced": [
-                "useEnergyDeposition"
-            ]
+            "advanced": []
         },
         "physicssourceTermsFlame": {
             "title": "Flame Effects",
@@ -1671,9 +1734,7 @@
                 "fl_kpp_fact",
                 "fl_b"
             ],
-            "advanced": [
-                "fl_b"
-            ]
+            "advanced": []
         },
         "physicsGravity": {
             "title": "Gravity",
@@ -1683,9 +1744,7 @@
                 "physicsGravityConstant.gconst",
                 "physicsGravityConstant.gdirec"
             ],
-            "advanced": [
-                "grav_boundary_type"
-            ]
+            "advanced": []
         }
     }
 }

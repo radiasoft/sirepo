@@ -69,6 +69,16 @@
       }
     }
 
+    .header-decoration {
+      &::before {
+        left: -30px;
+      }
+
+      &::after {
+        right: -30px;
+      }
+    }
+
     .get-started {
       @include get-started-prev-next-arrows(100px, 30px, 0);
 
@@ -85,6 +95,28 @@
       }
     }
 
+    .pricing-plans .btn-link {
+      margin: 24px 0;
+    }
+
+    .public-plans {
+      margin: 0 -15px;
+
+      .plan {
+        margin: 0 5px;
+        width: calc((100% / 3) - 10px);
+      }
+
+      .btn-link {
+        margin: 24px;
+        width: calc(100% - 48px);
+      }
+    }
+
+    .faqs {
+      column-count: 1;
+    }
+
     header {
       .main-nav {
         .nav-items {
@@ -99,15 +131,7 @@
             margin-top: 10px;
           }
         }
-
-        .supported-codes-dropdown {
-          display: none;
-        }
       }
-    }
-
-    .nav-takeover {
-      display: block;
     }
   }
 }
@@ -213,6 +237,16 @@
       }
     }
 
+    .public-plans {
+      display: block;
+      margin: 0;
+
+      .plan {
+        margin: 0 auto 32px;
+        width: 100%;
+      }
+    }
+
     .simulations {
       .simulation-items {
         flex-direction: column;
@@ -267,6 +301,10 @@
       .doe-footer-content {
         flex-direction: column;
         text-align: center;
+
+        .doe-footer-image {
+          flex-basis: auto;
+        }
 
         p {
           margin: 15px 0 0 0;

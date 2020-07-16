@@ -21,6 +21,7 @@ from sirepo.template import template_common
 from sirepo.template.template_common import ParticleEnergy
 from sirepo.template.lattice import LatticeUtil
 import copy
+import functools
 import math
 import numpy as np
 import pykern.pkinspect
@@ -29,9 +30,9 @@ import scipy.constants
 import sirepo.sim_data
 
 
-MADX_INPUT_FILE = 'madx.in'
+MADX_INPUT_FILE = 'in.madx'
 
-MADX_OUTPUT_FILE = 'madx.out'
+MADX_LOG_FILE = 'madx.log'
 
 _INITIAL_REPORTS = ['twissEllipseReport', 'bunchReport']
 
@@ -55,6 +56,8 @@ _FIELD_LABEL = PKDict(
 
 _PI = 4 * math.atan(1)
 
+_METHODS = template_common.RPN_METHODS + []
+
 _MADX_CONSTANTS = PKDict(
     pi=_PI,
     twopi=_PI * 2.0,
@@ -71,18 +74,48 @@ _MADX_CONSTANTS = PKDict(
     erad=2.8179403267e-15,
 )
 
-_MADX_PTC_PARTICLES_FILE = 'ptc_particles.madx'
+_PTC_PARTICLES_FILE = 'ptc_particles.madx'
 
-_MADX_PTC_TRACK_DUMP_FILE = 'ptc_track_dump'
+_PTC_TRACK_COMMAND = 'ptc_track'
 
-_MADX_PTC_TRACK_DUMP_FILE_EXTENSION = 'tfs'
-
-_MADX_TWISS_OUTPUT_FILE = 'twiss.tfs'
-
-_METHODS = template_common.RPN_METHODS + []
+_PTC_TRACK_USE_ONETABLE = True
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
+_TFS_FILE_EXTENSION = 'tfs'
+
+_TWISS_OUTPUT_FILE = f'twiss.{_TFS_FILE_EXTENSION}'
+
+class MadxOutputFileIterator(lattice.ModelIterator):
+    def __init__(self):
+        self.result = PKDict(
+            keys_in_order=[],
+        )
+        self.model_index = PKDict()
+
+    def field(self, model, field_schema, field):
+        self.field_index += 1
+        if field_schema[1] == 'OutputFile':
+            b = '{}{}.{}'.format(
+                model._type,
+                self.model_index[self.model_name] if self.model_index[self.model_name] > 1 else '',
+                field,
+            )
+            self.result[model._id] = PKDict(
+                filename=b + f'.{_TFS_FILE_EXTENSION}',
+                model_type=model._type,
+                purebasename=b,
+                ext=_TFS_FILE_EXTENSION,
+            )
+            self.result.keys_in_order.append(model._id)
+
+    def start(self, model):
+        self.field_index = 0
+        self.model_name = LatticeUtil.model_name_for_data(model)
+        if self.model_name in self.model_index:
+            self.model_index[self.model_name] += 1
+        else:
+            self.model_index[self.model_name] = 1
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -94,7 +127,9 @@ def background_percent_complete(report, run_dir, is_running):
     return PKDict(
         percentComplete=100,
         frameCount=1,
+        outputInfo=_output_info(run_dir),
     )
+
 
 def get_application_data(data, **kwargs):
     assert 'method' in data
@@ -117,12 +152,12 @@ def get_application_data(data, **kwargs):
             data.result = v
         return data
     if data.method == 'recompute_rpn_cache_values':
-        cv(data.variables).recompute_cache(data.cache)
+        cv.recompute_cache(data.cache)
         return data
     if data.method == 'validate_rpn_delete':
         model_data = simulation_db.read_json(
             simulation_db.sim_data_file(data.simulationType, data.simulationId))
-        data.error = cv(data.variables).validate_var_delete(
+        data.error = cv.validate_var_delete(
             data.name,
             model_data,
             _SCHEMA
@@ -154,6 +189,12 @@ def madx_code_var(variables):
     return _code_var(variables)
 
 
+def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
+    if success_exit:
+        return None
+    return _parse_madx_log(run_dir)
+
+
 def prepare_for_client(data):
     if 'models' not in data:
         return data
@@ -178,7 +219,15 @@ def python_source_for_model(data, model):
 def sim_frame(frame_args):
     d = frame_args.sim_in
     d.report = frame_args.frameReport
-    m = d.models[d.report]
+    m = None
+    try:
+        m = d.models[d.report]
+    except KeyError:
+        # It may not exist in models because a command was addedd (ex twiss)
+        # and we don't have an animation model for it yet.
+        m  = PKDict()
+        _SIM_DATA.update_model_defaults(m, 'elementAnimation')
+        d.models[d.report] = m
     m.update((k, frame_args[k]) for k in frame_args.keys() & m.keys())
     return _extract_report_data(d, frame_args.run_dir)
 
@@ -198,17 +247,18 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
-    pkio.write_text(
-        run_dir.join(_MADX_PTC_PARTICLES_FILE),
-        _generate_ptc_particles_file(data),
-    )
+    if data.report != 'twissReport':
+        pkio.write_text(
+            run_dir.join(_PTC_PARTICLES_FILE),
+            _generate_ptc_particles_file(data),
+        )
     pkio.write_text(
         run_dir.join(MADX_INPUT_FILE),
         _generate_parameters_file(data),
     )
 
 
-def _add_call_and_observe_commands(data, util):
+def _add_commands(data, util):
     commands = data.models.commands
     # set the selected beamline depending on the lattice or visualization
     idx = next(i for i, cmd in enumerate(commands) if cmd._type == 'beam')
@@ -216,16 +266,26 @@ def _add_call_and_observe_commands(data, util):
         _type='use',
         sequence=util.select_beamline().id,
     ))
+    if not util.find_first_command(data, 'ptc_create_layout'):
+        return
     # insert call and ptc_observe commands after ptc_create_layout
     idx = next(i for i, cmd in enumerate(commands) if cmd._type == 'ptc_create_layout')
     commands.insert(idx + 1, PKDict(
         _type='call',
-        file=_MADX_PTC_PARTICLES_FILE,
+        file=_PTC_PARTICLES_FILE,
     ))
     commands.insert(idx + 2, PKDict(
         _type='ptc_observe',
         place='{}$END'.format(util.select_beamline().name.upper()),
     ))
+
+
+def _build_filename_map(data):
+    return _build_filename_map_from_util(LatticeUtil(data, _SCHEMA))
+
+
+def _build_filename_map_from_util(util):
+    return util.iterate_models(MadxOutputFileIterator()).result
 
 
 def _code_var(variables):
@@ -234,21 +294,6 @@ def _code_var(variables):
         code_variable.PurePythonEval(_MADX_CONSTANTS),
         case_insensitive=True,
     )
-
-
-def _extract_report_data(data, run_dir):
-    r = data.get('report', data.get('frameReport'))
-    if 'twissEllipse' in r:
-        return _extract_report_twissEllipseReport(data, run_dir)
-    elif 'bunchReport' in data.report:
-        return _extract_report_bunchReport(data, run_dir)
-    elif r.startswith('twiss'):
-        return _extract_report_twissReport(data, run_dir)
-    return getattr(
-        pykern.pkinspect.this_module(),
-        '_extract_report_' + r,
-    )(data, run_dir)
-
 
 def _extract_report_bunchReport(data, run_dir):
     # read from file?  store on model?
@@ -270,64 +315,38 @@ def _extract_report_bunchReport(data, run_dir):
         PKDict(
             x_label=labels[0],
             y_label=labels[1],
-            title='BUNCH',
         )
     )
 
 
-def _fixup_madx(madx):
-    # move imported beam over default-data.json beam
-    # remove duplicate twiss
-    # remove "use" commands
-    beam_idx = None
-    found_twiss = False
-    res = []
-    for cmd in madx.models.commands:
-        if cmd._type == 'use':
-            continue
-        if cmd._type == 'beam':
-            if beam_idx is None:
-                beam_idx = madx.models.commands.index(cmd)
-            else:
-                res[beam_idx] = cmd
-                continue
-        elif cmd._type == 'twiss':
-            if found_twiss:
-                continue
-            found_twiss = True
-        res.append(cmd)
-    madx.models.commands = res
+def _extract_report_data(data, run_dir):
+    r = data.get('report', data.get('frameReport'))
+    m = re.split(r'(\d+)', r)
+    f = getattr(
+        pykern.pkinspect.this_module(),
+        '_extract_report_' + m[0] if m else r
+    )
+    f = functools.partial(f, data, run_dir)
+    if 'Animation' in r:
+        f = functools.partial(f, filename=_filename_for_report(run_dir, r))
+    return f()
 
 
-def _twiss_ellipse_rotation(alpha, beta):
-    if alpha == 0:
-        return 0
-    return 0.5 * math.atan(
-        2. * alpha * beta / (1 + alpha * alpha - beta * beta)
+def _extract_report_ptcAnimation(data, run_dir, filename):
+    m = data.models[data.report]
+    t = madx_parser.parse_tfs_file(run_dir.join(filename))
+    return template_common.heatmap(
+        [_to_floats(t[m.x]), _to_floats(t[m.y])],
+        m,
+        PKDict(
+            x_label=_FIELD_LABEL[m.x],
+            y_label=_FIELD_LABEL[m.y],
+        ),
     )
 
 
-def _get_initial_twiss_params(data):
-    p = PKDict(
-        x=PKDict(),
-        y=PKDict()
-    )
-    util = LatticeUtil(data, _SCHEMA)
-    m = util.find_first_command(data, 'twiss')
-    # must an initial twiss always exist?
-    if not m:
-        return p
-    for dim in ('x', 'y'):
-        alf = 'alf{}'.format(dim)
-        bet = 'bet{}'.format(dim)
-        eta = 'e{}'.format(dim)
-        a = m[alf]
-        b = m[bet]
-        p[dim].alpha = a
-        p[dim].beta = b
-        p[dim].emittance = m[eta] if eta in m else 1.0
-        p[dim].gamma = (1. + a * a) / b
-    return p
+def _extract_report_twissAnimation(*args, **kwargs):
+    return _extract_report_twissReport(*args, **kwargs)
 
 
 def _extract_report_twissEllipseReport(data, run_dir):
@@ -367,34 +386,15 @@ def _extract_report_twissEllipseReport(data, run_dir):
         plots,
         {},
         PKDict(
-            title=f'{data.models.simulation.name} a{dim} = {a} b{dim} = {b} g{dim} = {g}',
+            title=f'a{dim} = {a} b{dim} = {b} g{dim} = {g}',
             y_label='',
             x_label=f'{dim} [m]'
         )
     )
 
 
-def _extract_report_ptcAnimation(data, run_dir):
-    m = data.models[data.report]
-    t = madx_parser.parse_tfs_file(
-        run_dir.join(
-            # POSIT: We are using the onetable option so madx appends one to the filename
-            f'{_MADX_PTC_TRACK_DUMP_FILE}one.{_MADX_PTC_TRACK_DUMP_FILE_EXTENSION}',
-        ),
-    )
-    return template_common.heatmap(
-        [_to_floats(t[m.x]), _to_floats(t[m.y])],
-        m,
-        PKDict(
-            x_label=_FIELD_LABEL[m.x],
-            y_label=_FIELD_LABEL[m.y],
-            title=data.models.simulation.name,
-        ),
-    )
-
-
-def _extract_report_twissReport(data, run_dir):
-    t = madx_parser.parse_tfs_file(run_dir.join(_MADX_TWISS_OUTPUT_FILE))
+def _extract_report_twissReport(data, run_dir, filename=_TWISS_OUTPUT_FILE):
+    t = madx_parser.parse_tfs_file(run_dir.join(filename))
     plots = []
     m = data.models[data.report]
     for f in ('y1', 'y2', 'y3'):
@@ -408,32 +408,73 @@ def _extract_report_twissReport(data, run_dir):
         _to_floats(t[x]),
         plots,
         m,
-        PKDict(title=data.models.simulation.name, y_label='', x_label=_FIELD_LABEL[x])
+        PKDict(
+            y_label='',
+            x_label=_FIELD_LABEL[x],
+        )
     )
 
 
-def _generate_commands(util):
+def _filename_for_report(run_dir, report):
+    for info in _output_info(run_dir):
+        if info.modelKey == report:
+            return info.filename
+    raise AssertionError(f'no output file for report={report}')
+
+
+def _fixup_madx(madx):
+    # move imported beam over default-data.json beam
+    # remove duplicate twiss
+    # remove "use" commands
+    beam_idx = None
+    found_twiss = False
+    res = []
+    for cmd in madx.models.commands:
+        if cmd._type == 'use':
+            continue
+        if cmd._type == 'beam':
+            if beam_idx is None:
+                beam_idx = madx.models.commands.index(cmd)
+            else:
+                res[beam_idx] = cmd
+                continue
+        elif cmd._type == 'twiss':
+            if found_twiss:
+                continue
+            found_twiss = True
+        res.append(cmd)
+    madx.models.commands = res
+
+
+def _format_field_value(state, model, field, el_type):
+    v = model[field]
+    if el_type == 'Boolean':
+        v = 'true' if v == '1' else 'false'
+    elif el_type == 'LatticeBeamlineList':
+        v = state.id_map[int(v)].name
+    elif el_type == 'OutputFile':
+        v = '"{}"'.format(state.filename_map[model._id].filename)
+    return [field, v]
+
+
+def _generate_commands(filename_map, util):
     res = ''
     for c in util.iterate_models(
-            lattice.ElementIterator(None, _format_field_value), 'commands'
+            lattice.ElementIterator(filename_map, _format_field_value), 'commands'
     ).result:
         res += f'{c[0]._type}'
         for f in c[1]:
            res += f', {f[0]}={f[1]}'
         t = c[0]._type
-        if t == 'twiss':
-            res += f', file={_MADX_TWISS_OUTPUT_FILE}'
-        elif t == 'ptc_track':
-            res += (f', dump=true, onetable=true file={_MADX_PTC_TRACK_DUMP_FILE}'
-                    f', extension=.{_MADX_PTC_TRACK_DUMP_FILE_EXTENSION}')
-        # elif t == 'call':
-        #     res += f', file={_MADX_PTC_PARTICLES_FILE}'
+        if t == _PTC_TRACK_COMMAND:
+            res += (f', dump=true, {"onetable=true, " if _PTC_TRACK_USE_ONETABLE else ""}'
+                    f'file={filename_map[c[0]._id].purebasename}'
+                    f', extension=.{_TFS_FILE_EXTENSION}')
         res += ';\n'
     return res
 
 
-def _generate_lattice(util):
-    filename_map = PKDict()
+def _generate_lattice(filename_map, util):
     return util.render_lattice_and_beamline(
         lattice.LatticeIterator(filename_map, _format_field_value),
         want_semicolon=True)
@@ -453,21 +494,22 @@ def _generate_parameters_file(data):
         return res
 
     util = LatticeUtil(data, _SCHEMA)
+    filename_map = _build_filename_map_from_util(util)
     report = data.get('report', '')
     code_var = _code_var(data.models.rpnVariables)
-    v.twissOutputFilename = _MADX_TWISS_OUTPUT_FILE
-    v.lattice = _generate_lattice(util)
+    v.twissOutputFilename = _TWISS_OUTPUT_FILE
+    v.lattice = _generate_lattice(filename_map, util)
     v.variables = _generate_variables(code_var, data)
 
     v.useBeamline = util.select_beamline().name
     if report == 'twissReport':
-        v.twissOutputFilename = _MADX_TWISS_OUTPUT_FILE
+        v.twissOutputFilename = _TWISS_OUTPUT_FILE
         return template_common.render_jinja(SIM_TYPE, v, 'twiss.madx')
-    _add_call_and_observe_commands(data, util)
-    v.commands = _generate_commands(util)
+    _add_commands(data, util)
+    v.commands = _generate_commands(filename_map, util)
     v.hasTwiss = bool(util.find_first_command(data, 'twiss'))
     if not v.hasTwiss:
-        v.twissOutputFilename = _MADX_TWISS_OUTPUT_FILE
+        v.twissOutputFilename = _TWISS_OUTPUT_FILE
     return template_common.render_jinja(SIM_TYPE, v, 'parameters.madx')
 
 
@@ -475,7 +517,7 @@ def _generate_ptc_particles_file(data):
     return template_common.render_jinja(
         SIM_TYPE,
         PKDict(start_commands=_ptc_start_commands(data)),
-        _MADX_PTC_PARTICLES_FILE,
+        _PTC_PARTICLES_FILE,
     )
 
 
@@ -497,13 +539,62 @@ def _generate_variables(code_var, data):
     return res
 
 
-def _format_field_value(state, model, field, el_type):
-    v = model[field]
-    if el_type == 'Boolean':
-        v = 'true' if v == '1' else 'false'
-    elif el_type == 'LatticeBeamlineList':
-        v = state.id_map[int(v)].name
-    return [field, v]
+def _get_initial_twiss_params(data):
+    p = PKDict(
+        x=PKDict(),
+        y=PKDict()
+    )
+    util = LatticeUtil(data, _SCHEMA)
+    m = util.find_first_command(data, 'twiss')
+    if not m:
+        return p
+    for dim in ('x', 'y'):
+        alf = 'alf{}'.format(dim)
+        bet = 'bet{}'.format(dim)
+        eta = 'e{}'.format(dim)
+        a = m[alf]
+        b = m[bet]
+        p[dim].alpha = a
+        p[dim].beta = b
+        p[dim].emittance = m[eta] if eta in m else 1.0
+        p[dim].gamma = (1. + a * a) / b
+    return p
+
+
+def _output_info(run_dir):
+    files = _build_filename_map(
+        simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    )
+    res = []
+    for k in files.keys_in_order:
+        f = files[k]
+        n = f.filename
+        if 'ptc' in f.model_type:
+            # Madx appends "one" to file purebasename if onetable is used
+            n = f'{f.purebasename}{"one" if _PTC_TRACK_USE_ONETABLE else ""}.{f.ext}'
+        if run_dir.join(n).exists():
+            res.append(PKDict(
+                modelKey='{}{}'.format(
+                    ('twiss' if f.model_type == 'twiss' else 'ptc') + 'Animation',
+                    k,
+                ),
+                filename=n,
+                isHistogram='twiss' not in f.filename,
+            ))
+    return res
+
+
+def _parse_madx_log(run_dir):
+    path = run_dir.join(MADX_LOG_FILE)
+    if not path.exists():
+        return ''
+    res = ''
+    with pkio.open_text(str(path)) as f:
+        for line in f:
+            if re.search(r'^\++ (error|warning):', line, re.IGNORECASE):
+                line = re.sub('^\++ ', '', line)
+                res += line + "\n"
+    return res
 
 
 # condensed version of https://github.com/radiasoft/rscon/blob/d3abdaf5c1c6d41797a4c96317e3c644b871d5dd/webcon/madx_examples/FODO_example_PTC.ipynb
@@ -564,3 +655,11 @@ def _ptc_start_commands(data):
 
 def _to_floats(values):
     return [float(v) for v in values]
+
+
+def _twiss_ellipse_rotation(alpha, beta):
+    if alpha == 0:
+        return 0
+    return 0.5 * math.atan(
+        2. * alpha * beta / (1 + alpha * alpha - beta * beta)
+    )

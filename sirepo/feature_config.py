@@ -93,6 +93,8 @@ def _init():
         srw=dict(
             mask_in_toolbar=(pkconfig.channel_in_internal_test(), bool, 'Show the mask element in toolbar'),
             beamline3d=(pkconfig.channel_in_internal_test(), bool, 'Show 3D beamline plot'),
+            app_url=('/en/xray-beamlines.html', str, 'URL for SRW link'),
+            hide_guest_warning=(False, bool, 'Hide the guest warning in the UI'),
         ),
         warpvnd=dict(
             allow_3d_mode=(True, bool, 'Include 3D features in the Warp VND UI'),

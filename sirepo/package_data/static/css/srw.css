@@ -74,6 +74,7 @@
 }
 
 .srw-beamline-close-icon {
+  z-index: 10;
   font-size: 20px;
   position: absolute;
   top: 1px;
@@ -111,6 +112,7 @@
 }
 
 .srw-beamline-disable-icon {
+  z-index: 10;
   font-size: 20px;
   position: absolute;
   top: 1px;

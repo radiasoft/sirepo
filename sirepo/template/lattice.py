@@ -66,6 +66,8 @@ class ElementIterator(ModelIterator):
             if value == default_value:
                 return True
             return str(value) == str(default_value)
+        if value is not None:
+            return False
         return True
 
 
@@ -341,7 +343,7 @@ class LatticeParser(object):
             self.__parse_beamline(label, values)
         elif cmd == 'title':
             if len(values) > 1:
-                self.data.models.simulation.name = values[1]
+                self.data.models.simulation.name = self.__remove_quotes(values[1])
         elif cmd not in self.ignore_commands:
             assert cmd != 'call', '"CALL" statement not supported, combine subfiles into one input file before import'
             if re.search(r'^ptc_', cmd):

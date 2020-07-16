@@ -352,11 +352,6 @@ def api_homePage(path_info=None):
     return api_staticFile('en/' + (path_info or 'landing.html'))
 
 
-@api_perm.allow_visitor
-def api_homePageOld():
-    return _render_root_page('landing-page', PKDict())
-
-
 @api_perm.require_user
 def api_jupyterNotebook(simulation_type, simulation_id, model=None, title=None):
     req = http_request.parse_params(type=simulation_type, id=simulation_id, template=True)

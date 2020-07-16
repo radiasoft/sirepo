@@ -35,6 +35,9 @@ class SimData(sirepo.sim_data.SimDataBase):
         for container in ('commands', 'elements'):
             for m in dm[container]:
                 cls.update_model_defaults(m, LatticeUtil.model_name_for_data(m))
+        for m in dm.commands:
+            if m._type == 'twiss' and 'file' not in m:
+                m.file = "1"
 
 
     @classmethod
