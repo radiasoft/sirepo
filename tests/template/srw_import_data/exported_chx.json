@@ -115,6 +115,7 @@
                 "type": "watch"
             }
         ],
+        "beamline3DReport": {},
         "electronBeam": {
             "beamDefinition": "t",
             "beamSelector": "NSLS-II Low Beta Day 1",

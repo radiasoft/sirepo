@@ -21,10 +21,9 @@ def add_roles(uid_or_email, *roles):
         uid_or_email (str): Uid or email of the user
         *roles: The roles to assign to the user
     """
-    sirepo.auth_db.UserRole.add_roles(
-        _parse_args(uid_or_email, roles),
-        roles,
-    )
+
+    a = _parse_args(uid_or_email, roles)
+    sirepo.auth_db.UserRole.add_roles(a, roles)
 
 
 
@@ -34,10 +33,9 @@ def delete_roles(uid_or_email, *roles):
         uid_or_email (str): Uid or email of the user
         *roles (args): The roles to delete
     """
-    sirepo.auth_db.UserRole.delete_roles(
-        _parse_args(uid_or_email, roles),
-        roles,
-    )
+
+    a = _parse_args(uid_or_email, roles)
+    sirepo.auth_db.UserRole.delete_roles(a, roles)
 
 
 def list_roles(uid_or_email):
@@ -45,10 +43,9 @@ def list_roles(uid_or_email):
     Args:
         uid_or_email (str): Uid or email of the user
     """
-    return sirepo.auth_db.UserRole.search_all_for_column(
-        'role',
-        uid=_parse_args(uid_or_email, []),
-    )
+
+    a = _parse_args(uid_or_email, [])
+    return sirepo.auth_db.UserRole.search_all_for_column('role', uid=a)
 
 
 # TODO(e-carlin): This only works for email auth or using a uid

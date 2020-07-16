@@ -1,46 +1,111 @@
 'use strict';
 
-var SRW_EXAMPLES;
-var LIGHT_SCHEMA;
-
 SIREPO.srlog = console.log.bind(console);
 SIREPO.srdbg = console.log.bind(console);
 
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-angular.element(document).ready(function() {
-    $.ajax({
-        url: '/static/json/srw-examples.json' + SIREPO.SOURCE_CACHE_KEY,
-        success: function(result) {
-            SRW_EXAMPLES = result;
-            $.ajax({
-                url: '/static/json/light-schema.json' + SIREPO.SOURCE_CACHE_KEY,
-                success: function(result) {
-                    LIGHT_SCHEMA = result;
-                    angular.bootstrap(document, ['SRWLightGateway']);
-                },
-                error: function(xhr, status, err) {
-                    if (! LIGHT_SCHEMA) {
-                        srlog("schema load failed: ", err);
-                    }
-                },
-                method: 'GET',
-                dataType: 'json',
-            });
-        },
-        error: function(xhr, status, err) {
-            if (! SRW_EXAMPLES) {
-                srlog("srw examples load failed: ", err);
+var SRW_EXAMPLES = [
+    {
+        "category": "calculator",
+        "name": "Synchrotron Radiation",
+        "image": "source-undulator.png",
+        "examples": [
+            {
+                "name": "Undulator Radiation",
+                "image": "source-undulator.png"
+            },
+            {
+                "name": "Bending Magnet Radiation",
+                "image": "source-bending-magnet.png"
+            },
+            {
+                "name": "Idealized Free Electron Laser Pulse",
+                "image": "source-fel.png"
             }
-        },
-        method: 'GET',
-        dataType: 'json',
-    });
-});
+        ]
+    },
+    {
+        "category": "wavefront",
+        "name": "Wavefront Propagation",
+        "image": "young-double-slit.png",
+        "examples": [
+            {
+                "name": "Diffraction by an Aperture",
+                "image": "circular-aperture.png"
+            },
+            {
+                "name": "Young's Double Slit Experiment",
+                "image": "young-double-slit.png"
+            },
+            {
+                "name": "Young's Double Slit Experiment (green laser)",
+                "image": "young-double-slit.png"
+            },
+            {
+                "name": "Young's Double Slit Experiment (green laser, no lens)",
+                "image": "young-double-slit.png"
+            }
+        ]
+    },
+    {
+        "category": "light-sources",
+        "name": "Light Source Facilities",
+        "image": "nsls-ii.png",
+        "examples": [
+            {
+                "name": "NSLS-II beamline",
+                "simulations": [
+                    {
+                        "image": "nsls-ii-hxn.png",
+                        "simulationName": "NSLS-II HXN beamline"
+                    },
+                    {
+                        "image": "nsls-ii-srx.png",
+                        "simulationName": "NSLS-II SRX beamline"
+                    },
+                    {
+                        "image": "nsls-ii-chx.png",
+                        "simulationName": "NSLS-II CHX beamline"
+                    },
+                    {
+                        "image": "nsls-ii-smi.png",
+                        "simulationName": "NSLS-II SMI beamline"
+                    },
+                    {
+                        "image": "nsls-ii-fmx.png",
+                        "simulationName": "NSLS-II FMX beamline"
+                    },
+                    {
+                        "image": "nsls-ii-esm.png",
+                        "simulationName": "NSLS-II ESM beamline"
+                    }
+                ]
+            },
+            {
+                "name": "LCLS beamline",
+                "simulations": [
+                    {
+                        "name": "LCLS SXR",
+                        "image": "lcls.png",
+                        "simulationName": "LCLS SXR beamline"
+                    }
+                ]
+            }
+        ]
+    }
+];
+
+var LIGHT_SCHEMA = {
+    "appRoutes": {
+        "calculator": "SR Calculator",
+        "light-sources": "Light Source Facilities",
+        "wavefront": "Wavefront Propagation"
+    }
+};
 
 var app = angular.module('SRWLightGateway', ['ngRoute']);
-
 app.value('appRoutes', {});
 
 app.config(function(appRoutesProvider, $locationProvider, $routeProvider) {
@@ -53,8 +118,10 @@ app.config(function(appRoutesProvider, $locationProvider, $routeProvider) {
     $routeProvider.when('/home', {
         template: [
             '<div data-page-heading="" data-lc="lc"></div>',
-            '<div data-ng-repeat="item in lc.srwExamples" data-big-button="item"></div>',
-            '<div class="lp-launch-button text-center" data-launch-button="" data-label="\'Launch SRW Full\'" data-url="\'/srw\'"></div>',
+            '<div class="container">',
+              '<div data-ng-repeat="item in lc.srwExamples" data-big-button="item"></div>',
+              '<div class="lp-launch-button text-center" data-launch-button="" data-label="\'Launch SRW Full\'" data-url="\'/srw\'"></div>',
+            '</div>',
         ].join('')
     });
     Object.keys(appRoutes).forEach(function(key) {
@@ -109,7 +176,6 @@ app.controller('LightController', function (appRoutes, $http, $location) {
         var name = self.pageName();
         return (name ? (name + ' - ') : '') + 'Synchrotron Radiation Workshop - RadiaSoft';
     };
-
 });
 
 app.directive('bigButton', function() {
@@ -177,37 +243,26 @@ app.directive('launchButton', function() {
 });
 
 app.directive('pageHeading', function() {
-    function getTemplate() {
-        var template = [
-                '<div class="lp-main-header-content lp-sub-header-content">',
-                    '<a href="/old#about">',
-                        '<img class="lp-header-sr-logo" src="/static/img/SirepoLogo.png',SIREPO.SOURCE_CACHE_KEY,'">',
-                    '</a>',
-        ].join('');
-        template += [
-            '<div class="lp-srw-sub-header-text">',
-                '<a href="/old#/xray-beamlines.html">Synchrotron Radiation Workshop</a>',
-                ' <span class="hidden-xs" data-ng-if="lc.pageName()">-</span> ',
-                '<span class="hidden-xs" data-ng-if="lc.pageName()" data-ng-bind="lc.pageName()"></span>',
-            '</div>',
-        ].join('');
-        template += [
-                    '<div class="pull-right">',
-                        '<a href="http://radiasoft.net">',
-                            '<img class="lp-header-rs-logo" src="/static/img/RSLogo.png',SIREPO.SOURCE_CACHE_KEY,'" alt="RadiaSoft" />',
-                        '</a>',
-                    '</div>',
-                '</div>',
-        ].join('');
-        return template;
-    }
     return {
         restrict: 'A',
         scope: {
             lc: '=',
         },
-        template: getTemplate(),
-        controller: function($scope, $location) {
-       },
+        template: [
+            '<nav class="navbar navbar-default navbar-static-top">',
+              '<div class="container-fluid">',
+                '<a class="navbar-brand" href="/en/xray-beamlines.html">',
+                  '<img style="width: 40px; margin-top: -10px" src="/static/img/sirepo.gif',
+                    SIREPO.SOURCE_CACHE_KEY,'">',
+                '</a>',
+                '<div class="navbar-brand">',
+                  '<a data-ng-if="lc.pageName()" href="#home">Synchrotron Radiation Workshop</a>',
+                  '<span data-ng-if="! lc.pageName()">Synchrotron Radiation Workshop</span>',
+                  ' <span class="hidden-xs" data-ng-if="lc.pageName()">-</span> ',
+                  '<span class="hidden-xs" data-ng-if="lc.pageName()" data-ng-bind="lc.pageName()"></span>',
+                '</div>',
+              '</div>',
+            '</nav>',
+        ].join(''),
     };
 });

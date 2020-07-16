@@ -2022,12 +2022,18 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
                     var fits = plotting.fitSplit(fmtText.yText, hNode, maxWidth);
                     var yGrp = group.select('#y-text-' + fpIndex);
                     yGrp.selectAll('text').remove();
+                    yGrp.selectAll('circle').remove();
                     fits.forEach(function(str) {
+                        yGrp.append('circle')
+                            .attr('r', '6')
+                            .style('stroke', color)
+                            .style('fill', color)
+                            .attr('cx', 13)
+                            .attr('cy', txtY + 8);
                         tNode = yGrp.append('text')
                             .text(str)
                             .attr('class', 'focus-text-popup')
-                            .style('fill', color)
-                            .attr('x', 0)
+                            .attr('x', 15)
                             .attr('dx', '0.5em')
                             .attr('y', txtY)
                             .attr('dy', '1em');
@@ -3084,7 +3090,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     }
                     else {
                         item.append('circle')
-                            .attr('r', 5)
+                            .attr('r', 7)
                             .attr('cx', 24 + itemWidth)
                             .attr('cy', 10 + count * 20)
                             .style('stroke', plot.color)

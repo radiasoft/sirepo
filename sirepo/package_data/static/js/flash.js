@@ -16,10 +16,23 @@ SIREPO.app.factory('flashService', function(appState) {
         return 'animation';
     };
 
+    self.flashTypeIn = function(types) {
+        for (var i = 0; i < types.length; i++) {
+            if (self.isFlashType(types[i])) {
+                return true;
+            }
+        }
+        return false;
+    };
+
     self.isFlashType = function(simType) {
         if (appState.isLoaded()) {
             return simType == appState.models.simulation.flashType;
         }
+    };
+
+    self.simulationModel = function() {
+        return 'Simulation' + appState.models.simulation.flashType;
     };
 
     appState.setAppService(self);
@@ -48,7 +61,7 @@ SIREPO.app.controller('SourceController', function (flashService, appState, $sco
 
         ['Wall', 'Fill'].forEach(function(x) {
             ['ion', 'rad'].forEach(function(y) {
-                readOnly('SimulationCapLaserBELLA-sim_t' + y + x);
+                readOnly(self.flashService.simulationModel() +'-sim_t' + y + x);
             });
         });
         // TODO(e-carlin): If we support more than alumina for wall species
@@ -61,7 +74,7 @@ SIREPO.app.controller('SourceController', function (flashService, appState, $sco
         var t =  modelField.includes('Fill') ? 'Fill' : 'Wall';
         var s = modelField.split('.');
         ['ion', 'rad'].forEach(function(f) {
-            appState.models.SimulationCapLaserBELLA['sim_t' + f + t] = appState.models[s[0]][s[1]];
+            appState.models[self.flashService.simulationModel()]['sim_t' + f + t] = appState.models[s[0]][s[1]];
         });
     }
 
@@ -84,7 +97,7 @@ SIREPO.app.controller('SourceController', function (flashService, appState, $sco
 
     appState.whenModelsLoaded($scope, function() {
 
-        if (! flashService.isFlashType('CapLaserBELLA')) {
+        if (! self.flashService.flashTypeIn(['CapLaserBELLA', 'CapLaser3D'])) {
             return;
         }
         // Must be done on sr-tabSelected because changing tabs clears the
@@ -94,12 +107,12 @@ SIREPO.app.controller('SourceController', function (flashService, appState, $sco
             $scope,
             ['Wall', 'Fill'].map(
                 function(x) {
-                    return 'SimulationCapLaserBELLA.sim_tele'+x;
+                    return self.flashService.simulationModel() + '.sim_tele' + x;
                 }
             ),
             makeTempsEqual
         );
-        var t = 'SimulationCapLaserBELLA.sim_currType';
+        var t = self.flashService.simulationModel() + '.sim_currType';
         proccessCurrType(t);
         appState.watchModelFields($scope, [t], proccessCurrType);
     });

@@ -127,18 +127,18 @@ _DEFAULT_VALUES = {
             'nend': 10000000,
         },
         'Multispecies': {
-            'ms_wallA': 26.9815386,
-            'ms_wallZ': 13.0,
-            'ms_wallZMin': 0.001,
+            'ms_fillSpecies': 'hydrogen',
+            'ms_wallSpecies': 'alumina',
+            'eos_fillEosType': 'eos_tab',
+            'eos_fillSubType': 'ionmix4',
             'eos_wallEosType': 'eos_tab',
             'eos_wallSubType': 'ionmix4',
-            'eos_wallTableFile': 'al-imx-004.cn4',
             'ms_fillA': 1.00794,
             'ms_fillZ': 1.0,
             'ms_fillZMin': 0.001,
-            'eos_fillEosType': 'eos_tab',
-            'eos_fillSubType': 'ionmix4',
-            'eos_fillTableFile': 'h-imx-004.cn4',
+            'ms_wallA': 26.9815386,
+            'ms_wallZ': 13.0,
+            'ms_wallZMin': 0.001,
         },
         'physicsHydro': {
             'cfl': 0.3,
@@ -276,6 +276,197 @@ _DEFAULT_VALUES = {
             'sim_condWall': 1.5e5,
         },
     },
+    'CapLaser3D': {
+        'Driver': {
+            'dtinit': 1e-15,
+            'dtmax': 1e-09,
+            'dtmin': 1e-16,
+            'nend': 10000000,
+            'tmax': 1.2e-07,
+            'tstep_change_factor': 1.1,
+        },
+        'Grid': {
+            'eosModeInit': 'dens_temp_gather',
+            'geometry': 'cartesian',
+            'xl_boundary_type': 'outflow',
+            'xmax': 0.04,
+            'xmin': -0.04,
+            'xr_boundary_type': 'outflow',
+            'yl_boundary_type': 'outflow',
+            'ymax': 0.04,
+            'ymin': -0.04,
+            'yr_boundary_type': 'outflow',
+            'zl_boundary_type': 'outflow',
+            'zr_boundary_type': 'outflow'
+        },
+        'Gridparamesh': {
+            'flux_correct': '0',
+            'lrefine_max': 3,
+            'lrefine_min': 1,
+            'nblockx': 1,
+            'nblocky': 1
+        },
+        'Gridparameshparamesh4Paramesh4dev': {
+            'gr_pmrpCurvilinear': '0',
+            'gr_pmrpCurvilinearConserve': '0',
+            'gr_pmrpCylindricalPm': '0',
+            'gr_pmrpForceConsistency': '0'
+        },
+        'IO': {
+            'io_writeMscalarIntegrals': '1',
+            'plotFileIntervalTime': 1e-10,
+            'plot_var_1': 'dens',
+            'plot_var_2': 'pres',
+            'plot_var_3': 'tele',
+            'plot_var_4': 'tion',
+            'plot_var_5': 'trad',
+            'plot_var_6': 'ye'
+        },
+        'Multispecies': {
+            'eos_fillEosType': 'eos_tab',
+            'eos_fillSubType': 'ionmix4',
+            'eos_wallEosType': 'eos_tab',
+            'eos_wallSubType': 'ionmix4',
+            'ms_fillA': 1.00784,
+            'ms_fillSpecies': 'hydrogen',
+            'ms_fillZ': 1,
+            'ms_fillZMin': 0.001,
+            'ms_wallA': 20.3922,
+            'ms_wallSpecies': 'alumina',
+            'ms_wallZ': 10,
+            'ms_wallZMin': 0.001
+        },
+        'SimulationCapLaser3D': {
+            'sim_condWall': 195000,
+            'sim_peakField': 4500,
+            'sim_period': 2e-07,
+            'sim_rhoFill': 1.467e-05,
+            'sim_rhoWall': 2.7,
+            'sim_teleFill': 11598,
+            'sim_teleWall': 11598,
+            'sim_tionFill': 11598,
+            'sim_tionWall': 11598,
+            'sim_tradFill': 11598,
+            'sim_tradWall': 11598
+        },
+        'physicsDiffuse': {
+            'diff_eleFlCoef': 0.06,
+            'diff_eleFlMode': 'fl_larsen',
+            'diff_eleXlBoundaryType': 'neumann',
+            'diff_eleXrBoundaryType': 'neumann',
+            'diff_eleYlBoundaryType': 'neumann',
+            'diff_eleYrBoundaryType': 'neumann',
+            'diff_eleZlBoundaryType': 'neumann',
+            'diff_eleZrBoundaryType': 'neumann',
+            'diff_useEleCond': '1',
+            'dt_diff_factor': 0.3,
+            'useDiffuseComputeDtSpecies': '0',
+            'useDiffuseComputeDtTherm': '0',
+            'useDiffuseComputeDtVisc': '0'
+        },
+        'physicsDiffuseUnsplit': {
+            'diff_thetaImplct': 1.0,
+        },
+        'physicsEosTabulatedHdf5TableRead': {
+            'eos_useLogTables': '0',
+        },
+        'physicsHydro': {
+            'cfl': 0.3,
+        },
+        'physicsHydrounsplit': {
+            'hy_fPresInMomFlux': 0.0,
+            'hy_fullSpecMsFluxHandling': '0',
+            'order': 3,
+            'shockDetect': '1',
+            'slopeLimiter': 'minmod',
+            'smallt': 1.0,
+            'smallx': 1.0e-99,
+            'use_avisc': '1',
+        },
+        'physicsHydrounsplitMHD_StaggeredMesh': {
+            'E_modification': '0',
+            'energyFix': '1',
+            'prolMethod': 'balsara_prol',
+        },
+        'physicsRadTrans': {
+            'rt_dtFactor': 1.0e+100,
+        },
+        'physicssourceTermsHeatexchangeSpitzer': {
+            'hx_dtFactor': 1.0e+100,
+        },
+        'physicsRadTransMGD': {
+            'rt_mgdBounds_1': 0.1,
+            'rt_mgdBounds_2': 1,
+            'rt_mgdBounds_3': 10,
+            'rt_mgdBounds_4': 100,
+            'rt_mgdBounds_5': 1000,
+            'rt_mgdBounds_6': 10000,
+            'rt_mgdBounds_7': 100000,
+            'rt_mgdFlMode': 'fl_harmonic',
+            'rt_mgdNumGroups': 6,
+            'rt_mgdXlBoundaryType': 'reflecting',
+            'rt_mgdXrBoundaryType': 'reflecting',
+            'rt_mgdYlBoundaryType': 'reflecting',
+            'rt_mgdYrBoundaryType': 'reflecting',
+            'rt_mgdZlBoundaryType': 'vacuum',
+            'rt_mgdZrBoundaryType': 'vacuum',
+            'rt_useMGD': '1'
+        },
+        'physicsmaterialPropertiesOpacityMultispecies': {
+            'op_fillAbsorb': 'op_tabpa',
+            'op_fillEmiss': 'op_tabpe',
+            'op_fillFileName': 'helium-fill-imx.cn4',
+            'op_fillFileType': 'ionmix4',
+            'op_fillTrans': 'op_tabro',
+            'op_wallAbsorb': 'op_tabpa',
+            'op_wallEmiss': 'op_tabpe',
+            'op_wallFileName': 'alumina-wall-imx.cn4',
+            'op_wallFileType': 'ionmix4',
+            'op_wallTrans': 'op_tabro'
+        },
+        'physicssourceTermsEnergyDepositionLaser': {
+            'ed_crossSectionFunctionType_1': 'gaussian2D',
+            'ed_gaussianExponent_1': 1,
+            'ed_gaussianRadiusMajor_1': 0.008495,
+            'ed_gaussianRadiusMinor_1': 0.008495,
+            'ed_gridType_1': 'radial2D',
+            'ed_gridnRadialTics_1': 1024,
+            'ed_lensSemiAxisMajor_1': 0.02,
+            'ed_lensX_1': 0,
+            'ed_lensY_1': 0,
+            'ed_lensZ_1': -0.745867,
+            'ed_maxRayCount': 10000,
+            'ed_numberOfBeams': 1,
+            'ed_numberOfPulses': 1,
+            'ed_numberOfRays_1': 1024,
+            'ed_numberOfSections_1': 4,
+            'ed_power_1_1': 0,
+            'ed_power_1_2': 375000000.0,
+            'ed_power_1_3': 375000000.0,
+            'ed_power_1_4': 0,
+            'ed_pulseNumber_1': 1,
+            'ed_semiAxisMajorTorsionAngle_1': 0,
+            'ed_semiAxisMajorTorsionAxis_1': 'x',
+            'ed_targetSemiAxisMajor_1': 0.02,
+            'ed_targetSemiAxisMinor_1': 0.02,
+            'ed_targetX_1': 0,
+            'ed_targetY_1': 0,
+            'ed_targetZ_1': 0,
+            'ed_time_1_1': 1e-07,
+            'ed_time_1_2': 1.001e-07,
+            'ed_time_1_3': 1.08e-07,
+            'ed_time_1_4': 1.081e-07,
+            'ed_wavelength_1': 0.523
+        },
+        'physicssourceTermsEnergyDepositionLaserLaserIO': {
+            'ed_laserIOMaxNumberOfPositions': 10000,
+            'ed_laserIOMaxNumberOfRays':  128,
+            'ed_useLaserIO': '1',
+        },
+        'varAnimation': {
+            'var': 'tele',
+        },
+    },
 }
 
 
@@ -302,7 +493,7 @@ def sim_frame_gridEvolutionAnimation(frame_args):
     x = dat[::stride, 0]
     plots = []
     for plot in _PLOT_COLUMNS[
-        frame_args.sim_in.models.simulation.get('flashType', 'RTFlame')
+        frame_args.sim_in.models.simulation['flashType']
     ]:
         plots.append({
             'name': plot[0],
@@ -435,6 +626,11 @@ _PLOT_COLUMNS = {
         ['y-momentum', 3],
         ['E kinetic', 6],
     ],
+    'CapLaser3D': [
+        ['x-momentum', 2],
+        ['y-momentum', 3],
+        ['E kinetic', 6],
+    ],
 }
 
 
@@ -443,7 +639,7 @@ def _generate_parameters_file(data):
     res = ''
     names = {}
 
-    if data.models.simulation.flashType == 'CapLaserBELLA':
+    if _has_species_selection(data.models.simulation.flashType):
         for k in ('fill', 'wall'):
             f = f"{data.models.Multispecies[f'ms_{k}Species']}-{k}-imx.cn4"
             data.models.Multispecies[f'eos_{k}TableFile'] = f
@@ -485,6 +681,10 @@ def _generate_parameters_file(data):
         if has_heading:
             res += '\n'
     return res
+
+
+def _has_species_selection(flash_type):
+    return flash_type in ('CapLaserBella', 'CapLaser3D')
 
 
 def _h5_file_list(run_dir):

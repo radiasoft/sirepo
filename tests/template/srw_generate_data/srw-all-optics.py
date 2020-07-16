@@ -396,13 +396,14 @@ def set_optics(v=None):
                 _psi_hbi=v.op_Crystal_psiHBi,
                 _tc=v.op_Crystal_tc,
                 _ang_as=v.op_Crystal_ang_as,
-            )
-            crystal.set_orient(
                 _nvx=v.op_Crystal_nvx,
                 _nvy=v.op_Crystal_nvy,
                 _nvz=v.op_Crystal_nvz,
                 _tvx=v.op_Crystal_tvx,
                 _tvy=v.op_Crystal_tvy,
+                _uc=v.op_Crystal_uc,
+                _e_avg=v.op_Crystal_energy,
+                _ang_roll=v.op_Crystal_diffractionAngle
             )
             el.append(crystal)
             pp.append(v.op_Crystal_pp)
@@ -425,17 +426,18 @@ def set_optics(v=None):
                 _psi_hbi=v.op_Crystal2_psiHBi,
                 _tc=v.op_Crystal2_tc,
                 _ang_as=v.op_Crystal2_ang_as,
-            )
-            crystal.set_orient(
                 _nvx=v.op_Crystal2_nvx,
                 _nvy=v.op_Crystal2_nvy,
                 _nvz=v.op_Crystal2_nvz,
                 _tvx=v.op_Crystal2_tvx,
                 _tvy=v.op_Crystal2_tvy,
+                _uc=v.op_Crystal2_uc,
+                _e_avg=v.op_Crystal2_energy,
+                _ang_roll=v.op_Crystal2_diffractionAngle
             )
             el.append(crystal)
             pp.append(v.op_Crystal2_pp)
-            mirror_file = v.op_Crystal2_hfn
+	    mirror_file = v.op_Crystal2_hfn
             assert os.path.isfile(mirror_file), \
                 'Missing input file {}, required by Crystal2 beamline element'.format(mirror_file)
             el.append(srwlib.srwl_opt_setup_surf_height_1d(
@@ -464,7 +466,7 @@ def set_optics(v=None):
                 _x=v.op_Grating_x,
                 _y=v.op_Grating_y,
             )
-            el.append(srwlib.SRWLOptG(
+            opEl=srwlib.SRWLOptG(
                 _mirSub=mirror,
                 _m=v.op_Grating_m,
                 _grDen=v.op_Grating_grDen,
@@ -472,8 +474,14 @@ def set_optics(v=None):
                 _grDen2=v.op_Grating_grDen2,
                 _grDen3=v.op_Grating_grDen3,
                 _grDen4=v.op_Grating_grDen4,
-            ))
+                _e_avg=v.op_Grating_e_avg,
+                _cff=v.op_Grating_cff,
+                _ang_graz=v.op_Grating_ang,
+                _ang_roll=v.op_Grating_rollAngle,
+            )
+            el.append(opEl)
             pp.append(v.op_Grating_pp)
+
         elif el_name == 'Grating_Watchpoint':
             # Grating_Watchpoint: drift 33.0m
             el.append(srwlib.SRWLOptD(
@@ -641,16 +649,16 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['wm_ns', 'i', 5, 'saving periodicity (in terms of macro-electrons / coherent wavefronts) for intermediate intensity at multi-electron wavefront propagation calculation'],
     ['wm_ch', 'i', 0, 'type of a characteristic to be extracted after calculation of multi-electron wavefront propagation: #0- intensity (s0); 1- four Stokes components; 2- mutual intensity cut vs x; 3- mutual intensity cut vs y; 40- intensity(s0), mutual intensity cuts and degree of coherence vs X & Y'],
     ['wm_ap', 'i', 0, 'switch specifying representation of the resulting Stokes parameters: coordinate (0) or angular (1)'],
-    ['wm_x0', 'f', 0, 'horizontal center position for mutual intensity cut calculation'],
-    ['wm_y0', 'f', 0, 'vertical center position for mutual intensity cut calculation'],
+    ['wm_x0', 'f', 0.0, 'horizontal center position for mutual intensity cut calculation'],
+    ['wm_y0', 'f', 0.0, 'vertical center position for mutual intensity cut calculation'],
     ['wm_ei', 'i', 0, 'integration over photon energy is required (1) or not (0); if the integration is required, the limits are taken from w_e, w_ef'],
     ['wm_rm', 'i', 1, 'method for generation of pseudo-random numbers for e-beam phase-space integration: 1- standard pseudo-random number generator, 2- Halton sequences, 3- LPtau sequences (to be implemented)'],
     ['wm_am', 'i', 0, 'multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance'],
     ['wm_fni', 's', 'res_int_pr_me.dat', 'file name for saving propagated multi-e intensity distribution vs horizontal and vertical position'],
+    ['wm_fbk', '', '', 'create backup file(s) with propagated multi-e intensity distribution vs horizontal and vertical position and other radiation characteristics', 'store_true'],
 
     #to add options
     ['op_r', 'f', 20.0, 'longitudinal position of the first optical element [m]'],
-
     # Former appParam:
     ['rs_type', 's', 'u', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
 
@@ -942,6 +950,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_Crystal_psiHBr', 'f', -6.385703370530202e-06, 'psiHBr'],
     ['op_Crystal_psiHBi', 'f', 1.580304012971715e-07, 'psiHBi'],
     ['op_Crystal_tc', 'f', 0.01, 'crystalThickness'],
+    ['op_Crystal_uc', 'f', 1, 'useCase'],
     ['op_Crystal_ang_as', 'f', 0.0, 'asymmetryAngle'],
     ['op_Crystal_nvx', 'f', 0.0, 'nvx'],
     ['op_Crystal_nvy', 'f', 0.9755673185032753, 'nvy'],
@@ -950,6 +959,8 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_Crystal_tvy', 'f', 0.21970072159264525, 'tvy'],
     ['op_Crystal_ang', 'f', 0.2215076861825632, 'grazingAngle'],
     ['op_Crystal_amp_coef', 'f', 1.0, 'heightAmplification'],
+    ['op_Crystal_energy', 'f', 9000.0, 'energy'],
+    ['op_Crystal_diffractionAngle', 'f', 0, 'diffractionAngle'],
 
     # Crystal_Crystal2: drift
     ['op_Crystal_Crystal2_L', 'f', 0.5, 'length'],
@@ -965,6 +976,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_Crystal2_psiHBr', 'f', -6.385703370530202e-06, 'psiHBr'],
     ['op_Crystal2_psiHBi', 'f', 1.580304012971715e-07, 'psiHBi'],
     ['op_Crystal2_tc', 'f', 0.01, 'crystalThickness'],
+    ['op_Crystal2_uc', 'f', 1, 'useCase'],
     ['op_Crystal2_ang_as', 'f', 0.0, 'asymmetryAngle'],
     ['op_Crystal2_nvx', 'f', 0.0, 'nvx'],
     ['op_Crystal2_nvy', 'f', 0.9755673185032753, 'nvy'],
@@ -973,18 +985,22 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_Crystal2_tvy', 'f', 0.21970072159264525, 'tvy'],
     ['op_Crystal2_ang', 'f', 0.2215076861825632, 'grazingAngle'],
     ['op_Crystal2_amp_coef', 'f', 1.0, 'heightAmplification'],
+    ['op_Crystal2_energy', 'f', 9000.0, 'energy'],
+    ['op_Crystal2_diffractionAngle', 'f', 0, 'diffractionAngle'],
 
     # Crystal2_Grating: drift
     ['op_Crystal2_Grating_L', 'f', 0.5, 'length'],
 
     # Grating: grating
+    ['op_Grating_hfn', 's', '', 'heightProfileFile'],
+    ['op_Grating_dim', 's', 'y', 'orientation'],
     ['op_Grating_size_tang', 'f', 0.2, 'tangentialSize'],
     ['op_Grating_size_sag', 'f', 0.015, 'sagittalSize'],
-    ['op_Grating_nvx', 'f', 0.99991607766, 'normalVectorX'],
-    ['op_Grating_nvy', 'f', 0.0, 'normalVectorY'],
-    ['op_Grating_nvz', 'f', -0.012955216595673816, 'normalVectorZ'],
-    ['op_Grating_tvx', 'f', 0.012955216595673816, 'tangentialVectorX'],
-    ['op_Grating_tvy', 'f', 0.0, 'tangentialVectorY'],
+    ['op_Grating_nvx', 'f', 0.0, 'nvx'],
+    ['op_Grating_nvy', 'f', 0.99991607766, 'nvy'],
+    ['op_Grating_nvz', 'f', -0.012955216595673743, 'nvz'],
+    ['op_Grating_tvx', 'f', 0.0, 'tvx'],
+    ['op_Grating_tvy', 'f', 0.012955216595673743, 'tvy'],
     ['op_Grating_x', 'f', 0.0, 'horizontalOffset'],
     ['op_Grating_y', 'f', 0.0, 'verticalOffset'],
     ['op_Grating_m', 'f', 1.0, 'diffractionOrder'],
@@ -993,6 +1009,17 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_Grating_grDen2', 'f', 3.004e-06, 'grooveDensity2'],
     ['op_Grating_grDen3', 'f', 9.7e-11, 'grooveDensity3'],
     ['op_Grating_grDen4', 'f', 0.0, 'grooveDensity4'],
+    ['op_Grating_e_avg', 'f', 9000.0, 'energyAvg'],
+    ['op_Grating_cff', 'f', 1.9885286191675648, 'cff'],
+    ['op_Grating_ang', 'f', 0.0129555790185373, 'grazingAngle'],
+    ['op_Grating_rollAngle', 'f', 0.0, 'rollAngle'],
+    ['op_Grating_outoptvx', 'f', 0.0, 'outoptvx'],
+    ['op_Grating_outoptvy', 'f', 0.038710573855210595, 'outoptvy'],
+    ['op_Grating_outoptvz', 'f', 0.9992504648344179, 'outoptvz'],
+    ['op_Grating_outframevx', 'f', 1.0, 'outframevx'],
+    ['op_Grating_outframevy', 'f', 0.0, 'outframevy'],
+    ['op_Grating_computeParametersFrom', 'f', 2, 'computeParametersFrom'],
+    ['op_Grating_amp_coef', 'f', 0.001, 'heightAmplification'],
 
     # Grating_Watchpoint: drift
     ['op_Grating_Watchpoint_L', 'f', 1.0, 'length'],

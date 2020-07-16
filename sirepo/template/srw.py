@@ -31,6 +31,10 @@ import sirepo.util
 import srwlib
 import time
 import traceback
+import uti_io
+import uti_math
+import uti_plot_com
+import werkzeug
 import zipfile
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
@@ -58,6 +62,7 @@ _DATA_FILE_FOR_MODEL = PKDict({
     'sourceIntensityReport': {'filename': 'res_int_se.dat', 'dimension': 3},
     'brillianceReport': {'filename': _BRILLIANCE_OUTPUT_FILE, 'dimension': 2},
     'trajectoryReport': {'filename': 'res_trj.dat', 'dimension': 2},
+    'beamline3DReport': {'filename': 'beamline_orient.dat', 'dimension': 2},
     _SIM_DATA.WATCHPOINT_REPORT: {'filename': 'res_int_pr_se.dat', 'dimension': 3},
 })
 
@@ -240,6 +245,9 @@ def extract_report_data(filename, sim_in):
 
     r = sim_in.report
     m = sim_in.models
+    # special case for 3d beamline report
+    if r == 'beamline3DReport':
+        return _extract_beamline_orientation(filename)
     #TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
     if re.search(r'/res_int_pr_me_dc.\.dat', filename):
         _fix_file_header(filename)
@@ -272,8 +280,8 @@ def extract_report_data(filename, sim_in):
         'res_int_se.dat': [['Horizontal Position', 'Vertical Position', before_propagation_name, 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, sim_in)]],
         #TODO(pjm): improve multi-electron label
         'res_int_pr_me.dat': [['Horizontal Position', 'Vertical Position', before_propagation_name, 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, sim_in)]],
-        'res_int_pr_me_dcx.dat': [['Horizontal Position (conj.)', 'Horizontal Position', '', 'Degree of Coherence'], ['m', 'm', '']],
-        'res_int_pr_me_dcy.dat': [['Vertical Position (conj.)', 'Vertical Position', '', 'Degree of Coherence'], ['m', 'm', '']],
+        'res_int_pr_me_dcx.dat': [['(X1 + X2) / 2', '(X1 - X2) / 2', '', 'Degree of Coherence'], ['m', 'm', '']],
+        'res_int_pr_me_dcy.dat': [['(Y1 + Y2) / 2', '(Y1 - Y2) / 2', '', 'Degree of Coherence'], ['m', 'm', '']],
         'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', 'After Propagation (E={photonEnergy} eV)', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, sim_in)]],
         _MIRROR_OUTPUT_FILE: [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Optical Path Difference'], ['m', 'm', 'm']],
     })
@@ -321,12 +329,6 @@ def extract_report_data(filename, sim_in):
     return info
 
 
-def fixup_old_data(data):
-    import sirepo.template.srw_fixup
-
-    return sirepo.template.srw_fixup.do(pkinspect.this_module(), data)
-
-
 def get_application_data(data, **kwargs):
     if data['method'] == 'model_list':
         res = []
@@ -342,8 +344,8 @@ def get_application_data(data, **kwargs):
         })
     if data['method'] == 'delete_user_models':
         return _delete_user_models(data['electron_beam'], data['tabulated_undulator'])
-    if data['method'] == 'compute_grazing_angle':
-        return _compute_grazing_angle(data['optical_element'])
+    if data['method'] == 'compute_grazing_orientation':
+        return _compute_grazing_orientation(data['optical_element'])
     elif data['method'] == 'compute_crl_characteristics':
         return compute_crl_focus(_compute_material_characteristics(data['optical_element'], data['photon_energy']))
     elif data['method'] == 'compute_dual_characteristics':
@@ -358,6 +360,10 @@ def get_application_data(data, **kwargs):
         )
     elif data['method'] == 'compute_delta_atten_characteristics':
         return _compute_material_characteristics(data['optical_element'], data['photon_energy'])
+    elif data['method'] == 'compute_PGM_value':
+        return _compute_PGM_value(data['optical_element'])
+    elif data['method'] == 'compute_grating_orientation':
+        return _compute_grating_orientation(data['optical_element'])
     elif data['method'] == 'compute_crystal_init':
         return _compute_crystal_init(data['optical_element'])
     elif data['method'] == 'compute_crystal_orientation':
@@ -547,6 +553,7 @@ def prepare_for_client(data):
                 _save_user_model_list(model_name, user_model_list)
                 save = True
     if save:
+        pkdc("save simulation json with sim_data_template_fixup={}", data.get('sim_data_template_fixup', None))
         simulation_db.save_simulation_json(data)
     return data
 
@@ -783,6 +790,124 @@ def _compute_material_characteristics(model, photon_energy, prefix=''):
 
     return model
 
+def _compute_PGM_value(model):
+    #if not model['energyAvg'] or not model['cff'] or not model['grazingAngle']:
+    #    return model
+    #if model['cff'] == 1:
+    #    return model
+    parms_list = ['energyAvg', 'cff', 'grazingAngle']
+    try:
+        mirror = srwlib.SRWLOptMirPl(
+            _size_tang=model['tangentialSize'],
+            _size_sag=model['sagittalSize'],
+            _nvx=model['nvx'],
+            _nvy=model['nvy'],
+            _nvz=model['nvz'],
+            _tvx=model['tvx'],
+            _tvy=model['tvy'],
+            _x=model['horizontalOffset'],
+            _y=model['verticalOffset'],
+        )
+
+        if model.computeParametersFrom == '1':
+            opGr = srwlib.SRWLOptG(
+                _mirSub=mirror,
+                _m=model['diffractionOrder'],
+                _grDen=model['grooveDensity0'],
+                _grDen1=model['grooveDensity1'],
+                _grDen2=model['grooveDensity2'],
+                _grDen3=model['grooveDensity3'],
+                _grDen4=model['grooveDensity4'],
+                _e_avg=model['energyAvg'],
+                _cff=model['cff'],
+                _ang_graz=0,
+                _ang_roll=model['rollAngle'],
+            )
+            grAng, defAng = opGr.cff2ang(_en=model['energyAvg'], _cff=model['cff'])
+            model['grazingAngle'] = grAng * 1000.0
+        elif model.computeParametersFrom == '2':
+            opGr = srwlib.SRWLOptG(
+                _mirSub=mirror,
+                _m=model['diffractionOrder'],
+                _grDen=model['grooveDensity0'],
+                _grDen1=model['grooveDensity1'],
+                _grDen2=model['grooveDensity2'],
+                _grDen3=model['grooveDensity3'],
+                _grDen4=model['grooveDensity4'],
+                _e_avg=model['energyAvg'],
+                _cff=1.5, # model['cff'],
+                _ang_graz=model['grazingAngle'],
+                _ang_roll=model['rollAngle'],
+            )
+            cff, defAng = opGr.ang2cff(_en=model['energyAvg'], _ang_graz=model['grazingAngle']/1000.0)
+            #print("cff={}".format(cff))
+            model['cff'] = cff
+        angroll = model['rollAngle']
+        if abs(angroll) < np.pi/4 or abs(angroll-np.pi) < np.pi/4:
+            model['orientation'] = 'y'
+        else: model['orientation'] = 'x'
+        _compute_grating_orientation(model)
+    except Exception:
+        pkdlog('\n{}', traceback.format_exc())
+        if model.computeParametersFrom == '1': model['grazingAngle'] = None
+        elif model.computeParametersFrom == '2': model['cff'] = None
+
+        #for key in parms_list:
+        #    model[key] = None
+    pkdlog("grazingAngle={} nvz-sin(grazingAngle)={} cff={}",
+           model['grazingAngle'], np.fabs(model['nvz'])-np.fabs(np.sin(model['grazingAngle']/1000)), model['cff'])
+    return model
+
+def _compute_grating_orientation(model):
+    if not model['grazingAngle']:
+        pkdlog("grazingAngle is missing, return old data")
+        return model
+    parms_list = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy']
+    try:
+        mirror = srwlib.SRWLOptMirPl(
+            _size_tang=model['tangentialSize'],
+            _size_sag=model['sagittalSize'],
+            _nvx=model['nvx'],
+            _nvy=model['nvy'],
+            _nvz=model['nvz'],
+            _tvx=model['tvx'],
+            _tvy=model['tvy'],
+            _x=model['horizontalOffset'],
+            _y=model['verticalOffset'],
+        )
+        opGr = srwlib.SRWLOptG(
+            _mirSub=mirror,
+            _m=model['diffractionOrder'],
+            _grDen=model['grooveDensity0'],
+            _grDen1=model['grooveDensity1'],
+            _grDen2=model['grooveDensity2'],
+            _grDen3=model['grooveDensity3'],
+            _grDen4=model['grooveDensity4'],
+            _e_avg=model['energyAvg'],
+            _cff=model['cff'],
+            _ang_graz=model['grazingAngle'],
+            _ang_roll=model['rollAngle'],
+        )
+        pkdlog("updating nvz from {} to {} with grazingAngle= {}mrad", model['nvz'], opGr.mirSub.nvz, model['grazingAngle'])
+        model['nvx'] = opGr.mirSub.nvx
+        model['nvy'] = opGr.mirSub.nvy
+        model['nvz'] = opGr.mirSub.nvz
+        model['tvx'] = opGr.mirSub.tvx
+        model['tvy'] = opGr.mirSub.tvy
+        orientDataGr_pp = opGr.get_orient(_e=model['energyAvg'])[1]
+        tGr_pp = orientDataGr_pp[0]  # Tangential Vector to Grystal surface
+        nGr_pp = orientDataGr_pp[2]  # Normal Vector to Grystal surface
+        model['outoptvx'] = nGr_pp[0]
+        model['outoptvy'] = nGr_pp[1]
+        model['outoptvz'] = nGr_pp[2]
+        model['outframevx'] = tGr_pp[0]
+        model['outframevy'] = tGr_pp[1]
+
+    except Exception:
+        pkdlog('\n{}', traceback.format_exc())
+        for key in parms_list:
+            model[key] = None
+    return model
 
 def _compute_crystal_init(model):
     import srwl_uti_cryst
@@ -816,20 +941,21 @@ def _compute_crystal_init(model):
         model['psiHi'] = xih
         model['psiHBr'] = xrh
         model['psiHBi'] = xih
+        if model['diffractionAngle'] == '-1.57079632' or model['diffractionAngle'] == '1.57079632':
+            model['orientation'] = 'x'
+        else: model['orientation'] = 'y'
     except Exception:
-        pkdlog('{}: error: {}', material_raw, pkdexc())
+        pkdlog('{https://github.com/ochubar/SRW/blob/master/env/work/srw_python/srwlib.py}: error: {}', material_raw)
         for key in parms_list:
             model[key] = None
-
     return model
-
 
 def _compute_crystal_orientation(model):
     import uti_math
 
     if not model['dSpacing']:
         return model
-    parms_list = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle']
+    parms_list = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'outoptvx', 'outoptvy', 'outoptvz', 'outframevx', 'outframevy']
     try:
         opCr = srwlib.SRWLOptCryst(
             _d_sp=model['dSpacing'],
@@ -840,32 +966,32 @@ def _compute_crystal_orientation(model):
             _psi_hbr=model['psiHBr'],
             _psi_hbi=model['psiHBi'],
             _tc=model['crystalThickness'],
+            _uc=float(model['useCase']),
             _ang_as=model['asymmetryAngle'],
+            _e_avg=model['energy'],
+            _ang_roll=float(model['diffractionAngle']),
         )
-        orientDataCr = opCr.find_orient(_en=model['energy'], _ang_dif_pl=float(model['diffractionAngle']))[0]
-        tCr = orientDataCr[0]  # Tangential Vector to Crystal surface
-        nCr = orientDataCr[2]  # Normal Vector to Crystal surface
-
-        if model['rotationAngle'] != 0:
-            rot = uti_math.trf_rotation([0, 1, 0], model['rotationAngle'], [0, 0, 0])[0]
-            nCr = uti_math.matr_prod(rot, nCr)
-            tCr = uti_math.matr_prod(rot, tCr)
-
-        model['nvx'] = nCr[0]
-        model['nvy'] = nCr[1]
-        model['nvz'] = nCr[2]
-        model['tvx'] = tCr[0]
-        model['tvy'] = tCr[1]
+        model['nvx'] = opCr.nvx
+        model['nvy'] = opCr.nvy
+        model['nvz'] = opCr.nvz
+        model['tvx'] = opCr.tvx
+        model['tvy'] = opCr.tvy
+        orientDataCr_pp = opCr.get_orient(_e=model['energy'])[1]
+        tCr_pp = orientDataCr_pp[0]  # Tangential Vector to Crystal surface
+        nCr_pp = orientDataCr_pp[2]  # Normal Vector to Crystal surface
+        model['outoptvx'] = nCr_pp[0]
+        model['outoptvy'] = nCr_pp[1]
+        model['outoptvz'] = nCr_pp[2]
+        model['outframevx'] = tCr_pp[0]
+        model['outframevy'] = tCr_pp[1]
         _SIM_DATA.srw_compute_crystal_grazing_angle(model)
     except Exception:
         pkdlog('\n{}', traceback.format_exc())
         for key in parms_list:
             model[key] = None
-
     return model
 
-
-def _compute_grazing_angle(model):
+def _compute_grazing_orientation(model):
     def preserve_sign(item, field, new_value):
         old_value = item[field] if field in item else 0
         was_negative = float(old_value) < 0
@@ -910,6 +1036,14 @@ def _delete_user_models(electron_beam, tabulated_undulator):
                 _save_user_model_list(model_name, user_model_list)
                 break
     return PKDict()
+
+
+def _extract_beamline_orientation(filename):
+    return {
+        #TODO(pjm): x_range is needed for sirepo-plotting.js, need a better valid-data check
+        'x_range': [],
+        'cols': uti_io.read_ascii_data_cols(filename, '\t', _i_col_start=1, _n_line_skip=1),
+    }
 
 
 def _extract_brilliance_report(model, data):
@@ -982,21 +1116,52 @@ def _extract_trajectory_report(model, data):
 def _fix_file_header(filename):
     # fixes file header for coherenceXAnimation and coherenceYAnimation reports
     rows = []
+    pkdc('fix header filename: {}', filename)
     with pkio.open_text(filename) as f:
         for line in f:
             rows.append(line)
-            if len(rows) == 10:
-                if rows[4] == rows[7]:
+            if len(rows) == 11:
+                pkdc('before header changed rows4: {}',rows[4])
+                pkdc('before header changed rows5: {}',rows[5])
+                pkdc('before header changed rows6: {}',rows[6])
+                pkdc('before header changed rows7: {}',rows[7])
+                pkdc('before header changed rows8: {}',rows[8])
+                pkdc('before header changed rows9: {}',rows[9])
+                #if rows[4] == rows[7]:
+                if rows[6].split()[0] == rows[9].split()[0] and rows[6].split()[0] != 1:
                     # already fixed up
                     return
-                if re.search(r'^\#0 ', rows[4]):
-                    rows[4] = rows[7]
-                    rows[5] = rows[8]
-                    rows[6] = rows[9]
+                col4 = rows[4].split()
+                col5 = rows[5].split()
+                col6 = rows[6].split()
+                col7 = rows[7].split()
+                col8 = rows[8].split()
+                col9 = rows[9].split()
+                #if re.search(r'^\#0 ', rows[4]):
+                if re.search(r'^\#1 ', rows[6]):
+                    col4[0] = col7[0]
+                    rows[4] = ' '.join(col4)+'\n'
+                    col5[0] = col8[0]
+                    rows[5] = ' '.join(col5)+'\n'
+                    col6[0] = col9[0]
+                    rows[6] = ' '.join(col6)+'\n'
                 else:
-                    rows[7] = rows[4]
-                    rows[8] = rows[5]
-                    rows[9] = rows[6]
+                    col7[0] = col4[0]
+                    rows[7] = ' '.join(col7)+'\n'
+                    col8[0] = col5[0]
+                    rows[8] = ' '.join(col8)+'\n'
+                    col9[0] = col6[0]
+                    rows[9] = ' '.join(col9)+'\n'
+                Vmin = float(rows[7].split()[0][1:])
+                Vmax = float(rows[8].split()[0][1:])
+                rows[7] = '#'+str((Vmin-Vmax)/2)+' '+' '.join(rows[7].split()[1:])+'\n'
+                rows[8] = '#'+str((Vmax-Vmin)/2)+' '+' '.join(rows[8].split()[1:])+'\n'
+                pkdc('after header changed rows4:{}',rows[4])
+                pkdc('after header changed rows5:{}',rows[5])
+                pkdc('after header changed rows6:{}',rows[6])
+                pkdc('after header changed rows7:{}',rows[7])
+                pkdc('after header changed rows8:{}',rows[8])
+                pkdc('after header changed rows9:{}',rows[9])
     pkio.write_text(filename, ''.join(rows))
 
 
@@ -1074,6 +1239,7 @@ def _generate_beamline_optics(report, data, last_id):
             diffractionOrder='m',
             externalAttenuationLength='atten_len_ext',
             externalRefractiveIndex='delta_ext',
+            energyAvg='e_avg',
             firstFocusLength='p',
             focalLength='q',
             focalPlane='foc_plane',
@@ -1123,6 +1289,7 @@ def _generate_beamline_optics(report, data, last_id):
             tipRadius='r_min',
             tipWallThickness='wall_thick',
             transmissionImage='extTransm',
+            useCase='uc',
             verticalApertureSize='apert_v',
             verticalCenterCoordinate='yc',
             verticalCenterPosition='yc',
@@ -1193,7 +1360,8 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     v['rs_type'] = source_type
     if _SIM_DATA.srw_is_idealized_undulator(source_type, undulator_type):
         v['rs_type'] = 'u'
-
+    if report == 'beamline3DReport':
+        v['beamline3DRepot'] = 1
     if report == 'mirrorReport':
         v['mirrorOutputFilename'] = _MIRROR_OUTPUT_FILE
         return template_common.render_jinja(SIM_TYPE, v, 'mirror.py')
@@ -1205,6 +1373,10 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         v.python_file = run_dir.join('user_python.py')
         pkio.write_text(v.python_file, data.models.backgroundImport.python)
         return template_common.render_jinja(SIM_TYPE, v, 'import.py')
+    if 'Animation' in report:
+        if report in data.models and 'jobRunMode' in data.models[report]:
+            if data.models[report].jobRunMode == 'sbatch':
+                v.sbatchBackup = '1'
     v['beamlineOptics'], v['beamlineOpticsParameters'] = _generate_beamline_optics(report, data, last_id)
 
     # und_g and und_ph API units are mm rather than m
@@ -1252,7 +1424,7 @@ def _generate_srw_main(data, plot_reports):
     ]
     if plot_reports and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         content.append('setup_magnetic_measurement_files("{}", v)'.format(data['models']['tabulatedUndulator']['magneticFile']))
-    if run_all or _SIM_DATA.is_watchpoint(report) or report == 'multiElectronAnimation':
+    if run_all or _SIM_DATA.srw_is_beamline_report(report):
         content.append('op = set_optics(v)')
     else:
         # set_optics() can be an expensive call for mirrors, only invoke if needed
@@ -1278,6 +1450,7 @@ def _generate_srw_main(data, plot_reports):
         if plot_reports:
             content.append("v.tr_pl = 'xz'")
     if run_all or _SIM_DATA.is_watchpoint(report):
+    #if run_all or _SIM_DATA.is_watchpoint(report) or report == 'beamline3DReport':
         content.append('v.ws = True')
         if plot_reports:
             content.append("v.ws_pl = 'xy'")
@@ -1427,12 +1600,10 @@ def _remap_3d(info, allrange, z_label, z_units, report):
     if not width_pixels:
         # upper limit is browser's max html canvas size
         width_pixels = _CANVAS_MAX_SIZE
-    if not job.cfg:
-        #TODO(pjm): maybe max_message_size should be kept on a smaller module?
-        job.init()
+    job.init()
     # roughly 20x size increase for json
-    if ar2d.size * _JSON_MESSAGE_EXPANSION > job.cfg.max_message_size:
-        max_width = int(math.sqrt(job.cfg.max_message_size / _JSON_MESSAGE_EXPANSION))
+    if ar2d.size * _JSON_MESSAGE_EXPANSION > job.cfg.max_message_bytes:
+        max_width = int(math.sqrt(job.cfg.max_message_bytes / _JSON_MESSAGE_EXPANSION))
         if max_width < width_pixels:
             pkdlog(
                 'auto scaling dimensions to fit message size. size: {}, max_width: {}',
