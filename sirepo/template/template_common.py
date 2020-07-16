@@ -123,6 +123,9 @@ class JupyterNotebook(object):
     """
 
     _CELL_TYPES = ('code', 'markdown')
+    _HEADER_CELL_INDEX = 0
+    _IMPORT_HEADER_CELL_INDEX = 1
+    _IMPORT_CELL_INDEX = 2
 
     @classmethod
     def _base_dict(cls):
@@ -153,7 +156,19 @@ class JupyterNotebook(object):
 
     def __init__(self, sim_type, data):
         self.notebook = JupyterNotebook._base_dict()
-        self.add_markdown_cell('# {} - {}'.format(sim_type, data.models.simulation.name))
+        self.imports = PKDict()
+        # cell 0
+        self.add_markdown_cell(
+            [
+                '# {} - {}'.format(sim_type, data.models.simulation.name),
+            ]
+        )
+        # cell 1
+        self.add_markdown_cell(
+            ['## Imports',]
+        )
+        # cell 2
+        self.add_code_cell([])
 
         super(object, self).__init__()
 
@@ -162,15 +177,42 @@ class JupyterNotebook(object):
         cell = PKDict(
             cell_type=cell_type,
             metadata={},
-            source=source_strings
+            source=[s + ('\n' if s[-1] != '\n' else '') for s in source_strings]
         )
         self.notebook.cells.append(cell)
 
     def add_code_cell(self, source_strings):
         self.add_cell('code', source_strings)
 
+    # {<pkg>: [sub_pkg]}
+    # just mnerge?
+    def add_imports(self, pkg_dict):
+        for pkg in pkg_dict:
+            if pkg not in self.imports:
+                self.imports[pkg] = []
+        for s in pkg_dict[pkg]:
+            if s not in self.imports[pkg]:
+                self.imports[pkg].append(s)
+        self._update()
+
+
     def add_markdown_cell(self, source_strings):
         self.add_cell('markdown', source_strings)
+
+    # imports to front etc.
+    def _update(self):
+        import_source = []
+        pkgs = sorted(self.imports.keys())
+        for p in [pkg for pkg in pkgs if not len(self.imports[pkg])]:
+            import_source.append(
+                'import {}'.format(p)
+            )
+        for s in [pkg for pkg in pkgs if len(self.imports[pkg])]:
+            for p in self.imports[s]:
+                import_source.append(
+                    'from {} import {}'.format(s, p)
+                )
+        self.notebook.cells[self._IMPORT_CELL_INDEX].source = import_source
 
 
 class ParticleEnergy(object):
