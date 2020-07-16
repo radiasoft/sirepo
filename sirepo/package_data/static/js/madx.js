@@ -5,6 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
+    SIREPO.SINGLE_FRAME_ANIMATION = ['twissAnimation'];
     SIREPO.appImportText = 'Import a lattice (.madx) file';
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="Float2StringArray" class="col-sm-7">',
