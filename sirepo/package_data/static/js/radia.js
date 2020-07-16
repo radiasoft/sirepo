@@ -341,8 +341,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.shapeForObject = function(o) {
-        var center = stringToFloatArray(o.center || '0, 0, 0');
-        var size = stringToFloatArray(o.size || '0, 0, 0');
+        var center = stringToFloatArray(o.center || SIREPO.ZERO_STR);
+        var size = stringToFloatArray(o.size || SIREPO.ZERO_STR);
         var isGroup = o.members && o.members.length;  //false;
 
         if (o.members && o.members.length) {
@@ -410,11 +410,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             // extend group bounds if this object is in a group
             if (gShape) {
                 //fit(mShape, gShape);
-                //var gShape = self.getShape(o.groupId);
-                //if (! gShape) {
-                //    gShape = self.shapeForObject(self.getObject(o.groupId));
-                //    self.shapes.push(gShape);
-                //}
                 var newBounds = shapesBounds([gShape, mShape]);
                 for (var dim in newBounds) {
                     gShape.size[dim] = Math.abs(newBounds[dim][1] - newBounds[dim][0]);
@@ -450,6 +445,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     // shape - in group; linkedShape: group
+    // NOT PICKING UP "VIRTUAL" SHAPES
+    // NOT SHRINKING PAST ORIGINAL SIZE
     function fit(shape, linkedShape) {
         var o = self.getObject(shape.id);
         var groupId = o.groupId;
