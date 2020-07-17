@@ -156,6 +156,10 @@ SIREPO.app.controller('DataController', function (appState, mlService, panelStat
     });
 });
 
+SIREPO.app.controller('ClassificationController', function() {
+    var self = this;
+});
+
 SIREPO.app.controller('RegressionController', function (appState, frameCache, mlService, panelState, persistentSimulation, $scope) {
     var self = this;
     var errorMessage = '';

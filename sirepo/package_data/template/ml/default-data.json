@@ -1,6 +1,9 @@
 {
     "models": {
         "columnReports": [],
+        "neuralNet": {
+            "layers": []
+        },
         "simulation": {
             "documentationUrl": "",
             "folder": "/",
