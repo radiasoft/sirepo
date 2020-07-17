@@ -614,7 +614,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
 
         // create a 2d shape for d3 to plot - note that x, y are required because d3 looks for those
         // attributes
-        plotShape: function(id, name, center, size, color, alpha, fillStyle, strokeStyle, layoutShape) {
+        plotShape: function(id, name, center, size, color, alpha, fillStyle, strokeStyle, dashes, layoutShape) {
             var shape = {
                 addLink: function(otherShape, linkFunction) {
                     this.links.push(self.plotShapeLink(this, otherShape, linkFunction));
@@ -631,6 +631,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     x: center[0], y: center[1]
                 },
                 color: color,
+                dashes: dashes,
                 draggable: true,
                 fillStyle: fillStyle,
                 id: id,
@@ -644,6 +645,12 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 x: center[0] + SIREPO.SCREEN_INFO.x.direction * size[0] / 2,
                 y: center[1] + SIREPO.SCREEN_INFO.y.direction * size[1] / 2,
             };
+            return shape;
+        },
+
+        plotLine: function(id, name, line, color, alpha, strokeStyle, dashes) {
+            var shape = this.plotShape(id, name, SIREPO.ZERO_ARR, SIREPO.ZERO_ARR, color, alpha, null, strokeStyle, dashes, 'line');
+            shape.line = line;
             return shape;
         },
 

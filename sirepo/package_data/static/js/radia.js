@@ -341,8 +341,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.shapeForObject = function(o) {
-        var center = stringToFloatArray(o.center || SIREPO.ZERO_STR);
-        var size = stringToFloatArray(o.size || SIREPO.ZERO_STR);
+        var center = stringToFloatArray(o.center || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
+        var size = stringToFloatArray(o.size || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
         var isGroup = o.members && o.members.length;  //false;
 
         if (o.members && o.members.length) {
@@ -361,7 +361,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         var shape = vtkPlotting.plotShape(
             o.id, o.name,
             center, size,
-            o.color, 0.3, isGroup ? null : 'solid', isGroup ? 'dashed' : 'solid',
+            o.color, 0.3, isGroup ? null : 'solid', isGroup ? 'dashed' : 'solid', null,
             o.layoutShape
         );
         if (isGroup) {
@@ -396,16 +396,35 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         if (o.symmetryType !== 'none') {
             var mShape = vtkPlotting.plotShape(
                 // ??  for "virtual shapes"?
-                65536 * (o.id + 1) + shape.links.length,
+                virtualShapeId(shape),
                 o.name,
-                [0, 0, 0], [shape.size.x, shape.size.y, shape.size.z],
-                o.color, 0.1, shape.fillStyle, shape.strokeStyle,
+                SIREPO.ZERO_ARR, [shape.size.x, shape.size.y, shape.size.z],
+                o.color, 0.1, shape.fillStyle, shape.strokeStyle, shape.dashes,
                 o.layoutShape
             );
             mShape.draggable = false;
             shape.addLink(mShape, mirror);
             mirror(shape, mShape);
             self.shapes.push(mShape);
+
+            // line representing the symmetry plane intersecting 3 canonical planes
+            for (var p in vtkPlotting.COORDINATE_PLANES) {
+                var cpl = geometry.plane(vtkPlotting.COORDINATE_PLANES[p], geometry.point());
+                var spl = geometry.plane(
+                    stringToFloatArray(o.symmetryPlane),
+                    geometry.pointFromArr(stringToFloatArray(o.symmetryPoint, SIREPO.APP_SCHEMA.constants.objectScale))
+                );
+                if (cpl.equals(spl)) {
+                    continue;
+                }
+                var l = spl.intersection(cpl);
+                if (l) {
+                    self.shapes.push(vtkPlotting.plotLine(
+                        virtualShapeId(shape), shape.name, l,
+                        shape.color, 1.0, 'dashed', "8,8,4,8"
+                    ));
+                }
+            }
 
             // extend group bounds if this object is in a group
             if (gShape) {
@@ -417,6 +436,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 }
             }
         }
+    }
+
+    function virtualShapeId(shape) {
+        return 65536 * (shape.id + 1) + self.shapes.length;
     }
 
     // used to the client-created object to a server-created Radia id
@@ -435,7 +458,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         var o = self.getObject(shape.id);
         var pl = geometry.plane(
             stringToFloatArray(o.symmetryPlane),
-            geometry.pointFromArr(stringToFloatArray(o.symmetryPoint))
+            geometry.pointFromArr(stringToFloatArray(o.symmetryPoint, SIREPO.APP_SCHEMA.constants.objectScale))
         );
         var mCtr = pl.mirrorPoint(geometry.pointFromArr([shape.center.x, shape.center.y, shape.center.z])).coords();
         linkedShape.center.x = mCtr[0];
@@ -480,8 +503,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         ];
         b.forEach(function (c, i) {
             (objs || appState.models.geometry.objects).forEach(function (o) {
-                var ctr = stringToFloatArray(o.center || SIREPO.ZERO_STR);
-                var sz = stringToFloatArray(o.size || SIREPO.ZERO_STR);
+                var ctr = stringToFloatArray(o.center || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
+                var sz = stringToFloatArray(o.size || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
                 c[0] = Math.min(c[0], ctr[i] - sz[i] / 2);
                 c[1] = Math.max(c[1], ctr[i] + sz[i] / 2);
             });
@@ -506,10 +529,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return b;
     }
 
-    function stringToFloatArray(str) {
+    function stringToFloatArray(str, scale) {
         return str.split(/\s*,\s*/)
             .map(function (v) {
-                return (SIREPO.APP_SCHEMA.constants.objectScale || 1.0) * parseFloat(v);
+                return (scale || 1.0) * parseFloat(v);
             });
     }
 
