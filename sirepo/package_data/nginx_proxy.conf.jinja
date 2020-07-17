@@ -1,12 +1,42 @@
-server {
-    listen {{ ip }}:{{ nginx_proxy_port }};
-    # We know this is empty in the nginx container
-    root /srv;
-    location / {
-        include uwsgi_params;
-        client_max_body_size 50m;
-        uwsgi_read_timeout 300s;
-        uwsgi_send_timeout 300s;
-        uwsgi_pass 127.0.0.1:{{ port }};
+daemon off;
+worker_processes 1;
+# use "debug" instead of "info" for noisy debugging
+error_log /dev/stderr info;
+pid {{ run_dir }}/nginx.pid;
+include /usr/share/nginx/modules/*.conf;
+
+events {
+    worker_connections 32;
+}
+
+http {
+    client_body_temp_path {{ run_dir }}/client_body_temp;
+    proxy_temp_path {{ run_dir }}/proxy_temp;
+    fastcgi_temp_path {{ run_dir }}/fastcgi_temp;
+    uwsgi_temp_path {{ run_dir }}/uwsgi_temp;
+    scgi_temp_path {{ run_dir }}/scgi_temp;
+    log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+        '$status $body_bytes_sent "$http_referer" '
+        '"$http_user_agent" "$http_x_forwarded_for"';
+    access_log /dev/stdout main;
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    types_hash_max_size 2048;
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    server {
+        listen {{ ip }}:{{ nginx_proxy_port }};
+        # We know this is empty in the nginx container
+        root /srv;
+        location / {
+            include /etc/nginx/uwsgi_params;
+            client_max_body_size 50m;
+            uwsgi_read_timeout 300s;
+            uwsgi_send_timeout 300s;
+            uwsgi_pass 127.0.0.1:{{ port }};
+        }
     }
 }
