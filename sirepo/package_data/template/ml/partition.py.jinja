@@ -1,0 +1,44 @@
+{% if partition_method == 'random' %}
+from sklearn.model_selection import train_test_split
+
+def train_test_validate(values, train_size, test_size):
+    size = (100 - train_size) / 100.
+    train, tv = train_test_split(values, test_size=size, random_state=42, shuffle=True)
+    size = test_size / (test_size + (100 - train_size - test_size))
+    test, validate = train_test_split(tv, test_size=size, random_state=42, shuffle=True)
+    return (train, test, validate)
+
+train, test, validate = train_test_validate(
+    scaled,
+    {{ partition_training }},
+    {{ partition_testing }},
+)
+{% else %}
+cutoff0 = {{ partition_cutoff0 }}
+cutoff1 = {{ partition_cutoff1 }}
+
+{% if hasTrainingAndTesting %}
+from sklearn.model_selection import train_test_split
+
+def append_values(values, new_values):
+    if values is not None:
+        return np.append(values, new_values, axis=0)
+    return new_values
+
+validate = train_and_test = None
+{{ partition_section0 }} = scaled[:cutoff0]
+{{ partition_section1 }} = append_values({{ partition_section1 }}, scaled[cutoff0:cutoff1])
+{{ partition_section2 }} = append_values({{ partition_section2 }}, scaled[cutoff1:])
+
+train, test = train_test_split(
+    train_and_test,
+    test_size=(100 - {{ partition_trainTestPercent }}) / 100,
+    random_state=42,
+    shuffle=True
+)
+{% else %}
+{{ partition_section0 }} = scaled[:cutoff0]
+{{ partition_section1 }} = scaled[cutoff0:cutoff1]
+{{ partition_section2 }} = scaled[cutoff1:]
+{% endif %}
+{% endif %}

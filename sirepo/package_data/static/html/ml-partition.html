@@ -1,0 +1,21 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6">
+      <div data-basic-editor-panel="" data-view-name="partition">
+        <div data-partition-sim-state="" data-controller="partition"></div>
+      </div>
+    </div>
+    <div class="col-md-6" data-ng-if="showPartitionSelection()">
+      <div data-report-panel="parameter" data-model-name="partitionSelectionReport">
+        <div data-partition-selection=""></div>
+      </div>
+    </div>
+    <div class="clearfix"></div>
+    <div data-ng-repeat="report in partition.reports">
+      <div class="col-sm-3">
+        <div data-report-panel="parameter" data-model-name="partitionColumnReport" data-model-data="report.data" data-panel-title="{{ report.title }}"></div>
+      </div>
+      <div data-ng-if="report.break" class="clearfix"></div>
+    </div>
+  </div>
+</div>
