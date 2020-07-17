@@ -14,7 +14,7 @@ import shutil
 pytestmark = pytest.mark.skipif(not bool(shutil.which('docker')), reason='docker not found')
 
 
-def test_ping(uwsgi_module):
+def alpha_fail_test_ping(uwsgi_module):
     import sirepo.util
     from pykern import pkunit
     r = uwsgi_module.sr_post('jobSupervisorPing', {})
