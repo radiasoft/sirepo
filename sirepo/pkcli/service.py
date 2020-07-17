@@ -123,16 +123,17 @@ def nginx_proxy():
     """
     assert pkconfig.channel_in('dev')
     run_dir = _run_dir().join('nginx_proxy').ensure(dir=True)
-    with pkio.save_chdir(run_dir):
+    with pkio.save_chdir(run_dir) as d:
         f = run_dir.join('default.conf')
-        pkjinja.render_resource('nginx_proxy.conf', cfg(), output=f)
+        pkjinja.render_resource(
+            'nginx_proxy.conf',
+            PKDict(cfg()).pkupdate(run_dir=str(d)),
+            output=f,
+        )
         cmd = [
-            'docker',
-            'run',
-            '--net=host',
-            '--rm',
-            '--volume={}:/etc/nginx/conf.d/default.conf'.format(f),
             'nginx',
+            '-c',
+            str(f),
         ]
         pksubprocess.check_call_with_signals(cmd)
 
