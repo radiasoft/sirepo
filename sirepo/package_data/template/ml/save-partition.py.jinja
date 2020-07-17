@@ -1,7 +1,4 @@
 
-def save_file(filename, data):
-    np.savetxt(filename, data, delimiter=',')
-
-save_file('{{ trainFile }}', train)
-save_file('{{ testFile }}', test)
-save_file('{{ validateFile }}', validate)
+np.save('{{ trainFile }}', train)
+np.save('{{ testFile }}', test)
+np.save('{{ validateFile }}', validate)

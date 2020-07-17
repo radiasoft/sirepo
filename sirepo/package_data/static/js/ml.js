@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.SINGLE_FRAME_ANIMATION = ['epochAnimation'];
 });
 
 SIREPO.app.factory('mlService', function(appState) {
@@ -13,12 +14,29 @@ SIREPO.app.factory('mlService', function(appState) {
         return 'fileColumnReport' + idx;
     };
 
+    self.computeModel = function(analysisModel) {
+        return 'animation';
+    };
+
     self.partitionReportName = function(idx) {
         return 'partitionColumnReport' + idx;
     };
 
     self.isAnalysis = function() {
         return appState.isLoaded() && appState.applicationState().dataFile.appMode == 'analysis';
+    };
+
+    self.reportInfo = function(modelKey, title, idx) {
+        return {
+            columnNumber: idx,
+            title: title,
+            data: {
+                modelKey: modelKey,
+                getData: function() {
+                    return appState.models[modelKey];
+                },
+            },
+        };
     };
 
     appState.setAppService(self);
@@ -138,6 +156,89 @@ SIREPO.app.controller('DataController', function (appState, mlService, panelStat
     });
 });
 
+SIREPO.app.controller('RegressionController', function (appState, frameCache, mlService, panelState, persistentSimulation, $scope) {
+    var self = this;
+    var errorMessage = '';
+
+    function columnTypeCount(type) {
+        var res = 0;
+        appState.models.columnInfo.inputOutput.forEach(function(col) {
+            if (col == type) {
+                res++;
+            }
+        });
+        return res;
+    }
+
+    function addFitReports() {
+        var res = [];
+        var outputCount = columnTypeCount('output');
+        for (var i = 0; i < outputCount; i++) {
+            var modelKey = 'fitAnimation' + i;
+            if (! appState.models[modelKey]) {
+                appState.models[modelKey] = {
+                    columnNumber: i,
+                };
+                appState.saveQuietly(modelKey);
+            }
+            res.push(mlService.reportInfo(modelKey, 'Fit ' + (i + 1), i));
+            if (SIREPO.SINGLE_FRAME_ANIMATION.indexOf(modelKey) < 0) {
+                SIREPO.SINGLE_FRAME_ANIMATION.push(modelKey);
+            }
+            frameCache.setFrameCount(1, modelKey);
+            if (i % 4 == 3) {
+                res[res.length - 1].break = true;
+            }
+        }
+        res[res.length - 1].break = true;
+        return res;
+    }
+
+    function handleStatus(data) {
+        errorMessage = data.error;
+        self.reports = null;
+        if ('percentComplete' in data && ! data.error) {
+            if (data.percentComplete === 100 && ! self.simState.isProcessing()) {
+                self.reports = addFitReports();
+            }
+        }
+        frameCache.setFrameCount(data.frameCount || 0);
+    }
+
+    self.hasModel = function() {
+        if (appState.isLoaded()) {
+            return appState.applicationState().neuralNet.layers.length;
+        }
+        return false;
+    };
+
+    self.startSimulation = function() {
+        self.simState.saveAndRunSimulation('simulation');
+    };
+
+    self.hasFrames = frameCache.hasFrames;
+
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        mlService.computeModel('fitAnimation'),
+        handleStatus);
+
+    self.simState.errorMessage = function() {
+        return errorMessage;
+    };
+
+    self.simState.notRunningMessage = function() {
+        return 'Simulation ' + self.simState.stateAsText();
+    };
+
+    self.simState.runningMessage = function() {
+        if (appState.isLoaded() && self.simState.getFrameCount()) {
+            return 'Completed epoch: ' + self.simState.getFrameCount();
+        }
+        return 'Simulation running';
+    };
+});
+
 SIREPO.app.directive('columnReports', function(appState, mlService) {
     return {
         restrict: 'A',
@@ -176,16 +277,7 @@ SIREPO.app.directive('columnReports', function(appState, mlService) {
                 var info = appState.models.columnInfo;
                 appState.models.columnReports.forEach(function(idx) {
                     var modelKey = mlService.columnReportName(idx);
-                    $scope.reports.push({
-                        columnNumber: idx,
-                        title: 'Column ' + (idx + 1),
-                        data: {
-                            modelKey: modelKey,
-                            getData: function() {
-                                return appState.models[modelKey];
-                            },
-                        }
-                    });
+                    $scope.reports.push(mlService.reportInfo(modelKey, 'Column ' + (idx + 1), idx));
                 });
             }
 
@@ -319,17 +411,7 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, pane
                 columnNumber: idx,
             };
             appState.saveQuietly(modelKey);
-            //TODO(pjm): consolidate with data column reports
-            self.reports.push({
-                columnNumber: idx,
-                title: type.charAt(0).toUpperCase() + type.slice(1) + ' ' + (idx + 1),
-                data: {
-                    modelKey: modelKey,
-                    getData: function() {
-                        return appState.models[modelKey];
-                    },
-                }
-            });
+            self.reports.push(mlService.reportInfo(modelKey, type.charAt(0).toUpperCase() + type.slice(1) + ' ' + (idx + 1), idx));
         });
     }
 
@@ -365,6 +447,131 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, pane
         updatePartitionMethod();
         loadReports();
     });
+});
+
+SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<form name="form" class="form-horizontal">',
+              '<div class="form-group form-group-sm">',
+                '<table class="table table-striped table-condensed">',
+                  '<tr data-ng-repeat="layer in appState.models.neuralNet.layers track by $index" data-ng-init="layerIndex = $index">',
+                    '<td data-ng-repeat="fieldInfo in layerInfo(layerIndex) track by fieldTrack(layerIndex, $index)">',
+                      '<div data-ng-if="fieldInfo.field">',
+                        '<b>{{ fieldInfo.label }}</b>',
+                        '<div class="row" data-field-editor="fieldInfo.field" data-field-size="12" data-model-name="\'neuralNetLayer\'" data-model="layer"></div>',
+                      '</div>',
+                    '</td>',
+                    '<td style="padding-top: 2em;">',
+                      '<button class="btn btn-danger btn-xs" data-ng-click="deleteLayer($index)" title="Delete Row"><span class="glyphicon glyphicon-remove"></span></button>',
+                    '</td>',
+                  '<tr>',
+                    '<td>',
+                      '<b>Add Layer</b>',
+                        '<select class="form-control" data-ng-model="selectedLayer" data-ng-options="item[0] as item[1] for item in layerEnum" data-ng-change="addLayer()"></select>',
+                    '</td>',
+                    '<td></td>',
+                    '<td></td>',
+                    '<td></td>',
+                  '</tr>',
+                '</table>',
+              '</div>',
+              '<div class="col-sm-6 pull-right" data-ng-show="hasChanges()">',
+                '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> ',
+                '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
+              '</div>',
+            '</form>',
+        ].join(''),
+        controller: function($scope, $element) {
+            var layerFields = {};
+            var layerInfo = [];
+            $scope.appState = appState;
+            $scope.form = angular.element($($element).find('form').eq(0));
+            $scope.selectedLayer = '';
+            $scope.layerEnum = SIREPO.APP_SCHEMA.enum.NeuralNetLayer;
+
+            $scope.addLayer = function() {
+                if (! $scope.selectedLayer) {
+                    return;
+                }
+                var neuralNet = appState.models.neuralNet;
+                if (! neuralNet.layers) {
+                    neuralNet.layers = [];
+                }
+                var m = appState.setModelDefaults({}, 'neuralNetLayer');
+                m.layer = $scope.selectedLayer;
+                neuralNet.layers.push(m);
+                $scope.selectedLayer = '';
+            };
+
+            $scope.cancelChanges = function() {
+                appState.cancelChanges('neuralNet');
+                $scope.form.$setPristine();
+            };
+
+            $scope.deleteLayer = function(idx) {
+                appState.models.neuralNet.layers.splice(idx, 1);
+                $scope.form.$setDirty();
+            };
+
+            $scope.layerInfo = function(idx) {
+                if (! appState.isLoaded()) {
+                    return layerInfo;
+                }
+                var layer = appState.models.neuralNet.layers[idx];
+                layerInfo[idx] = layerFields[layer.layer];
+                return layerInfo[idx];
+            };
+
+            $scope.hasChanges = function() {
+                if ($scope.form.$dirty) {
+                    return true;
+                }
+                return appState.areFieldsDirty('neuralNet.layers');
+            };
+
+            $scope.fieldTrack = function(layerIdx, idx) {
+                // changes the fields editor if the layer type changes
+                var layer = appState.models.neuralNet.layers[layerIdx];
+                return layer.layer + idx;
+            };
+
+            $scope.saveChanges = function() {
+                appState.saveChanges('neuralNet');
+                $scope.form.$setPristine();
+            };
+
+            function buildLayerFields() {
+                var MAX_FIELDS = 3;
+                var layerSchema = SIREPO.APP_SCHEMA.model.neuralNetLayer;
+                $scope.layerEnum.forEach(function(row) {
+                    var name = row[0];
+                    var cols = [
+                        {
+                            field: 'layer',
+                            label: 'Layer',
+                        },
+                    ];
+                    Object.keys(layerSchema).sort().reverse().forEach(function(field) {
+                        if (field.toLowerCase().indexOf(name.toLowerCase()) == 0) {
+                            cols.push({
+                                field: field,
+                                label: layerSchema[field][0],
+                            });
+                        }
+                    });
+                    while (cols.length < MAX_FIELDS) {
+                        cols.push({});
+                    }
+                    layerFields[name] = cols;
+                });
+            }
+
+            buildLayerFields();
+        },
+    };
 });
 
 SIREPO.app.directive('partitionSelection', function(appState) {

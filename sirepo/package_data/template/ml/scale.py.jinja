@@ -10,23 +10,23 @@ from sklearn.preprocessing import {{ dataFile_outputsScaler }}
 
 
 def scale_columns(values, column_types, col_type, scaler):
-    if scaler:
-        columns = list(filter(lambda idx: column_types[idx] == col_type, range(len(column_types))))
-        if len(columns):
-            values[:, columns] = scaler().fit_transform(values[:, columns])
-        
+    columns = list(filter(lambda idx: column_types[idx] == col_type, range(len(column_types))))
+    if scaler and len(columns):
+        values[:, columns] = scaler().fit_transform(values[:, columns])
+    return columns
+
 
 def scale_file(path, column_types, inputs_scaler, outputs_scaler):
     v = np.genfromtxt(path, delimiter=',', skip_header={{ 1 if columnInfo_hasHeaderRow else 0 }})
-    scale_columns(v, column_types, 'input', inputs_scaler)
-    scale_columns(v, column_types, 'output', outputs_scaler)
+    in_idx = scale_columns(v, column_types, 'input', inputs_scaler)
+    out_idx = scale_columns(v, column_types, 'output', outputs_scaler)
     os.remove(path)
-    np.savetxt(path, v, delimiter=',')
-    return v
+    np.save('{{ scaledFile }}', v)
+    return v, in_idx, out_idx
 
 
-scaled = scale_file(
-    '{{ dataFileName }}',
+scaled, in_idx, out_idx = scale_file(
+    '{{ dataFile }}',
     {{ columnTypes }},
     {{ dataFile_inputsScaler }},
     {{ dataFile_outputsScaler }},

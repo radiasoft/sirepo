@@ -17,3 +17,7 @@ def run(cfg_dir):
     template_common.exec_parameters()
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     template.save_sequential_report_data(py.path.local(cfg_dir), data)
+
+
+def run_background(cfg_dir):
+    template_common.exec_parameters()
