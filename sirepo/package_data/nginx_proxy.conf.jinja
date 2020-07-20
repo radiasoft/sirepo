@@ -29,8 +29,7 @@ http {
 
     server {
         listen {{ ip }}:{{ nginx_proxy_port }};
-        # We know this is empty in the nginx container
-        root /srv;
+        root /usr/share/nginx/html;
         location / {
             include /etc/nginx/uwsgi_params;
             client_max_body_size 50m;
