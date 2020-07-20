@@ -1006,7 +1006,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                             return;
                         }
                         var ctr = stringToFloatArray(o.center);
-                        var elev = shape.elev;
                         o.center = floatArrayToString([
                             shape.center.x ,
                             shape.center.y,
@@ -1031,7 +1030,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 SIREPO.SCREEN_DIMS.forEach(function(dim) {
                     var dom = axes[shape.elev[dim].axis].scale.domain();
                     var pxsz = (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
-                    var ddim = SIREPO.SCREEN_INFO[dim].direction * pxsz * d3.event[dim];
                     shape.center[dim] = dragStart.center[dim] +
                         SIREPO.SCREEN_INFO[dim].direction * pxsz * d3.event[dim];
                     shape[dim] = dragStart[dim] +
@@ -1040,8 +1038,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 d3.select(this).call(updateShapeAttributes);
                 showShapeLocation(shape);
                 shape.runLinks().forEach(function (linkedShape) {
-                    var selId = shapeSelectionId(linkedShape, true);
-                    d3.select(selId).call(updateShapeAttributes);
+                    d3.select(shapeSelectionId(linkedShape, true)).call(updateShapeAttributes);
                 });
             }
 
@@ -1370,24 +1367,19 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     })
                     .attr('x1', function (d) {
                         var pts = linePoints(d);
-                        //srdbg('lp', lp);
                         return pts ? pts[0].coords()[0] : 0;
-                        //return axes.x.scale(d.x1);
                     })
                     .attr('x2', function (d) {
                         var pts = linePoints(d);
                         return pts ? pts[1].coords()[0] : 0;
-                        //return axes.x.scale(d.x2);
                     })
                     .attr('y1', function (d) {
                         var pts = linePoints(d);
                         return pts ? pts[0].coords()[1] : 0;
-                        //return axes.y.scale(d.y1);
                     })
                     .attr('y2', function (d) {
                         var pts = linePoints(d);
                         return pts ? pts[1].coords()[1] : 0;
-                        //return axes.y.scale(d.y2);
                     })
                     .attr('width', function(d) {
                         return shapeSize(d, 'x') + 2 * (d.outlineOffset || 0);

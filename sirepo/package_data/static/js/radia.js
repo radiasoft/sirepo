@@ -454,41 +454,41 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         });
     }
 
-    function mirror(shape, linkedShape) {
+    function mirror(shape, mirrorShape) {
         var o = self.getObject(shape.id);
         var pl = geometry.plane(
             stringToFloatArray(o.symmetryPlane),
             geometry.pointFromArr(stringToFloatArray(o.symmetryPoint, SIREPO.APP_SCHEMA.constants.objectScale))
         );
         var mCtr = pl.mirrorPoint(geometry.pointFromArr([shape.center.x, shape.center.y, shape.center.z])).coords();
-        linkedShape.center.x = mCtr[0];
-        linkedShape.center.y = mCtr[1];
-        linkedShape.center.z = mCtr[2];
-        return linkedShape;
+        mirrorShape.center.x = mCtr[0];
+        mirrorShape.center.y = mCtr[1];
+        mirrorShape.center.z = mCtr[2];
+        return mirrorShape;
     }
 
     // shape - in group; linkedShape: group
     // NOT PICKING UP "VIRTUAL" SHAPES
     // NOT SHRINKING PAST ORIGINAL SIZE
-    function fit(shape, linkedShape) {
+    function fit(shape, groupShape) {
         var o = self.getObject(shape.id);
         var groupId = o.groupId;
-        if (groupId === '' || groupId !== linkedShape.id) {
-            linkedShape.center = shape.center;
-            linkedShape.size = shape.size;
-            return linkedShape;
+        if (groupId === '' || groupId !== groupShape.id) {
+            groupShape.center = shape.center;
+            groupShape.size = shape.size;
+            return groupShape;
         }
-        var mShapes = self.getObject(groupId).members.map(function (mId) {
+        var mShapes = self.getObject(groupShape.id).members.map(function (mId) {
             return self.getShape(mId);
         });
         // may be a duplicate, doesn't matter
         mShapes.push(shape);
         var newBounds = shapesBounds(mShapes);
         for (var dim in newBounds) {
-            linkedShape.size[dim] = Math.abs(newBounds[dim][1] - newBounds[dim][0]);
-            linkedShape.center[dim] = newBounds[dim][0] + linkedShape.size[dim] / 2;
+            groupShape.size[dim] = Math.abs(newBounds[dim][1] - newBounds[dim][0]);
+            groupShape.center[dim] = newBounds[dim][0] + groupShape.size[dim] / 2;
         }
-        return linkedShape;
+        return groupShape;
     }
 
     function newObjectName(o) {
