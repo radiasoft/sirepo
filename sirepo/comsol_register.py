@@ -6,15 +6,13 @@ u"""COMSOL registration routes.
 
 """
 from __future__ import absolute_import, division, print_function
-
 from pykern import pkconfig
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import http_reply
 from sirepo import http_request
+from sirepo import smtp
 
-
-_mail = None
 
 @api_perm.allow_visitor
 def api_comsol():
@@ -23,26 +21,16 @@ def api_comsol():
 
 @api_perm.allow_visitor
 def api_comsolRegister():
-    import flask
-    import flask_mail
     import sirepo.util
 
-    global _mail
-    if not _mail:
-        a = sirepo.util.flask_app()
-        a.config.update(
-            MAIL_USE_TLS=True,
-            MAIL_PORT=587,
-            MAIL_SERVER=cfg.mail_server,
-            MAIL_USERNAME=cfg.mail_username,
-            MAIL_PASSWORD=cfg.mail_password,
-        )
-        _mail = flask_mail.Mail(a)
-    req = http_request.parse_json()
-    msg = flask_mail.Message(
+    smtp.SMTP(
+        smtp_server=cfg.mail_server,
+        smtp_user=cfg.mail_username,
+        smtp_password=cfg.mail_password,
+    ).send(
         subject='Sirepo / COMSOL Registration',
         sender=cfg.mail_support_email,
-        recipients=[cfg.mail_recipient_email],
+        recipient=cfg.mail_recipient_email,
         body=u'''
 Request for access to Sirepo / COMSOL.
 
@@ -50,7 +38,6 @@ Name: {}
 Email: {}
 '''.format(req.name, req.email),
     )
-    _mail.send(msg)
     return http_reply.gen_json_ok()
 
 
