@@ -154,7 +154,7 @@ def test():
             await t
         except Exception as e:
             await _cancel_all_tasks(s)
-            if isinstance(e, asyncio.CancelledError):
+            if isinstance(e, sirepo.util.ASYNC_CANCELLED_ERROR):
                 # Will only be cancelled by a signal handler
                 return
             pkdlog('error={} stack={} sims={}', e, pkdexc(), _sims)
@@ -414,7 +414,7 @@ class _Sim(PKDict):
                     finally:
                         if c:
                             await self._cancel(error=e)
-            except asyncio.CancelledError:
+            except sirepo.util.ASYNC_CANCELLED_ERROR:
                 # Don't log on cancel error, we initiate cancels so not interesting
                 raise
             except Exception as e:

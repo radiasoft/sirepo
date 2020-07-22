@@ -54,12 +54,16 @@ def start():
 
     cfg = pkconfig.init(
         agent_id=pkconfig.Required(str, 'id of this agent'),
+        start_delay=(0, pkconfig.parse_seconds, 'delay startup in internal_test mode'),
         supervisor_uri=pkconfig.Required(
             str,
             'how to connect to the supervisor',
         ),
     )
     pkdlog('{}', cfg)
+    if pkconfig.channel_in_internal_test() and cfg.start_delay:
+        pkdlog('start_delay={}', cfg.start_delay)
+        time.sleep(cfg.start_delay)
     i = tornado.ioloop.IOLoop.current()
     d = _Dispatcher()
     def s(*args):

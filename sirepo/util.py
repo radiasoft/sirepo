@@ -9,6 +9,8 @@ from pykern import pkcompat
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc
+import asyncio
+import concurrent.futures
 import inspect
 import numconv
 import pykern.pkinspect
@@ -16,6 +18,9 @@ import pykern.pkio
 import pykern.pkjson
 import random
 
+
+#: All types of errors async code may throw when cancelled
+ASYNC_CANCELLED_ERROR = (asyncio.CancelledError, concurrent.futures.CancelledError)
 
 #: length of string returned by create_token
 TOKEN_SIZE = 16
