@@ -325,7 +325,7 @@ class _ComputeJob(PKDict):
                 o,
                 '_receive_' + req.content.api,
             )(req)
-        except asyncio.CancelledError:
+        except sirepo.util.ASYNC_CANCELLED_ERROR:
             return PKDict(state=job.CANCELED)
         except Exception as e:
             pkdlog('{} error={} stack={}', req, e, pkdexc())
@@ -701,7 +701,7 @@ class _ComputeJob(PKDict):
                     pass
             else:
                 raise AssertionError('too many retries {}'.format(req))
-        except asyncio.CancelledError:
+        except sirepo.util.ASYNC_CANCELLED_ERROR:
             if self.pkdel('_cancelled_serial') == c:
                 # We were cancelled due to api_runCancel.
                 # api_runCancel destroyed the op and updated the db
@@ -811,7 +811,7 @@ class _ComputeJob(PKDict):
                         self.__db_write()
                         if r.state in job.EXIT_STATUSES:
                             break
-                    except asyncio.CancelledError:
+                    except sirepo.util.ASYNC_CANCELLED_ERROR:
                         return
         except Exception as e:
             pkdlog('error={} stack={}', e, pkdexc())

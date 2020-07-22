@@ -256,7 +256,7 @@ class DriverBase(PKDict):
                     t,
                     self._agent_starting_timeout_handler,
                 )
-                # POSIT: CancelledError isn't smothered by any of the below calls
+                # POSIT: Cancelled errors aren't smothered by any of the below calls
                 await self.kill()
                 await self._do_agent_start(op)
             except Exception as e:
