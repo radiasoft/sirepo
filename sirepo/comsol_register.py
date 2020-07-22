@@ -23,14 +23,9 @@ def api_comsol():
 def api_comsolRegister():
     import sirepo.util
 
-    smtp.SMTP(
-        smtp_server=cfg.mail_server,
-        smtp_user=cfg.mail_username,
-        smtp_password=cfg.mail_password,
-    ).send(
-        subject='Sirepo / COMSOL Registration',
-        sender=cfg.mail_support_email,
+    smtp.send(
         recipient=cfg.mail_recipient_email,
+        subject='Sirepo / COMSOL Registration',
         body=u'''
 Request for access to Sirepo / COMSOL.
 
@@ -44,12 +39,5 @@ Email: {}
 def init_apis(*args, **kwargs):
     global cfg
     cfg = pkconfig.init(
-        mail_server=(None, str, 'Mail server'),
-        mail_username=(None, str, 'Mail user name'),
-        mail_password=(None, str, 'Mail password'),
-        mail_support_email=(None, str, 'Support email address'),
-        mail_recipient_email=(None, str, 'Email to receive registration messages'),
+        mail_recipient_email=pkconfig.Required(str, 'Email to receive registration messages'),
     )
-    assert cfg.mail_server and cfg.mail_username and cfg.mail_password \
-        and cfg.mail_support_email and cfg.mail_recipient_email, \
-        'Missing mail config'

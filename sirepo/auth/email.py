@@ -42,9 +42,6 @@ UserModel = None
 #: module handle
 this_module = pkinspect.this_module()
 
-#: SIREPO_EMAIL_AUTH_SMTP_SERVER=dev avoids SMTP entirely
-_DEV_SMTP_SERVER = 'dev'
-
 #: how long before token expires
 _EXPIRES_MINUTES = 8 * 60
 
@@ -121,15 +118,6 @@ def avatar_uri(model, size):
 
 
 def init_apis(*args, **kwargs):
-    global cfg
-    cfg = pkconfig.init(
-        #TODO(robnagler) validate email
-        from_email=pkconfig.Required(str, 'From email address'),
-        from_name=pkconfig.Required(str, 'From display name'),
-        smtp_password=pkconfig.Required(str, 'SMTP auth password'),
-        smtp_server=pkconfig.Required(str, 'SMTP TLS server'),
-        smtp_user=pkconfig.Required(str, 'SMTP auth user'),
-    )
     auth_db.init_model(_init_model)
 
 def _init_model(base):
@@ -173,19 +161,14 @@ def _parse_email(data):
     return res
 
 def _send_login_email(user, uri):
-    if pkconfig.channel_in('dev') and cfg.smtp_server == _DEV_SMTP_SERVER:
+    if pkconfig.channel_in('dev') and smtp.cfg.server == smtp.DEV_SMTP_SERVER:
         pkdlog('{}', uri)
         return http_reply.gen_json_ok({'uri': uri})
     login_text = u'sign in to' if user.user_name else \
         u'confirm your email and finish creating'
-    smtp.SMTP(
-        smtp_server=cfg.smtp_server,
-        smtp_user=cfg.smtp_user,
-        smtp_password=cfg.smtp_password,
-    ).send(
-        subject='Sign in to Sirepo',
-        sender=(cfg.from_name, cfg.from_email),
+    smtp.send(
         recipient=user.unverified_email,
+        subject='Sign in to Sirepo',
         body=u'''
 Click the link below to {} your Sirepo account.
 
