@@ -13,7 +13,7 @@ import smtplib
 
 DEV_SMTP_SERVER = 'dev'
 
-def send(self, recipient, subject, body):
+def send(recipient, subject, body):
     m = email.message.EmailMessage()
     m['From'] = f'{cfg.from_name} <{cfg.from_email}>'
     m['To'] = recipient
@@ -27,7 +27,7 @@ def send(self, recipient, subject, body):
 
 
 cfg = pkconfig.init(
-    from_email=('support@sirepo.com', str, 'Email addres of sender'),
+    from_email=('support@sirepo.com', str, 'Email address of sender'),
     from_name=('Sirepo Support', str, 'Name of email sender'),
     password=pkconfig.Required(str, 'SMTP password'),
     port=(587, int, 'SMTP Port'),
