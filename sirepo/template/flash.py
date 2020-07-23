@@ -35,7 +35,7 @@ def background_percent_complete(report, run_dir, is_running):
     )
     c = _grid_evolution_columns(run_dir)
     if c:
-        res.gridEvolutionColumns = c
+        res.gridEvolutionColumns = [x for x in c if x[0] != '#']
     return res
 
 
@@ -89,6 +89,12 @@ _DEFAULT_VALUES = {
             'y1': 'mass',
             'y2': 'Burned Mass',
             'y3': 'Burning rate',
+            "valueList": {
+                "y1": [],
+                "y2": [],
+                "y3": [],
+
+            }
         },
     },
     'CapLaserBELLA': {
@@ -108,6 +114,18 @@ _DEFAULT_VALUES = {
             'xmax': 250.0e-04,
             'ymin': -500.0e-04,
             'ymax': 500.0e-04,
+        },
+        'gridEvolutionAnimation': {
+            "notes": "",
+            "y1": "x-momentum",
+            "y2": "y-momentum",
+            "y3": "E_kinetic",
+            "valueList": {
+                "y1": [],
+                "y2": [],
+                "y3": [],
+
+            }
         },
         'Gridparamesh': {
             'flux_correct': '0',
@@ -302,6 +320,18 @@ _DEFAULT_VALUES = {
             'yr_boundary_type': 'outflow',
             'zl_boundary_type': 'outflow',
             'zr_boundary_type': 'outflow'
+        },
+        'gridEvolutionAnimation': {
+            "notes": "",
+            "y1": "x-momentum",
+            "y2": "y-momentum",
+            "y3": "E_kinetic",
+            "valueList": {
+                "y1": [],
+                "y2": [],
+                "y3": [],
+
+            }
         },
         'Gridparamesh': {
             'flux_correct': '0',
@@ -675,7 +705,7 @@ def _grid_evolution_columns(run_dir):
 
 
 def _has_species_selection(flash_type):
-    return flash_type in ('CapLaserBella', 'CapLaser3D')
+    return flash_type in ('CapLaserBELLA', 'CapLaser3D')
 
 
 def _h5_file_list(run_dir):

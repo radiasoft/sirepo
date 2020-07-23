@@ -546,6 +546,10 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               '<div data-ng-switch-when="Range" data-ng-class="fieldClass">',
                 '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field" data-field-delegate="fieldDelegate"></div>',
               '</div>',
+              '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
+                '<div class="form-control-static" data-ng-if="model.valueList[field].length == 1">{{ model.valueList[field][0] }}</div>',
+              '<select data-ng-if="model.valueList[field].length != 1" class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model.valueList[field]"></select>',
+              '</div>',
               SIREPO.appFieldEditors,
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',

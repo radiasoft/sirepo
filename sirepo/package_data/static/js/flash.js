@@ -134,14 +134,20 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
         }
         if (! self.gridEvolutionColumnsSet && data.gridEvolutionColumns) {
             self.gridEvolutionColumnsSet = true;
-            SIREPO.APP_SCHEMA.enum.GridEvolutionColumn = [];
+            appState.models.gridEvolutionAnimation.valueList = {
+                y1: [],
+                y2: [],
+                y3: []
+            };
             for (var i = 0; i < data.gridEvolutionColumns.length; i++) {
-                var e = data.gridEvolutionColumns[i];
-                if (e[0] === '#') {
-                    continue;
-                }
-                SIREPO.APP_SCHEMA.enum.GridEvolutionColumn.push([e, e]);
+                ['y1', 'y2', 'y3'].forEach(function(e) {
+                    appState.models.gridEvolutionAnimation.valueList[e].push(
+                        data.gridEvolutionColumns[i]
+                    );
+                })
+
             }
+            appState.saveChanges('gridEvolutionAnimation');
         }
         frameCache.setFrameCount(data.frameCount || 0);
     }

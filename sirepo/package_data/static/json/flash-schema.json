@@ -481,9 +481,9 @@
         },
         "simulationStatus": {},
         "gridEvolutionAnimation": {
-            "y1": ["Y1 Value", "GridEvolutionColumn", "x-momentum"],
-            "y2": ["Y2 Value", "GridEvolutionColumn", "y-momentum"],
-            "y3": ["Y3 Value", "GridEvolutionColumn", "E_kinetic"],
+            "y1": ["Y1 Value", "ValueList", ""],
+            "y2": ["Y2 Value", "ValueList", ""],
+            "y3": ["Y3 Value", "ValueList", ""],
             "notes": ["Notes", "Text", ""]
         },
         "varAnimation": {
