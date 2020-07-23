@@ -1913,6 +1913,8 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             var canvas3d = null;
             var didPan = false;
             var fsRenderer = null;
+            var hasBodyEvt = false;
+            var hdlrs = {};
             var isDragging = false;
             var isPointerUp = true;
             var marker = null;
@@ -2002,17 +2004,22 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             $scope.init = function() {
                 var rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
                 var body = angular.element($($document).find('body'))[0];
-                var hdlrs = $scope.eventHandlers || {};
+                hdlrs = $scope.eventHandlers || {};
 
                 // vtk adds keypress event listeners to the BODY of the entire document, not the render
-                // container
-                var hasBodyEvt = Object.keys(hdlrs).some(function (e) {
+                // container.
+                hasBodyEvt = Object.keys(hdlrs).some(function (e) {
                     return ['keypress', 'keydown', 'keyup'].indexOf(e) >= 0;
                 });
                 if (hasBodyEvt) {
                     var bodyAddEvtLsnr = body.addEventListener;
-                    body.addEventListener = function (type, listener) {
-                        bodyAddEvtLsnr(type, hdlrs[type] ? hdlrs[type] : listener);
+                    var bodyRmEvtLsnr = body.removeEventListener;
+                    body.addEventListener = function(type, listener, opts) {
+                        bodyAddEvtLsnr(type, hdlrs[type] ? hdlrs[type] : listener, opts);
+                    };
+                    // seem to need to do this so listeners get removed correctly
+                    body.removeEventListener = function(type, listener, opts) {
+                        bodyRmEvtLsnr(type, listener, opts);
                     };
                 }
 
@@ -2117,19 +2124,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             };
 
             $scope.$on('$destroy', function() {
-                srdbg('VTK DES');
-                /*
-                var rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
-                Object.keys(eventHandlers).forEach(function (k) {
-                    rw[k] = function (evt) {
-                        eventHandlers[k](evt);
-                        if (hdlrs[k]) {
-                            hdlrs[k](evt);
-                        }
-                    };
-                });
-
-                 */
                 $element.off();
                 $($window).off('resize', resize);
                 fsRenderer.getInteractor().unbindEvents();
