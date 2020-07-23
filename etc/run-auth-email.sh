@@ -1,7 +1,14 @@
 #!/bin/bash
 : how to setup postfix with sasl for smtpd auth <<'EOF'
+# as user vagrant
+install -m 600 /dev/stdin ~/.procmailrc <<'END'
+UMASK=077
+:0
+mail/.
+END
+install -m 600 -d ~/mail
 sudo su -
-dnf install -y postfix cyrus-sasl cyrus-sasl-lib cyrus-sasl-plain telnet
+dnf install -y postfix cyrus-sasl cyrus-sasl-lib cyrus-sasl-plain telnet procmail
 systemctl start postfix
 systemctl enable postfix
 echo vagrant | saslpasswd2 -f /etc/sasldb2 -c -p vagrant
@@ -12,9 +19,12 @@ log_level: 4
 mech_list: plain
 pwcheck_method: auxprop
 END
-postconf smtpd_sasl_path=smtpd-sasldb smtpd_sasl_auth_enable=yes
+postconf smtpd_sasl_path=smtpd-sasldb smtpd_sasl_auth_enable=yes 'mailbox_command=/usr/bin/procmail -a "$EXTENSION"'
 systemctl restart postfix
-# to test
+exit
+# to test procmail delivery
+echo hello | sendmail vagrant
+# to test sasl
 (sleep 1; echo EHLO localhost; sleep 1; echo AUTH PLAIN AHZhZ3JhbnQAdmFncmFudA==; sleep 1; echo QUIT) | telnet localhost 25
 EOF
 export SIREPO_AUTH_EMAIL_FROM_EMAIL='support@radiasoft.net'
