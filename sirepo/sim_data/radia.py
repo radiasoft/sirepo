@@ -48,12 +48,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         dm = data.models
         cls._init_models(
             dm,
-            (
-                'box',
-                'geometry',
-                'geomObject',
-                'simulation'
-            ),
+            None,
             dynamic=lambda m: cls.__dynamic_defaults(data, m)
         )
         cls._organize_example(data)
