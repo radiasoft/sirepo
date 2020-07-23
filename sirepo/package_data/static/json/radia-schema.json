@@ -9,12 +9,18 @@
         "inProgressText": "Solving",
         "objectScale": 0.001,
         "pathPtsFileType": "path-pts",
-        "pathDetailFields": {
-            "circlePath": ["ctrX", "ctrY", "ctrZ", "radius", "theta", "phi"],
-            "fieldMapPath": ["ctrX", "ctrY", "ctrZ", "lenX", "lenY", "lenZ"],
-            "filePath": ["fileName"],
-            "linePath": ["beginX", "beginY", "beginZ", "endX", "endY", "endZ"],
-            "manualPath": ["ptX", "ptY", "ptZ"]
+        "detailFields": {
+            "fieldPath": {
+                "circlePath": ["ctrX", "ctrY", "ctrZ", "radius", "theta", "phi"],
+                "fieldMapPath": ["ctrX", "ctrY", "ctrZ", "lenX", "lenY", "lenZ"],
+                "filePath": ["fileName"],
+                "linePath": ["beginX", "beginY", "beginZ", "endX", "endY", "endZ"],
+                "manualPath": ["ptX", "ptY", "ptZ"]
+            },
+            "transforms": {
+                "cloneTransform": ["name","numCopies", "transform", "alternateFields"],
+                "symmetryTransform": ["name", "symmetryPlane", "symmetryPoint", "symmetryType"]
+            }
         },
         "toolbarItems": [
             {
@@ -39,6 +45,7 @@
                         "type": "group"
                     },
                     {
+                        "isButton": true,
                         "layoutShape": "rect",
                         "model": "undulatorGroup",
                         "title": "Build Undulator",
@@ -46,6 +53,26 @@
                     }
                 ],
                 "type": "Tools"
+            },
+            {
+                "canDrag": true,
+                "contents": [
+                    {
+                        "isButton": false,
+                        "layoutShape": "rect",
+                        "model": "cloneTransform",
+                        "title": "Clone",
+                        "type": "clone"
+                    },
+                    {
+                        "isButton": false,
+                        "layoutShape": "rect",
+                        "model": "symmetryTransform",
+                        "title": "Symmetry",
+                        "type": "symmetry"
+                    }
+                ],
+                "type": "Transforms"
             }
         ]
     },
@@ -113,6 +140,10 @@
             ["parallel", "Parallel"],
             ["perpendicular", "Perpendicular"]
         ],
+        "SpatialTransform": [
+            ["translate", "Translate"],
+            ["rotate", "Rotate"]
+        ],
         "ViewType": [
             ["objects", "Objects"],
             ["fields", "Fields"]
@@ -152,6 +183,17 @@
             "phi": ["\uD835\uDFBF", "Float", 0.0, "Euler 3", 0.0, 6.2832],
             "numPoints": ["Num Points", "Integer", 10, "", 2],
             "type": ["_", "PathType", "circle"]
+        },
+        "cloneTransform": {
+            "_super": ["_", "model", "transform"],
+            "angle": ["Angle (rad)", "Float", "0.0"],
+            "axis": ["Axis", "FloatStringArray", "0.0, 0.0, 1.0", "", "x, y, z"],
+            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "distance": ["Direction", "FloatStringArray", "10.0, 0.0, 0.0", "", "x, y, z"],
+            "alternateFields": ["Alternate Fields", "Boolean", "1"],
+            "name": ["Name", "String", "Clone"],
+            "numCopies": ["Number of Copies", "Integer", 1, "", 1],
+            "transform": ["Transform", "SpatialTransform", "translate", "Serially apply this transform to each new object"]
         },
         "fieldDisplay": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
@@ -253,11 +295,15 @@
             "name": ["Name", "String", ""],
             "symmetryPlane": ["Symmetry Plane", "FloatStringArray", "1.0, 0.0, 0.0", "", "x, y, z"],
             "symmetryPoint": ["Point in Symmetry Plane", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
-            "symmetryType": ["Symmetry", "SymmetryType", "none"]
-        },
-        "radiaReq": {
+            "symmetryType": ["Symmetry", "SymmetryType", "none"],
+            "transforms": ["Transforms Applied", "TransformTable", [], "Transforms are applied in this order"]
         },
         "reset": {
+        },
+        "rotate": {
+            "angle": ["Angle (rad)", "Float", "0.0"],
+            "axis": ["Axis", "FloatStringArray", "0.0, 0.0, 1.0", "", "x, y, z"],
+            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"]
         },
         "simulation": {
         },
@@ -271,6 +317,22 @@
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
             "sbatchProject": ["Project", "OptionalString", ""]
+        },
+        "spatialTransform": {
+        },
+        "symmetryTransform": {
+            "_super": ["_", "model", "transform"],
+            "name": ["Name", "String", "Symmetry"],
+            "symmetryPlane": ["Symmetry Plane", "FloatStringArray", "1.0, 0.0, 0.0", "", "x, y, z"],
+            "symmetryPoint": ["Point in Symmetry Plane", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "symmetryType": ["Symmetry", "SymmetryType", "none"]
+        },
+        "transform": {
+            "name": ["Name", "String", "Transform"],
+            "object": ["Apply to", "geomObject", ""]
+        },
+        "translate": {
+            "distance": ["Direction", "FloatStringArray", "10.0, 0.0, 0.0", "", "x, y, z"]
         }
     },
     "view": {
@@ -285,6 +347,23 @@
                 "theta",
                 "phi",
                 "numPoints"
+            ]
+        },
+        "cloneTransform": {
+            "title": "Clone Object",
+            "basic": [
+                "numCopies",
+                "transform",
+                "alternateFields"
+            ],
+            "advanced": [
+                "numCopies",
+                "transform",
+                "axis",
+                "center",
+                "angle",
+                "distance",
+                "alternateFields"
             ]
         },
         "fieldMapPath": {
@@ -320,6 +399,7 @@
             "title": "Group",
             "basic": [
                 "name",
+                "transforms",
                 "symmetryType",
                 "symmetryPlane",
                 "symmetryPoint",
@@ -328,6 +408,7 @@
             ],
             "advanced": [
                 "name",
+                "transforms",
                 "symmetryType",
                 "symmetryPlane",
                 "symmetryPoint",
@@ -346,6 +427,7 @@
                 "color"
             ],
             "advanced": [
+                ["Main", [
                 "name",
                 "type",
                 "magnetization",
@@ -358,6 +440,10 @@
                 "center",
                 "size",
                 "color"
+            ]],
+                ["Transforms", [
+                    "transforms"
+                ]]
             ]
         },
         "linePath": {
@@ -400,6 +486,19 @@
                 "ptZ"
             ]
         },
+        "rotate": {
+            "title": "Rotate",
+            "basic": [
+                "axis",
+                "center",
+                "angle"
+            ],
+            "advanced": [
+                "axis",
+                "center",
+                "angle"
+            ]
+        },
         "simulation": {
             "title": "Simulation",
             "advanced": [
@@ -416,6 +515,35 @@
                 "method"
             ],
             "advanced": []
+        },
+        "symmetryTransform": {
+            "title": "Apply Symmetry",
+            "basic": [
+                "symmetryType",
+                "symmetryPlane",
+                "symmetryPoint"
+            ],
+            "advanced": [
+                "symmetryType",
+                "symmetryPlane",
+                "symmetryPoint"
+            ]
+        },
+        "transform": {
+            "title": "Apply Transform",
+            "basic": [
+                "object"
+            ],
+            "advanced": []
+        },
+        "translate": {
+            "title": "Translate",
+            "basic": [
+                "distance"
+            ],
+            "advanced": [
+                "distance"
+            ]
         }
     }
 }

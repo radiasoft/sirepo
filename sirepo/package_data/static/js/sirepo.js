@@ -630,10 +630,6 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
                 }
             }
         }
-        // add ref to model name if not already defined (???)
-        if (! model.model) {
-            model.model = modelName;
-        }
         return model;
     };
 
@@ -1351,8 +1347,8 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return queueItems[name] && queueItems[name].qState == 'processing' ? true : false;
     };
 
-    self.modalId = function(name) {
-        return 'sr-' + name + '-editor';
+    self.modalId = function(name, includeHash) {
+        return (includeHash ? '#' : '') + 'sr-' + name + '-editor';
     };
 
     self.pythonSource = function(simulationId, modelName, reportTitle) {

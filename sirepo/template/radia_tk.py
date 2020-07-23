@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function
 
 import numpy
 import radia
+import re
 import sys
 
 from numpy import linalg
@@ -34,11 +35,42 @@ FIELD_UNITS = PKDict({
 _ZERO = [0, 0, 0]
 
 
+def _split_comma_field(f, type):
+    arr = re.split(r'\s*,\s*', f)
+    if type == 'float':
+        return [float(x) for x in arr]
+    if type == 'int':
+        return [int(x) for x in arr]
+    return arr
+
+
 def apply_symmetry(g_id, symm_type, plane, point):
     if symm_type == 'parallel':
         radia.TrfZerPara(g_id, point, plane)
     if symm_type == 'perpendicular':
         radia.TrfZerPerp(g_id, point, plane)
+
+
+#def apply_clone(g_id, num_copies, transform, transform_props, alternate_fields):
+def apply_clone(g_id, xform):
+    #props = PKDict(transform_props)
+    #if transform == 'translate':
+    if xform.transform == 'translate':
+        pkdp('CLONE {} {} N {}', xform.transform, xform.distance, xform.numCopies + 1)
+        #xf = radia.TrfTrsl(_split_comma_field(props.distance, 'float'))
+        xf = radia.TrfTrsl(_split_comma_field(xform.distance, 'float'))
+    #if transform == 'rotate':
+    if xform.transform == 'rotate':
+        #xf = radia.TrfRot(props.center, props.axis, props.axis)
+        # args are wrong???
+        pkdp('ROT {} {}', _split_comma_field(xform.center, 'float'), _split_comma_field(xform.axis, 'float'))
+        #xf = radia.TrfRot(
+        #    _split_comma_field(xform.center, 'float'),
+        #    _split_comma_field(xform.axis, 'float'),
+        #    xform.angle
+        #)
+    #return radia.TrfMlt(g_id, xf, num_copies)
+    return radia.TrfMlt(g_id, xf, xform.numCopies + 1)
 
 
 def build_box(center, size, material, magnetization, division):

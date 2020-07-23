@@ -21,7 +21,7 @@
               <text class="y-axis-label" transform="rotate(-90)" data-ng-attr-x="{{ -height / 2 }}" data-ng-attr-y="-{{ margin.left }}" dy="1em"></text>
               <text class="x-axis-label" ng-attr-x="{{ width / 2 }}" ng-attr-y="{{ height + 26 }}" dy="1em"></text>
               <text class="x-base" text-anchor="end" ng-attr-x="{{ width + margin.right - 5 }}" ng-attr-y="{{ height + 40 }}"></text>
-              <svg class="plot-viewport elevation-front" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}" data-ng-drop="true" data-ng-drag-move="dragMove($data, $event)" data-ng-drop-success="dropSuccess($data, $event)">
+              <svg class="plot-viewport elevation-front" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}" data-ng-drop="isDropEnabled()" data-ng-drag-move="dragMove($data, $event)" data-ng-drop-success="dropSuccess($data, $event)">
                   <defs>
                   </defs>
                   <rect class="overlay mouse-zoom" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}"></rect>

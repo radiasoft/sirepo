@@ -1295,8 +1295,9 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 clearDragShadow();
                 //var shape = shapeFromObjectTypeAndPoint(obj, p);
                 var shape = $scope.source.shapeForObject(obj);
+                shape.elev = ELEVATION_INFO.front;
                 shape.x = shapeOrigin(shape, 'x'); // axes.x.scale.invert(p[0]) + shape.size[0]/ 2;
-                shape.x = shapeOrigin(shape, 'y'); //shape.y = axes.y.scale.invert(p[1]) + shape.size[1] / 2;
+                shape.y = shapeOrigin(shape, 'y'); //shape.y = axes.y.scale.invert(p[1]) + shape.size[1] / 2;
                 showShapeLocation(shape);
                 d3.select('.plot-viewport')
                     .append('rect').attr('class', 'vtk-object-layout-shape vtk-object-layout-drag-shadow')
@@ -1338,7 +1339,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 return pts;
             }
 
-           function shapeSize(shape, dim) {
+            function shapeSize(shape, dim) {
                 var screenDim = shape.elev[dim].axis;
                 return  Math.abs(
                     axes[screenDim].scale(shape.center[screenDim] + shape.size[screenDim] / 2) -
@@ -1417,6 +1418,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 $('.plot-viewport').off();
             };
 
+            //TODO(mvk): specify elevation here (?)
             $scope.dragMove = function(obj, evt) {
                 var p = isMouseInBounds(evt);
                 if (p) {
@@ -1492,7 +1494,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 replot();
             };
 
-           $scope.plotHeight = function() {
+            $scope.isDropEnabled = function() {
+                return $scope.source.isDropEnabled();
+            };
+
+            $scope.plotHeight = function() {
                 var ph = $scope.plotOffset() + $scope.margin.top + $scope.margin.bottom;
                 return ph;
             };
@@ -2111,6 +2117,19 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             };
 
             $scope.$on('$destroy', function() {
+                srdbg('VTK DES');
+                /*
+                var rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
+                Object.keys(eventHandlers).forEach(function (k) {
+                    rw[k] = function (evt) {
+                        eventHandlers[k](evt);
+                        if (hdlrs[k]) {
+                            hdlrs[k](evt);
+                        }
+                    };
+                });
+
+                 */
                 $element.off();
                 $($window).off('resize', resize);
                 fsRenderer.getInteractor().unbindEvents();

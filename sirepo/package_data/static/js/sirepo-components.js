@@ -565,7 +565,6 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
-
             $scope.utilities = utilities;
             function fieldClass(fieldType, fieldSize, wantEnumButtons) {
                 return 'col-sm-' + (fieldSize || (
@@ -1266,6 +1265,7 @@ SIREPO.app.directive('modelField', function(appState) {
             '<div data-field-editor="fieldName()" data-form="form" data-model-name="modelNameForField()" data-model="modelForField()" data-custom-label="customLabel" data-label-size="{{ labelSize }}" data-field-size="{{ fieldSize }}"></div>',
         ].join(''),
         controller: function($scope) {
+            //srdbg('modelField', $scope);
             var modelName = $scope.modelName;
             var field = $scope.field;
             var modelField = appState.parseModelField(field);
@@ -2879,6 +2879,8 @@ SIREPO.app.directive('numberList', function() {
             '</div>'
         ].join(''),
         controller: function($scope) {
+            //srdbg('num list', $scope);
+            // NOTE: does not appear to like 'model.field' format
             $scope.values = null;
             $scope.numberType = $scope.type.toLowerCase();
             $scope.min = $scope.numberType === 'int' ? Number.MIN_SAFE_INTEGER : -Number.MAX_VALUE;
@@ -3031,11 +3033,11 @@ SIREPO.app.directive('toolbar', function(appState) {
                 '<div class="text-center bg-info sr-toolbar-holder">',
                   '<div class="sr-toolbar-section" data-ng-repeat="section in ::sectionItems">',
                     '<div class="sr-toolbar-section-header"><span class="sr-toolbar-section-title">{{ ::section.type }}</span></div>',
-                    '<span data-ng-repeat="item in ::section.contents" class="sr-toolbar-button sr-beamline-image" data-ng-drag="true" data-ng-drag-data="item">',
+                    '<span data-ng-click="item.isButton ? parentController.editTool(item) : SIREPO.noop()" data-ng-repeat="item in ::section.contents" class="sr-toolbar-button sr-beamline-image" data-ng-drag="{{ ! item.isButton }}" data-ng-drag-data="item">',
                       '<span data-toolbar-icon="" data-item="item"></span><br>{{ ::item.title }}',
                     '</span>',
                   '</div>',
-                  '<span data-ng-repeat="item in ::standaloneItems" class="sr-toolbar-button sr-beamline-image" data-ng-drag="true" data-ng-drag-data="item">',
+                  '<span data-ng-repeat="item in ::standaloneItems" class="sr-toolbar-button sr-beamline-image" data-ng-drag="{{ ! item.isButton }}" data-ng-drag-data="item">',
                     '<span data-beamline-icon="" data-item="item"></span><br>{{ ::item.title }}',
                   '</span>',
                 '</div>',
@@ -3058,25 +3060,6 @@ SIREPO.app.directive('toolbar', function(appState) {
             }
 
             function initToolbarItems() {
-                /*
-                var sections = [];
-                var standalone = [];
-                items.forEach(function(section) {
-                    var items = [];
-                    if (angular.isArray(section)) {
-                        section[1].forEach(function(name) {
-                            addItem(name, items);
-                        });
-                        sections.push([section[0], items]);
-                    }
-                    else {
-                        addItem(section, standalone);
-                    }
-                });
-                //$scope.sectionItems = sections;
-                //$scope.standaloneItems = standalone;
-                
-                 */
                 $scope.sectionItems = items.filter(function (item) {
                     return isSection(item);
                 });

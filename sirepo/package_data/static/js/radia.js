@@ -9,11 +9,17 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
         '</div>',
-        '<div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">',
-          '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
-        '</div>',
         '<div data-ng-switch-when="Group" class="col-sm-7">',
           '<div data-group-editor="" data-field="model[field]" data-model="model"></div>',
+        '</div>',
+        '<div data-ng-switch-when="subModel" class="col-sm-7">',
+          '<div data-sub-model="" data-sub-model-name="model[field]" data-model="model" data-form="form"></div>',
+        '</div>',
+        '<div data-ng-switch-when="TransformTable" class="col-sm-7">',
+          '<div data-transform-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-item-class="Transform" data-parent-controller="parentController"></div>',
+        '</div>',
+        '<div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">',
+          '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
         '</div>',
     ].join('');
     SIREPO.appPanelHeadingButtons = [
@@ -161,7 +167,8 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
                 self.createPathModel();
             }
         }
-        $('#' + panelState.modalId('fieldpaths')).modal(doShow ? 'show' : 'hide');
+        //$('#' + panelState.modalId('fieldpaths')).modal(doShow ? 'show' : 'hide');
+        $(panelState.modalId('fieldpaths', true)).modal(doShow ? 'show' : 'hide');
     };
 
     function findPath(path) {
@@ -236,9 +243,16 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         },
     };
 
+    self.dropEnabled = true;
     self.selectedObject = null;
-    self.shapes = [];  //{};  // [];
-    self.toolbarItems = SIREPO.APP_SCHEMA.constants.toolbarItems;
+    self.shapes = [];
+    self.toolbarItems = SIREPO.APP_SCHEMA.constants.toolbarItems.filter(function (item) {
+        return item.type !== 'Transforms';
+    });
+
+    self.editTool = function(tool) {
+        panelState.showModalEditor(tool.model);
+    };
 
     self.deleteObject = function(o) {
         var oIdx = appState.models.geometry.objects.indexOf(o);
@@ -277,7 +291,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return radiaService.getObjects();
     };
 
-
     self.getShape = function(id) {
         for (var i in self.shapes) {
             if (self.shapes[i].id === id) {
@@ -289,6 +302,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.getShapes = function() {
         return self.shapes;
+    };
+
+    self.isDropEnabled = function() {
+        return self.dropEnabled;
     };
 
     self.isEditable = function() {
@@ -329,6 +346,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.selectObject = function(o) {
+        srdbg('select', o);
         if (o) {
             self.selectedObject = o;
             appState.models[panelState.getBaseModelKey(o.model)] = o;
@@ -502,7 +520,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             [Number.MAX_VALUE, -Number.MAX_VALUE]
         ];
         b.forEach(function (c, i) {
-            (objs || appState.models.geometry.objects).forEach(function (o) {
+            (objs || appState.models.geometry.objects || []).forEach(function (o) {
                 var ctr = stringToFloatArray(o.center || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
                 var sz = stringToFloatArray(o.size || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
                 c[0] = Math.min(c[0], ctr[i] - sz[i] / 2);
@@ -537,7 +555,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function updateObjectEditor() {
-        var o = self.selectedObject;  //appState.models.geomObject;
+        var o = self.selectedObject;
         if (! o) {
             return;
         }
@@ -566,6 +584,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         );
     }
 
+    function updateToolEditor(toolItem) {
+    }
+
     appState.whenModelsLoaded($scope, function() {
         // initial setup
         appState.watchModelFields($scope, editorFields, function(d) {
@@ -574,9 +595,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         if (! appState.models.geometry.objects) {
             appState.models.geometry.objects = [];
         }
-        //appState.models.geometry.objects.forEach(function (o) {
-        //    addShapesForObject(o);
-        //});
         loadShapes();
         //srdbg('have shapes', self.shapes);
         
@@ -596,11 +614,18 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         $scope.$on('geomObject.editor.show', function(e, o) {
             updateObjectEditor();
         });
+        $scope.$on('tool.editor.show', function(e, o) {
+            updateToolEditor();
+        });
         $scope.$on('layout.object.dropped', function (e, o) {
             var m = appState.setModelDefaults({}, o.model);
             m.center = o.center;
             m.name = o.type;
+            m.model = o.model;
             self.editObject(m);
+        });
+        $scope.$on('drop.target.enabled', function (e, val) {
+            self.dropEnabled = val;
         });
     });
 });
@@ -1072,7 +1097,7 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
                var res = '';
                var pt = radiaService.pathTypeModel(path.type);
                var info = appState.modelInfo(pt);
-               var d = SIREPO.APP_SCHEMA.constants.pathDetailFields[pt];
+               var d = SIREPO.APP_SCHEMA.constants.detailFields.fieldPath[pt];
                d.forEach(function (f, i) {
                    var fi = info[f];
                    res += (fi[0] + ': ' + path[f] + (i < d.length - 1 ? '; ' : ''));
@@ -1081,6 +1106,7 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
            };
 
            appState.whenModelsLoaded($scope, function() {
+               srdbg(appState.models);
                $scope.paths = appState.models.fieldPaths.paths;
            });
         },
@@ -1157,6 +1183,220 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                 }
                 $scope.field.splice(oIdx, 1);
             };
+        },
+    };
+});
+
+// this kind of thing should be generic
+SIREPO.app.directive('transformTable', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            fieldName: '=',
+            itemClass: '@',
+            model: '=',
+            modelName: '=',
+            parentController: '='
+        },
+        template: [
+            '<div data-toolbar="toolbarItems" data-parent-controller="parentController"></div>',
+            '<div class="sr-object-table">',
+              '<p class="lead text-center"><small><em>drag and drop {{ itemClass.toLowerCase() }}s or use arrows to reorder the list</em></small></p>',
+              '<table class="table table-hover" style="width: 100%; table-layout: fixed">',
+                '<tr data-ng-repeat="item in items">',
+                  '<td data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)" data-ng-drag-start="selectItem($data)">',
+                    '<div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == items.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editItem(item)">Edit</button> <button data-ng-click="toggleExpand(item)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': isExpanded(item), \'glyphicon-chevron-down\': ! isExpanded(item)}"></span></button> <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
+                    '<div class="sr-command-icon-holder" data-ng-drag="true" data-ng-drag-data="item">',
+                      '<a style="cursor: move; -moz-user-select: none; font-size: 14px" class="badge sr-badge-icon" data-ng-class="{\'sr-item-selected\': isSelected(item) }" href data-ng-click="selectItem(item)" data-ng-dblclick="editItem(item)">{{ itemName(item) }}</a>',
+                    '</div>',
+                    '<div data-ng-show="! isExpanded(item) && itemDetails(item)" style="margin-left: 3em; margin-right: 1em; color: #777; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ itemDetails(item) }}</div>',
+                    '<div data-ng-show="isExpanded(item) && itemDetails(item)" style="color: #777; margin-left: 3em; white-space: pre-wrap">{{ itemDetails(item) }}</div>',
+                  '</td>',
+                '</tr>',
+                '<tr><td style="height: 3em" data-ng-drop="true" data-ng-drop-success="dropLast($data)"> </td></tr>',
+              '</table>',
+            '</div>',
+            '<div data-confirmation-modal="" data-id="sr-delete-item-confirmation" data-title="Delete {{ itemClass }}?" data-ok-text="Delete" data-ok-clicked="deleteSelected()">Delete command &quot;{{ selectedItemName() }}&quot;?</div>',
+        ].join(''),
+        controller: function($scope) {
+            srdbg('scope', $scope);
+
+            var isEditing = false;
+            var expanded = {};
+
+            // should be generic
+            var watchedTransforms = [
+                'cloneTransform',
+                'symmetryTransform'
+            ];
+            var watchedModels = [
+                'geomObject',
+                'geomGroup',
+                'radiaObject',
+                'cloneTransform',
+                'symmetryTransform'
+            ];
+
+            $scope.items = [];
+            $scope.toolbarItems = SIREPO.APP_SCHEMA.constants.toolbarItems.filter(function (item) {
+                return item.type === 'Transforms';
+            });
+
+            function itemIndex(data) {
+                return $scope.items.indexOf(data);
+            }
+
+            function loadItems() {
+                srdbg('load items', $scope.field);
+                $scope.items = $scope.field;
+                $scope.items.forEach(function (item, i) {
+                    var xform = 'items[' + i + '].transform';
+                    $scope.$watch(xform, function (nv, ov) {
+                        srdbg('init model', item.transformModel,  'appst', appState.models[nv]);
+                        /*
+                        var m = item.transformModel;  // || appState.models[nv];
+                        if (! m) {
+                            m = appState.setModelDefaults({}, nv);
+                            appState.saveQuietly(nv);
+                        }
+                        appState.models[nv] = m;
+                        item.transformModel = m;
+                        srdbg('item', item);
+                        //for (var f in m) {
+                        //    panelState.showField(nv, f, item.transform === nv);
+                        //}
+
+                         */
+                    }, true);
+                });
+            }
+
+            $scope.addItem = function(item) {
+                $scope.editItem(item, true);
+            };
+
+            $scope.deleteItem = function(item) {
+                var index = itemIndex(item);
+                if (index < 0) {
+                    return;
+                }
+                $scope.field.splice(index, 1);
+                //appState.saveChanges($scope.modelName);
+                appState.saveChanges('geometry');
+            };
+
+            $scope.editItem = function(item, isNew) {
+                //srdbg('editing', item);
+                isEditing = ! isNew;
+                if (isNew) {
+                    appState.models[item.model] = appState.setModelDefaults({}, item.model);
+                    appState.models[item.model].model = item.model;
+                    if (appState.models[item.model].transform) {
+                        item.transformModel = appState.setModelDefaults({}, appState.models[item.model].transform);
+                    }
+                    //srdbg('adding', item);
+                }
+                else {
+                    appState.models[item.model] = item;
+                }
+                panelState.showModalEditor(item.model);
+            };
+
+            $scope.dropItem = function(index, data) {
+                if (! data) {
+                    return;
+                }
+                var i = $scope.items.indexOf(data);
+                if (i < 0) {
+                    $scope.addItem(data);
+                    return;
+                }
+                data = $scope.items.splice(i, 1)[0];
+                if (i < index) {
+                    index--;
+                }
+                $scope.items.splice(index, 0, data);
+            };
+
+            $scope.dropLast = function(item) {
+                if (! item) {
+                    return;
+                }
+                $scope.addItem(item);
+                //$scope.items.push(item);
+                //loadItems();
+            };
+
+            $scope.itemDetails = function(item) {
+                //srdbg('deets', item);
+                var res = '';
+                var info = appState.modelInfo(item.model);
+                //srdbg('info', info);
+                var d = SIREPO.APP_SCHEMA.constants.detailFields[$scope.fieldName][item.model];
+                d.forEach(function (f, i) {
+                   var fi = info[f];
+                   res += (fi[0] + ': ' + item[f] + (i < d.length - 1 ? '; ' : ''));
+                });
+                return res;
+            };
+
+            $scope.isExpanded = function(item) {
+                return expanded[itemIndex(item)];
+            };
+
+            $scope.toggleExpand = function(item) {
+                expanded[itemIndex(item)] = ! expanded[itemIndex(item)];
+            };
+
+            appState.whenModelsLoaded($scope, function() {
+
+                $scope.$on('modelChanged', function(e, name) {
+                    if (watchedModels.indexOf(name) < 0) {
+                        return;
+                    }
+                    if (! isEditing) {
+                        $scope.field.push(appState.models[name]);
+                        isEditing = true;
+                    }
+
+                    // model name?
+                    appState.saveChanges('geometry', function () {
+                        loadItems();
+                    });
+                });
+
+                $scope.$on('cancelChanges', function(e, name) {
+                    if (true) {
+                        //appState.removeModel(name);
+                        //appState.cancelChanges('commands');
+                        //appState.cancelChanges('commands');
+                    }
+                    $scope.$emit('drop.target.enabled', true);
+                });
+
+                $scope.$on('$destroy', function () {
+                    $scope.$emit('drop.target.enabled', true);
+                });
+
+                $scope.$watch($scope.modelName, function () {
+                    //srdbg('watch saw', $scope.modelName);
+                });
+
+                $scope.$watch('items', function () {
+                    //srdbg('watch saw', $scope.items);
+                });
+
+                //watchedTransforms.forEach(function (m) {
+                //    $scope.$watch(m, function () {
+                //        srdbg('watch saw', m);
+                //    });
+                //});
+
+                loadItems();
+            });
+
+            $scope.$emit('drop.target.enabled', false);
         },
     };
 });
@@ -1489,13 +1729,15 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             if (gColor) {
                                 gObj.color = vtk.Common.Core.vtkMath.floatRGB2HexCode(vtkUtils.rgbToFloat(gColor));
                             }
-                            /*
-                            if (! appState.models.geometry.objects) {
-                                appState.models.geometry.objects = [];
-                            }
-                            appState.models.geometry.objects.push(gObj);
 
-                             */
+                            // temporary handling of examples until they are "builaable"
+                            if (appState.models.simulation.isExample) {
+                                if (! appState.models.geometry.objects) {
+                                    appState.models.geometry.objects = [];
+                                }
+                                appState.models.geometry.objects.push(gObj);
+                            }
+
                             didModifyGeom = true;
                         }
                         if (! gObj.center || ! gObj.size) {
@@ -2125,41 +2367,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     inData.fieldPaths = appState.models.fieldPaths.paths;
                 }
 
-                /*
-                requestSender.getApplicationData(
-                    inData,
-                    function(d) {
-                        //srdbg('got app data', d);
-                        if (d && d.data && d.data.length) {
-                            if ($scope.isViewTypeFields()) {
-                                // get the lines in a separate call - downside is longer wait
-                                delete inData.fieldType;
-                                inData.geomTypes = ['lines'];
-                                inData.method = 'get_geom';
-                                inData.viewType = VIEW_TYPE_OBJECTS;
-                                requestSender.getApplicationData(
-                                    inData,
-                                    function(g) {
-                                        if (g && g.data) {
-                                            d.data = d.data.concat(g.data);
-                                        }
-                                        setupSceneData(d);
-                                    }
-                                );
-                                return;
-                            }
-                            setupSceneData(d);
-                            return;
-                        }
-                        if (d.error) {
-                            throw new Error(d.error);
-                        }
-                        //srdbg('no app data, requesting');
-                        panelState.clear('geometry');
-                        panelState.requestData('geometry', setupSceneData, true);
-                    });
-                */
-                srdbg('getting app data...');
+                srdbg('getting app data...', inData);
                 radiaService.getRadiaData(
                     inData,
                     function(d) {
@@ -2263,6 +2471,20 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     return;
                 }
                 updateViewer();
+            });
+
+            $scope.$on('$destroy', function () {
+                srdbg('RADIA DES');
+                $element.off();
+                renderer = null;
+                renderWindow = null;
+                // move pickers to vtkdisplay?
+                cPicker = null;
+                ptPicker = null;
+                //$($window).off('resize', resize);
+                //fsRenderer.getInteractor().unbindEvents();
+                //fsRenderer.delete();
+                //plotToPNG.removeCanvas($scope.reportId);
             });
 
             $scope.$on('solveStarted', function (e, d) {
