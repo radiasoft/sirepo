@@ -995,6 +995,18 @@
     }
   }
 
+  .faq-block {
+    background-color: white;
+    padding-bottom: 40px;
+    // start safari column fix
+    display: flex;
+    justify-content: center;
+    .row {
+      display: block;
+    }
+    // end safari column fix
+  }
+
   .faqs {
     column-count: 3;
     column-gap: 40px;

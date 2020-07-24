@@ -1,5 +1,8 @@
+import contextlib
 import os
 import pytest
+import requests
+import subprocess
 
 #: Maximum time an individual test case (function) can run
 MAX_CASE_RUN_SECS = int(os.getenv('SIREPO_CONFTEST_MAX_CASE_RUN_SECS', 120))
@@ -16,41 +19,8 @@ def auth_fc(auth_fc_module):
 
 @pytest.fixture
 def auth_fc_module(request):
-    import sirepo.srunit
-    from pykern.pkcollections import PKDict
-
-    cfg = PKDict(
-        SIREPO_AUTH_BASIC_PASSWORD='pass',
-        SIREPO_AUTH_BASIC_UID='dev-no-validate',
-        SIREPO_AUTH_EMAIL_FROM_EMAIL='x',
-        SIREPO_AUTH_EMAIL_FROM_NAME='x',
-        SIREPO_AUTH_EMAIL_SMTP_PASSWORD='x',
-        SIREPO_AUTH_EMAIL_SMTP_SERVER='dev',
-        SIREPO_AUTH_EMAIL_SMTP_USER='x',
-        SIREPO_AUTH_GITHUB_CALLBACK_URI='/uri',
-        SIREPO_AUTH_GITHUB_KEY='key',
-        SIREPO_AUTH_GITHUB_SECRET='secret',
-        SIREPO_AUTH_GUEST_EXPIRY_DAYS='1',
-        SIREPO_AUTH_METHODS='basic:email:guest',
-        SIREPO_FEATURE_CONFIG_API_MODULES='status',
-    )
-    if 'email3_test' in str(request.fspath.purebasename):
-        cfg.SIREPO_AUTH_METHODS += ':github'
-    else:
-        cfg.SIREPO_AUTH_DEPRECATED_METHODS = 'github'
-    from pykern import pkconfig
-    pkconfig.reset_state_for_testing(cfg)
-
-    from pykern import pkunit
-    from pykern import pkio
-    cfg['SIREPO_SRDB_ROOT'] = str(pkio.mkdir_parent(pkunit.work_dir().join('db')))
-    p, fc = _job_supervisor_start(request, cfg=cfg)
-    if p:
-        yield fc
-        p.terminate()
-        p.wait()
-    else:
-        yield sirepo.srunit.flask_client(cfg=cfg)
+    with _auth_client_module(request) as c:
+        yield c
 
 
 def email_confirm(fc, resp, display_name=None):
@@ -71,20 +41,16 @@ def email_confirm(fc, resp, display_name=None):
         raw_response=True,
     )
 
+
 @pytest.fixture(scope='function')
 def fc(request, fc_module):
     return _fc(request, fc_module)
 
+
 @pytest.fixture(scope='module')
 def fc_module(request, cfg=None):
-    import sirepo.srunit
-    p, fc = _job_supervisor_start(request)
-    if p:
-        yield fc
-        p.terminate()
-        p.wait()
-    else:
-        yield sirepo.srunit.flask_client()
+    with _subprocess_start(request) as c:
+        yield c
 
 
 @pytest.fixture
@@ -211,6 +177,43 @@ def pytest_configure(config):
     )
 
 
+@pytest.fixture
+def uwsgi_module(request):
+    with _auth_client_module(request, uwsgi=True) as c:
+        yield c
+
+
+@contextlib.contextmanager
+def _auth_client_module(request, uwsgi=False):
+    import sirepo.srunit
+    from pykern.pkcollections import PKDict
+
+    cfg = PKDict(
+        SIREPO_AUTH_BASIC_PASSWORD='pass',
+        SIREPO_AUTH_BASIC_UID='dev-no-validate',
+        SIREPO_AUTH_EMAIL_FROM_EMAIL='x',
+        SIREPO_AUTH_EMAIL_FROM_NAME='x',
+        SIREPO_AUTH_EMAIL_SMTP_PASSWORD='x',
+        SIREPO_AUTH_EMAIL_SMTP_SERVER='dev',
+        SIREPO_AUTH_EMAIL_SMTP_USER='x',
+        SIREPO_AUTH_GITHUB_CALLBACK_URI='/uri',
+        SIREPO_AUTH_GITHUB_KEY='key',
+        SIREPO_AUTH_GITHUB_SECRET='secret',
+        SIREPO_AUTH_GUEST_EXPIRY_DAYS='1',
+        SIREPO_AUTH_METHODS='basic:email:guest',
+        SIREPO_FEATURE_CONFIG_API_MODULES='status',
+    )
+    if 'email3_test' in str(request.fspath.purebasename):
+        cfg.SIREPO_AUTH_METHODS += ':github'
+    else:
+        cfg.SIREPO_AUTH_DEPRECATED_METHODS = 'github'
+    from pykern import pkconfig
+    pkconfig.reset_state_for_testing(cfg)
+
+    with _subprocess_start(request, cfg=cfg, uwsgi=uwsgi) as c:
+        yield c
+
+
 def _config_sbatch_supervisor_env(env):
     from pykern.pkcollections import PKDict
     import os
@@ -218,7 +221,6 @@ def _config_sbatch_supervisor_env(env):
     import pykern.pkunit
     import re
     import socket
-    import subprocess
 
     h = socket.gethostname()
     k = pykern.pkio.py_path('~/.ssh/known_hosts').read()
@@ -279,69 +281,6 @@ def _fc(request, fc_module, new_user=False):
     return fc_module
 
 
-def _job_supervisor_setup(request, cfg=None):
-    """setup the supervisor"""
-    import os
-    from pykern.pkcollections import PKDict
-    sbatch_module = 'sbatch' in request.module.__name__
-    env = PKDict(os.environ)
-    if not cfg:
-        cfg = PKDict()
-    i = '127.0.0.1'
-    # different port than default so can run tests when supervisor running
-    p = '8002'
-    cfg.pkupdate(
-        PYKERN_PKDEBUG_WANT_PID_TIME='1',
-        SIREPO_PKCLI_JOB_SUPERVISOR_IP=i,
-        SIREPO_PKCLI_JOB_SUPERVISOR_PORT=p,
-    )
-    for x in 'DRIVER_LOCAL', 'DRIVER_DOCKER', 'API', 'DRIVER_SBATCH':
-        cfg['SIREPO_JOB_{}_SUPERVISOR_URI'.format(x)] = 'http://{}:{}'.format(i, p)
-    if sbatch_module:
-        cfg.pkupdate(SIREPO_SIMULATION_DB_SBATCH_DISPLAY='testing@123')
-    env.pkupdate(**cfg)
-
-    import sirepo.srunit
-    fc = sirepo.srunit.flask_client(
-        cfg=cfg,
-        job_run_mode='sbatch' if sbatch_module else None,
-    )
-
-    if sbatch_module:
-        # must be performed after fc initialized so work_dir is configured
-        _config_sbatch_supervisor_env(env)
-
-    import sirepo.srdb
-    env.SIREPO_SRDB_ROOT = str(sirepo.srdb.root())
-
-    _job_supervisor_check(env)
-    return (env, fc)
-
-
-def _job_supervisor_start(request, cfg=None):
-    from pykern import pkunit
-    from pykern.pkcollections import PKDict
-    import subprocess
-    import time
-
-    env, fc = _job_supervisor_setup(request, cfg)
-    p = subprocess.Popen(
-        ['sirepo', 'job_supervisor'],
-        env=env,
-    )
-    for i in range(30):
-        r = fc.sr_post('jobSupervisorPing', PKDict(simulationType=fc.SR_SIM_TYPE_DEFAULT))
-        if r.state == 'ok':
-            break
-        time.sleep(.1)
-    else:
-        import sirepo.job_api
-        from pykern.pkdebug import pkdlog
-        pkdlog(sirepo.job_api.cfg.supervisor_uri)
-        pkunit.pkfail('could not connect to {}', sirepo.job_api.cfg.supervisor_uri)
-    return p, fc
-
-
 def _sim_type(request):
     import sirepo.feature_config
 
@@ -354,9 +293,92 @@ def _sim_type(request):
 
 
 def _slurm_not_installed():
-    import subprocess
     try:
         subprocess.check_output(('sbatch', '--help'))
     except OSError:
         return True
     return False
+
+
+def _subprocess_setup(request, cfg=None, uwsgi=False):
+    """setup the supervisor"""
+    import os
+    from pykern.pkcollections import PKDict
+    sbatch_module = 'sbatch' in request.module.__name__
+    env = PKDict(os.environ)
+    if not cfg:
+        cfg = PKDict()
+    i = '127.0.0.1'
+    from pykern import pkunit
+    from pykern import pkio
+    # different port than default so can run tests when supervisor running
+    p = '8002'
+    cfg.pkupdate(
+        PYKERN_PKDEBUG_WANT_PID_TIME='1',
+        SIREPO_PKCLI_JOB_SUPERVISOR_IP=i,
+        SIREPO_PKCLI_JOB_SUPERVISOR_PORT=p,
+        SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join('db'))),
+    )
+    if uwsgi:
+        cfg.SIREPO_PKCLI_SERVICE_PORT = '8003'
+    for x in 'DRIVER_LOCAL', 'DRIVER_DOCKER', 'API', 'DRIVER_SBATCH':
+        cfg['SIREPO_JOB_{}_SUPERVISOR_URI'.format(x)] = 'http://{}:{}'.format(i, p)
+    if sbatch_module:
+        cfg.pkupdate(SIREPO_SIMULATION_DB_SBATCH_DISPLAY='testing@123')
+    env.pkupdate(**cfg)
+
+    import sirepo.srunit
+    c = None
+    if uwsgi:
+        c = sirepo.srunit.UwsgiClient()
+    else:
+        c = sirepo.srunit.flask_client(
+            cfg=cfg,
+            job_run_mode='sbatch' if sbatch_module else None,
+        )
+
+    if sbatch_module:
+        # must be performed after fc initialized so work_dir is configured
+        _config_sbatch_supervisor_env(env)
+
+    _job_supervisor_check(env)
+    return (env, c)
+
+
+@contextlib.contextmanager
+def _subprocess_start(request, cfg=None, uwsgi=False):
+    from pykern import pkunit
+    from pykern.pkcollections import PKDict
+    import sirepo.srunit
+    import time
+
+    def _subprocess(cmd):
+        p.append(subprocess.Popen(cmd, env=env, cwd=wd))
+
+    env, c = _subprocess_setup(request, cfg, uwsgi)
+    wd = pkunit.work_dir()
+    p = []
+    try:
+        if uwsgi:
+            for s in ('nginx-proxy', 'uwsgi'):
+                _subprocess(('sirepo', 'service', s))
+        _subprocess(('sirepo', 'job_supervisor'))
+
+        for i in range(30):
+            try:
+                r = c.sr_post('jobSupervisorPing', PKDict(simulationType=sirepo.srunit.SR_SIM_TYPE_DEFAULT))
+                if r.state == 'ok':
+                    break
+            except requests.exceptions.ConnectionError:
+                pass
+            time.sleep(.1)
+        else:
+            import sirepo.job_api
+            from pykern.pkdebug import pkdlog
+            pkdlog(sirepo.job_api.cfg.supervisor_uri)
+            pkunit.pkfail('could not connect to {}', sirepo.job_api.cfg.supervisor_uri)
+        yield c
+    finally:
+        for x in p:
+            x.terminate()
+            x.wait()

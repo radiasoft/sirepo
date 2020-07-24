@@ -1,0 +1,36 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6">
+      <div class="row">
+        <div class="col-sm-12">
+          <div data-basic-editor-panel="" data-view-name="mlModel"></div>
+        </div>
+        <div class="col-sm-12">
+          <div data-simple-panel="neuralNetLayer">
+            <div class="col-md-12">
+              <div data-neural-net-layers-form=""></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div data-basic-editor-panel="" data-view-name="neuralNet"></div>
+    </div>
+    <div class="col-md-6" data-ng-show="regression.hasModel()">
+      <div data-simple-panel="simulationStatus">
+        <div data-sim-status-panel="regression.simState"></div>
+      </div>
+    </div>
+    <div class="col-md-6" data-ng-if="regression.hasFrames('epochAnimation')">
+      <div data-report-panel="parameter" data-model-name="epochAnimation"></div>
+    </div>
+    <div class="clearfix"></div>
+    <div data-ng-repeat="report in regression.reports track by report.columnNumber">
+      <div class="col-sm-3">
+        <div data-report-panel="heatmap" data-model-name="fitAnimation" data-model-data="report.data" data-panel-title="{{ report.title }}"></div>
+      </div>
+      <div data-ng-if="$index % 4 == 3" class="clearfix"></div>
+    </div>
+  </div>
+</div>

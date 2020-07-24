@@ -5,7 +5,7 @@ u"""Wrappers for Tornado
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern.pkdebug import pkdlog, pkdexc
-import asyncio
+import sirepo.util
 import tornado.queues
 
 
@@ -24,7 +24,7 @@ class Queue(tornado.queues.Queue):
             # on the queue and before this task finishes the await.
             x = super().get()
             return await x
-        except asyncio.CancelledError:
+        except sirepo.util.ASYNC_CANCELLED_ERROR:
             if x:
                 try:
                     r = x.result()

@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template import lattice
+from sirepo.template import template_common
 import ast
 import math
 import re
@@ -115,7 +116,7 @@ class CodeVar(object):
     def is_var_value(cls, value):
         if (value):
             # is it a single value in numeric format?
-            if re.search(r'^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$', str(value)):
+            if template_common.NUMERIC_RE.search(str(value)):
                 return False
             return True
         return False

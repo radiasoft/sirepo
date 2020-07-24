@@ -2,6 +2,7 @@
     "enum": {
         "flashType": [
             ["CapLaserBELLA", "CapLaserBELLA"],
+            ["CapLaser3D", "CapLaser3D"],
             ["RTFlame", "RTFlame"]
         ],
         "physicsGravityConstantgdirec": [
@@ -1199,7 +1200,7 @@
             "ed_time_1_4": ["Laser Pulse Section 4", "Float", -1.0, "The time (s)  for laser pulse 1 section 4"],
             "ed_wavelength_1": ["Wavelength", "Float", -1.7976931348623157e+308, "The wave length [in microns] of beam 1"],
             "threadRayTrace": ["threadRayTrace", "Boolean", "0", "Use threading when tracing the rays through each block?"],
-            "useEnergyDeposition": ["useEnergyDeposition", "Boolean", "1", "Use Laser energy deposition?"]
+            "useEnergyDeposition": ["Use Energy Deposition", "Boolean", "1", "Use Laser energy deposition."]
         },
         "physicsEosTabulatedHdf5TableRead": {
             "eos_useLogTables": ["eos_useLogTables", "Boolean", "1"]
@@ -1403,9 +1404,7 @@
                     ]
                 ]]
             ],
-            "advanced": [
-                "eosMode"
-            ]
+            "advanced": []
         },
         "physicsRadTrans": {
             "title": "Radiative Transfer",
@@ -1442,9 +1441,7 @@
                     "physicsRadTransMGD.rt_mgdBounds_7"
                 ]]
             ],
-            "advanced": [
-                "physicsRadTrans.rt_dtFactor"
-            ]
+            "advanced": []
         },
         "physicsHydro": {
             "title": "Hydrodynamics",
@@ -1460,9 +1457,7 @@
                 "physicsHydrounsplit.entropy",
                 "physicsHydrounsplit.shockDetect"
             ],
-            "advanced": [
-                "cfl"
-            ]
+            "advanced": []
         },
         "physicsDiffuse": {
             "title": "Diffusive Effects",
@@ -1488,20 +1483,17 @@
                     ]]
                 ]
             ],
-            "advanced": [
-                "useDiffuse"
-            ]
+            "advanced": []
          },
         "Driver": {
             "title": "Simulation Driver",
             "basic": [
                 "tmax",
                 "dtinit",
-                "IO.plotFileIntervalTime"
-            ],
-            "advanced": [
+                "IO.plotFileIntervalTime",
                 "allowDtSTSDominate"
-            ]
+            ],
+            "advanced": []
         },
         "SimulationCapLaser3D": {
             "title": "CapLaser 3D Settings",
@@ -1513,7 +1505,6 @@
                     "sim_peakField",
                     "sim_period",
                     "sim_riseTime",
-                    "physicssourceTermsHeatexchange.useHeatexchange",
                     "sim_zminWall",
                     "sim_rWall",
                     [
@@ -1553,7 +1544,7 @@
                 ]]
             ],
             "advanced": [
-                "sim_eosFill"
+                "physicssourceTermsHeatexchange.useHeatexchange"
             ]
         },
         "SimulationCapLaserBELLA": {
@@ -1565,7 +1556,6 @@
                     "sim_peakCurr",
                     "sim_riseTime",
                     "sim_zminWall",
-                    "physicssourceTermsHeatexchange.useHeatexchange",
                     [
                         ["Fill", [
                             "sim_eosFill",
@@ -1603,7 +1593,7 @@
                 ]]
             ],
             "advanced": [
-                "sim_eosFill"
+                "physicssourceTermsHeatexchange.useHeatexchange"
             ]
         },
         "SimulationRTFlame": {
@@ -1627,16 +1617,14 @@
                     ]]
                 ]
             ],
-            "advanced": [
-                "dens_unburned"
-            ]
+            "advanced": []
         },
         "physicsmaterialProperties": {
             "title": "Material Properties",
             "basic": [
                 "physicsmaterialPropertiesOpacity.useOpacity",
                 "physicsmaterialPropertiesConductivity.useConductivity",
-                "physicsmaterialPropertiesConductivity.useMagneticResistivity",
+                "physicsmaterialPropertiesMagneticResistivity.useMagneticResistivity",
                 [
                     ["Fill", [
                         "physicsmaterialPropertiesOpacityMultispecies.op_fillAbsorb",
@@ -1650,14 +1638,13 @@
                     ]]
                 ]
             ],
-            "advanced": [
-                "useOpacity"
-            ]
+            "advanced": []
         },
         "physicssourceTermsEnergyDepositionLaser": {
             "title": "Energy Deposition - Laser",
             "basic": [
                 ["Bulk", [
+                    "useEnergyDeposition",
                     "ed_maxRayCount",
                     "ed_gradOrder",
                     "ed_laser3Din2D",
@@ -1724,9 +1711,7 @@
                     ]
                 ]]
             ],
-            "advanced": [
-                "useEnergyDeposition"
-            ]
+            "advanced": []
         },
         "physicssourceTermsFlame": {
             "title": "Flame Effects",
@@ -1749,9 +1734,7 @@
                 "fl_kpp_fact",
                 "fl_b"
             ],
-            "advanced": [
-                "fl_b"
-            ]
+            "advanced": []
         },
         "physicsGravity": {
             "title": "Gravity",
@@ -1761,9 +1744,7 @@
                 "physicsGravityConstant.gconst",
                 "physicsGravityConstant.gdirec"
             ],
-            "advanced": [
-                "grav_boundary_type"
-            ]
+            "advanced": []
         }
     }
 }

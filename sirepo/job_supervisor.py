@@ -151,7 +151,7 @@ def init():
             parallel_premium=(3600*2, pkconfig.parse_seconds, 'maximum run-time for parallel job for premium user (except sbatch)'),
             sequential=(360, pkconfig.parse_seconds, 'maximum run-time for sequential job'),
         ),
-        purge_non_premium_after_days=(1000, int, 'how many days to wait before purging non-premium users simulations'),
+        purge_non_premium_after_secs=(0, pkconfig.parse_seconds, 'how long to wait before purging non-premium users simulations'),
         purge_non_premium_task_secs=(None, pkconfig.parse_seconds, 'when to clean up simulation runs of non-premium users (%H:%M:%S)'),
         sbatch_poll_secs=(15, int, 'how often to poll squeue and parallel status'),
     )
@@ -299,10 +299,10 @@ class _ComputeJob(PKDict):
         u = None
         f = None
         try:
-            _too_old = sirepo.srtime.utc_now_as_float() - (
-                cfg.purge_non_premium_after_days * 24 * 60 * 60
+            _too_old = (
+                int(sirepo.srtime.utc_now_as_float())
+                - cfg.purge_non_premium_after_secs
             )
-
             for u, v in _get_uids_and_files():
                 with sirepo.auth.set_user(u):
                     for f in v:
@@ -325,7 +325,7 @@ class _ComputeJob(PKDict):
                 o,
                 '_receive_' + req.content.api,
             )(req)
-        except asyncio.CancelledError:
+        except sirepo.util.ASYNC_CANCELLED_ERROR:
             return PKDict(state=job.CANCELED)
         except Exception as e:
             pkdlog('{} error={} stack={}', req, e, pkdexc())
@@ -566,7 +566,7 @@ class _ComputeJob(PKDict):
             )
             if timed_out_op in self.ops:
                 r.add(timed_out_op)
-            return list(r)
+            return r
 
         r = PKDict(state=job.CANCELED)
         if (
@@ -584,6 +584,7 @@ class _ComputeJob(PKDict):
         ):
             # job is not relevant, but let the user know it isn't running
             return r
+        candidates = _ops_to_cancel()
         c = None
         o = []
         # No matter what happens the job is cancelled
@@ -592,12 +593,12 @@ class _ComputeJob(PKDict):
         try:
             for i in range(_MAX_RETRIES):
                 try:
-                    if _ops_to_cancel():
+                    if _ops_to_cancel().intersection(candidates):
                         #TODO(robnagler) cancel run_op, not just by jid, which is insufficient (hash)
                         if not c:
                             c = self._create_op(job.OP_CANCEL, req)
                         await c.prepare_send()
-                        o = _ops_to_cancel()
+                        o = _ops_to_cancel().intersection(candidates)
                     elif c:
                         c.destroy()
                         c = None
@@ -700,7 +701,7 @@ class _ComputeJob(PKDict):
                     pass
             else:
                 raise AssertionError('too many retries {}'.format(req))
-        except asyncio.CancelledError:
+        except sirepo.util.ASYNC_CANCELLED_ERROR:
             if self.pkdel('_cancelled_serial') == c:
                 # We were cancelled due to api_runCancel.
                 # api_runCancel destroyed the op and updated the db
@@ -810,7 +811,7 @@ class _ComputeJob(PKDict):
                         self.__db_write()
                         if r.state in job.EXIT_STATUSES:
                             break
-                    except asyncio.CancelledError:
+                    except sirepo.util.ASYNC_CANCELLED_ERROR:
                         return
         except Exception as e:
             pkdlog('error={} stack={}', e, pkdexc())

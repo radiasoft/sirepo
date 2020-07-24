@@ -10,10 +10,10 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 from sirepo import job
 from sirepo import job_driver
-import asyncio
 import io
 import os
 import re
+import sirepo.util
 import subprocess
 import tornado.ioloop
 import tornado.process
@@ -119,7 +119,7 @@ class DockerDriver(job_driver.DriverBase):
                     self._cname
                 ),
             )
-        except asyncio.CancelledError:
+        except sirepo.util.ASYNC_CANCELLED_ERROR:
             # CancelledErrors need to make it back out to be handled
             # by callers (ex job_supervisor.api_runSimulation)
             raise

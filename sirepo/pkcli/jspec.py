@@ -97,7 +97,7 @@ def _float_from_str(v):
 
 
 def _float_list(ar):
-    return map(lambda x: _float_from_str(x), ar)
+    return [_float_from_str(x) for x in ar]
 
 
 def _run_jspec(data):

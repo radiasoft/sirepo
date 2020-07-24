@@ -79,9 +79,6 @@ _REL_LIB_DIR = '../' + _LIB_DIR
 #: Older than any other version
 _OLDEST_VERSION = '20140101.000001'
 
-#: Matches cancelation errors in run_log: KeyboardInterrupt probably only happens in dev
-_RUN_LOG_CANCEL_RE = re.compile(r'^KeyboardInterrupt$', flags=re.MULTILINE)
-
 #: Absolute path of rsmanifest file
 _RSMANIFEST_PATH = pkio.py_path('/rsmanifest' + JSON_SUFFIX)
 

@@ -7,6 +7,7 @@ u"""simulation data operations
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdp
+import re
 import sirepo.sim_data
 import sirepo.util
 
@@ -21,11 +22,15 @@ class SimData(sirepo.sim_data.SimDataBase):
     def fixup_old_data(cls, data):
         dm = data.models
         for m in list(dm.keys()):
-            n = m.replace(':', '').replace('magnetoHD', '')
+            n = m
+            for x in (':', ''), ('magnetoHD', ''), ('CapLaser$', 'CapLaserBELLA'):
+                n = re.sub(x[0], x[1], n)
             if m != n:
                 dm[n] = dm[m]
                 del dm[m]
         cls._init_models(dm)
+        if dm.simulation.flashType == 'CapLaser':
+            dm.simulation.flashType = 'CapLaserBELLA'
         if dm.simulation.flashType == 'CapLaserBELLA':
             dm.IO.update(
                 plot_var_5='magz',
