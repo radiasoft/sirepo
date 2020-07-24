@@ -411,6 +411,51 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
             shape.addLink(gShape, fit);
         }
+        var xformShapes = [];
+        if (o.transforms.length > 0) {
+            xformShapes.push(shape);
+        }
+        o.transforms.forEach(function (xform) {
+            //xformShapes.forEach(function (xShape) {
+                if (xform.model === 'cloneTransform') {
+                    srdbg('clone', xformShapes);
+                    if (xform.transform === 'translate') {
+                        var d = stringToFloatArray(xform.distance, SIREPO.APP_SCHEMA.constants.objectScale);
+                        for (var i = 1; i <= xform.numCopies; ++i) {
+                            var cShape = vtkPlotting.plotShape(
+                                virtualShapeId(shape),
+                                o.name,
+                                [shape.center.x + i * d[0], shape.center.y + i * d[1], shape.center.z + i * d[2]],
+                                [shape.size.x, shape.size.y, shape.size.z],
+                                o.color, 0.1, shape.fillStyle, shape.strokeStyle, shape.dashes,
+                                o.layoutShape
+                            );
+                            cShape.draggable = false;
+                            self.shapes.push(cShape);
+                            xformShapes.push(cShape);
+                        }
+                    }
+                    // if rotation...
+                }
+                if (xform.model === 'symmetryTransform' && xform.symmetryType !== 'none') {
+                    srdbg('symm', xformShapes);
+                    var mShape = vtkPlotting.plotShape(
+                        virtualShapeId(shape),
+                        o.name,
+                        SIREPO.ZERO_ARR, [shape.size.x, shape.size.y, shape.size.z],
+                        o.color, 0.1, shape.fillStyle, shape.strokeStyle, shape.dashes,
+                        o.layoutShape
+                    );
+                    mShape.draggable = false;
+                    shape.addLink(mShape, mirror);
+                    mirror(shape, mShape);
+                    self.shapes.push(mShape);
+                    xformShapes.push(mShape);
+                }
+            //});
+        });
+
+/*
         if (o.symmetryType !== 'none') {
             var mShape = vtkPlotting.plotShape(
                 // ??  for "virtual shapes"?
@@ -444,16 +489,18 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 }
             }
 
-            // extend group bounds if this object is in a group
-            if (gShape) {
-                //fit(mShape, gShape);
-                var newBounds = shapesBounds([gShape, mShape]);
-                for (var dim in newBounds) {
-                    gShape.size[dim] = Math.abs(newBounds[dim][1] - newBounds[dim][0]);
-                    gShape.center[dim] = newBounds[dim][0] + gShape.size[dim] / 2;
-                }
+        }
+*/
+        // extend group bounds if this object is in a group
+        if (gShape) {
+            //fit(mShape, gShape);
+            var newBounds = shapesBounds([gShape, mShape]);
+            for (var dim in newBounds) {
+                gShape.size[dim] = Math.abs(newBounds[dim][1] - newBounds[dim][0]);
+                gShape.center[dim] = newBounds[dim][0] + gShape.size[dim] / 2;
             }
         }
+
     }
 
     function virtualShapeId(shape) {
@@ -1253,7 +1300,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState) {
                 $scope.items.forEach(function (item, i) {
                     var xform = 'items[' + i + '].transform';
                     $scope.$watch(xform, function (nv, ov) {
-                        srdbg('init model', item.transformModel,  'appst', appState.models[nv]);
+                        //srdbg('init model', item.transformModel,  'appst', appState.models[nv]);
                         /*
                         var m = item.transformModel;  // || appState.models[nv];
                         if (! m) {
@@ -1268,6 +1315,10 @@ SIREPO.app.directive('transformTable', function(appState, panelState) {
                         //}
 
                          */
+                        //panelState.showField('')
+                        //if (nv.transform === 'translate') {
+                        //
+                        //}
                     }, true);
                 });
             }
@@ -2367,7 +2418,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     inData.fieldPaths = appState.models.fieldPaths.paths;
                 }
 
-                srdbg('getting app data...', inData);
+                //srdbg('getting app data...', inData);
                 radiaService.getRadiaData(
                     inData,
                     function(d) {
@@ -2474,17 +2525,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             });
 
             $scope.$on('$destroy', function () {
-                srdbg('RADIA DES');
                 $element.off();
-                renderer = null;
-                renderWindow = null;
-                // move pickers to vtkdisplay?
-                cPicker = null;
-                ptPicker = null;
-                //$($window).off('resize', resize);
-                //fsRenderer.getInteractor().unbindEvents();
-                //fsRenderer.delete();
-                //plotToPNG.removeCanvas($scope.reportId);
             });
 
             $scope.$on('solveStarted', function (e, d) {

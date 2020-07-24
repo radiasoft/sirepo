@@ -34,7 +34,7 @@ def _add_object(o):
         ctr = _split_comma_field(o.center, 'float')
         sz = _split_comma_field(o.size, 'float')
         m = _split_comma_field(o.magnetization, 'float')
-        div = _split_comma_field(o.division, 'int') if o.doDivide else None
+        div = _split_comma_field(o.division, 'int') if o.doDivide != '0' else None
         g_id = radia_tk.build_box(ctr, sz, o.material, m, div)
     if o.model in _GROUP_MODELS:
         grp = []
@@ -47,29 +47,16 @@ def _add_object(o):
             else:
                 grp.append(id_map[m.mapId] )
         g_id = radia_tk.build_container(grp)
-    #r = radia_tk.apply_clone(g_id, 3, 'translate', PKDict(distance='15, 0, 0'), False)
     for transform in o.transforms:
-        xform = PKDict(transform)
-        print('XFORM {}'.format(xform))
-        if xform.model == 'cloneTransform':
-            #r = radia_tk.apply_clone(g_id, xform.numCopies + 1, xform.transform, xform.transformModel, xform.alternateFields)
-            r = radia_tk.apply_clone(g_id, xform)
-            print('XFORM {} RES {}'.format(g_id, r))
-        if xform.model == 'symmetryTransform':
-            radia_tk.apply_symmetry(
-                g_id,
-                xform.symmetryType,
-                _split_comma_field(xform.symmetryPlane, 'float'),
-                _split_comma_field(xform.symmetryPoint, 'float'),
-            )
+        radia_tk.apply_transform(g_id, PKDict(transform))
 
-    if o.symmetryType is not 'none':
-        radia_tk.apply_symmetry(
-            g_id,
-            o.symmetryType,
-            _split_comma_field(o.symmetryPlane, 'float'),
-            _split_comma_field(o.symmetryPoint, 'float'),
-        )
+    #if o.symmetryType is not 'none':
+    #    radia_tk.apply_symmetry(
+    #        g_id,
+    #        o.symmetryType,
+    #        _split_comma_field(o.symmetryPlane, 'float'),
+    #        _split_comma_field(o.symmetryPoint, 'float'),
+    #    )
     id_map[o.mapId] = g_id
     objs.append(g_id)
     return g_id

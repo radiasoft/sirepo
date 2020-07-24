@@ -44,40 +44,44 @@ def _split_comma_field(f, type):
     return arr
 
 
-def apply_symmetry(g_id, symm_type, plane, point):
-    if symm_type == 'parallel':
+def _apply_clone(g_id, xform):
+    if xform.transform == 'translate':
+        #pkdp('CLONE {} {} N {}', xform.transform, xform.distance, xform.numCopies + 1)
+        xf = radia.TrfTrsl(_split_comma_field(xform.distance, 'float'))
+    if xform.transform == 'rotate':
+        # args are wrong???
+        pkdp('ROT {} {}', _split_comma_field(xform.center, 'float'), _split_comma_field(xform.axis, 'float'))
+        xf = radia.TrfRot(
+            _split_comma_field(xform.center, 'float'),
+            _split_comma_field(xform.axis, 'float'),
+            xform.angle
+        )
+    if xform.alternateFields:
+        xf = radia.TrfCmbL(xf, radia.TrfInv())
+    radia.TrfMlt(g_id, xf, xform.numCopies + 1)
+
+
+def _apply_symmetry(g_id, xform):
+    plane = _split_comma_field(xform.symmetryPlane, 'float')
+    point = _split_comma_field(xform.symmetryPoint, 'float')
+    if xform.symmetryType == 'parallel':
         radia.TrfZerPara(g_id, point, plane)
-    if symm_type == 'perpendicular':
+    if xform.symmetryType == 'perpendicular':
         radia.TrfZerPerp(g_id, point, plane)
 
 
-#def apply_clone(g_id, num_copies, transform, transform_props, alternate_fields):
-def apply_clone(g_id, xform):
-    #props = PKDict(transform_props)
-    #if transform == 'translate':
-    if xform.transform == 'translate':
-        pkdp('CLONE {} {} N {}', xform.transform, xform.distance, xform.numCopies + 1)
-        #xf = radia.TrfTrsl(_split_comma_field(props.distance, 'float'))
-        xf = radia.TrfTrsl(_split_comma_field(xform.distance, 'float'))
-    #if transform == 'rotate':
-    if xform.transform == 'rotate':
-        #xf = radia.TrfRot(props.center, props.axis, props.axis)
-        # args are wrong???
-        pkdp('ROT {} {}', _split_comma_field(xform.center, 'float'), _split_comma_field(xform.axis, 'float'))
-        #xf = radia.TrfRot(
-        #    _split_comma_field(xform.center, 'float'),
-        #    _split_comma_field(xform.axis, 'float'),
-        #    xform.angle
-        #)
-    #return radia.TrfMlt(g_id, xf, num_copies)
-    return radia.TrfMlt(g_id, xf, xform.numCopies + 1)
+def apply_transform(g_id, xform):
+    if xform.model == 'cloneTransform':
+        _apply_clone(g_id, xform)
+    if xform.model == 'symmetryTransform':
+        _apply_symmetry(g_id, xform)
 
 
-def build_box(center, size, material, magnetization, division):
+def build_box(center, size, material, magnetization, div):
     n_mag = numpy.linalg.norm(magnetization)
     g_id = radia.ObjRecMag(center, size, magnetization)
-    if division:
-        radia.ObjDivMag(g_id, division)
+    if div:
+        radia.ObjDivMag(g_id, div)
     # do not apply a material unless a magentization of some magnitude has been set
     if n_mag > 0:
         radia.MatApl(g_id, radia.MatStd(material, n_mag))
