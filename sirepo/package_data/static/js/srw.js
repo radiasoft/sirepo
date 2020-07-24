@@ -2068,7 +2068,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     '<div data-ng-show="! simState.isStatePending() && particleNumber">',
                       'Completed particle: {{ particleNumber }} / {{ particleCount}}',
                     '</div>',
-                    '<div data-simulation-status-timer="simState.timeData" data-ng-show="! isFluxWithApproximateMethod()"></div>',
+                    '<div data-simulation-status-timer="simState" data-ng-show="! isFluxWithApproximateMethod()"></div>',
                   '</div>',
                 '</div>',
                 '<div class="col-sm-6 pull-right" data-ng-show="! isFluxWithApproximateMethod()">',
@@ -2076,17 +2076,12 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 '</div>',
               '</div>',
               '<div data-ng-show="simState.isStopped() && ! isFluxWithApproximateMethod()">',
-                '<div class="col-sm-6">',
-                  'Simulation ',
-                  '<span>{{ simState.stateAsText() }}</span>',
-                  '<div data-ng-show="! simState.isStatePending() && ! simState.isInitializing() && particleNumber">',
+                '<div data-simulation-stopped-status="simState"></div>',
+                  '<div class="col-sm-12" data-ng-show="! simState.isStatePending() && ! simState.isInitializing() && ! simState.isStatePurged() && particleNumber">',
                     'Completed particle: {{ particleNumber }} / {{ particleCount}}',
                   '</div>',
-                  '<div>',
-                    '<div data-simulation-status-timer="simState.timeData"></div>',
-                  '</div>',
-                '</div>',
-            //TODO(pjm): share with simStatusPanel directive in sirepo-components.js
+                '<div class="col-sm-12" data-simulation-status-timer="simState"></div>',
+                //TODO(pjm): share with simStatusPanel directive in sirepo-components.js
                 '<div data-ng-if="simState.showJobSettings()">',
                   '<div class="form-group form-group-sm">',
                     '<div class="col-sm-12" data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>',
@@ -2194,6 +2189,10 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 srwService.computeModel($scope.model),
                 handleStatus
             );
+
+            $scope.simState.notRunningMessage = function() {
+                return 'Simulation ' + $scope.simState.stateAsText();
+            };
        },
     };
 });

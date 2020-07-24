@@ -9,7 +9,7 @@
             <div class="col-sm-12" data-ng-show="visualization.simState.isStateRunning()">
               <div>
                 {{ visualization.runningStatusText() }}
-                <div data-simulation-status-timer="visualization.simState.timeData"></div>
+                <div class="col-sm-12" data-simulation-status-timer="visualization.simState"></div>
               </div>
               <div class="progress">
                 <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': visualization.simState.isInitializing() }" role="progressbar" aria-valuenow="{{ visualization.simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ visualization.simState.getPercentComplete() }}%">
@@ -22,10 +22,8 @@
           </form>
           <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="visualization.simState.isStopped()">
             <div class="col-sm-12">
-              Simulation
-              <span>{{ visualization.simState.stateAsText() }}</span><span data-ng-show="visualization.simState.hasTimeData()">:
-              <span data-simulation-status-timer="visualization.simState.timeData"></span>
-              </span>
+              <div data-simulation-stopped-status="visualization.simState"></div>
+              <div class="col-sm-12" data-ng-show="visualization.simState.hasTimeData()" data-simulation-status-timer="visualization.simState"></div>
               <br><br>
               <div class="well well-lg" data-ng-show="visualization.simulationAlerts || visualization.simState.hasFrames()">
                 <div data-ng-if="visualization.simulationAlerts">

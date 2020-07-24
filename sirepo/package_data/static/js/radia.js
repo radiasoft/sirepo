@@ -127,7 +127,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
     self.getPathType = function() {
         return (appState.models.fieldTypes || {}).path;
     };
-    
+
     self.getSelectedObj = function() {
         return self.selectedObj;
     };
@@ -780,7 +780,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                 '<div data-basic-editor-panel="" data-view-name="solver">',
                         '<div data-sim-status-panel="viz.simState"></div>',
               //'<div>',
-              //  '<div data-simulation-status-timer="viz.simState.timeData"></div>',
+              //  '<div data-simulation-status-timer="viz.simState"></div>',
               //'</div>',
                         '<div class="col-sm-6 pull-right" style="padding-top: 8px;">',
                             '<button class="btn btn-default" data-ng-click="reset()">Reset</button>',

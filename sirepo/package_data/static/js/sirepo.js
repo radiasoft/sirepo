@@ -141,11 +141,13 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
             }
         );
     }
+
     SIREPO.APP_SCHEMA.enum.JobRunMode = SIREPO.APP_SCHEMA.enum.JobRunMode.map(
         function (x) {
             return [x[0], self.jobRunModeMap[x[0]]];
         }
     );
+
     self.handleLogin = function (data, controller) {
         if (data.state === 'ok') {
             if (data.authState) {
@@ -158,6 +160,14 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
         controller.showWarning = true;
         controller.warningText = 'Server reported an error, please contact support@radiasoft.net.';
     };
+
+    self.premiumOrEnterprise = function() {
+        if (self.roles.indexOf('premium') >= 0) {
+            return 'Enterprise';
+        }
+        return 'Premium';
+    };
+
     return self;
 });
 
@@ -2243,6 +2253,10 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             return simulationStatus().cancelledAfterSecs;
         };
 
+        state.getDbUpdateTime = function() {
+            return simulationStatus().dbUpdateTime;
+        };
+
         state.getError = function() {
             return simulationStatus().error;
         };
@@ -2287,6 +2301,10 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
 
         state.isStatePending = function() {
             return simulationStatus().state == 'pending';
+        };
+
+        state.isStatePurged = function() {
+            return simulationStatus().state == 'job_run_purged';
         };
 
         state.isStateRunning = function() {

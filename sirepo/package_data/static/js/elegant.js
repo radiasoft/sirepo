@@ -638,6 +638,10 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         }
         return self.simState.isStatePending();
     };
+
+    self.simState.notRunningMessage = function() {
+        return 'Simulation ' + self.simState.stateAsText();
+    };
 });
 
 SIREPO.app.directive('appFooter', function() {
