@@ -358,6 +358,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return self.selectObject(self.getObject(id));
     };
 
+    // seems like a lot of this shape stuff can be refactored out to a common area
     self.shapeForObject = function(o) {
         var center = stringToFloatArray(o.center || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
         var size = stringToFloatArray(o.size || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
@@ -415,10 +416,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         if (o.transforms.length > 0) {
             xformShapes.push(shape);
         }
+        // probably better to create a transform and let svg do this work
         o.transforms.forEach(function (xform) {
             //xformShapes.forEach(function (xShape) {
                 if (xform.model === 'cloneTransform') {
-                    srdbg('clone', xformShapes);
+                    //srdbg('clone', xformShapes);
                     if (xform.transform === 'translate') {
                         var d = stringToFloatArray(xform.distance, SIREPO.APP_SCHEMA.constants.objectScale);
                         for (var i = 1; i <= xform.numCopies; ++i) {
@@ -435,7 +437,33 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                             xformShapes.push(cShape);
                         }
                     }
-                    // if rotation...
+                    if (xform.transform === 'rotate') {
+                        var ctr = stringToFloatArray(xform.center, SIREPO.APP_SCHEMA.constants.objectScale);
+                        var axis = stringToFloatArray(xform.axis, SIREPO.APP_SCHEMA.constants.objectScale);
+                        // need a 4-vector to account for translation
+                        var shapeCtr4 = [shape.center.x, shape.center.y, shape.center.z, 0];
+
+                        // radia wants degrees!  But we want radians!
+                        var angle = Math.PI * parseFloat(xform.angle) / 180.0;
+                        for (var i = 1; i <= xform.numCopies; ++i) {
+                            var a = i * angle;
+                            var m = geometry.rotationMatrix(ctr, axis, a);
+                            var newCtr = geometry.vectorMult(m, shapeCtr4);
+                            //srdbg('rot ctr', shapeCtr4, 'angle', a, 'new ctr', newCtr);
+                            var cShape = vtkPlotting.plotShape(
+                                virtualShapeId(shape),
+                                o.name,
+                                newCtr,
+                                [shape.size.x, shape.size.y, shape.size.z],
+                                o.color, 0.1, shape.fillStyle, shape.strokeStyle, shape.dashes,
+                                o.layoutShape
+                            );
+                            cShape.rotationAngle = -180.0 * a / Math.PI;
+                            cShape.draggable = false;
+                            self.shapes.push(cShape);
+                            xformShapes.push(cShape);
+                        }
+                    }
                 }
                 if (xform.model === 'symmetryTransform' && xform.symmetryType !== 'none') {
                     srdbg('symm', xformShapes);

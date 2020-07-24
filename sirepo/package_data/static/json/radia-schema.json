@@ -186,7 +186,7 @@
         },
         "cloneTransform": {
             "_super": ["_", "model", "transform"],
-            "angle": ["Angle (rad)", "Float", "0.0"],
+            "angle": ["Angle (deg)", "Float", "0.0"],
             "axis": ["Axis", "FloatStringArray", "0.0, 0.0, 1.0", "", "x, y, z"],
             "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
             "distance": ["Direction", "FloatStringArray", "10.0, 0.0, 0.0", "", "x, y, z"],

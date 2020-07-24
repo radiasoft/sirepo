@@ -307,6 +307,13 @@ SIREPO.app.service('geometry', function(utilities) {
         return svc.transpose(m);
     };
 
+    this.normalize = function(vector) {
+        var n = Math.hypot(vector[0], vector[1], vector[2]);
+        return vector.map(function (c) {
+            return c / n;
+        });
+    };
+
     // norm is a vector (array), point is a geometry.point
     // planes have the equation Ax + By + Cz = D
     this.plane = function(norm, point) {
@@ -374,8 +381,9 @@ SIREPO.app.service('geometry', function(utilities) {
             ]);
         };
         pl.normalized = function() {
-            var n = Math.hypot(this.A, this.B, this.C);
-            return [this.A / n, this.B / n, this.C / n];
+            return svc.normalize([this.A, this.B, this.C]);
+            //var n = Math.hypot(this.A, this.B, this.C);
+            //return [this.A / n, this.B / n, this.C / n];
         };
         pl.paramLine = function(pl2, t) {
             // makes for symmetric equations below
@@ -692,6 +700,43 @@ SIREPO.app.service('geometry', function(utilities) {
         });
     };
 
+    // for rotation about arbitrary axis - note this is 4 x 4 and will need to multiply a vector [x, y, z, 0]
+    this.rotationMatrix = function(pointCoords, vector, angle) {
+        var cs = Math.cos(angle);
+        var cs1 = 1 - cs;
+        var s = Math.sin(angle);
+
+        var A = pointCoords[0];
+        var B = pointCoords[1];
+        var C = pointCoords[2];
+
+        var nv = svc.normalize(vector);
+        var u = nv[0];
+        var v = nv[1];
+        var w = nv[2];
+        return [
+            [
+                u * u + (v * v + w * w) * cs,
+                u * v * cs1 - w * s,
+                u * w * cs1 + v * s,
+                (A * (v * v + w * w) - u * (B * v + C * w)) * cs1 + (B * w - C * v) * s
+            ],
+            [
+                u * v * cs1 + w * s,
+                v * v + (u * u + w * w) * cs,
+                v * w * cs1 - u * s,
+                (B * (u * u + w * w) - v * (A * u + C * w)) * cs1 + (C * u - A * w) * s
+            ],
+            [
+                u * w * cs1 - v * s,
+                v * w * cs1 + u * s,
+                w * w + (u * u + v * v) * cs,
+                (C * (u * u + v * v) - w * (A * u + B * v)) * cs1 + (A * v - B * u) * s
+            ],
+            [0, 0, 0, 1]
+        ];
+    };
+
     this.transform = function (matrix) {
 
         var identityMatrix = [
@@ -762,7 +807,7 @@ SIREPO.app.service('geometry', function(utilities) {
             return svc.transform(matrixMult(xform.matrix, otherXForm.matrix));
         };
 
-        xform.composeFromMatrix = function (m) {
+        xform.composeFromMatrix = function(m) {
             return xform.compose(svc.transform(m));
         };
 
@@ -770,10 +815,11 @@ SIREPO.app.service('geometry', function(utilities) {
             return det(xform.matrix);
         };
 
-        xform.doTransform = function (coords) {
+        xform.doTransform = function(coords) {
             return vectorMult(xform.matrix, coords);
         };
-        xform.doTX = function (point) {
+
+        xform.doTX = function(point) {
             return svc.pointFromArr(
                 xform.doTransform(point.coords())
             );

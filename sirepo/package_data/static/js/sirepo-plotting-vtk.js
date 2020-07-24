@@ -898,6 +898,7 @@ SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUplo
 
 
 // elevations tab + vtk tab (or all in 1 tab?)
+// A lot of this is 2d and could be extracted
 SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, panelState, plotting, utilities, vtkPlotting) {
     return {
         restrict: 'A',
@@ -1314,6 +1315,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 );
             }
 
+            function shapeCenter(shape, dim) {
+                var screenDim = shape.elev[dim].axis;
+                return axes[screenDim].scale(shape.center[screenDim]);
+            }
+
             function linePoints(shape) {
                 if (! shape.line) {
                     return null;
@@ -1397,6 +1403,12 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     })
                     .attr('stroke-dasharray', function (d) {
                         return d.strokeStyle === 'dashed' ? (d.dashes || "5,5") : "";
+                    })
+                    .attr('transform', function (d) {
+                        if (d.rotationAngle !== 0 && d.rotationAngle) {
+                            return 'rotate(' + d.rotationAngle + ',' +  shapeCenter(d, 'x') + ',' + shapeCenter(d, 'y')  + ')';
+                        }
+                        return '';
                     });
                 var tooltip = selection.select('title');
                 if (tooltip.empty()) {

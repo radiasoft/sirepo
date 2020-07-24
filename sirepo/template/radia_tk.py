@@ -49,12 +49,11 @@ def _apply_clone(g_id, xform):
         #pkdp('CLONE {} {} N {}', xform.transform, xform.distance, xform.numCopies + 1)
         xf = radia.TrfTrsl(_split_comma_field(xform.distance, 'float'))
     if xform.transform == 'rotate':
-        # args are wrong???
-        pkdp('ROT {} {}', _split_comma_field(xform.center, 'float'), _split_comma_field(xform.axis, 'float'))
+        #pkdp('ROT {} {}', _split_comma_field(xform.center, 'float'), _split_comma_field(xform.axis, 'float'))
         xf = radia.TrfRot(
             _split_comma_field(xform.center, 'float'),
             _split_comma_field(xform.axis, 'float'),
-            xform.angle
+            float(xform.angle)
         )
     if xform.alternateFields:
         xf = radia.TrfCmbL(xf, radia.TrfInv())
