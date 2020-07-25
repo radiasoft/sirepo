@@ -518,15 +518,15 @@ def api_staticFile(path_info=None):
     Returns:
         flask.Response: flask.send_from_directory response
     """
-    if _google_tag_manager and re.match(r'en/.*html', path_info or ''):
+    if not path_info:
+        raise util.raise_not_found('empty path info')
+    p = flask.safe_join(str(simulation_db.STATIC_FOLDER), path_info)
+    if _google_tag_manager and re.match(r'en/.*html', path_info):
         return _google_tag_manager_re.sub(
             _google_tag_manager,
-            pkio.read_text(simulation_db.STATIC_FOLDER.join(path_info)),
+            pkio.read_text(p),
         )
-    return flask.send_from_directory(
-        str(simulation_db.STATIC_FOLDER),
-        path_info,
-    )
+    return flask.send_file(p, conditional=True)
 
 
 @api_perm.require_user
@@ -712,5 +712,5 @@ def static_dir(dir_name):
 cfg = pkconfig.init(
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
     db_dir=pkconfig.ReplacedBy('sirepo.srdb.root'),
-    google_tag_manager_id=(None, str, 'enable google analytics with this id'),
+    google_tag_manager_id=('GTM-K9FVZ62', str, 'enable google analytics with this id'),
 )
