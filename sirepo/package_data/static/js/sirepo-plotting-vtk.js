@@ -260,6 +260,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
     // create a 3d shape
     self.plotShape = function(id, name, center, size, color, alpha, fillStyle, strokeStyle, dashes, layoutShape) {
         var shape = plotting.plotShape(id, name, center, size, color, alpha, fillStyle, strokeStyle, dashes, layoutShape);
+        shape.axes.push('z');
         shape.center.z = center[2];
         shape.size.z = size[2];
         return shape;

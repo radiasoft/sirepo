@@ -346,7 +346,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.selectObject = function(o) {
-        srdbg('select', o);
+        //srdbg('select', o);
         if (o) {
             self.selectedObject = o;
             appState.models[panelState.getBaseModelKey(o.model)] = o;
@@ -414,121 +414,86 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }
         var xformShapes = [];
         if (o.transforms.length > 0) {
+            // add "parent" shape
             xformShapes.push(shape);
         }
         // probably better to create a transform and let svg do this work
         o.transforms.forEach(function (xform) {
-            //xformShapes.forEach(function (xShape) {
+            // each successive transform must be applied to all previous shapes
+            xformShapes.forEach(function (xShape) {
+                var nextShape;
+                var linkTx;
                 if (xform.model === 'cloneTransform') {
-                    //srdbg('clone', xformShapes);
-                    if (xform.transform === 'translate') {
-                        var d = stringToFloatArray(xform.distance, SIREPO.APP_SCHEMA.constants.objectScale);
-                        for (var i = 1; i <= xform.numCopies; ++i) {
-                            var cShape = vtkPlotting.plotShape(
-                                virtualShapeId(shape),
-                                o.name,
-                                [shape.center.x + i * d[0], shape.center.y + i * d[1], shape.center.z + i * d[2]],
-                                [shape.size.x, shape.size.y, shape.size.z],
-                                o.color, 0.1, shape.fillStyle, shape.strokeStyle, shape.dashes,
-                                o.layoutShape
-                            );
-                            cShape.draggable = false;
-                            self.shapes.push(cShape);
-                            xformShapes.push(cShape);
+                    for (var i = 1; i <= xform.numCopies; ++i) {
+                        nextShape = txShape(shape);
+                        if (xform.transform === 'translate') {
+                            linkTx = offsetFn(xShape, nextShape, xform, i);
                         }
-                    }
-                    if (xform.transform === 'rotate') {
-                        var ctr = stringToFloatArray(xform.center, SIREPO.APP_SCHEMA.constants.objectScale);
-                        var axis = stringToFloatArray(xform.axis, SIREPO.APP_SCHEMA.constants.objectScale);
-                        // need a 4-vector to account for translation
-                        var shapeCtr4 = [shape.center.x, shape.center.y, shape.center.z, 0];
-
-                        // radia wants degrees!  But we want radians!
-                        var angle = Math.PI * parseFloat(xform.angle) / 180.0;
-                        for (var i = 1; i <= xform.numCopies; ++i) {
-                            var a = i * angle;
-                            var m = geometry.rotationMatrix(ctr, axis, a);
-                            var newCtr = geometry.vectorMult(m, shapeCtr4);
-                            //srdbg('rot ctr', shapeCtr4, 'angle', a, 'new ctr', newCtr);
-                            var cShape = vtkPlotting.plotShape(
-                                virtualShapeId(shape),
-                                o.name,
-                                newCtr,
-                                [shape.size.x, shape.size.y, shape.size.z],
-                                o.color, 0.1, shape.fillStyle, shape.strokeStyle, shape.dashes,
-                                o.layoutShape
-                            );
-                            cShape.rotationAngle = -180.0 * a / Math.PI;
-                            cShape.draggable = false;
-                            self.shapes.push(cShape);
-                            xformShapes.push(cShape);
+                        if (xform.transform === 'rotate') {
+                            linkTx = rotateFn(xShape, nextShape, xform, i);
                         }
+                        xShape.addLink(nextShape, linkTx);
+                        linkTx(xShape, nextShape);
+                        self.shapes.push(nextShape);
+                        xformShapes.push(nextShape);
                     }
+                    return;
                 }
                 if (xform.model === 'symmetryTransform' && xform.symmetryType !== 'none') {
-                    srdbg('symm', xformShapes);
-                    var mShape = vtkPlotting.plotShape(
-                        virtualShapeId(shape),
-                        o.name,
-                        SIREPO.ZERO_ARR, [shape.size.x, shape.size.y, shape.size.z],
-                        o.color, 0.1, shape.fillStyle, shape.strokeStyle, shape.dashes,
-                        o.layoutShape
-                    );
-                    mShape.draggable = false;
-                    shape.addLink(mShape, mirror);
-                    mirror(shape, mShape);
-                    self.shapes.push(mShape);
-                    xformShapes.push(mShape);
+                    nextShape = txShape(shape);
+                    linkTx = mirrorFn(xShape, nextShape, xform);
+                    xShape.addLink(nextShape, linkTx);
+                    linkTx(xShape, nextShape);
+                    self.shapes.push(nextShape);
+
+                    // line representing the symmetry plane intersecting 3 canonical planes
+                    for (var p in vtkPlotting.COORDINATE_PLANES) {
+                        var cpl = geometry.plane(vtkPlotting.COORDINATE_PLANES[p], geometry.point());
+                        var spl = geometry.plane(
+                            stringToFloatArray(xform.symmetryPlane),
+                            geometry.pointFromArr(stringToFloatArray(xform.symmetryPoint, SIREPO.APP_SCHEMA.constants.objectScale))
+                        );
+                        if (cpl.equals(spl)) {
+                            continue;
+                        }
+                        var l = spl.intersection(cpl);
+                        if (l) {
+                            self.shapes.push(vtkPlotting.plotLine(
+                                virtualShapeId(shape), shape.name, l,
+                                shape.color, 1.0, 'dashed', "8,8,4,8"
+                            ));
+                        }
+                    }
+                    xformShapes.push(nextShape);
+                    return;
                 }
-            //});
+            });
         });
 
-/*
-        if (o.symmetryType !== 'none') {
-            var mShape = vtkPlotting.plotShape(
-                // ??  for "virtual shapes"?
-                virtualShapeId(shape),
-                o.name,
-                SIREPO.ZERO_ARR, [shape.size.x, shape.size.y, shape.size.z],
-                o.color, 0.1, shape.fillStyle, shape.strokeStyle, shape.dashes,
-                o.layoutShape
-            );
-            mShape.draggable = false;
-            shape.addLink(mShape, mirror);
-            mirror(shape, mShape);
-            self.shapes.push(mShape);
-
-            // line representing the symmetry plane intersecting 3 canonical planes
-            for (var p in vtkPlotting.COORDINATE_PLANES) {
-                var cpl = geometry.plane(vtkPlotting.COORDINATE_PLANES[p], geometry.point());
-                var spl = geometry.plane(
-                    stringToFloatArray(o.symmetryPlane),
-                    geometry.pointFromArr(stringToFloatArray(o.symmetryPoint, SIREPO.APP_SCHEMA.constants.objectScale))
-                );
-                if (cpl.equals(spl)) {
-                    continue;
-                }
-                var l = spl.intersection(cpl);
-                if (l) {
-                    self.shapes.push(vtkPlotting.plotLine(
-                        virtualShapeId(shape), shape.name, l,
-                        shape.color, 1.0, 'dashed', "8,8,4,8"
-                    ));
-                }
-            }
-
-        }
-*/
         // extend group bounds if this object is in a group
-        if (gShape) {
-            //fit(mShape, gShape);
-            var newBounds = shapesBounds([gShape, mShape]);
-            for (var dim in newBounds) {
-                gShape.size[dim] = Math.abs(newBounds[dim][1] - newBounds[dim][0]);
-                gShape.center[dim] = newBounds[dim][0] + gShape.size[dim] / 2;
-            }
-        }
+        // need to move this
+        //if (gShape) {
+        //    //fit(mShape, gShape);
+        //    var newBounds = shapesBounds([gShape, nextShape]);
+        //    for (var dim in newBounds) {
+        //        gShape.size[dim] = Math.abs(newBounds[dim][1] - newBounds[dim][0]);
+        //        gShape.center[dim] = newBounds[dim][0] + gShape.size[dim] / 2;
+        //    }
+        //}
 
+    }
+
+    function txShape(shape) {
+        var sh = vtkPlotting.plotShape(
+            virtualShapeId(shape),
+            shape.name,
+            SIREPO.ZERO_ARR,
+            shape.getSizeCoords(),
+            shape.color, 0.1, shape.fillStyle, shape.strokeStyle, shape.dashes,
+            shape.layoutShape
+        );
+        sh.draggable = false;
+        return sh;
     }
 
     function virtualShapeId(shape) {
@@ -547,7 +512,53 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         });
     }
 
-    function mirror(shape, mirrorShape) {
+    function mirrorFn(shape1, shape2, xform) {
+        return function (shape1, shape2) {
+            var pl = geometry.plane(
+                stringToFloatArray(xform.symmetryPlane),
+                geometry.pointFromArr(stringToFloatArray(xform.symmetryPoint, SIREPO.APP_SCHEMA.constants.objectScale))
+            );
+            shape2.setCenter(
+                pl.mirrorPoint(geometry.pointFromArr(
+                [shape1.center.x, shape1.center.y, shape1.center.z]
+                )).coords()
+            );
+            return shape2;
+        };
+    }
+
+    function offsetFn(shape1, shape2, xform, i) {
+        return function(shape1, shape2) {
+            var d = stringToFloatArray(xform.distance, SIREPO.APP_SCHEMA.constants.objectScale);
+            shape2.setCenter(
+                shape1.getCenterCoords().map(function (c, j) {
+                    return c + i * d[j];
+                })
+            );
+            return shape2;
+        };
+    }
+
+    function rotateFn(shape1, shape2, xform, i) {
+        return function(shape1, shape2) {
+            var ctr = stringToFloatArray(xform.center, SIREPO.APP_SCHEMA.constants.objectScale);
+            var axis = stringToFloatArray(xform.axis, SIREPO.APP_SCHEMA.constants.objectScale);
+            // need a 4-vector to account for translation
+            //var shapeCtr4 = [shape1.center.x, shape1.center.y, shape1.center.z, 0];
+            var shapeCtr4 = shape1.getCenterCoords();
+            shapeCtr4.push(0);
+            var angle = Math.PI * parseFloat(xform.angle) / 180.0;
+            var a = i * angle;
+            var m = geometry.rotationMatrix(ctr, axis, a);
+            shape2.setCenter(geometry.vectorMult(m, shapeCtr4));
+            shape2.rotationAngle = -180.0 * a / Math.PI;
+            return shape2;
+        };
+    }
+
+    //function mirror(shape, mirrorShape) {
+    /*
+    function mirror(shape, mirrorShape, xform) {
         var o = self.getObject(shape.id);
         var pl = geometry.plane(
             stringToFloatArray(o.symmetryPlane),
@@ -559,6 +570,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         mirrorShape.center.z = mCtr[2];
         return mirrorShape;
     }
+    */
 
     // shape - in group; linkedShape: group
     // NOT PICKING UP "VIRTUAL" SHAPES
@@ -1422,6 +1434,17 @@ SIREPO.app.directive('transformTable', function(appState, panelState) {
 
             $scope.isExpanded = function(item) {
                 return expanded[itemIndex(item)];
+            };
+
+            $scope.moveItem = function(direction, item) {
+                var d = direction == 0 ? 0 : (direction > 0 ? 1 : -1);
+                var currentIndex = itemIndex(item);
+                var newIndex = currentIndex + d;
+                if(newIndex >= 0 && newIndex < $scope.items.length) {
+                    var tmp = $scope.items[newIndex];
+                    $scope.items[newIndex] = item;
+                    $scope.items[currentIndex] = tmp;
+                }
             };
 
             $scope.toggleExpand = function(item) {
