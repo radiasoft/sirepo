@@ -167,9 +167,9 @@ def api_exportArchive(simulation_type, simulation_id, filename):
 def api_favicon():
     """Routes to favicon.ico file."""
     return flask.send_from_directory(
-        str(simulation_db.STATIC_FOLDER.join('img')),
+        static_dir('img'),
         'favicon.ico',
-        mimetype='image/vnd.microsoft.icon'
+        mimetype='image/vnd.microsoft.icon',
     )
 
 
@@ -520,12 +520,20 @@ def api_staticFile(path_info=None):
     """
     if not path_info:
         raise util.raise_not_found('empty path info')
-    p = flask.safe_join(str(simulation_db.STATIC_FOLDER), path_info)
-    if _google_tag_manager and re.match(r'en/.*html', path_info):
-        return _google_tag_manager_re.sub(
-            _google_tag_manager,
-            pkio.read_text(p),
+    p = pkio.py_path(flask.safe_join(str(simulation_db.STATIC_FOLDER), path_info))
+    r = None
+    if _google_tag_manager and re.match(r'^en/[^/]+html$', path_info):
+        return http_reply.headers_for_cache(
+            flask.make_response(
+                _google_tag_manager_re.sub(
+                    _google_tag_manager,
+                    pkio.read_text(p),
+                ),
+            ),
+            path=p,
         )
+    if re.match(r'^html/[^/]+html$', path_info):
+        return http_reply.render_html(p)
     return flask.send_file(p, conditional=True)
 
 
@@ -635,9 +643,10 @@ def _handle_error(error):
         error_file = simulation_db.SCHEMA_COMMON['customErrors'][str(status_code)]['url']
     except Exception:
         error_file = DEFAULT_ERROR_FILE
-    f = flask.send_from_directory(static_dir('html'), error_file)
-
-    return f, status_code
+    return (
+        flask.send_from_directory(static_dir('html'), error_file),
+        status_code,
+    )
 
 
 def _lib_file_write_path(req):
@@ -652,7 +661,7 @@ def _render_root_page(page, values):
         source_cache_key=_source_cache_key(),
         static_files=simulation_db.static_libs(),
     ))
-    return http_reply.render_static(page, 'html', values, cache_ok=True)
+    return http_reply.render_static_jinja(page, 'html', values, cache_ok=True)
 
 
 def _safe_attachment(resp, base, suffix):
