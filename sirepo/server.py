@@ -712,5 +712,5 @@ def static_dir(dir_name):
 cfg = pkconfig.init(
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
     db_dir=pkconfig.ReplacedBy('sirepo.srdb.root'),
-    google_tag_manager_id=('GTM-K9FVZ62', str, 'enable google analytics with this id'),
+    google_tag_manager_id=(None, str, 'enable google analytics with this id'),
 )
