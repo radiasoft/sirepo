@@ -447,13 +447,11 @@ class _ComputeJob(PKDict):
         self.__db_write()
 
     def __db_update(self, **kwargs):
-        self.db.pkupdate(
-            dbUpdateTime=int(sirepo.srtime.utc_now_as_float()),
-            **kwargs
-        )
+        self.db.pkupdate(**kwargs)
         return self.__db_write()
 
     def __db_write(self):
+        self.db.dbUpdateTime = int(sirepo.srtime.utc_now_as_float())
         self.__db_write_file(self.db)
         return self
 
@@ -833,6 +831,7 @@ class _ComputeJob(PKDict):
                     if not r.get('runDirNotFound'):
                         return r
                     self.__db_init(req, prev_db=self.db)
+                    self.__db_write()
                     assert self.db.status == job.MISSING, \
                         'expecting missing status={}'.format(self.db.status)
                     return PKDict(state=self.db.status)
