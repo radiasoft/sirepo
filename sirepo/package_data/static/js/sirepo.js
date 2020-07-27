@@ -194,7 +194,7 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, $location
     return self;
 });
 
-SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, $document, $interval, $rootScope) {
+SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, $document, $interval, $rootScope, $filter) {
     var self = {
         models: {},
     };
@@ -453,6 +453,10 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
             p[infoNames[i]] = v;
         });
         return p;
+    };
+
+    self.formatDate = function(unixTime) {
+        return $filter('date')(unixTime * 1000, 'yyyy-MM-dd HH:mm:ss');
     };
 
     self.isAnimationModelName = function(name) {

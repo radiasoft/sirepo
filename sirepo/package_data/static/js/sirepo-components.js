@@ -315,7 +315,7 @@ SIREPO.app.directive('cancelledDueToTimeoutAlert', function(authState) {
               '<p>Your simulation ran for {{getTime()}}. To increase your maximum runtime please upgrade to ' + authState.upgradePlanLink() + '.</p>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, appState) {
             $scope.authState = authState;
 
             function leftPadZero(num) {
@@ -1451,10 +1451,11 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
             '<div class="col-sm-12" ng-bind-html="message()"><br><br></div>',
         ].join(''),
         controller: function($scope, $sce, appState) {
+
             $scope.message = function() {
                 if ($scope.simState.isStatePurged()) {
                     return $sce.trustAsHtml([
-                        '<div>Simulation data purged on ' + $scope.simState.getDbUpdateTime() + ' UTC.</div>',
+                        '<div>Simulation data purged on ' + appState.formatDate($scope.simState.getDbUpdateTime()) + '.</div>',
                         '<div>Upgrade to ' + authState.upgradePlanLink() + ' for persistent data storage.</div>',
                     ].join(''));
                 }

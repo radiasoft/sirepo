@@ -498,6 +498,11 @@ class _ComputeJob(PKDict):
                     else int(sirepo.srtime.utc_now_as_float())
                 return _strf_seconds(m - db.computeJobQueued)
 
+            def _strf_unix_time(unix_time):
+                return datetime.datetime.utcfromtimestamp(
+                    int(unix_time),
+                ).strftime('%Y-%m-%d %H:%M:%S')
+
             r = []
             for i in filter(_filter_jobs, cls.instances.values()):
                 d = [
@@ -885,7 +890,7 @@ class _ComputeJob(PKDict):
         if self.db.isParallel or self.db.status != job.COMPLETED:
             return res(
                 state=self.db.status,
-                dbUpdateTime=_strf_unix_time(self.db.dbUpdateTime),
+                dbUpdateTime=self.db.dbUpdateTime,
             )
         return None
 
@@ -990,9 +995,3 @@ class _Op(PKDict):
 
     def __hash__(self):
         return hash((self.opId,))
-
-
-def _strf_unix_time(unix_time):
-    return datetime.datetime.utcfromtimestamp(
-        int(unix_time),
-    ).strftime('%Y-%m-%d %H:%M:%S')
