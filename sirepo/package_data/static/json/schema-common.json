@@ -150,7 +150,7 @@
                 "premium": "Sirepo Premium",
                 "enterprise": "Sirepo Enterprise"
             },
-            "plansUrl": "https://radiasoft.net/sirepo"
+            "plansUrl": "/en/plans.html"
         },
         "cookies": {
             "firstVisit": {
