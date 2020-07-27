@@ -3024,16 +3024,17 @@ SIREPO.app.directive('toolbar', function(appState) {
     return {
         restrict: 'A',
         scope: {
-            toolbarItems: '=toolbar',
+            itemFilter: '&',
             parentController: '=',
+            toolbarItems: '=toolbar',
         },
         template: [
             '<div class="row">',
               '<div class="col-sm-12">',
                 '<div class="text-center bg-info sr-toolbar-holder">',
                   '<div class="sr-toolbar-section" data-ng-repeat="section in ::sectionItems">',
-                    '<div class="sr-toolbar-section-header"><span class="sr-toolbar-section-title">{{ ::section.type }}</span></div>',
-                    '<span data-ng-click="item.isButton ? parentController.editTool(item) : SIREPO.noop()" data-ng-repeat="item in ::section.contents" class="sr-toolbar-button sr-beamline-image" data-ng-drag="{{ ! item.isButton }}" data-ng-drag-data="item">',
+                    '<div class="sr-toolbar-section-header"><span class="sr-toolbar-section-title">{{ ::section.name }}</span></div>',
+                    '<span data-ng-click="item.isButton ? parentController.editTool(item) : SIREPO.noop()" data-ng-repeat="item in ::section.contents | filter:showItem" class="sr-toolbar-button sr-beamline-image" data-ng-drag="{{ ! item.isButton }}" data-ng-drag-data="item">',
                       '<span data-toolbar-icon="" data-item="item"></span><br>{{ ::item.title }}',
                     '</span>',
                   '</div>',
@@ -3050,6 +3051,7 @@ SIREPO.app.directive('toolbar', function(appState) {
             '</div>',
         ].join(''),
         controller: function($scope) {
+            //srdbg('fltr', $scope.itemFilter());
             $scope.allItems = [];
             var items = $scope.toolbarItems || SIREPO.APP_SCHEMA.constants.toolbarItems || [];
             //srdbg('items', items);
@@ -3058,6 +3060,13 @@ SIREPO.app.directive('toolbar', function(appState) {
                 items.push(item);
                 $scope.allItems.push(item);
             }
+
+            $scope.showItem = function (item) {
+                if (! $scope.itemFilter || ! angular.isFunction($scope.itemFilter())) {
+                    return true;
+                }
+                return $scope.itemFilter()(item);
+            };
 
             function initToolbarItems() {
                 $scope.sectionItems = items.filter(function (item) {

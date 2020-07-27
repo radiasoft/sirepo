@@ -45,14 +45,20 @@ def _split_comma_field(f, type):
 
 
 def _apply_clone(g_id, xform):
-    if xform.transform == 'translate':
-        xf = radia.TrfTrsl(_split_comma_field(xform.distance, 'float'))
-    if xform.transform == 'rotate':
-        xf = radia.TrfRot(
-            _split_comma_field(xform.center, 'float'),
-            _split_comma_field(xform.axis, 'float'),
-            numpy.pi * float(xform.angle) / 180.
-        )
+    # start with 'identity'
+    xf = radia.TrfTrsl([0, 0, 0])
+    for clone_xform in xform.transforms:
+        cxf = PKDict(clone_xform)
+        if cxf.model == 'translateClone':
+            txf = radia.TrfTrsl(_split_comma_field(cxf.distance, 'float'))
+            xf = radia.TrfCmbL(xf, txf)
+        if cxf.model == 'rotateClone':
+            rxf = radia.TrfRot(
+                _split_comma_field(cxf.center, 'float'),
+                _split_comma_field(cxf.axis, 'float'),
+                numpy.pi * float(cxf.angle) / 180.
+            )
+            xf = radia.TrfCmbL(xf, rxf)
     if xform.alternateFields != '0':
         xf = radia.TrfCmbL(xf, radia.TrfInv())
     radia.TrfMlt(g_id, xf, xform.numCopies + 1)

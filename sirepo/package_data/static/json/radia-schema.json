@@ -18,8 +18,13 @@
                 "manualPath": ["ptX", "ptY", "ptZ"]
             },
             "transforms": {
-                "cloneTransform": ["name","numCopies", "transform", "alternateFields"],
-                "symmetryTransform": ["name", "symmetryPlane", "symmetryPoint", "symmetryType"]
+                "cloneTransform": ["name","numCopies", "transforms", "alternateFields"],
+                "invertField": ["name"],
+                "symmetryTransform": ["name", "symmetryPlane", "symmetryPoint", "symmetryType"],
+                "translate": ["name","distance"],
+                "rotate": ["name", "angle", "axis", "center"],
+                "translateClone": ["name","distance"],
+                "rotateClone": ["name", "angle", "axis", "center"]
             }
         },
         "toolbarItems": [
@@ -31,9 +36,15 @@
                         "model": "box",
                         "title": "Box",
                         "type": "box"
+                    },
+                    {
+                        "layoutShape": "rect",
+                        "model": "racetrack",
+                        "title": "Racetrack",
+                        "type": "racetrack"
                     }
                 ],
-                "type": "Objects"
+                "name": "Objects"
             },
             {
                 "canDrag": false,
@@ -52,11 +63,25 @@
                         "type": "undulatorGroup"
                     }
                 ],
-                "type": "Tools"
+                "name": "Tools"
             },
             {
                 "canDrag": true,
                 "contents": [
+                    {
+                        "isButton": false,
+                        "layoutShape": "rect",
+                        "model": "translate",
+                        "title": "Translate",
+                        "type": "translate"
+                    },
+                    {
+                        "isButton": false,
+                        "layoutShape": "rect",
+                        "model": "rotate",
+                        "title": "Rotate",
+                        "type": "rotate"
+                    },
                     {
                         "isButton": false,
                         "layoutShape": "rect",
@@ -72,7 +97,27 @@
                         "type": "symmetry"
                     }
                 ],
-                "type": "Transforms"
+                "name": "Transforms"
+            },
+            {
+                "canDrag": true,
+                "contents": [
+                    {
+                        "isButton": false,
+                        "layoutShape": "rect",
+                        "model": "translateClone",
+                        "title": "Translate",
+                        "type": "translate"
+                    },
+                    {
+                        "isButton": false,
+                        "layoutShape": "rect",
+                        "model": "rotateClone",
+                        "title": "Rotate",
+                        "type": "rotate"
+                    }
+                ],
+                "name": "Transforms (clone)"
             }
         ]
     },
@@ -81,11 +126,15 @@
             "js": ["vtk.js"]
         },
         "sirepoLibs": {
-            "css": ["vtk.css"],
+            "css": ["radia.css", "vtk.css"],
             "js": ["radia.js"]
         }
     },
     "enum": {
+        "AutoManual": [
+            ["auto", "Auto"],
+            ["man", "Manual"]
+        ],
         "BeamAxis": [
             ["x", "x"],
             ["y", "y"],
@@ -120,7 +169,8 @@
             ["AFK1", "Aperam 1"]
         ],
         "ObjectType": [
-            ["box", "Box"]
+            ["box", "Box"],
+            ["racetrack", "RaceTrack"]
         ],
         "PathType": [
             ["line", "Line"],
@@ -171,7 +221,8 @@
     },
     "model": {
         "box": {
-            "_super": ["_", "model", "geomObject"]
+            "_super": ["_", "model", "geomObject"],
+            "type": ["_", "ObjectType", "box"]
         },
         "circlePath": {
             "_super": ["_", "model", "fieldPath"],
@@ -193,7 +244,7 @@
             "alternateFields": ["Alternate Fields", "Boolean", "1"],
             "name": ["Name", "String", "Clone"],
             "numCopies": ["Number of Copies", "Integer", 1, "", 1],
-            "transform": ["Transform", "SpatialTransform", "translate", "Serially apply this transform to each new object"]
+            "transforms": ["Transforms", "TransformTable", [], ""]
         },
         "fieldDisplay": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
@@ -251,6 +302,9 @@
             "gap": ["Gap", "Float", 1.0],
             "numPeriods": ["Number of Periods", "Integer", 1, "", 1]
         },
+        "invertField": {
+            "name": ["Name", "String", "Invert Field"]
+        },
         "layoutObject": {
             "color": ["Color", "Color", "#cccccc"],
             "groupId": ["_", "String", ""],
@@ -290,17 +344,34 @@
             "density": ["Density", "Float", 1.0],
             "name": ["Name", "String", ""]
         },
+        "racetrack": {
+            "_super": ["_", "model", "geomObject"],
+            "axis": ["Axis", "BeamAxis", "z"],
+            "currentDensity": ["Current Density (A/mm)", "Float", 1.0],
+            "fieldCalc": ["Field Calculation", "AutoManual", "man", ""],
+            "numSegments": ["Number of Corner Segments", "Integer", 1, "", 0],
+            "rInner": ["Inner Radius", "Float", 6.0],
+            "rOuter": ["Outer Radius", "Float", 10.0],
+            "type": ["_", "ObjectType", "racetrack"]
+        },
         "radiaObject": {
             "_super": ["_", "model", "layoutObject"],
             "name": ["Name", "String", ""],
-            "transforms": ["Transforms Applied", "TransformTable", [], "Transforms are applied in this order"]
+            "transforms": ["Transforms", "TransformTable", [], ""]
         },
         "reset": {
         },
         "rotate": {
-            "angle": ["Angle (rad)", "Float", "0.0"],
+            "angle": ["Angle (deg)", "Float", "0.0"],
             "axis": ["Axis", "FloatStringArray", "0.0, 0.0, 1.0", "", "x, y, z"],
-            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"]
+            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "name": ["Name", "String", "Rotate"]
+        },
+        "rotateClone": {
+            "angle": ["Angle (deg)", "Float", "0.0"],
+            "axis": ["Axis", "FloatStringArray", "0.0, 0.0, 1.0", "", "x, y, z"],
+            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "name": ["Name", "String", "Rotate"]
         },
         "simulation": {
         },
@@ -329,7 +400,12 @@
             "object": ["Apply to", "geomObject", ""]
         },
         "translate": {
-            "distance": ["Direction", "FloatStringArray", "10.0, 0.0, 0.0", "", "x, y, z"]
+            "distance": ["Direction", "FloatStringArray", "10.0, 0.0, 0.0", "", "x, y, z"],
+            "name": ["Name", "String", "Translate"]
+        },
+        "translateClone": {
+            "distance": ["Direction", "FloatStringArray", "10.0, 0.0, 0.0", "", "x, y, z"],
+            "name": ["Name", "String", "Translate"]
         }
     },
     "view": {
@@ -349,17 +425,13 @@
         "cloneTransform": {
             "title": "Clone Object",
             "basic": [
+                "transforms",
                 "numCopies",
-                "transform",
                 "alternateFields"
             ],
             "advanced": [
+                "transforms",
                 "numCopies",
-                "transform",
-                "axis",
-                "center",
-                "angle",
-                "distance",
                 "alternateFields"
             ]
         },
@@ -411,7 +483,6 @@
             "title": "Object",
             "basic": [
                 "name",
-                "type",
                 "material",
                 "center",
                 "size",
@@ -420,7 +491,6 @@
             "advanced": [
                 ["Main", [
                 "name",
-                "type",
                 "magnetization",
                 "material",
                 "doDivide",
@@ -434,6 +504,7 @@
                 ]]
             ]
         },
+        "invert": {},
         "linePath": {
             "title": "Line",
             "basic": [
@@ -474,7 +545,52 @@
                 "ptZ"
             ]
         },
+        "racetrack": {
+            "title": "Race Track",
+            "basic": [
+                "name",
+                "axis",
+                "center",
+                "size",
+                "rInner",
+                "rOuter",
+                "numSegments",
+                "currentDensity",
+                "fieldCalc",
+                "color"
+            ],
+            "advanced": [
+                ["Main", [
+                "name",
+                "axis",
+                "center",
+                "size",
+                "rInner",
+                "rOuter",
+                "numSegments",
+                "currentDensity",
+                "fieldCalc",
+                "color"
+            ]],
+                ["Transforms", [
+                    "transforms"
+                ]]
+            ]
+        },
         "rotate": {
+            "title": "Rotate",
+            "basic": [
+                "axis",
+                "center",
+                "angle"
+            ],
+            "advanced": [
+                "axis",
+                "center",
+                "angle"
+            ]
+        },
+        "rotateClone": {
             "title": "Rotate",
             "basic": [
                 "axis",
@@ -525,6 +641,15 @@
             "advanced": []
         },
         "translate": {
+            "title": "Translate",
+            "basic": [
+                "distance"
+            ],
+            "advanced": [
+                "distance"
+            ]
+        },
+        "translateClone": {
             "title": "Translate",
             "basic": [
                 "distance"
