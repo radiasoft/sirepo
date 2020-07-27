@@ -423,9 +423,8 @@ class _ComputeJob(PKDict):
 
     @classmethod
     def __db_load(cls, compute_jid):
-        d = pkcollections.json_load_any(
-            cls.__db_file(compute_jid),
-        )
+        f = cls.__db_file(compute_jid)
+        d = pkcollections.json_load_any(f)
         for k in [
                 'alert',
                 'cancelledAfterSecs',
@@ -439,6 +438,7 @@ class _ComputeJob(PKDict):
                 h.setdefault(k, None)
         d.pksetdefault(
             computeModel=lambda: sirepo.sim_data.split_jid(compute_jid).compute_model,
+            dbUpdateTime=lambda: f.mtime(),
         )
         return d
 
