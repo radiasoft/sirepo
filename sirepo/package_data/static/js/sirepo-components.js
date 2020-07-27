@@ -318,19 +318,8 @@ SIREPO.app.directive('cancelledDueToTimeoutAlert', function(authState) {
         controller: function($scope, appState) {
             $scope.authState = authState;
 
-            function leftPadZero(num) {
-                if (num < 10) {
-                    return '0' + num;
-                }
-                return num;
-            }
-
             $scope.getTime = function() {
-                var s = $scope.simState.getCancelledAfterSecs();
-                var h = leftPadZero(Math.floor(s / 3600));
-                s %= 3600;
-                var m = leftPadZero(Math.floor(s / 60));
-                return h + ':' + m + ':' + leftPadZero(Math.floor(s % 60));
+                return appState.formatTime($scope.simState.getCancelledAfterSecs());
             };
 
         },
@@ -2813,7 +2802,7 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                 '<button class="btn btn-default" data-ng-click="getJobs()">Refresh</button>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, appState) {
             function dataLoaded(data, status) {
                 $scope.data = data;
             }
@@ -2822,12 +2811,29 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                 var h = '';
                 for (var i = getStartIndex(); i < row.length; i++) {
                     var v = row[i];
+                    var t = $scope.data.header[i][1];
+                    if (t === 'DateTime') {
+                        v = appState.formatDate(v);
+                    }
+                    else if (t === 'Time') {
+                        v = appState.formatTime(v);
+                    }
                     if (!$scope.wantAdm && i === nameIndex) {
                         v = '<a href=' + getUrl(row[simulationIdIndex], row[appIndex])  + '>' + v + '</a>';
                     }
                     h += '<td>' + v + '</td>';
                 }
                 return h;
+            }
+
+            function getHeaderIndex(key) {
+                var h = $scope.data.header;
+                for (var i = 0; i<h.length; i++) {
+                    if (h[i][0] === key) {
+                        return i;
+                    }
+                }
+                return -1;
             }
 
             function getStartIndex() {
@@ -2847,7 +2853,7 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                 var h = '';
                 if ($scope.data) {
                     for (var i = getStartIndex(); i < $scope.data.header.length; i++) {
-                        h += '<th>' + $scope.data.header[i] + '</th>';
+                        h += '<th>' + $scope.data.header[i][0] + '</th>';
                     }
                     return $sce.trustAsHtml(h);
                 }
@@ -2865,14 +2871,15 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
             $scope.getRows = function() {
                 var d = $scope.data;
                 if (d) {
-                    var a = d.header.indexOf('App');
-                    var s = d.header.indexOf('Simulation id');
+                    var n = getHeaderIndex('Name');
+                    var s = getHeaderIndex('Simulation id');
+                    var a = getHeaderIndex('App');
                     if (a !== 0 && s !== 1) {
-                        throw new Error("'Simulation id' or 'App' not found in known location on header=" + d.header);
+                        throw new Error("'Simulation id' or 'App' not found in known location on header=" + JSON.stringify($scope.data.header));
                     }
                     var h = '';
                     for (var i in d.rows) {
-                        h += '<tr>' + getRow(d.rows[i], d.header.indexOf('Name'), s, a) + '</tr>';
+                        h += '<tr>' + getRow(d.rows[i], n, s, a) + '</tr>';
                     }
                     return $sce.trustAsHtml(h);
                 }

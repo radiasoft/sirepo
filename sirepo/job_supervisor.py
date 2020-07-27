@@ -470,47 +470,38 @@ class _ComputeJob(PKDict):
 
         def _get_header():
             h = [
-                'App',
-                'Simulation id',
-                'Start (UTC)',
-                'Last update (UTC)',
-                'Elapsed',
-                'Status',
+                ['App', 'String'],
+                ['Simulation id', 'String'],
+                ['Start', 'DateTime'],
+                ['Last update', 'DateTime'],
+                ['Elapsed', 'Time'],
+                ['Status', 'String'],
             ]
             if uid:
-                h.insert(l, 'Name')
+                h.insert(l, ['Name', 'String'])
             else:
-                h.insert(l, 'User id')
+                h.insert(l, ['User id', 'String'])
                 h.extend([
-                    'Queued',
-                    'Driver details',
-                    'Premium user'
+                    ['Queued', 'Time'],
+                    ['Driver details', 'String'],
+                    ['Premium user', 'String'],
                 ])
             return h
-
-        def _strf_seconds(seconds):
-            # formats to [D day[s], ][H]H:MM:SS[.UUUUUU]
-            return str(datetime.timedelta(seconds=seconds))
 
         def _get_rows():
             def _get_queued_time(db):
                 m = i.db.computeJobStart if i.db.status == job.RUNNING \
                     else int(sirepo.srtime.utc_now_as_float())
-                return _strf_seconds(m - db.computeJobQueued)
-
-            def _strf_unix_time(unix_time):
-                return datetime.datetime.utcfromtimestamp(
-                    int(unix_time),
-                ).strftime('%Y-%m-%d %H:%M:%S')
+                return m - db.computeJobQueued
 
             r = []
             for i in filter(_filter_jobs, cls.instances.values()):
                 d = [
                     i.db.simulationType,
                     i.db.simulationId,
-                    _strf_unix_time(i.db.computeJobStart),
-                    _strf_unix_time(i.db.lastUpdateTime),
-                    _strf_seconds(i.db.lastUpdateTime - i.db.computeJobStart),
+                    i.db.computeJobStart,
+                    i.db.lastUpdateTime,
+                    i.db.lastUpdateTime - i.db.computeJobStart,
                     i.db.get('jobStatusMessage', ''),
                 ]
                 if uid:

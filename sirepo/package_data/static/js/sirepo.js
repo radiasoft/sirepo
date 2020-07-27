@@ -459,6 +459,29 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return $filter('date')(unixTime * 1000, 'yyyy-MM-dd HH:mm:ss');
     };
 
+    self.formatTime = function(unixTime) {
+        function format(val) {
+            return leftPadZero(Math.floor(val));
+        }
+
+        function leftPadZero(num) {
+            if (num < 10) {
+                return '0' + num;
+            }
+            return num;
+        }
+
+        var d = format(unixTime / (3600*24));
+        var h = format(unixTime % (3600*24) / 3600);
+        var m = format(unixTime % 3600 / 60);
+        var s = format(unixTime % 60);
+        var res = d > 0 ? d : '';
+        if (res) {
+            res += d === 1 ? ' day': ' days'
+        }
+        return res + h + ':' + m + ':' + s;
+    };
+
     self.isAnimationModelName = function(name) {
         return name == 'animation' || name.indexOf('Animation') >= 0;
     };
