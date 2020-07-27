@@ -1465,7 +1465,7 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
                 if (res) {
                     return res;
                 }
-                res = 'Simulation ' + $scope.simState.stateAsText();
+                res = $scope.simState.simulationMessage();
                 var f = $scope.simState.getFrameCount();
                 if (f) {
                   res +=  ': ' + f  + ' animation frames';

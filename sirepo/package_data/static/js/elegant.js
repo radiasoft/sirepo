@@ -640,7 +640,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
     };
 
     self.simState.notRunningMessage = function() {
-        return 'Simulation ' + self.simState.stateAsText();
+        return self.simState.simulationMessage();
     };
 });
 

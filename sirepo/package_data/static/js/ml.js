@@ -232,7 +232,7 @@ SIREPO.app.controller('RegressionController', function (appState, frameCache, ml
     };
 
     self.simState.notRunningMessage = function() {
-        return 'Simulation ' + self.simState.stateAsText();
+        return self.simState.simulationMessage();
     };
 
     self.simState.runningMessage = function() {

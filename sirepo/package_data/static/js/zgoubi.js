@@ -441,7 +441,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     };
 
     self.simState.notRunningMessage = function() {
-        return 'Simulation ' + self.simState.stateAsText();
+        return self.simState.simulationMessage();
     };
 
     appState.whenModelsLoaded($scope, function() {

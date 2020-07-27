@@ -2191,7 +2191,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             );
 
             $scope.simState.notRunningMessage = function() {
-                return 'Simulation ' + $scope.simState.stateAsText();
+                return $scope.simState.simulationMessage();
             };
        },
     };

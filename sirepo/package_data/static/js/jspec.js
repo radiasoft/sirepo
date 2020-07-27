@@ -240,7 +240,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         if (self.hasParticles) {
             return '';
         }
-        return 'Simulation ' + self.simState.stateAsText();
+        return self.simState.simulationMessage();
     };
 
     self.simState.runningMessage = function() {
