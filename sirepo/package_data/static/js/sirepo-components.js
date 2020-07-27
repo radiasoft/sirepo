@@ -302,7 +302,7 @@ SIREPO.app.directive('buttons', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('cancelledDueToTimeoutAlert', function(authState, appState) {
+SIREPO.app.directive('cancelledDueToTimeoutAlert', function(authState) {
     return {
         restrict: 'A',
         scope: {
@@ -312,12 +312,11 @@ SIREPO.app.directive('cancelledDueToTimeoutAlert', function(authState, appState)
         template: [
             '<div data-ng-if="simState.getCancelledAfterSecs()" class="alert alert-warning" role="alert">',
               '<h4 class="alert-heading">Cancelled: Maximum runtime exceeded</h4>',
-              '<p>Your simulation ran for {{getTime()}}. To increase your maximum runtime please upgrade to <a href="https://radiasoft.net/sirepo" target="_blank">Sirepo {{ appState.ucfirst(authState.upgradeToPlan) }}</a>.</p>',
+              '<p>Your simulation ran for {{getTime()}}. To increase your maximum runtime please upgrade to ' + authState.upgradePlanLink() + '.</p>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.authState = authState;
-            $scope.appState = appState;
 
             function leftPadZero(num) {
                 if (num < 10) {
@@ -333,6 +332,7 @@ SIREPO.app.directive('cancelledDueToTimeoutAlert', function(authState, appState)
                 var m = leftPadZero(Math.floor(s / 60));
                 return h + ':' + m + ':' + leftPadZero(Math.floor(s % 60));
             };
+
         },
     };
 });
@@ -1455,7 +1455,7 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
                 if ($scope.simState.isStatePurged()) {
                     return $sce.trustAsHtml([
                         '<div>Simulation data purged on ' + $scope.simState.getDbUpdateTime() + ' UTC.</div>',
-                        '<div>Upgrade to <a href="https://radiasoft.net/sirepo" target="_blank">Sirepo ' +  appState.ucfirst(authState.upgradeToPlan)  + '</a> for persistent data storage.</div>',
+                        '<div>Upgrade to ' + authState.upgradePlanLink() + ' for persistent data storage.</div>',
                     ].join(''));
                 }
 

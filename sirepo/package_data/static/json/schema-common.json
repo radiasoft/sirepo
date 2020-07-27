@@ -145,7 +145,12 @@
         "constants": {
             "clientCookie": "sirepo_cookie_js",
             "maxSimCopies": 100,
-            "oneDayMillis": 86400000
+            "oneDayMillis": 86400000,
+            "plans": {
+                "premium": "Sirepo Premium",
+                "enterprise": "Sirepo Enterprise"
+            },
+            "plansUrl": "https://radiasoft.net/sirepo"
         },
         "cookies": {
             "firstVisit": {
