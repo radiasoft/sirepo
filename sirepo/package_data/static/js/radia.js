@@ -407,11 +407,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function addShapesForObject(o) {
-        var shape = self.getShape(o.id);
+        var baseShape = self.getShape(o.id);
         var gShape = null;
-        if (! shape) {
-            shape = self.shapeForObject(o);
-            self.shapes.push(shape);
+        if (! baseShape) {
+            baseShape = self.shapeForObject(o);
+            self.shapes.push(baseShape);
         }
         if (o.groupId !== '') {
             gShape = self.getShape(o.groupId);
@@ -419,12 +419,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 gShape = self.shapeForObject(self.getObject(o.groupId));
                 self.shapes.push(gShape);
             }
-            shape.addLink(gShape, fit);
+            baseShape.addLink(gShape, fit);
         }
         var xformShapes = [];
         if (o.transforms.length > 0) {
             // add "parent" shape
-            xformShapes.push(shape);
+            xformShapes.push(baseShape);
         }
         // probably better to create a transform and let svg do this work
         o.transforms.forEach(function (xform) {
@@ -434,19 +434,32 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 var linkTx;
                 if (xform.model === 'cloneTransform') {
                     for (var i = 1; i <= xform.numCopies; ++i) {
-                        nextShape = txShape(shape);
+                        nextShape = txShape(baseShape);
+                        //var tmpShape = txShape(baseShape);
                         // not quite working yet
+                        var txArr = [];
+                        var prevShape = xShape;
                         for (var j = 0; j < xform.transforms.length; ++j) {
                             var cloneXform = xform.transforms[j];
                             if (cloneXform.model === 'translateClone') {
-                                linkTx = offsetFn(xShape, nextShape, cloneXform, i);
+                                linkTx = offsetFn(prevShape, nextShape, cloneXform, i);
                             }
                             if (cloneXform.model === 'rotateClone') {
-                                linkTx = rotateFn(xShape, nextShape, cloneXform, i);
+                                linkTx = rotateFn(prevShape, nextShape, cloneXform, i);
                             }
-                            xShape.addLink(nextShape, linkTx);
-                            linkTx(xShape, nextShape);
+                            //xShape.addLink(nextShape, linkTx);  // ??
+                            txArr.push(linkTx);
+                            //linkTx(prevShape, nextShape);
+                            prevShape = nextShape;
                         }
+                        //srdbg('xsh', xShape.center, 'next', nextShape.center, nextShape.rotationAngle);
+                        //nextShape = txShape(shape);
+                        var ctx = composeFn(xShape, nextShape, txArr);
+                        //var tmpSh = txShape(baseShape);
+                        ctx(baseShape, nextShape);
+                        //srdbg('cmp', tmpSh.center, tmpSh.rotationAngle);
+                        //xShape.addLink(nextShape, ctx);
+                        baseShape.addLink(nextShape, ctx);
                         self.shapes.push(nextShape);
                         xformShapes.push(nextShape);
                     }
@@ -457,7 +470,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     return;
                 }
                 if (xform.model === 'symmetryTransform' && xform.symmetryType !== 'none') {
-                    nextShape = txShape(shape);
+                    nextShape = txShape(baseShape);
                     linkTx = mirrorFn(xShape, nextShape, xform);
                     xShape.addLink(nextShape, linkTx);
                     linkTx(xShape, nextShape);
@@ -468,16 +481,18 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                         var cpl = geometry.plane(vtkPlotting.COORDINATE_PLANES[p], geometry.point());
                         var spl = geometry.plane(
                             stringToFloatArray(xform.symmetryPlane),
-                            geometry.pointFromArr(stringToFloatArray(xform.symmetryPoint, SIREPO.APP_SCHEMA.constants.objectScale))
-                        );
+                            geometry.pointFromArr(stringToFloatArray(
+                                xform.symmetryPoint,
+                                SIREPO.APP_SCHEMA.constants.objectScale)
+                            ));
                         if (cpl.equals(spl)) {
                             continue;
                         }
                         var l = spl.intersection(cpl);
                         if (l) {
                             self.shapes.push(vtkPlotting.plotLine(
-                                virtualShapeId(shape), shape.name, l,
-                                shape.color, 1.0, 'dashed', "8,8,4,8"
+                                virtualShapeId(baseShape), baseShape.name, l,
+                                baseShape.color, 1.0, 'dashed', "8,8,4,8"
                             ));
                         }
                     }
@@ -533,6 +548,16 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         });
     }
 
+    function composeFn(shape1, shape2, fnArr) {
+        return function(shape1, shape2) {
+            var prevShape = shape1;
+            fnArr.forEach(function (tx) {
+                prevShape = tx(prevShape, shape2);
+            });
+            return shape2;
+        };
+    }
+
     function mirrorFn(shape1, shape2, xform) {
         return function (shape1, shape2) {
             var pl = geometry.plane(
@@ -565,13 +590,14 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             var ctr = stringToFloatArray(xform.center, SIREPO.APP_SCHEMA.constants.objectScale);
             var axis = stringToFloatArray(xform.axis, SIREPO.APP_SCHEMA.constants.objectScale);
             // need a 4-vector to account for translation
-            //var shapeCtr4 = [shape1.center.x, shape1.center.y, shape1.center.z, 0];
             var shapeCtr4 = shape1.getCenterCoords();
             shapeCtr4.push(0);
             var angle = Math.PI * parseFloat(xform.angle) / 180.0;
             var a = i * angle;
             var m = geometry.rotationMatrix(ctr, axis, a);
+            //srdbg(m);
             shape2.setCenter(geometry.vectorMult(m, shapeCtr4));
+            //srdbg('sh2 ctr', shape2.getCenterCoords());
             shape2.rotationAngle = -180.0 * a / Math.PI;
             return shape2;
         };
@@ -694,7 +720,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             if (watchedModels.indexOf(modelName) < 0) {
                 return;
             }
-            srdbg('model ch src', modelName);
             var o = self.selectedObject;
             if (o.id !== 0 && (angular.isUndefined(o.id) || o.id === '')) {
                 addObject(o);
