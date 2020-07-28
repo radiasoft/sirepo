@@ -423,9 +423,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }
         var xformShapes = [];
         if (o.transforms.length > 0) {
-            // add "parent" shape
             xformShapes.push(baseShape);
         }
+        var txArr = [];
         // probably better to create a transform and let svg do this work
         o.transforms.forEach(function (xform) {
             // each successive transform must be applied to all previous shapes
@@ -434,31 +434,20 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 var linkTx;
                 if (xform.model === 'cloneTransform') {
                     for (var i = 1; i <= xform.numCopies; ++i) {
-                        nextShape = txShape(baseShape);
-                        //var tmpShape = txShape(baseShape);
-                        // not quite working yet
-                        var txArr = [];
-                        var prevShape = xShape;
+                        //var cloneTx = [];
+                        var cloneTx = txArr.slice(0);
                         for (var j = 0; j < xform.transforms.length; ++j) {
                             var cloneXform = xform.transforms[j];
                             if (cloneXform.model === 'translateClone') {
-                                linkTx = offsetFn(prevShape, nextShape, cloneXform, i);
+                                cloneTx.push(offsetFn(cloneXform, i));
                             }
                             if (cloneXform.model === 'rotateClone') {
-                                linkTx = rotateFn(prevShape, nextShape, cloneXform, i);
+                                cloneTx.push(rotateFn(cloneXform, i));
                             }
-                            //xShape.addLink(nextShape, linkTx);  // ??
-                            txArr.push(linkTx);
-                            //linkTx(prevShape, nextShape);
-                            prevShape = nextShape;
                         }
-                        //srdbg('xsh', xShape.center, 'next', nextShape.center, nextShape.rotationAngle);
-                        //nextShape = txShape(shape);
-                        var ctx = composeFn(xShape, nextShape, txArr);
-                        //var tmpSh = txShape(baseShape);
+                        nextShape = txShape(baseShape);
+                        var ctx = composeFn(cloneTx);
                         ctx(baseShape, nextShape);
-                        //srdbg('cmp', tmpSh.center, tmpSh.rotationAngle);
-                        //xShape.addLink(nextShape, ctx);
                         baseShape.addLink(nextShape, ctx);
                         self.shapes.push(nextShape);
                         xformShapes.push(nextShape);
@@ -466,12 +455,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     return;
                 }
                 if (xform.model === 'rotate') {
-                    rotateFn(xShape, xShape, xform, 1)(xShape, xShape);
+                    txArr.push(rotateFn(xform, 1));
+                    //txArr.push(rotateFn(xform, 1)(xShape, xShape));
                     return;
                 }
                 if (xform.model === 'symmetryTransform' && xform.symmetryType !== 'none') {
                     nextShape = txShape(baseShape);
-                    linkTx = mirrorFn(xShape, nextShape, xform);
+                    linkTx = mirrorFn(xform);
                     xShape.addLink(nextShape, linkTx);
                     linkTx(xShape, nextShape);
                     self.shapes.push(nextShape);
@@ -500,12 +490,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     return;
                 }
                 if (xform.model === 'translate') {
-                    offsetFn(xShape, xShape, xform, 1)(xShape, xShape);
+                    //txArr.push(offsetFn(xform, 1)(xShape, xShape));
+                    txArr.push(offsetFn(xform, 1));
                     return;
                 }
             });
         });
-
+        composeFn(txArr)(baseShape, baseShape);
         // extend group bounds if this object is in a group
         // need to move this
         //if (gShape) {
@@ -548,7 +539,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         });
     }
 
-    function composeFn(shape1, shape2, fnArr) {
+    function composeFn(fnArr) {
         return function(shape1, shape2) {
             var prevShape = shape1;
             fnArr.forEach(function (tx) {
@@ -558,7 +549,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         };
     }
 
-    function mirrorFn(shape1, shape2, xform) {
+    function mirrorFn(xform) {
         return function (shape1, shape2) {
             var pl = geometry.plane(
                 stringToFloatArray(xform.symmetryPlane),
@@ -573,7 +564,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         };
     }
 
-    function offsetFn(shape1, shape2, xform, i) {
+    function offsetFn(xform, i) {
         return function(shape1, shape2) {
             var d = stringToFloatArray(xform.distance, SIREPO.APP_SCHEMA.constants.objectScale);
             shape2.setCenter(
@@ -585,7 +576,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         };
     }
 
-    function rotateFn(shape1, shape2, xform, i) {
+    function rotateFn(xform, i) {
         return function(shape1, shape2) {
             var ctr = stringToFloatArray(xform.center, SIREPO.APP_SCHEMA.constants.objectScale);
             var axis = stringToFloatArray(xform.axis, SIREPO.APP_SCHEMA.constants.objectScale);
@@ -1521,7 +1512,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                         return;
                     }
                     //srdbg($scope.$id, 'remove', name);
-                    //appState.removeModel(name);
+                    appState.removeModel(name);
                     //appState.cancelChanges('commands');
                     $scope.$emit('drop.target.enabled', true);
                 });
