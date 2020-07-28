@@ -236,12 +236,12 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         handleStatus
     );
 
-    self.simState.notRunningMessage = function() {
-        if (self.hasParticles) {
-            return '';
-        }
-        return self.simState.simulationMessage();
-    };
+    // self.simState.notRunningMessage = function() {
+    //     if (self.hasParticles) {
+    //         return '';
+    //     }
+    //     return self.simState.simulationMessage();
+    // };
 
     self.simState.runningMessage = function() {
         if (self.hasParticles) {

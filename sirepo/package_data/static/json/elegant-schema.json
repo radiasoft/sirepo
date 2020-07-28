@@ -3960,6 +3960,9 @@
             "bunched_beam_mode": ["BUNCHED BEAM MODE", "RPNBoolean", "1", "If non-zero, then do calculations bunch-by-bunch."],
             "allow_long_beam": ["ALLOW LONG BEAM", "RPNBoolean", "0", "Allow beam longer than covered by impedance data?"],
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
+        },
+        "_strings": {
+            "simulationStateWithFramesMessage": "Simulation {state}"
         }
     },
     "view": {

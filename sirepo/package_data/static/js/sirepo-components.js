@@ -1449,17 +1449,39 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
                     ].join(''));
                 }
 
+                // TODO(e-carlin): sort
+                function format(template, args) {
+                    return template.replace(
+                        /{(\w*)}/g,
+                        function(m, k) {
+                            if (! k in args) {
+                                throw new Error('k=' + k + ' not found in args=' + args);
+                            }
+                            return args[k];
+                        }
+                    );
+                }
+                srdbg(`aaaaaaaaa `, appState.models._strings);
+                srdbg(`cccccccc `, SIREPO.APP_SCHEMA.model._strings);
                 var m = 'notRunningMessage';
                 var res = $scope.simState[m] && $scope.simState[m]();
                 if (res) {
                     return res;
                 }
-                res = $scope.simState.simulationMessage();
-                var f = $scope.simState.getFrameCount();
-                if (f) {
-                  res +=  ': ' + f  + ' animation frames';
+                var t = appState.models._strings;
+                if (! t) {
+                    t = SIREPO.APP_SCHEMA.model._strings;
                 }
-                return  $sce.trustAsHtml('<div>' + res + '</div>');
+                srdbg(`ttttttt `, t);
+                var f = $scope.simState.getFrameCount();
+                return  $sce.trustAsHtml(
+                    '<div>' +
+                    format(
+                        f ? t.simulationStateWithFramesMessage : t.simulationStateMessage,
+                        {state: $scope.simState.stateAsText(), frameCount: f}
+                    ) +
+                    '</div>'
+                );
             };
         },
     };

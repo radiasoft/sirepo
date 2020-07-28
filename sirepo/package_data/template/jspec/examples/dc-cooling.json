@@ -119,6 +119,10 @@
             "y1": "betx",
             "y2": "bety",
             "y3": "dx"
+        },
+        "_strings": {
+            "simulationStateMessage": "",
+            "simulationStateWithFramesMessage": ""
         }
     },
     "simulationType": "jspec"

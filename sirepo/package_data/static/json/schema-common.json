@@ -385,6 +385,10 @@
                 "folder": ["Folder", "UserFolder", "/"],
                 "documentationUrl": ["Documentation URL", "OptionalString", ""],
                 "notes": ["Notes", "Text", ""]
+            },
+            "_strings": {
+                "simulationStateMessage": "Simulation {state}",
+                "simulationStateWithFramesMessage": "Simulation {state}: {frameCount} animation frames"
             }
         },
         "notifications": {
