@@ -242,7 +242,7 @@
             "ey": ["EY [m]", "RPNValue", 1.0, "The vertical emittance."],
             "eyn": ["EYN [m]", "RPNValue", 0.0, "The normalised vertical emittance."],
             "et": ["ET [m]", "RPNValue", 0.001, "The longitudinal emittance"],
-            "sequence": ["SEQUENCE", "OptionalString", "Attaches the beam command to a specific sequence."],
+            "sequence": ["SEQUENCE", "LatticeBeamlineList", "", "Attaches the beam command to a specific sequence."],
             "sigt": ["SIGT [m]", "RPNValue", 1.0, "The bunch length c sigma(t)."],
             "sige": ["SIGE [m]", "RPNValue", 0.001, "The relative energy spread sigma(E)/E."],
             "kbunch": ["KBUNCH", "Integer", 1, "The number of particle bunches in the machine."],
@@ -345,12 +345,12 @@
             "normal": ["NORMAL", "Boolean", "0", "Turn on the calculation of the Normal Form"]
         },
         "command_ptc_observe": {
-            "place": ["PLACE", "OptionalString", "The name of observation point. "]
+            "place": ["PLACE", "OptionalString", "", "The name of observation point. "]
         },
         "command_savebeta": {
-            "label": ["LABEL", "OptionalString", "Name of the label."],
-            "place": ["PLACE", "OptionalString", "The location of the mark."],
-            "sequence": ["SEQUENCE", "LatticeBeamlineList", "Name of the expaned sequence."]
+            "label": ["LABEL", "OptionalString", "", "Name of the label."],
+            "place": ["PLACE", "OptionalString", "", "The location of the mark."],
+            "sequence": ["SEQUENCE", "LatticeBeamlineList", "", "Name of the expaned sequence."]
         },
         "command_ptc_start": {
             "x": ["X", "OptionalRPNValue", null, "Canonical coordinate $x$."],
@@ -387,26 +387,26 @@
         },
         "command_ptc_track_end": {},
         "command_resbeam": {
-            "sequence": ["SEQUENCE", "OptionalString", ""]
+            "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", ""]
         },
         "command_select": {
-            "class": ["CLASS", "OptionalString", "The class of elements to be selected."],
+            "class": ["CLASS", "OptionalString", "", "The class of elements to be selected."],
             "clear": ["CLEAR", "Boolean", "0", "Deselects ALL positions in the sequence for the flag ”name”."],
-            "column": ["COLUMN", "OptionalString", "The name of the column."],
-            "flag": ["FLAG", "OptionalString", "Determines the applicability of the SELECT statement."],
+            "column": ["COLUMN", "OptionalString", "", "The name of the column."],
+            "flag": ["FLAG", "OptionalString", "", "Determines the applicability of the SELECT statement."],
             "full": ["FULL", "Boolean", "0", "The default for the MAKETHIN flag and for tables"],
-            "pattern": ["PATTERN", "OptionalString", "The regular expression pattern for the element names to be selected."],
-            "range": ["RANGE", "OptionalString", "The range of elements to be selected."],
-            "sequence": ["SEQUENCE", "OptionalString", "The name of a sequence to which the selection is applied."],
+            "pattern": ["PATTERN", "OptionalString", "", "The regular expression pattern for the element names to be selected."],
+            "range": ["RANGE", "OptionalString", "", "The range of elements to be selected."],
+            "sequence": ["SEQUENCE", "LatticeBeamlineList", "", "The name of a sequence to which the selection is applied."],
             "slice": ["SLICE", "Integer", 1, "The number of slices into which the selected elements have to be cut. Only used by MAKETHIN and FLAG=INTERPOLATE"],
             "thick": ["THICK", "Boolean", "0", "Indicate whether the selected elements are treated as thick elements by the MAKETHIN command. "]
         },
         "command_set": {
-            "format": ["FORMAT", "OptionalString", "Format output. Must double-quote each format."],
-            "sequence": ["SEQUENCE", "OptionalString", "Select the sequence"]
+            "format": ["FORMAT", "OptionalString", "", "Format output. Must double-quote each format."],
+            "sequence": ["SEQUENCE", "LatticeBeamlineList", "", "Select the sequence"]
         },
         "command_show": {
-            "command": ["COMMAND", "String", "Print the command with the values of all its parameters."]
+            "command": ["COMMAND", "String", "", "Print the command with the values of all its parameters."]
         },
         "command_sodd": {
             "detune": ["DETUNE", "Boolean", "0", "If true, the detune subroutine is executed"],
@@ -423,7 +423,7 @@
             "alfx": ["ALFX", "OptionalRPNValue", null, "Correlation function $\\alpha_x$."],
             "alfy": ["ALFY", "OptionalRPNValue", null, "Correlation function $\\alpha_y$."],
             "alfz": ["ALFZ", "OptionalRPNValue", null, "Correlation function $\\alpha_z$."],
-            "beta0": ["BETA0", "OptionalString", "The name of a BETA0 block containing the Twiss parameters to be used as input."],
+            "beta0": ["BETA0", "OptionalString", "", "The name of a BETA0 block containing the Twiss parameters to be used as input."],
             "betx": ["BETX [m]", "OptionalRPNValue", null, "Amplitude function $\\beta_x$."],
             "bety": ["BETY [m]", "OptionalRPNValue", null, "Amplitude function $\\beta_y$."],
             "betz": ["BETZ [m]", "OptionalRPNValue", null, "Amplitude function $\\beta_z$."],
@@ -499,7 +499,7 @@
             "sectormap": ["SECTORMAP", "Boolean", "0", "Initiate the calculation of a sector map."],
             "sectorpure": ["SECTORPURE", "Boolean", "0", "Save the transfer map Rij without effects from higher order map (Tijk)."],
             "sectortable": ["SECTORTABLE", "OptionalString", "", "Name of the table containing the SECTORMAP values."],
-            "sequence": ["SEQUENCE", "OptionalString", "", "Name of a valid sequence for which the calculation of optical functions should be performed. "],
+            "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "", "Name of a valid sequence for which the calculation of optical functions should be performed."],
             "useorbit": ["USEORBIT", "OptionalString", "", "Use the start value provided for the closed orbit search."],
             "wx": ["WX [m]", "OptionalRPNValue", 0.0, "The horizontal Courant-Snyder invariant "],
             "wy": ["WY [m]", "OptionalRPNValue", 0.0, "The vertical Courant-Snyder invariant "],

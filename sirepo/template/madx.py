@@ -450,7 +450,7 @@ def _format_field_value(state, model, field, el_type):
     v = model[field]
     if el_type == 'Boolean':
         v = 'true' if v == '1' else 'false'
-    elif el_type == 'LatticeBeamlineList':
+    elif 'LatticeBeamlineList' in el_type:
         v = state.id_map[int(v)].name
     elif el_type == 'OutputFile':
         v = '"{}"'.format(state.filename_map[model._id].filename)
