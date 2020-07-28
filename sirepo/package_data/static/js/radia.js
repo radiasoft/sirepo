@@ -9,7 +9,7 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
         '</div>',
-        '<div data-ng-switch-when="Group" class="col-sm-7">',
+        '<div data-ng-switch-when="Group" class="col-sm-12">',
           '<div data-group-editor="" data-field="model[field]" data-model="model"></div>',
         '</div>',
         '<div data-ng-switch-when="subModel" class="col-sm-7">',
@@ -407,20 +407,22 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function addShapesForObject(o) {
+        srdbg('addShapesForObject', o);
         var baseShape = self.getShape(o.id);
         var gShape = null;
         if (! baseShape) {
             baseShape = self.shapeForObject(o);
+            srdbg('pushing', baseShape);
             self.shapes.push(baseShape);
         }
-        if (o.groupId !== '') {
-            gShape = self.getShape(o.groupId);
-            if (! gShape) {
-                gShape = self.shapeForObject(self.getObject(o.groupId));
-                self.shapes.push(gShape);
-            }
-            baseShape.addLink(gShape, fit);
-        }
+        //if (o.groupId !== '') {
+        //    gShape = self.getShape(o.groupId);
+        //    if (! gShape) {
+        //        gShape = self.shapeForObject(self.getObject(o.groupId));
+        //        self.shapes.push(gShape);
+        //    }
+        //    baseShape.addLink(gShape, fit);
+        //}
         var xformShapes = [];
         if (o.transforms.length > 0) {
             xformShapes.push(baseShape);
@@ -449,6 +451,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                         var ctx = composeFn(cloneTx);
                         ctx(baseShape, nextShape);
                         baseShape.addLink(nextShape, ctx);
+                        srdbg('pushing', nextShape);
                         self.shapes.push(nextShape);
                         xformShapes.push(nextShape);
                     }
@@ -464,6 +467,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     linkTx = mirrorFn(xform);
                     xShape.addLink(nextShape, linkTx);
                     linkTx(xShape, nextShape);
+                    srdbg('pushing', nextShape);
                     self.shapes.push(nextShape);
 
                     // line representing the symmetry plane intersecting 3 canonical planes
@@ -480,6 +484,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                         }
                         var l = spl.intersection(cpl);
                         if (l) {
+                            srdbg('pushing line');
                             self.shapes.push(vtkPlotting.plotLine(
                                 virtualShapeId(baseShape), baseShape.name, l,
                                 baseShape.color, 1.0, 'dashed', "8,8,4,8"
@@ -496,16 +501,30 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 }
             });
         });
+        srdbg('done with xforms');
         composeFn(txArr)(baseShape, baseShape);
-        // extend group bounds if this object is in a group
-        // need to move this
+
+        if (o.groupId !== '') {
+            gShape = self.getShape(o.groupId);
+            if (! gShape) {
+                gShape = self.shapeForObject(self.getObject(o.groupId));
+                srdbg('pushing', gShape);
+                self.shapes.push(gShape);
+            }
+            srdbg('sh in grp', gShape);
+            //baseShape.addLink(gShape, fit);
+            fit(baseShape, gShape);
+            baseShape.addLink(gShape, fit);
+        }
         //if (gShape) {
-        //    //fit(mShape, gShape);
-        //    var newBounds = shapesBounds([gShape, nextShape]);
-        //    for (var dim in newBounds) {
-        //        gShape.size[dim] = Math.abs(newBounds[dim][1] - newBounds[dim][0]);
-        //        gShape.center[dim] = newBounds[dim][0] + gShape.size[dim] / 2;
-        //    }
+        //    fit(baseShape, gShape);
+            //var newBounds = shapesBounds([gShape, nextShape]);
+            //var newBounds = shapesBounds(xformShapes);
+            //for (var dim in newBounds) {
+            //    gShape.size[dim] = Math.abs(newBounds[dim][1] - newBounds[dim][0]);
+            //    gShape.center[dim] = newBounds[dim][0] + gShape.size[dim] / 2;
+            //}
+        //    baseShape.addLink(gShape, fit);
         //}
 
     }
@@ -549,6 +568,32 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         };
     }
 
+    // shape - in group; linkedShape: group
+    // NOT PICKING UP "VIRTUAL" SHAPES
+    // NOT SHRINKING PAST ORIGINAL SIZE
+    function fit(shape, groupShape) {
+        var o = self.getObject(shape.id);
+        var groupId = o.groupId;
+        if (groupId === '' || groupId !== groupShape.id) {
+            groupShape.center = shape.center;
+            groupShape.size = shape.size;
+            return groupShape;
+        }
+        var mShapes = self.getObject(groupShape.id).members.map(function (mId) {
+            return self.getShape(mId);
+        }).filter(function (s) {
+            return ! ! s;
+        });
+        // may be a duplicate, doesn't matter
+        mShapes.push(shape);
+        var newBounds = shapesBounds(mShapes);
+        for (var dim in newBounds) {
+            groupShape.size[dim] = Math.abs(newBounds[dim][1] - newBounds[dim][0]);
+            groupShape.center[dim] = newBounds[dim][0] + groupShape.size[dim] / 2;
+        }
+        return groupShape;
+    }
+
     function mirrorFn(xform) {
         return function (shape1, shape2) {
             var pl = geometry.plane(
@@ -586,36 +631,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             var angle = Math.PI * parseFloat(xform.angle) / 180.0;
             var a = i * angle;
             var m = geometry.rotationMatrix(ctr, axis, a);
-            //srdbg(m);
             shape2.setCenter(geometry.vectorMult(m, shapeCtr4));
-            //srdbg('sh2 ctr', shape2.getCenterCoords());
-            shape2.rotationAngle = -180.0 * a / Math.PI;
+            shape2.rotationAngle = (shape1.rotationAngle || 0) -180.0 * a / Math.PI;
             return shape2;
         };
-    }
-
-    // shape - in group; linkedShape: group
-    // NOT PICKING UP "VIRTUAL" SHAPES
-    // NOT SHRINKING PAST ORIGINAL SIZE
-    function fit(shape, groupShape) {
-        var o = self.getObject(shape.id);
-        var groupId = o.groupId;
-        if (groupId === '' || groupId !== groupShape.id) {
-            groupShape.center = shape.center;
-            groupShape.size = shape.size;
-            return groupShape;
-        }
-        var mShapes = self.getObject(groupShape.id).members.map(function (mId) {
-            return self.getShape(mId);
-        });
-        // may be a duplicate, doesn't matter
-        mShapes.push(shape);
-        var newBounds = shapesBounds(mShapes);
-        for (var dim in newBounds) {
-            groupShape.size[dim] = Math.abs(newBounds[dim][1] - newBounds[dim][0]);
-            groupShape.center[dim] = newBounds[dim][0] + groupShape.size[dim] / 2;
-        }
-        return groupShape;
     }
 
     function newObjectName(o) {
@@ -640,6 +659,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function shapesBounds(shapes) {
+        srdbg('bnds', shapes);
         var b = {
             x: [Number.MAX_VALUE, -Number.MAX_VALUE],
             y: [Number.MAX_VALUE, -Number.MAX_VALUE],
@@ -1263,6 +1283,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
             $scope.addObject = function(oId) {
                 var o = $scope.getObject(oId);
                 o.groupId = $scope.model.id;
+                srdbg('add', o.groupId, 'to', oId);
                 $scope.field.push(o.id);
             };
 
