@@ -32,6 +32,7 @@ FIELD_UNITS = PKDict({
     FIELD_TYPE_MAG_M: 'A/m',
 })
 
+
 _ZERO = [0, 0, 0]
 
 
@@ -64,6 +65,17 @@ def _apply_clone(g_id, xform):
     radia.TrfMlt(g_id, xf, xform.numCopies + 1)
 
 
+def _apply_rotation(g_id, xform):
+    radia.TrfOrnt(
+        g_id,
+        radia.TrfRot(
+            _split_comma_field(xform.center, 'float'),
+            _split_comma_field(xform.axis, 'float'),
+            numpy.pi * float(xform.angle) / 180.
+        )
+    )
+
+
 def _apply_symmetry(g_id, xform):
     plane = _split_comma_field(xform.symmetryPlane, 'float')
     point = _split_comma_field(xform.symmetryPoint, 'float')
@@ -73,11 +85,22 @@ def _apply_symmetry(g_id, xform):
         radia.TrfZerPerp(g_id, point, plane)
 
 
+def _apply_translation(g_id, xform):
+    radia.TrfOrnt(
+        g_id,
+        radia.TrfTrsl(_split_comma_field(xform.distance, 'float'))
+    )
+
+
+_TRANSFORMS = {
+    'cloneTransform': _apply_clone,
+    'symmetryTransform': _apply_symmetry,
+    'rotate': _apply_rotation,
+    'translate': _apply_translation
+}
+
 def apply_transform(g_id, xform):
-    if xform.model == 'cloneTransform':
-        _apply_clone(g_id, xform)
-    if xform.model == 'symmetryTransform':
-        _apply_symmetry(g_id, xform)
+    _TRANSFORMS[xform.model](g_id, xform)
 
 
 def build_box(center, size, material, magnetization, div):

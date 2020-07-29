@@ -1587,6 +1587,8 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
                 });
         };
 
+        self.labDimension = dimension;
+
         self.init = function() {
             self.scale = d3.scale.linear();
             self.svgAxis = self.createAxis();
