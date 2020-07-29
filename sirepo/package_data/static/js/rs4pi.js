@@ -220,7 +220,7 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
 SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, panelState, persistentSimulation, rs4piService, $scope) {
     var self = this;
     self.simScope = $scope;
-    self.analysisModel = 'doseCalculation';
+    self.simAnalysisModel = 'doseCalculation';
 
     self.panelState = panelState;
 
@@ -336,7 +336,7 @@ SIREPO.app.directive('dicomFrames', function(frameCache, persistentSimulation, r
         controller: function($scope) {
             var self = this;
             self.simScope = $scope;
-            self.analysisModel = $scope.model;
+            self.simAnalysisModel = $scope.model;
 
             self.simHandleStatus = function(data) {
                 if ($scope.model == 'dicomAnimation' && data.state == 'missing' && data.percentComplete === 0) {

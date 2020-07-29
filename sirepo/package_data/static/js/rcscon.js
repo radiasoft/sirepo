@@ -134,7 +134,7 @@ SIREPO.app.directive('appHeader', function(appState) {
 SIREPO.app.controller('MLController', function (appState, frameCache, persistentSimulation, rcsconService, utilities, $scope) {
     var self = this;
     self.simScope = $scope;
-    self.analysisModel = 'fitAnimation';
+    self.simAnalysisModel = 'fitAnimation';
     var errorMessage = '';
 
     self.simHandleStatus = function (data) {
@@ -504,7 +504,7 @@ SIREPO.app.directive('partitionSimState', function(appState, frameCache, panelSt
         controller: function($scope) {
             var self = this;
             self.simScope = $scope;
-            self.analysisModel = 'partitionAnimation';
+            self.simAnalysisModel = 'partitionAnimation';
             var firstVisit = true;
 
             self.simHandleStatus = function (data) {
@@ -587,7 +587,7 @@ SIREPO.app.controller('PartitionController', function (appState, panelState, $sc
 SIREPO.app.controller('VisualizationController', function (appState, persistentSimulation, requestSender, rcsconService, $scope) {
     var self = this;
     self.simScope = $scope;
-    self.analysisModel = 'elegantAnimation';
+    self.simAnalysisModel = 'elegantAnimation';
     self.appState = appState;
 
     function computeColumnCount(callback) {

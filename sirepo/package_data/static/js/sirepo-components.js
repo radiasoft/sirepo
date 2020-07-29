@@ -1464,18 +1464,21 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
                 // TODO(e-carlin): only radia uses this
                 // TODO(e-carlin): remove
                 var s = SIREPO.APP_SCHEMA.strings;
-                var c = $scope.simState.getFrameCount();
-                var f = c;
-                if ($scope.simState.controller.showCompletionState) {
-                    f = c && $scope.simState.controller.showCompletionState();
+                var f = $scope.simState.getFrameCount();
+                var c = f > 0 ? s.completionState : '';
+                if (
+                    $scope.simState.controller.showCompletionState &&
+                        ! $scope.simState.controller.showCompletionState()
+                ) {
+                    c = '';
                 }
-                var a = {state: $scope.simState.stateAsText(), frameCount: c};
+                var a = {state: $scope.simState.stateAsText(), frameCount: f};
                 if ($scope.simState.controller.completionStateArgs) {
                     $.extend(a, $scope.simState.controller.completionStateArgs());
                 }
                 return  $sce.trustAsHtml(
                     '<div>' +
-                    format(s.simulationState + (f ? s.completionState : ''), a) +
+                    format(s.simulationState + c, a) +
                     '</div>'
                 );
             };

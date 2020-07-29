@@ -836,7 +836,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
 SIREPO.app.controller('OptimizationController', function (appState, frameCache, persistentSimulation, warpvndService, $scope) {
     var self = this;
     self.simScope = $scope;
-    self.analysisModel = 'optimizerAnimation';
+    self.simAnalysisModel = 'optimizerAnimation';
 
     self.simHandleStatus = function (data) {
         if ('frameCount' in data && ! data.error) {
@@ -2103,7 +2103,7 @@ SIREPO.app.directive('fieldCalculationAnimation', function(appState, frameCache,
         controller: function($scope) {
             var self = this;
             self.simScope = $scope;
-            self.analysisModel = 'fieldCalculationAnimation';
+            self.simAnalysisModel = 'fieldCalculationAnimation';
 
             var SINGLE_PLOTS = ['fieldCalcAnimation', 'fieldComparisonAnimation'];
             $scope.panelState = panelState;
@@ -2666,7 +2666,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
             var SINGLE_PLOTS = ['particleAnimation', 'impactDensityAnimation', 'particle3d'];
             var self = this;
             self.simScope = $scope;
-            self.analysisModel = 'animation';
+            self.simAnalysisModel = 'animation';
             $scope.mpiCores = 0;
             $scope.panelState = panelState;
 

@@ -163,7 +163,7 @@ SIREPO.app.controller('ClassificationController', function() {
 SIREPO.app.controller('RegressionController', function (appState, frameCache, mlService, panelState, persistentSimulation, $scope) {
     var self = this;
     self.simScope = $scope;
-    self.analysisModel = 'fitAnimation';
+    self.simAnalysisModel = 'fitAnimation';
     var errorMessage = '';
 
     function columnTypeCount(type) {

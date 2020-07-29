@@ -2100,7 +2100,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             var oldModel = null;
             var self = this;
             self.simScope = $scope;
-            self.analysisModel = $scope.model;
+            self.simAnalysisModel = $scope.model;
 
             function copyModel() {
                 oldModel = appState.cloneModel($scope.model);
