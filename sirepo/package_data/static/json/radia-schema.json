@@ -186,7 +186,6 @@
             ["5", "5"]
         ],
         "SymmetryType": [
-            ["none", "None"],
             ["parallel", "Parallel"],
             ["perpendicular", "Perpendicular"]
         ],
@@ -244,7 +243,7 @@
             "alternateFields": ["Alternate Fields", "Boolean", "1"],
             "name": ["Name", "String", "Clone"],
             "numCopies": ["Number of Copies", "Integer", 1, "", 1],
-            "transforms": ["Transforms", "TransformTable", [], ""]
+            "transforms": ["", "TransformTable", [], ""]
         },
         "fieldDisplay": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
@@ -275,7 +274,6 @@
         },
         "geometry": {
             "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
-            "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
             "name": ["Name", "String", ""]
         },
         "geomGroup": {
@@ -357,7 +355,7 @@
         "radiaObject": {
             "_super": ["_", "model", "layoutObject"],
             "name": ["Name", "String", ""],
-            "transforms": ["Transforms", "TransformTable", [], ""]
+            "transforms": ["", "TransformTable", [], ""]
         },
         "reset": {
         },
@@ -374,6 +372,7 @@
             "name": ["Name", "String", "Rotate"]
         },
         "simulation": {
+            "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"]
         },
         "solver":  {
             "lastSolved": ["", "Integer", "-1"],
@@ -393,7 +392,7 @@
             "name": ["Name", "String", "Symmetry"],
             "symmetryPlane": ["Symmetry Plane", "FloatStringArray", "1.0, 0.0, 0.0", "", "x, y, z"],
             "symmetryPoint": ["Point in Symmetry Plane", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
-            "symmetryType": ["Symmetry", "SymmetryType", "none"]
+            "symmetryType": ["Symmetry", "SymmetryType", "parallel"]
         },
         "transform": {
             "name": ["Name", "String", "Transform"],
@@ -524,7 +523,6 @@
             "title": "Magnet Viewer",
             "basic": [
                 "geometry.name",
-                "geometry.beamAxis",
                 "viewType",
                 "bgColor",
                 "geometry.alpha",
@@ -608,7 +606,7 @@
             "advanced": [
                 "name",
                 "folder",
-                "geometry.beamAxis"
+                "beamAxis"
             ]
         },
         "solver": {

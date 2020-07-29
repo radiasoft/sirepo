@@ -38,14 +38,17 @@ class SimData(sirepo.sim_data.SimDataBase):
         """defaults that depend on the current data"""
         if not model in ('geomObject',):
             return PKDict()
-        beam_axis = data.models.geometry.beamAxis
-        return PKDict(
-            symmetryPlane=cls.BEAM_TO_SYMMETRY[beam_axis],
-        )
+        #pkdp('SIM {}', data.models.simulation)
+        #beam_axis = data.models.simulation.beamAxis
+        #return PKDict(
+        #    symmetryPlane=cls.BEAM_TO_SYMMETRY[beam_axis],
+        #)
+        return PKDict()
 
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
+        pkdp('FIXIUP {}', dm)
         cls._init_models(
             dm,
             None,

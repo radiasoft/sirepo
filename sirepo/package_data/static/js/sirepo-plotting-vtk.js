@@ -1285,17 +1285,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 return 'rgb(' + comp[0] + ', ' + comp[1] + ', ' + comp[2] + ', ' + (alpha || 1.0) + ')';
             }
 
-            function shapeFromObjectTypeAndPoint(obj, p) {
-                var model = appState.setModelDefaults({}, obj.model);
-                var size = model.size || SIREPO.ZERO_STR;
-                size = stringToFloatArray(size);
-                // note that x, y are in *lab* coordinates, not screen - they get converted by
-                // d3.scale() later
-                var shape = $scope.source.shapeForObject(obj);
-                shape.x = axes.x.scale.invert(p[0]) + size[0] / 2;
-                shape.y = axes.y.scale.invert(p[1]) + size[1] / 2;
-            }
-
             function showShapeLocation(shape) {
                 select('.focus-text').text(
                     'Center: ' +
@@ -1489,17 +1478,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             $scope.dropSuccess = function(obj, evt) {
                 var p = isMouseInBounds(evt);
                 if (p) {
-                    //var shape = shapeFromObjectTypeAndPoint(obj, p);
                     var shape = $scope.source.shapeForObject(obj);
-                    srdbg('new shape', shape, 'from', obj);
-                    //shape.center.x = axes.x.scale.invert(p[0]) + shape.size.x/ 2;
-                    //shape.center.y = axes.y.scale.invert(p[1]) + shape.length.y/ 2;
-                    //obj.center = floatArrayToString([shape.x.center, shape.y.center, 0]);
-                    //obj.center = floatArrayToString([
-                    //    shape.x + shape.width / 2,
-                    //    shape.y + shape.height / 2,
-                    //    0,
-                    //]);
                     obj.center = floatArrayToString([
                         axes.x.scale.invert(p[0]),
                         axes.y.scale.invert(p[1]),

@@ -171,6 +171,10 @@ def get_application_data(data, **kwargs):
         return res
 
 
+def new_simulation(data, new_simulation_data):
+    data.models.simulation.beamAxis = new_simulation_data.beamAxis
+    data.models.geometry.name = new_simulation_data.name
+
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
 
