@@ -505,7 +505,7 @@ class _ComputeJob(PKDict):
                     i.db.simulationId,
                     _strf_unix_time(i.db.computeJobStart),
                     _strf_unix_time(i.db.lastUpdateTime),
-                    _strf_seconds(i.db.lastUpdateTime - i.db.computeJobStart),
+                    _strf_seconds(int(sirepo.srtime.utc_now_as_float()) - i.db.computeJobStart),
                     i.db.get('jobStatusMessage', ''),
                 ]
                 if uid:
@@ -860,7 +860,7 @@ class _ComputeJob(PKDict):
                 r.update(self.db.parallelStatus)
                 r.computeJobHash = self.db.computeJobHash
                 r.computeJobSerial = self.db.computeJobSerial
-                r.elapsedTime = self.db.lastUpdateTime - self.db.computeJobStart
+                r.elapsedTime = int(sirepo.srtime.utc_now_as_float()) - self.db.computeJobStart
             if self._is_running_pending():
                 c = req.content
                 r.update(
