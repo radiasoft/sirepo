@@ -698,7 +698,7 @@ def _generate_parameters_file(data):
 
 def _grid_evolution_columns(run_dir):
     try:
-        with open(run_dir.join(_GRID_EVOLUTION_FILE)) as f:
+        with pkio.open_text(run_dir.join(_GRID_EVOLUTION_FILE)) as f:
             return [x for x in re.split('[ ]{2,}', f.readline().strip())]
     except FileNotFoundError:
         return []
