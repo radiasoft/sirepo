@@ -29,10 +29,14 @@ def background_percent_complete(report, run_dir, is_running):
     count = len(files)
     if is_running and count:
         count -= 1
-    return PKDict(
+    res = PKDict(
         percentComplete=0 if is_running else 100,
         frameCount=count,
     )
+    c = _grid_evolution_columns(run_dir)
+    if c:
+        res.gridEvolutionColumns = [x for x in c if x[0] != '#']
+    return res
 
 
 _DEFAULT_VALUES = {
@@ -85,6 +89,12 @@ _DEFAULT_VALUES = {
             'y1': 'mass',
             'y2': 'Burned Mass',
             'y3': 'Burning rate',
+            "valueList": {
+                "y1": [],
+                "y2": [],
+                "y3": [],
+
+            }
         },
     },
     'CapLaserBELLA': {
@@ -104,6 +114,18 @@ _DEFAULT_VALUES = {
             'xmax': 250.0e-04,
             'ymin': -500.0e-04,
             'ymax': 500.0e-04,
+        },
+        'gridEvolutionAnimation': {
+            "notes": "",
+            "y1": "x-momentum",
+            "y2": "y-momentum",
+            "y3": "E_kinetic",
+            "valueList": {
+                "y1": [],
+                "y2": [],
+                "y3": [],
+
+            }
         },
         'Gridparamesh': {
             'flux_correct': '0',
@@ -299,6 +321,18 @@ _DEFAULT_VALUES = {
             'zl_boundary_type': 'outflow',
             'zr_boundary_type': 'outflow'
         },
+        'gridEvolutionAnimation': {
+            "notes": "",
+            "y1": "x-momentum",
+            "y2": "y-momentum",
+            "y3": "E_kinetic",
+            "valueList": {
+                "y1": [],
+                "y2": [],
+                "y3": [],
+
+            }
+        },
         'Gridparamesh': {
             'flux_correct': '0',
             'lrefine_max': 3,
@@ -486,19 +520,18 @@ def remove_last_frame(run_dir):
     if len(files) > 0:
         pkio.unchecked_remove(files[-1])
 
-
 def sim_frame_gridEvolutionAnimation(frame_args):
+    c = _grid_evolution_columns(frame_args.run_dir)
     dat = np.loadtxt(str(frame_args.run_dir.join(_GRID_EVOLUTION_FILE)))
     stride = 20
     x = dat[::stride, 0]
     plots = []
-    for plot in _PLOT_COLUMNS[
-        frame_args.sim_in.models.simulation['flashType']
-    ]:
+    for v in 'y1', 'y2', 'y3':
+        n = frame_args[v]
         plots.append({
-            'name': plot[0],
-            'label': plot[0],
-            'points': dat[::stride, plot[1]].tolist(),
+            'name': n,
+            'label': n,
+            'points': dat[::stride, c.index(n)].tolist(),
         })
     return {
         'title': '',
@@ -614,26 +647,6 @@ def _extract_rpm(data):
     )
 
 
-#TODO(pjm): plot columns are hard-coded for flashType
-_PLOT_COLUMNS = {
-    'RTFlame': [
-        ['mass', 1],
-        ['burned mass', 9],
-        ['burning rate', 12],
-    ],
-    'CapLaserBELLA': [
-        ['x-momentum', 2],
-        ['y-momentum', 3],
-        ['E kinetic', 6],
-    ],
-    'CapLaser3D': [
-        ['x-momentum', 2],
-        ['y-momentum', 3],
-        ['E kinetic', 6],
-    ],
-}
-
-
 def _generate_parameters_file(data):
     _extract_rpm(data)
     res = ''
@@ -683,8 +696,16 @@ def _generate_parameters_file(data):
     return res
 
 
+def _grid_evolution_columns(run_dir):
+    try:
+        with pkio.open_text(run_dir.join(_GRID_EVOLUTION_FILE)) as f:
+            return [x for x in re.split('[ ]{2,}', f.readline().strip())]
+    except FileNotFoundError:
+        return []
+
+
 def _has_species_selection(flash_type):
-    return flash_type in ('CapLaserBella', 'CapLaser3D')
+    return flash_type in ('CapLaserBELLA', 'CapLaser3D')
 
 
 def _h5_file_list(run_dir):
