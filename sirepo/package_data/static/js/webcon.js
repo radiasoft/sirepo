@@ -223,6 +223,7 @@ SIREPO.app.controller('AnalysisController', function (appState, panelState, requ
 
 SIREPO.app.controller('ControlsController', function (appState, frameCache, panelState, persistentSimulation, requestSender, webconService, $scope) {
     var self = this;
+    self.scope = $scope
     var wantFinalKickerUpdate = false;
     self.isEpicsConnectionSuccessful = false;
 
@@ -275,7 +276,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
         });
     }
 
-    function handleStatus(data) {
+    self.simHandleStatus = function (data) {
         if (! appState.isLoaded()) {
             return;
         }
@@ -566,11 +567,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
         });
     });
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        webconService.computeModel(),
-        handleStatus
-    );
+    self.simState = persistentSimulation.initSimulationState(self);
 
     return self;
 });

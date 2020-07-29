@@ -349,12 +349,13 @@ SIREPO.app.controller('TwissController', function() {
 
 SIREPO.app.controller('VisualizationController', function (appState, frameCache, latticeService, panelState, persistentSimulation, plotRangeService, zgoubiService, $rootScope, $scope) {
     var self = this;
+    self.scope = $scope;
     self.panelState = panelState;
     self.errorMessage = '';
     self.hasPlotFile = false;
     self.showSpin3d = false;
 
-    function handleStatus(data) {
+    self.simHandleStatus = function (data) {
         self.errorMessage = data.error;
         if ('percentComplete' in data && ! data.error) {
             ['bunchAnimation', 'bunchAnimation2', 'energyAnimation', 'elementStepAnimation', 'particleAnimation'].forEach(function(m) {
@@ -430,11 +431,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         self.simState.saveAndRunSimulation('simulation');
     };
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        zgoubiService.computeModel(),
-        handleStatus
-    );
+    self.simState = persistentSimulation.initSimulationState(self);
 
     self.simState.errorMessage = function() {
         return self.errorMessage;

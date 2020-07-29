@@ -162,6 +162,8 @@ SIREPO.app.controller('ClassificationController', function() {
 
 SIREPO.app.controller('RegressionController', function (appState, frameCache, mlService, panelState, persistentSimulation, $scope) {
     var self = this;
+    self.scope = $scope;
+    self.analysisModel = 'fitAnimation';
     var errorMessage = '';
 
     function columnTypeCount(type) {
@@ -198,7 +200,7 @@ SIREPO.app.controller('RegressionController', function (appState, frameCache, ml
         return res;
     }
 
-    function handleStatus(data) {
+    self.simHandleStatus = function (data) {
         errorMessage = data.error;
         self.reports = null;
         if ('percentComplete' in data && ! data.error) {
@@ -222,10 +224,7 @@ SIREPO.app.controller('RegressionController', function (appState, frameCache, ml
 
     self.hasFrames = frameCache.hasFrames;
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        mlService.computeModel('fitAnimation'),
-        handleStatus);
+    self.simState = persistentSimulation.initSimulationState(self);
 
     self.simState.errorMessage = function() {
         return errorMessage;

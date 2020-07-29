@@ -222,17 +222,16 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, $
 });
 
 SIREPO.app.controller('RadiaVisualizationController', function (appState, errorService, frameCache, panelState, persistentSimulation, radiaService, utilities, $scope) {
-
-    var self = this;
-
     var SINGLE_PLOTS = ['magnetViewer'];
+    var self = this;
+    self.scope = $scope
     $scope.mpiCores = 0;
     $scope.panelState = panelState;
     $scope.svc = radiaService;
 
     self.solution = [];
 
-    function handleStatus(data) {
+    self.simHandleStatus = function (data) {
         //srdbg('SIM STATUS', data);
         if (data.error) {
             throw new Error('Solver failed: ' + data.error);
@@ -258,41 +257,28 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         self.simState.saveAndRunSimulation('simulation');
     };
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        radiaService.computeModel(),
-        handleStatus
-    );
+    self.simState = persistentSimulation.initSimulationState(self);
 
-    self.simState.notRunningMessage = function() {
-        var msg = 'Complete - ';
-        if (! (self.solution || []).length) {
-            return msg + 'No solution found';
+    self.showCompletionState = function() {
+        return self.solution && self.solution.length
+    }
+
+    self.completionStateArgs = function() {
+        return {
+            stepCount: self.solution[3],
+            maxM: utilities.roundToPlaces(self.solution[1], 4),
+            maxH: utilities.roundToPlaces(self.solution[2], 4),
         }
-        return msg + self.solution[3] + ' steps ' +
-            // TODO(e-carlin): put in new report
-            'Max |M| ' + utilities.roundToPlaces(self.solution[1], 4) + 'A/m; ' +
-            'Max |H| ' + utilities.roundToPlaces(self.solution[2], 4) + 'A/m';
-    };
+    }
 
     self.simState.startButtonLabel = function() {
         return 'Solve';
     };
 
-    //self.simState.stateAsText = function() {
-    //    return 'Solving';
-    //};
-
     self.simState.stopButtonLabel = function() {
         return 'Cancel';
     };
 
-    appState.whenModelsLoaded($scope, function() {
-        // initial setup
-       // appState.watchModelFields($scope, ['model.field'], function() {
-        //});
-        //srdbg('RadiaVisualizationController', appState.models);
-    });
 });
 
 

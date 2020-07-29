@@ -147,11 +147,12 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
 
 SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, persistentSimulation, plotRangeService, jspecService, $scope) {
     var self = this;
+    self.scope = $scope;
     self.hasParticles = false;
     self.hasRates = false;
     self.hasForceTable = false;
 
-    function handleStatus(data) {
+    self.simHandleStatus = function(data) {
         self.hasParticles = self.hasRates = self.hasForceTable = false;
         if ('percentComplete' in data && ! data.error) {
             self.hasParticles = data.hasParticles;
@@ -230,18 +231,11 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         });
     });
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        jspecService.computeModel(),
-        handleStatus
-    );
+    self.showCompletionState = function() {
+        return self.hasParticles;
+    };
 
-    // self.simState.notRunningMessage = function() {
-    //     if (self.hasParticles) {
-    //         return '';
-    //     }
-    //     return self.simState.simulationMessage();
-    // };
+    self.simState = persistentSimulation.initSimulationState(self);
 
     self.simState.runningMessage = function() {
         if (self.hasParticles) {

@@ -120,10 +120,11 @@ SIREPO.app.controller('SourceController', function (flashService, appState, $sco
 
 SIREPO.app.controller('VisualizationController', function (appState, flashService, frameCache, persistentSimulation, $scope, $window) {
     var self = this;
+    self.scope = $scope;
     self.flashService = flashService;
     self.plotClass = 'col-md-6 col-xl-4';
 
-    function handleStatus(data) {
+    self.simHandleStatus = function(data) {
         self.errorMessage = data.error;
         if ('frameCount' in data && ! data.error) {
             ['varAnimation', 'gridEvolutionAnimation'].forEach(function(m) {
@@ -134,11 +135,7 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
         frameCache.setFrameCount(data.frameCount || 0);
     }
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        flashService.computeModel(),
-        handleStatus
-    );
+    self.simState = persistentSimulation.initSimulationState(self);
 
     appState.whenModelsLoaded($scope, function() {
         $scope.$on('varAnimation.summaryData', function(e, data) {

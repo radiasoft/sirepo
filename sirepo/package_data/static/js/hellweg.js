@@ -283,9 +283,10 @@ SIREPO.app.controller('HellwegSourceController', function (appState, panelState,
 
 SIREPO.app.controller('HellwegVisualizationController', function (appState, frameCache, panelState, persistentSimulation, plotRangeService, hellwegService, $scope, $rootScope) {
     var self = this;
+    self.scope = $scope;
     self.panelState = panelState;
 
-    function handleStatus(data) {
+    self.simHandleStatus = function (data) {
         if ('percentComplete' in data && ! data.error) {
             plotRangeService.computeFieldRanges(self, 'beamAnimation', data.percentComplete);
             ['beamAnimation', 'beamHistogramAnimation', 'particleAnimation', 'parameterAnimation'].forEach(function(modelName) {
@@ -312,11 +313,7 @@ SIREPO.app.controller('HellwegVisualizationController', function (appState, fram
         });
     });
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        hellwegService.computeModel(),
-        handleStatus
-    );
+    self.simState = persistentSimulation.initSimulationState(self);
 });
 
 SIREPO.app.directive('appFooter', function() {

@@ -2098,6 +2098,9 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             var clientFields = ['colorMap', 'aspectRatio', 'plotScale'];
             var serverFields = ['intensityPlotsWidth', 'rotateAngle', 'rotateReshape'];
             var oldModel = null;
+            var self = this;
+            self.scope = $scope;
+            self.analysisModel = $scope.model;
 
             function copyModel() {
                 oldModel = appState.cloneModel($scope.model);
@@ -2107,7 +2110,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 return oldModel;
             }
 
-            function handleStatus(data) {
+            self.simHandleStatus = function(data) {
                 if (! appState.isLoaded()) {
                     return;
                 }
@@ -2184,11 +2187,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 copyModel();
             });
 
-            $scope.simState = persistentSimulation.initSimulationState(
-                $scope,
-                srwService.computeModel($scope.model),
-                handleStatus
-            );
+            $scope.simState = persistentSimulation.initSimulationState(self);
        },
     };
 });

@@ -2188,11 +2188,12 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
 SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, authState, frameCache) {
     var self = {};
 
-    self.initSimulationState = function($scope, model, handleStatusCallback) {
+    self.initSimulationState = function(controller) {
         var state = {
+            controller: controller,
             dots: '.',
             isReadyForModelChanges: false,
-            model: model,
+            model: appState.appService.computeModel(controller.analysisModel),
             percentComplete: 0,
             simulationQueueItem: null,
             timeData: {
@@ -2225,7 +2226,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             else {
                 state.simulationQueueItem = null;
             }
-            handleStatusCallback(data);
+            controller.simHandleStatus(data);
         }
 
         function runStatus() {
@@ -2344,7 +2345,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
         state.resetSimulation = function() {
             setSimulationStatus({state: 'missing'});
             frameCache.setFrameCount(0);
-            appState.whenModelsLoaded($scope, runStatus);
+            appState.whenModelsLoaded(controller.scope, runStatus);
         };
 
         state.runSimulation = function() {
@@ -2393,8 +2394,8 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
         };
 
         state.resetSimulation();
-        $scope.$on('$destroy', clearSimulation);
-        $scope.$on('sbatchLoginSuccess', function() {
+        controller.scope.$on('$destroy', clearSimulation);
+        controller.scope.$on('sbatchLoginSuccess', function() {
             state.resetSimulation();
         });
         return state;

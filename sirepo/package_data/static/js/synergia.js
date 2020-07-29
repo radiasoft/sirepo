@@ -137,11 +137,12 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, latticeSer
 
 SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, plotRangeService, synergiaService, $scope) {
     var self = this;
+    self.scope = $scope;
     var turnCount = 0;
     self.panelState = panelState;
     self.errorMessage = '';
 
-    function handleStatus(data) {
+    self.simHandleStatus = function (data) {
         frameCache.setFrameCount(0, 'turnComparisonAnimation');
         turnCount = 0;
         self.errorMessage = data.error;
@@ -181,11 +182,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         });
     });
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        synergiaService.computeModel(),
-        handleStatus
-    );
+    self.simState = persistentSimulation.initSimulationState(self);
 
     self.simState.errorMessage = function() {
         return self.errorMessage;

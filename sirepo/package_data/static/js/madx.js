@@ -186,6 +186,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
 
 SIREPO.app.controller('VisualizationController', function(appState, madxService, frameCache, panelState, persistentSimulation, $rootScope, $scope) {
     var self = this;
+    self.scope = $scope;
     self.appState = appState;
     self.panelState = panelState;
     self.outputFiles = [];
@@ -195,7 +196,7 @@ SIREPO.app.controller('VisualizationController', function(appState, madxService,
         return fn.replace(/\.(?:tfs)/g, '');
     }
 
-    function handleStatus(data) {
+    self.simHandleStatus = function(data) {
         self.simulationAlerts = data.alert || '';
         if (data.frameCount) {
             frameCache.setFrameCount(1);
@@ -240,11 +241,7 @@ SIREPO.app.controller('VisualizationController', function(appState, madxService,
         self.simState.saveAndRunSimulation('simulation');
     };
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        madxService.computeModel(),
-        handleStatus
-    );
+    self.simState = persistentSimulation.initSimulationState(self);
 });
 
 SIREPO.app.directive('appFooter', function() {

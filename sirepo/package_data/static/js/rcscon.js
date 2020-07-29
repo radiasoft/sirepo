@@ -133,9 +133,11 @@ SIREPO.app.directive('appHeader', function(appState) {
 
 SIREPO.app.controller('MLController', function (appState, frameCache, persistentSimulation, rcsconService, utilities, $scope) {
     var self = this;
+    self.scope = $scope;
+    self.analysisModel = 'fitAnimation';
     var errorMessage = '';
 
-    function handleStatus(data) {
+    self.simHandleStatus = function (data) {
         errorMessage = data.error;
         self.reports = null;
         if ('percentComplete' in data && ! data.error) {
@@ -177,10 +179,7 @@ SIREPO.app.controller('MLController', function (appState, frameCache, persistent
         return frameCache.hasFrames();
     };
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        rcsconService.computeModel('fitAnimation'),
-        handleStatus);
+    self.simState = persistentSimulation.initSimulationState(self);
 
     self.simState.errorMessage = function() {
         return errorMessage;
@@ -503,9 +502,12 @@ SIREPO.app.directive('partitionSimState', function(appState, frameCache, panelSt
             '</div>',
         ].join(''),
         controller: function($scope) {
+            var self = this;
+            self.scope = $scope;
+            self.analysisModel = 'partitionAnimation'
             var firstVisit = true;
 
-            function handleStatus(data) {
+            self.simHandleStatus = function (data) {
                 if (! appState.isLoaded()) {
                     return;
                 }
@@ -537,11 +539,7 @@ SIREPO.app.directive('partitionSimState', function(appState, frameCache, panelSt
                 frameCache.setFrameCount(data.frameCount || 0);
             }
 
-            $scope.simState = persistentSimulation.initSimulationState(
-                $scope,
-                rcsconService.computeModel('partitionAnimation'),
-                handleStatus
-            );
+            $scope.simState = persistentSimulation.initSimulationState(self);
 
             appState.whenModelsLoaded($scope, function() {
                 $scope.$on('partition.changed', $scope.simState.runSimulation);
@@ -588,6 +586,8 @@ SIREPO.app.controller('PartitionController', function (appState, panelState, $sc
 
 SIREPO.app.controller('VisualizationController', function (appState, persistentSimulation, requestSender, rcsconService, $scope) {
     var self = this;
+    self.scope = $scope;
+    self.analysisModel = 'elegantAnimation';
     self.appState = appState;
 
     function computeColumnCount(callback) {
@@ -626,7 +626,7 @@ SIREPO.app.controller('VisualizationController', function (appState, persistentS
         }
     }
 
-    function handleStatus(data) {
+    self.simHandleStatus = function (data) {
         if (appState.isLoaded()
             && appState.applicationState().dataSource.source == 'elegant') {
             if ('inputsCount' in data) {
@@ -663,10 +663,7 @@ SIREPO.app.controller('VisualizationController', function (appState, persistentS
         appState.saveChanges('files');
     }
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        rcsconService.computeModel('elegantAnimation'),
-        handleStatus);
+    self.simState = persistentSimulation.initSimulationState(self);
 
     appState.whenModelsLoaded($scope, function() {
         $scope.$on('files.changed', createReports);
