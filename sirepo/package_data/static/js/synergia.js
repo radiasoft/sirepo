@@ -191,10 +191,6 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         return self.errorMessage;
     };
 
-    self.simState.notRunningMessage = function() {
-        return self.simState.simulationMessage();
-    };
-
     self.simState.runningMessage = function() {
         if (appState.isLoaded() && turnCount) {
             return 'Simulating turn: ' + turnCount + ' / ' + appState.models.simulationSettings.turn_count;

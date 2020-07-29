@@ -440,10 +440,6 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         return self.errorMessage;
     };
 
-    self.simState.notRunningMessage = function() {
-        return self.simState.simulationMessage();
-    };
-
     appState.whenModelsLoaded($scope, function() {
         //TODO(pjm): need to work this into sirepo-lattice.js
         $scope.$on('simulation.changed', function(e, name) {

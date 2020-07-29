@@ -231,10 +231,6 @@ SIREPO.app.controller('RegressionController', function (appState, frameCache, ml
         return errorMessage;
     };
 
-    self.simState.notRunningMessage = function() {
-        return self.simState.simulationMessage();
-    };
-
     self.simState.runningMessage = function() {
         if (appState.isLoaded() && self.simState.getFrameCount()) {
             return 'Completed epoch: ' + self.simState.getFrameCount();

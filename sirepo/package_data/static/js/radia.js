@@ -270,6 +270,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
             return msg + 'No solution found';
         }
         return msg + self.solution[3] + ' steps ' +
+            // TODO(e-carlin): put in new report
             'Max |M| ' + utilities.roundToPlaces(self.solution[1], 4) + 'A/m; ' +
             'Max |H| ' + utilities.roundToPlaces(self.solution[2], 4) + 'A/m';
     };

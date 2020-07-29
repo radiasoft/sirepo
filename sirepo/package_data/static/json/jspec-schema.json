@@ -338,9 +338,6 @@
             "y1": ["Y1 Value", "TwissParameter", "betx"],
             "y2": ["Y2 Value", "TwissParameter", "bety"],
             "y3": ["Y3 Value", "TwissParameter", "dx"]
-        },
-        "_strings": {
-            "simulationStateWithFramesMessage": "Simulation {state}"
         }
     },
     "view": {

@@ -2378,11 +2378,6 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
                 ? 1 : 0;
         };
 
-        // TODO(e-carlin): remove
-        state.simulationMessage = function() {
-            return 'Simulation ' + state.stateAsText();
-        };
-
         state.startButtonLabel = function() {
             return 'Start New Simulation';
         };

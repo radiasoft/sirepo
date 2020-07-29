@@ -385,10 +385,6 @@
                 "folder": ["Folder", "UserFolder", "/"],
                 "documentationUrl": ["Documentation URL", "OptionalString", ""],
                 "notes": ["Notes", "Text", ""]
-            },
-            "_strings": {
-                "simulationStateMessage": "Simulation {state}",
-                "simulationStateWithFramesMessage": "Simulation {state}: {frameCount} animation frames"
             }
         },
         "notifications": {
@@ -425,6 +421,10 @@
                 "js": ["sirepo.js"],
                 "css": ["sirepo.css"]
             }
+        },
+        "strings": {
+            "simulationState": "Simulation {state}",
+            "completionState": ": {frameCount} animation frames"
         },
         "view": {
             "simDoc": {

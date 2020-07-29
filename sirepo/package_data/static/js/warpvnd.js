@@ -859,14 +859,9 @@ SIREPO.app.controller('OptimizationController', function (appState, frameCache, 
         handleStatus
     );
 
-    self.simState.notRunningMessage = function() {
-        return 'Optimization ' + self.simState.stateAsText() + ': ' + self.simState.getFrameCount() + ' runs';
-    };
-
     self.simState.runningMessage = function() {
         return 'Completed run: ' + self.simState.getFrameCount();
     };
-
 });
 
 SIREPO.app.controller('VisualizationController', function (appState, errorService, frameCache, panelState, requestSender, vtkPlotting, warpvndService, $scope) {

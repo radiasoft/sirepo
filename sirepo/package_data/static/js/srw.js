@@ -2189,10 +2189,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 srwService.computeModel($scope.model),
                 handleStatus
             );
-
-            $scope.simState.notRunningMessage = function() {
-                return $scope.simState.simulationMessage();
-            };
        },
     };
 });

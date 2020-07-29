@@ -1441,6 +1441,18 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
         ].join(''),
         controller: function($scope, $sce, appState) {
 
+            function format(template, args) {
+                return template.replace(
+                    /{(\w*)}/g,
+                    function(m, k) {
+                        if (! k in args) {
+                            throw new Error('k=' + k + ' not found in args=' + args);
+                        }
+                        return args[k];
+                    }
+                );
+            }
+
             $scope.message = function() {
                 if ($scope.simState.isStatePurged()) {
                     return $sce.trustAsHtml([
@@ -1449,35 +1461,20 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
                     ].join(''));
                 }
 
-                // TODO(e-carlin): sort
-                function format(template, args) {
-                    return template.replace(
-                        /{(\w*)}/g,
-                        function(m, k) {
-                            if (! k in args) {
-                                throw new Error('k=' + k + ' not found in args=' + args);
-                            }
-                            return args[k];
-                        }
-                    );
-                }
-                srdbg(`aaaaaaaaa `, appState.models._strings);
-                srdbg(`cccccccc `, SIREPO.APP_SCHEMA.model._strings);
+                // TODO(e-carlin): only radia uses this
+                // TODO(e-carlin): remove
                 var m = 'notRunningMessage';
                 var res = $scope.simState[m] && $scope.simState[m]();
                 if (res) {
                     return res;
                 }
-                var t = appState.models._strings;
-                if (! t) {
-                    t = SIREPO.APP_SCHEMA.model._strings;
-                }
-                srdbg(`ttttttt `, t);
+                var s = SIREPO.APP_SCHEMA.strings;
                 var f = $scope.simState.getFrameCount();
                 return  $sce.trustAsHtml(
                     '<div>' +
+                    // TODO(e-carlin):  ask controller if hasFrames()
                     format(
-                        f ? t.simulationStateWithFramesMessage : t.simulationStateMessage,
+                        s.simulationState + (f ? s.completionState : ''),
                         {state: $scope.simState.stateAsText(), frameCount: f}
                     ) +
                     '</div>'
