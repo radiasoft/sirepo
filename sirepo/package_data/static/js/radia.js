@@ -224,7 +224,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, $
 SIREPO.app.controller('RadiaVisualizationController', function (appState, errorService, frameCache, panelState, persistentSimulation, radiaService, utilities, $scope) {
     var SINGLE_PLOTS = ['magnetViewer'];
     var self = this;
-    self.scope = $scope;
+    self.simScope = $scope;
     $scope.mpiCores = 0;
     $scope.panelState = panelState;
     $scope.svc = radiaService;

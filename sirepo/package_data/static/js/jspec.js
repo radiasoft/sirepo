@@ -147,7 +147,7 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
 
 SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, persistentSimulation, plotRangeService, jspecService, $scope) {
     var self = this;
-    self.scope = $scope;
+    self.simScope = $scope;
     self.hasParticles = false;
     self.hasRates = false;
     self.hasForceTable = false;

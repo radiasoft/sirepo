@@ -54,7 +54,7 @@ SIREPO.app.factory('warpPBAService', function(appState, $rootScope) {
 
 SIREPO.app.controller('WarpPBADynamicsController', function(appState, frameCache, panelState, warpPBAService, persistentSimulation, $scope) {
     var self = this;
-    self.scope = $scope;
+    self.simScope = $scope;
     self.panelState = panelState;
 
     self.simHandleStatus = function (data) {

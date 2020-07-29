@@ -223,7 +223,7 @@ SIREPO.app.controller('AnalysisController', function (appState, panelState, requ
 
 SIREPO.app.controller('ControlsController', function (appState, frameCache, panelState, persistentSimulation, requestSender, webconService, $scope) {
     var self = this;
-    self.scope = $scope;
+    self.simScope = $scope;
     var wantFinalKickerUpdate = false;
     self.isEpicsConnectionSuccessful = false;
 

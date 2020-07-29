@@ -349,7 +349,7 @@ SIREPO.app.controller('TwissController', function() {
 
 SIREPO.app.controller('VisualizationController', function (appState, frameCache, latticeService, panelState, persistentSimulation, plotRangeService, zgoubiService, $rootScope, $scope) {
     var self = this;
-    self.scope = $scope;
+    self.simScope = $scope;
     self.panelState = panelState;
     self.errorMessage = '';
     self.hasPlotFile = false;

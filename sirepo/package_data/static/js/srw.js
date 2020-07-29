@@ -2099,7 +2099,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             var serverFields = ['intensityPlotsWidth', 'rotateAngle', 'rotateReshape'];
             var oldModel = null;
             var self = this;
-            self.scope = $scope;
+            self.simScope = $scope;
             self.analysisModel = $scope.model;
 
             function copyModel() {

@@ -835,7 +835,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
 
 SIREPO.app.controller('OptimizationController', function (appState, frameCache, persistentSimulation, warpvndService, $scope) {
     var self = this;
-    self.scope = $scope;
+    self.simScope = $scope;
     self.analysisModel = 'optimizerAnimation';
 
     self.simHandleStatus = function (data) {
@@ -2102,7 +2102,7 @@ SIREPO.app.directive('fieldCalculationAnimation', function(appState, frameCache,
         ].join(''),
         controller: function($scope) {
             var self = this;
-            self.scope = $scope;
+            self.simScope = $scope;
             self.analysisModel = 'fieldCalculationAnimation';
 
             var SINGLE_PLOTS = ['fieldCalcAnimation', 'fieldComparisonAnimation'];
@@ -2665,7 +2665,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
         controller: function($scope) {
             var SINGLE_PLOTS = ['particleAnimation', 'impactDensityAnimation', 'particle3d'];
             var self = this;
-            self.scope = $scope;
+            self.simScope = $scope;
             self.analysisModel = 'animation';
             $scope.mpiCores = 0;
             $scope.panelState = panelState;

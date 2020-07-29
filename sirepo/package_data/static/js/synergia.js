@@ -137,7 +137,7 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, latticeSer
 
 SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, plotRangeService, synergiaService, $scope) {
     var self = this;
-    self.scope = $scope;
+    self.simScope = $scope;
     var turnCount = 0;
     self.panelState = panelState;
     self.errorMessage = '';

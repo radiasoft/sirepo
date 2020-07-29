@@ -133,7 +133,7 @@ SIREPO.app.directive('appHeader', function(appState) {
 
 SIREPO.app.controller('MLController', function (appState, frameCache, persistentSimulation, rcsconService, utilities, $scope) {
     var self = this;
-    self.scope = $scope;
+    self.simScope = $scope;
     self.analysisModel = 'fitAnimation';
     var errorMessage = '';
 
@@ -503,7 +503,7 @@ SIREPO.app.directive('partitionSimState', function(appState, frameCache, panelSt
         ].join(''),
         controller: function($scope) {
             var self = this;
-            self.scope = $scope;
+            self.simScope = $scope;
             self.analysisModel = 'partitionAnimation';
             var firstVisit = true;
 
@@ -586,7 +586,7 @@ SIREPO.app.controller('PartitionController', function (appState, panelState, $sc
 
 SIREPO.app.controller('VisualizationController', function (appState, persistentSimulation, requestSender, rcsconService, $scope) {
     var self = this;
-    self.scope = $scope;
+    self.simScope = $scope;
     self.analysisModel = 'elegantAnimation';
     self.appState = appState;
 

@@ -324,7 +324,7 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
 
 SIREPO.app.controller('VisualizationController', function (appState, commandService, frameCache, latticeService, panelState, persistentSimulation, plotRangeService, opalService, $scope) {
     var self = this;
-    self.scope = $scope;
+    self.simScope = $scope;
     self.panelState = panelState;
     self.errorMessage = '';
     self.outputFiles = [];

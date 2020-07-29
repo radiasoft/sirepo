@@ -2345,7 +2345,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
         state.resetSimulation = function() {
             setSimulationStatus({state: 'missing'});
             frameCache.setFrameCount(0);
-            appState.whenModelsLoaded(controller.scope, runStatus);
+            appState.whenModelsLoaded(controller.simScope, runStatus);
         };
 
         state.runSimulation = function() {
@@ -2394,8 +2394,8 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
         };
 
         state.resetSimulation();
-        controller.scope.$on('$destroy', clearSimulation);
-        controller.scope.$on('sbatchLoginSuccess', function() {
+        controller.simScope.$on('$destroy', clearSimulation);
+        controller.simScope.$on('sbatchLoginSuccess', function() {
             state.resetSimulation();
         });
         return state;

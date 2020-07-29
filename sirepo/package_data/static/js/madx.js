@@ -186,7 +186,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
 
 SIREPO.app.controller('VisualizationController', function(appState, madxService, frameCache, panelState, persistentSimulation, $rootScope, $scope) {
     var self = this;
-    self.scope = $scope;
+    self.simScope = $scope;
     self.appState = appState;
     self.panelState = panelState;
     self.outputFiles = [];

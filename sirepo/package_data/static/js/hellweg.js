@@ -283,7 +283,7 @@ SIREPO.app.controller('HellwegSourceController', function (appState, panelState,
 
 SIREPO.app.controller('HellwegVisualizationController', function (appState, frameCache, panelState, persistentSimulation, plotRangeService, hellwegService, $scope, $rootScope) {
     var self = this;
-    self.scope = $scope;
+    self.simScope = $scope;
     self.panelState = panelState;
 
     self.simHandleStatus = function (data) {

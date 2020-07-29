@@ -162,7 +162,7 @@ SIREPO.app.controller('ClassificationController', function() {
 
 SIREPO.app.controller('RegressionController', function (appState, frameCache, mlService, panelState, persistentSimulation, $scope) {
     var self = this;
-    self.scope = $scope;
+    self.simScope = $scope;
     self.analysisModel = 'fitAnimation';
     var errorMessage = '';
 
