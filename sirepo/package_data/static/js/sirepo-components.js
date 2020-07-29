@@ -1445,7 +1445,7 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
                 return template.replace(
                     /{(\w*)}/g,
                     function(m, k) {
-                        if (! k in args) {
+                        if (! (k in args)) {
                             throw new Error('k=' + k + ' not found in args=' + args);
                         }
                         return args[k];
@@ -1471,7 +1471,7 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
                 }
                 var a = {state: $scope.simState.stateAsText(), frameCount: c};
                 if ($scope.simState.controller.completionStateArgs) {
-                    $.extend(a, $scope.simState.controller.completionStateArgs())
+                    $.extend(a, $scope.simState.controller.completionStateArgs());
                 }
                 return  $sce.trustAsHtml(
                     '<div>' +

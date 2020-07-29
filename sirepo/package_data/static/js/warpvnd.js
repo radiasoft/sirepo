@@ -843,7 +843,7 @@ SIREPO.app.controller('OptimizationController', function (appState, frameCache, 
             frameCache.setFrameCount(data.frameCount > 1 ? data.frameCount : 0);
             self.simState.summaryData = data.summary;
         }
-    }
+    };
 
     self.hasOptFields = function() {
         if (appState.isLoaded()) {
@@ -2120,7 +2120,7 @@ SIREPO.app.directive('fieldCalculationAnimation', function(appState, frameCache,
                     }
                 }
                 frameCache.setFrameCount(data.frameCount);
-            }
+            };
 
             $scope.startSimulation = function() {
                 $scope.simState.saveAndRunSimulation(['simulation', 'simulationGrid']);
@@ -2689,7 +2689,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                     frameCache.setFrameCount(0, 'egunCurrentAnimation');
                 }
                 frameCache.setFrameCount(data.frameCount);
-            }
+            };
 
             $scope.startSimulation = function() {
                 $scope.simState.saveAndRunSimulation(['simulation', 'simulationGrid']);

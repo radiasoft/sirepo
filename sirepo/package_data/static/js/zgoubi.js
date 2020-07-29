@@ -372,7 +372,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
             self.showSpin3d = data.showSpin3d;
         }
         frameCache.setFrameCount(data.frameCount || 0);
-    }
+    };
 
     function processPlotType(modelName) {
         var model = appState.models[modelName];

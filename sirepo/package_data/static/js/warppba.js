@@ -61,7 +61,7 @@ SIREPO.app.controller('WarpPBADynamicsController', function(appState, frameCache
         if (data.frameCount) {
             frameCache.setFrameCount(parseInt(data.frameCount));
         }
-    }
+    };
 
     self.isElectronBeam = function() {
         return warpPBAService.isElectronBeam();

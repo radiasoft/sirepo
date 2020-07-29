@@ -133,7 +133,7 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
             });
         }
         frameCache.setFrameCount(data.frameCount || 0);
-    }
+    };
 
     self.simState = persistentSimulation.initSimulationState(self);
 

@@ -482,7 +482,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 self.outputFileMap = {};
             }
         }
-    }
+    };
 
     self.errorHeader = function() {
         if(! self.simulationAlerts || self.simulationAlerts == '') {

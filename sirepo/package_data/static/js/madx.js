@@ -202,7 +202,7 @@ SIREPO.app.controller('VisualizationController', function(appState, madxService,
             frameCache.setFrameCount(1);
             loadElementReports(data.outputInfo);
         }
-    }
+    };
 
     function loadElementReports(outputInfo) {
         self.outputFiles = [];

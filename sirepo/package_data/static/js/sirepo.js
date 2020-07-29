@@ -477,7 +477,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         var s = format(unixTime % 60);
         var res = d > 0 ? d : '';
         if (res) {
-            res += d === 1 ? ' day': ' days'
+            res += d === 1 ? ' day': ' days';
         }
         return res + h + ':' + m + ':' + s;
     };
@@ -2374,9 +2374,9 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
         };
 
         state.showJobSettings = function () {
-            return authState.jobRunModeMap.sbatch
-                && appState.models[model] && appState.models[model].jobRunMode
-                ? 1 : 0;
+            return authState.jobRunModeMap.sbatch &&
+                appState.models[state.model] &&
+                appState.models[state.model].jobRunMode ? 1 : 0;
         };
 
         state.startButtonLabel = function() {

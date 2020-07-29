@@ -2135,7 +2135,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 if ($scope.isFluxWithApproximateMethod() && data.state == 'stopped' && ! data.frameCount) {
                     $scope.cancelPersistentSimulation();
                 }
-            }
+            };
 
             function hasReportParameterChanged() {
                 // for the multiElectronAnimation, changes to the intensityPlots* fields don't require

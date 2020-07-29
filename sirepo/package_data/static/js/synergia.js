@@ -164,7 +164,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
             }
         }
         frameCache.setFrameCount(data.frameCount || 0);
-    }
+    };
 
     self.handleModalShown = function(name) {
         if (name == 'bunchAnimation') {

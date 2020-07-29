@@ -209,7 +209,7 @@ SIREPO.app.controller('RegressionController', function (appState, frameCache, ml
             }
         }
         frameCache.setFrameCount(data.frameCount || 0);
-    }
+    };
 
     self.hasModel = function() {
         if (appState.isLoaded()) {

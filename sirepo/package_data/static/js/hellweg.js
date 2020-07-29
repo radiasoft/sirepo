@@ -299,7 +299,7 @@ SIREPO.app.controller('HellwegVisualizationController', function (appState, fram
             }
         }
         frameCache.setFrameCount(data.frameCount);
-    }
+    };
 
     self.handleModalShown = function(name) {
         if (name == 'beamAnimation') {

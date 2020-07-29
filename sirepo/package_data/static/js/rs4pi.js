@@ -232,7 +232,7 @@ SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, pan
             }
             rs4piService.updateDicomAndDoseFrame(true);
         }
-    }
+    };
 
     self.showDosePanels = function() {
         return rs4piService.showDosePanels;
@@ -344,7 +344,7 @@ SIREPO.app.directive('dicomFrames', function(frameCache, persistentSimulation, r
                     return;
                 }
                 rs4piService.updateDicomAndDoseFrame($scope.waitForDose);
-            }
+            };
 
             $scope.simState = persistentSimulation.initSimulationState(self);
         },

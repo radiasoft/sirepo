@@ -161,7 +161,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
             plotRangeService.computeFieldRanges(self, 'particleAnimation', data.percentComplete);
         }
         frameCache.setFrameCount(data.frameCount || 0);
-    }
+    };
 
     function processColorRange() {
         ['colorMin', 'colorMax'].forEach(function(f) {

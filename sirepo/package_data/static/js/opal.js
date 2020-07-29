@@ -345,7 +345,7 @@ SIREPO.app.controller('VisualizationController', function (appState, commandServ
             }
         }
         frameCache.setFrameCount(data.frameCount || 0);
-    }
+    };
 
     function loadElementReports(outputInfo) {
         self.outputFiles = [];

@@ -223,7 +223,7 @@ SIREPO.app.controller('AnalysisController', function (appState, panelState, requ
 
 SIREPO.app.controller('ControlsController', function (appState, frameCache, panelState, persistentSimulation, requestSender, webconService, $scope) {
     var self = this;
-    self.scope = $scope
+    self.scope = $scope;
     var wantFinalKickerUpdate = false;
     self.isEpicsConnectionSuccessful = false;
 
@@ -294,7 +294,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
         else if (data.state != 'running' && data.state != 'pending') {
             //console.log('handle state:', data.state);
         }
-    }
+    };
 
     function kickerModelNames() {
         var res = [];

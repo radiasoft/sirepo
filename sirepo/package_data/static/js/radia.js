@@ -224,7 +224,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, $
 SIREPO.app.controller('RadiaVisualizationController', function (appState, errorService, frameCache, panelState, persistentSimulation, radiaService, utilities, $scope) {
     var SINGLE_PLOTS = ['magnetViewer'];
     var self = this;
-    self.scope = $scope
+    self.scope = $scope;
     $scope.mpiCores = 0;
     $scope.panelState = panelState;
     $scope.svc = radiaService;
@@ -249,7 +249,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
             }
         }
         frameCache.setFrameCount(data.frameCount);
-    }
+    };
 
     self.startSimulation = function() {
         self.solution = [];
@@ -260,16 +260,16 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     self.simState = persistentSimulation.initSimulationState(self);
 
     self.showCompletionState = function() {
-        return self.solution && self.solution.length
-    }
+        return self.solution && self.solution.length;
+    };
 
     self.completionStateArgs = function() {
         return {
             stepCount: self.solution[3],
             maxM: utilities.roundToPlaces(self.solution[1], 4),
             maxH: utilities.roundToPlaces(self.solution[2], 4),
-        }
-    }
+        };
+    };
 
     self.simState.startButtonLabel = function() {
         return 'Solve';

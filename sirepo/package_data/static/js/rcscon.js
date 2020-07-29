@@ -146,7 +146,7 @@ SIREPO.app.controller('MLController', function (appState, frameCache, persistent
             }
         }
         frameCache.setFrameCount(data.frameCount || 0);
-    }
+    };
 
     self.display = function() {
         if (utilities.isFullscreen()) {
@@ -504,7 +504,7 @@ SIREPO.app.directive('partitionSimState', function(appState, frameCache, panelSt
         controller: function($scope) {
             var self = this;
             self.scope = $scope;
-            self.analysisModel = 'partitionAnimation'
+            self.analysisModel = 'partitionAnimation';
             var firstVisit = true;
 
             self.simHandleStatus = function (data) {
@@ -537,7 +537,7 @@ SIREPO.app.directive('partitionSimState', function(appState, frameCache, panelSt
                 }
                 $scope.controller.reports = reports;
                 frameCache.setFrameCount(data.frameCount || 0);
-            }
+            };
 
             $scope.simState = persistentSimulation.initSimulationState(self);
 
@@ -637,7 +637,7 @@ SIREPO.app.controller('VisualizationController', function (appState, persistentS
             }
             appState.saveChanges('files');
         }
-    }
+    };
 
     function processColumnCount() {
         computeColumnCount(updateFiles);
