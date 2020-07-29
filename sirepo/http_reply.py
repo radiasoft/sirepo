@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkconst
 from pykern import pkio
+from pykern import pkjinja
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
@@ -15,6 +16,7 @@ import flask
 import mimetypes
 import pykern.pkinspect
 import re
+import sirepo.html
 import sirepo.http_request
 import sirepo.uri
 import sirepo.util
@@ -26,6 +28,9 @@ SR_EXCEPTION_STATE = 'srException'
 
 #: mapping of extension (json, js, html) to MIME type
 MIME_TYPE = None
+
+#: default Max-Age header (same as flask.app.SEND_FILE_MAX_AGE_DEFAULT)
+CACHE_MAX_AGE = 43200
 
 _ERROR_STATE = 'error'
 
@@ -148,7 +153,7 @@ def gen_redirect_for_anchor(uri, **kwargs):
     Returns:
         flask.Response: reply object
     """
-    return render_static(
+    return render_static_jinja(
         'javascript-redirect',
         'html',
         PKDict(redirect_uri=uri, **kwargs),
@@ -195,6 +200,13 @@ def gen_tornado_exception(exc):
     )(exc.sr_args)
 
 
+def headers_for_cache(resp, path=None):
+    resp.cache_control.max_age = CACHE_MAX_AGE
+    if path:
+        resp.last_modified = path.mtime()
+    return resp
+
+
 def headers_for_no_cache(resp):
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     resp.headers['Pragma'] = 'no-cache'
@@ -218,8 +230,8 @@ def init(**imports):
     )
 
 
-def render_static(base, ext, j2_ctx, cache_ok=False):
-    """Call flask.render_template appropriately
+def render_static_jinja(base, ext, j2_ctx, cache_ok=False):
+    """Render static template with jinja
 
     Args:
         base (str): base name of file, e.g. ``user-state``
@@ -228,16 +240,34 @@ def render_static(base, ext, j2_ctx, cache_ok=False):
         cache_ok (bool): OK to cache the result? [default: False]
 
     Returns:
-        object: Flask.Response
+        Flask.Response: reply
     """
-    fn = '{}/{}.{}'.format(ext, base, ext)
+    p = simulation_db.STATIC_FOLDER.join('{}/{}.{}'.format(ext, base, ext))
     r = flask.Response(
-        flask.render_template(fn, **j2_ctx),
+        pkjinja.render_file(p, j2_ctx, strict_undefined=True),
         mimetype=MIME_TYPE[ext],
     )
-    if not cache_ok:
-        r = headers_for_no_cache(r)
-    return r
+    if cache_ok:
+        return headers_for_cache(r, path=p)
+    return headers_for_no_cache(r)
+
+
+def render_html(path):
+    """
+
+    Args:
+        path (py.path): srhtml to render
+
+    Returns:
+        Flask.Response: reply
+    """
+    return headers_for_cache(
+        flask.Response(
+            sirepo.html.render(path),
+            mimetype=MIME_TYPE.html,
+        ),
+        path=path,
+    )
 
 
 def _gen_exception_error(exc):
