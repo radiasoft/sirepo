@@ -277,9 +277,6 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
     }
 
     self.simHandleStatus = function (data) {
-        if (! appState.isLoaded()) {
-            return;
-        }
         if (data.summaryData) {
             self.isEpicsConnectionSuccessful = true;
             updateFromMonitorValues(data.summaryData.monitorValues);

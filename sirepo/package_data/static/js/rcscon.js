@@ -508,9 +508,6 @@ SIREPO.app.directive('partitionSimState', function(appState, frameCache, panelSt
             var firstVisit = true;
 
             self.simHandleStatus = function (data) {
-                if (! appState.isLoaded()) {
-                    return;
-                }
                 $scope.statusText = '';
                 var reports = null;
                 if (data.error) {
@@ -627,16 +624,16 @@ SIREPO.app.controller('VisualizationController', function (appState, persistentS
     }
 
     self.simHandleStatus = function (data) {
-        if (appState.isLoaded()
-            && appState.applicationState().dataSource.source == 'elegant') {
-            if ('inputsCount' in data) {
-                updateFiles(data);
-            }
-            else {
-                appState.models.files.columnCount = 0;
-            }
-            appState.saveChanges('files');
+        if (! appState.applicationState().dataSource.source == 'elegant') {
+            return;
         }
+        if ('inputsCount' in data) {
+            updateFiles(data);
+        }
+        else {
+            appState.models.files.columnCount = 0;
+        }
+        appState.saveChanges('files');
     };
 
     function processColumnCount() {

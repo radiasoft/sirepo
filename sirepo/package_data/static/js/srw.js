@@ -2111,9 +2111,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             }
 
             self.simHandleStatus = function(data) {
-                if (! appState.isLoaded()) {
-                    return;
-                }
                 if (data.method && data.method != appState.models.fluxAnimation.method) {
                     // the output file on the server was generated with a different flux method
                     $scope.simState.timeData = {};
