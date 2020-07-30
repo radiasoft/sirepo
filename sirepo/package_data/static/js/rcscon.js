@@ -624,7 +624,7 @@ SIREPO.app.controller('VisualizationController', function (appState, persistentS
     }
 
     self.simHandleStatus = function (data) {
-        if (! appState.applicationState().dataSource.source == 'elegant') {
+        if (appState.applicationState().dataSource.source !== 'elegant') {
             return;
         }
         if ('inputsCount' in data) {
