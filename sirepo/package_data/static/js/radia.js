@@ -249,8 +249,28 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return item.name.indexOf('Transforms') < 0;
     });
 
+
+    self.copyObject = function(o) {
+        var copy = appState.clone(o);
+        copy.name = newObjectName(copy);
+        //copy.id = self.nextId();
+        srdbg('COPY', o, copy);
+        //var m = appState.setModelDefaults({}, o.model);
+        //m.center = lo.center;
+        //m.name = lo.type;
+        //m.name = newObjectName(m);
+        //m.model = lo.model;
+        // edit or just add?
+        //self.editObject(m);
+        addObject(copy);
+    };
+
+
     self.editTool = function(tool) {
         //srdbg('edit', tool);
+        if (tool.isInactive) {
+            return;
+        }
         panelState.showModalEditor(tool.model, null, null);
         //panelState.showModalEditor(tool.model);
     };
@@ -264,6 +284,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             self.getObject(o.members[i]).groupId = '';
         }
         appState.models.geometry.objects.splice(oIdx, 1);
+        self.shapes.splice(oIdx, 1);
         appState.saveChanges('geometry');
     };
 
@@ -404,7 +425,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     function addObject(o) {
-        o.id  = appState.models.geometry.objects.length;
+        o.id  = self.nextId();  // appState.models.geometry.objects.length;
         o.mapId = getMapId(o);
         appState.models.geometry.objects.push(o);
         addShapesForObject(o);
@@ -506,6 +527,14 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             baseShape.addLink(gShape, fit);
         }
     }
+
+    self.nextId = function() {
+        return appState.maxId(appState.models.geometry.objects, 'id') + 1;
+        //return Math.max(
+        //    appState.maxId(appState.models.elements, '_id'),
+        //    appState.maxId(appState.models.beamlines),
+        //    appState.maxId(appState.models.commands || [], '_id')) + 1;
+    };
 
     function txShape(shape) {
         var sh = vtkPlotting.plotShape(
@@ -610,7 +639,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             var a = i * angle;
             var m = geometry.rotationMatrix(ctr, axis, a);
             shape2.setCenter(geometry.vectorMult(m, shapeCtr4));
-            shape2.rotationAngle = (shape1.rotationAngle || 0) -180.0 * a / Math.PI;
+            shape2.rotationAngle = -180.0 * a / Math.PI;
             return shape2;
         };
     }
@@ -686,7 +715,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         panelState.showField(
             'geomObject',
             'material',
-            Math.hypot(mag[0], mag[1], mag[2]) > 0
+            true  //Math.hypot(mag[0], mag[1], mag[2]) > 0
         );
     }
 
@@ -1824,8 +1853,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         var isPoly = t === radiaVtkUtils.GEOM_TYPE_POLYS;
                         //var gObj = radiaService.getObject(id) || {};
                         var gObj = radiaService.getObject(i) || {};
-                        //srdbg('got obj', gObj);
                         var gColor = gObj.color ? vtk.Common.Core.vtkMath.hex2float(gObj.color) : null;
+                        // use colors from Radia for groups
+                        if (gObj.members) {
+                            gColor = null;
+                        }
                         var pdti = radiaVtkUtils.objToPolyData(sceneDatum, [t], gColor);
                         var pData = pdti.data;
                         var bundle;

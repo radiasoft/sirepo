@@ -26,7 +26,6 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
-        #pkdp('_compute_model {}', analysis_model)
         if analysis_model in (
             'solver',
         ):
@@ -38,7 +37,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         """defaults that depend on the current data"""
         if not model in ('geomObject',):
             return PKDict()
-        #pkdp('SIM {}', data.models.simulation)
         #beam_axis = data.models.simulation.beamAxis
         #return PKDict(
         #    symmetryPlane=cls.BEAM_TO_SYMMETRY[beam_axis],
@@ -48,7 +46,6 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        pkdp('FIXIUP {}', dm)
         cls._init_models(
             dm,
             None,
@@ -65,7 +62,6 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _lib_file_basenames(cls, data):
         res = []
-        #pkdp('LIB FILES FROM {}', data)
         if 'fieldType' in data:
             res.append(cls.lib_file_name_with_model_field(
                 'fieldPath',

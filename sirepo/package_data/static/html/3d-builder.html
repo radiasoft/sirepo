@@ -68,8 +68,16 @@
               </thead>
               <tbody data-ng-repeat="obj in objects track by obj.id">
                 <tr>
-                  <td data-ng-click="editObject(obj)" style="padding-left: 1em; cursor: pointer; white-space: nowrap"><span>{{ obj.name }}</span></td>
-                  <td data-ng-click= "deleteObject(obj)" style="padding-left: 1em; cursor: pointer; white-space: nowrap"><span class="glyphicon glyphicon-remove"></span> </td>
+                    <td style="padding-left: 1em; cursor: pointer; white-space: nowrap"><span>{{ obj.name }}</span></td>
+                    <td style="text-align: right">
+                    <div class="sr-button-bar-parent">
+                        <div class="sr-button-bar" data-ng-class="sr-button-bar-active">
+                             <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyObject(obj)">Copy</button>
+                             <button data-ng-click="editObject(obj)" class="btn btn-info btn-xs sr-hover-button">Edit</button>
+                             <button data-ng-click="deleteObject(obj)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
+                        </div>
+                    <div>
+                    </td>
                 </tr>
               </tbody>
             </table>

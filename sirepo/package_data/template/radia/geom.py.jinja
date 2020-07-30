@@ -20,6 +20,11 @@ _MODELS = (_MODEL_BOX, _MODEL_GROUP, _MODEL_GROUP_UND, _MODEL_OBJECT)
 
 objs = []
 
+def _hex_to_rgb(h_color):
+    h = h_color.lstrip('#')
+    return [c / 255.0 for c in tuple(int(h[i:i+2], 16) for i in (0, 2, 4))]
+
+
 def _split_comma_field(f, type):
     arr = re.split(r'\s*,\s*', f)
     if type == 'float':
@@ -30,16 +35,21 @@ def _split_comma_field(f, type):
 
 
 def _add_object(o):
+    #print('ADDING {}'.format(o))
     if o.model == _MODEL_BOX:
         ctr = _split_comma_field(o.center, 'float')
         sz = _split_comma_field(o.size, 'float')
         m = _split_comma_field(o.magnetization, 'float')
         div = _split_comma_field(o.division, 'int') if o.doDivide != '0' else None
         g_id = radia_tk.build_box(ctr, sz, o.material, m, div)
+        if o.color:
+            radia_tk.apply_color(g_id, _hex_to_rgb(o.color))
     if o.model in _GROUP_MODELS:
         grp = []
         for obj_id in o.members:
-            obj = {{ objects }}[obj_id]
+            #print('MEM ID {}'.format(obj_id))
+            #obj = {{ objects }}[obj_id]
+            obj = [mobj for mobj in {{ objects }} if mobj['id'] == obj_id][0]
             m = PKDict(obj)
             if m.mapId not in id_map:
                 # have not added this yet
@@ -47,16 +57,9 @@ def _add_object(o):
             else:
                 grp.append(id_map[m.mapId] )
         g_id = radia_tk.build_container(grp)
+        #radia_tk.apply_color(g_id, [1.0, 0, 0])
     for transform in o.transforms:
         radia_tk.apply_transform(g_id, PKDict(transform))
-
-    #if o.symmetryType is not 'none':
-    #    radia_tk.apply_symmetry(
-    #        g_id,
-    #        o.symmetryType,
-    #        _split_comma_field(o.symmetryPlane, 'float'),
-    #        _split_comma_field(o.symmetryPoint, 'float'),
-    #    )
     id_map[o.mapId] = g_id
     objs.append(g_id)
     return g_id

@@ -39,9 +39,9 @@
                     },
                     {
                         "layoutShape": "rect",
-                        "model": "racetrack",
-                        "title": "Racetrack",
-                        "type": "racetrack"
+                        "model": "geomGroup",
+                        "title": "Add Group",
+                        "type": "group"
                     }
                 ],
                 "name": "Objects"
@@ -50,20 +50,23 @@
                 "canDrag": false,
                 "contents": [
                     {
+                        "isButton": true,
+                        "isInactive": true,
                         "layoutShape": "rect",
-                        "model": "geomGroup",
-                        "title": "Add Group",
-                        "type": "group"
+                        "model": "racetrack",
+                        "title": "Racetrack",
+                        "type": "racetrack"
                     },
                     {
                         "isButton": true,
+                        "isInactive": true,
                         "layoutShape": "rect",
                         "model": "undulatorGroup",
                         "title": "Quick Undulator",
                         "type": "undulatorGroup"
                     }
                 ],
-                "name": "Tools"
+                "name": "In Progress"
             },
             {
                 "canDrag": true,

@@ -99,6 +99,11 @@ _TRANSFORMS = {
     'translate': _apply_translation
 }
 
+
+def apply_color(g_id, color):
+    radia.ObjDrwAtr(g_id, color)
+
+
 def apply_transform(g_id, xform):
     _TRANSFORMS[xform.model](g_id, xform)
 
@@ -152,13 +157,14 @@ def geom_to_data(g_id, name=None, divide=True):
             s_d = template_common.to_pkdict(radia.ObjDrwVTK(g, 'Axes->No'))
             s_d.update(_geom_bnds(g))
             n_s_verts += len(s_d.polygons.vertices)
+            s_d.id = g
             d_arr.append(s_d)
         # if the number of vertices of the container is more than the total
         # across its elements, a symmetry or other "additive" transformation has
         # been applied and we cannot get at the individual elements
         if n_verts > n_s_verts:
             d_arr = [d]
-        pd.data=d_arr
+        pd.data = d_arr
     return pd
 
 
