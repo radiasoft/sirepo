@@ -118,6 +118,13 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
     self.gridEvolutionColumnsSet = false;
 
     function handleStatus(data) {
+        var i = 0;
+        // moved function out of for loop to avoid jshint warning
+        function addValue(e) {
+            appState.models.gridEvolutionAnimation.valueList[e].push(
+                data.gridEvolutionColumns[i]
+            );
+        }
         self.errorMessage = data.error;
         if ('frameCount' in data && ! data.error) {
             ['varAnimation', 'gridEvolutionAnimation'].forEach(function(m) {
@@ -132,13 +139,8 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
                 y2: [],
                 y3: []
             };
-            for (var i = 0; i < data.gridEvolutionColumns.length; i++) {
-                ['y1', 'y2', 'y3'].forEach(function(e) {
-                    appState.models.gridEvolutionAnimation.valueList[e].push(
-                        data.gridEvolutionColumns[i]
-                    );
-                })
-
+            for (i = 0; i < data.gridEvolutionColumns.length; i++) {
+                ['y1', 'y2', 'y3'].forEach(addValue);
             }
             appState.saveChanges('gridEvolutionAnimation');
         }
