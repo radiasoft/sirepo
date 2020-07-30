@@ -119,8 +119,8 @@ class DockerDriver(job_driver.DriverBase):
                     self._cname
                 ),
             )
-        except sirepo.util.ASYNC_CANCELLED_ERROR:
-            # CancelledErrors need to make it back out to be handled
+        except sirepo.util.ASYNC_CANCELED_ERROR:
+            # CanceledErrors need to make it back out to be handled
             # by callers (ex job_supervisor.api_runSimulation)
             raise
         except Exception as e:
