@@ -391,7 +391,7 @@
         "command_savebeta": {
             "label": ["LABEL", "OptionalString", "", "Name of the label."],
             "place": ["PLACE", "OptionalString", "", "The location of the mark."],
-            "sequence": ["SEQUENCE", "LatticeBeamlineList", "Name of the expaned sequence."]
+            "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "", "Name of the expaned sequence."]
         },
         "command_ptc_select": {
             "table": ["TABLE", "OptionalString", "", "The name of the table where values should be stored."],
@@ -473,7 +473,7 @@
             "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "", "Select the sequence"]
         },
         "command_show": {
-            "command": ["COMMAND", "String", "Print the command with the values of all its parameters."]
+            "command": ["COMMAND", "String", "", "Print the command with the values of all its parameters."]
         },
         "command_sodd": {
             "detune": ["DETUNE", "Boolean", "0", "If true, the detune subroutine is executed"],
