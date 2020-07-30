@@ -787,6 +787,15 @@
   transform: translateY(-50%);
   width: 30px;
 }
+.landing .faq-block {
+  background-color: white;
+  padding-bottom: 40px;
+  display: flex;
+  justify-content: center;
+}
+.landing .faq-block .row {
+  display: block;
+}
 .landing .faqs {
   column-count: 3;
   column-gap: 40px;
