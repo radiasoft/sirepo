@@ -565,15 +565,15 @@ def _auth_state():
             r = auth_db.UserRegistration.search_by(uid=u)
             if r:
                 v.displayName = r.display_name
-        v.roles = auth_db.UserRole.search_all_for_column('role', uid=u)
+        v.roles = auth_db.UserRole.get_roles(u)
         v.upgradeToPlan = 'enterprise' if 'premium' in v.roles else 'premium'
+        v.plan = _plan(v.roles)
         _method_auth_state(v, u)
     if pkconfig.channel_in('dev'):
         # useful for testing/debugging
         v.uid = u
     pkdc('state={}', v)
     return v
-
 
 def _create_roles_for_user(uid, method):
     if not (pkconfig.channel_in('dev') and method == METHOD_GUEST):
@@ -667,6 +667,14 @@ def _parse_display_name(value):
     assert len(res), \
         'invalid post data: displayName={}'.format(value)
     return res
+
+
+def _plan(roles):
+    if 'enterprise' in roles:
+        return 'enterprise'
+    elif 'premium' in roles:
+        return 'premium'
+    return 'basic'
 
 
 def _set_log_user():
