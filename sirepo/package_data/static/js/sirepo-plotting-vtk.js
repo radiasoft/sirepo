@@ -1496,9 +1496,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
                 $scope.$on($scope.modelName + '.changed', function(e, name) {
                     //srdbg($scope.modelName, 'ch');
+                    $scope.shapes = $scope.source.getShapes();
                     //if (name == $scope.modelName) {
                         //refresh();
-                    //drawShapes();
+                    drawShapes();
                     //replot();
                     //}
                 });
