@@ -1976,7 +1976,7 @@ SIREPO.app.directive('latticeBeamlineTable', function(appState, latticeService, 
                 }
                 for (var i = 0; i < items.length; i++) {
                     var id = items[i];
-                    res += latticeService.nameForId(id);
+                    res += (id < 0 ? '-' : '') + latticeService.nameForId(id);
                     if (i != items.length - 1) {
                         res += ',';
                     }
