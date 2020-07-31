@@ -89,29 +89,7 @@
             ["fspd to input_fspd ratio", "fspd to input_fspd ratio"],
             ["surface area flam=0.1", "surface area flam=0.1"],
             ["surface area flam=0.5", "surface area flam=0.5"],
-            ["surface area flam=0.9", "surface area flam=0.9"],
-            ["E_internal", "E_internal"],
-            ["MagEnergy", "MagEnergy"]
-        ],
-        "GridEvolutionOptionalColumn": [
-            ["mass", "mass"],
-            ["x-momentum", "x-momentum"],
-            ["y-momentum", "y-momentum"],
-            ["z-momentum", "z-momentum"],
-            ["E_total", "E_total"],
-            ["E_kinetic", "E_kinetic"],
-            ["E_turbulent", "E_turbulent"],
-            ["E_internal", "E_internal"],
-            ["Burned Mass", "Burned Mass"],
-            ["dens_burning_ave", "dens_burning_ave"],
-            ["db_ave samplevol", "db_ave samplevol"],
-            ["Burning rate", "Burning rate"],
-            ["fspd to input_fspd ratio", "fspd to input_fspd ratio"],
-            ["surface area flam=0.1", "surface area flam=0.1"],
-            ["surface area flam=0.5", "surface area flam=0.5"],
-            ["surface area flam=0.9", "surface area flam=0.9"],
-            ["E_internal", "E_internal"],
-            ["MagEnergy", "MagEnergy"]
+            ["surface area flam=0.9", "surface area flam=0.9"]
         ],
         "FillSpecies": [
             ["hydrogen", "Hyrdogen Gas"],
@@ -503,9 +481,9 @@
         },
         "simulationStatus": {},
         "gridEvolutionAnimation": {
-            "y1": ["Y1 Value", "GridEvolutionColumn", "x-momentum"],
-            "y2": ["Y2 Value", "GridEvolutionOptionalColumn", "y-momentum"],
-            "y3": ["Y3 Value", "GridEvolutionOptionalColumn", "E_kinetic"],
+            "y1": ["Y1 Value", "ValueList", ""],
+            "y2": ["Y2 Value", "ValueList", ""],
+            "y3": ["Y3 Value", "ValueList", ""],
             "notes": ["Notes", "Text", ""]
         },
         "varAnimation": {

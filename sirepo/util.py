@@ -19,8 +19,8 @@ import pykern.pkjson
 import random
 
 
-#: All types of errors async code may throw when cancelled
-ASYNC_CANCELLED_ERROR = (asyncio.CancelledError, concurrent.futures.CancelledError)
+#: All types of errors async code may throw when canceled
+ASYNC_CANCELED_ERROR = (asyncio.CancelledError, concurrent.futures.CancelledError)
 
 #: length of string returned by create_token
 TOKEN_SIZE = 16

@@ -429,7 +429,13 @@
             "notes": "",
             "y1": "x-momentum",
             "y2": "y-momentum",
-            "y3": "E_kinetic"
+            "y3": "E_kinetic",
+            "valueList": {
+                "y1": [],
+                "y2": [],
+                "y3": []
+
+            }
         },
         "physicsDiffuse": {
             "diff_eleFlCoef": 0.06,

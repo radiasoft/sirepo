@@ -235,6 +235,8 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         return res;
     }
 
+    function noOp() {}
+
     function normalizeValues(yValues, shift) {
         var yMin = Math.min.apply(Math, yValues);
         var yMax = Math.max.apply(Math, yValues);
@@ -760,6 +762,13 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 yScale.domain(yDomain).nice();
             }
             return yDomain;
+        },
+
+        setTextOnlyReport: function(plotScope) {
+            plotScope.clearData = noOp;
+            plotScope.destroy = noOp;
+            plotScope.init = noOp;
+            plotScope.resize = noOp;
         },
 
         setupSelector: setupSelector,

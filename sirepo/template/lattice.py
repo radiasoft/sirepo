@@ -205,7 +205,7 @@ class LatticeParser(object):
         for v in values:
             v = self.__remove_quotes(v)
             count = 1
-            m = re.match(r'^(\d+)\s*\*\s*([\w.]+)$', v)
+            m = re.match(r'^(\d+)\s*\*\s*\(?([\w.]+)\)?$', v)
             if m:
                 count = int(m.group(1))
                 v = m.group(2)
@@ -267,10 +267,13 @@ class LatticeParser(object):
             m = re.match(r'^\s*([\w.]+)\s*:?=\s*(.+?)\s*$', value)
             if m:
                 f, v = m.group(1, 2)
-                assert f not in res, 'field already defined: {}, values: {}'.format(f, values)
-                res[f.lower()] = self.__remove_quotes(v)
+                f = f.lower()
+                if f != 'name':
+                    # some commands may have a "name" field
+                    assert f not in res, 'field already defined: {}, values: {}'.format(f, values)
+                res[f] = self.__remove_quotes(v)
                 continue
-            m = re.match(r'^\s*(!)?\s*([\w.]+)\s*$', value)
+            m = re.match(r'^\s*(!|-)?\s*([\w.]+)\s*$', value)
             assert m, 'failed to parse field assignment: {}'.format(value)
             v, f = m.group(1, 2)
             res[f.lower()] = '0' if v else '1'
@@ -449,18 +452,26 @@ class LatticeUtil(object):
         """
         return 'command_{}'.format(model._type) if cls.is_command(model) else model.type
 
-    def render_lattice(self, fields, quote_name=False, want_semicolon=False):
+    def render_lattice(self, fields, quote_name=False, want_semicolon=False, want_name=True, want_var_assign=False):
         """Render lattice elements.
         """
+        from sirepo.template.code_variable import CodeVar
         res = ''
         for el in fields:
             # el is [model, [[f, v], [f, v]...]]
-            name = el[0].name.upper()
-            if quote_name:
-                name = '"{}"'.format(name)
-            res += '{}: {},'.format(name, self.type_for_data(el[0]))
+            el_type = self.type_for_data(el[0])
+            if want_name:
+                name = el[0].name.upper()
+                if quote_name:
+                    name = '"{}"'.format(name)
+                res += '{}: {},'.format(name, el_type)
+            else:
+                res += '{},'.format(el_type)
             for f in el[1]:
-                res += '{}={},'.format(f[0], f[1])
+                var_assign = ''
+                if want_var_assign and CodeVar.is_var_value(f[1]):
+                    var_assign = ':'
+                res += '{}{}={},'.format(f[0], var_assign, f[1])
             res = res[:-1]
             if want_semicolon:
                 res += ';'
@@ -520,7 +531,7 @@ class LatticeUtil(object):
         max_id = max(res.keys()) if len(res) else 0
         return res, max_id
 
-    def __render_beamline(self, quote_name=False, want_semicolon=False):
+    def __render_beamline(self, quote_name=False, want_semicolon=False, want_var_assign=False):
         """Render the beamlines list in precedence order.
         """
         ordered_beamlines = []

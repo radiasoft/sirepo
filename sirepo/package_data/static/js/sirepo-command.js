@@ -178,8 +178,8 @@ SIREPO.app.directive('commandTable', function(appState, commandService, latticeS
                                     + (commandIndex > 1 ? commandIndex : '')
                                     + '.' + f + commandService.commandFileExtension(model);
                             }
-                            else if (schema[f][1] == 'Boolean') {
-                                res += model[f] ? 'true': 'false';
+                            else if (schema[f][1] == 'Boolean'|| schema[f][1] == 'OptionalBoolean') {
+                                res += model[f] == '1' ? 'true': 'false';
                             }
                             else if (schema[f][1].indexOf('LatticeBeamlineList') >= 0) {
                                 var el = latticeService.elementForId(model[f]);
