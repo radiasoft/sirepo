@@ -32,6 +32,7 @@
                 "canDrag": true,
                 "contents": [
                     {
+                        "isButton": true,
                         "layoutShape": "rect",
                         "model": "box",
                         "title": "Box",

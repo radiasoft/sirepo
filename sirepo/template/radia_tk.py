@@ -261,16 +261,8 @@ def vector_field_to_data(g_id, name, pv_arr, units):
 def _geom_bnds(g_id):
     bnds = radia.ObjGeoLim(g_id)
     return PKDict(
-        center=[
-            0.5 * (bnds[1] + bnds[0]),
-            0.5 * (bnds[3] + bnds[2]),
-            0.5 * (bnds[5] + bnds[4]),
-        ],
-        size=[
-            abs(bnds[1] - bnds[0]),
-            abs(bnds[3] - bnds[2]),
-            abs(bnds[5] - bnds[4]),
-        ]
+        center=[0.5 * (bnds[i + 1] + bnds[i]) for i in range(3)],
+        size=[abs(bnds[i + 1] - bnds[i]) for i in range(3)],
     )
 
 

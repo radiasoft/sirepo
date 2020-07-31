@@ -1071,7 +1071,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
                 var ds = d3.select('.plot-viewport').selectAll('.vtk-object-layout-shape')
                     .data(shapes);
-                //ds.exit().remove();
+                ds.exit().remove();
                 // function must return a DOM object in the SVG namespace
                 ds.enter().append(function (d) {
                     return document.createElementNS('http://www.w3.org/2000/svg', d.layoutShape);
@@ -1080,7 +1080,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     .on('click', function (d, e) {
                         selectObject(d, e);
                     });
-                ds.exit().remove();
                 ds.call(updateShapeAttributes);
                 ds.call(dragShape);
             }
@@ -1105,7 +1104,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 },
 */
             function drawShapes() {
-                //drawObjects(ELEVATION_INFO.front);
                 drawObjects(ELEVATION_INFO[$scope.elevation]);
             }
 
@@ -1157,7 +1155,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function refresh() {
-                //srdbg('rf');
                 if (! axes.x.domain) {
                     return;
                 }
@@ -1175,16 +1172,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     select('svg')
                         .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
                         .attr('height', $scope.plotHeight());
-                    //select('.z-plot')
-                    //    .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
-                    //    .attr('height', $scope.zHeight + $scope.margin.bottom);
                     axes.x.scale.range([0, $scope.width]);
                     axes.y.scale.range([$scope.height, 0]);
-                    //axes.z.scale.range([$scope.zHeight, 0]);
-                    //axes.z.scale.range([$scope.height, 0]);
                     axes.x.grid.tickSize(-$scope.height);
                     axes.y.grid.tickSize(-$scope.width);
-                    //axes.z.grid.tickSize(-$scope.width);
                 }
                 if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
                     select('.overlay').attr('class', 'overlay mouse-zoom');
@@ -1332,9 +1323,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 var lp = shape.line.points();
                 var labX = shape.elev.x.axis;
                 var labY = shape.elev.y.axis;
-                //srdbg('lp lab', labX, labY, lp[0][labX], lp[1][labX], lp[0][labY], lp[1][labY]);
-                // same points in this coord plane
 
+                // same points in this coord plane
                 if (lp[0][labX] === lp[1][labX] && lp[0][labY] === lp[1][labY]) {
                     return null;
                 }
@@ -1342,12 +1332,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 var scaledLine = geometry.lineFromArr(
                     lp.map(function (p) {
                         var sp = [];
-                        //geometry.basis.forEach(function (dim) {
                         SIREPO.SCREEN_DIMS.forEach(function (dim) {
                             var labDim = shape.elev[dim].axis;
                             sp.push(axes[dim].scale(p[labDim]));
                         });
-                        //srdbg('sp', sp);
                         return geometry.pointFromArr(sp);
                 }));
 
@@ -1509,9 +1497,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     axis.init();
                     axis.grid = axis.createAxis();
                 });
-                //$.each(insetAxes, function(dim, axis) {
-                //    axis.init();
-                //});
                 resetZoom();
                 dragShape = d3.behavior.drag()
                     .origin(function(d) { return d; })
@@ -1520,7 +1505,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     .on('dragend', d3DragEndShape);
                 axes.x.parseLabelAndUnits(ELEVATION_INFO[$scope.elevation].x.axis + ' [m]');
                 axes.y.parseLabelAndUnits(ELEVATION_INFO[$scope.elevation].y.axis + ' [m]');
-                //axes.z.parseLabelAndUnits(' [m]');
                 replot();
             };
 
@@ -1546,8 +1530,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             $scope.setElevation = function(elev) {
                 $scope.elevation = elev;
-                //axes.x = layoutService.plotAxis($scope.margin, ELEVATION_INFO[elev].x.axis, 'bottom', refresh);
-                //axes.y = layoutService.plotAxis($scope.margin, ELEVATION_INFO[elev].y.axis, 'left', refresh);
                 axes.x.parseLabelAndUnits(ELEVATION_INFO[$scope.elevation].x.axis + ' [m]');
                 axes.y.parseLabelAndUnits(ELEVATION_INFO[$scope.elevation].y.axis + ' [m]');
                 replot();

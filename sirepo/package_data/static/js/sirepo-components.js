@@ -3038,7 +3038,7 @@ SIREPO.app.directive('toolbar', function(appState) {
                 '<div class="text-center bg-info sr-toolbar-holder">',
                   '<div class="sr-toolbar-section" data-ng-repeat="section in ::sectionItems">',
                     '<div class="sr-toolbar-section-header"><span class="sr-toolbar-section-title">{{ ::section.name }}</span></div>',
-                    '<span data-ng-click="item.isButton ? parentController.editTool(item) : SIREPO.noop()" data-ng-repeat="item in ::section.contents | filter:showItem" class="sr-toolbar-button sr-beamline-image" data-ng-drag="{{ ! item.isButton }}" data-ng-drag-data="item">',
+                    '<span data-ng-click="item.isButton ? parentController.editTool(item) : null" data-ng-repeat="item in ::section.contents | filter:showItem" class="sr-toolbar-button sr-beamline-image" data-ng-drag="{{ ! item.isButton }}" data-ng-drag-data="item">',
                       '<span data-toolbar-icon="" data-item="item"></span><br>{{ ::item.title }}',
                     '</span>',
                   '</div>',

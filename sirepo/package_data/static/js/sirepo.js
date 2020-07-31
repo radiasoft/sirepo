@@ -5,8 +5,6 @@ SIREPO.srdbg = console.log.bind(console);
 // No timeout for now (https://github.com/radiasoft/sirepo/issues/317)
 SIREPO.http_timeout = 0;
 
-SIREPO.noop = function () {};
-
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 

@@ -35,7 +35,6 @@ def _split_comma_field(f, type):
 
 
 def _add_object(o):
-    #print('ADDING {}'.format(o))
     if o.model == _MODEL_BOX:
         ctr = _split_comma_field(o.center, 'float')
         sz = _split_comma_field(o.size, 'float')
@@ -47,7 +46,6 @@ def _add_object(o):
     if o.model in _GROUP_MODELS:
         grp = []
         for obj_id in o.members:
-            #print('MEM ID {}'.format(obj_id))
             #obj = {{ objects }}[obj_id]
             obj = [mobj for mobj in {{ objects }} if mobj['id'] == obj_id][0]
             m = PKDict(obj)

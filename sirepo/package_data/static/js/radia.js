@@ -518,10 +518,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.nextId = function() {
         return appState.maxId(appState.models.geometry.objects, 'id') + 1;
-        //return Math.max(
-        //    appState.maxId(appState.models.elements, '_id'),
-        //    appState.maxId(appState.models.beamlines),
-        //    appState.maxId(appState.models.commands || [], '_id')) + 1;
     };
 
     function txShape(shape) {
@@ -1246,7 +1242,6 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                   '<th></th>',
                 '</tr>',
                 '<tr data-ng-repeat="mId in field">',
-                    //'<td>{{ mObj.name }}</td>',
                     '<td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ getObject(mId).name }}</span></div></td>',
                     '<td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar">  <button data-ng-click="removeObject(mId)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
@@ -1255,8 +1250,6 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                 '</tr>',
                 '<tr data-ng-repeat="oId in getIds() | filter:hasNoGroup">',
                   '<td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ getObject(oId).name }}</span></div></td>',
-                  //'<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ element.description }}</span></td>',
-                  //'<td style="text-align: right">{{ elementLength(element) }}</td>',
                   '<td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="addObject(oId)"><span class="glyphicon glyphicon-plus"></span></button> </div><div></td>',
                 '</tr>',
             '</table>',
@@ -1264,9 +1257,6 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
         controller: function($scope) {
 
             $scope.objects = appState.models.geometry.objects;
-            //$scope.ids = $scope.objects.map(function (o) {
-            //    return o.id;
-            //});
             if (! $scope.field) {
                 $scope.field = [];
             }
