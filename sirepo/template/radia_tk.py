@@ -193,7 +193,6 @@ def get_geom_tree(g_id, recurse_depth=0):
 
 # path is *flattened* array of positions in space ([x1, y1, z1,...xn, yn, zn])
 def get_field(g_id, f_type, path):
-    #pkdp('GET FIELD FOR {} TYPE {} PATH {}', geom, f_type, path)
     if len(path) == 0:
         return []
     pv_arr = []

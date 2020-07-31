@@ -1030,18 +1030,14 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
 
             function d3DragShape(shape) {
+                /*jshint validthis: true*/
                 if (! shape.draggable) {
                     return;
                 }
                 SIREPO.SCREEN_DIMS.forEach(function(dim) {
                     var labDim = shape.elev[dim].axis;
-                    //var dom = axes[shape.elev[dim].axis].scale.domain();
                     var dom = axes[dim].scale.domain();
                     var pxsz = (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
-                    //shape.center[dim] = dragStart.center[dim] +
-                    //    SIREPO.SCREEN_INFO[dim].direction * pxsz * d3.event[dim];
-                    //shape[dim] = dragStart[dim] +
-                    //    SIREPO.SCREEN_INFO[dim].direction * pxsz * d3.event[dim];
                     shape.center[labDim] = dragStart.center[labDim] +
                         SIREPO.SCREEN_INFO[dim].direction * pxsz * d3.event[dim];
                     shape[dim] = dragStart[dim] +

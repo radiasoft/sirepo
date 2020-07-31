@@ -253,26 +253,15 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.copyObject = function(o) {
         var copy = appState.clone(o);
         copy.name = newObjectName(copy);
-        //copy.id = self.nextId();
-        srdbg('COPY', o, copy);
-        //var m = appState.setModelDefaults({}, o.model);
-        //m.center = lo.center;
-        //m.name = lo.type;
-        //m.name = newObjectName(m);
-        //m.model = lo.model;
-        // edit or just add?
-        //self.editObject(m);
         addObject(copy);
     };
 
 
     self.editTool = function(tool) {
-        //srdbg('edit', tool);
         if (tool.isInactive) {
             return;
         }
-        panelState.showModalEditor(tool.model, null, null);
-        //panelState.showModalEditor(tool.model);
+        panelState.showModalEditor(tool.model);
     };
 
     self.deleteObject = function(o) {
@@ -375,7 +364,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.selectObject = function(o) {
-        //srdbg('select', o);
         if (o) {
             self.selectedObject = o;
             radiaService.setSelectedObject(o);
@@ -731,7 +719,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             appState.models.geometry.objects = [];
         }
         loadShapes();
-        //srdbg('have shapes', self.shapes);
         
         $scope.$on('modelChanged', function(e, modelName) {
             if (watchedModels.indexOf(modelName) < 0) {
@@ -778,7 +765,6 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     self.solution = [];
 
     function handleStatus(data) {
-        //srdbg('SIM STATUS', data);
         if (data.error) {
             throw new Error('Solver failed: ' + data.error);
         }
@@ -924,7 +910,6 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
             };
 
             $scope.download = function() {
-                //srdbg('download', $scope.tModel.type, radiaService.selectedPath);
                 var p = radiaService.selectedPath;
                 var f = p.name + ' ' + $scope.fieldType();
                 var ext = $scope.isFieldMap() ? 'sdds' : 'csv';
@@ -1099,7 +1084,6 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                     });
                     data.push(row);
                 });
-                //srdbg('save to', fileName, heading, data);
                 saveAs(new Blob([d3.csv.format(data)], {type: "text/csv;charset=utf-8"}), fileName);
             };
 
@@ -1364,7 +1348,6 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             ];
             var watchedModels;
 
-            //srdbg($scope.$id, $scope.modelName, $scope.fieldName, $scope.model, $scope.field);
             $scope.items = [];
             $scope.radiaService = radiaService;
             $scope.selectedItem = null;
@@ -1383,15 +1366,12 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             watchedModels = $scope.toolbarItems.map(function (item) {
                 return item.model;
             });
-            //watchedModels.push('geomObject');
-            //srdbg('wm', watchedModels);
 
             function itemIndex(data) {
                 return $scope.items.indexOf(data);
             }
 
             function loadItems() {
-                //srdbg($scope.$id, 'load items', $scope.field);
                 $scope.items = $scope.field;
             }
 
@@ -1409,18 +1389,15 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             };
 
             $scope.editItem = function(item, isNew) {
-                //srdbg('editing', item);
                 isEditing = ! isNew;
                 $scope.selectedItem = item;
                 if (isNew) {
                     appState.models[item.model] = appState.setModelDefaults({}, item.model);
                     appState.models[item.model].model = item.model;
-                    //srdbg('adding', item);
                 }
                 else {
                     appState.models[item.model] = item;
                 }
-                //srdbg('selected', $scope.getSelected());
                 panelState.showModalEditor(item.model);
             };
 
@@ -1448,19 +1425,15 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             };
 
             $scope.getSelected = function() {
-                //srdbg('sel', $scope.selectedItem);
                 return $scope.selectedItem;
             };
 
             $scope.itemDetails = function(item) {
-                //srdbg('deets', item);
                 var res = '';
                 var info = appState.modelInfo(item.model);
-                //srdbg('info', info);
                 var d = SIREPO.APP_SCHEMA.constants.detailFields[$scope.fieldName][item.model];
                 d.forEach(function (f, i) {
                     var fi = info[f];
-                    //srdbg('info f', f, fi);
                     var val = angular.isArray(item[f]) ? '[' + item[f].length + ']' : item[f];
                     res += (fi[0] + ': ' + val + (i < d.length - 1 ? '; ' : ''));
                 });
@@ -1487,7 +1460,6 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             };
 
             $scope.itemFilter = function(item) {
-                //srdbg('filtering', item, $scope.getSelected());
                 var iIdx = -1;
                 for (var sIdx in $scope.toolbarSections) {
                     iIdx = $scope.toolbarSections[sIdx].contents.indexOf(item);
@@ -1504,7 +1476,6 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 if (item.model === $scope.modelName) {
                     return false;
                 }
-                //srdbg('in section', $scope.toolbarSections[sIdx].name, 'check selected', $scope.selectedItem);
                 if ($scope.modelName === 'cloneTransform') {
                     // don't include clone or symmetry if we are editing a clone already
                     return spatialTransforms.indexOf(item.type) >= 0;
@@ -1515,8 +1486,6 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             appState.whenModelsLoaded($scope, function() {
 
                 $scope.$on('modelChanged', function(e, name) {
-                    srdbg('check', name, watchedModels);
-                    //srdbg($scope.$id, 'model ch', name);
                     if (watchedModels.indexOf(name) < 0) {
                         return;
                     }
@@ -1535,14 +1504,11 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 });
 
                 $scope.$on('cancelChanges', function(e, name) {
-                    //srdbg($scope.$id, 'cancel', name);
                     $scope.$emit('drop.target.enabled', true);
                     if (watchedModels.indexOf(name) < 0) {
                         return;
                     }
-                    //srdbg($scope.$id, 'remove', name);
                     appState.removeModel(name);
-                    //appState.cancelChanges('commands');
                 });
 
                 $scope.$on('$destroy', function () {
@@ -1678,11 +1644,6 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
             };
 
             appState.whenModelsLoaded($scope, function () {
-                //srdbg('frms', frameCache.hasFrames(), frameCache.getFrameCount());
-                //var cf = $scope.viz.simState.cancelSimulation;
-                //$scope.viz.simState.cancelSimulation = cf(function () {
-                //    $scope.reset();
-                //});
             });
 
 
@@ -1922,22 +1883,22 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     }
                 }
 
-                var b = renderer.computeVisiblePropBounds();
-                radiaService.objBounds = b;
+                var pb = renderer.computeVisiblePropBounds();
+                radiaService.objBounds = pb;
                 //srdbg('bnds', b);
                 //srdbg('l', [Math.abs(b[1] - b[0]), Math.abs(b[3] - b[2]), Math.abs(b[5] - b[4])]);
                 //srdbg('ctr', [(b[1] + b[0]) / 2, (b[3] + b[2]) / 2, (b[5] + b[4]) / 2]);
 
                 var padPct = 0.1;
                 var l = [
-                    Math.abs(b[1] - b[0]),
-                    Math.abs(b[3] - b[2]),
-                    Math.abs(b[5] - b[4])
+                    Math.abs(pb[1] - pb[0]),
+                    Math.abs(pb[3] - pb[2]),
+                    Math.abs(pb[5] - pb[4])
                 ].map(function (c) {
                     return (1 + padPct) * c;
                 });
 
-                var bndBox = cm.buildBox(l, [(b[1] + b[0]) / 2, (b[3] + b[2]) / 2, (b[5] + b[4]) / 2]);
+                var bndBox = cm.buildBox(l, [(pb[1] + pb[0]) / 2, (pb[3] + pb[2]) / 2, (pb[5] + pb[4]) / 2]);
                 bndBox.actor.getProperty().setRepresentationToWireframe();
                 // NOTE: vtkLineFilter exists but is not included in the default vtk build
                 //var lf = vtk.Filters.General.vtkLineFilter.newInstance();

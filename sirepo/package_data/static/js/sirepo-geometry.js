@@ -373,21 +373,12 @@ SIREPO.app.service('geometry', function(utilities) {
             var p2 = pts[1].coords();
             var lv = [p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]];
             var dp = svc.vectorDot(lv, norm);
-            srdbg('line v', lv, 'norm', norm, 'dp', dp);
             if (dp !== 0) {
-                srdbg('int at 1 pt');
                 return true;
             }
             var pp = this.pointInPlane().coords();
             var d = [pp[0] - p1[0], pp[1] - p1[1], pp[2] - p1[2]];
             dp = svc.vectorDot(d, norm);
-            srdbg('l-p', dp);
-            if (dp === 0) {
-                srdbg('in plane');
-            }
-            else {
-                srdbg('// to plane');
-            }
             return dp === 0;
         };
         pl.isParallelTo = function(pl2) {

@@ -252,7 +252,6 @@ def _build_field_circle_pts(f_path):
     # phi is a rotation about the z-axis
     phi = float(f_path.phi)
     n = int(f_path.numPoints)
-    #pkdp('adding circle at {} rad {} th {} phi {} ({})'.format(ctr, r, th, phi, n))
     dpsi = 2. * math.pi / n
     # psi is the angle in the circle's plane
     res = []
