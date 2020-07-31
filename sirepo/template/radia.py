@@ -66,7 +66,7 @@ def background_percent_complete(report, run_dir, is_running):
     return PKDict(
         percentComplete=100,
         frameCount=1,
-        outputInfo=[_read_solution(data.simulationId)],  #output_info,
+        solution=_read_solution(data.simulationId),  #output_info,
         lastUpdateTime=time.time(),  #output_info[0]['lastUpdateTime'],
         errors='',  #errors,
     )
@@ -462,7 +462,13 @@ def _read_or_generate(geom_id, data):
 
 
 def _read_solution(sim_id):
-    return _read_h5_path(sim_id, 'solution')
+    s = _read_h5_path(sim_id, 'solution')
+    return PKDict(
+        steps=s[3],
+        time=s[0],
+        maxM=s[1],
+        maxH=s[2]
+    )
 
 
 def _rotate_flat_vector_list(vectors, scipy_rotation):

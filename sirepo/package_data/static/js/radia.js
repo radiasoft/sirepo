@@ -229,7 +229,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     $scope.panelState = panelState;
     $scope.svc = radiaService;
 
-    self.solution = [];
+    self.solution = null;
 
     self.simHandleStatus = function (data) {
         //srdbg('SIM STATUS', data);
@@ -242,7 +242,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         });
         if ('percentComplete' in data && ! data.error) {
             if (data.percentComplete === 100 && ! self.simState.isProcessing()) {
-                self.solution = data.outputInfo[0];
+                self.solution = data.solution;
                 SINGLE_PLOTS.forEach(function(name) {
                     frameCache.setFrameCount(1, name);
                 });
@@ -252,7 +252,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     };
 
     self.startSimulation = function() {
-        self.solution = [];
+        self.solution = null;
         $scope.$broadcast('solveStarted', self.simState);
         self.simState.saveAndRunSimulation('simulation');
     };
@@ -260,7 +260,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     self.simState = persistentSimulation.initSimulationState(self);
 
     self.showCompletionState = function() {
-        return self.solution && self.solution.length;
+        return ! ! self.solution;
     };
 
     self.completionStateArgs = function() {
@@ -754,7 +754,7 @@ SIREPO.app.directive('radiaGeomObjInfo', function(appState, panelState, radiaSer
 });
 
 // does not need to be its own directive?  everything in viz and service? (and move template to html)
-SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache, geometry, layoutService, panelState, radiaService) {
+SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache, geometry, layoutService, panelState, radiaService, utilities) {
 
     return {
         restrict: 'A',
@@ -766,9 +766,13 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
             '<div class="col-md-6">',
                 '<div data-basic-editor-panel="" data-view-name="solver">',
                         '<div data-sim-status-panel="viz.simState"></div>',
-              //'<div>',
-              //  '<div data-simulation-status-timer="viz.simState"></div>',
-              //'</div>',
+                        '<div data-ng-show="viz.solution">',
+                                '<div><strong>Time:</strong> {{ solution().time }}ms</div>',
+                                '<div><strong>Step Count:</strong> {{ solution().steps }}</div>',
+                                '<div><strong>Max |M|: </strong> {{ solution().maxM }} A/m</div>',
+                                '<div><strong>Max |H|: </strong> {{ solution().maxH }} A/m</div>',
+                        '</div>',
+                        '<div data-ng-hide="viz.solution">No solution found</div>',
                         '<div class="col-sm-6 pull-right" style="padding-top: 8px;">',
                             '<button class="btn btn-default" data-ng-click="reset()">Reset</button>',
                         '</div>',
@@ -781,8 +785,17 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
 
             $scope.model = appState.models[$scope.modelName];
 
+            $scope.solution = function() {
+                return {
+                    time: utilities.roundToPlaces(1000 * $scope.viz.solution.time, 3),
+                    steps: $scope.viz.solution.steps,
+                    maxM: utilities.roundToPlaces($scope.viz.solution.maxM, 4),
+                    maxH: utilities.roundToPlaces($scope.viz.solution.maxH, 4),
+                };
+            };
+
             $scope.reset = function() {
-                $scope.viz.solution = [];
+                $scope.viz.solution = null;
                 panelState.clear('geometry');
                 panelState.requestData('reset', function (d) {
                     frameCache.setFrameCount(0);
