@@ -565,6 +565,9 @@
             "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         }
     },
+    "strings": {
+        "completionState": ""
+    },
     "view": {
         "beamEvolutionAnimation": {
             "title": "Beam Evolution",

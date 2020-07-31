@@ -172,6 +172,9 @@
             "sbatchProject": ["Project", "OptionalString", ""]
         }
     },
+    "strings": {
+        "completionState": " {stepCount} steps Max |M| {maxM} A/m; Max |H| {maxH} A/m"
+    },
     "view": {
         "circlePath": {
             "title": "Circle",

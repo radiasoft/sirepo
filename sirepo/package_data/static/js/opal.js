@@ -324,6 +324,7 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
 
 SIREPO.app.controller('VisualizationController', function (appState, commandService, frameCache, latticeService, panelState, persistentSimulation, plotRangeService, opalService, $scope) {
     var self = this;
+    self.simScope = $scope;
     self.panelState = panelState;
     self.errorMessage = '';
     self.outputFiles = [];
@@ -332,7 +333,7 @@ SIREPO.app.controller('VisualizationController', function (appState, commandServ
         return fn.replace(/\.(?:h5|outfn)/g, '');
     }
 
-    function handleStatus(data) {
+    self.simHandleStatus = function (data) {
         self.errorMessage = data.error;
         if ('percentComplete' in data && ! self.errorMessage) {
             ['bunchAnimation', 'plotAnimation', 'plot2Animation'].forEach(function(m) {
@@ -344,7 +345,7 @@ SIREPO.app.controller('VisualizationController', function (appState, commandServ
             }
         }
         frameCache.setFrameCount(data.frameCount || 0);
-    }
+    };
 
     function loadElementReports(outputInfo) {
         self.outputFiles = [];
@@ -374,11 +375,7 @@ SIREPO.app.controller('VisualizationController', function (appState, commandServ
         });
     }
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        opalService.computeModel(),
-        handleStatus
-    );
+    self.simState = persistentSimulation.initSimulationState(self);
 
     self.simState.errorMessage = function() {
         return self.errorMessage;

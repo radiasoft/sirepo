@@ -145,7 +145,12 @@
         "constants": {
             "clientCookie": "sirepo_cookie_js",
             "maxSimCopies": 100,
-            "oneDayMillis": 86400000
+            "oneDayMillis": 86400000,
+            "plans": {
+                "premium": "Sirepo Premium",
+                "enterprise": "Sirepo Enterprise"
+            },
+            "plansUrl": "/en/plans.html"
         },
         "cookies": {
             "firstVisit": {
@@ -416,6 +421,10 @@
                 "js": ["sirepo.js"],
                 "css": ["sirepo.css"]
             }
+        },
+        "strings": {
+            "simulationState": "Simulation {state}",
+            "completionState": ": {frameCount} animation frames"
         },
         "view": {
             "simDoc": {

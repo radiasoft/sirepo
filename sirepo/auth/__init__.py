@@ -566,6 +566,7 @@ def _auth_state():
             if r:
                 v.displayName = r.display_name
         v.roles = auth_db.UserRole.search_all_for_column('role', uid=u)
+        v.upgradeToPlan = 'enterprise' if 'premium' in v.roles else 'premium'
         _method_auth_state(v, u)
     if pkconfig.channel_in('dev'):
         # useful for testing/debugging
