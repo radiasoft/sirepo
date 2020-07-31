@@ -154,8 +154,8 @@ def test():
             await t
         except Exception as e:
             await _cancel_all_tasks(s)
-            if isinstance(e, sirepo.util.ASYNC_CANCELLED_ERROR):
-                # Will only be cancelled by a signal handler
+            if isinstance(e, sirepo.util.ASYNC_CANCELED_ERROR):
+                # Will only be canceled by a signal handler
                 return
             pkdlog('error={} stack={} sims={}', e, pkdexc(), _sims)
             raise
@@ -218,7 +218,7 @@ async def _cancel_all_tasks(tasks):
         t.cancel()
     # We need a gather() after cancel() because there are awaits in the
     # finally blocks (ex await post('run-cancel)). We need return_exceptions
-    # so the CancelledErrors aren't raised which would cancel the gather.
+    # so the CanceledErrors aren't raised which would cancel the gather.
     await asyncio.gather(*tasks, return_exceptions=True)
 
 
@@ -414,7 +414,7 @@ class _Sim(PKDict):
                     finally:
                         if c:
                             await self._cancel(error=e)
-            except sirepo.util.ASYNC_CANCELLED_ERROR:
+            except sirepo.util.ASYNC_CANCELED_ERROR:
                 # Don't log on cancel error, we initiate cancels so not interesting
                 raise
             except Exception as e:
