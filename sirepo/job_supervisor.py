@@ -41,7 +41,7 @@ _NEXT_REQUEST_SECONDS = None
 
 _HISTORY_FIELDS = frozenset((
     'alert',
-    'cancelledAfterSecs',
+    'canceledAfterSecs',
     'computeJobQueued',
     'computeJobSerial',
     'computeJobStart',
@@ -325,7 +325,7 @@ class _ComputeJob(PKDict):
                 o,
                 '_receive_' + req.content.api,
             )(req)
-        except sirepo.util.ASYNC_CANCELLED_ERROR:
+        except sirepo.util.ASYNC_CANCELED_ERROR:
             return PKDict(state=job.CANCELED)
         except Exception as e:
             pkdlog('{} error={} stack={}', req, e, pkdexc())
@@ -371,7 +371,7 @@ class _ComputeJob(PKDict):
     def __db_init_new(cls, data, prev_db=None):
         db = PKDict(
             alert=None,
-            cancelledAfterSecs=None,
+            canceledAfterSecs=None,
             computeJid=data.computeJid,
             computeJobHash=data.computeJobHash,
             computeJobQueued=0,
@@ -423,23 +423,28 @@ class _ComputeJob(PKDict):
 
     @classmethod
     def __db_load(cls, compute_jid):
+        v = None
         f = cls.__db_file(compute_jid)
         d = pkcollections.json_load_any(f)
         for k in [
                 'alert',
-                'cancelledAfterSecs',
+                'canceledAfterSecs',
                 'isPremiumUser',
                 'jobStatusMessage',
                 'internalError',
                 # TODO(e-carlin): dbUpdateTime?
         ]:
-            d.setdefault(k, None)
+            d.setdefault(k, v)
             for h in d.history:
-                h.setdefault(k, None)
+                h.setdefault(k, v)
         d.pksetdefault(
             computeModel=lambda: sirepo.sim_data.split_jid(compute_jid).compute_model,
             dbUpdateTime=lambda: f.mtime(),
         )
+        if 'cancelledAfterSecs' in d:
+            d.canceledAfterSecs = d.pkdel('cancelledAfterSecs', default=v)
+            for h in d.history:
+               h.canceledAfterSecs = d.pkdel('cancelledAfterSecs', default=v)
         return d
 
     def __db_restore(self, db):
@@ -542,20 +547,20 @@ class _ComputeJob(PKDict):
         """Cancel a run and related ops
 
         Analysis ops that are for a parallel run (ex. sim frames) will not
-        be cancelled.
+        be canceled.
 
         Args:
             req (ServerReq): The cancel request
             timed_out_op (_Op, Optional): the op that was timed out, which
                 needs to be canceled
         Returns:
-            PKDict: Message with state=cancelled
+            PKDict: Message with state=canceled
         """
 
         def _ops_to_cancel():
             r = set(
                 o for o in self.ops
-                # Do not cancel sim frames. Allow them to come back for a cancelled run
+                # Do not cancel sim frames. Allow them to come back for a canceled run
                 if not (self.db.isParallel and o.opName == job.OP_ANALYSIS)
             )
             if timed_out_op in self.ops:
@@ -564,7 +569,7 @@ class _ComputeJob(PKDict):
 
         r = PKDict(state=job.CANCELED)
         if (
-            # a running simulation may be cancelled due to a
+            # a running simulation may be canceled due to a
             # downloadDataFile request timeout in another browser window (only the
             # computeJids must match between the two requests). This might be
             # a weird UX but it's important to do, because no op should take
@@ -581,9 +586,9 @@ class _ComputeJob(PKDict):
         candidates = _ops_to_cancel()
         c = None
         o = []
-        # No matter what happens the job is cancelled
+        # No matter what happens the job is canceled
         self.__db_update(status=job.CANCELED)
-        self._cancelled_serial = self.db.computeJobSerial
+        self._canceled_serial = self.db.computeJobSerial
         try:
             for i in range(_MAX_RETRIES):
                 try:
@@ -600,7 +605,7 @@ class _ComputeJob(PKDict):
                     for x in filter(lambda e: e != c, o):
                         x.destroy(cancel=True)
                     if timed_out_op:
-                        self.db.cancelledAfterSecs = timed_out_op.max_run_secs
+                        self.db.canceledAfterSecs = timed_out_op.max_run_secs
                     if c:
                         c.msg.opIdsToCancel = [x.opId for x in o]
                         c.send()
@@ -695,9 +700,9 @@ class _ComputeJob(PKDict):
                     pass
             else:
                 raise AssertionError('too many retries {}'.format(req))
-        except sirepo.util.ASYNC_CANCELLED_ERROR:
-            if self.pkdel('_cancelled_serial') == c:
-                # We were cancelled due to api_runCancel.
+        except sirepo.util.ASYNC_CANCELED_ERROR:
+            if self.pkdel('_canceled_serial') == c:
+                # We were canceled due to api_runCancel.
                 # api_runCancel destroyed the op and updated the db
                 raise
             # There was a timeout getting the run started. Set the
@@ -805,7 +810,7 @@ class _ComputeJob(PKDict):
                         self.__db_write()
                         if r.state in job.EXIT_STATUSES:
                             break
-                    except sirepo.util.ASYNC_CANCELLED_ERROR:
+                    except sirepo.util.ASYNC_CANCELED_ERROR:
                         return
         except Exception as e:
             pkdlog('error={} stack={}', e, pkdexc())
@@ -845,8 +850,8 @@ class _ComputeJob(PKDict):
     def _status_reply(self, req):
         def res(**kwargs):
             r = PKDict(**kwargs)
-            if self.db.cancelledAfterSecs is not None:
-                r.cancelledAfterSecs = self.db.cancelledAfterSecs
+            if self.db.canceledAfterSecs is not None:
+                r.canceledAfterSecs = self.db.canceledAfterSecs
             if self.db.error:
                 r.error = self.db.error
             if self.db.alert:
@@ -935,7 +940,7 @@ class _Op(PKDict):
         await self.driver.prepare_send(self)
 
     async def reply_get(self):
-        # If we get an exception (cancelled), task is not done.
+        # If we get an exception (canceled), task is not done.
         # Had to look at the implementation of Queue to see that
         # task_done should only be called if get actually removes
         # the item from the queue.

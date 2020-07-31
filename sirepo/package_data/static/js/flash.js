@@ -16,19 +16,14 @@ SIREPO.app.factory('flashService', function(appState) {
         return 'animation';
     };
 
-    self.flashTypeIn = function(types) {
-        for (var i = 0; i < types.length; i++) {
-            if (self.isFlashType(types[i])) {
-                return true;
-            }
-        }
-        return false;
+    self.isCapLaser = function() {
+        return appState.isLoaded()
+            &&  appState.models.simulation.flashType.indexOf('CapLaser') >= 0;
     };
 
     self.isFlashType = function(simType) {
-        if (appState.isLoaded()) {
-            return simType == appState.models.simulation.flashType;
-        }
+        return appState.isLoaded()
+            && simType == appState.models.simulation.flashType;
     };
 
     self.simulationModel = function() {
@@ -46,75 +41,73 @@ SIREPO.app.controller('PhysicsController', function (flashService) {
     self.flashService = flashService;
 });
 
-SIREPO.app.controller('SourceController', function (flashService, appState, $scope, panelState) {
+SIREPO.app.controller('SourceController', function (appState, flashService, panelState, $scope) {
     var self = this;
     self.flashService = flashService;
 
-    function fieldClass(field) {
-        return '.model-' + field.replace(/:/g, '\\:');
-    }
-
-    function setReadOnly() {
-        function readOnly(field) {
-                $(fieldClass(field) + ' input').prop('readonly', true);
-        }
-
-        ['Wall', 'Fill'].forEach(function(x) {
-            ['ion', 'rad'].forEach(function(y) {
-                readOnly(self.flashService.simulationModel() +'-sim_t' + y + x);
-            });
+    function setReadOnly(modelName) {
+        [
+            'sim_tionWall', 'sim_tionFill', 'sim_tradWall', 'sim_tradFill',
+        ].forEach(function(f) {
+            panelState.enableField(modelName, f, false);
         });
         // TODO(e-carlin): If we support more than alumina for wall species
         // then we should remove this readonly or keep it and update the Z and A
         // when the species changes.
-        ['A', 'Z'].forEach(function(x) {readOnly('Multispecies-ms_wall' + x);});
-    }
-
-    function makeTempsEqual(modelField) {
-        var t =  modelField.includes('Fill') ? 'Fill' : 'Wall';
-        var s = modelField.split('.');
-        ['ion', 'rad'].forEach(function(f) {
-            appState.models[self.flashService.simulationModel()]['sim_t' + f + t] = appState.models[s[0]][s[1]];
+        ['ms_wallA', 'ms_wallZ'].forEach(function(f) {
+            panelState.enableField('Multispecies', f, false);
         });
     }
 
-    function proccessCurrType(modelField) {
+    function makeTempsEqual(modelField) {
+        var t = modelField.indexOf('Fill') >= 0 ? 'Fill' : 'Wall';
+        var s = appState.parseModelField(modelField);
+        ['ion', 'rad'].forEach(function(f) {
+            appState.models[flashService.simulationModel()]['sim_t' + f + t] = appState.models[s[0]][s[1]];
+        });
+    }
+
+    function processCurrType() {
+        var modelName = flashService.simulationModel();
+
         function showField(field, isShown) {
-            panelState.showField(s[0], field, isShown);
+            panelState.showField(modelName, field, isShown);
         }
 
-        function showFileDialog(isShown) {
-            showField('sim_currFile', isShown);
-            ['sim_peakCurr', 'sim_riseTime'].forEach(function(f) {
-                showField(f, !isShown);
-            });
-        }
-
-        var s = modelField.split('.');
-        var v = appState.models[s[0]][s[1]];
-        showFileDialog(!(v === '0' || v === '1'));
+        var isFile = appState.models[modelName].sim_currType === '2';
+        showField('sim_currFile', isFile);
+        ['sim_peakCurr', 'sim_riseTime'].forEach(function(f) {
+            showField(f, !isFile);
+        });
     }
 
     appState.whenModelsLoaded($scope, function() {
-
-        if (! self.flashService.flashTypeIn(['CapLaserBELLA', 'CapLaser3D'])) {
+        if (! flashService.isCapLaser()) {
             return;
         }
-        // Must be done on sr-tabSelected because changing tabs clears the
-        // readonly prop. This puts readonly back on.
-        $scope.$on('sr-tabSelected', setReadOnly);
+        $scope.$on('sr-tabSelected', function(event, modelName) {
+            if (['SimulationCapLaser3D', 'SimulationCapLaserBELLA'].indexOf(modelName) >= 0) {
+                // Must be done on sr-tabSelected because changing tabs clears the
+                // readonly prop. This puts readonly back on.
+                setReadOnly(modelName);
+            }
+            else if (modelName == 'Grid') {
+                ['polar', 'spherical'].forEach(function(f) {
+                    panelState.showEnum('Grid', 'geometry', f, ! flashService.isCapLaser());
+                });
+            }
+        });
         appState.watchModelFields(
             $scope,
             ['Wall', 'Fill'].map(
                 function(x) {
-                    return self.flashService.simulationModel() + '.sim_tele' + x;
+                    return flashService.simulationModel() + '.sim_tele' + x;
                 }
             ),
             makeTempsEqual
         );
-        var t = self.flashService.simulationModel() + '.sim_currType';
-        proccessCurrType(t);
-        appState.watchModelFields($scope, [t], proccessCurrType);
+        processCurrType();
+        appState.watchModelFields($scope, [flashService.simulationModel() + '.sim_currType'], processCurrType);
     });
 });
 
@@ -123,14 +116,34 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
     self.simScope = $scope;
     self.flashService = flashService;
     self.plotClass = 'col-md-6 col-xl-4';
+    self.gridEvolutionColumnsSet = false;
 
     self.simHandleStatus = function(data) {
+        var i = 0;
+        // moved function out of for loop to avoid jshint warning
+        function addValue(e) {
+            appState.models.gridEvolutionAnimation.valueList[e].push(
+                data.gridEvolutionColumns[i]
+            );
+        }
         self.errorMessage = data.error;
         if ('frameCount' in data && ! data.error) {
             ['varAnimation', 'gridEvolutionAnimation'].forEach(function(m) {
                 appState.saveQuietly(m);
                 frameCache.setFrameCount(data.frameCount, m);
             });
+        }
+        if (! self.gridEvolutionColumnsSet && data.gridEvolutionColumns) {
+            self.gridEvolutionColumnsSet = true;
+            appState.models.gridEvolutionAnimation.valueList = {
+                y1: [],
+                y2: [],
+                y3: []
+            };
+            for (i = 0; i < data.gridEvolutionColumns.length; i++) {
+                ['y1', 'y2', 'y3'].forEach(addValue);
+            }
+            appState.saveChanges('gridEvolutionAnimation');
         }
         frameCache.setFrameCount(data.frameCount || 0);
     };

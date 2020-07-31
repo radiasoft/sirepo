@@ -85,7 +85,11 @@ def api_authCompleteRegistration():
 
 @api_perm.allow_visitor
 def api_authState():
-    return http_reply.render_static('auth-state', 'js', PKDict(auth_state=_auth_state()))
+    return http_reply.render_static_jinja(
+        'auth-state',
+        'js',
+        PKDict(auth_state=_auth_state()),
+    )
 
 
 @api_perm.allow_visitor

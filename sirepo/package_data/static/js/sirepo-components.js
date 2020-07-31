@@ -302,17 +302,17 @@ SIREPO.app.directive('buttons', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('cancelledDueToTimeoutAlert', function(authState) {
+SIREPO.app.directive('canceledDueToTimeoutAlert', function(authState) {
     return {
         restrict: 'A',
         scope: {
             seconds: '<',
-            simState: '=cancelledDueToTimeoutAlert',
+            simState: '=canceledDueToTimeoutAlert',
         },
         template: [
-            '<div data-ng-if="simState.getCancelledAfterSecs()" class="alert alert-warning" role="alert">',
-              '<h4 class="alert-heading">Cancelled: Maximum runtime exceeded</h4>',
-              '<p>Your simulation ran for {{getTime()}}. To increase your maximum runtime please upgrade to ' + authState.upgradePlanLink() + '.</p>',
+            '<div data-ng-if="simState.getCanceledAfterSecs()" class="alert alert-warning" role="alert">',
+              '<h4 class="alert-heading"><b>Canceled: Maximum runtime exceeded</b></h4>',
+              '<p>Your runtime limit is {{getTime()}}. To increase your maximum runtime, please upgrade to ' + authState.upgradePlanLink() + '.</p>',
             '</div>',
         ].join(''),
         controller: function($scope, appState) {
@@ -530,6 +530,10 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               '</div>',
               '<div data-ng-switch-when="Range" data-ng-class="fieldClass">',
                 '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field" data-field-delegate="fieldDelegate"></div>',
+              '</div>',
+              '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
+                '<div class="form-control-static" data-ng-if="model.valueList[field].length == 1">{{ model.valueList[field][0] }}</div>',
+              '<select data-ng-if="model.valueList[field].length != 1" class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model.valueList[field]"></select>',
               '</div>',
               SIREPO.appFieldEditors,
               // assume it is an enum
@@ -3327,7 +3331,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                   '<div data-sbatch-options="simState"></div>',
                 '</div>',
               '</div>',
-              '<div data-cancelled-due-to-timeout-alert="simState"></div>',
+              '<div data-canceled-due-to-timeout-alert="simState"></div>',
               '<div class="col-sm-6 pull-right">',
                 '<button class="btn btn-default" data-ng-click="start()">{{ startButtonLabel() }}</button>',
               '</div>',

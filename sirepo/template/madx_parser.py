@@ -38,9 +38,39 @@ class MadXParser(lattice.LatticeParser):
         self._code_variables_to_float(cv)
         self.__convert_sequences_to_beamlines(cv)
         self._set_default_beamline('use', 'sequence', 'period')
+        self.__convert_references_to_ids()
         if downcase_variables:
             self._downcase_variables(cv)
         return res
+
+    def __convert_references_to_ids(self):
+        util = lattice.LatticeUtil(self.data, self.schema);
+        name_to_id = PKDict()
+        for id in util.id_map:
+            name = util.id_map[id].name
+            if not name:
+                continue
+            name = name.upper()
+            #assert name not in name_to_id, 'duplicate name: {}'.format(name)
+            name_to_id[name] = id
+        for container in ('elements', 'commands'):
+            for el in self.data.models[container]:
+                model_schema = self.schema.model[lattice.LatticeUtil.model_name_for_data(el)]
+                for f in model_schema:
+                    el_schema = model_schema[f]
+                    if f in el:
+                        if el[f] and 'LatticeBeamlineList' in el_schema[1]:
+                            el[f] = name_to_id[el[f].upper()]
+                        elif el_schema[1] in self.schema.enum:
+                            #TODO(pjm): ensure value is present in enum list
+                            el[f] = el[f].lower()
+                            if 'Boolean' in el_schema[1]:
+                                if el[f] == '1' or el[f] == '0':
+                                    pass
+                                elif el[f].lower() == 'true':
+                                    el[f] = '1'
+                                else:
+                                    el[f] = '0'
 
     def __convert_sequences_to_beamlines(self, code_var):
         data = PKDict(
@@ -87,23 +117,25 @@ def parse_file(lattice_text, downcase_variables=False):
     return MadXParser().parse_file(lattice_text, downcase_variables)
 
 
-def parse_tfs_file(tfs_file):
-    text = pkio.read_text(tfs_file)
+def parse_tfs_file(tfs_file, header_only=False):
     mode = 'header'
     col_names = []
     rows = []
-    for line in text.split("\n"):
-        if mode == 'header':
-            # header row starts with *
-            if re.search('^\*\s', line):
-                col_names = re.split('\s+', line)
-                col_names = col_names[1:]
-                mode = 'data'
-        elif mode == 'data':
-            # data rows after header, start with blank
-            if re.search('^\s+\S', line):
-                data = re.split('\s+', line)
-                rows.append(data[1:])
+    with pkio.open_text(tfs_file) as f:
+        for line in f:
+            if mode == 'header':
+                # header row starts with *
+                if re.search('^\*\s', line):
+                    col_names = re.split('\s+', line)
+                    col_names = col_names[1:]
+                    mode = 'data'
+                    if header_only:
+                        return [x.lower() for x in col_names]
+            elif mode == 'data':
+                # data rows after header, start with blank
+                if re.search('^\s+\S', line):
+                    data = re.split('\s+', line)
+                    rows.append(data[1:])
     res = PKDict(map(lambda x: (x.lower(), []), col_names))
     for i in range(len(col_names)):
         name = col_names[i].lower()
