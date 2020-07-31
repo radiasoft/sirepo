@@ -432,7 +432,6 @@ class _ComputeJob(PKDict):
                 'isPremiumUser',
                 'jobStatusMessage',
                 'internalError',
-                # TODO(e-carlin): dbUpdateTime?
         ]:
             d.setdefault(k, v)
             for h in d.history:
