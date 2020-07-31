@@ -63,7 +63,6 @@ def _generate_ptc_particles_file(run_dir, data, twiss):
     if 'bunchReport' in data.report:
         v.summaryData = twiss
         simulation_db.write_json(run_dir.join(template.BUNCH_PARTICLES_FILE), v)
-        return
     r = ''
     for i in range(len(v.x)):
         r += 'ptc_start'

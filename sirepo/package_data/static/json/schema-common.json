@@ -25,8 +25,8 @@
             "shortName": "JSPEC"
         },
         "madx": {
-            "longName": "MadX",
-            "shortName": "madx"
+            "longName": "MAD-X",
+            "shortName": "MAD-X"
         },
         "ml": {
             "longName": "ML",
