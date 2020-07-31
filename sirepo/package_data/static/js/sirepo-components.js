@@ -319,7 +319,7 @@ SIREPO.app.directive('canceledDueToTimeoutAlert', function(authState) {
             $scope.authState = authState;
 
             $scope.getTime = function() {
-                return appState.formatTime($scope.simState.getCancelledAfterSecs());
+                return appState.formatTime($scope.simState.getCanceledAfterSecs());
             };
 
         },
@@ -3351,8 +3351,8 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                 return callSimState('getAlert');
             };
 
-            $scope.cancelledAfterSecs = function() {
-                return callSimState('getCancelledAfterSecs');
+            $scope.canceledAfterSecs = function() {
+                return callSimState('getCanceledAfterSecs');
             };
 
             $scope.errorMessage = function() {
