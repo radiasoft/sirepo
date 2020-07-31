@@ -53,8 +53,6 @@ _FIELD_LABEL = PKDict(
     GammaDeriv='GammaDeriv (1/m)',
 )
 
-_FILE_ID_SEP = '-'
-
 _OUTPUT_INFO_FILE = 'outputInfo.json'
 
 _OUTPUT_INFO_VERSION = '2'
@@ -106,7 +104,7 @@ class OutputFileIterator(lattice.ModelIterator):
                     suffix)
             else:
                 filename = '{}.{}.sdds'.format(model.name, field)
-            k = _file_id(model._id, self.field_index)
+            k = LatticeUtil.file_id(model._id, self.field_index)
             self.result[k] = filename
             self.result.keys_in_order.append(k)
 
@@ -159,51 +157,34 @@ def copy_related_files(data, source_path, target_path):
 def generate_parameters_file(data, is_parallel=False):
     _validate_data(data, _SCHEMA)
     res, v = template_common.generate_parameters_file(data)
-    v.rpn_variables = _generate_variables(data)
-
+    v.rpn_variables = generate_variables(data)
     if is_parallel:
         return res + _generate_full_simulation(data, v)
-
     if data.get('report', '') == 'twissReport':
         return res + _generate_twiss_simulation(data, v)
-
     return res + _generate_bunch_simulation(data, v)
 
+
+def generate_variables(data):
+    return _code_var(data.models.rpnVariables).generate_variables(
+        _generate_variable, postfix=True)
 
 def get_application_data(data, **kwargs):
     if data.method == 'get_beam_input_type':
         if data.input_file:
             data.input_type = _sdds_beam_type_from_file(data.input_file)
         return data
-    if data.method == 'rpn_value':
-        v, err = _code_var(data.variables).eval_var(data.value)
-        if err:
-            data.error = err
-        else:
-            data.result = v
+    if _code_var(data.variables).get_application_data(data, _SCHEMA):
         return data
-    if data.method == 'recompute_rpn_cache_values':
-        _code_var(data.variables).recompute_cache(data.cache)
-        return data
-    if data.method == 'validate_rpn_delete':
-        model_data = simulation_db.read_json(
-            simulation_db.sim_data_file(SIM_TYPE, data.simulationId))
-        data.error = _code_var(data.variables).validate_var_delete(data.name, model_data, _SCHEMA)
-        return data
-    raise RuntimeError('unknown application data method: {}'.format(data.method))
 
 
 def _code_var(variables):
     return elegant_lattice_importer.elegant_code_var(variables)
 
 
-def _file_id(model_id, field_index):
-    return '{}{}{}'.format(model_id, _FILE_ID_SEP, field_index)
-
-
 def _file_name_from_id(file_id, model_data, run_dir):
     return str(run_dir.join(
-        _get_filename_for_element_id(file_id.split(_FILE_ID_SEP), model_data)))
+        _get_filename_for_element_id(file_id, model_data)))
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
@@ -227,7 +208,7 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
     if frame >= 0:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         # ex. elementAnimation17-55
-        i = re.sub(r'elementAnimation', '', model).split(_FILE_ID_SEP)
+        i = re.sub(r'elementAnimation', '', model)
         return _sdds(_get_filename_for_element_id(i, data))
     if model == 'animation':
         return ELEGANT_LOG_FILE
@@ -260,9 +241,7 @@ def import_file(req, test_data=None, **kwargs):
 
 
 def prepare_for_client(data):
-    if 'models' not in data:
-        return data
-    data.models.rpnCache = _code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
+    _code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
     return data
 
 
@@ -542,14 +521,14 @@ def _field_label(field, units):
     return field
 
 
-def _file_info(filename, run_dir, id, output_index):
+def _file_info(filename, run_dir, file_id):
     file_path = run_dir.join(filename)
     if not re.search(r'.sdds$', filename, re.IGNORECASE):
         if file_path.exists():
             return PKDict(
                 isAuxFile=True,
                 filename=filename,
-                id=_file_id(id, output_index),
+                id=fild_id,
                 lastUpdateTime=int(os.path.getmtime(str(file_path))),
             )
         return None
@@ -597,7 +576,7 @@ def _file_info(filename, run_dir, id, output_index):
         return PKDict(
             isAuxFile=False if double_column_count > 1 else True,
             filename=filename,
-            id=_file_id(id, output_index),
+            id=file_id,
             rowCounts=row_counts,
             pageCount=page_count,
             columns=column_names,
@@ -622,7 +601,7 @@ def _format_field_value(state, model, field, el_type):
     if el_type == 'RPNValue':
         value = _format_rpn_value(value, is_command=LatticeUtil.is_command(model))
     elif el_type == 'OutputFile':
-        value = state.filename_map[_file_id(model._id, state.field_index)]
+        value = state.filename_map[LatticeUtil.file_id(model._id, state.field_index)]
     elif el_type.startswith('InputFile'):
         value = _SIM_DATA.lib_file_name_with_model_field(LatticeUtil.model_name_for_data(model), field, value)
         if el_type == 'InputFileXY':
@@ -772,20 +751,8 @@ def _generate_variable(name, variables, visited):
     return res
 
 
-def _generate_variables(data):
-    res = ''
-    visited = PKDict()
-    code_var = _code_var(data.models.rpnVariables)
-
-    for name in sorted(code_var.postfix_variables):
-        for dependency in code_var.get_expr_dependencies(code_var.postfix_variables[name]):
-            res += _generate_variable(dependency, code_var.postfix_variables, visited)
-        res += _generate_variable(name, code_var.postfix_variables, visited)
-    return res
-
-
-def _get_filename_for_element_id(id, data):
-    return _build_filename_map(data)['{}{}{}'.format(id[0], _FILE_ID_SEP, id[1])]
+def _get_filename_for_element_id(file_id, data):
+    return _build_filename_map(data)[file_id]
 
 
 def _is_error_text(text):
@@ -843,8 +810,7 @@ def _output_info(run_dir):
     filename_map = _build_filename_map(data)
     for k in filename_map.keys_in_order:
         filename = filename_map[k]
-        id = k.split(_FILE_ID_SEP)
-        info = _file_info(filename, run_dir, id[0], id[1])
+        info = _file_info(filename, run_dir, k)
         if info:
             info.modelKey = 'elementAnimation{}'.format(info.id)
             res.append(info)

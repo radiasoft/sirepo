@@ -236,8 +236,7 @@ def _generate_elegant_simulation(data):
     data.models.rpnVariables = [PKDict(name=n, value=v) for n,v in vars_by_name.items()]
     res, v = template_common.generate_parameters_file(data)
     from sirepo.template import elegant
-    #TODO(pjm): don't call private functions
-    v.rpn_variables = elegant._generate_variables(data)
+    v.rpn_variables = elegant.generate_variables(data)
     data.models.simulation.update(PKDict(
         backtracking='0',
         simulationMode='serial',

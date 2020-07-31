@@ -23,12 +23,6 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="Float6StringArray" class="col-sm-7">',
           '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="6"></div>',
         '</div>',
-        '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
-          '<div class="form-control-static" data-ng-if="model.valueList[field].length == 1">{{ model.valueList[field][0] }}</div>',
-          '<select data-ng-if="model.valueList[field].length != 1" class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model.valueList[field]"></select>',
-        '</div>',
-    ].join('');
-    SIREPO.appDownloadLinks = [
     ].join('');
     SIREPO.lattice = {
         canReverseBeamline: true,

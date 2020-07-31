@@ -402,6 +402,9 @@ class LatticeParser(object):
 
 
 class LatticeUtil(object):
+
+    _FILE_ID_SEP = '-'
+
     """Utility class for generating lattice elements, beamlines and commands.
     """
     def __init__(self, data, schema):
@@ -423,6 +426,9 @@ class LatticeUtil(object):
                 return True
         return False
 
+    @classmethod
+    def file_id(cls, model_id, field_index):
+        return f'{model_id}{LatticeUtil._FILE_ID_SEP}{field_index}'
 
     @classmethod
     def is_command(cls, model):
