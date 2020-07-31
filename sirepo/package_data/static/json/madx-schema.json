@@ -44,13 +44,14 @@
             "QUADRUPOLE",
             "SEXTUPOLE"
         ],
-        "phaseSpaceParticleMap": {
-            "x":  ["x", "pos"],
-            "y":  ["y", "pos"],
-            "t":  ["t", "pos"],
-            "px":  ["x", "p"],
-            "py":  ["y", "p"],
-            "pt":  ["t", "p"]
+        "particleInfo": {
+            "positron": [0.510998928e-03, 1],
+            "electron": [0.510998928e-03, -1],
+            "proton": [0.938272046, 1],
+            "antiproton": [0.938272046, -1],
+            "posmuon": [0.1056583715, 1],
+            "negmuon": [0.1056583715, -1],
+            "ion": [0.931494061, 1]
         }
     },
     "dynamicFiles": {
@@ -91,9 +92,12 @@
             ["0", "Opposite beam does not move"],
             ["1", "Beams move in same direction"]
         ],
-        "BunchInputSource": [
-            ["sdds_beam", "SDDS Input File"],
-            ["bunched_beam", "Twiss Parameters"]
+        "BeamDefinition": [
+            ["energy", "From Energy"],
+            ["pc", "From PC"],
+            ["gamma", "From Gamma"],
+            ["beta", "From Beta"],
+            ["brho", "From BRHO"]
         ],
         "CommandVarySlope": [
             ["1", "Increase"],
@@ -118,33 +122,15 @@
             ["t", "t"],
             ["pt", "P"]
         ],
-        "ElementAnimationParameter": [
-            ["alfx", "alfx"],
-            ["alfy", "alfy"],
-            ["betx", "betx"],
-            ["bety", "bety"],
-            ["dpx", "dpx"],
-            ["dpy", "dpy"],
-            ["dx", "dx"],
-            ["dy", "dy"],
-            ["mux", "mux"],
-            ["muy", "muy"],
-            ["px", "px"],
-            ["py", "py"],
-            ["s", "s"],
-            ["x", "x"],
-            ["y", "y"],
-            ["none", "None"]
-        ],
         "SpaceCoordinate": [
             ["x", "x"],
             ["y", "y"],
             ["z", "z"]
         ],
-        "TriStateBool": [
+        "OptionalBoolean": [
             ["", "NOT SELECTED"],
-            ["true", "true"],
-            ["false", "false"]
+            ["1", "Yes"],
+            ["0", "No"]
         ],
         "TwissParameter": [
             ["alfx", "alfx"],
@@ -158,26 +144,21 @@
             ["mux", "mux"],
             ["muy", "muy"],
             ["s", "s"],
-            ["none", "None"]
+            ["None", "None"]
         ]
     },
     "frameIdFields": {
-        "twissAnimation": [
-            "x",
-            "y1",
-            "y2",
-            "y3"
-        ],
         "animation": [
             "x",
             "y1",
             "y2",
-            "y3"
-        ],
-        "ptcAnimation": [
-            "x",
-            "y",
-            "histogramBins"
+            "y3",
+            "histogramBins",
+            "plotRangeType",
+            "horizontalSize",
+            "horizontalOffset",
+            "verticalSize",
+            "verticalOffset"
         ]
     },
     "localRoutes": {
@@ -213,10 +194,21 @@
         "beamline": {
             "name": ["Name", "ValidatedString"]
         },
+        "bunch": {
+            "beamDefinition": ["Beam Definition", "BeamDefinition", "energy"],
+            "matchTwissParameters": ["Match Twiss Parameters", "Boolean", "0", "Use twiss parameters computed from the selected beamline"],
+            "numberOfParticles": ["Number Of Particles", "Integer", 1000, "Number of particles to track.", 1, 10000],
+            "randomSeed": ["Random Number Seed", "Integer", 123456789, "The seed for the random number generator for particles"],
+            "ex": ["Horizontal Emittance [m]", "Float", 1e-6],
+            "ey": ["Vertical Emittance [m]", "Float", 1e-6],
+            "betx": ["Horizontal Beta [m]", "Float", 1.0],
+            "bety": ["Vertical Beta [m]", "Float", 1.0],
+            "alfx": ["Horizontal Alpha", "Float", 0.0],
+            "alfy": ["Vertical Alpha", "Float", 0.0]
+        },
         "simulation": {
-            "enableParticleTracking": ["Particle Tracking", "Boolean", "0"],
-            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""],
-            "numberOfParticles": ["Number Of Particles", "Integer", 1000, "Number of particles to track."]
+            "enableParticleTracking": ["Particle Tracking", "Boolean", "1"],
+            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
         },
         "beamlineReport": {
             "notes": ["Notes", "Text", ""]
@@ -224,7 +216,7 @@
         "bunchReport": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
-            "histogramBins": ["Histogram Bins", "Integer"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
             "colorMap": ["Color Map", "ColorMap", "afmhot"],
             "notes": ["Notes", "Text", ""]
         },
@@ -242,7 +234,7 @@
             "ey": ["EY [m]", "RPNValue", 1.0, "The vertical emittance."],
             "eyn": ["EYN [m]", "RPNValue", 0.0, "The normalised vertical emittance."],
             "et": ["ET [m]", "RPNValue", 0.001, "The longitudinal emittance"],
-            "sequence": ["SEQUENCE", "OptionalString", "Attaches the beam command to a specific sequence."],
+            "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "", "Attaches the beam command to a specific sequence."],
             "sigt": ["SIGT [m]", "RPNValue", 1.0, "The bunch length c sigma(t)."],
             "sige": ["SIGE [m]", "RPNValue", 0.001, "The relative energy spread sigma(E)/E."],
             "kbunch": ["KBUNCH", "Integer", 1, "The number of particle bunches in the machine."],
@@ -251,6 +243,39 @@
             "bunched": ["BUNCHED", "Boolean", "1", "The beam is treated as bunched whenever this makes sense. "],
             "radiate": ["RADIATE", "Boolean", "0", "Synchrotron radiation is considered in all bipolar magnets."],
             "bv": ["BV", "Integer", 1, "The direction of the particle movement in a beam line."]
+        },
+        "command_beta0": {
+            "betx": ["BETX [m]", "RPNValue", 0.0],
+            "alfx": ["ALFX", "RPNValue", 0.0],
+            "mux": ["MUX", "RPNValue", 0.0],
+            "bety": ["BETY", "RPNValue", 0.0],
+            "alfy": ["ALFY", "RPNValue", 0.0],
+            "muy": ["MUY", "RPNValue", 0.0],
+            "x": ["X", "RPNValue", 0.0],
+            "px": ["PX", "RPNValue", 0.0],
+            "y": ["Y", "RPNValue", 0.0],
+            "py": ["PY", "RPNValue", 0.0],
+            "t": ["T", "RPNValue", 0.0],
+            "pt": ["PT", "RPNValue", 0.0],
+            "dx": ["DX", "RPNValue", 0.0],
+            "dpx": ["DPX", "RPNValue", 0.0],
+            "dy": ["DY", "RPNValue", 0.0],
+            "dpy": ["DPY", "RPNValue", 0.0],
+            "wx": ["WX", "RPNValue", 0.0],
+            "phix": ["PHIX", "RPNValue", 0.0],
+            "dmux": ["DMUX", "RPNValue", 0.0],
+            "wy": ["WY", "RPNValue", 0.0],
+            "phiy": ["PHIY", "RPNValue", 0.0],
+            "dmuy": ["DUMY", "RPNValue", 0.0],
+            "ddx": ["DDX", "RPNValue", 0.0],
+            "ddpx": ["DDPX", "RPNValue", 0.0],
+            "ddy": ["DDY", "RPNValue", 0.0],
+            "ddpy": ["DDPY", "RPNValue", 0.0],
+            "r11": ["R11", "RPNValue", 0.0],
+            "r12": ["R12", "RPNValue", 0.0],
+            "r21": ["R21", "RPNValue", 0.0],
+            "r22": ["R22", "RPNValue", 0.0],
+            "energy": ["ENERGY", "RPNValue", 0.0]
         },
         "command_call": {
             "file": ["FILE", "String", "", "The named file is read until a RETURN statement is encountered, or until the EOF."]
@@ -273,47 +298,63 @@
             "x": ["X", "OptionalRPNValue", null, "Canonical coordinate x."],
             "y": ["Y", "OptionalRPNValue", null, "Canonical coordinate y."]
         },
+        "command_global": {
+            "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "",  "The name of the sequence on which to operate the matching."],
+            "q1": ["Q1", "OptionalRPNValue", null, "Enable a correction of tunes in presence of magnetic imperfections or misalignments."],
+            "q2": ["Q2", "OptionalRPNValue", null, "Enable a correction of tunes in presence of magnetic imperfections or misalignments."],
+            "dq1": ["DQ1", "OptionalRPNValue", null, "Enable a correction of chromaticities in presence of magnetic imperfections or misalignments."],
+            "dq2": ["DQ2", "OptionalRPNValue", null, "Enable a correction of chromaticities in presence of magnetic imperfections or misalignments."]
+        },
+        "command_jacobian": {
+            "calls": ["CALLS", "Integer", 30, "Maximum number of calls to the penalty function"],
+            "tolerance": ["TOLERANCE", "RPNValue", 1e-6, "Desired tolerance for the minimum"],
+            "repeat": ["REPEAT", "Integer", 1, "The number of calls of the JACOBIAN routine."],
+            "strategy": ["STRATEGY", "Integer", 3, "Selects the maximum number of iteration used to determine the step length which reduces the penalty function during the main iteration. A large number (i.e. 6) reduces the probability to diverge from the solution, but increases the probability of being trapped in a local minimum."],
+            "cool": ["COOL", "RPNValue", 0],
+            "balance": ["BALANCE", "RPNValue", 0.5],
+            "random": ["RANDOM", "RPNValue", 0]
+        },
         "command_lmdif": {
             "calls": ["CALLS", "Integer", 1000, "Maximum number of calls to the penalty function"],
             "tolerance": ["TOLERANCE", "RPNValue", 1e-6, "Desired tolerance for the minimum"]
         },
         "command_match": {
             "sequence": ["SEQUENCE", "LatticeBeamlineList", ""],
-            "alfx": ["ALFX", "OptionalRPNValue", null, "Correlation function $\\alpha_x$."],
-            "alfy": ["ALFY", "OptionalRPNValue", null, "Correlation function $\\alpha_y$."],
-            "betx": ["BETX [m]", "OptionalRPNValue", null, "Amplitude function $\\beta_x$."],
-            "bety": ["BETY [m]", "OptionalRPNValue", null, "Amplitude function $\\beta_y$."],
-            "deltap": ["DELTAP", "OptionalRPNValue", null, "Difference between the reference momentum and the design momentum, divided by the design momentum."],
-            "dpx": ["DPX", "OptionalRPNValue", null, "Dispersion of $\\rho_x$."],
-            "dpy": ["DPY", "OptionalRPNValue", null, "Dispersion of $\\rho_y$."],
-            "dx": ["DX [m]", "OptionalRPNValue", null, "Dispersion of x."],
-            "dy": ["DY [m]", "OptionalRPNValue", null, "Dispersion of y."],
-            "mux": ["MUX [2$\\pi$]", "OptionalRPNValue", null, "Phase function of $\\mu_y$."],
-            "muy": ["MUY [2$\\pi$]", "OptionalRPNValue", null, "Phase function of $\\mu_y$."],
-            "px": ["PX [2$\\pi$]", "OptionalRPNValue", null, "Horizontal canonical momentum of $p_x$."],
-            "py": ["PY [2$\\pi$]", "OptionalRPNValue", null, "Horizontal canonical momentum of $p_y$."],
-            "x": ["X", "OptionalRPNValue", null, "Canonical coordinate x."],
-            "y": ["Y", "OptionalRPNValue", null, "Canonical coordinate y."]
+            "alfx": ["ALFX", "RPNValue", 0.0, "Correlation function $\\alpha_x$."],
+            "alfy": ["ALFY", "RPNValue", 0.0, "Correlation function $\\alpha_y$."],
+            "betx": ["BETX [m]", "RPNValue", 0.0, "Amplitude function $\\beta_x$."],
+            "bety": ["BETY [m]", "RPNValue", 0.0, "Amplitude function $\\beta_y$."],
+            "deltap": ["DELTAP", "RPNValue", 0.0, "Difference between the reference momentum and the design momentum, divided by the design momentum."],
+            "dpx": ["DPX", "RPNValue", 0.0, "Dispersion of $\\rho_x$."],
+            "dpy": ["DPY", "RPNValue", 0.0, "Dispersion of $\\rho_y$."],
+            "dx": ["DX [m]", "RPNValue", 0.0, "Dispersion of x."],
+            "dy": ["DY [m]", "RPNValue", 0.0, "Dispersion of y."],
+            "mux": ["MUX [2$\\pi$]", "RPNValue", 0.0, "Phase function of $\\mu_y$."],
+            "muy": ["MUY [2$\\pi$]", "RPNValue", 0.0, "Phase function of $\\mu_y$."],
+            "px": ["PX [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $p_x$."],
+            "py": ["PY [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $p_y$."],
+            "x": ["X", "RPNValue", 0.0, "Canonical coordinate x."],
+            "y": ["Y", "RPNValue", 0.0, "Canonical coordinate y."]
         },
         "command_endmatch": {},
         "command_option": {
-            "bborbit": ["BBORBIT", "TriStateBool", "", "The closed orbit is modified by beam-beam kicks"],
-            "debug": ["DEBUG", "TriStateBool", "", "Issues debugging information"],
-            "echo": ["ECHO", "TriStateBool", "", "Echoes the input on the standard output file"],
-            "echomacro": ["echomacro", "TriStateBool", "", "Issues macro expansion printout for debugging"],
-            "info": ["INFO", "TriStateBool", "", "Issues information statements"],
-            "no_fatal_stop": ["NO_FATAL_STOP", "TriStateBool", "", "Prevents madx from stopping in case of a fatal error"],
-            "rbarc": ["RBARC", "TriStateBool", "", "Converts the RBEND straight length into the arc length"],
-            "reset": ["RESET", "TriStateBool", "", "Resets all options to their defaults"],
-            "sympl": ["SYMPL", "TriStateBool", "", "All element matrices are symplectified in Twiss"],
-            "tell": ["TELL", "TriStateBool", "", "Prints the current value of all options"],
-            "thin_foc": ["THIN_FOC", "TriStateBool", "", "Enables the 1/ρ2focusing of thin dipoles"],
-            "threader": ["THREADER", "TriStateBool", "", "Enables the threader for closed orbit finding in Twiss"],
-            "trace": ["TRACE", "TriStateBool", "", "Prints the system time after each command"],
-            "twiss_print": ["TWISS_PRINT", "TriStateBool", "", "Controls whether the twiss command produces output"],
-            "verbose": ["VERBOSE", "TriStateBool", "", "Issues additional printout in makethin"],
-            "verify": ["VERIFY", "TriStateBool", "", "Issues a warning if an undefined variable is used"],
-            "warn": ["WARN", "TriStateBool", "", "Issues warning statements"]
+            "bborbit": ["BBORBIT", "OptionalBoolean", "", "The closed orbit is modified by beam-beam kicks"],
+            "debug": ["DEBUG", "OptionalBoolean", "", "Issues debugging information"],
+            "echo": ["ECHO", "OptionalBoolean", "", "Echoes the input on the standard output file"],
+            "echomacro": ["ECHOMACRO", "OptionalBoolean", "", "Issues macro expansion printout for debugging"],
+            "info": ["INFO", "OptionalBoolean", "", "Issues information statements"],
+            "no_fatal_stop": ["NO_FATAL_STOP", "OptionalBoolean", "", "Prevents madx from stopping in case of a fatal error"],
+            "rbarc": ["RBARC", "OptionalBoolean", "", "Converts the RBEND straight length into the arc length"],
+            "reset": ["RESET", "OptionalBoolean", "", "Resets all options to their defaults"],
+            "sympl": ["SYMPL", "OptionalBoolean", "", "All element matrices are symplectified in Twiss"],
+            "tell": ["TELL", "OptionalBoolean", "", "Prints the current value of all options"],
+            "thin_foc": ["THIN_FOC", "OptionalBoolean", "", "Enables the 1/ρ2focusing of thin dipoles"],
+            "threader": ["THREADER", "OptionalBoolean", "", "Enables the threader for closed orbit finding in Twiss"],
+            "trace": ["TRACE", "OptionalBoolean", "", "Prints the system time after each command"],
+            "twiss_print": ["TWISS_PRINT", "OptionalBoolean", "", "Controls whether the twiss command produces output"],
+            "verbose": ["VERBOSE", "OptionalBoolean", "", "Issues additional printout in makethin"],
+            "verify": ["VERIFY", "OptionalBoolean", "", "Issues a warning if an undefined variable is used"],
+            "warn": ["WARN", "OptionalBoolean", "", "Issues warning statements"]
         },
         "command_ptc_create_layout": {
             "errors_out": ["ERRORS_OUT", "Boolean", "0", "Write out multiple errors in EFCOMP table format"],
@@ -330,10 +371,10 @@
             "xbend": ["XBEND", "RPNValue", -1.0]
         },
         "command_ptc_create_universe": {
-            "ntpsa": ["NTPSA", "Boolean", "0"],
-            "sector_nmul": ["SECTOR_NMULMAX", "Integer", -1],
-            "sector_nmul_max": ["SECTOR_NMUL_MAX", "Integer", -1],
-            "symprint": ["SYMPRINT", "Boolean", "1"]
+            "ntpsa": ["NTPSA", "Boolean", "0", "Invokes the Differential Algebra (DA) package written in C++ and kindly provided by Lingyun Yang (lyyang@lbl.gov). Etienne Forest has written the wrapper to allow the use of both the legendary DA package written in Fortran by Martin Berz (default) and this new DA package of Lingyun Yang. It is expected that this DA package will allow for the efficient calculation of a large number of DA parameters."],
+            "sector_nmul": ["SECTOR_NMULMAX", "Integer", -1, "A global variable in PTC needed for exact sector bends defining up to which order the multipole are included in solving Maxwell’s equation up to order SECTOR_NMUL_MAX. Multipoles of order N with N > SECTOR_NMUL and N <= SECTOR_NMUL_MAX are treated similar to SixTrack. If a negative value of SECTOR_NMUL_MAX is passed than it is also identified automatically. However, if multipolar parameters of the bends are to be modified inside the PTC universe, for example with PTC_READ_ERRORS, than this parameter needs to be set to a corresponding value. Please note that using large values (above 10) slows down the computations, so the smallest required value should be used."],
+            "sector_nmul_max": ["SECTOR_NMUL_MAX", "Integer", -1, "A global variable in PTC needed for exact sector bends defining up to which order Maxwell’s equation are solved. The value of SECTOR_NMUL_MAX must not be smaller than SECTOR_NMUL otherwise MAD-X stops with an error. If a negative value is passed than it is identified automatically by scanning the currently selected sequence."],
+            "symprint": ["SYMPRINT", "Boolean", "1", "A flag to enable the printing of the check of symplecticity. It is recommended to leave this flag set to TRUE."]
         },
         "command_ptc_end": {},
         "command_ptc_normal": {
@@ -345,18 +386,36 @@
             "normal": ["NORMAL", "Boolean", "0", "Turn on the calculation of the Normal Form"]
         },
         "command_ptc_observe": {
-            "place": ["PLACE", "OptionalString", "The name of observation point. "]
+            "place": ["PLACE", "OptionalString", "", "The name of observation point."]
         },
         "command_savebeta": {
-            "label": ["LABEL", "OptionalString", "Name of the label."],
-            "place": ["PLACE", "OptionalString", "The location of the mark."],
-            "sequence": ["SEQUENCE", "LatticeBeamlineList", "Name of the expaned sequence."]
+            "label": ["LABEL", "OptionalString", "", "Name of the label."],
+            "place": ["PLACE", "OptionalString", "", "The location of the mark."],
+            "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "", "Name of the expaned sequence."]
+        },
+        "command_ptc_select": {
+            "table": ["TABLE", "OptionalString", "", "The name of the table where values should be stored."],
+            "column": ["COLUMN", "OptionalString", "", "The name of the column in the table where values should be stored."],
+            "polynomial": ["POLYNOMIAL", "OptionalString", "", "Specifies the row of the map."],
+            "monomial": ["MONOMIAL", "OptionalString", "", "A string composed of digits that defines the monomials of the polynomial in PTC nomenclature. The length of the string should be equal to the number of variables and each digit corresponds to the exponent of the corresponding variable."],
+            "parametric": ["PARAMETRIC", "Boolean", "0", " If true, and if any knobs is defined, the map element is stored as the parametric result."],
+            "quantity": ["QUANTITY", "OptionalString", ""]
+        },
+        "command_ptc_setswitch": {
+            "debuglevel": ["DEBUGLEVEL", "Boolean", "1", "Sets the level of debugging printout: 0 prints none, 4 prints everything"],
+            "exact_mis": ["EXACT_MIS", "Boolean", "0", "Switch ensures exact misalignment treatment."],
+            "totalpath": ["TOTALPATH", "Boolean", "0", "If true, the 6th variable of PTC, i.e. 5th of MAD-X, is the total path. If false it is deviation from the reference particle, which is normally the closed orbit for closed layouts. This switch changes behaviour of the RF cavities, including RF multipoles and crab cavities."],
+            "radiation": ["ADIATION", "Boolean", "0", "Sets the radiation switch/internal state of PTC. In PTC basically all the elements radiate including sextupoles, solenoids and orbit correctors."],
+            "envelope": ["ENVELOPE", "Boolean", "0", "Sets the envelope switch/internal state of PTC. It allows to calculate dumping due to radiation and stochastic effects. Warning: this makes the tracking approximately twice slower, so low order should be used."],
+            "stochastic": ["STOCHASTIC", "Boolean", "0", "Sets the stochastic switch/internal state of PTC. It enables stochastic emission of photons in ray tracking, it only affects PTC_TRACK and PTC_TRACKLINE. The emission is calculated during map tracking therefore PTC_TWISS or PTC_NORMAL needs to be invoked before launching the tracking (also with RADIATION, ENVELOPE and STOCHASTIC set to true). Every tracked ray will receive the same stochastic kicks."],
+            "modulation": ["MODULATION", "Boolean", "0", "Sets the modulation switch/internal state of PTC. It needs to be set to true to observe effect of AD dipoles."],
+            "fringe": ["FRINGE", "Boolean", "0", "Sets the fringe switch/internal state of PTC."]
         },
         "command_ptc_start": {
-            "x": ["X", "OptionalRPNValue", null, "Canonical coordinate $x$."],
-            "y": ["Y", "OptionalRPNValue", null, "Canonical coordinate $y$."],
-            "px": ["PX [2$\\pi$]", "OptionalRPNValue", null, "Horizontal canonical momentum of $p_x$."],
-            "py": ["PY [2$\\pi$]", "OptionalRPNValue", null, "Horizontal canonical momentum of $p_y$."],
+            "x": ["X", "RPNValue", 0.0, "Canonical coordinate $x$."],
+            "y": ["Y", "RPNValue", 0.0, "Canonical coordinate $y$."],
+            "px": ["PX [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $p_x$."],
+            "py": ["PY [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $p_y$."],
             "t": ["T", "RPNValue", 0.0, "Canonical coordinate $t$"],
             "pt": ["PT", "RPNValue", 0.0, "Canonical coordinate $pt$"],
             "fx": ["FX", "RPNValue", 0.0, "Action-angle coordinate expressed by normalized amplitude $\\varPhi_x$."],
@@ -383,30 +442,38 @@
             "radiation_quad": ["RADIATION_QUAD", "Boolean", "0", "Adds the radiation in quadrupoles"],
             "recloss": ["RECLOSS", "Boolean", "0", "Create in memory a table named ”trackloss” containing the coordinates of lost particles. "],
             "space_charge": ["SPACE_CHARGE", "Boolean", "0", "Turn on the simulations of the space charge forces between particles"],
-            "turns": ["TURNS", "Integer", 0, "Number of turns to be tracked"]
+            "turns": ["TURNS", "Integer", 0, "Number of turns to be tracked"],
+            "onetable": ["ONETABLE", "Boolean", "0"]
         },
         "command_ptc_track_end": {},
+        "command_ptc_trackline": {
+            "turns": ["TURNS", "RPNValue", 1, "Number of turns to be tracked. If the layout of the machine is not closed, this value is forced to TURNS=1 by PTC"],
+            "file": ["FILE", "OutputFile", ""],
+            "everystep": ["EVERYSTEP", "Boolean", "0", "a logical switch to activate the recording of track parameters at every integration step. Normally tracking data are stored internally only at the end of each element. EVERYSTEP provides the user with finer data points. It implies usage of the so called node (thin) layout."],
+            "gcs": ["GCS", "Boolean", "0", "A logical switch to store track parameters in Global Coordinate System - normally it starts at the entrance face of the first element."],
+            "onetable": ["ONETABLE", "Boolean", "0"]
+        },
         "command_resbeam": {
-            "sequence": ["SEQUENCE", "OptionalString", ""]
+            "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", ""]
         },
         "command_select": {
-            "class": ["CLASS", "OptionalString", "The class of elements to be selected."],
+            "class": ["CLASS", "OptionalString", "", "The class of elements to be selected."],
             "clear": ["CLEAR", "Boolean", "0", "Deselects ALL positions in the sequence for the flag ”name”."],
-            "column": ["COLUMN", "OptionalString", "The name of the column."],
-            "flag": ["FLAG", "OptionalString", "Determines the applicability of the SELECT statement."],
+            "column": ["COLUMN", "OptionalString", "", "The name of the column."],
+            "flag": ["FLAG", "OptionalString", "", "Determines the applicability of the SELECT statement."],
             "full": ["FULL", "Boolean", "0", "The default for the MAKETHIN flag and for tables"],
-            "pattern": ["PATTERN", "OptionalString", "The regular expression pattern for the element names to be selected."],
-            "range": ["RANGE", "OptionalString", "The range of elements to be selected."],
-            "sequence": ["SEQUENCE", "OptionalString", "The name of a sequence to which the selection is applied."],
+            "pattern": ["PATTERN", "OptionalString", "", "The regular expression pattern for the element names to be selected."],
+            "range": ["RANGE", "OptionalString", "", "The range of elements to be selected."],
+            "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "", "The name of a sequence to which the selection is applied."],
             "slice": ["SLICE", "Integer", 1, "The number of slices into which the selected elements have to be cut. Only used by MAKETHIN and FLAG=INTERPOLATE"],
             "thick": ["THICK", "Boolean", "0", "Indicate whether the selected elements are treated as thick elements by the MAKETHIN command. "]
         },
         "command_set": {
-            "format": ["FORMAT", "OptionalString", "Format output. Must double-quote each format."],
-            "sequence": ["SEQUENCE", "OptionalString", "Select the sequence"]
+            "format": ["FORMAT", "OptionalString", "", "Format output. Must double-quote each format."],
+            "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "", "Select the sequence"]
         },
         "command_show": {
-            "command": ["COMMAND", "String", "Print the command with the values of all its parameters."]
+            "command": ["COMMAND", "String", "", "Print the command with the values of all its parameters."]
         },
         "command_sodd": {
             "detune": ["DETUNE", "Boolean", "0", "If true, the detune subroutine is executed"],
@@ -420,95 +487,95 @@
             "start_stop": ["START_STOP", "Float2StringArray", "0, 0", "Longitudinal interval of the beam line (in m)", "start, stop"]
         },
         "command_twiss": {
-            "alfx": ["ALFX", "OptionalRPNValue", null, "Correlation function $\\alpha_x$."],
-            "alfy": ["ALFY", "OptionalRPNValue", null, "Correlation function $\\alpha_y$."],
-            "alfz": ["ALFZ", "OptionalRPNValue", null, "Correlation function $\\alpha_z$."],
-            "beta0": ["BETA0", "OptionalString", "The name of a BETA0 block containing the Twiss parameters to be used as input."],
-            "betx": ["BETX [m]", "OptionalRPNValue", null, "Amplitude function $\\beta_x$."],
-            "bety": ["BETY [m]", "OptionalRPNValue", null, "Amplitude function $\\beta_y$."],
-            "betz": ["BETZ [m]", "OptionalRPNValue", null, "Amplitude function $\\beta_z$."],
+            "alfx": ["ALFX", "RPNValue", 0.0, "Correlation function $\\alpha_x$."],
+            "alfy": ["ALFY", "RPNValue", 0.0, "Correlation function $\\alpha_y$."],
+            "beta0": ["BETA0", "OptionalString", "", "The name of a BETA0 block containing the Twiss parameters to be used as input."],
+            "betx": ["BETX [m]", "RPNValue", 0.0, "Amplitude function $\\beta_x$."],
+            "bety": ["BETY [m]", "RPNValue", 0.0, "Amplitude function $\\beta_y$."],
             "centre": ["CENTRE", "Boolean", "0", "Enforce the calculation of the linear lattice functions at the center of the element instead of the end of the element."],
-            "ddpx": ["DDPX", "OptionalRPNValue", 0.0, "Chromatic derivative of dispersion $D_px$"],
-            "ddpy": ["DDPY", "OptionalRPNValue", 0.0, "Chromatic derivative of dispersion $D_py$"],
-            "ddx": ["DDX", "OptionalRPNValue", 0.0, "Chromatic derivative of dispersion $D_x$"],
-            "ddy": ["DDY", "OptionalRPNValue", 0.0, "Chromatic derivative of dispersion $D_y$"],
-            "deltap": ["DELTAP", "OptionalRPNValue", 0.0, "Energy difference, divided by the reference momentum times the velocity of light."],
-            "deltap": ["DELTAP", "OptionalRPNValue", null, "Difference between the reference momentum and the design momentum, divided by the design momentum."],
-            "dmux": ["DMUX [2$\\pi$]", "OptionalRPNValue", 0.0, "Chromatic derivative of phase function $\\mu_x$"],
-            "dmuy": ["DMUY [2$\\pi$]", "OptionalRPNValue", 0.0, "Chromatic derivative of phase function $\\mu_x$"],
-            "dpx": ["DPX", "OptionalRPNValue", null, "Dispersion of $\\rho_x$."],
-            "dpy": ["DPY", "OptionalRPNValue", null, "Dispersion of $\\rho_y$."],
-            "dx": ["DX [m]", "OptionalRPNValue", null, "Dispersion of x."],
-            "dy": ["DY [m]", "OptionalRPNValue", null, "Dispersion of y."],
-            "energy": ["ENERGY [GeV]", "OptionalRPNValue", 0.0, "The total energy per particle in."],
+            "chrom": ["CHROM", "Boolean", "0", "A logical flag to trigger computation of the chromatic functions as well as the radiation synchrotron integrals."],
+            "ddpx": ["DDPX", "RPNValue", 0.0, "Chromatic derivative of dispersion $D_px$"],
+            "ddpy": ["DDPY", "RPNValue", 0.0, "Chromatic derivative of dispersion $D_py$"],
+            "ddx": ["DDX", "RPNValue", 0.0, "Chromatic derivative of dispersion $D_x$"],
+            "ddy": ["DDY", "RPNValue", 0.0, "Chromatic derivative of dispersion $D_y$"],
+            "deltap": ["DELTAP", "RPNValue", 0.0, "Difference between the reference momentum and the design momentum, divided by the design momentum."],
+            "dmux": ["DMUX [2$\\pi$]", "RPNValue", 0.0, "Chromatic derivative of phase function $\\mu_x$"],
+            "dmuy": ["DMUY [2$\\pi$]", "RPNValue", 0.0, "Chromatic derivative of phase function $\\mu_x$"],
+            "dpx": ["DPX", "RPNValue", 0.0, "Dispersion of $\\rho_x$."],
+            "dpy": ["DPY", "RPNValue", 0.0, "Dispersion of $\\rho_y$."],
+            "dx": ["DX [m]", "RPNValue", 0.0, "Dispersion of x."],
+            "dy": ["DY [m]", "RPNValue", 0.0, "Dispersion of y."],
+            "energy": ["ENERGY [GeV]", "RPNValue", 0.0, "The total energy per particle in."],
             "file": ["FILE", "OutputFile", "", "The name of the file TWISS output will be written to"],
             "keeporbit": ["KEEPORBIT", "OptionalString", "", "Store the orbit under this name at the start, and at all monitors."],
-            "line": ["LINE", "OptionalString", "", "Name of a valid beamline for which the calculation of optical functions should be performed. "],
-            "mux": ["MUX [2$\\pi$]", "OptionalRPNValue", null, "Phase function of $\\mu_y$."],
-            "muy": ["MUY [2$\\pi$]", "OptionalRPNValue", null, "Phase function of $\\mu_y$."],
-            "phix": ["PHIX", "OptionalRPNValue", 0.0, "Chromatic phase function $\\phi_x$"],
-            "phiy": ["PHIY", "OptionalRPNValue", 0.0, "Chromatic phase function $\\phi_x$"],
-            "pt": ["PT", "OptionalRPNValue", 0.0, "Energy difference, divided by the reference momentum times the velocity of light."],
-            "px": ["PX [2$\\pi$]", "OptionalRPNValue", null, "Horizontal canonical momentum of $p_x$."],
-            "py": ["PY [2$\\pi$]", "OptionalRPNValue", null, "Horizontal canonical momentum of $p_y$."],
-            "r11": ["R11", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "r12": ["R12", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "r21": ["R21", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "r22": ["R22", "OptionalRPNValue", 0.0, "Coupling matrix."],
+            "line": ["LINE", "OptionalLatticeBeamlineList", "", "Name of a valid beamline for which the calculation of optical functions should be performed. "],
+            "mux": ["MUX [2$\\pi$]", "RPNValue", 0.0, "Phase function of $\\mu_y$."],
+            "muy": ["MUY [2$\\pi$]", "RPNValue", 0.0, "Phase function of $\\mu_y$."],
+            "phix": ["PHIX", "RPNValue", 0.0, "Chromatic phase function $\\phi_x$"],
+            "phiy": ["PHIY", "RPNValue", 0.0, "Chromatic phase function $\\phi_x$"],
+            "pt": ["PT", "RPNValue", 0.0, "Energy difference, divided by the reference momentum times the velocity of light."],
+            "px": ["PX [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $p_x$."],
+            "py": ["PY [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $p_y$."],
+            "r11": ["R11", "RPNValue", 0.0, "Coupling matrix."],
+            "r12": ["R12", "RPNValue", 0.0, "Coupling matrix."],
+            "r21": ["R21", "RPNValue", 0.0, "Coupling matrix."],
+            "r22": ["R22", "RPNValue", 0.0, "Coupling matrix."],
             "range": ["RANGE", "OptionalString", "", "The TWISS calculation is restricted to the specified range."],
-            "re11": ["RE11", "OptionalRPNValue", 1.0, "Coupling matrix."],
-            "re12": ["RE12", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re13": ["RE13", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re14": ["RE14", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re15": ["RE15", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re16": ["RE16", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re21": ["RE21", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re22": ["RE22", "OptionalRPNValue", 1.0, "Coupling matrix."],
-            "re23": ["RE23", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re24": ["RE24", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re25": ["RE25", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re26": ["RE26", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re31": ["RE31", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re32": ["RE32", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re33": ["RE33", "OptionalRPNValue", 1.0, "Coupling matrix."],
-            "re34": ["RE34", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re35": ["RE35", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re36": ["RE36", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re41": ["RE41", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re42": ["RE42", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re43": ["RE43", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re44": ["RE44", "OptionalRPNValue", 1.0, "Coupling matrix."],
-            "re45": ["RE45", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re46": ["RE46", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re51": ["RE51", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re52": ["RE52", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re53": ["RE53", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re54": ["RE54", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re55": ["RE55", "OptionalRPNValue", 1.0, "Coupling matrix."],
-            "re56": ["RE56", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re61": ["RE61", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re62": ["RE62", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re63": ["RE63", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re64": ["RE64", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re65": ["RE65", "OptionalRPNValue", 0.0, "Coupling matrix."],
-            "re66": ["RE66", "OptionalRPNValue", 1.0, "Coupling matrix."],
+            "re11": ["RE11", "RPNValue", 1.0, "Coupling matrix."],
+            "re12": ["RE12", "RPNValue", 0.0, "Coupling matrix."],
+            "re13": ["RE13", "RPNValue", 0.0, "Coupling matrix."],
+            "re14": ["RE14", "RPNValue", 0.0, "Coupling matrix."],
+            "re15": ["RE15", "RPNValue", 0.0, "Coupling matrix."],
+            "re16": ["RE16", "RPNValue", 0.0, "Coupling matrix."],
+            "re21": ["RE21", "RPNValue", 0.0, "Coupling matrix."],
+            "re22": ["RE22", "RPNValue", 1.0, "Coupling matrix."],
+            "re23": ["RE23", "RPNValue", 0.0, "Coupling matrix."],
+            "re24": ["RE24", "RPNValue", 0.0, "Coupling matrix."],
+            "re25": ["RE25", "RPNValue", 0.0, "Coupling matrix."],
+            "re26": ["RE26", "RPNValue", 0.0, "Coupling matrix."],
+            "re31": ["RE31", "RPNValue", 0.0, "Coupling matrix."],
+            "re32": ["RE32", "RPNValue", 0.0, "Coupling matrix."],
+            "re33": ["RE33", "RPNValue", 1.0, "Coupling matrix."],
+            "re34": ["RE34", "RPNValue", 0.0, "Coupling matrix."],
+            "re35": ["RE35", "RPNValue", 0.0, "Coupling matrix."],
+            "re36": ["RE36", "RPNValue", 0.0, "Coupling matrix."],
+            "re41": ["RE41", "RPNValue", 0.0, "Coupling matrix."],
+            "re42": ["RE42", "RPNValue", 0.0, "Coupling matrix."],
+            "re43": ["RE43", "RPNValue", 0.0, "Coupling matrix."],
+            "re44": ["RE44", "RPNValue", 1.0, "Coupling matrix."],
+            "re45": ["RE45", "RPNValue", 0.0, "Coupling matrix."],
+            "re46": ["RE46", "RPNValue", 0.0, "Coupling matrix."],
+            "re51": ["RE51", "RPNValue", 0.0, "Coupling matrix."],
+            "re52": ["RE52", "RPNValue", 0.0, "Coupling matrix."],
+            "re53": ["RE53", "RPNValue", 0.0, "Coupling matrix."],
+            "re54": ["RE54", "RPNValue", 0.0, "Coupling matrix."],
+            "re55": ["RE55", "RPNValue", 1.0, "Coupling matrix."],
+            "re56": ["RE56", "RPNValue", 0.0, "Coupling matrix."],
+            "re61": ["RE61", "RPNValue", 0.0, "Coupling matrix."],
+            "re62": ["RE62", "RPNValue", 0.0, "Coupling matrix."],
+            "re63": ["RE63", "RPNValue", 0.0, "Coupling matrix."],
+            "re64": ["RE64", "RPNValue", 0.0, "Coupling matrix."],
+            "re65": ["RE65", "RPNValue", 0.0, "Coupling matrix."],
+            "re66": ["RE66", "RPNValue", 1.0, "Coupling matrix."],
             "ripken": ["RIPKEN", "Boolean", "0", "Calculate the Ripken-Mais Twiss parameters."],
             "rmatrix": ["RMATRIX", "Boolean", "0", "If this flag is used the the one-turn map at the location of every element is calculated and prepared for storage in the twiss table."],
             "sectoracc": ["SECTORACC", "Boolean", "0", "Save composition of maps instead of individual maps of a sector map."],
-            "sectorfile": ["SECTORFILE", "String", "", "Name of the file to which the SECTORMAP is written."],
+            "sectorfile": ["SECTORFILE", "OutputFile", "0", "Name of the file to which the SECTORMAP is written."],
             "sectormap": ["SECTORMAP", "Boolean", "0", "Initiate the calculation of a sector map."],
             "sectorpure": ["SECTORPURE", "Boolean", "0", "Save the transfer map Rij without effects from higher order map (Tijk)."],
             "sectortable": ["SECTORTABLE", "OptionalString", "", "Name of the table containing the SECTORMAP values."],
-            "sequence": ["SEQUENCE", "OptionalString", "", "Name of a valid sequence for which the calculation of optical functions should be performed. "],
+            "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "", "Name of a valid sequence for which the calculation of optical functions should be performed. "],
+            "t": ["T [m]", "RPNValue", 0.0, "Velocity of light times the negative time difference with respect to the reference particle. A positive T means that the particle arrives ahead of the reference particle."],
+            "tolerance": ["TOLERANCE", "RPNValue", 1e-6, "The maximum closed orbit error, for all six orbit components, that can be tolerated during the closed orbit search. The value given in the TWISS command is only valid for the current calculation; the COGUESS command allows to change the default value for all subsequent closed orbit search calculations."],
             "useorbit": ["USEORBIT", "OptionalString", "", "Use the start value provided for the closed orbit search."],
-            "wx": ["WX [m]", "OptionalRPNValue", 0.0, "The horizontal Courant-Snyder invariant "],
-            "wy": ["WY [m]", "OptionalRPNValue", 0.0, "The vertical Courant-Snyder invariant "],
-            "x": ["X", "OptionalRPNValue", null, "Canonical coordinate x."],
-            "y": ["Y", "OptionalRPNValue", null, "Canonical coordinate y."]
+            "wx": ["WX [m]", "RPNValue", 0.0, "The horizontal Courant-Snyder invariant "],
+            "wy": ["WY [m]", "RPNValue", 0.0, "The vertical Courant-Snyder invariant "],
+            "x": ["X", "RPNValue", 0.0, "Canonical coordinate x."],
+            "y": ["Y", "RPNValue", 0.0, "Canonical coordinate y."]
         },
         "command_use": {
-            "sequence": ["BEAMLINE", "LatticeBeamlineList", "", "Name of the sequence to be loaded and expanded."],
-            "period": ["BEAMLINE", "LatticeBeamlineList", "", "Name of the sequence to be loaded and expanded."]
+            "sequence": ["BEAMLINE", "OptionalLatticeBeamlineList", "", "Name of the sequence to be loaded and expanded."],
+            "period": ["BEAMLINE", "OptionalLatticeBeamlineList", "", "Name of the sequence to be loaded and expanded."]
         },
         "command_vary": {
             "name": ["NAME", "String", "", "Name of the parameter or attribute to be varied"],
@@ -519,20 +586,23 @@
             "opt": ["OPT", "RPNValue", 0.0, "Optimal value for the parameter"]
         },
         "elementAnimation": {
+            "x": ["Horizontal Value to Plot", "ValueList", ""],
+            "y1": ["Vertical Value to Plot", "ValueList", ""],
+            "y2": ["Vertical Value to Plot", "ValueList", ""],
+            "y3": ["Vertical Value to Plot", "ValueList", ""],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "0"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
-            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
-            "x": ["Horizontal Value to Plot", "ElementAnimationParameter", "s"],
-            "y": ["Vertical Value to Plot", "ElementAnimationParameter", "px"],
-            "y1": ["Vertical Value to Plot", "ElementAnimationParameter", "betx"],
-            "y2": ["Vertical Value to Plot", "ElementAnimationParameter", "bety"],
-            "y3": ["Vertical Value to Plot", "ElementAnimationParameter", "dx"]
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
+            "colorMap": ["Color Map", "ColorMap", "afmhot"],
+            "plotRangeType": ["Range", "PlotRangeType", "none"],
+            "horizontalSize": ["Horizontal Size", "Float", 0],
+            "verticalSize": ["Vertical Size", "Float", 0],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "notes": ["Notes", "Text", ""]
         },
-        "initialTwissParams": {
-            "alpha": ["Alpha", "RPNValue", 0.0],
-            "beta": ["Beta", "RPNValue", 1.0],
-            "dim": ["Dimension", "SpaceCoordinate", "x"],
-            "eta": ["Emittance", "RPNValue", 1.0],
-            "gamma": ["Gamma", "RPNValue", 1.0]
+        "matchSummaryAnimation": {
         },
         "rpnVariable": {
             "name": ["Name", "String"],
@@ -1084,6 +1154,44 @@
                 "notes"
             ]
         },
+        "bunch": {
+            "title": "Bunch",
+            "basic": [
+                ["Main", [
+                    "command_beam.particle",
+                    "command_beam.mass",
+                    "command_beam.charge",
+                    "beamDefinition",
+                    "command_beam.energy",
+                    "command_beam.pc",
+                    "command_beam.gamma",
+                    "command_beam.beta",
+                    "command_beam.brho"
+                ]],
+                ["Distribution", [
+                    "matchTwissParameters",
+                    "simulation.visualizationBeamlineId",
+                    [
+                        ["Horizontal", [
+                            "ex",
+                            "betx",
+                            "alfx"
+                        ]],
+                        ["Vertical", [
+                            "ey",
+                            "bety",
+                            "alfy"
+                        ]]
+                    ],
+                    "command_beam.et"
+                ]],
+                ["Particle Count", [
+                    "numberOfParticles",
+                    "randomSeed"
+                ]]
+            ],
+            "advanced": []
+        },
         "bunchReport": {
             "title": "Bunch Report",
             "advanced": [
@@ -1101,51 +1209,147 @@
             ],
             "basic": []
         },
+        "heatmapFrameAnimation": {
+            "model": "elementAnimation",
+            "title": "Output Report",
+            "advanced": [
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1"
+                        ]]
+                    ],
+                    "framesPerSecond",
+                    "histogramBins",
+                    "aspectRatio",
+                    "colorMap",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
+        "plotFrameAnimation": {
+            "model": "elementAnimation",
+            "title": "Output Report",
+            "advanced": [
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1",
+                            "y2",
+                            "y3"
+                        ]]
+                    ],
+                    "framesPerSecond",
+                    "includeLattice",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
+        "matchSummaryAnimation": {
+            "title": "Match Summary",
+            "advanced": []
+        },
         "command_beam": {
             "title": "beam",
             "description": "The BEAM statement defines data for the particles in a beam.",
-            "basic": [
-                "simulation.enableParticleTracking",
-                "simulation.numberOfParticles",
-                "particle",
-                "bcurrent",
-                "npart"
-            ],
+            "fieldsPerTab": 8,
             "advanced": [
-                ["Main", [
-                    "simulation.enableParticleTracking",
-                    "simulation.numberOfParticles",
-                    "sequence",
-                    "particle",
-                    "mass",
-                    "charge",
-                    "energy",
-                    "sige",
-                    "pc",
-                    "gamma",
-                    "beta",
-                    "brho",
-                    "radiate"
-                ]],
-                ["Emittance", [
-                    "ex",
-                    "exn",
-                    "ey",
-                    "eyn",
-                    "et"
-                ]],
-                ["Bunch", [
-                    "bv",
-                    "bunched",
-                    "kbunch",
-                    "bcurrent",
-                    "npart",
-                    "sigt"
-                ]]
+                "particle",
+                "mass",
+                "charge",
+                "energy",
+                "pc",
+                "gamma",
+                "beta",
+                "brho",
+                "ex",
+                "exn",
+                "ey",
+                "eyn",
+                "et",
+                "sequence",
+                "sigt",
+                "sige",
+                "kbunch",
+                "npart",
+                "bcurrent",
+                "bunched",
+                "radiate",
+                "bv"
+            ]
+        },
+        "command_beta0": {
+            "title": "beta0",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "betx",
+                "alfx",
+                "bety",
+                "mux",
+                "alfy",
+                "muy",
+                "x",
+                "px",
+                "y",
+                "py",
+                "t",
+                "pt",
+                "dx",
+                "dpx",
+                "dy",
+                "dpy",
+                "wx",
+                "phix",
+                "dmux",
+                "wy",
+                "phiy",
+                "dmuy",
+                "ddx",
+                "ddpx",
+                "ddy",
+                "ddpy",
+                "r11",
+                "r12",
+                "r21",
+                "r22",
+                "energy"
             ]
         },
         "command_constraint": {
             "title": "constraint",
+            "fieldsPerTab": 8,
             "advanced": [
                 "sequence",
                 "range",
@@ -1165,15 +1369,39 @@
                 "y"
             ]
         },
+        "command_global": {
+            "title": "global",
+            "description": "In addition to conventional matching constraints that specify the optics functions at a certain position in the sequence the user can also constrain global optics parameters such as, for example, the overall machine tune and the machine chromaticity.",
+            "advanced": [
+                "sequence",
+                "q1",
+                "q2",
+                "dq1",
+                "dq2"
+            ]
+        },
         "command_lmdif": {
-            "title": "LMDIF",
+            "title": "lmdif",
             "advanced": [
                 "calls",
                 "tolerance"
             ]
         },
+        "command_jacobian": {
+            "title": "jacobian",
+            "advanced": [
+                "calls",
+                "tolerance",
+                "repeat",
+                "strategy",
+                "cool",
+                "balance",
+                "random"
+            ]
+        },
         "command_match": {
             "title": "Match",
+            "fieldsPerTab": 8,
             "advanced": [
                 "sequence",
                 "alfx",
@@ -1199,6 +1427,7 @@
         },
         "command_option": {
             "title": "option",
+            "fieldsPerTab": 8,
             "advanced": [
                 "bborbit",
                 "debug",
@@ -1230,6 +1459,7 @@
         },
         "command_ptc_create_layout": {
             "title": "ptc_create_layout",
+            "fieldsPerTab": 8,
             "advanced": [
                 "time",
                 "model",
@@ -1266,8 +1496,23 @@
                 "place"
             ]
         },
+        "command_ptc_setswitch": {
+            "title": "ptc_setswitch",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "debuglevel",
+                "exact_mis",
+                "totalpath",
+                "radiation",
+                "envelope",
+                "stochastic",
+                "modulation",
+                "fringe"
+            ]
+        },
         "command_ptc_start": {
             "title": "ptc_start",
+            "fieldsPerTab": 8,
             "advanced": [
                 "x",
                 "px",
@@ -1283,6 +1528,17 @@
                 "phit"
             ]
         },
+        "command_ptc_select": {
+            "title": "ptc_select",
+            "advanced": [
+                "table",
+                "column",
+                "polynomial",
+                "monomial",
+                "parametric",
+                "quantity"
+            ]
+        },
         "command_savebeta": {
             "title": "savebeta",
             "advanced": [
@@ -1292,7 +1548,8 @@
             ]
         },
         "command_select": {
-            "title": "ptc_select",
+            "title": "select",
+            "fieldsPerTab": 8,
             "advanced": [
                 "class",
                 "clear",
@@ -1308,6 +1565,7 @@
         },
         "command_ptc_track": {
             "title": "ptc_track",
+            "fieldsPerTab": 8,
             "advanced": [
                 "deltap",
                 "icase",
@@ -1316,6 +1574,7 @@
                 "turns",
                 "maxaper",
                 "norm_no",
+                "file",
                 "norm_out",
                 "ffile",
                 "radiation",
@@ -1324,6 +1583,16 @@
                 "radiation_quad",
                 "beam_envelope",
                 "space_charge"
+            ]
+        },
+        "command_ptc_trackline": {
+            "title": "ptc_trackline",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "turns",
+                "file",
+                "everystep",
+                "gcs"
             ]
         },
         "command_ptc_track_end": {
@@ -1345,6 +1614,7 @@
         },
         "command_sodd": {
             "title": "sodd",
+            "fieldsPerTab": 8,
             "advanced": [
                 "detune",
                 "distort1",
@@ -1366,18 +1636,57 @@
         "command_twiss": {
             "title": "twiss",
             "description": "Compute Twiss parameters and set initial conditions.",
+            "fieldsPerTab": 8,
             "advanced": [
-                "alfx",
-                "alfy",
-                "alfz",
+                "line",
+                "range",
+                "deltap",
+                "chrom",
+                "centre",
+                "tolerance",
+                "file",
+                "rmatrix",
+                "sectormap",
+                "sectortable",
+                "sectorfile",
+                "sectorpure",
+                "keeporbit",
+                "useorbit",
+                "ripken",
+
                 "betx",
-                "bety",
-                "betz",
-                "dpx",
-                "dpy",
+                "alfx",
+                "mux",
                 "dx",
+                "dpx",
+                "bety",
+                "muy",
+                "alfy",
                 "dy",
-                "file"
+                "dpy",
+
+                "x",
+                "px",
+                "y",
+                "py",
+                "t",
+                "pt",
+
+                "wx",
+                "phix",
+                "dmux",
+                "ddx",
+                "ddpx",
+                "wy",
+                "phiy",
+                "dmuy",
+                "ddy",
+                "ddpy",
+
+                "r11",
+                "r12",
+                "r21",
+                "r22"
             ]
         },
         "command_value": {
@@ -1411,16 +1720,19 @@
                 "histogramBins"
             ]
         },
-        "simulationStatus": {
-            "title": "Simulation Status",
+        "simulationSettings": {
+            "title": "Simulation Settings",
             "basic": [
-                "simulation.visualizationBeamlineId",
-                "simulation.numberOfParticles"
+                "bunch.numberOfParticles"
             ],
             "advanced": []
         },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
+        },
         "twissEllipseReport": {
-            "title": "Twiss Report",
+            "title": "Twiss Ellipse",
             "advanced": ["dim"]
         },
         "twissAnimation": {
@@ -1989,7 +2301,7 @@
             ]
         },
         "QUADRUPOLE": {
-            "title": "QUAD",
+            "title": "QUADRUPOLE",
             "description": "A quadrupole implemented as a matrix, up to 3rd order.",
             "fieldsPerTab": 8,
             "advanced": [

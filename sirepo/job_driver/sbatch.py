@@ -170,7 +170,7 @@ disown
 
                 try:
                     await get_agent_log(c)
-                except sirepo.util.ASYNC_CANCELLED_ERROR:
+                except sirepo.util.ASYNC_CANCELED_ERROR:
                     raise
                 except Exception as e:
                     pkdlog(

@@ -302,24 +302,24 @@ SIREPO.app.directive('buttons', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('cancelledDueToTimeoutAlert', function(authState) {
+SIREPO.app.directive('canceledDueToTimeoutAlert', function(authState) {
     return {
         restrict: 'A',
         scope: {
             seconds: '<',
-            simState: '=cancelledDueToTimeoutAlert',
+            simState: '=canceledDueToTimeoutAlert',
         },
         template: [
-            '<div data-ng-if="simState.getCancelledAfterSecs()" class="alert alert-warning" role="alert">',
-              '<h4 class="alert-heading">Cancelled: Maximum runtime exceeded</h4>',
-              '<p>Your simulation ran for {{getTime()}}. To increase your maximum runtime please upgrade to ' + authState.upgradePlanLink() + '.</p>',
+            '<div data-ng-if="simState.getCanceledAfterSecs()" class="alert alert-warning" role="alert">',
+              '<h4 class="alert-heading"><b>Canceled: Maximum runtime exceeded</b></h4>',
+              '<p>Your runtime limit is {{getTime()}}. To increase your maximum runtime, please upgrade to ' + authState.upgradePlanLink() + '.</p>',
             '</div>',
         ].join(''),
         controller: function($scope, appState) {
             $scope.authState = authState;
 
             $scope.getTime = function() {
-                return appState.formatTime($scope.simState.getCancelledAfterSecs());
+                return appState.formatTime($scope.simState.getCanceledAfterSecs());
             };
 
         },
@@ -530,6 +530,10 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               '</div>',
               '<div data-ng-switch-when="Range" data-ng-class="fieldClass">',
                 '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field" data-field-delegate="fieldDelegate"></div>',
+              '</div>',
+              '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
+                '<div class="form-control-static" data-ng-if="model.valueList[field].length == 1">{{ model.valueList[field][0] }}</div>',
+              '<select data-ng-if="model.valueList[field].length != 1" class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model.valueList[field]"></select>',
               '</div>',
               SIREPO.appFieldEditors,
               // assume it is an enum
@@ -1461,12 +1465,11 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
                     ].join(''));
                 }
 
-                // TODO(e-carlin): only radia uses this
-                // TODO(e-carlin): remove
                 var s = SIREPO.APP_SCHEMA.strings;
                 var f = $scope.simState.getFrameCount();
                 var c = f > 0 ? s.completionState : '';
                 if (
+                    // TODO(e-carlin): only radia uses this
                     $scope.simState.controller.showCompletionState &&
                         ! $scope.simState.controller.showCompletionState()
                 ) {
@@ -3313,6 +3316,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                 '<button class="btn btn-default" data-ng-click="simState.cancelSimulation()">{{ stopButtonLabel() }}</button>',
               '</div>',
             '</form>',
+            '<div data-canceled-due-to-timeout-alert="simState"></div>',
             '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isStopped()">',
               '<div class="col-sm-12" data-ng-show="simState.getFrameCount() > 0" data-simulation-stopped-status="simState"><br><br></div>',
               '<div data-ng-show="simState.isStateError()">',
@@ -3327,7 +3331,6 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                   '<div data-sbatch-options="simState"></div>',
                 '</div>',
               '</div>',
-              '<div data-cancelled-due-to-timeout-alert="simState"></div>',
               '<div class="col-sm-6 pull-right">',
                 '<button class="btn btn-default" data-ng-click="start()">{{ startButtonLabel() }}</button>',
               '</div>',
@@ -3347,8 +3350,8 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                 return callSimState('getAlert');
             };
 
-            $scope.cancelledAfterSecs = function() {
-                return callSimState('getCancelledAfterSecs');
+            $scope.canceledAfterSecs = function() {
+                return callSimState('getCanceledAfterSecs');
             };
 
             $scope.errorMessage = function() {
