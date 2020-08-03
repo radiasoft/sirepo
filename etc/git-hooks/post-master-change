@@ -4,4 +4,4 @@ b=$(git branch | grep "*" | sed "s/\* //")
 if [[ $b != "master" ]]; then
     exit 0
 fi
-echo "**A change just happened on master. Don't forget to update the Alpha Release notes.**"
+pykern github update_alpha_pending sirepo
