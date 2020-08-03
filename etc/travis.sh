@@ -1,4 +1,7 @@
 #!/bin/bash
+#
+# Called from .travis.yml
+#
 set -eou pipefail
 if ! [[ $TRAVIS_BRANCH == master && $TRAVIS_EVENT_TYPE == push ]]; then
     exit
