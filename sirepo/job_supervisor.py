@@ -341,6 +341,8 @@ class _ComputeJob(PKDict):
             assert not s or not s.startswith(p), \
                 f'Trying to overwrite existing jobStatusMessage="{s}" with status="{status}"'
         if exception is not None:
+            if not str(exception):
+                exception = repr(exception)
             status = f'{p}{exception}, while {s}'
         self.__db_update(jobStatusMessage=status)
 
@@ -584,24 +586,24 @@ class _ComputeJob(PKDict):
             return r
         candidates = _ops_to_cancel()
         c = None
-        o = []
+        o = set()
         # No matter what happens the job is canceled
         self.__db_update(status=job.CANCELED)
         self._canceled_serial = self.db.computeJobSerial
         try:
             for i in range(_MAX_RETRIES):
                 try:
-                    if _ops_to_cancel().intersection(candidates):
+                    o = _ops_to_cancel().intersection(candidates)
+                    if o:
                         #TODO(robnagler) cancel run_op, not just by jid, which is insufficient (hash)
                         if not c:
                             c = self._create_op(job.OP_CANCEL, req)
                         await c.prepare_send()
-                        o = _ops_to_cancel().intersection(candidates)
                     elif c:
                         c.destroy()
                         c = None
                     pkdlog('{} cancel={}', self, o)
-                    for x in filter(lambda e: e != c, o):
+                    for x in o:
                         x.destroy(cancel=True)
                     if timed_out_op:
                         self.db.canceledAfterSecs = timed_out_op.max_run_secs
@@ -714,7 +716,7 @@ class _ComputeJob(PKDict):
             o.destroy(cancel=False)
             if isinstance(e, sirepo.util.SRException) and \
                e.sr_args.params.get('isGeneral'):
-                self.__db_restore(d)
+               self.__db_restore(d)
             else:
                 _set_error(c, o.internal_error)
             raise

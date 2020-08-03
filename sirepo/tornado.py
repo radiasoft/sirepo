@@ -6,7 +6,29 @@ u"""Wrappers for Tornado
 """
 from pykern.pkdebug import pkdlog, pkdexc
 import sirepo.util
+import tornado.locks
 import tornado.queues
+
+class Event(tornado.locks.Event):
+    class _OrderedSet:
+
+        def __init__(self):
+            self.vals = list()
+
+        def __iter__(self):
+            return iter(self.vals)
+
+        def add(self, val):
+            if val in self.vals:
+                return
+            self.vals.append(val)
+
+        def remove(self, val):
+            self.vals.remove(val)
+
+    def __init__(self):
+        self._value = False
+        self._waiters = self._OrderedSet()
 
 
 class Queue(tornado.queues.Queue):

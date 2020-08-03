@@ -636,7 +636,7 @@ class _SbatchRun(_SbatchCmd):
             self._sbatch_status,
             self.msg.nextRequestSeconds * 1000,
         )
-        self._start_ready = tornado.locks.Event()
+        self._start_ready = sirepo.tornado.Event()
         self._status_cb.start()
         await self._start_ready.wait()
         if self._terminating:
@@ -784,7 +784,7 @@ class _Process(PKDict):
             stderr=None,
             stdout=None,
             cmd=cmd,
-            _exit=tornado.locks.Event(),
+            _exit=sirepo.tornado.Event(),
         )
         if self.cmd.msg.jobCmd not in ('prepare_simulation', 'compute'):
             _assert_run_dir_exists(self.cmd.run_dir)
@@ -850,7 +850,7 @@ class _Stream(PKDict):
     def __init__(self, stream, cmd):
         super().__init__(
             cmd=cmd,
-            stream_closed=tornado.locks.Event(),
+            stream_closed=sirepo.tornado.Event(),
             text=bytearray(),
             _stream=stream,
         )
