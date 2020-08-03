@@ -2924,43 +2924,6 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
     };
 });
 
-SIREPO.app.directive('numberList', function() {
-    return {
-        restrict: 'A',
-        scope: {
-            field: '=',
-            info: '<',
-            type: '@',
-            count: '@',
-        },
-        template: [
-            '<div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >',
-            '<label style="margin-right: 1ex">{{ valueLabels[$index] || \'Plane \' + $index }}</label>',
-            '<input class="form-control sr-list-value" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-min="min" data-max="max" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
-            '</div>'
-        ].join(''),
-        controller: function($scope) {
-            //srdbg('num list', $scope);
-            // NOTE: does not appear to like 'model.field' format
-            $scope.values = null;
-            $scope.numberType = $scope.type.toLowerCase();
-            $scope.min = $scope.numberType === 'int' ? Number.MIN_SAFE_INTEGER : -Number.MAX_VALUE;
-            $scope.max = $scope.numberType === 'int' ? Number.MAX_SAFE_INTEGER : Number.MAX_VALUE;
-            //TODO(pjm): share implementation with enumList
-            $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/);
-            $scope.didChange = function() {
-                $scope.field = $scope.values.join(', ');
-            };
-            $scope.parseValues = function() {
-                if ($scope.field) {
-                    $scope.values = $scope.field.split(/\s*,\s*/);
-                }
-                return $scope.values;
-            };
-        },
-    };
-});
-
 SIREPO.app.directive('optimizeFloat', function(appState, panelState) {
     return {
         restrict: 'A',
