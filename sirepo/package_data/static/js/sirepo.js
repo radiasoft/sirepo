@@ -1381,7 +1381,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return queueItems[name] && queueItems[name].qState == 'processing' ? true : false;
     };
 
-    self.modalId = function(name, includeHash) {
+    self.modalId = function(name) {
         return 'sr-' + name + '-editor';
     };
 
