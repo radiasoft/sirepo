@@ -50,8 +50,8 @@ _COOKIE_USER = 'srau'
 _GUEST_USER_DISPLAY_NAME = 'Guest User'
 
 _PAYMENT_PLAN_BASIC = 'basic'
-_PAYMENT_PLAN_ENTERPRISE = 'enterprise'
-_PAYMENT_PLAN_PREMIUM = 'premium'
+_PAYMENT_PLAN_ENTERPRISE = ROLE_PAYMENT_PLAN_ENTERPRISE
+_PAYMENT_PLAN_PREMIUM = ROLE_PAYMENT_PLAN_PREMIUM
 _ALL_PAYMENT_PLANS = (_PAYMENT_PLAN_BASIC, _PAYMENT_PLAN_ENTERPRISE, _PAYMENT_PLAN_PREMIUM)
 
 _STATE_LOGGED_IN = 'li'
@@ -147,8 +147,6 @@ def guest_uids():
 
 
 def init_apis(*args, **kwargs):
-    import collections
-
     global uri_router, simulation_db, visible_methods, valid_methods, non_guest_methods
     assert not _METHOD_MODULES
 
@@ -169,8 +167,8 @@ def init_apis(*args, **kwargs):
     visible_methods = tuple(sorted(visible_methods))
     non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
     cookie.auth_hook_from_header = _auth_hook_from_header
-    s = simulation_db.SCHEMA_COMMON.common.constants.paymentPlans.keys()
-    assert collections.Counter(s) == collections.Counter(_ALL_PAYMENT_PLANS), \
+    s = list(simulation_db.SCHEMA_COMMON.common.constants.paymentPlans.keys())
+    assert sorted(s) == sorted(_ALL_PAYMENT_PLANS), \
         f'payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}'
 
 
@@ -683,12 +681,15 @@ def _parse_display_name(value):
 
 def _plan(data):
     r = data.roles
-    data.upgradeToPlan = 'enterprise' if 'premium' in r else 'premium'
-    data.paymentPlan = _PAYMENT_PLAN_BASIC
     if ROLE_PAYMENT_PLAN_ENTERPRISE in r:
         data.paymentPlan = _PAYMENT_PLAN_ENTERPRISE
+        data.upgradeToPlan = None
     elif ROLE_PAYMENT_PLAN_PREMIUM in r:
         data.paymentPlan = _PAYMENT_PLAN_PREMIUM
+        data.upgradeToPlan = _PAYMENT_PLAN_ENTERPRISE
+    else:
+        data.paymentPlan = _PAYMENT_PLAN_BASIC
+        data.upgradeToPlan = _PAYMENT_PLAN_PREMIUM
 
 
 def _set_log_user():
