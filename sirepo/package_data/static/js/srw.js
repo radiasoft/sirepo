@@ -2068,7 +2068,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     '<div data-ng-show="! simState.isStatePending() && particleNumber">',
                       'Completed particle: {{ particleNumber }} / {{ particleCount}}',
                     '</div>',
-                    '<div data-simulation-status-timer="simState.timeData" data-ng-show="! isFluxWithApproximateMethod()"></div>',
+                    '<div data-simulation-status-timer="simState" data-ng-show="! isFluxWithApproximateMethod()"></div>',
                   '</div>',
                 '</div>',
                 '<div class="col-sm-6 pull-right" data-ng-show="! isFluxWithApproximateMethod()">',
@@ -2076,17 +2076,12 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 '</div>',
               '</div>',
               '<div data-ng-show="simState.isStopped() && ! isFluxWithApproximateMethod()">',
-                '<div class="col-sm-6">',
-                  'Simulation ',
-                  '<span>{{ simState.stateAsText() }}</span>',
-                  '<div data-ng-show="! simState.isStatePending() && ! simState.isInitializing() && particleNumber">',
+                '<div data-simulation-stopped-status="simState"></div>',
+                  '<div class="col-sm-12" data-ng-show="! simState.isStatePending() && ! simState.isInitializing() && ! simState.isStatePurged() && particleNumber">',
                     'Completed particle: {{ particleNumber }} / {{ particleCount}}',
                   '</div>',
-                  '<div>',
-                    '<div data-simulation-status-timer="simState.timeData"></div>',
-                  '</div>',
-                '</div>',
-            //TODO(pjm): share with simStatusPanel directive in sirepo-components.js
+                '<div class="col-sm-12" data-simulation-status-timer="simState"></div>',
+                //TODO(pjm): share with simStatusPanel directive in sirepo-components.js
                 '<div data-ng-if="simState.showJobSettings()">',
                   '<div class="form-group form-group-sm">',
                     '<div class="col-sm-12" data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>',
@@ -2103,6 +2098,9 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             var clientFields = ['colorMap', 'aspectRatio', 'plotScale'];
             var serverFields = ['intensityPlotsWidth', 'rotateAngle', 'rotateReshape'];
             var oldModel = null;
+            var self = this;
+            self.simScope = $scope;
+            self.simAnalysisModel = $scope.model;
 
             function copyModel() {
                 oldModel = appState.cloneModel($scope.model);
@@ -2112,10 +2110,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 return oldModel;
             }
 
-            function handleStatus(data) {
-                if (! appState.isLoaded()) {
-                    return;
-                }
+            self.simHandleStatus = function(data) {
                 if (data.method && data.method != appState.models.fluxAnimation.method) {
                     // the output file on the server was generated with a different flux method
                     $scope.simState.timeData = {};
@@ -2137,7 +2132,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 if ($scope.isFluxWithApproximateMethod() && data.state == 'stopped' && ! data.frameCount) {
                     $scope.cancelPersistentSimulation();
                 }
-            }
+            };
 
             function hasReportParameterChanged() {
                 // for the multiElectronAnimation, changes to the intensityPlots* fields don't require
@@ -2189,11 +2184,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 copyModel();
             });
 
-            $scope.simState = persistentSimulation.initSimulationState(
-                $scope,
-                srwService.computeModel($scope.model),
-                handleStatus
-            );
+            $scope.simState = persistentSimulation.initSimulationState(self);
        },
     };
 });

@@ -257,7 +257,7 @@ class OpalParser(lattice.LatticeParser):
         names = set(self.data.models.commands[0].name)
         for i in range(len(self.data.models.commands)):
             cmd = self.data.models.commands[i]
-            if i > size or cmd._type == 'option':
+            if i >= size:
                 if not cmd.name:
                     cmd.name = self.__unique_name(cmd, names)
                 res.append(cmd)

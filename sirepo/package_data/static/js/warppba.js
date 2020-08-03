@@ -54,23 +54,20 @@ SIREPO.app.factory('warpPBAService', function(appState, $rootScope) {
 
 SIREPO.app.controller('WarpPBADynamicsController', function(appState, frameCache, panelState, warpPBAService, persistentSimulation, $scope) {
     var self = this;
+    self.simScope = $scope;
     self.panelState = panelState;
 
-    function handleStatus(data) {
+    self.simHandleStatus = function (data) {
         if (data.frameCount) {
             frameCache.setFrameCount(parseInt(data.frameCount));
         }
-    }
+    };
 
     self.isElectronBeam = function() {
         return warpPBAService.isElectronBeam();
     };
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        warpPBAService.computeModel(),
-        handleStatus
-    );
+    self.simState = persistentSimulation.initSimulationState(self);
 
     self.simState.initMessage = function() {
         return 'Initializing Laser Pulse and Plasma';

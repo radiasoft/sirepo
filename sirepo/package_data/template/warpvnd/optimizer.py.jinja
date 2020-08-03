@@ -34,7 +34,7 @@ def wrapper(parameters, bounds, constraints, cache):
         if os.path.exists('{{ optimizerStatusFile }}'):
             os.remove('{{ optimizerStatusFile }}')
         #TODO(pjm): change command to an array and try without shell=True
-        run_warp = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        run_warp = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8')
         output = {
             'steps': 0,
             'time': 0,
@@ -64,9 +64,9 @@ def wrapper(parameters, bounds, constraints, cache):
 def _result_line(parameters, output):
     # steps, time, tolerance, result, p1, ... pn
     return ' '.join(
-        map(lambda x: '{:.0f}'.format(output[x]), ('steps', 'time'))
-        + map(lambda x: '{:.6E}'.format(output[x]), ('tolerance', 'result'))
-        + map(lambda x: '{:.6E}'.format(x), parameters)
+        list(map(lambda x: '{:.0f}'.format(output[x]), ('steps', 'time')))
+        + list(map(lambda x: '{:.6E}'.format(output[x]), ('tolerance', 'result')))
+        + list(map(lambda x: '{:.6E}'.format(x), parameters))
     ) + '\n'
 
 

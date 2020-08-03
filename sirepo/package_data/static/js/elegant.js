@@ -442,6 +442,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
 
 SIREPO.app.controller('VisualizationController', function(appState, elegantService, frameCache, panelState, persistentSimulation, $rootScope, $scope) {
     var self = this;
+    self.simScope = $scope;
     self.appState = appState;
     self.panelState = panelState;
     self.outputFiles = [];
@@ -461,7 +462,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         return columns[1];
     }
 
-    function handleStatus(data) {
+    self.simHandleStatus = function (data) {
         self.simulationAlerts = data.alert || '';
         if (data.frameCount) {
             frameCache.setFrameCount(parseInt(data.frameCount));
@@ -477,7 +478,8 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 self.outputFileMap = {};
             }
         }
-    }
+    };
+
     self.errorHeader = function() {
         if(! self.simulationAlerts || self.simulationAlerts == '') {
             return '';
@@ -621,11 +623,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         self.simState.saveAndRunSimulation('simulation');
     };
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        elegantService.computeModel(),
-        handleStatus
-    );
+    self.simState = persistentSimulation.initSimulationState(self);
 
     // override persistentSimulation settings
     self.simState.isInitializing = function() {

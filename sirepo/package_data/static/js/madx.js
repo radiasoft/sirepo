@@ -23,12 +23,6 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="Float6StringArray" class="col-sm-7">',
           '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="6"></div>',
         '</div>',
-        '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
-          '<div class="form-control-static" data-ng-if="model.valueList[field].length == 1">{{ model.valueList[field][0] }}</div>',
-          '<select data-ng-if="model.valueList[field].length != 1" class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model.valueList[field]"></select>',
-        '</div>',
-    ].join('');
-    SIREPO.appDownloadLinks = [
     ].join('');
     SIREPO.lattice = {
         canReverseBeamline: true,
@@ -270,6 +264,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
 
 SIREPO.app.controller('VisualizationController', function(appState, commandService, madxService, frameCache, panelState, persistentSimulation, $scope) {
     var self = this;
+    self.simScope = $scope;
     self.appState = appState;
     self.panelState = panelState;
     self.outputFiles = [];
@@ -279,13 +274,13 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
         return fn.replace(/\.(?:tfs)/g, '');
     }
 
-    function handleStatus(data) {
+    self.simHandleStatus = function(data) {
         self.simulationAlerts = data.alert || '';
         if (data.frameCount && data.outputInfo) {
             frameCache.setFrameCount(1);
             loadElementReports(data.outputInfo);
         }
-    }
+    };
 
     function loadElementReports(outputInfo) {
         self.outputFiles = [];
@@ -344,11 +339,7 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
         });
     }
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        madxService.computeModel(),
-        handleStatus
-    );
+    self.simState = persistentSimulation.initSimulationState(self);
 
     self.simState.errorMessage = function() {
         return self.errorMessage;
@@ -357,7 +348,6 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
     appState.whenModelsLoaded($scope, function() {
         self.isParticleSimulation = madxService.isParticleSimulation();
     });
-
 });
 
 SIREPO.app.directive('appFooter', function() {

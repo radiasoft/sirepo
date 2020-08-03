@@ -411,6 +411,9 @@
             "name": ["Name", "String", "Translate"]
         }
     },
+    "strings": {
+        "completionState": ""
+    },
     "view": {
         "circlePath": {
             "title": "Circle",

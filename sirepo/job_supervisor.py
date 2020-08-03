@@ -378,6 +378,7 @@ class _ComputeJob(PKDict):
             computeJobSerial=0,
             computeJobStart=0,
             computeModel=data.computeModel,
+            dbUpdateTime=int(sirepo.srtime.utc_now_as_float()),
             driverDetails=PKDict(),
             error=None,
             history=cls.__db_init_history(prev_db),
@@ -423,9 +424,8 @@ class _ComputeJob(PKDict):
     @classmethod
     def __db_load(cls, compute_jid):
         v = None
-        d = pkcollections.json_load_any(
-            cls.__db_file(compute_jid),
-        )
+        f = cls.__db_file(compute_jid)
+        d = pkcollections.json_load_any(f)
         for k in [
                 'alert',
                 'canceledAfterSecs',
@@ -438,6 +438,7 @@ class _ComputeJob(PKDict):
                 h.setdefault(k, v)
         d.pksetdefault(
             computeModel=lambda: sirepo.sim_data.split_jid(compute_jid).compute_model,
+            dbUpdateTime=lambda: f.mtime(),
         )
         if 'cancelledAfterSecs' in d:
             d.canceledAfterSecs = d.pkdel('cancelledAfterSecs', default=v)
@@ -454,6 +455,7 @@ class _ComputeJob(PKDict):
         return self.__db_write()
 
     def __db_write(self):
+        self.db.dbUpdateTime = int(sirepo.srtime.utc_now_as_float())
         self.__db_write_file(self.db)
         return self
 
@@ -470,47 +472,38 @@ class _ComputeJob(PKDict):
 
         def _get_header():
             h = [
-                'App',
-                'Simulation id',
-                'Start (UTC)',
-                'Last update (UTC)',
-                'Elapsed',
-                'Status',
+                ['App', 'String'],
+                ['Simulation id', 'String'],
+                ['Start', 'DateTime'],
+                ['Last update', 'DateTime'],
+                ['Elapsed', 'Time'],
+                ['Status', 'String'],
             ]
             if uid:
-                h.insert(l, 'Name')
+                h.insert(l, ['Name', 'String'])
             else:
-                h.insert(l, 'User id')
+                h.insert(l, ['User id', 'String'])
                 h.extend([
-                    'Queued',
-                    'Driver details',
-                    'Premium user'
+                    ['Queued', 'Time'],
+                    ['Driver details', 'String'],
+                    ['Premium user', 'String'],
                 ])
             return h
-
-        def _strf_unix_time(unix_time):
-            return datetime.datetime.utcfromtimestamp(
-                int(unix_time),
-            ).strftime('%Y-%m-%d %H:%M:%S')
-
-        def _strf_seconds(seconds):
-            # formats to [D day[s], ][H]H:MM:SS[.UUUUUU]
-            return str(datetime.timedelta(seconds=seconds))
 
         def _get_rows():
             def _get_queued_time(db):
                 m = i.db.computeJobStart if i.db.status == job.RUNNING \
-                    else int(time.time())
-                return _strf_seconds(m - db.computeJobQueued)
+                    else int(sirepo.srtime.utc_now_as_float())
+                return m - db.computeJobQueued
 
             r = []
             for i in filter(_filter_jobs, cls.instances.values()):
                 d = [
                     i.db.simulationType,
                     i.db.simulationId,
-                    _strf_unix_time(i.db.computeJobStart),
-                    _strf_unix_time(i.db.lastUpdateTime),
-                    _strf_seconds(i.db.lastUpdateTime - i.db.computeJobStart),
+                    i.db.computeJobStart,
+                    i.db.lastUpdateTime,
+                    i.db.lastUpdateTime - i.db.computeJobStart,
                     i.db.get('jobStatusMessage', ''),
                 ]
                 if uid:
@@ -670,7 +663,7 @@ class _ComputeJob(PKDict):
             jobCmd='compute',
             nextRequestSeconds=self.db.nextRequestSeconds,
         )
-        t = int(time.time())
+        t = int(sirepo.srtime.utc_now_as_float())
         s = self.db.status
         d = self.db
         self.__db_init(req, prev_db=d)
@@ -811,7 +804,7 @@ class _ComputeJob(PKDict):
                             self.db.lastUpdateTime = r.parallelStatus.lastUpdateTime
                         else:
                             # sequential jobs don't send this
-                            self.db.lastUpdateTime = int(time.time())
+                            self.db.lastUpdateTime = int(sirepo.srtime.utc_now_as_float())
                         #TODO(robnagler) will need final frame count
                         self.__db_write()
                         if r.state in job.EXIT_STATUSES:
@@ -842,6 +835,7 @@ class _ComputeJob(PKDict):
                     if not r.get('runDirNotFound'):
                         return r
                     self.__db_init(req, prev_db=self.db)
+                    self.__db_write()
                     assert self.db.status == job.MISSING, \
                         'expecting missing status={}'.format(self.db.status)
                     return PKDict(state=self.db.status)
@@ -888,7 +882,10 @@ class _ComputeJob(PKDict):
         ):
             return PKDict(state=job.MISSING, reason='computeJobSerial-mismatch')
         if self.db.isParallel or self.db.status != job.COMPLETED:
-            return res(state=self.db.status)
+            return res(
+                state=self.db.status,
+                dbUpdateTime=self.db.dbUpdateTime,
+            )
         return None
 
 

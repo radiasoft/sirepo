@@ -50,11 +50,7 @@ _FIELD_UNITS = PKDict(
     py='rad',
 )
 
-_FILE_ID_SEP = '-'
-
 _PI = 4 * math.atan(1)
-
-_METHODS = template_common.RPN_METHODS + ['calculate_bunch_parameters']
 
 _MADX_CONSTANTS = PKDict(
     pi=_PI,
@@ -103,7 +99,7 @@ class MadxOutputFileIterator(lattice.ModelIterator):
                 self.model_index[self.model_name] if self.model_index[self.model_name] > 1 else '',
                 field,
             )
-            k = _file_id(model._id, self.field_index)
+            k = LatticeUtil.file_id(model._id, self.field_index)
             self.result[k] = PKDict(
                 filename=b + f'.{_TFS_FILE_EXTENSION}',
                 model_type=model._type,
@@ -135,36 +131,20 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def get_application_data(data, **kwargs):
-    assert 'method' in data
-    assert data.method in _METHODS, \
-        'unknown application data method: {}'.format(data.method)
     if data.method == 'calculate_bunch_parameters':
         return _calc_bunch_parameters(data.bunch, data.command_beam, data.variables)
-    #TODO(pjm): move to template_command and share with elegant and opal
-    cv = _code_var(data.variables)
-    if data.method == 'rpn_value':
-        # accept array of values enclosed in curly braces
-        if re.search(r'^\{.*\}$', data.value):
-            data.result = ''
-            return data
-        v, err = cv.eval_var(data.value)
-        if err:
-            data.error = err
-        else:
-            data.result = v
+    if _code_var(data.variables).get_application_data(data, _SCHEMA, ignore_array_values=True):
         return data
-    if data.method == 'recompute_rpn_cache_values':
-        cv.recompute_cache(data.cache)
-        return data
-    if data.method == 'validate_rpn_delete':
-        model_data = simulation_db.read_json(
-            simulation_db.sim_data_file(data.simulationType, data.simulationId))
-        data.error = cv.validate_var_delete(
-            data.name,
-            model_data,
-            _SCHEMA
-        )
-        return data
+
+
+def get_data_file(run_dir, model, frame, options=None, **kwargs):
+    if frame >= 0:
+        data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+        file_id = re.sub(r'elementAnimation', '', model)
+        return _get_filename_for_element_id(file_id, data).filename
+    if _is_report('bunchReport', model):
+        return PTC_PARTICLES_FILE
+    assert False, f'no data file for model: {model}'
 
 
 def import_file(req, **kwargs):
@@ -194,15 +174,13 @@ def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
 
 
 def prepare_for_client(data):
-    if 'models' not in data:
-        return data
-    data.models.rpnCache = madx_code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
+    _code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
     return data
 
 
 def prepare_sequential_output_file(run_dir, data):
     r = data.report
-    if r == 'twissReport' or 'bunchReport' in r or 'twissEllipseReport' in r:
+    if r == 'twissReport' or _is_report('bunchReport', r) or _is_report('twissEllipseReport', r):
         f = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if f.exists():
             f.remove()
@@ -244,7 +222,7 @@ def write_parameters(data, run_dir, is_parallel, filename=MADX_INPUT_FILE):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
-    if 'twissEllipseReport' in data.report or 'bunchReport' in data.report:
+    if _is_report('twissEllipseReport', data.report) or _is_report('bunchReport', data.report):
         # these reports don't need to run madx
         return
     pkio.write_text(
@@ -442,10 +420,6 @@ def _field_label(field):
     return field
 
 
-def _file_id(model_id, field_index):
-    return '{}{}{}'.format(model_id, _FILE_ID_SEP, field_index)
-
-
 def _file_info(filename, run_dir, file_id):
     path = str(run_dir.join(filename))
     cols = madx_parser.parse_tfs_file(path, header_only=True)
@@ -468,7 +442,7 @@ def _filename_for_report(run_dir, report):
             return info.filename
     if report == 'matchSummaryAnimation':
         return MADX_LOG_FILE
-    raise AssertionError(f'no output file for report={report}')
+    assert False, f'no output file for report={report}'
 
 
 def first_beam_command(data):
@@ -512,7 +486,7 @@ def _format_field_value(state, model, field, el_type):
     elif 'LatticeBeamlineList' in el_type:
         v = state.id_map[int(v)].name
     elif el_type == 'OutputFile':
-        v = '"{}"'.format(state.filename_map[_file_id(model._id, state.field_index)].filename)
+        v = '"{}"'.format(state.filename_map[LatticeUtil.file_id(model._id, state.field_index)].filename)
     return [field, v]
 
 
@@ -548,9 +522,9 @@ def _generate_parameters_file(data):
     code_var = _code_var(data.models.rpnVariables)
     v.twissOutputFilename = _TWISS_OUTPUT_FILE
     v.lattice = _generate_lattice(filename_map, util)
-    v.variables = _generate_variables(code_var, data)
+    v.variables = code_var.generate_variables(_generate_variable)
     v.useBeamline = util.select_beamline().name
-    if report == 'twissReport' or 'bunchReport' in report:
+    if report == 'twissReport' or _is_report('bunchReport', report):
         v.twissOutputFilename = _TWISS_OUTPUT_FILE
         return template_common.render_jinja(SIM_TYPE, v, 'twiss.madx')
     _add_commands(data, util)
@@ -569,14 +543,12 @@ def _generate_variable(name, variables, visited):
     return res
 
 
-def _generate_variables(code_var, data):
-    res = ''
-    visited = PKDict()
-    for name in sorted(code_var.variables):
-        for dependency in code_var.get_expr_dependencies(code_var.postfix_variables[name]):
-            res += _generate_variable(dependency, code_var.variables, visited)
-        res += _generate_variable(name, code_var.variables, visited)
-    return res
+def _get_filename_for_element_id(file_id, data):
+    return _build_filename_map(data)[file_id]
+
+
+def _is_report(name, report):
+    return name in report
 
 
 def _output_info(run_dir):

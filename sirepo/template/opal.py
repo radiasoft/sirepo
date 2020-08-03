@@ -33,7 +33,6 @@ _DIM_INDEX = PKDict(
     y=1,
     z=2,
 )
-_FILE_ID_SEP = '-'
 _OPAL_H5_FILE = 'opal.h5'
 _OPAL_SDDS_FILE = 'opal.stat'
 _ELEMENTS_WITH_TYPE_FIELD = ('CYCLOTRON', 'MONITOR','RFCAVITY')
@@ -77,7 +76,7 @@ class OpalOutputFileIterator(lattice.ModelIterator):
         # for now only interested in element outfn output files
         if field == 'outfn' and field_schema[1] == 'OutputFile':
             filename = '{}.{}.h5'.format(model.name, field)
-            k = _file_id(model._id, self.field_index)
+            k = LatticeUtil.file_id(model._id, self.field_index)
             self.result[k] = filename
             self.result.keys_in_order.append(k)
 
@@ -111,26 +110,8 @@ def background_percent_complete(report, run_dir, is_running):
 def get_application_data(data, **kwargs):
     if data.method == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_frames)
-    if data.method == 'rpn_value':
-        # accept array of values enclosed in curly braces
-        if re.search(r'^\{.*\}$', data.value):
-            data.result = ''
-            return data
-        v, err = _code_var(data.variables).eval_var(data.value)
-        if err:
-            data.error = err
-        else:
-            data.result = v
+    if _code_var(data.variables).get_application_data(data, _SCHEMA, ignore_array_values=True):
         return data
-    if data.method == 'recompute_rpn_cache_values':
-        _code_var(data.variables).recompute_cache(data.cache)
-        return data
-    if data.method == 'validate_rpn_delete':
-        model_data = simulation_db.read_json(
-            simulation_db.sim_data_file(SIM_TYPE, data.simulationId))
-        data.error = _code_var(data.variables).validate_var_delete(data.name, model_data, _SCHEMA)
-        return data
-    raise AssertionError('unknown get_application_data: {}'.format(data))
 
 
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
@@ -191,9 +172,7 @@ def post_execution_processing(
 
 
 def prepare_for_client(data):
-    if 'models' not in data:
-        return data
-    data.models.rpnCache = _code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
+    _code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
     return data
 
 
@@ -433,10 +412,6 @@ def _field_units(units, field):
     field.units = units
 
 
-def _file_id(model_id, field_index):
-    return '{}{}{}'.format(model_id, _FILE_ID_SEP, field_index)
-
-
 def _file_name_for_element_animation(run_dir, name):
     for info in _output_info(run_dir):
         if info.modelKey == name:
@@ -455,9 +430,8 @@ def _fixup_madx(madx, data):
     import sirepo.template.madx
     cv = sirepo.template.madx.madx_code_var(madx.models.rpnVariables)
     import pykern.pkjson
-    assert _has_command(madx, 'beam'), \
-        'MAD-X file missing BEAM command'
     beam = LatticeUtil.find_first_command(madx, 'beam')
+    assert beam, 'MAD-X file missing BEAM command'
     if beam.energy == 1 and (beam.pc != 0 or beam.gamma != 0 or beam.beta != 0 or beam.brho != 0):
         # unset the default mad-x value if other energy fields are set
         beam.energy = 0
@@ -632,7 +606,7 @@ def _generate_parameters_file(data):
         v.lattice = _generate_lattice(util, code_var, beamline_id)
         v.use_beamline = util.select_beamline().name
     v.update(dict(
-        variables=_generate_variables(code_var, data),
+        variables=code_var.generate_variables(_generate_variable),
         header_commands=_generate_commands(util, True),
         commands=_generate_commands(util, False),
     ))
@@ -650,23 +624,6 @@ def _generate_variable(name, variables, visited):
         res += 'REAL {} = {};\n'.format(name, _fix_opal_float(variables[name]))
         visited[name] = True
     return res
-
-
-def _generate_variables(code_var, data):
-    res = ''
-    visited = PKDict()
-    for name in sorted(code_var.variables):
-        for dependency in code_var.get_expr_dependencies(code_var.postfix_variables[name]):
-            res += _generate_variable(dependency, code_var.variables, visited)
-        res += _generate_variable(name, code_var.variables, visited)
-    return res
-
-
-def _has_command(data, command_type):
-    for cmd in data.models.commands:
-        if cmd._type == command_type:
-            return True
-    return False
 
 
 def _iterate_hdf5_steps(path, callback, state):
@@ -687,10 +644,9 @@ def _output_info(run_dir):
     files = LatticeUtil(data, _SCHEMA).iterate_models(OpalOutputFileIterator()).result
     res = []
     for k in files.keys_in_order:
-        id = k.split(_FILE_ID_SEP)
         if run_dir.join(files[k]).exists():
             res.append(PKDict(
-                modelKey='elementAnimation{}'.format(id[0]),
+                modelKey='elementAnimation{}'.format(k),
                 filename=files[k],
                 isHistogram=True,
             ))

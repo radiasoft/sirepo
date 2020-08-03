@@ -192,6 +192,9 @@
         "partitionSelectionReport": {},
         "simulationStatus": {}
     },
+    "strings": {
+        "completionState": ": {frameCount} epochs"
+    },
     "view": {
         "dataFile": {
             "title": "Data Source",

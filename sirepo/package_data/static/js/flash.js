@@ -113,11 +113,12 @@ SIREPO.app.controller('SourceController', function (appState, flashService, pane
 
 SIREPO.app.controller('VisualizationController', function (appState, flashService, frameCache, persistentSimulation, $scope, $window) {
     var self = this;
+    self.simScope = $scope;
     self.flashService = flashService;
     self.plotClass = 'col-md-6 col-xl-4';
     self.gridEvolutionColumnsSet = false;
 
-    function handleStatus(data) {
+    self.simHandleStatus = function(data) {
         var i = 0;
         // moved function out of for loop to avoid jshint warning
         function addValue(e) {
@@ -145,13 +146,9 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
             appState.saveChanges('gridEvolutionAnimation');
         }
         frameCache.setFrameCount(data.frameCount || 0);
-    }
+    };
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        flashService.computeModel(),
-        handleStatus
-    );
+    self.simState = persistentSimulation.initSimulationState(self);
 
     appState.whenModelsLoaded($scope, function() {
         $scope.$on('varAnimation.summaryData', function(e, data) {

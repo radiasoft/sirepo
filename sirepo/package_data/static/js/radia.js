@@ -750,17 +750,16 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 });
 
 SIREPO.app.controller('RadiaVisualizationController', function (appState, errorService, frameCache, panelState, persistentSimulation, radiaService, utilities, $scope) {
-
-    var self = this;
-
     var SINGLE_PLOTS = ['magnetViewer'];
+    var self = this;
+    self.simScope = $scope;
     $scope.mpiCores = 0;
     $scope.panelState = panelState;
     $scope.svc = radiaService;
 
-    self.solution = [];
+    self.solution = null;
 
-    function handleStatus(data) {
+    self.simHandleStatus = function(data) {
         if (data.error) {
             throw new Error('Solver failed: ' + data.error);
         }
@@ -770,55 +769,31 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
         });
         if ('percentComplete' in data && ! data.error) {
             if (data.percentComplete === 100 && ! self.simState.isProcessing()) {
-                self.solution = data.outputInfo[0];
+                self.solution = data.solution;
                 SINGLE_PLOTS.forEach(function(name) {
                     frameCache.setFrameCount(1, name);
                 });
             }
         }
         frameCache.setFrameCount(data.frameCount);
-    }
+    };
 
     self.startSimulation = function() {
-        self.solution = [];
+        self.solution = null;
         $scope.$broadcast('solveStarted', self.simState);
         self.simState.saveAndRunSimulation('simulation');
     };
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        radiaService.computeModel(),
-        handleStatus
-    );
-
-    self.simState.notRunningMessage = function() {
-        var msg = 'Complete - ';
-        if (! (self.solution || []).length) {
-            return msg + 'No solution found';
-        }
-        return msg + self.solution[3] + ' steps ' +
-            'Max |M| ' + utilities.roundToPlaces(self.solution[1], 4) + 'A/m; ' +
-            'Max |H| ' + utilities.roundToPlaces(self.solution[2], 4) + 'A/m';
-    };
+    self.simState = persistentSimulation.initSimulationState(self);
 
     self.simState.startButtonLabel = function() {
         return 'Solve';
     };
 
-    //self.simState.stateAsText = function() {
-    //    return 'Solving';
-    //};
-
     self.simState.stopButtonLabel = function() {
         return 'Cancel';
     };
 
-    appState.whenModelsLoaded($scope, function() {
-        // initial setup
-       // appState.watchModelFields($scope, ['model.field'], function() {
-        //});
-        //srdbg('RadiaVisualizationController', appState.models);
-    });
 });
 
 
@@ -1598,7 +1573,7 @@ SIREPO.app.directive('radiaGeomObjInfo', function(appState, panelState, radiaSer
 });
 
 // does not need to be its own directive?  everything in viz and service? (and move template to html)
-SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache, geometry, layoutService, panelState, radiaService) {
+SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache, geometry, layoutService, panelState, radiaService, utilities) {
 
     return {
         restrict: 'A',
@@ -1610,9 +1585,13 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
             '<div class="col-md-6">',
                 '<div data-basic-editor-panel="" data-view-name="solver">',
                         '<div data-sim-status-panel="viz.simState"></div>',
-              //'<div>',
-              //  '<div data-simulation-status-timer="viz.simState.timeData"></div>',
-              //'</div>',
+                        '<div data-ng-show="viz.solution">',
+                                '<div><strong>Time:</strong> {{ solution().time }}ms</div>',
+                                '<div><strong>Step Count:</strong> {{ solution().steps }}</div>',
+                                '<div><strong>Max |M|: </strong> {{ solution().maxM }} A/m</div>',
+                                '<div><strong>Max |H|: </strong> {{ solution().maxH }} A/m</div>',
+                        '</div>',
+                        '<div data-ng-hide="viz.solution">No solution found</div>',
                         '<div class="col-sm-6 pull-right" style="padding-top: 8px;">',
                             '<button class="btn btn-default" data-ng-click="reset()">Reset</button>',
                         '</div>',
@@ -1625,8 +1604,18 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
 
             $scope.model = appState.models[$scope.modelName];
 
+            $scope.solution = function() {
+                var s = $scope.viz.solution;
+                return {
+                    time: s ? utilities.roundToPlaces(1000 * s.time, 3) : '',
+                    steps: s ? s.steps : '',
+                    maxM: s ? utilities.roundToPlaces(s.maxM, 4) : '',
+                    maxH: s ?  utilities.roundToPlaces(s.maxH, 4) : '',
+                };
+            };
+
             $scope.reset = function() {
-                $scope.viz.solution = [];
+                $scope.viz.solution = null;
                 panelState.clear('geometry');
                 panelState.requestData('reset', function (d) {
                     frameCache.setFrameCount(0);
