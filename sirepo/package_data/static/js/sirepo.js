@@ -163,7 +163,7 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
 
     self.paymentPlanName = function() {
         return SIREPO.APP_SCHEMA.constants.paymentPlans[self.paymentPlan];
-    }
+    };
 
     self.upgradePlanLink = function() {
         return '<a href="' + SIREPO.APP_SCHEMA.constants.plansUrl +
