@@ -166,8 +166,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
                 self.createPathModel();
             }
         }
-        //$('#' + panelState.modalId('fieldpaths')).modal(doShow ? 'show' : 'hide');
-        $(panelState.modalId('fieldpaths', true)).modal(doShow ? 'show' : 'hide');
+        $('#' + panelState.modalId('fieldpaths')).modal(doShow ? 'show' : 'hide');
     };
 
     function findPath(path) {

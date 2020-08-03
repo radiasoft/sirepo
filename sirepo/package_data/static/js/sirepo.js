@@ -1382,7 +1382,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.modalId = function(name, includeHash) {
-        return (includeHash ? '#' : '') + 'sr-' + name + '-editor';
+        return 'sr-' + name + '-editor';
     };
 
     self.pythonSource = function(simulationId, modelName, reportTitle) {
