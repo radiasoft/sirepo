@@ -21,6 +21,7 @@ from sirepo.template import radia_examples
 import h5py
 import math
 import numpy
+import re
 import sdds
 import sirepo.sim_data
 import sirepo.util
@@ -213,8 +214,8 @@ def _build_field_points(paths):
 
 
 def _build_field_line_pts(f_path):
-    p1 = [float(f_path.beginX), float(f_path.beginY), float(f_path.beginZ)]
-    p2 = [float(f_path.endX), float(f_path.endY), float(f_path.endZ)]
+    p1 = _split_comma_field(f_path.begin, 'float')
+    p2 = _split_comma_field(f_path.end, 'float')
     res = p1
     r = range(len(p1))
     n = int(f_path.numPoints) - 1
@@ -318,8 +319,8 @@ def _generate_field_integrals(g_id, f_paths):
         res = PKDict()
         for p in [fp for fp in f_paths if fp.type == 'line']:
             res[p.name] = PKDict()
-            p1 = [float(p.beginX), float(p.beginY), float(p.beginZ)]
-            p2 = [float(p.endX), float(p.endY), float(p.endZ)]
+            p1 = _split_comma_field(p.begin, 'float')
+            p2 = _split_comma_field(p.end, 'float')
             for i_type in radia_tk.INTEGRABLE_FIELD_TYPES:
                 res[p.name][i_type] = radia_tk.field_integral(g_id, i_type, p1, p2)
         return res
@@ -515,3 +516,13 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
         s.setColumnValueLists(n, col_data[i])
     s.save(str(path))
     return path
+
+
+def _split_comma_field(f, type):
+    arr = re.split(r'\s*,\s*', f)
+    if type == 'float':
+        return [float(x) for x in arr]
+    if type == 'int':
+        return [int(x) for x in arr]
+    return arr
+

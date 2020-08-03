@@ -14,7 +14,7 @@
                 "circlePath": ["ctrX", "ctrY", "ctrZ", "radius", "theta", "phi"],
                 "fieldMapPath": ["ctrX", "ctrY", "ctrZ", "lenX", "lenY", "lenZ"],
                 "filePath": ["fileName"],
-                "linePath": ["beginX", "beginY", "beginZ", "endX", "endY", "endZ"],
+                "linePath": ["begin", "end"],
                 "manualPath": ["ptX", "ptY", "ptZ"]
             },
             "transforms": {
@@ -315,14 +315,8 @@
         },
         "linePath": {
             "_super": ["_", "model", "fieldPath"],
-            "beginX": ["x1 (mm)", "Float", -10.0],
-            "beginY": ["y1 (mm)", "Float", 0.0],
-            "beginZ": ["z1 (mm)", "Float", 0.0],
             "begin": ["Start", "FloatStringArray", "-10.0, 0, 0", "Start point", "x, y, z"],
             "end": ["End", "FloatStringArray", "10.0, 0, 0", "End point", "x, y, z"],
-            "endX": ["x2 (mm)", "Float", 10.0],
-            "endY": ["y2 (mm)", "Float", 0.0],
-            "endZ": ["z2 (mm)", "Float", 0.0],
             "numPoints": ["Num Points", "Integer", 10, "", 2],
             "type": ["_", "PathType", "line"]
         },
@@ -516,13 +510,7 @@
             "basic": [
                 "name",
                 "begin",
-                "beginX",
-                "beginY",
-                "beginZ",
                 "end",
-                "endX",
-                "endY",
-                "endZ",
                 "numPoints"
             ]
         },

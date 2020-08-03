@@ -172,6 +172,13 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         $('#' + panelState.modalId('fieldpaths')).modal(doShow ? 'show' : 'hide');
     };
 
+    self.stringToFloatArray = function (str, scale) {
+        return str.split(/\s*,\s*/)
+            .map(function (v) {
+                return (scale || 1.0) * parseFloat(v);
+            });
+    };
+
     function findPath(path) {
         for(var i = 0; i < (appState.models.fieldPaths.paths || []).length; ++i) {
             var p = appState.models.fieldPaths.paths[i];
@@ -384,8 +391,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     // seems like a lot of this shape stuff can be refactored out to a common area
     self.shapeForObject = function(o) {
-        var center = stringToFloatArray(o.center || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
-        var size = stringToFloatArray(o.size || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
+        var center = radiaService.stringToFloatArray(o.center || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
+        var size =  radiaService.stringToFloatArray(o.size || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
         var isGroup = o.members && o.members.length;  //false;
 
         if (o.members && o.members.length) {
@@ -477,8 +484,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     for (var p in vtkPlotting.COORDINATE_PLANES) {
                         var cpl = geometry.plane(vtkPlotting.COORDINATE_PLANES[p], geometry.point());
                         var spl = geometry.plane(
-                            stringToFloatArray(xform.symmetryPlane),
-                            geometry.pointFromArr(stringToFloatArray(
+                             radiaService.stringToFloatArray(xform.symmetryPlane),
+                            geometry.pointFromArr( radiaService.stringToFloatArray(
                                 xform.symmetryPoint,
                                 SIREPO.APP_SCHEMA.constants.objectScale)
                             ));
@@ -590,8 +597,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     function mirrorFn(xform) {
         return function (shape1, shape2) {
             var pl = geometry.plane(
-                stringToFloatArray(xform.symmetryPlane),
-                geometry.pointFromArr(stringToFloatArray(xform.symmetryPoint, SIREPO.APP_SCHEMA.constants.objectScale))
+                radiaService.stringToFloatArray(xform.symmetryPlane),
+                geometry.pointFromArr(radiaService.stringToFloatArray(xform.symmetryPoint, SIREPO.APP_SCHEMA.constants.objectScale))
             );
             shape2.setCenter(
                 pl.mirrorPoint(geometry.pointFromArr(
@@ -604,7 +611,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function offsetFn(xform, i) {
         return function(shape1, shape2) {
-            var d = stringToFloatArray(xform.distance, SIREPO.APP_SCHEMA.constants.objectScale);
+            var d = radiaService.stringToFloatArray(xform.distance, SIREPO.APP_SCHEMA.constants.objectScale);
             shape2.setCenter(
                 shape1.getCenterCoords().map(function (c, j) {
                     return c + i * d[j];
@@ -616,8 +623,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function rotateFn(xform, i) {
         return function(shape1, shape2) {
-            var ctr = stringToFloatArray(xform.center, SIREPO.APP_SCHEMA.constants.objectScale);
-            var axis = stringToFloatArray(xform.axis, SIREPO.APP_SCHEMA.constants.objectScale);
+            var ctr =  radiaService.stringToFloatArray(xform.center, SIREPO.APP_SCHEMA.constants.objectScale);
+            var axis =  radiaService.stringToFloatArray(xform.axis, SIREPO.APP_SCHEMA.constants.objectScale);
             // need a 4-vector to account for translation
             var shapeCtr4 = shape1.getCenterCoords();
             shapeCtr4.push(0);
@@ -642,8 +649,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         ];
         b.forEach(function (c, i) {
             (objs || appState.models.geometry.objects || []).forEach(function (o) {
-                var ctr = stringToFloatArray(o.center || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
-                var sz = stringToFloatArray(o.size || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
+                var ctr =  radiaService.stringToFloatArray(o.center || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
+                var sz =  radiaService.stringToFloatArray(o.size || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
                 c[0] = Math.min(c[0], ctr[i] - sz[i] / 2);
                 c[1] = Math.max(c[1], ctr[i] + sz[i] / 2);
             });
@@ -666,13 +673,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
         });
         return b;
-    }
-
-    function stringToFloatArray(str, scale) {
-        return str.split(/\s*,\s*/)
-            .map(function (v) {
-                return (scale || 1.0) * parseFloat(v);
-            });
     }
 
     function updateObjectEditor() {
@@ -1023,7 +1023,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                           '<tbody>',
                             '<tr data-ng-repeat="path in linePaths()">',
                               '<td>{{ path.name }}</td>',
-                              '<td>[{{ path.beginX }}, {{ path.beginY }}, {{ path.beginZ }}] &#x2192; [{{ path.endX }}, {{ path.endY }}, {{ path.endZ }}]</td>',
+                              '<td>[{{ path.begin }}] &#x2192; [{{ path.end }}]</td>',
                               '<td>',
                                 '<div data-ng-repeat="t in INTEGRABLE_FIELD_TYPES"><span style="font-weight: bold">{{ t }}:</span> </span><span>{{ format(integrals[path.name][t]) }}</span></div>',
                               '</td>',
@@ -1046,10 +1046,9 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                 var data = [$scope.CSV_HEADING];
                 $scope.linePaths().forEach(function (p) {
                     var row = [];
-                    row.push(
-                        p.name,
-                        p.beginX, p.beginY, p.beginZ, p.endX, p.endY, p.endZ
-                    );
+                    row.push(p.name);
+                    row.push(...radiaService.stringToFloatArray(p.begin));
+                    row.push(...radiaService.stringToFloatArray(p.end));
                     $scope.INTEGRABLE_FIELD_TYPES.forEach(function (t) {
                         row = row.concat(
                             $scope.integrals[p.name][t]
