@@ -1254,7 +1254,6 @@ SIREPO.app.directive('modelField', function(appState) {
             '<div data-field-editor="fieldName()" data-form="form" data-model-name="modelNameForField()" data-model="modelForField()" data-custom-label="customLabel" data-label-size="{{ labelSize }}" data-field-size="{{ fieldSize }}"></div>',
         ].join(''),
         controller: function($scope) {
-            //srdbg('modelField', $scope);
             var modelName = $scope.modelName;
             var field = $scope.field;
             var modelField = appState.parseModelField(field);
