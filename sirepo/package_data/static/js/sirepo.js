@@ -161,8 +161,8 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
         controller.warningText = 'Server reported an error, please contact support@radiasoft.net.';
     };
 
-    self.planName = function() {
-        return SIREPO.APP_SCHEMA.constants.plans[self.plan];
+    self.paymentPlanName = function() {
+        return SIREPO.APP_SCHEMA.constants.paymentPlans[self.paymentPlan];
     }
 
     self.upgradePlanLink = function() {

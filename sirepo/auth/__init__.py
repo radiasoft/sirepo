@@ -33,9 +33,10 @@ LOGIN_ROUTE_NAME = 'login'
 METHOD_GUEST = 'guest'
 
 ROLE_ADM = 'adm'
-ROLE_PREMIUM = 'premium'
+ROLE_PAYMENT_PLAN_ENTERPRISE = 'enterprise'
+ROLE_PAYMENT_PLAN_PREMIUM = 'premium'
 
-PAID_USER_ROLES = (ROLE_PREMIUM,)
+PAID_USER_ROLES = (ROLE_PAYMENT_PLAN_PREMIUM,)
 
 #: key for auth method for login state
 _COOKIE_METHOD = 'sram'
@@ -47,6 +48,11 @@ _COOKIE_STATE = 'sras'
 _COOKIE_USER = 'srau'
 
 _GUEST_USER_DISPLAY_NAME = 'Guest User'
+
+_PAYMENT_PLAN_BASIC = 'basic'
+_PAYMENT_PLAN_ENTERPRISE = 'enterprise'
+_PAYMENT_PLAN_PREMIUM = 'premium'
+_ALL_PAYMENT_PLANS = (_PAYMENT_PLAN_BASIC, _PAYMENT_PLAN_ENTERPRISE, _PAYMENT_PLAN_PREMIUM)
 
 _STATE_LOGGED_IN = 'li'
 _STATE_LOGGED_OUT = 'lo'
@@ -130,7 +136,8 @@ def get_all_roles():
         role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types
     ] + [
         ROLE_ADM,
-        ROLE_PREMIUM,
+        ROLE_PAYMENT_PLAN_ENTERPRISE,
+        ROLE_PAYMENT_PLAN_PREMIUM,
     ]
 
 
@@ -140,6 +147,8 @@ def guest_uids():
 
 
 def init_apis(*args, **kwargs):
+    import collections
+
     global uri_router, simulation_db, visible_methods, valid_methods, non_guest_methods
     assert not _METHOD_MODULES
 
@@ -160,10 +169,14 @@ def init_apis(*args, **kwargs):
     visible_methods = tuple(sorted(visible_methods))
     non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
     cookie.auth_hook_from_header = _auth_hook_from_header
+    s = simulation_db.SCHEMA_COMMON.common.constants.paymentPlans.keys()
+    assert collections.Counter(s) == collections.Counter(_ALL_PAYMENT_PLANS), \
+        f'payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}'
+
 
 
 def is_premium_user():
-    return check_user_has_role(ROLE_PREMIUM, raise_forbidden=False)
+    return check_user_has_role(ROLE_PAYMENT_PLAN_PREMIUM, raise_forbidden=False)
 
 
 def logged_in_user(check_path=True):
@@ -566,8 +579,7 @@ def _auth_state():
             if r:
                 v.displayName = r.display_name
         v.roles = auth_db.UserRole.get_roles(u)
-        v.upgradeToPlan = 'enterprise' if 'premium' in v.roles else 'premium'
-        v.plan = _plan(v.roles)
+        _plan(v)
         _method_auth_state(v, u)
     if pkconfig.channel_in('dev'):
         # useful for testing/debugging
@@ -669,12 +681,14 @@ def _parse_display_name(value):
     return res
 
 
-def _plan(roles):
-    if 'enterprise' in roles:
-        return 'enterprise'
-    elif 'premium' in roles:
-        return 'premium'
-    return 'basic'
+def _plan(data):
+    r = data.roles
+    data.upgradeToPlan = 'enterprise' if 'premium' in r else 'premium'
+    data.paymentPlan = _PAYMENT_PLAN_BASIC
+    if ROLE_PAYMENT_PLAN_ENTERPRISE in r:
+        data.paymentPlan = _PAYMENT_PLAN_ENTERPRISE
+    elif ROLE_PAYMENT_PLAN_PREMIUM in r:
+        data.paymentPlan = _PAYMENT_PLAN_PREMIUM
 
 
 def _set_log_user():
