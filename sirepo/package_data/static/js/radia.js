@@ -1943,8 +1943,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     acfg[dim] = {};
                     acfg[dim].dimLabel = dim;
                     acfg[dim].label = dim + ' [mm]';
-                    acfg[dim].max = b[2 * i + 1];
-                    acfg[dim].min = b[2 * i];
+                    acfg[dim].max = pb[2 * i + 1];
+                    acfg[dim].min = pb[2 * i];
                     acfg[dim].numPoints = 2;
                     acfg[dim].screenDim = dim === 'z' ? 'y' : 'x';
                     acfg[dim].showCentral = dim === appState.models.simulation.beamAxis;
