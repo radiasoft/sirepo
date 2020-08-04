@@ -146,9 +146,10 @@
             "clientCookie": "sirepo_cookie_js",
             "maxSimCopies": 100,
             "oneDayMillis": 86400000,
-            "plans": {
-                "premium": "Sirepo Premium",
-                "enterprise": "Sirepo Enterprise"
+            "paymentPlans": {
+                "basic": "Sirepo Basic",
+                "enterprise": "Sirepo Enterprise",
+                "premium": "Sirepo Premium"
             },
             "plansUrl": "/en/plans.html"
         },
