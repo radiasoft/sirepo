@@ -274,7 +274,17 @@ def get_schema(sim_type):
     _merge_dicts(schema.common.dynamicFiles, schema.dynamicFiles)
     schema.dynamicModules = _files_in_schema(schema.dynamicFiles)
 
-    for item in ['appModes', 'constants', 'cookies', 'enum', 'notifications', 'localRoutes', 'model', 'view']:
+    for item in [
+            'appModes',
+            'constants',
+            'cookies',
+            'enum',
+            'notifications',
+            'localRoutes',
+            'model',
+            'strings',
+            'view',
+    ]:
         if item not in schema:
             schema[item] = PKDict()
         _merge_dicts(schema.common[item], schema[item])

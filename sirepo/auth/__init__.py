@@ -33,9 +33,10 @@ LOGIN_ROUTE_NAME = 'login'
 METHOD_GUEST = 'guest'
 
 ROLE_ADM = 'adm'
-ROLE_PREMIUM = 'premium'
+ROLE_PAYMENT_PLAN_ENTERPRISE = 'enterprise'
+ROLE_PAYMENT_PLAN_PREMIUM = 'premium'
 
-PAID_USER_ROLES = (ROLE_PREMIUM,)
+PAID_USER_ROLES = (ROLE_PAYMENT_PLAN_PREMIUM, ROLE_PAYMENT_PLAN_ENTERPRISE)
 
 #: key for auth method for login state
 _COOKIE_METHOD = 'sram'
@@ -47,6 +48,11 @@ _COOKIE_STATE = 'sras'
 _COOKIE_USER = 'srau'
 
 _GUEST_USER_DISPLAY_NAME = 'Guest User'
+
+_PAYMENT_PLAN_BASIC = 'basic'
+_PAYMENT_PLAN_ENTERPRISE = ROLE_PAYMENT_PLAN_ENTERPRISE
+_PAYMENT_PLAN_PREMIUM = ROLE_PAYMENT_PLAN_PREMIUM
+_ALL_PAYMENT_PLANS = (_PAYMENT_PLAN_BASIC, _PAYMENT_PLAN_ENTERPRISE, _PAYMENT_PLAN_PREMIUM)
 
 _STATE_LOGGED_IN = 'li'
 _STATE_LOGGED_OUT = 'lo'
@@ -85,7 +91,11 @@ def api_authCompleteRegistration():
 
 @api_perm.allow_visitor
 def api_authState():
-    return http_reply.render_static('auth-state', 'js', PKDict(auth_state=_auth_state()))
+    return http_reply.render_static_jinja(
+        'auth-state',
+        'js',
+        PKDict(auth_state=_auth_state()),
+    )
 
 
 @api_perm.allow_visitor
@@ -126,7 +136,8 @@ def get_all_roles():
         role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types
     ] + [
         ROLE_ADM,
-        ROLE_PREMIUM,
+        ROLE_PAYMENT_PLAN_ENTERPRISE,
+        ROLE_PAYMENT_PLAN_PREMIUM,
     ]
 
 
@@ -156,10 +167,14 @@ def init_apis(*args, **kwargs):
     visible_methods = tuple(sorted(visible_methods))
     non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
     cookie.auth_hook_from_header = _auth_hook_from_header
+    s = list(simulation_db.SCHEMA_COMMON.common.constants.paymentPlans.keys())
+    assert sorted(s) == sorted(_ALL_PAYMENT_PLANS), \
+        f'payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}'
+
 
 
 def is_premium_user():
-    return check_user_has_role(ROLE_PREMIUM, raise_forbidden=False)
+    return check_user_has_role(ROLE_PAYMENT_PLAN_PREMIUM, raise_forbidden=False)
 
 
 def logged_in_user(check_path=True):
@@ -561,14 +576,14 @@ def _auth_state():
             r = auth_db.UserRegistration.search_by(uid=u)
             if r:
                 v.displayName = r.display_name
-        v.roles = auth_db.UserRole.search_all_for_column('role', uid=u)
+        v.roles = auth_db.UserRole.get_roles(u)
+        _plan(v)
         _method_auth_state(v, u)
     if pkconfig.channel_in('dev'):
         # useful for testing/debugging
         v.uid = u
     pkdc('state={}', v)
     return v
-
 
 def _create_roles_for_user(uid, method):
     if not (pkconfig.channel_in('dev') and method == METHOD_GUEST):
@@ -662,6 +677,19 @@ def _parse_display_name(value):
     assert len(res), \
         'invalid post data: displayName={}'.format(value)
     return res
+
+
+def _plan(data):
+    r = data.roles
+    if ROLE_PAYMENT_PLAN_ENTERPRISE in r:
+        data.paymentPlan = _PAYMENT_PLAN_ENTERPRISE
+        data.upgradeToPlan = None
+    elif ROLE_PAYMENT_PLAN_PREMIUM in r:
+        data.paymentPlan = _PAYMENT_PLAN_PREMIUM
+        data.upgradeToPlan = _PAYMENT_PLAN_ENTERPRISE
+    else:
+        data.paymentPlan = _PAYMENT_PLAN_BASIC
+        data.upgradeToPlan = _PAYMENT_PLAN_PREMIUM
 
 
 def _set_log_user():

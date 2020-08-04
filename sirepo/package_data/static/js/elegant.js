@@ -20,10 +20,6 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="StringArray" data-ng-class="fieldClass">',
           '<input data-ng-model="model[field]" class="form-control" data-lpignore="true" required />',
         '</div>',
-        '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
-          '<div class="form-control-static" data-ng-if="model.valueList[field].length == 1">{{ model.valueList[field][0] }}</div>',
-          '<select data-ng-if="model.valueList[field].length != 1" class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model.valueList[field]"></select>',
-        '</div>',
         '<div data-ng-switch-when="FileValueList">',
           '<div data-ng-class="fieldClass">',
             '<div class="input-group">',
@@ -446,6 +442,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
 
 SIREPO.app.controller('VisualizationController', function(appState, elegantService, frameCache, panelState, persistentSimulation, $rootScope, $scope) {
     var self = this;
+    self.simScope = $scope;
     self.appState = appState;
     self.panelState = panelState;
     self.outputFiles = [];
@@ -465,7 +462,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         return columns[1];
     }
 
-    function handleStatus(data) {
+    self.simHandleStatus = function (data) {
         self.simulationAlerts = data.alert || '';
         if (data.frameCount) {
             frameCache.setFrameCount(parseInt(data.frameCount));
@@ -481,7 +478,8 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 self.outputFileMap = {};
             }
         }
-    }
+    };
+
     self.errorHeader = function() {
         if(! self.simulationAlerts || self.simulationAlerts == '') {
             return '';
@@ -625,11 +623,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         self.simState.saveAndRunSimulation('simulation');
     };
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        elegantService.computeModel(),
-        handleStatus
-    );
+    self.simState = persistentSimulation.initSimulationState(self);
 
     // override persistentSimulation settings
     self.simState.isInitializing = function() {

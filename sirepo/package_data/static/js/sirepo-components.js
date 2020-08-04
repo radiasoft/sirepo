@@ -302,41 +302,26 @@ SIREPO.app.directive('buttons', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('cancelledDueToTimeoutAlert', function(authState) {
+SIREPO.app.directive('canceledDueToTimeoutAlert', function(authState) {
     return {
         restrict: 'A',
         scope: {
             seconds: '<',
-            simState: '=cancelledDueToTimeoutAlert',
+            simState: '=canceledDueToTimeoutAlert',
         },
         template: [
-            '<div data-ng-if="simState.getCancelledAfterSecs()" class="alert alert-warning" role="alert">',
-              '<h4 class="alert-heading">Cancelled: Maximum runtime exceeded</h4>',
-              '<p>Your simulation ran for {{getTime()}}. To increase your maximum runtime please upgrade to <a href="https://radiasoft.net/sirepo" target="_blank">Sirepo {{ premiumOrEnterprise() }}</a>.</p>',
+            '<div data-ng-if="simState.getCanceledAfterSecs()" class="alert alert-warning" role="alert">',
+              '<h4 class="alert-heading"><b>Canceled: Maximum runtime exceeded</b></h4>',
+              '<p>Your runtime limit is {{getTime()}}. To increase your maximum runtime, please upgrade to ' + authState.upgradePlanLink() + '.</p>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
-            function leftPadZero(num) {
-                if (num < 10) {
-                    return '0' + num;
-                }
-                return num;
-            }
+        controller: function($scope, appState) {
+            $scope.authState = authState;
 
             $scope.getTime = function() {
-                var s = $scope.simState.getCancelledAfterSecs();
-                var h = leftPadZero(Math.floor(s / 3600));
-                s %= 3600;
-                var m = leftPadZero(Math.floor(s / 60));
-                return h + ':' + m + ':' + leftPadZero(Math.floor(s % 60));
+                return appState.formatTime($scope.simState.getCanceledAfterSecs());
             };
 
-            $scope.premiumOrEnterprise = function() {
-                if (authState.roles.indexOf('premium') >= 0) {
-                    return 'Enterprise';
-                }
-                return 'Premium';
-            };
         },
     };
 });
@@ -546,6 +531,10 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               '<div data-ng-switch-when="Range" data-ng-class="fieldClass">',
                 '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field" data-field-delegate="fieldDelegate"></div>',
               '</div>',
+              '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
+                '<div class="form-control-static" data-ng-if="model.valueList[field].length == 1">{{ model.valueList[field][0] }}</div>',
+                '<select data-ng-if="model.valueList[field].length != 1" class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model.valueList[field]"></select>',
+              '</div>',
               SIREPO.appFieldEditors,
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
@@ -656,7 +645,8 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
               '</a>',
               '<ul class="dropdown-menu">',
                 '<li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>',
-                '<li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }} via {{ ::authState.method }}</li>',
+                '<li class="dropdown-header">{{ authState.paymentPlanName() }}</li>',
+                '<li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }}</li>',
                 '<li data-ng-if="showAdmJobs()"><a data-ng-href="{{ getUrl(\'admJobs\') }}">Admin</a></li>',
                 '<li><a data-ng-href="{{ getUrl(\'ownJobs\') }}">Jobs</a></li>',
                 '<li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
@@ -1440,6 +1430,61 @@ SIREPO.app.directive('simplePanel', function(appState, panelState) {
             $scope.heading = viewInfo.title;
             $scope.isHidden = function() {
                 return panelState.isHidden($scope.modelName);
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('simulationStoppedStatus', function(authState) {
+    return {
+        restrict: 'A',
+        scope: {
+            simState: '=simulationStoppedStatus',
+        },
+        template: [
+            '<div class="col-sm-12" ng-bind-html="message()"><br><br></div>',
+        ].join(''),
+        controller: function($scope, $sce, appState) {
+
+            function format(template, args) {
+                return template.replace(
+                    /{(\w*)}/g,
+                    function(m, k) {
+                        if (! (k in args)) {
+                            throw new Error('k=' + k + ' not found in args=' + args);
+                        }
+                        return args[k];
+                    }
+                );
+            }
+
+            $scope.message = function() {
+                if ($scope.simState.isStatePurged()) {
+                    return $sce.trustAsHtml([
+                        '<div>Simulation data purged on ' + appState.formatDate($scope.simState.getDbUpdateTime()) + '.</div>',
+                        '<div>Upgrade to ' + authState.upgradePlanLink() + ' for persistent data storage.</div>',
+                    ].join(''));
+                }
+
+                var s = SIREPO.APP_SCHEMA.strings;
+                var f = $scope.simState.getFrameCount();
+                var c = f > 0 ? s.completionState : '';
+                if (
+                    // TODO(e-carlin): only radia uses this
+                    $scope.simState.controller.showCompletionState &&
+                        ! $scope.simState.controller.showCompletionState()
+                ) {
+                    c = '';
+                }
+                var a = {state: $scope.simState.stateAsText(), frameCount: f};
+                if ($scope.simState.controller.completionStateArgs) {
+                    $.extend(a, $scope.simState.controller.completionStateArgs());
+                }
+                return  $sce.trustAsHtml(
+                    '<div>' +
+                    format(s.simulationState + c, a) +
+                    '</div>'
+                );
             };
         },
     };
@@ -2550,11 +2595,11 @@ SIREPO.app.directive('simulationStatusTimer', function() {
     return {
         restrict: 'A',
         scope: {
-            timeData: '=simulationStatusTimer',
+            simState: '=simulationStatusTimer',
         },
         template: [
-            '<span data-ng-if="timeData.elapsedTime != null">',
-              'Elapsed time: {{ timeData.elapsedDays }} {{ timeData.elapsedTime | date:\'HH:mm:ss\' }}',
+            '<span data-ng-if="simState.timeData.elapsedTime != null && ! simState.isStatePurged()">',
+              'Elapsed time: {{ simState.timeData.elapsedDays }} {{ simState.timeData.elapsedTime | date:\'HH:mm:ss\' }}',
             '</span>',
         ].join(''),
     };
@@ -2782,7 +2827,7 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                 '<button class="btn btn-default" data-ng-click="getJobs()">Refresh</button>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, appState) {
             function dataLoaded(data, status) {
                 $scope.data = data;
             }
@@ -2791,12 +2836,29 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                 var h = '';
                 for (var i = getStartIndex(); i < row.length; i++) {
                     var v = row[i];
+                    var t = $scope.data.header[i][1];
+                    if (t === 'DateTime') {
+                        v = appState.formatDate(v);
+                    }
+                    else if (t === 'Time') {
+                        v = appState.formatTime(v);
+                    }
                     if (!$scope.wantAdm && i === nameIndex) {
                         v = '<a href=' + getUrl(row[simulationIdIndex], row[appIndex])  + '>' + v + '</a>';
                     }
                     h += '<td>' + v + '</td>';
                 }
                 return h;
+            }
+
+            function getHeaderIndex(key) {
+                var h = $scope.data.header;
+                for (var i = 0; i<h.length; i++) {
+                    if (h[i][0] === key) {
+                        return i;
+                    }
+                }
+                return -1;
             }
 
             function getStartIndex() {
@@ -2816,7 +2878,7 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
                 var h = '';
                 if ($scope.data) {
                     for (var i = getStartIndex(); i < $scope.data.header.length; i++) {
-                        h += '<th>' + $scope.data.header[i] + '</th>';
+                        h += '<th>' + $scope.data.header[i][0] + '</th>';
                     }
                     return $sce.trustAsHtml(h);
                 }
@@ -2834,14 +2896,15 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
             $scope.getRows = function() {
                 var d = $scope.data;
                 if (d) {
-                    var a = d.header.indexOf('App');
-                    var s = d.header.indexOf('Simulation id');
+                    var n = getHeaderIndex('Name');
+                    var s = getHeaderIndex('Simulation id');
+                    var a = getHeaderIndex('App');
                     if (a !== 0 && s !== 1) {
-                        throw new Error("'Simulation id' or 'App' not found in known location on header=" + d.header);
+                        throw new Error("'Simulation id' or 'App' not found in known location on header=" + JSON.stringify($scope.data.header));
                     }
                     var h = '';
                     for (var i in d.rows) {
-                        h += '<tr>' + getRow(d.rows[i], d.header.indexOf('Name'), s, a) + '</tr>';
+                        h += '<tr>' + getRow(d.rows[i], n, s, a) + '</tr>';
                     }
                     return $sce.trustAsHtml(h);
                 }
@@ -3243,7 +3306,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               '<div data-ng-show="simState.isStateRunning()">',
                 '<div class="col-sm-12">',
                   '<div data-ng-show="simState.isInitializing()">{{ initMessage() }} {{ simState.dots }}</div>',
-                  '<div data-ng-show="simState.getFrameCount() > 0">{{ message(true); }}</div>',
+                  '<div data-ng-show="simState.getFrameCount() > 0">{{ runningMessage(); }}</div>',
                   '<div class="progress">',
                     '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%">',
                     '</div>',
@@ -3254,13 +3317,14 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                 '<button class="btn btn-default" data-ng-click="simState.cancelSimulation()">{{ stopButtonLabel() }}</button>',
               '</div>',
             '</form>',
+            '<div data-canceled-due-to-timeout-alert="simState"></div>',
             '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isStopped()">',
-              '<div class="col-sm-12" data-ng-show="simState.getFrameCount() >= 1">{{ message(false); }}<br><br></div>',
+              '<div class="col-sm-12" data-ng-show="simState.getFrameCount() > 0" data-simulation-stopped-status="simState"><br><br></div>',
               '<div data-ng-show="simState.isStateError()">',
                 '<div class="col-sm-12">{{ simState.stateAsText() }}</div>',
               '</div>',
               '<div class="col-sm-12" data-ng-show="simState.getFrameCount() > 0">',
-                '<div data-simulation-status-timer="simState.timeData"></div>',
+                '<div class="col-sm-12" data-simulation-status-timer="simState"></div>',
               '</div>',
               '<div data-ng-if="simState.showJobSettings()">',
                 '<div class="form-group form-group-sm">',
@@ -3268,7 +3332,6 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                   '<div data-sbatch-options="simState"></div>',
                 '</div>',
               '</div>',
-              '<div data-cancelled-due-to-timeout-alert="simState"></div>',
               '<div class="col-sm-6 pull-right">',
                 '<button class="btn btn-default" data-ng-click="start()">{{ startButtonLabel() }}</button>',
               '</div>',
@@ -3288,16 +3351,8 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                 return callSimState('getAlert');
             };
 
-            $scope.startButtonLabel = function() {
-                return callSimState('startButtonLabel');
-            };
-
-            $scope.stopButtonLabel = function() {
-                return callSimState('stopButtonLabel') || 'End Simulation';
-            };
-
-            $scope.cancelledAfterSecs = function() {
-                return callSimState('getCancelledAfterSecs');
+            $scope.canceledAfterSecs = function() {
+                return callSimState('getCanceledAfterSecs');
             };
 
             $scope.errorMessage = function() {
@@ -3309,14 +3364,11 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                     || 'Running Simulation';
             };
 
-            $scope.message = function(isRunning) {
-                if (isRunning) {
-                    return callSimState('runningMessage')
-                        || 'Completed frame: ' + $scope.simState.getFrameCount();
-                }
-                return callSimState('notRunningMessage')
-                    || 'Simulation ' + $scope.simState.stateAsText() + ': ' + $scope.simState.getFrameCount() + ' animation frames';
+            $scope.runningMessage = function() {
+                return callSimState('runningMessage')
+                    || 'Completed frame: ' + $scope.simState.getFrameCount();
             };
+
             $scope.start = function() {
                 // The available jobRunModes can change. Default to parallel if
                 // the current jobRunMode doesn't exist
@@ -3325,6 +3377,14 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                     j.jobRunMode = 'parallel';
                 }
                 appState.saveChanges($scope.simState.model, $scope.simState.runSimulation);
+            };
+
+            $scope.startButtonLabel = function() {
+                return callSimState('startButtonLabel');
+            };
+
+            $scope.stopButtonLabel = function() {
+                return callSimState('stopButtonLabel') || 'End Simulation';
             };
         },
     };

@@ -141,11 +141,13 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
             }
         );
     }
+
     SIREPO.APP_SCHEMA.enum.JobRunMode = SIREPO.APP_SCHEMA.enum.JobRunMode.map(
         function (x) {
             return [x[0], self.jobRunModeMap[x[0]]];
         }
     );
+
     self.handleLogin = function (data, controller) {
         if (data.state === 'ok') {
             if (data.authState) {
@@ -158,6 +160,17 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
         controller.showWarning = true;
         controller.warningText = 'Server reported an error, please contact support@radiasoft.net.';
     };
+
+    self.paymentPlanName = function() {
+        return SIREPO.APP_SCHEMA.constants.paymentPlans[self.paymentPlan];
+    };
+
+    self.upgradePlanLink = function() {
+        return '<a href="' + SIREPO.APP_SCHEMA.constants.plansUrl +
+            '" target="_blank">' +
+            SIREPO.APP_SCHEMA.constants.plans[self.upgradeToPlan] + '</a>';
+    };
+
     return self;
 });
 
@@ -185,7 +198,7 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, $location
     return self;
 });
 
-SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, $document, $interval, $rootScope) {
+SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, $document, $interval, $rootScope, $filter) {
     var self = {
         models: {},
     };
@@ -444,6 +457,33 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
             p[infoNames[i]] = v;
         });
         return p;
+    };
+
+    self.formatDate = function(unixTime) {
+        return $filter('date')(unixTime * 1000, 'yyyy-MM-dd HH:mm:ss');
+    };
+
+    self.formatTime = function(unixTime) {
+        function format(val) {
+            return leftPadZero(Math.floor(val));
+        }
+
+        function leftPadZero(num) {
+            if (num < 10) {
+                return '0' + num;
+            }
+            return num;
+        }
+
+        var d = format(unixTime / (3600*24));
+        var h = format(unixTime % (3600*24) / 3600);
+        var m = format(unixTime % 3600 / 60);
+        var s = format(unixTime % 60);
+        var res = d > 0 ? d : '';
+        if (res) {
+            res += d === 1 ? ' day': ' days';
+        }
+        return res + h + ':' + m + ':' + s;
     };
 
     self.isAnimationModelName = function(name) {
@@ -2152,11 +2192,12 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
 SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, authState, frameCache) {
     var self = {};
 
-    self.initSimulationState = function($scope, model, handleStatusCallback) {
+    self.initSimulationState = function(controller) {
         var state = {
+            controller: controller,
             dots: '.',
             isReadyForModelChanges: false,
-            model: model,
+            model: appState.appService.computeModel(controller.simAnalysisModel || null),
             percentComplete: 0,
             simulationQueueItem: null,
             timeData: {
@@ -2189,7 +2230,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             else {
                 state.simulationQueueItem = null;
             }
-            handleStatusCallback(data);
+            controller.simHandleStatus(data);
         }
 
         function runStatus() {
@@ -2207,7 +2248,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             }
             if (state.model in appState.models.simulationStatus) {
                 delete appState.models.simulationStatus[state.model].alert;
-                delete appState.models.simulationStatus[state.model].cancelledAfterSecs;
+                delete appState.models.simulationStatus[state.model].canceledAfterSecs;
             }
             data.report = state.model;
             appState.models.simulationStatus[state.model] = angular.extend(
@@ -2239,8 +2280,12 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             return simulationStatus().alert;
         };
 
-        state.getCancelledAfterSecs = function() {
-            return simulationStatus().cancelledAfterSecs;
+        state.getCanceledAfterSecs = function() {
+            return simulationStatus().canceledAfterSecs;
+        };
+
+        state.getDbUpdateTime = function() {
+            return simulationStatus().dbUpdateTime;
         };
 
         state.getError = function() {
@@ -2289,6 +2334,10 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             return simulationStatus().state == 'pending';
         };
 
+        state.isStatePurged = function() {
+            return simulationStatus().state == 'job_run_purged';
+        };
+
         state.isStateRunning = function() {
             return simulationStatus().state == 'running';
         };
@@ -2300,7 +2349,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
         state.resetSimulation = function() {
             setSimulationStatus({state: 'missing'});
             frameCache.setFrameCount(0);
-            appState.whenModelsLoaded($scope, runStatus);
+            appState.whenModelsLoaded(controller.simScope, runStatus);
         };
 
         state.runSimulation = function() {
@@ -2329,9 +2378,9 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
         };
 
         state.showJobSettings = function () {
-            return authState.jobRunModeMap.sbatch
-                && appState.models[model] && appState.models[model].jobRunMode
-                ? 1 : 0;
+            return authState.jobRunModeMap.sbatch &&
+                appState.models[state.model] &&
+                appState.models[state.model].jobRunMode ? 1 : 0;
         };
 
         state.startButtonLabel = function() {
@@ -2349,8 +2398,8 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
         };
 
         state.resetSimulation();
-        $scope.$on('$destroy', clearSimulation);
-        $scope.$on('sbatchLoginSuccess', function() {
+        controller.simScope.$on('$destroy', clearSimulation);
+        controller.simScope.$on('sbatchLoginSuccess', function() {
             state.resetSimulation();
         });
         return state;

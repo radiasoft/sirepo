@@ -5,8 +5,4 @@ title, "{{ simulation_name }}";
 
 {% if useBeamline %}
 {{ commands }}
-
-{% if not hasTwiss %}
-twiss, file={{ twissOutputFilename }};
-{% endif %}
 {% endif %}

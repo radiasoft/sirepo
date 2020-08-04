@@ -3962,6 +3962,9 @@
             "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         }
     },
+    "strings": {
+        "completionState": ""
+    },
     "view": {
         "beamlineReport": {
             "title": "Lattice",

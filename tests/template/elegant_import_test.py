@@ -37,7 +37,7 @@ def test_importer(import_req):
                 if pkio.has_file_extension(fn, 'lte'):
                     data['models']['commands'] = []
                     actual = '{}{}'.format(
-                        elegant._generate_variables(data),
+                        elegant.generate_variables(data),
                         elegant._generate_lattice(
                             elegant._build_filename_map(data),
                             lattice.LatticeUtil(data, elegant._SCHEMA),

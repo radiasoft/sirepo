@@ -172,6 +172,12 @@ def init():
                 audit_proprietary_lib_files(uid)
 
         @classmethod
+        def get_roles(cls, uid):
+            with thread_lock:
+                return UserRole.search_all_for_column('role', uid=uid)
+
+
+        @classmethod
         def has_role(cls, uid, role):
             with thread_lock:
                 return bool(cls.search_by(uid=uid, role=role))

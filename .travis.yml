@@ -1,14 +1,9 @@
 ---
-sudo: required
 services:
   - docker
-# Needed so python is available
-language: python
+language: bash
 branches:
   only:
     - master
-install:
-  # Avoids Travis running the default install (pip install requirements)
-  - true
 script:
-  - curl https://radia.run | bash -s container-build
+  - bash etc/travis.sh

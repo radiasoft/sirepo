@@ -982,6 +982,9 @@
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         }
     },
+    "strings": {
+        "completionState": ""
+    },
     "view": {
         "_INTENSITY_REPORT_3D": {
             "basic": [],

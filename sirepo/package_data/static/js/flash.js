@@ -113,10 +113,19 @@ SIREPO.app.controller('SourceController', function (appState, flashService, pane
 
 SIREPO.app.controller('VisualizationController', function (appState, flashService, frameCache, persistentSimulation, $scope, $window) {
     var self = this;
+    self.simScope = $scope;
     self.flashService = flashService;
     self.plotClass = 'col-md-6 col-xl-4';
+    self.gridEvolutionColumnsSet = false;
 
-    function handleStatus(data) {
+    self.simHandleStatus = function(data) {
+        var i = 0;
+        // moved function out of for loop to avoid jshint warning
+        function addValue(e) {
+            appState.models.gridEvolutionAnimation.valueList[e].push(
+                data.gridEvolutionColumns[i]
+            );
+        }
         self.errorMessage = data.error;
         if ('frameCount' in data && ! data.error) {
             ['varAnimation', 'gridEvolutionAnimation'].forEach(function(m) {
@@ -124,14 +133,22 @@ SIREPO.app.controller('VisualizationController', function (appState, flashServic
                 frameCache.setFrameCount(data.frameCount, m);
             });
         }
+        if (! self.gridEvolutionColumnsSet && data.gridEvolutionColumns) {
+            self.gridEvolutionColumnsSet = true;
+            appState.models.gridEvolutionAnimation.valueList = {
+                y1: [],
+                y2: [],
+                y3: []
+            };
+            for (i = 0; i < data.gridEvolutionColumns.length; i++) {
+                ['y1', 'y2', 'y3'].forEach(addValue);
+            }
+            appState.saveChanges('gridEvolutionAnimation');
+        }
         frameCache.setFrameCount(data.frameCount || 0);
-    }
+    };
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        flashService.computeModel(),
-        handleStatus
-    );
+    self.simState = persistentSimulation.initSimulationState(self);
 
     appState.whenModelsLoaded($scope, function() {
         $scope.$on('varAnimation.summaryData', function(e, data) {
