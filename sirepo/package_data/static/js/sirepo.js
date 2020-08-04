@@ -457,7 +457,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
 
     self.formatDate = function(unixTime) {
         if (! unixTime) {
-            return 'n/a';
+            return null;
         }
         return $filter('date')(unixTime * 1000, 'yyyy-MM-dd HH:mm:ss');
     };

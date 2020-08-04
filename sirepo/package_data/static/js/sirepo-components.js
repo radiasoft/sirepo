@@ -2832,21 +2832,17 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
             }
 
             function getRow(row, nameIndex, simulationIdIndex, appIndex) {
-                function formatString(str) {
-                    if (! str) {
-                        return 'n/a';
-                    }
-                    return str;
-                }
-
                 var typeDispatch = {
                     DateTime: appState.formatDate,
                     Time: appState.formatTime,
-                    String: formatString,
+                    String: function(s){return s;},
                 };
                 var h = '';
                 for (var i = getStartIndex(); i < row.length; i++) {
                     var v = typeDispatch[$scope.data.header[i][1]](row[i]);
+                    if (! v) {
+                        v = 'n/a';
+                    }
                     if (!$scope.wantAdm && i === nameIndex) {
                         v = '<a href=' + getUrl(row[simulationIdIndex], row[appIndex])  + '>' + v + '</a>';
                     }
