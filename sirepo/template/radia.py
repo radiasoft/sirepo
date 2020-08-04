@@ -129,12 +129,14 @@ def get_application_data(data, **kwargs):
         res.solution = _read_solution(sim_id)
         res.idMap = id_map
         # moved addition of lines from client
+        tmp_f_type = data.fieldType
         data.fieldType = None
         data.geomTypes = ['lines']
         data.method = 'get_geom'
         data.viewType = VIEW_TYPE_OBJ
         new_res = get_application_data(data)
         res.data += new_res.data
+        data.fieldType = tmp_f_type
         return res
 
     if data.method == 'get_field_integrals':
@@ -479,6 +481,7 @@ def _rotate_flat_vector_list(vectors, scipy_rotation):
 
 
 def _save_field_csv(field_type, vectors, scipy_rotation, path):
+    pkdp('SAVE FLD {}', field_type)
     # reserve first line for a header
     data = ['x,y,z,' + field_type + 'x,' + field_type + 'y,' + field_type + 'z']
     # mm -> m, rotate so the beam axis is aligned with z
