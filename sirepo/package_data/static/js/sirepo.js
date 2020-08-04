@@ -2191,7 +2191,7 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
 
 SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, authState, frameCache, $interval) {
     var self = {};
-    const ELAPSED_TIME_INTERVAL_SECS = 1;
+    var ELAPSED_TIME_INTERVAL_SECS = 1;
 
     self.initSimulationState = function(controller) {
         var state = {
@@ -2278,7 +2278,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
         };
 
         function startElapsedTimeTimer(elapsedTime) {
-            let d = state.timeData;
+            var d = state.timeData;
             if (d.elapsedTimeTimer) {
                 return;
             }
@@ -2288,12 +2288,12 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
                     if (! state.simulationQueueItem || state.simulationQueueItem.qState == 'removing') {
                         $interval.cancel(d.elapsedTimeTimer);
                         d.elapsedTimeTimer = null;
-                        return
+                        return;
                     }
                     state.timeData.elapsedTime += ELAPSED_TIME_INTERVAL_SECS;
                 },
-                ELAPSED_TIME_INTERVAL_SECS * 1000,
-            )
+                ELAPSED_TIME_INTERVAL_SECS * 1000
+            );
         }
 
 
