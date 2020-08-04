@@ -1,12 +1,9 @@
 <div class="container-fluid">
   <div class="row">
     <div class="col-sm-6 col-sm-offset-2">
-      <h1>Reproduce Simulation?</h1>
-      <p>The URL you provided refers to a simulation for a different session.</p>
-      <p>Would you like to <strong>Copy</strong> the simulation into your existing session?</p>
-      <p data-ng-show="notFoundCopy.hasUserCopy()">Or <strong>Open</strong> your existing copy of that simulation?</p>
-      <br />
-      <button class="btn btn-default" data-ng-class="{'btn-primary': ! notFoundCopy.hasUserCopy()}" data-ng-click="notFoundCopy.copyButton()">Copy Simulation</button>
+      <h1>Someone has shared a Sirepo simulation with you.</h1>
+      <p>Click below to access an editable copy of the simulation in your own Sirepo workspace. No changes you make to it affect the original simulation or data. It’s your copy alone.</p>
+      <button class="btn btn-default" data-ng-class="{'btn-primary': ! notFoundCopy.hasUserCopy()}" data-ng-click="notFoundCopy.copyButton()">Open Simulation</button>
       <button class="btn btn-default btn-primary" data-ng-show="notFoundCopy.hasUserCopy()" data-ng-click="notFoundCopy.openButton()">Open Existing Simulation</button>
       <button class="btn btn-default" data-ng-click="notFoundCopy.cancelButton()">Cancel</button>
     </div>
