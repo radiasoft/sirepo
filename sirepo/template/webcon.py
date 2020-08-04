@@ -361,7 +361,11 @@ def jupyter_notebook_for_model(data, model):
     # notebooks are JSON files
     from sirepo.template.template_common import JupyterNotebook
     nb = JupyterNotebook(SIM_TYPE, data)
-    nb.add_imports({'ipywidgets': []})
+    nb.add_imports(
+        {
+            'codecs': [], 'ipywidgets': [], 'matplotlib': ['pyplot'], 'numpy': []
+        }
+    )
     nb.add_markdown_cell(['## Load data file'])
     nb.add_code_cell(
         [
@@ -369,6 +373,31 @@ def jupyter_notebook_for_model(data, model):
             'display(file)'
         ]
     )
+    nb.add_markdown_cell(['## Set up data'])
+    nb.add_code_cell(
+        [
+            'f = file.value',
+            'f_name = next(iter(f.keys()))',
+            'lines = codecs.decode(f[f_name]["content"], encoding="utf-8").split("\\n")',
+            'pts = [line.split(",") for line in lines if line]',
+            'pts = numpy.array([list(map(float, p)) for p in pts])',
+            'x = pts[:, 0]',
+            'y = pts[:, 1]'
+        ]
+    )
+    nb.add_markdown_cell(['## Analysis Plot'])
+    # get labels from schema?
+    nb.add_code_cell(
+        [
+            'pyplot.figure()',
+            'pyplot.plot(x, y, "-")',
+            'pyplot.xlabel("x")',
+            'pyplot.ylabel("y")',
+            'pyplot.legend(["Raw Data"])',
+            'pyplot.show()'
+        ]
+    )
+
     return nb.notebook
 
 

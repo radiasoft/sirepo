@@ -21,6 +21,7 @@ import sirepo.sim_data
 import sirepo.template
 import sirepo.util
 import subprocess
+import sys
 import types
 
 
@@ -186,11 +187,11 @@ class JupyterNotebook(object):
         self.add_cell('code', source_strings)
 
     # {<pkg>: [sub_pkg]}
-    # just mnerge?
+    # just merge?
     def add_imports(self, pkg_dict):
         for pkg in pkg_dict:
             if pkg not in self.imports:
-                self.imports[pkg] = []
+                self.imports[pkg] = pkg_dict[pkg]
         for s in pkg_dict[pkg]:
             if s not in self.imports[pkg]:
                 self.imports[pkg].append(s)
@@ -200,18 +201,18 @@ class JupyterNotebook(object):
     def add_markdown_cell(self, source_strings):
         self.add_cell('markdown', source_strings)
 
-    # imports to front etc.
     def _update(self):
         import_source = []
+
         pkgs = sorted(self.imports.keys())
         for p in [pkg for pkg in pkgs if not len(self.imports[pkg])]:
             import_source.append(
-                'import {}'.format(p)
+                'import {}\n'.format(p)
             )
         for s in [pkg for pkg in pkgs if len(self.imports[pkg])]:
             for p in self.imports[s]:
                 import_source.append(
-                    'from {} import {}'.format(s, p)
+                    'from {} import {}\n'.format(s, p)
                 )
         self.notebook.cells[self._IMPORT_CELL_INDEX].source = import_source
 
