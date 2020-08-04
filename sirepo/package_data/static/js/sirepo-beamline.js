@@ -158,6 +158,10 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
         }
     }
 
+    self.isActiveItem = function(itemType) {
+        return self.activeItem && self.activeItem.type == itemType;
+    };
+
     self.isActiveItemValid = function() {
         return self.isItemValid(self.activeItem);
     };

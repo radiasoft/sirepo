@@ -368,8 +368,6 @@ def get_application_data(data, **kwargs):
         return _compute_crystal_init(data['optical_element'])
     elif data['method'] == 'compute_crystal_orientation':
         return _compute_crystal_orientation(data['optical_element'])
-    elif data['method'] == 'process_intensity_reports':
-        return _process_intensity_reports(data['source_type'], data['undulator_type'])
     elif data['method'] == 'process_beam_parameters':
         data.ebeam = srw_common.process_beam_parameters(data.ebeam)
         data['ebeam']['drift'] = calculate_beam_drift(
@@ -808,7 +806,8 @@ def _compute_PGM_value(model):
             _x=model['horizontalOffset'],
             _y=model['verticalOffset'],
         )
-
+        #TODO(pjm): existing data may have photonEnergy as a string
+        model['energyAvg'] = float(model['energyAvg'])
         if model.computeParametersFrom == '1':
             opGr = srwlib.SRWLOptG(
                 _mirSub=mirror,
@@ -854,7 +853,7 @@ def _compute_PGM_value(model):
 
         #for key in parms_list:
         #    model[key] = None
-    pkdlog("grazingAngle={} nvz-sin(grazingAngle)={} cff={}",
+    pkdc("grazingAngle={} nvz-sin(grazingAngle)={} cff={}",
            model['grazingAngle'], np.fabs(model['nvz'])-np.fabs(np.sin(model['grazingAngle']/1000)), model['cff'])
     return model
 
@@ -888,7 +887,7 @@ def _compute_grating_orientation(model):
             _ang_graz=model['grazingAngle'],
             _ang_roll=model['rollAngle'],
         )
-        pkdlog("updating nvz from {} to {} with grazingAngle= {}mrad", model['nvz'], opGr.mirSub.nvz, model['grazingAngle'])
+        pkdc("updating nvz from {} to {} with grazingAngle= {}mrad", model['nvz'], opGr.mirSub.nvz, model['grazingAngle'])
         model['nvx'] = opGr.mirSub.nvx
         model['nvy'] = opGr.mirSub.nvy
         model['nvz'] = opGr.mirSub.nvz
@@ -1605,7 +1604,7 @@ def _remap_3d(info, allrange, z_label, z_units, report):
     if ar2d.size * _JSON_MESSAGE_EXPANSION > job.cfg.max_message_bytes:
         max_width = int(math.sqrt(job.cfg.max_message_bytes / _JSON_MESSAGE_EXPANSION))
         if max_width < width_pixels:
-            pkdlog(
+            pkdc(
                 'auto scaling dimensions to fit message size. size: {}, max_width: {}',
                 ar2d.size,
                 max_width,
