@@ -49,9 +49,9 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, $compi
             var viewInfo = appState.viewInfo($scope.viewName);
             var i;
 
-            function camelToSnakeCase(v) {
+            function camelToKebabCase(v) {
                 return v.replace(/[\w]([A-Z])/g, function(m) {
-                    return m[0] + "_" + m[1];
+                    return m[0] + "-" + m[1];
                 }).toLowerCase();
             }
 
@@ -73,19 +73,16 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, $compi
             }
             // create a View component for app business logic
             $element.append($compile(
-                '<div data-' + camelToSnakeCase($scope.viewName)
+                '<div data-' + camelToKebabCase($scope.viewName)
                     + '-view="{{ fieldDef }}"'
                     + ' data-model-name="modelName" data-model-data="modelData">'
                     + '</div>')($scope));
 
             $scope.isColumnField = function(f) {
-                return typeof(f) == 'string' ? false : true;
+                return typeof(f) != 'string';
             };
             $scope.isField = function(f) {
-                if ($scope.isColumnField(f) || $scope.isLabel(f)) {
-                    return false;
-                }
-                return true;
+                return !($scope.isColumnField(f) || $scope.isLabel(f));
             };
             $scope.isLabel = function(f) {
                 if ($scope.isColumnField(f)) {
