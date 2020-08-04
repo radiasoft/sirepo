@@ -463,6 +463,13 @@ class _ComputeJob(PKDict):
     def __db_write_file(cls, db):
         sirepo.util.json_dump(db, path=cls.__db_file(db.computeJid))
 
+    def _elapsed_time(self):
+        if self.db.status == job.MISSING:
+            return 0
+        if self._is_running_pending():
+            return int(sirepo.srtime.utc_now_as_float()) - self.db.computeJobStart
+        return self.db.dbUpdateTime - self.db.computeJobStart
+
     @classmethod
     def _get_running_pending_jobs(cls, uid=None):
         def _filter_jobs(job):
@@ -503,7 +510,7 @@ class _ComputeJob(PKDict):
                     i.db.simulationId,
                     i.db.computeJobStart,
                     i.db.lastUpdateTime,
-                    int(sirepo.srtime.utc_now_as_float()) - i.db.computeJobStart,
+                    i._elapsed_time(),
                     i.db.get('jobStatusMessage', ''),
                 ]
                 if uid:
@@ -859,7 +866,7 @@ class _ComputeJob(PKDict):
                 r.update(self.db.parallelStatus)
                 r.computeJobHash = self.db.computeJobHash
                 r.computeJobSerial = self.db.computeJobSerial
-                r.elapsedTime = int(sirepo.srtime.utc_now_as_float()) - self.db.computeJobStart
+                r.elapsedTime = self._elapsed_time()
             if self._is_running_pending():
                 c = req.content
                 r.update(

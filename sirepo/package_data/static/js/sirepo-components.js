@@ -2598,10 +2598,13 @@ SIREPO.app.directive('simulationStatusTimer', function() {
             simState: '=simulationStatusTimer',
         },
         template: [
-            '<span data-ng-if="simState.timeData.elapsedTime != null && ! simState.isStatePurged()">',
-              'Elapsed time: {{ simState.timeData.elapsedDays }} {{ simState.timeData.elapsedTime | date:\'HH:mm:ss\' }}',
+            '<span data-ng-if="simState.hasTimeData() && ! simState.isStatePurged()">',
+              'Elapsed time: {{ appState.formatTime(simState.timeData.elapsedTime)  }}',
             '</span>',
         ].join(''),
+        controller: function($scope, appState) {
+            $scope.appState = appState;
+        },
     };
 });
 
