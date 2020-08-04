@@ -317,9 +317,13 @@ def _generate_field_data(g_id, name, field_type, field_paths):
 
 
 def _generate_field_integrals(g_id, f_paths):
+    l_paths = [fp for fp in f_paths if fp.type == 'line']
+    if len(l_paths) == 0:
+        # return something or server.py will throw an exception
+        return PKDict(warning='No paths')
     try:
         res = PKDict()
-        for p in [fp for fp in f_paths if fp.type == 'line']:
+        for p in l_paths:
             res[p.name] = PKDict()
             p1 = _split_comma_field(p.begin, 'float')
             p2 = _split_comma_field(p.end, 'float')
