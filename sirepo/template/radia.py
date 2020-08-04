@@ -481,7 +481,6 @@ def _rotate_flat_vector_list(vectors, scipy_rotation):
 
 
 def _save_field_csv(field_type, vectors, scipy_rotation, path):
-    pkdp('SAVE FLD {}', field_type)
     # reserve first line for a header
     data = ['x,y,z,' + field_type + 'x,' + field_type + 'y,' + field_type + 'z']
     # mm -> m, rotate so the beam axis is aligned with z
