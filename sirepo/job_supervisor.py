@@ -784,7 +784,7 @@ class _ComputeJob(PKDict):
         op.task = asyncio.current_task()
         op.pkdel('run_callback')
         try:
-            with op.set_job_situation('Running'):
+            with op.set_job_situation('Entered __create._run'):
                 while True:
                     try:
                         r = await op.reply_get()
