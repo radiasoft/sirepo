@@ -1046,9 +1046,13 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                 var data = [$scope.CSV_HEADING];
                 $scope.linePaths().forEach(function (p) {
                     var row = [];
-                    row.push(p.name);
-                    row.push(...radiaService.stringToFloatArray(p.begin));
-                    row.push(...radiaService.stringToFloatArray(p.end));
+                    var begin = radiaService.stringToFloatArray(p.begin);
+                    var end = radiaService.stringToFloatArray(p.end);
+                    row.push(
+                        p.name,
+                        begin[0], begin[1], begin[2],
+                        end[0], end[1], end[2]
+                    );
                     $scope.INTEGRABLE_FIELD_TYPES.forEach(function (t) {
                         row = row.concat(
                             $scope.integrals[p.name][t]
