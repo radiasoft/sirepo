@@ -228,9 +228,10 @@ class _ComputeJob(PKDict):
     def elapsed_time(self):
         if not self.db.computeJobStart:
             return 0
-        if self._is_running_pending():
-            return int(sirepo.srtime.utc_now_as_float()) - self.db.computeJobStart
-        return self.db.dbUpdateTime - self.db.computeJobStart
+        return (
+            sirepo.srtime.utc_now_as_int() if self._is_running_pending()
+            else self.db.dbUpdateTime
+        ) - self.db.computeJobStart
 
     @classmethod
     def get_instance_or_class(cls, req):
@@ -307,7 +308,7 @@ class _ComputeJob(PKDict):
         f = None
         try:
             _too_old = (
-                int(sirepo.srtime.utc_now_as_float())
+                sirepo.srtime.utc_now_as_int()
                 - cfg.purge_non_premium_after_secs
             )
             for u, v in _get_uids_and_files():
@@ -385,7 +386,7 @@ class _ComputeJob(PKDict):
             computeJobSerial=0,
             computeJobStart=0,
             computeModel=data.computeModel,
-            dbUpdateTime=int(sirepo.srtime.utc_now_as_float()),
+            dbUpdateTime=sirepo.srtime.utc_now_as_int(),
             driverDetails=PKDict(),
             error=None,
             history=cls.__db_init_history(prev_db),
@@ -462,7 +463,7 @@ class _ComputeJob(PKDict):
         return self.__db_write()
 
     def __db_write(self):
-        self.db.dbUpdateTime = int(sirepo.srtime.utc_now_as_float())
+        self.db.dbUpdateTime = sirepo.srtime.utc_now_as_int()
         self.__db_write_file(self.db)
         return self
 
@@ -500,7 +501,7 @@ class _ComputeJob(PKDict):
         def _get_rows():
             def _get_queued_time(db):
                 m = i.db.computeJobStart if i.db.status == job.RUNNING \
-                    else int(sirepo.srtime.utc_now_as_float())
+                    else sirepo.srtime.utc_now_as_int()
                 return m - db.computeJobQueued
 
             r = []
@@ -670,7 +671,7 @@ class _ComputeJob(PKDict):
             jobCmd='compute',
             nextRequestSeconds=self.db.nextRequestSeconds,
         )
-        t = int(sirepo.srtime.utc_now_as_float())
+        t = sirepo.srtime.utc_now_as_int()
         s = self.db.status
         d = self.db
         self.__db_init(req, prev_db=d)
@@ -811,7 +812,7 @@ class _ComputeJob(PKDict):
                             self.db.lastUpdateTime = r.parallelStatus.lastUpdateTime
                         else:
                             # sequential jobs don't send this
-                            self.db.lastUpdateTime = int(sirepo.srtime.utc_now_as_float())
+                            self.db.lastUpdateTime = sirepo.srtime.utc_now_as_int()
                         #TODO(robnagler) will need final frame count
                         self.__db_write()
                         if r.state in job.EXIT_STATUSES:
