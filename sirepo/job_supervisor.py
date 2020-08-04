@@ -228,7 +228,7 @@ class _ComputeJob(PKDict):
     def elapsed_time(self):
         if not self.db.computeJobStart:
             return 0
-        elif self._is_running_pending():
+        if self._is_running_pending():
             return int(sirepo.srtime.utc_now_as_float()) - self.db.computeJobStart
         return self.db.dbUpdateTime - self.db.computeJobStart
 
