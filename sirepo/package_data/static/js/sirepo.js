@@ -168,7 +168,7 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
     self.upgradePlanLink = function() {
         return '<a href="' + SIREPO.APP_SCHEMA.constants.plansUrl +
             '" target="_blank">' +
-            SIREPO.APP_SCHEMA.constants.plans[self.upgradeToPlan] + '</a>';
+            SIREPO.APP_SCHEMA.constants.paymentPlans[self.upgradeToPlan] + '</a>';
     };
 
     return self;
