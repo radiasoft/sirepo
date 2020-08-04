@@ -61,7 +61,7 @@ def is_login_expired(res=None):
     """
     if not cfg.expiry_days:
         return False
-    n = int(srtime.utc_now_as_float())
+    n = srtime.utc_now_as_int()
     t = int(cookie.unchecked_get_value(_COOKIE_EXPIRY_TIMESTAMP, 0))
     if n <= t:
         # cached timestamp less than expiry

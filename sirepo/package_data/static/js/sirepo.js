@@ -475,13 +475,13 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
             return num;
         }
 
-        var d = format(unixTime / (3600*24));
+        var d = Math.floor(unixTime / (3600*24));
         var h = format(unixTime % (3600*24) / 3600);
         var m = format(unixTime % 3600 / 60);
         var s = format(unixTime % 60);
         var res = d > 0 ? d : '';
         if (res) {
-            res += d === 1 ? ' day': ' days';
+            res += d === 1 ? ' day ': ' days ';
         }
         return res + h + ':' + m + ':' + s;
     };
@@ -2189,8 +2189,9 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
 });
 
 
-SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, authState, frameCache) {
+SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, authState, frameCache, $interval) {
     var self = {};
+    const ELAPSED_TIME_INTERVAL_SECS = 1;
 
     self.initSimulationState = function(controller) {
         var state = {
@@ -2200,10 +2201,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             model: appState.appService.computeModel(controller.simAnalysisModel || null),
             percentComplete: 0,
             simulationQueueItem: null,
-            timeData: {
-                elapsedDays: null,
-                elapsedTime: null
-            }
+            timeData: {},
         };
 
         function clearSimulation() {
@@ -2213,10 +2211,13 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
 
         function handleStatus(data) {
             setSimulationStatus(data);
-            if (data.elapsedTime) {
-                state.timeData.elapsedDays = parseInt(data.elapsedTime / (60 * 60 * 24));
-                state.timeData.elapsedTime = new Date(1970, 0, 1);
-                state.timeData.elapsedTime.setSeconds(data.elapsedTime);
+            if (state.isStopped()) {
+                state.timeData.elapsedTime = Math.max(
+                    state.timeData.elapsedTime || 0, data.elapsedTime
+                );
+            }
+            else {
+                startElapsedTimeTimer(data.elapsedTime);
             }
             if (data.percentComplete) {
                 state.percentComplete = data.percentComplete;
@@ -2275,6 +2276,26 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
                 callback();
             }
         };
+
+        function startElapsedTimeTimer(elapsedTime) {
+            let d = state.timeData;
+            if (d.elapsedTimeTimer) {
+                return;
+            }
+            d.elapsedTime = elapsedTime;
+            d.elapsedTimeTimer = $interval(
+                function() {
+                    if (! state.simulationQueueItem || state.simulationQueueItem.qState == 'removing') {
+                        $interval.cancel(d.elapsedTimeTimer);
+                        d.elapsedTimeTimer = null;
+                        return
+                    }
+                    state.timeData.elapsedTime += ELAPSED_TIME_INTERVAL_SECS;
+                },
+                ELAPSED_TIME_INTERVAL_SECS * 1000,
+            )
+        }
+
 
         state.getAlert = function() {
             return simulationStatus().alert;
@@ -2358,8 +2379,6 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             }
             //TODO(robnagler) should be part of simulationStatus
             frameCache.setFrameCount(0);
-            state.timeData.elapsedTime = null;
-            state.timeData.elapsedDays = null;
             setSimulationStatus({state: 'pending'});
             state.simulationQueueItem = simulationQueue.addPersistentItem(
                 state.model,
