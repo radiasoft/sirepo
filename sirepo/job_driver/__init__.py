@@ -11,6 +11,7 @@ from sirepo import job
 import asyncio
 import importlib
 import pykern.pkio
+import re
 import sirepo.auth
 import sirepo.simulation_db
 import sirepo.srdb
@@ -210,6 +211,7 @@ class DriverBase(PKDict):
             env=(env or PKDict()).pksetdefault(
                 PYKERN_PKDEBUG_WANT_PID_TIME='1',
                 SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
+                SIREPO_PKCLI_JOB_AGENT_START_DELAY=self.get('_agent_start_delay', 0),
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.cfg.supervisor_uri.replace(
 #TODO(robnagler) figure out why we need ws (wss, implicit)
                     'http',
@@ -238,14 +240,23 @@ class DriverBase(PKDict):
             if self._agent_starting_timeout or self._websocket_ready.is_set():
                 return
             try:
+                t = self.cfg.agent_starting_secs
+                if pkconfig.channel_in_internal_test():
+                    x = op.msg.pkunchecked_nested_get('data.models.dog.favoriteTreat')
+                    if x:
+                        x = re.search(r'agent_start_delay=(\d+)', x)
+                        if x:
+                            self._agent_start_delay = int(x.group(1))
+                            t += self._agent_start_delay
+                            pkdlog('op={} agent_start_delay={}', op, self._agent_start_delay)
                 pkdlog('{} {} await _do_agent_start', self, op)
                 # All awaits must be after this. If a call hangs the timeout
                 # handler will cancel this task
                 self._agent_starting_timeout = tornado.ioloop.IOLoop.current().call_later(
-                    self.cfg.agent_starting_secs,
+                    t,
                     self._agent_starting_timeout_handler,
                 )
-                # POSIT: CancelledError isn't smothered by any of the below calls
+                # POSIT: Canceled errors aren't smothered by any of the below calls
                 await self.kill()
                 await self._do_agent_start(op)
             except Exception as e:

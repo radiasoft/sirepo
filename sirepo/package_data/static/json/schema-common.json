@@ -25,8 +25,12 @@
             "shortName": "JSPEC"
         },
         "madx": {
-            "longName": "MadX",
-            "shortName": "madx"
+            "longName": "MAD-X",
+            "shortName": "MAD-X"
+        },
+        "ml": {
+            "longName": "ML",
+            "shortName": "ML"
         },
         "opal": {
             "longName": "OPAL",
@@ -142,7 +146,13 @@
         "constants": {
             "clientCookie": "sirepo_cookie_js",
             "maxSimCopies": 100,
-            "oneDayMillis": 86400000
+            "oneDayMillis": 86400000,
+            "paymentPlans": {
+                "basic": "Sirepo Basic",
+                "enterprise": "Sirepo Enterprise",
+                "premium": "Sirepo Premium"
+            },
+            "plansUrl": "/en/plans.html"
         },
         "cookies": {
             "firstVisit": {
@@ -413,6 +423,10 @@
                 "js": ["sirepo.js"],
                 "css": ["sirepo.css"]
             }
+        },
+        "strings": {
+            "simulationState": "Simulation {state}",
+            "completionState": ": {frameCount} animation frames"
         },
         "view": {
             "simDoc": {

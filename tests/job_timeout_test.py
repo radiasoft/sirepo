@@ -41,7 +41,7 @@ def test_srw(fc):
             if r.state == 'canceled':
                 pkunit.pkeq(
                     int(_MAX_SECS_PARALLEL_PREMIUM),
-                    r.cancelledAfterSecs,
+                    r.canceledAfterSecs,
                 )
                 cancel = None
                 break

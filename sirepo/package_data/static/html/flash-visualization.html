@@ -13,7 +13,7 @@
         <div class="col-md-12">
           <div data-basic-editor-panel="" data-view-name="Driver"></div>
         </div>
-        <div class="col-md-12" data-ng-if="visualization.flashService.flashTypeIn(['CapLaserBELLA', 'CapLaser3D']) && visualization.simState.hasFrames()">
+        <div class="col-md-12" data-ng-if="visualization.flashService.isCapLaser() && visualization.simState.hasFrames()">
           <div data-report-panel="parameter" data-model-name="gridEvolutionAnimation"></div>
        </div>
       </div>

@@ -5,8 +5,10 @@ u"""simulation data operations
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
 from pykern import pkio
 from pykern.pkdebug import pkdp
+import re
 import sirepo.sim_data
 import sirepo.util
 
@@ -21,11 +23,15 @@ class SimData(sirepo.sim_data.SimDataBase):
     def fixup_old_data(cls, data):
         dm = data.models
         for m in list(dm.keys()):
-            n = m.replace(':', '').replace('magnetoHD', '')
+            n = m
+            for x in (':', ''), ('magnetoHD', ''), ('CapLaser$', 'CapLaserBELLA'):
+                n = re.sub(x[0], x[1], n)
             if m != n:
                 dm[n] = dm[m]
                 del dm[m]
         cls._init_models(dm)
+        if dm.simulation.flashType == 'CapLaser':
+            dm.simulation.flashType = 'CapLaserBELLA'
         if dm.simulation.flashType == 'CapLaserBELLA':
             dm.IO.update(
                 plot_var_5='magz',
@@ -51,6 +57,49 @@ class SimData(sirepo.sim_data.SimDataBase):
         if 'useHeatExchange' in m:
             m.useHeatexchange = m.useHeatExchange
             m.pkdel('useHeatExchange')
+        m = dm.gridEvolutionAnimation
+        if 'valueList' not in m:
+            m.valueList = PKDict()
+            for x in 'y1', 'y2', 'y3':
+                if dm.simulation.flashType in ('CapLaserBELLA', 'CapLaser3D'):
+                    m.valueList[x] = [
+                        'mass',
+                        'x-momentum',
+                        'y-momentum',
+                        'z-momentum',
+                        'E_total',
+                        'E_kinetic',
+                        'E_internal',
+                        'MagEnergy',
+                        'r001',
+                        'r002',
+                        'r003',
+                        'r004',
+                        'r005',
+                        'r006',
+                        'sumy',
+                        'ye',
+                    ]
+                elif dm.simulation.flashType == 'RTFlame':
+                    m.valueList[x] = [
+                        'mass',
+                        'x-momentum',
+                        'y-momentum',
+                        'z-momentum',
+                        'E_total',
+                        'E_kinetic',
+                        'E_turbulent',
+                        'E_internal',
+                        'Burned Mass',
+                        'dens_burning_ave',
+                        'db_ave samplevol',
+                        'Burning rate',
+                        'fspd to input_fspd ratio',
+                        'surface area flam=0.1',
+                        'surface area flam=0.5',
+                        'surface area flam=0.9',
+                    ]
+
 
     @classmethod
     def flash_exe_path(cls, data, unchecked=False):

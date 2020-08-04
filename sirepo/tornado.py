@@ -5,14 +5,14 @@ u"""Wrappers for Tornado
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern.pkdebug import pkdlog, pkdexc
-import asyncio
+import sirepo.util
 import tornado.queues
 
 
 class Queue(tornado.queues.Queue):
 
     async def get(self):
-        """Implements a cancellable Queue.get
+        """Implements a cancelable Queue.get
 
         See https://github.com/radiasoft/sirepo/issues/2375
         """
@@ -20,11 +20,11 @@ class Queue(tornado.queues.Queue):
         try:
             # this returns a future, which may get a result
             # before the await returns, that is, if the task
-            # is cancelled after another task has put something
+            # is canceled after another task has put something
             # on the queue and before this task finishes the await.
             x = super().get()
             return await x
-        except asyncio.CancelledError:
+        except sirepo.util.ASYNC_CANCELED_ERROR:
             if x:
                 try:
                     r = x.result()
@@ -40,7 +40,7 @@ class Queue(tornado.queues.Queue):
                         self.task_done()
                         self.put_nowait(r)
                     except Exception as e:
-                        # at this point, the task is cancelled so
+                        # at this point, the task is canceled so
                         # we can't raise another exception, but we
                         # should log that an error has occurred.
                         # It's an unlikely situation, but definitely a

@@ -117,7 +117,7 @@ def test_elegant_concurrent_sim_frame(fc):
             pkunit.pkeq('completed', f.state)
 
     def _t2(get_frames):
-            get_frames()
+        get_frames()
 
     d = fc.sr_sim_data(sim_name='Backtracking', sim_type='elegant' )
     s = sirepo.sim_data.get_class(fc.sr_sim_type)

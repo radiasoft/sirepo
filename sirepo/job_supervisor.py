@@ -41,7 +41,7 @@ _NEXT_REQUEST_SECONDS = None
 
 _HISTORY_FIELDS = frozenset((
     'alert',
-    'cancelledAfterSecs',
+    'canceledAfterSecs',
     'computeJobQueued',
     'computeJobSerial',
     'computeJobStart',
@@ -151,7 +151,7 @@ def init():
             parallel_premium=(3600*2, pkconfig.parse_seconds, 'maximum run-time for parallel job for premium user (except sbatch)'),
             sequential=(360, pkconfig.parse_seconds, 'maximum run-time for sequential job'),
         ),
-        purge_non_premium_after_days=(1000, int, 'how many days to wait before purging non-premium users simulations'),
+        purge_non_premium_after_secs=(0, pkconfig.parse_seconds, 'how long to wait before purging non-premium users simulations'),
         purge_non_premium_task_secs=(None, pkconfig.parse_seconds, 'when to clean up simulation runs of non-premium users (%H:%M:%S)'),
         sbatch_poll_secs=(15, int, 'how often to poll squeue and parallel status'),
     )
@@ -299,10 +299,10 @@ class _ComputeJob(PKDict):
         u = None
         f = None
         try:
-            _too_old = sirepo.srtime.utc_now_as_float() - (
-                cfg.purge_non_premium_after_days * 24 * 60 * 60
+            _too_old = (
+                int(sirepo.srtime.utc_now_as_float())
+                - cfg.purge_non_premium_after_secs
             )
-
             for u, v in _get_uids_and_files():
                 with sirepo.auth.set_user(u):
                     for f in v:
@@ -325,7 +325,7 @@ class _ComputeJob(PKDict):
                 o,
                 '_receive_' + req.content.api,
             )(req)
-        except asyncio.CancelledError:
+        except sirepo.util.ASYNC_CANCELED_ERROR:
             return PKDict(state=job.CANCELED)
         except Exception as e:
             pkdlog('{} error={} stack={}', req, e, pkdexc())
@@ -371,13 +371,14 @@ class _ComputeJob(PKDict):
     def __db_init_new(cls, data, prev_db=None):
         db = PKDict(
             alert=None,
-            cancelledAfterSecs=None,
+            canceledAfterSecs=None,
             computeJid=data.computeJid,
             computeJobHash=data.computeJobHash,
             computeJobQueued=0,
             computeJobSerial=0,
             computeJobStart=0,
             computeModel=data.computeModel,
+            dbUpdateTime=int(sirepo.srtime.utc_now_as_float()),
             driverDetails=PKDict(),
             error=None,
             history=cls.__db_init_history(prev_db),
@@ -422,22 +423,27 @@ class _ComputeJob(PKDict):
 
     @classmethod
     def __db_load(cls, compute_jid):
-        d = pkcollections.json_load_any(
-            cls.__db_file(compute_jid),
-        )
+        v = None
+        f = cls.__db_file(compute_jid)
+        d = pkcollections.json_load_any(f)
         for k in [
                 'alert',
-                'cancelledAfterSecs',
+                'canceledAfterSecs',
                 'isPremiumUser',
                 'jobStatusMessage',
                 'internalError',
         ]:
-            d.setdefault(k, None)
+            d.setdefault(k, v)
             for h in d.history:
-                h.setdefault(k, None)
+                h.setdefault(k, v)
         d.pksetdefault(
             computeModel=lambda: sirepo.sim_data.split_jid(compute_jid).compute_model,
+            dbUpdateTime=lambda: f.mtime(),
         )
+        if 'cancelledAfterSecs' in d:
+            d.canceledAfterSecs = d.pkdel('cancelledAfterSecs', default=v)
+            for h in d.history:
+               h.canceledAfterSecs = d.pkdel('cancelledAfterSecs', default=v)
         return d
 
     def __db_restore(self, db):
@@ -449,6 +455,7 @@ class _ComputeJob(PKDict):
         return self.__db_write()
 
     def __db_write(self):
+        self.db.dbUpdateTime = int(sirepo.srtime.utc_now_as_float())
         self.__db_write_file(self.db)
         return self
 
@@ -465,47 +472,38 @@ class _ComputeJob(PKDict):
 
         def _get_header():
             h = [
-                'App',
-                'Simulation id',
-                'Start (UTC)',
-                'Last update (UTC)',
-                'Elapsed',
-                'Status',
+                ['App', 'String'],
+                ['Simulation id', 'String'],
+                ['Start', 'DateTime'],
+                ['Last update', 'DateTime'],
+                ['Elapsed', 'Time'],
+                ['Status', 'String'],
             ]
             if uid:
-                h.insert(l, 'Name')
+                h.insert(l, ['Name', 'String'])
             else:
-                h.insert(l, 'User id')
+                h.insert(l, ['User id', 'String'])
                 h.extend([
-                    'Queued',
-                    'Driver details',
-                    'Premium user'
+                    ['Queued', 'Time'],
+                    ['Driver details', 'String'],
+                    ['Premium user', 'String'],
                 ])
             return h
-
-        def _strf_unix_time(unix_time):
-            return datetime.datetime.utcfromtimestamp(
-                int(unix_time),
-            ).strftime('%Y-%m-%d %H:%M:%S')
-
-        def _strf_seconds(seconds):
-            # formats to [D day[s], ][H]H:MM:SS[.UUUUUU]
-            return str(datetime.timedelta(seconds=seconds))
 
         def _get_rows():
             def _get_queued_time(db):
                 m = i.db.computeJobStart if i.db.status == job.RUNNING \
-                    else int(time.time())
-                return _strf_seconds(m - db.computeJobQueued)
+                    else int(sirepo.srtime.utc_now_as_float())
+                return m - db.computeJobQueued
 
             r = []
             for i in filter(_filter_jobs, cls.instances.values()):
                 d = [
                     i.db.simulationType,
                     i.db.simulationId,
-                    _strf_unix_time(i.db.computeJobStart),
-                    _strf_unix_time(i.db.lastUpdateTime),
-                    _strf_seconds(i.db.lastUpdateTime - i.db.computeJobStart),
+                    i.db.computeJobStart,
+                    i.db.lastUpdateTime,
+                    i.db.lastUpdateTime - i.db.computeJobStart,
                     i.db.get('jobStatusMessage', ''),
                 ]
                 if uid:
@@ -548,29 +546,29 @@ class _ComputeJob(PKDict):
         """Cancel a run and related ops
 
         Analysis ops that are for a parallel run (ex. sim frames) will not
-        be cancelled.
+        be canceled.
 
         Args:
             req (ServerReq): The cancel request
             timed_out_op (_Op, Optional): the op that was timed out, which
                 needs to be canceled
         Returns:
-            PKDict: Message with state=cancelled
+            PKDict: Message with state=canceled
         """
 
         def _ops_to_cancel():
             r = set(
                 o for o in self.ops
-                # Do not cancel sim frames. Allow them to come back for a cancelled run
+                # Do not cancel sim frames. Allow them to come back for a canceled run
                 if not (self.db.isParallel and o.opName == job.OP_ANALYSIS)
             )
             if timed_out_op in self.ops:
                 r.add(timed_out_op)
-            return list(r)
+            return r
 
         r = PKDict(state=job.CANCELED)
         if (
-            # a running simulation may be cancelled due to a
+            # a running simulation may be canceled due to a
             # downloadDataFile request timeout in another browser window (only the
             # computeJids must match between the two requests). This might be
             # a weird UX but it's important to do, because no op should take
@@ -584,20 +582,21 @@ class _ComputeJob(PKDict):
         ):
             # job is not relevant, but let the user know it isn't running
             return r
+        candidates = _ops_to_cancel()
         c = None
         o = []
-        # No matter what happens the job is cancelled
+        # No matter what happens the job is canceled
         self.__db_update(status=job.CANCELED)
-        self._cancelled_serial = self.db.computeJobSerial
+        self._canceled_serial = self.db.computeJobSerial
         try:
             for i in range(_MAX_RETRIES):
                 try:
-                    if _ops_to_cancel():
+                    if _ops_to_cancel().intersection(candidates):
                         #TODO(robnagler) cancel run_op, not just by jid, which is insufficient (hash)
                         if not c:
                             c = self._create_op(job.OP_CANCEL, req)
                         await c.prepare_send()
-                        o = _ops_to_cancel()
+                        o = _ops_to_cancel().intersection(candidates)
                     elif c:
                         c.destroy()
                         c = None
@@ -605,7 +604,7 @@ class _ComputeJob(PKDict):
                     for x in filter(lambda e: e != c, o):
                         x.destroy(cancel=True)
                     if timed_out_op:
-                        self.db.cancelledAfterSecs = timed_out_op.max_run_secs
+                        self.db.canceledAfterSecs = timed_out_op.max_run_secs
                     if c:
                         c.msg.opIdsToCancel = [x.opId for x in o]
                         c.send()
@@ -664,7 +663,7 @@ class _ComputeJob(PKDict):
             jobCmd='compute',
             nextRequestSeconds=self.db.nextRequestSeconds,
         )
-        t = int(time.time())
+        t = int(sirepo.srtime.utc_now_as_float())
         s = self.db.status
         d = self.db
         self.__db_init(req, prev_db=d)
@@ -700,9 +699,9 @@ class _ComputeJob(PKDict):
                     pass
             else:
                 raise AssertionError('too many retries {}'.format(req))
-        except asyncio.CancelledError:
-            if self.pkdel('_cancelled_serial') == c:
-                # We were cancelled due to api_runCancel.
+        except sirepo.util.ASYNC_CANCELED_ERROR:
+            if self.pkdel('_canceled_serial') == c:
+                # We were canceled due to api_runCancel.
                 # api_runCancel destroyed the op and updated the db
                 raise
             # There was a timeout getting the run started. Set the
@@ -805,12 +804,12 @@ class _ComputeJob(PKDict):
                             self.db.lastUpdateTime = r.parallelStatus.lastUpdateTime
                         else:
                             # sequential jobs don't send this
-                            self.db.lastUpdateTime = int(time.time())
+                            self.db.lastUpdateTime = int(sirepo.srtime.utc_now_as_float())
                         #TODO(robnagler) will need final frame count
                         self.__db_write()
                         if r.state in job.EXIT_STATUSES:
                             break
-                    except asyncio.CancelledError:
+                    except sirepo.util.ASYNC_CANCELED_ERROR:
                         return
         except Exception as e:
             pkdlog('error={} stack={}', e, pkdexc())
@@ -836,6 +835,7 @@ class _ComputeJob(PKDict):
                     if not r.get('runDirNotFound'):
                         return r
                     self.__db_init(req, prev_db=self.db)
+                    self.__db_write()
                     assert self.db.status == job.MISSING, \
                         'expecting missing status={}'.format(self.db.status)
                     return PKDict(state=self.db.status)
@@ -849,8 +849,8 @@ class _ComputeJob(PKDict):
     def _status_reply(self, req):
         def res(**kwargs):
             r = PKDict(**kwargs)
-            if self.db.cancelledAfterSecs is not None:
-                r.cancelledAfterSecs = self.db.cancelledAfterSecs
+            if self.db.canceledAfterSecs is not None:
+                r.canceledAfterSecs = self.db.canceledAfterSecs
             if self.db.error:
                 r.error = self.db.error
             if self.db.alert:
@@ -882,7 +882,10 @@ class _ComputeJob(PKDict):
         ):
             return PKDict(state=job.MISSING, reason='computeJobSerial-mismatch')
         if self.db.isParallel or self.db.status != job.COMPLETED:
-            return res(state=self.db.status)
+            return res(
+                state=self.db.status,
+                dbUpdateTime=self.db.dbUpdateTime,
+            )
         return None
 
 
@@ -936,7 +939,7 @@ class _Op(PKDict):
         await self.driver.prepare_send(self)
 
     async def reply_get(self):
-        # If we get an exception (cancelled), task is not done.
+        # If we get an exception (canceled), task is not done.
         # Had to look at the implementation of Queue to see that
         # task_done should only be called if get actually removes
         # the item from the queue.

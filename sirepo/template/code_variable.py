@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template import lattice
+from sirepo.template import template_common
 import ast
 import math
 import re
@@ -32,6 +33,8 @@ class CodeVar(object):
         self.case_insensitive = case_insensitive
 
     def compute_cache(self, data, schema):
+        if 'models' not in data:
+            return None
         cache = lattice.LatticeUtil(data, schema).iterate_models(CodeVarIterator(self)).result
         for name, value in self.variables.items():
             v, err = self.eval_var(value)
@@ -43,6 +46,7 @@ class CodeVar(object):
                 else:
                     v = float(v)
                 cache[name] = v
+        data.models.rpnCache = cache
         return cache
 
     def eval_var(self, expr):
@@ -62,6 +66,29 @@ class CodeVar(object):
         assert not err, err
         return float(v)
 
+    def get_application_data(self, args, schema, ignore_array_values=False):
+        from sirepo import simulation_db
+        if args.method == 'rpn_value':
+            if ignore_array_values and re.search(r'^\{.*\}$', args.value):
+                # accept array of values enclosed in curly braces
+                args.result = ''
+                return True
+            v, err = self.eval_var(args.value)
+            if err:
+                args.error = err
+            else:
+                args.result = v
+            return True
+        if args.method == 'recompute_rpn_cache_values':
+            self.recompute_cache(args.cache)
+            return True
+        if args.method == 'validate_rpn_delete':
+            model_data = simulation_db.read_json(
+                simulation_db.sim_data_file(args.simulationType, args.simulationId))
+            args.error = self.validate_var_delete(args.name, model_data, schema)
+            return True
+        return False
+
     def get_expr_dependencies(self, expr, depends=None, visited=None):
         # expr must be in postfix format
         if depends is None:
@@ -79,6 +106,16 @@ class CodeVar(object):
                     self.get_expr_dependencies(self.postfix_variables[v], depends, visited)
                     depends.append(v)
         return depends
+
+    def generate_variables(self, variable_formatter, postfix=False):
+        res = ''
+        visited = PKDict()
+        variables = self.postfix_variables if postfix else self.variables
+        for name in sorted(variables):
+            for dependency in self.get_expr_dependencies(self.postfix_variables[name]):
+                res += variable_formatter(dependency, variables, visited)
+            res += variable_formatter(name, variables, visited)
+        return res
 
     def recompute_cache(self, cache):
         for k in cache:
@@ -115,7 +152,7 @@ class CodeVar(object):
     def is_var_value(cls, value):
         if (value):
             # is it a single value in numeric format?
-            if re.search(r'^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$', str(value)):
+            if template_common.NUMERIC_RE.search(str(value)):
                 return False
             return True
         return False

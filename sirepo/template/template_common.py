@@ -24,12 +24,13 @@ import subprocess
 import types
 
 
-ANIMATION_ARGS_VERSION_RE = re.compile(r'v(\d+)$')
-
 DEFAULT_INTENSITY_DISTANCE = 20
 
 #: Input json file
 INPUT_BASE_NAME = 'in'
+
+#: Test if value is numeric text
+NUMERIC_RE = re.compile(r'^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$')
 
 #: Output json file
 OUTPUT_BASE_NAME = 'out'

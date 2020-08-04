@@ -219,9 +219,12 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
 
 SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, panelState, persistentSimulation, rs4piService, $scope) {
     var self = this;
+    self.simScope = $scope;
+    self.simAnalysisModel = 'doseCalculation';
+
     self.panelState = panelState;
 
-    function handleStatus(data) {
+    self.simHandleStatus = function (data) {
         if (data.report == 'doseCalculation' && data.state == 'completed') {
             if (data.dicomDose && ! appState.deepEquals(appState.models.dicomDose, data.dicomDose)) {
                 appState.models.dicomDose = data.dicomDose;
@@ -229,7 +232,7 @@ SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, pan
             }
             rs4piService.updateDicomAndDoseFrame(true);
         }
-    }
+    };
 
     self.showDosePanels = function() {
         return rs4piService.showDosePanels;
@@ -246,11 +249,7 @@ SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, pan
         rs4piService.loadROIPoints();
     });
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        rs4piService.computeModel('doseCalculation'),
-        handleStatus
-    );
+    self.simState = persistentSimulation.initSimulationState(self);
 });
 
 SIREPO.app.controller('Rs4piSourceController', function (appState, frameCache, rs4piService, $rootScope, $scope) {
@@ -335,19 +334,19 @@ SIREPO.app.directive('dicomFrames', function(frameCache, persistentSimulation, r
             waitForDose: '@',
         },
         controller: function($scope) {
-            function handleStatus(data) {
+            var self = this;
+            self.simScope = $scope;
+            self.simAnalysisModel = $scope.model;
+
+            self.simHandleStatus = function(data) {
                 if ($scope.model == 'dicomAnimation' && data.state == 'missing' && data.percentComplete === 0) {
                     $scope.simState.runSimulation();
                     return;
                 }
                 rs4piService.updateDicomAndDoseFrame($scope.waitForDose);
-            }
+            };
 
-            $scope.simState = persistentSimulation.initSimulationState(
-                $scope,
-                rs4piService.computeModel($scope.model),
-                handleStatus
-            );
+            $scope.simState = persistentSimulation.initSimulationState(self);
         },
     };
 });

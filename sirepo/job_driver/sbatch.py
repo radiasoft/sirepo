@@ -19,6 +19,7 @@ import datetime
 import errno
 import sirepo.simulation_db
 import sirepo.srdb
+import sirepo.util
 import tornado.gen
 import tornado.ioloop
 
@@ -169,7 +170,7 @@ disown
 
                 try:
                     await get_agent_log(c)
-                except asyncio.CancelledError:
+                except sirepo.util.ASYNC_CANCELED_ERROR:
                     raise
                 except Exception as e:
                     pkdlog(

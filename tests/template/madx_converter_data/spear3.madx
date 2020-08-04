@@ -65,7 +65,6 @@ RING: LINE=(MMM,BL13,CEL,BL12,CEL,BL11,CEL,CEL,BL4,CEL,BL5,CEL,BL6,CEL,-IRSE,IRN
 
 
 beam;
-use, sequence=RING;
-twiss, file="twiss.file.tfs";
-
+use,sequence=RING;
+twiss,file="twiss.file.tfs";
 

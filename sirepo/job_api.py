@@ -25,8 +25,6 @@ import sirepo.sim_data
 import sirepo.util
 
 
-cfg = None
-
 #: how many call frames to search backwards to find the api_.* caller
 _MAX_FRAME_SEARCH_DEPTH = 6
 
@@ -174,15 +172,10 @@ def api_sbatchLogin():
 
 
 def init_apis(*args, **kwargs):
-    global cfg
 #TODO(robnagler) if we recover connections with agents and running jobs remove this
     pykern.pkio.unchecked_remove(sirepo.job.LIB_FILE_ROOT, sirepo.job.DATA_FILE_ROOT)
     pykern.pkio.mkdir_parent(sirepo.job.LIB_FILE_ROOT)
     pykern.pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
-
-    cfg = pykern.pkconfig.init(
-        supervisor_uri=sirepo.job.DEFAULT_SUPERVISOR_URI_DECL,
-    )
 
 
 def _request(**kwargs):
@@ -288,3 +281,7 @@ def _validate_and_add_sbatch_fields(request_content, compute_model):
         assert m[f] > 0, f'{f}={m[f]} must be greater than 0'
         c[f] = m[f]
     return request_content
+
+cfg = pykern.pkconfig.init(
+    supervisor_uri=sirepo.job.DEFAULT_SUPERVISOR_URI_DECL,
+)

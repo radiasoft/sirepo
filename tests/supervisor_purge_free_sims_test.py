@@ -17,7 +17,7 @@ _PURGE_FREE_AFTER_DAYS = 1
 def setup_module(module):
     os.environ.update(
         SIREPO_JOB_SUPERVISOR_JOB_CACHE_SECS=str(_CACHE_AND_SIM_PURGE_PERIOD),
-        SIREPO_JOB_SUPERVISOR_PURGE_NON_PREMIUM_AFTER_DAYS=str(_PURGE_FREE_AFTER_DAYS),
+        SIREPO_JOB_SUPERVISOR_PURGE_NON_PREMIUM_AFTER_SECS=str(_PURGE_FREE_AFTER_DAYS) + 'd',
         SIREPO_JOB_SUPERVISOR_PURGE_NON_PREMIUM_TASK_SECS='00:00:0{}'.format(_CACHE_AND_SIM_PURGE_PERIOD),
     )
 
@@ -33,7 +33,7 @@ def test_myapp_free_user_sim_purged(auth_fc):
         pkunit.pkeq(should_exist, len(f), 'incorrect file count')
 
     def _make_user_premium(uid):
-        sirepo.auth_db.UserRole.add_roles(uid, [sirepo.auth.ROLE_PREMIUM])
+        sirepo.auth_db.UserRole.add_roles(uid, [sirepo.auth.ROLE_PAYMENT_PLAN_PREMIUM])
         r = sirepo.auth_db.UserRole.search_all_for_column('uid')
         pkunit.pkeq(r, [uid], 'expecting one premium user with same id')
 

@@ -79,9 +79,6 @@ _REL_LIB_DIR = '../' + _LIB_DIR
 #: Older than any other version
 _OLDEST_VERSION = '20140101.000001'
 
-#: Matches cancelation errors in run_log: KeyboardInterrupt probably only happens in dev
-_RUN_LOG_CANCEL_RE = re.compile(r'^KeyboardInterrupt$', flags=re.MULTILINE)
-
 #: Absolute path of rsmanifest file
 _RSMANIFEST_PATH = pkio.py_path('/rsmanifest' + JSON_SUFFIX)
 
@@ -277,7 +274,17 @@ def get_schema(sim_type):
     _merge_dicts(schema.common.dynamicFiles, schema.dynamicFiles)
     schema.dynamicModules = _files_in_schema(schema.dynamicFiles)
 
-    for item in ['appModes', 'constants', 'cookies', 'enum', 'notifications', 'localRoutes', 'model', 'view']:
+    for item in [
+            'appModes',
+            'constants',
+            'cookies',
+            'enum',
+            'notifications',
+            'localRoutes',
+            'model',
+            'strings',
+            'view',
+    ]:
         if item not in schema:
             schema[item] = PKDict()
         _merge_dicts(schema.common[item], schema[item])

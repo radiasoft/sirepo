@@ -133,9 +133,11 @@ SIREPO.app.directive('appHeader', function(appState) {
 
 SIREPO.app.controller('MLController', function (appState, frameCache, persistentSimulation, rcsconService, utilities, $scope) {
     var self = this;
+    self.simScope = $scope;
+    self.simAnalysisModel = 'fitAnimation';
     var errorMessage = '';
 
-    function handleStatus(data) {
+    self.simHandleStatus = function (data) {
         errorMessage = data.error;
         self.reports = null;
         if ('percentComplete' in data && ! data.error) {
@@ -144,7 +146,7 @@ SIREPO.app.controller('MLController', function (appState, frameCache, persistent
             }
         }
         frameCache.setFrameCount(data.frameCount || 0);
-    }
+    };
 
     self.display = function() {
         if (utilities.isFullscreen()) {
@@ -177,10 +179,7 @@ SIREPO.app.controller('MLController', function (appState, frameCache, persistent
         return frameCache.hasFrames();
     };
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        rcsconService.computeModel('fitAnimation'),
-        handleStatus);
+    self.simState = persistentSimulation.initSimulationState(self);
 
     self.simState.errorMessage = function() {
         return errorMessage;
@@ -503,12 +502,12 @@ SIREPO.app.directive('partitionSimState', function(appState, frameCache, panelSt
             '</div>',
         ].join(''),
         controller: function($scope) {
+            var self = this;
+            self.simScope = $scope;
+            self.simAnalysisModel = 'partitionAnimation';
             var firstVisit = true;
 
-            function handleStatus(data) {
-                if (! appState.isLoaded()) {
-                    return;
-                }
+            self.simHandleStatus = function (data) {
                 $scope.statusText = '';
                 var reports = null;
                 if (data.error) {
@@ -535,13 +534,9 @@ SIREPO.app.directive('partitionSimState', function(appState, frameCache, panelSt
                 }
                 $scope.controller.reports = reports;
                 frameCache.setFrameCount(data.frameCount || 0);
-            }
+            };
 
-            $scope.simState = persistentSimulation.initSimulationState(
-                $scope,
-                rcsconService.computeModel('partitionAnimation'),
-                handleStatus
-            );
+            $scope.simState = persistentSimulation.initSimulationState(self);
 
             appState.whenModelsLoaded($scope, function() {
                 $scope.$on('partition.changed', $scope.simState.runSimulation);
@@ -588,6 +583,8 @@ SIREPO.app.controller('PartitionController', function (appState, panelState, $sc
 
 SIREPO.app.controller('VisualizationController', function (appState, persistentSimulation, requestSender, rcsconService, $scope) {
     var self = this;
+    self.simScope = $scope;
+    self.simAnalysisModel = 'elegantAnimation';
     self.appState = appState;
 
     function computeColumnCount(callback) {
@@ -626,18 +623,18 @@ SIREPO.app.controller('VisualizationController', function (appState, persistentS
         }
     }
 
-    function handleStatus(data) {
-        if (appState.isLoaded()
-            && appState.applicationState().dataSource.source == 'elegant') {
-            if ('inputsCount' in data) {
-                updateFiles(data);
-            }
-            else {
-                appState.models.files.columnCount = 0;
-            }
-            appState.saveChanges('files');
+    self.simHandleStatus = function (data) {
+        if (appState.applicationState().dataSource.source !== 'elegant') {
+            return;
         }
-    }
+        if ('inputsCount' in data) {
+            updateFiles(data);
+        }
+        else {
+            appState.models.files.columnCount = 0;
+        }
+        appState.saveChanges('files');
+    };
 
     function processColumnCount() {
         computeColumnCount(updateFiles);
@@ -663,10 +660,7 @@ SIREPO.app.controller('VisualizationController', function (appState, persistentS
         appState.saveChanges('files');
     }
 
-    self.simState = persistentSimulation.initSimulationState(
-        $scope,
-        rcsconService.computeModel('elegantAnimation'),
-        handleStatus);
+    self.simState = persistentSimulation.initSimulationState(self);
 
     appState.whenModelsLoaded($scope, function() {
         $scope.$on('files.changed', createReports);
