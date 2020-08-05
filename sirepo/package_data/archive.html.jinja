@@ -34,6 +34,59 @@ margin-bottom: 10px;
 width: 30em;
 margin-right: 5px;
 }
+.btn {
+display: inline-block;
+padding: 6px 12px;
+margin-bottom: 2px;
+font-size: 14px;
+font-weight: 400;
+line-height: 1.42857143;
+text-align: center;
+white-space: nowrap;
+vertical-align: middle;
+-ms-touch-action: manipulation;
+touch-action: manipulation;
+cursor: pointer;
+-webkit-user-select: none;
+-moz-user-select: none;
+-ms-user-select: none;
+user-select: none;
+background-image: none;
+border: 1px solid transparent;
+border-radius: 4px;
+}
+.btn-primary {
+color: #fff;
+background-color: #337ab7;
+border-color: #2e6da4;
+}
+.btn-primary:hover {
+color: #fff;
+background-color: #286090;
+border-color: #204d74;
+}
+.form-control {
+height: 30px;
+padding: 5px 10px;
+font-size: 12px;
+line-height: 1.5;
+border-radius: 3px;
+display: inline-block;
+height: 34px;
+padding: 6px 12px;
+font-size: 14px;
+line-height: 1.42857143;
+color: #555;
+background-color: #fff;
+background-image: none;
+border: 1px solid #ccc;
+border-radius: 4px;
+-webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+-webkit-transition: border-color ease-in-out .15s,-webkit-box-shadow ease-in-out .15s;
+-o-transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+}
 </style>
 <script type="text/javascript">
 var SIREPO=(function() {
@@ -51,7 +104,7 @@ function validateServerName(serverName) {
         serverName = 'https://' + (m[1] || '') + 'sirepo.com';
     }
     if (serverName == 'https://sirepo.com') {
-        serverName = 'https://beta.sirepo.com';
+        serverName = 'https://www.sirepo.com';
     }
     return serverName;
 }
@@ -71,8 +124,8 @@ return {
 <span>{{ appLongName | e }} - {{ productLongName | e }}</div>
 <div class="sr_ses_main"><span class="sr_ses_prompt">Self-Extracting Simulation: {{ data.models.simulation.name | e }}</span>
 <form onsubmit="SIREPO.onSubmit(this)" action="" method="post">
-<input class="sr_ses_server" name="server" type="text" value="{{ server }}"/>
-<button type="submit">Send to Server</button>
+<input class="form-control sr_ses_server" name="server" type="text" value="{{ server }}"/>
+<button class="btn btn-primary" type="submit">Send to Server</button>
 <input name="zip" type="hidden" value="{{ zip }}" />
 </form>
 </div>
