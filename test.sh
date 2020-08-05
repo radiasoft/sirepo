@@ -33,7 +33,7 @@ test_main() {
     test_no_h5py
     test_jshint
     if [[ -x ./node_modules/karma/bin/karma ]]; then
-       ./node_modules/karma/bin/karma start etc/karma-conf.js
+        npm run test
     fi
     pykern test
     if [[ -n ${PKSETUP_PYPI_PASSWORD:+hide-secret} ]]; then
