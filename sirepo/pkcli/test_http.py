@@ -443,6 +443,7 @@ class _Sim(PKDict):
             '/run-cancel',
             PKDict(
                 report=self._report,
+                models=self._data.models,
                 simulationId=self._sid,
                 simulationType=self._app.sim_type,
             ),
