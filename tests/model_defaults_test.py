@@ -25,7 +25,6 @@ def test_srw_model_defaults():
         notes='',
         plotAxisY2='None',
         timeMomentEstimation='auto',
-        magneticField='2',
         initialTimeMoment=0.0,
         numberOfPoints=10000,
         plotAxisY='X',

@@ -15,7 +15,7 @@ SIREPO.INFO_INDEX_MAX = 5;
 SIREPO.ENUM_INDEX_VALUE = 0;
 SIREPO.ENUM_INDEX_LABEL = 1;
 
-SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
+SIREPO.app.directive('advancedEditorPane', function(appState, panelState, $compile) {
     return {
         restrict: 'A',
         scope: {
@@ -49,6 +49,12 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
             var viewInfo = appState.viewInfo($scope.viewName);
             var i;
 
+            function camelToKebabCase(v) {
+                return v.replace(/[\w]([A-Z])/g, function(m) {
+                    return m[0] + "-" + m[1];
+                }).toLowerCase();
+            }
+
             function tabSelectedEvent() {
                 appState.whenModelsLoaded($scope, function() {
                     panelState.waitForUI(function() {
@@ -57,21 +63,26 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
                 });
             }
 
+            $scope.fieldDef = $scope.fieldDef || 'advanced';
             $scope.form = angular.element($($element).find('form').eq(0));
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.description = viewInfo.description;
-            $scope.advancedFields = viewInfo[$scope.fieldDef || 'advanced'];
+            $scope.advancedFields = viewInfo[$scope.fieldDef];
             if (! $scope.advancedFields) {
-                throw new Error($scope.modelName + ' view is missing ' + ($scope.fieldDef || 'advanced') + ' fields');
+                throw new Error($scope.modelName + ' view is missing ' + $scope.fieldDef + ' fields');
             }
+            // create a View component for app business logic
+            $element.append($compile(
+                '<div data-' + camelToKebabCase($scope.viewName)
+                    + '-view="{{ fieldDef }}"'
+                    + ' data-model-name="modelName" data-model-data="modelData">'
+                    + '</div>')($scope));
+
             $scope.isColumnField = function(f) {
-                return typeof(f) == 'string' ? false : true;
+                return typeof(f) != 'string';
             };
             $scope.isField = function(f) {
-                if ($scope.isColumnField(f) || $scope.isLabel(f)) {
-                    return false;
-                }
-                return true;
+                return !($scope.isColumnField(f) || $scope.isLabel(f));
             };
             $scope.isLabel = function(f) {
                 if ($scope.isColumnField(f)) {
@@ -88,7 +99,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
                 }
                 $scope.activePage = page;
                 page.isActive = true;
-                //TODO(pjm): deprecated parentController processing replaced by sr-tabSelected event
+                //TODO(pjm): DEPRECATED parentController processing replaced by viewLogic
                 if (appState.isLoaded() && $scope.parentController && $scope.parentController.handleModalShown) {
                     // invoke parentController after UI has been constructed
                     panelState.waitForUI(function() {
@@ -438,7 +449,7 @@ SIREPO.app.directive('copyConfirmation', function(appState, fileManager) {
     };
 });
 
-SIREPO.app.directive('labelWithTooltip', function(mathRendering) {
+SIREPO.app.directive('labelWithTooltip', function(appState, mathRendering, $interpolate) {
     return {
         restrict: 'A',
         scope: {
@@ -452,7 +463,13 @@ SIREPO.app.directive('labelWithTooltip', function(mathRendering) {
             if (scope.tooltip) {
                 $(element).find('.sr-info-pointer').tooltip({
                     title: function() {
-                        return mathRendering.mathAsHTML(scope.tooltip);
+                        var res = scope.tooltip;
+                        // evaluate angular text first if {{ }} is present
+                        if (/\{\{.*?\}\}/.test(res)) {
+                            scope.appState = appState;
+                            res = $interpolate(res)(scope);
+                        }
+                        return mathRendering.mathAsHTML(res);
                     },
                     html: true,
                     placement: 'bottom',

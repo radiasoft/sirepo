@@ -1,4 +1,4 @@
-<div class="container-fluid">
+<div class="container-fluid" data-ng-if="beamline.appState.isLoaded()">
   <div data-mobile-app-title="nav"></div>
   <div data-beamline-toolbar="beamline.toolbarItemNames" data-ng-show="beamline.isEditable()" data-parent-controller="beamline"></div>
   <div data-beamline-builder="beamline" data-beamline-models="beamline.beamlineModels" data-show-active-watchpoints="beamline.isActiveTab('multi')" data-active-watchpoint-title="Watchpoint for Partially Coherent Report">
@@ -7,7 +7,7 @@
   </div>
 </div> <!-- /container -->
 
-<div class="container-fluid">
+<div class="container-fluid" data-ng-if="beamline.appState.isLoaded()">
   <div class="row">
     <div class="col-sm-12">
       <ul class="nav nav-tabs">
@@ -41,9 +41,9 @@
 </div>
 
 <!-- modal dialogs -->
-<div data-modal-editor="" view-name="initialIntensityReport" data-parent-controller="beamline"></div>
-<div data-modal-editor="" view-name="multiElectronAnimation" data-parent-controller="beamline"></div>
-<div data-watchpoint-modal-editor="" data-ng-repeat="item in beamline.beamlineService.getWatchItems() track by item.id" data-parent-controller="beamline" data-item-id="item.id" data-watchpoint-handler=""></div>
+<br>
+
+<div data-watchpoint-modal-editor="" data-ng-repeat="item in beamline.beamlineService.getWatchItems() track by item.id" data-item-id="item.id"></div>
 
 <div data-propagation-parameters-modal="" data-propagations="beamline.propagations" data-post-propagation="beamline.postPropagation"></div>
 

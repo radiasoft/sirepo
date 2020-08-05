@@ -8,6 +8,85 @@ SIREPO.http_timeout = 0;
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
+SIREPO.beamlineItemLogic = function(name, init) {
+    SIREPO.app.directive(name, function(beamlineService) {
+
+        function watchFields(scope, fieldInfo, filterOldUndefined) {
+            for (var idx = 0; idx < fieldInfo.length; idx += 2) {
+                var fields = fieldInfo[idx];
+                var callback = fieldInfo[idx + 1];
+                beamlineService.watchBeamlineField(
+                    scope, scope.modelName, fields, callback, filterOldUndefined);
+            }
+        }
+
+        function whenItemSelected($scope, itemType, callback) {
+            // parent's scope is used for cases where directive is a child of the editor
+            $scope.$parent.$on('sr-tabSelected', function(event, modelName) {
+                if (itemType == modelName && beamlineService.isActiveItem(itemType)) {
+                    callback(beamlineService.activeItem);
+                }
+            });
+        }
+
+        return {
+            restrict: 'A',
+            scope: {
+                fieldDef: '@' + name,
+                modelName: '<',
+                modelData: '<',
+            },
+            controller: init,
+            link: function(scope) {
+                if (scope.whenSelected) {
+                    whenItemSelected(scope, scope.modelName, scope.whenSelected);
+                }
+                if (scope.watchFields) {
+                    watchFields(scope, scope.watchFields);
+                }
+                if (scope.watchFieldsNoInit) {
+                    watchFields(scope, scope.watchFieldsNoInit, true);
+                }
+            },
+        };
+    });
+};
+
+SIREPO.viewLogic = function(name, init) {
+    SIREPO.app.directive(name, function(appState) {
+        return {
+            restrict: 'A',
+            scope: {
+                fieldDef: '@' + name,
+                modelName: '<',
+                modelData: '<',
+            },
+            controller: init,
+            link: function(scope) {
+                if (scope.whenSelected) {
+                    scope.$parent.$on('sr-tabSelected', function(event, modelName, modelKey) {
+                        if (scope.modelData) {
+                            if (scope.modelData.modelKey == modelKey) {
+                                scope.whenSelected();
+                            }
+                        }
+                        else if (scope.modelName == modelName) {
+                            scope.whenSelected();
+                        }
+                    });
+                }
+                if (scope.watchFields) {
+                    for (var idx = 0; idx < scope.watchFields.length; idx += 2) {
+                        var fields = scope.watchFields[idx];
+                        var callback = scope.watchFields[idx + 1];
+                        appState.watchModelFields(scope, fields, callback);
+                    }
+                }
+            },
+        };
+    });
+};
+
 // start the angular app after the app's json schema file has been loaded
 angular.element(document).ready(function() {
 
@@ -1181,6 +1260,25 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         self.ngViewScope = event.targetScope;
     });
 
+    function applyToFields(method, modelName, fieldInfo) {
+        var enableFun = function(f) {
+            self[method](modelName, f, true);
+        };
+        var disableFun = function(f) {
+            self[method](modelName, f, false);
+        };
+        for (var idx = 0; idx < fieldInfo.length; idx += 2) {
+            var field = fieldInfo[idx];
+            var isEnabled = fieldInfo[idx + 1];
+            if (angular.isArray(field)) {
+                field.forEach(isEnabled ? enableFun : disableFun);
+            }
+            else {
+                self[method](modelName, field, isEnabled);
+            }
+        }
+    }
+
     function clearPanel(name) {
         delete panels[name];
         delete pendingRequests[name];
@@ -1293,6 +1391,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         $(fc).find('input.form-control').prop('readonly', ! isEnabled);
         $(fc).find('select.form-control').prop('disabled', ! isEnabled);
         $(fc).find('.sr-enum-button').prop('disabled', ! isEnabled);
+    };
+
+    self.enableFields = function(model, fieldInfo) {
+        applyToFields('enableField', model, fieldInfo);
     };
 
     // lazy creation/storage of field delegates
@@ -1454,6 +1556,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         });
     };
 
+    self.showFields = function(modelName, fieldInfo) {
+        applyToFields('showField', modelName, fieldInfo);
+    };
+
     //TODO(pjm): should be renamed, showColumnEditor()
     self.showRow = function(model, field, isShown) {
         //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
@@ -1477,6 +1583,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         else {
             if (! template) {
                 var name = modelKey.toLowerCase().replace('_', '');
+                //TODO(pjm): DEPRECATED use viewLogic instead
                 template = '<div data-modal-editor="" data-view-name="' + modelKey + '" data-sr-' + name + '-editor=""' + '></div>';
             }
             // add the modal to the ng-view element so it will get removed from the page when the location changes

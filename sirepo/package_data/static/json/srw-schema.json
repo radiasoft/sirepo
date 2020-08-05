@@ -67,7 +67,13 @@
             ["5", "Re(E): Real part of Single-Electron Electric Field"],
             ["6", "Im(E): Imaginary part of Single-Electron Electric Field"]
         ],
-        "computeParametersFrom": [
+        "CharacteristicSimple": [
+            ["0", "Intensity"],
+            ["4", "Radiation Phase"],
+            ["5", "Re(E): Real part of Electric Field"],
+            ["6", "Im(E): Imaginary part of Electric Field"]
+        ],
+        "ComputeParametersFrom": [
             ["1", "Cff"],
             ["2", "Grazing Angle"],
             ["3", "Manually"]
@@ -375,14 +381,14 @@
     "localRoutes": {
         "source": {
             "config": {
-                "controller": "SRWSourceController as source",
+                "controller": "SourceController as source",
                 "templateUrl": "/static/html/srw-source.html"
             }
         },
         "beamline": {
             "route": "/beamline/:simulationId",
             "config": {
-                "controller": "SRWBeamlineController as beamline",
+                "controller": "BeamlineController as beamline",
                 "templateUrl": "/static/html/srw-beamline.html",
                 "reloadOnSearch": true
             }
@@ -448,8 +454,8 @@
             "focalPlane": ["Focal Plane", "FocalPlane", "2"],
             "material": ["Material of the CRL", "CRLMaterial", "Be"],
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod", "server"],
-            "refractiveIndex": ["Refractive Index Decrement of Material", "Float", 4.20756805e-06, "Tooltip"],
-            "attenuationLength": ["Attenuation Length [m]", "Float", 7.31294e-03, "Tooltip"],
+            "refractiveIndex": ["Refractive Index Decrement", "Float", 4.20756805e-06, "The photon energy is: {{ appState.models.simulation.photonEnergy }} eV"],
+            "attenuationLength": ["Attenuation Length [m]", "Float", 7.31294e-03, "The photon energy is: {{ appState.models.simulation.photonEnergy }} eV"],
             "focalDistance": ["CRL Focal Distance [m]", "Float", 0, "The value is for information purposes only and is valid for simple optical layout! For complicated beamlines (e.g., with SSA) the value may have some errors since it is calculated from the position of the source."],
             "absoluteFocusPosition": ["CRL Focus Position from Source [m]", "Float", 0, "The value is for information purposes only and is valid for simple optical layout! For complicated beamlines (e.g., with SSA) the value may have some errors since it is calculated from the position of the source."],
             "shape": ["Shape", "CRLShape", "1"],
@@ -556,12 +562,12 @@
             "focalPlane": ["Focal Plane", "FocalPlane", "1", "Horizontal (fiber is parallel to vertical axis), Vertical (fiber is parallel to horizontal axis)"],
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod", "server"],
             "externalMaterial": ["External Material", "CRLMaterial", "User-defined"],
-            "externalRefractiveIndex": ["Refractive Index Decrement", "Float", 4.20756805e-06, "Tooltip"],
-            "externalAttenuationLength": ["Attenuation Length [m]", "Float", 7312.94e-06, "Tooltip"],
+            "externalRefractiveIndex": ["Refractive Index Decrement", "Float", 4.20756805e-06, "The photon energy is: {{ appState.models.simulation.photonEnergy }} eV"],
+            "externalAttenuationLength": ["Attenuation Length [m]", "Float", 7312.94e-06, "The photon energy is: {{ appState.models.simulation.photonEnergy }} eV"],
             "externalDiameter": ["External Diameter [m]", "Float", 100e-06],
             "coreMaterial": ["Core Material", "CRLMaterial", "User-defined"],
-            "coreRefractiveIndex": ["Refractive Index Decrement", "Float", 4.20756805e-06, "Tooltip"],
-            "coreAttenuationLength": ["Attenuation Length [m]", "Float", 7312.94e-06, "Tooltip"],
+            "coreRefractiveIndex": ["Refractive Index Decrement", "Float", 4.20756805e-06],
+            "coreAttenuationLength": ["Attenuation Length [m]", "Float", 7312.94e-06],
             "coreDiameter": ["Core Diameter [m]", "Float", 10e-06],
             "horizontalCenterPosition": ["Horizontal Center Position [m]", "Float", 0],
             "verticalCenterPosition": ["Vertical Center Position [m]", "Float", 0]
@@ -654,7 +660,7 @@
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0],
             "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
-            "computeParametersFrom": ["Compute Parameters from", "computeParametersFrom", "2"],
+            "computeParametersFrom": ["Compute Parameters from", "ComputeParametersFrom", "2"],
             "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
             "heightAmplification": ["Height Amplification Coefficient", "Float", 0.001]
         },
@@ -672,7 +678,6 @@
             "photonEnergyPointCount": ["Number of Points vs Photon Energy", "Integer", 10000],
             "horizontalPosition": ["Horizontal Position [mm]", "Float"],
             "verticalPosition": ["Vertical Position [mm]", "Float"],
-            "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
             "precision": ["Relative Precision", "Float", 0.01],
             "polarization": ["Polarization Component to Extract", "Polarization"],
@@ -693,8 +698,8 @@
             "position": ["Position along Optical Path [m]", "Float"],
             "material": ["Material of the mask", "CRLMaterial", "User-defined"],
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod", "server"],
-            "refractiveIndex": ["Refractive Index Decrement of Material", "Float", 1.0, "Tooltip"],
-            "attenuationLength": ["Attenuation Length [m]", "Float", 1.0, "Tooltip"],
+            "refractiveIndex": ["Refractive Index Decrement", "Float", 1.0, "The photon energy is: {{ appState.models.simulation.photonEnergy }} eV"],
+            "attenuationLength": ["Attenuation Length [m]", "Float", 1.0, "The photon energy is: {{ appState.models.simulation.photonEnergy }} eV"],
             "maskThickness": ["Thickness of Mask [m]", "Float", 1.0],
             "gridShape": ["Grid Shape", "GridShape", "0"],
             "gridTiltAngle": ["Tilt Angle of Grid [rad]", "Float", 0.4363323129985824],
@@ -764,7 +769,6 @@
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "precision": ["Relative Precision", "Float"],
-            "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "method": ["Power Density Computation Method", "PowerDensityMethod"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer", 100],
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer", 100]
@@ -797,8 +801,8 @@
             "thickness": ["Thickness [µm]", "Float", 10],
             "material": ["Material of the mask", "CRLMaterial", "Au"],
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod", "server"],
-            "refractiveIndex": ["Refractive Index Decrement of Material", "Float", 3.23075074E-05, "Tooltip"],
-            "attenuationLength": ["Attenuation Length [m]", "Float", 4.06544e-6, "Tooltip"],
+            "refractiveIndex": ["Refractive Index Decrement", "Float", 3.23075074E-05, "The photon energy is: {{ appState.models.simulation.photonEnergy }} eV"],
+            "attenuationLength": ["Attenuation Length [m]", "Float", 4.06544e-6, "The photon energy is: {{ appState.models.simulation.photonEnergy }} eV"],
             "horizontalCenterCoordinate": ["Horizontal Center Position [nm]", "Float", 0],
             "verticalCenterCoordinate": ["Vertical Center Position [nm]", "Float", 0],
             "cropArea": ["Crop Area?", "Boolean", "1", "Crop selected rectangle area"],
@@ -863,7 +867,6 @@
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
-            "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
 	    "initialPosition": ["Initial Longitudinal Position for SR Calculation (effective if smaller than final position)", "Float", 0.0],
 	    "finalPosition": ["Final Longitudinal Position for SR Calculation (effective if larger than initial position)", "Float", 0.0],
@@ -932,7 +935,6 @@
             "plotAxisX": ["Horizontal Value to Plot", "TrajectoryPlotAxis", "Z"],
             "plotAxisY": ["Vertical Value to Plot", "TrajectoryPlotAxis", "X"],
             "plotAxisY2": ["Vertical Value to Plot", "TrajectoryPlotAxis2", "None"],
-            "magneticField": ["Magnetic Field Treatment", "MagneticField", "2"],
             "notes": ["Notes", "Text", ""]
         },
         "undulator": {
@@ -973,10 +975,10 @@
             "thickness": ["Thickness [µm]", "Float", 10],
             "method": ["Method of Getting Delta/Attenuation Length", "CRLMethod", "server"],
             "mainMaterial": ["Main Material", "CRLMaterial", "User-defined"],
-            "mainRefractiveIndex": ["Main Refractive Index Decrement", "Float", 1e-6, "Tooltip"],
-            "mainAttenuationLength": ["Main Attenuation Length [m]", "Float", 0.1, "Tooltip"],
-            "complementaryMaterial": ["Complementary Material", "CRLMaterial", "User-defined", "Tooltip"],
-            "complementaryRefractiveIndex": ["Complementary Refractive Index Decrement", "Float", 0, "Tooltip"],
+            "mainRefractiveIndex": ["Main Refractive Index Decrement", "Float", 1e-6, "The photon energy is: {{ appState.models.simulation.photonEnergy }} eV"],
+            "mainAttenuationLength": ["Main Attenuation Length [m]", "Float", 0.1, "The photon energy is: {{ appState.models.simulation.photonEnergy }} eV"],
+            "complementaryMaterial": ["Complementary Material", "CRLMaterial", "User-defined"],
+            "complementaryRefractiveIndex": ["Complementary Refractive Index Decrement", "Float", 0],
             "complementaryAttenuationLength": ["Complementary Attenuation Length [m]", "Float", 1e-6],
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
@@ -1512,7 +1514,6 @@
                     "notes"
                 ]],
                 ["Accuracy", [
-                    "magneticField",
                     "method",
                     "precision"
                 ]]
