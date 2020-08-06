@@ -117,7 +117,13 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
 
     function updateForceFormulas() {
         if (! SIREPO.APP_SCHEMA.feature_config.derbenevskrinsky_force_formula) {
-            panelState.showEnum('electronCoolingRate', 'force_formula', 'derbenevskrinsky', false);
+            [
+                'derbenevskrinsky',
+                'unmagnetized',
+                'budker',
+            ].forEach(function(e) {
+                panelState.showEnum('electronCoolingRate', 'force_formula', e, false);
+            });
         }
     }
 
