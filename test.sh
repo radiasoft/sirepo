@@ -29,7 +29,6 @@ test_main() {
     test_no_prints '\s(pkdp|print)\(' "${pyfiles[@]}"
     local jsfiles=( sirepo/package_data/static/js/*.js )
     test_no_prints '\s(srdbg|console.log)\(' "${jsfiles[@]}"
-    test_no_prints '(startsWith|Object\.assign)\(' "${jsfiles[@]}"
     test_no_h5py
     test_jshint
     if [[ -x ./node_modules/karma/bin/karma ]]; then
