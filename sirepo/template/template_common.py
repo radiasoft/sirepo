@@ -204,7 +204,6 @@ class JupyterNotebook(object):
                 self.imports[pkg].append(s)
         self._update()
 
-
     # meaningful to load arbitrary file name?
     def add_load_csv(self, widget_var):
         data_var = f'data_{widget_var}'
@@ -223,23 +222,24 @@ class JupyterNotebook(object):
         self.add_cell('markdown', source_strings)
 
     # parameter plot
-    def add_report(self, report_name, x_var, y_var, rpt):
+    def add_report(self, report_name, data_var, cfg):
         #assert report_name in self.data.models, f'{report_name}: No such report'
         self.add_imports({'matplotlib': ['pyplot']})
         plot_strs = []
         legends = []
-        for plot in rpt.plots:
-            plot_strs.append(f'pyplot.plot({x_var}, {y_var}, {_PLOT_LINE_COLOR[plot.style]})')
-            legends.append(f'\'{plot.label}\'')
+        for y_cfg in cfg.y_info:
+            plot_strs.append(f'pyplot.plot({cfg.x_var}, {y_cfg.y_var}, \'{self._PYPLOT_STYLE_MAP[y_cfg.style]}\')')
+            legends.append(f'\'{y_cfg.y_label}\'')
         code = [
                 'pyplot.figure()',
-                f'pyplot.xlabel(\'{rpt.x_label}\')',
-                f'pyplot.ylabel(\'{rpt.y_label}\')',
+                f'pyplot.xlabel(\'{cfg.x_label}\')',
                 f'pyplot.legend({legends})',
-                f'pyplot.title(\'{rpt.title}\')',
-                'pyplot.show()'
+                f'pyplot.title(\'{cfg.title}\')',
             ]
+        if len(cfg.y_info) == 1:
+            code.append(f'pyplot.ylabel(\'{cfg.y_info[0].y_label}\')')
         code.extend(plot_strs)
+        code.append('pyplot.show()')
         self.add_code_cell(code)
 
     def add_widget(self, widget_type, widget_cfg):

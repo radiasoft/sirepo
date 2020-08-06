@@ -368,32 +368,59 @@ def jupyter_notebook_for_model(data, model):
     )
     nb.add_markdown_cell(['## Load data file'])
     f_widget_var = nb.add_widget('FileUpload', PKDict(description='Archive Data File'))
+
     nb.add_markdown_cell(['## Set up data'])
     f_data_var = nb.add_load_csv(f_widget_var)
+
     nb.add_markdown_cell(['## Analysis Plot'])
+    rpt = data.models.analysisReport
+    col_info = data.models.analysisData.columnInfo
+    pkdp('C {}', col_info)
     x_var = 'x'
-    y_var = 'y'
-    nb.add_code_cell(
-        [
-            f'{f_data_var} = numpy.array([list(map(float, p)) for p in {f_data_var}])',
-            f'{x_var} = {f_data_var}[:, 0]',
-            f'{y_var} = {f_data_var}[:, 1]'
-        ]
-    )
-    data.report = 'analysisReport'
-    rpt = get_analysis_report(None, data)
-    nb.add_report('analysisReport', x_var, y_var, rpt)
-    # get labels from schema?
-    #nb.add_code_cell(
-    #    [
-    #        'pyplot.figure()',
-    #        'pyplot.plot(x, y, "-")',
-    #        'pyplot.xlabel("x")',
-    #        'pyplot.ylabel("y")',
-    #        'pyplot.legend(["Raw Data"])',
-    #        'pyplot.show()'
-    #    ]
-    #)
+    x_index = int(rpt.x)
+    x_label = col_info.names[x_index]
+    y_info = []
+    # how many ys are allowed?
+    # many params like style are hard-coded - should move to schema?
+    i = 1
+    y_var = f'y{i}'
+    while y_var in rpt:
+    #for i in range(1, 5):
+        #y_var = f'y{i}'
+        #if y_var not in rpt:
+        #    break
+        if rpt[y_var] == 'none':
+            i = i + 1
+            y_var = f'y{i}'
+            continue
+        y_index = int(rpt[y_var])
+        y_info.append(PKDict(
+            y_var=y_var,
+            y_index=y_index,
+            y_label=col_info.names[y_index],
+            style='line'
+        ))
+        i = i + 1
+        y_var = f'y{i}'
+        break
+    code = [
+        f'{f_data_var} = numpy.array([list(map(float, p)) for p in {f_data_var}])',
+        f'{x_var} = {f_data_var}[:, {x_index}]'
+    ]
+    for cfg in y_info:
+        code.append(f'{cfg.y_var} = {f_data_var}[:, {cfg.y_index}]')
+    nb.add_code_cell(code)
+    nb.add_report('analysisReport', f_data_var, PKDict(
+        x_var=x_var,
+        x_label=x_label,
+        y_info=y_info,
+        title='Analysis Plot'
+    ))
+
+    if 'action' in rpt:
+        pass
+
+    nb.add_markdown_cell(['## Analysis Plot'])
 
     return nb.notebook
 
