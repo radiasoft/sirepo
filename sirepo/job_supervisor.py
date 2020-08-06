@@ -534,11 +534,16 @@ class _ComputeJob(PKDict):
     def _is_running_pending(self):
         return self.db.status in (job.RUNNING, job.PENDING)
 
+    def _raise_if_purged_or_missing(self, req):
+        if self.db.status in (job.MISSING, job.JOB_RUN_PURGED):
+            sirepo.util.raise_not_found('purged or missing {}', req)
+
     @classmethod
     async def _receive_api_admJobs(cls, req):
         return cls._get_running_pending_jobs()
 
     async def _receive_api_downloadDataFile(self, req):
+        self._raise_if_purged_or_missing(req)
         return await self._send_with_single_reply(
             job.OP_ANALYSIS,
             req,
@@ -743,6 +748,7 @@ class _ComputeJob(PKDict):
     async def _receive_api_simulationFrame(self, req):
         if not self._req_is_valid(req):
             sirepo.util.raise_not_found('invalid {}', req)
+        self._raise_if_purged_or_missing(req)
         return await self._send_with_single_reply(
             job.OP_ANALYSIS,
             req,
