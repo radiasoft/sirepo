@@ -363,40 +363,37 @@ def jupyter_notebook_for_model(data, model):
     nb = JupyterNotebook(SIM_TYPE, data)
     nb.add_imports(
         {
-            'codecs': [], 'ipywidgets': [], 'matplotlib': ['pyplot'], 'numpy': []
+            'numpy': []
         }
     )
     nb.add_markdown_cell(['## Load data file'])
-    nb.add_code_cell(
-        [
-            'file = ipywidgets.FileUpload(description=\'Archive Data File\')',
-            'display(file)'
-        ]
-    )
+    f_widget_var = nb.add_widget('FileUpload', PKDict(description='Archive Data File'))
     nb.add_markdown_cell(['## Set up data'])
-    nb.add_code_cell(
-        [
-            'f = file.value',
-            'f_name = next(iter(f.keys()))',
-            'lines = codecs.decode(f[f_name]["content"], encoding="utf-8").split("\\n")',
-            'pts = [line.split(",") for line in lines if line]',
-            'pts = numpy.array([list(map(float, p)) for p in pts])',
-            'x = pts[:, 0]',
-            'y = pts[:, 1]'
-        ]
-    )
+    f_data_var = nb.add_load_csv(f_widget_var)
     nb.add_markdown_cell(['## Analysis Plot'])
-    # get labels from schema?
+    x_var = 'x'
+    y_var = 'y'
     nb.add_code_cell(
         [
-            'pyplot.figure()',
-            'pyplot.plot(x, y, "-")',
-            'pyplot.xlabel("x")',
-            'pyplot.ylabel("y")',
-            'pyplot.legend(["Raw Data"])',
-            'pyplot.show()'
+            f'{f_data_var} = numpy.array([list(map(float, p)) for p in {f_data_var}])',
+            f'{x_var} = {f_data_var}[:, 0]',
+            f'{y_var} = {f_data_var}[:, 1]'
         ]
     )
+    data.report = 'analysisReport'
+    rpt = get_analysis_report(None, data)
+    nb.add_report('analysisReport', x_var, y_var, rpt)
+    # get labels from schema?
+    #nb.add_code_cell(
+    #    [
+    #        'pyplot.figure()',
+    #        'pyplot.plot(x, y, "-")',
+    #        'pyplot.xlabel("x")',
+    #        'pyplot.ylabel("y")',
+    #        'pyplot.legend(["Raw Data"])',
+    #        'pyplot.show()'
+    #    ]
+    #)
 
     return nb.notebook
 
@@ -1002,6 +999,7 @@ def _read_monitor_file(monitor_path, history=False):
 
 
 def _report_info(run_dir, data):
+    pkdp('RPT INFO {}', data)
     report = data.models[data.report]
     path = str(run_dir.join(_analysis_data_path(data)))
     col_info = _column_info(path)

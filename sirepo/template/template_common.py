@@ -128,6 +128,10 @@ class JupyterNotebook(object):
     _HEADER_CELL_INDEX = 0
     _IMPORT_HEADER_CELL_INDEX = 1
     _IMPORT_CELL_INDEX = 2
+    _PYPLOT_STYLE_MAP = PKDict(
+        line='-',
+        scatter='.',
+    )
 
     @classmethod
     def _base_dict(cls):
@@ -157,8 +161,11 @@ class JupyterNotebook(object):
         )
 
     def __init__(self, sim_type, data):
+        self.data = data
         self.notebook = JupyterNotebook._base_dict()
         self.imports = PKDict()
+        self.widgets = []
+
         # cell 0
         self.add_markdown_cell(
             [
@@ -198,8 +205,65 @@ class JupyterNotebook(object):
         self._update()
 
 
+    # meaningful to load arbitrary file name?
+    def add_load_csv(self, widget_var):
+        data_var = f'data_{widget_var}'
+        self.add_imports({'codecs': [], })
+        self.add_code_cell(
+            [
+                f'f = {widget_var}.value',
+                'f_name = next(iter(f.keys()))',
+                'lines = codecs.decode(f[f_name]["content"], encoding="utf-8").split("\\n")',
+                f'{data_var} = [line.split(",") for line in lines if line]',
+            ]
+        )
+        return data_var
+
     def add_markdown_cell(self, source_strings):
         self.add_cell('markdown', source_strings)
+
+    # parameter plot
+    def add_report(self, report_name, x_var, y_var, rpt):
+        #assert report_name in self.data.models, f'{report_name}: No such report'
+        self.add_imports({'matplotlib': ['pyplot']})
+        plot_strs = []
+        legends = []
+        for plot in rpt.plots:
+            plot_strs.append(f'pyplot.plot({x_var}, {y_var}, {_PLOT_LINE_COLOR[plot.style]})')
+            legends.append(f'\'{plot.label}\'')
+        code = [
+                'pyplot.figure()',
+                f'pyplot.xlabel(\'{rpt.x_label}\')',
+                f'pyplot.ylabel(\'{rpt.y_label}\')',
+                f'pyplot.legend({legends})',
+                f'pyplot.title(\'{rpt.title}\')',
+                'pyplot.show()'
+            ]
+        code.extend(plot_strs)
+        self.add_code_cell(code)
+
+    def add_widget(self, widget_type, widget_cfg):
+        self.add_imports({'ipywidgets': []})
+        n_widgets = len([w for w in self.widgets if w.type == widget_type])
+        widget_var = f'{widget_type.lower()}_{n_widgets}'
+        if not n_widgets:
+            self.widgets.append(PKDict(name=widget_var, type=widget_type))
+        widget_kwargs = self._dict_to_kwargs_str(widget_cfg)
+        self.add_code_cell(
+            [
+                f'{widget_var} = ipywidgets.{widget_type}({widget_kwargs})',
+                f'display({widget_var})'
+            ]
+        )
+        return widget_var
+
+    def _dict_to_kwargs_str(self, d):
+        d_str = ''
+        for k in d:
+            v = f'\'{d[k]}\'' if isinstance(d[k], pykern.pkconfig.STRING_TYPES) \
+                else f'{d[k]}'
+            d_str += f'{k}={v},'
+        return d_str
 
     def _update(self):
         import_source = []
@@ -207,12 +271,12 @@ class JupyterNotebook(object):
         pkgs = sorted(self.imports.keys())
         for p in [pkg for pkg in pkgs if not len(self.imports[pkg])]:
             import_source.append(
-                'import {}\n'.format(p)
+                f'import {p}\n'
             )
         for s in [pkg for pkg in pkgs if len(self.imports[pkg])]:
             for p in self.imports[s]:
                 import_source.append(
-                    'from {} import {}\n'.format(s, p)
+                    f'from {s} import {p}\n'
                 )
         self.notebook.cells[self._IMPORT_CELL_INDEX].source = import_source
 
