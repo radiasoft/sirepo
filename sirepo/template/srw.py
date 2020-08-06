@@ -1359,8 +1359,6 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     v['rs_type'] = source_type
     if _SIM_DATA.srw_is_idealized_undulator(source_type, undulator_type):
         v['rs_type'] = 'u'
-    if report == 'beamline3DReport':
-        v['beamline3DRepot'] = 1
     if report == 'mirrorReport':
         v['mirrorOutputFilename'] = _MIRROR_OUTPUT_FILE
         return template_common.render_jinja(SIM_TYPE, v, 'mirror.py')
@@ -1449,7 +1447,6 @@ def _generate_srw_main(data, plot_reports):
         if plot_reports:
             content.append("v.tr_pl = 'xz'")
     if run_all or _SIM_DATA.is_watchpoint(report):
-    #if run_all or _SIM_DATA.is_watchpoint(report) or report == 'beamline3DReport':
         content.append('v.ws = True')
         if plot_reports:
             content.append("v.ws_pl = 'xy'")
