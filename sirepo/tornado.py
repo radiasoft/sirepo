@@ -10,25 +10,18 @@ import tornado.locks
 import tornado.queues
 
 class Event(tornado.locks.Event):
-    class _OrderedSet:
+    """Event with ordered waiters.
 
-        def __init__(self):
-            self.vals = list()
-
-        def __iter__(self):
-            return iter(self.vals)
+    When the event is set the waiters are awoken in a FIFO order.
+    """
+    class _OrderedWaiters(list):
 
         def add(self, val):
-            if val in self.vals:
-                return
-            self.vals.append(val)
-
-        def remove(self, val):
-            self.vals.remove(val)
+            self.append(val)
 
     def __init__(self):
-        self._value = False
-        self._waiters = self._OrderedSet()
+        super().__init__()
+        self._waiters = self._OrderedWaiters()
 
 
 class Queue(tornado.queues.Queue):
