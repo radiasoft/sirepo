@@ -232,7 +232,7 @@ class _Client(PKDict):
                     uri,
                     headers=self._headers,
                     method='GET',
-                    **self._fetch_default_args
+                    **self._fetch_default_args()
                 ),
                 expect_binary_body=expect_binary_body,
             )
@@ -306,11 +306,10 @@ class _Client(PKDict):
                         'Content-type',  'application/json'
                     ),
                     method='POST',
-                    **self._fetch_default_args
+                    **self._fetch_default_args()
                 ),
             )
 
-    @property
     def _fetch_default_args(self):
         return PKDict(
             connect_timeout=1e8,
@@ -529,8 +528,8 @@ def _init():
             str,
             'where to send requests',
         ),
-        run_min_secs=(90, int, 'minimum amount of time to let a simulation run'),
-        run_max_secs=(120, int, 'maximum amount of time to let a simulation run'),
+        run_min_secs=(90, pkconfig.parse_seconds, 'minimum amount of time to let a simulation run'),
+        run_max_secs=(120, pkconfig.parse_seconds, 'maximum amount of time to let a simulation run'),
         validate_cert=(not pkconfig.channel_in('dev'), bool, 'whether or not to validate server tls cert')
     )
 
