@@ -50,9 +50,8 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, $compi
             var i;
 
             function camelToKebabCase(v) {
-                return v.replace(/[\w]([A-Z])/g, function(m) {
-                    return m[0] + "-" + m[1];
-                }).toLowerCase();
+                v = v.charAt(0).toLowerCase() + v.slice(1);
+                return v.replace(/([A-Z])/g, '-$1').toLowerCase();
             }
 
             function tabSelectedEvent() {
@@ -92,6 +91,14 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, $compi
             };
             $scope.labelText = function(f) {
                 return f.substring(1);
+            };
+            $scope.resetActivePage = function() {
+                if ($scope.pages) {
+                    $scope.setActivePage($scope.pages[0]);
+                }
+                else {
+                    tabSelectedEvent();
+                }
             };
             $scope.setActivePage = function(page) {
                 if ($scope.activePage) {
@@ -144,24 +151,12 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, $compi
                     items.push($scope.advancedFields[i]);
                 }
             }
-            if ($scope.pages) {
-                $scope.setActivePage($scope.pages[0]);
-            }
-            else {
-                tabSelectedEvent();
-            }
+            $scope.resetActivePage();
         },
         link: function(scope, element) {
-            var resetActivePage = function() {
-                if (scope.pages) {
-                    scope.setActivePage(scope.pages[0]);
-                }
-            };
-            if (scope.pages) {
-                $(element).closest('.modal').on('show.bs.modal', resetActivePage);
-                //TODO(pjm): need a generalized case for this
-                $(element).closest('.sr-beamline-editor').on('sr.resetActivePage', resetActivePage);
-            }
+            $(element).closest('.modal').on('show.bs.modal', scope.resetActivePage);
+            //TODO(pjm): need a generalized case for this
+            $(element).closest('.sr-beamline-editor').on('sr.resetActivePage', scope.resetActivePage);
             scope.$on('$destroy', function() {
                 $(element).closest('.modal').off();
                 $(element).closest('.sr-beamline-editor').off();
