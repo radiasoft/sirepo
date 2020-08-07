@@ -47,9 +47,18 @@ def field_integral(g_id, f_type, p1, p2):
 
 
 def geom_to_data(g_id, name=None, divide=True):
+
+    def _to_pkdict(d):
+        if not isinstance(d, dict) or isinstance(d, PKDict):
+            return d
+        rv = PKDict()
+        for k, v in d.items():
+            rv[k] = _to_pkdict(v)
+        return rv
+
     n = (name if name is not None else str(g_id)) + '.Geom'
     pd = PKDict(name=n, id=g_id, data=[])
-    d = template_common.to_pkdict(radia.ObjDrwVTK(g_id, 'Axes->No'))
+    d = _to_pkdict(radia.ObjDrwVTK(g_id, 'Axes->No'))
     n_verts = len(d.polygons.vertices)
     c = radia.ObjCntStuf(g_id)
     l = len(c)
@@ -62,7 +71,7 @@ def geom_to_data(g_id, name=None, divide=True):
         for g in c:
             # for fully recursive array
             # for g in get_all_geom(geom):
-            s_d = template_common.to_pkdict(radia.ObjDrwVTK(g, 'Axes->No'))
+            s_d = _to_pkdict(radia.ObjDrwVTK(g, 'Axes->No'))
             n_s_verts += len(s_d.polygons.vertices)
             d_arr.append(s_d)
         # if the number of vertices of the container is more than the total
@@ -237,4 +246,3 @@ class RadiaGeomMgr:
 
     def __init__(self):
         self._geoms = PKDict({})
-
