@@ -120,6 +120,7 @@ def cfg():
             ),
             run_min_secs=(90, int, 'minimum amount of time to let a simulation run'),
             run_max_secs=(120, int, 'maximum amount of time to let a simulation run'),
+            validate_cert=(not pkconfig.channel_in_internal_test(), bool, 'whether or not to validate server tls cert')
         )
     return _cfg
 
@@ -223,6 +224,11 @@ async def _cancel_all_tasks(tasks):
 
 
 class _Client(PKDict):
+    _FETCH_DEFAULT_ARGS = PKDict(
+        connect_timeout=1e8,
+        request_timeout=1e8,
+        validate_cert=cfg().validate_cert,
+    )
 
     def __init__(self, email, **kwargs):
         super().__init__(
@@ -248,8 +254,7 @@ class _Client(PKDict):
                     uri,
                     headers=self._headers,
                     method='GET',
-                    connect_timeout=1e8,
-                    request_timeout=1e8,
+                    **self._FETCH_DEFAULT_ARGS
                 ),
                 expect_binary_body=expect_binary_body,
             )
@@ -323,8 +328,7 @@ class _Client(PKDict):
                         'Content-type',  'application/json'
                     ),
                     method='POST',
-                    connect_timeout=1e8,
-                    request_timeout=1e8,
+                    **self._FETCH_DEFAULT_ARGS
                 ),
             )
 
