@@ -1,0 +1,82 @@
+# -*- python -*-
+import math
+import numpy
+import Shadow
+from Shadow.ShadowPreprocessorsXraylib import prerefl, pre_mlayer, bragg
+from srxraylib.sources import srfunc
+
+source = Shadow.Source()
+beam = Shadow.Beam()
+
+source.NPOINT = 50000
+source.ISTAR1 = 567656
+
+
+source.SIGMAX = 0.0395
+source.SIGMAZ = 0.0036899999999999997
+source.EPSI_X = 3.9e-07
+source.EPSI_Z = 3.9e-09
+source.BENER = 6.04
+source.EPSI_DX = 0.0
+source.EPSI_DZ = 0.0
+source.F_POL = 3
+source.HDIV1 = 0.0005
+source.HDIV2 = 0.0005
+source.VDIV1 = 1.0
+source.VDIV2 = 1.0
+source.F_PHOT = 0
+source.FSOURCE_DEPTH = 4
+source.F_COLOR = 3
+source.R_MAGNET = 25.1772
+source.PH1 = 8000.0
+source.PH2 = 8000.001
+source.FDISTR = 4
+source.R_ALADDIN = source.R_MAGNET * 100
+source.F_BOUND_SOUR = 2
+fn = b'source-aperture.dat'
+with open(fn, 'w') as f:
+  f.write(' 50.0 -0.002 0.002 -0.002 0.002')
+source.FILE_BOUND = fn
+source.NTOTALPOINT = 10000000
+beam.genSource(source)
+
+
+
+oe = Shadow.OE()
+oe.DUMMY = 1.0
+oe.set_empty().set_screens()
+oe.I_SLIT[0] = 1
+oe.K_SLIT[0] = 0
+oe.RX_SLIT[0] = 0.002
+oe.RZ_SLIT[0] = 0.002
+oe.CX_SLIT[0] = 0.0
+oe.CZ_SLIT[0] = 0.0
+oe.FWRITE = 3
+oe.T_IMAGE = 0.0
+oe.T_SOURCE = 50.0
+beam.traceOE(oe, 1)
+
+oe = Shadow.OE()
+oe.DUMMY = 1.0
+oe.set_empty()
+oe.FWRITE = 3
+oe.T_IMAGE = 0.0
+oe.T_SOURCE = 0.0
+beam.traceOE(oe, 2)
+
+oe = Shadow.OE()
+oe.DUMMY = 1.0
+oe.set_empty()
+oe.FWRITE = 3
+oe.T_IMAGE = 0.0
+oe.T_SOURCE = 25.0
+beam.traceOE(oe, 3)
+
+oe = Shadow.OE()
+oe.DUMMY = 1.0
+oe.set_empty()
+oe.FWRITE = 3
+oe.T_IMAGE = 0.0
+oe.T_SOURCE = 25.0
+beam.traceOE(oe, 4)
+beam.write('shadow-output.dat')
