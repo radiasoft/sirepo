@@ -385,10 +385,6 @@ def jupyter_notebook_for_model(data, model):
     i = 1
     y_var = f'y{i}'
     while y_var in rpt:
-    #for i in range(1, 5):
-        #y_var = f'y{i}'
-        #if y_var not in rpt:
-        #    break
         if rpt[y_var] == 'none':
             i = i + 1
             y_var = f'y{i}'
@@ -418,9 +414,14 @@ def jupyter_notebook_for_model(data, model):
     ))
 
     if 'action' in rpt:
-        pass
-
-    nb.add_markdown_cell(['## Analysis Plot'])
+        if rpt.action == 'fft':
+            nb.add_markdown_cell(['## FFT Plot'])
+            nb.add_code_cell([
+                template_common.render_jinja(SIM_TYPE, {}, name='analysis.py')
+            ])
+            nb.add_code_cell([
+                f'w, y_norm = get_fft({x_var})'
+            ])
 
     return nb.notebook
 

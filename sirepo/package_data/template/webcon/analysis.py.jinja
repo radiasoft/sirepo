@@ -1,0 +1,51 @@
+def get_fft(data):
+    import scipy.fftpack
+    import scipy.optimize
+    import scipy.signal
+
+    report, col_info, plot_data = _report_info(run_dir, data)
+    col1 = _safe_index(col_info, report.x)
+    col2 = _safe_index(col_info, report.y1)
+    t_vals = plot_data[:, col1] * col_info['scale'][col1]
+    y_vals = plot_data[:, col2] * col_info['scale'][col2]
+
+    # fft takes the y data only and assumes it corresponds to equally-spaced x values.
+    fft_out = scipy.fftpack.fft(y_vals)
+
+    num_samples = len(y_vals)
+    half_num_samples = num_samples // 2
+
+    # should all be the same - this will normalize the frequencies
+    sample_period = abs(t_vals[1] - t_vals[0])
+    if sample_period == 0:
+        raise sirepo.util.UserAlert(
+            'Data error',
+            'FFT sample period could not be determined from data. Ensure x has equally spaced values',
+        )
+
+    # the first half of the fft data (taking abs() folds in the imaginary part)
+    y = 2.0 / num_samples * numpy.abs(fft_out[0:half_num_samples])
+
+    # get the frequencies found
+    # fftfreq just generates an array of equally-spaced values that represent the x-axis
+    # of the fft of data of a given length.  It includes negative values
+    freqs = scipy.fftpack.fftfreq(len(fft_out), d=sample_period) #/ sample_period
+    w = 2. * numpy.pi * freqs[0:half_num_samples]
+
+    coefs = (2.0 / num_samples) * numpy.abs(fft_out[0:half_num_samples])
+    peaks, props = scipy.signal.find_peaks(coefs)
+    found_freqs = [v for v in zip(peaks, numpy.around(w[peaks], 3))]
+
+    bin_spread = 10
+    min_bin = max(0, peaks[0] - bin_spread)
+    max_bin = min(half_num_samples, peaks[-1] + bin_spread)
+    yy = 2.0 / num_samples * numpy.abs(fft_out[min_bin:max_bin])
+    max_yy = numpy.max(yy)
+    yy_norm = yy / (max_yy if max_yy != 0 else 1)
+    ww = 2. * numpy.pi * freqs[min_bin:max_bin]
+
+    max_y = numpy.max(y)
+    y_norm = y / (max_y if max_y != 0 else 1)
+
+    return w.tolist(), y_norm.tolist()
+
