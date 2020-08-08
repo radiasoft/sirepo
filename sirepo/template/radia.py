@@ -56,7 +56,6 @@ def background_percent_complete(report, run_dir, is_running):
     res = PKDict(
         percentComplete=0,
         frameCount=0,
-        errors='',  #errors,
     )
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if is_running:
@@ -67,8 +66,6 @@ def background_percent_complete(report, run_dir, is_running):
         percentComplete=100,
         frameCount=1,
         solution=_read_solution(data.simulationId),  #output_info,
-        lastUpdateTime=time.time(),  #output_info[0]['lastUpdateTime'],
-        errors='',  #errors,
     )
 
 

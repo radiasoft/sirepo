@@ -66,14 +66,15 @@ def api_adjustTime(days=None):
 
 
 def init():
-    if pkconfig.channel_in_internal_test():
-        return
-    global _initialized, utc_now_as_float, utc_now
+    global _initialized, utc_now_as_int
     if _initialized:
         return
     _initialized = True
-    utc_now_as_float = time.time
-    utc_now = datetime.datetime.utcnow
+    if not pkconfig.channel_in_internal_test():
+        global utc_now_as_float, utc_now
+        utc_now_as_float = time.time
+        utc_now = datetime.datetime.utcnow
+    utc_now_as_int = lambda: int(utc_now_as_float())
 
 
 def init_apis(*args, **kwargs):
