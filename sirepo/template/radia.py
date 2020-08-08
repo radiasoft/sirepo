@@ -460,6 +460,8 @@ def _read_or_generate(geom_id, data):
 
 def _read_solution(sim_id):
     s = _read_h5_path(sim_id, 'solution')
+    if not s:
+        return None
     return PKDict(
         steps=s[3],
         time=s[0],

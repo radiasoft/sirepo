@@ -259,18 +259,6 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
 
     self.simState = persistentSimulation.initSimulationState(self);
 
-    self.showCompletionState = function() {
-        return ! ! self.solution;
-    };
-
-    self.completionStateArgs = function() {
-        return {
-            stepCount: self.solution[3],
-            maxM: utilities.roundToPlaces(self.solution[1], 4),
-            maxH: utilities.roundToPlaces(self.solution[2], 4),
-        };
-    };
-
     self.simState.startButtonLabel = function() {
         return 'Solve';
     };
@@ -786,11 +774,17 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
             $scope.model = appState.models[$scope.modelName];
 
             $scope.solution = function() {
+                var s = $scope.viz.solution;
+                if (! s) {
+                    return {
+                        time: '', steps: '', maxM: '', maxH: '',
+                    };
+                }
                 return {
-                    time: utilities.roundToPlaces(1000 * $scope.viz.solution.time, 3),
-                    steps: $scope.viz.solution.steps,
-                    maxM: utilities.roundToPlaces($scope.viz.solution.maxM, 4),
-                    maxH: utilities.roundToPlaces($scope.viz.solution.maxH, 4),
+                    time: utilities.roundToPlaces(1000 * s.time, 3),
+                    steps: s.steps,
+                    maxM: utilities.roundToPlaces(s.maxM, 4),
+                    maxH: utilities.roundToPlaces(s.maxH, 4),
                 };
             };
 

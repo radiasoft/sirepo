@@ -173,7 +173,7 @@
         }
     },
     "strings": {
-        "completionState": " {stepCount} steps Max |M| {maxM} A/m; Max |H| {maxH} A/m"
+        "completionState": ""
     },
     "view": {
         "circlePath": {
