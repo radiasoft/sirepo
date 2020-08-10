@@ -7,12 +7,14 @@ u"""Handles dispatching of uris to server.api_* functions
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkinspect
+from pykern import pkio
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import flask
 import importlib
 import inspect
 import re
 import sirepo.api_auth
+import sirepo.api_perm
 import sirepo.auth
 import sirepo.cookie
 import sirepo.http_reply
@@ -116,6 +118,11 @@ def init(app, simulation_db):
 
     for n in _REQUIRED_MODULES + tuple(sorted(feature_config.cfg().api_modules)):
         register_api_module(importlib.import_module('sirepo.' + n))
+    for f in pkio.sorted_glob(simulation_db.STATIC_FOLDER.join('en','*.html')):
+        @sirepo.api_perm.allow_visitor
+        def x():
+            return sirepo.http_reply.gen_redirect(f'/en/plans.html')
+        _add_api_func(f'api_{f.purebasename}', x)
     _init_uris(app, simulation_db)
 
     sirepo.http_request.init(
@@ -152,10 +159,7 @@ def register_api_module(module=None):
     m.init_apis()
     # It's ok if there are no APIs
     for n, o in inspect.getmembers(m):
-        if n.startswith(_FUNC_PREFIX) and inspect.isfunction(o):
-            assert not n in _api_funcs, \
-                'function is duplicate: func={} module={}'.format(n, m.__name__)
-            _api_funcs[n] = o
+        _add_api_func(n, o, m.__name__)
 
 
 def uri_for_api(api_name, params=None, external=True):
@@ -182,6 +186,15 @@ def uri_for_api(api_name, params=None, external=True):
         assert p.is_optional, \
             'missing parameter={} for api={}'.format(p.name, api_name)
     return res
+
+
+def _add_api_func(name, func, module=None):
+    if not name.startswith(_FUNC_PREFIX) or not inspect.isfunction(func):
+        return
+    s = f'function is duplicate: func={name}'
+    assert name not in _api_funcs, \
+        s + ('' if not m else f' module={m}')
+    _api_funcs[name] = func
 
 
 def _dispatch(path):

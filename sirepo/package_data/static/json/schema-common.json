@@ -117,6 +117,7 @@
         "newSimulation": "/new-simulation",
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
         "ownJobs": "/own-jobs",
+        "plans": "/plans",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
         "robotsTxt": "/robots.txt",
         "root": "/<simulation_type>",
