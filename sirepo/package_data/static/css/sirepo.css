@@ -894,6 +894,9 @@ ul.sr-nav-sidebar-root {
 .sr-enum-button {
   min-width: 8em;
 }
+.sr-button-size {
+  min-width: 8em;
+}
 .sr-model-list-item {
   position: relative;
 }

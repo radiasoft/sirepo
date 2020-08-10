@@ -99,6 +99,11 @@
             ["beta", "From Beta"],
             ["brho", "From BRHO"]
         ],
+        "CommandTemplate": [
+            ["matching", "Beamline Matching"],
+            ["particle", "Particle Tracking"],
+            ["none", "No Template"]
+        ],
         "CommandVarySlope": [
             ["1", "Increase"],
             ["-1", "Decrease"],
@@ -172,7 +177,7 @@
             "route": "/control/:simulationId",
             "config": {
               "controller": "CommandController as control",
-              "template": "<div data-command-tab=\"\" data-controller=\"control\"></div>"
+              "templateUrl": "/static/html/madx-commands.html"
             }
         },
         "lattice": {
@@ -208,7 +213,8 @@
         },
         "simulation": {
             "enableParticleTracking": ["Particle Tracking", "Boolean", "1"],
-            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
+            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""],
+            "commandTemplate": ["Template", "CommandTemplate", "particle"]
         },
         "beamlineReport": {
             "notes": ["Notes", "Text", ""]
@@ -372,7 +378,7 @@
         },
         "command_ptc_create_universe": {
             "ntpsa": ["NTPSA", "Boolean", "0", "Invokes the Differential Algebra (DA) package written in C++ and kindly provided by Lingyun Yang (lyyang@lbl.gov). Etienne Forest has written the wrapper to allow the use of both the legendary DA package written in Fortran by Martin Berz (default) and this new DA package of Lingyun Yang. It is expected that this DA package will allow for the efficient calculation of a large number of DA parameters."],
-            "sector_nmul": ["SECTOR_NMULMAX", "Integer", -1, "A global variable in PTC needed for exact sector bends defining up to which order the multipole are included in solving Maxwell’s equation up to order SECTOR_NMUL_MAX. Multipoles of order N with N > SECTOR_NMUL and N <= SECTOR_NMUL_MAX are treated similar to SixTrack. If a negative value of SECTOR_NMUL_MAX is passed than it is also identified automatically. However, if multipolar parameters of the bends are to be modified inside the PTC universe, for example with PTC_READ_ERRORS, than this parameter needs to be set to a corresponding value. Please note that using large values (above 10) slows down the computations, so the smallest required value should be used."],
+            "sector_nmul": ["SECTOR_NMUL", "Integer", -1, "A global variable in PTC needed for exact sector bends defining up to which order the multipole are included in solving Maxwell’s equation up to order SECTOR_NMUL_MAX. Multipoles of order N with N > SECTOR_NMUL and N <= SECTOR_NMUL_MAX are treated similar to SixTrack. If a negative value of SECTOR_NMUL_MAX is passed than it is also identified automatically. However, if multipolar parameters of the bends are to be modified inside the PTC universe, for example with PTC_READ_ERRORS, than this parameter needs to be set to a corresponding value. Please note that using large values (above 10) slows down the computations, so the smallest required value should be used."],
             "sector_nmul_max": ["SECTOR_NMUL_MAX", "Integer", -1, "A global variable in PTC needed for exact sector bends defining up to which order Maxwell’s equation are solved. The value of SECTOR_NMUL_MAX must not be smaller than SECTOR_NMUL otherwise MAD-X stops with an error. If a negative value is passed than it is identified automatically by scanning the currently selected sequence."],
             "symprint": ["SYMPRINT", "Boolean", "1", "A flag to enable the printing of the check of symplecticity. It is recommended to leave this flag set to TRUE."]
         },
@@ -578,7 +584,7 @@
             "period": ["BEAMLINE", "OptionalLatticeBeamlineList", "", "Name of the sequence to be loaded and expanded."]
         },
         "command_vary": {
-            "name": ["NAME", "String", "", "Name of the parameter or attribute to be varied"],
+            "name": ["NAME", "OptionalString", "", "Name of the parameter or attribute to be varied"],
             "step": ["STEP", "RPNValue", 0.0, "Approximate initial step size for varying the parameter"],
             "lower": ["LOWER", "RPNValue", 0.0, "Lower limit for the parameter"],
             "upper": ["UPPER", "RPNValue", 0.0, "Upper limit for the parameter"],

@@ -241,15 +241,11 @@ def _add_commands(data, util):
     ))
     if not util.find_first_command(data, PTC_LAYOUT_COMMAND):
         return
-    # insert call and ptc_observe commands after ptc_create_layout
+    # insert call for particles after ptc_create_layout
     idx = next(i for i, cmd in enumerate(commands) if cmd._type == PTC_LAYOUT_COMMAND)
     commands.insert(idx + 1, PKDict(
         _type='call',
         file=PTC_PARTICLES_FILE,
-    ))
-    commands.insert(idx + 2, PKDict(
-        _type='ptc_observe',
-        place='{}$END'.format(util.select_beamline().name.upper()),
     ))
 
 
