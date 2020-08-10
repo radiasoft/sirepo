@@ -30,7 +30,8 @@ build_nsls2_guest_main() {
     install -m 644 env/work/srw_python/{{srwl,uti}*.py,srwlpy*.so} \
         "$(python -c 'from distutils.sysconfig import get_python_lib as x; print(x())')"
     cd ../sirepo
-    pip uninstall sirepo pykern >& /dev/null || true
+    pip uninstall -y sirepo >& /dev/null || true
+    pip uninstall -y pykern >& /dev/null || true
     pip install -r requirements.txt
     pip install .
     sirepo srw create_predefined
