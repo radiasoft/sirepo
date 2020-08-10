@@ -54,6 +54,7 @@ def start():
 
     cfg = pkconfig.init(
         agent_id=pkconfig.Required(str, 'id of this agent'),
+        fastcgi_sock_dir=('/var/tmp', str, 'directory where fastcgi socket will be placed'),
         start_delay=(0, pkconfig.parse_seconds, 'delay startup in internal_test mode'),
         supervisor_uri=pkconfig.Required(
             str,
@@ -332,11 +333,9 @@ class _Dispatcher(PKDict):
         if not self.fastcgi_cmd:
             m = msg.copy()
             m.jobCmd = 'fastcgi'
-            self._fastcgi_file = 'job_cmd_fastcgi.sock'
+            self._fastcgi_file = str(pkio.py_path(cfg.fastcgi_sock_dir).join('job_cmd_fastcgi.sock'))
             self._fastcgi_msg_q = sirepo.tornado.Queue(1)
             pkio.unchecked_remove(self._fastcgi_file)
-            # Avoid OSError: AF_UNIX path too long (max=100)
-            # Use relative path
             m.fastcgiFile = self._fastcgi_file
             # Runs in a agent's directory, but chdir's to real runDirs
             m.runDir = pkio.py_path()
