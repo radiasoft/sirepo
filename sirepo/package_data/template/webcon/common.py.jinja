@@ -1,0 +1,5 @@
+def safe_index(col_info, idx):
+    idx = int(idx or 0)
+    if idx >= len(col_info['names']):
+        idx = 1
+    return idx

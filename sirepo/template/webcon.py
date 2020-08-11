@@ -366,6 +366,15 @@ def jupyter_notebook_for_model(data, model):
             'numpy': []
         }
     )
+
+    nb.add_markdown_cell(['## Function definitions'])
+    nb.add_code_cell([
+        template_common.render_jinja(SIM_TYPE, {}, name='common.py')
+    ])
+    nb.add_code_cell([
+        template_common.render_jinja(SIM_TYPE, {}, name='analysis.py')
+    ])
+
     nb.add_markdown_cell(['## Load data file'])
     f_widget_var = nb.add_widget('FileUpload', PKDict(description='Archive Data File'))
 
@@ -373,56 +382,110 @@ def jupyter_notebook_for_model(data, model):
     f_data_var = nb.add_load_csv(f_widget_var)
 
     nb.add_markdown_cell(['## Analysis Plot'])
-    rpt = data.models.analysisReport
     col_info = data.models.analysisData.columnInfo
-    pkdp('C {}', col_info)
     x_var = 'x'
-    x_index = int(rpt.x)
-    x_label = col_info.names[x_index]
-    y_info = []
-    # how many ys are allowed?
-    # many params like style are hard-coded - should move to schema?
-    i = 1
-    y_var = f'y{i}'
-    while y_var in rpt:
-        if rpt[y_var] == 'none':
+    x_range_var = 'x_range'
+    x_range_inds_var = 'x_range_inds'
+    j = 0
+    rpt_name = 'analysisReport'
+    while rpt_name in data.models:
+        rpt = data.models[rpt_name]
+        x_index = _safe_index(col_info, int(rpt.x))
+        x_label = col_info.names[x_index]
+        y_info = []
+        x_range = None
+        if 'trimField' in rpt and int(rpt.trimField) == x_index:
+            x_range = (float(rpt.trimMin), float(rpt.trimMax))
+        # many params like style are hard-coded - should move to schema?
+        i = 1
+        y_var = f'y{i}'
+        while y_var in rpt:
+            if rpt[y_var] == 'none':
+                i = i + 1
+                y_var = f'y{i}'
+                continue
+            y_index = _safe_index(col_info, int(rpt[y_var]))
+            y_info.append(PKDict(
+                y_var=y_var,
+                y_index=y_index,
+                y_label=col_info.names[y_index],
+                style='line'
+            ))
             i = i + 1
             y_var = f'y{i}'
-            continue
-        y_index = int(rpt[y_var])
-        y_info.append(PKDict(
-            y_var=y_var,
-            y_index=y_index,
-            y_label=col_info.names[y_index],
-            style='line'
-        ))
-        i = i + 1
-        y_var = f'y{i}'
-        break
-    code = [
-        f'{f_data_var} = numpy.array([list(map(float, p)) for p in {f_data_var}])',
-        f'{x_var} = {f_data_var}[:, {x_index}]'
-    ]
-    for cfg in y_info:
-        code.append(f'{cfg.y_var} = {f_data_var}[:, {cfg.y_index}]')
-    nb.add_code_cell(code)
-    nb.add_report('analysisReport', f_data_var, PKDict(
-        x_var=x_var,
-        x_label=x_label,
-        y_info=y_info,
-        title='Analysis Plot'
-    ))
+        x_points = f'{f_data_var}[:, {x_index}]' if not x_range else \
+            f'[x for x in {f_data_var}[:, {x_index}] if x >= {x_range[0]} and x <= {x_range[1]}]'
+        x_range_inds = f'([i for (i, x) in enumerate({x_var}) if x >= {x_range_var}[0]][0], \
+         [i for (i, x) in enumerate({x_var}) if x <= {x_range_var}[1]][-1] + 1)' if x_range else \
+            f'(0, len({x_var}))'
+        code = [
+            f'{x_var} = {x_points}',
+            f'{x_range_var} = {x_range}',
+            f'{x_range_inds_var} = {x_range_inds}',
+        ]
+        for cfg in y_info:
+            code.append(f'{cfg.y_var} = {f_data_var}[:, {cfg.y_index}][{x_range_inds_var}[0]:{x_range_inds_var}[1]]')
+        nb.add_code_cell(code)
+        if j == 0:
+            # only do this once
+            nb.add_report(PKDict(
+                x_var=x_var,
+                x_label=x_label,
+                y_info=y_info,
+                title='Analysis Plot'
+            ))
 
-    if 'action' in rpt:
-        if rpt.action == 'fft':
-            nb.add_markdown_cell(['## FFT Plot'])
-            nb.add_code_cell([
-                template_common.render_jinja(SIM_TYPE, {}, name='analysis.py')
-            ])
-            nb.add_code_cell([
-                f'w, y_norm = get_fft({x_var})'
-            ])
+        if 'action' in rpt:
+            if rpt.action == 'fft':
+                nb.add_markdown_cell(['## FFT Plot'])
+                # only 1 curve (for now?)
+                w_var = 'w'
+                y_norm_var = 'y_norm'
+                nb.add_code_cell([
+                    f'{w_var}, {y_norm_var} = get_fft({x_var}, y1)'
+                ])
+                y_info = [PKDict(
+                    y_var=y_norm_var,
+                    y_label='',
+                    style='line'
+                )]
+                nb.add_report(PKDict(
+                    x_var=w_var,
+                    x_label=x_label,
+                    y_info=y_info,
+                    title='FFT'
+                ))
+            if rpt.action == 'fit':
+                nb.add_markdown_cell(['## Fit'])
+                x_fit_var = 'x_fit'
+                y_fit_var = 'y_fit'
+                y_max_var = 'y_fit_max'
+                y_min_var = 'y_fit_min'
+                p_vals_var = 'p_vals'
+                sigma_var = 'sigma'
+                eqn = rpt.fitEquation
+                prm = rpt.fitParameters
+                var = rpt.fitVariable
+                nb.add_code_cell([
+                    f'{x_fit_var}, {y_fit_var}, {y_min_var}, {y_max_var}, {p_vals_var}, {sigma_var} = fit_to_equation({x_var}[{x_range_inds_var}[0]:{x_range_inds_var}[1]], y1, \'{eqn}\', \'{var}\', \'{prm}\')'
+                ])
+                y_info = [
+                    PKDict(y_var='y1', y_label='Data', style='scatter'),
+                    PKDict(y_var=y_fit_var, x_points=x_fit_var, y_label='Fit', style='line'),
+                    PKDict(y_var=y_max_var, x_points=x_fit_var, y_label='Max', style='line'),
+                    PKDict(y_var=y_min_var, x_points=x_fit_var, y_label='Min', style='line'),
+                ]
+                nb.add_report(PKDict(
+                    x_var=x_var,
+                    x_label='',
+                    y_info=y_info,
+                    title='Fit'
+                ))
 
+            if rpt.action == 'cluster':
+                pkdp('CLUSTER!')
+        j = j + 1
+        rpt_name = f'analysisReport{j}'
     return nb.notebook
 
 
@@ -1027,7 +1090,6 @@ def _read_monitor_file(monitor_path, history=False):
 
 
 def _report_info(run_dir, data):
-    pkdp('RPT INFO {}', data)
     report = data.models[data.report]
     path = str(run_dir.join(_analysis_data_path(data)))
     col_info = _column_info(path)

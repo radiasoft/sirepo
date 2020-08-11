@@ -214,6 +214,7 @@ class JupyterNotebook(object):
                 'f_name = next(iter(f.keys()))',
                 'lines = codecs.decode(f[f_name]["content"], encoding="utf-8").split("\\n")',
                 f'{data_var} = [line.split(",") for line in lines if line]',
+                f'{data_var} = numpy.array([list(map(float, p)) for p in {data_var}])',
             ]
         )
         return data_var
@@ -222,13 +223,13 @@ class JupyterNotebook(object):
         self.add_cell('markdown', source_strings)
 
     # parameter plot
-    def add_report(self, report_name, data_var, cfg):
-        #assert report_name in self.data.models, f'{report_name}: No such report'
+    def add_report(self, cfg):
         self.add_imports({'matplotlib': ['pyplot']})
         plot_strs = []
         legends = []
         for y_cfg in cfg.y_info:
-            plot_strs.append(f'pyplot.plot({cfg.x_var}, {y_cfg.y_var}, \'{self._PYPLOT_STYLE_MAP[y_cfg.style]}\')')
+            x_pts_var = y_cfg.x_points if 'x_points' in y_cfg else cfg.x_var
+            plot_strs.append(f'pyplot.plot({x_pts_var}, {y_cfg.y_var}, \'{self._PYPLOT_STYLE_MAP[y_cfg.style]}\')')
             legends.append(f'\'{y_cfg.y_label}\'')
         code = [
                 'pyplot.figure()',

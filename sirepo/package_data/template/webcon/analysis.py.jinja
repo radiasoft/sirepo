@@ -1,13 +1,7 @@
-def get_fft(data):
+def get_fft(t_vals, y_vals):
     import scipy.fftpack
     import scipy.optimize
     import scipy.signal
-
-    report, col_info, plot_data = _report_info(run_dir, data)
-    col1 = _safe_index(col_info, report.x)
-    col2 = _safe_index(col_info, report.y1)
-    t_vals = plot_data[:, col1] * col_info['scale'][col1]
-    y_vals = plot_data[:, col2] * col_info['scale'][col2]
 
     # fft takes the y data only and assumes it corresponds to equally-spaced x values.
     fft_out = scipy.fftpack.fft(y_vals)
@@ -49,3 +43,40 @@ def get_fft(data):
 
     return w.tolist(), y_norm.tolist()
 
+
+def fit_to_equation(x, y, equation, var, params):
+    import scipy
+    import sympy
+
+    sym_curve = sympy.sympify(equation)
+    sym_str = var + ' ' + ' '.join(params)
+
+    syms = sympy.symbols(sym_str)
+    sym_curve_l = sympy.lambdify(syms, sym_curve, 'numpy')
+
+    p_vals, pcov = scipy.optimize.curve_fit(sym_curve_l, x, y, maxfev=500000)
+    sigma = numpy.sqrt(numpy.diagonal(pcov))
+
+    p_subs = []
+    p_subs_min = []
+    p_subs_max = []
+
+    # exclude the symbol of the variable when subbing
+    for sidx, p in enumerate(p_vals, 1):
+        sig = sigma[sidx - 1]
+        p_min = p - 2 * sig
+        p_max = p + 2 * sig
+        s = syms[sidx]
+        p_subs.append((s, p))
+        p_subs_min.append((s, p_min))
+        p_subs_max.append((s, p_max))
+    y_fit = sym_curve.subs(p_subs)
+    y_fit_min = sym_curve.subs(p_subs_min)
+    y_fit_max = sym_curve.subs(p_subs_max)
+
+    y_fit_l = sympy.lambdify(var, y_fit, 'numpy')
+    y_fit_min_l = sympy.lambdify(var, y_fit_min, 'numpy')
+    y_fit_max_l = sympy.lambdify(var, y_fit_max, 'numpy')
+
+    x_uniform = numpy.linspace(numpy.min(x), numpy.max(x), 100)
+    return x_uniform, y_fit_l(x_uniform), y_fit_min_l(x_uniform), y_fit_max_l(x_uniform), p_vals, sigma
