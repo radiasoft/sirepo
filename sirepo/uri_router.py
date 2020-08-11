@@ -120,9 +120,9 @@ def init(app, simulation_db):
         register_api_module(importlib.import_module('sirepo.' + n))
     for f in pkio.sorted_glob(simulation_db.STATIC_FOLDER.join('en','*.html')):
         @sirepo.api_perm.allow_visitor
-        def x():
-            return sirepo.http_reply.gen_redirect(f'/en/plans.html')
-        _add_api_func(f'api_{f.purebasename}', x)
+        def x(filename=f):
+            return sirepo.http_reply.gen_redirect(f'/en/{filename.basename}')
+        _add_api_func(f'{_FUNC_PREFIX}{f.purebasename}', x)
     _init_uris(app, simulation_db)
 
     sirepo.http_request.init(
