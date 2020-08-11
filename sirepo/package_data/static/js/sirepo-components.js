@@ -2194,7 +2194,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
               '</div>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($element, $scope) {
             $scope.fileUploadError = '';
             $scope.isUploading = false;
             $scope.title = $scope.title || 'Import ZIP File';
@@ -2220,6 +2220,8 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                             $scope.fileUploadError = data.error;
                             // used by sub components to display additional data entry fields
                             $scope.errorData = data;
+                            // clear input file to avoid Chrome bug if corrected file is re-uploaded
+                            $($element).find('#file-import').val('');
                         }
                         else {
                             $('#simulation-import').modal('hide');
