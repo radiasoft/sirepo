@@ -329,7 +329,7 @@ class _TestClient(flask.testing.FlaskClient):
         self.sr_sim_type_set(sim_type)
         return self.__req(
             'root',
-            {'simulation_type': self.sr_sim_type},
+            {'path_info': self.sr_sim_type},
             None,
             self.get,
             raw_response=True,

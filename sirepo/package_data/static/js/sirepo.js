@@ -1845,7 +1845,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     self.globalRedirectRoot = function() {
         self.globalRedirect(
             'root',
-            {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
+            {'<path_info>': SIREPO.APP_SCHEMA.simulationType}
         );
     };
 

@@ -5,6 +5,7 @@ u"""uri formatting
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkdebug import pkdp
 import pykern.pkinspect
 import re
 
@@ -78,6 +79,10 @@ def local_route(sim_type, route_name=None, params=None, query=None):
                 continue
         u += '/' + _to_uri(params[p])
     return app_root(t) + '#' + u + _query(query)
+
+
+def root_redirect(path):
+    return simulation_db.SCHEMA_COMMON.rootRedirectUri.get(path)
 
 
 def server_route(route_or_uri, params, query):

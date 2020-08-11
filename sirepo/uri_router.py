@@ -116,7 +116,7 @@ def init(app, simulation_db):
 
     for n in _REQUIRED_MODULES + tuple(sorted(feature_config.cfg().api_modules)):
         register_api_module(importlib.import_module('sirepo.' + n))
-    _init_uris(app, simulation_db)
+    _init_uris(app, simulation_db, feature_config.cfg().sim_types)
 
     sirepo.http_request.init(
         simulation_db=simulation_db,
@@ -212,7 +212,7 @@ def _dispatch(path):
                     raise sirepo.util.raise_not_found('{}: uri missing parameter ({})', path, p.name)
                 break
             if p.is_path_info:
-                kwargs[p.name] = '/'.join(parts)
+                kwargs[p.name] = '/'.join([x.lstrip(_PATH_INFO_CHAR) for x in parts])
                 parts = None
                 break
             kwargs[p.name] = parts.pop(0)
@@ -229,7 +229,7 @@ def _dispatch_empty():
     return _dispatch(None)
 
 
-def _init_uris(app, simulation_db):
+def _init_uris(app, simulation_db, sim_types):
     global _default_route, _empty_route, srunit_uri, _api_to_route, _uri_to_route
 
     assert not _default_route, \
@@ -257,6 +257,10 @@ def _init_uris(app, simulation_db):
     assert _default_route, \
         'missing default route'
     _empty_route = _uri_to_route.en
+    i = set(_uri_to_route.keys()).union(sim_types).intersection(
+        simulation_db.SCHEMA_COMMON.rootRedirectUri.keys(),
+    )
+    assert not i, f'duplicate uris={i}'
     app.add_url_rule('/<path:path>', '_dispatch', _dispatch, methods=('GET', 'POST'))
     app.add_url_rule('/', '_dispatch_empty', _dispatch_empty, methods=('GET', 'POST'))
 

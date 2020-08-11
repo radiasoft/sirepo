@@ -390,7 +390,7 @@ def api_robotsTxt():
         # We include dev so we can test
         if pkconfig.channel_in('prod', 'dev'):
             u = [
-                sirepo.uri.api('root', params={'simulation_type': x})
+                sirepo.uri.api('root', params={'path_info': x})
                 for x in sorted(feature_config.cfg().sim_types)
             ]
         else:
@@ -402,15 +402,14 @@ def api_robotsTxt():
 
 
 @api_perm.allow_visitor
-def api_root(simulation_type):
+def api_root(path_info):
     try:
-        req = http_request.parse_params(type=simulation_type)
+        req = http_request.parse_params(type=path_info)
     except AssertionError:
-        if simulation_type == 'warp':
-            return http_reply.gen_redirect(sirepo.uri.app_root('warppba'))
-        if simulation_type == 'fete':
-            return http_reply.gen_redirect(sirepo.uri.app_root('warpvnd'))
-        sirepo.util.raise_not_found('Invalid simulation_type={}', simulation_type)
+        u = sirepo.uri.root_redirect(path_info)
+        if u:
+            return http_reply.gen_redirect(u)
+        sirepo.util.raise_not_found(f'uknown path={path_info}')
     return _render_root_page('index', PKDict(app_name=req.type))
 
 
