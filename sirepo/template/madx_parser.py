@@ -16,17 +16,17 @@ import sirepo.sim_data
 class MadXParser(lattice.LatticeParser):
     def __init__(self):
         self.ignore_commands = set([
-            'aperture', 'assign', 'beta0', 'coguess', 'constraint',
+            'aperture', 'assign', 'call', 'coguess',
             'correct', 'create', 'ealign', 'efcomp', 'emit',
-            'endedit', 'endmatch', 'eoption', 'esave', 'exec', 'fill',
-            'global', 'install', 'jacobian', 'lmdif', 'lmdif',
-            'makethin', 'match', 'observe', 'option', 'plot', 'print',
+            'endedit', 'eoption', 'esave', 'exec', 'fill',
+            'install',
+            'makethin', 'plot', 'print',
             'readtable', 'reflect', 'return', 'run', 'save',
-            'savebeta', 'select', 'select_ptc_normal', 'seqedit',
-            'set', 'setplot', 'setvars', 'setvars_lin', 'show',
-            'simplex', 'sixtrack', 'sodd', 'start', 'stop', 'survey',
+            'select_ptc_normal', 'seqedit',
+            'setplot', 'setvars', 'setvars_lin',
+            'simplex', 'sixtrack', 'start', 'stop', 'survey',
             'sxfread', 'sxfwrite', 'system', 'touschek', 'use_macro',
-            'usekick', 'usemonitor', 'value', 'vary', 'weight',
+            'usekick', 'usemonitor', 'value', 'weight',
             'wire', 'write',
         ])
         super().__init__(sirepo.sim_data.get_class('madx'))
@@ -44,7 +44,7 @@ class MadXParser(lattice.LatticeParser):
         return res
 
     def __convert_references_to_ids(self):
-        util = lattice.LatticeUtil(self.data, self.schema);
+        util = lattice.LatticeUtil(self.data, self.schema)
         name_to_id = PKDict()
         for id in util.id_map:
             name = util.id_map[id].name
@@ -77,7 +77,7 @@ class MadXParser(lattice.LatticeParser):
             models=self.data.models,
         )
         drifts = self._compute_drifts(code_var)
-        util = lattice.LatticeUtil(data, self.schema);
+        util = lattice.LatticeUtil(data, self.schema)
         for seq in data.models.sequences:
             beamline = PKDict(
                 name=seq.name,
@@ -117,33 +117,57 @@ def parse_file(lattice_text, downcase_variables=False):
     return MadXParser().parse_file(lattice_text, downcase_variables)
 
 
-def parse_tfs_file(tfs_file, header_only=False):
+def parse_tfs_page_info(tfs_file):
+    # returns an array of page info: name, turn, s
+    col_names = parse_tfs_file(tfs_file, header_only=True)
+    turn_idx = col_names.index('turn')
+    s_idx = col_names.index('s')
+    res = []
+    mode = 'segment'
+    with pkio.open_text(tfs_file) as f:
+        for line in f:
+            if mode == 'segment' and re.search(r'^\#segment\s', line):
+                name = re.split(r'\s+', line.strip())[-1]
+                res.append(PKDict(
+                    name=name,
+                ))
+                mode = 'data'
+            elif mode == 'data' and re.search(r'^\s+\S', line):
+                data = re.split(r'\s+', line.strip())
+                res[-1].update(PKDict(
+                    turn=data[turn_idx],
+                    s=data[s_idx],
+                ))
+                mode = 'segment'
+    return res
+
+
+def parse_tfs_file(tfs_file, header_only=False, want_page=-1):
     mode = 'header'
     col_names = []
     rows = []
+    current_page = -1
     with pkio.open_text(tfs_file) as f:
         for line in f:
             if mode == 'header':
                 # header row starts with *
-                if re.search('^\*\s', line):
-                    col_names = re.split('\s+', line)
+                if re.search(r'^\*\s', line):
+                    col_names = re.split(r'\s+', line.strip())
                     col_names = col_names[1:]
                     mode = 'data'
                     if header_only:
                         return [x.lower() for x in col_names]
             elif mode == 'data':
                 # data rows after header, start with blank
-                if re.search('^\s+\S', line):
-                    data = re.split('\s+', line)
-                    rows.append(data[1:])
+                if re.search(r'^\s+\S', line) and want_page == current_page:
+                    data = re.split(r'\s+', line.strip())
+                    rows.append(data)
+                elif want_page >= 0 and re.search(r'^\#segment\s', line):
+                    current_page += 1
     res = PKDict(map(lambda x: (x.lower(), []), col_names))
     for i in range(len(col_names)):
         name = col_names[i].lower()
         if name:
             for row in rows:
                 res[name].append(row[i])
-    # special case if dy and/or dpy are missing, default to 0s
-    for opt_col in ('dy', 'dpy'):
-        if opt_col not in res and 'dx' in res:
-            res[opt_col] = ['0'] * len(res['dx'])
     return res

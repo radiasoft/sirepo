@@ -394,11 +394,6 @@
         "command_ptc_observe": {
             "place": ["PLACE", "OptionalString", "", "The name of observation point."]
         },
-        "command_savebeta": {
-            "label": ["LABEL", "OptionalString", "", "Name of the label."],
-            "place": ["PLACE", "OptionalString", "", "The location of the mark."],
-            "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "", "Name of the expaned sequence."]
-        },
         "command_ptc_select": {
             "table": ["TABLE", "OptionalString", "", "The name of the table where values should be stored."],
             "column": ["COLUMN", "OptionalString", "", "The name of the column in the table where values should be stored."],
@@ -461,6 +456,11 @@
         },
         "command_resbeam": {
             "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", ""]
+        },
+        "command_savebeta": {
+            "label": ["LABEL", "OptionalString", "", "Name of the label."],
+            "place": ["PLACE", "OptionalString", "", "The location of the mark."],
+            "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "", "Name of the expaned sequence."]
         },
         "command_select": {
             "class": ["CLASS", "OptionalString", "", "The class of elements to be selected."],
@@ -1146,6 +1146,9 @@
             "angle": ["ANGLE [rad]", "RPNValue", 0.0, "The rotation angle."]
         }
     },
+    "strings": {
+        "completionState": ""
+    },
     "view": {
         "beamline": {
             "title": "Beamline",
@@ -1219,34 +1222,19 @@
             "model": "elementAnimation",
             "title": "Output Report",
             "advanced": [
-                ["Main", [
-                    [
-                        ["Horizontal", [
-                            "x"
-                        ]],
-                        ["Vertical", [
-                            "y1"
-                        ]]
-                    ],
-                    "framesPerSecond",
-                    "histogramBins",
-                    "aspectRatio",
-                    "colorMap",
-                    "notes"
-                ]],
-                ["Plot Range", [
-                    "plotRangeType",
-                    [
-                        ["Horizontal", [
-                            "horizontalSize",
-                            "horizontalOffset"
-                        ]],
-                        ["Vertical", [
-                            "verticalSize",
-                            "verticalOffset"
-                        ]]
-                    ]
-                ]]
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y1"
+                    ]]
+                ],
+                "framesPerSecond",
+                "histogramBins",
+                "aspectRatio",
+                "colorMap",
+                "notes"
             ]
         },
         "plotFrameAnimation": {
@@ -1386,13 +1374,6 @@
                 "dq2"
             ]
         },
-        "command_lmdif": {
-            "title": "lmdif",
-            "advanced": [
-                "calls",
-                "tolerance"
-            ]
-        },
         "command_jacobian": {
             "title": "jacobian",
             "advanced": [
@@ -1403,6 +1384,13 @@
                 "cool",
                 "balance",
                 "random"
+            ]
+        },
+        "command_lmdif": {
+            "title": "lmdif",
+            "advanced": [
+                "calls",
+                "tolerance"
             ]
         },
         "command_match": {
@@ -1454,15 +1442,6 @@
                 "warn"
             ]
         },
-        "command_ptc_create_universe": {
-            "title": "ptc_create_universe",
-            "advanced": [
-                "sector_nmul_max",
-                "sector_nmul",
-                "ntpsa",
-                "symprint"
-            ]
-        },
         "command_ptc_create_layout": {
             "title": "ptc_create_layout",
             "fieldsPerTab": 8,
@@ -1479,6 +1458,15 @@
                 "thin",
                 "xbend",
                 "even"
+            ]
+        },
+        "command_ptc_create_universe": {
+            "title": "ptc_create_universe",
+            "advanced": [
+                "sector_nmul_max",
+                "sector_nmul",
+                "ntpsa",
+                "symprint"
             ]
         },
         "command_ptc_end": {
@@ -1500,6 +1488,17 @@
             "title": "ptc_observe",
             "advanced": [
                 "place"
+            ]
+        },
+        "command_ptc_select": {
+            "title": "ptc_select",
+            "advanced": [
+                "table",
+                "column",
+                "polynomial",
+                "monomial",
+                "parametric",
+                "quantity"
             ]
         },
         "command_ptc_setswitch": {
@@ -1534,15 +1533,46 @@
                 "phit"
             ]
         },
-        "command_ptc_select": {
-            "title": "ptc_select",
+        "command_ptc_track": {
+            "title": "ptc_track",
+            "fieldsPerTab": 8,
             "advanced": [
-                "table",
-                "column",
-                "polynomial",
-                "monomial",
-                "parametric",
-                "quantity"
+                "deltap",
+                "icase",
+                "closed_orbit",
+                "element_by_element",
+                "turns",
+                "maxaper",
+                "norm_no",
+                "file",
+                "norm_out",
+                "ffile",
+                "radiation",
+                "radiation_model1",
+                "radiation_energy_loss",
+                "radiation_quad",
+                "beam_envelope",
+                "space_charge"
+            ]
+        },
+        "command_ptc_track_end": {
+            "title": "ptc_track_end",
+            "advanced": []
+        },
+        "command_ptc_trackline": {
+            "title": "ptc_trackline",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "turns",
+                "file",
+                "everystep",
+                "gcs"
+            ]
+        },
+        "command_resbeam": {
+            "title": "resbeam",
+            "advanced": [
+                "sequence"
             ]
         },
         "command_savebeta": {
@@ -1568,42 +1598,6 @@
                 "slice",
                 "thick"
             ]
-        },
-        "command_ptc_track": {
-            "title": "ptc_track",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "deltap",
-                "icase",
-                "closed_orbit",
-                "element_by_element",
-                "turns",
-                "maxaper",
-                "norm_no",
-                "file",
-                "norm_out",
-                "ffile",
-                "radiation",
-                "radiation_model1",
-                "radiation_energy_loss",
-                "radiation_quad",
-                "beam_envelope",
-                "space_charge"
-            ]
-        },
-        "command_ptc_trackline": {
-            "title": "ptc_trackline",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "turns",
-                "file",
-                "everystep",
-                "gcs"
-            ]
-        },
-        "command_ptc_track_end": {
-            "title": "ptc_track_end",
-            "advanced": []
         },
         "command_set": {
             "title": "set",
@@ -1631,12 +1625,6 @@
                 "print_all",
                 "print_at_end",
                 "start_stop"
-            ]
-        },
-        "command_resbeam": {
-            "title": "resbeam",
-            "advanced": [
-                "sequence"
             ]
         },
         "command_twiss": {
@@ -1695,9 +1683,11 @@
                 "r22"
             ]
         },
-        "command_value": {
+        "command_use": {
+            "title": "Use",
             "advanced": [
-                "expression"
+                "sequence",
+                "period"
             ]
         },
         "command_vary": {
@@ -1709,21 +1699,6 @@
                 "upper",
                 "slope",
                 "opt"
-            ]
-        },
-        "ptcAnimation": {
-            "model": "elementAnimation",
-            "title": "PTC Track",
-            "advanced": [
-                [
-                    ["Horizontal",
-                        ["x"]
-                    ],
-                    ["Vertical",
-                        ["y"]
-                    ]
-                ],
-                "histogramBins"
             ]
         },
         "simulationSettings": {
