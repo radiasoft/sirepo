@@ -24,24 +24,7 @@ import socket
 import subprocess
 import time
 
-_cfg = None
-
-
-def cfg():
-    global _cfg
-    if not _cfg:
-        _cfg = pkconfig.init(
-            ip=('0.0.0.0', _cfg_ip, 'what IP address to open'),
-            nginx_proxy_port=(8080, _cfg_int(5001, 32767), 'port on which nginx_proxy listens'),
-            port=(8000, _cfg_int(5001, 32767), 'port on which uwsgi or http listens'),
-            processes=(1, _cfg_int(1, 16), 'how many uwsgi processes to start'),
-            run_dir=(None, str, 'where to run the program (defaults db_dir)'),
-            # uwsgi got hung up with 1024 threads on a 4 core VM with 4GB
-            # so limit to 128, which is probably more than enough with
-            # this application.
-            threads=(10, _cfg_int(1, 128), 'how many uwsgi threads in each process'),
-        )
-    return _cfg
+__cfg = None
 
 
 def flask():
@@ -52,16 +35,16 @@ def flask():
         sirepo.pkcli.setup_dev.default_command()
         # above will throw better assertion, but just in case
         assert pkconfig.channel_in('dev')
-        app = server.init(use_reloader=True)
+        app = server.init(use_reloader=_cfg().use_reloader)
         # avoid WARNING: Do not use the development server in a production environment.
         app.env = 'development'
         import werkzeug.serving
         werkzeug.serving.click = None
         app.run(
-            host=cfg().ip,
-            port=cfg().port,
+            host=_cfg().ip,
+            port=_cfg().port,
             threaded=True,
-            use_reloader=True,
+            use_reloader=_cfg().use_reloader,
         )
 
 
@@ -127,7 +110,7 @@ def nginx_proxy():
         f = run_dir.join('default.conf')
         pkjinja.render_resource(
             'nginx_proxy.conf',
-            PKDict(cfg()).pkupdate(run_dir=str(d)),
+            PKDict(_cfg()).pkupdate(run_dir=str(d)),
             output=f,
         )
         cmd = [
@@ -142,7 +125,7 @@ def uwsgi():
     """Starts UWSGI server"""
     run_dir = _run_dir()
     with pkio.save_chdir(run_dir):
-        values = cfg().copy()
+        values = _cfg().copy()
         values['logto'] = None if pkconfig.channel_in('dev') else str(run_dir.join('uwsgi.log'))
         # uwsgi.py must be first, because values['uwsgi_py'] referenced by uwsgi.yml
         for f in ('uwsgi.py', 'uwsgi.yml'):
@@ -151,6 +134,24 @@ def uwsgi():
             pkjinja.render_resource(f, values, output=output)
         cmd = ['uwsgi', '--yaml=' + values['uwsgi_yml']]
         pksubprocess.check_call_with_signals(cmd)
+
+
+def _cfg():
+    global __cfg
+    if not __cfg:
+        __cfg = pkconfig.init(
+            ip=('0.0.0.0', _cfg_ip, 'what IP address to open'),
+            nginx_proxy_port=(8080, _cfg_int(5001, 32767), 'port on which nginx_proxy listens'),
+            port=(8000, _cfg_int(5001, 32767), 'port on which uwsgi or http listens'),
+            processes=(1, _cfg_int(1, 16), 'how many uwsgi processes to start'),
+            run_dir=(None, str, 'where to run the program (defaults db_dir)'),
+            # uwsgi got hung up with 1024 threads on a 4 core VM with 4GB
+            # so limit to 128, which is probably more than enough with
+            # this application.
+            threads=(10, _cfg_int(1, 128), 'how many uwsgi threads in each process'),
+            use_reloader=(pkconfig.channel_in('dev'), bool, 'use the Flask reloader'),
+        )
+    return __cfg
 
 
 def _cfg_emails(value):
@@ -193,6 +194,6 @@ def _run_dir():
     from sirepo import server
     import sirepo.srdb
 
-    if not isinstance(cfg().run_dir, type(py.path.local())):
-        cfg().run_dir = pkio.mkdir_parent(cfg().run_dir) if cfg().run_dir else sirepo.srdb.root()
-    return cfg().run_dir
+    if not isinstance(_cfg().run_dir, type(py.path.local())):
+        _cfg().run_dir = pkio.mkdir_parent(_cfg().run_dir) if _cfg().run_dir else sirepo.srdb.root()
+    return _cfg().run_dir
