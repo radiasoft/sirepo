@@ -110,7 +110,7 @@ _sims = []
 def cfg():
     global _cfg
     if not _cfg:
-        c = sirepo.pkcli.service.cfg()
+        c = sirepo.pkcli.service._cfg()
         _cfg = pkconfig.init(
             emails=(['one@radia.run', 'two@radia.run', 'three@radia.run'], list, 'emails to test'),
             server_uri=(

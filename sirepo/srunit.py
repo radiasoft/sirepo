@@ -143,7 +143,7 @@ class UwsgiClient(PKDict):
 
         r = requests.post(
             (
-                f'http://{service.cfg().ip}:{service.cfg().nginx_proxy_port}'
+                f'http://{service._cfg().ip}:{service._cfg().nginx_proxy_port}'
                 f'{self._server_route(route_or_uri)}'
             ),
             json=data,
