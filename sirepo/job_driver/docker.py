@@ -264,9 +264,9 @@ class DockerDriver(job_driver.DriverBase):
 
     def _start_idle_timeout(self):
         async def _kill_if_idle():
+            self._idle_timer = None
             if not self.ops:
                 pkdlog('{}', self)
-                self._idle_timer = None
                 await self.kill()
             else:
                 self._start_idle_timeout()
