@@ -1178,11 +1178,11 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
               '<div class="modal-dialog modal-lg">',
                 '<div class="modal-content">',
                   '<div class="modal-header bg-info">',
-  	            '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
                     '<div data-help-button="{{ helpTopic }}"></div>',
                     '<div data-ng-if="::hasHelpVideo" data-video-button="{{ viewName }}"></div>',
-	            '<span class="lead modal-title text-info">{{ modalTitle }}</span>',
-	          '</div>',
+                    '<span class="lead modal-title text-info">{{ modalTitle }}</span>',
+                  '</div>',
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
                       '<div class="row">',
@@ -1925,7 +1925,6 @@ SIREPO.app.directive('reportPanel', function(appState) {
               '<button data-ng-if="notes()" class="close sr-help-icon notes" title="{{ notes() }}"><span class="glyphicon glyphicon-question-sign"></span></button>',
         ].join(''),
         controller: function($scope) {
-
             // random id for the keypress service to track
             $scope.reportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
 

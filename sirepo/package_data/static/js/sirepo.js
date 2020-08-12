@@ -2305,7 +2305,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             controller: controller,
             dots: '.',
             isReadyForModelChanges: false,
-            model: appState.appService.computeModel(controller.simAnalysisModel || null),
+            model: controller.simComputeModel || appState.appService.computeModel(controller.simAnalysisModel || null),
             percentComplete: 0,
             simulationQueueItem: null,
             timeData: {},

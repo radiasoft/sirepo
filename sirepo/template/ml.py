@@ -7,6 +7,7 @@ u"""ML execution template.
 from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
@@ -21,6 +22,9 @@ _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 _OUTPUT_FILE = PKDict(
     fitCSVFile='fit.csv',
+    knnClassificationFile='classification.json',
+    knnConfusionFile='confusion.json',
+    knnErrorFile='error.npy',
     predictFile='predict.npy',
     scaledFile='scaled.npy',
     testFile='test.npy',
@@ -34,6 +38,11 @@ def background_percent_complete(report, run_dir, is_running):
         percentComplete=0,
         frameCount=0,
     )
+    if report == 'classificationAnimation' and not is_running:
+        return PKDict(
+            percentComplete=100,
+            frameCount=1,
+        )
     fit_csv_file = run_dir.join(_OUTPUT_FILE.fitCSVFile)
     if fit_csv_file.exists():
         line = _read_last_csv_line(fit_csv_file)
@@ -81,8 +90,15 @@ def save_sequential_report_data(run_dir, sim_in):
 
 
 def sim_frame(frame_args):
-    if frame_args.frameReport == 'epochAnimation':
+    r = frame_args.frameReport
+    if r == 'epochAnimation':
         return _epoch_animation(frame_args)
+    elif r == 'knnClassificationMetricsAnimation':
+        return _knn_classification_metrics_animation(frame_args)
+    elif r == 'knnErrorRateAnimation':
+        return _knn_error_rate_animation(frame_args)
+    elif r == 'knnConfusionMatrixAnimation':
+        return _knn_confusion_matrix_animation(frame_args)
     return _fit_animation(frame_args)
 
 
@@ -231,10 +247,11 @@ def _generate_parameters_file(data):
     report = data.get('report', '')
     res, v = template_common.generate_parameters_file(data)
     v.dataFile = _filename(data.models.dataFile.file)
-    v.update(_OUTPUT_FILE).update(
+    v.update(
         layerImplementationNames=_layer_implementation_list(data),
         neuralNetLayers=data.models.neuralNet.layers,
         inputDim=data.models.columnInfo.inputOutput.count('input'),
+        **_OUTPUT_FILE
     )
     v.columnTypes = '[' + ','.join([ "'" + v + "'" for v in data.models.columnInfo.inputOutput]) + ']'
     res += template_common.render_jinja(SIM_TYPE, v, 'scale.py')
@@ -247,6 +264,8 @@ def _generate_parameters_file(data):
     if 'partitionColumnReport' in report:
         res += template_common.render_jinja(SIM_TYPE, v, 'save-partition.py')
         return res
+    if report == 'classificationAnimation':
+        return res + template_common.render_jinja(SIM_TYPE, v, 'knn.py')
     res += template_common.render_jinja(SIM_TYPE, v, 'build-model.py')
     res += template_common.render_jinja(SIM_TYPE, v, 'train.py')
     return res
@@ -264,6 +283,56 @@ def _histogram_plot(values, vrange):
     x.insert(0, x[0])
     y.insert(0, 0)
     return x, y
+
+
+def _knn_classification_metrics_animation(frame_args):
+    def _get_lables():
+        l = []
+        for k in d:
+            if not isinstance(d[k], PKDict):
+                continue
+            for x in d[k]:
+                if x not in l:
+                    l.append(x)
+        return l
+
+    def _get_matrix():
+        r = []
+        for k in d:
+            k = str(k)
+            if not isinstance(d[k], PKDict):
+                continue
+            x = [k]
+            x.extend(list(d[k].values()))
+            r.append(x)
+        return r
+
+    d = pkjson.load_any(frame_args.run_dir.join(_OUTPUT_FILE.knnClassificationFile))
+    return PKDict(
+        labels=_get_lables(),
+        matrix=_get_matrix(),
+    )
+
+
+def _knn_confusion_matrix_animation(frame_args):
+    r = pkjson.load_any(frame_args.run_dir.join(_OUTPUT_FILE.knnConfusionFile))
+    r.title = f'K={r.k}'
+    for i, l in enumerate(r.labels):
+        r.matrix[i].insert(0, l)
+    return r
+
+
+def _knn_error_rate_animation(frame_args):
+    v = np.load(str(frame_args.run_dir.join(_OUTPUT_FILE.knnErrorFile)))
+    return _report_info(
+        v[:, 0],
+        [PKDict(
+            points=v[:, 1].tolist(),
+            label='Mean Error',
+        )],
+    ).update(PKDict(
+        x_label='K Value',
+    ))
 
 
 def _layer_implementation_list(data):

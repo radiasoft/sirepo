@@ -5,16 +5,34 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.SINGLE_FRAME_ANIMATION = ['epochAnimation'];
+    SIREPO.appReportTypes = [
+        '<div data-ng-switch-when="classificationMetrics" data-table-panel="" data-model-name="{{ modelKey }}" class="sr-plot"></div>',
+        '<div data-ng-switch-when="confusionMatrix" data-table-panel="" data-model-name="{{ modelKey }}" class="sr-plot"></div>',
+    ].join('');
 });
 
 SIREPO.app.factory('mlService', function(appState) {
     var self = {};
+
+    self.appModeIn = function(modes) {
+        if(! appState.isLoaded()) {
+            return;
+        }
+        return modes.includes(appState.applicationState().dataFile.appMode);
+    };
 
     self.columnReportName = function(idx) {
         return 'fileColumnReport' + idx;
     };
 
     self.computeModel = function(analysisModel) {
+        if ([
+            'knnClassificationMetricsAnimation',
+            'knnConfusionMatrixAnimation',
+            'knnErrorRateAnimation'
+        ].includes(analysisModel)) {
+            return 'classificationAnimation';
+        }
         return 'animation';
     };
 
@@ -45,38 +63,38 @@ SIREPO.app.factory('mlService', function(appState) {
 
 SIREPO.app.directive('appFooter', function(mlService) {
     return {
-	restrict: 'A',
-	scope: {
+        restrict: 'A',
+        scope: {
             nav: '=appFooter',
-	},
+        },
         template: [
             '<div data-common-footer="nav"></div>',
             '<div data-import-dialog=""></div>',
-	].join(''),
+        ].join(''),
     };
 });
 
 SIREPO.app.directive('appHeader', function(appState, mlService) {
     return {
-	restrict: 'A',
-	scope: {
+        restrict: 'A',
+        scope: {
             nav: '=appHeader',
-	},
+        },
         template: [
             '<div data-app-header-brand="nav"></div>',
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
-  	        '<div data-sim-sections="">',
+                '<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'data\')}"><a href data-ng-click="nav.openSection(\'data\')"><span class="glyphicon glyphicon-picture"></span> Data Source</a></li>',
                   '<li class="sim-section" data-ng-if="hasFile() && isAnalysis()" data-ng-class="{active: nav.isActive(\'analysis\')}"><a href data-ng-click="nav.openSection(\'analysis\')"><span class="glyphicon glyphicon-tasks"></span> Analysis</a></li>',
                   '<li class="sim-section" data-ng-if="hasInputsAndOutputs() && ! isAnalysis()" data-ng-class="{active: nav.isActive(\'partition\')}"><a href data-ng-click="nav.openSection(\'partition\')"><span class="glyphicon glyphicon-scissors"></span> Partition</a></li>',
-                  '<li class="sim-section" data-ng-if="hasInputsAndOutputs() && ! isAnalysis()" data-ng-class="{active: nav.isActive(\'regression\')}"><a href data-ng-click="nav.openSection(\'regression\')"><span class="glyphicon glyphicon-qrcode"></span> Regression</a></li>',
-                  '<li class="sim-section" data-ng-if="hasInputsAndOutputs() && ! isAnalysis()" data-ng-class="{active: nav.isActive(\'classification\')}"><a href data-ng-click="nav.openSection(\'classification\')"><span class="glyphicon glyphicon-tag"></span> Classification</a></li>',
-		'</div>',
+                  '<li class="sim-section" data-ng-if="hasInputsAndOutputs() && appModeIn([\'regression\'])" data-ng-class="{active: nav.isActive(\'regression\')}"><a href data-ng-click="nav.openSection(\'regression\')"><span class="glyphicon glyphicon-qrcode"></span> Regression</a></li>',
+                  '<li class="sim-section" data-ng-if="hasInputsAndOutputs() && appModeIn([\'classification\'])" data-ng-class="{active: nav.isActive(\'classification\')}"><a href data-ng-click="nav.openSection(\'classification\')"><span class="glyphicon glyphicon-tag"></span> Classification</a></li>',
+                '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
-		//  '<div>App-specific setting item</div>',
+               //  '<div>App-specific setting item</div>',
               '</app-settings>',
               '<app-header-right-sim-list>',
                 '<ul class="nav navbar-nav sr-navbar-right">',
@@ -84,8 +102,9 @@ SIREPO.app.directive('appHeader', function(appState, mlService) {
                 '</ul>',
               '</app-header-right-sim-list>',
             '</div>',
-	].join(''),
+        ].join(''),
         controller: function($scope) {
+            $scope.appModeIn = mlService.appModeIn;
             $scope.hasFile = function() {
                 return appState.isLoaded() && appState.applicationState().dataFile.file;
             };
@@ -140,9 +159,14 @@ SIREPO.app.controller('DataController', function (appState, mlService, panelStat
     }
 
     function processAppMode() {
-        var dataFile = appState.models.dataFile;
-        panelState.showField('dataFile', 'inputsScaler', dataFile.appMode == 'regression');
-        panelState.showField('dataFile', 'outputsScaler', dataFile.appMode == 'regression');
+        const dataFile = appState.models.dataFile;
+        ['inputs', 'outputs'].forEach(t => {
+            panelState.showField(
+                'dataFile',
+                `${t}Scaler`,
+                ['regression', 'classification'].includes(dataFile.appMode)
+            );
+        });
     }
 
     self.hasDataFile = function() {
@@ -156,8 +180,26 @@ SIREPO.app.controller('DataController', function (appState, mlService, panelStat
     });
 });
 
-SIREPO.app.controller('ClassificationController', function() {
-    var self = this;
+SIREPO.app.controller('ClassificationController', function(frameCache, persistentSimulation, $scope) {
+    let self = this;
+    self.simScope = $scope;
+    let errorMessage = '';
+    self.simComputeModel = 'classificationAnimation'; // TODO(e-carlin): try ending in compute and see what happens
+
+
+    self.simHandleStatus = function (data) {
+        errorMessage = data.error;
+        if (data.frameCount) {
+            frameCache.setFrameCount(data.frameCount);
+        }
+    };
+
+    self.simState = persistentSimulation.initSimulationState(self);
+
+    self.simState.errorMessage = function() {
+        return errorMessage;
+    };
+
 });
 
 SIREPO.app.controller('RegressionController', function (appState, frameCache, mlService, panelState, persistentSimulation, $scope) {
@@ -178,8 +220,7 @@ SIREPO.app.controller('RegressionController', function (appState, frameCache, ml
 
     function addFitReports() {
         var res = [];
-        var outputCount = columnTypeCount('output');
-        for (var i = 0; i < outputCount; i++) {
+        for (var i = 0; i < columnTypeCount('output'); i++) {
             var modelKey = 'fitAnimation' + i;
             if (! appState.models[modelKey]) {
                 appState.models[modelKey] = {
@@ -758,6 +799,64 @@ SIREPO.app.directive('partitionSelection', function(appState) {
             appState.watchModelFields(
                 $scope, ['partition.section0', 'partition.section1', 'partition.section2'],
                 processSection);
+        },
+    };
+});
+
+SIREPO.app.directive('tablePanel', function(plotting) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: "@"
+        },
+        template: [
+            '<div data-ng-if="! tableHeaders">',
+              '<div class="lead">&nbsp;</div>',
+            '</div>',
+            '<div data-ng-if="tableHeaders">',
+              '<div class="col-sm-12" style="margin-top: 1ex;">',
+                '<table class="table">',
+                  '<caption>{{ title }}</caption>',
+                  '<thead>',
+                    '<tr>',
+                      '<th data-ng-repeat="h in tableHeaders">{{h}}</th>',
+                    '</tr>',
+                  '</thead>',
+                  '<tr data-ng-repeat="r in tableRows" data-ng-bind-html=row(r)></tr>',
+                '</table>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $sce) {
+            $scope.row = (row) => {
+                const r = [...row];
+                let x = '<th>' + r.shift() + '</th>' + r.map(function (e) {
+                    return '<td>' + e + '</td>';
+                }).join('');
+                return $sce.trustAsHtml(x);
+            };
+
+            //TODO(pjm): these should be no-op in sirepo-plotting, for text reports
+            var noOp = () => {};
+            $scope.clearData = noOp;
+            $scope.destroy = noOp;
+            $scope.init = noOp;
+            $scope.resize = noOp;
+            $scope.load = (json) => {
+                $scope.tableHeaders = ['', ...json.labels];
+                const r = [];
+                for (let i = 0; i < json.matrix.length; i++) {
+                    r.push([...json.matrix[i]]);
+                }
+                $scope.tableRows = r;
+                $scope.title = json.title;
+            };
+            $scope.$on('framesCleared', function() {
+                $scope.tableHeaders = null;
+            });
+        },
+        link: function link(scope, element) {
+            plotting.linkPlot(scope, element);
         },
     };
 });
