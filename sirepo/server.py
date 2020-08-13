@@ -403,14 +403,12 @@ def api_robotsTxt():
 
 @api_perm.allow_visitor
 def api_root(path_info):
-    try:
-        req = http_request.parse_params(type=path_info)
-    except AssertionError:
-        u = sirepo.uri.root_redirect(path_info)
-        if u:
-            return http_reply.gen_redirect(u)
-        sirepo.util.raise_not_found(f'uknown path={path_info}')
-    return _render_root_page('index', PKDict(app_name=req.type))
+    if sirepo.template.is_sim_type(path_info):
+        return _render_root_page('index', PKDict(app_name=path_info))
+    u = sirepo.uri.unchecked_root_redirect(path_info)
+    if u:
+        return http_reply.gen_redirect(u)
+    sirepo.util.raise_not_found(f'uknown path={path_info}')
 
 
 @api_perm.require_user

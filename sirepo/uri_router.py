@@ -257,12 +257,23 @@ def _init_uris(app, simulation_db, sim_types):
     assert _default_route, \
         'missing default route'
     _empty_route = _uri_to_route.en
-    i = set(_uri_to_route.keys()).union(sim_types).intersection(
-        simulation_db.SCHEMA_COMMON.rootRedirectUri.keys(),
-    )
-    assert not i, f'duplicate uris={i}'
+    _validate_root_redirect_uris(_uri_to_route, simulation_db)
     app.add_url_rule('/<path:path>', '_dispatch', _dispatch, methods=('GET', 'POST'))
     app.add_url_rule('/', '_dispatch_empty', _dispatch_empty, methods=('GET', 'POST'))
+
+# TODO(e-carlin): sort
+def _validate_root_redirect_uris(uri_to_route, simulation_db):
+    from sirepo import feature_config
+
+    u = set(uri_to_route.keys())
+    t = feature_config.cfg().sim_types
+    r = set(simulation_db.SCHEMA_COMMON.rootRedirectUri.keys())
+    i = u & r | u & t | r & t
+    assert not i, f'rootRedirectUri, sim_types, and routes have overlapping uris={i}'
+    for x in r:
+        assert re.search(r'^[a-z]+$', x), \
+            f'rootRedirectUri={x} must consist of letters only'
+
 
 
 def _split_uri(uri):

@@ -81,10 +81,6 @@ def local_route(sim_type, route_name=None, params=None, query=None):
     return app_root(t) + '#' + u + _query(query)
 
 
-def root_redirect(path):
-    return simulation_db.SCHEMA_COMMON.rootRedirectUri.get(path)
-
-
 def server_route(route_or_uri, params, query):
     """Convert name to uri found in SCHEMA_COMMON
 
@@ -117,6 +113,10 @@ def server_route(route_or_uri, params, query):
         '{}: missing params'.format(route)
     route += _query(query)
     return route
+
+
+def unchecked_root_redirect(path):
+    return simulation_db.SCHEMA_COMMON.rootRedirectUri.get(path)
 
 
 def _query(query):
