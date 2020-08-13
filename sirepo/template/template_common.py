@@ -207,14 +207,12 @@ class JupyterNotebook(object):
     # meaningful to load arbitrary file name?
     def add_load_csv(self, widget_var):
         data_var = f'data_{widget_var}'
-        self.add_imports({'codecs': [], })
+        self.add_imports({'numpy': ['genfromtxt'], })
         self.add_code_cell(
             [
                 f'f = {widget_var}.value',
                 'f_name = next(iter(f.keys()))',
-                'lines = codecs.decode(f[f_name]["content"], encoding="utf-8").split("\\n")',
-                f'{data_var} = [line.split(",") for line in lines if line]',
-                f'{data_var} = numpy.array([list(map(float, p)) for p in {data_var}])',
+                f'{data_var} = numpy.genfromtxt(f_name, delimiter=\',\')',
             ]
         )
         return data_var
@@ -243,13 +241,13 @@ class JupyterNotebook(object):
         code.append('pyplot.show()')
         self.add_code_cell(code)
 
-    def add_widget(self, widget_type, widget_cfg):
+    def add_widget(self, widget_type, cfg):
         self.add_imports({'ipywidgets': []})
         n_widgets = len([w for w in self.widgets if w.type == widget_type])
         widget_var = f'{widget_type.lower()}_{n_widgets}'
         if not n_widgets:
             self.widgets.append(PKDict(name=widget_var, type=widget_type))
-        widget_kwargs = self._dict_to_kwargs_str(widget_cfg)
+        widget_kwargs = self._dict_to_kwargs_str(cfg)
         self.add_code_cell(
             [
                 f'{widget_var} = ipywidgets.{widget_type}({widget_kwargs})',
@@ -268,9 +266,8 @@ class JupyterNotebook(object):
 
     def _update(self):
         import_source = []
-
         pkgs = sorted(self.imports.keys())
-        for p in [pkg for pkg in pkgs if not len(self.imports[pkg])]:
+        for p in [pkg for pkg in pkgs]:
             import_source.append(
                 f'import {p}\n'
             )

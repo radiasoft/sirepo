@@ -375,11 +375,33 @@ def jupyter_notebook_for_model(data, model):
         template_common.render_jinja(SIM_TYPE, {}, name='analysis.py')
     ])
 
-    nb.add_markdown_cell(['## Load data file'])
+    data_var = 'data'
+    import csv
+    with open(str(_SIM_DATA.lib_file_abspath(_analysis_data_path(data)))) as f:
+        reader = csv.reader(f)
+        i = 0
+        data_code = [f'{data_var} = numpy.array([\\']
+        for row in reader:
+            i = i + 1
+            if i == 1:
+                continue
+            data_code.append(f'{row},')
+    data_code.append(']).astype(numpy.float)')
+    nb.add_markdown_cell(['## EXPORTED DATA'])
+    nb.add_code_cell(data_code)
+
+    nb.add_markdown_cell([
+        '## Load data file',
+        'Upload new data here'
+    ])
     f_widget_var = nb.add_widget('FileUpload', PKDict(description='Archive Data File'))
 
     nb.add_markdown_cell(['## Set up data'])
     f_data_var = nb.add_load_csv(f_widget_var)
+    nb.add_code_cell([
+        f'if {f_widget_var}.value:',
+        f'  {data_var} = {f_data_var}'
+    ])
 
     nb.add_markdown_cell(['## Analysis Plot'])
     col_info = data.models.analysisData.columnInfo
@@ -405,16 +427,17 @@ def jupyter_notebook_for_model(data, model):
                 y_var = f'y{i}'
                 continue
             y_index = _safe_index(col_info, int(rpt[y_var]))
+            y_label = col_info.names[y_index]
             y_info.append(PKDict(
                 y_var=y_var,
                 y_index=y_index,
-                y_label=col_info.names[y_index],
+                y_label=y_label,
                 style='line'
             ))
             i = i + 1
             y_var = f'y{i}'
-        x_points = f'{f_data_var}[:, {x_index}]' if not x_range else \
-            f'[x for x in {f_data_var}[:, {x_index}] if x >= {x_range[0]} and x <= {x_range[1]}]'
+        x_points = f'{data_var}[:, {x_index}]' if not x_range else \
+            f'[x for x in {data_var}[:, {x_index}] if x >= {x_range[0]} and x <= {x_range[1]}]'
         x_range_inds = f'([i for (i, x) in enumerate({x_var}) if x >= {x_range_var}[0]][0], \
          [i for (i, x) in enumerate({x_var}) if x <= {x_range_var}[1]][-1] + 1)' if x_range else \
             f'(0, len({x_var}))'
@@ -424,7 +447,7 @@ def jupyter_notebook_for_model(data, model):
             f'{x_range_inds_var} = {x_range_inds}',
         ]
         for cfg in y_info:
-            code.append(f'{cfg.y_var} = {f_data_var}[:, {cfg.y_index}][{x_range_inds_var}[0]:{x_range_inds_var}[1]]')
+            code.append(f'{cfg.y_var} = {data_var}[:, {cfg.y_index}][{x_range_inds_var}[0]:{x_range_inds_var}[1]]')
         nb.add_code_cell(code)
         if j == 0:
             # only do this once
@@ -436,8 +459,8 @@ def jupyter_notebook_for_model(data, model):
             ))
 
         if 'action' in rpt:
+            nb.add_markdown_cell([f'## {rpt.action} Plot'])
             if rpt.action == 'fft':
-                nb.add_markdown_cell(['## FFT Plot'])
                 # only 1 curve (for now?)
                 w_var = 'w'
                 y_norm_var = 'y_norm'
@@ -456,7 +479,6 @@ def jupyter_notebook_for_model(data, model):
                     title='FFT'
                 ))
             if rpt.action == 'fit':
-                nb.add_markdown_cell(['## Fit'])
                 x_fit_var = 'x_fit'
                 y_fit_var = 'y_fit'
                 y_max_var = 'y_fit_max'
@@ -481,9 +503,33 @@ def jupyter_notebook_for_model(data, model):
                     y_info=y_info,
                     title='Fit'
                 ))
-
             if rpt.action == 'cluster':
-                pkdp('CLUSTER!')
+                clusters_var = 'clusters'
+                cols = [idx for idx, f in enumerate(rpt.clusterFields) if f and idx < len(col_info.names)]
+                cfg = PKDict(
+                    min=rpt.clusterScaleMin,
+                    max=rpt.clusterScaleMax,
+                    count=rpt.clusterCount,
+                    method=rpt.clusterMethod,
+                    seed=rpt.clusterRandomSeed,
+                    dbscanEps=rpt.clusterDbscanEps,
+                    kmeansInit=rpt.clusterKmeansInit
+                )
+                nb.add_code_cell([
+                    f'{clusters_var} = compute_clusters({data_var}[:, {cols}], {cfg})'
+                ])
+                # can't add report because we don't know the result of compute_clusters
+                nb.add_code_cell([
+                    'pyplot.figure()',
+                    f'pyplot.xlabel(\'{x_label}\')',
+                    f'pyplot.ylabel(\'{y_label}\')',
+                    f'pyplot.title(\'Clusters\')',
+                    f'for idx in range({clusters_var}[\'count\']):',
+                    f'  cl_x = [x for i, x in enumerate({x_var}) if {clusters_var}[\'group\'][i] == idx]',
+                    f'  cl_y = [y for i, y in enumerate(y1) if {clusters_var}[\'group\'][i] == idx]',
+                    f'  pyplot.plot(cl_x, cl_y, \'.\')',
+                    'pyplot.show()'
+                ])
         j = j + 1
         rpt_name = f'analysisReport{j}'
     return nb.notebook
