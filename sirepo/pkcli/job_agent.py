@@ -54,6 +54,7 @@ def start():
 
     cfg = pkconfig.init(
         agent_id=pkconfig.Required(str, 'id of this agent'),
+        fastcgi_sock_dir=(pkio.py_path('/tmp'), pkio.py_path, 'directory of fastcfgi socket, must be less than 50 chars'),
         start_delay=(0, pkconfig.parse_seconds, 'delay startup in internal_test mode'),
         supervisor_uri=pkconfig.Required(
             str,
@@ -332,18 +333,18 @@ class _Dispatcher(PKDict):
         if not self.fastcgi_cmd:
             m = msg.copy()
             m.jobCmd = 'fastcgi'
-            self._fastcgi_file = 'job_cmd_fastcgi.sock'
+            self._fastcgi_file = cfg.fastcgi_sock_dir.join(
+                f'sirepo_job_cmd-{cfg.agent_id:8}.sock',
+            )
             self._fastcgi_msg_q = sirepo.tornado.Queue(1)
             pkio.unchecked_remove(self._fastcgi_file)
-            # Avoid OSError: AF_UNIX path too long (max=100)
-            # Use relative path
             m.fastcgiFile = self._fastcgi_file
             # Runs in a agent's directory, but chdir's to real runDirs
             m.runDir = pkio.py_path()
             # Kind of backwards, but it makes sense since we need to listen
             # so _do_fastcgi can connect
             self._fastcgi_remove_handler = tornado.netutil.add_accept_handler(
-                tornado.netutil.bind_unix_socket(self._fastcgi_file),
+                tornado.netutil.bind_unix_socket(str(self._fastcgi_file)),
                 self._fastcgi_accept,
             )
             # last thing, because of await: start fastcgi process

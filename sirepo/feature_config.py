@@ -12,6 +12,7 @@ from __future__ import absolute_import, division, print_function
 _NON_ALPHA_FOSS_CODES = frozenset((
     'elegant',
     'jspec',
+    'madx',
     'opal',
     'shadow',
     'srw',
@@ -25,7 +26,6 @@ _NON_ALPHA_FOSS_CODES = frozenset((
 #: Codes on dev and alpha
 _ALPHA_FOSS_CODES = frozenset((
     'irad',
-    'madx',
     'ml',
     'myapp',
     'radia',
