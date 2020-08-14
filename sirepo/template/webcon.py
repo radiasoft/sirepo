@@ -380,28 +380,30 @@ def jupyter_notebook_for_model(data, model):
     with open(str(_SIM_DATA.lib_file_abspath(_analysis_data_path(data)))) as f:
         reader = csv.reader(f)
         i = 0
-        data_code = [f'{data_var} = numpy.array([\\']
+        data_code = [f"{data_var} = numpy.array(["]
         for row in reader:
             i = i + 1
+            # skip header row
             if i == 1:
                 continue
-            data_code.append(f'{row},')
-    data_code.append(']).astype(numpy.float)')
-    nb.add_markdown_cell(['## EXPORTED DATA'])
-    nb.add_code_cell(data_code)
+            data_code.append(f"    {[float(col) for col in row]},")
+    data_code.append('])')
+    nb.add_markdown_cell(['## Exported Data'])
+    nb.add_code_cell(data_code, hide=True)
 
-    nb.add_markdown_cell([
-        '## Load data file',
-        'Upload new data here'
-    ])
-    f_widget_var = nb.add_widget('FileUpload', PKDict(description='Archive Data File'))
+    # Stick with uploaded data for now
+    #nb.add_markdown_cell([
+    #    '## Load data file',
+    #    'Upload new data here'
+    #])
+    #f_widget_var = nb.add_widget('FileUpload', PKDict(description='Archive Data File'))
 
-    nb.add_markdown_cell(['## Set up data'])
-    f_data_var = nb.add_load_csv(f_widget_var)
-    nb.add_code_cell([
-        f'if {f_widget_var}.value:',
-        f'  {data_var} = {f_data_var}'
-    ])
+    #nb.add_markdown_cell(['## Set up data'])
+    #f_data_var = nb.add_load_csv(f_widget_var)
+    #nb.add_code_cell([
+    #    f"if {f_widget_var}.value:",
+    #    f"  {data_var} = {f_data_var}"
+    #])
 
     nb.add_markdown_cell(['## Analysis Plot'])
     col_info = data.models.analysisData.columnInfo
@@ -420,11 +422,11 @@ def jupyter_notebook_for_model(data, model):
             x_range = (float(rpt.trimMin), float(rpt.trimMax))
         # many params like style are hard-coded - should move to schema?
         i = 1
-        y_var = f'y{i}'
+        y_var = f"y{i}"
         while y_var in rpt:
             if rpt[y_var] == 'none':
                 i = i + 1
-                y_var = f'y{i}'
+                y_var = f"y{i}"
                 continue
             y_index = _safe_index(col_info, int(rpt[y_var]))
             y_label = col_info.names[y_index]
@@ -435,19 +437,22 @@ def jupyter_notebook_for_model(data, model):
                 style='line'
             ))
             i = i + 1
-            y_var = f'y{i}'
-        x_points = f'{data_var}[:, {x_index}]' if not x_range else \
-            f'[x for x in {data_var}[:, {x_index}] if x >= {x_range[0]} and x <= {x_range[1]}]'
-        x_range_inds = f'([i for (i, x) in enumerate({x_var}) if x >= {x_range_var}[0]][0], \
-         [i for (i, x) in enumerate({x_var}) if x <= {x_range_var}[1]][-1] + 1)' if x_range else \
-            f'(0, len({x_var}))'
+            y_var = f"y{i}"
+        x_points = f"{data_var}[:, {x_index}]" if not x_range else \
+            f"[x for x in {data_var}[:, {x_index}] if x >= {x_range[0]} and \
+                x <= {x_range[1]}]"
+        x_range_inds = f"([i for (i, x) in enumerate({x_var}) if \
+            x >= {x_range_var}[0]][0], \
+         [i for (i, x) in enumerate({x_var}) if x <= {x_range_var}[1]][-1] + 1)" if \
+            x_range else f"(0, len({x_var}))"
         code = [
-            f'{x_var} = {x_points}',
-            f'{x_range_var} = {x_range}',
-            f'{x_range_inds_var} = {x_range_inds}',
+            f"{x_var} = {x_points}",
+            f"{x_range_var} = {x_range}",
+            f"{x_range_inds_var} = {x_range_inds}",
         ]
         for cfg in y_info:
-            code.append(f'{cfg.y_var} = {data_var}[:, {cfg.y_index}][{x_range_inds_var}[0]:{x_range_inds_var}[1]]')
+            code.append(f"{cfg.y_var} = \
+            {data_var}[:, {cfg.y_index}][{x_range_inds_var}[0]:{x_range_inds_var}[1]]")
         nb.add_code_cell(code)
         if j == 0:
             # only do this once
@@ -459,13 +464,15 @@ def jupyter_notebook_for_model(data, model):
             ))
 
         if 'action' in rpt:
-            nb.add_markdown_cell([f'## {rpt.action} Plot'])
+            # reset y_var to 1st data set
+            y_var = 'y1'
+            nb.add_markdown_cell([f"## {rpt.action} Plot"])
             if rpt.action == 'fft':
                 # only 1 curve (for now?)
                 w_var = 'w'
                 y_norm_var = 'y_norm'
                 nb.add_code_cell([
-                    f'{w_var}, {y_norm_var} = get_fft({x_var}, y1)'
+                    f"{w_var}, {y_norm_var} = get_fft({x_var}, {y_var})"
                 ])
                 y_info = [PKDict(
                     y_var=y_norm_var,
@@ -489,13 +496,23 @@ def jupyter_notebook_for_model(data, model):
                 prm = rpt.fitParameters
                 var = rpt.fitVariable
                 nb.add_code_cell([
-                    f'{x_fit_var}, {y_fit_var}, {y_min_var}, {y_max_var}, {p_vals_var}, {sigma_var} = fit_to_equation({x_var}[{x_range_inds_var}[0]:{x_range_inds_var}[1]], y1, \'{eqn}\', \'{var}\', \'{prm}\')'
+                    f"{x_fit_var}, {y_fit_var}, {y_min_var}, {y_max_var}, {p_vals_var},\
+                    {sigma_var} = fit_to_equation(\
+                        {x_var}[{x_range_inds_var}[0]:{x_range_inds_var}[1]],\
+                        y1, '{eqn}', '{var}', '{prm}\
+                    ')"
                 ])
                 y_info = [
-                    PKDict(y_var='y1', y_label='Data', style='scatter'),
-                    PKDict(y_var=y_fit_var, x_points=x_fit_var, y_label='Fit', style='line'),
-                    PKDict(y_var=y_max_var, x_points=x_fit_var, y_label='Max', style='line'),
-                    PKDict(y_var=y_min_var, x_points=x_fit_var, y_label='Min', style='line'),
+                    PKDict(y_var=y_var, y_label='Data', style='scatter'),
+                    PKDict(
+                        y_var=y_fit_var, x_points=x_fit_var, y_label='Fit', style='line'
+                    ),
+                    PKDict(
+                        y_var=y_max_var, x_points=x_fit_var, y_label='Max', style='line'
+                    ),
+                    PKDict(
+                        y_var=y_min_var, x_points=x_fit_var, y_label='Min', style='line'
+                    ),
                 ]
                 nb.add_report(PKDict(
                     x_var=x_var,
@@ -505,7 +522,8 @@ def jupyter_notebook_for_model(data, model):
                 ))
             if rpt.action == 'cluster':
                 clusters_var = 'clusters'
-                cols = [idx for idx, f in enumerate(rpt.clusterFields) if f and idx < len(col_info.names)]
+                cols = [idx for idx, f in enumerate(rpt.clusterFields) if f and \
+                        idx < len(col_info.names)]
                 cfg = PKDict(
                     min=rpt.clusterScaleMin,
                     max=rpt.clusterScaleMax,
@@ -516,22 +534,24 @@ def jupyter_notebook_for_model(data, model):
                     kmeansInit=rpt.clusterKmeansInit
                 )
                 nb.add_code_cell([
-                    f'{clusters_var} = compute_clusters({data_var}[:, {cols}], {cfg})'
+                    f"{clusters_var} = compute_clusters({data_var}[:, {cols}], {cfg})"
                 ])
                 # can't add report because we don't know the result of compute_clusters
                 nb.add_code_cell([
                     'pyplot.figure()',
-                    f'pyplot.xlabel(\'{x_label}\')',
-                    f'pyplot.ylabel(\'{y_label}\')',
-                    f'pyplot.title(\'Clusters\')',
-                    f'for idx in range({clusters_var}[\'count\']):',
-                    f'  cl_x = [x for i, x in enumerate({x_var}) if {clusters_var}[\'group\'][i] == idx]',
-                    f'  cl_y = [y for i, y in enumerate(y1) if {clusters_var}[\'group\'][i] == idx]',
-                    f'  pyplot.plot(cl_x, cl_y, \'.\')',
+                    f"pyplot.xlabel('{x_label}')",
+                    f"pyplot.ylabel('{y_label}')",
+                    f"pyplot.title('Clusters')",
+                    f"for idx in range({clusters_var}['count']):",
+                    f"  cl_x = [x for i, x in enumerate({x_var}) if \
+                        {clusters_var}['group'][i] == idx]",
+                    f"  cl_y = [y for i, y in enumerate({y_var}) if \
+                        {clusters_var}['group'][i] == idx]",
+                    f"  pyplot.plot(cl_x, cl_y, '.')",
                     'pyplot.show()'
                 ])
         j = j + 1
-        rpt_name = f'analysisReport{j}'
+        rpt_name = f"analysisReport{j}"
     return nb.notebook
 
 

@@ -160,6 +160,15 @@ class JupyterNotebook(object):
             )
         )
 
+    @classmethod
+    def _dict_to_kwargs_str(cls, d):
+        d_str = ''
+        for k in d:
+            v = f'\'{d[k]}\'' if isinstance(d[k], pykern.pkconfig.STRING_TYPES) \
+                else f'{d[k]}'
+            d_str += f'{k}={v},'
+        return d_str
+
     def __init__(self, sim_type, data):
         self.data = data
         self.notebook = JupyterNotebook._base_dict()
@@ -181,17 +190,21 @@ class JupyterNotebook(object):
 
         super(object, self).__init__()
 
-    def add_cell(self, cell_type, source_strings):
+    def add_cell(self, cell_type, source_strings, hide=False):
         assert cell_type in self._CELL_TYPES, 'Invalid cell type {}'.format(cell_type)
         cell = PKDict(
             cell_type=cell_type,
             metadata={},
             source=[s + ('\n' if s[-1] != '\n' else '') for s in source_strings]
         )
+        if hide:
+            cell.metadata['jupyter'] = {
+                'source_hidden': 'true'
+            }
         self.notebook.cells.append(cell)
 
-    def add_code_cell(self, source_strings):
-        self.add_cell('code', source_strings)
+    def add_code_cell(self, source_strings, hide=False):
+        self.add_cell('code', source_strings, hide=hide)
 
     # {<pkg>: [sub_pkg]}
     # just merge?
@@ -247,7 +260,7 @@ class JupyterNotebook(object):
         widget_var = f'{widget_type.lower()}_{n_widgets}'
         if not n_widgets:
             self.widgets.append(PKDict(name=widget_var, type=widget_type))
-        widget_kwargs = self._dict_to_kwargs_str(cfg)
+        widget_kwargs = JupyterNotebook._dict_to_kwargs_str(cfg)
         self.add_code_cell(
             [
                 f'{widget_var} = ipywidgets.{widget_type}({widget_kwargs})',
@@ -255,14 +268,6 @@ class JupyterNotebook(object):
             ]
         )
         return widget_var
-
-    def _dict_to_kwargs_str(self, d):
-        d_str = ''
-        for k in d:
-            v = f'\'{d[k]}\'' if isinstance(d[k], pykern.pkconfig.STRING_TYPES) \
-                else f'{d[k]}'
-            d_str += f'{k}={v},'
-        return d_str
 
     def _update(self):
         import_source = []
