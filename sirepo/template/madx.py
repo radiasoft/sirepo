@@ -346,40 +346,39 @@ def _extract_report_matchSummaryAnimation(data, run_dir, filename):
     )
 
 
-# def _extract_report_twissEllipseReport(data, run_dir):
-#     #TODO(pjm): use bunch twiss values, not command_twiss values
-#     m = _first_twiss_command(data)
-#     beam = _first_beam_command(data)
-#     r_model = data.models[data.report]
-#     dim = r_model.dim
-#     n_pts = 200
-#     theta = np.arange(0, 2. * np.pi * (n_pts / (n_pts - 1)), 2. * np.pi / n_pts)
-#     #TODO(pjm): get code_var value for alf, bet, d
-#     a = m[f'alf{dim}'] or 0
-#     b = m[f'bet{dim}'] or 0
-#     assert b > 0, f'TWISS parameter "bet{dim}" must be > 0'
-#     g = (1. + a * a) / b
-#     e = (beam[f'e{dim}'] or 1)
-#     phi = _twiss_ellipse_rotation(a, b)
-#     th = theta - phi
-#     mj = math.sqrt(e * b)
-#     mn = 1.0 / mj
-#     r = np.power(
-#         mn * np.cos(th) * np.cos(th) + mj * np.sin(th) * np.sin(th),
-#         -0.5
-#     )
-#     x = r * np.cos(theta)
-#     y = r * np.sin(theta)
-#     return template_common.parameter_plot(
-#         x.tolist(),
-#         [PKDict(field=dim, points=y.tolist(), label=f'{dim}\' [rad]')],
-#         {},
-#         PKDict(
-#             title=f'a{dim} = {a} b{dim} = {b} g{dim} = {g}',
-#             y_label='',
-#             x_label=f'{dim} [m]'
-#         )
-#     )
+def _extract_report_twissEllipseReport(data, run_dir):
+    #TODO(pjm): use bunch twiss values, not command_twiss values
+    beam = _first_beam_command(data)
+    r_model = data.models[data.report]
+    dim = r_model.dim
+    n_pts = 100
+    theta = np.arange(0, 2. * np.pi * (n_pts / (n_pts - 1)), 2. * np.pi / n_pts)
+    #TODO(pjm): get code_var value for alf, bet, d
+    a = float(data.models.bunch[f'alf{dim}']) or 0
+    b = float(data.models.bunch[f'bet{dim}']) or 0
+    assert b > 0, f'TWISS parameter "bet{dim}" must be > 0'
+    g = (1. + a * a) / b
+    e = (beam[f'e{dim}'] or 1)
+    phi = _twiss_ellipse_rotation(a, b)
+
+    # major, minor axes of ellipse
+    mj = np.sqrt(e * b)
+    mn = np.sqrt(e * g)
+
+    # apply rotation
+    x = mj * np.cos(theta) * np.sin(phi) + mn * np.sin(theta) * np.cos(phi)
+    y = mj * np.cos(theta) * np.cos(phi) - mn * np.sin(theta) * np.sin(phi)
+
+    return template_common.parameter_plot(
+        x.tolist(),
+        [PKDict(field=dim, points=y.tolist(), label=f'{dim}\' [rad]')],
+        {},
+        PKDict(
+            title=f'a{dim} = {a} b{dim} = {b} g{dim} = {g}',
+            y_label='',
+            x_label=f'{dim} [m]'
+        )
+    )
 
 
 def extract_report_twissReport(data, run_dir):
