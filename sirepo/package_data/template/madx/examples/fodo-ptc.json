@@ -256,12 +256,6 @@
                 "xbend": -1
             },
             {
-                "_id": 118,
-                "_type": "ptc_observe",
-                "name": "PT1",
-                "place": "#E"
-            },
-            {
                 "_id": 114,
                 "_type": "ptc_track",
                 "beam_envelope": "0",
@@ -1449,11 +1443,6 @@
         ],
         "panelState": {
             "hidden": []
-        },
-        "ptcAnimation114": {
-            "histogramBins": 200,
-            "x": "x",
-            "y": "px"
         },
         "rpnCache": {
             "e0": 0.938,
