@@ -2695,12 +2695,11 @@ SIREPO.app.directive('stringToNumber', function() {
                 return true;
             }
 
-            // catch leading '-' or it will be impossible to enter
             ngModel.$parsers.push(function(value) {
                 if (ngModel.$isEmpty(value))  {
                     return null;
                 }
-                if (value === '-' || SIREPO.NUMBER_REGEXP.test(value)) {
+                if (SIREPO.NUMBER_REGEXP.test(value)) {
                     var v;
                     if (scope.numberType == 'integer') {
                         v = parseInt(parseFloat(value));
@@ -2713,14 +2712,12 @@ SIREPO.app.directive('stringToNumber', function() {
                         }
                         return v;
                     }
-                    v = parseFloat(value === '-' ? '-0' : value);
+                    v = parseFloat(value);
                     if (! isValid(v)) {
                         return undefined;
                     }
                     if (isFinite(v)) {
-                        // a string like '1.0' will parse to '1' - if we return the parsed value, the user will never
-                        // be able to enter a decimal point
-                        return value;
+                        return v;
                     }
                 }
                 return undefined;
