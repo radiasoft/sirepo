@@ -18,7 +18,7 @@ def test_generate_python():
     from sirepo.template import shadow
 
     with pkunit.save_chdir_work():
-        for name in ('Complete Beamline', 'Wiggler'):
+        for name in ('Beamline Propagation', 'Complete Beamline', 'Wiggler'):
             data = _example_data(name)
             data['report'] = 'watchpointReport{}'.format(data.models.beamline[-1].id)
             actual = shadow._generate_parameters_file(data)

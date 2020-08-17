@@ -24,10 +24,17 @@ class SimData(sirepo.sim_data.SimDataBase):
             x = g.cone_max
             g.cone_max = g.cone_min
             g.cone_min = x
-        cls._init_models(dm, ('initialIntensityReport', 'plotXYReport'))
+        cls._init_models(dm, (
+            'initialIntensityReport',
+            'plotXYReport',
+            'undulator',
+            'undulatorBeam',
+        ))
         for m in dm:
             if cls.is_watchpoint(m):
                 cls.update_model_defaults(dm[m], 'watchpointReport')
+        for m in dm.beamline:
+            cls.update_model_defaults(m, m.type)
         cls._organize_example(data)
 
     @classmethod
@@ -52,6 +59,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             'simulation.npoint',
             'simulation.sourceType',
             'sourceDivergence',
+            'undulator',
+            'undulatorBeam',
             'wiggler',
         ]
         if r == 'initialIntensityReport' and len(data['models']['beamline']):
