@@ -99,6 +99,12 @@
             ["beta", "From Beta"],
             ["brho", "From BRHO"]
         ],
+        "CommandMakethinStyle": [
+            ["teapot", "Teapot"],
+            ["simple", "Simple"],
+            ["collim", "Collim"],
+            ["hybrid", "Hybrid"]
+        ],
         "CommandTemplate": [
             ["matching", "Beamline Matching"],
             ["particle", "Particle Tracking"],
@@ -125,7 +131,7 @@
             ["y", "y"],
             ["py", "Py"],
             ["t", "t"],
-            ["pt", "P"]
+            ["pt", "Pt"]
         ],
         "SpaceCoordinate": [
             ["x", "x"],
@@ -287,23 +293,38 @@
             "file": ["FILE", "String", "", "The named file is read until a RETURN statement is encountered, or until the EOF."]
         },
         "command_constraint": {
-            "sequence": ["SEQUENCE", "LatticeBeamlineList", "", "Sequence for which the constraint applies."],
-            "range": ["RANGE", "String", "", "Position where the constraint must be satisfied."],
-            "alfx": ["ALFX", "OptionalRPNValue", null, "Correlation function $\\alpha_x$."],
-            "alfy": ["ALFY", "OptionalRPNValue", null, "Correlation function $\\alpha_y$."],
-            "betx": ["BETX [m]", "OptionalRPNValue", null, "Amplitude function $\\beta_x$."],
-            "bety": ["BETY [m]", "OptionalRPNValue", null, "Amplitude function $\\beta_y$."],
-            "dpx": ["DPX", "OptionalRPNValue", null, "Dispersion of $\\rho_x$."],
-            "dpy": ["DPY", "OptionalRPNValue", null, "Dispersion of $\\rho_y$."],
-            "dx": ["DX [m]", "OptionalRPNValue", null, "Dispersion of x."],
-            "dy": ["DY [m]", "OptionalRPNValue", null, "Dispersion of y."],
-            "mux": ["MUX [2$\\pi$]", "OptionalRPNValue", null, "Phase function of $\\mu_y$."],
-            "muy": ["MUY [2$\\pi$]", "OptionalRPNValue", null, "Phase function of $\\mu_y$."],
-            "px": ["PX [2$\\pi$]", "OptionalRPNValue", null, "Horizontal canonical momentum of $p_x$."],
-            "py": ["PY [2$\\pi$]", "OptionalRPNValue", null, "Horizontal canonical momentum of $p_y$."],
-            "x": ["X", "OptionalRPNValue", null, "Canonical coordinate x."],
-            "y": ["Y", "OptionalRPNValue", null, "Canonical coordinate y."]
+            "sequence": ["SEQUENCE", "LatticeBeamlineList", "", "Sequence for which the constraint applies"],
+            "range": ["RANGE", "String", "", "Position where the constraint must be satisfied"],
+            "alfx": ["ALFX", "OptionalRPNValue", null, "Correlation function $\\alpha_x$"],
+            "alfy": ["ALFY", "OptionalRPNValue", null, "Correlation function $\\alpha_y$"],
+            "betx": ["BETX [m]", "OptionalRPNValue", null, "Amplitude function $\\beta_x$"],
+            "bety": ["BETY [m]", "OptionalRPNValue", null, "Amplitude function $\\beta_y$"],
+            "dpx": ["DPX", "OptionalRPNValue", null, "Dispersion of $p_x$: $D_{px}$"],
+            "dpy": ["DPY", "OptionalRPNValue", null, "Dispersion of $p_y$: $D_{py}$"],
+            "dx": ["DX [m]", "OptionalRPNValue", null, "Dispersion of $x$: $D_x$"],
+            "dy": ["DY [m]", "OptionalRPNValue", null, "Dispersion of $y$: $D_y$"],
+            "mux": ["MUX [2$\\pi$]", "OptionalRPNValue", null, "Phase function of $\\mu_x$"],
+            "muy": ["MUY [2$\\pi$]", "OptionalRPNValue", null, "Phase function of $\\mu_y$"],
+            "px": ["PX [2$\\pi$]", "OptionalRPNValue", null, "Horizontal canonical momentum of $p_x$"],
+            "py": ["PY [2$\\pi$]", "OptionalRPNValue", null, "Horizontal canonical momentum of $p_y$"],
+            "x": ["X", "OptionalRPNValue", null, "Canonical coordinate $x$"],
+            "y": ["Y", "OptionalRPNValue", null, "Canonical coordinate $y$"]
         },
+        "command_ealign": {
+            "dx": ["DX [m]", "RPNValue", 0.0, "The misalignment in the x-direction for the entry of the beam element."],
+            "dy": ["DY [m]", "RPNValue", 0.0, "The misalignment in the y-direction for the entry of the beam element."],
+            "ds": ["DS [m]", "RPNValue", 0.0, "The misalignment in the s-direction for the entry of the beam element."],
+            "dphi": ["DPHI [rad]", "RPNValue", 0.0, "The rotation around the x-axis."],
+            "dtheta": ["DTHETA [rad]", "RPNValue", 0.0, "The rotation around the y-axis according to the right hand rule."],
+            "dpsi": ["DPSI [rad]", "RPNValue", 0.0, "The rotation around the s-axis according to the right hand rule."],
+            "mrex": ["MREX [m]", "RPNValue", 0.0, "The horizontal read error for a monitor. This is ignored if the element is not a monitor."],
+            "mrey": ["MREY [m]", "RPNValue", 0.0, "The vertical read error for a monitor. This is ignored if the element is not a monitor."],
+            "mscalx": ["MSCALX", "RPNValue", 0.0, "The relative horizontal scaling error for a monitor. This is ignored if the element is not a monitor."],
+            "mscaly": ["MSCALY", "RPNValue", 0.0, "The relative vertical scaling error for a monitor. This is ignored if the element is not a monitor."],
+            "arex": ["AREX [m]", "RPNValue", 0.0, "The misalignment in the x-direction for the entry of an aperture limit."],
+            "arey": ["AREY [m]", "RPNValue", 0.0, "The misalignment in the y-direction for the entry of an aperture limit."]
+        },
+        "command_endmatch": {},
         "command_global": {
             "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "",  "The name of the sequence on which to operate the matching."],
             "q1": ["Q1", "OptionalRPNValue", null, "Enable a correction of tunes in presence of magnetic imperfections or misalignments."],
@@ -324,25 +345,34 @@
             "calls": ["CALLS", "Integer", 1000, "Maximum number of calls to the penalty function"],
             "tolerance": ["TOLERANCE", "RPNValue", 1e-6, "Desired tolerance for the minimum"]
         },
+        "command_makethin": {
+            "sequence": ["SEQUENCE", "LatticeBeamlineList", "", "The name of the sequence to be processed to thin slices."],
+            "style": ["STYLE", "CommandMakethinStyle", "teapot", "The slicing style to be used for all elements."],
+            "makedipedge": ["MAKEDIPEDGE", "Boolean", "1", "A logical flag to control the generation of DIPEDGE elements at the start and/or end of bending magnets, to conserve edge focusing from pole face angles E1, E2 or extra fields described by FINT, FINTX, in the process of slicing bending magnets to thin multipole slices."]
+        },
         "command_match": {
             "sequence": ["SEQUENCE", "LatticeBeamlineList", ""],
-            "alfx": ["ALFX", "RPNValue", 0.0, "Correlation function $\\alpha_x$."],
-            "alfy": ["ALFY", "RPNValue", 0.0, "Correlation function $\\alpha_y$."],
-            "betx": ["BETX [m]", "RPNValue", 0.0, "Amplitude function $\\beta_x$."],
-            "bety": ["BETY [m]", "RPNValue", 0.0, "Amplitude function $\\beta_y$."],
+            "alfx": ["ALFX", "RPNValue", 0.0, "Correlation function $\\alpha_x$"],
+            "alfy": ["ALFY", "RPNValue", 0.0, "Correlation function $\\alpha_y$"],
+            "betx": ["BETX [m]", "RPNValue", 0.0, "Amplitude function $\\beta_x$"],
+            "bety": ["BETY [m]", "RPNValue", 0.0, "Amplitude function $\\beta_y$"],
             "deltap": ["DELTAP", "RPNValue", 0.0, "Difference between the reference momentum and the design momentum, divided by the design momentum."],
-            "dpx": ["DPX", "RPNValue", 0.0, "Dispersion of $\\rho_x$."],
-            "dpy": ["DPY", "RPNValue", 0.0, "Dispersion of $\\rho_y$."],
-            "dx": ["DX [m]", "RPNValue", 0.0, "Dispersion of x."],
-            "dy": ["DY [m]", "RPNValue", 0.0, "Dispersion of y."],
-            "mux": ["MUX [2$\\pi$]", "RPNValue", 0.0, "Phase function of $\\mu_y$."],
-            "muy": ["MUY [2$\\pi$]", "RPNValue", 0.0, "Phase function of $\\mu_y$."],
-            "px": ["PX [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $p_x$."],
-            "py": ["PY [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $p_y$."],
-            "x": ["X", "RPNValue", 0.0, "Canonical coordinate x."],
-            "y": ["Y", "RPNValue", 0.0, "Canonical coordinate y."]
+            "dpx": ["DPX", "RPNValue", 0.0, "Dispersion of $p_x$: $D_{px}$"],
+            "dpy": ["DPY", "RPNValue", 0.0, "Dispersion of $p_y$: $D_{py}$"],
+            "dx": ["DX [m]", "RPNValue", 0.0, "Dispersion of $x$: $D_x$"],
+            "dy": ["DY [m]", "RPNValue", 0.0, "Dispersion of $y$: $D_y$"],
+            "mux": ["MUX [2$\\pi$]", "RPNValue", 0.0, "Phase function of $\\mu_y$"],
+            "muy": ["MUY [2$\\pi$]", "RPNValue", 0.0, "Phase function of $\\mu_y$"],
+            "px": ["PX [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $p_x$"],
+            "py": ["PY [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $p_y$"],
+            "x": ["X", "RPNValue", 0.0, "Canonical coordinate $x$"],
+            "y": ["Y", "RPNValue", 0.0, "Canonical coordinate $y$"]
         },
-        "command_endmatch": {},
+        "command_migrad": {
+            "calls": ["CALLS", "Integer", 1000, "Maximum number of calls to the penalty function"],
+            "tolerance": ["TOLERANCE", "RPNValue", 1e-6, "Desired tolerance for the minimum"],
+            "strategy": ["STRATEGY", "Integer", 1, "Specifies the strategy to be used"]
+        },
         "command_option": {
             "bborbit": ["BBORBIT", "OptionalBoolean", "", "The closed orbit is modified by beam-beam kicks"],
             "debug": ["DEBUG", "OptionalBoolean", "", "Issues debugging information"],
@@ -415,16 +445,16 @@
         "command_ptc_start": {
             "x": ["X", "RPNValue", 0.0, "Canonical coordinate $x$."],
             "y": ["Y", "RPNValue", 0.0, "Canonical coordinate $y$."],
-            "px": ["PX [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $p_x$."],
-            "py": ["PY [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $p_y$."],
+            "px": ["PX [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $px$."],
+            "py": ["PY [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $py$."],
             "t": ["T", "RPNValue", 0.0, "Canonical coordinate $t$"],
             "pt": ["PT", "RPNValue", 0.0, "Canonical coordinate $pt$"],
-            "fx": ["FX", "RPNValue", 0.0, "Action-angle coordinate expressed by normalized amplitude $\\varPhi_x$."],
-            "phix": ["PHIX", "RPNValue", 0.0, "Action-angle coordinate expressed by normalized amplitude $F_y$."],
-            "fy": ["FY", "RPNValue", 0.0, "Action-angle coordinate expressed by normalized amplitude $F_y$."],
-            "phiy": ["PHIY", "RPNValue", 0.0, "Action-angle coordinate expressed by normalized amplitude $\\varPhi_x$."],
-            "ft": ["FT", "RPNValue", 0.0, "Action-angle coordinate expressed by normalized amplitude $F_y$."],
-            "phit": ["PHIT", "RPNValue", 0.0, "Action-angle coordinate expressed by normalized amplitude $\\varPhi_t$."]
+            "fx": ["FX", "RPNValue", 0.0, "Action-angle coordinate"],
+            "phix": ["PHIX", "RPNValue", 0.0, "Action-angle coordinate"],
+            "fy": ["FY", "RPNValue", 0.0, "Action-angle coordinate"],
+            "phiy": ["PHIY", "RPNValue", 0.0, "Action-angle coordinate"],
+            "ft": ["FT", "RPNValue", 0.0, "Action-angle coordinate"],
+            "phit": ["PHIT", "RPNValue", 0.0, "Action-angle coordinate"]
         },
         "command_ptc_track": {
             "beam_envelope": ["BEAM_ENVELOPE", "Boolean", "0", "Turn on the calculations of the beam envelope with PTC"],
@@ -493,25 +523,25 @@
             "start_stop": ["START_STOP", "Float2StringArray", "0, 0", "Longitudinal interval of the beam line (in m)", "start, stop"]
         },
         "command_twiss": {
-            "alfx": ["ALFX", "RPNValue", 0.0, "Correlation function $\\alpha_x$."],
-            "alfy": ["ALFY", "RPNValue", 0.0, "Correlation function $\\alpha_y$."],
-            "beta0": ["BETA0", "OptionalString", "", "The name of a BETA0 block containing the Twiss parameters to be used as input."],
-            "betx": ["BETX [m]", "RPNValue", 0.0, "Amplitude function $\\beta_x$."],
-            "bety": ["BETY [m]", "RPNValue", 0.0, "Amplitude function $\\beta_y$."],
+            "alfx": ["ALFX", "RPNValue", 0.0, "Correlation function $\\alpha_x$"],
+            "alfy": ["ALFY", "RPNValue", 0.0, "Correlation function $\\alpha_y$"],
+            "beta0": ["BETA0", "OptionalString", "", "The name of a BETA0 block containing the Twiss parameters to be used as input"],
+            "betx": ["BETX [m]", "RPNValue", 0.0, "Amplitude function $\\beta_x$"],
+            "bety": ["BETY [m]", "RPNValue", 0.0, "Amplitude function $\\beta_y$"],
             "centre": ["CENTRE", "Boolean", "0", "Enforce the calculation of the linear lattice functions at the center of the element instead of the end of the element."],
             "chrom": ["CHROM", "Boolean", "0", "A logical flag to trigger computation of the chromatic functions as well as the radiation synchrotron integrals."],
-            "ddpx": ["DDPX", "RPNValue", 0.0, "Chromatic derivative of dispersion $D_px$"],
-            "ddpy": ["DDPY", "RPNValue", 0.0, "Chromatic derivative of dispersion $D_py$"],
+            "ddpx": ["DDPX", "RPNValue", 0.0, "Chromatic derivative of dispersion $D_{px}$"],
+            "ddpy": ["DDPY", "RPNValue", 0.0, "Chromatic derivative of dispersion $D_{py}$"],
             "ddx": ["DDX", "RPNValue", 0.0, "Chromatic derivative of dispersion $D_x$"],
             "ddy": ["DDY", "RPNValue", 0.0, "Chromatic derivative of dispersion $D_y$"],
             "deltap": ["DELTAP", "RPNValue", 0.0, "Difference between the reference momentum and the design momentum, divided by the design momentum."],
             "dmux": ["DMUX [2$\\pi$]", "RPNValue", 0.0, "Chromatic derivative of phase function $\\mu_x$"],
             "dmuy": ["DMUY [2$\\pi$]", "RPNValue", 0.0, "Chromatic derivative of phase function $\\mu_x$"],
-            "dpx": ["DPX", "RPNValue", 0.0, "Dispersion of $\\rho_x$."],
-            "dpy": ["DPY", "RPNValue", 0.0, "Dispersion of $\\rho_y$."],
-            "dx": ["DX [m]", "RPNValue", 0.0, "Dispersion of x."],
-            "dy": ["DY [m]", "RPNValue", 0.0, "Dispersion of y."],
-            "energy": ["ENERGY [GeV]", "RPNValue", 0.0, "The total energy per particle in."],
+            "dpx": ["DPX", "RPNValue", 0.0, "Dispersion of $p_x$: $D_{px}$"],
+            "dpy": ["DPY", "RPNValue", 0.0, "Dispersion of $p_y$: $D_{py}$"],
+            "dx": ["DX [m]", "RPNValue", 0.0, "Dispersion of $x$"],
+            "dy": ["DY [m]", "RPNValue", 0.0, "Dispersion of $y$"],
+            "energy": ["ENERGY [GeV]", "RPNValue", 0.0, "The total energy per particle."],
             "file": ["FILE", "OutputFile", "", "The name of the file TWISS output will be written to"],
             "keeporbit": ["KEEPORBIT", "OptionalString", "", "Store the orbit under this name at the start, and at all monitors."],
             "line": ["LINE", "OptionalLatticeBeamlineList", "", "Name of a valid beamline for which the calculation of optical functions should be performed. "],
@@ -520,49 +550,49 @@
             "phix": ["PHIX", "RPNValue", 0.0, "Chromatic phase function $\\phi_x$"],
             "phiy": ["PHIY", "RPNValue", 0.0, "Chromatic phase function $\\phi_x$"],
             "pt": ["PT", "RPNValue", 0.0, "Energy difference, divided by the reference momentum times the velocity of light."],
-            "px": ["PX [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $p_x$."],
-            "py": ["PY [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $p_y$."],
-            "r11": ["R11", "RPNValue", 0.0, "Coupling matrix."],
-            "r12": ["R12", "RPNValue", 0.0, "Coupling matrix."],
-            "r21": ["R21", "RPNValue", 0.0, "Coupling matrix."],
-            "r22": ["R22", "RPNValue", 0.0, "Coupling matrix."],
+            "px": ["PX [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $p_x$"],
+            "py": ["PY [2$\\pi$]", "RPNValue", 0.0, "Horizontal canonical momentum of $p_y$"],
+            "r11": ["R11", "RPNValue", 0.0, "Coupling matrix"],
+            "r12": ["R12", "RPNValue", 0.0, "Coupling matrix"],
+            "r21": ["R21", "RPNValue", 0.0, "Coupling matrix"],
+            "r22": ["R22", "RPNValue", 0.0, "Coupling matrix"],
             "range": ["RANGE", "OptionalString", "", "The TWISS calculation is restricted to the specified range."],
-            "re11": ["RE11", "RPNValue", 1.0, "Coupling matrix."],
-            "re12": ["RE12", "RPNValue", 0.0, "Coupling matrix."],
-            "re13": ["RE13", "RPNValue", 0.0, "Coupling matrix."],
-            "re14": ["RE14", "RPNValue", 0.0, "Coupling matrix."],
-            "re15": ["RE15", "RPNValue", 0.0, "Coupling matrix."],
-            "re16": ["RE16", "RPNValue", 0.0, "Coupling matrix."],
-            "re21": ["RE21", "RPNValue", 0.0, "Coupling matrix."],
-            "re22": ["RE22", "RPNValue", 1.0, "Coupling matrix."],
-            "re23": ["RE23", "RPNValue", 0.0, "Coupling matrix."],
-            "re24": ["RE24", "RPNValue", 0.0, "Coupling matrix."],
-            "re25": ["RE25", "RPNValue", 0.0, "Coupling matrix."],
-            "re26": ["RE26", "RPNValue", 0.0, "Coupling matrix."],
-            "re31": ["RE31", "RPNValue", 0.0, "Coupling matrix."],
-            "re32": ["RE32", "RPNValue", 0.0, "Coupling matrix."],
-            "re33": ["RE33", "RPNValue", 1.0, "Coupling matrix."],
-            "re34": ["RE34", "RPNValue", 0.0, "Coupling matrix."],
-            "re35": ["RE35", "RPNValue", 0.0, "Coupling matrix."],
-            "re36": ["RE36", "RPNValue", 0.0, "Coupling matrix."],
-            "re41": ["RE41", "RPNValue", 0.0, "Coupling matrix."],
-            "re42": ["RE42", "RPNValue", 0.0, "Coupling matrix."],
-            "re43": ["RE43", "RPNValue", 0.0, "Coupling matrix."],
-            "re44": ["RE44", "RPNValue", 1.0, "Coupling matrix."],
-            "re45": ["RE45", "RPNValue", 0.0, "Coupling matrix."],
-            "re46": ["RE46", "RPNValue", 0.0, "Coupling matrix."],
-            "re51": ["RE51", "RPNValue", 0.0, "Coupling matrix."],
-            "re52": ["RE52", "RPNValue", 0.0, "Coupling matrix."],
-            "re53": ["RE53", "RPNValue", 0.0, "Coupling matrix."],
-            "re54": ["RE54", "RPNValue", 0.0, "Coupling matrix."],
-            "re55": ["RE55", "RPNValue", 1.0, "Coupling matrix."],
-            "re56": ["RE56", "RPNValue", 0.0, "Coupling matrix."],
-            "re61": ["RE61", "RPNValue", 0.0, "Coupling matrix."],
-            "re62": ["RE62", "RPNValue", 0.0, "Coupling matrix."],
-            "re63": ["RE63", "RPNValue", 0.0, "Coupling matrix."],
-            "re64": ["RE64", "RPNValue", 0.0, "Coupling matrix."],
-            "re65": ["RE65", "RPNValue", 0.0, "Coupling matrix."],
-            "re66": ["RE66", "RPNValue", 1.0, "Coupling matrix."],
+            "re11": ["RE11", "RPNValue", 1.0, "Coupling matrix"],
+            "re12": ["RE12", "RPNValue", 0.0, "Coupling matrix"],
+            "re13": ["RE13", "RPNValue", 0.0, "Coupling matrix"],
+            "re14": ["RE14", "RPNValue", 0.0, "Coupling matrix"],
+            "re15": ["RE15", "RPNValue", 0.0, "Coupling matrix"],
+            "re16": ["RE16", "RPNValue", 0.0, "Coupling matrix"],
+            "re21": ["RE21", "RPNValue", 0.0, "Coupling matrix"],
+            "re22": ["RE22", "RPNValue", 1.0, "Coupling matrix"],
+            "re23": ["RE23", "RPNValue", 0.0, "Coupling matrix"],
+            "re24": ["RE24", "RPNValue", 0.0, "Coupling matrix"],
+            "re25": ["RE25", "RPNValue", 0.0, "Coupling matrix"],
+            "re26": ["RE26", "RPNValue", 0.0, "Coupling matrix"],
+            "re31": ["RE31", "RPNValue", 0.0, "Coupling matrix"],
+            "re32": ["RE32", "RPNValue", 0.0, "Coupling matrix"],
+            "re33": ["RE33", "RPNValue", 1.0, "Coupling matrix"],
+            "re34": ["RE34", "RPNValue", 0.0, "Coupling matrix"],
+            "re35": ["RE35", "RPNValue", 0.0, "Coupling matrix"],
+            "re36": ["RE36", "RPNValue", 0.0, "Coupling matrix"],
+            "re41": ["RE41", "RPNValue", 0.0, "Coupling matrix"],
+            "re42": ["RE42", "RPNValue", 0.0, "Coupling matrix"],
+            "re43": ["RE43", "RPNValue", 0.0, "Coupling matrix"],
+            "re44": ["RE44", "RPNValue", 1.0, "Coupling matrix"],
+            "re45": ["RE45", "RPNValue", 0.0, "Coupling matrix"],
+            "re46": ["RE46", "RPNValue", 0.0, "Coupling matrix"],
+            "re51": ["RE51", "RPNValue", 0.0, "Coupling matrix"],
+            "re52": ["RE52", "RPNValue", 0.0, "Coupling matrix"],
+            "re53": ["RE53", "RPNValue", 0.0, "Coupling matrix"],
+            "re54": ["RE54", "RPNValue", 0.0, "Coupling matrix"],
+            "re55": ["RE55", "RPNValue", 1.0, "Coupling matrix"],
+            "re56": ["RE56", "RPNValue", 0.0, "Coupling matrix"],
+            "re61": ["RE61", "RPNValue", 0.0, "Coupling matrix"],
+            "re62": ["RE62", "RPNValue", 0.0, "Coupling matrix"],
+            "re63": ["RE63", "RPNValue", 0.0, "Coupling matrix"],
+            "re64": ["RE64", "RPNValue", 0.0, "Coupling matrix"],
+            "re65": ["RE65", "RPNValue", 0.0, "Coupling matrix"],
+            "re66": ["RE66", "RPNValue", 1.0, "Coupling matrix"],
             "ripken": ["RIPKEN", "Boolean", "0", "Calculate the Ripken-Mais Twiss parameters."],
             "rmatrix": ["RMATRIX", "Boolean", "0", "If this flag is used the the one-turn map at the location of every element is calculated and prepared for storage in the twiss table."],
             "sectoracc": ["SECTORACC", "Boolean", "0", "Save composition of maps instead of individual maps of a sector map."],
@@ -576,12 +606,12 @@
             "useorbit": ["USEORBIT", "OptionalString", "", "Use the start value provided for the closed orbit search."],
             "wx": ["WX [m]", "RPNValue", 0.0, "The horizontal Courant-Snyder invariant "],
             "wy": ["WY [m]", "RPNValue", 0.0, "The vertical Courant-Snyder invariant "],
-            "x": ["X", "RPNValue", 0.0, "Canonical coordinate x."],
-            "y": ["Y", "RPNValue", 0.0, "Canonical coordinate y."]
+            "x": ["X", "RPNValue", 0.0, "Canonical coordinate $x$"],
+            "y": ["Y", "RPNValue", 0.0, "Canonical coordinate $y$"]
         },
         "command_use": {
-            "sequence": ["BEAMLINE", "OptionalLatticeBeamlineList", "", "Name of the sequence to be loaded and expanded."],
-            "period": ["BEAMLINE", "OptionalLatticeBeamlineList", "", "Name of the sequence to be loaded and expanded."]
+            "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "", "Name of the sequence to be loaded and expanded."],
+            "period": ["PERIOD", "OptionalLatticeBeamlineList", "", "Name of the sequence to be loaded and expanded."]
         },
         "command_vary": {
             "name": ["NAME", "OptionalString", "", "Name of the parameter or attribute to be varied"],
@@ -704,7 +734,7 @@
         "HKICKER": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L [m]", "RPNValue", 0.0, "The length of the closed orbit corrector."],
-            "kick": ["KICK", "RPNValue", 0.0, "The momentum change delta($P_x$)"],
+            "kick": ["KICK", "RPNValue", 0.0, "The momentum change $\\delta PX$"],
             "tilt": ["TILT [rad]", "RPNValue", 0.0, "The roll angle about the longitudinal axis."]
         },
         "HMONITOR": {
@@ -718,8 +748,8 @@
         "KICKER": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L [m]", "RPNValue", 0.0, "The length of the closed orbit corrector."],
-            "hkick": ["HKICK", "RPNValue", 0.0, "The horizontal momentum change delta($p_x$)"],
-            "vkick": ["VKICK", "RPNValue", 0.0, "The vertical momentum change delta($p_x$)"],
+            "hkick": ["HKICK", "RPNValue", 0.0, "The horizontal momentum change $\\delta PX$"],
+            "vkick": ["VKICK", "RPNValue", 0.0, "The vertical momentum change $\\delta PY$"],
             "tilt": ["TILT [rad]", "RPNValue", 0.0, "The roll angle about the longitudinal axis."]
         },
         "MARKER": {
@@ -1128,9 +1158,7 @@
         "VKICKER": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L [m]", "RPNValue", 0.0, "The length of the closed orbit corrector."],
-            "kick": ["KICK", "RPNValue", 0.0, "The momentum change"],
-            "hkick": ["HKICK", "RPNValue", 0.0, "The horizontal momentum change delta($p_x$)"],
-            "vkick": ["VKICK", "RPNValue", 0.0, "The vertical momentum change delta($p_x$)"],
+            "kick": ["KICK", "RPNValue", 0.0, "The momentum change $\\delta PY$"],
             "tilt": ["TILT [rad]", "RPNValue", 0.0, "The roll angle about the longitudinal axis."]
         },
         "VMONITOR": {
@@ -1241,34 +1269,19 @@
             "model": "elementAnimation",
             "title": "Output Report",
             "advanced": [
-                ["Main", [
-                    [
-                        ["Horizontal", [
-                            "x"
-                        ]],
-                        ["Vertical", [
-                            "y1",
-                            "y2",
-                            "y3"
-                        ]]
-                    ],
-                    "framesPerSecond",
-                    "includeLattice",
-                    "notes"
-                ]],
-                ["Plot Range", [
-                    "plotRangeType",
-                    [
-                        ["Horizontal", [
-                            "horizontalSize",
-                            "horizontalOffset"
-                        ]],
-                        ["Vertical", [
-                            "verticalSize",
-                            "verticalOffset"
-                        ]]
-                    ]
-                ]]
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y1",
+                        "y2",
+                        "y3"
+                    ]]
+                ],
+                "framesPerSecond",
+                "includeLattice",
+                "notes"
             ]
         },
         "matchSummaryAnimation": {
@@ -1306,6 +1319,7 @@
         },
         "command_beta0": {
             "title": "beta0",
+            "description": "Initial lattice parameters can be set 'manually' for later commands, in particular for TWISS or the MATCH module, by using the BETA0 command attached to a label.",
             "fieldsPerTab": 8,
             "advanced": [
                 "betx",
@@ -1343,6 +1357,7 @@
         },
         "command_constraint": {
             "title": "constraint",
+            "description": "Simple constraints are imposed by the CONSTRAINT command.",
             "fieldsPerTab": 8,
             "advanced": [
                 "sequence",
@@ -1363,6 +1378,30 @@
                 "y"
             ]
         },
+        "command_ealign": {
+            "title": "ealign",
+            "description": "Alignment errors are defined by the EALIGN command. The misalignments refer to the local reference system for a perfectly aligned machine. Misalignments are defined as displacements along the three coordinate axes, and rotations about the coordinate axes. Alignment errors can be assigned to all beam elements except drift spaces. The effect of misalignments is treated in a linear approximation.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "dx",
+                "dy",
+                "ds",
+                "dphi",
+                "dtheta",
+                "dpsi",
+                "mrex",
+                "mrey",
+                "mscalx",
+                "mscaly",
+                "arex",
+                "arey"
+            ]
+        },
+        "command_endmatch": {
+            "title": "endmatch",
+            "description": "The ENDMATCH command terminates the matching section and deletes all tables related to the matching run.",
+            "advanced": []
+        },
         "command_global": {
             "title": "global",
             "description": "In addition to conventional matching constraints that specify the optics functions at a certain position in the sequence the user can also constrain global optics parameters such as, for example, the overall machine tune and the machine chromaticity.",
@@ -1376,6 +1415,7 @@
         },
         "command_jacobian": {
             "title": "jacobian",
+            "description": "The JACOBIAN command minimises the penalty function calculating the Jacobian and solving the linear problem. A QR or LQ decomposition is performed when the system is over or under-determined.",
             "advanced": [
                 "calls",
                 "tolerance",
@@ -1388,13 +1428,24 @@
         },
         "command_lmdif": {
             "title": "lmdif",
+            "description": "The LMDIF command minimises the sum of squares of the constraint functions using their numerical derivatives. It is the fastest minimisation method available in MAD-X.",
             "advanced": [
                 "calls",
                 "tolerance"
             ]
         },
+        "command_makethin": {
+            "title": "makethin",
+            "description": "This module takes a sequence with thick elements and creates another one with similar functionality but composed of thin (zero length) element slices or simplified thick slices as required by MAD-X tracking or conversion to SIXTRACK input format.",
+            "advanced": [
+                "sequence",
+                "style",
+                "makedipedge"
+            ]
+        },
         "command_match": {
-            "title": "Match",
+            "title": "match",
+            "description": "The MATCH command is used for matching either a periodic cell or an insertion to another part of the machine.",
             "fieldsPerTab": 8,
             "advanced": [
                 "sequence",
@@ -1415,12 +1466,18 @@
                 "y"
             ]
         },
-        "command_endmatch": {
-            "title": "endmatch",
-            "advanced": []
+        "command_migrad": {
+            "title": "migrad",
+            "description": "The MIGRAD command minimises the penalty function using the numerical derivatives of the sum of squares.",
+            "advanced": [
+                "calls",
+                "tolerance",
+                "strategy"
+            ]
         },
         "command_option": {
             "title": "option",
+            "description": "The OPTION commands sets the logical value of a number of flags that control the behavior of MAD-X.",
             "fieldsPerTab": 8,
             "advanced": [
                 "bborbit",
@@ -1444,6 +1501,7 @@
         },
         "command_ptc_create_layout": {
             "title": "ptc_create_layout",
+            "description": "The PTC_CREATE_LAYOUT command creates the PTC-layout according to the specified integration method and fills it with the current MAD-X sequence defined in the latest USE command.",
             "fieldsPerTab": 8,
             "advanced": [
                 "time",
@@ -1462,6 +1520,7 @@
         },
         "command_ptc_create_universe": {
             "title": "ptc_create_universe",
+            "description": "The PTC_CREATE_UNIVERSE command is required to set-up the PTC environment.",
             "advanced": [
                 "sector_nmul_max",
                 "sector_nmul",
@@ -1471,10 +1530,12 @@
         },
         "command_ptc_end": {
             "title": "ptc_create_end",
+            "description": "The PTC_END command turns off the PTC environment, which releases all memory and returns control to the MAD-X world proper.",
             "advanced": []
         },
         "command_ptc_normal": {
             "title": "ptc_normal",
+            "description": "The calculation of the parameters specified by the preceding SELECT_PTC_NORMAL commands is initiated by the PTC_NORMAL command, which operates on the working beam line defined in the latest USE command.",
             "advanced": [
                 "closed_orbit",
                 "deltap",
@@ -1486,12 +1547,14 @@
         },
         "command_ptc_observe": {
             "title": "ptc_observe",
+            "description": "Besides the beginning of the beam-line, one can define an additional observation points along the machine. Subsequent PTC_TRACK command will then record the tracking data on all these observation points.",
             "advanced": [
                 "place"
             ]
         },
         "command_ptc_select": {
             "title": "ptc_select",
+            "description": "Selects a map element to be stored in a user-defined table, or stored as a function (Taylor series) of a defined knob. Both cases can be joined in a single PTC_SELECT command.",
             "advanced": [
                 "table",
                 "column",
@@ -1503,6 +1566,7 @@
         },
         "command_ptc_setswitch": {
             "title": "ptc_setswitch",
+            "description": "The PTC_SETSWITCH command allows to set some global PTC states and to configure the interface between MAD-X and PTC, adapting the behavior of the program to the needs.",
             "fieldsPerTab": 8,
             "advanced": [
                 "debuglevel",
@@ -1517,6 +1581,7 @@
         },
         "command_ptc_start": {
             "title": "ptc_start",
+            "description": "To start particle tracking, a series of initial trajectory coordinates must be given with the PTC_START command; and as many commands as initial trajectories can be given.",
             "fieldsPerTab": 8,
             "advanced": [
                 "x",
@@ -1535,6 +1600,7 @@
         },
         "command_ptc_track": {
             "title": "ptc_track",
+            "description": "The PTC_TRACK command initiates trajectory tracking by entering the thick-lens tracking module.",
             "fieldsPerTab": 8,
             "advanced": [
                 "deltap",
@@ -1557,10 +1623,12 @@
         },
         "command_ptc_track_end": {
             "title": "ptc_track_end",
+            "description": "The PTC_TRACK_END command terminates the command lines related to the PTC_TRACK module.",
             "advanced": []
         },
         "command_ptc_trackline": {
             "title": "ptc_trackline",
+            "description": "The PTC_TRACKLINE command performs particle tracking that takes into account acceleration in travelling wave cavities. It must be invoked in the scope of correctly initialized PTC environment, i.e. after PTC_CREATE_UNIVERSE and PTC_CREATE_LAYOUT commands, and before corresponding PTC_END.",
             "fieldsPerTab": 8,
             "advanced": [
                 "turns",
@@ -1571,12 +1639,14 @@
         },
         "command_resbeam": {
             "title": "resbeam",
+            "description": "The RESBEAM command resets the default values of the beam belonging to the specified sequence, or of the default beam if no sequence is given.",
             "advanced": [
                 "sequence"
             ]
         },
         "command_savebeta": {
             "title": "savebeta",
+            "description": "Initial lattice parameters can be saved and transfered for later commands, in particular for TWISS or the match module, with the SAVEBETA command sequence.",
             "advanced": [
                 "label",
                 "place",
@@ -1586,6 +1656,7 @@
         "command_select": {
             "title": "select",
             "fieldsPerTab": 8,
+            "description": "Some MAD-X commands can perform specific operations on selected elements or ranges of elements and can produce specific output for selected elements or ranges of elements.",
             "advanced": [
                 "class",
                 "clear",
@@ -1608,12 +1679,14 @@
         },
         "command_show": {
             "title": "show",
+            "description": "The SHOW command prints the command (typically beam, beam%sequ, or an element name), with the actual value of all its parameters.",
             "advanced": [
                 "command"
             ]
         },
         "command_sodd": {
             "title": "sodd",
+            "description": "The SODD command calculates the Second Order Detuning and Distortion, as described in [3], on the beam line defined by the last USE command followed by a TWISS command.",
             "fieldsPerTab": 8,
             "advanced": [
                 "detune",
@@ -1629,7 +1702,7 @@
         },
         "command_twiss": {
             "title": "twiss",
-            "description": "Compute Twiss parameters and set initial conditions.",
+            "description": "The TWISS command calculates the linear lattice functions, and optionally the chromatic functions. The coupled functions are calculated in the sense of Edwards and Teng. For the uncoupled cases they reduce to the C and S functions.",
             "fieldsPerTab": 8,
             "advanced": [
                 "line",
@@ -1684,14 +1757,16 @@
             ]
         },
         "command_use": {
-            "title": "Use",
+            "title": "use",
+            "description": "MAD-X operates on beamlines that must be loaded and expanded in memory before other commands can be invoked. The USE command allows this loading and expansion.",
             "advanced": [
                 "sequence",
                 "period"
             ]
         },
         "command_vary": {
-            "title": "Vary",
+            "title": "vary",
+            "description": "A parameter to be varied is specified by the command VARY.",
             "advanced": [
                 "name",
                 "step",
@@ -1704,6 +1779,7 @@
         "simulationSettings": {
             "title": "Simulation Settings",
             "basic": [
+                "simulation.visualizationBeamlineId",
                 "bunch.numberOfParticles"
             ],
             "advanced": []
@@ -1743,7 +1819,7 @@
             ]
         },
         "BEAMBEAM": {
-            "title": "BGGEXP",
+            "title": "BEAMBEAM",
             "description": "A straight magnetic field element using generalized gradient expansion.",
             "fieldsPerTab": 8,
             "advanced": [
@@ -1764,7 +1840,7 @@
         },
         "CHANGEREF": {
             "title": "CHANGEREF",
-            "description": "CHANGEREF",
+            "description": "The element CHANGEREF changes the reference system by applying both translations and rotations.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -1791,7 +1867,6 @@
         },
         "CRABCAVITY": {
             "title": "CRABCAVITY",
-            "description": "CRABCAVITY",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -1814,7 +1889,7 @@
         },
         "DIPEDGE": {
             "title": "DIPEDGE",
-            "description": "DIPEDGE",
+            "description": "A thin element describing the edge focusing of a dipole has been introduced in order to make it possible to track trajectories in the presence of dipoles with pole face angles. Only linear terms are considered since the higher order terms would make the tracking non-symplectic.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -1831,7 +1906,7 @@
         },
         "DRIFT": {
             "title": "DRIFT",
-            "description": "A drift space implemented as a matrix, up to 2nd order",
+            "description": "A drift space",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -1839,8 +1914,8 @@
             ]
         },
         "ECOLLIMATOR": {
-            "title": "ECOL",
-            "description": "An elliptical collimator.",
+            "title": "ECOLLIMATOR",
+            "description": "An elliptical collimator",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -1855,7 +1930,7 @@
         },
         "HACDIPOLE": {
             "title": "HACDIPOLE",
-            "description": "HACDIPOLE",
+            "description": "An AC dipole for the horizontal plane",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -1875,7 +1950,7 @@
         },
         "HKICKER": {
             "title": "HKICKER",
-            "description": "A horizontal steering dipole implemented as a matrix, up to 2nd order.",
+            "description": "A corrector for the horizontal plane",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -1890,7 +1965,7 @@
         },
         "HMONITOR": {
             "title": "HMONITOR",
-            "description": "A horizontal position monitor, accepting a rpn equation for the readout as a function of the actual position (x).",
+            "description": "Monitor for the horizontal beam position",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -1903,7 +1978,7 @@
         },
         "INSTRUMENT": {
             "title": "INSTRUMENT",
-            "description": "INSTRUMENT",
+            "description": "An instrument or a placeholder has no specific effect on the beam and behaves like a drift space. An instrument is different from beam a position monitor and is not used for closed orbit correction.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -1916,7 +1991,7 @@
         },
         "KICKER": {
             "title": "KICKER",
-            "description": "A combined horizontal-vertical steering magnet implemented as a matrix, up to 2nd order. For time-dependent kickers, see BUMPER.",
+            "description": "A corrector for both planes",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -1932,7 +2007,7 @@
         },
         "MARKER": {
             "title": "MARKER",
-            "description": "A marker, equivalent to a zero-length drift space.",
+            "description": "The MARKER has zero length and has no effect on the beam, but it allows one to identify a position in the beam line, for example to apply a matching constraint.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -1944,7 +2019,7 @@
         },
         "MATRIX": {
             "title": "MATRIX",
-            "description": "Explicit matrix",
+            "description": "The MATRIX element allows the definition of an arbitrary transfer matrix.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2211,7 +2286,7 @@
         },
         "MONITOR": {
             "title": "MONITOR",
-            "description": "A two-plane position monitor, accepting two rpn equations for the readouts as a function of the actual positions (x and y).",
+            "description": "A beam monitor has no specific effect on the beam and behaves like a drift space. In addition it serves to record the beam position for closed orbit correction.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2224,7 +2299,7 @@
         },
         "MULTIPOLE": {
             "title": "MULTIPOLE",
-            "description": "A canonical kick multipole.",
+            "description": "A MULTIPOLE is a thin-lens magnet of arbitrary order, including a dipole component.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2240,7 +2315,7 @@
         },
         "NLLENS": {
             "title": "NLLENS",
-            "description": "NLLENS",
+            "description": "The NLLENS element represents a thin nonlinear lens with the potential of 'Elliptic' type. The lens is used to create fully integrable 2D nonlinear accelerator lattice with very large nonlinear tune spread/shift. The NLLENS element is recognized by the thin tracking module. The quadrupole term of the potential is included in the transport map and, consequently, affects the calculation of tunes and Twiss functions.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2254,7 +2329,6 @@
         },
         "OCTUPOLE": {
             "title": "OCTUPOLE",
-            "description": "An octupole implemented as a third-order matrix",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2270,7 +2344,7 @@
         },
         "PLACEHOLDER": {
             "title": "PLACEHOLDER",
-            "description": "PLACEHOLDER",
+            "description": "An instrument or a placeholder has no specific effect on the beam and behaves like a drift space. An instrument is different from beam a position monitor and is not used for closed orbit correction.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2283,7 +2357,6 @@
         },
         "QUADRUPOLE": {
             "title": "QUADRUPOLE",
-            "description": "A quadrupole implemented as a matrix, up to 3rd order.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2296,7 +2369,7 @@
         },
         "RBEND": {
             "title": "RBEND",
-            "description": "RBEND",
+            "description": "RBEND is a specific case of SBEND. The pole faces are parallel. The reference system is the curved rbend reference system.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2337,7 +2410,6 @@
         },
         "RFCAVITY": {
             "title": "RFCAVITY",
-            "description": "A first-order matrix RF cavity with exact phase dependence.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2354,7 +2426,7 @@
         },
         "RFMULTIPOLE": {
             "title": "RFMULTIPOLE",
-            "description": "RFMULTIPOLE",
+            "description": "A RFMULTIPOLE is a element which exhibits the properties of an RF cavity as well as those of a multipole, of arbitrary order, oscillating at the same RF frequency.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2376,7 +2448,7 @@
         },
         "SBEND": {
             "title": "SBEND",
-            "description": "A canonical kick sector dipole magnet.",
+            "description": "SBEND is a sector bending magnet. The planes of the pole faces intersect at the centre of curvature of the curved sbend reference system.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2401,7 +2473,6 @@
         },
         "SEXTUPOLE": {
             "title": "SEXTUPOLE",
-            "description": "A sextupole implemented as a matrix, up to 3rd order",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2417,7 +2488,6 @@
         },
         "SOLENOID": {
             "title": "SOLENOID",
-            "description": "A solenoid implemented as a matrix, up to 2nd order.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2432,7 +2502,7 @@
         },
         "SROTATION": {
             "title": "SROTATION",
-            "description": "SROTATION",
+            "description": "The element SROTATION rotates the straight reference system about the longitudinal (s) axis.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2445,7 +2515,7 @@
         },
         "TRANSLATION": {
             "title": "TRANSLATION",
-            "description": "TRANSLATION",
+            "description": "The element TRANSLATION changes the reference system by applying a translation of the reference system.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2456,7 +2526,7 @@
         },
         "TWCAVITY": {
             "title": "TWCAVITY",
-            "description": "TWCAVITY",
+            "description": "The travelling wave cavities model the accelerating structures of linacs where wavefront moves together with the accelerated particles. This element is implemented only by PTC and is treated as drift by native MADX commands. The phase velocity is fixed to speed of light and can not be varied.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2474,7 +2544,7 @@
         },
         "VACDIPOLE": {
             "title": "VACDIPOLE",
-            "description": "VACDIPOLE",
+            "description": "An AC dipole for the vertical plane",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2494,7 +2564,7 @@
         },
         "VKICKER": {
             "title": "VKICKER",
-            "description": "A vertical steering dipole implemented as a matrix, up to 2nd order.",
+            "description": "A corrector for the vertical plane",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2509,7 +2579,7 @@
         },
         "VMONITOR": {
             "title": "VMONITOR",
-            "description": "A vertical position monitor, accepting a rpn equation for the readout as a function of the actual position (y).",
+            "description": "Monitor for the vertical beam position",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2522,7 +2592,7 @@
         },
         "XROTATION": {
             "title": "XROTATION",
-            "description": "XROTATION",
+            "description": "The element XROTATION rotates the straight reference system about the vertical (x) axis.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -2535,7 +2605,7 @@
         },
         "YROTATION": {
             "title": "YROTATION",
-            "description": "YROTATION",
+            "description": "The element YROTATION rotates the straight reference system about the vertical (y) axis.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",

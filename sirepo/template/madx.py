@@ -406,12 +406,13 @@ def _extract_report_twissReport(data, run_dir, filename=_TWISS_OUTPUT_FILE):
             x_label=_field_label(x),
         )
     )
-    res.initialTwissParameters = PKDict(
-        betx=t.betx[0],
-        bety=t.bety[0],
-        alfx=t.alfx[0],
-        alfy=t.alfx[0],
-    )
+    if 'betx' in t:
+        res.initialTwissParameters = PKDict(
+            betx=t.betx[0],
+            bety=t.bety[0],
+            alfx=t.alfx[0],
+            alfy=t.alfx[0],
+        )
     return res
 
 
@@ -423,16 +424,23 @@ def _field_label(field):
 
 def _file_info(filename, run_dir, file_id):
     path = str(run_dir.join(filename))
-    cols = madx_parser.parse_tfs_file(path, header_only=True)
+    plottable = []
+    tfs = madx_parser.parse_tfs_file(path)
+    for f in tfs:
+        if f in _ALPHA_COLUMNS:
+            continue
+        v = to_floats(tfs[f])
+        if np.any(v):
+            plottable.append(f)
     count = 1
-    if 'turn' in cols:
+    if 'turn' in tfs:
         info = madx_parser.parse_tfs_page_info(path)
         count = len(info)
     return PKDict(
         modelKey='elementAnimation{}'.format(file_id),
         filename=filename,
         isHistogram='twiss' not in filename,
-        plottableColumns=[col for col in filter(lambda x: x not in _ALPHA_COLUMNS, cols)],
+        plottableColumns=plottable,
         pageCount=count,
     )
 
@@ -461,7 +469,7 @@ def _fixup_madx(madx):
     # remove duplicate twiss
     # remove "call" and "use" commands
     beam_idx = None
-    found_twiss = False
+    first_twiss = True
     res = []
     for cmd in madx.models.commands:
         if cmd._type == 'call' or cmd._type == 'use':
@@ -474,9 +482,9 @@ def _fixup_madx(madx):
                 _update_beam_and_bunch(cmd, madx.models.bunch)
                 continue
         elif cmd._type == 'twiss':
-            if found_twiss:
+            if first_twiss:
+                first_twiss = False
                 continue
-            found_twiss = True
         res.append(cmd)
     madx.models.commands = res
 

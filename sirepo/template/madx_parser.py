@@ -18,9 +18,9 @@ class MadXParser(lattice.LatticeParser):
         self.ignore_commands = set([
             'aperture', 'assign', 'call', 'coguess',
             'correct', 'create', 'ealign', 'efcomp', 'emit',
-            'endedit', 'eoption', 'esave', 'exec', 'fill',
+            'endedit', 'eoption', 'esave', 'exec', 'exit', 'fill',
             'install',
-            'makethin', 'plot', 'print',
+            'plot', 'print', 'quit',
             'readtable', 'reflect', 'return', 'run', 'save',
             'select_ptc_normal', 'seqedit',
             'setplot', 'setvars', 'setvars_lin',
@@ -61,6 +61,8 @@ class MadXParser(lattice.LatticeParser):
                     if f in el:
                         if el[f] and 'LatticeBeamlineList' in el_schema[1]:
                             el[f] = name_to_id[el[f].upper()]
+                        elif el[f] and el_schema[1] == 'OutputFile' and el[f] != '0':
+                            el[f] = '1'
                         elif el_schema[1] in self.schema.enum:
                             #TODO(pjm): ensure value is present in enum list
                             el[f] = el[f].lower()

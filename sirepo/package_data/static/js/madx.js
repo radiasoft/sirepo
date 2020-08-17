@@ -159,11 +159,11 @@ SIREPO.app.controller('CommandController', function(appState, commandService, la
     var self = this;
     self.activeTab = 'basic';
     self.basicNames = [
-        'beam', 'beta0', 'constraint', 'global', 'jacobian', 'lmdif', 'match', 'endmatch', 'option',
+        'beam', 'beta0', 'constraint', 'ealign', 'endmatch', 'global', 'jacobian', 'lmdif', 'makethin', 'match', 'migrad', 'option',
         'ptc_create_layout', 'ptc_create_universe', 'ptc_end',
         'ptc_normal', 'ptc_observe', 'ptc_select', 'ptc_setswitch', 'ptc_start',
         'ptc_track', 'ptc_track_end', 'ptc_trackline', 'resbeam', 'savebeta', 'select', 'set', 'show',
-        'sodd', 'use', 'twiss', 'vary',
+        'sodd', 'twiss', 'use', 'vary',
     ];
     self.advancedNames = [];
 
@@ -320,10 +320,6 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
     self.simState.errorMessage = function() {
         return self.errorMessage;
     };
-
-    appState.whenModelsLoaded($scope, function() {
-        self.isParticleSimulation = madxService.isParticleSimulation();
-    });
 });
 
 SIREPO.app.directive('appFooter', function() {
@@ -595,4 +591,10 @@ SIREPO.viewLogic('bunchView', function(appState, commandService, madxService, pa
         $.merge(['bunch.beamDefinition'], energyFields.map(function(f) { return 'command_beam.' + f; })),
             calculateBunchParameters,
     ];
+});
+
+SIREPO.viewLogic('simulationSettingsView', function(panelState, madxService, $scope) {
+    $scope.whenSelected = function() {
+        panelState.showField('bunch', 'numberOfParticles', madxService.isParticleSimulation());
+    };
 });
