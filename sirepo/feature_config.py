@@ -81,25 +81,32 @@ def _init():
     from pykern import pkconfig
     global _cfg
 
+    def b(msg, dev=False):
+        return (
+            pkconfig.channel_in('dev') if dev else pkconfig.channel_in_internal_test(),
+            bool,
+            msg,
+        )
+
     _cfg = pkconfig.init(
         # No secrets should be stored here (see sirepo.job.agent_env)
         api_modules=((), set, 'optional api modules, e.g. status'),
         jspec=dict(
-            derbenevskrinsky_force_formula=(pkconfig.channel_in_internal_test(), bool, 'Include Derbenev-Skrinsky force formula'),
+            derbenevskrinsky_force_formula=b('Include Derbenev-Skrinsky force formula'),
         ),
         proprietary_sim_types=(set(), set, 'codes that require authorization'),
         #TODO(robnagler) make this a sim_type config like srw and warpvnd
         rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
         sim_types=(set(), set, 'simulation types (codes) to be imported'),
         srw=dict(
-            mask_in_toolbar=(pkconfig.channel_in_internal_test(), bool, 'Show the mask element in toolbar'),
-            beamline3d=(pkconfig.channel_in_internal_test(), bool, 'Show 3D beamline plot'),
             app_url=('/en/xray-beamlines.html', str, 'URL for SRW link'),
-            hide_guest_warning=(False, bool, 'Hide the guest warning in the UI'),
+            beamline3d=b('Show 3D beamline plot'),
+            hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
+            mask_in_toolbar=b('Show the mask element in toolbar'),
         ),
         warpvnd=dict(
             allow_3d_mode=(True, bool, 'Include 3D features in the Warp VND UI'),
-            display_test_boxes=(pkconfig.channel_in_internal_test(), bool, 'Display test boxes to visualize 3D -> 2D projections'),
+            display_test_boxes=b('Display test boxes to visualize 3D -> 2D projections'),
         ),
     )
     s = set(
