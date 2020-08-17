@@ -1454,6 +1454,9 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if (appState.viewInfo(modelKey)) {
             return modelKey;
         }
+        if (! (modelKey in SIREPO.APP_SCHEMA.model)) {
+            return modelKey;
+        }
         var m = appState.modelInfo(modelKey);
         if (m._super) {
             for (var i = SIREPO.INFO_INDEX_DEFAULT_VALUE; i < m._super.length; ++i) {
@@ -1463,7 +1466,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
                 }
             }
         }
-        return null;
+        return modelKey;
     };
 
 
