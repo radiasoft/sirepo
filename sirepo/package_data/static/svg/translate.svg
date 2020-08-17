@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg class="sr-beamline-item-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" width="32" height="32" viewBox="0, 0, 32, 32">
+  <g id="Layer_1" transform="translate(-330.207, -172.39)">
+    <g id="Translae">
+      <g id="Cube_Source">
+        <path d="M332.123,192.485 L340.943,192.485 L340.943,202.916 L332.123,202.916 L332.123,192.485 z" fill="#97B6D5" id="Front"/>
+        <path d="M336.533,189.089 L343.882,189.089 L340.943,192.566 L332.123,192.566 L336.533,189.089 z" fill="#526374" id="Top"/>
+        <path d="M340.943,202.916 L340.943,192.485 L343.882,189.089 L343.882,197.701 L340.943,202.916 z" fill="#526374" id="Side"/>
+      </g>
+      <g id="Cube_Dupe" opacity="0.497">
+        <path d="M348.122,177.081 L356.942,177.081 L356.942,187.513 L348.122,187.513 L348.122,177.081 z" fill="#97B6D5" id="Front"/>
+        <path d="M352.532,173.685 L359.881,173.685 L356.942,177.163 L348.122,177.163 L352.532,173.685 z" fill="#526374" id="Top"/>
+        <path d="M356.942,187.513 L356.942,177.081 L359.881,173.685 L359.881,182.297 L356.942,187.513 z" fill="#526374" id="Side"/>
+      </g>
+      <g>
+        <path d="M343.882,189.089 L350.15,183.894" fill-opacity="0" stroke="#000000" stroke-width="0.5"/>
+        <path d="M351.107,185.049 L353.229,181.342 L349.192,182.739 z" fill="#000000" fill-opacity="1" stroke="#000000" stroke-width="0.5" stroke-opacity="1"/>
+      </g>
+    </g>
+  </g>
+</svg>

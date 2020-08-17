@@ -541,7 +541,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 '<div data-optimize-float="" data-model="model" data-model-name="modelName" data-field="field" data-min="info[4]" data-max="info[5]" ></div>',
               '</div>',
               '<div data-ng-switch-when="Range" data-ng-class="fieldClass">',
-                '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field" data-field-delegate="fieldDelegate"></div>',
+                  '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field" data-field-delegate="fieldDelegate"></div>',
               '</div>',
               '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
                 '<div class="form-control-static" data-ng-if="model.valueList[field].length == 1">{{ model.valueList[field][0] }}</div>',
@@ -560,7 +560,6 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
-
             $scope.utilities = utilities;
             function fieldClass(fieldType, fieldSize, wantEnumButtons) {
                 return 'col-sm-' + (fieldSize || (
@@ -2696,11 +2695,12 @@ SIREPO.app.directive('stringToNumber', function() {
                 return true;
             }
 
+            // catch leading '-' or it will be impossible to enter
             ngModel.$parsers.push(function(value) {
                 if (ngModel.$isEmpty(value))  {
                     return null;
                 }
-                if (SIREPO.NUMBER_REGEXP.test(value)) {
+                if (value === '-' || SIREPO.NUMBER_REGEXP.test(value)) {
                     var v;
                     if (scope.numberType == 'integer') {
                         v = parseInt(parseFloat(value));
@@ -2713,12 +2713,14 @@ SIREPO.app.directive('stringToNumber', function() {
                         }
                         return v;
                     }
-                    v = parseFloat(value);
+                    v = parseFloat(value === '-' ? '-0' : value);
                     if (! isValid(v)) {
                         return undefined;
                     }
                     if (isFinite(v)) {
-                        return v;
+                        // a string like '1.0' will parse to '1' - if we return the parsed value, the user will never
+                        // be able to enter a decimal point
+                        return value;
                     }
                 }
                 return undefined;
@@ -3053,6 +3055,107 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
         },
     };
 });
+
+
+SIREPO.app.directive('toolbar', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            itemFilter: '&',
+            parentController: '=',
+            toolbarItems: '=toolbar',
+        },
+        template: [
+            '<div class="row">',
+              '<div class="col-sm-12">',
+                '<div class="text-center bg-info sr-toolbar-holder">',
+                  '<div class="sr-toolbar-section" data-ng-repeat="section in ::sectionItems">',
+                    '<div class="sr-toolbar-section-header"><span class="sr-toolbar-section-title">{{ ::section.name }}</span></div>',
+                    '<span data-ng-click="item.isButton ? parentController.editTool(item) : null" data-ng-repeat="item in ::section.contents | filter:showItem" class="sr-toolbar-button sr-beamline-image" data-ng-drag="{{ ! item.isButton }}" data-ng-drag-data="item">',
+                      '<span data-toolbar-icon="" data-item="item"></span><br>{{ ::item.title }}',
+                    '</span>',
+                  '</div>',
+                  '<span data-ng-repeat="item in ::standaloneItems" class="sr-toolbar-button sr-beamline-image" data-ng-drag="{{ ! item.isButton }}" data-ng-drag-data="item">',
+                    '<span data-beamline-icon="" data-item="item"></span><br>{{ ::item.title }}',
+                  '</span>',
+                '</div>',
+              '</div>',
+            '</div>',
+            '<div class="sr-editor-holder" style="display:none">',
+              '<div data-ng-repeat="item in ::allItems">',
+                '<div class="sr-beamline-editor" id="sr-{{ ::item.type }}-editor" data-beamline-item-editor="" data-model-name="{{ ::item.type }}" data-parent-controller="parentController" ></div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            //srdbg('fltr', $scope.itemFilter());
+            $scope.allItems = [];
+            var items = $scope.toolbarItems || SIREPO.APP_SCHEMA.constants.toolbarItems || [];
+            //srdbg('items', items);
+            function addItem(name, items) {
+                var item = appState.setModelDefaults({type: name}, name);
+                items.push(item);
+                $scope.allItems.push(item);
+            }
+
+            $scope.showItem = function (item) {
+                if (! $scope.itemFilter || ! angular.isFunction($scope.itemFilter())) {
+                    return true;
+                }
+                return $scope.itemFilter()(item);
+            };
+
+            function initToolbarItems() {
+                $scope.sectionItems = items.filter(function (item) {
+                    return isSection(item);
+                });
+                $scope.standaloneItems = items.filter(function (item) {
+                    return ! isSection(item);
+                });
+                $scope.allItems = items;
+            }
+
+            function isSection(item) {
+                return item.contents && item.contents.length;
+            }
+            initToolbarItems();
+        },
+    };
+});
+
+SIREPO.app.directive('toolbarIcon', function() {
+    return {
+        scope: {
+            item: '=',
+        },
+        template: '<ng-include src="iconUrl()" onload="iconLoaded()"/>',
+        controller: function($scope, $element) {
+            var adjustmentsByType = {
+            };
+
+            $scope.iconUrl = function() {
+                return '/static/svg/' +  $scope.item.type + '.svg' + SIREPO.SOURCE_CACHE_KEY;
+            };
+
+            $scope.iconLoaded = function () {
+                /*
+                var vb = $($element).find('svg.sr-beamline-item-icon').prop('viewBox').baseVal;
+                vb.width = 100;
+                vb.height = 50;
+                var adjust = adjustmentsByType[$scope.item.name];
+                if (adjust) {
+                    vb.height += adjust[0] || 0;
+                    vb.x -= adjust[1] || 0;
+                    vb.y -= adjust[2] || 0;
+                }
+
+                 */
+            };
+
+        },
+    };
+});
+
 
 SIREPO.app.directive('3dSliceWidget', function(appState, panelState) {
     return {

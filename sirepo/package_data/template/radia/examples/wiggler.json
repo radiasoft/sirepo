@@ -1,5 +1,9 @@
 {
     "models": {
+         "fieldPaths": {
+            "path": "line",
+            "paths": []
+        },
         "geometry": {
             "name": "Wiggler",
             "beamAxis": "z",
@@ -35,6 +39,13 @@
                     "type": ""
                 }
             ]
+        },
+        "magnetDisplay": {
+            "bgColor": "#ffffff",
+            "fieldPoints": [],
+            "fieldType": "M",
+            "notes": "",
+            "viewType": "objects"
         },
         "simFolder": {},
         "simulation": {

@@ -7,29 +7,147 @@
     "constants": {
         "defaultGeomColor": "#ffffff",
         "inProgressText": "Solving",
+        "objectScale": 0.001,
         "pathPtsFileType": "path-pts",
-        "pathDetailFields": {
-            "circlePath": ["ctrX", "ctrY", "ctrZ", "radius", "theta", "phi"],
-            "fieldMapPath": ["ctrX", "ctrY", "ctrZ", "lenX", "lenY", "lenZ"],
-            "filePath": ["fileName"],
-            "linePath": ["beginX", "beginY", "beginZ", "endX", "endY", "endZ"],
-            "manualPath": ["ptX", "ptY", "ptZ"]
-        }
+        "detailFields": {
+            "fieldPath": {
+                "circlePath": ["ctrX", "ctrY", "ctrZ", "radius", "theta", "phi"],
+                "fieldMapPath": ["ctrX", "ctrY", "ctrZ", "lenX", "lenY", "lenZ"],
+                "filePath": ["fileName"],
+                "linePath": ["begin", "end"],
+                "manualPath": ["ptX", "ptY", "ptZ"]
+            },
+            "transforms": {
+                "cloneTransform": ["name","numCopies", "transforms", "alternateFields"],
+                "invertField": ["name"],
+                "symmetryTransform": ["name", "symmetryPlane", "symmetryPoint", "symmetryType"],
+                "translate": ["name","distance"],
+                "rotate": ["name", "angle", "axis", "center"],
+                "translateClone": ["name","distance"],
+                "rotateClone": ["name", "angle", "axis", "center"]
+            }
+        },
+        "toolbarItems": [
+            {
+                "canDrag": true,
+                "contents": [
+                    {
+                        "isButton": false,
+                        "layoutShape": "rect",
+                        "model": "box",
+                        "title": "Box",
+                        "type": "box"
+                    },
+                    {
+                        "layoutShape": "rect",
+                        "model": "geomGroup",
+                        "title": "Add Group",
+                        "type": "group"
+                    }
+                ],
+                "name": "Objects"
+            },
+            {
+                "canDrag": false,
+                "contents": [
+                    {
+                        "isButton": true,
+                        "isInactive": true,
+                        "layoutShape": "rect",
+                        "model": "racetrack",
+                        "title": "Racetrack",
+                        "type": "racetrack"
+                    },
+                    {
+                        "isButton": true,
+                        "isInactive": true,
+                        "layoutShape": "rect",
+                        "model": "undulatorGroup",
+                        "title": "Quick Undulator",
+                        "type": "undulatorGroup"
+                    }
+                ],
+                "name": "In Progress"
+            },
+            {
+                "canDrag": true,
+                "contents": [
+                    {
+                        "isButton": false,
+                        "layoutShape": "rect",
+                        "model": "translate",
+                        "title": "Translate",
+                        "type": "translate"
+                    },
+                    {
+                        "isButton": false,
+                        "layoutShape": "rect",
+                        "model": "rotate",
+                        "title": "Rotate",
+                        "type": "rotate"
+                    },
+                    {
+                        "isButton": false,
+                        "layoutShape": "rect",
+                        "model": "cloneTransform",
+                        "title": "Clone",
+                        "type": "clone"
+                    },
+                    {
+                        "isButton": false,
+                        "layoutShape": "rect",
+                        "model": "symmetryTransform",
+                        "title": "Symmetry",
+                        "type": "symmetry"
+                    }
+                ],
+                "name": "Transforms"
+            },
+            {
+                "canDrag": true,
+                "contents": [
+                    {
+                        "isButton": false,
+                        "layoutShape": "rect",
+                        "model": "translateClone",
+                        "title": "Translate",
+                        "type": "translate"
+                    },
+                    {
+                        "isButton": false,
+                        "layoutShape": "rect",
+                        "model": "rotateClone",
+                        "title": "Rotate",
+                        "type": "rotate"
+                    }
+                ],
+                "name": "Transforms (clone)"
+            }
+        ]
     },
     "dynamicFiles": {
         "externalLibs": {
             "js": ["vtk.js"]
         },
         "sirepoLibs": {
-            "css": ["vtk.css"],
+            "css": ["radia.css", "vtk.css"],
             "js": ["radia.js"]
         }
     },
     "enum": {
+        "AutoManual": [
+            ["auto", "Auto"],
+            ["man", "Manual"]
+        ],
         "BeamAxis": [
             ["x", "x"],
             ["y", "y"],
             ["z", "z"]
+        ],
+        "DivisionType": [
+            ["cyl", "Cylindrical"],
+            ["", "None"],
+            ["pln", "Planar"]
         ],
         "FieldScaling": [
             ["uniform", "Uniform"],
@@ -42,6 +160,21 @@
             ["A", "A"],
             ["H", "H"],
             ["J", "J"]
+        ],
+        "MaterialType": [
+            ["NdFeB", "Neodymium Iron Boron"],
+            ["SmCo5", "Samarium Cobalt (SmCo5)"],
+            ["Sm2Co17", "Samarium Cobalt (Sm2Co17)"],
+            ["Ferrite", "Ferrite"],
+            ["Xc06", "Industeel"],
+            ["Steel37", "Steel37"],
+            ["Steel42", "Steel42"],
+            ["AFK502", "Aperam 502"],
+            ["AFK1", "Aperam 1"]
+        ],
+        "ObjectType": [
+            ["box", "Box"],
+            ["racetrack", "RaceTrack"]
         ],
         "PathType": [
             ["line", "Line"],
@@ -56,6 +189,14 @@
             ["4", "4"],
             ["5", "5"]
         ],
+        "SymmetryType": [
+            ["parallel", "Parallel"],
+            ["perpendicular", "Perpendicular"]
+        ],
+        "SpatialTransform": [
+            ["translate", "Translate"],
+            ["rotate", "Rotate"]
+        ],
         "ViewType": [
             ["objects", "Objects"],
             ["fields", "Fields"]
@@ -66,6 +207,13 @@
         "magnetViewer": []
     },
     "localRoutes": {
+        "source": {
+            "route": "/source/:simulationId",
+            "config": {
+                "controller": "RadiaSourceController as src",
+                "templateUrl": "/static/html/radia-source.html"
+            }
+        },
         "visualization": {
             "route": "/visualization/:simulationId",
             "config": {
@@ -75,6 +223,10 @@
         }
     },
     "model": {
+        "box": {
+            "_super": ["_", "model", "geomObject"],
+            "type": ["_", "ObjectType", "box"]
+        },
         "circlePath": {
             "_super": ["_", "model", "fieldPath"],
             "ctrX": ["Center x (mm)", "Float", 0.0],
@@ -85,6 +237,17 @@
             "phi": ["\uD835\uDFBF", "Float", 0.0, "Euler 3", 0.0, 6.2832],
             "numPoints": ["Num Points", "Integer", 10, "", 2],
             "type": ["_", "PathType", "circle"]
+        },
+        "cloneTransform": {
+            "_super": ["_", "model", "transform"],
+            "angle": ["Angle (deg)", "Float", "0.0"],
+            "axis": ["Axis", "FloatStringArray", "0.0, 0.0, 1.0", "", "x, y, z"],
+            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "distance": ["Direction", "FloatStringArray", "10.0, 0.0, 0.0", "", "x, y, z"],
+            "alternateFields": ["Alternate Fields", "Boolean", "1"],
+            "name": ["Name", "String", "Clone"],
+            "numCopies": ["Number of Copies", "Integer", 1, "", 1],
+            "transforms": ["", "TransformTable", [], ""]
         },
         "fieldDisplay": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
@@ -115,24 +278,45 @@
         },
         "geometry": {
             "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
-            "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
             "name": ["Name", "String", ""]
         },
+        "geomGroup": {
+            "_super": ["_", "model", "radiaObject"],
+            "layoutShape":  ["_", "String", "rect"],
+            "members": ["_", "Group", []]
+        },
         "geomObject": {
-            "color": ["Color", "Color", "#cccccc"],
+            "_super": ["_", "model", "radiaObject"],
+            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x (mm), y (mm), z (mm)"],
+            "division": ["Num Divisions", "IntStringArray", "1, 1, 1", "", "Nx, Ny, Nz"],
+            "doDivide": ["Divide", "Boolean", "0"],
             "id": ["_", "String", ""],
-            "material": ["Material", "String", ""],
-            "name": ["Name", "String", ""],
-            "type": ["Type", "String", ""]
+            "layoutShape":  ["_", "String", "rect"],
+            "magnetization": ["Magentization (T)", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "mapId": ["_", "String", "???.0"],
+            "material": ["Material", "MaterialType", "NdFeB"],
+            "type": ["Type", "ObjectType", "box"],
+            "size": ["Size", "FloatStringArray", "10.0, 10.0, 10.0", "", "x (mm), y (mm), z (mm)"]
+        },
+        "geomUndulatorGroup": {
+            "_super": ["_", "model", "geomGroup"],
+            "baseGroup": [""],
+            "gap": ["Gap", "Float", 1.0],
+            "numPeriods": ["Number of Periods", "Integer", 1, "", 1]
+        },
+        "invertField": {
+            "name": ["Name", "String", "Invert Field"]
+        },
+        "layoutObject": {
+            "color": ["Color", "Color", "#cccccc"],
+            "groupId": ["_", "String", ""],
+            "id": ["_", "String", ""],
+            "layoutShape":  ["_", "String", "rect"]
         },
         "linePath": {
             "_super": ["_", "model", "fieldPath"],
-            "beginX": ["x1 (mm)", "Float", -10.0],
-            "beginY": ["y1 (mm)", "Float", 0.0],
-            "beginZ": ["z1 (mm)", "Float", 0.0],
-            "endX": ["x2 (mm)", "Float", 10.0],
-            "endY": ["y2 (mm)", "Float", 0.0],
-            "endZ": ["z2 (mm)", "Float", 0.0],
+            "begin": ["Start", "FloatStringArray", "-10.0, 0, 0", "Start point", "x, y, z"],
+            "end": ["End", "FloatStringArray", "10.0, 0, 0", "End point", "x, y, z"],
             "numPoints": ["Num Points", "Integer", 10, "", 2],
             "type": ["_", "PathType", "line"]
         },
@@ -156,9 +340,37 @@
             "density": ["Density", "Float", 1.0],
             "name": ["Name", "String", ""]
         },
+        "racetrack": {
+            "_super": ["_", "model", "geomObject"],
+            "axis": ["Axis", "BeamAxis", "z"],
+            "currentDensity": ["Current Density (A/mm)", "Float", 1.0],
+            "fieldCalc": ["Field Calculation", "AutoManual", "man", ""],
+            "numSegments": ["Number of Corner Segments", "Integer", 1, "", 0],
+            "rInner": ["Inner Radius", "Float", 6.0],
+            "rOuter": ["Outer Radius", "Float", 10.0],
+            "type": ["_", "ObjectType", "racetrack"]
+        },
+        "radiaObject": {
+            "_super": ["_", "model", "layoutObject"],
+            "name": ["Name", "String", ""],
+            "transforms": ["", "TransformTable", [], ""]
+        },
         "reset": {
         },
+        "rotate": {
+            "angle": ["Angle (deg)", "Float", "0.0"],
+            "axis": ["Axis", "FloatStringArray", "0.0, 0.0, 1.0", "", "x, y, z"],
+            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "name": ["Name", "String", "Rotate"]
+        },
+        "rotateClone": {
+            "angle": ["Angle (deg)", "Float", "0.0"],
+            "axis": ["Axis", "FloatStringArray", "0.0, 0.0, 1.0", "", "x, y, z"],
+            "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "name": ["Name", "String", "Rotate"]
+        },
         "simulation": {
+            "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"]
         },
         "solver":  {
             "lastSolved": ["", "Integer", "-1"],
@@ -170,10 +382,31 @@
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
             "sbatchProject": ["Project", "OptionalString", ""]
+        },
+        "spatialTransform": {
+        },
+        "symmetryTransform": {
+            "_super": ["_", "model", "transform"],
+            "name": ["Name", "String", "Symmetry"],
+            "symmetryPlane": ["Symmetry Plane", "FloatStringArray", "1.0, 0.0, 0.0", "", "x, y, z"],
+            "symmetryPoint": ["Point in Symmetry Plane", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "symmetryType": ["Symmetry", "SymmetryType", "parallel"]
+        },
+        "transform": {
+            "name": ["Name", "String", "Transform"],
+            "object": ["Apply to", "geomObject", ""]
+        },
+        "translate": {
+            "distance": ["Direction", "FloatStringArray", "10.0, 0.0, 0.0", "", "x, y, z"],
+            "name": ["Name", "String", "Translate"]
+        },
+        "translateClone": {
+            "distance": ["Direction", "FloatStringArray", "10.0, 0.0, 0.0", "", "x, y, z"],
+            "name": ["Name", "String", "Translate"]
         }
     },
     "strings": {
-        "completionState": " {stepCount} steps Max |M| {maxM} A/m; Max |H| {maxH} A/m"
+        "completionState": ""
     },
     "view": {
         "circlePath": {
@@ -187,6 +420,19 @@
                 "theta",
                 "phi",
                 "numPoints"
+            ]
+        },
+        "cloneTransform": {
+            "title": "Clone Object",
+            "basic": [
+                "transforms",
+                "numCopies",
+                "alternateFields"
+            ],
+            "advanced": [
+                "transforms",
+                "numCopies",
+                "alternateFields"
             ]
         },
         "fieldMapPath": {
@@ -218,23 +464,53 @@
                 "fileModel"
             ]
         },
-        "geomObject": {
-            "title": "Object",
+        "geomGroup": {
+            "title": "Group",
+            "basic": [
+                "name",
+                "transforms",
+                "color",
+                "members"
+            ],
             "advanced": [
                 "name",
-                "color"
+                "transforms",
+                "color",
+                "members"
             ]
         },
+        "geomObject": {
+            "title": "Object",
+            "basic": [
+                "name",
+                "material",
+                "center",
+                "size",
+                "color"
+            ],
+            "advanced": [
+                ["Main", [
+                "name",
+                "magnetization",
+                "material",
+                "doDivide",
+                "division",
+                "center",
+                "size",
+                "color"
+            ]],
+                ["Transforms", [
+                    "transforms"
+                ]]
+            ]
+        },
+        "invert": {},
         "linePath": {
             "title": "Line",
             "basic": [
                 "name",
-                "beginX",
-                "beginY",
-                "beginZ",
-                "endX",
-                "endY",
-                "endZ",
+                "begin",
+                "end",
                 "numPoints"
             ]
         },
@@ -242,7 +518,6 @@
             "title": "Magnet Viewer",
             "basic": [
                 "geometry.name",
-                "geometry.beamAxis",
                 "viewType",
                 "bgColor",
                 "geometry.alpha",
@@ -263,6 +538,72 @@
                 "ptZ"
             ]
         },
+        "racetrack": {
+            "title": "Race Track",
+            "basic": [
+                "name",
+                "axis",
+                "center",
+                "size",
+                "rInner",
+                "rOuter",
+                "numSegments",
+                "currentDensity",
+                "fieldCalc",
+                "color"
+            ],
+            "advanced": [
+                ["Main", [
+                "name",
+                "axis",
+                "center",
+                "size",
+                "rInner",
+                "rOuter",
+                "numSegments",
+                "currentDensity",
+                "fieldCalc",
+                "color"
+            ]],
+                ["Transforms", [
+                    "transforms"
+                ]]
+            ]
+        },
+        "rotate": {
+            "title": "Rotate",
+            "basic": [
+                "axis",
+                "center",
+                "angle"
+            ],
+            "advanced": [
+                "axis",
+                "center",
+                "angle"
+            ]
+        },
+        "rotateClone": {
+            "title": "Rotate",
+            "basic": [
+                "axis",
+                "center",
+                "angle"
+            ],
+            "advanced": [
+                "axis",
+                "center",
+                "angle"
+            ]
+        },
+        "simulation": {
+            "title": "Simulation",
+            "advanced": [
+                "name",
+                "folder",
+                "beamAxis"
+            ]
+        },
         "solver": {
             "title": "Solver",
             "basic": [
@@ -271,6 +612,44 @@
                 "method"
             ],
             "advanced": []
+        },
+        "symmetryTransform": {
+            "title": "Apply Symmetry",
+            "basic": [
+                "symmetryType",
+                "symmetryPlane",
+                "symmetryPoint"
+            ],
+            "advanced": [
+                "symmetryType",
+                "symmetryPlane",
+                "symmetryPoint"
+            ]
+        },
+        "transform": {
+            "title": "Apply Transform",
+            "basic": [
+                "object"
+            ],
+            "advanced": []
+        },
+        "translate": {
+            "title": "Translate",
+            "basic": [
+                "distance"
+            ],
+            "advanced": [
+                "distance"
+            ]
+        },
+        "translateClone": {
+            "title": "Translate",
+            "basic": [
+                "distance"
+            ],
+            "advanced": [
+                "distance"
+            ]
         }
     }
 }

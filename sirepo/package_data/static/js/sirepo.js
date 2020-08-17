@@ -1449,6 +1449,24 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return 'Waiting';
     };
 
+    // if no associated view, check for a superclass that does have one
+    self.getBaseModelKey = function(modelKey) {
+        if (appState.viewInfo(modelKey)) {
+            return modelKey;
+        }
+        var m = appState.modelInfo(modelKey);
+        if (m._super) {
+            for (var i = SIREPO.INFO_INDEX_DEFAULT_VALUE; i < m._super.length; ++i) {
+                if (appState.viewInfo(m._super[i])) {
+                    modelKey = m._super[i];
+                    return modelKey;
+                }
+            }
+        }
+        return null;
+    };
+
+
     self.isActiveField = function(model, field) {
         return $(fieldClass(model, field)).find('input').is(':focus');
     };
@@ -1577,6 +1595,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.showModalEditor = function(modelKey, template, scope) {
+        modelKey = self.getBaseModelKey(modelKey);
         var editorId = '#' + self.modalId(modelKey);
         var showEvent = modelKey + '.editor.show';
         if ($(editorId).length) {

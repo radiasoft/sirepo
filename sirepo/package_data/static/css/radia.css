@@ -1,0 +1,9 @@
+.table-hover > tbody > tr {
+  border-style: solid;
+  border-width: thin;
+  border-color: #00a2c5;
+}
+
+.table-hover > tbody > tr:hover {
+  border-width: medium;
+}
