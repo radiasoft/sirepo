@@ -31,9 +31,10 @@ test_main() {
     test_no_prints '\s(srdbg|console.log)\(' "${jsfiles[@]}"
     test_no_h5py
     test_jshint
-    if [[ -x ./node_modules/karma/bin/karma ]]; then
-        npm run test
+    if [[ ! -x ./node_modules/karma/bin/karma ]]; then
+        npm install karma
     fi
+    npm run test
     pykern test
     if [[ -n ${PKSETUP_PYPI_PASSWORD:+hide-secret} ]]; then
         python setup.py pkdeploy
