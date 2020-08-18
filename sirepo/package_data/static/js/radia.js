@@ -1242,16 +1242,15 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
             }
 
             $scope.addObject = function(oId) {
-                var o = $scope.getObject(oId);
+                let o = $scope.getObject(oId);
                 o.groupId = $scope.model.id;
                 $scope.field.push(o.id);
             };
 
             $scope.getIds = function() {
-                var i = $scope.objects.map(function (o) {
+                return $scope.objects.map(function (o) {
                     return o.id;
                 });
-                return i;
             };
 
             $scope.getObject = function(oId) {
@@ -1259,12 +1258,15 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
             };
 
             $scope.hasNoGroup = function(oId) {
-                var o = $scope.getObject(oId);
+                if ($scope.field.indexOf(oId) >= 0) {
+                    return false;
+                }
+                let o = $scope.getObject(oId);
                 return oId !== $scope.model.id && (! o.groupId || o.groupId === '');
             };
 
             $scope.removeObject = function(oId) {
-                var o = $scope.getObject(oId);
+                let o = $scope.getObject(oId);
                 o.groupId = '';
                 var oIdx = $scope.field.indexOf(oId);
                 if (oIdx < 0) {
