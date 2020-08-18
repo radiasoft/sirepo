@@ -21,6 +21,12 @@ except ImportError:
 #: allows us to search more easily for use of http root
 ROOT = '/'
 
+#: route parsing
+PARAM_RE = r'([\?\*]?)<{}>'
+
+#: optional parameter that consumes rest of parameters
+PATH_INFO_CHAR = '*'
+
 
 def api(*args, **kwargs):
     """Alias for `uri_router.uri_for_api`"""
@@ -104,7 +110,7 @@ def server_route(route_or_uri, params, query):
     route = simulation_db.SCHEMA_COMMON['route'][route_or_uri]
     if params:
         for k, v in params.items():
-            k2 = f'\??\{sirepo.uri_router.PATH_INFO_CHAR}?<{k}>'
+            k2 = PARAM_RE.format(k)
             n = re.sub(k2, _to_uri(str(v)), route)
             assert n != route, \
                 '{}: not found in "{}"'.format(k2, route)

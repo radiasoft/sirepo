@@ -25,12 +25,6 @@ import werkzeug.exceptions
 #: route for sirepo.srunit
 srunit_uri = None
 
-#: optional parameter that consumes rest of parameters
-PATH_INFO_CHAR = '*'
-
-#: route parsing
-_PARAM_RE = re.compile(r'^([\?\*]?)<(.+?)>$')
-
 #: prefix for api functions
 _FUNC_PREFIX = 'api_'
 
@@ -295,7 +289,7 @@ def _split_uri(uri):
     for p in parts:
         assert not in_path_info, \
             'path_info parameter={} must be last: next={}'.format(rp.name, p)
-        m = _PARAM_RE.search(p)
+        m = re.search(f"^{sirepo.uri.PARAM_RE.format('(.+?)')}$", p)
         if not m:
             assert first is None, \
                 'too many non-parameter components of uri={}'.format(uri)
@@ -305,7 +299,7 @@ def _split_uri(uri):
         params.append(rp)
         rp.is_optional = bool(m.group(1))
         if rp.is_optional:
-            rp.is_path_info = m.group(1) == PATH_INFO_CHAR
+            rp.is_path_info = m.group(1) == sirepo.uri.PATH_INFO_CHAR
             in_path_info = rp.is_path_info
         else:
             rp.is_path_info = False
