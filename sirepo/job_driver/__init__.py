@@ -271,8 +271,9 @@ class DriverBase(PKDict):
             )
             self._agent_starting_timeout = None
 
-    def _agent_starting_timeout_handler(self):
+    async def _agent_starting_timeout_handler(self):
         pkdlog('{} timeout={}', self, self.cfg.agent_starting_secs)
+        await self.kill()
         self.free_resources(internal_error='timeout waiting for agent to start')
 
     def _receive(self, msg):
