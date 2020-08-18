@@ -1731,6 +1731,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         // remove optional params missed and then that were replaced
         url = url.replace(/\/\?<[^>]+>/g, '');
         url = url.replace(/\/\?/g, '/');
+        // POSIT: char to replace matches sirepo.uri_router.PATH_INFO_CHAR
+        url = url.replace(/\/\*/g, '');
         var missing = url.match(/<[^>]+>/g);
         if (missing) {
             throw new Error(missing.join() + ': missing parameter(s) for route: ' + map[routeName]);

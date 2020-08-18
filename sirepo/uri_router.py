@@ -26,7 +26,7 @@ import werkzeug.exceptions
 srunit_uri = None
 
 #: optional parameter that consumes rest of parameters
-_PATH_INFO_CHAR = '*'
+PATH_INFO_CHAR = '*'
 
 #: route parsing
 _PARAM_RE = re.compile(r'^([\?\*]?)<(.+?)>$')
@@ -212,7 +212,7 @@ def _dispatch(path):
                     raise sirepo.util.raise_not_found('{}: uri missing parameter ({})', path, p.name)
                 break
             if p.is_path_info:
-                kwargs[p.name] = '/'.join([x.lstrip(_PATH_INFO_CHAR) for x in parts])
+                kwargs[p.name] = '/'.join(parts)
                 parts = None
                 break
             kwargs[p.name] = parts.pop(0)
@@ -305,7 +305,7 @@ def _split_uri(uri):
         params.append(rp)
         rp.is_optional = bool(m.group(1))
         if rp.is_optional:
-            rp.is_path_info = m.group(1) == _PATH_INFO_CHAR
+            rp.is_path_info = m.group(1) == PATH_INFO_CHAR
             in_path_info = rp.is_path_info
         else:
             rp.is_path_info = False

@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdp
 import pykern.pkinspect
 import re
+import sirepo.uri_router
 
 try:
     # py3
@@ -103,7 +104,7 @@ def server_route(route_or_uri, params, query):
     route = simulation_db.SCHEMA_COMMON['route'][route_or_uri]
     if params:
         for k, v in params.items():
-            k2 = r'\??<' + k + '>'
+            k2 = f'\??\{sirepo.uri_router.PATH_INFO_CHAR}?<{k}>'
             n = re.sub(k2, _to_uri(str(v)), route)
             assert n != route, \
                 '{}: not found in "{}"'.format(k2, route)
