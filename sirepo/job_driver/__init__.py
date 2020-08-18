@@ -266,6 +266,7 @@ class DriverBase(PKDict):
                 raise
 
     def _agent_starting_done(self):
+        self._start_idle_timeout()
         if self._agent_starting_timeout:
             tornado.ioloop.IOLoop.current().remove_timeout(
                 self._agent_starting_timeout
@@ -311,7 +312,6 @@ class DriverBase(PKDict):
 
         Save the websocket and register self with the websocket
         """
-        self._start_idle_timeout()
         self._agent_starting_done()
         if self._websocket:
             if self._websocket != msg.handler:
@@ -370,7 +370,7 @@ def init(job_supervisor_module):
     job_supervisor = job_supervisor_module
     cfg = pkconfig.init(
         modules=((_DEFAULT_MODULE,), set, 'available job driver modules'),
-        idle_check_secs=(1800, int, 'how many seconds to wait between checks'),
+        idle_check_secs=(1800, pkconfig.parse_seconds, 'how many seconds to wait between checks'),
     )
     _CLASSES = PKDict()
     p = pkinspect.this_module().__name__
