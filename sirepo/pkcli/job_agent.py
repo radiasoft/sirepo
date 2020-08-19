@@ -137,6 +137,11 @@ class _Dispatcher(PKDict):
             fastcgi_error_count=0,
         )
 
+    def fastcgi_destroy(self):
+        self._fastcgi_file and pkio.unchecked_remove(self._fastcgi_file)
+        self._fastcgi_file = None
+        self.fastcgi_cmd = None
+
     def format_op(self, msg, opName, **kwargs):
         if msg:
             kwargs['opId'] = msg.get('opId')
@@ -536,7 +541,7 @@ class _Cmd(PKDict):
 
 class _FastCgiCmd(_Cmd):
     def destroy(self):
-        self.dispatcher.fastcgi_cmd = None
+        self.dispatcher.fastcgi_destroy()
         super().destroy()
 
 
