@@ -79,6 +79,7 @@ def _run_tests():
         resp = uri_router.call_api('runSimulation', data=d)
         for _ in range(_MAX_CALLS):
             r = simulation_db.json_load(resp.data)
+            pkdlog('resp={}', r)
             if r.state == 'error':
                 raise RuntimeError('simulation error: resp={}'.format(r))
             if r.state == 'completed':

@@ -80,7 +80,7 @@ class DockerDriver(job_driver.DriverBase):
     def init_class(cls, job_supervisor):
         cls.cfg = pkconfig.init(
             agent_starting_secs=(
-                cls._AGENT_STARTING_SECS_DEFAULT,
+                cls._AGENT_STARTING_SECS_DEFAULT + 3,
                 int,
                 'how long to wait for agent start',
             ),
