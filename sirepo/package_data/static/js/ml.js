@@ -200,7 +200,6 @@ SIREPO.app.controller('ClassificationController', function(frameCache, persisten
     self.simState.errorMessage = function() {
         return errorMessage;
     };
-
 });
 
 SIREPO.app.controller('RegressionController', function (appState, frameCache, mlService, panelState, persistentSimulation, $scope) {
