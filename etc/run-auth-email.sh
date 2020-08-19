@@ -27,14 +27,14 @@ echo hello | sendmail vagrant
 # to test sasl
 (sleep 1; echo EHLO localhost; sleep 1; echo AUTH PLAIN AHZhZ3JhbnQAdmFncmFudA==; sleep 1; echo QUIT) | telnet localhost 25
 # then use
-export SIREPO_AUTH_EMAIL_SMTP_SERVER='localhost'
+export SIREPO_SMTP_SERVER='localhost'
 EOF
-export SIREPO_AUTH_EMAIL_FROM_EMAIL='support@radiasoft.net'
-export SIREPO_AUTH_EMAIL_FROM_NAME='RadiaSoft Support'
-export SIREPO_AUTH_EMAIL_SMTP_PASSWORD='vagrant'
-# POSIT: same as sirepo.auth.email._DEV_SMTP_SERVER
-export SIREPO_AUTH_EMAIL_SMTP_SERVER='dev'
-export SIREPO_AUTH_EMAIL_SMTP_USER='vagrant'
+export SIREPO_FROM_EMAIL='support@radiasoft.net'
+export SIREPO_FROM_NAME='RadiaSoft Support'
+export SIREPO_SMTP_PASSWORD='vagrant'
+# POSIT: same as sirepo.smtp.DEV_SMTP_SERVER
+export SIREPO_SMTP_SERVER='dev'
+export SIREPO_SMTP_USER='vagrant'
 export SIREPO_AUTH_METHODS='email:guest'
 export PYKERN_PKDEBUG_WANT_PID_TIME=1
 exec sirepo service http
