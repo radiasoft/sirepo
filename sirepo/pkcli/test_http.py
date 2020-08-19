@@ -26,6 +26,7 @@ import tornado.httpclient
 import tornado.ioloop
 import tornado.locks
 
+
 _CODES = PKDict(
     elegant=(
         PKDict(
@@ -102,29 +103,12 @@ _CODES = PKDict(
     ),
 )
 
-_cfg = None
+cfg = None
 
 _sims = []
 
 
-def cfg():
-    global _cfg
-    if not _cfg:
-        c = sirepo.pkcli.service._cfg()
-        _cfg = pkconfig.init(
-            emails=(['one@radia.run', 'two@radia.run', 'three@radia.run'], list, 'emails to test'),
-            server_uri=(
-                'http://{}:{}'.format(c.ip, c.port),
-                str,
-                'where to send requests',
-            ),
-            run_min_secs=(90, int, 'minimum amount of time to let a simulation run'),
-            run_max_secs=(120, int, 'maximum amount of time to let a simulation run'),
-        )
-    return _cfg
-
-
-def test():
+def default_command():
     async def _apps():
         a = []
         for c in await _clients():
@@ -137,7 +121,7 @@ def test():
         return a
 
     async def _clients():
-        return await asyncio.gather(*[_Client(u).login() for u in cfg().emails])
+        return await asyncio.gather(*[_Client(u).login() for u in cfg.emails])
 
     def _register_signal_handlers(main_task):
         def _s(*args):
@@ -248,8 +232,7 @@ class _Client(PKDict):
                     uri,
                     headers=self._headers,
                     method='GET',
-                    connect_timeout=1e8,
-                    request_timeout=1e8,
+                    **self._fetch_default_args()
                 ),
                 expect_binary_body=expect_binary_body,
             )
@@ -323,10 +306,16 @@ class _Client(PKDict):
                         'Content-type',  'application/json'
                     ),
                     method='POST',
-                    connect_timeout=1e8,
-                    request_timeout=1e8,
+                    **self._fetch_default_args()
                 ),
             )
+
+    def _fetch_default_args(self):
+        return PKDict(
+            connect_timeout=1e8,
+            request_timeout=1e8,
+            validate_cert=cfg.validate_cert,
+        )
 
     @contextlib.contextmanager
     def _timer(self, uri, caller):
@@ -357,7 +346,7 @@ class _Client(PKDict):
         # Elegant frame_id's sometimes have spaces in them so need to
         # make them url safe. But, the * in the url should not be made
         # url safe
-        return cfg().server_uri + uri.replace(' ', '%20')
+        return cfg.server_uri + uri.replace(' ', '%20')
 
 
 class _Sim(PKDict):
@@ -443,6 +432,7 @@ class _Sim(PKDict):
             '/run-cancel',
             PKDict(
                 report=self._report,
+                models=self._data.models,
                 simulationId=self._sid,
                 simulationType=self._app.sim_type,
             ),
@@ -496,7 +486,7 @@ class _Sim(PKDict):
         try:
             with self._set_waiting_on_status():
                 r = await self._run_sim()
-            t = random.randrange(cfg().run_min_secs, cfg().run_max_secs)
+            t = random.randrange(cfg.run_min_secs, cfg.run_max_secs)
             for _ in range(t):
                 if r.state == 'completed' or r.state == 'error':
                     c = False
@@ -524,3 +514,23 @@ class _Sim(PKDict):
         finally:
             if c:
                 await self._cancel(e)
+
+
+def _init():
+    global cfg
+    if cfg:
+        return
+    c = sirepo.pkcli.service._cfg()
+    cfg = pkconfig.init(
+        emails=(['one@radia.run', 'two@radia.run', 'three@radia.run'], list, 'emails to test'),
+        server_uri=(
+            'http://{}:{}'.format(c.ip, c.port),
+            str,
+            'where to send requests',
+        ),
+        run_min_secs=(90, pkconfig.parse_seconds, 'minimum amount of time to let a simulation run'),
+        run_max_secs=(120, pkconfig.parse_seconds, 'maximum amount of time to let a simulation run'),
+        validate_cert=(not pkconfig.channel_in('dev'), bool, 'whether or not to validate server tls cert')
+    )
+
+_init()
