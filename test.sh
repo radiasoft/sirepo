@@ -32,7 +32,7 @@ test_main() {
     test_no_h5py
     test_jshint
     if [[ ! -x ./node_modules/karma/bin/karma ]]; then
-        npm install karma
+        npm install
     fi
     npm run test
     pykern test
