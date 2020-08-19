@@ -70,10 +70,8 @@ def for_sim_type(sim_type):
     import pykern.pkcollections
 
     c = cfg()
-    if sim_type not in c:
-        return pykern.pkcollections.PKDict()
     return pykern.pkcollections.PKDict(
-        pykern.pkcollections.map_items(c[sim_type]),
+        c[sim_type] if sim_type in c else {}
     )
 
 

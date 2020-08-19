@@ -307,18 +307,18 @@ def _beam_evolution_status(run_dir, settings, has_rates):
         col = sdds_util.extract_sdds_column(filename, 't', 0)
         t_max = max(col['values'])
         if t_max and settings.time > 0:
-            return {
+            return PKDict(
                 # use current time as frameCount for uniqueness until simulation is completed
-                'frameCount': int(float(os.path.getmtime(filename))),
-                'percentComplete': 100.0 * t_max / settings.time,
-                'hasRates': has_rates,
-            }
+                frameCount=int(float(os.path.getmtime(filename))),
+                percentComplete=100.0 * t_max / settings.time,
+                hasRates=has_rates,
+            )
     except Exception:
         pass
-    return {
-        'frameCount': 0,
-        'percentComplete': 0,
-    }
+    return PKDict(
+        frameCount=0,
+        percentComplete=0,
+    )
 
 
 def _compute_range_across_files(run_dir, data):

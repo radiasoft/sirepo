@@ -143,7 +143,7 @@ def _epoch_animation(frame_args):
             points=v[:, i].tolist(),
             label=header[i],
         ) for i in (1, 2)],
-    ).update(PKDict(
+    ).pkupdate(PKDict(
         x_label=header[0],
     ))
 
@@ -231,7 +231,7 @@ def _generate_parameters_file(data):
     report = data.get('report', '')
     res, v = template_common.generate_parameters_file(data)
     v.dataFile = _filename(data.models.dataFile.file)
-    v.update(_OUTPUT_FILE).update(
+    v.pkupdate(_OUTPUT_FILE).pkupdate(
         layerImplementationNames=_layer_implementation_list(data),
         neuralNetLayers=data.models.neuralNet.layers,
         inputDim=data.models.columnInfo.inputOutput.count('input'),
