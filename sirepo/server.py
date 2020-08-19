@@ -121,7 +121,7 @@ def api_deleteSimulation():
 
 @api_perm.require_user
 def api_downloadFile(simulation_type, simulation_id, filename):
-#TODO(pjm): simulation_id is an unused argument
+    #TODO(pjm): simulation_id is an unused argument
     req = http_request.parse_params(type=simulation_type, filename=filename)
     n = req.sim_data.lib_file_name_without_type(req.filename)
     p = req.sim_data.lib_file_abspath(req.filename)
@@ -175,7 +175,7 @@ def api_favicon():
 
 @api_perm.require_user
 def api_listFiles(simulation_type, simulation_id, file_type):
-#TODO(pjm): simulation_id is an unused argument
+    #TODO(pjm): simulation_id is an unused argument
     req = http_request.parse_params(type=simulation_type, file_type=file_type)
     return http_reply.gen_json(
         req.sim_data.lib_file_names_for_type(req.file_type),
@@ -374,13 +374,14 @@ def api_pythonSource(simulation_type, simulation_id, model=None, title=None):
     req = http_request.parse_params(type=simulation_type, id=simulation_id, template=True)
     m = model and req.sim_data.parse_model(model)
     d = simulation_db.read_simulation_json(req.type, sid=req.id)
-    return _safe_attachment(
-        flask.make_response(
-            req.template.python_source_for_model(d, m),
+    return http_reply.gen_file_as_attachment(
+        req.template.python_source_for_model(d, m),
+        '{}.{}'.format(
+            d.models.simulation.name + ('-' + title if title else ''),
+            'madx' if m == 'madx' else 'py',
         ),
-        d.models.simulation.name + ('-' + title if title else ''),
-        'madx' if m == 'madx' else 'py'
     )
+
 
 @api_perm.allow_visitor
 def api_robotsTxt():
@@ -424,34 +425,24 @@ def api_saveSimulationData():
     return api_simulationData(
         d.simulationType,
         d.models.simulation.simulationId,
-        pretty=False,
     )
 
 
 @api_perm.require_user
-def api_simulationData(simulation_type, simulation_id, pretty, section=None):
+def api_simulationData(simulation_type, simulation_id, pretty=False, section=None):
     """First entry point for a simulation
 
     Might be non-session simulation copy (see `simulation_db.CopyRedirect`).
     We have to allow a non-user to get data.
     """
+    #TODO(pjm): pretty is an unused argument
     #TODO(robnagler) need real type transforms for inputs
     req = http_request.parse_params(type=simulation_type, id=simulation_id, template=True)
-    pretty = bool(int(pretty))
     try:
         d = simulation_db.read_simulation_json(req.type, sid=req.id)
         if hasattr(req.template, 'prepare_for_client'):
             d = req.template.prepare_for_client(d)
-        resp = http_reply.gen_json(
-            d,
-            pretty=pretty,
-        )
-        if pretty:
-            _safe_attachment(
-                resp,
-                d.models.simulation.name,
-                'json',
-            )
+        resp = http_reply.gen_json(d)
     except simulation_db.CopyRedirect as e:
         if e.sr_response['redirect'] and section:
             e.sr_response['redirect']['section'] = section
@@ -663,23 +654,11 @@ def _render_root_page(page, values):
     return http_reply.render_static_jinja(page, 'html', values, cache_ok=True)
 
 
-def _safe_attachment(resp, base, suffix):
-    return http_reply.as_attachment(
-        resp,
-        http_reply.MIME_TYPE[suffix],
-        '{}.{}'.format(
-            re.sub(r'[^\w]+', '-', base).strip('-') or 'download',
-            suffix,
-        ).lower(),
-    )
-
-
 def _save_new_and_reply(*args):
     data = simulation_db.save_new_simulation(*args)
     return api_simulationData(
         data['simulationType'],
         data['models']['simulation']['simulationId'],
-        pretty=False,
     )
 
 
