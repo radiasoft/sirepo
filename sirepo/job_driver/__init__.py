@@ -82,6 +82,7 @@ class DriverBase(PKDict):
             _agentId=job.unique_key(),
             _agent_start_lock=tornado.locks.Lock(),
             _agent_starting_timeout=None,
+            _idle_timer=None,
             _websocket=None,
             _websocket_ready=sirepo.tornado.Event(),
 #TODO(robnagler) https://github.com/radiasoft/sirepo/issues/2195
@@ -265,6 +266,7 @@ class DriverBase(PKDict):
                 raise
 
     def _agent_starting_done(self):
+        self._start_idle_timeout()
         if self._agent_starting_timeout:
             tornado.ioloop.IOLoop.current().remove_timeout(
                 self._agent_starting_timeout
@@ -344,6 +346,21 @@ class DriverBase(PKDict):
         # so we only acquire on global resources, once we know we are ready to go.
         await op.cpu_slot.alloc('Waiting for CPU resources')
 
+    def _start_idle_timeout(self):
+        async def _kill_if_idle():
+            self._idle_timer = None
+            if not self.ops:
+                pkdlog('{}', self)
+                await self.kill()
+            else:
+                self._start_idle_timeout()
+
+        if not self._idle_timer:
+            self._idle_timer = tornado.ioloop.IOLoop.current().call_later(
+                cfg.idle_check_secs,
+                _kill_if_idle,
+            )
+
     def _websocket_free(self):
         pass
 
@@ -354,6 +371,7 @@ def init(job_supervisor_module):
     job_supervisor = job_supervisor_module
     cfg = pkconfig.init(
         modules=((_DEFAULT_MODULE,), set, 'available job driver modules'),
+        idle_check_secs=(1800, pkconfig.parse_seconds, 'how many seconds to wait between checks'),
     )
     _CLASSES = PKDict()
     p = pkinspect.this_module().__name__
