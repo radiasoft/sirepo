@@ -165,7 +165,6 @@ def _do_fastcgi(msg, template):
                 return pkjson.load_any(m)
 
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    # relative file name (see job_agent.fastcgi_op)
     s.connect(msg.fastcgiFile)
     c = 0
     while True:

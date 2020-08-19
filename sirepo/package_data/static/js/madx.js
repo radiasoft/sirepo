@@ -49,6 +49,7 @@ SIREPO.app.config(function() {
 SIREPO.app.factory('madxService', function(appState, commandService, requestSender, rpnService) {
     var self = {};
     rpnService.isCaseInsensitive = true;
+    self.twissFields = ['betx', 'bety', 'alfx', 'alfy'];
 
     self.computeModel = function(analysisModel) {
         return 'animation';
@@ -80,40 +81,8 @@ SIREPO.app.factory('madxService', function(appState, commandService, requestSend
     return self;
 });
 
-SIREPO.app.controller('SourceController', function(appState, commandService, latticeService, panelState, requestSender, $scope) {
+SIREPO.app.controller('SourceController', function(appState, commandService, latticeService, madxService, $scope) {
     var self = this;
-
-    var energyFields = SIREPO.APP_SCHEMA.enum.BeamDefinition.map(function(e) {
-        return e[0];
-    });
-    var twissFields = ['betx', 'bety', 'alfx', 'alfy'];
-
-    function calculateBunchParameters() {
-        updateParticle();
-        requestSender.getApplicationData(
-            {
-                method: 'calculate_bunch_parameters',
-                bunch: appState.clone(appState.models.bunch),
-                command_beam: appState.clone(appState.models.command_beam),
-                variables: appState.clone(appState.models.rpnVariables),
-            },
-            function(data) {
-                if (data.command_beam && appState.isLoaded()) {
-                    var beam = data.command_beam;
-                    energyFields.forEach(function(f) {
-                        if (beam[f]) {
-                            try {
-                                beam[f] = Number.parseFloat(beam[f].toExponential(9));
-                            }
-                            catch (err) {
-                                // might be an rpn variable instead of a float
-                            }
-                        }
-                    });
-                    appState.models.command_beam = beam;
-                }
-            });
-    }
 
     function loadBeamCommand() {
         var cmd = commandService.findFirstCommand('beam');
@@ -133,33 +102,10 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
             beam,
             appState.models[commandService.commandModelName('beam')]
         );
-        $.merge(['ex', 'ey'], twissFields).forEach(function(f) {
+        $.merge(['ex', 'ey'], madxService.twissFields).forEach(function(f) {
             beam[f] = appState.models.bunch[f];
         });
         appState.saveQuietly('commands');
-    }
-
-    function updateParticle() {
-        var beam = appState.models.command_beam;
-        ['mass', 'charge'].forEach(function(f) {
-            panelState.enableField('command_beam', f, beam.particle == 'other');
-        });
-        if (beam.particle != 'other') {
-            var info = SIREPO.APP_SCHEMA.constants.particleInfo[beam.particle];
-            beam.mass = info[0];
-            beam.charge = info[1];
-        }
-        energyFields.forEach(function(f) {
-            panelState.enableField('command_beam', f, appState.models.bunch.beamDefinition == f);
-        });
-    }
-
-    function updateTwissFields() {
-        var isEnabled = appState.models.bunch.matchTwissParameters == '1';
-        panelState.showField('simulation', 'visualizationBeamlineId', isEnabled);
-        twissFields.forEach(function(f) {
-            panelState.enableField('bunch', f, ! isEnabled);
-        });
     }
 
     self.isParticleTrackingEnabled = function () {
@@ -193,26 +139,6 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
         loadBeamCommand();
         $scope.$on('bunch.changed', saveBeamCommand);
 
-        appState.watchModelFields($scope, ['command_beam.particle'], updateParticle);
-        $scope.$on('sr-tabSelected', updateParticle);
-
-        appState.watchModelFields($scope, ['bunch.matchTwissParameters'], updateTwissFields);
-        $scope.$on('sr-tabSelected', updateTwissFields);
-
-        appState.watchModelFields(
-            $scope,
-            $.merge(['bunch.beamDefinition'], energyFields.map(function(f) { return 'command_beam.' + f; })),
-            calculateBunchParameters);
-
-        $scope.$on('bunchReport1.summaryData', function(e, info) {
-            if (appState.isLoaded() && info.betx) {
-                twissFields.forEach(function(f) {
-                    appState.models.bunch[f] = info[f];
-                });
-                appState.saveQuietly('bunch');
-            }
-        });
-
         // [1, 2, 3]?
         self.ellipseReports = [1, 2].map(function(id) {
             var modelKey = 'twissEllipseReport' + id;
@@ -229,17 +155,26 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
     latticeService.initSourceController(self);
 });
 
-SIREPO.app.controller('CommandController', function(commandService, panelState) {
+SIREPO.app.controller('CommandController', function(appState, commandService, latticeService, madxService, panelState, $scope) {
     var self = this;
     self.activeTab = 'basic';
     self.basicNames = [
-        'beam', 'beta0', 'constraint', 'lmdif', 'jacobian', 'match', 'endmatch', 'global', 'option',
+        'beam', 'beta0', 'constraint', 'ealign', 'endmatch', 'global', 'jacobian', 'lmdif', 'makethin', 'match', 'migrad', 'option',
         'ptc_create_layout', 'ptc_create_universe', 'ptc_end',
-        'ptc_normal', 'ptc_observe', 'ptc_savebeta', 'ptc_start', 'ptc_select', 'ptc_setswitch',
-        'ptc_track', 'ptc_trackline', 'ptc_track_end', 'resbeam', 'select', 'set', 'show',
-        'sodd', 'twiss', 'vary',
+        'ptc_normal', 'ptc_observe', 'ptc_select', 'ptc_setswitch', 'ptc_start',
+        'ptc_track', 'ptc_track_end', 'ptc_trackline', 'resbeam', 'savebeta', 'select', 'set', 'show',
+        'sodd', 'twiss', 'use', 'vary',
     ];
     self.advancedNames = [];
+
+    function addCommands(commands) {
+        commands.forEach(function(cmd) {
+            cmd._id = latticeService.nextId();
+            appState.models.commands.push(appState.setModelDefaults(
+                cmd,
+                commandService.commandModelName(cmd._type)));
+        });
+    }
 
     self.createElement = function(name) {
         panelState.showModalEditor(commandService.createCommand(name));
@@ -248,6 +183,38 @@ SIREPO.app.controller('CommandController', function(commandService, panelState) 
     self.titleForName = function(name) {
         return (SIREPO.APP_SCHEMA.view[commandService.commandModelName(name)] || {}).description;
     };
+
+    self.useTemplate = function() {
+        var sim = appState.models.simulation;
+        if (sim.commandTemplate == 'particle') {
+            addCommands([
+                { _type: 'ptc_create_universe', sector_nmul: 10, sector_nmul_max: 10 },
+                { _type: 'ptc_create_layout' },
+                { _type: 'ptc_track', element_by_element: '1', file: '1' },
+                { _type: 'ptc_track_end' },
+                { _type: 'ptc_end' },
+            ]);
+        }
+        else if (sim.commandTemplate == 'matching') {
+            addCommands([
+                { _type: 'match', sequence: appState.models.simulation.activeBeamlineId },
+                { _type: 'vary', step: 1e-5 },
+                { _type: 'lmdif', calls: 50, tolerance: 1e-8 },
+                { _type: 'endmatch' },
+            ]);
+        }
+        appState.saveChanges(['commands', 'simulation']);
+    };
+
+    appState.whenModelsLoaded($scope, function() {
+        var sim = appState.models.simulation;
+        if (! sim.hideCommandTemplatePrompt
+            && appState.models.commands.length <= 2
+            && sim.commandTemplate != 'none') {
+            sim.hideCommandTemplatePrompt = true;
+            $('#sr-madx-command-confirmation').modal('show');
+        }
+    });
 });
 
 SIREPO.app.controller('LatticeController', function(latticeService) {
@@ -323,6 +290,15 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
                     y2: 'None',
                     y3: 'None',
                 };
+                // better twiss defaults
+                if (info.filename.indexOf('twiss') >= 0) {
+                    $.extend(appState.models[modelKey], {
+                        includeLattice: "1",
+                        y1: "betx",
+                        y2: "bety",
+                        y3: "dx"
+                    });
+                }
             }
             var m = appState.models[modelKey];
             appState.setModelDefaults(m, 'elementAnimation');
@@ -335,7 +311,7 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
                 y3: yColumnWithNone,
             };
             appState.saveQuietly(modelKey);
-            frameCache.setFrameCount(1, modelKey);
+            frameCache.setFrameCount(info.pageCount || 1, modelKey);
         });
     }
 
@@ -344,10 +320,6 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
     self.simState.errorMessage = function() {
         return self.errorMessage;
     };
-
-    appState.whenModelsLoaded($scope, function() {
-        self.isParticleSimulation = madxService.isParticleSimulation();
-    });
 });
 
 SIREPO.app.directive('appFooter', function() {
@@ -358,7 +330,6 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: [
             '<div data-common-footer="nav"></div>',
-            '<div data-mad-x-import-dialog=""></div>',
             '<div data-import-dialog="" data-title="Import MAD-X File" data-description="Select a MAD-X file." data-file-formats=".madx"></div>',
         ].join(''),
     };
@@ -536,5 +507,94 @@ SIREPO.app.directive('matchSummaryPanel', function(appState, plotting) {
             scope.modelName = 'matchSummaryAnimation';
             plotting.linkPlot(scope, element);
         },
+    };
+});
+
+SIREPO.viewLogic('bunchView', function(appState, commandService, madxService, panelState, requestSender, $scope) {
+    var energyFields = SIREPO.APP_SCHEMA.enum.BeamDefinition.map(function(e) {
+        return e[0];
+    });
+
+    function calculateBunchParameters() {
+        updateParticle();
+        requestSender.getApplicationData(
+            {
+                method: 'calculate_bunch_parameters',
+                bunch: appState.clone(appState.models.bunch),
+                command_beam: appState.clone(appState.models.command_beam),
+                variables: appState.clone(appState.models.rpnVariables),
+            },
+            function(data) {
+                if (data.command_beam && appState.isLoaded()) {
+                    var beam = data.command_beam;
+                    energyFields.forEach(function(f) {
+                        if (beam[f]) {
+                            try {
+                                beam[f] = Number.parseFloat(beam[f].toExponential(9));
+                            }
+                            catch (err) {
+                                // might be an rpn variable instead of a float
+                            }
+                        }
+                    });
+                    appState.models.command_beam = beam;
+                }
+            });
+    }
+
+    function updateParticle() {
+        var beam = appState.models.command_beam;
+        ['mass', 'charge'].forEach(function(f) {
+            panelState.enableField('command_beam', f, beam.particle == 'other');
+        });
+        if (beam.particle != 'other') {
+            var info = SIREPO.APP_SCHEMA.constants.particleInfo[beam.particle];
+            beam.mass = info[0];
+            beam.charge = info[1];
+        }
+        energyFields.forEach(function(f) {
+            panelState.enableField('command_beam', f, appState.models.bunch.beamDefinition == f);
+        });
+    }
+
+    function updateTwissFields() {
+        var isEnabled = appState.models.bunch.matchTwissParameters == '1';
+        panelState.showField('simulation', 'visualizationBeamlineId', isEnabled);
+        madxService.twissFields.forEach(function(f) {
+            panelState.enableField('bunch', f, ! isEnabled);
+        });
+    }
+
+    appState.whenModelsLoaded($scope, function() {
+        if (commandService.findFirstCommand('beam').brho == 0) {
+            calculateBunchParameters();
+        }
+    });
+
+    $scope.$on('bunchReport1.summaryData', function(e, info) {
+        if (appState.isLoaded() && info.betx) {
+            madxService.twissFields.forEach(function(f) {
+                appState.models.bunch[f] = info[f];
+            });
+            appState.saveQuietly('bunch');
+        }
+    });
+
+    $scope.whenSelected = function() {
+        updateParticle();
+        updateTwissFields();
+    };
+
+    $scope.watchFields = [
+        ['command_beam.particle'], updateParticle,
+        ['bunch.matchTwissParameters'], updateTwissFields,
+        $.merge(['bunch.beamDefinition'], energyFields.map(function(f) { return 'command_beam.' + f; })),
+            calculateBunchParameters,
+    ];
+});
+
+SIREPO.viewLogic('simulationSettingsView', function(panelState, madxService, $scope) {
+    $scope.whenSelected = function() {
+        panelState.showField('bunch', 'numberOfParticles', madxService.isParticleSimulation());
     };
 });

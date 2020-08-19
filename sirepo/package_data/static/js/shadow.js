@@ -18,30 +18,103 @@ SIREPO.app.config(function() {
     ].join('');
 });
 
-SIREPO.app.factory('shadowService', function(appState, beamlineService, panelState) {
-    // ColumnValue enum values which are in mm
-    var MM_COLUMN_VALUES = ['1', '2', '3'];
+SIREPO.app.factory('shadowService', function(appState, beamlineService, panelState, requestSender) {
     var self = {};
     self.getReportTitle = beamlineService.getReportTitle;
+
+    function updateAutoTuningFields(item) {
+        var modelName = item.type;
+        panelState.showFields(modelName, [
+            ['t_incidence', 't_reflection'], modelName == 'grating' || item.f_central == '0',
+            'f_phot_cent', item.f_central == '1',
+            'phot_cent', item.f_central == '1' && item.f_phot_cent == '0',
+            'r_lambda', item.f_central == '1' && item.f_phot_cent == '1',
+        ]);
+    }
+
+    function updateElementDimensionFields(item) {
+        panelState.showFields(item.type, [
+            'fshape', item.fhit_c == '1',
+            [
+                'halfWidthX1', 'halfWidthX2', 'halfLengthY1',
+                'halfLengthY2',
+            ], item.fhit_c == '1' && item.fshape == '1',
+            [
+                'externalOutlineMajorAxis', 'externalOutlineMinorAxis',
+            ], item.fhit_c == '1' && (item.fshape == '2' || item.fshape == '3'),
+            [
+                'internalOutlineMajorAxis', 'internalOutlineMinorAxis',
+            ], item.fhit_c == '1' && item.fshape == '3',
+        ]);
+    }
+
+    function updateElementShapeFields(item) {
+        panelState.showTab(
+            item.type, 2,
+            item.fmirr == '1' || item.fmirr == '2' || item.fmirr == '3'
+                || item.fmirr == '4' || item.fmirr == '7');
+    }
+
+    function updateElementSurfaceFields(item) {
+        panelState.showFields(item.type, [
+            'f_default', item.f_ext == '0',
+            'f_side', item.f_ext == '0' && item.fmirr == '4',
+            'rmirr', item.f_ext == '1' && item.fmirr == '1',
+            [
+                'axmaj', 'axmin', 'ell_the',
+            ], item.f_ext == '1' && (item.fmirr == '2' || item.fmirr == '7'),
+            ['r_maj', 'r_min'], item.f_ext == '1' && item.fmirr == '3',
+            'param', item.f_ext == '1' && item.fmirr == '4',
+            ['ssour', 'simag', 'theta'], item.f_ext == '0' && item.f_default == '0',
+            [
+                'f_convex', 'fcyl',
+            ], item.fmirr == '1' || item.fmirr == '2' || item.fmirr == '4'
+                || item.fmirr == '7',
+            'cil_ang', item.fcyl == '1'
+                && (item.fmirr == '1' || item.fmirr == '2' || item.fmirr == '4'
+                    || item.fmirr == '7'),
+            'f_torus', item.fmirr == '3',
+        ]);
+    }
 
     self.computeModel = function(analysisModel) {
         return 'animation';
     };
 
-    self.updatePlotSizeFields = function(modelKey, modelName) {
-        var m = appState.models[modelKey];
-        var showOverride = MM_COLUMN_VALUES.indexOf(m.x) >= 0 && MM_COLUMN_VALUES.indexOf(m.y) >= 0;
-        panelState.showField(modelName || modelKey, 'overrideSize', showOverride);
-        if (! showOverride) {
-            m.overrideSize = '0';
-        }
-        panelState.showRow(modelName || modelKey, 'horizontalSize', m.overrideSize === '1');
+    self.computeOnServer = function(method, args, callback) {
+        args.method = method;
+        requestSender.getApplicationData(args, callback);
     };
 
-    self.watchPlotSize = function($scope, modelKey, modelName) {
-        appState.watchModelFields($scope, [modelKey + '.overrideSize', modelKey + '.x', modelKey + '.y'], function() {
-            self.updatePlotSizeFields(modelKey, modelName);
-        });
+    self.initAutoTuneView = function(scope, watchFields, callback) {
+        self.initGeometryView(scope, watchFields, callback);
+        var chain = scope.whenSelected;
+        scope.whenSelected = function(item) {
+            chain(item);
+            updateAutoTuningFields(item);
+        };
+        scope.watchFields.push(['f_central', 'f_phot_cent'], updateAutoTuningFields);
+    };
+
+    self.initGeometryView = function(scope, watchFields, callback) {
+        scope.whenSelected = function(item) {
+            updateElementShapeFields(item);
+            updateElementDimensionFields(item);
+            updateElementSurfaceFields(item);
+            callback(item);
+        };
+        scope.watchFields = [
+            ['fmirr'], updateElementShapeFields,
+            ['fhit_c', 'fshape'], updateElementDimensionFields,
+            ['f_ext', 'f_default', 'fcyl'], updateElementSurfaceFields,
+            watchFields, callback,
+        ];
+    };
+
+    self.updateRayFilterFields = function() {
+        var hasFilter = appState.models.rayFilter.f_bound_sour == '2';
+        panelState.showField('rayFilter', 'distance', hasFilter);
+        panelState.showRow('rayFilter', 'x1', hasFilter);
     };
 
     appState.setAppService(self);
@@ -49,88 +122,65 @@ SIREPO.app.factory('shadowService', function(appState, beamlineService, panelSta
     return self;
 });
 
-SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineService, panelState, shadowService, $scope) {
+SIREPO.app.controller('BeamlineController', function (appState, beamlineService) {
     var self = this;
-    var watchpointNames = [];
+    self.appState = appState;
     self.beamlineService = beamlineService;
     self.beamlineModels = ['beamline'];
     //TODO(pjm): also KB Mirror and  Monocromator
     //self.toolbarItemNames = ['aperture', 'obstacle', 'crystal', 'grating', 'lens', 'crl', 'mirror', 'watch'];
     self.toolbarItemNames = ['aperture', 'obstacle', 'crystal', 'grating', 'crl', 'mirror', 'watch'];
     self.prepareToSave = function() {};
+});
 
-    function updateAutoTuningFields(item) {
-        var modelName = item.type;
-        ['t_incidence', 't_reflection'].forEach(function(f) {
-            panelState.showField(modelName, f, modelName == 'grating' || item.f_central == '0');
-        });
-        panelState.showField(modelName, 'f_phot_cent', item.f_central == '1');
-        panelState.showField(modelName, 'phot_cent', item.f_central == '1' && item.f_phot_cent == '0');
-        panelState.showField(modelName, 'r_lambda', item.f_central == '1' && item.f_phot_cent == '1');
-    }
+SIREPO.app.controller('SourceController', function(appState, shadowService) {
+    var self = this;
+    self.appState = appState;
+    self.shadowService = shadowService;
+    self.isSource = function(name) {
+        return appState.isLoaded() && appState.models.simulation.sourceType == name;
+    };
+});
+
+SIREPO.beamlineItemLogic('crlView', function(panelState, $scope) {
 
     function updateCrlFields(item) {
-        var modelName = item.type;
-        panelState.showField(modelName, 'lensDiameter', item.fhit_c == '1');
-        ['rmirr', 'fcyl', 'useCCC', 'initialCurvature'].forEach(function(f) {
-            panelState.showField(modelName, f, item.fmirr != '5');
-        });
-        panelState.showField(modelName, 'cil_ang', item.fcyl == '1' && item.fmirr != '5');
+        panelState.showFields('crl', [
+            'lensDiameter', item.fhit_c == '1',
+            'cil_ang', item.fcyl == '1' && item.fmirr != '5',
+            [
+                'rmirr', 'fcyl', 'useCCC',
+                'initialCurvature',
+            ], item.fmirr != '5',
+        ]);
     }
+
+    $scope.whenSelected = updateCrlFields;
+    $scope.watchFields = [
+        ['fhit_c', 'fmirr', 'fcyl'], updateCrlFields,
+    ];
+});
+
+SIREPO.beamlineItemLogic('crystalView', function(panelState, shadowService, $scope) {
 
     function updateCrystalFields(item) {
-        ['mosaic_seed', 'spread_mos'].forEach(function(f) {
-            panelState.showField('crystal', f, item.f_mosaic == '1');
-        });
-        panelState.showField('crystal', 'thickness', item.f_mosaic == '1' || (item.f_mosaic == '0' && item.f_bragg_a == '1'));
-        ['f_bragg_a', 'f_johansson'].forEach(function(f) {
-            panelState.showField('crystal', f, item.f_mosaic == '0');
-        });
-        panelState.showField('crystal', 'a_bragg', item.f_mosaic == '0' && item.f_bragg_a == '1');
-        panelState.showField('crystal', 'order', item.f_mosaic == '0' && item.f_bragg_a == '1' && item.f_refrac == '1');
-        panelState.showField('crystal', 'r_johansson', item.f_mosaic == '0' && item.f_johansson == '1');
+        panelState.showFields(item.type, [
+            ['mosaic_seed', 'spread_mos'], item.f_mosaic == '1',
+            'thickness', item.f_mosaic == '1' || (item.f_mosaic == '0' && item.f_bragg_a == '1'),
+            ['f_bragg_a', 'f_johansson'], item.f_mosaic == '0',
+            'a_bragg', item.f_mosaic == '0' && item.f_bragg_a == '1',
+            'order', item.f_mosaic == '0' && item.f_bragg_a == '1' && item.f_refrac == '1',
+            'r_johansson', item.f_mosaic == '0' && item.f_johansson == '1',
+        ]);
     }
 
-    function updateElementDimensionFields(item) {
-        var modelName = item.type;
-        panelState.showField(modelName, 'fshape', item.fhit_c == '1');
-        ['halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2'].forEach(function(f) {
-            panelState.showField(modelName, f, item.fhit_c == '1' && item.fshape == '1');
-        });
-        ['externalOutlineMajorAxis', 'externalOutlineMinorAxis'].forEach(function(f) {
-            panelState.showField(modelName, f, item.fhit_c == '1' && (item.fshape == '2' || item.fshape == '3'));
-        });
-        ['internalOutlineMajorAxis', 'internalOutlineMinorAxis'].forEach(function(f) {
-            panelState.showField(modelName, f, item.fhit_c == '1' && item.fshape == '3');
-        });
-    }
+    shadowService.initAutoTuneView(
+        $scope,
+        ['f_refrac', 'f_mosaic', 'f_bragg_a', 'f_johansson'],
+        updateCrystalFields);
+});
 
-    function updateElementSurfaceFields(item) {
-        var modelName = item.type;
-        panelState.showField(modelName, 'f_default', item.f_ext == '0');
-        panelState.showField(modelName, 'f_side', item.f_ext == '0' && item.fmirr == '4');
-        panelState.showField(modelName, 'rmirr', item.f_ext == '1' && item.fmirr == '1');
-        ['axmaj', 'axmin', 'ell_the'].forEach(function(f) {
-            panelState.showField(modelName, f, item.f_ext == '1' && (item.fmirr == '2' || item.fmirr == '7'));
-        });
-        ['r_maj', 'r_min'].forEach(function(f) {
-            panelState.showField(modelName, f, item.f_ext == '1' && item.fmirr == '3');
-        });
-        panelState.showField(modelName, 'param', item.f_ext == '1' && item.fmirr == '4');
-        ['ssour', 'simag', 'theta'].forEach(function(f) {
-            panelState.showField(modelName, f, item.f_ext == '0' && item.f_default == '0');
-        });
-        ['f_convex', 'fcyl'].forEach(function(f) {
-            panelState.showField(modelName, f, item.fmirr == '1' || item.fmirr == '2' || item.fmirr == '4' || item.fmirr == '7');
-        });
-        panelState.showField(modelName, 'cil_ang', item.fcyl == '1' && (item.fmirr == '1' || item.fmirr == '2' || item.fmirr == '4' || item.fmirr == '7'));
-        panelState.showField(modelName, 'f_torus', item.fmirr == '3');
-    }
-
-    function updateElementShapeFields(item) {
-        var modelName = item.type;
-        panelState.showTab(modelName, 2, item.fmirr == '1' || item.fmirr == '2' || item.fmirr == '3' || item.fmirr == '4' || item.fmirr == '7');
-    }
+SIREPO.beamlineItemLogic('gratingView', function(panelState, shadowService, $scope) {
 
     function updateGratingFields(item) {
         panelState.showField('grating', 'rulingDensity', item.f_ruling == '0' || item.f_ruling == '1');
@@ -150,146 +200,178 @@ SIREPO.app.controller('ShadowBeamlineController', function (appState, beamlineSe
         });
     }
 
-    function updateMirrorReflectivityFields(item) {
-        ['f_refl', 'reflectivityMinEnergy', 'reflectivityMaxEnergy'].forEach(function(f) {
-            panelState.showField('mirror', f, item.f_reflec == '1' || item.f_reflec == '2');
-        });
-        ['prereflElement', 'prereflDensity', 'prereflStep'].forEach(function(f) {
-            panelState.showField('mirror', f, (item.f_reflec == '1' || item.f_reflec == '2') && item.f_refl == '0');
-        });
-        ['f_thick', 'mlayerMinEnergy', 'mlayerMaxEnergy', 'mlayerBilayerNumber', 'mlayerBilayerThickness', 'mlayerGammaRatio', 'mlayerEvenRoughness', 'mlayerOddRoughness'].forEach(function(f) {
-            panelState.showField('mirror', f, (item.f_reflec == '1' || item.f_reflec == '2') && item.f_refl == '2');
-        });
-        panelState.showRow('mirror', 'mlayerSubstrateMaterial', (item.f_reflec == '1' || item.f_reflec == '2') && item.f_refl == '2');
-    }
-
-    self.handleModalShown = function(name, modelKey) {
-        var item = beamlineService.activeItem;
-        if (item && item.type == name) {
-            if (name == 'mirror' || name == 'crystal' || name == 'grating') {
-                updateElementShapeFields(item);
-                updateElementDimensionFields(item);
-                updateElementSurfaceFields(item);
-            }
-            if (name == 'crystal' || name == 'grating') {
-                updateAutoTuningFields(item);
-            }
-            if (name == 'mirror') {
-                updateMirrorReflectivityFields(item);
-            }
-            else if (name == 'crystal') {
-                updateCrystalFields(item);
-            }
-            else if (name == 'grating') {
-                updateGratingFields(item);
-            }
-            else if (name == 'crl') {
-                updateCrlFields(item);
-            }
-        }
-        if (name == 'initialIntensityReport') {
-            shadowService.updatePlotSizeFields(name);
-        }
-        else if (modelKey && beamlineService.isWatchpointReportModelName(modelKey)) {
-            shadowService.updatePlotSizeFields(modelKey, 'watchpointReport');
-            if (watchpointNames.indexOf(modelKey) < 0) {
-                watchpointNames.push(modelKey);
-                shadowService.watchPlotSize($scope, modelKey, 'watchpointReport');
-            }
-        }
-    };
-
-    appState.whenModelsLoaded($scope, function() {
-        ['mirror', 'crystal', 'grating'].forEach(function(m) {
-            beamlineService.watchBeamlineField($scope, m, ['fmirr'], updateElementShapeFields);
-            beamlineService.watchBeamlineField($scope, m, ['f_ext', 'f_default', 'fcyl'], updateElementSurfaceFields);
-            beamlineService.watchBeamlineField($scope, m, ['fhit_c', 'fshape'], updateElementDimensionFields);
-        });
-        ['crystal', 'grating'].forEach(function(m) {
-            beamlineService.watchBeamlineField($scope, m, ['f_central', 'f_phot_cent'], updateAutoTuningFields);
-        });
-        beamlineService.watchBeamlineField($scope, 'mirror', ['f_reflec', 'f_refl'], updateMirrorReflectivityFields);
-        beamlineService.watchBeamlineField($scope, 'crystal', ['f_refrac', 'f_mosaic', 'f_bragg_a', 'f_johansson'], updateCrystalFields);
-        beamlineService.watchBeamlineField($scope, 'grating', ['f_ruling', 'f_mono'], updateGratingFields);
-        beamlineService.watchBeamlineField($scope, 'crl', ['fhit_c', 'fmirr', 'fcyl'], updateCrlFields);
-        shadowService.watchPlotSize($scope, 'initialIntensityReport');
-    });
+    shadowService.initAutoTuneView(
+        $scope,
+        ['f_ruling', 'f_mono'],
+        updateGratingFields);
 });
 
-SIREPO.app.controller('ShadowSourceController', function(appState, panelState, shadowService, $scope) {
-    var self = this;
-    self.shadowService = shadowService;
+SIREPO.beamlineItemLogic('mirrorView', function(panelState, shadowService, $scope) {
 
-    function updateRayFilterFields() {
-        var hasFilter = appState.models.rayFilter.f_bound_sour == '2';
-        panelState.showField('rayFilter', 'distance', hasFilter);
-        panelState.showRow('rayFilter', 'x1', hasFilter);
+    function updateMirrorReflectivityFields(item) {
+        panelState.showFields(item.type, [
+            [
+                'f_refl', 'reflectivityMinEnergy', 'reflectivityMaxEnergy',
+            ], item.f_reflec == '1' || item.f_reflec == '2',
+            [
+                'prereflElement', 'prereflDensity', 'prereflStep',
+            ], (item.f_reflec == '1' || item.f_reflec == '2') && item.f_refl == '0',
+            [
+                'f_thick', 'mlayerMinEnergy', 'mlayerMaxEnergy',
+                'mlayerBilayerNumber', 'mlayerBilayerThickness', 'mlayerGammaRatio',
+                'mlayerEvenRoughness', 'mlayerOddRoughness',
+            ], (item.f_reflec == '1' || item.f_reflec == '2') && item.f_refl == '2',
+            'mlayerSubstrateMaterial', (item.f_reflec == '1' || item.f_reflec == '2') && item.f_refl == '2',
+        ]);
     }
 
-    function updateGeometricSettings() {
-        var geo = appState.models.geometricSource;
-        ['wxsou', 'wzsou'].forEach(function(f) {
-            panelState.showField('geometricSource', f, geo.fsour == '1' || geo.fsour == '2');
-        });
-        ['sigmax', 'sigmaz'].forEach(function(f) {
-            panelState.showField('geometricSource', f, geo.fsour == '3');
-        });
-        ['hdiv1', 'hdiv2', 'vdiv1', 'vdiv2'].forEach(function(f) {
-            panelState.showField('sourceDivergence', f, geo.fdistr == '1' || geo.fdistr == '2' || geo.fdistr == '3');
-        });
-        ['sigdix', 'sigdiz'].forEach(function(f) {
-            panelState.showField('geometricSource', f, geo.fdistr == '3');
-        });
-        panelState.showRow('sourceDivergence', 'hdiv1', geo.fdistr == '1' || geo.fdistr == '2' || geo.fdistr == '3');
-        ['cone_max', 'cone_min'].forEach(function(f) {
-            panelState.showField('geometricSource', f, geo.fdistr == '5');
-        });
-        panelState.showField('geometricSource', 'wysou', geo.fsource_depth == '2');
-        panelState.showField('geometricSource', 'sigmay', geo.fsource_depth == '3');
-        panelState.showField('geometricSource', 'singleEnergyValue', geo.f_color == '1');
-        ['ph1', 'ph2'].forEach(function(f) {
-            panelState.showField('geometricSource', f, geo.f_color == '3');
-        });
-        ['f_coher', 'pol_angle', 'pol_deg'].forEach(function(f) {
-            panelState.showField('geometricSource', f, geo.f_polar == '1');
-        });
+    shadowService.initGeometryView(
+        $scope,
+        ['f_reflec', 'f_refl'],
+        updateMirrorReflectivityFields);
+});
+
+var shadowPlotLogic = function(appState, panelState, shadowService, $scope) {
+    // ColumnValue enum values which are in mm
+    var MM_COLUMN_VALUES = ['1', '2', '3'];
+
+    function updatePlotSizeFields() {
+        var modelKey = $scope.modelData ? $scope.modelData.modelKey : $scope.modelName;
+        var m = appState.models[modelKey];
+        var showOverride = MM_COLUMN_VALUES.indexOf(m.x) >= 0 && MM_COLUMN_VALUES.indexOf(m.y) >= 0;
+        panelState.showField($scope.modelName, 'overrideSize', showOverride);
+        if (! showOverride) {
+            m.overrideSize = '0';
+        }
+        panelState.showRow($scope.modelName, 'horizontalSize', m.overrideSize === '1');
     }
+
+    $scope.whenSelected = updatePlotSizeFields;
+
+    var name = $scope.modelData ? $scope.modelData.modelKey : $scope.modelName;
+    $scope.watchFields = [
+        [name + '.overrideSize', name + '.x', name + '.y'], updatePlotSizeFields,
+    ];
+};
+
+[
+    'plotXYReportView', 'initialIntensityReportView',
+    'watchpointReportView',
+].forEach(function(view) {
+    SIREPO.viewLogic(view, shadowPlotLogic);
+});
+
+SIREPO.viewLogic('undulatorView', function(appState, panelState, shadowService, $scope) {
+
+    function computeHarmonicPhotonEnergy() {
+        if (appState.models.undulator.select_energy != 'harmonic') {
+            return;
+        }
+        shadowService.computeOnServer(
+            'compute_harmonic_photon_energy',
+            {
+                undulator: appState.models.undulator,
+                undulatorBeam: appState.models.undulatorBeam,
+            },
+            function(data) {
+                if (appState.isLoaded()) {
+                    var und = appState.models.undulator;
+                    und.photon_energy = data.photon_energy.toFixed(2);
+                    und.maxangle = data.maxangle.toFixed(4);
+                }
+            });
+    }
+
+    function updateUndulatorFields() {
+        var und = appState.models.undulator;
+        panelState.enableFields('undulator', [
+            ['photon_energy', 'maxangle'],  und.select_energy != 'harmonic',
+        ]);
+        panelState.showFields('undulator', [
+            ['emin', 'emax', 'ng_e'], und.select_energy == 'range',
+            'energy_harmonic', und.select_energy == 'harmonic',
+            'photon_energy', und.select_energy == 'harmonic' || und.select_energy == 'single',
+        ]);
+    }
+
+    $scope.whenSelected = function() {
+        updateUndulatorFields();
+        computeHarmonicPhotonEnergy();
+    };
+
+    $scope.watchFields = [
+        ['undulator.select_energy'], updateUndulatorFields,
+        [
+            'undulator.energy_harmonic', 'undulator.k_horizontal',
+            'undulator.k_vertical', 'undulator.period',
+            'undulator.length', 'undulatorBeam.energy',
+        ], computeHarmonicPhotonEnergy,
+    ];
+});
+
+SIREPO.viewLogic('wigglerView', function(appState, panelState, shadowService, $scope) {
 
     function updateWigglerSettings() {
         var wiggler = appState.models.wiggler;
-        panelState.showField('wiggler', 'kValue', wiggler.b_from == '0');
-        panelState.showField('wiggler', 'trajFile', wiggler.b_from == '1' || wiggler.b_from == '2');
-        panelState.showField('wiggler', 'per', wiggler.b_from == '0' || wiggler.b_from == '2');
-        panelState.showField('wiggler', 'shift_x_value', wiggler.shift_x_flag == '5');
-        panelState.showField('wiggler', 'shift_betax_value', wiggler.shift_betax_flag == '5');
+        panelState.showFields('wiggler', [
+            'kValue', wiggler.b_from == '0',
+            'trajFile', wiggler.b_from == '1' || wiggler.b_from == '2',
+            'per', wiggler.b_from == '0' || wiggler.b_from == '2',
+            'shift_x_value', wiggler.shift_x_flag == '5',
+            'shift_betax_value', wiggler.shift_betax_flag == '5',
+        ]);
     }
 
-    self.handleModalShown = function(name) {
-        if (name == 'bendingMagnet' || name == 'geometricSource' || name == 'wiggler') {
-            updateRayFilterFields();
-        }
-        if (name == 'geometricSource') {
-            updateGeometricSettings();
-        }
-        else if (name == 'wiggler') {
-            updateWigglerSettings();
-        }
-        else if (name == 'plotXYReport') {
-            shadowService.updatePlotSizeFields('plotXYReport');
-        }
+    $scope.whenSelected = function() {
+        updateWigglerSettings();
+        shadowService.updateRayFilterFields();
     };
 
-    self.isSource = function(name) {
-        return appState.isLoaded() && appState.models.simulation.sourceType == name;
-    };
+    $scope.watchFields = [
+        ['rayFilter.f_bound_sour'], shadowService.updateRayFilterFields,
+        ['wiggler.b_from', 'wiggler.shift_x_flag', 'wiggler.shift_betax_flag'], updateWigglerSettings,
+    ];
+});
 
-    appState.whenModelsLoaded($scope, function() {
+SIREPO.viewLogic('bendingMagnetView', function(shadowService, $scope) {
+    $scope.whenSelected = shadowService.updateRayFilterFields;
+    $scope.watchFields = [
+        ['rayFilter.f_bound_sour'], shadowService.updateRayFilterFields,
+    ];
+});
+
+SIREPO.viewLogic('geometricSourceView', function(appState, panelState, shadowService, $scope) {
+
+    function updateGeometricSettings() {
+        var geo = appState.models.geometricSource;
+        panelState.showFields('geometricSource', [
+            ['wxsou', 'wzsou'], geo.fsour == '1' || geo.fsour == '2',
+            ['sigmax', 'sigmaz'], geo.fsour == '3',
+            ['sigdix', 'sigdiz'], geo.fdistr == '3',
+            ['cone_max', 'cone_min'], geo.fdistr == '5',
+            'wysou', geo.fsource_depth == '2',
+            'sigmay', geo.fsource_depth == '3',
+            'singleEnergyValue', geo.f_color == '1',
+            ['ph1', 'ph2'], geo.f_color == '3',
+            ['f_coher', 'pol_angle', 'pol_deg'], geo.f_polar == '1',
+        ]);
+        panelState.showFields('sourceDivergence', [
+            ['hdiv1', 'hdiv2', 'vdiv1', 'vdiv2'], geo.fdistr == '1' || geo.fdistr == '2' || geo.fdistr == '3',
+        ]);
+    }
+
+    $scope.whenSelected = function() {
         updateGeometricSettings();
-        appState.watchModelFields($scope, ['rayFilter.f_bound_sour'], updateRayFilterFields);
-        appState.watchModelFields($scope, ['simulation.sourceType', 'geometricSource.fsour', 'geometricSource.fdistr', 'geometricSource.fsource_depth', 'geometricSource.f_color', 'geometricSource.f_polar'], updateGeometricSettings);
-        appState.watchModelFields($scope, ['wiggler.b_from', 'wiggler.shift_x_flag', 'wiggler.shift_betax_flag'], updateWigglerSettings);
-        shadowService.watchPlotSize($scope, 'plotXYReport');
-    });
+        shadowService.updateRayFilterFields();
+    };
+    $scope.watchFields = [
+        ['rayFilter.f_bound_sour'], shadowService.updateRayFilterFields,
+        [
+            'simulation.sourceType', 'geometricSource.fsour',
+            'geometricSource.fdistr', 'geometricSource.fsource_depth',
+            'geometricSource.f_color', 'geometricSource.f_polar',
+        ], updateGeometricSettings,
+    ];
 });
 
 SIREPO.app.directive('appFooter', function() {
@@ -334,8 +416,7 @@ SIREPO.app.directive('appHeader', function() {
     };
 });
 
-SIREPO.app.directive('reflectivityMaterial', function(appState, requestSender) {
-    var requestIndex = 0;
+SIREPO.app.directive('reflectivityMaterial', function() {
     return {
         restrict: 'A',
         require: 'ngModel',

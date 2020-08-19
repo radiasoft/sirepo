@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg class="sr-beamline-item-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" width="32" height="31.813" viewBox="0, 0, 32, 31.813">
+  <g id="Layer_1" transform="translate(-64, -84.187)">
+    <g id="Cube">
+      <path d="M64,92 L88,92 L88,116 L64,116 L64,92 z" fill="#97B6D5" id="Front"/>
+      <path d="M76,84.187 L96,84.187 L88,92.187 L64,92.187 L76,84.187 z" fill="#526374" id="Top"/>
+      <path d="M88,116 L88,92 L96,84.187 L96,104 L88,116 z" fill="#526374" id="Side"/>
+    </g>
+  </g>
+</svg>
