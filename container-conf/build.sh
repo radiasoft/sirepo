@@ -19,10 +19,7 @@ build_as_root() {
     dnf config-manager \
         --add-repo \
         https://download.docker.com/linux/fedora/docker-ce.repo
-    build_yum install \
-        nodejs \
-        docker-ce \
-        https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
+    build_yum install nodejs docker-ce
     mkdir "$sirepo_db_dir"
     chown "$build_run_user:" "$sirepo_db_dir"
 }
@@ -53,6 +50,7 @@ build_as_run_user() {
     PYKERN_PKCLI_TEST_MAX_FAILURES=1 \
         PYKERN_PKDEBUG_WANT_PID_TIME=1 \
         SIREPO_PYTEST_SKIP=job_test:animation_test:report_test \
+        sirepo_test_no_karma=0 \
         bash test.sh
     cd ..
 }
