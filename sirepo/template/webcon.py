@@ -361,9 +361,7 @@ def jupyter_notebook_for_model(data, model):
     from sirepo.template.template_common import JupyterNotebook
     nb = JupyterNotebook(SIM_TYPE, data)
     nb.add_imports(
-        {
-            'numpy': []
-        }
+        PKDict(numpy=[], pykern=['pkcollections'])
     )
 
     nb.add_markdown_cell(['## Function definitions'])
@@ -541,11 +539,11 @@ def jupyter_notebook_for_model(data, model):
                     f"pyplot.xlabel('{x_label}')",
                     f"pyplot.ylabel('{y_label}')",
                     "pyplot.title('Clusters')",
-                    f"for idx in range({clusters_var}['count']):",
+                    f"for idx in range(max({clusters_var}) + 1):",
                     f"  cl_x = [x for i, x in enumerate({x_var}) if \
-                        {clusters_var}['group'][i] == idx]",
+                        {clusters_var}[i] == idx]",
                     f"  cl_y = [y for i, y in enumerate({y_var}) if \
-                        {clusters_var}['group'][i] == idx]",
+                        {clusters_var}[i] == idx]",
                     "  pyplot.plot(cl_x, cl_y, '.')",
                     'pyplot.show()'
                 ])

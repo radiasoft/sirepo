@@ -108,4 +108,4 @@ def compute_clusters(plot_data, cfg):
         agg_clst = sklearn.cluster.AgglomerativeClustering(n_clusters=count, linkage='complete', affinity='euclidean')
         agg_clst.fit(x_scale)
         group = agg_clst.labels_
-    return {'group': group.tolist(), 'count': count}
+    return group
