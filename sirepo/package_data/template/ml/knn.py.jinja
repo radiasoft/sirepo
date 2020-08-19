@@ -13,7 +13,11 @@ except ValueError:
     e = True
 
 if e:
-    raise AssertionError('The data you supplied is continuous so it can not be used for classification. Please change the Application Mode to "Regression" or supply non-regression type data (ex binary) and re-run the simulation.')
+    raise AssertionError(
+    'The data you supplied is continuous so it can not be used for'
+    ' classification. Please change the Application Mode to "Regression" or'
+    ' supply non-regression type data (ex binary) and re-run the simulation.'
+    )
 
 knn_error = []
 
