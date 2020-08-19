@@ -377,7 +377,7 @@ def jupyter_notebook_for_model(data, model):
 
     data_var = 'data'
     import csv
-    with open(str(_SIM_DATA.lib_file_abspath(_analysis_data_path(data)))) as f:
+    with pkio.open_text(str(_SIM_DATA.lib_file_abspath(_analysis_data_path(data)))) as f:
         reader = csv.reader(f)
         i = 0
         data_code = [f"{data_var} = numpy.array(["]
