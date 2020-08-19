@@ -1,12 +1,11 @@
 #!/bin/bash
 export PYKERN_PKDEBUG_WANT_PID_TIME=1
-export SIREPO_AUTH_EMAIL_FROM_EMAIL='support@radiasoft.net'
-export SIREPO_AUTH_EMAIL_FROM_NAME='RadiaSoft Support'
-export SIREPO_AUTH_EMAIL_SMTP_PASSWORD='n/a'
-# POSIT: same as sirepo.auth.email._DEV_SMTP_SERVER
-export SIREPO_AUTH_EMAIL_SMTP_SERVER='dev'
-export SIREPO_AUTH_EMAIL_SMTP_USER='n/a'
-export SIREPO_AUTH_METHODS='email:guest'
+export SIREPO_FROM_EMAIL='support@radiasoft.net'
+export SIREPO_FROM_NAME='RadiaSoft Support'
+export SIREPO_SMTP_PASSWORD='n/a'
+# POSIT: same as sirepo.smtp.DEV_SMTP_SERVER
+export SIREPO_SMTP_SERVER='dev'
+export SIREPO_SMTP_USER='n/a'
 export SIREPO_MPI_CORES=2
 case ${1:-} in
     docker|local)
