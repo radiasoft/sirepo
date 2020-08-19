@@ -2323,7 +2323,7 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
 
 SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, authState, frameCache, $interval) {
     var self = {};
-    var ELAPSED_TIME_INTERVAL_SECS = 1;
+    const ELAPSED_TIME_INTERVAL_SECS = 1;
 
     self.initSimulationState = function(controller) {
         var state = {
