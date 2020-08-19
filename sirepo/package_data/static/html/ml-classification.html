@@ -8,13 +8,13 @@
         <div data-sim-status-panel="classification.simState"></div>
       </div>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-6" data-ng-if="classification.hasFrames()">
       <div data-report-panel="parameter" data-model-name="knnErrorRateAnimation"></div>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-6" data-ng-if="classification.hasFrames()">
       <div data-report-panel="classificationMetrics" data-model-name="knnClassificationMetricsAnimation">
     </div>
-    <div class="col-md-6">
+    <div class="col-md-6" data-ng-if="classification.hasFrames()">
       <div data-report-panel="confusionMatrix" data-model-name="knnConfusionMatrixAnimation"></div>
     </div>
   </div>

@@ -186,6 +186,7 @@ SIREPO.app.controller('ClassificationController', function(frameCache, persisten
     let errorMessage = '';
     self.simComputeModel = 'classificationAnimation'; // TODO(e-carlin): try ending in compute and see what happens
 
+    self.hasFrames = frameCache.hasFrames;
 
     self.simHandleStatus = function (data) {
         errorMessage = data.error;
