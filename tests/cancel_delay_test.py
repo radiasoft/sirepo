@@ -10,7 +10,7 @@ import pytest
 _REPORT = 'heightWeightReport'
 
 
-def alpha_fail_test_myapp(fc):
+def test_myapp(fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdc, pkdp, pkdlog
     import threading
