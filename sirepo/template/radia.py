@@ -21,6 +21,7 @@ from sirepo.template import radia_examples
 import h5py
 import math
 import numpy
+import re
 import sdds
 import sirepo.sim_data
 import sirepo.util
@@ -56,7 +57,6 @@ def background_percent_complete(report, run_dir, is_running):
     res = PKDict(
         percentComplete=0,
         frameCount=0,
-        errors='',  #errors,
     )
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if is_running:
@@ -67,8 +67,6 @@ def background_percent_complete(report, run_dir, is_running):
         percentComplete=100,
         frameCount=1,
         solution=_read_solution(data.simulationId),  #output_info,
-        lastUpdateTime=time.time(),  #output_info[0]['lastUpdateTime'],
-        errors='',  #errors,
     )
 
 
@@ -87,9 +85,8 @@ def extract_report_data(run_dir, sim_in):
 
 
 # if the file exists but the data we seek does not, have Radia generate it here.  We
-# should only have to blow away the file after a solve (???)
+# should only have to blow away the file after a solve or geometry change
 def get_application_data(data, **kwargs):
-    #pkdp('get_application_data from {}', data)
     if 'method' not in data:
         raise RuntimeError('no application data method')
     if data.method not in _METHODS:
@@ -106,10 +103,9 @@ def get_application_data(data, **kwargs):
             # No Radia dump file
             return PKDict(warning='No Radia dump')
         # propagate other errors
-        #return PKDict()
+    id_map = _read_id_map(sim_id)
     if data.method == 'get_field':
         f_type = data.get('fieldType')
-        #pkdp('FT {}', f_type)
         if f_type in radia_tk.POINT_FIELD_TYPES:
             #TODO(mvk): won't work for subsets of available paths, figure that out
             pass
@@ -117,12 +113,10 @@ def get_application_data(data, **kwargs):
             #    res = _read_data(sim_id, data.viewType, f_type)
             #except KeyError:
             #    res = None
-            #pkdp('READ RES {}', res)
             #if res:
             #    v = [d.vectors.vertices for d in res.data if 'vectors' in d]
             #    old_pts = [p for a in v for p in a]
             #    new_pts = _build_field_points(data.fieldPaths)
-            #pkdp('CHECK FOR CHANGE OLD {} VS NEW {}', old_pts, new_pts)
             #    if len(old_pts) == len(new_pts) and numpy.allclose(new_pts, old_pts):
             #        return res
         #return _read_or_generate(g_id, data)
@@ -130,18 +124,29 @@ def get_application_data(data, **kwargs):
             g_id, data.name, f_type, data.get('fieldPaths', None)
         )
         res.solution = _read_solution(sim_id)
+        res.idMap = id_map
+        # moved addition of lines from client
+        tmp_f_type = data.fieldType
+        data.fieldType = None
+        data.geomTypes = ['lines']
+        data.method = 'get_geom'
+        data.viewType = VIEW_TYPE_OBJ
+        new_res = get_application_data(data)
+        res.data += new_res.data
+        data.fieldType = tmp_f_type
         return res
 
     if data.method == 'get_field_integrals':
         return _generate_field_integrals(g_id, data.fieldPaths)
     if data.method == 'get_geom':
         g_types = data.get('geomTypes', ['lines', 'polygons'])
+        g_types.extend(['center', 'size'])
         res = _read_or_generate(g_id, data)
         rd = res.data if 'data' in res else []
         res.data = [{k: d[k] for k in d.keys() if k in g_types} for d in rd]
+        res.idMap = id_map
         return res
     if data.method == 'save_field':
-        #pkdp('DATA {}', data)
         data.method = 'get_field'
         res = get_application_data(data)
         file_path = simulation_db.simulation_lib_dir(SIM_TYPE).join(
@@ -149,7 +154,6 @@ def get_application_data(data, **kwargs):
         )
         # we save individual field paths, so there will be one item in the list
         vectors = res.data[0].vectors
-        #pkdp('DATUM {}', datum)
         if data.fileType == 'sdds':
             return _save_fm_sdds(
                 res.name,
@@ -166,6 +170,10 @@ def get_application_data(data, **kwargs):
             )
         return res
 
+
+def new_simulation(data, new_simulation_data):
+    data.models.simulation.beamAxis = new_simulation_data.beamAxis
+    data.models.geometry.name = new_simulation_data.name
 
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
@@ -205,12 +213,11 @@ def _build_field_points(paths):
 
 
 def _build_field_line_pts(f_path):
-    p1 = [float(f_path.beginX), float(f_path.beginY), float(f_path.beginZ)]
-    p2 = [float(f_path.endX), float(f_path.endY), float(f_path.endZ)]
+    p1 = _split_comma_field(f_path.begin, 'float')
+    p2 = _split_comma_field(f_path.end, 'float')
     res = p1
     r = range(len(p1))
     n = int(f_path.numPoints) - 1
-    #pkdp('adding line p1 {} p2 {} N {} L {} R {}'.format(p1, p2, n + 1, len(p1), r))
     for i in range(1, n):
         res.extend(
             [p1[j] + i * (p2[j] - p1[j]) / n for j in r]
@@ -245,7 +252,6 @@ def _build_field_circle_pts(f_path):
     # phi is a rotation about the z-axis
     phi = float(f_path.phi)
     n = int(f_path.numPoints)
-    #pkdp('adding circle at {} rad {} th {} phi {} ({})'.format(ctr, r, th, phi, n))
     dpsi = 2. * math.pi / n
     # psi is the angle in the circle's plane
     res = []
@@ -291,15 +297,6 @@ _FIELD_PT_BUILDERS = {
 }
 
 
-def _build_geom(data):
-    g_name = data.models.geometry.name
-    if data.models.simulation.isExample:
-        return radia_examples.build(g_name)
-    else:
-        #TODO(mvk): build from model data
-        return -1
-
-
 def _dmp_file(sim_id):
     return _get_res_file(sim_id, _DMP_FILE)
 
@@ -317,12 +314,16 @@ def _generate_field_data(g_id, name, field_type, field_paths):
 
 
 def _generate_field_integrals(g_id, f_paths):
+    l_paths = [fp for fp in f_paths if fp.type == 'line']
+    if len(l_paths) == 0:
+        # return something or server.py will throw an exception
+        return PKDict(warning='No paths')
     try:
         res = PKDict()
-        for p in [fp for fp in f_paths if fp.type == 'line']:
+        for p in l_paths:
             res[p.name] = PKDict()
-            p1 = [float(p.beginX), float(p.beginY), float(p.beginZ)]
-            p2 = [float(p.endX), float(p.endY), float(p.endZ)]
+            p1 = _split_comma_field(p.begin, 'float')
+            p2 = _split_comma_field(p.end, 'float')
             for i_type in radia_tk.INTEGRABLE_FIELD_TYPES:
                 res[p.name][i_type] = radia_tk.field_integral(g_id, i_type, p1, p2)
         return res
@@ -359,7 +360,8 @@ def _generate_parameters_file(data):
     g = data.models.geometry
 
     v['dmpFile'] = _dmp_file(sim_id)
-    v['isExample'] = data.models.simulation.isExample
+    v['isExample'] = data.models.simulation.get('isExample', False)
+    v['objects'] = g.get('objects', [])
     v['geomName'] = g.name
     disp = data.models.magnetDisplay
     v_type = disp.viewType
@@ -446,19 +448,23 @@ def _read_data(sim_id, view_type, field_type):
     return res
 
 
-def _read_or_generate(geom_id, data):
+def _read_id_map(sim_id):
+    return _read_h5_path(sim_id, 'idMap')
+
+
+def _read_or_generate(g_id, data):
     f_type = data.get('fieldType', None)
-    try:
-        return _read_data(data.simulationId, data.viewType, f_type)
-    except KeyError:
-        # No such path, so generate the data and write to the existing file
-        with h5py.File(_geom_file(data.simulationId), 'a') as hf:
-            template_common.dict_to_h5(
-                _generate_data(geom_id, data, add_lines=False),
-                hf,
-                path=_geom_h5_path(data.viewType, f_type)
-            )
-        return get_application_data(data)
+    res = _read_data(data.simulationId, data.viewType, f_type)
+    if res:
+        return res
+    # No such file or path, so generate the data and write to the existing file
+    with h5py.File(_geom_file(data.simulationId), 'a') as hf:
+        template_common.dict_to_h5(
+            _generate_data(g_id, data, add_lines=False),
+            hf,
+            path=_geom_h5_path(data.viewType, f_type)
+        )
+    return get_application_data(data)
 
 
 def _read_solution(sim_id):
@@ -468,7 +474,7 @@ def _read_solution(sim_id):
         time=s[0],
         maxM=s[1],
         maxH=s[2]
-    )
+    ) if s else s
 
 
 def _rotate_flat_vector_list(vectors, scipy_rotation):
@@ -480,7 +486,6 @@ def _save_field_csv(field_type, vectors, scipy_rotation, path):
     data = ['x,y,z,' + field_type + 'x,' + field_type + 'y,' + field_type + 'z']
     # mm -> m, rotate so the beam axis is aligned with z
     pts = 0.001 * _rotate_flat_vector_list(vectors.vertices, scipy_rotation).flatten()
-    #pkdp('v {} to pts {}', vectors.vertices, pts)
     mags = numpy.array(vectors.magnitudes)
     dirs = _rotate_flat_vector_list(vectors.directions, scipy_rotation).flatten()
     for i in range(len(mags)):
@@ -514,3 +519,13 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
         s.setColumnValueLists(n, col_data[i])
     s.save(str(path))
     return path
+
+
+def _split_comma_field(f, type):
+    arr = re.split(r'\s*,\s*', f)
+    if type == 'float':
+        return [float(x) for x in arr]
+    if type == 'int':
+        return [int(x) for x in arr]
+    return arr
+

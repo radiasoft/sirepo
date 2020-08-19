@@ -15,7 +15,7 @@ SIREPO.INFO_INDEX_MAX = 5;
 SIREPO.ENUM_INDEX_VALUE = 0;
 SIREPO.ENUM_INDEX_LABEL = 1;
 
-SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
+SIREPO.app.directive('advancedEditorPane', function(appState, panelState, $compile) {
     return {
         restrict: 'A',
         scope: {
@@ -49,6 +49,11 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
             var viewInfo = appState.viewInfo($scope.viewName);
             var i;
 
+            function camelToKebabCase(v) {
+                v = v.charAt(0).toLowerCase() + v.slice(1);
+                return v.replace(/([A-Z])/g, '-$1').toLowerCase();
+            }
+
             function tabSelectedEvent() {
                 appState.whenModelsLoaded($scope, function() {
                     panelState.waitForUI(function() {
@@ -57,21 +62,26 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
                 });
             }
 
+            $scope.fieldDef = $scope.fieldDef || 'advanced';
             $scope.form = angular.element($($element).find('form').eq(0));
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.description = viewInfo.description;
-            $scope.advancedFields = viewInfo[$scope.fieldDef || 'advanced'];
+            $scope.advancedFields = viewInfo[$scope.fieldDef];
             if (! $scope.advancedFields) {
-                throw new Error($scope.modelName + ' view is missing ' + ($scope.fieldDef || 'advanced') + ' fields');
+                throw new Error($scope.modelName + ' view is missing ' + $scope.fieldDef + ' fields');
             }
+            // create a View component for app business logic
+            $element.append($compile(
+                '<div data-' + camelToKebabCase($scope.viewName)
+                    + '-view="{{ fieldDef }}"'
+                    + ' data-model-name="modelName" data-model-data="modelData">'
+                    + '</div>')($scope));
+
             $scope.isColumnField = function(f) {
-                return typeof(f) == 'string' ? false : true;
+                return typeof(f) != 'string';
             };
             $scope.isField = function(f) {
-                if ($scope.isColumnField(f) || $scope.isLabel(f)) {
-                    return false;
-                }
-                return true;
+                return !($scope.isColumnField(f) || $scope.isLabel(f));
             };
             $scope.isLabel = function(f) {
                 if ($scope.isColumnField(f)) {
@@ -82,13 +92,21 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
             $scope.labelText = function(f) {
                 return f.substring(1);
             };
+            $scope.resetActivePage = function() {
+                if ($scope.pages) {
+                    $scope.setActivePage($scope.pages[0]);
+                }
+                else {
+                    tabSelectedEvent();
+                }
+            };
             $scope.setActivePage = function(page) {
                 if ($scope.activePage) {
                     $scope.activePage.isActive = false;
                 }
                 $scope.activePage = page;
                 page.isActive = true;
-                //TODO(pjm): deprecated parentController processing replaced by sr-tabSelected event
+                //TODO(pjm): DEPRECATED parentController processing replaced by viewLogic
                 if (appState.isLoaded() && $scope.parentController && $scope.parentController.handleModalShown) {
                     // invoke parentController after UI has been constructed
                     panelState.waitForUI(function() {
@@ -133,24 +151,12 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
                     items.push($scope.advancedFields[i]);
                 }
             }
-            if ($scope.pages) {
-                $scope.setActivePage($scope.pages[0]);
-            }
-            else {
-                tabSelectedEvent();
-            }
+            $scope.resetActivePage();
         },
         link: function(scope, element) {
-            var resetActivePage = function() {
-                if (scope.pages) {
-                    scope.setActivePage(scope.pages[0]);
-                }
-            };
-            if (scope.pages) {
-                $(element).closest('.modal').on('show.bs.modal', resetActivePage);
-                //TODO(pjm): need a generalized case for this
-                $(element).closest('.sr-beamline-editor').on('sr.resetActivePage', resetActivePage);
-            }
+            $(element).closest('.modal').on('show.bs.modal', scope.resetActivePage);
+            //TODO(pjm): need a generalized case for this
+            $(element).closest('.sr-beamline-editor').on('sr.resetActivePage', scope.resetActivePage);
             scope.$on('$destroy', function() {
                 $(element).closest('.modal').off();
                 $(element).closest('.sr-beamline-editor').off();
@@ -355,8 +361,8 @@ SIREPO.app.directive('confirmationModal', function() {
                       '</div>',
                       '<div class="row">',
                         '<div class="col-sm-6 pull-right" style="margin-top: 1em">',
-                          '<button data-ng-if="okText" data-ng-disabled="! isValid()" data-ng-click="clicked()" class="btn btn-default">{{ okText }}</button>',
-                          ' <button data-ng-if="! isRequired" data-dismiss="modal" class="btn btn-default">{{ cancelText || \'Cancel\' }}</button>',
+                          '<button data-ng-if="okText" data-ng-disabled="! isValid()" data-ng-click="clicked()" class="btn btn-default sr-button-size">{{ okText }}</button>',
+                          ' <button data-ng-if="! isRequired" data-dismiss="modal" class="btn btn-default sr-button-size">{{ cancelText || \'Cancel\' }}</button>',
                         '</div>',
                       '</div>',
                     '</div>',
@@ -438,7 +444,7 @@ SIREPO.app.directive('copyConfirmation', function(appState, fileManager) {
     };
 });
 
-SIREPO.app.directive('labelWithTooltip', function(mathRendering) {
+SIREPO.app.directive('labelWithTooltip', function(appState, mathRendering, $interpolate) {
     return {
         restrict: 'A',
         scope: {
@@ -452,7 +458,13 @@ SIREPO.app.directive('labelWithTooltip', function(mathRendering) {
             if (scope.tooltip) {
                 $(element).find('.sr-info-pointer').tooltip({
                     title: function() {
-                        return mathRendering.mathAsHTML(scope.tooltip);
+                        var res = scope.tooltip;
+                        // evaluate angular text first if {{ }} is present
+                        if (/\{\{.*?\}\}/.test(res)) {
+                            scope.appState = appState;
+                            res = $interpolate(res)(scope);
+                        }
+                        return mathRendering.mathAsHTML(res);
                     },
                     html: true,
                     placement: 'bottom',
@@ -529,7 +541,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 '<div data-optimize-float="" data-model="model" data-model-name="modelName" data-field="field" data-min="info[4]" data-max="info[5]" ></div>',
               '</div>',
               '<div data-ng-switch-when="Range" data-ng-class="fieldClass">',
-                '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field" data-field-delegate="fieldDelegate"></div>',
+                  '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field" data-field-delegate="fieldDelegate"></div>',
               '</div>',
               '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
                 '<div class="form-control-static" data-ng-if="model.valueList[field].length == 1">{{ model.valueList[field][0] }}</div>',
@@ -548,7 +560,6 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
-
             $scope.utilities = utilities;
             function fieldClass(fieldType, fieldSize, wantEnumButtons) {
                 return 'col-sm-' + (fieldSize || (
@@ -645,7 +656,8 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
               '</a>',
               '<ul class="dropdown-menu">',
                 '<li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>',
-                '<li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }} via {{ ::authState.method }}</li>',
+                '<li class="dropdown-header">{{ authState.paymentPlanName() }}</li>',
+                '<li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }}</li>',
                 '<li data-ng-if="showAdmJobs()"><a data-ng-href="{{ getUrl(\'admJobs\') }}">Admin</a></li>',
                 '<li><a data-ng-href="{{ getUrl(\'ownJobs\') }}">Jobs</a></li>',
                 '<li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
@@ -2176,7 +2188,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
               '</div>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($element, $scope) {
             $scope.fileUploadError = '';
             $scope.isUploading = false;
             $scope.title = $scope.title || 'Import ZIP File';
@@ -2202,6 +2214,8 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                             $scope.fileUploadError = data.error;
                             // used by sub components to display additional data entry fields
                             $scope.errorData = data;
+                            // clear input file to avoid Chrome bug if corrected file is re-uploaded
+                            $($element).find('#file-import').val('');
                         }
                         else {
                             $('#simulation-import').modal('hide');
@@ -2597,10 +2611,13 @@ SIREPO.app.directive('simulationStatusTimer', function() {
             simState: '=simulationStatusTimer',
         },
         template: [
-            '<span data-ng-if="simState.timeData.elapsedTime != null && ! simState.isStatePurged()">',
-              'Elapsed time: {{ simState.timeData.elapsedDays }} {{ simState.timeData.elapsedTime | date:\'HH:mm:ss\' }}',
+            '<span data-ng-if="simState.hasTimeData() && ! simState.isStatePurged()">',
+              'Elapsed time: {{ appState.formatTime(simState.timeData.elapsedTime)  }}',
             '</span>',
         ].join(''),
+        controller: function($scope, appState) {
+            $scope.appState = appState;
+        },
     };
 });
 
@@ -2832,15 +2849,16 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location, $s
             }
 
             function getRow(row, nameIndex, simulationIdIndex, appIndex) {
+                var typeDispatch = {
+                    DateTime: appState.formatDate,
+                    Time: appState.formatTime,
+                    String: function(s){return s;},
+                };
                 var h = '';
                 for (var i = getStartIndex(); i < row.length; i++) {
-                    var v = row[i];
-                    var t = $scope.data.header[i][1];
-                    if (t === 'DateTime') {
-                        v = appState.formatDate(v);
-                    }
-                    else if (t === 'Time') {
-                        v = appState.formatTime(v);
+                    var v = typeDispatch[$scope.data.header[i][1]](row[i]);
+                    if (! v) {
+                        v = 'n/a';
                     }
                     if (!$scope.wantAdm && i === nameIndex) {
                         v = '<a href=' + getUrl(row[simulationIdIndex], row[appIndex])  + '>' + v + '</a>';
@@ -3034,6 +3052,107 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
         },
     };
 });
+
+
+SIREPO.app.directive('toolbar', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            itemFilter: '&',
+            parentController: '=',
+            toolbarItems: '=toolbar',
+        },
+        template: [
+            '<div class="row">',
+              '<div class="col-sm-12">',
+                '<div class="text-center bg-info sr-toolbar-holder">',
+                  '<div class="sr-toolbar-section" data-ng-repeat="section in ::sectionItems">',
+                    '<div class="sr-toolbar-section-header"><span class="sr-toolbar-section-title">{{ ::section.name }}</span></div>',
+                    '<span data-ng-click="item.isButton ? parentController.editTool(item) : null" data-ng-repeat="item in ::section.contents | filter:showItem" class="sr-toolbar-button sr-beamline-image" data-ng-drag="{{ ! item.isButton }}" data-ng-drag-data="item">',
+                      '<span data-toolbar-icon="" data-item="item"></span><br>{{ ::item.title }}',
+                    '</span>',
+                  '</div>',
+                  '<span data-ng-repeat="item in ::standaloneItems" class="sr-toolbar-button sr-beamline-image" data-ng-drag="{{ ! item.isButton }}" data-ng-drag-data="item">',
+                    '<span data-beamline-icon="" data-item="item"></span><br>{{ ::item.title }}',
+                  '</span>',
+                '</div>',
+              '</div>',
+            '</div>',
+            '<div class="sr-editor-holder" style="display:none">',
+              '<div data-ng-repeat="item in ::allItems">',
+                '<div class="sr-beamline-editor" id="sr-{{ ::item.type }}-editor" data-beamline-item-editor="" data-model-name="{{ ::item.type }}" data-parent-controller="parentController" ></div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            //srdbg('fltr', $scope.itemFilter());
+            $scope.allItems = [];
+            var items = $scope.toolbarItems || SIREPO.APP_SCHEMA.constants.toolbarItems || [];
+            //srdbg('items', items);
+            function addItem(name, items) {
+                var item = appState.setModelDefaults({type: name}, name);
+                items.push(item);
+                $scope.allItems.push(item);
+            }
+
+            $scope.showItem = function (item) {
+                if (! $scope.itemFilter || ! angular.isFunction($scope.itemFilter())) {
+                    return true;
+                }
+                return $scope.itemFilter()(item);
+            };
+
+            function initToolbarItems() {
+                $scope.sectionItems = items.filter(function (item) {
+                    return isSection(item);
+                });
+                $scope.standaloneItems = items.filter(function (item) {
+                    return ! isSection(item);
+                });
+                $scope.allItems = items;
+            }
+
+            function isSection(item) {
+                return item.contents && item.contents.length;
+            }
+            initToolbarItems();
+        },
+    };
+});
+
+SIREPO.app.directive('toolbarIcon', function() {
+    return {
+        scope: {
+            item: '=',
+        },
+        template: '<ng-include src="iconUrl()" onload="iconLoaded()"/>',
+        controller: function($scope, $element) {
+            var adjustmentsByType = {
+            };
+
+            $scope.iconUrl = function() {
+                return '/static/svg/' +  $scope.item.type + '.svg' + SIREPO.SOURCE_CACHE_KEY;
+            };
+
+            $scope.iconLoaded = function () {
+                /*
+                var vb = $($element).find('svg.sr-beamline-item-icon').prop('viewBox').baseVal;
+                vb.width = 100;
+                vb.height = 50;
+                var adjust = adjustmentsByType[$scope.item.name];
+                if (adjust) {
+                    vb.height += adjust[0] || 0;
+                    vb.x -= adjust[1] || 0;
+                    vb.y -= adjust[2] || 0;
+                }
+
+                 */
+            };
+
+        },
+    };
+});
+
 
 SIREPO.app.directive('3dSliceWidget', function(appState, panelState) {
     return {

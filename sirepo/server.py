@@ -256,7 +256,7 @@ def api_getApplicationData(filename=None):
     with simulation_db.tmp_dir() as d:
         assert 'method' in req.req_data
         res = req.template.get_application_data(req.req_data, tmp_dir=d)
-        assert res, f'unhandled application data method: {req.req_data.method}'
+        assert res != None, f'unhandled application data method: {req.req_data.method}'
         if 'filename' in req and isinstance(res, pkconst.PY_PATH_LOCAL_TYPE):
             return http_reply.gen_file_as_attachment(
                 res,

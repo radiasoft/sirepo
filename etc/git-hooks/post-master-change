@@ -1,7 +1,0 @@
-#!/bin/bash
-
-b=$(git branch | grep "*" | sed "s/\* //")
-if [[ $b != "master" ]]; then
-    exit 0
-fi
-pykern github update_alpha_pending sirepo

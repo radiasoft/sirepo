@@ -168,16 +168,13 @@ cd '{}'
 
 
 def agent_env(env=None, uid=None):
-    x = pkconfig.to_environ((
-        'pykern.*',
-        'sirepo.feature_config.*',
-    ))
-    for k in x.keys():
-        assert not pykern.pkdebug.SECRETS_RE.search(k), \
-            'unexpected secret key={} match={}'.format(
-                k,
-                pykern.pkdebug.SECRETS_RE,
-            )
+    x = pkconfig.to_environ(
+        (
+            'pykern.*',
+            'sirepo.feature_config.*',
+        ),
+        exclude_re=pykern.pkdebug.SECRETS_RE,
+    )
     env = (env or PKDict()).pksetdefault(
         **x,
     ).pksetdefault(
@@ -191,6 +188,12 @@ def agent_env(env=None, uid=None):
         SIREPO_JOB_PING_TIMEOUT_SECS=cfg.ping_timeout_secs,
         SIREPO_SRDB_ROOT=lambda: sirepo.srdb.root(),
     )
+    for k in env.keys():
+        assert not pykern.pkdebug.SECRETS_RE.search(k), \
+            'unexpected secret key={} match={}'.format(
+                k,
+                pykern.pkdebug.SECRETS_RE,
+            )
     return '\n'.join(("export {}='{}'".format(k, v) for k, v in env.items()))
 
 

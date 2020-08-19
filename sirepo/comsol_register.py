@@ -18,7 +18,9 @@ _mail = None
 
 @api_perm.allow_visitor
 def api_comsol():
-    return http_reply.gen_redirect_for_anchor('/old#/comsol')
+    return http_reply.gen_redirect(
+        'https://www.radiasoft.net/services/comsol-certified-consulting/',
+    )
 
 
 @api_perm.allow_visitor

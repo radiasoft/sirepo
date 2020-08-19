@@ -6,7 +6,6 @@ u"""Warp VND/WARP execution template.
 """
 
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
@@ -234,10 +233,10 @@ def open_data_file(run_dir, model_name, file_index=None):
         file_index (int): which file to open (default: last one)
 
     Returns:
-        OrderedMapping: various parameters
+        PKDict: various parameters
     """
     files = _h5_file_list(run_dir, model_name)
-    res = pkcollections.OrderedMapping()
+    res = PKDict()
     res.num_frames = len(files)
     res.frame_index = res.num_frames - 1 if file_index is None else file_index
     res.filename = str(files[res.frame_index])

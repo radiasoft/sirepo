@@ -22,6 +22,13 @@
                 }
             ]
         },
+        "magnetDisplay": {
+            "bgColor": "#ffffff",
+            "fieldPoints": [],
+            "fieldType": "M",
+            "notes": "",
+            "viewType": "objects"
+        },
        "geometry": {
             "name": "Dipole",
             "beamAxis": "x",
