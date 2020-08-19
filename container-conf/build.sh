@@ -19,7 +19,10 @@ build_as_root() {
     dnf config-manager \
         --add-repo \
         https://download.docker.com/linux/fedora/docker-ce.repo
-    build_yum install nodejs docker-ce
+    build_yum install \
+        nodejs \
+        docker-ce \
+        https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
     mkdir "$sirepo_db_dir"
     chown "$build_run_user:" "$sirepo_db_dir"
 }
