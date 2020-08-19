@@ -31,7 +31,7 @@ test_main() {
     test_no_prints '\s(srdbg|console.log)\(' "${jsfiles[@]}"
     test_no_h5py
     test_jshint
-    if [[ ! ${sirepo_test_no_karma:-} ]]
+    if [[ ! ${sirepo_test_no_karma:-} ]]; then
         if [[ ! -x ./node_modules/karma/bin/karma ]]; then
             npm install
         fi
