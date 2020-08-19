@@ -1444,11 +1444,6 @@
         "panelState": {
             "hidden": []
         },
-        "ptcAnimation114": {
-            "histogramBins": 200,
-            "x": "x",
-            "y": "px"
-        },
         "rpnCache": {
             "e0": 0.938,
             "gamma": 7.84,
@@ -1501,5 +1496,5 @@
         }
     },
     "simulationType": "madx",
-    "version": "20200730.153846"
+    "version": "20200810.195351"
 }

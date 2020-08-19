@@ -14,5 +14,5 @@ cd $HOME/src/radiasoft
 gcl pykern
 cd pykern
 pip install -q -e .
-pykern github update_alpha_pending radiasoft/sirepo
+pykern github issue_update_alpha_pending radiasoft/sirepo
 EOF

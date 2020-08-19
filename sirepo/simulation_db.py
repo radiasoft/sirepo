@@ -932,21 +932,34 @@ def _merge_dicts(base, derived, depth=-1):
 
 def _merge_subclasses(schema, item):
     for m in schema[item]:
-        has_super = False
-        s = schema[item][m]
-        try:
-            has_super = _SCHEMA_SUPERCLASS_FIELD in s
-        except TypeError:
-            # Ignore non-indexable types
-            continue
-        if has_super:
-            i = s[_SCHEMA_SUPERCLASS_FIELD]
-            s_item = i[1]
-            s_class = i[2]
-            assert s_item in schema, util.err(s_item, 'No such field in schema')
-            assert s_item == item, util.err(s_item, 'Superclass must be in same section of schema {}', item)
-            assert s_class in schema[s_item], util.err(s_class, 'No such superclass')
-            _merge_dicts(schema[item][s_class], s)
+        item_schema = schema[item]
+        model = item_schema[m]
+        subclasses = []
+        _unnest_subclasses(schema, item, m, subclasses)
+        for s in subclasses:
+            _merge_dicts(item_schema[s], model)
+
+
+def _unnest_subclasses(schema, item, key, subclass_keys):
+    item_schema = schema[item]
+    try:
+        if _SCHEMA_SUPERCLASS_FIELD not in item_schema[key]:
+            return
+    except TypeError:
+        # Ignore non-indexable types
+        return
+    sub_model = item_schema[key]
+    sub_item = sub_model[_SCHEMA_SUPERCLASS_FIELD][1]
+    sub_key = sub_model[_SCHEMA_SUPERCLASS_FIELD][2]
+    assert sub_item in schema, util.err(sub_item, 'No such field in schema')
+    assert sub_item == item, util.err(
+        sub_item,
+        'Superclass must be in same section of schema {}',
+        item
+    )
+    assert sub_key in item_schema, util.err(sub_key, 'No such superclass')
+    subclass_keys.append(sub_key)
+    _unnest_subclasses(schema, item, sub_key, subclass_keys)
 
 
 def _pkg_relative_path_static(file_dir, file_name):

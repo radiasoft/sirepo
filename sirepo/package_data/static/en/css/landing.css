@@ -389,6 +389,7 @@
   content: '';
   position: absolute;
   background-image: url("/en/img/curve-header-left.png");
+  background-repeat: no-repeat;
   background-size: cover;
   bottom: 2px;
   left: -60px;
@@ -399,6 +400,7 @@
   content: '';
   position: absolute;
   background-image: url("/en/img/curve-header-right.png");
+  background-repeat: no-repeat;
   background-size: cover;
   bottom: 25px;
   right: -60px;
@@ -443,6 +445,7 @@
   position: absolute;
   background-image: url("/en/img/explore-curve-bottom.png");
   background-position: bottom right;
+  background-repeat: no-repeat;
   bottom: -65px;
   right: 0;
   height: 315px;
@@ -544,6 +547,7 @@
   position: absolute;
   background-image: url("/en/img/get-started-curve-bottom.png");
   background-position: bottom right;
+  background-repeat: no-repeat;
   bottom: -65px;
   right: 0;
   height: 315px;
@@ -717,6 +721,7 @@
 }
 .landing .public-plans .plan .plan-name {
   background-position: center bottom;
+  background-repeat: no-repeat;
   background-size: cover;
   color: white;
   margin-top: 0;
@@ -736,6 +741,9 @@
 }
 .landing .public-plans .plan ul li::before {
   background-image: url("/en/img/circle-check.svg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
   content: '';
   display: block;
   height: 30px;
@@ -760,6 +768,7 @@
 }
 .landing .private-plan .private-bg {
   background-position: center bottom;
+  background-repeat: no-repeat;
   background-size: cover;
   height: 42px;
   margin: 0 0 16px;
@@ -777,6 +786,9 @@
 }
 .landing .private-plan .plan-features article h4::before {
   background-image: url("/en/img/circle-check.svg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
   content: '';
   display: block;
   height: 30px;
@@ -895,6 +907,7 @@
   z-index: 2;
   background-color: #666666;
   background-image: url("/en/img/footer-bg.jpg");
+  background-repeat: no-repeat;
   background-size: cover;
   color: #e5e5e5;
   padding: 55px;

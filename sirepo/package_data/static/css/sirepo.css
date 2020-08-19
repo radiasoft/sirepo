@@ -126,6 +126,39 @@
       background-color: white;
     }
 
+    .sr-toolbar-button {
+        background-color: #fff;
+        display: inline-block;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 6px 3px;
+        margin: 2px;
+    }
+
+    .sr-toolbar-button.dragging {
+      opacity: 0.8;
+      /* required for chrome and safari to show element on top */
+      position: relative;
+    }
+
+    .sr-toolbar-button, .sr-beamline-element {
+        -moz-user-select: -moz-none;
+        -khtml-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+
+    svg.toolbar-item-icon {
+      width: 70px;
+      height: 60px;
+    }
+
+    .sr-toolbar-button svg.srw-beamline-item-icon {
+      width: 70px;
+      height: 35px;
+    }
+
     .sr-beamline-popover {
       max-width: none;
       width: 100%;
@@ -137,6 +170,13 @@
       color: #337ab7;
       padding: 4px 0;
       margin-left: 2px;
+    }
+
+    .sr-list-value {
+        display: inline-block;
+        width: 10em;
+        margin-right: 1em;
+        margin-bottom: 4px;
     }
 
     .sr-settings-submenu > app-settings > app-settings a {
@@ -892,6 +932,9 @@ ul.sr-nav-sidebar-root {
   font-size: 17px;
 }
 .sr-enum-button {
+  min-width: 8em;
+}
+.sr-button-size {
   min-width: 8em;
 }
 .sr-model-list-item {

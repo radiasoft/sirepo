@@ -1,4 +1,4 @@
-<div class="container-fluid">
+<div class="container-fluid" data-ng-if="source.appState.isLoaded()">
   <div data-mobile-app-title="nav"></div>
   <div data-panel-layout="">
     <div class="sr-panel-item">
@@ -46,13 +46,3 @@
     </div>
   </div>
 </div>
-
-<!-- modal dialogs -->
-<div data-modal-editor="" view-name="gaussianBeam" data-parent-controller="source"></div>
-<div data-modal-editor="" view-name="undulator" data-parent-controller="source"></div>
-<div data-modal-editor="" view-name="sourceIntensityReport" data-parent-controller="source"></div>
-<div data-modal-editor="" view-name="powerDensityReport" data-parent-controller="source"></div>
-<div data-modal-editor="" view-name="fluxAnimation" data-parent-controller="source"></div>
-<div data-modal-editor="" view-name="intensityReport" data-parent-controller="source"></div>
-<div data-modal-editor="" view-name="trajectoryReport" data-parent-controller="source"></div>
-<div data-modal-editor="" view-name="brillianceReport" data-parent-controller="source"></div>

@@ -75,7 +75,9 @@
         "ForceFormula": [
             ["parkhomchuk", "Parkhomchuk"],
             ["derbenevskrinsky", "Derbenev-Skrinsky"],
-            ["meshkov", "Meshkov"]
+            ["meshkov", "Meshkov"],
+            ["unmagnetized", "Unmagnetized"],
+            ["budker", "Budker"]
         ],
         "ForceScaleFactor": [
             ["negative", "-1"],

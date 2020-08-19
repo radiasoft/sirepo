@@ -1,0 +1,94 @@
+
+<!--<ul class="nav nav-tabs">-->
+    <!--<li role="presentation" data-ng-class="{active: ! is3dPreview }"><a class="srw-tab" href data-ng-click="toggle3dPreview()"><strong>Layout</strong></a></li>-->
+    <!--<li role="presentation" data-ng-class="{active: is3dPreview }"><a class="srw-tab" href data-ng-click="toggle3dPreview()"><strong><span class="glyphicon glyphicon-option-vertical"></span> 3D Preview</strong></a></li>-->
+<!--</ul>-->
+
+<div class="container-fluid">
+<div class="row">
+<div class="col-md-9 workspace">
+  <p class="lead text-center" style="margin-bottom: 0"><small><em>{{ instructions }}</em></small></p>
+  <div>
+      <!-- TODO: repeat -->
+    <div data-toggle="tooltip" title="XY Plane" class="btn btn-default" data-ng-class="{'btn-primary': elevation == 'front'}" style="margin: 2px;" data-ng-click="setElevation('front')">Front</div>
+    <div data-toggle="tooltip" title="YZ Plane" class="btn btn-default" data-ng-class="{'btn-primary': elevation == 'side'}" style="margin: 2px;" data-ng-click="setElevation('side')">Side</div>
+    <div data-toggle="tooltip" title="ZX Plane" class="btn btn-default" data-ng-class="{'btn-primary': elevation == 'top'}" style="margin: 2px;" data-ng-click="setElevation('top')">Top</div>
+    <!-- NOTE: the <div> and <svg> must be on the same line for the png code to work! -->
+    <div style="-webkit-user-select: none"><svg class="sr-plot">
+        <g data-ng-attr-transform="translate({{ margin.left }}, {{ margin.top }})">
+            <g data-ng-attr-transform="translate(0, {{ tileOffset() }})">
+              <text class="focus-text" text-anchor="end" data-ng-attr-x="{{ width }}" y="-10" dy=".35em"></text>
+              <g class="x axis" data-ng-attr-transform="translate(0, {{ height }})"></g>
+              <g class="x axis grid" data-ng-attr-transform="translate(0, {{ height }})"></g>
+              <g class="y axis"></g>
+              <g class="y axis grid"></g>
+              <text class="y-axis-label" transform="rotate(-90)" data-ng-attr-x="{{ -height / 2 }}" data-ng-attr-y="-{{ margin.left }}" dy="1em"></text>
+              <text class="x-axis-label" ng-attr-x="{{ width / 2 }}" ng-attr-y="{{ height + 26 }}" dy="1em"></text>
+              <text class="x-base" text-anchor="end" ng-attr-x="{{ width + margin.right - 5 }}" ng-attr-y="{{ height + 40 }}"></text>
+              <svg class="plot-viewport elevation-front" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}" data-ng-drop="isDropEnabled()" data-ng-drag-move="dragMove($data, $event)" data-ng-drop-success="dropSuccess($data, $event)">
+                  <defs>
+                  </defs>
+                  <rect class="overlay mouse-zoom" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}"></rect>
+              </svg>
+            </g>
+        </g>
+        <!--
+        <g data-ng-attr-transform="translate(0, {{ margin.top + height + zMargin() }})">
+          <defs>
+            <clippath id="zx-grid-clip">
+              <rect ng-attr-width="{{ width + 1 }}" ng-attr-height="{{ zHeight }}"></rect>
+            </clippath>
+          </defs>
+          <text class="focus-text" text-anchor="end" ng-attr-x="{{ width }}" y="-10" dy=".35em"></text>
+          <g class="z axis"></g>
+          <g class="z axis grid"></g>
+          <g clip-path="url(#zx-grid-clip)">
+              <g class="zx axis grid" ng-attr-transform="translate(0, {{ zHeight }})"></g>
+          </g>
+          <text class="z-axis-label" transform="rotate(-90)" ng-attr-x="{{ - zHeight / 2 }}" ng-attr-y="-{{ margin.left }}" dy="1em"></text>
+          <svg class="plot-viewport elevation-top" ng-attr-width="{{ width }}" ng-attr-height="{{ zHeight }}">
+              <rect class="overlay mouse-zoom" ng-attr-width="{{ width }}" ng-attr-height="{{ zHeight }}"></rect>
+          </svg>
+        </g>
+        -->
+      </svg></div>
+  </div>
+</div>
+
+<div class="col-md-3 sr-pull-right-sm">
+      <div class="panel panel-info">
+        <div class="panel-heading"><span class="sr-panel-heading">My Objects</span></div>
+        <div class="panel-body">
+            <table data-ng-show="objects.length" style="width: 100%;  table-layout: fixed" class="table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody data-ng-repeat="obj in objects track by obj.id">
+                <tr>
+                    <td style="padding-left: 1em; cursor: pointer; white-space: nowrap"><span>{{ obj.name }}</span></td>
+                    <td style="text-align: right">
+                    <div class="sr-button-bar-parent">
+                        <div class="sr-button-bar" data-ng-class="sr-button-bar-active">
+                             <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyObject(obj)">Copy</button>
+                             <button data-ng-click="editObject(obj)" class="btn btn-info btn-xs sr-hover-button">Edit</button>
+                             <button data-ng-click="deleteObject(obj)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
+                        </div>
+                    <div>
+                    </td>
+                </tr>
+              </tbody>
+            </table>
+        </div>
+      </div>
+    </div>
+</div>
+
+</div>
+<!--
+<div data-ng-if="is3dPreview">
+ <div class="vtk-canvas-holder" data-conductors-3d="" data-report-id="reportId" data-parent-controller="source"></div>
+</div>
+-->

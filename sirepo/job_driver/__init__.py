@@ -83,7 +83,7 @@ class DriverBase(PKDict):
             _agent_start_lock=tornado.locks.Lock(),
             _agent_starting_timeout=None,
             _websocket=None,
-            _websocket_ready=tornado.locks.Event(),
+            _websocket_ready=sirepo.tornado.Event(),
 #TODO(robnagler) https://github.com/radiasoft/sirepo/issues/2195
         )
         # Drivers persist for the life of the program so they are never removed

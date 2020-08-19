@@ -1,0 +1,24 @@
+{
+  "name": "sirepo",
+  "description": "Accelerator code gui",
+  "dependencies": {},
+  "devDependencies": {
+    "jasmine-core": "latest",
+    "jshint": "latest",
+    "karma": "latest",
+    "karma-chrome-launcher": "latest",
+    "karma-jasmine": "latest"
+  },
+  "scripts": {
+      "test": "npx karma start etc/karma-conf.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/radiasoft/sirepo.git"
+  },
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/radiasoft/sirepo/issues"
+  },
+  "homepage": "https://github.com/radiasoft/sirepo#readme"
+}

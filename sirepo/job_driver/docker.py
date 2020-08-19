@@ -80,7 +80,7 @@ class DockerDriver(job_driver.DriverBase):
     def init_class(cls, job_supervisor):
         cls.cfg = pkconfig.init(
             agent_starting_secs=(
-                cls._AGENT_STARTING_SECS_DEFAULT,
+                cls._AGENT_STARTING_SECS_DEFAULT + 3,
                 int,
                 'how long to wait for agent start',
             ),
@@ -264,9 +264,9 @@ class DockerDriver(job_driver.DriverBase):
 
     def _start_idle_timeout(self):
         async def _kill_if_idle():
+            self._idle_timer = None
             if not self.ops:
                 pkdlog('{}', self)
-                self._idle_timer = None
                 await self.kill()
             else:
                 self._start_idle_timeout()
