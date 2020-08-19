@@ -12,11 +12,11 @@ import pytest
 _sim_type = 'myapp'
 _cfg = {
     'SIREPO_AUTH_DEPRECATED_METHODS': 'github',
-    'SIREPO_AUTH_EMAIL_FROM_EMAIL': 'x',
-    'SIREPO_AUTH_EMAIL_FROM_NAME': 'x',
-    'SIREPO_AUTH_EMAIL_SMTP_PASSWORD': 'x',
-    'SIREPO_AUTH_EMAIL_SMTP_SERVER': 'dev',
-    'SIREPO_AUTH_EMAIL_SMTP_USER': 'x',
+    'SIREPO_SMTP_FROM_EMAIL': 'x',
+    'SIREPO_SMTP_FROM_NAME': 'x',
+    'SIREPO_SMTP_PASSWORD': 'x',
+    'SIREPO_SMTP_SERVER': 'dev',
+    'SIREPO_SMTP_USER': 'x',
     'SIREPO_AUTH_GITHUB_CALLBACK_URI': '/uri',
     'SIREPO_AUTH_GITHUB_KEY': 'key',
     'SIREPO_AUTH_GITHUB_SECRET': 'secret',

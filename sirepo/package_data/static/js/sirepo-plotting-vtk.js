@@ -3,11 +3,19 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
+SIREPO.ZERO_ARR = [0, 0, 0];
+SIREPO.ZERO_STR = '0, 0, 0';
 
 SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plotting, panelState, requestSender, utilities, $location, $rootScope, $timeout, $window) {
 
     var self = {};
     var stlReaders = {};
+
+    self.COORDINATE_PLANES = {
+        'xy': [0, 0, 1],
+        'yz': [1, 0, 0],
+        'zx': [0, 1, 0],
+    };
 
     self.addSTLReader = function(file, reader) {
         stlReaders[file] = reader;
@@ -247,6 +255,20 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                     errorService.alertText(e);
                 });
             });
+    };
+
+    // create a 3d shape
+    self.plotShape = function(id, name, center, size, color, alpha, fillStyle, strokeStyle, dashes, layoutShape) {
+        var shape = plotting.plotShape(id, name, center, size, color, alpha, fillStyle, strokeStyle, dashes, layoutShape);
+        shape.axes.push('z');
+        shape.center.z = center[2];
+        shape.size.z = size[2];
+        return shape;
+    };
+
+    self.plotLine = function(id, name, line, color, alpha, strokeStyle, dashes) {
+        var shape = plotting.plotLine(id, name, line, color, alpha, strokeStyle, dashes);
+        return shape;
     };
 
     self.removeSTLReader = function(file) {
@@ -876,7 +898,654 @@ SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUplo
     };});
 
 
-// will be axis display
+// elevations tab + vtk tab (or all in 1 tab?)
+// A lot of this is 2d and could be extracted
+SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, panelState, plotting, utilities, vtkPlotting) {
+    return {
+        restrict: 'A',
+        scope: {
+            cfg: '<',
+            modelName: '@',
+            source: '=controller',
+        },
+        templateUrl: '/static/html/3d-builder.html' + SIREPO.SOURCE_CACHE_KEY,
+        controller: function($scope, $element) {
+            var ASPECT_RATIO = 1.0;  //4.0 / 7;
+
+            var ELEVATIONS = {
+                front: 'front',
+                side: 'side',
+                top: 'top'
+            };
+
+            var ELEVATION_INFO = {
+                front: {
+                    class: '.plot-viewport elevation-front',
+                    coordPlane: 'xy',
+                    name: ELEVATIONS.front,
+                    x: {
+                        axis: 'x',
+                    },
+                    y: {
+                        axis: 'y',
+                    }
+                },
+                side: {
+                    class: '.plot-viewport elevation-side',
+                    coordPlane: 'yz',
+                    name: ELEVATIONS.side,
+                    x: {
+                        axis: 'z',
+                    },
+                    y: {
+                        axis: 'y',
+                    }
+                },
+                top: {
+                    class: '.plot-viewport elevation-top',
+                    coordPlane: 'zx',
+                    name: ELEVATIONS.top,
+                    x: {
+                        axis: 'x',
+                    },
+                    y: {
+                        axis: 'z',
+                    }
+                }
+            };
+
+            var LAYOUT_SHAPE_GROUP = 'group';
+            var LAYOUT_SHAPE_RECT = 'rect';
+            var LAYOUT_SHAPES = [LAYOUT_SHAPE_GROUP, LAYOUT_SHAPE_RECT];
+
+            var SCREEN_INFO = {
+                x: {
+                    length: $scope.width / 2
+                },
+                y: {
+                    length: $scope.height / 2
+                },
+            };
+
+            //var elevation = elevationInfo[$scope.elevation || elevationInfo.front];
+            var fitDomainPct = 1.01;
+
+            // pixels around the group shape
+            var groupSizeOffset = 5.0;
+            var insetWidthPct = 0.07;
+            var insetMargin = 16.0;
+            var screenRect = null;
+            var selectedObject = null;
+            var selectedObjects = null;
+            var objectScale = SIREPO.APP_SCHEMA.constants.objectScale || 1.0;
+            var invObjScale = 1.0 / objectScale;
+
+            $scope.elevation = 'front';
+            $scope.is3dPreview = false;
+            $scope.margin = {top: 20, right: 20, bottom: 45, left: 70};
+            $scope.objects = [];
+            $scope.side = 'x';
+            $scope.width = $scope.height = 0;
+
+            var dragShape, dragStart, yRange, zoom;
+            var axisScale = {
+                x: 1.0,
+                y: 1.0,
+                z: 1.0
+            };
+            var axes = {
+                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
+                y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
+                //z: layoutService.plotAxis($scope.margin, 'z', 'left', refresh),
+            };
+
+            function clearDragShadow() {
+                d3.selectAll('.vtk-object-layout-drag-shadow').remove();
+            }
+
+            function d3DragEndShape(shape) {
+                $scope.$applyAsync(function() {
+                    if (isShapeInBounds(shape)) {
+                        var o = $scope.source.getObject(shape.id);
+                        if (! o) {
+                            return;
+                        }
+                        var ctr = stringToFloatArray(o.center);
+                        o.center = floatArrayToString([
+                            shape.center.x ,
+                            shape.center.y,
+                            shape.center.z
+                        ]);
+                        $scope.source.saveObject(shape.id, function () {
+                            //TODO(mvk): this will re-apply transforms to objects!  Need a way around tat
+                            refresh();
+                        });
+                    }
+                    else {
+                        appState.cancelChanges($scope.modelName);
+                    }
+                });
+                hideShapeLocation();
+            }
+
+
+            function d3DragShape(shape) {
+                /*jshint validthis: true*/
+                if (! shape.draggable) {
+                    return;
+                }
+                SIREPO.SCREEN_DIMS.forEach(function(dim) {
+                    var labDim = shape.elev[dim].axis;
+                    var dom = axes[dim].scale.domain();
+                    var pxsz = (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
+                    shape.center[labDim] = dragStart.center[labDim] +
+                        SIREPO.SCREEN_INFO[dim].direction * pxsz * d3.event[dim];
+                    shape[dim] = dragStart[dim] +
+                        SIREPO.SCREEN_INFO[dim].direction * pxsz * d3.event[dim];
+                });
+                d3.select(this).call(updateShapeAttributes);
+                showShapeLocation(shape);
+                shape.runLinks().forEach(function (linkedShape) {
+                    d3.select(shapeSelectionId(linkedShape, true)).call(updateShapeAttributes);
+                });
+            }
+
+            function shapeSelectionId(shape, includeHash) {
+                return (includeHash ? '#' : '') + 'shape-' + shape.elev.name + '-' + shape.id;
+            }
+
+            function d3DragStartShape(shape) {
+                d3.event.sourceEvent.stopPropagation();
+                dragStart = appState.clone(shape);
+                showShapeLocation(shape);
+            }
+
+            function drawObjects(elevation) {
+                var shapes =  $scope.source.getShapes();
+                shapes.forEach(function(sh) {
+                    if (! sh.layoutShape || sh.layoutShape === '') {
+                        return;
+                    }
+                    sh.elev = elevation;
+                });
+
+                var ds = d3.select('.plot-viewport').selectAll('.vtk-object-layout-shape')
+                    .data(shapes);
+                ds.exit().remove();
+                // function must return a DOM object in the SVG namespace
+                ds.enter().append(function (d) {
+                    return document.createElementNS('http://www.w3.org/2000/svg', d.layoutShape);
+                })
+                    .on('dblclick', editObject)
+                    .on('click', function (d, e) {
+                        selectObject(d, e);
+                    });
+                ds.call(updateShapeAttributes);
+                ds.call(dragShape);
+            }
+/*
+                onpointerdown: function (evt) {
+                    isDragging = false;
+                    isPointerUp = false;
+                },
+                onpointermove: function (evt) {
+                    if (isPointerUp) {
+                        return;
+                    }
+                    isDragging = true;
+                    didPan = didPan || evt.shiftKey;
+                    $scope.side = null;
+                    utilities.debounce(refresh, 100)();
+                },
+                onpointerup: function (evt) {
+                    isDragging = false;
+                    isPointerUp = true;
+                    refresh(true);
+                },
+*/
+            function drawShapes() {
+                drawObjects(ELEVATION_INFO[$scope.elevation]);
+            }
+
+            function editObject(shape) {
+                d3.event.stopPropagation();
+                $scope.$applyAsync(function() {
+                    $scope.source.editObjectWithId(shape.id);
+                });
+            }
+
+            function floatArrayToString(arr) {
+                return arr.map(function (v) {
+                    return invObjScale * v;
+                }).join(',');
+            }
+            
+            function hideShapeLocation() {
+                select('.focus-text').text('');
+            }
+
+            function isMouseInBounds(evt) {
+                d3.event = evt.event;
+                var p = d3.mouse(d3.select('.plot-viewport').node());
+                d3.event = null;
+                return p[0] >= 0 && p[0] < $scope.width && p[1] >= 0 && p[1] < $scope.height
+                     ? p
+                     : null;
+            }
+
+            function isShapeInBounds(shape) {
+                if (! $scope.cfg.fixedDomain) {
+                    return true;
+                }
+                /*
+                var vAxis = shape.elev === ELEVATIONS.front ? axes.y : axes.z;
+                var bounds = {
+                    top: shape.y,
+                    bottom: shape.y - shape.height,
+                    left: shape.x,
+                    right: shape.x + shape.width,
+                };
+                if (bounds.right < axes.x.domain[0] || bounds.left > axes.x.domain[1]
+                    || bounds.top < vAxis.domain[0] || bounds.bottom > vAxis.domain[1]) {
+                    return false;
+                }
+
+                 */
+                return true;
+            }
+
+            function refresh() {
+                if (! axes.x.domain) {
+                    return;
+                }
+                if (layoutService.plotAxis.allowUpdates) {
+                    var width = parseInt(select('.workspace').style('width')) - $scope.margin.left - $scope.margin.right;
+                    if (isNaN(width)) {
+                        return;
+                    }
+                    width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
+                    $scope.width = width;
+                    $scope.height = ASPECT_RATIO * $scope.width;
+                    SCREEN_INFO.x.length = $scope.width;  // / 2;
+                    SCREEN_INFO.y.length = $scope.height;  // / 2;
+
+                    select('svg')
+                        .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
+                        .attr('height', $scope.plotHeight());
+                    axes.x.scale.range([0, $scope.width]);
+                    axes.y.scale.range([$scope.height, 0]);
+                    axes.x.grid.tickSize(-$scope.height);
+                    axes.y.grid.tickSize(-$scope.width);
+                }
+                if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
+                    select('.overlay').attr('class', 'overlay mouse-zoom');
+                    //select('.z-plot-viewport .overlay').attr('class', 'overlay mouse-zoom');
+                    axes.y.scale.domain(axes.y.domain);
+                }
+                else {
+                    select('.overlay').attr('class', 'overlay mouse-move-ew');
+                    //select('.z-plot-viewport .overlay').attr('class', 'overlay mouse-move-ew');
+                }
+
+                axes.y.grid.tickValues(plotting.linearlySpacedArray(-1.0 / 2, 1.0 / 2, 10));
+                resetZoom();
+                select('.plot-viewport').call(zoom);
+                $.each(axes, function(dim, axis) {
+                    var labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
+                    var d = axes[dim].scale.domain();
+                    var r = axes[dim].scale.range();
+                    axisScale[dim] = Math.abs((d[1] - d[0]) / (r[1] - r[0]));
+
+                    axis.updateLabelAndTicks({
+                        width: $scope.width,
+                        height: $scope.height,
+                    }, select);
+                    axis.grid.ticks(axis.tickCount);
+                    select('.' + dim + '.axis.grid').call(axis.grid);
+                });
+
+                screenRect = geometry.rect(
+                    geometry.point(),
+                    geometry.point($scope.width, $scope.height, 0)
+                );
+
+                drawShapes();
+            }
+
+            function replot() {
+                // total x extent
+                // add optional fit to objects
+                var bnds = $scope.source.shapeBounds();
+                //srdbg('bnds', bnds);
+                var newDomain = $scope.cfg.initDomian;
+                SIREPO.SCREEN_DIMS.forEach(function (dim, i) {
+                    var labDim = ELEVATION_INFO[$scope.elevation][dim].axis;
+                    var axis = axes[dim];
+                    axis.domain = newDomain[labDim];
+                    if ($scope.cfg.fitToObjects) {
+                        if (bnds[labDim][0] < axis.domain[0]) {
+                            newDomain[labDim][0] = fitDomainPct * bnds[labDim][0];
+                        }
+                        if (bnds[labDim][1] > axis.domain[1]) {
+                            newDomain[labDim][1] = fitDomainPct * bnds[labDim][1];
+                        }
+                    }
+                    axis.scale.domain(newDomain[labDim]);
+                });
+                $scope.resize();
+            }
+
+            function resetZoom() {
+                zoom = axes.x.createZoom($scope).y(axes.y.scale);
+            }
+
+            function select(selector) {
+                var e = d3.select($scope.element);
+                return selector ? e.select(selector) : e;
+            }
+
+            function selectObject(d) {
+                // allow using shift to select more than one (for alignment etc.(
+                if (! selectedObject || selectedObject.id !== d.id ) {
+                    selectedObject = d;
+                }
+                else {
+                    selectedObject = null;
+                }
+                //drawObjects(ELEVATION_INFO.front);
+                drawObjects(ELEVATION_INFO[$scope.elevation]);
+            }
+
+            function shapeColor(hexColor, alpha) {
+                var comp = plotting.colorsFromHexString(hexColor);
+                return 'rgb(' + comp[0] + ', ' + comp[1] + ', ' + comp[2] + ', ' + (alpha || 1.0) + ')';
+            }
+
+            function showShapeLocation(shape) {
+                select('.focus-text').text(
+                    'Center: ' +
+                    formatObjectLength(shape.center.x) + ', ' +
+                    formatObjectLength(shape.center.y) + ', ' +
+                    formatObjectLength(shape.center.z)
+                );
+            }
+
+            function stringToFloatArray(str) {
+                return str.split(/\s*,\s*/)
+                    .map(function (v) {
+                        return objectScale * parseFloat(v);
+                    });
+            }
+
+            function formatObjectLength(val) {
+                return utilities.roundToPlaces(invObjScale * val, 4);
+            }
+
+            // called when placing a new object, not dragging an existing object
+            function updateDragShadow(obj, p) {
+                clearDragShadow();
+                var shape = $scope.source.shapeForObject(obj);
+                //shape.elev = ELEVATION_INFO.front;
+                shape.elev = ELEVATION_INFO[$scope.elevation];
+                shape.x = shapeOrigin(shape, 'x'); // axes.x.scale.invert(p[0]) + shape.size[0]/ 2;
+                shape.y = shapeOrigin(shape, 'y'); //shape.y = axes.y.scale.invert(p[1]) + shape.size[1] / 2;
+                showShapeLocation(shape);
+                d3.select('.plot-viewport')
+                    .append('rect').attr('class', 'vtk-object-layout-shape vtk-object-layout-drag-shadow')
+                    .attr('x', function() { return shapeOrigin(shape, 'x'); })
+                    .attr('y', function() { return shapeOrigin(shape, 'y'); })
+                    .attr('width', function() { return shapeSize(shape, 'x'); })
+                    .attr('height', function() { return shapeSize(shape, 'y'); });
+            }
+
+            function shapeOrigin(shape, dim) {
+                var labDim = shape.elev[dim].axis;
+                return axes[dim].scale(
+                    shape.center[labDim] - SIREPO.SCREEN_INFO[dim].direction * shape.size[labDim] / 2
+                );
+            }
+
+            function shapeCenter(shape, dim) {
+                var labDim = shape.elev[dim].axis;
+                return axes[dim].scale(shape.center[labDim]);
+            }
+
+            function linePoints(shape) {
+                if (! shape.line || shape.elev.coordPlane !== shape.coordPlane) {
+                    return null;
+                }
+
+                //var pl = geometry.plane(vtkPlotting.COORDINATE_PLANES[shape.elev.coordPlane], geometry.point());
+                //if (! pl.intersectsLine(shape.line)) {
+                //    return null;
+                //}
+
+                var lp = shape.line.points();
+                var labX = shape.elev.x.axis;
+                var labY = shape.elev.y.axis;
+
+                // same points in this coord plane
+                if (lp[0][labX] === lp[1][labX] && lp[0][labY] === lp[1][labY]) {
+                    return null;
+                }
+
+                var scaledLine = geometry.lineFromArr(
+                    lp.map(function (p) {
+                        var sp = [];
+                        SIREPO.SCREEN_DIMS.forEach(function (dim) {
+                            var labDim = shape.elev[dim].axis;
+                            sp.push(axes[dim].scale(p[labDim]));
+                        });
+                        return geometry.pointFromArr(sp);
+                }));
+
+                var pts = screenRect.boundaryIntersectionsWithLine(scaledLine);
+                return pts;
+            }
+
+            function shapeSize(shape, screenDim) {
+                var labDim = shape.elev[screenDim].axis;
+                return  Math.abs(
+                    axes[screenDim].scale(shape.center[labDim] + shape.size[labDim] / 2) -
+                    axes[screenDim].scale(shape.center[labDim] - shape.size[labDim] / 2)
+                );
+            }
+
+            function updateShapeAttributes(selection) {
+                selection
+                    .attr('class', 'vtk-object-layout-shape')
+                    .classed('vtk-object-layout-shape-selected', function (d) {
+                        return d.id === (selectedObject || {}).id;
+                    })
+                    .classed('vtk-object-layout-shape-undraggable', function (d) {
+                        return ! d.draggable;
+                    })
+                    .attr('id', function (d) {
+                        return shapeSelectionId(d);
+                    })
+                    .attr('x', function(d) {
+                        return shapeOrigin(d, 'x') - (d.outlineOffset || 0);
+                    })
+                    .attr('y', function(d) {
+                        return shapeOrigin(d, 'y') - (d.outlineOffset || 0);
+                    })
+                    .attr('x1', function (d) {
+                        var pts = linePoints(d);
+                        return pts ? (pts[0] ? pts[0].coords()[0] : 0) : 0;
+                    })
+                    .attr('x2', function (d) {
+                        var pts = linePoints(d);
+                        return pts ? (pts[1] ? pts[1].coords()[0] : 0) : 0;
+                    })
+                    .attr('y1', function (d) {
+                        var pts = linePoints(d);
+                        return pts ? (pts[0] ? pts[0].coords()[1] : 0) : 0;
+                    })
+                    .attr('y2', function (d) {
+                        var pts = linePoints(d);
+                        return pts ? (pts[1] ? pts[1].coords()[1] : 0) : 0;
+                    })
+                    .attr('width', function(d) {
+                        return shapeSize(d, 'x') + 2 * (d.outlineOffset || 0);
+                    })
+                    .attr('height', function(d) {
+                        return shapeSize(d, 'y') + 2 * (d.outlineOffset || 0);
+                    })
+                    .attr('style', function(d) {
+                        if (d.color) {
+                            var a = d.alpha === 0 ? 0 : (d.alpha || 1.0);
+                            var fill = 'fill:' + (d.fillStyle ? shapeColor(d.color, a) : 'none');
+                            return fill + '; ' + 'stroke: ' + shapeColor(d.color);
+                        }
+                    })
+                    .attr('stroke-dasharray', function (d) {
+                        return d.strokeStyle === 'dashed' ? (d.dashes || "5,5") : "";
+                    })
+                    .attr('transform', function (d) {
+                        if (d.rotationAngle !== 0 && d.rotationAngle) {
+                            return 'rotate(' + d.rotationAngle + ',' +  shapeCenter(d, 'x') + ',' + shapeCenter(d, 'y')  + ')';
+                        }
+                        return '';
+                    });
+                var tooltip = selection.select('title');
+                if (tooltip.empty()) {
+                    tooltip = selection.append('title');
+                }
+                tooltip.text(function(d) {
+                    var ctr = d.getCenterCoords().map(function (c) {
+                        return utilities.roundToPlaces(c * invObjScale, 2);
+                    });
+                    var sz = d.getSizeCoords().map(function (c) {
+                        return utilities.roundToPlaces(c * invObjScale, 2);
+                    });
+                    return d.name + ' center : ' + ctr + ' size: ' + sz;
+                });
+            }
+
+            $scope.copyObject = function(o) {
+                $scope.source.copyObject(o);
+            };
+
+            $scope.deleteObject = function(o) {
+                $scope.source.deleteObject(o);
+            };
+
+            $scope.destroy = function() {
+                if (zoom) {
+                    zoom.on('zoom', null);
+                }
+                $('.plot-viewport').off();
+            };
+
+            $scope.dragMove = function(obj, evt) {
+                var p = isMouseInBounds(evt);
+                if (p) {
+                    d3.select('.sr-drag-clone').attr('class', 'sr-drag-clone sr-drag-clone-hidden');
+                    updateDragShadow(obj, p);
+                }
+                else {
+                    clearDragShadow();
+                    d3.select('.sr-drag-clone').attr('class', 'sr-drag-clone');
+                    hideShapeLocation();
+                }
+            };
+
+            $scope.editObject = function(o) {
+                $scope.source.editObject(o);
+            };
+
+            // called when dropping new objects, not existing
+            $scope.dropSuccess = function(obj, evt) {
+                var p = isMouseInBounds(evt);
+                if (p) {
+                    var shape = $scope.source.shapeForObject(obj);
+                    var labXIdx = geometry.basis.indexOf(ELEVATION_INFO[$scope.elevation].x.axis);
+                    var labYIdx = geometry.basis.indexOf(ELEVATION_INFO[$scope.elevation].y.axis);
+                    var ctr = [0, 0, 0];
+                    ctr[labXIdx] = axes.x.scale.invert(p[0]);
+                    ctr[labYIdx] = axes.y.scale.invert(p[1]);
+                    obj.center = floatArrayToString(ctr);
+                    //replot();
+                    $scope.$emit('layout.object.dropped', obj);
+                }
+            };
+
+            $scope.init = function() {
+                if (! appState.isLoaded()) {
+                    appState.whenModelsLoaded($scope, $scope.init);
+                    return;
+                }
+                $scope.objects = appState.models[$scope.modelName].objects;
+                $scope.shapes = $scope.source.getShapes();
+
+                $scope.$on($scope.modelName + '.changed', function(e, name) {
+                    //srdbg($scope.modelName, 'ch');
+                    $scope.shapes = $scope.source.getShapes();
+                    //if (name == $scope.modelName) {
+                        //refresh();
+                    drawShapes();
+                    //replot();
+                    //}
+                });
+                $scope.$on('cancelChanges', function(e, name) {
+                    refresh();
+                });
+
+                select('svg').attr('height', plotting.initialHeight($scope));
+
+                $.each(axes, function(dim, axis) {
+                    axis.init();
+                    axis.grid = axis.createAxis();
+                });
+                resetZoom();
+                dragShape = d3.behavior.drag()
+                    .origin(function(d) { return d; })
+                    .on('drag', d3DragShape)
+                    .on('dragstart', d3DragStartShape)
+                    .on('dragend', d3DragEndShape);
+                axes.x.parseLabelAndUnits(ELEVATION_INFO[$scope.elevation].x.axis + ' [m]');
+                axes.y.parseLabelAndUnits(ELEVATION_INFO[$scope.elevation].y.axis + ' [m]');
+                replot();
+            };
+
+            $scope.isDropEnabled = function() {
+                return $scope.source.isDropEnabled();
+            };
+
+            $scope.plotHeight = function() {
+                var ph = $scope.plotOffset() + $scope.margin.top + $scope.margin.bottom;
+                return ph;
+            };
+
+            $scope.plotOffset = function() {
+                return $scope.height;
+            };
+
+            $scope.resize = function() {
+                if (select().empty()) {
+                    return;
+                }
+                refresh();
+            };
+
+            $scope.setElevation = function(elev) {
+                $scope.elevation = elev;
+                axes.x.parseLabelAndUnits(ELEVATION_INFO[$scope.elevation].x.axis + ' [m]');
+                axes.y.parseLabelAndUnits(ELEVATION_INFO[$scope.elevation].y.axis + ' [m]');
+                replot();
+            };
+
+            $scope.toggle3dPreview = function() {
+                $scope.is3dPreview = !$scope.is3dPreview;
+            };
+
+        },
+        link: function link(scope, element) {
+            plotting.linkPlot(scope, element);
+        },
+    };
+});
+
 SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, requestSender, plotting, vtkAxisService, vtkPlotting, layoutService, utilities, geometry) {
     return {
         restrict: 'A',
@@ -947,8 +1616,6 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             var lastSize = [1, 1];
 
             function refresh() {
-                //srdbg('axes refresh');
-
                 var size = [$($element).width(), $($element).height()];
                 var pos = $($element).offset();
                 //srdbg('axes pos', pos, 'sz', size);
@@ -988,7 +1655,6 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     var seg = geometry.bestEdgeAndSectionInBounds(
                         externalEdges, screenRect, dim, false
                     );
-                    //srdbg(dim, 'best edge', seg);
                     var cl = $scope.boundObj.vpCenterLineForDimension(dim);
                     var cli = screenRect.boundaryIntersectionsWithSeg(cl);
                     if (cli && cli.length == 2) {
@@ -1062,7 +1728,6 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     }
                     var xform = 'translate(' + axisLeft + ',' + axisTop + ') ' +
                         'rotate(' + angle + ')';
-                    //srdbg('xform', xform, dsz);
 
                     axes[dim].scale.domain(newDom).nice();
                     axes[dim].scale.range([reverseOnScreen ? newRange : 0, reverseOnScreen ? 0 : newRange]);
@@ -1138,7 +1803,6 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             }
 
             function init() {
-                //srdbg('axes init');
                 for (var dim in axes) {
                     axes[dim].init();
                     axes[dim].svgAxis.tickSize(0);
@@ -1147,7 +1811,6 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             }
 
             function rebuildAxes() {
-                //srdbg('update axes', axisCfg);
                 for (var dim in axes) {
                     var cfg = axisCfg[dim];
                     axes[dim].values = plotting.linearlySpacedArray(cfg.min, cfg.max, cfg.numPoints);
@@ -1161,7 +1824,6 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             });
 
             $scope.$on('axes.refresh', function () {
-                //srdbg('axes.refresh');
                 refresh();
             });
 
@@ -1180,7 +1842,6 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                 }
             });
         },
-
     };
 });
 
@@ -1255,6 +1916,8 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             var canvas3d = null;
             var didPan = false;
             var fsRenderer = null;
+            var hasBodyEvt = false;
+            var hdlrs = {};
             var isDragging = false;
             var isPointerUp = true;
             var marker = null;
@@ -1342,20 +2005,24 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             };
 
             $scope.init = function() {
-                //srdbg('vtk init', $scope);
                 var rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
                 var body = angular.element($($document).find('body'))[0];
-                var hdlrs = $scope.eventHandlers || {};
+                hdlrs = $scope.eventHandlers || {};
 
                 // vtk adds keypress event listeners to the BODY of the entire document, not the render
-                // container
-                var hasBodyEvt = Object.keys(hdlrs).some(function (e) {
+                // container.
+                hasBodyEvt = Object.keys(hdlrs).some(function (e) {
                     return ['keypress', 'keydown', 'keyup'].indexOf(e) >= 0;
                 });
                 if (hasBodyEvt) {
                     var bodyAddEvtLsnr = body.addEventListener;
-                    body.addEventListener = function (type, listener) {
-                        bodyAddEvtLsnr(type, hdlrs[type] ? hdlrs[type] : listener);
+                    var bodyRmEvtLsnr = body.removeEventListener;
+                    body.addEventListener = function(type, listener, opts) {
+                        bodyAddEvtLsnr(type, hdlrs[type] ? hdlrs[type] : listener, opts);
+                    };
+                    // seem to need to do this so listeners get removed correctly
+                    body.removeEventListener = function(type, listener, opts) {
+                        bodyRmEvtLsnr(type, listener, opts);
                     };
                 }
 
@@ -1492,7 +2159,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             }
 
             function resize(e) {
-                //srdbg('VTK RESIZE');
                 refresh();
             }
 

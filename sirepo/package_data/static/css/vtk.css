@@ -1,3 +1,7 @@
+.vtk-canvas-holder img {
+  display: none;
+}
+
 .vtk-canvas-holder-border {
     border-color: #cccccc;
     border-radius: 4px;
@@ -34,6 +38,58 @@
     font-size: 13px;
 }
 
-.vtk-canvas-holder img {
-  display: none;
+.vtk-object-layout-shape {
+    cursor: move;
+    stroke-width: 2;
+}
+
+
+.vtk-object-layout-shape-undraggable {
+    cursor: not-allowed;
+}
+
+.vtk-object-layout-shape-selected {
+    stroke: blue!important;
+    stroke-width: 3;
+}
+
+.vtk-object-layout-shape-hover:hover {
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+
+.vtk-object-layout-shape-hover .vtk-object-layout-shape-close-icon:hover {
+  color: black;
+}
+
+.vtk-object-layout-shape-close-icon {
+  font-size: 20px;
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  cursor: default;
+  color: #aaa;
+}
+
+
+.vtk-object-layout-shape:hover {
+    opacity: 0.75!important;
+    filter: drop-shadow(2px 2px 2px #999);
+}
+
+.vtk-object-layout-shape-hover:hover .vtk-object-layout-shape-close-icon {
+  visibility: visible;
+}
+
+
+.vtk-object-layout-shape-inactive {
+  opacity: 0.5;
+}
+
+.vtk-object-layout-drag-shadow {
+    fill: black;
+    opacity: 0.25;
+    stroke-width: 0;
+    filter: drop-shadow(2px 2px 2px #999);
 }

@@ -1,0 +1,59 @@
+// ------------------------------
+
+DEGREE:=PI/180.0;
+
+D1: DRIFT,  L := 0.5;
+D2: DRIFT,  L := 0.05;
+D3: DRIFT,  L := 0.1;
+
+QUAD1: QUADRUPOLE, L := 0.1, K1 := 5.0;
+QUAD2: QUADRUPOLE, L := 0.1, K1 := -5.0;
+QUAD3: QUADRUPOLE, L := 0.05, K1 := 1.0;
+QUAD4: QUADRUPOLE, L := 0.05, K1 := -1.0;
+
+BPM1: MONITOR, L := 0.05;
+BPM2: MONITOR, L := 0.05;
+BPMX1: HMONITOR, L := 0.01;
+BPMX2: HMONITOR, L := 0.01;
+BPMY1: VMONITOR, L := 0.01;
+BPMY2: VMONITOR, L := 0.01;
+
+BEND1: SBEND, L=0.5, ANGLE=15.0*DEGREE;
+BEND2: SBEND, L=0.5, ANGLE=-15.0*DEGREE;
+
+CORR1: KICKER, HKICK = 0.001, VKICK = -0.001;
+CORR2: KICKER, HKICK = 0.001, VKICK = -0.001;
+CORRX1: HKICKER, KICK = -0.001;
+CORRX2: HKICKER, KICK = -0.001;
+CORRY1: VKICKER, KICK = 0.001;
+CORRY2: VKICKER, KICK = 0.001;
+
+
+ENT_LINE: LINE = (D1, CORR1, D2, BPM1, D1, QUAD1, D3, QUAD2, D3, CORRX1, D2, BPMX1, D3);
+MID_LINE: LINE = (BEND1, D1, CORRY1, D2, BPMY1, D2, CORRX2, D2, BPMX2, D1, BEND2);
+EXIT_LINE: LINE = (D3, CORRY2, D2, BPMY2, D3, QUAD1, D3, QUAD2, D1, CORR2, D2, BPM2, D1);
+
+BL: LINE = (ENT_LINE, MID_LINE, EXIT_LINE);
+
+E0 := 0.938;
+NN := 1;
+Q := 1;
+GAMMA := 7.84;
+
+beam,  particle="", mass = E0*NN, charge=Q, gamma=GAMMA, sigt=1.0;
+use, period=BL;
+
+SELECT, FLAG=TWISS,clear;
+select, flag=twiss,  column = name, keyword, s, betx, bety, k1l,  alfx, alfy, mux, muy, Dx, Dy, Dpx, Dpy, x, px, y, py, L, angle, gamma;
+
+use, sequence=BL;
+TWISS,  BETX=29.528, ALFX=-3.237, DX = -2.57, DPX=-0.281, BETY=7.347, ALFY=0.986, DY=0.0, DPY=0.0,  file="fodo_example.twi";
+
+
+ptc_create_universe;
+ptc_create_layout, model=2, method=2;
+call, file = ptc_particles.madx;
+call, file = ptc_markers.madx;
+ptc_track, icase=6, radiation=false, dump=true, onetable=true, ffile=1, file=test_dump_, extension=.txt;
+ptc_track_end;
+ptc_end;

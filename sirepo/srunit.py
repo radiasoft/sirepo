@@ -143,7 +143,7 @@ class UwsgiClient(PKDict):
 
         r = requests.post(
             (
-                f'http://{service.cfg().ip}:{service.cfg().nginx_proxy_port}'
+                f'http://{service._cfg().ip}:{service._cfg().nginx_proxy_port}'
                 f'{self._server_route(route_or_uri)}'
             ),
             json=data,
@@ -329,7 +329,7 @@ class _TestClient(flask.testing.FlaskClient):
         self.sr_sim_type_set(sim_type)
         return self.__req(
             'root',
-            {'simulation_type': self.sr_sim_type},
+            {'path_info': self.sr_sim_type},
             None,
             self.get,
             raw_response=True,

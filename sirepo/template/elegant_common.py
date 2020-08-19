@@ -20,7 +20,7 @@ def subprocess_env():
     Returns:
         dict: copy of env
     """
-    return PKDict(os.environ).update(
+    return PKDict(os.environ).pkupdate(
         RPN_DEFNS=str(_SIM_DATA.resource_path('defns.rpn')),
     )
 

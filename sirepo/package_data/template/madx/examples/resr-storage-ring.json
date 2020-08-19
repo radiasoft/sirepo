@@ -353,12 +353,6 @@
                 "xbend": -1
             },
             {
-                "_id": 139,
-                "_type": "ptc_observe",
-                "name": "PT1",
-                "place": "#E"
-            },
-            {
                 "_id": 132,
                 "_type": "ptc_track",
                 "beam_envelope": "0",

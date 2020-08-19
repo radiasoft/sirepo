@@ -69,6 +69,10 @@ def _extract_twiss_report(data):
     report = data['models'][data['report']]
     report['x'] = _X_FIELD
     values = madx_parser.parse_tfs_file(_elegant_to_madx(data['models']['ring']))
+    # special case if dy and/or dpy are missing, default to 0s
+    for opt_col in ('dy', 'dpy'):
+        if opt_col not in values and 'dx' in values:
+            values[opt_col] = ['0'] * len(values['dx'])
     x = _float_list(values[report['x']])
     y_range = None
     plots = []

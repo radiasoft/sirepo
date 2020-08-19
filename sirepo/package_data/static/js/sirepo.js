@@ -539,6 +539,9 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
     };
 
     self.formatDate = function(unixTime) {
+        if (! unixTime) {
+            return null;
+        }
         return $filter('date')(unixTime * 1000, 'yyyy-MM-dd HH:mm:ss');
     };
 
@@ -1446,6 +1449,27 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return 'Waiting';
     };
 
+    // if no associated view, check for a superclass that does have one
+    self.getBaseModelKey = function(modelKey) {
+        if (appState.viewInfo(modelKey)) {
+            return modelKey;
+        }
+        if (! (modelKey in SIREPO.APP_SCHEMA.model)) {
+            return modelKey;
+        }
+        var m = appState.modelInfo(modelKey);
+        if (m._super) {
+            for (var i = SIREPO.INFO_INDEX_DEFAULT_VALUE; i < m._super.length; ++i) {
+                if (appState.viewInfo(m._super[i])) {
+                    modelKey = m._super[i];
+                    return modelKey;
+                }
+            }
+        }
+        return modelKey;
+    };
+
+
     self.isActiveField = function(model, field) {
         return $(fieldClass(model, field)).find('input').is(':focus');
     };
@@ -1574,6 +1598,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.showModalEditor = function(modelKey, template, scope) {
+        modelKey = self.getBaseModelKey(modelKey);
         var editorId = '#' + self.modalId(modelKey);
         var showEvent = modelKey + '.editor.show';
         if ($(editorId).length) {
@@ -1728,8 +1753,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                     encodeURIComponent(serializeValue(params[k], k)));
             }
         }
-        // remove optional params missed and then that were replaced
-        url = url.replace(/\/\?<[^>]+>/g, '');
+        // POSIT: ? and * are optional parameter chars sirepo.uri_router
+        url = url.replace(/\/[\?\*]<[^>]+>/g, '');
         url = url.replace(/\/\?/g, '/');
         var missing = url.match(/<[^>]+>/g);
         if (missing) {
@@ -1845,7 +1870,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     self.globalRedirectRoot = function() {
         self.globalRedirect(
             'root',
-            {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
+            {'<path_info>': SIREPO.APP_SCHEMA.simulationType}
         );
     };
 
@@ -2298,7 +2323,7 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
 
 SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, authState, frameCache, $interval) {
     var self = {};
-    var ELAPSED_TIME_INTERVAL_SECS = 1;
+    const ELAPSED_TIME_INTERVAL_SECS = 1;
 
     self.initSimulationState = function(controller) {
         var state = {

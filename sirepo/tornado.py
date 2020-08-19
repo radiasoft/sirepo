@@ -6,7 +6,22 @@ u"""Wrappers for Tornado
 """
 from pykern.pkdebug import pkdlog, pkdexc
 import sirepo.util
+import tornado.locks
 import tornado.queues
+
+class Event(tornado.locks.Event):
+    """Event with ordered waiters.
+
+    When the event is set the waiters are awoken in a FIFO order.
+    """
+    class _OrderedWaiters(list):
+
+        def add(self, val):
+            self.append(val)
+
+    def __init__(self):
+        super().__init__()
+        self._waiters = self._OrderedWaiters()
 
 
 class Queue(tornado.queues.Queue):
