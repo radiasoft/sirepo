@@ -1753,8 +1753,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                     encodeURIComponent(serializeValue(params[k], k)));
             }
         }
-        // remove optional params missed and then that were replaced
-        url = url.replace(/\/\?<[^>]+>/g, '');
+        // POSIT: ? and * are optional parameter chars sirepo.uri_router
+        url = url.replace(/\/[\?\*]<[^>]+>/g, '');
         url = url.replace(/\/\?/g, '/');
         var missing = url.match(/<[^>]+>/g);
         if (missing) {
@@ -1870,7 +1870,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     self.globalRedirectRoot = function() {
         self.globalRedirect(
             'root',
-            {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
+            {'<path_info>': SIREPO.APP_SCHEMA.simulationType}
         );
     };
 
