@@ -1688,45 +1688,44 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
 
     // we can trust that the Python has validated the schema
     // so no need for complicated checks like in sirepo.uri_router.
-    for (var n in SIREPO.APP_SCHEMA.route) {
-        var u = SIREPO.APP_SCHEMA.route[n].split('/');
+    function _globalIterator(p) {
+        var m = p.match(/^([\?\*]?)<(\w+)>$/);
+        if (! m) {
+            throw new Error(`param=${p} invalid syntax global route`);
+        }
+        return {
+            name: m[2],
+            isOptional: !! m[1],
+        };
+    }
+
+    for (let n in SIREPO.APP_SCHEMA.route) {
+        let u = SIREPO.APP_SCHEMA.route[n].split('/');
         u.shift();
         globalMap[n] = {
             name: n,
             // root route has /*<path_info> so check for a non-param element
             baseUri: u[0].match(/^[^\*\?<]/) ? u.shift() : '',
-            params: u.map(
-                function (p) {
-                    var m = p.match(/^([\?\*]?)<(\w+)>$/);
-                    if (! m) {
-                        throw new Error(`param=${p} invalid syntax global route=${n}`);
-                    }
-                    return {
-                        name: m[2],
-                        isOptional: !! m[1],
-                    };
-                }
-            )
+            params: u.map(_globalIterator),
         };
     }
-    for (var n in SIREPO.APP_SCHEMA.localRoutes) {
-        var u = SIREPO.APP_SCHEMA.localRoutes[n].route.split('/');
+    function _localIterator(p) {
+        var m = p.match(/^:(\w+)(\??)$/);
+        if (! m) {
+            throw new Error(`param=${p} invalid syntax local route`);
+        }
+        return {
+            name: m[1],
+            isOptional: !! m[2],
+        };
+    }
+    for (let n in SIREPO.APP_SCHEMA.localRoutes) {
+        let u = SIREPO.APP_SCHEMA.localRoutes[n].route.split('/');
         u.shift();
         localMap[n] = {
             name: n,
             baseUri: u.shift(),
-            params: u.map(
-                function (p) {
-                    var m = p.match(/^:(\w+)(\??)$/);
-                    if (! m) {
-                        throw new Error(`param=${p} invalid syntax local route=${n}`);
-                    }
-                    return {
-                        name: m[1],
-                        isOptional: !! m[2],
-                    };
-                }
-            )
+            params: u.map(_localIterator)
         };
     }
 
