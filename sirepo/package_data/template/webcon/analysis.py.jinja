@@ -90,6 +90,7 @@ def compute_clusters(plot_data, cfg):
     group = None
     method = cfg['method']
     count = cfg['count']
+    assert method in ('agglomerative', 'dbscan', 'gmix', 'kmeans'), f'{method}: Invalid cluster method'
     if method == 'kmeans':
         k_means = sklearn.cluster.KMeans(init='k-means++', n_clusters=count, n_init=cfg['kmeansInit'], random_state=cfg['seed'])
         k_means.fit(x_scale)
