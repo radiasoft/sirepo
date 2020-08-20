@@ -1694,7 +1694,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
         globalMap[n] = {
             name: n,
             // root route has /*<path_info> so check for a non-param element
-            baseUri: u[0].match(/^\w/) ? u.shift() : '',
+            baseUri: u[0].match(/^[^\*\?<]/) ? u.shift() : '',
             params: u.map(
                 function (p) {
                     var m = p.match(/^([\?\*]?)<(\w+)>$/);
