@@ -11,9 +11,11 @@ from pykern.pkcollections import PKDict
 import email
 import smtplib
 
-DEV_SMTP_SERVER = 'dev'
+_DEV_SMTP_SERVER = 'dev'
 
 def send(recipient, subject, body):
+    if cfg.server == _DEV_SMTP_SERVER:
+        return False
     m = email.message.EmailMessage()
     m['From'] = f'{cfg.from_name} <{cfg.from_email}>'
     m['To'] = recipient
@@ -24,6 +26,7 @@ def send(recipient, subject, body):
         s.ehlo()
         s.login(cfg.user, cfg.password)
         s.send_message(m)
+    return True
 
 
 cfg = pkconfig.init(
@@ -31,6 +34,6 @@ cfg = pkconfig.init(
     from_name=('Sirepo Support', str, 'Name of email sender'),
     password=pkconfig.RequiredUnlessDev('n/a', str, 'SMTP password'),
     port=(587, int, 'SMTP Port'),
-    server=pkconfig.RequiredUnlessDev(DEV_SMTP_SERVER, str, 'SMTP TLS server'),
+    server=pkconfig.RequiredUnlessDev(_DEV_SMTP_SERVER, str, 'SMTP TLS server'),
     user=pkconfig.RequiredUnlessDev('n/a', str, 'SMTP user'),
 )

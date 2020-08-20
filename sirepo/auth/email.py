@@ -161,12 +161,9 @@ def _parse_email(data):
     return res
 
 def _send_login_email(user, uri):
-    if pkconfig.channel_in('dev') and smtp.cfg.server == smtp.DEV_SMTP_SERVER:
-        pkdlog('{}', uri)
-        return http_reply.gen_json_ok({'uri': uri})
     login_text = u'sign in to' if user.user_name else \
         u'confirm your email and finish creating'
-    smtp.send(
+    r = smtp.send(
         recipient=user.unverified_email,
         subject='Sign in to Sirepo',
         body=u'''
@@ -177,6 +174,9 @@ This link will expire in {} hours and can only be used once.
 {}
 '''.format(login_text, _EXPIRES_MINUTES / 60, uri)
     )
+    if not r:
+        pkdlog('{}', uri)
+        return http_reply.gen_json_ok({'uri': uri})
     return http_reply.gen_json_ok()
 
 
