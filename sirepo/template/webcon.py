@@ -366,9 +366,6 @@ def jupyter_notebook_for_model(data, model):
 
     nb.add_markdown_cell(['## Function definitions'])
     nb.add_code_cell([
-        template_common.render_jinja(SIM_TYPE, {}, name='common.py')
-    ])
-    nb.add_code_cell([
         template_common.render_jinja(SIM_TYPE, {}, name='analysis.py')
     ])
 
