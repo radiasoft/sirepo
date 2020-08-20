@@ -29,8 +29,8 @@ def send(recipient, subject, body):
 cfg = pkconfig.init(
     from_email=('support@sirepo.com', str, 'Email address of sender'),
     from_name=('Sirepo Support', str, 'Name of email sender'),
-    password=pkconfig.Required(str, 'SMTP password'),
+    password=pkconfig.RequiredUnlessDev('n/a', str, 'SMTP password'),
     port=(587, int, 'SMTP Port'),
-    server=pkconfig.Required(str, 'SMTP TLS server'),
-    user=pkconfig.Required(str, 'SMTP user'),
+    server=pkconfig.RequiredUnlessDev(DEV_SMTP_SERVER, str, 'SMTP TLS server'),
+    user=pkconfig.RequiredUnlessDev('n/a', str, 'SMTP user'),
 )
