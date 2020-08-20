@@ -13,6 +13,8 @@ from sirepo import http_reply
 from sirepo import http_request
 from sirepo import smtp
 
+cfg = None
+
 
 @api_perm.allow_visitor
 def api_comsol():
@@ -25,6 +27,7 @@ def api_comsol():
 def api_comsolRegister():
     import sirepo.util
 
+    req = http_request.parse_json()
     smtp.send(
         recipient=cfg.mail_recipient_email,
         subject='Sirepo / COMSOL Registration',
