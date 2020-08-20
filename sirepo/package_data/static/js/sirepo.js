@@ -1994,7 +1994,9 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
         if (! r) {
             throw new Error('Invalid routeName: ' + routeName);
         }
-        return paramName in r.params;
+        return r.params.some(function(p) {
+            return p.name == paramName;
+        });
     };
 
     self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {
