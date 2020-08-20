@@ -436,6 +436,91 @@ SIREPO.app.directive('columnSelector', function(appState, mlService, panelState)
     };
 });
 
+SIREPO.app.directive('heatmapModifications', function() {
+    return {
+        restrict: 'A',
+        scope: {},
+        controller: function($scope, plotting, layoutService) {
+            const CLASS_LABEL = 'sr-svg-label';
+            const CLASS_RESULT = 'sr-svg-result';
+            let analysisReport, data, svg;
+
+            function addTicks() {
+                data.labels.forEach((l, i) => {
+                    commonAttributes('.x', l, CLASS_LABEL)
+                        .attr('x', elementPosition(i, 'width'))
+                        .attr('y',  20);
+                });
+                [...data.labels].reverse().forEach((l, i) => {
+                    commonAttributes('.y', l, CLASS_LABEL)
+                        .attr('x', elementPosition(i, 'height'))
+                        .attr('y',  -10)
+                        .attr('transform', 'rotate(270)');
+                });
+            }
+
+            function addResultNumbers() {
+                for (let i = 0 ; i < data.z_matrix.length; i++) {
+                    for (let j = 0; j < data.z_matrix[i].length; j++) {
+                        commonAttributes('.x', data.z_matrix[i][j], CLASS_RESULT)
+                            .attr('x', elementPosition(i, 'width'))
+                            .attr('y', elementPosition(j, 'height'));
+
+                    }
+                }
+            }
+
+            function commonAttributes(element, label, cssClass) {
+                return svg.select(element)
+                    .append('text')
+                    .text(label)
+                    .attr('class', cssClass)
+                    .attr('text-anchor', 'middle');
+            }
+
+            function elementPosition(index, heightOrWidth) {
+                const d = analysisReport.canvasSize[heightOrWidth];
+                const l = data.labels.length
+                return (
+                        (heightOrWidth == 'height' ? -1 : 1) *
+                        ((d * index / l) + (d / (l * 2))
+                        )
+                    );
+            }
+
+            function removeUnusedElements() {
+                [
+                    '.mouse-rect',
+                    '.x .tick',
+                    '.y .tick',
+                    `.${CLASS_LABEL}`,
+                    `.${CLASS_RESULT}`,
+                ].forEach((e) => {
+                    svg.selectAll(e).remove();
+                });
+            }
+
+            $scope.$parent.$parent.$parent.$on('sr-plotLinked', function(event) {
+                analysisReport = event.targetScope;
+                svg = analysisReport.select("svg");
+                const oldResize = analysisReport.resize;
+                analysisReport.resize = function() {
+                    oldResize();
+                    removeUnusedElements();
+                    addTicks();
+                    addResultNumbers();
+                };
+
+                const oldLoad = analysisReport.load;
+                analysisReport.load = function(json) {
+                    data = json;
+                    oldLoad(data);
+                }
+
+            });
+        },
+    };
+});
 
 SIREPO.app.controller('PartitionController', function (appState, mlService, panelState, $scope) {
     var self = this;
