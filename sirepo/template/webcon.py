@@ -131,7 +131,7 @@ def get_analysis_report(run_dir, data):
             return _get_fit_report(report, plot_data, col_info)
         elif report.action == 'cluster':
             clusters = _compute_clusters(report, plot_data, col_info)
-    x_idx = _safe_index(col_info, report.x)
+    x_idx = _set_index_within_cols(col_info, report.x)
     x = (plot_data[:, x_idx] * col_info['scale'][x_idx]).tolist()
     plots = []
     for f in ('y1', 'y2', 'y3'):
@@ -140,7 +140,7 @@ def get_analysis_report(run_dir, data):
             continue
         if f not in report or report[f] == 'none':
             continue
-        y_idx = _safe_index(col_info, report[f])
+        y_idx = _set_index_within_cols(col_info, report[f])
         y = plot_data[:, y_idx]
         if len(y) <= 0 or math.isnan(y[0]):
             continue
@@ -233,8 +233,8 @@ def get_fft(run_dir, data):
 
     data.report = _SIM_DATA.webcon_analysis_report_name_for_fft(data)
     report, col_info, plot_data = _report_info(run_dir, data)
-    col1 = _safe_index(col_info, report.x)
-    col2 = _safe_index(col_info, report.y1)
+    col1 = _set_index_within_cols(col_info, report.x)
+    col2 = _set_index_within_cols(col_info, report.y1)
     t_vals = plot_data[:, col1] * col_info['scale'][col1]
     y_vals = plot_data[:, col2] * col_info['scale'][col2]
 
@@ -388,7 +388,7 @@ def jupyter_notebook_for_model(data, model):
     rpt_name = 'analysisReport'
     while rpt_name in data.models:
         rpt = data.models[rpt_name]
-        x_index = _safe_index(col_info, int(rpt.x))
+        x_index = _set_index_within_cols(col_info, int(rpt.x))
         x_label = col_info.names[x_index]
         y_info = []
         x_range = None
@@ -402,7 +402,7 @@ def jupyter_notebook_for_model(data, model):
                 i = i + 1
                 y_var = f'y{i}'
                 continue
-            y_index = _safe_index(col_info, int(rpt[y_var]))
+            y_index = _set_index_within_cols(col_info, int(rpt[y_var]))
             y_label = col_info.names[y_index]
             y_info.append(PKDict(
                 y_var=y_var,
@@ -516,11 +516,11 @@ def jupyter_notebook_for_model(data, model):
                     f"pyplot.xlabel('{x_label}')",
                     f"pyplot.ylabel('{y_label}')",
                     "pyplot.title('Clusters')",
-                    f"for idx in range(max({clusters_var}) + 1):",
-                    f"  cl_x = [x for i, x in enumerate({x_var}) if \
-                        {clusters_var}[i] == idx]",
-                    f"  cl_y = [y for i, y in enumerate({y_var}) if \
-                        {clusters_var}[i] == idx]",
+                    f'for idx in range(int(max({clusters_var})) + 1):',
+                    f'  cl_x = [x for i, x in enumerate({x_var}) if \
+                        {clusters_var}[i] == idx]',
+                    f'  cl_y = [y for i, y in enumerate({y_var}) if \
+                        {clusters_var}[i] == idx]',
                     "  pyplot.plot(cl_x, cl_y, '.')",
                     'pyplot.show()'
                 ])
@@ -977,8 +977,8 @@ def _generate_parameters_file(run_dir, data):
 
 
 def _get_fit_report(report, plot_data, col_info):
-    col1 = _safe_index(col_info, report.x)
-    col2 = _safe_index(col_info, report.y1)
+    col1 = _set_index_within_cols(col_info, report.x)
+    col2 = _set_index_within_cols(col_info, report.y1)
     x_vals = plot_data[:, col1] * col_info['scale'][col1]
     y_vals = plot_data[:, col2] * col_info['scale'][col2]
     fit_x, fit_y, fit_y_min, fit_y_max, param_vals, param_sigmas, latex_label = _fit_to_equation(
@@ -1057,7 +1057,7 @@ def _load_file_with_history(report, path, col_info):
     if 'history' in report:
         for action in report.history:
             if action.action == 'trim':
-                idx = _safe_index(col_info, action.trimField)
+                idx = _set_index_within_cols(col_info, action.trimField)
                 scale = col_info['scale'][idx]
                 res = res[(res[:,idx] * scale >= action.trimMin) & (res[:, idx] * scale <= action.trimMax)]
             elif action.action == 'cluster':
@@ -1159,7 +1159,7 @@ def _report_info(run_dir, data):
     return report, col_info, plot_data
 
 
-def _safe_index(col_info, idx):
+def _set_index_within_cols(col_info, idx):
     idx = int(idx or 0)
     if idx >= len(col_info['names']):
         idx = 1
