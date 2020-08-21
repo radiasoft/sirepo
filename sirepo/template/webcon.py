@@ -359,8 +359,8 @@ def get_settings_report(run_dir, data):
 
 def jupyter_notebook_for_model(data, model):
     # notebooks are JSON files
-    from sirepo.template.template_common import JupyterNotebook
-    nb = JupyterNotebook(SIM_TYPE, data)
+    import sirepo.jupyter
+    nb = sirepo.jupyter.Notebook(SIM_TYPE, data)
     nb.add_imports(
         PKDict(numpy=[], pykern=['pkcollections'], sirepo=['analysis'])
     )
