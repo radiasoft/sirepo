@@ -1,6 +1,23 @@
+# -*- coding: utf-8 -*-
+u"""Data analysus
+
+:copyright: Copyright (c) 2018-2020 RadiaSoft LLC.  All Rights Reserved.
+:license: http://www.apache.org/licenses/LICENSE-2.0.html
+"""
+from __future__ import absolute_import, division, print_function
+from pykern import pkcollections
+from pykern import pkconfig
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
+import numpy
+import scipy
+import sympy
+import sirepo.feature_config
+import sirepo.template
+
+
 def get_fft(t_vals, y_vals):
     import scipy.fftpack
-    import scipy.optimize
     import scipy.signal
 
     # fft takes the y data only and assumes it corresponds to equally-spaced x values.
@@ -40,11 +57,8 @@ def get_fft(t_vals, y_vals):
 
 
 def fit_to_equation(x, y, equation, var, params):
-    import scipy
-    import sympy
-
     sym_curve = sympy.sympify(equation)
-    sym_str = var + ' ' + ' '.join(params)
+    sym_str = f"{var} {' '.join(params)}"
 
     syms = sympy.symbols(sym_str)
     sym_curve_l = sympy.lambdify(syms, sym_curve, 'numpy')
@@ -74,39 +88,12 @@ def fit_to_equation(x, y, equation, var, params):
     y_fit_max_l = sympy.lambdify(var, y_fit_max, 'numpy')
 
     x_uniform = numpy.linspace(numpy.min(x), numpy.max(x), 100)
-    return x_uniform, y_fit_l(x_uniform), y_fit_min_l(x_uniform), y_fit_max_l(x_uniform), p_vals, sigma
+    return x_uniform, y_fit_l(x_uniform), y_fit_min_l(x_uniform), y_fit_max_l(x_uniform),\
+        p_vals, sigma
 
 
-def compute_clusters(plot_data, cfg):
-    import sklearn.cluster
-    import sklearn.metrics.pairwise
-    import sklearn.mixture
-    import sklearn.preprocessing
+def _init():
+    pass
 
-    min_max_scaler = sklearn.preprocessing.MinMaxScaler(
-        feature_range=[cfg['min'], cfg['max']]
-    )
-    x_scale = min_max_scaler.fit_transform(plot_data)
-    group = None
-    method = cfg['method']
-    count = cfg['count']
-    assert method in ('agglomerative', 'dbscan', 'gmix', 'kmeans'), f'{method}: Invalid cluster method'
-    if method == 'kmeans':
-        k_means = sklearn.cluster.KMeans(init='k-means++', n_clusters=count, n_init=cfg['kmeansInit'], random_state=cfg['seed'])
-        k_means.fit(x_scale)
-        k_means_cluster_centers = numpy.sort(k_means.cluster_centers_, axis=0)
-        k_means_labels = sklearn.metrics.pairwise.pairwise_distances_argmin(x_scale, k_means_cluster_centers)
-        group = k_means_labels
-    elif method == 'gmix':
-        gmm = sklearn.mixture.GaussianMixture(n_components=count, random_state=cfg['seed'])
-        gmm.fit(x_scale)
-        group = gmm.predict(x_scale)
-    elif method == 'dbscan':
-        db = sklearn.cluster.DBSCAN(eps=cfg['dbscanEps'], min_samples=3).fit(x_scale)
-        group = db.fit_predict(x_scale) + 1.
-        count = len(set(group))
-    elif method == 'agglomerative':
-        agg_clst = sklearn.cluster.AgglomerativeClustering(n_clusters=count, linkage='complete', affinity='euclidean')
-        agg_clst.fit(x_scale)
-        group = agg_clst.labels_
-    return group
+
+_init()

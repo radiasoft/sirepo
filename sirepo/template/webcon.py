@@ -16,6 +16,7 @@ import copy
 import numpy
 import os
 import re
+import sirepo.analysis
 import sirepo.sim_data
 import sirepo.util
 import six
@@ -361,13 +362,10 @@ def jupyter_notebook_for_model(data, model):
     from sirepo.template.template_common import JupyterNotebook
     nb = JupyterNotebook(SIM_TYPE, data)
     nb.add_imports(
-        PKDict(numpy=[], pykern=['pkcollections'])
+        PKDict(numpy=[], pykern=['pkcollections'], sirepo=['analysis'])
     )
 
-    nb.add_markdown_cell(['## Function definitions'])
-    nb.add_code_cell([
-        template_common.render_jinja(SIM_TYPE, {}, name='analysis.py')
-    ])
+    #nb.add_markdown_cell(['## Function definitions'])
 
     data_var = 'data'
     nb.add_markdown_cell(['## Exported Data'])
@@ -446,7 +444,7 @@ def jupyter_notebook_for_model(data, model):
                 w_var = 'w'
                 y_norm_var = 'y_norm'
                 nb.add_code_cell([
-                    f'{w_var}, {y_norm_var} = get_fft({x_var}, {y_var})'
+                    f'{w_var}, {y_norm_var} = sirepo.analysis.get_fft({x_var}, {y_var})'
                 ])
                 y_info = [PKDict(
                     y_var=y_norm_var,
@@ -471,7 +469,7 @@ def jupyter_notebook_for_model(data, model):
                 var = rpt.fitVariable
                 nb.add_code_cell([
                     f"{x_fit_var}, {y_fit_var}, {y_min_var}, {y_max_var}, {p_vals_var},\
-                    {sigma_var} = fit_to_equation(\
+                    {sigma_var} = sirepo.analysis.fit_to_equation(\
                         {x_var}[{x_range_inds_var}[0]:{x_range_inds_var}[1]],\
                         y1, '{eqn}', '{var}', '{prm}\
                     ')"
@@ -495,6 +493,9 @@ def jupyter_notebook_for_model(data, model):
                     title='Fit'
                 ))
             if rpt.action == 'cluster':
+                nb.add_imports(
+                    {'sirepo.analysis': ['ml']}
+                )
                 clusters_var = 'clusters'
                 cols = [idx for idx, f in enumerate(rpt.clusterFields) if f and \
                         idx < len(col_info.names)]
@@ -508,7 +509,7 @@ def jupyter_notebook_for_model(data, model):
                     kmeansInit=rpt.clusterKmeansInit
                 )
                 nb.add_code_cell([
-                    f'{clusters_var} = compute_clusters({data_var}[:, {cols}], {cfg})'
+                    f'{clusters_var} = sirepo.analysis.ml.compute_clusters({data_var}[:, {cols}], {cfg})'
                 ])
                 # can't add report because we don't know the result of compute_clusters
                 nb.add_code_cell([
