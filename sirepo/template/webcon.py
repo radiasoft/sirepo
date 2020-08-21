@@ -370,34 +370,14 @@ def jupyter_notebook_for_model(data, model):
     ])
 
     data_var = 'data'
-    import csv
-    with pkio.open_text(str(_SIM_DATA.lib_file_abspath(_analysis_data_path(data)))) as f:
-        reader = csv.reader(f)
-        i = 0
-        data_code = [f'{data_var} = numpy.array([']
-        for row in reader:
-            i = i + 1
-            # skip header row
-            if i == 1:
-                continue
-            data_code.append(f'    {[float(col) for col in row]},')
-    data_code.append('])')
     nb.add_markdown_cell(['## Exported Data'])
-    nb.add_code_cell(data_code, hide=True)
-
-    # Stick with uploaded data for now
-    #nb.add_markdown_cell([
-    #    '## Load data file',
-    #    'Upload new data here'
-    #])
-    #f_widget_var = nb.add_widget('FileUpload', PKDict(description='Archive Data File'))
-
-    #nb.add_markdown_cell(['## Set up data'])
-    #f_data_var = nb.add_load_csv(f_widget_var)
-    #nb.add_code_cell([
-    #    f'if {f_widget_var}.value:',
-    #    f'  {data_var} = {f_data_var}'
-    #])
+    nb.add_code_cell(
+        _data_cell(
+            str(_SIM_DATA.lib_file_abspath(_analysis_data_path(data))),
+            data_var
+        ),
+        hide=True
+    )
 
     nb.add_markdown_cell(['## Analysis Plot'])
     col_info = data.models.analysisData.columnInfo
@@ -769,7 +749,7 @@ def _column_info(path):
     if not header or len(header) < 2:
         return None
     header_row_count = 1
-    if re.search(r'^[\-|\+0-9eE\.]+$', header[0]):
+    if _is_data(header[0]):
         header = ['column {}'.format(idx + 1) for idx in range(len(header))]
         header_row_count = 0
     res = PKDict(
@@ -845,6 +825,24 @@ def _compute_clusters(report, plot_data, col_info):
         group=group.tolist(),
         count=count,
     )
+
+
+def _data_cell(path, var_name):
+    import csv
+    with pkio.open_text(path) as f:
+        reader = csv.reader(f)
+        d = [f'{var_name} = numpy.array([']
+        for r in reader:
+            if not _is_data(r):
+                continue
+            d.append(
+                f'    {[float(col) for col in r]},'
+            )
+    # for legal JSON
+    if len(d) > 1:
+        re.sub(r',$', '', d[-1])
+    d.append('])')
+    return d
 
 
 def _element_by_name(data, e_name):
@@ -1035,6 +1033,10 @@ def _hex_color_to_rgb(color):
     rgb = [float(int(color.lstrip('#')[i:i + 2], 16)) for i in [0, 2, 4]]
     rgb.append(1.0)
     return rgb
+
+
+def _is_data(row):
+    return re.search(r'^[\-|\+0-9eE\.]+$', row[0])
 
 
 # arrange historical data for ease of plotting
