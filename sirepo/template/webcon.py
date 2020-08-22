@@ -360,7 +360,7 @@ def get_settings_report(run_dir, data):
 def jupyter_notebook_for_model(data, model):
     # notebooks are JSON files
     import sirepo.jupyter
-    nb = sirepo.jupyter.Notebook(SIM_TYPE, data)
+    nb = sirepo.jupyter.Notebook(data)
     nb.add_imports(
         PKDict(numpy=[], pykern=['pkcollections'], sirepo=['analysis'])
     )
@@ -499,17 +499,21 @@ def jupyter_notebook_for_model(data, model):
                 clusters_var = 'clusters'
                 cols = [idx for idx, f in enumerate(rpt.clusterFields) if f and \
                         idx < len(col_info.names)]
-                cfg = PKDict(
-                    min=rpt.clusterScaleMin,
-                    max=rpt.clusterScaleMax,
+                params = PKDict(
+                    #min=rpt.clusterScaleMin,
+                    #max=rpt.clusterScaleMax,
                     count=rpt.clusterCount,
-                    method=rpt.clusterMethod,
+                    #method=rpt.clusterMethod,
                     seed=rpt.clusterRandomSeed,
                     dbscanEps=rpt.clusterDbscanEps,
                     kmeansInit=rpt.clusterKmeansInit
                 )
                 nb.add_code_cell([
-                    f'{clusters_var} = sirepo.analysis.ml.compute_clusters({data_var}[:, {cols}], {cfg})'
+                    f"{clusters_var} = sirepo.analysis.ml.compute_clusters(\
+                        {data_var}[:, {cols}], '{rpt.clusterMethod}',\
+                        {rpt.clusterScaleMin}, {rpt.clusterScaleMax},\
+                        {params}\
+                    )"
                 ])
                 # can't add report because we don't know the result of compute_clusters
                 nb.add_code_cell([

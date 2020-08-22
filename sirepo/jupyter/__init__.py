@@ -56,12 +56,12 @@ class Notebook():
     def _dict_to_kwargs_str(cls, d):
         d_str = ''
         for k in d:
-            v = f'\'{d[k]}\'' if isinstance(d[k], pkconfig.STRING_TYPES) \
+            v = f"'{d[k]}'" if isinstance(d[k], pkconfig.STRING_TYPES) \
                 else f'{d[k]}'
             d_str += f'{k}={v},'
         return d_str
 
-    def __init__(self, sim_type, data):
+    def __init__(self, data):
         self.data = data
         self.notebook = Notebook._base_dict()
         self.imports = PKDict()
@@ -70,7 +70,7 @@ class Notebook():
         # cell 0
         self.add_markdown_cell(
             [
-                '# {} - {}'.format(sim_type, data.models.simulation.name),
+                '# {} - {}'.format(data.simulationType, data.models.simulation.name),
             ]
         )
         # cell 1
