@@ -62,72 +62,32 @@ class Notebook():
         return d_str
 
     def __init__(self, data):
+        super().__init__()
+
         self.data = data
         self.notebook = Notebook._base_dict()
         self.imports = PKDict()
-        self.widgets = []
 
-        # cell 0
         self.add_markdown_cell(
             [
                 '# {} - {}'.format(data.simulationType, data.models.simulation.name),
             ]
         )
-        # cell 1
         self.add_markdown_cell(
             ['## Imports',]
         )
-        # cell 2
-        self.add_code_cell([])
-
-        super(object, self).__init__()
-
-    def add_cell(self, cell_type, source_strings, hide=False):
-        assert cell_type in self._CELL_TYPES, 'Invalid cell type {}'.format(cell_type)
-        cell = PKDict(
-            cell_type=cell_type,
-            metadata={},
-            source=[s + ('\n' if s[-1] != '\n' else '') for s in source_strings]
-        )
-        if hide:
-            cell.metadata['jupyter'] = {
-                'source_hidden': 'true'
-            }
-        self.notebook.cells.append(cell)
 
     def add_code_cell(self, source_strings, hide=False):
-        self.add_cell('code', source_strings, hide=hide)
-
-    # {<pkg>: [sub_pkg]}
-    # just merge?
-    def add_imports(self, pkg_dict):
-        for pkg in pkg_dict:
-            if pkg not in self.imports:
-                self.imports[pkg] = pkg_dict[pkg]
-        for s in pkg_dict[pkg]:
-            if s not in self.imports[pkg]:
-                self.imports[pkg].append(s)
-        self._update()
-
-    # meaningful to load arbitrary file name?
-    def add_load_csv(self, widget_var):
-        data_var = f'data_{widget_var}'
-        self.add_imports({'numpy': ['genfromtxt'], })
-        self.add_code_cell(
-            [
-                f'f = {widget_var}.value',
-                'f_name = next(iter(f.keys()))',
-                f'{data_var} = numpy.genfromtxt(f_name, delimiter=\',\')',
-            ]
-        )
-        return data_var
+        self._add_cell('code', source_strings, hide=hide)
 
     def add_markdown_cell(self, source_strings):
-        self.add_cell('markdown', source_strings)
+        self._add_cell('markdown', source_strings)
 
     # parameter plot
     def add_report(self, cfg):
-        self.add_imports({'matplotlib': ['pyplot']})
+        self.add_code_cell([
+            'from matplotlib import pyplot'
+        ])
         plot_strs = []
         legends = []
         for y_cfg in cfg.y_info:
@@ -146,33 +106,15 @@ class Notebook():
         code.append('pyplot.show()')
         self.add_code_cell(code)
 
-    def add_widget(self, widget_type, cfg):
-        self.add_imports({'ipywidgets': []})
-        n_widgets = len([w for w in self.widgets if w.type == widget_type])
-        widget_var = f'{widget_type.lower()}_{n_widgets}'
-        if not n_widgets:
-            self.widgets.append(PKDict(name=widget_var, type=widget_type))
-        widget_kwargs = Notebook._dict_to_kwargs_str(cfg)
-        self.add_code_cell(
-            [
-                f'{widget_var} = ipywidgets.{widget_type}({widget_kwargs})',
-                f'display({widget_var})'
-            ]
+    def _add_cell(self, cell_type, source_strings, hide=False):
+        cell = PKDict(
+            cell_type=cell_type,
+            metadata={},
+            source=[s + ('\n' if s[-1] != '\n' else '') for s in source_strings]
         )
-        return widget_var
-
-    def _update(self):
-        import_source = []
-        pkgs = sorted(self.imports.keys())
-        for p in [pkg for pkg in pkgs]:
-            import_source.append(
-                f'import {p}\n'
-            )
-        for s in [pkg for pkg in pkgs if len(self.imports[pkg])]:
-            for p in self.imports[s]:
-                import_source.append(
-                    f'from {s} import {p}\n'
-                )
-        self.notebook.cells[self._IMPORT_CELL_INDEX].source = import_source
-
+        if hide:
+            cell.metadata['jupyter'] = {
+                'source_hidden': 'true'
+            }
+        self.notebook.cells.append(cell)
 

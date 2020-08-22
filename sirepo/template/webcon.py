@@ -361,9 +361,13 @@ def jupyter_notebook_for_model(data, model):
     # notebooks are JSON files
     import sirepo.jupyter
     nb = sirepo.jupyter.Notebook(data)
-    nb.add_imports(
-        PKDict(numpy=[], pykern=['pkcollections'], sirepo=['analysis'])
-    )
+    nb.add_code_cell([
+        'import numpy',
+        'import pykern',
+        'import sirepo',
+        'from pykern import pkcollections',
+        'from sirepo import analysis',
+    ])
 
     #nb.add_markdown_cell(['## Function definitions'])
 
@@ -493,17 +497,14 @@ def jupyter_notebook_for_model(data, model):
                     title='Fit'
                 ))
             if rpt.action == 'cluster':
-                nb.add_imports(
-                    {'sirepo.analysis': ['ml']}
-                )
+                nb.add_code_cell([
+                    'from sirepo.analysis import ml',
+                ])
                 clusters_var = 'clusters'
                 cols = [idx for idx, f in enumerate(rpt.clusterFields) if f and \
                         idx < len(col_info.names)]
                 params = PKDict(
-                    #min=rpt.clusterScaleMin,
-                    #max=rpt.clusterScaleMax,
                     count=rpt.clusterCount,
-                    #method=rpt.clusterMethod,
                     seed=rpt.clusterRandomSeed,
                     dbscanEps=rpt.clusterDbscanEps,
                     kmeansInit=rpt.clusterKmeansInit
