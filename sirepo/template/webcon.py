@@ -532,7 +532,6 @@ def jupyter_notebook_for_model(data, model):
                 ])
         j = j + 1
         rpt_name = f'analysisReport{j}'
-    pkdp('NB {}', nb)
     return nb
 
 
