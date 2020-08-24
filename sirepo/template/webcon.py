@@ -532,7 +532,8 @@ def jupyter_notebook_for_model(data, model):
                 ])
         j = j + 1
         rpt_name = f'analysisReport{j}'
-    return nb.notebook
+    pkdp('NB {}', nb)
+    return nb
 
 
 def python_source_for_model(data, model):

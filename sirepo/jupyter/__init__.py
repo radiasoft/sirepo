@@ -5,32 +5,36 @@ u"""Jupyter utilities
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-import sirepo.feature_config
-import sirepo.template
 
-class Notebook():
+
+class Notebook(PKDict):
     """Make a notebook
     """
 
-    _CELL_TYPES = ('code', 'markdown')
-    _HEADER_CELL_INDEX = 0
-    _IMPORT_HEADER_CELL_INDEX = 1
-    _IMPORT_CELL_INDEX = 2
     _PYPLOT_STYLE_MAP = PKDict(
         line='-',
         scatter='.',
     )
 
     @classmethod
-    def _base_dict(cls):
-        return PKDict(
+    def _append_newline(cls, s):
+        return s + ('\n' if not s.endswith('\n') else '')
+
+    @classmethod
+    def _dict_to_kwargs_str(cls, d):
+        d_str = ''
+        for k in d:
+            v = f"'{d[k]}'" if isinstance(d[k], pkconfig.STRING_TYPES) \
+                else f'{d[k]}'
+            d_str += f'{k}={v},'
+        return d_str
+
+    def __init__(self, data):
+        super().__init__(
             cells=[],
-            nbformat=4,
-            nbformat_minor=4,
             metadata=PKDict(
                 kernelspec=PKDict(
                     display_name='Python 3',
@@ -49,24 +53,10 @@ class Notebook():
                     pygments_lexer='ipython3',
                     version='3.7.2'
                 )
-            )
+            ),
+            nbformat = 4,
+            nbformat_minor = 4,
         )
-
-    @classmethod
-    def _dict_to_kwargs_str(cls, d):
-        d_str = ''
-        for k in d:
-            v = f"'{d[k]}'" if isinstance(d[k], pkconfig.STRING_TYPES) \
-                else f'{d[k]}'
-            d_str += f'{k}={v},'
-        return d_str
-
-    def __init__(self, data):
-        super().__init__()
-
-        self.data = data
-        self.notebook = Notebook._base_dict()
-        self.imports = PKDict()
 
         self.add_markdown_cell(
             [
@@ -107,14 +97,15 @@ class Notebook():
         self.add_code_cell(code)
 
     def _add_cell(self, cell_type, source_strings, hide=False):
-        cell = PKDict(
+        c = PKDict(
             cell_type=cell_type,
-            metadata={},
-            source=[s + ('\n' if s[-1] != '\n' else '') for s in source_strings]
+            metadata=PKDict(
+                jupyter=PKDict(source_hidden=hide)
+            ),
+            source=[Notebook._append_newline(s) for s in source_strings]
         )
-        if hide:
-            cell.metadata['jupyter'] = {
-                'source_hidden': 'true'
-            }
-        self.notebook.cells.append(cell)
+        if cell_type == 'code':
+            c.execution_count = 0
+            c.outputs=[]
+        self.cells.append(c)
 
