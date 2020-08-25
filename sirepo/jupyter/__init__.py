@@ -17,12 +17,13 @@ class Notebook(PKDict):
     attributes. Coarsely, it comprises an array of cells containing either python
     code or markdown, along with various metadata
 
-    Methods
-    -------
-    add_code_cell(source_strings, hide=False)
-        adds a cell from an array of strings of python
-    add_markdown_cell(source_strings)
-        adds a cell from an array of strings of arbitrary markdown
+    Methods:
+        add_code_cell(source_strings, hide=False)
+            Adds a cell from an array of strings of python
+        add_markdown_cell(source_strings)
+            Adds a cell from an array of strings of arbitrary markdown
+        add_report(params)
+            Adds a pyplot graph of x values vs. one or more arrays of y values
     """
 
     _PYPLOT_STYLE_MAP = PKDict(
@@ -37,7 +38,7 @@ class Notebook(PKDict):
     @classmethod
     def _dict_to_kwargs_str(cls, d):
         d_str = ''
-        for k in d:
+        for k in d.keys():
             v = f"'{d[k]}'" if isinstance(d[k], pkconfig.STRING_TYPES) \
                 else f'{d[k]}'
             d_str += f'{k}={v},'
@@ -69,40 +70,70 @@ class Notebook(PKDict):
             nbformat_minor = 4,
         )
 
-        self.add_markdown_cell(
-            [
-                '# {} - {}'.format(data.simulationType, data.models.simulation.name),
-            ]
-        )
-        self.add_markdown_cell(
-            ['## Imports',]
-        )
+        self.add_markdown_cell([
+                f'# {data.simulationType} - {data.models.simulation.name}',
+            ])
+        # commenting this out for now - may want a monolothic imports cell later
+        #self.add_markdown_cell(['## Imports', ])
 
     def add_code_cell(self, source_strings, hide=False):
+        """Adds a cell containing arbitrary python
+
+        Args:
+            source_strings (list): strings to include. These get joined to a single
+                linesep-delimited string for clarity of presentation
+            hide (bool): hide the cell when the notebook loads.  Useful for long data
+                arrays etc.
+        """
         self._add_cell('code', source_strings, hide=hide)
 
     def add_markdown_cell(self, source_strings):
+        """Adds a cell containing arbitrary markdown
+
+         Args:
+             source_strings (list): strings to include. These get joined to a single
+                 linesep-delimited string for clarity of presentation
+         """
         self._add_cell('markdown', source_strings)
 
-    # parameter plot
-    def add_report(self, cfg):
+    def add_report(self, params):
+        """Adds a pyplot graph of x values vs. one or more arrays of y values
+
+         Args:
+             params (dict): plot parameters as follows:
+                title (str): plot title
+                x_var (array): x values to plot
+                x_label (str): label for the x axis
+                y_info (array): array of parameter dicts for the y axis:
+                    style (str): plot style (currently accepts 'line' or 'scatter',
+                        becoming '-' or '.' for pyplot
+                    x_points (array): x values to use instead of the global array
+                    y_var (array): y values to plot
+                    y_label (str): label for the y axis or legend
+         """
         self.add_code_cell([
             'from matplotlib import pyplot'
         ])
         plot_strs = []
         legends = []
-        for y_cfg in cfg.y_info:
-            x_pts_var = y_cfg.x_points if 'x_points' in y_cfg else cfg.x_var
-            plot_strs.append(f'pyplot.plot({x_pts_var}, {y_cfg.y_var}, \'{self._PYPLOT_STYLE_MAP[y_cfg.style]}\')')
-            legends.append(f'\'{y_cfg.y_label}\'')
+        for y_params in params.y_info:
+            x_pts_var = y_params.x_points if 'x_points' in y_params else params.x_var
+            plot_strs.append(
+                f"pyplot.plot(\
+                    {x_pts_var},\
+                    {y_params.y_var},\
+                    '{self._PYPLOT_STYLE_MAP[y_params.style]}'\
+                )"
+            )
+            legends.append(f'\'{y_params.y_label}\'')
         code = [
                 'pyplot.figure()',
-                f'pyplot.xlabel(\'{cfg.x_label}\')',
+                f"pyplot.xlabel('{params.x_label}')",
                 f'pyplot.legend({legends})',
-                f'pyplot.title(\'{cfg.title}\')',
+                f"pyplot.title('{params.title}')",
             ]
-        if len(cfg.y_info) == 1:
-            code.append(f'pyplot.ylabel(\'{cfg.y_info[0].y_label}\')')
+        if len(params.y_info) == 1:
+            code.append(f"pyplot.ylabel('{params.y_info[0].y_label}')")
         code.extend(plot_strs)
         code.append('pyplot.show()')
         self.add_code_cell(code)
