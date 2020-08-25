@@ -1471,10 +1471,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             };
 
             $scope.init = function() {
-                if (! appState.isLoaded()) {
-                    appState.whenModelsLoaded($scope, $scope.init);
-                    return;
-                }
                 $scope.objects = appState.models[$scope.modelName].objects;
                 $scope.shapes = $scope.source.getShapes();
 
@@ -1538,6 +1534,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             $scope.toggle3dPreview = function() {
                 $scope.is3dPreview = !$scope.is3dPreview;
             };
+
+            appState.whenModelsLoaded($scope, function (){
+                $scope.init();
+            });
 
         },
         link: function link(scope, element) {

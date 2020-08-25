@@ -1225,7 +1225,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                   '<th>Members</th>',
                   '<th></th>',
                 '</tr>',
-                '<tr data-ng-repeat="mId in field track by model.id + \'.\' + mId">',
+                '<tr data-ng-repeat="mId in field track by model.name + \'.\' + mId">',
                     '<td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ getObject(mId).name }}</span></div></td>',
                     '<td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar">  <button data-ng-click="removeObject(mId)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
