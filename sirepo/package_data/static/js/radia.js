@@ -422,9 +422,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     function addObject(o) {
-        o.id  = self.nextId();  // appState.models.geometry.objects.length;
+        o.id  = self.nextId();
         o.mapId = getMapId(o);
         appState.models.geometry.objects.push(o);
+        // for groups, set the group id of all members
+        o.members.forEach(function (oId) {
+            self.getObject(oId).groupId = o.id;
+        });
         addShapesForObject(o);
     }
 
@@ -1221,7 +1225,7 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                   '<th>Members</th>',
                   '<th></th>',
                 '</tr>',
-                '<tr data-ng-repeat="mId in field">',
+                '<tr data-ng-repeat="mId in field track by model.id + \'.\' + mId">',
                     '<td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ getObject(mId).name }}</span></div></td>',
                     '<td style="text-align: right">&nbsp;<div class="sr-button-bar-parent"><div class="sr-button-bar">  <button data-ng-click="removeObject(mId)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
