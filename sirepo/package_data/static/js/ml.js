@@ -480,7 +480,7 @@ SIREPO.app.directive('heatmapModifications', function() {
 
             function elementPosition(index, heightOrWidth) {
                 const d = analysisReport.canvasSize[heightOrWidth];
-                const l = data.labels.length
+                const l = data.labels.length;
                 return (
                         (heightOrWidth == 'height' ? -1 : 1) *
                         ((d * index / l) + (d / (l * 2))
@@ -515,8 +515,7 @@ SIREPO.app.directive('heatmapModifications', function() {
                 analysisReport.load = function(json) {
                     data = json;
                     oldLoad(data);
-                }
-
+                };
             });
         },
     };
