@@ -51,8 +51,7 @@ build_as_run_user() {
     pip install .
     PYKERN_PKCLI_TEST_MAX_FAILURES=1 \
         PYKERN_PKDEBUG_WANT_PID_TIME=1 \
-        SIREPO_PYTEST_SKIP=job_test:animation_test:report_test \
-        sirepo_test_no_karma=0 \
+        SIREPO_PYTEST_SKIP=animation_test:report_test \
         bash test.sh
     cd ..
 }
