@@ -16,10 +16,12 @@ build_vars() {
 
 build_as_root() {
     umask 022
-    dnf config-manager \
+    build_yum config-manager \
         --add-repo \
         https://download.docker.com/linux/fedora/docker-ce.repo
-    build_yum install nodejs docker-ce
+    build_yum install fedora-workstation-repositories
+    build_yum config-manager --set-enabled google-chrome
+    build_yum install google-chrome-stable docker-ce
     mkdir "$sirepo_db_dir"
     chown "$build_run_user:" "$sirepo_db_dir"
 }
