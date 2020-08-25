@@ -11,7 +11,18 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 
 
 class Notebook(PKDict):
-    """Make a notebook
+    """A dictionary and methods for building a valid Jupyter notebook
+
+    A jupyter notebook is just a JSON document with a specific structure and
+    attributes. Coarsely, it comprises an array of cells containing either python
+    code or markdown, along with various metadata
+
+    Methods
+    -------
+    add_code_cell(source_strings, hide=False)
+        adds a cell from an array of strings of python
+    add_markdown_cell(source_strings)
+        adds a cell from an array of strings of arbitrary markdown
     """
 
     _PYPLOT_STYLE_MAP = PKDict(
