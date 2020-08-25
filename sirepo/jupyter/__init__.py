@@ -35,15 +35,6 @@ class Notebook(PKDict):
     def _append_newline(cls, s):
         return s + ('\n' if not s.endswith('\n') else '')
 
-    @classmethod
-    def _dict_to_kwargs_str(cls, d):
-        d_str = ''
-        for k in d.keys():
-            v = f"'{d[k]}'" if isinstance(d[k], pkconfig.STRING_TYPES) \
-                else f'{d[k]}'
-            d_str += f'{k}={v},'
-        return d_str
-
     def __init__(self, data):
         super().__init__(
             cells=[],
