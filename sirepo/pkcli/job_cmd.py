@@ -67,18 +67,17 @@ class _AbruptSocketCloseError(Exception):
 
 
 def _background_percent_complete(msg, template, is_running):
-    # some templates return a dict so wrap in PKDict
-    r = PKDict(template.background_percent_complete(
+    return template.background_percent_complete(
         msg.data.report,
         msg.runDir,
         is_running,
-    ))
+    ).pksetdefault(
 #TODO(robnagler) this is incorrect, because we want to see file updates
 #   not just our polling frequency
-    r.pksetdefault(lastUpdateTime=lambda: _mtime_or_now(msg.runDir))
-    r.pksetdefault(frameCount=0)
-    r.pksetdefault(percentComplete=0.0)
-    return r
+        lastUpdateTime=lambda: _mtime_or_now(msg.runDir),
+        frameCount=0,
+        percentComplete=0.0,
+    )
 
 
 def _do_cancel(msg, template):

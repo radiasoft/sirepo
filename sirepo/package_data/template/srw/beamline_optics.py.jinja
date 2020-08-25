@@ -87,7 +87,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             )
             el.append(crystal)
             pp.append(v.op_{{ item.name }}_pp)
-	    {{ height_profile(item) }}
+            {{ height_profile(item) }}
 {% elif item.type == 'drift' %}
             el.append(srwlib.SRWLOptD(
                 _L={{ field(item, 'length') }},
@@ -150,7 +150,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             )
             el.append(opEl)
             pp.append(v.op_{{ item.name }}_pp)
-    	    {{ height_profile(item) }}
+            {{ height_profile(item) }}
 {% elif item.type == 'lens' %}
             el.append(srwlib.SRWLOptL(
                 _Fx={{ field(item, 'horizontalFocalLength') }},

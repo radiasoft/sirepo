@@ -1,0 +1,50 @@
+
+from pykern import pkjson
+from pykern.pkcollections import PKDict
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.multiclass import check_classification_targets
+from sklearn.neighbors import KNeighborsClassifier
+
+e = False
+try:
+    check_classification_targets(train[:, out_idx])
+except ValueError:
+    e = True
+
+if e:
+    raise AssertionError(
+    'The data you supplied is continuous so it can not be used for'
+    ' classification. Please change the Application Mode to "Regression" or'
+    ' supply non-regression type data (ex binary) and re-run the simulation.'
+    )
+
+knn_error = []
+
+# calculate error for K values between kmin and kmax
+for i in range({{ knnClassification_kmin }}, {{ knnClassification_kmax }}):
+    knn = KNeighborsClassifier(n_neighbors=i)
+    knn.fit(train[:, in_idx], np.ravel(train[:, out_idx]))
+    pred_i_knn = knn.predict(test[:, in_idx])
+    knn_error.append([i, np.mean(pred_i_knn != test[:, out_idx])])
+
+
+k_best = {{ knnClassification_kmin }} + np.argmin(knn_error)
+# repeat KNN prediction with best K value
+knn_best = KNeighborsClassifier(n_neighbors=k_best)
+knn_best.fit(train[:, in_idx], np.ravel(train[:, out_idx]))
+y_pred_knn = knn_best.predict(test[:, in_idx])
+pkjson.dump_pretty(
+    classification_report(test[:, out_idx], y_pred_knn, output_dict=True),
+    filename='{{ knnClassificationFile }}',
+)
+np.save('{{ knnErrorFile }}', knn_error)
+l = np.unique(y_pred_knn).tolist()
+pkjson.dump_pretty(
+    PKDict(
+    k=k_best,
+    labels=l,
+    matrix=confusion_matrix(test[:, out_idx], y_pred_knn, labels=l).tolist(),
+    ),
+    filename='{{ knnConfusionFile }}',
+)

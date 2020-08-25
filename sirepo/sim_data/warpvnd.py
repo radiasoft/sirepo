@@ -44,11 +44,11 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        dm.pksetdefault(optimizer=PKDict())
-        dm.optimizer.setdefault(
-            constraints=[],
-            enabledFields=PKDict(),
-            fields=[],
+        dm.pksetdefault(optimizer=PKDict)
+        dm.optimizer.pksetdefault(
+            constraints=list,
+            enabledFields=PKDict,
+            fields=list,
         )
         cls._init_models(
             dm,
@@ -82,7 +82,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 continue
 #TODO(robnagler) why is this not a bool?
             x = c.setdefault('isConductor', '1' if c.voltage > 0 else '0')
-            c.setdefault(
+            c.pksetdefault(
                 color=s.get('zeroVoltsColor' if x == '0' else 'nonZeroVoltsColor'),
             )
 #TODO(robnagler) how does this work? bc names are on schema, not conductor

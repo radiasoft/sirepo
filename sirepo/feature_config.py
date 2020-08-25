@@ -8,8 +8,8 @@ from __future__ import absolute_import, division, print_function
 # defer all imports so *_CODES is available to testing functions
 
 
-#: Codes on beta and prod
-_NON_ALPHA_FOSS_CODES = frozenset((
+#: Codes on prod
+_PROD_FOSS_CODES = frozenset((
     'elegant',
     'jspec',
     'madx',
@@ -23,8 +23,8 @@ _NON_ALPHA_FOSS_CODES = frozenset((
     'zgoubi',
 ))
 
-#: Codes on dev and alpha
-_ALPHA_FOSS_CODES = frozenset((
+#: Codes on dev, alpha, and beta
+_NON_PROD_FOSS_CODES = frozenset((
     'irad',
     'ml',
     'myapp',
@@ -34,7 +34,7 @@ _ALPHA_FOSS_CODES = frozenset((
 ))
 
 #: All possible open source codes
-_FOSS_CODES = _NON_ALPHA_FOSS_CODES.union(_ALPHA_FOSS_CODES)
+_FOSS_CODES = _PROD_FOSS_CODES.union(_NON_PROD_FOSS_CODES)
 
 
 #: codes for which we require dynamically loaded binaries
@@ -70,10 +70,8 @@ def for_sim_type(sim_type):
     import pykern.pkcollections
 
     c = cfg()
-    if sim_type not in c:
-        return pykern.pkcollections.PKDict()
     return pykern.pkcollections.PKDict(
-        pykern.pkcollections.map_items(c[sim_type]),
+        c[sim_type] if sim_type in c else {}
     )
 
 
@@ -111,7 +109,7 @@ def _init():
     )
     s = set(
         _cfg.sim_types or (
-            _FOSS_CODES if pkconfig.channel_in_internal_test() else _NON_ALPHA_FOSS_CODES
+            _PROD_FOSS_CODES if pkconfig.channel_in('prod') else _FOSS_CODES
         )
     )
     s.update(_cfg.proprietary_sim_types)

@@ -81,6 +81,11 @@
         "shortName": "Sirepo",
         "longName": "Sirepo"
     },
+    "rootRedirectUri": {
+        "fete": "/warpvnd",
+        "plans": "/en/plans.html",
+        "warp": "/warppba"
+    },
     "route": {
         "adjustTime": "/adjust-time/?<days>",
         "admJobs": "/adm-jobs",
@@ -119,7 +124,7 @@
         "ownJobs": "/own-jobs",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
         "robotsTxt": "/robots.txt",
-        "root": "/<simulation_type>",
+        "root": "/*<path_info>",
         "runCancel": "/run-cancel",
         "runSimulation": "/run-simulation",
         "runStatus": "/run-status",

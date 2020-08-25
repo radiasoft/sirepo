@@ -143,12 +143,12 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls.update_model_defaults(dm.multiElectronAnimation, 'multiElectronAnimation')
         e = dm.electronBeam
         if not has_electron_beam_position:
-            dm.electronBeamPosition.update(dict(
+            dm.electronBeamPosition.update(
                 horizontalPosition=e.horizontalPosition,
                 verticalPosition=e.verticalPosition,
                 driftCalculationMethod=e.get('driftCalculationMethod', 'auto'),
                 drift=e.get('drift', 0),
-            ))
+            )
         if 'horizontalPosition' in e:
             for f in 'horizontalPosition', 'verticalPosition', 'driftCalculationMethod', 'drift':
                 if f in e:

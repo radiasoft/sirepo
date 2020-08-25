@@ -104,7 +104,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
             appState.models[t].ctrZ = (self.objBounds[5] + self.objBounds[4]) / 2.0;
         }
     };
-    
+
     self.getObject = function(id) {
         var objs = appState.models.geometry.objects || [];
         for (var i in objs) {
@@ -717,7 +717,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             appState.models.geometry.objects = [];
         }
         loadShapes();
-        
+
         $scope.$on('modelChanged', function(e, modelName) {
             if (watchedModels.indexOf(modelName) < 0) {
                 return;
@@ -1306,7 +1306,7 @@ SIREPO.app.directive('numberList', function() {
                 $scope.field = $scope.values.join(', ');
             };
             $scope.parseValues = function() {
-                if ($scope.field) {
+                if ($scope.field && ! $scope.values) {
                     $scope.values = $scope.field.split(/\s*,\s*/);
                 }
                 return $scope.values;
@@ -1366,7 +1366,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                     section.name === 'Transforms (clone)' :
                     section.name === 'Transforms';
             });
-            
+
             $scope.toolbarSections.forEach(function (s) {
                 s.contents.forEach(function (c) {
                     $scope.toolbarItems.push(c);

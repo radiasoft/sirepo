@@ -10,7 +10,8 @@
     "enum": {
         "AppMode": [
             ["analysis", "Data Analysis"],
-            ["regression", "Classification and Regression"]
+            ["classification", "Classification"],
+            ["regression", "Regression"]
         ],
         "InputOutputClass": [
             ["input", "Input"],
@@ -135,8 +136,11 @@
         }
     },
     "frameIdFields": {
-        "animation": ["columnNumber"],
-        "epochAnimation": []
+        "animation": ["columnNumber", "appMode"],
+        "epochAnimation": [],
+        "knnClassificationMetricsAnimation": [],
+        "knnConfusionMatrixAnimation": [],
+        "knnErrorRateAnimation": []
     },
     "model": {
         "columnInfo": {},
@@ -155,6 +159,13 @@
             "histogramBins": ["Histogram Bins", "Integer", 30],
             "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
+        "knnClassification": {
+            "kmax": ["KMax", "Integer", 5],
+            "kmin": ["KMin", "Integer", 1]
+        },
+        "knnClassificationMetricsAnimation": {},
+        "knnConfusionMatrixAnimation": {},
+        "knnErrorRateAnimation": {},
         "mlModel": {
             "mlModule": ["Model Type", "MLModule", "neuralnet"]
         },
@@ -196,6 +207,11 @@
         "completionState": ": {frameCount} epochs"
     },
     "view": {
+        "columnChooser": {
+            "title": "Columns",
+            "basic": [],
+            "advanced": []
+        },
         "dataFile": {
             "title": "Data Source",
             "basic": [
@@ -204,11 +220,6 @@
                 "inputsScaler",
                 "outputsScaler"
             ],
-            "advanced": []
-        },
-        "columnChooser": {
-            "title": "Columns",
-            "basic": [],
             "advanced": []
         },
         "epochAnimation": {
@@ -223,6 +234,19 @@
         },
         "fitAnimation": {
             "title": "Column",
+            "advanced": []
+        },
+        "knnClassificationMetricsAnimation": {
+            "title": "KNN Classification Metrics",
+            "basic": [],
+            "advanced": []
+        },
+        "knnConfusionMatrixAnimation": {
+            "title": "KNN Confusion Matrix",
+            "advanced": []
+        },
+        "knnErrorRateAnimation": {
+            "title": "KNN Error Rate",
             "advanced": []
         },
         "mlModel": {
@@ -265,6 +289,14 @@
         },
         "partitionSelectionReport": {
             "title": "Partition Selection",
+            "advanced": []
+        },
+        "simulationSettings": {
+            "title": "Simulation Settings",
+            "basic": [
+                "knnClassification.kmax",
+                "knnClassification.kmin"
+            ],
             "advanced": []
         },
         "simulationStatus": {

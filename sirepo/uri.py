@@ -5,8 +5,10 @@ u"""uri formatting
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkdebug import pkdp
 import pykern.pkinspect
 import re
+import sirepo.uri_router
 
 try:
     # py3
@@ -18,6 +20,12 @@ except ImportError:
 
 #: allows us to search more easily for use of http root
 ROOT = '/'
+
+#: route parsing
+PARAM_RE = r'([\?\*]?)<{}>'
+
+#: optional parameter that consumes rest of parameters
+PATH_INFO_CHAR = '*'
 
 
 def api(*args, **kwargs):
@@ -102,7 +110,7 @@ def server_route(route_or_uri, params, query):
     route = simulation_db.SCHEMA_COMMON['route'][route_or_uri]
     if params:
         for k, v in params.items():
-            k2 = r'\??<' + k + '>'
+            k2 = PARAM_RE.format(k)
             n = re.sub(k2, _to_uri(str(v)), route)
             assert n != route, \
                 '{}: not found in "{}"'.format(k2, route)
@@ -112,6 +120,10 @@ def server_route(route_or_uri, params, query):
         '{}: missing params'.format(route)
     route += _query(query)
     return route
+
+
+def unchecked_root_redirect(path):
+    return simulation_db.SCHEMA_COMMON.rootRedirectUri.get(path)
 
 
 def _query(query):
