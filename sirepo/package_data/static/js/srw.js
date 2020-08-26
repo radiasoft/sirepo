@@ -2698,10 +2698,8 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                 else if (d > 0 && d < MIN_CONDENSED_LENGTH) {
                     scale = MIN_CONDENSED_LENGTH / d;
                 }
-                if (scale) {
-                    for (var i = 0; i <= 2; i++) {
-                        point[i] = prev.trimmed[i] + (point[i] - prev.point[i]) * scale;
-                    }
+                for (var i = 0; i <= 2; i++) {
+                    point[i] = prev.trimmed[i] + (point[i] - prev.point[i]) * scale;
                 }
             }
 
