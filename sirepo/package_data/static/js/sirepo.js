@@ -576,6 +576,14 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return self.models.simulation && self.models.simulation.simulationId ? true: false;
     };
 
+    // angular-independent isObject()
+    self.isObject = function(x) {
+        if (x === null) {
+            return false;
+        }
+        return ( (typeof x === 'function') || (typeof x === 'object') );
+    };
+
     self.isReportModelName = function(name) {
         //TODO(pjm): need better name for this, a model which doesn't affect other models
         return  name.indexOf('Report') >= 0 || self.isAnimationModelName(name) || name.indexOf('Status') >= 0;
@@ -740,13 +748,16 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
 
     self.setModelDefaults = function(model, modelName) {
         // set model defaults from schema
-        var schema = SIREPO.APP_SCHEMA.model[modelName];
-        var fields = Object.keys(schema);
-        for (var i = 0; i < fields.length; i++) {
-            var f = fields[i];
+        const schema = SIREPO.APP_SCHEMA.model[modelName];
+        const fields = Object.keys(schema);
+        for (let i = 0; i < fields.length; i++) {
+            let f = fields[i];
+            let defaultVal = schema[f][2];
             if (! model[f]) {
-                if (schema[f][2] !== undefined) {
-                    model[f] = schema[f][2];
+                if (defaultVal !== undefined) {
+                    // for cases where the default value is an object, we must
+                    // clone it or the schema itself will change as the model changes
+                    model[f] = self.isObject(defaultVal) ? self.clone(defaultVal) : defaultVal;
                 }
             }
         }
