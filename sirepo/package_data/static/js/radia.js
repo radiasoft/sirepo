@@ -274,7 +274,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.deleteObject = function(o) {
-        var oIdx = appState.models.geometry.objects.indexOf(o);
+        const oIdx = appState.models.geometry.objects.indexOf(o);
         if (oIdx < 0) {
             return;
         }
@@ -546,9 +546,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     function deleteShapesForObject(o) {
         let shape = self.shapeForObject(o);
         for (let s of getVirtualShapes(shape)) {
-            self.shapes.splice(self.shapes.indexOf(s), 1);
+            self.shapes.splice(indexOfShape(s), 1);
         }
-        self.shapes.splice(self.shapes.indexOf(shape), 1);
+        self.shapes.splice(indexOfShape(shape), 1);
     }
 
     // shape - in group; linkedShape: group
@@ -603,6 +603,16 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return self.shapes.filter(function (s) {
             return Math.floor(s.id / 65536) === (baseShape.id + 1);
         });
+    }
+
+    // indexOf does not work right...explicitly match by id here
+    function indexOfShape(shape) {
+        for (let i = 0; i < self.shapes.length; ++i) {
+            if (self.shapes[i].id === shape.id) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     function loadShapes() {
