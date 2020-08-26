@@ -1233,7 +1233,6 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
                 }
             });
             $(element).on('hidden.bs.modal', function(o) {
-                srdbg('hide', o);
                 // ensure that a dismissed modal doesn't keep changes
                 // ok processing will have already saved data before the modal is hidden
                 var viewInfo = appState.viewInfo(scope.viewName);
