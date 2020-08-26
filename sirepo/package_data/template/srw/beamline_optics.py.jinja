@@ -295,7 +295,17 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             pp.append(v.op_{{ item.name }}_pp)
             {{ height_profile(item) }}
 {% elif item.type == 'watch' %}
+            {% if report == 'beamline3DReport' %}
+            {# for beamline3DReport, render watches as wide apertures so they are included in the output #}
+            el.append(srwlib.SRWLOptA(
+                _shape='r',
+                _ap_or_ob='a',
+                _Dx=1e6,
+                _Dy=1e6,
+            ))
+            {% else %}
             pass
+            {% endif %}
 {% elif item.type == 'zonePlate' %}
             el.append(srwlib.SRWLOptZP(
                 _nZones={{ field(item, 'numberOfZones') }},
