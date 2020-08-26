@@ -278,11 +278,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         if (oIdx < 0) {
             return;
         }
+        deleteShapesForObject(o);
         for (var i in (o.members || [])) {
             self.getObject(o.members[i]).groupId = '';
         }
         appState.models.geometry.objects.splice(oIdx, 1);
-        self.shapes.splice(oIdx, 1);
         appState.saveChanges('geometry');
     };
 
@@ -330,6 +330,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.isEditable = function() {
         return true;
+    };
+
+    self.nextId = function() {
+        return appState.maxId(appState.models.geometry.objects, 'id') + 1;
     };
 
     self.objectBounds = function() {
@@ -529,39 +533,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }
     }
 
-    self.nextId = function() {
-        return appState.maxId(appState.models.geometry.objects, 'id') + 1;
-    };
-
-    function txShape(shape) {
-        var sh = vtkPlotting.plotShape(
-            virtualShapeId(shape),
-            shape.name,
-            SIREPO.ZERO_ARR,
-            shape.getSizeCoords(),
-            shape.color, 0.1, shape.fillStyle, shape.strokeStyle, shape.dashes,
-            shape.layoutShape
-        );
-        sh.draggable = false;
-        return sh;
-    }
-
-    function virtualShapeId(shape) {
-        return 65536 * (shape.id + 1) + self.shapes.length;
-    }
-
-    // used to the client-created object to a server-created Radia id
-    function getMapId(o) {
-        return o.name + '.' + o.id;
-    }
-
-    function loadShapes() {
-        self.shapes = [];
-        appState.models.geometry.objects.forEach(function (o) {
-            addShapesForObject(o);
-        });
-    }
-
     function composeFn(fnArr) {
         return function(shape1, shape2) {
             var prevShape = shape1;
@@ -570,6 +541,14 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             });
             return shape2;
         };
+    }
+
+    function deleteShapesForObject(o) {
+        let shape = self.shapeForObject(o);
+        for (let s of getVirtualShapes(shape)) {
+            self.shapes.splice(self.shapes.indexOf(s), 1);
+        }
+        self.shapes.splice(self.shapes.indexOf(shape), 1);
     }
 
     // shape - in group; linkedShape: group
@@ -598,6 +577,42 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return groupShape;
     }
 
+    // used to the client-created object to a server-created Radia id
+    function getMapId(o) {
+        return o.name + '.' + o.id;
+    }
+
+    function groupBounds(objs) {
+        var b = [
+            [Number.MAX_VALUE, -Number.MAX_VALUE],
+            [Number.MAX_VALUE, -Number.MAX_VALUE],
+            [Number.MAX_VALUE, -Number.MAX_VALUE]
+        ];
+        b.forEach(function (c, i) {
+            (objs || appState.models.geometry.objects || []).forEach(function (o) {
+                var ctr =  radiaService.stringToFloatArray(o.center || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
+                var sz =  radiaService.stringToFloatArray(o.size || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
+                c[0] = Math.min(c[0], ctr[i] - sz[i] / 2);
+                c[1] = Math.max(c[1], ctr[i] + sz[i] / 2);
+            });
+        });
+        return b;
+    }
+
+    function getVirtualShapes(baseShape) {
+        return self.shapes.filter(function (s) {
+            return Math.floor(s.id / 65536) === (baseShape.id + 1);
+        });
+    }
+
+    function loadShapes() {
+        self.shapes = [];
+        appState.models.geometry.objects.forEach(function (o) {
+            addShapesForObject(o);
+        });
+        srdbg('loaded sghapes', self.shapes);
+    }
+
     function mirrorFn(xform) {
         return function (shape1, shape2) {
             var pl = geometry.plane(
@@ -611,6 +626,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             );
             return shape2;
         };
+    }
+
+    function newObjectName(o) {
+        return appState.uniqueName(appState.models.geometry.objects, 'name', o.name + ' {}');
     }
 
     function offsetFn(xform, i) {
@@ -641,27 +660,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         };
     }
 
-    function newObjectName(o) {
-        return appState.uniqueName(appState.models.geometry.objects, 'name', o.name + ' {}');
-    }
-
-    function groupBounds(objs) {
-        var b = [
-            [Number.MAX_VALUE, -Number.MAX_VALUE],
-            [Number.MAX_VALUE, -Number.MAX_VALUE],
-            [Number.MAX_VALUE, -Number.MAX_VALUE]
-        ];
-        b.forEach(function (c, i) {
-            (objs || appState.models.geometry.objects || []).forEach(function (o) {
-                var ctr =  radiaService.stringToFloatArray(o.center || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
-                var sz =  radiaService.stringToFloatArray(o.size || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
-                c[0] = Math.min(c[0], ctr[i] - sz[i] / 2);
-                c[1] = Math.max(c[1], ctr[i] + sz[i] / 2);
-            });
-        });
-        return b;
-    }
-
     function shapesBounds(shapes) {
         var b = {
             x: [Number.MAX_VALUE, -Number.MAX_VALUE],
@@ -677,6 +675,19 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
         });
         return b;
+    }
+
+    function txShape(shape) {
+        var sh = vtkPlotting.plotShape(
+            virtualShapeId(shape),
+            shape.name,
+            SIREPO.ZERO_ARR,
+            shape.getSizeCoords(),
+            shape.color, 0.1, shape.fillStyle, shape.strokeStyle, shape.dashes,
+            shape.layoutShape
+        );
+        sh.draggable = false;
+        return sh;
     }
 
     function updateObjectEditor() {
@@ -710,6 +721,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function updateToolEditor(toolItem) {
+    }
+
+    function virtualShapeId(shape) {
+        //return 65536 * (shape.id + 1) + self.shapes.length;
+        return 65536 * (shape.id + 1) + getVirtualShapes(shape).length;
     }
 
     appState.whenModelsLoaded($scope, function() {
