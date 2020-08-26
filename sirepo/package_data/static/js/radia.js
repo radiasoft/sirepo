@@ -620,7 +620,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         appState.models.geometry.objects.forEach(function (o) {
             addShapesForObject(o);
         });
-        srdbg('loaded sghapes', self.shapes);
     }
 
     function mirrorFn(xform) {
@@ -1205,7 +1204,6 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
             };
 
             $scope.copyPath = function(path) {
-                //srdbg('CPY', path);
             };
 
            $scope.deletePath = function(path, index) {
@@ -1324,7 +1322,6 @@ SIREPO.app.directive('numberList', function() {
             '</div>'
         ].join(''),
         controller: function($scope) {
-            //srdbg('num list', $scope);
             // NOTE: does not appear to like 'model.field' format
             $scope.values = null;
             $scope.numberType = $scope.type.toLowerCase();
