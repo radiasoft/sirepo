@@ -1077,6 +1077,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     return document.createElementNS('http://www.w3.org/2000/svg', d.layoutShape);
                 })
                     .on('dblclick', editObject)
+                    .on('dblclick.zoom', null)
                     .on('click', function (d, e) {
                         selectObject(d, e);
                     });
@@ -1471,7 +1472,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             };
 
             $scope.init = function() {
-                $scope.objects = appState.models[$scope.modelName].objects;
+                $scope.objects = (appState.models[$scope.modelName] || {}).objects;
                 $scope.shapes = $scope.source.getShapes();
 
                 $scope.$on($scope.modelName + '.changed', function(e, name) {
