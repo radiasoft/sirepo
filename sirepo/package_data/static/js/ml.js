@@ -5,6 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.SINGLE_FRAME_ANIMATION = ['epochAnimation'];
+    SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
     SIREPO.appReportTypes = [
         '<div data-ng-switch-when="classificationMetrics" data-table-panel="" data-model-name="{{ modelKey }}" class="sr-plot"></div>',
         '<div data-ng-switch-when="confusionMatrix" data-table-panel="" data-model-name="{{ modelKey }}" class="sr-plot"></div>',
