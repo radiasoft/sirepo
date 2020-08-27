@@ -1038,10 +1038,11 @@ def _delete_user_models(electron_beam, tabulated_undulator):
 
 
 def _extract_beamline_orientation(filename):
+    cols = np.array(uti_io.read_ascii_data_cols(filename, '\t', _i_col_start=1, _n_line_skip=1))
     return {
         #TODO(pjm): x_range is needed for sirepo-plotting.js, need a better valid-data check
         'x_range': [],
-        'cols': uti_io.read_ascii_data_cols(filename, '\t', _i_col_start=1, _n_line_skip=1),
+        'cols': list(reversed(np.rot90(cols).tolist())),
     }
 
 
@@ -1219,6 +1220,7 @@ def _generate_beamline_optics(report, data, last_id):
             break
         prev = item
     args = PKDict(
+        report=report,
         items=items,
         names=names,
         postPropagation=models.postPropagation,
