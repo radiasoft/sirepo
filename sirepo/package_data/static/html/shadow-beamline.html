@@ -1,9 +1,9 @@
-<div class="container-fluid">
+<div class="container-fluid" data-ng-if="beamline.appState.isLoaded()">
   <div data-beamline-toolbar="beamline.toolbarItemNames" data-parent-controller="beamline"></div>
   <div data-beamline-builder="beamline" data-beamline-models="beamline.beamlineModels"></div>
 </div>
 
-<div class="container-fluid">
+<div class="container-fluid" data-ng-if="beamline.appState.isLoaded()">
   <div class="row">
     <div data-beamline-reports=""></div>
   </div>
@@ -11,5 +11,4 @@
 </div>
 
 <!-- modal dialogs -->
-<div data-modal-editor="" view-name="initialIntensityReport" data-parent-controller="beamline"></div>
-<div data-watchpoint-modal-editor="" data-ng-repeat="item in beamline.beamlineService.getWatchItems() track by item.id" data-parent-controller="beamline" data-item-id="item.id"></div>
+<div data-watchpoint-modal-editor="" data-ng-repeat="item in beamline.beamlineService.getWatchItems() track by item.id" data-item-id="item.id"></div>

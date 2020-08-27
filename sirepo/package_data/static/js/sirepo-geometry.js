@@ -24,6 +24,7 @@ SIREPO.app.service('geometry', function(utilities) {
         y: [0, 1, 0],
         z: [0, 0, 1]
     };
+    this.tolerance = 1e-4;
 
     this.bestEdgeAndSectionInBounds = function (edges, boundingRect, dim, reverse) {
         var edge;
@@ -68,7 +69,7 @@ SIREPO.app.service('geometry', function(utilities) {
             containsPoint: function (p, tolerance) {
                 // since we do math to see if the point satisfies the line's equation,
                 // we need to specify how close we can get to account for rounding errors
-                var t = tolerance || 0.0001;
+                var t = tolerance || svc.tolerance;
                 var s = this.slope();
                 if (s === Infinity) {
                     return equalWithin(p.x, point1.x, t);
@@ -306,6 +307,153 @@ SIREPO.app.service('geometry', function(utilities) {
         return svc.transpose(m);
     };
 
+    this.normalize = function(vector) {
+        var n = Math.hypot(vector[0], vector[1], vector[2]);
+        return vector.map(function (c) {
+            return c / n;
+        });
+    };
+
+    // norm is a vector (array), point is a geometry.point
+    // planes have the equation Ax + By + Cz = D
+    this.plane = function(norm, point) {
+        if (isVectorZero(norm)) {
+            throw new Error('Must specify a non-zero plane normal: ' + norm);
+        }
+        var pCoords = point.coords();
+        var pl = {
+            A: norm[0],
+            B: norm[1],
+            C: norm[2],
+            D: svc.vectorDot(norm, pCoords),
+            norm: norm,
+            point: point,
+            pointCoords: pCoords,
+        };
+        pl.closestPointToPoint = function(p) {
+            var d = this.distToPoint(p, true);
+            var n = this.normalized();
+            var pc = p.coords();
+            return svc.pointFromArr([
+                pc[0] - d * n[0], pc[1] - d * n[1], pc[2] - d * n[2]
+            ]);
+        };
+        pl.containsPoint = function(p) {
+            return equalWithin(svc.vectorDot(norm, p.coords()), this.D);
+        };
+        pl.distToPoint = function(p, signed) {
+            var pc = p.coords();
+            var d = (1 / Math.hypot(norm[0], norm[1], norm[2])) *
+                (norm[0] * pc[0] + norm[1] * pc[1] + norm[2] * pc[2] - this.D);
+            return signed ? d : Math.abs(d);
+        };
+        pl.equals = function(pl2) {
+            if (! this.isParallelTo(pl2)) {
+                return false;
+            }
+            return this.D === pl2.D;
+        };
+        pl.intersection = function (pl2) {
+            if (this.equals(pl2)) {
+                // planes are equal, return an arbitrary line containing the point
+                // need ensure they are not the same point!  Use random number?
+                return svc.line(point, this.pointInPlane());
+            }
+            // parallel but not equal, there is no intersection
+            if (this.isParallelTo(pl2)) {
+                return null;
+            }
+            var p1 = this.paramLine(pl2)(0);  // random t?
+            var p2 = this.paramLine(pl2)(1);
+            return svc.line(svc.pointFromArr(p1), svc.pointFromArr(p2));
+        };
+        pl.intersectsLine = function (l) {
+            var pts = l.points();
+            var p1 = pts[0].coords();
+            var p2 = pts[1].coords();
+            var lv = [p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]];
+            var dp = svc.vectorDot(lv, norm);
+            if (dp !== 0) {
+                return true;
+            }
+            var pp = this.pointInPlane().coords();
+            var d = [pp[0] - p1[0], pp[1] - p1[1], pp[2] - p1[2]];
+            dp = svc.vectorDot(d, norm);
+            return dp === 0;
+        };
+        pl.isParallelTo = function(pl2) {
+            return equalWithin(this.A, pl2.A) &&
+                equalWithin(this.B, pl2.B) &&
+                equalWithin(this.C, pl2.C);
+        };
+        pl.mirrorPoint = function(p) {
+            var cp = this.closestPointToPoint(p).coords();
+            var d = this.distToPoint(p, true);
+            var n = this.normalized();
+            return svc.pointFromArr([
+                cp[0] - d * n[0],  cp[1] - d * n[1],  cp[2] - d * n[2]
+            ]);
+        };
+        pl.normalized = function() {
+            return svc.normalize([this.A, this.B, this.C]);
+            //var n = Math.hypot(this.A, this.B, this.C);
+            //return [this.A / n, this.B / n, this.C / n];
+        };
+        pl.paramLine = function(pl2, t) {
+            // makes for symmetric equations below
+            var pl1 = this;
+            var freeIndex = 0;
+            var i = 1;
+            var j = 2;
+            var d = 0;
+            for (freeIndex = 0; freeIndex < 3; ++freeIndex) {
+                i = (freeIndex + 1) % 3;
+                j = (freeIndex + 2) % 3;
+                d = pl1.norm[i] * pl2.norm[j] - pl1.norm[j] * pl2.norm[i];
+                if (d !== 0) {
+                    break;
+                }
+            }
+            return function (t) {
+                var p = [0, 0, 0];
+                p[freeIndex] = t;
+                p[i] = ((pl2.norm[j] * pl1.D - pl1.norm[j] * pl2.D) +
+                    t * (pl1.norm[j] * pl2.norm[freeIndex] - pl2.norm[j] * pl1.norm[freeIndex])) / d;
+                p[j] = ((pl1.norm[i] * pl2.D - pl2.norm[i] * pl1.D) +
+                    t * (pl1.norm[i] * pl2.norm[freeIndex] - pl2.norm[i] * pl1.norm[freeIndex])) / d;
+                return p;
+            };
+        };
+        pl.pointInPlane = function(fixedVal) {
+            if (fixedVal !==0 && ! fixedVal) {
+                fixedVal = 1;
+            }
+            // check if plane norm is along a basis vector - if so, any values in the remaining coords
+            // satisfy the plane's equation
+            var ones = [1, 1, 1];
+            for (var dim in svc.basisVectors) {
+                var v = svc.basisVectors[dim];
+                if (svc.vectorDot(v, this.normalized()) === 1) {
+                    return svc.pointFromArr(svc.vectorSubtract(ones, v));
+                }
+            }
+            // if a coord is 0 - can't all be 0 so at most one - the equation of the plane
+            // is also the equation of a line.  If no coords are 0 we can arbitrarily set z to 0
+            var non0 = [[1, 2], [0, 2], [0, 1]];
+            var ptArr = [0, 0, 0];
+            var zIdx = norm.indexOf(0);
+            zIdx = zIdx >= 0 ? zIdx : 2;
+            var nzIdxs = non0[zIdx];
+            ptArr[nzIdxs[0]] = fixedVal;
+            ptArr[nzIdxs[1]] = -fixedVal * norm[nzIdxs[0]] / norm[nzIdxs[1]];
+            return svc.pointFromArr(ptArr);
+        };
+        if (! pl.containsPoint(point)) {
+            throw new Error('Plane does not contain point: ' + point.coords());
+        }
+        return pl;
+    };
+
     // Used for both 2d and 3d
     this.point = function(x, y, z) {
         return {
@@ -325,7 +473,7 @@ SIREPO.app.service('geometry', function(utilities) {
                 return Math.hypot(p2.x - this.x, p2.y - this.y, p2.z - this.z);
             },
             equals: function (p2) {
-                var t = 0.0001;
+                var t = svc.tolerance;
                 var d = 0.5 * (this.dist(this.zero()) + p2.dist(this.zero())) || 1.0;
                 return this.dimension() == p2.dimension() && this.dist(p2) / d < t;
             },
@@ -566,6 +714,43 @@ SIREPO.app.service('geometry', function(utilities) {
         });
     };
 
+    // for rotation about arbitrary axis - note this is 4 x 4 and will need to multiply a vector [x, y, z, 0]
+    this.rotationMatrix = function(pointCoords, vector, angle) {
+        var cs = Math.cos(angle);
+        var cs1 = 1 - cs;
+        var s = Math.sin(angle);
+
+        var A = pointCoords[0];
+        var B = pointCoords[1];
+        var C = pointCoords[2];
+
+        var nv = svc.normalize(vector);
+        var u = nv[0];
+        var v = nv[1];
+        var w = nv[2];
+        return [
+            [
+                u * u + (v * v + w * w) * cs,
+                u * v * cs1 - w * s,
+                u * w * cs1 + v * s,
+                (A * (v * v + w * w) - u * (B * v + C * w)) * cs1 + (B * w - C * v) * s
+            ],
+            [
+                u * v * cs1 + w * s,
+                v * v + (u * u + w * w) * cs,
+                v * w * cs1 - u * s,
+                (B * (u * u + w * w) - v * (A * u + C * w)) * cs1 + (C * u - A * w) * s
+            ],
+            [
+                u * w * cs1 - v * s,
+                v * w * cs1 + u * s,
+                w * w + (u * u + v * v) * cs,
+                (C * (u * u + v * v) - w * (A * u + B * v)) * cs1 + (A * v - B * u) * s
+            ],
+            [0, 0, 0, 1]
+        ];
+    };
+
     this.transform = function (matrix) {
 
         var identityMatrix = [
@@ -636,7 +821,7 @@ SIREPO.app.service('geometry', function(utilities) {
             return svc.transform(matrixMult(xform.matrix, otherXForm.matrix));
         };
 
-        xform.composeFromMatrix = function (m) {
+        xform.composeFromMatrix = function(m) {
             return xform.compose(svc.transform(m));
         };
 
@@ -644,10 +829,11 @@ SIREPO.app.service('geometry', function(utilities) {
             return det(xform.matrix);
         };
 
-        xform.doTransform = function (coords) {
+        xform.doTransform = function(coords) {
             return vectorMult(xform.matrix, coords);
         };
-        xform.doTX = function (point) {
+
+        xform.doTX = function(point) {
             return svc.pointFromArr(
                 xform.doTransform(point.coords())
             );
@@ -708,6 +894,24 @@ SIREPO.app.service('geometry', function(utilities) {
         return this.vectorLinearCombination(vector1, vector2, 1);
     };
 
+
+    this.vectorCross = function (vector1, vector2) {
+        if (vector1.length !== 3 || vector2.length !== 3) {
+            throw new Error('Vectors must be dimension 3: ' + vector1, vector2);
+        }
+        var c = [];
+        for (var dim in svc.basisVectors) {
+            var v = svc.basisVectors[dim];
+            var d = svc.matrixDet([v, vector1, vector2]);
+            c.push(d);
+        }
+        return c;
+    };
+
+    this.vectorDot = function (vector1, vector2) {
+        return vector1[0] * vector2[0] + vector1[1] * vector2[1] + vector1[2] * vector2[2];
+    };
+
     this.vectorLinearCombination = function (vector1, vector2, constant) {
         var v = [];
         vector1.forEach(function (el1, i) {
@@ -735,12 +939,12 @@ SIREPO.app.service('geometry', function(utilities) {
 
     // numbers are to be considered equal if they differ by less than this
     function equalWithin(val1, val2, tolerance) {
-        var tol = tolerance || 0.0001;
+        var tol = tolerance || svc.tolerance;
         return Math.abs(val2 - val1) < tol;
     }
 
     function gtOutside(val1, val2, tolerance) {
-        var tol = tolerance || 0.0001;
+        var tol = tolerance || svc.tolerance;
         return val1 - val2 > tol;
     }
 
@@ -748,8 +952,14 @@ SIREPO.app.service('geometry', function(utilities) {
         return val1 > val2 || equalWithin(val1, val2, tolerance);
     }
 
+    function isVectorZero(vector) {
+        return vector.every(function (c) {
+            return c === 0;
+        });
+    }
+
     function ltOutside(val1, val2, tolerance) {
-        var tol = tolerance || 0.0001;
+        var tol = tolerance || svc.tolerance;
         return val2 - val1 > tol;
     }
 

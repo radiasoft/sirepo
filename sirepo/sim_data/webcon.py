@@ -25,8 +25,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         for m in 'analysisAnimation', 'fitter', 'fitReport':
             if m in data.models:
                 del data.models[m]
-        dm.analysisReport.setdefault(history=[])
-        dm.hiddenReport.setdefault(subreports=[])
+        dm.analysisReport.pksetdefault(history=[])
+        dm.hiddenReport.pksetdefault(subreports=[])
         if 'beamlines' not in dm:
             cls._init_default_beamline(data)
         for e in dm.elements:

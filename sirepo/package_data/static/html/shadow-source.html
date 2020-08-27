@@ -1,10 +1,11 @@
-<div class="container-fluid">
+<div class="container-fluid" data-ng-if="source.appState.isLoaded()">
   <div class="row">
     <div class="col-md-6">
       <div class="row">
         <div class="col-sm-12">
           <div data-basic-editor-panel="" data-view-name="bendingMagnet" data-ng-if="source.isSource('bendingMagnet')"></div>
           <div data-basic-editor-panel="" data-view-name="geometricSource" data-ng-if="source.isSource('geometricSource')"></div>
+          <div data-basic-editor-panel="" data-view-name="undulator" data-ng-if="source.isSource('undulator')"></div>
           <div data-basic-editor-panel="" data-view-name="wiggler" data-ng-if="source.isSource('wiggler')"></div>
         </div>
         <div class="col-sm-12">
@@ -17,9 +18,3 @@
     </div>
   </div> <!-- /row -->
 </div> <!-- /container -->
-
-<!-- modal dialogs -->
-<div data-modal-editor="" view-name="bendingMagnet" data-parent-controller="source"></div>
-<div data-modal-editor="" view-name="geometricSource" data-parent-controller="source"></div>
-<div data-modal-editor="" view-name="wiggler" data-parent-controller="source"></div>
-<div data-modal-editor="" view-name="plotXYReport" data-parent-controller="source"></div>

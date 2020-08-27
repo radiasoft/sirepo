@@ -380,7 +380,7 @@ class SimDataBase(object):
     @classmethod
     def model_defaults(cls, name):
         """Returns a set of default model values from the schema."""
-        res = pkcollections.Dict()
+        res = PKDict()
         for f, d in cls.schema().model[name].items():
             if len(d) >= 3 and d[2] is not None:
                 res[f] = d[2]
@@ -554,7 +554,7 @@ class SimDataBase(object):
             names = set(list(names) + ['simulation'])
         for n in names or cls.schema().model:
             cls.update_model_defaults(
-                models.setdefault(n, pkcollections.Dict()),
+                models.setdefault(n, PKDict()),
                 n,
                 dynamic=dynamic,
             )

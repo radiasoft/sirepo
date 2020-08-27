@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" width="32" height="36.149" viewBox="0, 0, 32, 36.149">
+  <g id="Layer_1" transform="translate(-335.915, -60.001)">
+    <g id="Invert">
+      <g>
+        <path d="M343.254,91.326 L343.237,71.501" fill-opacity="0" stroke="#AB1500" stroke-width="0.75"/>
+        <path d="M345.487,71.499 L343.232,65.501 L340.987,71.503 z" fill="#AB1500" fill-opacity="1" stroke="#AB1500" stroke-width="0.75" stroke-opacity="1"/>
+      </g>
+      <g opacity="0.505">
+        <path d="M360.635,64.825 L360.618,84.649" fill-opacity="0" stroke="#AB1500" stroke-width="0.75"/>
+        <path d="M358.368,84.648 L360.613,90.649 L362.868,84.651 z" fill="#AB1500" fill-opacity="1" stroke="#AB1500" stroke-width="0.75" stroke-opacity="1"/>
+      </g>
+      <g>
+        <path d="M346.818,78.276 L352.459,78.094" fill-opacity="0" stroke="#000000" stroke-width="0.5"/>
+        <path d="M352.507,79.593 L356.457,77.964 L352.41,76.594 z" fill="#000000" fill-opacity="1" stroke="#000000" stroke-width="0.5" stroke-opacity="1"/>
+      </g>
+    </g>
+  </g>
+</svg>

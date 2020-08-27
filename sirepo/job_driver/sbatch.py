@@ -226,6 +226,10 @@ scancel -u $USER >& /dev/null || true
             ),
         )
 
+    def _start_idle_timeout(self):
+        """Sbatch agents should be kept alive as long as possible"""
+        pass
+
     def _websocket_free(self):
         self._srdb_root = None
 

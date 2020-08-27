@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""shadow execution template.
+u"""Shadow execution template.
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -8,29 +8,30 @@ u"""shadow execution template.
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
-import os.path
-import py.path
+from sirepo.template.template_common import ModelUnits
 import sirepo.sim_data
+import re
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 _SHADOW_OUTPUT_FILE = 'shadow-output.dat'
 
 _CENTIMETER_FIELDS = {
-    'electronBeam': ['sigmax', 'sigmaz', 'epsi_x', 'epsi_z', 'epsi_dx', 'epsi_dz'],
-    'geometricSource': ['wxsou', 'wzsou', 'sigmax', 'sigmaz', 'wysou', 'sigmay'],
-    'rayFilter': ['distance', 'x1', 'x2', 'z1', 'z2'],
     'aperture': ['position', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
     'crl': ['position', 'pilingThickness', 'rmirr', 'focalDistance', 'lensThickness', 'lensDiameter'],
-    'obstacle': ['position', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
+    'crystal': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', 'axmaj', 'axmin', 'ell_the', 'thickness', 'r_johansson', 'offx', 'offy', 'offz'],
+    'electronBeam': ['sigmax', 'sigmaz', 'epsi_x', 'epsi_z', 'epsi_dx', 'epsi_dz'],
+    'geometricSource': ['wxsou', 'wzsou', 'sigmax', 'sigmaz', 'wysou', 'sigmay'],
+    'grating': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', 'axmaj', 'axmin', 'ell_the', 'rulingDensity', 'rulingDensityCenter', 'rulingDensityPolynomial', 'holo_r1', 'holo_r2', 'dist_fan', 'rul_a1', 'rul_a2', 'rul_a3', 'rul_a4', 'hunt_h', 'hunt_l', 'offx', 'offy', 'offz'],
     'histogramReport': ['distanceFromSource'],
+    'mirror': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', 'axmaj', 'axmin', 'ell_the', 'prereflDensity', 'mlayerSubstrateDensity', 'mlayerEvenSublayerDensity', 'mlayerOddSublayerDensity', 'offx', 'offy', 'offz'],
+    'obstacle': ['position', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
     'plotXYReport': ['distanceFromSource'],
-    'mirror': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', 'axmaj', 'axmin', 'ell_the', 'prereflDensity', 'mlayerSubstrateDensity', 'mlayerEvenSublayerDensity', 'mlayerOddSublayerDensity'],
-    'crystal': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', 'axmaj', 'axmin', 'ell_the', 'thickness', 'r_johansson'],
-    'grating': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', 'axmaj', 'axmin', 'ell_the', 'rulingDensity', 'rulingDensityCenter', 'rulingDensityPolynomial', 'holo_r1', 'holo_r2', 'dist_fan', 'rul_a1', 'rul_a2', 'rul_a3', 'rul_a4', 'hunt_h', 'hunt_l'],
+    'rayFilter': ['distance', 'x1', 'x2', 'z1', 'z2'],
     'watch': ['position'],
 }
 
@@ -53,8 +54,16 @@ _FIELD_ALIAS = {
     'verticalSize': 'rz_slit[0]',
 }
 
+_MODEL_UNITS = ModelUnits(PKDict({
+    x: PKDict({ y: 'cm_to_m' for y in _CENTIMETER_FIELDS[x]}) for x in _CENTIMETER_FIELDS.keys()
+}))
+
 _WIGGLER_TRAJECTOR_FILENAME = 'xshwig.sha'
 
+
+def get_application_data(data, **kwargs):
+    if data['method'] == 'compute_harmonic_photon_energy':
+        return _compute_harmonic_photon_energy(data)
 
 def get_data_file(run_dir, model, frame, **kwargs):
     return _SHADOW_OUTPUT_FILE
@@ -72,15 +81,15 @@ def post_execution_processing(
 
 
 def python_source_for_model(data, model):
-    beamline = data['models']['beamline']
+    beamline = data.models.beamline
     watch_id = None
     for b in beamline:
-        if b['type'] == 'watch':
-            watch_id = b['id']
+        if b.type == 'watch':
+            watch_id = b.id
     if watch_id:
-        data['report'] = '{}{}'.format(_SIM_DATA.WATCHPOINT_REPORT, watch_id)
+        data.report = '{}{}'.format(_SIM_DATA.WATCHPOINT_REPORT, watch_id)
     else:
-        data['report'] = 'plotXYReport'
+        data.report = 'plotXYReport'
     return '''
 {}
 
@@ -111,27 +120,36 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
-def _convert_meters_to_centimeters(models):
-    for m in models:
-        if isinstance(m, dict):
-            name = m['type']
-            model = m
-        else:
-            name = m
-            model = models[m]
-        if name in _CENTIMETER_FIELDS:
-            for f in _CENTIMETER_FIELDS[name]:
-                model[f] *= 100
+def _compute_harmonic_photon_energy(data):
+    from orangecontrib.shadow.util.undulator.source_undulator import SourceUndulator
+    from syned.storage_ring.electron_beam import ElectronBeam
+    from syned.storage_ring.magnetic_structures.undulator import Undulator
+    undulator = data.undulator
+    ebeam = data.undulatorBeam
+    su = SourceUndulator(
+        syned_electron_beam=ElectronBeam(energy_in_GeV=ebeam.energy),
+        syned_undulator=Undulator(
+            K_horizontal=undulator.k_horizontal,
+            K_vertical=undulator.k_vertical,
+            period_length=undulator.period / 1000,
+            number_of_periods=int(undulator.length / (undulator.period / 1000)),
+        ),
+    )
+    su.set_energy_monochromatic_at_resonance(int(undulator.energy_harmonic))
+    return PKDict(
+        photon_energy=su._EMIN,
+        maxangle=su._MAXANGLE * 1e6,
+    )
 
 
 def _eq(item, field, *values):
-    t = _SCHEMA.model[item['type']][field][1]
+    t = _SCHEMA.model[item.type][field][1]
     for v, n in _SCHEMA.enum[t]:
         if item[field] == v:
             return n in values
     raise AssertionError(
         '{}: value not found for model={} field={} type={}'.format(
-            item[field], item['type'], field, t))
+            item[field], item.type, field, t))
 
 
 def _field_value(name, field, value):
@@ -148,7 +166,7 @@ def _fields(name, item, fields):
 
 def _generate_autotune_element(item):
     res = _item_field(item, ['f_central'])
-    if item['type'] == 'grating' or item.f_central == '0':
+    if item.type == 'grating' or item.f_central == '0':
         res += _item_field(item, ['t_incidence', 't_reflection'])
     if item.f_central == '1':
         res += _item_field(item, ['f_phot_cent'])
@@ -160,7 +178,7 @@ def _generate_autotune_element(item):
 
 
 def _generate_beamline_optics(models, last_id):
-    beamline = models['beamline']
+    beamline = models.beamline
     res = ''
     prev_position = 0
     last_element = False
@@ -178,25 +196,25 @@ def _generate_beamline_optics(models, last_id):
                 continue
             image_distance = next_item.position - item.position
             break
-        theta_recalc_required = item['type'] in ('crystal', 'grating') and item['f_default'] == '1' and item['f_central'] == '1'
-        if item['type'] == 'crl':
+        theta_recalc_required = item.type in ('crystal', 'grating') and item.f_default == '1' and item.f_central == '1'
+        if item.type == 'crl':
             count, res = _generate_crl(item, source_distance, count, res)
         else:
             res += '\n\noe = Shadow.OE()' + _field_value('oe', 'dummy', '1.0')
-            if item['type'] == 'aperture' or item['type'] == 'obstacle':
+            if item.type == 'aperture' or item.type == 'obstacle':
                 res += _generate_screen(item)
-            elif item['type'] == 'mirror':
+            elif item.type == 'mirror':
                 res += _generate_element(item, source_distance, image_distance)
                 res += _generate_mirror(item)
-            elif item['type'] == 'crystal':
+            elif item.type == 'crystal':
                 res += _generate_element(item, source_distance, image_distance)
                 res += _generate_crystal(item)
-            elif item['type'] == 'grating':
+            elif item.type == 'grating':
                 res += _generate_element(item, source_distance, image_distance)
                 res += _generate_grating(item)
-            elif item['type'] == 'watch':
+            elif item.type == 'watch':
                 res += "\n" + 'oe.set_empty()'
-                if last_id and last_id == int(item['id']):
+                if last_id and last_id == int(item.id):
                     last_element = True
             else:
                 raise RuntimeError('unknown item type: {}'.format(item))
@@ -223,12 +241,12 @@ oe.THETA = calc_oe.T_INCIDENCE * 180.0 / math.pi
 
 
 def _generate_bending_magnet(data):
-    return _source_field(data['models']['electronBeam'], ['sigmax', 'sigmaz', 'epsi_x', 'epsi_z', 'bener', 'epsi_dx', 'epsi_dz', 'f_pol']) \
-          + _source_field(data['models']['sourceDivergence'], ['hdiv1', 'hdiv2', 'vdiv1', 'vdiv2']) \
+    return _source_field(data.models.electronBeam, ['sigmax', 'sigmaz', 'epsi_x', 'epsi_z', 'bener', 'epsi_dx', 'epsi_dz', 'f_pol']) \
+          + _source_field(data.models.sourceDivergence, ['hdiv1', 'hdiv2', 'vdiv1', 'vdiv2']) \
           + _field_value('source', 'f_phot', 0) \
           + _field_value('source', 'fsource_depth', 4) \
           + _field_value('source', 'f_color', 3) \
-          + _source_field(data['models']['bendingMagnet'], ['r_magnet', 'ph1', 'ph2', 'fdistr']) \
+          + _source_field(data.models.bendingMagnet, ['r_magnet', 'ph1', 'ph2', 'fdistr']) \
           + _field_value('source', 'r_aladdin', 'source.R_MAGNET * 100')
 
 
@@ -398,15 +416,23 @@ def _generate_element(item, source_distance, image_distance):
             res += _item_field(item, ['externalOutlineMajorAxis', 'externalOutlineMinorAxis'])
             if item.fshape == '3':
                 res += _item_field(item, ['internalOutlineMajorAxis', 'internalOutlineMinorAxis'])
+    if 'offx' in item:
+        misalignment = ''
+        for f in ('offx', 'offy', 'offz', 'x_rot', 'y_rot', 'z_rot'):
+            if item[f] != 0:
+                misalignment += _item_field(item, [f])
+        if misalignment:
+            res += _field_value('oe', 'f_move', '1')
+            res += misalignment
     return res
 
 
 def _generate_geometric_source(data):
-    geo = data['models']['geometricSource']
+    geo = data.models.geometricSource
     res = _source_field(geo, ['fsour', 'wxsou', 'wzsou', 'sigmax', 'sigmaz', 'fdistr', 'sigdix', 'sigdiz', 'cone_max', 'cone_min', 'fsource_depth', 'wysou', 'sigmay', 'f_color', 'f_polar', 'f_coher', 'pol_angle', 'pol_deg']) \
-          + _source_field(data['models']['sourceDivergence'], ['hdiv1', 'hdiv2', 'vdiv1', 'vdiv2']) \
+          + _source_field(data.models.sourceDivergence, ['hdiv1', 'hdiv2', 'vdiv1', 'vdiv2']) \
           + _field_value('source', 'f_phot', 0)
-    if geo['f_color'] == '1':
+    if geo.f_color == '1':
         res += _source_field(geo, ['singleEnergyValue'])
     else:
         res += _source_field(geo, ['ph1', 'ph2'])
@@ -474,44 +500,43 @@ def _generate_mirror(item):
 
 def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     _validate_data(data, simulation_db.get_schema(SIM_TYPE))
-    _convert_meters_to_centimeters(data['models'])
-    _convert_meters_to_centimeters(data['models']['beamline'])
-    v = template_common.flatten_data(data['models'], {})
-    r = data['report']
-    report_model = data['models'][r]
-    beamline = data['models']['beamline']
-    v['shadowOutputFile'] = _SHADOW_OUTPUT_FILE
+    _scale_units(data)
+    v = template_common.flatten_data(data.models, PKDict())
+    r = data.report
+    report_model = data.models[r]
+    beamline = data.models.beamline
+    v.shadowOutputFile = _SHADOW_OUTPUT_FILE
 
     if r == 'initialIntensityReport':
-        v['distanceFromSource'] = beamline[0]['position'] if len(beamline) else template_common.DEFAULT_INTENSITY_DISTANCE
+        v.distanceFromSource = beamline[0].position if len(beamline) else template_common.DEFAULT_INTENSITY_DISTANCE
     elif _SIM_DATA.is_watchpoint(r):
-        v['beamlineOptics'] = _generate_beamline_optics(data['models'], _SIM_DATA.watchpoint_id(r))
+        v.beamlineOptics = _generate_beamline_optics(data.models, _SIM_DATA.watchpoint_id(r))
     else:
-        v['distanceFromSource'] = report_model['distanceFromSource']
+        v.distanceFromSource = report_model.distanceFromSource
 
-    if v['simulation_sourceType'] == 'bendingMagnet':
-        v['bendingMagnetSettings'] = _generate_bending_magnet(data)
-    elif v['simulation_sourceType'] == 'geometricSource':
-        v['geometricSourceSettings'] = _generate_geometric_source(data)
-    elif v['simulation_sourceType'] == 'wiggler':
-        v['wigglerSettings'] = _generate_wiggler(data)
-        v['wigglerTrajectoryFilename'] = _WIGGLER_TRAJECTOR_FILENAME
-        v['wigglerTrajectoryInput'] = ''
-        if data['models']['wiggler']['b_from'] in ('1', '2'):
-            v['wigglerTrajectoryInput'] = _SIM_DATA.shadow_wiggler_file(data.models.wiggler.trajFile)
+    if v.simulation_sourceType == 'bendingMagnet':
+        v.bendingMagnetSettings = _generate_bending_magnet(data)
+    elif v.simulation_sourceType == 'geometricSource':
+        v.geometricSourceSettings = _generate_geometric_source(data)
+    elif v.simulation_sourceType == 'wiggler':
+        v.wigglerSettings = _generate_wiggler(data)
+        v.wigglerTrajectoryFilename = _WIGGLER_TRAJECTOR_FILENAME
+        v.wigglerTrajectoryInput = ''
+        if data.models.wiggler.b_from in ('1', '2'):
+            v.wigglerTrajectoryInput = _SIM_DATA.shadow_wiggler_file(data.models.wiggler.trajFile)
     return template_common.render_jinja(SIM_TYPE, v)
 
 
 def _generate_screen(item):
     return "\n" + 'oe.set_empty().set_screens()' \
         + _field_value('oe', 'i_slit[0]', '1') \
-        + _field_value('oe', 'k_slit[0]', 0 if item['type'] == 'aperture' else 1) \
+        + _field_value('oe', 'k_slit[0]', 0 if item.type == 'aperture' else 1) \
         + _item_field(item, ['horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'])
 
 
 def _generate_wiggler(data):
-    return _source_field(data['models']['electronBeam'], ['sigmax', 'sigmaz', 'epsi_x', 'epsi_z', 'bener', 'epsi_dx', 'epsi_dz']) \
-          + _source_field(data['models']['wiggler'], ['ph1', 'ph2']) \
+    return _source_field(data.models.electronBeam, ['sigmax', 'sigmaz', 'epsi_x', 'epsi_z', 'bener', 'epsi_dx', 'epsi_dz']) \
+          + _source_field(data.models.wiggler, ['ph1', 'ph2']) \
           + _field_value('source', 'fdistr', 0) \
           + _field_value('source', 'fsource_depth', 0) \
           + _field_value('source', 'f_wiggler', 1) \
@@ -530,7 +555,7 @@ def _item_field(item, fields):
 
 
 def _is_disabled(item):
-    return 'isDisabled' in item and item['isDisabled']
+    return 'isDisabled' in item and item.isDisabled
 
 
 def _parse_shadow_log(run_dir):
@@ -539,7 +564,19 @@ def _parse_shadow_log(run_dir):
         for line in text.split("\n"):
             if re.search(r'invalid chemical formula', line):
                 return 'A mirror contains an invalid reflectivity material'
+            m = re.search('ValueError: (.*)?', line)
+            if m:
+                return m.group(1)
     return 'an unknown error occurred'
+
+
+def _scale_units(data):
+    for name in _MODEL_UNITS.unit_def:
+        if name in data.models:
+            _MODEL_UNITS.scale_to_native(name, data.models[name])
+    for item in data.models.beamline:
+        if item.type in _MODEL_UNITS.unit_def:
+            _MODEL_UNITS.scale_to_native(item.type, item)
 
 
 def _source_field(model, fields):
@@ -548,3 +585,10 @@ def _source_field(model, fields):
 
 def _validate_data(data, schema):
     template_common.validate_models(data, schema)
+    if data.models.simulation.sourceType == 'undulator':
+        und = data.models.undulator
+        if und.select_energy == 'single':
+            und.emin = und.photon_energy
+            und.emax = und.photon_energy
+        if und.emin == und.emax:
+            und.ng_e = 1

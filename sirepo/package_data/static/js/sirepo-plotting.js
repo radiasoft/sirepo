@@ -4,6 +4,8 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
+SIREPO.SCREEN_DIMS = ['x', 'y'];
+SIREPO.SCREEN_INFO = {x: { direction: 1 },  y: { direction: -1 }};
 
 SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope) {
 
@@ -612,6 +614,83 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             });
         },
 
+        // create a 2d shape for d3 to plot - note that x, y are required because d3 looks for those
+        // attributes
+        plotShape: function(id, name, center, size, color, alpha, fillStyle, strokeStyle, dashes, layoutShape) {
+            function getCoords(obj) {
+                var coords = [];
+                for (var dim in obj) {
+                    coords.push(obj[dim]);
+                }
+                return coords;
+            }
+            function setCoords(obj, coords) {
+                Object.keys(obj).forEach(function(dim, i) {
+                    obj[dim] = coords[i];
+                });
+            }
+            var shape = {
+                addLink: function(otherShape, linkFunction) {
+                    this.links.push(self.plotShapeLink(this, otherShape, linkFunction));
+                },
+                getCenterCoords: function() {
+                    return getCoords(this.center);
+                },
+                getSizeCoords: function() {
+                    return getCoords(this.size);
+                },
+                runLinks: function() {
+                    var linkRes = [];
+                    this.links.forEach(function (l) {
+                        linkRes.push(l.fn(l.shape, l.linkedShape));
+                    });
+                    return linkRes;
+                },
+                setCenter: function(coords) {
+                    setCoords(this.center, coords);
+                },
+                setSize: function(coords) {
+                    setCoords(this.size, coords);
+                },
+                alpha: alpha,
+                axes: ['x', 'y'],
+                center: {
+                    x: center[0], y: center[1]
+                },
+                color: color,
+                dashes: dashes,
+                draggable: true,
+                fillStyle: fillStyle,
+                id: id,
+                layoutShape: layoutShape,
+                links: [],
+                name: name,
+                size: {
+                    x: size[0], y: size[1]
+                },
+                strokeStyle: strokeStyle,
+                x: center[0] + SIREPO.SCREEN_INFO.x.direction * size[0] / 2,
+                y: center[1] + SIREPO.SCREEN_INFO.y.direction * size[1] / 2,
+            };
+            return shape;
+        },
+
+        plotLine: function(id, name, line, color, alpha, strokeStyle, dashes) {
+            var shape = this.plotShape(id, name, SIREPO.ZERO_ARR, SIREPO.ZERO_ARR, color, alpha, null, strokeStyle, dashes, 'line');
+            shape.line = line;
+            return shape;
+        },
+
+        // link on shape to another so that some aspect of the linked shape is tied to
+        // the main shape via a prvoided function
+        plotShapeLink: function(shape, linkedShape, linkFunction) {
+            return {
+                shape: shape,
+                linkedShape: linkedShape,
+                fn: linkFunction,
+            };
+        },
+
         recalculateDomainFromPoints: function(modelName, yScale, points, xDomain, invertAxis) {
             var ydom;
             var scaleFunction = this.scaleFunction(modelName);
@@ -848,7 +927,9 @@ SIREPO.app.directive('colorPicker', function(appState, panelState) {
                 $scope.model[$scope.field] = color;
                 // emit change for immediate feedback
                 $scope.$emit($scope.modelName + '.' + $scope.field, color);
-                $scope.form.$setDirty();
+                if ($scope.form) {
+                    $scope.form.$setDirty();
+                }
                 //TODO(mvk): since this is not a normal control we need to store the original state somehow
                 /*
                 if (color !== origColor) {
@@ -1514,6 +1595,8 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
                     debouncedRefresh();
                 });
         };
+
+        self.labDimension = dimension;
 
         self.init = function() {
             self.scale = d3.scale.linear();

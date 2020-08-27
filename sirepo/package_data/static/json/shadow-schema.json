@@ -199,6 +199,16 @@
             ["2", "Virtual/Real"],
             ["3", "Real/Real"]
         ],
+        "Harmonic": [
+            ["1", "1"],
+            ["3", "3"],
+            ["5", "5"],
+            ["7", "7"],
+            ["9", "9"],
+            ["11", "11"],
+            ["13", "13"],
+            ["15", "15"]
+        ],
         "LensShape": [
             ["1", "Spherical"],
             ["4", "Paraboloid"],
@@ -271,6 +281,11 @@
             ["3", "Fan Type"],
             ["5", "Polynomial Line Density"]
         ],
+        "SelectPhotonEnergy": [
+            ["harmonic", "From Harmonic"],
+            ["single", "Single Photon Energy"],
+            ["range", "Photon Energy Range"]
+        ],
         "SourceDepth": [
             ["1", "No Depth"],
             ["2", "Uniform"],
@@ -279,6 +294,7 @@
         "SourceType": [
             ["bendingMagnet", "Bending Magnet"],
             ["geometricSource", "Geometric Source"],
+            ["undulator", "Undulator"],
             ["wiggler", "Wiggler"]
         ],
         "SpatialType": [
@@ -296,6 +312,11 @@
 	    ["1", "Lower/Inner (Concave/Convex)"],
 	    ["2", "Upper/Inner (Convex/Concave)"],
             ["3", "Upper/Outer (Convex/Convex)"]
+        ],
+        "UndulatorRadiationSize": [
+            ["0", "Point"],
+            ["1", "Gaussian"],
+            ["2", "FT(Divergences)"]
         ]
     },
     "dynamicFiles": {
@@ -317,19 +338,27 @@
     "localRoutes": {
         "source": {
             "config": {
-                "controller": "ShadowSourceController as source",
+                "controller": "SourceController as source",
                 "templateUrl": "/static/html/shadow-source.html"
             }
         },
         "beamline": {
             "route": "/beamline/:simulationId",
             "config": {
-                "controller": "ShadowBeamlineController as beamline",
+                "controller": "BeamlineController as beamline",
                 "templateUrl": "/static/html/shadow-beamline.html"
             }
         }
     },
     "model": {
+        "_MISALIGNED_ELEMENT": {
+            "offx": ["X Offset [mm]", "Float", 0],
+            "offy": ["Y Offset [mm]", "Float", 0],
+            "offz": ["Z Offset [mm]", "Float", 0],
+            "x_rot": ["X Rotation [CCW, deg]", "Float", 0],
+            "y_rot": ["Y Rotation [CCW, deg]", "Float", 0],
+            "z_rot": ["Z Rotation [CCW, deg]", "Float", 0]
+        },
         "aperture": {
             "title": ["Element Name", "String", "Aperture"],
             "position": ["Nominal Position [m]", "Float"],
@@ -365,6 +394,7 @@
             "attenuationCoefficient": ["Attenuation Coefficient [cm-1]", "Float", 24.37099514505769]
         },
         "crystal": {
+            "_super": ["_", "model", "_MISALIGNED_ELEMENT"],
             "title": ["Element Name", "String", "Crystal"],
             "position": ["Nominal Position [m]", "Float"],
             "fmirr": ["Crystal Shape", "ElementShape", "5"],
@@ -432,6 +462,7 @@
             "f_pol": ["Polaization Component", "PolarizationComponent", "3"]
         },
         "grating": {
+            "_super": ["_", "model", "_MISALIGNED_ELEMENT"],
             "title": ["Element Name", "String", "Grating"],
             "position": ["Nominal Position [m]", "Float"],
             "fmirr": ["Grating Shape", "ElementShape", "5"],
@@ -549,6 +580,7 @@
             "notes": ["Notes", "Text", ""]
         },
         "mirror": {
+            "_super": ["_", "model", "_MISALIGNED_ELEMENT"],
             "title": ["Element Name", "String", "Mirror"],
             "position": ["Nominal Position [m]", "Float"],
             "fmirr": ["Mirror Shape", "ElementShape", "5"],
@@ -638,6 +670,40 @@
             "npoint": ["Number of Rays", "Integer", 5000],
             "istar1": ["Seed", "Integer", 567656]
         },
+        "undulator": {
+            "k_horizontal": ["Horizontal Deflecting Parameter (K)", "Float", 0.0],
+            "k_vertical": ["Vertical Deflecting Parameter (K)", "Float", 0.0],
+            "period": ["Period [mm]", "Float", 20, "", 1e-99],
+            "length": ["Length [m]", "Float", 3, "", 1e-99],
+            "emin": ["Minimum Photon Energy [eV]", "Float", 10000.0],
+            "emax": ["Maximum Photon Energy [eV]", "Float", 11000.0],
+            "ng_e": ["Photon energy scan points", "Integer", 11],
+            "maxangle": ["Maximum radiation semiaperture [µrad]", "Float", 50],
+            "ng_t": ["Points in angle theta", "Integer", 31],
+            "ng_p": ["Points in angle phi", "Integer", 21],
+            "ng_j": ["Points in electron trajectory", "Integer", 20],
+            "flag_size": ["Radiation Size", "UndulatorRadiationSize", "1"],
+            "f_coher": ["Coherent Beam", "Boolean", "0"],
+            "energy_harmonic": ["Energy Harmonic", "Harmonic", 1],
+            "select_energy": ["Select Photon Energy", "SelectPhotonEnergy", "harmonic"],
+            "photon_energy": ["Photon Energy [eV]", "Float", 10000.0]
+        },
+        "undulatorBeam": {
+            "energy": ["Energy [GeV]", "Float", 1.0],
+            "energy_spread": ["Energy Spread", "Float", 0],
+            "current": ["Current [A]", "Float", 0.1],
+            "number_of_bunches": ["Number of Bunches", "Integer", 1],
+            "emittance_x": ["Horizontal Emittance [nm]", "Float", 0.55],
+            "beta_x": ["Horizontal Beta [m]", "Float", 1.84, 1e-99],
+            "alpha_x": ["Horizontal Alpha [rad]", "Float", 0],
+            "eta_x": ["Horizontal Dispersion [m]", "Float", 0],
+            "etap_x": ["Horizontal Dispersion Derivative [rad]", "Float", 0],
+            "emittance_y": ["Vertical Emittance [nm]", "Float", 0.008],
+            "beta_y": ["Vertical Beta [m]", "Float", 1.17, 1e-99],
+            "alpha_y": ["Vertical Alpha [rad]", "Float", 0],
+            "eta_y": ["Vertical Dispersion [m]", "Float", 0],
+            "etap_y": ["Vertical Dispersion Derivative [rad]", "Float", 0]
+        },
         "watch": {
             "title": ["Element Name", "String", "Watchpoint"],
             "position": ["Nominal Position [m]", "Float"]
@@ -671,6 +737,27 @@
         }
     },
     "view": {
+        "_MISALIGNED_ELEMENT_VIEW": {
+            "basic": [],
+            "advanced": [
+                ["Misalignment", [
+                    [
+                        ["X", [
+                            "offx",
+                            "x_rot"
+                        ]],
+                        ["Y", [
+                            "offy",
+                            "y_rot"
+                        ]],
+                        ["Z", [
+                            "offz",
+                            "z_rot"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
         "aperture": {
             "title": "Aperture",
             "basic": [],
@@ -775,6 +862,7 @@
             ]
         },
         "crystal": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
             "title": "Crystal",
             "basic": [],
             "advanced": [
@@ -916,6 +1004,7 @@
             ]
         },
         "grating": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
             "title": "Grating",
             "basic": [],
             "advanced": [
@@ -1044,6 +1133,7 @@
             ]
         },
         "mirror": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
             "title": "Mirror",
             "basic": [],
             "advanced": [
@@ -1168,6 +1258,71 @@
             "title": "Simulation",
             "advanced": [
                 "name"
+            ]
+        },
+        "undulator": {
+            "title": "Undulator",
+            "basic": [
+                "simulation.sourceType",
+                "undulatorBeam.energy",
+                "select_energy",
+                "energy_harmonic",
+                "photon_energy",
+                "emin",
+                "emax",
+                "maxangle"
+            ],
+            "advanced": [
+                ["Basic Settings", [
+                    "simulation.npoint",
+                    "simulation.istar1",
+                    "select_energy",
+                    "energy_harmonic",
+                    "photon_energy",
+                    "emin",
+                    "emax",
+                    "maxangle",
+                    "ng_e"
+                ]],
+                ["Beam Parameters", [
+                    "undulatorBeam.energy",
+                    "undulatorBeam.energy_spread",
+                    "undulatorBeam.current",
+                    "undulatorBeam.number_of_bunches",
+                    [
+                        ["Horizontal Twiss Parameters", [
+                            "undulatorBeam.emittance_x",
+                            "undulatorBeam.beta_x",
+                            "undulatorBeam.alpha_x",
+                            "undulatorBeam.eta_x",
+                            "undulatorBeam.etap_x"
+                        ]],
+                        ["Vertical Twiss Parameters", [
+                            "undulatorBeam.emittance_y",
+                            "undulatorBeam.beta_y",
+                            "undulatorBeam.alpha_y",
+                            "undulatorBeam.eta_y",
+                            "undulatorBeam.etap_y"
+                        ]]
+                    ]
+                ]],
+                ["Undulator Properties", [
+                    "period",
+                    "length",
+                    [
+                        ["Horizontal", [
+                            "k_horizontal"
+                        ]],
+                        ["Vertical", [
+                            "k_vertical"
+                        ]]
+                    ],
+                    "ng_t",
+                    "ng_p",
+                    "ng_j",
+                    "flag_size",
+                    "f_coher"
+                ]]
             ]
         },
         "watch": {

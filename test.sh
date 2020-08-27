@@ -9,19 +9,14 @@ test_err() {
     return 1
 }
 
-test_jshint() {
-    if [[ ! -x ./node_modules/jshint/bin/jshint ]]; then
-        if ! type node >& /dev/null; then
-            # Will fail in vag
-            test_msg Installing nodejs
-            sudo dnf install -y -q nodejs
-        fi
-        test_msg Installing jshint
-        # npm gets ECONNRESET due to a node error, which shouldn't happen
-        # https://github.com/nodejs/node/issues/3595
-        npm install jshint >& /dev/null || true
+test_js() {
+    if [[ ! -x ./node_modules/karma/bin/karma || ! -x ./node_modules/jshint/bin/jshint ]]; then
+        npm install
     fi
-    ./node_modules/jshint/bin/jshint --config=etc/jshint.conf "${jsfiles[@]}"
+    npm run lint -- "${jsfiles[@]}"
+    if [[ ! ${sirepo_test_no_karma:-} ]]; then
+        npm run test
+    fi
 }
 
 test_main() {
@@ -29,12 +24,8 @@ test_main() {
     test_no_prints '\s(pkdp|print)\(' "${pyfiles[@]}"
     local jsfiles=( sirepo/package_data/static/js/*.js )
     test_no_prints '\s(srdbg|console.log)\(' "${jsfiles[@]}"
-    test_no_prints '(startsWith|Object\.assign)\(' "${jsfiles[@]}"
     test_no_h5py
-    test_jshint
-    if [[ -x ./node_modules/karma/bin/karma ]]; then
-       ./node_modules/karma/bin/karma start etc/karma-conf.js
-    fi
+    test_js
     pykern test
     if [[ -n ${PKSETUP_PYPI_PASSWORD:+hide-secret} ]]; then
         python setup.py pkdeploy

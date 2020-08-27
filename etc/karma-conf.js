@@ -1,12 +1,5 @@
 // Karma configuration
-// Generated on Tue Jul 21 2015 19:52:26 GMT+0000 (UCT)
-// before running the first time:
-//   npm install karma --save-dev
-//   npm install karma-jasmine --save-dev
-//   npm install karma-phantomjs-launcher
-//   npm install jasmine-core --save-dev
-// then:
-//   ./node_modules/karma/bin/karma start etc/karma-conf.js
+// npm run test
 
 module.exports = function(config) {
   config.set({
@@ -88,10 +81,15 @@ module.exports = function(config) {
     autoWatch: true,
 
 
-    // start these browsers
-    // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
-    //browsers: ['Chrome'],
-    browsers: ['PhantomJS'],
+    // https://www.npmjs.com/package/karma-chrome-launcher
+    // https://docs.travis-ci.com/user/chrome#karma-chrome-launcher
+    browsers: ['ChromeHeadless_no_sandbox'],
+    customLaunchers: {
+      ChromeHeadless_no_sandbox: {
+        base: 'ChromeHeadless',
+        flags: ['--no-sandbox']
+      }
+    },
     // Continuous Integration mode
     // if true, Karma captures browsers, runs the tests and exits
     singleRun: true

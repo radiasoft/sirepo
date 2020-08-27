@@ -307,18 +307,18 @@ def _beam_evolution_status(run_dir, settings, has_rates):
         col = sdds_util.extract_sdds_column(filename, 't', 0)
         t_max = max(col['values'])
         if t_max and settings.time > 0:
-            return {
+            return PKDict(
                 # use current time as frameCount for uniqueness until simulation is completed
-                'frameCount': int(float(os.path.getmtime(filename))),
-                'percentComplete': 100.0 * t_max / settings.time,
-                'hasRates': has_rates,
-            }
+                frameCount=int(float(os.path.getmtime(filename))),
+                percentComplete=100.0 * t_max / settings.time,
+                hasRates=has_rates,
+            )
     except Exception:
         pass
-    return {
-        'frameCount': 0,
-        'percentComplete': 0,
-    }
+    return PKDict(
+        frameCount=0,
+        percentComplete=0,
+    )
 
 
 def _compute_range_across_files(run_dir, data):
@@ -445,13 +445,13 @@ def _get_time_step_warning(run_dir):
     if s < 0.25 * r:
         w = (
             'The time step is too small. This can lead to long run times.\n'
-            'Please consider decreasing the total time and/or increasing\n'
+            'Please consider increasing the total time and/or decreasing\n'
             'the number of steps.'
         )
     elif s > 4 * r:
         w = (
             'The time step is too large. This can lead to innacurate results.\n'
-            'Please consider increasing the total time and/or decreasing\n'
+            'Please consider decreasing the total time and/or increasing\n'
             'the number of steps.'
         )
     return w
