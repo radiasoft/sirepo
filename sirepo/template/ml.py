@@ -302,7 +302,7 @@ def _knn_classification_metrics_animation(frame_args):
             if not isinstance(d[k], PKDict):
                 continue
             x = [k]
-            x.extend(list(d[k].values()))
+            x.extend([round(x, 4) for x in d[k].values()])
             r.append(x)
         return r
 
