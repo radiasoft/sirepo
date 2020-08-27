@@ -355,7 +355,7 @@ def api_homePage(path_info=None):
 
 
 @api_perm.require_user
-def api_jupyterNotebook(simulation_type, simulation_id, model=None, title=None):
+def api_exportJupyterNotebook(simulation_type, simulation_id, model=None, title=None):
     req = http_request.parse_params(type=simulation_type, id=simulation_id, template=True)
     m = model and req.sim_data.parse_model(model)
     d = simulation_db.read_simulation_json(req.type, sid=req.id)

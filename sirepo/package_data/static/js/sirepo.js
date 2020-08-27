@@ -1504,7 +1504,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if (reportTitle) {
             args['<title>'] = reportTitle;
         }
-        requestSender.newWindow('jupyterNotebook', args, true);
+        requestSender.newWindow('exportJupyterNotebook', args, true);
     };
 
     self.modalId = function(name) {
