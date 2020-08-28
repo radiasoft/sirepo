@@ -357,7 +357,7 @@ def get_settings_report(run_dir, data):
 #    raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
-def jupyter_notebook_for_model(data, model):
+def export_jupyter_notebook(data):
     # notebooks are JSON files
     import sirepo.jupyter
     nb = sirepo.jupyter.Notebook(data)

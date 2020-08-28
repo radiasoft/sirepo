@@ -1493,7 +1493,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return queueItems[name] && queueItems[name].qState == 'processing' ? true : false;
     };
 
-    self.jupyterNotebook = function(simulationId, modelName, reportTitle) {
+    self.exportJupyterNotebook = function(simulationId, modelName, reportTitle) {
         var args = {
             '<simulation_id>': simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
