@@ -117,27 +117,26 @@ class Notebook(PKDict):
         self.add_code_cell([
             'from matplotlib import pyplot'
         ])
-        plot_strs = []
         legends = []
+        code = [
+            'pyplot.figure()',
+            f"pyplot.xlabel('{params.x_label}')",
+            f"pyplot.title('{params.title}')",
+        ]
         for y_params in params.y_info:
             x_pts_var = y_params.x_points if 'x_points' in y_params else params.x_var
-            plot_strs.append(
+            code.append(
                 f"pyplot.plot(\
                     {x_pts_var},\
                     {y_params.y_var},\
                     '{self._PYPLOT_STYLE_MAP[y_params.style]}'\
                 )"
             )
-            legends.append(f'\'{y_params.y_label}\'')
-        code = [
-                'pyplot.figure()',
-                f"pyplot.xlabel('{params.x_label}')",
-                f'pyplot.legend({legends})',
-                f"pyplot.title('{params.title}')",
-            ]
+            legends.append(f"{y_params.y_label}")
         if len(params.y_info) == 1:
             code.append(f"pyplot.ylabel('{params.y_info[0].y_label}')")
-        code.extend(plot_strs)
+        else:
+            code.append(f'pyplot.legend({legends!r})')
         code.append('pyplot.show()')
         self.add_code_cell(code)
 
