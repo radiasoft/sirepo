@@ -5,7 +5,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkconfig
 from pykern import pkio
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
@@ -33,7 +32,6 @@ _TWISS_TO_BUNCH_FIELD = {
 
 _ZGOUBI_FIT_FILE = 'zgoubi.FIT.out.dat'
 
-cfg = None
 
 def run(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
@@ -111,20 +109,6 @@ def _bunch_match_twiss(cfg_dir, data):
     return data
 
 
-def _init():
-    global cfg
-    if cfg:
-        return
-    p = os.environ.get('PYENV_ROOT')
-    if p:
-        p += '/versions/py2/bin/python'
-    else:
-        p = 'python2'
-    cfg = pkconfig.init(
-        python_path=(p, str, 'python executable'),
-    )
-
-
 def _validate_estimate_output_file_size(data, res):
     bunch = data.models.bunch
     count = bunch.particleCount
@@ -168,6 +152,5 @@ def _run_tunes_report(cfg_dir, data):
 
 
 def _run_zgoubi(cfg_dir, python_file=template_common.PARAMETERS_PYTHON_FILE):
-    _init()
-    subprocess.call([cfg.python_path, python_file])
+    template_common.exec_parameters(python_file)
     subprocess.call([_EXE_PATH])
