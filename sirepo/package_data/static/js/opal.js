@@ -254,7 +254,7 @@ SIREPO.app.directive('appHeader', function(appState, latticeService, opalService
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
-  	        '<div data-sim-sections="">',
+		'<div data-ng-if="nav.isLoaded()" data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>',

@@ -133,6 +133,8 @@ class LatticeParser(object):
     def _downcase_variables(self, code_var):
         for v in self.data.models.rpnVariables:
             v.name = v.name.lower()
+            if code_var.is_var_value(v.value):
+                v.value = v.value.lower()
         for container in ('elements', 'commands'):
             for el in self.data.models[container]:
                 model_name = LatticeUtil.model_name_for_data(el)

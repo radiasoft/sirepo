@@ -489,7 +489,8 @@ def _generate_parameters_file(data):
 
 def _import_bunch(lattice, data):
     from synergia.foundation import pconstants
-    if not lattice.has_reference_particle():
+    if not lattice.has_reference_particle() \
+       or lattice.get_reference_particle().get_charge() == 0:
         # create a default reference particle, proton,energy=1.5
         lattice.set_reference_particle(
             foundation.Reference_particle(
