@@ -18,9 +18,9 @@ class Notebook(PKDict):
     code or markdown, along with various metadata
 
     Methods:
-        add_code_cell(source_strings, hide=False)
+        add_code_cell(list_or_str, hide=False)
             Adds a cell from an array of strings of python
-        add_markdown_cell(source_strings)
+        add_markdown_cell(list_or_str)
             Adds a cell from an array of strings of arbitrary markdown
         add_report(params)
             Adds a pyplot graph of x values vs. one or more arrays of y values
@@ -61,31 +61,29 @@ class Notebook(PKDict):
             nbformat_minor = 4,
         )
 
-        self.add_markdown_cell([
-                f'# {data.simulationType} - {data.models.simulation.name}',
-            ])
+        self.add_markdown_cell(f'# {data.simulationType} - {data.models.simulation.name}')
         # commenting this out for now - may want a monolothic imports cell later
         #self.add_markdown_cell(['## Imports', ])
 
-    def add_code_cell(self, source_strings, hide=False):
+    def add_code_cell(self, list_or_str, hide=False):
         """Adds a cell containing arbitrary python
 
         Args:
-            source_strings (list): strings to include. These get joined to a single
+            list_or_str (list | str): strings to include. These get joined to a single
                 linesep-delimited string for clarity of presentation
             hide (bool): hide the cell when the notebook loads.  Useful for long data
                 arrays etc.
         """
-        self._add_cell('code', source_strings, hide=hide)
+        self._add_cell('code', list_or_str, hide=hide)
 
-    def add_markdown_cell(self, source_strings):
+    def add_markdown_cell(self, list_or_str):
         """Adds a cell containing arbitrary markdown
 
          Args:
-             source_strings (list): strings to include. These get joined to a single
+             list_or_str (list | str): strings to include. These get joined to a single
                  linesep-delimited string for clarity of presentation
          """
-        self._add_cell('markdown', source_strings)
+        self._add_cell('markdown', list_or_str)
 
     def add_report(self, params):
         """Adds a pyplot graph of x values vs. one or more arrays of y values
@@ -129,13 +127,16 @@ class Notebook(PKDict):
         code.append('pyplot.show()')
         self.add_code_cell(code)
 
-    def _add_cell(self, cell_type, source_strings, hide=False):
+    def _add_cell(self, cell_type, list_or_str, hide=False):
+        if isinstance(list_or_str, pkconfig.STRING_TYPES):
+            self._add_cell(cell_type, [list_or_str], hide=hide)
+            return
         c = PKDict(
             cell_type=cell_type,
             metadata=PKDict(
                 jupyter=PKDict(source_hidden=hide)
             ),
-            source=[Notebook._append_newline(s) for s in source_strings]
+            source=[Notebook._append_newline(s) for s in list_or_str]
         )
         if cell_type == 'code':
             c.execution_count = 0

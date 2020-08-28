@@ -372,7 +372,7 @@ def export_jupyter_notebook(data):
     #nb.add_markdown_cell(['## Function definitions'])
 
     data_var = 'data'
-    nb.add_markdown_cell(['## Exported Data'])
+    nb.add_markdown_cell('## Exported Data')
     nb.add_code_cell(
         _data_cell(
             str(_SIM_DATA.lib_file_abspath(_analysis_data_path(data))),
@@ -381,7 +381,7 @@ def export_jupyter_notebook(data):
         hide=True
     )
 
-    nb.add_markdown_cell(['## Analysis Plot'])
+    nb.add_markdown_cell('## Analysis Plot')
     col_info = data.models.analysisData.columnInfo
     x_var = 'x'
     x_range_var = 'x_range'
@@ -442,14 +442,14 @@ def export_jupyter_notebook(data):
         if 'action' in rpt:
             # reset y_var to 1st data set
             y_var = 'y1'
-            nb.add_markdown_cell([f'## {rpt.action} Plot'])
+            nb.add_markdown_cell(f'## {rpt.action} Plot')
             if rpt.action == 'fft':
                 # only 1 curve (for now?)
                 w_var = 'w'
                 y_norm_var = 'y_norm'
-                nb.add_code_cell([
+                nb.add_code_cell(
                     f'{w_var}, {y_norm_var} = sirepo.analysis.get_fft({x_var}, {y_var})'
-                ])
+                )
                 y_info = [PKDict(
                     y_var=y_norm_var,
                     y_label='',
@@ -471,13 +471,13 @@ def export_jupyter_notebook(data):
                 eqn = rpt.fitEquation
                 prm = rpt.fitParameters
                 var = rpt.fitVariable
-                nb.add_code_cell([
+                nb.add_code_cell(
                     f"{x_fit_var}, {y_fit_var}, {y_min_var}, {y_max_var}, {p_vals_var},\
                     {sigma_var} = sirepo.analysis.fit_to_equation(\
                         {x_var}[{x_range_inds_var}[0]:{x_range_inds_var}[1]],\
                         y1, '{eqn}', '{var}', '{prm}\
                     ')"
-                ])
+                )
                 y_info = [
                     PKDict(y_var=y_var, y_label='Data', style='scatter'),
                     PKDict(
@@ -497,9 +497,7 @@ def export_jupyter_notebook(data):
                     title='Fit'
                 ))
             if rpt.action == 'cluster':
-                nb.add_code_cell([
-                    'from sirepo.analysis import ml',
-                ])
+                nb.add_code_cell('from sirepo.analysis import ml')
                 clusters_var = 'clusters'
                 cols = [idx for idx, f in enumerate(rpt.clusterFields) if f and \
                         idx < len(col_info.names)]
@@ -509,13 +507,13 @@ def export_jupyter_notebook(data):
                     dbscanEps=rpt.clusterDbscanEps,
                     kmeansInit=rpt.clusterKmeansInit
                 )
-                nb.add_code_cell([
+                nb.add_code_cell(
                     f"{clusters_var} = sirepo.analysis.ml.compute_clusters(\
                         {data_var}[:, {cols}], '{rpt.clusterMethod}',\
                         {rpt.clusterScaleMin}, {rpt.clusterScaleMax},\
                         {params}\
                     )"
-                ])
+                )
                 # can't add report because we don't know the result of compute_clusters
                 nb.add_code_cell([
                     'pyplot.figure()',
