@@ -51,6 +51,16 @@ def test_parse_madx_file():
         pkeq(expect, actual)
 
 
+def test_parse_madx_file_downcase():
+    from sirepo.template import madx_parser
+    import re
+    parsed = madx_parser.parse_file('''
+        REAL energy = 1.6;
+        REAL gamma = (ENERGY + 0.0005109989) / 0.0005109989;
+    ''', True)
+    assert re.search(r'energy', str(parsed))
+    assert not re.search(r'ENERGY', str(parsed))
+
 def test_parse_tfs_file():
     from pykern.pkunit import pkeq
     from sirepo.template import madx_parser
