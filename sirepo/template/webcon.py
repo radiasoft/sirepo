@@ -415,20 +415,25 @@ def export_jupyter_notebook(data):
             i = i + 1
             y_var = f'y{i}'
         x_points = f'{data_var}[:, {x_index}]' if not x_range else \
-            f'[x for x in {data_var}[:, {x_index}] if x >= {x_range[0]} and \
-                x <= {x_range[1]}]'
-        x_range_inds = f'([i for (i, x) in enumerate({x_var}) if \
-            x >= {x_range_var}[0]][0], \
-         [i for (i, x) in enumerate({x_var}) if x <= {x_range_var}[1]][-1] + 1)' if \
-            x_range else f'(0, len({x_var}))'
+            (
+                f'[x for x in {data_var}[:, {x_index}] if x >= {x_range[0]} and '
+                f'x <= {x_range[1]}]'
+            )
+        x_range_inds = (
+            f'([i for (i, x) in enumerate({x_var}) if '
+            f'x >= {x_range_var}[0]][0], '
+            f'[i for (i, x) in enumerate({x_var}) if x <= {x_range_var}[1]][-1] + 1)'
+        ) if x_range else f'(0, len({x_var}))'
         code = [
             f'{x_var} = {x_points}',
             f'{x_range_var} = {x_range}',
             f'{x_range_inds_var} = {x_range_inds}',
         ]
-        for cfg in y_info:
-            code.append(f'{cfg.y_var} = \
-            {data_var}[:, {cfg.y_index}][{x_range_inds_var}[0]:{x_range_inds_var}[1]]')
+        for v in y_info:
+            code.append(
+                (f'{v.y_var} = '
+                f'{data_var}[:, {v.y_index}][{x_range_inds_var}[0]:{x_range_inds_var}[1]]')
+            )
         nb.add_code_cell(code)
         if j == 0:
             # only do this once
@@ -472,11 +477,10 @@ def export_jupyter_notebook(data):
                 prm = rpt.fitParameters
                 var = rpt.fitVariable
                 nb.add_code_cell(
-                    f"{x_fit_var}, {y_fit_var}, {y_min_var}, {y_max_var}, {p_vals_var},\
-                    {sigma_var} = sirepo.analysis.fit_to_equation(\
-                        {x_var}[{x_range_inds_var}[0]:{x_range_inds_var}[1]],\
-                        y1, '{eqn}', '{var}', '{prm}\
-                    ')"
+                    (f'{x_fit_var}, {y_fit_var}, {y_min_var}, {y_max_var}, '
+                        f'{p_vals_var}, {sigma_var} = sirepo.analysis.fit_to_equation('
+                        f'{x_var}[{x_range_inds_var}[0]:{x_range_inds_var}[1]], '
+                        f"y1, '{eqn}', '{var}', '{prm}')")
                 )
                 y_info = [
                     PKDict(y_var=y_var, y_label='Data', style='scatter'),
@@ -508,23 +512,22 @@ def export_jupyter_notebook(data):
                     kmeansInit=rpt.clusterKmeansInit
                 )
                 nb.add_code_cell(
-                    f"{clusters_var} = sirepo.analysis.ml.compute_clusters(\
-                        {data_var}[:, {cols}], '{rpt.clusterMethod}',\
-                        {rpt.clusterScaleMin}, {rpt.clusterScaleMax},\
-                        {params}\
-                    )"
+                    (f'{clusters_var} = sirepo.analysis.ml.compute_clusters('
+                        f"{data_var}[:, {cols}], '{rpt.clusterMethod}', "
+                        f'{rpt.clusterScaleMin}, {rpt.clusterScaleMax}, {params})')
                 )
-                # can't add report because we don't know the result of compute_clusters
+                # can't use add_report because we don't know the result of
+                # compute_clusters
                 nb.add_code_cell([
                     'pyplot.figure()',
                     f"pyplot.xlabel('{x_label}')",
                     f"pyplot.ylabel('{y_label}')",
                     "pyplot.title('Clusters')",
                     f'for idx in range(int(max({clusters_var})) + 1):',
-                    f'  cl_x = [x for i, x in enumerate({x_var}) if \
-                        {clusters_var}[i] == idx]',
-                    f'  cl_y = [y for i, y in enumerate({y_var}) if \
-                        {clusters_var}[i] == idx]',
+                    (f'  cl_x = [x for i, x in enumerate({x_var}) if '
+                        f'{clusters_var}[i] == idx]'),
+                    (f'  cl_y = [y for i, y in enumerate({y_var}) if '
+                        f'{clusters_var}[i] == idx]'),
                     "  pyplot.plot(cl_x, cl_y, '.')",
                     'pyplot.show()'
                 ])

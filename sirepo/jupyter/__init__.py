@@ -126,11 +126,10 @@ class Notebook(PKDict):
         for y_params in params.y_info:
             x_pts_var = y_params.x_points if 'x_points' in y_params else params.x_var
             code.append(
-                f"pyplot.plot(\
-                    {x_pts_var},\
-                    {y_params.y_var},\
-                    '{self._PYPLOT_STYLE_MAP[y_params.style]}'\
-                )"
+                (f'pyplot.plot('
+                    f'{x_pts_var}, '
+                    f'{y_params.y_var}, '
+                    f"'{self._PYPLOT_STYLE_MAP[y_params.style]}')")
             )
             legends.append(f"{y_params.y_label}")
         if len(params.y_info) == 1:
