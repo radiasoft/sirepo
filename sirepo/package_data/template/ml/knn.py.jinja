@@ -3,21 +3,7 @@ from pykern import pkjson
 from pykern.pkcollections import PKDict
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.multiclass import check_classification_targets
 from sklearn.neighbors import KNeighborsClassifier
-
-e = False
-try:
-    check_classification_targets(train[:, out_idx])
-except ValueError:
-    e = True
-
-if e:
-    raise AssertionError(
-    'The data you supplied is continuous so it can not be used for'
-    ' classification. Please change the Application Mode to "Regression" or'
-    ' supply non-regression type data (ex binary) and re-run the simulation.'
-    )
 
 knn_error = []
 

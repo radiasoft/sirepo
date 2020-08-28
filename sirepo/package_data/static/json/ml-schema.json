@@ -13,6 +13,10 @@
             ["classification", "Classification"],
             ["regression", "Regression"]
         ],
+        "Classifier": [
+            ["decisionTree", "Decision Tree"],
+            ["knn", "K Nearest Neighbors"]
+        ],
         "InputOutputClass": [
             ["input", "Input"],
             ["output", "Output"],
@@ -137,6 +141,8 @@
     },
     "frameIdFields": {
         "animation": ["columnNumber", "appMode"],
+        "dtClassifierConfusionMatrixAnimation": [],
+        "dtRegressorConfusionMatrixAnimation": [],
         "epochAnimation": [],
         "knnClassificationMetricsAnimation": [],
         "knnConfusionMatrixAnimation": [],
@@ -144,12 +150,17 @@
     },
     "model": {
         "columnInfo": {},
+        "classificationAnimation": {
+            "classifier": ["Classifier", "Classifier", "knn"]
+        },
         "dataFile": {
             "appMode": ["Application Mode", "AppMode", "regression"],
             "file": ["Data File", "InputFile"],
             "inputsScaler": ["Inputs Scaler", "Scaler", "RobustScaler"],
             "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"]
         },
+        "dtClassifierConfusionMatrixAnimation": {},
+        "dtRegressorConfusionMatrixAnimation": {},
         "epochAnimation": {
             "plotScale": ["Plot Scale", "PlotScale", "linear"]
         },
@@ -220,6 +231,15 @@
                 "inputsScaler",
                 "outputsScaler"
             ],
+            "advanced": []
+        },
+        "dtClassifierConfusionMatrixAnimation": {
+            "title": "Decision Tree Confusion Matrix",
+            "basic": [],
+            "advanced": []
+        },
+        "dtRegressorConfusionMatrixAnimation": {
+            "title": "Decision Tree Regressor Confusion Matrix",
             "advanced": []
         },
         "epochAnimation": {
@@ -294,6 +314,7 @@
         "simulationSettings": {
             "title": "Simulation Settings",
             "basic": [
+                "classificationAnimation.classifier",
                 "knnClassification.kmax",
                 "knnClassification.kmin"
             ],
