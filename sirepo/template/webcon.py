@@ -369,10 +369,10 @@ def export_jupyter_notebook(data):
         'from sirepo import analysis',
     ])
 
-    #nb.add_markdown_cell(['## Function definitions'])
+    #nb.add_markdown_cell('Function definitions', header_level=2)
 
     data_var = 'data'
-    nb.add_markdown_cell('## Exported Data')
+    nb.add_markdown_cell('Exported Data', header_level=2)
     nb.add_code_cell(
         _data_cell(
             str(_SIM_DATA.lib_file_abspath(_analysis_data_path(data))),
@@ -381,7 +381,7 @@ def export_jupyter_notebook(data):
         hide=True
     )
 
-    nb.add_markdown_cell('## Analysis Plot')
+    nb.add_markdown_cell('Analysis Plot', header_level=2)
     col_info = data.models.analysisData.columnInfo
     x_var = 'x'
     x_range_var = 'x_range'
@@ -442,7 +442,7 @@ def export_jupyter_notebook(data):
         if 'action' in rpt:
             # reset y_var to 1st data set
             y_var = 'y1'
-            nb.add_markdown_cell(f'## {rpt.action} Plot')
+            nb.add_markdown_cell(f'{rpt.action} Plot', header_level=2)
             if rpt.action == 'fft':
                 # only 1 curve (for now?)
                 w_var = 'w'

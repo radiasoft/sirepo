@@ -26,6 +26,10 @@ class Notebook(PKDict):
             Adds a pyplot graph of x values vs. one or more arrays of y values
     """
 
+    _MARKDOWN_HEADERS = [
+        '', '#', '##', '###', '####', '#####', '######',
+    ]
+
     _PYPLOT_STYLE_MAP = PKDict(
         line='-',
         scatter='.',
@@ -61,9 +65,9 @@ class Notebook(PKDict):
             nbformat_minor = 4,
         )
 
-        self.add_markdown_cell(f'# {data.simulationType} - {data.models.simulation.name}')
+        self.add_markdown_cell(f'{data.simulationType} - {data.models.simulation.name}', 1)
         # commenting this out for now - may want a monolothic imports cell later
-        #self.add_markdown_cell(['## Imports', ])
+        #self.add_markdown_cell('Imports', 2)
 
     def add_code_cell(self, list_or_str, hide=False):
         """Adds a cell containing arbitrary python
@@ -76,19 +80,29 @@ class Notebook(PKDict):
         """
         self._add_cell('code', list_or_str, hide=hide)
 
-    def add_markdown_cell(self, list_or_str):
+    def add_markdown_cell(self, list_or_str, header_level=0):
         """Adds a cell containing arbitrary markdown
 
-         Args:
-             list_or_str (list | str): strings to include. These get joined to a single
-                 linesep-delimited string for clarity of presentation
-         """
+        Args:
+            list_or_str (list | str): strings to include. These get joined to a single
+                linesep-delimited string for clarity of presentation
+            header_level (int): markdown header level (max 6). Applies to 1st string in
+                list
+        """
+        if header_level == 0:
+            self._add_cell('markdown', list_or_str)
+            return
+        l0 = f'{self._MARKDOWN_HEADERS[max(0, min(header_level, 6))]} {list_or_str[0]}'
+        if isinstance(list_or_str, pkconfig.STRING_TYPES):
+            self._add_cell('markdown', l0 + list_or_str[1:])
+            return
+        list_or_str[0] = l0
         self._add_cell('markdown', list_or_str)
 
     def add_report(self, params):
         """Adds a pyplot graph of x values vs. one or more arrays of y values
 
-         Args:
+        Args:
              params (dict): plot parameters as follows:
                 title (str): plot title
                 x_var (array): x values to plot
@@ -99,7 +113,7 @@ class Notebook(PKDict):
                     x_points (array): x values to use instead of the global array
                     y_var (array): y values to plot
                     y_label (str): label for the y axis or legend
-         """
+        """
         self.add_code_cell([
             'from matplotlib import pyplot'
         ])
