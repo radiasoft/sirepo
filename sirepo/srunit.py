@@ -135,7 +135,6 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
 
 class UwsgiClient(PKDict):
 
-
     def sr_post(self, route_or_uri, data, headers=None):
         from pykern import pkjson
         from sirepo.pkcli import service
@@ -144,7 +143,7 @@ class UwsgiClient(PKDict):
         r = requests.post(
             (
                 f'http://{service._cfg().ip}:{service._cfg().nginx_proxy_port}'
-                f'{self._server_route(route_or_uri)}'
+                    + f'{self._server_route(route_or_uri)}'
             ),
             json=data,
             headers=headers,
@@ -284,7 +283,6 @@ class _TestClient(flask.testing.FlaskClient):
             'authCompleteRegistration',
             PKDict(displayName=email, simulationType=self.sr_sim_type),
         )
-
 
     def sr_get(self, route_or_uri, params=None, query=None, **kwargs):
         """Gets a request to route_or_uri to server

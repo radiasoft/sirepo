@@ -302,7 +302,7 @@ def _knn_classification_metrics_animation(frame_args):
             if not isinstance(d[k], PKDict):
                 continue
             x = [k]
-            x.extend(list(d[k].values()))
+            x.extend([round(x, 4) for x in d[k].values()])
             r.append(x)
         return r
 
@@ -315,10 +315,21 @@ def _knn_classification_metrics_animation(frame_args):
 
 def _knn_confusion_matrix_animation(frame_args):
     r = pkjson.load_any(frame_args.run_dir.join(_OUTPUT_FILE.knnConfusionFile))
-    r.title = f'K={r.k}'
-    for i, l in enumerate(r.labels):
-        r.matrix[i].insert(0, l)
-    return r
+    a = None
+    for i, _ in enumerate(r.matrix):
+        for j, v in enumerate(r.matrix[i]):
+            t = np.repeat([[i, j]], v, axis=0)
+            a = t if a is None else np.vstack([t, a])
+    return template_common.heatmap(
+        a,
+        PKDict(histogramBins=len(r.matrix)),
+        plot_fields=PKDict(
+            labels=r.labels,
+            title=f'K={r.k}',
+            x_label='Predicted',
+            y_label='True',
+        ),
+    )
 
 
 def _knn_error_rate_animation(frame_args):

@@ -388,7 +388,12 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'mirrorReport.grazingAngle',
                 'mirrorReport.heightAmplification',
             ]
-        res = cls._non_analysis_fields(data, r) + [
+        res = []
+        if r == 'beamline3DReport':
+            res.append('beamline')
+        else:
+            res.append(cls._non_analysis_fields(data, r))
+        res += [
             'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
             'simulation.sourceType', 'tabulatedUndulator', 'undulator',
             'arbitraryMagField',
@@ -423,10 +428,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                     break
             if beamline[-1]['id'] == wid:
                 res.append('postPropagation')
-        #TODO(pjm): any changes to the beamline will recompute the beamline3DReport
-        #           instead, need to determine which model fields affect the orientation
-        if r == 'beamline3DReport':
-            res.append('beamline')
         return res
 
     @classmethod

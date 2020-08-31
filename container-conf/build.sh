@@ -16,10 +16,12 @@ build_vars() {
 
 build_as_root() {
     umask 022
-    dnf config-manager \
+    build_yum config-manager \
         --add-repo \
         https://download.docker.com/linux/fedora/docker-ce.repo
-    build_yum install nodejs docker-ce
+    build_yum install fedora-workstation-repositories
+    build_yum config-manager --set-enabled google-chrome
+    build_yum install google-chrome-stable docker-ce
     mkdir "$sirepo_db_dir"
     chown "$build_run_user:" "$sirepo_db_dir"
 }
@@ -49,8 +51,7 @@ build_as_run_user() {
     pip install .
     PYKERN_PKCLI_TEST_MAX_FAILURES=1 \
         PYKERN_PKDEBUG_WANT_PID_TIME=1 \
-        SIREPO_PYTEST_SKIP=job_test:animation_test:report_test \
-        sirepo_test_no_karma=0 \
+        SIREPO_PYTEST_SKIP=animation_test \
         bash test.sh
     cd ..
 }
