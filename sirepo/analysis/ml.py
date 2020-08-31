@@ -13,9 +13,9 @@ import sklearn.preprocessing
 from pykern.pkcollections import PKDict
 
 
-def compute_clusters(data, method, min, max, params):
+def compute_clusters(data, method, cmin, cmax, params):
     x_scale = sklearn.preprocessing.MinMaxScaler(
-        feature_range=[min, max]
+        feature_range=[cmin, cmax]
     ).fit_transform(data)
     return _CLUSTER_METHODS[method](x_scale, PKDict(params))
 

@@ -358,7 +358,6 @@ def get_settings_report(run_dir, data):
 
 
 def export_jupyter_notebook(data):
-    # notebooks are JSON files
     import sirepo.jupyter
     nb = sirepo.jupyter.Notebook(data)
     nb.add_code_cell([
@@ -396,6 +395,19 @@ def export_jupyter_notebook(data):
         x_range = None
         if 'trimField' in rpt and int(rpt.trimField) == x_index:
             x_range = (float(rpt.trimMin), float(rpt.trimMax))
+        x_points = f'{data_var}[:, {x_index}]' if not x_range else \
+            (f'[x for x in {data_var}[:, {x_index}] if x >= {x_range[0]} and '
+                f'x <= {x_range[1]}]')
+        x_range_inds = (
+            f'([i for (i, x) in enumerate({x_var}) if '
+            f'x >= {x_range_var}[0]][0], '
+            f'[i for (i, x) in enumerate({x_var}) if x <= {x_range_var}[1]][-1] + 1)'
+        ) if x_range else f'(0, len({x_var}))'
+        code = [
+            f'{x_var} = {x_points}',
+            f'{x_range_var} = {x_range}',
+            f'{x_range_inds_var} = {x_range_inds}',
+        ]
         # many params like style are hard-coded - should move to schema?
         i = 1
         y_var = f'y{i}'
@@ -412,28 +424,12 @@ def export_jupyter_notebook(data):
                 y_label=y_label,
                 style='line'
             ))
+            code.append(
+                (f'{y_var} = '
+                f'{data_var}[:, {y_index}][{x_range_inds_var}[0]:{x_range_inds_var}[1]]')
+            )
             i = i + 1
             y_var = f'y{i}'
-        x_points = f'{data_var}[:, {x_index}]' if not x_range else \
-            (
-                f'[x for x in {data_var}[:, {x_index}] if x >= {x_range[0]} and '
-                f'x <= {x_range[1]}]'
-            )
-        x_range_inds = (
-            f'([i for (i, x) in enumerate({x_var}) if '
-            f'x >= {x_range_var}[0]][0], '
-            f'[i for (i, x) in enumerate({x_var}) if x <= {x_range_var}[1]][-1] + 1)'
-        ) if x_range else f'(0, len({x_var}))'
-        code = [
-            f'{x_var} = {x_points}',
-            f'{x_range_var} = {x_range}',
-            f'{x_range_inds_var} = {x_range_inds}',
-        ]
-        for v in y_info:
-            code.append(
-                (f'{v.y_var} = '
-                f'{data_var}[:, {v.y_index}][{x_range_inds_var}[0]:{x_range_inds_var}[1]]')
-            )
         nb.add_code_cell(code)
         if j == 0:
             # only do this once
@@ -447,7 +443,7 @@ def export_jupyter_notebook(data):
         if 'action' in rpt:
             # reset y_var to 1st data set
             y_var = 'y1'
-            nb.add_markdown_cell(f'{rpt.action} Plot', header_level=2)
+            nb.add_markdown_cell(f'{rpt.action.capitalize()} Plot', header_level=2)
             if rpt.action == 'fft':
                 # only 1 curve (for now?)
                 w_var = 'w'
@@ -467,33 +463,26 @@ def export_jupyter_notebook(data):
                     title='FFT'
                 ))
             if rpt.action == 'fit':
+                curves = ('fit', 'max', 'min')
                 x_fit_var = 'x_fit'
-                y_fit_var = 'y_fit'
-                y_max_var = 'y_fit_max'
-                y_min_var = 'y_fit_min'
-                p_vals_var = 'p_vals'
-                sigma_var = 'sigma'
-                eqn = rpt.fitEquation
-                prm = rpt.fitParameters
-                var = rpt.fitVariable
+                v = f'{x_fit_var}, '
+                for c in curves:
+                    v = v + f"{_var('y', c)}, "
                 nb.add_code_cell(
-                    (f'{x_fit_var}, {y_fit_var}, {y_min_var}, {y_max_var}, '
-                        f'{p_vals_var}, {sigma_var} = sirepo.analysis.fit_to_equation('
+                    (f'{v}'
+                        'p_vals, sigma = sirepo.analysis.fit_to_equation('
                         f'{x_var}[{x_range_inds_var}[0]:{x_range_inds_var}[1]], '
-                        f"y1, '{eqn}', '{var}', '{prm}')")
+                        f"y1, '{rpt.fitEquation}', '{rpt.fitVariable}', '{rpt.fitParameters}')")
                 )
-                y_info = [
-                    PKDict(y_var=y_var, y_label='Data', style='scatter'),
-                    PKDict(
-                        y_var=y_fit_var, x_points=x_fit_var, y_label='Fit', style='line'
-                    ),
-                    PKDict(
-                        y_var=y_max_var, x_points=x_fit_var, y_label='Max', style='line'
-                    ),
-                    PKDict(
-                        y_var=y_min_var, x_points=x_fit_var, y_label='Min', style='line'
-                    ),
-                ]
+                y_info = [PKDict(y_var=y_var, y_label='Data', style='scatter'), ]
+                for c in curves:
+                    y_info.append(
+                        PKDict(
+                            y_var=_var('y', c),
+                            x_points=x_fit_var,
+                            y_label=c.capitalize(), style='line'
+                        ),
+                    )
                 nb.add_report(PKDict(
                     x_var=x_var,
                     x_label='',
@@ -503,7 +492,7 @@ def export_jupyter_notebook(data):
             if rpt.action == 'cluster':
                 nb.add_code_cell('from sirepo.analysis import ml')
                 clusters_var = 'clusters'
-                cols = [idx for idx, f in enumerate(rpt.clusterFields) if f and \
+                cols = [idx for idx, f in enumerate(rpt.clusterFields) if f and
                         idx < len(col_info.names)]
                 params = PKDict(
                     count=rpt.clusterCount,
@@ -591,6 +580,29 @@ def write_epics_values(server_address, fields, values):
             return False
     return True
 
+
+def _add_fft_cells(notebook, x_var, y_var, x_label):
+    # only 1 curve (for now?)
+    w_var = 'w'
+    y_norm_var = 'y_norm'
+    notebook.add_code_cell(
+        f'{w_var}, {y_norm_var} = sirepo.analysis.get_fft({x_var}, {y_var})'
+    )
+    y_info = [PKDict(
+        y_var=y_norm_var,
+        y_label='',
+        style='line'
+    )]
+    notebook.add_report(PKDict(
+        x_var=w_var,
+        x_label=x_label,
+        y_info=y_info,
+        title='FFT'
+    ))
+
+
+def _add_fit_cells(notebook, x_var, y_var, x_label):
+    pass
 
 def _analysis_data_path(data):
     return _SIM_DATA.webcon_analysis_data_file(data)
@@ -1285,3 +1297,9 @@ def _update_epics_kicker(data):
 
 def _validate_eq_var(val):
     return len(val) == 1 and re.match(r'^[a-zA-Z]+$', val)
+
+
+def _var(*args):
+    return '_'.join(args)
+
+
