@@ -405,7 +405,7 @@ def _extract_report_twissReport(data, run_dir, filename=_TWISS_OUTPUT_FILE):
             x_label=_field_label(x),
         )
     )
-    if 'betx' in t:
+    if 'betx' in t and 'bety' in t and 'alfx' in t and 'alfy' in t:
         res.initialTwissParameters = PKDict(
             betx=t.betx[0],
             bety=t.bety[0],
