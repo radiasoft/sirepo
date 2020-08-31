@@ -376,8 +376,7 @@ def export_jupyter_notebook(data):
         _data_cell(
             str(_SIM_DATA.lib_file_abspath(_analysis_data_path(data))),
             data_var
-        ),
-        hide=True
+        ), hide=True
     )
 
     nb.add_markdown_cell('Analysis Plot', header_level=2)
@@ -440,86 +439,29 @@ def export_jupyter_notebook(data):
                 title='Analysis Plot'
             ))
 
-        if 'action' in rpt:
+        if 'action' in rpt and rpt.action:
             # reset y_var to 1st data set
             y_var = 'y1'
             nb.add_markdown_cell(f'{rpt.action.capitalize()} Plot', header_level=2)
             if rpt.action == 'fft':
-                # only 1 curve (for now?)
-                w_var = 'w'
-                y_norm_var = 'y_norm'
-                nb.add_code_cell(
-                    f'{w_var}, {y_norm_var} = sirepo.analysis.get_fft({x_var}, {y_var})'
-                )
-                y_info = [PKDict(
-                    y_var=y_norm_var,
-                    y_label='',
-                    style='line'
-                )]
-                nb.add_report(PKDict(
-                    x_var=w_var,
-                    x_label=x_label,
-                    y_info=y_info,
-                    title='FFT'
-                ))
+                _add_cells_fft(nb, x_var, y_var, x_label)
             if rpt.action == 'fit':
-                curves = ('fit', 'max', 'min')
-                x_fit_var = 'x_fit'
-                v = f'{x_fit_var}, '
-                for c in curves:
-                    v = v + f"{_var('y', c)}, "
-                nb.add_code_cell(
-                    (f'{v}'
-                        'p_vals, sigma = sirepo.analysis.fit_to_equation('
-                        f'{x_var}[{x_range_inds_var}[0]:{x_range_inds_var}[1]], '
-                        f"y1, '{rpt.fitEquation}', '{rpt.fitVariable}', '{rpt.fitParameters}')")
+                _add_cells_fit(
+                    nb, x_var, y_var, x_range_inds_var,
+                    rpt.fitEquation, rpt.fitVariable, rpt.fitParameters
                 )
-                y_info = [PKDict(y_var=y_var, y_label='Data', style='scatter'), ]
-                for c in curves:
-                    y_info.append(
-                        PKDict(
-                            y_var=_var('y', c),
-                            x_points=x_fit_var,
-                            y_label=c.capitalize(), style='line'
-                        ),
-                    )
-                nb.add_report(PKDict(
-                    x_var=x_var,
-                    x_label='',
-                    y_info=y_info,
-                    title='Fit'
-                ))
             if rpt.action == 'cluster':
-                nb.add_code_cell('from sirepo.analysis import ml')
-                clusters_var = 'clusters'
-                cols = [idx for idx, f in enumerate(rpt.clusterFields) if f and
-                        idx < len(col_info.names)]
-                params = PKDict(
-                    count=rpt.clusterCount,
-                    seed=rpt.clusterRandomSeed,
-                    dbscanEps=rpt.clusterDbscanEps,
-                    kmeansInit=rpt.clusterKmeansInit
+                _add_cells_cluster(
+                    nb, data_var, rpt.clusterFields, len(col_info.names),
+                    x_var, y_var, x_label, y_label,
+                    rpt.clusterMethod, [rpt.clusterScaleMin, rpt.clusterScaleMax],
+                    PKDict(
+                        count=rpt.clusterCount,
+                        seed=rpt.clusterRandomSeed,
+                        dbscanEps=rpt.clusterDbscanEps,
+                        kmeansInit=rpt.clusterKmeansInit
+                    )
                 )
-                nb.add_code_cell(
-                    (f'{clusters_var} = sirepo.analysis.ml.compute_clusters('
-                        f"{data_var}[:, {cols}], '{rpt.clusterMethod}', "
-                        f'{rpt.clusterScaleMin}, {rpt.clusterScaleMax}, {params})')
-                )
-                # can't use add_report because we don't know the result of
-                # compute_clusters
-                nb.add_code_cell([
-                    'pyplot.figure()',
-                    f"pyplot.xlabel('{x_label}')",
-                    f"pyplot.ylabel('{y_label}')",
-                    "pyplot.title('Clusters')",
-                    f'for idx in range(int(max({clusters_var})) + 1):',
-                    (f'  cl_x = [x for i, x in enumerate({x_var}) if '
-                        f'{clusters_var}[i] == idx]'),
-                    (f'  cl_y = [y for i, y in enumerate({y_var}) if '
-                        f'{clusters_var}[i] == idx]'),
-                    "  pyplot.plot(cl_x, cl_y, '.')",
-                    'pyplot.show()'
-                ])
         j = j + 1
         rpt_name = f'analysisReport{j}'
     return nb
@@ -581,7 +523,35 @@ def write_epics_values(server_address, fields, values):
     return True
 
 
-def _add_fft_cells(notebook, x_var, y_var, x_label):
+def _add_cells_cluster(notebook, data_var, fields, col_limit, x_var, y_var,
+        x_label, y_label, cluster_method, scale_range, cluster_params):
+    notebook.add_code_cell('from sirepo.analysis import ml')
+    clusters_var = 'clusters'
+    cols = [idx for idx, f in enumerate(fields) if f and
+            idx < col_limit]
+    notebook.add_code_cell(
+        (f'{clusters_var} = sirepo.analysis.ml.compute_clusters('
+         f"{data_var}[:, {cols}], '{cluster_method}', "
+         f'{scale_range}, {cluster_params})')
+    )
+    # can't use add_report because we don't know the result of
+    # compute_clusters
+    notebook.add_code_cell([
+        'pyplot.figure()',
+        f"pyplot.xlabel('{x_label}')",
+        f"pyplot.ylabel('{y_label}')",
+        "pyplot.title('Clusters')",
+        f'for idx in range(int(max({clusters_var})) + 1):',
+        (f'  cl_x = [x for i, x in enumerate({x_var}) if '
+         f'{clusters_var}[i] == idx]'),
+        (f'  cl_y = [y for i, y in enumerate({y_var}) if '
+         f'{clusters_var}[i] == idx]'),
+        "  pyplot.plot(cl_x, cl_y, '.')",
+        'pyplot.show()'
+    ])
+
+
+def _add_cells_fft(notebook, x_var, y_var, x_label):
     # only 1 curve (for now?)
     w_var = 'w'
     y_norm_var = 'y_norm'
@@ -601,8 +571,34 @@ def _add_fft_cells(notebook, x_var, y_var, x_label):
     ))
 
 
-def _add_fit_cells(notebook, x_var, y_var, x_label):
-    pass
+def _add_cells_fit(notebook, x_var, y_var, x_range_inds_var, equation, fit_var, fit_params):
+    curves = ('fit', 'max', 'min')
+    x_fit_var = 'x_fit'
+    v = f'{x_fit_var}, '
+    for c in curves:
+        v = v + f"{_var('y', c)}, "
+    notebook.add_code_cell(
+        (f'{v}'
+         'p_vals, sigma = sirepo.analysis.fit_to_equation('
+         f'{x_var}[{x_range_inds_var}[0]:{x_range_inds_var}[1]], '
+         f"y1, '{equation}', '{fit_var}', '{fit_params}')")
+    )
+    y_info = [PKDict(y_var=y_var, y_label='Data', style='scatter'), ]
+    for c in curves:
+        y_info.append(
+            PKDict(
+                y_var=_var('y', c),
+                x_points=x_fit_var,
+                y_label=c.capitalize(), style='line'
+            ),
+        )
+    notebook.add_report(PKDict(
+        x_var=x_var,
+        x_label='',
+        y_info=y_info,
+        title='Fit'
+    ))
+
 
 def _analysis_data_path(data):
     return _SIM_DATA.webcon_analysis_data_file(data)

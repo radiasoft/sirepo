@@ -13,9 +13,22 @@ import sklearn.preprocessing
 from pykern.pkcollections import PKDict
 
 
-def compute_clusters(data, method, cmin, cmax, params):
+def compute_clusters(data, method, scale_range, params):
+    """Finds clusters in a data set using a particular sklearn method
+
+    Args:
+        data (array): the data set
+        method (str): analysis method:
+            'agglomerative' | 'dbscan' | 'gmix' | 'kmeans'
+        scale_range (array): minimum and maximum for MinMaxScaler
+        params (dict): parameters for the provided method:
+            count (int): initial number of clusters to find (agglomerative, gmix, kmeans)
+            seed (int): random number seed (gmix, kmeans)
+            dbscanEps (float): <see sklearn docs> (dbscan)
+            kmeansInit (int): <see sklearn docs> (kmeans)
+    """
     x_scale = sklearn.preprocessing.MinMaxScaler(
-        feature_range=[cmin, cmax]
+        feature_range=scale_range
     ).fit_transform(data)
     return _CLUSTER_METHODS[method](x_scale, PKDict(params))
 
