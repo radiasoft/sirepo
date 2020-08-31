@@ -48,3 +48,9 @@ def kmeans(scale, count, seed, kmeans_init):
                 axis = 0
             )
         )
+
+
+def scale_data(data, scale_range):
+    return sklearn.preprocessing.MinMaxScaler(
+        feature_range=scale_range
+    ).fit_transform(data)
