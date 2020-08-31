@@ -447,20 +447,12 @@ def export_jupyter_notebook(data):
                 _add_cells_fft(nb, x_var, y_var, x_label)
             if rpt.action == 'fit':
                 _add_cells_fit(
-                    nb, x_var, y_var, x_range_inds_var,
-                    rpt.fitEquation, rpt.fitVariable, rpt.fitParameters
+                    nb, x_var, y_var, x_range_inds_var, rpt
                 )
             if rpt.action == 'cluster':
                 _add_cells_cluster(
                     nb, data_var, rpt.clusterFields, len(col_info.names),
-                    x_var, y_var, x_label, y_label,
-                    rpt.clusterMethod, [rpt.clusterScaleMin, rpt.clusterScaleMax],
-                    PKDict(
-                        count=rpt.clusterCount,
-                        seed=rpt.clusterRandomSeed,
-                        dbscanEps=rpt.clusterDbscanEps,
-                        kmeansInit=rpt.clusterKmeansInit
-                    )
+                    x_var, y_var, x_label, y_label, rpt
                 )
         j = j + 1
         rpt_name = f'analysisReport{j}'
@@ -524,15 +516,26 @@ def write_epics_values(server_address, fields, values):
 
 
 def _add_cells_cluster(notebook, data_var, fields, col_limit, x_var, y_var,
-        x_label, y_label, cluster_method, scale_range, cluster_params):
+        x_label, y_label, rpt):
     notebook.add_code_cell('from sirepo.analysis import ml')
     clusters_var = 'clusters'
+    scale_var = 'scale'
     cols = [idx for idx, f in enumerate(fields) if f and
             idx < col_limit]
+    method_params = PKDict(
+        agglomerative=f'{rpt.clusterCount}',
+        dbscan=f'{rpt.clusterDbscanEps}',
+        gmix=f'{rpt.clusterCount}, {rpt.clusterRandomSeed}',
+        kmeans=f'{rpt.clusterCount}, {rpt.clusterRandomSeed}, {rpt.clusterKmeansInit}',
+    )
     notebook.add_code_cell(
-        (f'{clusters_var} = sirepo.analysis.ml.compute_clusters('
-         f"{data_var}[:, {cols}], '{cluster_method}', "
-         f'{scale_range}, {cluster_params})')
+        [
+            (f'{scale_var} = sirepo.analysis.ml.scale_data({data_var}[:, {cols}], '
+             f'{[rpt.clusterScaleMin, rpt.clusterScaleMax]})'),
+            (f'{clusters_var} = sirepo.analysis.ml.{rpt.clusterMethod}('
+             f"{scale_var}, "
+             f'{method_params[rpt.clusterMethod]})')
+        ]
     )
     # can't use add_report because we don't know the result of
     # compute_clusters
@@ -571,7 +574,7 @@ def _add_cells_fft(notebook, x_var, y_var, x_label):
     ))
 
 
-def _add_cells_fit(notebook, x_var, y_var, x_range_inds_var, equation, fit_var, fit_params):
+def _add_cells_fit(notebook, x_var, y_var, x_range_inds_var, rpt):
     curves = ('fit', 'max', 'min')
     x_fit_var = 'x_fit'
     v = f'{x_fit_var}, '
@@ -581,7 +584,7 @@ def _add_cells_fit(notebook, x_var, y_var, x_range_inds_var, equation, fit_var, 
         (f'{v}'
          'p_vals, sigma = sirepo.analysis.fit_to_equation('
          f'{x_var}[{x_range_inds_var}[0]:{x_range_inds_var}[1]], '
-         f"y1, '{equation}', '{fit_var}', '{fit_params}')")
+         f"y1, '{rpt.fitEquation}', '{rpt.fitVariable}', '{rpt.fitParameters}')")
     )
     y_info = [PKDict(y_var=y_var, y_label='Data', style='scatter'), ]
     for c in curves:
