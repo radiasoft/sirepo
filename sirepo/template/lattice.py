@@ -245,6 +245,9 @@ class LatticeParser(object):
             assert 'at' in res, 'sequence element missing "at": {}'.format(values)
             at = res.at
             del res['at']
+            assert label, 'unlabeled element: {}'.format(values)
+            assert label.upper() not in self.elements_by_name, \
+                'duplicate element in sequence: {}'.format(label)
             if cmd not in self.schema.model:
                 parent = self.elements_by_name[cmd]
                 assert parent
@@ -252,7 +255,6 @@ class LatticeParser(object):
                 if len(res) == 3:
                     self.container['items'].append([parent._id, at])
                     return
-            assert label, 'unlabeled element: {}'.format(values)
             self.container['items'].append([res._id, at])
         assert 'at' not in res
         # copy in superclass values
@@ -263,16 +265,15 @@ class LatticeParser(object):
             res.type = parent.type
             cmd = parent.type
         self.sim_data.update_model_defaults(res, res.type)
-        self.data.models.elements.append(res)
         if not label:
             label = values[0].upper()
             assert label in self.elements_by_name, 'no element for label: {}: {}'.format(label, values)
             self.elements_by_name[label].update(res)
-        elif label.upper() in self.elements_by_name:
-            pkdlog('duplicate label: {}', values)
         else:
+            assert label.upper() not in self.elements_by_name, \
+                'duplicate element labeled: {}'.format(label)
             self.elements_by_name[label.upper()] = res
-        return res
+        self.data.models.elements.append(res)
 
     def __parse_fields(self, cmd, values, res):
         model_schema = self.schema.model.get(cmd)
@@ -499,8 +500,10 @@ class LatticeUtil(object):
                 res += '{},'.format(el_type)
             for f in el[1]:
                 var_assign = ''
-                if want_var_assign and CodeVar.is_var_value(f[1]):
-                    var_assign = ':'
+                if want_var_assign:
+                    s = self.schema.model[el_type]
+                    if f[0] in s and s[f[0]][1] == 'RPNValue' and CodeVar.is_var_value(f[1]):
+                        var_assign = ':'
                 res += '{}{}={},'.format(f[0], var_assign, f[1])
             res = res[:-1]
             if want_semicolon:

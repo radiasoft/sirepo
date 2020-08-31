@@ -13,7 +13,6 @@ SIREPO.app.config(function() {
 
 SIREPO.app.factory('commandService', function(appState, latticeService, panelState, validationService) {
     var self = {};
-    var COMMAND_PREFIX = 'command_';
     self.deleteCommandWarning = '';
 
     self.canDeleteCommand = function(command) {
@@ -47,9 +46,7 @@ SIREPO.app.factory('commandService', function(appState, latticeService, panelSta
         return null;
     };
 
-    self.commandModelName = function(type) {
-        return COMMAND_PREFIX + type;
-    };
+    self.commandModelName = latticeService.commandModelName;
 
     self.editCommand = function(item) {
         var modelName = self.commandModelName(item._type);
@@ -85,9 +82,7 @@ SIREPO.app.factory('commandService', function(appState, latticeService, panelSta
         return value;
     };
 
-    self.isCommandModelName = function(name) {
-        return name.indexOf(COMMAND_PREFIX) === 0;
-    };
+    self.isCommandModelName = latticeService.isCommandModelName;
 
     return self;
 });
