@@ -92,6 +92,8 @@ class LatticeIterator(ElementIterator):
 
 
 class LatticeParser(object):
+    COMMAND_PREFIX = 'command_'
+
     def __init__(self, sim_data):
         self.sim_data = sim_data
         self.schema = sim_data.schema()
@@ -146,8 +148,10 @@ class LatticeParser(object):
     def _eval_var(self, code_var, value):
         return code_var.eval_var_with_assert(value)
 
-    def __format_command(self, name):
-        return f'command_{name}'
+
+    @classmethod
+    def _format_command(cls, name):
+        return f'{cls.COMMAND_PREFIX}{name}'
 
     def _format_length(self, length):
         res = '{:.8E}'.format(length)
@@ -353,18 +357,18 @@ class LatticeParser(object):
                 type=cmd,
                 _id=self.parser.next_id(),
             )
-            self.__parse_fields(self.__format_command(cmd), values, self.container)
+            self.__parse_fields(self._format_command(cmd), values, self.container)
             self.container['items'] = []
             if cmd == 'sequence':
                 self.data.models.sequences.append(self.container)
                 return
-        if self.__format_command(cmd) in self.schema.model:
+        if self._format_command(cmd) in self.schema.model:
             res = PKDict(
                 _type=cmd,
                 _id=self.parser.next_id(),
                 name=label,
             )
-            self.__parse_fields(self.__format_command(cmd), values, res)
+            self.__parse_fields(self._format_command(cmd), values, res)
             self.sim_data.update_model_defaults(res, LatticeUtil.model_name_for_data(res))
             self.data.models.commands.append(res)
         elif cmd == 'line':
@@ -481,7 +485,8 @@ class LatticeUtil(object):
     def model_name_for_data(cls, model):
         """Returns the model's schema name.
         """
-        return 'command_{}'.format(model._type) if cls.is_command(model) else model.type
+        return LatticeParser._format_command(model._type) if cls.is_command(model) \
+            else model.type
 
     def render_lattice(self, fields, quote_name=False, want_semicolon=False, want_name=True, want_var_assign=False):
         """Render lattice elements.
