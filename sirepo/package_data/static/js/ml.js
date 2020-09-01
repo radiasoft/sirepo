@@ -32,7 +32,9 @@ SIREPO.app.factory('mlService', function(appState) {
             'dtRegressorConfusionMatrixAnimation',
             'knnClassificationMetricsAnimation',
             'knnConfusionMatrixAnimation',
-            'knnErrorRateAnimation'
+            'knnErrorRateAnimation',
+            'linearSvcErrorRateAnimation',
+            'linearSvcConfusionMatrixAnimation'
         ].includes(analysisModel)) {
             return 'classificationAnimation';
         }
@@ -190,13 +192,17 @@ SIREPO.app.controller('ClassificationController', function(appState, frameCache,
     self.simComputeModel = 'classificationAnimation'; // TODO(e-carlin): try ending in compute and see what happens
     self.simScope = $scope;
 
-    function showKnnSettings() {
+    function showClassifierSettings() {
         ['min', 'max'].forEach((f) => panelState.showField(
             'knnClassification',
             `k${f}`,
             appState.models.classificationAnimation.classifier === 'knn'
-            )
-        );
+        ));
+        ['toleranceMax', 'toleranceMin', 'totalNumValues'].forEach((f) => panelState.showField(
+            'linearSvcClassification',
+            f,
+            appState.models.classificationAnimation.classifier === 'linearSvc'
+        ));
     }
 
     self.hasFrames = frameCache.hasFrames;
@@ -216,10 +222,11 @@ SIREPO.app.controller('ClassificationController', function(appState, frameCache,
     };
 
     appState.whenModelsLoaded($scope, function() {
+        showClassifierSettings();
         appState.watchModelFields(
             $scope,
             ['classificationAnimation.classifier'],
-            showKnnSettings
+            showClassifierSettings
         );
     });
 });

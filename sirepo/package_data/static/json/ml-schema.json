@@ -15,7 +15,8 @@
         ],
         "Classifier": [
             ["decisionTree", "Decision Tree"],
-            ["knn", "K Nearest Neighbors"]
+            ["knn", "K Nearest Neighbors"],
+            ["linearSvc", "Linear SVC"]
         ],
         "InputOutputClass": [
             ["input", "Input"],
@@ -146,7 +147,9 @@
         "epochAnimation": [],
         "knnClassificationMetricsAnimation": [],
         "knnConfusionMatrixAnimation": [],
-        "knnErrorRateAnimation": []
+        "knnErrorRateAnimation": [],
+        "linearSvcConfusionMatrixAnimation": [],
+        "linearSvcErrorRateAnimation": []
     },
     "model": {
         "columnInfo": {},
@@ -177,6 +180,13 @@
         "knnClassificationMetricsAnimation": {},
         "knnConfusionMatrixAnimation": {},
         "knnErrorRateAnimation": {},
+        "linearSvcClassification": {
+            "toleranceMax": ["Tolerance Max", "Float", 15e-2],
+            "toleranceMin": ["Tolerance Min", "Float", 1e-3],
+            "totalNumValues": ["Total number of values", "Integer", 20]
+        },
+        "linearSvcConfusionMatrixAnimation": {},
+        "linearSvcErrorRateAnimation": {},
         "mlModel": {
             "mlModule": ["Model Type", "MLModule", "neuralnet"]
         },
@@ -269,6 +279,14 @@
             "title": "KNN Error Rate",
             "advanced": []
         },
+        "linearSvcConfusionMatrixAnimation": {
+            "title": "Linear SVC Confusion Matrix",
+            "advanced": []
+        },
+        "linearSvcErrorRateAnimation": {
+            "title": "Linear SVC Error Rate",
+            "advanced": []
+        },
         "mlModel": {
             "title": "Model",
             "basic": [
@@ -316,7 +334,10 @@
             "basic": [
                 "classificationAnimation.classifier",
                 "knnClassification.kmax",
-                "knnClassification.kmin"
+                "knnClassification.kmin",
+                "linearSvcClassification.toleranceMax",
+                "linearSvcClassification.toleranceMin",
+                "linearSvcClassification.totalNumValues"
             ],
             "advanced": []
         },
