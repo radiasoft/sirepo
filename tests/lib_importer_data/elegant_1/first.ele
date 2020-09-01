@@ -1,0 +1,147 @@
+!
+! APS linac lattice for Start to end simulation
+! From after L1 to TESSA Diagnostic
+! 11/14/2019 Y.Park
+! Re-optimized to match Genesis at **Prebuncher entrance** based on Plinac_start.param output and its relevant input Twiss parameters (twiss.input)
+! Optimization result is from tessamatch1.ele
+! handshake point has been temporarily moved due to problems with CWIGGLER.
+
+
+
+&run_setup
+        lattice = PClinac_TESSA_LSC.lte,
+        default_order = 1,
+        use_beamline = "LTOMATCH",
+        p_central = 85,
+        final = %s.fin,
+        sigma = %s.sig,
+        !output = %s.out,
+        magnets = %s.mag,
+        parameters = %s.param,
+        always_change_p0 = 1
+		centroid = %s.cen
+&end
+
+&load_parameters
+		filename = PC.param
+		change_defined_values = 1,
+        allow_missing_parameters = 1,
+        allow_missing_elements = 1
+&end
+
+! Load parameters for interleaving set value from after L1 to after Chicane
+&load_parameters
+!        filename = PClinacma1.param,
+		filename = PClinac_start.param,
+        change_defined_values = 1,
+        allow_missing_parameters = 1,
+        allow_missing_elements = 1
+&end
+
+! Load parameter from L3FS5 to PBC1
+&load_parameters
+        filename = transverse.param,
+        change_defined_values = 1,
+        allow_missing_parameters = 1,
+        allow_missing_elements = 1
+&end
+
+! Load parameter from PBC1 to DUT
+!&load_parameters
+!        filename = match02c.par,
+!        change_defined_values = 1,
+!        allow_missing_parameters = 1,
+!        allow_missing_elements = 1
+!&end
+
+
+&load_parameters
+        filename = tessamatch1.paramOpt,
+        change_defined_values = 1,
+		allow_missing_parameters = 1,
+        allow_missing_elements = 1
+&end
+
+! Set L2 phase for chirping
+! 74.5 degree for less chirping
+! 65 degree for over chirpling
+! 70 degree for minimum bunch length
+
+&alter_elements name=Q, type=charge, item=TOTAL, value=300e-12 ,        allow_missing_elements = 1
+&end
+
+&alter_elements name=L2CELL*, type=RF*, item=PHASE, value=  57.55 &end
+&alter_elements name=L4CELL*, type=RF*, item=PHASE, value=95.0 &end
+&alter_elements name=L5CELL*, type=RF*, item=PHASE, value=95.0 &end
+
+&alter_elements name=L4CELL*, type=RF*, item=VOLT, multiplicative =1, value = 1.07 &end
+&alter_elements name=L5CELL*, type=RF*, item=VOLT, multiplicative =1, value = 1.07 &end
+
+&alter_elements name=*, type=RF*, item=LSC, value=1  &end
+&alter_elements name=*, type=RF*, item=N_KICKS, value=5 &end
+
+! Initial lattice function after L1
+
+! This lattice function is from Astra with two additional quadrupoles
+&twiss_output
+        matched = 0,
+        filename = %s.twi,
+      !  beta_x = 3.0,
+      !  alpha_x = -0.37,
+      ! beta_y = 2.1,f
+      ! alpha_y = -5.4,
+	!	reference_file = twiss.input,
+	!Twiss Parameters from twiss.input (from S.Shin\..\Method_SShin)
+	beta_x = 4.034896311524342,
+	beta_y = 4.199343696609461,
+	alpha_x = -1.609709872915761,
+	alpha_y = -1.653138844198896
+
+&end
+
+&run_control
+
+n_indices =1
+&end
+
+
+&link_elements target=L2CELL*, source=L2CELL2, item=PHASE, equation="PHASE", &end
+&vary_element name=L2CELL2, item=PHASE, initial=60, final=65, index_limit=20 &end
+
+!&insert_elements name=*, type="[CRR]*[SFF]*[RCC]*[CWA]*",
+!      			 insert_before = 0,add_at_end=1,add_at_start=0,
+!                 element_def = "Watch: watch,filename=\"frame-%s-%04ld.wpp\",mode=coord,sparse_interval=1"
+!&end
+
+
+! This option is just for lattice function.
+&bunched_beam
+ n_particles_per_bunch = 1
+&end
+
+! This option is particle tracking from PCG beam
+&sdds_beam
+
+		input = "PCG.sdds"
+
+		sample_fraction=0.1,
+			reuse_bunch=1
+
+&end
+
+&save_lattice
+filename = %s_save.lte
+output_seq=1
+&end
+
+
+&matrix_output
+	printout = "%s_out.matrix",
+	printout_order=2,
+	SDDS_output ="matrix_output.sdds",
+	SDDS_output_order = 2,
+    output_at_each_step=1,
+&end
+
+
+&track &end

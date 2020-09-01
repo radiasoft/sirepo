@@ -178,15 +178,6 @@ def get_application_data(data, **kwargs):
         return data
 
 
-def _code_var(variables):
-    return elegant_lattice_importer.elegant_code_var(variables)
-
-
-def _file_name_from_id(file_id, model_data, run_dir):
-    return str(run_dir.join(
-        _get_filename_for_element_id(file_id, model_data)))
-
-
 def get_data_file(run_dir, model, frame, options=None, **kwargs):
 
     def _sdds(filename):
@@ -217,27 +208,70 @@ def get_data_file(run_dir, model, frame, options=None, **kwargs):
 
 def import_file(req, test_data=None, **kwargs):
     # input_data is passed by test cases only
-    input_data = test_data
-    text = pkcompat.from_bytes(req.file_stream.read())
-    if 'simulationId' in req.req_data:
-        input_data = simulation_db.read_simulation_json(SIM_TYPE, sid=req.req_data.simulationId)
-    if re.search(r'\.ele$', req.filename, re.IGNORECASE):
-        data = elegant_command_importer.import_file(text)
-    elif re.search(r'\.lte$', req.filename, re.IGNORECASE):
+    d = test_data
+    if 'id' in req:
+        d = simulation_db.read_simulation_json(SIM_TYPE, sid=req.id)
+    p = pkio.py_path(req.filename)
+    res = parse_input_text(
+        p,
+        pkcompat.from_bytes(req.file_stream.read()),
+        d,
+    )
+    res.models.simulation.name = p.purebasename
+    if d and not test_data:
+        simulation_db.delete_simulation(
+            SIM_TYPE,
+            d.models.simulation.simulationId,
+        )
+    return res
+
+
+def lib_importer_parse_file(path):
+    d = parse_input_text(path)
+    d = parse_input_text(
+        path.new(basename=LatticeUtil.find_first_command(d, 'run_setup').lattice),
+        input_data=d,
+    )
+
+    def _input_files(model_type):
+        return [k for k, v in _SCHEMA.model[model_type].items() if 'InputFile' in v[1]];
+
+    def _verify_files(model, model_type, model_name, category):
+        for i in _input_files(model_type):
+            f = model.get(i)
+            if not f:
+                continue
+            assert sirepo.util.secure_filename(f) == f, \
+                f'file={f} must be a simple name'
+            p = path.dirpath().join(f)
+            assert p.check(file=True), \
+                f'file={f} missing from {category}={model_name} type={model_type}'
+
+    for i in d.models.elements:
+        _verify_files(i, i.type, i.name, 'element')
+    for i in d.models.commands:
+        _verify_files(i, lattice.LatticeUtil.model_name_for_data(i), i._type, 'command')
+    return d
+
+
+def parse_input_text(path, text=None, input_data=None):
+    if text is None:
+        text = pkio.read_text(path)
+    e = path.ext.lower()
+    if e == '.ele':
+        return elegant_command_importer.import_file(text)
+    if e == '.lte':
         data = elegant_lattice_importer.import_file(text, input_data)
         if input_data:
             _map_commands_to_lattice(data)
-    elif re.search(r'\.madx$', req.filename, re.IGNORECASE):
+        return data
+    if e == '.madx':
         from sirepo.template import madx_converter, madx_parser
-        data = madx_converter.from_madx(
+        return madx_converter.from_madx(
             SIM_TYPE,
-            madx_parser.parse_file(text, downcase_variables=True))
-    else:
-        raise IOError('invalid file extension, expecting .ele or .lte')
-    data.models.simulation.name = re.sub(r'\.(lte|ele|madx)$', '', req.filename, flags=re.IGNORECASE)
-    if input_data and not test_data:
-        simulation_db.delete_simulation(SIM_TYPE, input_data.models.simulation.simulationId)
-    return data
+            madx_parser.parse_file(text, downcase_variables=True),
+        )
+    raise IOError(f'{path.basename}: invalid file format; expecting .madx, .ele, or .lte')
 
 
 def prepare_for_client(data):
@@ -407,6 +441,10 @@ def _build_filename_map(data):
 
 def _build_filename_map_from_util(util):
     return util.iterate_models(OutputFileIterator()).result
+
+
+def _code_var(variables):
+    return elegant_lattice_importer.elegant_code_var(variables)
 
 
 def _command_file_extension(model):
@@ -592,6 +630,11 @@ def _file_info(filename, run_dir, file_id):
             sdds.sddsdata.Terminate(_SDDS_INDEX)
         except Exception:
             pass
+
+
+def _file_name_from_id(file_id, model_data, run_dir):
+    return str(run_dir.join(
+        _get_filename_for_element_id(file_id, model_data)))
 
 
 def _format_field_value(state, model, field, el_type):
