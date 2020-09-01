@@ -555,22 +555,20 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     // NOT PICKING UP "VIRTUAL" SHAPES
     // NOT SHRINKING PAST ORIGINAL SIZE
     function fit(shape, groupShape) {
-        var o = self.getObject(shape.id);
-        var groupId = o.groupId;
+        const o = self.getObject(shape.id);
+        const groupId = o.groupId;
         if (groupId === '' || groupId !== groupShape.id) {
             groupShape.center = shape.center.join(',');
             groupShape.size = shape.size.join(',');
             return groupShape;
         }
-        var mShapes = self.getObject(groupShape.id).members.map(function (mId) {
+        let mShapes = self.getObject(groupShape.id).members.map(function (mId) {
             return self.getShape(mId);
         }).filter(function (s) {
             return ! ! s;
         });
-        // may be a duplicate, doesn't matter
-        mShapes.push(shape);
-        var newBounds = shapesBounds(mShapes);
-        for (var dim in newBounds) {
+        const newBounds = shapesBounds(mShapes);
+        for (let dim in newBounds) {
             groupShape.size[dim] = Math.abs(newBounds[dim][1] - newBounds[dim][0]);
             groupShape.center[dim] = newBounds[dim][0] + groupShape.size[dim] / 2;
         }
@@ -616,7 +614,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function loadShapes() {
-        self.shapes = [];
+        //self.shapes = [];
         appState.models.geometry.objects.forEach(function (o) {
             addShapesForObject(o);
         });
@@ -670,13 +668,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function shapesBounds(shapes) {
-        var b = {
+        let b = {
             x: [Number.MAX_VALUE, -Number.MAX_VALUE],
             y: [Number.MAX_VALUE, -Number.MAX_VALUE],
             z: [Number.MAX_VALUE, -Number.MAX_VALUE]
         };
         shapes.forEach(function (s) {
-            for (var dim in b) {
+            for (let dim in b) {
                 b[dim] = [
                     Math.min(b[dim][0], s.center[dim] - s.size[dim] / 2),
                     Math.max(b[dim][1], s.center[dim] + s.size[dim] / 2)
@@ -722,18 +720,17 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         var mag = (o.magnetization || SIREPO.ZERO_STR).split(/\s*,\s*/).map(function (m) {
             return parseFloat(m);
         });
-        panelState.showField(
-            'geomObject',
-            'material',
-            true  //Math.hypot(mag[0], mag[1], mag[2]) > 0
-        );
+        //panelState.showField(
+        //    'geomObject',
+        //    'material',
+        //    true  //Math.hypot(mag[0], mag[1], mag[2]) > 0
+        //);
     }
 
     function updateToolEditor(toolItem) {
     }
 
     function virtualShapeId(shape) {
-        //return 65536 * (shape.id + 1) + self.shapes.length;
         return 65536 * (shape.id + 1) + getVirtualShapes(shape).length;
     }
 

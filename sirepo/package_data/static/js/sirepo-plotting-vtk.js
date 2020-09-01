@@ -1253,7 +1253,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 else {
                     selectedObject = null;
                 }
-                //drawObjects(ELEVATION_INFO.front);
                 drawObjects(ELEVATION_INFO[$scope.elevation]);
             }
 
