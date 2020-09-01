@@ -34,7 +34,10 @@ SIREPO.app.factory('mlService', function(appState) {
             'knnConfusionMatrixAnimation',
             'knnErrorRateAnimation',
             'linearSvcErrorRateAnimation',
-            'linearSvcConfusionMatrixAnimation'
+            'linearSvcConfusionMatrixAnimation',
+            'logisticRegressionClassificationMetricsAnimation',
+            'logisticRegressionConfusionMatrixAnimation',
+            'logisticRegressionErrorRateAnimation'
         ].includes(analysisModel)) {
             return 'classificationAnimation';
         }
@@ -198,11 +201,17 @@ SIREPO.app.controller('ClassificationController', function(appState, frameCache,
             `k${f}`,
             appState.models.classificationAnimation.classifier === 'knn'
         ));
-        ['toleranceMax', 'toleranceMin', 'totalNumValues'].forEach((f) => panelState.showField(
-            'linearSvcClassification',
-            f,
-            appState.models.classificationAnimation.classifier === 'linearSvc'
-        ));
+        ['linearSvc', 'logisticRegression'].forEach((c) => {
+            [
+                'toleranceMax',
+                'toleranceMin',
+                'totalNumValues'
+            ].forEach((f) => panelState.showField(
+                `${c}Classification`,
+                f,
+                appState.models.classificationAnimation.classifier === c
+            ));
+        });
     }
 
     self.hasFrames = frameCache.hasFrames;

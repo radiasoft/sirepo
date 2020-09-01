@@ -31,6 +31,9 @@ _OUTPUT_FILE = PKDict(
     knnErrorFile='error.npy',
     linearSvcConfusionFile='linear-svc-confusion.json',
     linearSvcErrorFile='linear-svc-error.npy',
+    logisticRegressionConfusionFile='logistic-regression-confusion.json',
+    logisticRegressionClassificationFile='logistic-regression-classification.json',
+    logisticRegressionErrorFile='logistic-regression-error.npy',
     predictFile='predict.npy',
     scaledFile='scaled.npy',
     testFile='test.npy',
@@ -44,6 +47,7 @@ def background_percent_complete(report, run_dir, is_running):
             decisionTree=_OUTPUT_FILE.dtClassifierConfusionFile,
             knn=_OUTPUT_FILE.knnConfusionFile,
             linearSvc=_OUTPUT_FILE.linearSvcErrorFile,
+            logisticRegression=_OUTPUT_FILE.logisticRegressionConfusionFile,
         )
         for k in f:
            if run_dir.join(f[k]).exists():
@@ -114,7 +118,7 @@ def sim_frame(frame_args):
 
 
 def sim_frame_dtClassifierConfusionMatrixAnimation(frame_args):
-    return _confusion_matrix_to_heatmap(
+    return _confusion_matrix_to_heatmap_report(
         frame_args,
         _OUTPUT_FILE.dtClassifierConfusionFile,
         'Decision Tree Confusion Matrix',
@@ -122,7 +126,7 @@ def sim_frame_dtClassifierConfusionMatrixAnimation(frame_args):
 
 
 def sim_frame_dtRegressorConfusionMatrixAnimation(frame_args):
-    return _confusion_matrix_to_heatmap(
+    return _confusion_matrix_to_heatmap_report(
         frame_args,
         _OUTPUT_FILE.dtRegressorConfusionFile,
         'Decision Tree Regressor Confusion Matrix',
@@ -176,27 +180,22 @@ def sim_frame_knnClassificationMetricsAnimation(frame_args):
 
 
 def sim_frame_knnConfusionMatrixAnimation(frame_args):
-    return _confusion_matrix_to_heatmap(
+    return _confusion_matrix_to_heatmap_report(
         frame_args,
         _OUTPUT_FILE.knnConfusionFile,
         'K={k}',
     )
 
 def sim_frame_knnErrorRateAnimation(frame_args):
-    v = np.load(str(frame_args.run_dir.join(_OUTPUT_FILE.knnErrorFile)))
-    return _report_info(
-        v[:, 0],
-        [PKDict(
-            points=v[:, 1].tolist(),
-            label='Mean Error',
-        )],
-    ).update(PKDict(
-        x_label='K Value',
-    ))
+    return _error_rate_report(
+        frame_args,
+        _OUTPUT_FILE.knnErrorFile,
+        'K Value',
+    )
 
 
 def sim_frame_linearSvcConfusionMatrixAnimation(frame_args):
-    return _confusion_matrix_to_heatmap(
+    return _confusion_matrix_to_heatmap_report(
         frame_args,
         _OUTPUT_FILE.linearSvcConfusionFile,
         'tolerance={tol_svc_best}',
@@ -216,10 +215,61 @@ def sim_frame_linearSvcErrorRateAnimation(frame_args):
     ))
 
 
+def sim_frame_logisticRegressionConfusionMatrixAnimation(frame_args):
+    return _confusion_matrix_to_heatmap_report(
+        frame_args,
+        _OUTPUT_FILE.logisticRegressionConfusionFile,
+        'C={c}',
+    )
+
+
+def sim_frame_logisticRegressionClassificationMetricsAnimation(frame_args):
+    return _classification_metrics_report(
+        frame_args,
+        _OUTPUT_FILE.logisticRegressionClassificationFile,
+    )
+
+
+def sim_frame_logisticRegressionErrorRateAnimation(frame_args):
+    return _error_rate_report(
+        frame_args,
+        _OUTPUT_FILE.logisticRegressionErrorFile,
+        'C',
+    )
+
+
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
+    )
+
+
+def _classification_metrics_report(frame_args, filename):
+    def _get_lables():
+        l = []
+        for k in d:
+            if not isinstance(d[k], PKDict):
+                continue
+            for x in d[k]:
+                if x not in l:
+                    l.append(x)
+        return l
+
+    def _get_matrix():
+        r = []
+        for k in d:
+            k = str(k)
+            if not isinstance(d[k], PKDict):
+                continue
+            x = [k]
+            x.extend([round(x, 4) for x in d[k].values()])
+            r.append(x)
+        return r
+    d = pkjson.load_any(frame_args.run_dir.join(filename))
+    return PKDict(
+        labels=_get_lables(),
+        matrix=_get_matrix(),
     )
 
 
@@ -260,7 +310,7 @@ def _compute_numpy_info(path):
     assert False, 'not implemented yet'
 
 
-def _confusion_matrix_to_heatmap(frame_args, filename, title):
+def _confusion_matrix_to_heatmap_report(frame_args, filename, title):
     r = pkjson.load_any(frame_args.run_dir.join(filename))
     a = None
     for i, _ in enumerate(r.matrix):
@@ -277,6 +327,19 @@ def _confusion_matrix_to_heatmap(frame_args, filename, title):
             y_label='True',
         ),
     )
+
+
+def _error_rate_report(frame_args, filename, x_label):
+    v = np.load(str(frame_args.run_dir.join(filename)))
+    return _report_info(
+        v[:, 0],
+        [PKDict(
+            points=v[:, 1].tolist(),
+            label='Mean Error',
+        )],
+    ).update(PKDict(
+        x_label=x_label,
+    ))
 
 
 def _extract_column(run_dir, sim_in, idx):
@@ -384,6 +447,7 @@ def _generate_parameters_file(data):
             decisionTree='decision-tree',
             knn='knn',
             linearSvc='linear-svc',
+            logisticRegression='logistic-regression',
         )
         return res + template_common.render_jinja(
             SIM_TYPE,

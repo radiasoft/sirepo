@@ -16,7 +16,8 @@
         "Classifier": [
             ["decisionTree", "Decision Tree"],
             ["knn", "K Nearest Neighbors"],
-            ["linearSvc", "Linear SVC"]
+            ["linearSvc", "Linear SVC"],
+            ["logisticRegression", "Logistic Regression"]
         ],
         "InputOutputClass": [
             ["input", "Input"],
@@ -149,7 +150,10 @@
         "knnConfusionMatrixAnimation": [],
         "knnErrorRateAnimation": [],
         "linearSvcConfusionMatrixAnimation": [],
-        "linearSvcErrorRateAnimation": []
+        "linearSvcErrorRateAnimation": [],
+        "logisticRegressionClassificationMetricsAnimation": [],
+        "logisticRegressionConfusionMatrixAnimation": [],
+        "logisticRegressionErrorRateAnimation": []
     },
     "model": {
         "columnInfo": {},
@@ -187,6 +191,14 @@
         },
         "linearSvcConfusionMatrixAnimation": {},
         "linearSvcErrorRateAnimation": {},
+        "logisticRegressionClassification": {
+            "toleranceMax": ["Tolerance Max", "Float", 25],
+            "toleranceMin": ["Tolerance Min", "Float", 1],
+            "totalNumValues": ["Total number of values", "Integer", 20]
+        },
+        "logisticRegressionClassificationMetricsAnimation": {},
+        "logisticRegressionConfusionMatrixAnimation": {},
+        "logisticRegressionErrorRateAnimation": {},
         "mlModel": {
             "mlModule": ["Model Type", "MLModule", "neuralnet"]
         },
@@ -287,6 +299,18 @@
             "title": "Linear SVC Error Rate",
             "advanced": []
         },
+        "logisticRegressionClassificationMetricsAnimation": {
+            "title": "Logistic Regression Classification Metrics",
+            "advanced": []
+        },
+        "logisticRegressionConfusionMatrixAnimation": {
+            "title": "Logistic Regression Confusion Matrix",
+            "advanced": []
+        },
+        "logisticRegressionErrorRateAnimation": {
+            "title": "Logistic Regression Error Rate",
+            "advanced": []
+        },
         "mlModel": {
             "title": "Model",
             "basic": [
@@ -337,7 +361,10 @@
                 "knnClassification.kmin",
                 "linearSvcClassification.toleranceMax",
                 "linearSvcClassification.toleranceMin",
-                "linearSvcClassification.totalNumValues"
+                "linearSvcClassification.totalNumValues",
+                "logisticRegressionClassification.toleranceMax",
+                "logisticRegressionClassification.toleranceMin",
+                "logisticRegressionClassification.totalNumValues"
             ],
             "advanced": []
         },
