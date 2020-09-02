@@ -393,6 +393,7 @@
             "symmetryType": ["Symmetry", "SymmetryType", "parallel"]
         },
         "transform": {
+            "id": ["_", "String", ""],
             "name": ["Name", "String", "Transform"],
             "object": ["Apply to", "geomObject", ""]
         },
