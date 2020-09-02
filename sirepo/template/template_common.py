@@ -312,8 +312,10 @@ def flatten_data(d, res, prefix=''):
     return res
 
 
-def generate_parameters_file(data):
-    v = flatten_data(data['models'], PKDict())
+def generate_parameters_file(data, jinja_env=None):
+    if jinja_env is None:
+        jinja_env = PKDict()
+    v = flatten_data(data['models'], jinja_env)
     v['notes'] = _get_notes(v)
     return render_jinja(None, v, name='common-header.py'), v
 

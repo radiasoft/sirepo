@@ -117,6 +117,59 @@ class OutputFileIterator(lattice.ModelIterator):
             self.model_index[self.model_name] = 1
 
 
+class LibAdapter:
+
+    def parse_file(self, path):
+
+        def _input_files(model_type):
+            return [k for k, v in _SCHEMA.model[model_type].items() if 'InputFile' in v[1]];
+
+        def _verify_files(model, model_type, model_name, category):
+            for i in _input_files(model_type):
+                f = model.get(i)
+                if not f:
+                    continue
+                assert sirepo.util.secure_filename(f) == f, \
+                    f'file={f} must be a simple name'
+                p = path.dirpath().join(f)
+                assert p.check(file=True), \
+                    f'file={f} missing from {category}={model_name} type={model_type}'
+
+        d = parse_input_text(path)
+        r = self._run_setup(d)
+        l = r.lattice
+        d = parse_input_text(
+            self._lattice_path(path.dirpath(), d),
+            input_data=d,
+        )
+        for i in d.models.elements:
+            _verify_files(i, i.type, i.name, 'element')
+        for i in d.models.commands:
+            _verify_files(i, lattice.LatticeUtil.model_name_for_data(i), i._type, 'command')
+        r.lattice = l
+        return d
+
+    def write_files(self, data, source_path, dest_dir):
+        v = PKDict()
+        generate_parameters_file(data, is_parallel=True, jinja_env=v)
+# only works for the lattice, but the save_lattice command is strange
+#        v.commands = v.commands.replace('.filename.lte', '')
+        pkio.write_text(
+            dest_dir.join(source_path.basename),
+            v.commands,
+        )
+        pkio.write_text(
+            pkdp(self._lattice_path(dest_dir, data)),
+            v.rpn_variables + v.lattice,
+        )
+
+    def _lattice_path(self, dest_dir, data):
+        return dest_dir.join(self._run_setup(data).lattice)
+
+    def _run_setup(self, data):
+        return LatticeUtil.find_first_command(data, 'run_setup')
+
+
 def background_percent_complete(report, run_dir, is_running):
     #TODO(robnagler) remove duplication in run_dir.exists() (outer level?)
     alert, last_element, step = _parse_elegant_log(run_dir)
@@ -154,9 +207,9 @@ def copy_related_files(data, source_path, target_path):
             f.copy(t)
 
 
-def generate_parameters_file(data, is_parallel=False):
+def generate_parameters_file(data, is_parallel=False, jinja_env=None):
     _validate_data(data, _SCHEMA)
-    res, v = template_common.generate_parameters_file(data)
+    res, v = template_common.generate_parameters_file(data, jinja_env=jinja_env)
     v.rpn_variables = generate_variables(data)
     if is_parallel:
         return res + _generate_full_simulation(data, v)
@@ -224,34 +277,6 @@ def import_file(req, test_data=None, **kwargs):
             d.models.simulation.simulationId,
         )
     return res
-
-
-def lib_importer_parse_file(path):
-    d = parse_input_text(path)
-    d = parse_input_text(
-        path.new(basename=LatticeUtil.find_first_command(d, 'run_setup').lattice),
-        input_data=d,
-    )
-
-    def _input_files(model_type):
-        return [k for k, v in _SCHEMA.model[model_type].items() if 'InputFile' in v[1]];
-
-    def _verify_files(model, model_type, model_name, category):
-        for i in _input_files(model_type):
-            f = model.get(i)
-            if not f:
-                continue
-            assert sirepo.util.secure_filename(f) == f, \
-                f'file={f} must be a simple name'
-            p = path.dirpath().join(f)
-            assert p.check(file=True), \
-                f'file={f} missing from {category}={model_name} type={model_type}'
-
-    for i in d.models.elements:
-        _verify_files(i, i.type, i.name, 'element')
-    for i in d.models.commands:
-        _verify_files(i, lattice.LatticeUtil.model_name_for_data(i), i._type, 'command')
-    return d
 
 
 def parse_input_text(path, text=None, input_data=None):
@@ -744,11 +769,11 @@ def _generate_full_simulation(data, v):
     if data.models.simulation.backtracking == '1':
         _setup_backtracking(util)
     filename_map = _build_filename_map_from_util(util)
-    v.update(dict(
+    v.update(
         commands=_generate_commands(filename_map, util),
         lattice=_generate_lattice(filename_map, util),
         simulationMode=data.models.simulation.simulationMode,
-    ))
+    )
     return template_common.render_jinja(SIM_TYPE, v)
 
 

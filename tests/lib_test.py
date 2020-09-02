@@ -14,12 +14,14 @@ def test_elegant():
     import shutil
 
     for s in pkio.sorted_glob(pkunit.data_dir().join('*')):
-        w = pkunit.work_dir().join(s.basename)
-        shutil.copytree(s, w)
-        with pkio.save_chdir(w):
-            d = sirepo.lib.Importer(w.basename.split('_')[0]).parse_file(
-                pkio.sorted_glob(w.join('first*'))[0].basename,
+        t = s.basename.split('_')[0]
+        with pkio.save_chdir(s):
+            d = sirepo.lib.Importer(t).parse_file(
+                pkio.sorted_glob('first*')[0].basename,
             )
-            d.pkdel('version')
-            o = 'out.json'
-            pkunit.file_eq(s.join(o), d, w.join(o))
+        d2 = d.copy()
+        d2.pkdel('version')
+        for k in [k for k in d2.keys() if '_SimData__' in k]:
+            d2.pkdel(k)
+        pkunit.file_eq(s.join('out.json'), d2)
+        d.write_files(pkunit.work_dir().join(s.basename))
