@@ -267,6 +267,11 @@ def _convert(name, data, direction):
             res.models.simulation[f] = data.models.simulation[f]
     if direction == 'to' and to_class.sim_type() == 'madx':
         res.report = 'twissReport'
+    # elements may be out of order if element type was changed
+    LatticeUtil(
+        res,
+        sirepo.sim_data.get_class(to_class.sim_type()).schema(),
+    ).sort_elements_and_beamlines()
     return res
 
 
