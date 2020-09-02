@@ -3,21 +3,7 @@ from pykern import pkjson
 from pykern.pkcollections import PKDict
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.multiclass import check_classification_targets
 from sklearn.neighbors import KNeighborsClassifier
-
-e = False
-try:
-    check_classification_targets(train[:, out_idx])
-except ValueError:
-    e = True
-
-if e:
-    raise AssertionError(
-    'The data you supplied is continuous so it can not be used for'
-    ' classification. Please change the Application Mode to "Regression" or'
-    ' supply non-regression type data (ex binary) and re-run the simulation.'
-    )
 
 knn_error = []
 
@@ -28,8 +14,8 @@ for i in range({{ knnClassification_kmin }}, {{ knnClassification_kmax }}):
     pred_i_knn = knn.predict(test[:, in_idx])
     knn_error.append([i, np.mean(pred_i_knn != test[:, out_idx])])
 
+k_best = {{ knnClassification_kmin }} + np.argmin(np.array(knn_error)[:,1])
 
-k_best = {{ knnClassification_kmin }} + np.argmin(knn_error)
 # repeat KNN prediction with best K value
 knn_best = KNeighborsClassifier(n_neighbors=k_best)
 knn_best.fit(train[:, in_idx], np.ravel(train[:, out_idx]))

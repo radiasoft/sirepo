@@ -28,6 +28,8 @@ SIREPO.app.factory('mlService', function(appState) {
 
     self.computeModel = function(analysisModel) {
         if ([
+            'dtClassifierConfusionMatrixAnimation',
+            'dtRegressorConfusionMatrixAnimation',
             'knnClassificationMetricsAnimation',
             'knnConfusionMatrixAnimation',
             'knnErrorRateAnimation'
@@ -181,16 +183,27 @@ SIREPO.app.controller('DataController', function (appState, mlService, panelStat
     });
 });
 
-SIREPO.app.controller('ClassificationController', function(frameCache, persistentSimulation, $scope) {
+SIREPO.app.controller('ClassificationController', function(appState, frameCache, panelState, persistentSimulation, $scope) {
     let self = this;
-    self.simScope = $scope;
     let errorMessage = '';
+    self.framesForClassifier = null;
     self.simComputeModel = 'classificationAnimation'; // TODO(e-carlin): try ending in compute and see what happens
+    self.simScope = $scope;
+
+    function showKnnSettings() {
+        ['min', 'max'].forEach((f) => panelState.showField(
+            'knnClassification',
+            `k${f}`,
+            appState.models.classificationAnimation.classifier === 'knn'
+            )
+        );
+    }
 
     self.hasFrames = frameCache.hasFrames;
 
     self.simHandleStatus = function (data) {
         errorMessage = data.error;
+        self.framesForClassifier = data.framesForClassifier;
         if (data.frameCount) {
             frameCache.setFrameCount(data.frameCount);
         }
@@ -201,6 +214,14 @@ SIREPO.app.controller('ClassificationController', function(frameCache, persisten
     self.simState.errorMessage = function() {
         return errorMessage;
     };
+
+    appState.whenModelsLoaded($scope, function() {
+        appState.watchModelFields(
+            $scope,
+            ['classificationAnimation.classifier'],
+            showKnnSettings
+        );
+    });
 });
 
 SIREPO.app.controller('RegressionController', function (appState, frameCache, mlService, panelState, persistentSimulation, $scope) {

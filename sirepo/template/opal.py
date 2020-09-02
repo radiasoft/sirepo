@@ -232,19 +232,12 @@ def save_sequential_report_data(data, run_dir):
 
 
 def sim_frame(frame_args):
-    r = frame_args.frameReport
-    if r == 'bunchAnimation':
-        return sim_frame_bunchAnimation(frame_args)
-    if r == 'plotAnimation':
-        return sim_frame_plotAnimation(frame_args)
-    if r == 'plot2Animation':
-        return sim_frame_plot2Animation(frame_args)
     # elementAnimations
     return _bunch_plot(
         frame_args,
         frame_args.run_dir,
         frame_args.frameIndex,
-        _file_name_for_element_animation(frame_args.run_dir, r)
+        _file_name_for_element_animation(frame_args),
     )
 
 
@@ -412,11 +405,12 @@ def _field_units(units, field):
     field.units = units
 
 
-def _file_name_for_element_animation(run_dir, name):
-    for info in _output_info(run_dir):
-        if info.modelKey == name:
+def _file_name_for_element_animation(frame_args):
+    r = frame_args.frameReport
+    for info in _output_info(frame_args.run_dir):
+        if info.modelKey == r:
             return info.filename
-    assert False, 'no output file for: {}'.format(name)
+    raise AssertionError(f'no output file for frameReport={r}')
 
 
 def _find_run_method(commands):
