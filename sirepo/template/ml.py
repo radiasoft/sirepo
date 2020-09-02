@@ -42,18 +42,6 @@ _OUTPUT_FILE = PKDict(
 )
 
 def background_percent_complete(report, run_dir, is_running):
-    def _classifier_from_files():
-        f = PKDict(
-            decisionTree=_OUTPUT_FILE.dtClassifierConfusionFile,
-            knn=_OUTPUT_FILE.knnConfusionFile,
-            linearSvc=_OUTPUT_FILE.linearSvcErrorFile,
-            logisticRegression=_OUTPUT_FILE.logisticRegressionConfusionFile,
-        )
-        for k in f:
-           if run_dir.join(f[k]).exists():
-               return k
-        raise AssertionError(f'no output files generated for report={report}')
-
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     res = PKDict(
         percentComplete=0,
@@ -61,10 +49,7 @@ def background_percent_complete(report, run_dir, is_running):
     )
     if report == 'classificationAnimation' and not is_running:
         return PKDict(
-            # TODO(e-carlin): is this the best I can do? Existing sims will have
-            # to be re-run because this is a cached value in supervisor db and
-            # won't be present in old sims
-            framesForClassifier=_classifier_from_files(),
+            framesForClassifier=data.models.classificationAnimation.classifier,
             frameCount=1,
             percentComplete=100,
         )

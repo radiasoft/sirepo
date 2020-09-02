@@ -13,8 +13,8 @@ for i in range({{ knnClassification_kmin }}, {{ knnClassification_kmax }}):
     pred_i_knn = knn.predict(test[:, in_idx])
     knn_error.append([i, np.mean(pred_i_knn != test[:, out_idx])])
 
+k_best = {{ knnClassification_kmin }} + np.argmin(np.array(knn_error)[:,1])
 
-k_best = {{ knnClassification_kmin }} + np.argmin(knn_error)
 # repeat KNN prediction with best K value
 knn_best = KNeighborsClassifier(n_neighbors=k_best)
 knn_best.fit(train[:, in_idx], np.ravel(train[:, out_idx]))
