@@ -29,6 +29,8 @@ _OUTPUT_FILE = PKDict(
     knnClassificationFile='classification.json',
     knnConfusionFile='confusion.json',
     knnErrorFile='error.npy',
+    linearSvcConfusionFile='linear-svc-confusion.json',
+    linearSvcErrorFile='linear-svc-error.npy',
     predictFile='predict.npy',
     scaledFile='scaled.npy',
     testFile='test.npy',
@@ -163,8 +165,8 @@ def sim_frame_knnConfusionMatrixAnimation(frame_args):
     return _confusion_matrix_to_heatmap(
         frame_args,
         _OUTPUT_FILE.knnConfusionFile,
+        'K={k}',
     )
-
 
 def sim_frame_knnErrorRateAnimation(frame_args):
     v = np.load(str(frame_args.run_dir.join(_OUTPUT_FILE.knnErrorFile)))
@@ -176,6 +178,27 @@ def sim_frame_knnErrorRateAnimation(frame_args):
         )],
     ).update(PKDict(
         x_label='K Value',
+    ))
+
+
+def sim_frame_linearSvcConfusionMatrixAnimation(frame_args):
+    return _confusion_matrix_to_heatmap(
+        frame_args,
+        _OUTPUT_FILE.linearSvcConfusionFile,
+        'tolerance={tol_svc_best}',
+    )
+
+
+def sim_frame_linearSvcErrorRateAnimation(frame_args):
+    v = np.load(str(frame_args.run_dir.join(_OUTPUT_FILE.linearSvcErrorFile)))
+    return _report_info(
+        v[:, 0],
+        [PKDict(
+            points=v[:, 1].tolist(),
+            label='Mean Error',
+        )],
+    ).update(PKDict(
+        x_label='Tolerance',
     ))
 
 
@@ -223,7 +246,7 @@ def _compute_numpy_info(path):
     assert False, 'not implemented yet'
 
 
-def _confusion_matrix_to_heatmap(frame_args, filename, title=None):
+def _confusion_matrix_to_heatmap(frame_args, filename, title):
     r = pkjson.load_any(frame_args.run_dir.join(filename))
     a = None
     for i, _ in enumerate(r.matrix):
@@ -235,7 +258,7 @@ def _confusion_matrix_to_heatmap(frame_args, filename, title=None):
         PKDict(histogramBins=len(r.matrix)),
         plot_fields=PKDict(
             labels=r.labels,
-            title=title or f'K={r.k}',
+            title=title.format(**r),
             x_label='Predicted',
             y_label='True',
         ),
@@ -344,8 +367,9 @@ def _generate_parameters_file(data):
     if data.models.dataFile.appMode == 'classification':
         res += template_common.render_jinja(SIM_TYPE, v, 'classification-base.py')
         d = PKDict(
+            decisionTree='decision-tree',
             knn='knn',
-            decisionTree='decision-tree'
+            linearSvc='linear-svc',
         )
         return res + template_common.render_jinja(
             SIM_TYPE,
