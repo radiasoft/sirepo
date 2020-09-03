@@ -10,8 +10,9 @@ knn_error = []
 for i in range({{ knnClassification_kmin }}, {{ knnClassification_kmax }}):
     knn = KNeighborsClassifier(n_neighbors=i)
     knn.fit(train[:, in_idx], np.ravel(train[:, out_idx]))
-    pred_i_knn = knn.predict(test[:, in_idx])
-    knn_error.append([i, np.mean(pred_i_knn != test[:, out_idx])])
+    knn_error.append(
+        [i, np.mean(knn.predict(test[:, in_idx]) != test[:, out_idx])]
+    )
 
 k_best = {{ knnClassification_kmin }} + np.argmin(np.array(knn_error)[:,1])
 

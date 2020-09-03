@@ -13,7 +13,6 @@ c_vals_lr = np.linspace(
 
 error = []
 
-
 for i in c_vals_lr:
     classifier = LogisticRegression(tol = 1e-3, C=i, solver = 'newton-cg')
     classifier.fit(train[:, in_idx], np.ravel(train[:, out_idx]))
@@ -22,7 +21,7 @@ for i in c_vals_lr:
         np.mean(classifier.predict(test[:, in_idx]) != test[:, out_idx])
     ])
 
-c_best = {{ logisticRegressionClassification_toleranceMin }} + np.argmin(error)
+c_best = {{ logisticRegressionClassification_toleranceMin }} + np.argmin(np.array(error)[:,1])
 
 # repeat LR prediction with best C value
 lr_best = LogisticRegression(tol = 1e-3, C=c_best, solver = 'newton-cg')
