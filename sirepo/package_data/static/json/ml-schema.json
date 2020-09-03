@@ -143,8 +143,8 @@
     },
     "frameIdFields": {
         "animation": ["columnNumber", "appMode"],
+        "dtClassifierClassificationMetricsAnimation": [],
         "dtClassifierConfusionMatrixAnimation": [],
-        "dtRegressorConfusionMatrixAnimation": [],
         "epochAnimation": [],
         "knnClassificationMetricsAnimation": [],
         "knnConfusionMatrixAnimation": [],
@@ -166,8 +166,8 @@
             "inputsScaler": ["Inputs Scaler", "Scaler", "RobustScaler"],
             "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"]
         },
+        "dtClassifierClassificationMetricsAnimation": {},
         "dtClassifierConfusionMatrixAnimation": {},
-        "dtRegressorConfusionMatrixAnimation": {},
         "epochAnimation": {
             "plotScale": ["Plot Scale", "PlotScale", "linear"]
         },
@@ -255,13 +255,12 @@
             ],
             "advanced": []
         },
-        "dtClassifierConfusionMatrixAnimation": {
-            "title": "Decision Tree Confusion Matrix",
-            "basic": [],
+        "dtClassifierClassificationMetricsAnimation": {
+            "title": "Decision Tree Classification Metrics",
             "advanced": []
         },
-        "dtRegressorConfusionMatrixAnimation": {
-            "title": "Decision Tree Regressor Confusion Matrix",
+        "dtClassifierConfusionMatrixAnimation": {
+            "title": "Decision Tree Confusion Matrix",
             "advanced": []
         },
         "epochAnimation": {
