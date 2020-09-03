@@ -28,8 +28,8 @@ SIREPO.app.factory('mlService', function(appState) {
 
     self.computeModel = function(analysisModel) {
         if ([
+            'dtClassifierClassificationMetricsAnimation',
             'dtClassifierConfusionMatrixAnimation',
-            'dtRegressorConfusionMatrixAnimation',
             'knnClassificationMetricsAnimation',
             'knnConfusionMatrixAnimation',
             'knnErrorRateAnimation',

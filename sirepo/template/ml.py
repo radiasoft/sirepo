@@ -24,8 +24,6 @@ _OUTPUT_FILE = PKDict(
     fitCSVFile='fit.csv',
     dtClassifierClassificationFile='dt-classifier-classification.json',
     dtClassifierConfusionFile='dt-classifier-confusion.json',
-    dtRegressorClassificationFile='dt-regressor-classification.json',
-    dtRegressorConfusionFile='dt-regressor-confusion.json',
     knnClassificationFile='classification.json',
     knnConfusionFile='confusion.json',
     knnErrorFile='error.npy',
@@ -102,19 +100,18 @@ def sim_frame(frame_args):
     return _fit_animation(frame_args)
 
 
+def sim_frame_dtClassifierClassificationMetricsAnimation(frame_args):
+    return _classification_metrics_report(
+        frame_args,
+        _OUTPUT_FILE.dtClassifierClassificationFile,
+    )
+
+
 def sim_frame_dtClassifierConfusionMatrixAnimation(frame_args):
     return _confusion_matrix_to_heatmap_report(
         frame_args,
         _OUTPUT_FILE.dtClassifierConfusionFile,
         'Decision Tree Confusion Matrix',
-    )
-
-
-def sim_frame_dtRegressorConfusionMatrixAnimation(frame_args):
-    return _confusion_matrix_to_heatmap_report(
-        frame_args,
-        _OUTPUT_FILE.dtRegressorConfusionFile,
-        'Decision Tree Regressor Confusion Matrix',
     )
 
 
@@ -136,31 +133,9 @@ def sim_frame_epochAnimation(frame_args):
     ))
 
 def sim_frame_knnClassificationMetricsAnimation(frame_args):
-    def _get_lables():
-        l = []
-        for k in d:
-            if not isinstance(d[k], PKDict):
-                continue
-            for x in d[k]:
-                if x not in l:
-                    l.append(x)
-        return l
-
-    def _get_matrix():
-        r = []
-        for k in d:
-            k = str(k)
-            if not isinstance(d[k], PKDict):
-                continue
-            x = [k]
-            x.extend([round(x, 4) for x in d[k].values()])
-            r.append(x)
-        return r
-
-    d = pkjson.load_any(frame_args.run_dir.join(_OUTPUT_FILE.knnClassificationFile))
-    return PKDict(
-        labels=_get_lables(),
-        matrix=_get_matrix(),
+    return _classification_metrics_report(
+        frame_args,
+        _OUTPUT_FILE.knnClassificationFile,
     )
 
 
