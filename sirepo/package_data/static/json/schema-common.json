@@ -235,7 +235,8 @@
                 ["afmhot", "afmhot"],
                 ["coolwarm", "coolwarm"],
                 ["jet", "jet"],
-                ["contrast", "high contrast"]
+                ["contrast", "high contrast"],
+                ["blues", "blues"]
             ],
             "JobRunMode": [
                 ["sequential", "sequential"],
