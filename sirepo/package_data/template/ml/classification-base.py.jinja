@@ -1,0 +1,15 @@
+
+from sklearn.multiclass import check_classification_targets
+
+e = False
+try:
+    check_classification_targets(train[:, out_idx])
+except ValueError:
+    e = True
+
+if e:
+    raise AssertionError(
+    'The data you supplied is continuous so it can not be used for'
+    ' classification. Please change the Application Mode to "Regression" or'
+    ' supply non-regression type data (ex binary) and re-run the simulation.'
+    )

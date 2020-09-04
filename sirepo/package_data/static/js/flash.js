@@ -93,7 +93,12 @@ SIREPO.app.controller('SourceController', function (appState, flashService, pane
             }
             else if (modelName == 'Grid') {
                 ['polar', 'spherical'].forEach(function(f) {
-                    panelState.showEnum('Grid', 'geometry', f, ! flashService.isCapLaser());
+                    panelState.showEnum(
+                        'Grid',
+                        'geometry',
+                        f,
+                        ! flashService.isCapLaser()
+                    );
                 });
             }
         });
@@ -107,7 +112,11 @@ SIREPO.app.controller('SourceController', function (appState, flashService, pane
             makeTempsEqual
         );
         processCurrType();
-        appState.watchModelFields($scope, [flashService.simulationModel() + '.sim_currType'], processCurrType);
+        appState.watchModelFields(
+            $scope,
+            [flashService.simulationModel() + '.sim_currType'],
+            processCurrType
+        );
     });
 });
 

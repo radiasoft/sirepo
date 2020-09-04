@@ -1,0 +1,40 @@
+
+from pykern import pkjson
+from pykern.pkcollections import PKDict
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.svm import LinearSVC
+
+tol_vals_svc = np.linspace(
+    {{ linearSvcClassification_toleranceMin }},
+    {{ linearSvcClassification_toleranceMax }},
+    {{ linearSvcClassification_totalNumValues }},
+)
+
+error_svc = []
+
+for i in tol_vals_svc:
+    classifier_svc = LinearSVC(penalty="l2", dual=False, tol=i, C = 1)
+    classifier_svc.fit(train[:, in_idx], np.ravel(train[:, out_idx]))
+    error_svc.append(
+        [i, np.mean(classifier_svc.predict(test[:, in_idx]) != test[:, out_idx])]
+    )
+
+classifier_svc_best = LinearSVC(
+    penalty="l2",
+    dual=False,
+    tol=({{linearSvcClassification_toleranceMin}} + np.argmin(np.array(error_svc)[:,1])),
+)
+
+classifier_svc_best.fit(train[:, in_idx], np.ravel(train[:, out_idx]))
+y_pred_svc_best = classifier_svc_best.predict(test[:, in_idx])
+
+l = np.unique(y_pred_svc_best).tolist()
+pkjson.dump_pretty(
+    PKDict(
+        labels=l,
+        matrix=confusion_matrix(test[:, out_idx], y_pred_svc_best, labels=l).tolist(),
+        tol_svc_best=({{ linearSvcClassification_toleranceMin }} + np.argmin(np.array(error_svc)[:,1])),
+    ),
+    filename='{{ linearSvcConfusionFile }}',
+)
+np.save('{{ linearSvcErrorFile }}', error_svc)

@@ -13,6 +13,12 @@
             ["classification", "Classification"],
             ["regression", "Regression"]
         ],
+        "Classifier": [
+            ["decisionTree", "Decision Tree"],
+            ["knn", "K Nearest Neighbors"],
+            ["linearSvc", "Linear SVC"],
+            ["logisticRegression", "Logistic Regression"]
+        ],
         "InputOutputClass": [
             ["input", "Input"],
             ["output", "Output"],
@@ -137,19 +143,31 @@
     },
     "frameIdFields": {
         "animation": ["columnNumber", "appMode"],
+        "dtClassifierClassificationMetricsAnimation": [],
+        "dtClassifierConfusionMatrixAnimation": [],
         "epochAnimation": [],
         "knnClassificationMetricsAnimation": [],
         "knnConfusionMatrixAnimation": [],
-        "knnErrorRateAnimation": []
+        "knnErrorRateAnimation": [],
+        "linearSvcConfusionMatrixAnimation": [],
+        "linearSvcErrorRateAnimation": [],
+        "logisticRegressionClassificationMetricsAnimation": [],
+        "logisticRegressionConfusionMatrixAnimation": [],
+        "logisticRegressionErrorRateAnimation": []
     },
     "model": {
         "columnInfo": {},
+        "classificationAnimation": {
+            "classifier": ["Classifier", "Classifier", "knn"]
+        },
         "dataFile": {
             "appMode": ["Application Mode", "AppMode", "regression"],
             "file": ["Data File", "InputFile"],
             "inputsScaler": ["Inputs Scaler", "Scaler", "RobustScaler"],
             "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"]
         },
+        "dtClassifierClassificationMetricsAnimation": {},
+        "dtClassifierConfusionMatrixAnimation": {},
         "epochAnimation": {
             "plotScale": ["Plot Scale", "PlotScale", "linear"]
         },
@@ -166,6 +184,21 @@
         "knnClassificationMetricsAnimation": {},
         "knnConfusionMatrixAnimation": {},
         "knnErrorRateAnimation": {},
+        "linearSvcClassification": {
+            "toleranceMax": ["Tolerance Max", "Float", 15e-2],
+            "toleranceMin": ["Tolerance Min", "Float", 1e-3],
+            "totalNumValues": ["Total number of values", "Integer", 20]
+        },
+        "linearSvcConfusionMatrixAnimation": {},
+        "linearSvcErrorRateAnimation": {},
+        "logisticRegressionClassification": {
+            "toleranceMax": ["Tolerance Max", "Float", 25],
+            "toleranceMin": ["Tolerance Min", "Float", 1],
+            "totalNumValues": ["Total number of values", "Integer", 20]
+        },
+        "logisticRegressionClassificationMetricsAnimation": {},
+        "logisticRegressionConfusionMatrixAnimation": {},
+        "logisticRegressionErrorRateAnimation": {},
         "mlModel": {
             "mlModule": ["Model Type", "MLModule", "neuralnet"]
         },
@@ -222,6 +255,14 @@
             ],
             "advanced": []
         },
+        "dtClassifierClassificationMetricsAnimation": {
+            "title": "Decision Tree Classification Metrics",
+            "advanced": []
+        },
+        "dtClassifierConfusionMatrixAnimation": {
+            "title": "Decision Tree Confusion Matrix",
+            "advanced": []
+        },
         "epochAnimation": {
             "title": "Training Error",
             "advanced": [
@@ -247,6 +288,26 @@
         },
         "knnErrorRateAnimation": {
             "title": "KNN Error Rate",
+            "advanced": []
+        },
+        "linearSvcConfusionMatrixAnimation": {
+            "title": "Linear SVC Confusion Matrix",
+            "advanced": []
+        },
+        "linearSvcErrorRateAnimation": {
+            "title": "Linear SVC Error Rate",
+            "advanced": []
+        },
+        "logisticRegressionClassificationMetricsAnimation": {
+            "title": "Logistic Regression Classification Metrics",
+            "advanced": []
+        },
+        "logisticRegressionConfusionMatrixAnimation": {
+            "title": "Logistic Regression Confusion Matrix",
+            "advanced": []
+        },
+        "logisticRegressionErrorRateAnimation": {
+            "title": "Logistic Regression Error Rate",
             "advanced": []
         },
         "mlModel": {
@@ -294,8 +355,15 @@
         "simulationSettings": {
             "title": "Simulation Settings",
             "basic": [
+                "classificationAnimation.classifier",
                 "knnClassification.kmax",
-                "knnClassification.kmin"
+                "knnClassification.kmin",
+                "linearSvcClassification.toleranceMax",
+                "linearSvcClassification.toleranceMin",
+                "linearSvcClassification.totalNumValues",
+                "logisticRegressionClassification.toleranceMax",
+                "logisticRegressionClassification.toleranceMin",
+                "logisticRegressionClassification.totalNumValues"
             ],
             "advanced": []
         },
