@@ -442,6 +442,10 @@ def remove_last_frame(run_dir):
     pass
 
 
+def rcscon_generate_lattice(data):
+    return _Generate(data, want_full=True).sim(do_validate=False)
+
+
 def save_sequential_report_data(data, run_dir):
     a = copy.deepcopy(data.models[data.report])
     a.frameReport = data.report
@@ -530,8 +534,9 @@ class _Generate:
     def lattice_only(self):
         return self._lattice()
 
-    def sim(self):
-        self._validate_data()
+    def sim(self, do_validate=True):
+        if do_validate:
+            self._validate_data()
         d = self.data
         r, v = template_common.generate_parameters_file(d)
         v.rpn_variables = generate_variables(d)

@@ -232,14 +232,12 @@ def _generate_elegant_simulation(data):
         for f in data.models[m]:
             vars_by_name[f] = data.models[m][f]
     data.models.rpnVariables = [PKDict(name=n, value=v) for n,v in vars_by_name.items()]
-    res, v = template_common.generate_parameters_file(data)
-    from sirepo.template import elegant
-    v.rpn_variables = elegant.generate_variables(data)
     data.models.simulation.update(
         backtracking='0',
         simulationMode='serial',
     )
-    return elegant._generate_full_simulation(data, v)
+    from sirepo.template import elegant
+    return elegant.rcscon_generate_lattice(data)
 
 
 def _generate_parameters_file(data):
