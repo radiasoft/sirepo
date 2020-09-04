@@ -8,6 +8,26 @@ from sklearn.preprocessing import {{ dataFile_inputsScaler }}
 from sklearn.preprocessing import {{ dataFile_outputsScaler }}
 {% endif %}
 
+def read_data(path, **kwargs):
+    return np.genfromtxt(
+        path,
+        delimiter=',',
+        skip_header={{ 1 if columnInfo_hasHeaderRow else 0 }},
+        **kwargs
+    )
+
+
+{% if dataFile_appMode == 'classification' %}
+def read_data_and_encode_output_column(path, column_types):
+    from sklearn.preprocessing import LabelEncoder
+
+    o = column_types.index('output')
+    v = read_data(path, dtype=None, encoding='utf=8')
+    v[f'f{o}'] = LabelEncoder().fit_transform(v[f'f{o}'])
+    t = v.dtype.descr
+    t[-1] = (t[-1][0], np.float)
+    return np.array(v.astype(t).tolist())
+{% endif %}
 
 def scale_columns(values, column_types, col_type, scaler):
     columns = list(filter(lambda idx: column_types[idx] == col_type, range(len(column_types))))
@@ -17,7 +37,12 @@ def scale_columns(values, column_types, col_type, scaler):
 
 
 def scale_file(path, column_types, inputs_scaler, outputs_scaler):
-    v = np.genfromtxt(path, delimiter=',', skip_header={{ 1 if columnInfo_hasHeaderRow else 0 }})
+    print('{{ dataFile_appMode }}')
+    {% if dataFile_appMode == 'classification' %}
+    v = read_data_and_encode_output_column(path, column_types)
+    {% else %}
+    v = read_data(path)
+    {% endif %}
     in_idx = scale_columns(v, column_types, 'input', inputs_scaler)
     out_idx = scale_columns(v, column_types, 'output', outputs_scaler)
     os.remove(path)
