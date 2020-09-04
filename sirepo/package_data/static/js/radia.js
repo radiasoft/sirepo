@@ -367,8 +367,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             return;
         }
         appState.saveChanges('geomObject', function (d) {
-            //loadShapes();
-            transformShapesForObject(self.selectedObject );
+            transformShapesForObjects();
             self.selectedObject = null;
             radiaService.setSelectedObject(null);
             if (callback) {
@@ -534,13 +533,18 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function transformShapesForObject(o) {
-        //srdbg('xform sh');
         let baseShape = self.getShape(o.id);
         let xformShapes = [baseShape];
         xformShapes.push(...getVirtualShapes(baseShape));
         xformShapes.forEach(function (s) {
             s.runLinks();
         });
+    }
+
+    function transformShapesForObjects() {
+        for (let o of self.getObjects()) {
+            transformShapesForObject(o);
+        }
     }
 
     function composeFn(fnArr) {
