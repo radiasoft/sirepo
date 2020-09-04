@@ -235,6 +235,7 @@
                 ["afmhot", "afmhot"],
                 ["coolwarm", "coolwarm"],
                 ["jet", "jet"],
+                ["blues", "blues"],
                 ["contrast", "high contrast"]
             ],
             "JobRunMode": [

@@ -167,7 +167,9 @@
             "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"]
         },
         "dtClassifierClassificationMetricsAnimation": {},
-        "dtClassifierConfusionMatrixAnimation": {},
+        "dtClassifierConfusionMatrixAnimation": {
+            "colorMap": ["Color Map", "ColorMap", "blues"]
+        },
         "epochAnimation": {
             "plotScale": ["Plot Scale", "PlotScale", "linear"]
         },
@@ -178,18 +180,22 @@
             "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "knnClassification": {
-            "kmax": ["KMax", "Integer", 5],
+            "kmax": ["KMax", "Integer", 50],
             "kmin": ["KMin", "Integer", 1]
         },
         "knnClassificationMetricsAnimation": {},
-        "knnConfusionMatrixAnimation": {},
+        "knnConfusionMatrixAnimation": {
+            "colorMap": ["Color Map", "ColorMap", "blues"]
+        },
         "knnErrorRateAnimation": {},
         "linearSvcClassification": {
             "toleranceMax": ["Tolerance Max", "Float", 15e-2],
             "toleranceMin": ["Tolerance Min", "Float", 1e-3],
             "totalNumValues": ["Total number of values", "Integer", 20]
         },
-        "linearSvcConfusionMatrixAnimation": {},
+        "linearSvcConfusionMatrixAnimation": {
+            "colorMap": ["Color Map", "ColorMap", "blues"]
+        },
         "linearSvcErrorRateAnimation": {},
         "logisticRegressionClassification": {
             "toleranceMax": ["Tolerance Max", "Float", 25],
@@ -197,7 +203,9 @@
             "totalNumValues": ["Total number of values", "Integer", 20]
         },
         "logisticRegressionClassificationMetricsAnimation": {},
-        "logisticRegressionConfusionMatrixAnimation": {},
+        "logisticRegressionConfusionMatrixAnimation": {
+            "colorMap": ["Color Map", "ColorMap", "blues"]
+        },
         "logisticRegressionErrorRateAnimation": {},
         "mlModel": {
             "mlModule": ["Model Type", "MLModule", "neuralnet"]
@@ -261,7 +269,10 @@
         },
         "dtClassifierConfusionMatrixAnimation": {
             "title": "Decision Tree Confusion Matrix",
-            "advanced": []
+            "basic": [],
+            "advanced": [
+                "colorMap"
+            ]
         },
         "epochAnimation": {
             "title": "Training Error",
@@ -284,7 +295,10 @@
         },
         "knnConfusionMatrixAnimation": {
             "title": "KNN Confusion Matrix",
-            "advanced": []
+            "basic": [],
+            "advanced": [
+                "colorMap"
+            ]
         },
         "knnErrorRateAnimation": {
             "title": "KNN Error Rate",
@@ -292,7 +306,10 @@
         },
         "linearSvcConfusionMatrixAnimation": {
             "title": "Linear SVC Confusion Matrix",
-            "advanced": []
+            "basic": [],
+            "advanced": [
+                "colorMap"
+            ]
         },
         "linearSvcErrorRateAnimation": {
             "title": "Linear SVC Error Rate",
@@ -304,7 +321,10 @@
         },
         "logisticRegressionConfusionMatrixAnimation": {
             "title": "Logistic Regression Confusion Matrix",
-            "advanced": []
+            "basic": [],
+            "advanced": [
+                "colorMap"
+            ]
         },
         "logisticRegressionErrorRateAnimation": {
             "title": "Logistic Regression Error Rate",
@@ -356,8 +376,8 @@
             "title": "Simulation Settings",
             "basic": [
                 "classificationAnimation.classifier",
-                "knnClassification.kmax",
                 "knnClassification.kmin",
+                "knnClassification.kmax",
                 "linearSvcClassification.toleranceMax",
                 "linearSvcClassification.toleranceMin",
                 "linearSvcClassification.totalNumValues",
