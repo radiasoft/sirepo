@@ -31,6 +31,7 @@ class Importer:
 
 
 class SimData(PKDict):
+    """Represents data of simulation"""
 
     def __init__(self, data, source, adapter):
         super().__init__(data)
@@ -39,10 +40,18 @@ class SimData(PKDict):
         self.__adapter = adapter
 
     def copy(self):
+        """Allows copy.deepcopy"""
         return self.__class__(self, self.__source, self.__adapter)
 
     def write_files(self, dest_dir):
-        self.__adapter.write_files(
+        """Writes files for simulation state
+
+        Args:
+            dest_dir (str or py.path): where to write files
+        Returns:
+            PKDict: files written (debugging only)
+        """
+        return self.__adapter.write_files(
             # need to make a copy, b/c generate_parameters_file modifies
             copy.deepcopy(self),
             self.__source,

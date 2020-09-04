@@ -129,18 +129,36 @@ class LibAdapter:
         return d
 
     def write_files(self, data, source_path, dest_dir):
-        v = _Generate(data, is_parallel=True).jinja_env
+        """writes files for the simulation
+
+
+        Returns:
+            PKDict: structure of files written (debugging only)
+        """
+
+
+        class _G(_Generate):
+
+            def _abspath(basename):
+                return source_path.new(basename=basename)
+
+            def _input_file(self, model_name, field, filename):
+                return filename
+
+            def _lattice_filename(self, value):
+                return value
+
+        v = _G(data, is_parallel=True).jinja_env
+        r = PKDict(
+            commands=dest_dir.join(source_path.basename),
+            lattice=self._lattice_path(dest_dir, data),
+        )
 # only works for the lattice, but the save_lattice command is strange
 #        v.commands = v.commands.replace('.filename.lte', '')
-        pkio.write_text(
-            dest_dir.join(source_path.basename),
-            v.commands,
-        )
-        pkio.write_text(
-            pkdp(self._lattice_path(dest_dir, data)),
-            v.rpn_variables + v.lattice,
-        )
+        pkio.write_text(r.commands, v.commands)
+        pkio.write_text(r.lattice, v.rpn_variables + v.lattice)
 # need to copy otherfiles from source_path
+        return r
 
     def _lattice_path(self, dest_dir, data):
         return dest_dir.join(self._run_setup(data).lattice)
@@ -518,7 +536,7 @@ class _Generate:
             r += self._bunch_simulation()
         self.parameters_text = r
 
-    def _abs_path(basename):
+    def _abspath(self, basename):
         return _SIM_DATA.lib_file_abspath(basename)
 
     def _bunch_simulation(self):
@@ -564,7 +582,7 @@ class _Generate:
                     v.bunchFile_sourceFile,
                 )
                 v.bunchFileType = _sdds_beam_type_from_file(
-                    self._abs_path(v.bunchInputFile),
+                    self._abspath(v.bunchInputFile),
                 )
         if str(d.models.bunch.p_central_mev) == '0':
             run_setup = LatticeUtil.find_first_command(d, 'run_setup')
@@ -614,10 +632,7 @@ class _Generate:
         elif el_type == 'LatticeBeamlineList':
             value = state.id_map[int(value)].name
         elif el_type == 'ElegantLatticeList':
-            if value and value == 'Lattice':
-                value = 'elegant.lte'
-            else:
-                value = value + '.filename.lte'
+            value = self._lattice_filename(value)
         elif field == 'command' and LatticeUtil.model_name_for_data(model) == 'SCRIPT':
             for f in ('commandFile', 'commandInputFile'):
                 if f in model and model[f]:
@@ -662,6 +677,11 @@ class _Generate:
             lattice.LatticeIterator(self.filename_map, self._format_field_value),
             quote_name=True,
         )
+
+    def _lattice_filename(self, value):
+        if value and value == 'Lattice':
+            return 'elegant.lte'
+        return value + '.filename.lte'
 
     def _setup_backtracking(self):
 

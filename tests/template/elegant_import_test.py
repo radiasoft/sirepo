@@ -9,12 +9,10 @@ from pykern import pkio
 from pykern import pkunit
 from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
 import pytest
-from sirepo import srunit
 
 
 def test_importer(import_req):
     from pykern.pkcollections import PKDict
-    from pykern import pkunit
     from sirepo.template import lattice
     from sirepo.template import elegant
     import sirepo.lib
@@ -25,20 +23,21 @@ def test_importer(import_req):
         if not pkio.has_file_extension(fn, ('ele', 'lte')) \
             or fn.basename.endswith('.ele.lte'):
             continue
-        if fn.basename not in ('apsKick.lte', 'comments.ele'):
-            continue
+        k = PKDict()
+        pkdlog('file={}', fn)
         if fn.basename.startswith('deviance-'):
-            actual = None
             try:
                 data = elegant.import_file(import_req(fn))
             except Exception as e:
-                pkdlog(pkdexc())
-                actual = str(e)
+                k.actual = f'{e}\n'
+            else:
+                k.actual = 'did not raise exception'
         elif fn.ext == '.lte':
             data = elegant.import_file(import_req(fn))
             data['models']['commands'] = []
             j = elegant._Generate(data, is_parallel=True).jinja_env
-            actual = j.rpn_variables + j.lattice
+            k.actual = j.rpn_variables + j.lattice
         else:
-            actual = elegant._Generate(sirepo.lib.Importer('elegant').parse_file(fn), is_parallel=True).jinja_env.commands
-        pkunit.file_eq(fn.basename + '.txt', actual)
+            f = sirepo.lib.Importer('elegant').parse_file(fn).write_files(pkunit.work_dir())
+            k.actual_path = f.commands
+        pkunit.file_eq(fn.basename + '.txt', **k)
