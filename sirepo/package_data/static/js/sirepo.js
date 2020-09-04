@@ -1493,6 +1493,20 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return queueItems[name] && queueItems[name].qState == 'processing' ? true : false;
     };
 
+    self.exportJupyterNotebook = function(simulationId, modelName, reportTitle) {
+        var args = {
+            '<simulation_id>': simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+        };
+        if (modelName) {
+            args['<model>'] = modelName;
+        }
+        if (reportTitle) {
+            args['<title>'] = reportTitle;
+        }
+        requestSender.newWindow('exportJupyterNotebook', args, true);
+    };
+
     self.modalId = function(name) {
         return 'sr-' + name + '-editor';
     };

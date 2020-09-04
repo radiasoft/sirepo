@@ -21,6 +21,7 @@ import sirepo.sim_data
 import sirepo.template
 import sirepo.util
 import subprocess
+import sys
 import types
 
 

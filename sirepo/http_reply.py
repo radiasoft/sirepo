@@ -74,6 +74,8 @@ def gen_file_as_attachment(content_or_path, filename=None, content_type=None):
     def f():
         if isinstance(content_or_path, pkconst.PY_PATH_LOCAL_TYPE):
             return flask.send_file(str(content_or_path))
+        if content_type == 'application/json':
+            return flask.current_app.response_class(pkjson.dump_pretty(content_or_path))
         return flask.current_app.response_class(content_or_path)
 
     if filename is None:
@@ -217,6 +219,7 @@ def init(**imports):
     sirepo.util.setattr_imports(imports)
     MIME_TYPE = PKDict(
         html='text/html',
+        ipynb='application/x-ipynb+json',
         js='application/javascript',
         json='application/json',
         py='text/x-python',
