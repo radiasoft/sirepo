@@ -367,7 +367,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             return;
         }
         appState.saveChanges('geomObject', function (d) {
-            loadShapes();
+            //loadShapes();
+            transformShapesForObject(self.selectedObject );
             self.selectedObject = null;
             radiaService.setSelectedObject(null);
             if (callback) {
@@ -442,19 +443,16 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             baseShape = self.shapeForObject(o);
             self.shapes.push(baseShape);
         }
-        let xformShapes = [];
-        if (o.transforms.length > 0) {
-            xformShapes.push(baseShape);
-        }
+        let xformShapes = [baseShape];
         let txArr = [];
-        let vs = getVirtualShapes(baseShape);
         // probably better to create a transform and let svg do this work
         o.transforms.forEach(function (xform) {
+            // draw the shapes for symmetry planes once
+            if (xform.model === 'symmetryTransform') {
+                addSymmetryPlane(baseShape, xform);
+            }
             // each successive transform must be applied to all previous shapes
             xformShapes.forEach(function (xShape) {
-                const txShapes = vs.filter(function (s){
-                    return s.txId === xform.id;
-                });
                 let nextShape;
                 let linkTx;
                 if (xform.model === 'cloneTransform') {
@@ -470,15 +468,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                                 cloneTx.push(rotateFn(cloneXform, i));
                             }
                         }
-                        let t = txShapes[i - 1];
-                        if (! t) {
-                            nextShape = txShape(baseShape, xform);
-                            baseShape.addLink(nextShape, ctx);
-                            self.shapes.push(nextShape);
-                        }
-                        else {
-                            nextShape = t;
-                        }
+                        nextShape = txShape(baseShape, xform);
+                        baseShape.addLink(nextShape, ctx);
+                        self.shapes.push(nextShape);
                         ctx(baseShape, nextShape);
                         xformShapes.push(nextShape);
                     }
@@ -488,41 +480,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     txArr.push(rotateFn(xform, 1));
                     return;
                 }
-                if (xform.model === 'symmetryTransform' && xform.symmetryType !== 'none') {
+                if (xform.model === 'symmetryTransform') {
                     linkTx = mirrorFn(xform);
-                    let t = txShapes[0];
-                    if (! t) {
-                        nextShape = txShape(baseShape, xform);
-                        xShape.addLink(nextShape, linkTx);
-                        self.shapes.push(nextShape);
-                    }
-                    else {
-                        nextShape = t;
-                    }
+                    nextShape = txShape(baseShape, xform);
+                    xShape.addLink(nextShape, linkTx);
+                    self.shapes.push(nextShape);
                     linkTx(xShape, nextShape);
-
-                    // line representing the symmetry plane intersecting 3 coordinate planes
-                    for (let p in vtkPlotting.COORDINATE_PLANES) {
-                        const cpl = geometry.plane(vtkPlotting.COORDINATE_PLANES[p], geometry.point());
-                        const spl = geometry.plane(
-                             radiaService.stringToFloatArray(xform.symmetryPlane),
-                            geometry.pointFromArr( radiaService.stringToFloatArray(
-                                xform.symmetryPoint,
-                                SIREPO.APP_SCHEMA.constants.objectScale)
-                            ));
-                        if (cpl.equals(spl)) {
-                            continue;
-                        }
-                        const l = spl.intersection(cpl);
-                        if (l) {
-                            var pl = vtkPlotting.plotLine(
-                                virtualShapeId(baseShape), baseShape.name, l,
-                                baseShape.color, 1.0, 'dashed', "8,8,4,8"
-                            );
-                            pl.coordPlane = p;
-                            self.shapes.push(pl);
-                        }
-                    }
                     xformShapes.push(nextShape);
                     return;
                 }
@@ -540,10 +503,44 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 gShape = self.shapeForObject(self.getObject(o.groupId));
                 self.shapes.push(gShape);
             }
-            //baseShape.addLink(gShape, fit);
             fit(baseShape, gShape);
             baseShape.addLink(gShape, fit);
         }
+        //srdbg('shapes', self.shapes);
+    }
+
+    function addSymmetryPlane(baseShape, xform) {
+        for (let p in vtkPlotting.COORDINATE_PLANES) {
+            const cpl = geometry.plane(vtkPlotting.COORDINATE_PLANES[p], geometry.point());
+            const spl = geometry.plane(
+                radiaService.stringToFloatArray(xform.symmetryPlane),
+                geometry.pointFromArr( radiaService.stringToFloatArray(
+                    xform.symmetryPoint,
+                    SIREPO.APP_SCHEMA.constants.objectScale)
+                ));
+            if (cpl.equals(spl)) {
+                continue;
+            }
+            const l = spl.intersection(cpl);
+            if (l) {
+                var pl = vtkPlotting.plotLine(
+                    virtualShapeId(baseShape), baseShape.name, l,
+                    baseShape.color, 1.0, 'dashed', "8,8,4,8"
+                );
+                pl.coordPlane = p;
+                self.shapes.push(pl);
+            }
+        }
+    }
+
+    function transformShapesForObject(o) {
+        //srdbg('xform sh');
+        let baseShape = self.getShape(o.id);
+        let xformShapes = [baseShape];
+        xformShapes.push(...getVirtualShapes(baseShape));
+        xformShapes.forEach(function (s) {
+            s.runLinks();
+        });
     }
 
     function composeFn(fnArr) {
@@ -626,6 +623,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function loadShapes() {
+        self.shapes = [];
         appState.models.geometry.objects.forEach(function (o) {
             addShapesForObject(o);
         });
@@ -720,16 +718,16 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             'division',
             o.doDivide == '1'
         );
-        panelState.showField(
-            'geomObject',
-            'symmetryPlane',
-            o.symmetryType != 'none'
-        );
-        panelState.showField(
-            'geomObject',
-            'symmetryPoint',
-            o.symmetryType != 'none'
-        );
+        //panelState.showField(
+        //    'geomObject',
+        //    'symmetryPlane',
+        //    //o.symmetryType != 'none'
+        //);
+        //panelState.showField(
+        //    'geomObject',
+        //    'symmetryPoint',
+        //    //o.symmetryType != 'none'
+        //);
         var mag = (o.magnetization || SIREPO.ZERO_STR).split(/\s*,\s*/).map(function (m) {
             return parseFloat(m);
         });
@@ -763,17 +761,21 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
             var o = self.selectedObject;
             if (o.id !== 0 && (angular.isUndefined(o.id) || o.id === '')) {
-                if (o.model === modelName) {
+                // catch unrelated saved objects
+                if (o.model === modelName || panelState.getBaseModelKey(o.model) === modelName) {
                     addObject(o);
                 }
-                //else anything?
                 else {
                     self.selectedObject = null;
                 }
             }
             appState.saveChanges('geometry', function (d) {
+                //srdbg('geometry ch', self.selectedObject);
+                if (self.selectedObject) {
+                    loadShapes();
+                }
                 //self.selectedObject = null;
-                loadShapes();
+                //loadShapes();
             });
         });
         $scope.$on('geomObject.editor.show', function(e, o) {

@@ -954,9 +954,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 }
             };
 
-            var LAYOUT_SHAPE_GROUP = 'group';
-            var LAYOUT_SHAPE_RECT = 'rect';
-            var LAYOUT_SHAPES = [LAYOUT_SHAPE_GROUP, LAYOUT_SHAPE_RECT];
+            //var LAYOUT_SHAPE_GROUP = 'group';
+            //var LAYOUT_SHAPE_RECT = 'rect';
+            //var LAYOUT_SHAPES = [LAYOUT_SHAPE_GROUP, LAYOUT_SHAPE_RECT];
+            // svg shapes
+            var LAYOUT_SHAPES = ['line', 'rect', 'circle', 'ellipse', 'polyline', 'polygon', 'path'];
 
             var SCREEN_INFO = {
                 x: {
@@ -1061,7 +1063,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function drawObjects(elevation) {
-                var shapes =  $scope.source.getShapes();
+                let shapes =  $scope.source.getShapes();
+
                 shapes.forEach(function(sh) {
                     if (! sh.layoutShape || sh.layoutShape === '') {
                         return;
@@ -1069,20 +1072,31 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     sh.elev = elevation;
                 });
 
-                var ds = d3.select('.plot-viewport').selectAll('.vtk-object-layout-shape')
-                    .data(shapes);
-                ds.exit().remove();
-                // function must return a DOM object in the SVG namespace
-                ds.enter().append(function (d) {
-                    return document.createElementNS('http://www.w3.org/2000/svg', d.layoutShape);
-                })
-                    .on('dblclick', editObject)
-                    .on('dblclick.zoom', null)
-                    .on('click', function (d, e) {
-                        selectObject(d, e);
+                // need to split the shapes up by type or the data will get mismatched
+                let layouts = {};
+                LAYOUT_SHAPES.forEach(function (l) {
+                    layouts[l] = shapes.filter(function (s) {
+                        return s.layoutShape === l;
                     });
-                ds.call(updateShapeAttributes);
-                ds.call(dragShape);
+                });
+
+                for (let l in layouts) {
+                    let ds = d3.select('.plot-viewport').selectAll(`${l}.vtk-object-layout-shape`)
+                        .data(layouts[l]);
+                    ds.exit().remove();
+                    // function must return a DOM object in the SVG namespace
+                    ds.enter().append(function (d) {
+                        return document.createElementNS('http://www.w3.org/2000/svg', d.layoutShape);
+                    })
+                        .on('dblclick', editObject)
+                        .on('dblclick.zoom', null)
+                        .on('click', function (d, e) {
+                            selectObject(d, e);
+                        });
+                    ds.call(updateShapeAttributes);
+                    ds.call(dragShape);
+
+                }
             }
 /*
                 onpointerdown: function (evt) {
@@ -1246,7 +1260,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function selectObject(d) {
-                // allow using shift to select more than one (for alignment etc.(
+                // allow using shift to select more than one (for alignment etc.)
                 if (! selectedObject || selectedObject.id !== d.id ) {
                     selectedObject = d;
                 }
