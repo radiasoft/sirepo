@@ -180,7 +180,7 @@
             "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "knnClassification": {
-            "kmax": ["KMax", "Integer", 5],
+            "kmax": ["KMax", "Integer", 50],
             "kmin": ["KMin", "Integer", 1]
         },
         "knnClassificationMetricsAnimation": {},
@@ -376,8 +376,8 @@
             "title": "Simulation Settings",
             "basic": [
                 "classificationAnimation.classifier",
-                "knnClassification.kmax",
                 "knnClassification.kmin",
+                "knnClassification.kmax",
                 "linearSvcClassification.toleranceMax",
                 "linearSvcClassification.toleranceMin",
                 "linearSvcClassification.totalNumValues",
