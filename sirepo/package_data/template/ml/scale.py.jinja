@@ -29,5 +29,9 @@ scaled, in_idx, out_idx = scale_file(
     '{{ dataFile }}',
     {{ columnTypes }},
     {{ dataFile_inputsScaler }},
+{% if dataFile_appMode == 'classification' %}
+    None,
+{% else %}
     {{ dataFile_outputsScaler }},
+{% endif %}
 )

@@ -16,6 +16,7 @@ import copy
 import numpy
 import os
 import re
+import sirepo.analysis
 import sirepo.sim_data
 import sirepo.util
 import six
@@ -131,7 +132,7 @@ def get_analysis_report(run_dir, data):
             return _get_fit_report(report, plot_data, col_info)
         elif report.action == 'cluster':
             clusters = _compute_clusters(report, plot_data, col_info)
-    x_idx = _safe_index(col_info, report.x)
+    x_idx = _set_index_within_cols(col_info, report.x)
     x = (plot_data[:, x_idx] * col_info['scale'][x_idx]).tolist()
     plots = []
     for f in ('y1', 'y2', 'y3'):
@@ -140,7 +141,7 @@ def get_analysis_report(run_dir, data):
             continue
         if f not in report or report[f] == 'none':
             continue
-        y_idx = _safe_index(col_info, report[f])
+        y_idx = _set_index_within_cols(col_info, report[f])
         y = plot_data[:, y_idx]
         if len(y) <= 0 or math.isnan(y[0]):
             continue
@@ -233,8 +234,8 @@ def get_fft(run_dir, data):
 
     data.report = _SIM_DATA.webcon_analysis_report_name_for_fft(data)
     report, col_info, plot_data = _report_info(run_dir, data)
-    col1 = _safe_index(col_info, report.x)
-    col2 = _safe_index(col_info, report.y1)
+    col1 = _set_index_within_cols(col_info, report.x)
+    col2 = _set_index_within_cols(col_info, report.y1)
     t_vals = plot_data[:, col1] * col_info['scale'][col1]
     y_vals = plot_data[:, col2] * col_info['scale'][col2]
 
@@ -356,6 +357,108 @@ def get_settings_report(run_dir, data):
 #    raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
+def export_jupyter_notebook(data):
+    import sirepo.jupyter
+    nb = sirepo.jupyter.Notebook(data)
+    nb.add_code_cell([
+        'import numpy',
+        'import pykern',
+        'import sirepo',
+        'from pykern import pkcollections',
+        'from sirepo import analysis',
+    ])
+
+    #nb.add_markdown_cell('Function definitions', header_level=2)
+
+    data_var = 'data'
+    nb.add_markdown_cell('Exported Data', header_level=2)
+    nb.add_code_cell(
+        _data_cell(
+            str(_SIM_DATA.lib_file_abspath(_analysis_data_path(data))),
+            data_var
+        ), hide=True
+    )
+
+    nb.add_markdown_cell('Analysis Plot', header_level=2)
+    col_info = data.models.analysisData.columnInfo
+    x_var = 'x'
+    x_range_var = 'x_range'
+    x_range_inds_var = 'x_range_inds'
+    j = 0
+    rpt_name = 'analysisReport'
+    while rpt_name in data.models:
+        rpt = data.models[rpt_name]
+        x_index = _set_index_within_cols(col_info, int(rpt.x))
+        x_label = col_info.names[x_index]
+        y_info = []
+        x_range = None
+        if 'trimField' in rpt and int(rpt.trimField) == x_index:
+            x_range = (float(rpt.trimMin), float(rpt.trimMax))
+        x_points = f'{data_var}[:, {x_index}]' if not x_range else \
+            (f'[x for x in {data_var}[:, {x_index}] if x >= {x_range[0]} and '
+                f'x <= {x_range[1]}]')
+        x_range_inds = (
+            f'([i for (i, x) in enumerate({x_var}) if '
+            f'x >= {x_range_var}[0]][0], '
+            f'[i for (i, x) in enumerate({x_var}) if x <= {x_range_var}[1]][-1] + 1)'
+        ) if x_range else f'(0, len({x_var}))'
+        code = [
+            f'{x_var} = {x_points}',
+            f'{x_range_var} = {x_range}',
+            f'{x_range_inds_var} = {x_range_inds}',
+        ]
+        # many params like style are hard-coded - should move to schema?
+        i = 1
+        y_var = f'y{i}'
+        while y_var in rpt:
+            if rpt[y_var] == 'none':
+                i = i + 1
+                y_var = f'y{i}'
+                continue
+            y_index = _set_index_within_cols(col_info, int(rpt[y_var]))
+            y_label = col_info.names[y_index]
+            y_info.append(PKDict(
+                y_var=y_var,
+                y_index=y_index,
+                y_label=y_label,
+                style='line'
+            ))
+            code.append(
+                (f'{y_var} = '
+                f'{data_var}[:, {y_index}][{x_range_inds_var}[0]:{x_range_inds_var}[1]]')
+            )
+            i = i + 1
+            y_var = f'y{i}'
+        nb.add_code_cell(code)
+        if j == 0:
+            # only do this once
+            nb.add_report(PKDict(
+                x_var=x_var,
+                x_label=x_label,
+                y_info=y_info,
+                title='Analysis Plot'
+            ))
+
+        if 'action' in rpt and rpt.action:
+            # reset y_var to 1st data set
+            y_var = 'y1'
+            nb.add_markdown_cell(f'{rpt.action.capitalize()} Plot', header_level=2)
+            if rpt.action == 'fft':
+                _add_cells_fft(nb, x_var, y_var, x_label)
+            if rpt.action == 'fit':
+                _add_cells_fit(
+                    nb, x_var, y_var, x_range_inds_var, rpt
+                )
+            if rpt.action == 'cluster':
+                _add_cells_cluster(
+                    nb, data_var, rpt.clusterFields, len(col_info.names),
+                    x_var, y_var, x_label, y_label, rpt
+                )
+        j = j + 1
+        rpt_name = f'analysisReport{j}'
+    return nb
+
+
 def python_source_for_model(data, model):
     return _generate_parameters_file(None, data)
 
@@ -410,6 +513,94 @@ def write_epics_values(server_address, fields, values):
         ) is None:
             return False
     return True
+
+
+def _add_cells_cluster(notebook, data_var, fields, col_limit, x_var, y_var,
+        x_label, y_label, rpt):
+    notebook.add_code_cell('from sirepo.analysis import ml')
+    clusters_var = 'clusters'
+    scale_var = 'scale'
+    cols = [idx for idx, f in enumerate(fields) if f and
+            idx < col_limit]
+    method_params = PKDict(
+        agglomerative=f'{rpt.clusterCount}',
+        dbscan=f'{rpt.clusterDbscanEps}',
+        gmix=f'{rpt.clusterCount}, {rpt.clusterRandomSeed}',
+        kmeans=f'{rpt.clusterCount}, {rpt.clusterRandomSeed}, {rpt.clusterKmeansInit}',
+    )
+    notebook.add_code_cell(
+        [
+            (f'{scale_var} = sirepo.analysis.ml.scale_data({data_var}[:, {cols}], '
+             f'{[rpt.clusterScaleMin, rpt.clusterScaleMax]})'),
+            (f'{clusters_var} = sirepo.analysis.ml.{rpt.clusterMethod}('
+             f"{scale_var}, "
+             f'{method_params[rpt.clusterMethod]})')
+        ]
+    )
+    # can't use add_report because we don't know the result of
+    # compute_clusters
+    notebook.add_code_cell([
+        'pyplot.figure()',
+        f"pyplot.xlabel('{x_label}')",
+        f"pyplot.ylabel('{y_label}')",
+        "pyplot.title('Clusters')",
+        f'for idx in range(int(max({clusters_var})) + 1):',
+        (f'  cl_x = [x for i, x in enumerate({x_var}) if '
+         f'{clusters_var}[i] == idx]'),
+        (f'  cl_y = [y for i, y in enumerate({y_var}) if '
+         f'{clusters_var}[i] == idx]'),
+        "  pyplot.plot(cl_x, cl_y, '.')",
+        'pyplot.show()'
+    ])
+
+
+def _add_cells_fft(notebook, x_var, y_var, x_label):
+    # only 1 curve (for now?)
+    w_var = 'w'
+    y_norm_var = 'y_norm'
+    notebook.add_code_cell(
+        f'{w_var}, {y_norm_var} = sirepo.analysis.get_fft({x_var}, {y_var})'
+    )
+    y_info = [PKDict(
+        y_var=y_norm_var,
+        y_label='',
+        style='line'
+    )]
+    notebook.add_report(PKDict(
+        x_var=w_var,
+        x_label=x_label,
+        y_info=y_info,
+        title='FFT'
+    ))
+
+
+def _add_cells_fit(notebook, x_var, y_var, x_range_inds_var, rpt):
+    curves = ('fit', 'max', 'min')
+    x_fit_var = 'x_fit'
+    v = f'{x_fit_var}, '
+    for c in curves:
+        v = v + f"{_var('y', c)}, "
+    notebook.add_code_cell(
+        (f'{v}'
+         'p_vals, sigma = sirepo.analysis.fit_to_equation('
+         f'{x_var}[{x_range_inds_var}[0]:{x_range_inds_var}[1]], '
+         f"y1, '{rpt.fitEquation}', '{rpt.fitVariable}', '{rpt.fitParameters}')")
+    )
+    y_info = [PKDict(y_var=y_var, y_label='Data', style='scatter'), ]
+    for c in curves:
+        y_info.append(
+            PKDict(
+                y_var=_var('y', c),
+                x_points=x_fit_var,
+                y_label=c.capitalize(), style='line'
+            ),
+        )
+    notebook.add_report(PKDict(
+        x_var=x_var,
+        x_label='',
+        y_info=y_info,
+        title='Fit'
+    ))
 
 
 def _analysis_data_path(data):
@@ -576,7 +767,7 @@ def _column_info(path):
     if not header or len(header) < 2:
         return None
     header_row_count = 1
-    if re.search(r'^[\-|\+0-9eE\.]+$', header[0]):
+    if _is_data(header[0]):
         header = ['column {}'.format(idx + 1) for idx in range(len(header))]
         header_row_count = 0
     res = PKDict(
@@ -652,6 +843,24 @@ def _compute_clusters(report, plot_data, col_info):
         group=group.tolist(),
         count=count,
     )
+
+
+def _data_cell(path, var_name):
+    import csv
+    with pkio.open_text(path) as f:
+        reader = csv.reader(f)
+        d = [f'{var_name} = numpy.array([']
+        for r in reader:
+            if not _is_data(r):
+                continue
+            d.append(
+                f'    {[float(col) for col in r]},'
+            )
+    # for legal JSON
+    if len(d) > 1:
+        re.sub(r',$', '', d[-1])
+    d.append('])')
+    return d
 
 
 def _element_by_name(data, e_name):
@@ -786,8 +995,8 @@ def _generate_parameters_file(run_dir, data):
 
 
 def _get_fit_report(report, plot_data, col_info):
-    col1 = _safe_index(col_info, report.x)
-    col2 = _safe_index(col_info, report.y1)
+    col1 = _set_index_within_cols(col_info, report.x)
+    col2 = _set_index_within_cols(col_info, report.y1)
     x_vals = plot_data[:, col1] * col_info['scale'][col1]
     y_vals = plot_data[:, col2] * col_info['scale'][col2]
     fit_x, fit_y, fit_y_min, fit_y_max, param_vals, param_sigmas, latex_label = _fit_to_equation(
@@ -844,6 +1053,10 @@ def _hex_color_to_rgb(color):
     return rgb
 
 
+def _is_data(row):
+    return re.search(r'^[\-|\+0-9eE\.]+$', row[0])
+
+
 # arrange historical data for ease of plotting
 def _kicker_settings_for_plots(data, history, start_time):
     return _monitor_data_for_plots(data, history, start_time, 'KICKER')
@@ -862,7 +1075,7 @@ def _load_file_with_history(report, path, col_info):
     if 'history' in report:
         for action in report.history:
             if action.action == 'trim':
-                idx = _safe_index(col_info, action.trimField)
+                idx = _set_index_within_cols(col_info, action.trimField)
                 scale = col_info['scale'][idx]
                 res = res[(res[:,idx] * scale >= action.trimMin) & (res[:, idx] * scale <= action.trimMax)]
             elif action.action == 'cluster':
@@ -964,7 +1177,7 @@ def _report_info(run_dir, data):
     return report, col_info, plot_data
 
 
-def _safe_index(col_info, idx):
+def _set_index_within_cols(col_info, idx):
     idx = int(idx or 0)
     if idx >= len(col_info['names']):
         idx = 1
@@ -1083,3 +1296,9 @@ def _update_epics_kicker(data):
 
 def _validate_eq_var(val):
     return len(val) == 1 and re.match(r'^[a-zA-Z]+$', val)
+
+
+def _var(*args):
+    return '_'.join(args)
+
+

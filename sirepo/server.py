@@ -355,6 +355,18 @@ def api_homePage(path_info=None):
 
 
 @api_perm.require_user
+def api_exportJupyterNotebook(simulation_type, simulation_id, model=None, title=None):
+    t = sirepo.template.import_module(simulation_type)
+    assert hasattr(t, 'export_jupyter_notebook'), 'Jupyter export unavailable'
+    d = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
+    return http_reply.gen_file_as_attachment(
+        t.export_jupyter_notebook(d),
+        f"{d.models.simulation.name}{'-' + srschema.parse_name(title) if title else ''}.ipynb",
+        content_type='application/json'
+    )
+
+
+@api_perm.require_user
 def api_newSimulation():
     req = http_request.parse_post(template=True, folder=True, name=True)
     d = simulation_db.default_data(req.type)

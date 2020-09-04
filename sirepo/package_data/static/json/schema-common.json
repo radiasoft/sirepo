@@ -117,6 +117,7 @@
         "importArchive": "/import-archive",
         "importFile": "/import-file/<simulation_type>",
         "jobSupervisorPing": "/job-supervisor-ping",
+        "exportJupyterNotebook": "/export-jupyter-notebook/<simulation_type>/<simulation_id>/?<model>/?<title>",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",
@@ -235,6 +236,7 @@
                 ["afmhot", "afmhot"],
                 ["coolwarm", "coolwarm"],
                 ["jet", "jet"],
+                ["blues", "blues"],
                 ["contrast", "high contrast"]
             ],
             "JobRunMode": [

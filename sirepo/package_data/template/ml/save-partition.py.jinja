@@ -1,4 +1,6 @@
 
 np.save('{{ trainFile }}', train)
 np.save('{{ testFile }}', test)
+{% if dataFile_appMode == 'regression' %}
 np.save('{{ validateFile }}', validate)
+{% endif %}

@@ -322,8 +322,9 @@ def _extract_partition_report(run_dir, sim_in):
     d = PKDict(
         train=_read_file_column(run_dir, 'trainFile', idx),
         test=_read_file_column(run_dir, 'testFile', idx),
-        validate=_read_file_column(run_dir, 'validateFile', idx),
     )
+    if sim_in.models.dataFile.appMode == 'regression':
+        d.validate = _read_file_column(run_dir, 'validateFile', idx)
     r = []
     for name in d:
         _update_range(r, d[name])
