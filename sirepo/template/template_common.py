@@ -487,7 +487,7 @@ def validate_model(model_data, model_schema, enum_info):
             if not value:
                 value = 0
             v = float(value)
-            if re.search(r'\\[m(m|rad)]', label) or re.search(r'\[Lines/mm', label):
+            if re.search(r'\[m(m|rad)]', label) or re.search(r'\[Lines/mm', label):
                 v /= 1000
             elif re.search(r'\[n(m|rad)]', label) or re.search(r'\[nm/pixel\]', label):
                 v /= 1e09

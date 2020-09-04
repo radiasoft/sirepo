@@ -35,7 +35,9 @@ def test_importer(import_req):
         elif fn.ext == '.lte':
             data = elegant.import_file(import_req(fn))
             data['models']['commands'] = []
-            j = elegant._Generate(data, is_parallel=True).jinja_env
+            g = elegant._Generate(data, want_full=True)
+            g.sim()
+            j =  g.jinja_env
             k.actual = j.rpn_variables + j.lattice
         else:
             f = sirepo.lib.Importer('elegant').parse_file(fn).write_files(pkunit.work_dir())

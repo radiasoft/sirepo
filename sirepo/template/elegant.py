@@ -148,7 +148,9 @@ class LibAdapter:
             def _lattice_filename(self, value):
                 return value
 
-        v = _G(data, is_parallel=True).jinja_env
+        g = _G(data, want_full=True)
+        g.sim()
+        v = g.jinja_env
         r = PKDict(
             commands=dest_dir.join(source_path.basename),
             lattice=self._lattice_path(dest_dir, data),
@@ -284,7 +286,7 @@ def copy_related_files(data, source_path, target_path):
 
 
 def generate_parameters_file(data, is_parallel=False):
-    return _Generate(data, is_parallel).parameters_text
+    return _Generate(data, want_full=is_parallel).sim()
 
 
 def generate_variables(data):
@@ -494,9 +496,7 @@ def validate_file(file_type, path):
 
 
 def webcon_generate_lattice(data):
-    # Used by Webcon
-    util = LatticeUtil(data, _SCHEMA)
-    return _generate_lattice(_build_filename_map_from_util(util), util)
+    return _Generate(data).lattice_only()
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -521,20 +521,26 @@ def write_parameters(data, run_dir, is_parallel):
 
 class _Generate:
 
-    def __init__(self, data, is_parallel):
-        self.is_parallel = is_parallel
+    def __init__(self, data, want_full=False):
+        self.want_full = want_full
         self.data = data
+        self.util = LatticeUtil(data, _SCHEMA)
+        self.filename_map = _build_filename_map_from_util(self.util)
+
+    def lattice_only(self):
+        return self._lattice()
+
+    def sim(self):
         self._validate_data()
-        r, v = template_common.generate_parameters_file(data)
-        v.rpn_variables = generate_variables(data)
+        d = self.data
+        r, v = template_common.generate_parameters_file(d)
+        v.rpn_variables = generate_variables(d)
         self.jinja_env = v
-        if is_parallel:
-            r += self._full_simulation()
-        elif data.get('report', '') == 'twissReport':
-            r += self._twiss_simulation()
-        else:
-            r += self._bunch_simulation()
-        self.parameters_text = r
+        if self.want_full:
+            return r + self._full_simulation()
+        if d.get('report', '') == 'twissReport':
+            return r + self._twiss_simulation()
+        return r + self._bunch_simulation()
 
     def _abspath(self, basename):
         return _SIM_DATA.lib_file_abspath(basename)
@@ -654,10 +660,8 @@ class _Generate:
                     _type='global_settings',
                 ),
             )
-        self.util = LatticeUtil(d, _SCHEMA)
         if d.models.simulation.backtracking == '1':
             self._setup_backtracking()
-        self.filename_map = _build_filename_map_from_util(self.util)
         self.jinja_env.update(
             commands=self._commands(),
             lattice=self._lattice(),
