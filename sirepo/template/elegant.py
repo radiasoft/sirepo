@@ -260,7 +260,7 @@ def background_percent_complete(report, run_dir, is_running):
     )
     if is_running:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-        res.percentComplete = _percentlete(data, last_element, step)
+        res.percentComplete = _percent(data, last_element, step)
         return res
     if not run_dir.join(_ELEGANT_SEMAPHORE_FILE).exists():
         return res
