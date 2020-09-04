@@ -153,11 +153,11 @@ class LibAdapter:
             commands=dest_dir.join(source_path.basename),
             lattice=self._lattice_path(dest_dir, data),
         )
-# only works for the lattice, but the save_lattice command is strange
-#        v.commands = v.commands.replace('.filename.lte', '')
         pkio.write_text(r.commands, v.commands)
         pkio.write_text(r.lattice, v.rpn_variables + v.lattice)
-# need to copy otherfiles from source_path
+        for f in LatticeUtil(data, _SCHEMA).iterate_models(lattice.InputFileIterator(_SIM_DATA)).result:
+            f = _SIM_DATA.lib_file_name_without_type(f)
+            source_path.new(basename=f).copy(dest_dir.join(f), mode=True)
         return r
 
     def _lattice_path(self, dest_dir, data):

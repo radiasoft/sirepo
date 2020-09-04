@@ -1,0 +1,158 @@
+
+&global_settings
+  mpi_io_write_buffer_size = 1048576,
+&end
+
+&run_setup
+  semaphore_file = run_setup.semaphore,
+  always_change_p0 = 1,
+  centroid = "run_setup.centroid.sdds",
+  default_order = 1,
+  final = "run_setup.final.sdds",
+  lattice = "PClinac_TESSA_LSC.lte",
+  magnets = "run_setup.magnets.sdds",
+  p_central = 85,
+  parameters = "run_setup.parameters.sdds",
+  sigma = "run_setup.sigma.sdds",
+  use_beamline = "LTOMATCH",
+&end
+
+&load_parameters
+  allow_missing_elements = 1,
+  allow_missing_parameters = 1,
+  change_defined_values = 1,
+  filename = "PC.param",
+&end
+
+&load_parameters
+  allow_missing_elements = 1,
+  allow_missing_parameters = 1,
+  change_defined_values = 1,
+  filename = "PClinac_start.param",
+&end
+
+&load_parameters
+  allow_missing_elements = 1,
+  allow_missing_parameters = 1,
+  change_defined_values = 1,
+  filename = "transverse.param",
+&end
+
+&load_parameters
+  allow_missing_elements = 1,
+  allow_missing_parameters = 1,
+  change_defined_values = 1,
+  filename = "tessamatch1.paramOpt",
+&end
+
+&alter_elements
+  allow_missing_elements = 1,
+  item = "TOTAL",
+  name = "Q",
+  type = "charge",
+  value = 300e-12,
+&end
+
+&alter_elements
+  item = "PHASE",
+  name = "L2CELL*",
+  type = "RF*",
+  value = 57.55,
+&end
+
+&alter_elements
+  item = "PHASE",
+  name = "L4CELL*",
+  type = "RF*",
+  value = 95.0,
+&end
+
+&alter_elements
+  item = "PHASE",
+  name = "L5CELL*",
+  type = "RF*",
+  value = 95.0,
+&end
+
+&alter_elements
+  item = "VOLT",
+  multiplicative = 1,
+  name = "L4CELL*",
+  type = "RF*",
+  value = 1.07,
+&end
+
+&alter_elements
+  item = "VOLT",
+  multiplicative = 1,
+  name = "L5CELL*",
+  type = "RF*",
+  value = 1.07,
+&end
+
+&alter_elements
+  item = "LSC",
+  name = "*",
+  type = "RF*",
+  value = 1,
+&end
+
+&alter_elements
+  item = "N_KICKS",
+  name = "*",
+  type = "RF*",
+  value = 5,
+&end
+
+&twiss_output
+  alpha_x = -1.609709872915761,
+  alpha_y = -1.653138844198896,
+  beta_x = 4.034896311524342,
+  beta_y = 4.199343696609461,
+  filename = "twiss_output.filename.sdds",
+  matched = 0,
+&end
+
+&run_control
+  n_indices = 1,
+&end
+
+&link_elements
+  equation = "PHASE",
+  item = "PHASE",
+  source = "L2CELL2",
+  target = "L2CELL*",
+&end
+
+&vary_element
+  final = 65,
+  index_limit = 20,
+  initial = 60,
+  item = "PHASE",
+  name = "L2CELL2",
+&end
+
+&bunched_beam
+&end
+
+&sdds_beam
+  input = "bunchFile-sourceFile.PCG.sdds",
+  reuse_bunch = 1,
+  sample_fraction = 0.1,
+&end
+
+&save_lattice
+  filename = "save_lattice.filename.lte",
+  output_seq = 1,
+&end
+
+&matrix_output
+  SDDS_output = "matrix_output.SDDS_output.sdds",
+  SDDS_output_order = 2,
+  output_at_each_step = 1,
+  printout = "matrix_output.printout.sdds",
+  printout_order = 2,
+&end
+
+&track
+&end

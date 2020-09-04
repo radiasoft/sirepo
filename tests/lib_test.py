@@ -15,13 +15,15 @@ def test_elegant():
 
     for s in pkio.sorted_glob(pkunit.data_dir().join('*')):
         t = s.basename.split('_')[0]
-        with pkio.save_chdir(s):
-            d = sirepo.lib.Importer(t).parse_file(
-                pkio.sorted_glob('first*')[0].basename,
-            )
+        d = sirepo.lib.Importer(t).parse_file(
+            pkio.sorted_glob(s.join('first*'))[0]
+        )
         d2 = d.copy()
         d2.pkdel('version')
         for k in [k for k in d2.keys() if '_SimData__' in k]:
             d2.pkdel(k)
         pkunit.file_eq(s.join('out.json'), d2)
-        d.write_files(pkunit.work_dir().join(s.basename))
+        w = pkunit.work_dir().join(s.basename)
+        d.write_files(w)
+        for o in pkio.sorted_glob(pkunit.data_dir().join(s.basename, '*.out')):
+            pkunit.file_eq(o, actual_path=w.join(o.basename).new(ext=''))
