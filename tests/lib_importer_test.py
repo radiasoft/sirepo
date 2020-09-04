@@ -22,4 +22,4 @@ def test_elegant():
             )
             d.pkdel('version')
             o = 'out.json'
-            pkunit.file_eq(s.join(o), d, w.join(o))
+            pkunit.file_eq(s.join('out.json'), d)
