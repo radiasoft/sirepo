@@ -2,7 +2,7 @@ Some text here, not in a comment
 
 &run_setup
   ! a comment
-  lattice = "elegant.lte",
+  lattice = "comments.ele.lte",
   p_central_mev = 1001,
   output = "run_setup.output.sdds",
 &end

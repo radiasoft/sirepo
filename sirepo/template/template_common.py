@@ -312,10 +312,8 @@ def flatten_data(d, res, prefix=''):
     return res
 
 
-def generate_parameters_file(data, jinja_env=None):
-    if jinja_env is None:
-        jinja_env = PKDict()
-    v = flatten_data(data['models'], jinja_env)
+def generate_parameters_file(data):
+    v = flatten_data(data['models'], PKDict())
     v['notes'] = _get_notes(v)
     return render_jinja(None, v, name='common-header.py'), v
 
@@ -488,14 +486,14 @@ def validate_model(model_data, model_schema, enum_info):
             if not value:
                 value = 0
             v = float(value)
-            if re.search('\[m(m|rad)\]', label) or re.search('\[Lines/mm', label):
+            if re.search(r'\\[m(m|rad)]', label) or re.search(r'\[Lines/mm', label):
                 v /= 1000
-            elif re.search('\[n(m|rad)\]', label) or re.search('\[nm/pixel\]', label):
+            elif re.search(r'\[n(m|rad)]', label) or re.search(r'\[nm/pixel\]', label):
                 v /= 1e09
-            elif re.search('\[ps]', label):
+            elif re.search(r'\[ps]', label):
                 v /= 1e12
             #TODO(pjm): need to handle unicode in label better (mu)
-            elif re.search('\[\xb5(m|rad)\]', label) or re.search('\[mm-mrad\]', label):
+            elif re.search('\\[\xb5(m|rad)]', label) or re.search(r'\[mm-mrad]', label):
                 v /= 1e6
             model_data[k] = float(v)
         elif field_type == 'Integer':
