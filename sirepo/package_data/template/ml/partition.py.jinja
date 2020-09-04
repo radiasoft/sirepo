@@ -1,11 +1,18 @@
-{% if partition_method == 'random' %}
+
+{% if dataFile_appMode == 'classification' %}
+from sklearn.model_selection import train_test_split
+
+size = (100 - {{ partition_training }}) / 100.
+train, test = train_test_split(scaled, test_size=size, random_state={{ partition_random_state }}, shuffle=True)
+
+{% elif partition_method == 'random' %}
 from sklearn.model_selection import train_test_split
 
 def train_test_validate(values, train_size, test_size):
     size = (100 - train_size) / 100.
-    train, tv = train_test_split(values, test_size=size, random_state=42, shuffle=True)
+    train, tv = train_test_split(values, test_size=size, random_state={{ partition_random_state }}, shuffle=True)
     size = test_size / (test_size + (100 - train_size - test_size))
-    test, validate = train_test_split(tv, test_size=size, random_state=42, shuffle=True)
+    test, validate = train_test_split(tv, test_size=size, random_state={{ partition_random_state }}, shuffle=True)
     return (train, test, validate)
 
 train, test, validate = train_test_validate(
