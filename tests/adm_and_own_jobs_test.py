@@ -82,7 +82,7 @@ def test_srw_user_see_only_own_jobs(auth_fc):
             'admJobs' if adm else 'ownJobs',
             PKDict(simulationType=t)
         )
-        pkunit.pkeq(job_count, len(r.rows), 'r={}', r)
+        pkunit.pkeq(job_count, len(r.rows), 'job_count={} len_r={} r={}', len(r.rows), job_count, r)
 
     def _get_simulation_running():
         d = auth_fc.sr_sim_data(sim_name=n, sim_type='srw')
