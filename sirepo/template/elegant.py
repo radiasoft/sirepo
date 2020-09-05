@@ -148,7 +148,7 @@ class LibAdapter:
             def _lattice_filename(self, value):
                 return value
 
-        g = _G(data, want_full=True)
+        g = _G(data)
         g.sim()
         v = g.jinja_env
         r = PKDict(
@@ -286,7 +286,7 @@ def copy_related_files(data, source_path, target_path):
 
 
 def generate_parameters_file(data, is_parallel=False):
-    return _Generate(data, want_full=is_parallel).sim()
+    return _Generate(data).sim(full=is_parallel)
 
 
 def generate_variables(data):
@@ -443,7 +443,7 @@ def remove_last_frame(run_dir):
 
 
 def rcscon_generate_lattice(data):
-    return _Generate(data, want_full=True).sim(do_validate=False)
+    return _Generate(data, validate=False).sim()
 
 
 def save_sequential_report_data(data, run_dir):
@@ -500,7 +500,7 @@ def validate_file(file_type, path):
 
 
 def webcon_generate_lattice(data):
-    return _Generate(data).lattice_only()
+    return _Generate(data, validate=False).lattice_only()
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -525,11 +525,12 @@ def write_parameters(data, run_dir, is_parallel):
 
 class _Generate:
 
-    def __init__(self, data, want_full=False):
-        self.want_full = want_full
+    def __init__(self, data, validate=True):
         self.data = data
         self._util = None
         self._filename_map = None
+        if validate:
+            self._validate_data()
 
     @property
     def filename_map(self):
@@ -540,14 +541,12 @@ class _Generate:
     def lattice_only(self):
         return self._lattice()
 
-    def sim(self, do_validate=True):
-        if do_validate:
-            self._validate_data()
+    def sim(self, full=True):
         d = self.data
         r, v = template_common.generate_parameters_file(d)
         v.rpn_variables = generate_variables(d)
         self.jinja_env = v
-        if self.want_full:
+        if full:
             return r + self._full_simulation()
         if d.get('report', '') == 'twissReport':
             return r + self._twiss_simulation()

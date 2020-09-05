@@ -35,7 +35,7 @@ def test_importer(import_req):
         elif fn.ext == '.lte':
             data = elegant.import_file(import_req(fn))
             data['models']['commands'] = []
-            g = elegant._Generate(data, want_full=True)
+            g = elegant._Generate(data)
             g.sim()
             j =  g.jinja_env
             k.actual = j.rpn_variables + j.lattice
