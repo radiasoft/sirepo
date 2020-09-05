@@ -437,11 +437,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function addShapesForObject(o) {
         let baseShape = self.getShape(o.id);
-        let gShape = null;
         if (! baseShape) {
             baseShape = self.shapeForObject(o);
             self.shapes.push(baseShape);
         }
+
         let xformShapes = [baseShape];
         let txArr = [];
         // probably better to create a transform and let svg do this work
@@ -467,37 +467,33 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                                 cloneTx.push(rotateFn(cloneXform, i));
                             }
                         }
-                        nextShape = txShape(baseShape, xform);
-                        baseShape.addLink(nextShape, ctx);
-                        self.shapes.push(nextShape);
-                        ctx(baseShape, nextShape);
-                        xformShapes.push(nextShape);
+                        xformShapes.push(addTxShape(baseShape, xform, ctx));
                     }
-                    return;
                 }
                 if (xform.model === 'rotate') {
                     txArr.push(rotateFn(xform, 1));
-                    return;
                 }
                 if (xform.model === 'symmetryTransform') {
                     linkTx = mirrorFn(xform);
-                    nextShape = txShape(baseShape, xform);
-                    xShape.addLink(nextShape, linkTx);
-                    self.shapes.push(nextShape);
-                    linkTx(xShape, nextShape);
-                    xformShapes.push(nextShape);
-                    return;
+                    xformShapes.push(addTxShape(baseShape, xform, linkTx));
+
+                    // transform members if any
+                    for (let id of (o.members || [])) {
+                        let m = self.getShape(id);
+                        if (! m) {
+                            m = self.shapeForObject(self.getObject(id));
+                        }
+                        xformShapes.push(addTxShape(m, xform, linkTx));
+                    }
                 }
                 if (xform.model === 'translate') {
                     txArr.push(offsetFn(xform, 1));
-                    return;
                 }
             });
         });
         composeFn(txArr)(baseShape, baseShape);
-
         if (o.groupId !== '') {
-            gShape = self.getShape(o.groupId);
+            let gShape = self.getShape(o.groupId);
             if (! gShape) {
                 gShape = self.shapeForObject(self.getObject(o.groupId));
                 self.shapes.push(gShape);
@@ -506,6 +502,14 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             baseShape.addLink(gShape, fit);
         }
         //srdbg('shapes', self.shapes);
+    }
+
+    function addTxShape(sourceShape, xform, link) {
+        let nextShape = txShape(sourceShape, xform);
+        sourceShape.addLink(nextShape, link);
+        self.shapes.push(nextShape);
+        link(sourceShape, nextShape);
+        return nextShape;
     }
 
     function addSymmetryPlane(baseShape, xform) {
@@ -517,18 +521,15 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     xform.symmetryPoint,
                     SIREPO.APP_SCHEMA.constants.objectScale)
                 ));
-            if (cpl.equals(spl)) {
+            if (cpl.equals(spl) || ! spl.intersection(cpl)) {
                 continue;
             }
-            const l = spl.intersection(cpl);
-            if (l) {
-                var pl = vtkPlotting.plotLine(
-                    virtualShapeId(baseShape), baseShape.name, l,
-                    baseShape.color, 1.0, 'dashed', "8,8,4,8"
-                );
-                pl.coordPlane = p;
-                self.shapes.push(pl);
-            }
+            var pl = vtkPlotting.plotLine(
+                virtualShapeId(baseShape), baseShape.name, spl.intersection(cpl),
+                baseShape.color, 1.0, 'dashed', "8,8,4,8"
+            );
+            pl.coordPlane = p;
+            self.shapes.push(pl);
         }
     }
 

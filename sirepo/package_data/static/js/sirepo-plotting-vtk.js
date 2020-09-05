@@ -954,11 +954,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 }
             };
 
-            //var LAYOUT_SHAPE_GROUP = 'group';
-            //var LAYOUT_SHAPE_RECT = 'rect';
-            //var LAYOUT_SHAPES = [LAYOUT_SHAPE_GROUP, LAYOUT_SHAPE_RECT];
             // svg shapes
-            var LAYOUT_SHAPES = ['line', 'rect', 'circle', 'ellipse', 'polyline', 'polygon', 'path'];
+            var LAYOUT_SHAPES = ['circle', 'ellipse', 'line', 'path', 'polygon', 'polyline', 'rect'];
 
             var SCREEN_INFO = {
                 x: {
