@@ -528,8 +528,14 @@ class _Generate:
     def __init__(self, data, want_full=False):
         self.want_full = want_full
         self.data = data
-        self.util = LatticeUtil(data, _SCHEMA)
-        self.filename_map = _build_filename_map_from_util(self.util)
+        self._util = None
+        self._filename_map = None
+
+    @property
+    def filename_map(self):
+        if not self._filename_map:
+            self._filename_map = _build_filename_map_from_util(self.util)
+        return self._filename_map
 
     def lattice_only(self):
         return self._lattice()
@@ -546,6 +552,12 @@ class _Generate:
         if d.get('report', '') == 'twissReport':
             return r + self._twiss_simulation()
         return r + self._bunch_simulation()
+
+    @property
+    def util(self):
+        if not self._util:
+            self._util = LatticeUtil(self.data, _SCHEMA)
+        return self._util
 
     def _abspath(self, basename):
         return _SIM_DATA.lib_file_abspath(basename)
@@ -667,6 +679,9 @@ class _Generate:
             )
         if d.models.simulation.backtracking == '1':
             self._setup_backtracking()
+            # other changes are global (modify original data),
+            # but _setup_backtracking makes a copy
+            d = self.data
         self.jinja_env.update(
             commands=self._commands(),
             lattice=self._lattice(),
