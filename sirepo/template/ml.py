@@ -273,9 +273,9 @@ def _compute_numpy_info(path):
 def _confusion_matrix_to_heatmap_report(frame_args, filename, title):
     r = pkjson.load_any(frame_args.run_dir.join(filename))
     a = None
-    for i, _ in enumerate(r.matrix):
-        for j, v in enumerate(r.matrix[i]):
-            t = np.repeat([[i, j]], v, axis=0)
+    for y, _ in enumerate(r.matrix):
+        for x, v in enumerate(r.matrix[y]):
+            t = np.repeat([[x, y]], v, axis=0)
             a = t if a is None else np.vstack([t, a])
     return template_common.heatmap(
         a,
