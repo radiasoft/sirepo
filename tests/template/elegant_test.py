@@ -8,8 +8,6 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 import pytest
 
-pytest.importorskip('sdds')
-
 elegant = None
 
 def test_get_application_data():

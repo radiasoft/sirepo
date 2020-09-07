@@ -770,13 +770,13 @@ def _parse_synergia_log(run_dir):
     text = pkio.read_text(run_dir.join(template_common.RUN_LOG))
     errors = []
     current = ''
-    for line in text.split("\n"):
+    for line in text.split('\n'):
         if not line:
             if current:
                 errors.append(current)
                 current = ''
             continue
-        m = re.match('\*\*\* (WARR?NING|ERROR) \*\*\*(.*)', line)
+        m = re.match(r'\*\*\* (WARR?NING|ERROR) \*\*\*(.*)', line)
         if m:
             if not current:
                 error_type = m.group(1)
@@ -804,13 +804,13 @@ def _particle_file_list(run_dir):
 def _plot_field(field):
     if field == 'numparticles':
         return 'num_particles', None, None
-    m = re.match('(\w+)emit', field)
+    m = re.match(r'(\w+)emit', field)
     if m:
         return 'emit{}'.format(m.group(1)), m.group(1), None
-    m = re.match('(\w+)(mean|std)', field)
+    m = re.match(r'(\w+)(mean|std)', field)
     if m:
         return m.group(2), m.group(1), None
-    m = re.match('^(\wp?)(\wp?)(corr|mom2)', field)
+    m = re.match(r'^(\wp?)(\wp?)(corr|mom2)', field)
     if m:
         return m.group(3), m.group(1), m.group(2)
     assert False, 'unknown field: {}'.format(field)

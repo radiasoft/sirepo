@@ -271,7 +271,7 @@ def validate_file(file_type, path):
     assert file_type == 'ring-lattice'
     for line in pkio.read_text(str(path)).split("\n"):
         # mad-x twiss column header starts with '*'
-        match = re.search('^\*\s+(.*?)\s*$', line)
+        match = re.search(r'^\*\s+(.*?)\s*$', line)
         if match:
             columns = re.split(r'\s+', match.group(1))
             is_ok = True

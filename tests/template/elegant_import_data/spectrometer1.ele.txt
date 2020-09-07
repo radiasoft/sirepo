@@ -1,9 +1,13 @@
 
+&global_settings
+  mpi_io_write_buffer_size = 1048576,
+&end
+
 &run_setup
   semaphore_file = run_setup.semaphore,
   default_order = 1,
   final = "run_setup.final.sdds",
-  lattice = "elegant.lte",
+  lattice = "spectrometer1.ele.lte",
   p_central_mev = 100,
   parameters = "run_setup.parameters.sdds",
   use_beamline = "BL",
@@ -101,7 +105,7 @@
 
 &run_setup
   semaphore_file = run_setup.semaphore,
-  lattice = "save_lattice.filename.lte",
+  lattice = "save_lattice",
   magnets = "run_setup2.magnets.sdds",
   output = "run_setup2.output.sdds",
   p_central_mev = 100,

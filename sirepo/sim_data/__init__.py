@@ -511,7 +511,7 @@ class SimDataBase(object):
     @classmethod
     def _assert_server_side(cls):
         assert not cfg.lib_file_uri, \
-            'method may only be called on server'
+            f'method={pkinspect.caller()} may only be called on server'
 
     @classmethod
     def _compute_model(cls, analysis_model, resp):

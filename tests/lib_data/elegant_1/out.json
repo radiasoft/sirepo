@@ -2626,7 +2626,7 @@
                 "expand_for": "",
                 "final": "1",
                 "final_pass": "0",
-                "lattice": "Lattice",
+                "lattice": "PClinac_TESSA_LSC.lte",
                 "load_balancing_on": 0,
                 "losses": "",
                 "magnets": "1",
@@ -16898,6 +16898,17 @@
             "23.250 .0254 * .1527 -": 0.43785
         },
         "rpnVariables": [],
+        "simulation": {
+            "activeBeamlineId": 830,
+            "backtracking": "0",
+            "documentationUrl": "",
+            "folder": "/",
+            "name": "Example",
+            "notes": "",
+            "simulationMode": "serial",
+            "simulationSerial": 0,
+            "visualizationBeamlineId": 830
+        },
         "twissReport": {
             "includeLattice": "1",
             "y1": "betax",

@@ -15,6 +15,16 @@ def test_elegant(fc):
         'Compact Storage Ring',
         'twissReport',
     )
+    _r(
+        fc,
+        'Script Element Example',
+        'twissReport',
+    )
+    _r(
+        fc,
+        'Backtracking',
+        'twissReport',
+    )
 
 
 def test_synergia(fc):
