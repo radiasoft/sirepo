@@ -68,6 +68,61 @@ def get_application_data(data, **kwargs):
     assert False, 'unknown get_application_data: {}'.format(data)
 
 
+def prepare_for_client(data):
+    # TODO(e-carlin): move to top
+    _ENCODING_MAPPING_MODEL = 'outputEncodingMapping'
+    def _encode_output_column(data):
+        # POSIT: The encoding here is the same encoding that happens in
+        # package_data.template.ml.scale.py.jinja.read_data_and_encode_output_column()
+        # TODO(e-carlin): Maybe we can just use these encoded values instead of running
+        # the encoder again.
+        from sklearn.preprocessing import LabelEncoder
+        s = False
+
+        # TODO(e-carlin): check to make sure classifier and only do if so
+        # maybe delete model if not classifier
+        try:
+            if 'inputOutput' not in data.models.columnInfo:
+                return False, data
+            o = data.models.columnInfo.inputOutput.index('output')
+        except ValueError:
+            return False, data
+        if data.models.dataFile.appMode != 'classification':
+            if  data.models.get([_ENCODING_MAPPING_MODEL]):
+                del data.models[_ENCODING_MAPPING_MODEL]
+                return True, data
+            return False, data
+
+        p = simulation_db.simulation_lib_dir(SIM_TYPE).join(
+            _filename(data.models.dataFile.file),
+        )
+        v = np.genfromtxt(
+            str(p),
+            delimiter=',',
+            skip_header=_compute_csv_info(p).hasHeaderRow,
+            dtype=None,
+            encoding='utf=8',
+        )
+        l = LabelEncoder()
+        c = v[f'f{o}']
+        e = l.fit(c)
+        # TODO(e-carlin): check if models are the same, no need to overwrite and save if they are
+        data.models[_ENCODING_MAPPING_MODEL] = PKDict(
+            zip(
+                # type(x) == numpy.int64 json expects Python int for keys
+                [int(x) for x in e.transform(e.classes_)],
+                e.classes_,
+            ),
+        )
+        return True, data
+    s, d = _encode_output_column(data)
+    # TODO(e-carlin): is saving necessary? srw has it. It is really only relevant
+    # when we are using in.json so maybe doesn't need to be saved on sirepo-data.json
+    if s:
+        simulation_db.save_simulation_json(d)
+    return d
+
+
 def prepare_sequential_output_file(run_dir, data):
     report = data['report']
     if 'fileColumnReport' in report or 'partitionColumnReport':
@@ -208,25 +263,35 @@ def write_parameters(data, run_dir, is_parallel):
 def _classification_metrics_report(frame_args, filename):
     def _get_lables():
         l = []
-        for k in d:
-            if not isinstance(d[k], PKDict):
+        for k in o:
+            if not isinstance(o[k], PKDict):
                 continue
-            for x in d[k]:
+            for x in o[k]:
                 if x not in l:
                     l.append(x)
         return l
 
     def _get_matrix():
         r = []
-        for k in d:
+        for k in o:
             k = str(k)
-            if not isinstance(d[k], PKDict):
+            if not isinstance(o[k], PKDict):
                 continue
             x = [k]
-            x.extend([round(x, 4) for x in d[k].values()])
+            try:
+                # TODO(e-carlin): outputEncodingMapping won't be on existing data. need fixup
+                # TODO(e-carlin): firgure out something better than str(int(float(k)))
+                x = [data.models.outputEncodingMapping[str(int(float(k)))]]
+            except ValueError:
+                # TODO(e-carlin): this won't work all the type casts can raise ValueError too
+                pass
+            # TODO(e-carlin): round in GUI
+            x.extend([round(x, 4) for x in o[k].values()])
             r.append(x)
         return r
-    d = pkjson.load_any(frame_args.run_dir.join(filename))
+
+    data = simulation_db.read_json(frame_args.run_dir.join(template_common.INPUT_BASE_NAME))
+    o = pkjson.load_any(frame_args.run_dir.join(filename))
     return PKDict(
         labels=_get_lables(),
         matrix=_get_matrix(),
@@ -281,7 +346,15 @@ def _confusion_matrix_to_heatmap_report(frame_args, filename, title):
         a,
         PKDict(histogramBins=len(r.matrix)),
         plot_fields=PKDict(
-            labels=r.labels,
+            # TODO(e-carlin): need to write fixup for this. Won't be on existing sims
+            # TODO(e-carlin): How can we be sure that the outputEncodingMapping
+            # is in the same order as the labels? Maybe add an assert that r.labels
+            # == ...values()
+            labels=list(
+                simulation_db.read_json(
+                    frame_args.run_dir.join(template_common.INPUT_BASE_NAME),
+                ).models.outputEncodingMapping.values(),
+            ),
             title=title.format(**r),
             x_label='Predicted',
             y_label='True',
