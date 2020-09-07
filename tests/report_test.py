@@ -77,5 +77,5 @@ def _r(fc, sim_name, analysis_model, shared_model=None):
     data = fc.sr_sim_data(sim_name)
     r = fc.sr_run_sim(data, analysis_model)
     if shared_model:
-        r = fc.sr_run_sim(data, shared_model, timeout=1, forceRun=False)
+        r = fc.sr_run_sim(data, shared_model, timeout=2, forceRun=False)
         pkunit.pkeq('completed',  r.state)
