@@ -934,7 +934,7 @@ SIREPO.app.directive('tablePanel', function(plotting) {
               '</div>',
             '</div>',
         ].join(''),
-        controller: function($scope, $sce) {
+        controller: function($filter, $scope, $sce) {
             $scope.row = (row) => {
                 const r = [...row];
                 let x = '<th>' + r.shift() + '</th>' + r.map(function (e) {
@@ -951,11 +951,18 @@ SIREPO.app.directive('tablePanel', function(plotting) {
             $scope.resize = noOp;
             $scope.load = (json) => {
                 $scope.tableHeaders = ['', ...json.labels];
-                const r = [];
+                $scope.tableRows = [];
                 for (let i = 0; i < json.matrix.length; i++) {
-                    r.push([...json.matrix[i]]);
+                    const r = [];
+                    for (let j = 0; j < json.matrix[i].length; j++) {
+                        let v = json.matrix[i][j];
+                        if (! Number.isNaN(Number(v)) && ! Number.isInteger(Number(v))) {
+                            v = Number(v).toFixed(4);
+                        }
+                        r.push(v);
+                    }
+                    $scope.tableRows.push(r);
                 }
-                $scope.tableRows = r;
                 $scope.title = json.title;
             };
             $scope.$on('framesCleared', function() {

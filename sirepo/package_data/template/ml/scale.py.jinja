@@ -21,12 +21,33 @@ def read_data(path, **kwargs):
 def read_data_and_encode_output_column(path, column_types):
     from sklearn.preprocessing import LabelEncoder
 
-    o = column_types.index('output')
+    def _encode_output_column():
+        v[f'f{o}'] = e.transform(c)
+        t = v.dtype.descr
+        t[-1] = (t[-1][0], _DATA_TYPE)
+        return np.array(v.astype(t).tolist())
+
+    def save_encoding_file():
+        from pykern import pkjson
+        from pykern.pkcollections import PKDict
+
+        pkjson.dump_pretty(
+            PKDict(
+                zip(
+                    e.transform(e.classes_).astype(_DATA_TYPE).tolist(),
+                    e.classes_,
+                ),
+            ),
+            filename='{{ classificationOutputColEncodingFile }}',
+        )
+
+    _DATA_TYPE = np.float
     v = read_data(path, dtype=None, encoding='utf=8')
-    v[f'f{o}'] = LabelEncoder().fit_transform(v[f'f{o}'])
-    t = v.dtype.descr
-    t[-1] = (t[-1][0], np.float)
-    return np.array(v.astype(t).tolist())
+    o = column_types.index('output')
+    c = v[f'f{o}']
+    e = LabelEncoder().fit(c)
+    save_encoding_file()
+    return _encode_output_column()
 {% endif %}
 
 def scale_columns(values, column_types, col_type, scaler):
@@ -37,7 +58,6 @@ def scale_columns(values, column_types, col_type, scaler):
 
 
 def scale_file(path, column_types, inputs_scaler, outputs_scaler):
-    print('{{ dataFile_appMode }}')
     {% if dataFile_appMode == 'classification' %}
     v = read_data_and_encode_output_column(path, column_types)
     {% else %}
