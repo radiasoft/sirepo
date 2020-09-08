@@ -1480,11 +1480,8 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
                 var s = SIREPO.APP_SCHEMA.strings;
                 var f = $scope.simState.getFrameCount();
                 var c = f > 0 ? s.completionState : '';
-                if (
-                    $scope.simState.controller.simShowCompletionState &&
-                        ! $scope.simState.controller.simShowCompletionState()
-                ) {
-                    c = '';
+                if ($scope.simState.controller.simCompletionState) {
+                    c = $scope.simState.controller.simCompletionState(c);
                 }
                 var a = {state: $scope.simState.stateAsText(), frameCount: f};
                 return  $sce.trustAsHtml(
