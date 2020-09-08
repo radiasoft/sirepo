@@ -934,7 +934,7 @@ SIREPO.app.directive('tablePanel', function(plotting) {
               '</div>',
             '</div>',
         ].join(''),
-        controller: function($filter, $scope, $sce) {
+        controller: function($scope, $sce) {
             $scope.row = (row) => {
                 const r = [...row];
                 let x = '<th>' + r.shift() + '</th>' + r.map(function (e) {
