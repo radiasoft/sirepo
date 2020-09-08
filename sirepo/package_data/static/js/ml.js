@@ -231,8 +231,8 @@ SIREPO.app.controller('ClassificationController', function(appState, frameCache,
         }
     };
 
-    self.simShowCompletionState = function() {
-        return false;
+    self.simCompletionState = function(statusText) {
+        return '';
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
