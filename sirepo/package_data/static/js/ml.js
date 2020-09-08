@@ -221,7 +221,13 @@ SIREPO.app.controller('ClassificationController', function(appState, frameCache,
         });
     }
 
-    self.hasFrames = frameCache.hasFrames;
+    self.hasFrames = function() {
+        if (appState.isLoaded()
+            && self.framesForClassifier == appState.applicationState().classificationAnimation.classifier) {
+            return frameCache.hasFrames();
+        }
+        return false;
+    };
 
     self.simHandleStatus = function (data) {
         errorMessage = data.error;
@@ -935,6 +941,7 @@ SIREPO.app.directive('tablePanel', function(plotting) {
             '</div>',
         ].join(''),
         controller: function($scope, $sce) {
+            plotting.setTextOnlyReport($scope);
             $scope.row = (row) => {
                 const r = [...row];
                 let x = '<th>' + r.shift() + '</th>' + r.map(function (e) {
@@ -943,12 +950,6 @@ SIREPO.app.directive('tablePanel', function(plotting) {
                 return $sce.trustAsHtml(x);
             };
 
-            //TODO(pjm): these should be no-op in sirepo-plotting, for text reports
-            var noOp = () => {};
-            $scope.clearData = noOp;
-            $scope.destroy = noOp;
-            $scope.init = noOp;
-            $scope.resize = noOp;
             $scope.load = (json) => {
                 $scope.tableHeaders = ['', ...json.labels];
                 $scope.tableRows = [];
