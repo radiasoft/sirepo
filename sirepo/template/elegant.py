@@ -954,9 +954,9 @@ def _output_info(run_dir):
                     except SystemError:
                         # incorrectly generated sdds file
                         break
-                    if not len(values):
+                    if not values:
                         pass
-                    elif len(field_range[col]):
+                    elif field_range[col]:
                         field_range[col][0] = min(_fix(min(values)), field_range[col][0])
                         field_range[col][1] = max(_fix(max(values)), field_range[col][1])
                     else:
@@ -986,7 +986,7 @@ def _output_info(run_dir):
     if os.path.isfile(str(info_file)):
         try:
             res = simulation_db.read_json(info_file)
-            if len(res) == 0 or res[0].get('_version', '') == _OUTPUT_INFO_VERSION:
+            if not res or res[0].get('_version', '') == _OUTPUT_INFO_VERSION:
                 return res
         except ValueError as e:
             pass
@@ -999,7 +999,7 @@ def _output_info(run_dir):
         if info:
             info.modelKey = 'elementAnimation{}'.format(info.id)
             res.append(info)
-    if len(res):
+    if res:
         res[0]['_version'] = _OUTPUT_INFO_VERSION
     simulation_db.write_json(info_file, res)
     return res

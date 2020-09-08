@@ -31,7 +31,7 @@ def parse_file(command_text):
             if not _parse_line(parser, prev_line + ' ' + line, commands):
                 break
             prev_line = ''
-        elif re.search(r'\&', line) or len(prev_line):
+        elif re.search(r'\&', line) or prev_line:
             prev_line += ' ' + line
         else:
             # ignoring lines between command markers

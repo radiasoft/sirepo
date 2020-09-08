@@ -197,7 +197,7 @@ class LatticeParser(object):
         beamline_id = None
         if name:
             beamline_id = self.elements_by_name[name].id
-        elif len(self.data.models.beamlines):
+        elif self.data.models.beamlines:
             beamline_id = self.data.models.beamlines[-1].id
         self.data.models.simulation.activeBeamlineId = \
             self.data.models.simulation.visualizationBeamlineId = beamline_id
@@ -384,7 +384,7 @@ class LatticeParser(object):
                 pkdlog('unknown cmd: {}', values)
 
     def __parse_values(self, values):
-        if not len(values):
+        if not values:
             return
         if len(values) == 1 and '=' in values[0] and not re.search(r'\Wline\s*=\s*\(', values[0].lower()):
             # a variable assignment
@@ -410,7 +410,7 @@ class LatticeParser(object):
     def __split_values(self, item):
         # split items into values by commas
         values = []
-        while item and len(item):
+        while item:
             item = item.strip()
             m = re.match(
                 r'^\s*((?:[\w.\']+\s*:?=\s*)?(?:(?:".*?")|(?:\'.*?\')|(?:\{.*?\})|(?:\w+\(.*?\))))(?:,(.*))?$',
@@ -566,7 +566,7 @@ class LatticeUtil(object):
                 #TODO(pjm): some old elegant sims have overlap in element and command ids
                 if cmd._id not in res:
                     res[cmd._id] = cmd
-        max_id = max(res.keys()) if len(res) else 0
+        max_id = max(res.keys()) if res else 0
         return res, max_id
 
     def __render_beamline(self, quote_name=False, want_semicolon=False, want_var_assign=False):

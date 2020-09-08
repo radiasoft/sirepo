@@ -26,7 +26,7 @@ del p
 
 def import_file(text):
     commands = elegant_command_parser.parse_file(text)
-    if not len(commands):
+    if not commands:
         raise IOError('no commands found in file')
     _verify_lattice_name(commands)
     rpn_variables = PKDict()
@@ -41,7 +41,7 @@ def import_file(text):
         for field in cmd:
             el_schema = _SCHEMA.model[n].get(field)
             if el_schema and el_schema[1] == 'RPNValue':
-                m = re.search('^<(\w+)>$', str(cmd[field]))
+                m = re.search(r'^<(\w+)>$', str(cmd[field]))
                 if m:
                     cmd[field] = m.group(1)
                     rpn_variables[cmd[field]] = _SIM_DATA.model_defaults(n).get(field, 0)

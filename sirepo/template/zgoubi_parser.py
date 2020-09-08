@@ -137,9 +137,9 @@ def _parse_command_line(element, line, line_def):
     for k in line_def.split(' '):
         if k[0] == '*':
             k = k[1:]
-            if not len(line):
+            if not line:
                 break
-        assert len(line), 'Element "{} {}": missing "{}" value for line def: {}'.format(
+        assert line, 'Element "{} {}": missing "{}" value for line def: {}'.format(
             element.type, element.get('name', ''), k, line_def)
         element[k] = line.pop(0)
     return element
@@ -300,7 +300,7 @@ def _zgoubi_changref(command):
                     transformType=command[1][i * 2],
                     transformValue=v,
                 ))
-        if not len(res.subElements):
+        if not res.subElements:
             return None
         return res
     return _parse_command(command, [

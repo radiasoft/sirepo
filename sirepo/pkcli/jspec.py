@@ -120,14 +120,14 @@ def _parse_madx(tfs_file):
     for line in text.split("\n"):
         if mode == 'header':
             # header row starts with *
-            if re.search('^\*\s', line):
-                col_names = re.split('\s+', line)
+            if re.search(r'^\*\s', line):
+                col_names = re.split(r'\s+', line)
                 col_names = col_names[1:]
                 mode = 'data'
         elif mode == 'data':
             # data rows after header, start with blank
-            if re.search('^\s+\S', line):
-                data = re.split('\s+', line)
+            if re.search(r'^\s+\S', line):
+                data = re.split(r'\s+', line)
                 rows.append(data[1:])
     res = dict(map(lambda x: (x.lower(), []), col_names))
     for i in range(len(col_names)):
