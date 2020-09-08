@@ -221,7 +221,13 @@ SIREPO.app.controller('ClassificationController', function(appState, frameCache,
         });
     }
 
-    self.hasFrames = frameCache.hasFrames;
+    self.hasFrames = function() {
+        if (appState.isLoaded()
+            && self.framesForClassifier == appState.applicationState().classificationAnimation.classifier) {
+            return frameCache.hasFrames();
+        }
+        return false;
+    };
 
     self.simHandleStatus = function (data) {
         errorMessage = data.error;
@@ -939,6 +945,7 @@ SIREPO.app.directive('tablePanel', function(plotting) {
             '</div>',
         ].join(''),
         controller: function($scope, $sce) {
+            plotting.setTextOnlyReport($scope);
             $scope.row = (row) => {
                 const r = [...row];
                 let x = '<th>' + r.shift() + '</th>' + r.map(function (e) {
@@ -947,19 +954,20 @@ SIREPO.app.directive('tablePanel', function(plotting) {
                 return $sce.trustAsHtml(x);
             };
 
-            //TODO(pjm): these should be no-op in sirepo-plotting, for text reports
-            var noOp = () => {};
-            $scope.clearData = noOp;
-            $scope.destroy = noOp;
-            $scope.init = noOp;
-            $scope.resize = noOp;
             $scope.load = (json) => {
                 $scope.tableHeaders = ['', ...json.labels];
-                const r = [];
+                $scope.tableRows = [];
                 for (let i = 0; i < json.matrix.length; i++) {
-                    r.push([...json.matrix[i]]);
+                    const r = [];
+                    for (let j = 0; j < json.matrix[i].length; j++) {
+                        let v = json.matrix[i][j];
+                        if (! Number.isNaN(Number(v)) && ! Number.isInteger(Number(v))) {
+                            v = Number(v).toFixed(4);
+                        }
+                        r.push(v);
+                    }
+                    $scope.tableRows.push(r);
                 }
-                $scope.tableRows = r;
                 $scope.title = json.title;
             };
             $scope.$on('framesCleared', function() {

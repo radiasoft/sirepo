@@ -21,16 +21,17 @@ import sirepo.sim_data
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 _OUTPUT_FILE = PKDict(
-    fitCSVFile='fit.csv',
+    classificationOutputColEncodingFile='classification-output-col-encoding.json',
     dtClassifierClassificationFile='dt-classifier-classification.json',
     dtClassifierConfusionFile='dt-classifier-confusion.json',
+    fitCSVFile='fit.csv',
     knnClassificationFile='classification.json',
     knnConfusionFile='confusion.json',
     knnErrorFile='error.npy',
     linearSvcConfusionFile='linear-svc-confusion.json',
     linearSvcErrorFile='linear-svc-error.npy',
-    logisticRegressionConfusionFile='logistic-regression-confusion.json',
     logisticRegressionClassificationFile='logistic-regression-classification.json',
+    logisticRegressionConfusionFile='logistic-regression-confusion.json',
     logisticRegressionErrorFile='logistic-regression-error.npy',
     predictFile='predict.npy',
     scaledFile='scaled.npy',
@@ -219,13 +220,17 @@ def _classification_metrics_report(frame_args, filename):
     def _get_matrix():
         r = []
         for k in d:
-            k = str(k)
             if not isinstance(d[k], PKDict):
                 continue
-            x = [k]
-            x.extend([round(x, 4) for x in d[k].values()])
+            try:
+                x = [e[k]]
+            except KeyError:
+                x = [k]
+            x.extend(d[k].values())
             r.append(x)
         return r
+
+    e = _get_classification_output_col_encoding(frame_args)
     d = pkjson.load_any(frame_args.run_dir.join(filename))
     return PKDict(
         labels=_get_lables(),
@@ -277,11 +282,15 @@ def _confusion_matrix_to_heatmap_report(frame_args, filename, title):
         for x, v in enumerate(r.matrix[y]):
             t = np.repeat([[x, y]], v, axis=0)
             a = t if a is None else np.vstack([t, a])
+
+
     return template_common.heatmap(
         a,
         PKDict(histogramBins=len(r.matrix)),
         plot_fields=PKDict(
-            labels=r.labels,
+            labels=list(
+                _get_classification_output_col_encoding(frame_args).values(),
+            ),
             title=title.format(**r),
             x_label='Predicted',
             y_label='True',
@@ -418,6 +427,49 @@ def _generate_parameters_file(data):
     res += template_common.render_jinja(SIM_TYPE, v, 'build-model.py')
     res += template_common.render_jinja(SIM_TYPE, v, 'train.py')
     return res
+
+
+def _get_classification_output_col_encoding(frame_args):
+    """Create _OUTPUT_FILE.classificationOutputColEncodingFile if not found.
+
+    This file is a "new" addition so "older" runs may not have it.
+    """
+    def _create_file():
+        from sklearn.preprocessing import LabelEncoder
+
+        # POSIT: Matches logic in package_data.template.ml.scale.py.jinja.read_data_and_encode_output_column()
+        data = simulation_db.read_json(frame_args.run_dir.join(template_common.INPUT_BASE_NAME))
+        v = np.genfromtxt(
+            str(simulation_db.simulation_lib_dir(SIM_TYPE).join(
+                _filename(data.models.dataFile.file),
+            )),
+            delimiter=',',
+            skip_header=data.models.columnInfo.hasHeaderRow,
+            dtype=None,
+            encoding='utf-8',
+        )
+        o = data.models.columnInfo.inputOutput.index('output')
+        c = v[f'f{o}']
+        e = LabelEncoder().fit(c)
+        res = PKDict(
+            zip(
+                e.transform(e.classes_).astype(np.float).tolist(),
+                e.classes_,
+            ),
+        )
+        pkjson.dump_pretty(
+            res,
+            filename=_OUTPUT_FILE.classificationOutputColEncodingFile,
+        )
+        return res
+    try:
+        return simulation_db.read_json(
+            frame_args.run_dir.join(_OUTPUT_FILE.classificationOutputColEncodingFile),
+        )
+    except Exception as e:
+        if pkio.exception_is_not_found(e):
+            return _create_file()
+        raise e
 
 
 def _histogram_plot(values, vrange):
