@@ -114,7 +114,7 @@ class SimDataBase(object):
 
     WATCHPOINT_REPORT = 'watchpointReport'
 
-    WATCHPOINT_REPORT_RE = re.compile('^{}(\d+)$'.format(WATCHPOINT_REPORT))
+    WATCHPOINT_REPORT_RE = re.compile(r'^{}(\d+)$'.format(WATCHPOINT_REPORT))
 
     @classmethod
     def compute_job_hash(cls, data):

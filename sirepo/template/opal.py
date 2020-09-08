@@ -135,7 +135,7 @@ def import_file(req, unit_test_mode=False, **kwargs):
         for infile in input_files:
             if not _SIM_DATA.lib_file_exists(infile.lib_filename):
                 missing_files.append(infile)
-        if len(missing_files):
+        if missing_files:
             return PKDict(
                 error='Missing data files',
                 missingFiles=missing_files,
@@ -469,16 +469,16 @@ def _format_field_value(state, model, field, el_type):
     elif re.search(r'List$', el_type):
         value = state.id_map[int(value)].name
     elif re.search(r'String', el_type):
-        if len(str(value)):
+        if str(value):
             if not re.search(r'^\s*\{.*\}$', value):
                 value = '"{}"'.format(value)
     elif LatticeUtil.is_command(model):
-        if el_type != 'RPNValue' and len(str(value)):
+        if el_type != 'RPNValue' and str(value):
             value = '"{}"'.format(value)
     elif not LatticeUtil.is_command(model):
         if model.type in _ELEMENTS_WITH_TYPE_FIELD and '_type' in field:
             return ['type', value]
-    if len(str(value)):
+    if str(value):
         return [field, value]
     return None
 

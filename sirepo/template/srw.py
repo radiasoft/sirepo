@@ -1058,7 +1058,7 @@ def _extract_brilliance_report(model, data):
     if 'brightnessComponent' in model and model['brightnessComponent'] == 'spectral-detuning':
         scale_adjustment = 1.0
     for f in data:
-        m = re.search('^f(\d+)', f)
+        m = re.search(r'^f(\d+)', f)
         if m:
             x_points.append((np.array(data[f]['data']) * scale_adjustment).tolist())
             points.append(data['e{}'.format(m.group(1))]['data'])
@@ -1101,7 +1101,7 @@ def _extract_trajectory_report(model, data):
                 points=points,
                 label=available_axes[model[f]],
                 #TODO(pjm): refactor with template_common.compute_plot_color_and_range()
-                color='#ff7f0e' if len(plots) else '#1f77b4',
+                color='#ff7f0e' if plots else '#1f77b4',
             ))
     return PKDict(
         title='Electron Trajectory',
@@ -1202,7 +1202,7 @@ def _generate_beamline_optics(report, data, last_id):
         item.drift_propagation = pp[1]
         item.name = name
         if not is_disabled:
-            if item.type == 'watch' and not len(items):
+            if item.type == 'watch' and not items:
                 # first item is a watch, insert a 0 length drift in front
                 items.append(PKDict(
                     name='zero_drift',
@@ -1474,7 +1474,7 @@ def _generate_srw_main(data, plot_reports):
 
 def _get_first_element_position(data):
     beamline = data['models']['beamline']
-    if len(beamline):
+    if beamline:
         return beamline[0]['position']
     if 'distanceFromSource' in data['models']['simulation']:
         return data['models']['simulation']['distanceFromSource']

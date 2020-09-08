@@ -547,7 +547,7 @@ def _compute_range_across_frames(run_dir, data):
         initial_field = _initial_phase_field(field)
         if initial_field in col_names:
             values += column_data(initial_field, col_names, rows)
-        if len(res[field]):
+        if res[field]:
             res[field][0] = min(min(values), res[field][0])
             res[field][1] = max(max(values), res[field][1])
         else:
@@ -935,7 +935,7 @@ def _read_twiss_header(run_dir):
     for line in pkio.read_text(path).split('\n'):
         for var in line.split('@ '):
             values = var.split()
-            if len(values) and values[0] in _TWISS_SUMMARY_LABELS:
+            if values and values[0] in _TWISS_SUMMARY_LABELS:
                 v = values[2]
                 if re.search(r'[a-z]{2}', v, re.IGNORECASE):
                     pass

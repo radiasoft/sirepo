@@ -196,7 +196,7 @@ def get_beam_pos_report(run_dir, data):
         raise sirepo.util.UserAlert('no beam position history', 'history length <= 0')
     x_label = 'z [m]'
     x, plots, colors = _beam_pos_plots(data, history, start_time)
-    if not len(plots):
+    if not plots:
         raise sirepo.util.UserAlert('no beam position history', 'no plots')
     return template_common.parameter_plot(
         x.tolist(),
@@ -330,7 +330,7 @@ def get_settings_report(run_dir, data):
     else:
         x, plots, colors = _setting_plots_by_position(data, history, start_time)
         x_label = 'z [m]'
-    if not len(plots):
+    if not plots:
         return PKDict(
             error='no settings history',
         )
@@ -671,7 +671,7 @@ def _bpm_readings_for_plots(data, history, start_time):
                     continue
                 d_ts = a_t - t
                 deltas = [dt for dt in (a_t - t) if dt > 0]
-                if not len(deltas):
+                if not deltas:
                     return None
                 prev_dt = min(deltas)
                 dt_idx = numpy.where(d_ts == prev_dt)[0][0] + 1
@@ -1300,5 +1300,3 @@ def _validate_eq_var(val):
 
 def _var(*args):
     return '_'.join(args)
-
-

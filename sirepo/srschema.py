@@ -209,7 +209,7 @@ def _validate_model_name(model_name):
         model_name (str): name to validate
     """
 
-    if not re.search('^[a-z_]\w*$', model_name, re.IGNORECASE):
+    if not re.search(r'^[a-z_]\w*$', model_name, re.IGNORECASE):
         raise AssertionError(util.err(model_name, 'model name must be a Python identifier'))
 
 def _validate_number(val, sch_field_info):

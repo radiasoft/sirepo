@@ -39,8 +39,6 @@ OUTPUT_BASE_NAME = 'out'
 #: Python file (not all simulations)
 PARAMETERS_PYTHON_FILE = 'parameters.py'
 
-RPN_METHODS = ['rpn_value', 'recompute_rpn_cache_values', 'validate_rpn_delete']
-
 #: stderr and stdout
 RUN_LOG = 'run.log'
 
@@ -48,7 +46,8 @@ _HISTOGRAM_BINS_MAX = 500
 
 _PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
 
-class ModelUnits(object):
+
+class ModelUnits():
     """Convert model fields from native to sirepo format, or from sirepo to native format.
 
     Examples::
@@ -120,7 +119,7 @@ class ModelUnits(object):
         return model
 
 
-class ParticleEnergy(object):
+class ParticleEnergy():
     """Computes the energy related fields for a particle from one field.
     Units:
         mass [GeV/c^2]
@@ -128,7 +127,6 @@ class ParticleEnergy(object):
         energy [GeV]
         brho [Tm]
     """
-
     SPEED_OF_LIGHT = 299792458 # [m/s]
 
     ENERGY_PRIORITY = PKDict(
@@ -244,7 +242,7 @@ def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
     for i in range(len(plots)):
         plot = plots[i]
         plot['color'] = colors[i % len(colors)]
-        if not len(plot['points']):
+        if not plot['points']:
             y_range = [0, 0]
         elif fixed_y_range is None:
             vmin = min(plot['points'])
@@ -259,7 +257,7 @@ def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
     # color child plots the same as parent
     for child in [p for p in plots if '_parent' in p]:
         parent = next((pr for pr in plots if 'label' in pr and pr['label'] == child['_parent']), None)
-        if parent is not None:
+        if parent:
             child['color'] = parent['color'] if 'color' in parent else '#000000'
     return y_range
 
@@ -301,7 +299,8 @@ def exec_parameters_with_mpi():
 
 
 def flatten_data(d, res, prefix=''):
-    """Takes a nested dictionary and converts it to a single level dictionary with flattened keys."""
+    """Takes a nested dictionary and converts it to a single level dictionary with
+    flattened keys."""
     for k in d:
         v = d[k]
         if isinstance(v, dict):
@@ -348,7 +347,7 @@ def sim_frame_dispatch(frame_args):
     )
     t = sirepo.template.import_module(frame_args.simulationType)
     o = getattr(t, 'sim_frame_' + frame_args.frameReport, None) \
-            or getattr(t, 'sim_frame')
+        or getattr(t, 'sim_frame')
     res = o(frame_args)
     if res is None:
         raise RuntimeError('unsupported simulation_frame model={}'.format(frame_args.frameReport))
@@ -385,13 +384,23 @@ def h5_to_dict(hf, path=None):
 
 def heatmap(values, model, plot_fields=None):
     """Computes a report histogram (x_range, y_range, z_matrix) for a report model."""
-    range = None
+    r = None
     if 'plotRangeType' in model:
         if model['plotRangeType'] == 'fixed':
-            range = [_plot_range(model, 'horizontal'), _plot_range(model, 'vertical')]
+            r = [
+                _plot_range(model, 'horizontal'),
+                _plot_range(model, 'vertical'),
+            ]
         elif model['plotRangeType'] == 'fit' and 'fieldRange' in model:
-            range = [model.fieldRange[model['x']], model.fieldRange[model['y']]]
-    hist, edges = numpy.histogramdd(values, histogram_bins(model['histogramBins']), range=range)
+            r = [
+                model.fieldRange[model['x']],
+                model.fieldRange[model['y']],
+            ]
+    hist, edges = numpy.histogramdd(
+        values,
+        histogram_bins(model['histogramBins']),
+        range=r,
+    )
     res = PKDict(
         x_range=[float(edges[0][0]), float(edges[0][-1]), len(hist)],
         y_range=[float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
@@ -415,7 +424,7 @@ def histogram_bins(nbins):
 def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
     res = PKDict(
         x_points=x,
-        x_range=[min(x), max(x)] if len(x) else [0, 0],
+        x_range=[min(x), max(x)] if x else [0, 0],
         plots=plots,
         y_range=compute_plot_color_and_range(plots, plot_colors),
     )
@@ -465,7 +474,6 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE):
 
 
 def validate_model(model_data, model_schema, enum_info):
-
     """Ensure the value is valid for the field type. Scales values as needed."""
     for k in model_schema:
         label = model_schema[k][0]
@@ -513,30 +521,37 @@ def validate_models(model_data, model_schema):
     enum_info = parse_enums(model_schema['enum'])
     for k in model_data['models']:
         if k in model_schema['model']:
-            validate_model(model_data['models'][k], model_schema['model'][k], enum_info)
+            validate_model(
+                model_data['models'][k],
+                model_schema['model'][k],
+                enum_info,
+            )
     if 'beamline' in model_data['models']:
         for m in model_data['models']['beamline']:
             validate_model(m, model_schema['model'][m['type']], enum_info)
     return enum_info
 
 
-def file_extension_ok(file_path, white_list=[], black_list=['py', 'pyc']):
+def file_extension_ok(file_path, white_list=None, black_list=['py', 'pyc']):
     """Determine whether a file has an acceptable extension
 
     Args:
         file_path (str): name of the file to examine
         white_list ([str]): list of file types allowed (defaults to empty list)
-        black_list ([str]): list of file types rejected (defaults to ['py', 'pyc']). Ignored if white_list is not empty
+        black_list ([str]): list of file types rejected (defaults to
+            ['py', 'pyc']). Ignored if white_list is not empty
     Returns:
         If file is a directory: True
-        If white_list non-empty: True if the file's extension matches any in the list, otherwise False
-        If white_list is empty: False if the file's extension matches any in black_list, otherwise True
+        If white_list non-empty: True if the file's extension matches any in
+        the list, otherwise False
+        If white_list is empty: False if the file's extension matches any in
+        black_list, otherwise True
     """
     import os
 
     if os.path.isdir(file_path):
         return True
-    if len(white_list) > 0:
+    if white_list:
         in_list = False
         for ext in white_list:
             in_list = in_list or pkio.has_file_extension(file_path, ext)
@@ -589,7 +604,7 @@ def subprocess_output(cmd, env):
     except subprocess.CalledProcessError as e:
         pkdlog('{}: exit={} err={}', cmd, e.returncode, err)
         return None
-    if out != None and len(out):
+    if out:
         out = pkcompat.from_bytes(out)
         return out.strip()
     return ''
@@ -623,7 +638,7 @@ def write_sequential_result(result, run_dir=None):
 
 
 def _escape(v):
-    return re.sub("[\"'()]", '', str(v))
+    return re.sub(r'[\"\'()]', '', str(v))
 
 
 def _get_notes(data):

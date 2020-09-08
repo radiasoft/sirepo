@@ -257,7 +257,7 @@ def _compute_csv_info(path):
         )
     # csv file may or may not have column names
     # if any value in the first row is numeric, assume no headers
-    if len(list(filter(lambda x: template_common.NUMERIC_RE.search(x), row))):
+    if list(filter(lambda x: template_common.NUMERIC_RE.search(x), row)):
         row = ['column {}'.format(i + 1) for i in range(len(row))]
         res.hasHeaderRow = False
     res.header = row
@@ -484,7 +484,7 @@ def _report_info(x, plots, title=''):
 def _update_range(vrange, values):
     minv = min(values)
     maxv = max(values)
-    if not len(vrange):
+    if not vrange:
         vrange.append(minv)
         vrange.append(maxv)
         return

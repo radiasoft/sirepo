@@ -965,7 +965,7 @@ def _read_optimizer_output(run_dir):
         return None, None
     try:
         values = np.loadtxt(str(opt_file))
-        if len(values):
+        if values:
             if len(values.shape) == 1:
                 values = np.array([values])
         else:
@@ -1051,7 +1051,7 @@ def _simulation_percent_complete(report, run_dir, is_running):
         status_file = run_dir.join(_EGUN_STATUS_FILE)
         if status_file.exists():
             with open(str(status_file), 'r') as f:
-                m = re.search('([\d\.]+)\s*/\s*(\d+)', f.read())
+                m = re.search(r'([\d\.]+)\s*/\s*(\d+)', f.read())
             if m:
                 percent_complete = float(m.group(1)) / int(m.group(2))
         egun_current_file = run_dir.join(_EGUN_CURRENT_FILE)

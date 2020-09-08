@@ -104,7 +104,7 @@ class MadXParser(lattice.LatticeParser):
                         beamline['items'].append(d)
                 beamline['items'].append(el._id)
                 prev = entry + length
-            if len(beamline['items']):
+            if beamline['items']:
                 if 'l' in seq:
                     d = self._get_drift(drifts, self._eval_var(code_var, seq.l) - prev)
                     if d:

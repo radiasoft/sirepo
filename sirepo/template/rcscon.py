@@ -306,7 +306,7 @@ def _histogram_plot(values, vrange):
 def _update_range(vrange, values):
     minv = min(values)
     maxv = max(values)
-    if not len(vrange):
+    if not vrange:
         vrange.append(minv)
         vrange.append(maxv)
         return

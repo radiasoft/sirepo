@@ -329,7 +329,7 @@ def sim_frame_turnComparisonAnimation(frame_args):
         for yfield in ('turn1', 'turn2'):
             turn = int(frame_args[yfield])
             p = points[int((turn - 1) * steps):int((turn - 1) * steps + steps + 1)]
-            if not len(p):
+            if not p:
                 return {
                     'error': 'Simulation data is not yet available',
                 }
@@ -439,7 +439,7 @@ def _compute_range_across_files(run_dir, data):
         with h5py.File(str(filename), 'r') as f:
             for field in res:
                 values = f['particles'][:, _COORD6.index(field)].tolist()
-                if len(res[field]):
+                if res[field]:
                     res[field][0] = min(min(values), res[field][0])
                     res[field][1] = max(max(values), res[field][1])
                 else:
@@ -792,7 +792,7 @@ def _parse_synergia_log(run_dir):
             m = re.match('Propagator:*(.*?)Exiting', line)
             if m:
                 errors.append(m.group(1))
-    if len(errors):
+    if errors:
         return '\n\n'.join(errors)
     return None
 

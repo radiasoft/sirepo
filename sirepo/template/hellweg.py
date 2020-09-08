@@ -200,9 +200,9 @@ def _compute_range_across_files(run_dir, data):
         beam_info = hellweg_dump_reader.beam_info(dump_file, frame)
         for field in res:
             values = hellweg_dump_reader.get_points(beam_info, field)
-            if not len(values):
+            if not values:
                 pass
-            elif len(res[field]):
+            elif res[field]:
                 res[field][0] = min(min(values), res[field][0])
                 res[field][1] = max(max(values), res[field][1])
             else:
@@ -378,7 +378,7 @@ def _parse_error_message(run_dir):
         return 'No elements generated'
     text = pkio.read_text(str(path))
     for line in text.split("\n"):
-        match = re.search('^ERROR:\s(.*)$', line)
+        match = re.search(r'^ERROR:\s(.*)$', line)
         if match:
             return match.group(1)
     return 'No output generated'
