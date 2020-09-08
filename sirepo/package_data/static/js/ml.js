@@ -512,8 +512,8 @@ SIREPO.app.directive('heatmapModifications', function() {
                 for (let i = 0 ; i < data.z_matrix.length; i++) {
                     for (let j = 0; j < data.z_matrix[i].length; j++) {
                         commonAttributes('.x', data.z_matrix[i][j], CLASS_RESULT)
-                            .attr('x', elementPosition(i, 'width'))
-                            .attr('y', elementPosition(j, 'height'));
+                            .attr('x', elementPosition(j, 'width'))
+                            .attr('y', elementPosition(i, 'height'));
 
                     }
                 }
