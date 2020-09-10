@@ -163,7 +163,7 @@ SIREPO.app.controller('CommandController', function(appState, commandService, la
         'ptc_create_layout', 'ptc_create_universe', 'ptc_end',
         'ptc_normal', 'ptc_observe', 'ptc_select', 'ptc_setswitch', 'ptc_start',
         'ptc_track', 'ptc_track_end', 'ptc_trackline', 'resbeam', 'savebeta', 'select', 'set', 'show',
-        'sodd', 'twiss', 'use', 'vary',
+        'sodd', 'touschek', 'twiss', 'use', 'vary',
     ];
     self.advancedNames = [];
 

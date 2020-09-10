@@ -140,7 +140,7 @@ def _run_simulation(cfg_dir):
             data.report = 'twissReport'
             template.write_parameters(data, cfg_dir, False, 'matched-twiss.madx')
             _run_madx('matched-twiss.madx')
-            twiss = template.extract_report_twissReport(data, cfg_dir).initialTwissParameters
+            twiss = template.extract_parameter_report(data, cfg_dir).initialTwissParameters
             data.models.bunch.update(twiss)
             # restore the original report and generate new source with the updated beam values
             data.report = report

@@ -526,6 +526,10 @@
             "print_at_end": ["PRINT_AT_END", "Boolean", "0", "If true, the files and internal tables containing results at the end of the position range will be generated"],
             "start_stop": ["START_STOP", "Float2StringArray", "0, 0", "Longitudinal interval of the beam line (in m)", "start, stop"]
         },
+        "command_touschek": {
+            "tolerance": ["TOLERANCE", "RPNValue", 1e-7, "the tolerance for the numerical integrator DGAUSS"],
+            "file": ["FILE", "OutputFile", "", "The name of the output file"]
+        },
         "command_twiss": {
             "alfx": ["ALFX", "RPNValue", 0.0, "Correlation function $\\alpha_x$"],
             "alfy": ["ALFY", "RPNValue", 0.0, "Correlation function $\\alpha_y$"],
@@ -1702,6 +1706,14 @@
                 "print_all",
                 "print_at_end",
                 "start_stop"
+            ]
+        },
+        "command_touschek": {
+            "title": "touschek",
+            "description": "The TOUSCHEK module computes the Touschek lifetime and the scattering rates around a lepton or hadron storage ring.",
+            "advanced": [
+                "tolerance",
+                "file"
             ]
         },
         "command_twiss": {

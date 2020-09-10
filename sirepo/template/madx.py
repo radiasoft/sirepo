@@ -130,6 +130,36 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
+def extract_parameter_report(data, run_dir, filename=_TWISS_OUTPUT_FILE):
+    t = madx_parser.parse_tfs_file(run_dir.join(filename))
+    plots = []
+    m = data.models[data.report]
+    for f in ('y1', 'y2', 'y3'):
+        if m[f] == 'None':
+            continue
+        plots.append(
+            PKDict(field=m[f], points=to_floats(t[m[f]]), label=_field_label(m[f])),
+        )
+    x = m.get('x') or 's'
+    res = template_common.parameter_plot(
+        to_floats(t[x]),
+        plots,
+        m,
+        PKDict(
+            y_label='',
+            x_label=_field_label(x),
+        )
+    )
+    if 'betx' in t and 'bety' in t and 'alfx' in t and 'alfy' in t:
+        res.initialTwissParameters = PKDict(
+            betx=t.betx[0],
+            bety=t.bety[0],
+            alfx=t.alfx[0],
+            alfy=t.alfx[0],
+        )
+    return res
+
+
 def get_application_data(data, **kwargs):
     if data.method == 'calculate_bunch_parameters':
         return _calc_bunch_parameters(data.bunch, data.command_beam, data.variables)
@@ -322,8 +352,8 @@ def _extract_report_data(data, run_dir):
 
 
 def _extract_report_elementAnimation(data, run_dir, filename):
-    if re.search('twiss', filename):
-        return _extract_report_twissReport(data, run_dir, filename)
+    if _is_parameter_report_file(filename):
+        return extract_parameter_report(data, run_dir, filename)
     m = data.models[data.report]
     t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=m.frameIndex)
     info = madx_parser.parse_tfs_page_info(run_dir.join(filename))[m.frameIndex]
@@ -381,38 +411,8 @@ def _extract_report_twissEllipseReport(data, run_dir):
     )
 
 
-def extract_report_twissReport(data, run_dir):
-    return _extract_report_twissReport(data, run_dir)
-
-
-def _extract_report_twissReport(data, run_dir, filename=_TWISS_OUTPUT_FILE):
-    t = madx_parser.parse_tfs_file(run_dir.join(filename))
-    plots = []
-    m = data.models[data.report]
-    for f in ('y1', 'y2', 'y3'):
-        if m[f] == 'None':
-            continue
-        plots.append(
-            PKDict(field=m[f], points=to_floats(t[m[f]]), label=_field_label(m[f])),
-        )
-    x = m.get('x') or 's'
-    res = template_common.parameter_plot(
-        to_floats(t[x]),
-        plots,
-        m,
-        PKDict(
-            y_label='',
-            x_label=_field_label(x),
-        )
-    )
-    if 'betx' in t and 'bety' in t and 'alfx' in t and 'alfy' in t:
-        res.initialTwissParameters = PKDict(
-            betx=t.betx[0],
-            bety=t.bety[0],
-            alfx=t.alfx[0],
-            alfy=t.alfx[0],
-        )
-    return res
+def _extract_report_twissReport(data, run_dir):
+    return extract_parameter_report(data, run_dir)
 
 
 def _field_label(field):
@@ -438,7 +438,7 @@ def _file_info(filename, run_dir, file_id):
     return PKDict(
         modelKey='elementAnimation{}'.format(file_id),
         filename=filename,
-        isHistogram='twiss' not in filename,
+        isHistogram=not _is_parameter_report_file(filename),
         plottableColumns=plottable,
         pageCount=count,
     )
@@ -554,6 +554,10 @@ def _generate_variable(name, variables, visited):
 
 def _get_filename_for_element_id(file_id, data):
     return _build_filename_map(data)[file_id]
+
+
+def _is_parameter_report_file(filename):
+    return 'twiss' in filename or 'touschek' in filename
 
 
 def _is_report(name, report):
