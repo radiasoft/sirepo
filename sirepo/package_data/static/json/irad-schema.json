@@ -77,6 +77,10 @@
             "libFilePrefix": ["", "String"]
         }
     },
+    "strings": {
+        "simulationDataType": "study",
+        "simulationDataTypePlural": "studies"
+    },
     "view": {
         "components": {
             "title": "Components",

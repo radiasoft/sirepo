@@ -2140,7 +2140,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                   '</div>',
                 '</div>',
                 '<div class="col-sm-6 pull-right" data-ng-show="! isFluxWithApproximateMethod()">',
-                  '<button class="btn btn-default" data-ng-click="cancelPersistentSimulation()">End Simulation</button>',
+                  '<button class="btn btn-default" data-ng-click="cancelPersistentSimulation()">{{ stopButtonLabel() }}</button>',
                 '</div>',
               '</div>',
               '<div data-ng-show="simState.isStopped() && ! isFluxWithApproximateMethod()">',
@@ -2157,12 +2157,12 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                   '</div>',
                 '</div>',
                 '<div class="col-sm-6 pull-right">',
-                  '<button class="btn btn-default" data-ng-click="startSimulation()">Start New Simulation</button>',
+                  '<button class="btn btn-default" data-ng-click="startSimulation()">{{ startButtonLabel() }}</button>',
                 '</div>',
               '</div>',
             '</form>',
         ].join(''),
-        controller: function($scope, appState, authState) {
+        controller: function($scope, appState, authState, stringsService) {
             var clientFields = ['colorMap', 'aspectRatio', 'plotScale'];
             var serverFields = ['intensityPlotsWidth', 'rotateAngle', 'rotateReshape'];
             var oldModel = null;
@@ -2223,6 +2223,14 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             $scope.isFluxWithApproximateMethod = function() {
                 return $scope.model === 'fluxAnimation'
                     && appState.isLoaded() && appState.models.fluxAnimation.method == -1;
+            };
+
+            $scope.startButtonLabel = function() {
+                return stringsService.startButtonLabel();
+            };
+
+            $scope.stopButtonLabel = function() {
+                return stringsService.stopButtonLabel();
             };
 
             $scope.startSimulation = function() {

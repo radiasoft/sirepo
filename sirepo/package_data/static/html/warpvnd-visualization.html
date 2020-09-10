@@ -35,7 +35,7 @@
             <div class="form-group">
               <div data-ng-if="! visualization.warpvndService.isEGunMode()" data-model-field="'num_steps'" data-model-name="'simulationGrid'" data-label-size="4"></div>
               <div class="col-sm-5 pull-right">
-                <button class="btn btn-default" data-ng-click="$parent.startSimulation()">Start New Simulation</button>
+                <button class="btn btn-default" data-ng-click="$parent.startSimulation()">{{ visualization.startButtonLabel() }}</button>
               </div>
             </div>
           </div>
