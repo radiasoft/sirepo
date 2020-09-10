@@ -3330,11 +3330,17 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
 
     $rootScope.$broadcast('simulationUnloaded');
     var n = appState.clone(SIREPO.APP_SCHEMA.notifications.getStarted);
+    const s = SIREPO.APP_SCHEMA.strings;
     n.content = [
         '<div class="text-center"><strong>Welcome to Sirepo - ',
         $sce.getTrustedHtml(SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName),
         '!</strong></div>',
-        'Below are some example simulations and folders containing simulations. Click on the simulation to open and view simulation results. You can create a new simulation by selecting the New Simulation link above.',
+        `Below are some example ${s.simulationLabelPlural}` +
+            ` and folders containing ${s.simulationLabelPlural}.` +
+            ` Click on the ${s.simulationLabelSingular}` +
+            ` to open and view the ${s.simulationLabelSingular} results.` +
+            ` You can create a new ${s.simulationLabelSingular}` +
+            ` by selecting the ${s.newSimulationLabel} link above.`
     ].join('');
     notificationService.addNotification(n);
 
