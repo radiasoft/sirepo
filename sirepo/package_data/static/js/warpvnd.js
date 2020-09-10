@@ -911,7 +911,7 @@ SIREPO.app.controller('VisualizationController', function (appState, errorServic
 
     self.startButtonLabel = function() {
         return SIREPO.APP_SCHEMA.strings.startButtonLabel;
-    }
+    };
 
     $scope.$on('fieldAnimation.editor.show', function () {
         panelState.showField('fieldAnimation', 'axes', warpvndService.is3D() && self.ranIn3d);

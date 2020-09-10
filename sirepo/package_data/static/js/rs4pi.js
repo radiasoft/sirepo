@@ -309,7 +309,7 @@ SIREPO.app.directive('appHeader', function(appState, fileManager, panelState, rs
 
             $scope.newSimulationLabel = function() {
                 return SIREPO.APP_SCHEMA.strings.newSimulationLabel;
-            }
+            };
 
             $scope.showNewFolderModal = function() {
                 appState.models.simFolder.parent = fileManager.defaultCreationFolderPath();

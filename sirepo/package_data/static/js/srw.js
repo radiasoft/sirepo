@@ -2227,7 +2227,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
 
             $scope.startButtonLabel = function() {
                 return SIREPO.APP_SCHEMA.strings.startButtonLabel;
-            }
+            };
 
             $scope.startSimulation = function() {
                 // The available jobRunModes can change. Default to parallel if

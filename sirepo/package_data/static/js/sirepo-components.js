@@ -2075,7 +2075,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
             };
             $scope.newSimulationLabel = function () {
                 return SIREPO.APP_SCHEMA.strings.newSimulationLabel;
-            }
+            };
             $scope.isLoaded = function() {
                 if ($scope.nav.isActive('simulations')) {
                     return false;
