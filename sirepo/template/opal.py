@@ -37,7 +37,6 @@ _OPAL_H5_FILE = 'opal.h5'
 _OPAL_SDDS_FILE = 'opal.stat'
 _ELEMENTS_WITH_TYPE_FIELD = ('CYCLOTRON', 'MONITOR','RFCAVITY')
 _HEADER_COMMANDS = ('option', 'filter', 'geometry', 'particlematterinteraction', 'wake')
-_TWISS_FILE_NAME = 'twiss.out'
 #TODO(pjm): parse from opal files into schema
 _OPAL_PI = 3.14159265358979323846
 _OPAL_CONSTANTS = PKDict(
@@ -165,10 +164,7 @@ def post_execution_processing(
         return None
     if is_parallel:
         return _parse_opal_log(run_dir)
-    e = _parse_opal_log(run_dir)
-    if re.search(r'Singular matrix', e):
-        e = 'Twiss values could not be computed: Singular matrix'
-    return e
+    return _parse_opal_log(run_dir)
 
 
 def prepare_for_client(data):
@@ -178,7 +174,7 @@ def prepare_for_client(data):
 
 def prepare_sequential_output_file(run_dir, data):
     report = data['report']
-    if 'bunchReport' in report or 'twissReport' in report:
+    if 'bunchReport' in report:
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
@@ -198,29 +194,7 @@ def python_source_for_model(data, model):
 def save_sequential_report_data(data, run_dir):
     report = data.models[data.report]
     res = None
-    if data.report == 'twissReport':
-        report['x'] = 's'
-        col_names, rows = _read_data_file(run_dir.join(_TWISS_FILE_NAME))
-        x = _column_data(report.x, col_names, rows)
-        y_range = None
-        plots = []
-        for f in ('y1', 'y2', 'y3'):
-            if report[f] == 'none':
-                continue
-            plots.append({
-                'points': _column_data(report[f], col_names, rows),
-                'label': '{} {}'.format(report[f], _units(report[f])),
-            })
-        res = PKDict(
-            title='',
-            x_range=[min(x), max(x)],
-            y_label='',
-            x_label='{} {}'.format(report.x, _units(report.x)),
-            x_points=x,
-            plots=plots,
-            y_range=template_common.compute_plot_color_and_range(plots),
-        )
-    elif 'bunchReport' in data.report:
+    if 'bunchReport' in data.report:
         res = _bunch_plot(report, run_dir, 0)
         res.title = ''
     else:
@@ -599,10 +573,7 @@ def _generate_parameters_file(data):
             distribution,
         ]
     else:
-        if report == 'twissReport':
-            beamline_id = util.select_beamline().id
-        else:
-            beamline_id = LatticeUtil.find_first_command(util.data, 'track').line or util.select_beamline().id
+        beamline_id = LatticeUtil.find_first_command(util.data, 'track').line or util.select_beamline().id
         v.lattice = _generate_lattice(util, code_var, beamline_id)
         v.use_beamline = util.select_beamline().name
     v.update(dict(
@@ -612,9 +583,6 @@ def _generate_parameters_file(data):
     ))
     if 'bunchReport' in report:
         return template_common.render_jinja(SIM_TYPE, v, 'bunch.in')
-    if report == 'twissReport':
-        v.twiss_file_name = _TWISS_FILE_NAME
-        return template_common.render_jinja(SIM_TYPE, v, 'twiss.in')
     return template_common.render_jinja(SIM_TYPE, v, 'parameters.in')
 
 
@@ -709,12 +677,6 @@ def _read_frame_count(run_dir):
     except IOError:
         pass
     return 0
-
-
-def _units(twiss_field):
-    if twiss_field in ('betx', 'bety', 'dx'):
-        return '[m]'
-    return ''
 
 
 def _units_from_hdf5(h5file, field):

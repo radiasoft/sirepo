@@ -125,12 +125,8 @@ SIREPO.app.controller('CommandController', function(commandService, panelState) 
     var self = this;
     self.activeTab = 'basic';
     self.basicNames = [
-        'attlist', 'beam', 'distribution', 'eigen',
-        'envelope', 'fieldsolver', 'filter', 'geometry',
-        'list', 'matrix', 'micado', 'option',
-        'particlematterinteraction', 'select', 'start', 'survey',
-        'threadall', 'threadbpm', 'track', 'twiss',
-        'twiss3', 'twisstrack', 'wake',
+        'beam', 'distribution', 'fieldsolver', 'filter', 'geometry',
+        'option', 'particlematterinteraction', 'select', 'track', 'wake',
     ];
     self.advancedNames = [];
 
@@ -156,16 +152,15 @@ SIREPO.app.controller('LatticeController', function(appState, commandService, la
     var self = this;
     self.latticeService = latticeService;
     self.advancedNames = [
-        'CCOLLIMATOR', 'CYCLOTRON', 'CYCLOTRONVALLEY', 'DEGRADER', 'FLEXIBLECOLLIMATOR',
-        'HKICKER', 'HMONITOR', 'INSTRUMENT', 'MONITOR', 'MULTIPOLE', 'MULTIPOLET',
-        'MULTIPOLETCURVEDCONSTRADIUS', 'MULTIPOLETCURVEDVARRADIUS', 'MULTIPOLETSTRAIGHT',
-        'OCTUPOLE', 'PARALLELPLATE', 'PATCH', 'PEPPERPOT', 'PROBE', 'RBEND', 'RBEND3D',
-        'RCOLLIMATOR', 'RFCAVITY', 'RINGDEFINITION', 'SBEND3D', 'SCALINGFFAMAGNET',
-        'SEPARATOR', 'SEPTUM', 'SLIT', 'SOLENOID', 'SOURCE', 'SROT', 'STRIPPER',
-        'TRAVELINGWAVE', 'TRIMCOIL', 'VARIABLE_RF_CAVITY',
-        'VARIABLE_RF_CAVITY_FRINGE_FIELD', 'VKICKER', 'VMONITOR', 'WIRE', 'YROT',
+        'CCOLLIMATOR', 'CYCLOTRON', 'DEGRADER', 'FLEXIBLECOLLIMATOR',
+        'HKICKER', 'MONITOR', 'MULTIPOLE', 'MULTIPOLET', 'OCTUPOLE', 'PROBE', 'RBEND',
+        'RBEND3D', 'RCOLLIMATOR', 'RFCAVITY', 'RINGDEFINITION', 'SBEND3D',
+        'SCALINGFFAMAGNET', 'SEPTUM', 'SOLENOID', 'SOURCE', 'TRAVELINGWAVE',
+        'TRIMCOIL', 'VARIABLE_RF_CAVITY', 'VARIABLE_RF_CAVITY_FRINGE_FIELD', 'VKICKER',
     ];
-
+    self.basicNames = [
+        'DRIFT', 'ECOLLIMATOR', 'KICKER', 'MARKER', 'QUADRUPOLE', 'SBEND', 'SEXTUPOLE',
+    ];
     var m_e = 0.51099895000e-03;
     var m_p = 0.93827208816;
     var amu = 0.93149410242;
@@ -203,8 +198,6 @@ SIREPO.app.controller('LatticeController', function(appState, commandService, la
             }
         }
     }
-
-    self.basicNames = ['DRIFT', 'ECOLLIMATOR', 'KICKER', 'MARKER', 'QUADRUPOLE', 'SBEND', 'SEXTUPOLE'];
 
     self.titleForName = function(name) {
         return SIREPO.APP_SCHEMA.view[name].description;

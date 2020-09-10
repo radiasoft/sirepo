@@ -2274,7 +2274,7 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, utilitie
                 '<div class="col-sm-12 col-md-6 col-xl-7">',
                   '<div class="row">',
                     '<div data-ng-if="latticeService.activeBeamlineId" class="col-sm-12">',
-                      '<div data-report-panel="lattice" data-model-name="beamlineReport" data-panel-title="Lattice - {{ latticeService.getActiveBeamline().name }}"><a data-ng-show="beamlineHasElements()" data-ng-click="showTwissReport()" style="position: absolute; bottom: 3em" class="btn btn-default btn-xs" href>{{ twissReportTitle() }}</a></div>',
+                      '<div data-report-panel="lattice" data-model-name="beamlineReport" data-panel-title="Lattice - {{ latticeService.getActiveBeamline().name }}"><a data-ng-show="showTwissReportButton()" data-ng-click="showTwissReport()" style="position: absolute; bottom: 3em" class="btn btn-default btn-xs" href>{{ twissReportTitle() }}</a></div>',
                     '</div>',
                     '<div class="col-sm-12">',
                       '<div data-beamline-editor=""></div>',
@@ -2324,9 +2324,17 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, utilitie
         controller: function($scope) {
             $scope.reportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
             $scope.latticeService = latticeService;
-            $scope.beamlineHasElements = function() {
-                var beamline = latticeService.getActiveBeamline();
-                return beamline && beamline.length != 0;
+
+            function hasTwissReport() {
+                return SIREPO.APP_SCHEMA.model.twissReport ? true : false;
+            }
+
+            $scope.showTwissReportButton = function() {
+                if (hasTwissReport()) {
+                    var beamline = latticeService.getActiveBeamline();
+                    return beamline && beamline.length != 0;
+                }
+                return false;
             };
             $scope.showTwissReport = function() {
                 if (utilities.isFullscreen()) {
@@ -2344,7 +2352,10 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, utilitie
                 });
             };
             $scope.twissReportTitle = function() {
-                return SIREPO.APP_SCHEMA.view.twissReport.title;
+                if (hasTwissReport()) {
+                    return SIREPO.APP_SCHEMA.view.twissReport.title;
+                }
+                return '';
             };
             $scope.showTwissEditor = function() {
                 panelState.showModalEditor('twissReport');
