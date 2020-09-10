@@ -91,7 +91,7 @@ SIREPO.app.directive('appHeader', function(appState, mlService) {
         },
         template: [
             '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
+            '<div data-app-header-left="nav" data-simulations-link-text="Datasets"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
                 '<div data-sim-sections="">',

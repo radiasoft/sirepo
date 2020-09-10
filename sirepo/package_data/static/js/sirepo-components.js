@@ -2038,7 +2038,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                     '</li>',
                 '</ul>',
                 '<ul class="nav navbar-nav" data-ng-show="nav.isActive(\'simulations\')">',
-                    '<li class="sr-new-simulation-item"><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
+                    '<li class="sr-new-simulation-item"><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> {{ newSimulationLabel() }}</a></li>',
                     '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
                     '<li data-ng-transclude="appHeaderRightSimListSlot"></li>',
                 '</ul>',
@@ -2061,6 +2061,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
            scope.nav.hasDocumentationUrl = scope.hasDocumentationUrl;
            scope.nav.openDocumentation = scope.openDocumentation;
            scope.nav.modeIsDefault = scope.modeIsDefault;
+           scope.nav.newSimulationLabel = scope.newSimulationLabel;
            scope.nav.showSimulationModal = scope.showSimulationModal;
            scope.nav.showImportModal = scope.showImportModal;
 
@@ -2072,6 +2073,9 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
             $scope.modeIsDefault = function () {
                 return appDataService.isApplicationMode('default');
             };
+            $scope.newSimulationLabel = function () {
+                return SIREPO.APP_SCHEMA.strings.newSimulationLabel;
+            }
             $scope.isLoaded = function() {
                 if ($scope.nav.isActive('simulations')) {
                     return false;

@@ -246,6 +246,7 @@
     },
     "strings": {
         "completionState": ": {frameCount} epochs",
+        "newSimulationLabel": "New Dataset",
         "startButtonLabel": "Start Training"
     },
     "view": {

@@ -432,7 +432,9 @@
         },
         "strings": {
             "completionState": ": {frameCount} animation frames",
+            "newSimulationLabel": "New Simulation",
             "simulationState": "Simulation {state}",
+            "simulationLabel": "simulation",
             "startButtonLabel": "Start New Simulation"
         },
         "view": {

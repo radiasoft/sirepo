@@ -104,6 +104,9 @@
             "description": ["Study Description", "String"]
         }
     },
+    "strings": {
+        "newSimulationLabel": "Import DICOM"
+    },
     "view": {
         "dicomAnimation": {
             "title": "DICOM Viewer",
