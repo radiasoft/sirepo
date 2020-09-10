@@ -13,6 +13,7 @@ _PROD_FOSS_CODES = frozenset((
     'elegant',
     'jspec',
     'madx',
+    'ml',
     'opal',
     'shadow',
     'srw',
@@ -26,7 +27,6 @@ _PROD_FOSS_CODES = frozenset((
 #: Codes on dev, alpha, and beta
 _NON_PROD_FOSS_CODES = frozenset((
     'irad',
-    'ml',
     'myapp',
     'radia',
     'rcscon',

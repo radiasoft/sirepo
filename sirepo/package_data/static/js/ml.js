@@ -130,7 +130,7 @@ SIREPO.app.directive('appHeader', function(appState, mlService) {
     };
 });
 
-SIREPO.app.controller('DataController', function (appState, requestSender, $scope) {
+SIREPO.app.controller('DataController', function (appState, panelState, requestSender, $scope) {
     var self = this;
 
     function computeColumnInfo() {
@@ -192,6 +192,8 @@ SIREPO.app.controller('DataController', function (appState, requestSender, $scop
 
     appState.whenModelsLoaded($scope, function() {
         $scope.$on('dataFile.changed', dataFileChanged);
+        //TODO(pjm): enable when analysis tab is completed
+        panelState.showEnum('dataFile', 'appMode', 'analysis', false);
     });
 });
 
