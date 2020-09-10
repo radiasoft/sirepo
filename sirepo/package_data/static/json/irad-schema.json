@@ -77,6 +77,11 @@
             "libFilePrefix": ["", "String"]
         }
     },
+    "strings": {
+        "newSimulationLabel": "New Study",
+        "simulationLabelPlural": "studies",
+        "simulationLabelSingular": "study"
+    },
     "view": {
         "components": {
             "title": "Components",

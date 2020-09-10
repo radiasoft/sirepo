@@ -285,7 +285,7 @@ SIREPO.app.directive('appHeader', function(appState, fileManager, panelState, rs
         },
         template: [
             '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav" data-simulations-link-text="Studies"></div>',
+            '<div data-app-header-left="nav"></div>',
             '<ul class="nav navbar-nav navbar-right" data-login-menu=""></ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
               '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-equalizer"></span> Structure</a></li>',

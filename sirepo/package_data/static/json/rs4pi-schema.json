@@ -105,7 +105,9 @@
         }
     },
     "strings": {
-        "newSimulationLabel": "Import DICOM"
+        "newSimulationLabel": "Import DICOM",
+        "simulationLabelPlural": "studies",
+        "simulationLabelSingular": "study"
     },
     "view": {
         "dicomAnimation": {

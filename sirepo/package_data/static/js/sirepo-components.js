@@ -1970,7 +1970,6 @@ SIREPO.app.directive('appHeaderLeft', function(appState, authState, panelState) 
         restrict: 'A',
         scope: {
             nav: '=appHeaderLeft',
-            simulationsLinkText: '@',
         },
         template: [
             '<ul class="nav navbar-nav" data-ng-if=":: authState.isLoggedIn">',
@@ -1983,9 +1982,10 @@ SIREPO.app.directive('appHeaderLeft', function(appState, authState, panelState) 
         ].join(''),
         controller: function($scope) {
             $scope.authState = authState;
-            if (! $scope.simulationsLinkText) {
-                $scope.simulationsLinkText = 'Simulations';
-            }
+            $scope.simulationsLinkText = appState.ucfirst(
+                SIREPO.APP_SCHEMA.strings.simulationLabelPlural
+            );
+
             $scope.showTitle = function() {
                 return appState.isLoaded();
             };
