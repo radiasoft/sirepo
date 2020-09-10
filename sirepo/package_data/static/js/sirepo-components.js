@@ -2604,9 +2604,14 @@ SIREPO.app.directive('commonFooter', function() {
         template: [
             '<div data-delete-simulation-modal="nav"></div>',
             '<div data-reset-simulation-modal="nav"></div>',
-            '<div data-modal-editor="" view-name="simulation"></div>',
+            '<div data-modal-editor="" view-name="simulation" modal-title="simulationModalTitle"></div>',
             '<div data-sbatch-login-modal=""></div>',
         ].join(''),
+        controller: function($scope, appState) {
+            $scope.simulationModalTitle = appState.ucfirst(
+                SIREPO.APP_SCHEMA.strings.simulationLabelSingular
+            );
+        }
     };
 });
 
