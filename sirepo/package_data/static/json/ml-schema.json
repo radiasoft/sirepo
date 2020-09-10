@@ -245,7 +245,8 @@
         "simulationStatus": {}
     },
     "strings": {
-        "completionState": ": {frameCount} epochs"
+        "completionState": ": {frameCount} epochs",
+        "startButtonLabel": "Start Training"
     },
     "view": {
         "columnChooser": {

@@ -36,7 +36,7 @@
             </div>
             <!--<div data-run-simulation-fields=""></div>-->
             <div class="col-sm-6 pull-right" data-ng-show="visualization.simState.isStopped()">
-              <button class="btn btn-default" data-ng-click="visualization.startSimulation()">Start New Simulation</button>
+              <button class="btn btn-default" data-ng-click="visualization.startSimulation()">{{ visualization.startButtonLabel() }}</button>
             </div>
           </form>
       </div>

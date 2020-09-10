@@ -2157,7 +2157,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                   '</div>',
                 '</div>',
                 '<div class="col-sm-6 pull-right">',
-                  '<button class="btn btn-default" data-ng-click="startSimulation()">Start New Simulation</button>',
+                  '<button class="btn btn-default" data-ng-click="startSimulation()">{{ startButtonLabel() }}</button>',
                 '</div>',
               '</div>',
             '</form>',
@@ -2224,6 +2224,10 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 return $scope.model === 'fluxAnimation'
                     && appState.isLoaded() && appState.models.fluxAnimation.method == -1;
             };
+
+            $scope.startButtonLabel = function() {
+                return SIREPO.APP_SCHEMA.strings.startButtonLabel;
+            }
 
             $scope.startSimulation = function() {
                 // The available jobRunModes can change. Default to parallel if

@@ -431,8 +431,9 @@
             }
         },
         "strings": {
+            "completionState": ": {frameCount} animation frames",
             "simulationState": "Simulation {state}",
-            "completionState": ": {frameCount} animation frames"
+            "startButtonLabel": "Start New Simulation"
         },
         "view": {
             "simDoc": {

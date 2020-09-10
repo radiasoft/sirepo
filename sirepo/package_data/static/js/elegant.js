@@ -619,6 +619,10 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         return '';
     };
 
+    self.startButtonLabel = function() {
+        return SIREPO.APP_SCHEMA.strings.startButtonLabel;
+    }
+
     self.startSimulation = function() {
         self.simState.saveAndRunSimulation('simulation');
     };

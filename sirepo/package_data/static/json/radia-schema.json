@@ -406,7 +406,8 @@
         }
     },
     "strings": {
-        "completionState": ""
+        "completionState": "",
+        "startButtonLabel": "Solve"
     },
     "view": {
         "circlePath": {

@@ -3372,7 +3372,7 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                 var s = 'connected to ' +
                     authState.jobRunModeMap[appState.models[$scope.simState.model].jobRunMode];
                 if (sbatchLoginStatusService.loggedIn) {
-                    s += '. To start press "' + $scope.simState.startButtonLabel() + '"';
+                    s += '. To start press "' + SIREPO.APP_SCHEMA.strings.startButtonLabel + '"';
                 }
                 else {
                     s = 'not ' + s;
@@ -3500,7 +3500,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             };
 
             $scope.startButtonLabel = function() {
-                return callSimState('startButtonLabel');
+                return SIREPO.APP_SCHEMA.strings.startButtonLabel;
             };
 
             $scope.stopButtonLabel = function() {
