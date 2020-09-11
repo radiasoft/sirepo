@@ -472,6 +472,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                             }
                         }
                         xformShapes.push(addTxShape(baseShape, xform, ctx));
+                        // transform members if any
+                        for (let id of (o.members || [])) {
+                            let m = self.getShape(id);
+                            xformShapes.push(addTxShape(m, xform, ctx));
+                        }
                     }
                 }
                 if (xform.model === 'rotate') {

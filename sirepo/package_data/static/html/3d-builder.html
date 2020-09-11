@@ -10,9 +10,9 @@
   <p class="lead text-center" style="margin-bottom: 0"><small><em>{{ instructions }}</em></small></p>
   <div>
       <!-- TODO: repeat -->
-    <div data-toggle="tooltip" title="XY Plane" class="btn btn-default" data-ng-class="{'btn-primary': elevation == 'front'}" style="margin: 2px;" data-ng-click="setElevation('front')">Front</div>
-    <div data-toggle="tooltip" title="YZ Plane" class="btn btn-default" data-ng-class="{'btn-primary': elevation == 'side'}" style="margin: 2px;" data-ng-click="setElevation('side')">Side</div>
-    <div data-toggle="tooltip" title="ZX Plane" class="btn btn-default" data-ng-class="{'btn-primary': elevation == 'top'}" style="margin: 2px;" data-ng-click="setElevation('top')">Top</div>
+    <div data-toggle="tooltip" title="XY Plane" class="btn btn-default" data-ng-class="{'btn-primary': elevation == 'front'}" style="margin: 2px;" data-ng-click="setElevation('front')">XY</div>
+    <div data-toggle="tooltip" title="YZ Plane" class="btn btn-default" data-ng-class="{'btn-primary': elevation == 'side'}" style="margin: 2px;" data-ng-click="setElevation('side')">YZ</div>
+    <div data-toggle="tooltip" title="ZX Plane" class="btn btn-default" data-ng-class="{'btn-primary': elevation == 'top'}" style="margin: 2px;" data-ng-click="setElevation('top')">ZX</div>
     <!-- NOTE: the <div> and <svg> must be on the same line for the png code to work! -->
     <div style="-webkit-user-select: none"><svg class="sr-plot">
         <g data-ng-attr-transform="translate({{ margin.left }}, {{ margin.top }})">
