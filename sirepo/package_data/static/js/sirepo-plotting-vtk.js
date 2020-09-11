@@ -1405,8 +1405,8 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     .attr('style', function(d) {
                         if (d.color) {
                             var a = d.alpha === 0 ? 0 : (d.alpha || 1.0);
-                            var fill = 'fill:' + (d.fillStyle ? shapeColor(d.color, a) : 'none');
-                            return fill + '; ' + 'stroke: ' + shapeColor(d.color);
+                            var fill = `fill:${(d.fillStyle ? shapeColor(d.color, a) : 'none')}`;
+                            return `${fill}; stroke: ${shapeColor(d.color)}; stroke-width: ${d.strokeWidth || 1.0}`;
                         }
                     })
                     .attr('stroke-dasharray', function (d) {
@@ -1414,7 +1414,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     })
                     .attr('transform', function (d) {
                         if (d.rotationAngle !== 0 && d.rotationAngle) {
-                            return 'rotate(' + d.rotationAngle + ',' +  shapeCenter(d, 'x') + ',' + shapeCenter(d, 'y')  + ')';
+                            return `rotate(${d.rotationAngle},${shapeCenter(d, 'x')},${shapeCenter(d, 'y')})`;
                         }
                         return '';
                     });
@@ -1429,7 +1429,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     var sz = d.getSizeCoords().map(function (c) {
                         return utilities.roundToPlaces(c * invObjScale, 2);
                     });
-                    return d.name + ' center : ' + ctr + ' size: ' + sz;
+                    return `${d.name} center : ${ctr} size: ${sz}`;
                 });
             }
 

@@ -312,12 +312,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.getShape = function(id) {
-        for (var i in self.shapes) {
-            if (self.shapes[i].id === id) {
-                return self.shapes[i];
-            }
-        }
-        return null;
+        return self.shapes.filter(function (s) {
+            return s.id === id;
+        })[0];
     };
 
     self.getShapes = function() {
@@ -420,6 +417,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         );
         if (isGroup) {
             shape.outlineOffset = 5.0;
+            shape.strokeWidth = 0.5;
             shape.draggable = false;
         }
         return shape;
@@ -430,9 +428,15 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         o.mapId = getMapId(o);
         appState.models.geometry.objects.push(o);
         // for groups, set the group id of all members
+        //var n = 0;
         (o.members || []).forEach(function (oId) {
             self.getObject(oId).groupId = o.id;
+        //    ++n;
         });
+        //if (n > 0) {
+        //    let z = groupBounds(o.members);
+        //    o.size = '0,0,0';
+        //}
     }
 
     function addShapesForObject(o) {
@@ -472,6 +476,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 }
                 if (xform.model === 'rotate') {
                     txArr.push(rotateFn(xform, 1));
+                    // transform members if any
+                    for (let id of (o.members || [])) {
+                        let m = self.getShape(id);
+                        rotateFn(xform, 1)(m, m);
+                    }
                 }
                 if (xform.model === 'symmetryTransform') {
                     linkTx = mirrorFn(xform);
@@ -488,6 +497,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 }
                 if (xform.model === 'translate') {
                     txArr.push(offsetFn(xform, 1));
+                    // transform members if any
+                    for (let id of (o.members || [])) {
+                        let m = self.getShape(id);
+                        offsetFn(xform, 1)(m, m);
+                    }
                 }
             });
         });
@@ -502,14 +516,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             baseShape.addLink(gShape, fit);
         }
         //srdbg('shapes', self.shapes);
-    }
-
-    function addTxShape(sourceShape, xform, link) {
-        let nextShape = txShape(sourceShape, xform);
-        sourceShape.addLink(nextShape, link);
-        self.shapes.push(nextShape);
-        link(sourceShape, nextShape);
-        return nextShape;
+        //srdbg('objs', self.getObjects());
     }
 
     function addSymmetryPlane(baseShape, xform) {
@@ -531,6 +538,14 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             pl.coordPlane = p;
             self.shapes.push(pl);
         }
+    }
+
+    function addTxShape(sourceShape, xform, link) {
+        let nextShape = txShape(sourceShape, xform);
+        sourceShape.addLink(nextShape, link);
+        self.shapes.push(nextShape);
+        link(sourceShape, nextShape);
+        return nextShape;
     }
 
     function transformShapesForObject(o) {
@@ -595,7 +610,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function groupBounds(objs) {
-        var b = [
+        let b = [
             [Number.MAX_VALUE, -Number.MAX_VALUE],
             [Number.MAX_VALUE, -Number.MAX_VALUE],
             [Number.MAX_VALUE, -Number.MAX_VALUE]
@@ -676,6 +691,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             var angle = Math.PI * parseFloat(xform.angle) / 180.0;
             var a = i * angle;
             var m = geometry.rotationMatrix(ctr, axis, a);
+            //srdbg('rot', shapeCtr4, geometry.vectorMult(m, shapeCtr4));
             shape2.setCenter(geometry.vectorMult(m, shapeCtr4));
             shape2.rotationAngle = -180.0 * a / Math.PI;
             return shape2;
@@ -689,10 +705,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             z: [Number.MAX_VALUE, -Number.MAX_VALUE]
         };
         shapes.forEach(function (s) {
+            let vs = getVirtualShapes(s);
+            let sr = shapesBounds(vs);
             for (let dim in b) {
                 b[dim] = [
-                    Math.min(b[dim][0], s.center[dim] - s.size[dim] / 2),
-                    Math.max(b[dim][1], s.center[dim] + s.size[dim] / 2)
+                    Math.min(b[dim][0], s.center[dim] - s.size[dim] / 2, sr[dim][0]),
+                    Math.max(b[dim][1], s.center[dim] + s.size[dim] / 2, sr[dim][1])
                 ];
             }
         });
@@ -1382,7 +1400,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             '<div class="sr-object-table">',
               '<p class="lead text-center"><small><em>drag and drop {{ itemClass.toLowerCase() }}s or use arrows to reorder the list</em></small></p>',
               '<table class="table table-hover" style="width: 100%; table-layout: fixed">',
-                '<tr data-ng-repeat="item in items">',
+                '<tr data-ng-repeat="item in loadItems()">',
                   '<td data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)" data-ng-drag-start="selectItem($data)">',
                     '<div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == items.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editItem(item)">Edit</button> <button data-ng-click="toggleExpand(item)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': isExpanded(item), \'glyphicon-chevron-down\': ! isExpanded(item)}"></span></button> <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
                     '<div class="sr-command-icon-holder" data-ng-drag="true" data-ng-drag-data="item">',
@@ -1422,16 +1440,13 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                     $scope.toolbarItems.push(c);
                 });
             });
+
             watchedModels = $scope.toolbarItems.map(function (item) {
                 return item.model;
             });
 
             function itemIndex(data) {
                 return $scope.items.indexOf(data);
-            }
-
-            function loadItems() {
-                $scope.items = $scope.field;
             }
 
             $scope.addItem = function(item) {
@@ -1503,6 +1518,11 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 return expanded[itemIndex(item)];
             };
 
+            $scope.loadItems = function() {
+                $scope.items = $scope.field;
+                return $scope.items;
+            };
+
             $scope.moveItem = function(direction, item) {
                 var d = direction == 0 ? 0 : (direction > 0 ? 1 : -1);
                 var currentIndex = itemIndex(item);
@@ -1556,7 +1576,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                         isEditing = true;
                     }
                     appState.saveChanges('geometry', function () {
-                        loadItems();
+                        $scope.loadItems();
                     });
                 });
 
@@ -1580,7 +1600,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                     //srdbg('watch saw', $scope.items);
                 });
 
-                loadItems();
+                $scope.loadItems();
             });
 
             function nextId() {
@@ -1866,6 +1886,14 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 return info;
             }
 
+            function vectorScaleFactor(bounds) {
+                return 0.035 * Math.max(
+                    Math.abs(bounds[1] - bounds[0]),
+                    Math.abs(bounds[3] - bounds[2]),
+                    Math.abs(bounds[5] - bounds[4])
+                );
+            }
+
             function buildScene() {
                 //srdbg('buildScene', sceneData.data);
                 var name = sceneData.name;
@@ -1914,7 +1942,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             mapper.setOrientationArray(ORIENTATION_ARRAY);
 
                             // this scales by a constant - the default is to use scalar data
-                            mapper.setScaleFactor(8.0);
+                            mapper.setScaleFactor(vectorScaleFactor(sceneData.bounds));
                             mapper.setScaleModeToScaleByConstant();
                             mapper.setColorModeToDefault();
                             bundle = cm.buildActorBundle();
@@ -2484,14 +2512,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setScaling() {
-                var b = renderer.computeVisiblePropBounds();
-                var s = [Math.abs(b[1] - b[0]), Math.abs(b[3] - b[2]), Math.abs(b[5] - b[4])];
-                //var mx = Math.max(...s);
-                var mx = Math.max(s[0], s[1], s[2]);
-                //srdbg('prop bnds', b, mx, mx / 8.0, 0.035 * mx);
                 getActorsOfType(radiaVtkUtils.GEOM_TYPE_VECTS).forEach(function (actor) {
                     var mapper = actor.getMapper();
-                    mapper.setScaleFactor(0.035 * mx);
+                    mapper.setScaleFactor(vectorScaleFactor(renderer.computeVisiblePropBounds()));
                     var vs = appState.models.fieldDisplay.scaling;
                     if (vs === 'uniform') {
                         mapper.setScaleModeToScaleByConstant();
