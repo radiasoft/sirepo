@@ -19,6 +19,7 @@ from sirepo import srschema
 from sirepo import uri_router
 import flask
 import importlib
+import os
 import re
 import sirepo.sim_data
 import sirepo.srdb
@@ -421,7 +422,7 @@ def api_root(path_info):
     u = sirepo.uri.unchecked_root_redirect(path_info)
     if u:
         return http_reply.gen_redirect(u)
-    sirepo.util.raise_not_found(f'uknown path={path_info}')
+    sirepo.util.raise_not_found(f'unknown path={path_info}')
 
 
 @api_perm.require_user
@@ -622,6 +623,7 @@ def init(uwsgi=None, use_reloader=False):
     )
     _app.config.update(
         PROPAGATE_EXCEPTIONS=True,
+        SECRET_KEY=os.urandom(32),
     )
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
