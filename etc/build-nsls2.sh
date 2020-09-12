@@ -17,6 +17,7 @@ build_nsls2_docker_clean() {
 }
 
 build_nsls2_guest_main() {
+    set -x
     # setup pyenv
     set +euo pipefail
     source ~/.bashrc
@@ -29,10 +30,12 @@ build_nsls2_guest_main() {
     cd ../..
     install -m 644 env/work/srw_python/{{srwl,uti}*.py,srwlpy*.so} \
         "$(python -c 'from distutils.sysconfig import get_python_lib as x; print(x())')"
+    pip uninstall -y pykern >& /dev/null || true
+    cd ../pykern
+    pip install .
     cd ../sirepo
     pip uninstall -y sirepo >& /dev/null || true
-    pip uninstall -y pykern >& /dev/null || true
-    pip install -r requirements.txt
+    # pip install -r requirements.txt
     pip install .
     sirepo srw create_predefined
     cd /
@@ -40,6 +43,7 @@ build_nsls2_guest_main() {
 }
 
 build_nsls2_host_main() {
+    set -x
     cd "$(dirname "$0")"
     local s=$(basename "$0")
     local d=$PWD/tmp-nsls2
@@ -47,8 +51,10 @@ build_nsls2_host_main() {
     mkdir "$d"
     cp -a "$s" "$d"
     cd "$d"
+    cp -a ~/src/radiasoft/pykern pykern
     mkdir sirepo
     cp -a ../../{LICENSE,README.md,requirements.txt,setup.py,sirepo,.git} sirepo
+    (git --git-dir=/home/vagrant/src/radiasoft/sirepo/.git describe --all --tags --long --always --dirty; date) > sirepo/VERSION.txt
     mkdir -p SRW/env/work/srw_python
     cp -a ~/src/ochubar/SRW/env/work/srw_python/[a-z]*py SRW/env/work/srw_python
     cp -a ~/src/ochubar/SRW/{cpp,Makefile} SRW
@@ -60,9 +66,11 @@ build_nsls2_host_main() {
 FROM radiasoft/sirepo:dev
 USER vagrant
 ADD --chown=vagrant:vagrant . $_build_nsls2_guest_d
+ADD --chown=vagrant:vagrant sirepo/VERSION.txt /
 RUN bash $_build_nsls2_guest_d/$s
 EOF
-    docker build --rm=true --tag=radiasoft/sirepo:nsls2 .
+    docker build --rm=true --network=host --build-arg http_proxy=$http_proxy --build-arg https_proxy=$https_proxy --tag=radiasoft/sirepo:nsls2 .
+    # docker build --rm=true --network=host --tag=radiasoft/sirepo:nsls2 .
     cd ..
     rm -rf "$d"
     build_nsls2_docker_clean
