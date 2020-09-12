@@ -1072,6 +1072,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 // need to split the shapes up by type or the data will get mismatched
                 let layouts = {};
                 LAYOUT_SHAPES.forEach(function (l) {
+                    //TODO(mvk): sort by in/out of screen, draggable
                     layouts[l] = shapes.filter(function (s) {
                         return s.layoutShape === l;
                     });
@@ -1259,6 +1260,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             function selectObject(d) {
                 // allow using shift to select more than one (for alignment etc.)
                 if (! selectedObject || selectedObject.id !== d.id ) {
+                    srdbg('SEL', d);
                     selectedObject = d;
                 }
                 else {
@@ -1429,7 +1431,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     var sz = d.getSizeCoords().map(function (c) {
                         return utilities.roundToPlaces(c * invObjScale, 2);
                     });
-                    return `${d.name} center : ${ctr} size: ${sz}`;
+                    return `${d.id} ${d.name} center : ${ctr} size: ${sz}`;
                 });
             }
 
