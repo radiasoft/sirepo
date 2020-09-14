@@ -80,6 +80,10 @@ var SRW_EXAMPLES = [
                     {
                         "image": "nsls-ii-esm.png",
                         "simulationName": "NSLS-II ESM beamline"
+                    },
+                    {
+                        "image": "nsls-ii-csx.png",
+                        "simulationName": "NSLS-II CSX-1 beamline"
                     }
                 ]
             },
