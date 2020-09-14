@@ -30,6 +30,29 @@ http {
     server {
         listen {{ ip }}:{{ nginx_proxy_port }};
         root /usr/share/nginx/html;
+        {% if jupyterhub_root  %}
+        location /{{ jupyterhub_root }}/hub/logout {
+            return 301 /auth-logout;
+        }
+        location /{{ jupyterhub_root }}/ {
+            proxy_pass http://127.0.0.1:{{ jupyterhub_port }};
+            proxy_http_version 1.1;
+            proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+            proxy_read_timeout 600s;
+            proxy_send_timeout 600s;
+            proxy_connect_timeout 600s;
+            proxy_redirect off;
+            proxy_set_header Host $host:$server_port;
+            proxy_set_header Proxy "";
+            proxy_set_header Via $remote_addr;
+            proxy_set_header X-Real-Ip $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_cache_bypass $http_upgrade;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
+        {% endif %}
         location / {
             include /etc/nginx/uwsgi_params;
             client_max_body_size 50m;

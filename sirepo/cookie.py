@@ -6,9 +6,9 @@ u"""User state management via an HTTP cookie
 """
 from __future__ import absolute_import, division, print_function
 
-from pykern import pkcollections
 from pykern import pkcompat
 from pykern import pkconfig
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import base64
 import cryptography.fernet
@@ -28,6 +28,10 @@ _COOKIE_SENTINEL = 'srk'
 _COOKIE_SENTINEL_VALUE = 'z'
 
 _SERIALIZER_SEP = ' '
+
+def delete_jupyterhub():
+    _state().delete_jupyterhub = True
+
 
 def get_value(key):
     return _state()[key]
@@ -59,12 +63,18 @@ def save_to_cookie(resp):
     _state().save_to_cookie(resp)
 
 
-def set_cookie_for_utils():
-    """A mock cookie for utilities"""
-    flask.g = pkcollections.Dict()
-    _State('')
+def set_cookie_for_jupyterhub(cookie_header):
+    """A cookie for authentication with jupyterhub"""
+    flask.g = PKDict()
+    _State(cookie_header)
     set_sentinel()
 
+
+def set_cookie_for_utils():
+    """A mock cookie for utilities"""
+    flask.g = PKDict()
+    _State('')
+    set_sentinel()
 
 def set_sentinel(values=None):
     """Bypasses the state where the cookie has not come back from the client.
@@ -106,8 +116,9 @@ class _State(dict):
 
     def __init__(self, header):
         super(_State, self).__init__()
-        self.incoming_serialized = ''
         self.crypto = None
+        self.delete_jupyterhub = False
+        self.incoming_serialized = ''
         flask.g.sirepo_cookie = self
         self._from_cookie_header(header)
 
@@ -132,6 +143,17 @@ class _State(dict):
             #TODO(pjm): enabling this causes self-extracting simulations to break
             #samesite='Strict',
         )
+        if self.delete_jupyterhub:
+            import sirepo.auth
+            import sirepo.jupyterhub
+            # TODO(e-carlin):  discuss with rn names for jupyterhub
+            n = sirepo.auth.display_name()
+            for c in (
+                    ('jupyterhub-hub-login', 'hub'),
+                    (f'jupyterhub-user-{n}', f'user/{n}'),
+            ):
+                # Trailing slash is required in paths
+                resp.delete_cookie(c[0], path=f'/{sirepo.jupyterhub.cfg.root}/{c[1]}/')
 
     def _crypto(self):
         if not self.crypto:

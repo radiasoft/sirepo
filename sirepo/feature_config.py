@@ -28,6 +28,7 @@ _PROD_FOSS_CODES = frozenset((
 _NON_PROD_FOSS_CODES = frozenset((
     'irad',
     'myapp',
+    'jupyterhublogin',
     'radia',
     'rcscon',
     'rs4pi',
@@ -92,6 +93,7 @@ def _init():
         jspec=dict(
             derbenevskrinsky_force_formula=b('Include Derbenev-Skrinsky force formula'),
         ),
+        jupyterhub=(False, bool, 'whether or not to enable jupyterhub'),
         proprietary_sim_types=(set(), set, 'codes that require authorization'),
         #TODO(robnagler) make this a sim_type config like srw and warpvnd
         rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),

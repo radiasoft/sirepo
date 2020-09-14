@@ -126,19 +126,6 @@ def assert_sid(sid):
     return sid
 
 
-def celery_queue(data):
-    """Which queue to execute simulation in
-
-    Args:
-        data (dict): simulation parameters
-
-    Returns:
-        str: celery queue name
-    """
-    from sirepo import celery_tasks
-    return celery_tasks.queue_name(sirepo.sim_data.get_class(data).is_parallel(data))
-
-
 def default_data(sim_type):
     """New simulation base data
 
@@ -272,6 +259,7 @@ def get_schema(sim_type):
     schema.dynamicModules = _files_in_schema(schema.dynamicFiles)
 
     for item in [
+            'appDefaults',
             'appModes',
             'constants',
             'cookies',

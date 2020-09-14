@@ -112,6 +112,8 @@ def api_authLogout(simulation_type=None):
             pass
     if _is_logged_in():
         cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
+        if sirepo.feature_config.cfg().jupyterhub:
+            cookie.delete_jupyterhub()
         _set_log_user()
     return http_reply.gen_redirect_for_app_root(req and req.type)
 
@@ -129,6 +131,18 @@ def complete_registration(name=None):
         r.display_name = name
         r.save()
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
+
+
+def display_name(uid=None, auth_method=None):
+    if not uid:
+        uid =  cookie.unchecked_get_value(_COOKIE_USER)
+    if not auth_method:
+        auth_method = cookie.unchecked_get_value(_COOKIE_METHOD)
+    if auth_method == METHOD_GUEST:
+      return _GUEST_USER_DISPLAY_NAME
+    r = auth_db.UserRegistration.search_by(uid=uid)
+    if r:
+        return r.display_name
 
 
 def get_all_roles():
@@ -203,7 +217,15 @@ def logged_in_user(check_path=True):
     return u
 
 
-def login(module, uid=None, model=None, sim_type=None, display_name=None, is_mock=False, want_redirect=False):
+def login(
+        module,
+        uid=None,
+        model=None,
+        sim_type=None,
+        display_name=None,
+        is_mock=False,
+        want_redirect=False,
+):
     """Login the user
 
     Raises an exception if successful, except in the case of methods
@@ -456,17 +478,20 @@ def user_dir_not_found(user_dir, uid):
     )
 
 
-def user_if_logged_in(method):
-    """Verify user is logged in and method matches
+def user_if_logged_in(method=None):
+    """Verify user is logged in and optionally that the  method matches
 
     Args:
-        method (str): method must be logged in as
+        method (str, optional): method must be logged in as
+    Returns:
+        uid (str): the uid of the user if logged in otherwsie None
     """
     if not _is_logged_in():
         return None
-    m = cookie.unchecked_get_value(_COOKIE_METHOD)
-    if m != method:
-        return None
+    if method:
+        m = cookie.unchecked_get_value(_COOKIE_METHOD)
+        if m != method:
+            return None
     return _get_user()
 
 
@@ -567,15 +592,11 @@ def _auth_state():
     if v.isLoggedIn:
         if v.method == METHOD_GUEST:
             # currently only method to expire login
-            v.displayName = _GUEST_USER_DISPLAY_NAME
             v.isGuestUser = True
             v.isLoginExpired = _METHOD_MODULES[METHOD_GUEST].is_login_expired()
             v.needCompleteRegistration = False
             v.visibleMethods = non_guest_methods
-        else:
-            r = auth_db.UserRegistration.search_by(uid=u)
-            if r:
-                v.displayName = r.display_name
+        v.displayName = display_name(u, v.method)
         v.roles = auth_db.UserRole.get_roles(u)
         _plan(v)
         _method_auth_state(v, u)
