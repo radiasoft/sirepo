@@ -916,6 +916,9 @@ SIREPO.app.factory('stringsService', function() {
 
     const strings = SIREPO.APP_SCHEMA.strings;
     return {
+        formatKey: (name) => {
+            return ucfirst(strings[name]);
+        },
         newSimulationLabel: () => {
             return strings.newSimulationLabel || `New ${ucfirst(strings.simulationDataType)}`;
         },

@@ -401,7 +401,7 @@ SIREPO.app.directive('confirmationModal', function() {
     };
 });
 
-SIREPO.app.directive('copyConfirmation', function(appState, fileManager) {
+SIREPO.app.directive('copyConfirmation', function(appState, fileManager, stringsService) {
     return {
         restrict: 'A',
         scope: {
@@ -410,7 +410,7 @@ SIREPO.app.directive('copyConfirmation', function(appState, fileManager) {
             disabled: '<',
         },
         template: [
-            '<div data-confirmation-modal="" data-id="sr-copy-confirmation" data-title="Copy Simulation" data-ok-text="Create Copy" data-ok-clicked="copy()">',
+            '<div data-confirmation-modal="" data-id="sr-copy-confirmation" data-title="Copy {{ ::stringsService.formatKey(\'simulationDataType\') }}" data-ok-text="Create Copy" data-ok-clicked="copy()">',
               '<form class="form-horizontal" autocomplete="off">',
                 '<div class="form-group">',
                 '<label class="col-sm-3 control-label">New Name</label>',
@@ -429,6 +429,7 @@ SIREPO.app.directive('copyConfirmation', function(appState, fileManager) {
             '</div>',
         ].join(''),
         controller: function($scope) {
+            $scope.stringsService = stringsService;
             $scope.showFolders = function () {
                 return fileManager.getUserFolderPaths().length > 1;
             };
@@ -1457,6 +1458,7 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
         ].join(''),
         controller: function(appState, stringsService, $sce, $scope) {
 
+            //TODO(pjm): move into stringsService
             function format(template, args) {
                 return template.replace(
                     /{(\w*)}/g,
@@ -1485,7 +1487,7 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
                 }
                 const a = {
                     frameCount: f,
-                    typeOfSimulation: stringsService.ucfirst(s.typeOfSimulation),
+                    typeOfSimulation: stringsService.formatKey('typeOfSimulation'),
                     state: $scope.simState.stateAsText()
                 };
                 return  $sce.trustAsHtml(
@@ -1986,9 +1988,7 @@ SIREPO.app.directive('appHeaderLeft', function(appState, authState, panelState) 
         ].join(''),
         controller: function($scope, stringsService) {
             $scope.authState = authState;
-            $scope.simulationsLinkText = stringsService.ucfirst(
-                SIREPO.APP_SCHEMA.strings.simulationDataTypePlural
-            );
+            $scope.simulationsLinkText = stringsService.formatKey('simulationDataTypePlural');
 
             $scope.showTitle = function() {
                 return appState.isLoaded();
@@ -2239,7 +2239,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
     };
 });
 
-SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileManager, panelState, requestSender, $compile, $window, $timeout) {
+SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileManager, panelState, requestSender, stringsService, $compile, $timeout, $window) {
 
     return {
         restrict: 'A',
@@ -2266,7 +2266,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                     '<li data-ng-if="! isExample()"><a href data-target="#delete-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-trash"></span> Delete</a></li>',
                     '<li data-ng-if="hasRelatedSimulations()" class="divider"></li>',
                     '<li data-ng-if="hasRelatedSimulations()" class="sr-dropdown-submenu">',
-                      '<a href><span class="glyphicon glyphicon-menu-left"></span> Related Simulations</a>',
+                      '<a href><span class="glyphicon glyphicon-menu-left"></span> Related {{ ::stringsService.formatKey(\'simulationDataTypePlural\') }}</a>',
                       '<ul class="dropdown-menu">',
                         '<li data-ng-repeat="item in relatedSimulations"><a href data-ng-click="openRelatedSimulation(item)">{{ item.name }}</a></li>',
                       '</ul>',
@@ -2276,8 +2276,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
               '</ul>',
         ].join(''),
         controller: function($scope) {
-
-
+            $scope.stringsService = stringsService;
             var currentSimulationId = null;
 
             // We don't add this modal unless we need it
@@ -2612,9 +2611,7 @@ SIREPO.app.directive('commonFooter', function() {
             '<div data-sbatch-login-modal=""></div>',
         ].join(''),
         controller: function($scope, appState, stringsService) {
-            $scope.simulationModalTitle = stringsService.ucfirst(
-                SIREPO.APP_SCHEMA.strings.simulationDataType
-            );
+            $scope.simulationModalTitle = stringsService.formatKey('simulationDataType');
         }
     };
 });
