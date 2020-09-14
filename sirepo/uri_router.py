@@ -8,9 +8,12 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from sirepo import sim_api
 import flask
 import importlib
 import inspect
+import os
+import pkgutil
 import re
 import sirepo.api_auth
 import sirepo.auth
@@ -110,6 +113,7 @@ def init(app, simulation_db):
 
     for n in _REQUIRED_MODULES + tuple(sorted(feature_config.cfg().api_modules)):
         register_api_module(importlib.import_module('sirepo.' + n))
+    _register_sim_api_modules()
     _init_uris(app, simulation_db, feature_config.cfg().sim_types)
 
     sirepo.http_request.init(
@@ -124,7 +128,6 @@ def init(app, simulation_db):
         simulation_db=simulation_db,
         uri_router=pkinspect.this_module(),
     )
-
 
 def register_api_module(module=None):
     """Add caller_module to the list of modules which implements apis.
@@ -255,19 +258,18 @@ def _init_uris(app, simulation_db, sim_types):
     app.add_url_rule('/<path:path>', '_dispatch', _dispatch, methods=('GET', 'POST'))
     app.add_url_rule('/', '_dispatch_empty', _dispatch_empty, methods=('GET', 'POST'))
 
-# TODO(e-carlin): sort
-def _validate_root_redirect_uris(uri_to_route, simulation_db):
+
+def _register_sim_api_modules():
     from sirepo import feature_config
 
-    u = set(uri_to_route.keys())
-    t = feature_config.cfg().sim_types
-    r = set(simulation_db.SCHEMA_COMMON.rootRedirectUri.keys())
-    i = u & r | u & t | r & t
-    assert not i, f'rootRedirectUri, sim_types, and routes have overlapping uris={i}'
-    for x in r:
-        assert re.search(r'^[a-z]+$', x), \
-            f'rootRedirectUri={x} must consist of letters only'
-
+    for _, n, ispkg in pkgutil.iter_modules(
+            [os.path.dirname(sim_api.__file__)],
+    ):
+        if ispkg:
+            continue
+        assert sirepo.template.is_sim_type(n), \
+            f'unknown sim_type={n}'
+        register_api_module(importlib.import_module(f'sirepo.sim_api.{n}'))
 
 
 def _split_uri(uri):
@@ -314,3 +316,16 @@ def _split_uri(uri):
                 )
     res.base_uri = first or ''
     return res
+
+
+def _validate_root_redirect_uris(uri_to_route, simulation_db):
+    from sirepo import feature_config
+
+    u = set(uri_to_route.keys())
+    t = feature_config.cfg().sim_types
+    r = set(simulation_db.SCHEMA_COMMON.rootRedirectUri.keys())
+    i = u & r | u & t | r & t
+    assert not i, f'rootRedirectUri, sim_types, and routes have overlapping uris={i}'
+    for x in r:
+        assert re.search(r'^[a-z]+$', x), \
+            f'rootRedirectUri={x} must consist of letters only'

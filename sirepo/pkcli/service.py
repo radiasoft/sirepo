@@ -53,53 +53,44 @@ def http():
 
     Used for development only.
     """
-    @contextlib.contextmanager
-    def _handle_signals(signums):
-        o = [(x, signal.getsignal(x)) for x in signums]
-        try:
-            [signal.signal(x[0], _kill) for x in o]
-            yield
-        finally:
-            [signal.signal(x[0], x[1]) for x in o]
-
-    def _kill(*args):
-        for p in processes:
-            try:
-                p.terminate()
-                p.wait(1)
-            except (ProcessLookupError, ChildProcessError):
-                continue
-            except subprocess.TimeoutExpired:
-                p.kill()
-
-    def _start(service):
-        c = ['pyenv', 'exec', 'sirepo']
-        c.extend(service)
-        processes.append(subprocess.Popen(
-            c,
-            cwd=str(_run_dir()),
-            env=e,
-        ))
-
     e = PKDict(os.environ)
     e.SIREPO_JOB_DRIVER_MODULES = 'local'
-    processes = []
-    with pkio.save_chdir(_run_dir()), \
-        _handle_signals((signal.SIGINT, signal.SIGTERM)):
-        try:
-            _start(['job_supervisor'])
-            # Avoid race condition on creating auth db
-            time.sleep(.3)
-            _start(['service', 'flask'])
-            p, _ = os.wait()
-        except ChildProcessError:
-            pass
-        finally:
-            _kill()
+    _start_processes(
+        [['sirepo'] + c for c in [
+            ['service', 'flask'], ['job_supervisor'],
+        ]],
+        e,
+    )
+
+def jupyterhub():
+    assert pkconfig.channel_in('dev')
+    try:
+        import jupyterhub
+    except ImportError:
+        raise ImportError('jupyterhub not installed. run `pip install jupyterhub`')
+    import sirepo.jupyterhub
+
+    f = _run_dir().join('jupyterhub').ensure(dir=True).join('conf.py')
+    pkjinja.render_resource(
+        'jupyterhub_conf.py',
+        PKDict(_cfg()).pkupdate(**sirepo.jupyterhub.cfg),
+        output=f,
+    )
+    _start_processes(
+       [
+           ['sirepo', 'service', 'nginx_proxy', '--jupyterhub'],
+           ['sirepo', 'service', 'uwsgi'],
+           ['sirepo', 'job_supervisor'],
+           ['jupyterhub', '-f', str(f)],
+        ],
+        env=PKDict(os.environ).pkupdate(
+            SIREPO_AUTH_METHODS='email',
+            SIREPO_FEATURE_CONFIG_JUPYTERHUB='1',
+        ),
+    )
 
 
-
-def nginx_proxy():
+def nginx_proxy(jupyterhub=False):
     """Starts nginx in container.
 
     Used for development only.
@@ -108,9 +99,13 @@ def nginx_proxy():
     run_dir = _run_dir().join('nginx_proxy').ensure(dir=True)
     with pkio.save_chdir(run_dir) as d:
         f = run_dir.join('default.conf')
+        c = PKDict(_cfg()).pkupdate(run_dir=str(d))
+        if jupyterhub:
+            import sirepo.jupyterhub
+            c.pkupdate(jupyterhub_root=sirepo.jupyterhub.cfg.root)
         pkjinja.render_resource(
             'nginx_proxy.conf',
-            PKDict(_cfg()).pkupdate(run_dir=str(d)),
+            c,
             output=f,
         )
         cmd = [
@@ -141,8 +136,9 @@ def _cfg():
     if not __cfg:
         __cfg = pkconfig.init(
             ip=('0.0.0.0', _cfg_ip, 'what IP address to open'),
-            nginx_proxy_port=(8080, _cfg_int(5001, 32767), 'port on which nginx_proxy listens'),
-            port=(8000, _cfg_int(5001, 32767), 'port on which uwsgi or http listens'),
+            jupyterhub_port=(8005, _cfg_port, 'port on which jupyterhub listens'),
+            nginx_proxy_port=(8080, _cfg_port, 'port on which nginx_proxy listens'),
+            port=(8000, _cfg_port, 'port on which uwsgi or http listens'),
             processes=(1, _cfg_int(1, 16), 'how many uwsgi processes to start'),
             run_dir=(None, str, 'where to run the program (defaults db_dir)'),
             # uwsgi got hung up with 1024 threads on a 4 core VM with 4GB
@@ -190,6 +186,10 @@ def _cfg_ip(value):
         pkcli.command_error('{}: ip is not a valid IPv4 address', value)
 
 
+def _cfg_port(value):
+    return _cfg_int(5001, 32767)(value)
+
+
 def _run_dir():
     from sirepo import server
     import sirepo.srdb
@@ -197,3 +197,45 @@ def _run_dir():
     if not isinstance(_cfg().run_dir, type(py.path.local())):
         _cfg().run_dir = pkio.mkdir_parent(_cfg().run_dir) if _cfg().run_dir else sirepo.srdb.root()
     return _cfg().run_dir
+
+
+def _start_processes(cmds, env=None):
+    @contextlib.contextmanager
+    def _handle_signals(signums):
+        o = [(x, signal.getsignal(x)) for x in signums]
+        try:
+            [signal.signal(x[0], _kill) for x in o]
+            yield
+        finally:
+            [signal.signal(x[0], x[1]) for x in o]
+
+    def _kill(*args):
+        for p in processes:
+            try:
+                p.terminate()
+                p.wait(1)
+            except (ProcessLookupError, ChildProcessError):
+                continue
+            except subprocess.TimeoutExpired:
+                p.kill()
+
+    def _start(cmd):
+        processes.append(subprocess.Popen(
+            cmd,
+            cwd=str(_run_dir()),
+            env=env,
+        ))
+    env = env if env else os.environ
+    processes = []
+    with pkio.save_chdir(_run_dir()), \
+        _handle_signals((signal.SIGINT, signal.SIGTERM)):
+        try:
+            for c in cmds:
+                # Avoid race condition on creating auth db
+                time.sleep(.3)
+                _start(['pyenv', 'exec'] + c)
+            p, _ = os.wait()
+        except ChildProcessError:
+            pass
+        finally:
+            _kill()

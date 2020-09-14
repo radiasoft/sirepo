@@ -1,0 +1,21 @@
+{
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": [
+                "jupyterhublogin.js"
+            ]
+        }
+    },
+    "appDefaults": {
+        "route": "jupyterhublogin"
+    },
+    "localRoutes": {
+        "jupyterhublogin": {
+            "route": "/jupyterhublogin",
+            "config": {
+                "controller": "JupyterloginController as jupyterlogin",
+                "template": "<div></div>"
+            }
+        }
+    }
+}

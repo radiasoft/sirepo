@@ -105,10 +105,11 @@ def gen_json(value, pretty=False, response_kwargs=None):
     Returns:
         flask.Response: reply object
     """
-    app = flask.current_app
+    import flask.wrappers
+
     if not response_kwargs:
         response_kwargs = PKDict()
-    return app.response_class(
+    return flask.wrappers.Response(
         simulation_db.generate_json(value, pretty=pretty),
         mimetype=MIME_TYPE.json,
         **response_kwargs
