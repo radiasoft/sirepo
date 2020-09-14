@@ -54,7 +54,7 @@ build_nsls2_host_main() {
     cp -a ~/src/radiasoft/pykern pykern
     mkdir sirepo
     cp -a ../../{LICENSE,README.md,requirements.txt,setup.py,sirepo,.git} sirepo
-    (git --git-dir=/home/vagrant/src/radiasoft/sirepo/.git describe --all --tags --long --always --dirty; date) > sirepo/VERSION.txt
+    (git --git-dir=$HOME/src/radiasoft/sirepo/.git describe --all --tags --long --always --dirty; date) > sirepo/VERSION.txt
     mkdir -p SRW/env/work/srw_python
     cp -a ~/src/ochubar/SRW/env/work/srw_python/[a-z]*py SRW/env/work/srw_python
     cp -a ~/src/ochubar/SRW/{cpp,Makefile} SRW
