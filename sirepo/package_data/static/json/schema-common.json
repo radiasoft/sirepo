@@ -431,8 +431,11 @@
             }
         },
         "strings": {
-            "simulationState": "Simulation {state}",
-            "completionState": ": {frameCount} animation frames"
+            "completionState": ": {frameCount} animation frames",
+            "simulationDataType": "simulation",
+            "simulationDataTypePlural": "simulations",
+            "simulationState": "{typeOfSimulation} {state}",
+            "typeOfSimulation": "simulation"
         },
         "view": {
             "simDoc": {

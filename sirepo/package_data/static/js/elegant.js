@@ -440,7 +440,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     };
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, elegantService, frameCache, panelState, persistentSimulation, $rootScope, $scope) {
+SIREPO.app.controller('VisualizationController', function(appState, elegantService, frameCache, panelState, persistentSimulation, stringsService, $rootScope, $scope) {
     var self = this;
     self.simScope = $scope;
     self.appState = appState;
@@ -619,8 +619,16 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         return '';
     };
 
+    self.startButtonLabel = function() {
+        return stringsService.startButtonLabel();
+    };
+
     self.startSimulation = function() {
         self.simState.saveAndRunSimulation('simulation');
+    };
+
+    self.stopButtonLabel = function() {
+        return stringsService.stopButtonLabel();
     };
 
     self.simState = persistentSimulation.initSimulationState(self);

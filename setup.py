@@ -15,7 +15,6 @@ pykern.pksetup.setup(
         'Authlib>=0.13',
         'Flask>=1.1',
         'SQLAlchemy',
-        'SQLAlchemy',
         'aenum',
         'asyncssh',
         'cryptography>=2.8',

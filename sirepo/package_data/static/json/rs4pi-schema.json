@@ -104,6 +104,11 @@
             "description": ["Study Description", "String"]
         }
     },
+    "strings": {
+        "newSimulationLabel": "Import DICOM",
+        "simulationDataType": "study",
+        "simulationDataTypePlural": "studies"
+    },
     "view": {
         "dicomAnimation": {
             "title": "DICOM Viewer",

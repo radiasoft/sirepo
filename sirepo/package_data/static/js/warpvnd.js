@@ -862,7 +862,7 @@ SIREPO.app.controller('OptimizationController', function (appState, frameCache, 
     };
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, errorService, frameCache, panelState, requestSender, vtkPlotting, warpvndService, $scope) {
+SIREPO.app.controller('VisualizationController', function (appState, errorService, frameCache, panelState, requestSender, stringsService, vtkPlotting, warpvndService, $scope) {
     var self = this;
     self.warpvndService = warpvndService;
 
@@ -908,6 +908,10 @@ SIREPO.app.controller('VisualizationController', function (appState, errorServic
     $scope.$on('fieldAnimation.summaryData', function (evt, data) {
         self.ranIn3d = data.runMode3d;
     });
+
+    self.startButtonLabel = function() {
+        return stringsService.startButtonLabel();
+    };
 
     $scope.$on('fieldAnimation.editor.show', function () {
         panelState.showField('fieldAnimation', 'axes', warpvndService.is3D() && self.ranIn3d);
@@ -2654,7 +2658,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                     '</div>',
                   '</div>',
                   '<div class="col-sm-6 pull-right">',
-                    '<button class="btn btn-default" data-ng-click="simState.cancelSimulation()">End Simulation</button>',
+                    '<button class="btn btn-default" data-ng-click="simState.cancelSimulation()">{{ stopButtonLabel() }}</button>',
                   '</div>',
                 '</form>',
                 '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isStopped()">',
@@ -2662,7 +2666,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                 '</form>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, stringsService) {
             var SINGLE_PLOTS = ['particleAnimation', 'impactDensityAnimation', 'particle3d'];
             var self = this;
             self.simScope = $scope;
@@ -2694,6 +2698,11 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
             $scope.startSimulation = function() {
                 $scope.simState.saveAndRunSimulation(['simulation', 'simulationGrid']);
             };
+
+            $scope.stopButtonLabel = function() {
+                return stringsService.stopButtonLabel();
+            };
+
 
             $scope.simState = persistentSimulation.initSimulationState(self);
         },

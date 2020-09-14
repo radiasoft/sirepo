@@ -162,7 +162,7 @@ def validate(schema):
     for t in schema.dynamicModules:
         for src in schema.dynamicModules[t]:
             pkresource.filename(src[1:])
-
+    _validate_strings(schema.strings)
 
 def _validate_cookie_def(c_def):
     """Validate the cookie definitions in the schema
@@ -202,6 +202,7 @@ def _validate_enum(val, sch_field_info, sch_enums):
     if str(val) not in map(lambda enum: str(enum[0]), sch_enums[type]):
         raise AssertionError(util.err(sch_enums, 'enum {} value {} not in schema', type, val))
 
+
 def _validate_model_name(model_name):
     """Ensure model name contain no special characters
 
@@ -211,6 +212,7 @@ def _validate_model_name(model_name):
 
     if not re.search(r'^[a-z_]\w*$', model_name, re.IGNORECASE):
         raise AssertionError(util.err(model_name, 'model name must be a Python identifier'))
+
 
 def _validate_number(val, sch_field_info):
     """Ensure the value of a numeric field falls within the supplied limits (if any)
@@ -237,3 +239,12 @@ def _validate_number(val, sch_field_info):
             return
         if fv > fmax:
             raise AssertionError(util.err(sch_field_info, 'numeric value {} out of range', val))
+
+
+def _validate_strings(strings):
+    c = 3
+    d = strings.simulationDataType[:c]
+    p = strings.simulationDataTypePlural[:c]
+    assert d == p, \
+        (f'strings.simulationDataType={d} does not appear to be the same as' +
+         f'strings.simulationDataTypePlural={p}')

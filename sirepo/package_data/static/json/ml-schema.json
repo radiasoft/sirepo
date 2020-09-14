@@ -245,7 +245,10 @@
         "simulationStatus": {}
     },
     "strings": {
-        "completionState": ": {frameCount} epochs"
+        "completionState": ": {frameCount} epochs",
+        "simulationDataType": "dataset",
+        "simulationDataTypePlural": "datasets",
+        "typeOfSimulation": "training"
     },
     "view": {
         "columnChooser": {
@@ -373,7 +376,7 @@
             "advanced": []
         },
         "simulationSettings": {
-            "title": "Simulation Settings",
+            "title": "Training Settings",
             "basic": [
                 "classificationAnimation.classifier",
                 "knnClassification.kmin",

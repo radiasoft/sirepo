@@ -787,15 +787,6 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, errorS
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
-
-    self.simState.startButtonLabel = function() {
-        return 'Solve';
-    };
-
-    self.simState.stopButtonLabel = function() {
-        return 'Cancel';
-    };
-
 });
 
 
