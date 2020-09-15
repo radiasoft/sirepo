@@ -2290,7 +2290,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
             var LABEL_FONT = 'normal ' + LABEL_FONT_HEIGHT + 'px Arial';
             var MAX_CONDENSED_LENGTH = 3;
             var MIN_CONDENSED_LENGTH = 0.7;
-            var beamline, fsRenderer, labelCanvas, labels, orientationMarker, pngCanvas, positionInfo;
+            var beamline, fsRenderer, labelCanvas, labels, orientationMarker, pngCanvas;
             var itemDisplayDefaults = {
                 aperture: {
                     color: color('#666666'),
@@ -2472,7 +2472,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                 orientationMarker.setEnabled(true);
             }
 
-            function buildBeamline() {
+            function buildBeamline(positionInfo) {
                 beamline = [];
                 if (options().includeSource == "1") {
                     //TODO(pjm): use undulator center position and length
@@ -2495,29 +2495,37 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                     if (item.isDisabled) {
                         return;
                     }
-                    var posVectors = positionInfo[infoIdx];
-                    var point = posVectors.slice(0, 3);
+                    var pos = positionInfo[infoIdx];
+                    var point = pos.point.slice();
                     if (options().condenseBeamline == '1') {
                         trimPoint(point, prev);
                         prev = {
-                            point: posVectors.slice(0, 3),
+                            point: pos.point,
                             trimmed: point,
                         };
+                    }
+                    // algorithm from https://www.learnopencv.com/rotation-matrix-to-euler-angles/
+                    var sy = Math.sqrt(Math.pow(pos.orient[0][0], 2) + Math.pow(pos.orient[1][0], 2));
+                    var xrot, yrot, zrot;
+                    if (Math.abs(sy) < 1e-6) {
+                        xrot = Math.atan2(-pos.orient[1][2], pos.orient[1][1]);
+                        yrot = Math.atan2(-pos.orient[2][0], sy);
+                        zrot = 0;
+                    }
+                    else {
+                        xrot = Math.atan2(pos.orient[2][1], pos.orient[2][2]);
+                        yrot = Math.atan2(-pos.orient[2][0], sy);
+                        zrot = Math.atan2(pos.orient[1][0], pos.orient[0][0]);
                     }
                     item = $.extend(appState.clone(item), {
                         name: item.title,
                         center: point,
                         rotate: [
-                            // uses the normal vector to determine x/y rotation
-                            -degrees(Math.atan(posVectors[10] / posVectors[11])),
-                            degrees(Math.atan(posVectors[9] / posVectors[11])),
-                            //TODO(pjm): sagittal vector to determine z rotation?
-                            //degrees(Math.atan(posVectors[6] / posVectors[8])),
-                            0,
+                            -degrees(xrot), degrees(yrot), -degrees(zrot),
                         ],
                     });
-                    // skip height profile except for flat mirrors
-                    infoIdx += (item.type != 'mirror' && item.heightProfileFile) ? 2 : 1;
+                    // skip height profile
+                    infoIdx += item.heightProfileFile ? 2 : 1;
                     setItemProps(item);
                     beamline.push(item);
                 });
@@ -2660,13 +2668,13 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                     if (item.orientation == 'x') {
                         $.extend(item, {
                             height: mirrorSize(item.verticalTransverseSize * 1e-3),
-                            size: mirrorSize(item.horizontalTransverseSize * 1e-3),
+                            width: mirrorSize(item.horizontalTransverseSize * 1e-3),
                         });
                     }
                     else {
                         $.extend(item, {
-                            width: mirrorSize(item.horizontalTransverseSize * 1e-3),
-                            size: mirrorSize(item.verticalTransverseSize * 1e-3),
+                            height: mirrorSize(item.horizontalTransverseSize * 1e-3),
+                            width: mirrorSize(item.verticalTransverseSize * 1e-3),
                         });
                     }
                 }
@@ -2741,9 +2749,11 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
             };
 
             $scope.load = function(json) {
-                positionInfo = json.cols;
                 removeActors();
-                buildBeamline();
+                if (! json.elements) {
+                    return;
+                }
+                buildBeamline(json.elements);
                 labels = [];
                 $scope.selectedDimension = null;
                 $scope.viewDirection = {
@@ -2754,7 +2764,9 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                 if (beamline.length) {
                     addBeam(addBeamline());
                 }
-                addOrientationMarker();
+                if (! orientationMarker) {
+                    addOrientationMarker();
+                }
                 $scope.setCamera($scope.dimensions[0]);
                 pngCanvas.copyCanvas();
             };

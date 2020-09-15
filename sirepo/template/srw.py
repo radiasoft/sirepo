@@ -1039,11 +1039,25 @@ def _delete_user_models(electron_beam, tabulated_undulator):
 
 def _extract_beamline_orientation(filename):
     cols = np.array(uti_io.read_ascii_data_cols(filename, '\t', _i_col_start=1, _n_line_skip=1))
-    return {
-        #TODO(pjm): x_range is needed for sirepo-plotting.js, need a better valid-data check
-        'x_range': [],
-        'cols': list(reversed(np.rot90(cols).tolist())),
-    }
+    rows = list(reversed(np.rot90(cols).tolist()))
+    rows = np.reshape(rows, (len(rows), 4, 3))
+    res = []
+    for row in rows:
+        # the vtk client renders x axis flipped, so update x position and rotation
+        p = row[0].tolist()
+        p[0] = -p[0]
+        orient = row[1:].tolist()
+        orient[1][0] = -orient[1][0]
+        orient[1][1] = -orient[1][1]
+        orient[1][2] = -orient[1][2]
+        res.append(PKDict(
+            point=p,
+            orient=orient,
+        ))
+    return PKDict(
+        x_range=[],
+        elements=res,
+    )
 
 
 def _extract_brilliance_report(model, data):
