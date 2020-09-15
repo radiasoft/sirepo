@@ -181,6 +181,18 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             ))
             pp.append(v.op_{{ item.name }}_pp)
 {% elif item.type == 'mirror' %}
+            {% if report == 'beamline3DReport' %}
+            cosAng = math.cos({{ field(item, 'ang') }})
+            sinAng = math.sin({{ field(item, 'ang') }})
+            el.append(srwlib.SRWLOptMirPl(
+                _nvx=0. if {{ field(item, 'dim') }} == 'y' else cosAng, #OC: orientation to be checked before the final implementation!
+                _nvy=0. if {{ field(item, 'dim') }} == 'x' else cosAng,
+                _nvz=-sinAng,
+                _tvx=0. if {{ field(item, 'dim') }} == 'y' else sinAng,
+                _tvy=0. if {{ field(item, 'dim') }} == 'x' else sinAng,
+            ))
+            pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+            {% endif %}
             {{ height_profile(item) }}
             pp.append(v.op_{{ item.name }}_pp)
 {% elif item.type == 'obstacle' %}
