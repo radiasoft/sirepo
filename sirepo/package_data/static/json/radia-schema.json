@@ -41,7 +41,7 @@
                     {
                         "layoutShape": "rect",
                         "model": "geomGroup",
-                        "title": "Add Group",
+                        "title": "Group",
                         "type": "group"
                     }
                 ],

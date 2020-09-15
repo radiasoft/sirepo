@@ -256,7 +256,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.selectedObject = null;
     self.shapes = [];
     self.toolbarSections = SIREPO.APP_SCHEMA.constants.toolbarItems.filter(function (item) {
-        return item.name.indexOf('Transforms') < 0;
+        return item.name !== 'In Progress' && item.name.indexOf('Transforms') < 0;
     });
 
 
@@ -450,13 +450,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         let txArr = [];
         // probably better to create a transform and let svg do this work
         o.transforms.forEach(function (xform) {
-            //srdbg('xform', xform.id, xform.name, 'to', o.id);
             // draw the shapes for symmetry planes once
             if (xform.model === 'symmetryTransform') {
                 addSymmetryPlane(baseShape, xform);
             }
             // each successive transform must be applied to all previous shapes
-            //srdbg('include virts', getVirtualShapes(baseShape));
             [baseShape, ...getVirtualShapes(baseShape)].forEach(function (xShape) {
                 // these transforms do not copy the object
                 if (xform.model === 'rotate') {
@@ -468,14 +466,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     return;
                 }
 
-                let members = getMembers(self.getObject(xShape.id));
+                let xo = self.getObject(xShape.id);
                 let linkTx;
                 let cloneTx = txArr.slice(0);
                 const ctx = composeFn(cloneTx);
                 if (xform.model === 'cloneTransform') {
                     for (let i = 1; i <= xform.numCopies; ++i) {
-                        //let cloneTx = txArr.slice(0);
-                        //const ctx = composeFn(cloneTx);
                         for (let j = 0; j < xform.transforms.length; ++j) {
                             let cloneXform = xform.transforms[j];
                             if (cloneXform.model === 'translateClone') {
@@ -485,35 +481,14 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                                 cloneTx.push(rotateFn(cloneXform, i));
                             }
                         }
-                        let c = addTxShape(xShape, xform, ctx);
-                        //srdbg(xShape.id, 'added clone', c.id);
-                        for (let m of members) {
-                            let v = getVirtualShapes(self.getShape(m.id));
-                            let c = addTxShape(self.getShape(m.id), xform, ctx);
-                            //srdbg(self.getShape(m.id).id, 'added member clone', c.id);
-                            for (let s of v) {
-                                addTxShape(s, xform, ctx);
-                            }
-                        }
+                        addTxShape(xShape, xform, ctx);
+                        transformMembers(xo, xform, ctx);
                     }
                 }
                 if (xform.model === 'symmetryTransform') {
-                    //return;
                     linkTx = mirrorFn(xform);
                     addTxShape(xShape, xform, linkTx);
-
-                    // transform members if any
-                    for (let m of members) {
-                        //let s = self.getShape(m.id);
-                        let v = getVirtualShapes(self.getShape(m.id));
-                        addTxShape(self.getShape(m.id), xform, linkTx);
-                        //srdbg(self.getShape(m.id).id, 'added member symm clone', c.id);
-                        //srdbg(self.getShape(m.id).id, 'check virts', v);
-                        for (let s of v) {
-                            addTxShape(s, xform, linkTx);
-                            //srdbg(s.id, 'added virt member symm clone', xform.symmetryPlane, c.id);
-                        }
-                    }
+                    transformMembers(xo, xform, linkTx);
                 }
 
 
@@ -540,16 +515,15 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         //srdbg('objs', self.getObjects());
     }
 
-    function getClones(o) {
-        let ctx = o.transforms.filter(function (tx) {
-            return tx.name === 'Clone';
-        }).map(function (tx) {
-            return tx.id;
-        });
-        //srdbg('look fo tx in', ctx);
-        return self.shapes.filter(function (s) {
-            return ctx.indexOf(s.txId) >= 0;
-        });
+    function transformMembers(o, xform, txFunction) {
+        for (let m of getMembers(o)) {
+            let shape = self.getShape(m.id);
+            let v = getVirtualShapes(shape);
+            addTxShape(shape, xform, txFunction);
+            for (let s of v) {
+                addTxShape(s, xform, txFunction);
+            }
+        }
     }
 
     // recursive dive through all subgroups
@@ -588,7 +562,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function addTxShape(sourceShape, xform, link) {
-        //srdbg('add tx for', sourceShape.id);
         let nextShape = txShape(sourceShape, xform);
         sourceShape.addLink(nextShape, link);
         self.shapes.push(nextShape);
@@ -598,8 +571,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function transformShapesForObject(o) {
         let baseShape = self.getShape(o.id);
-        //let xformShapes = [baseShape];
-        //xformShapes.push(...getVirtualShapes(baseShape));
         [baseShape, ...getVirtualShapes(baseShape)].forEach(function (s) {
             s.runLinks();
         });
@@ -633,7 +604,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     // shape - in group; linkedShape: group
-    // NOT PICKING UP "VIRTUAL" SHAPES
     function fit(shape, groupShape) {
         const o = self.getObject(shape.id);
         const groupId = o.groupId;
@@ -690,9 +660,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function getVirtualShapes(baseShape) {
-        //return self.shapes.filter(function (s) {
-        //    return Math.floor(s.id / maxShapesForLevel) - 1 === baseShape.id;
-        //});
         let v = self.shapes.filter(function (s) {
             return Math.floor(s.id / maxShapesForLevel) - 1 === baseShape.id;
         });
