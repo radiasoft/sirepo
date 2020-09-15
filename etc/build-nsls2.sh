@@ -23,20 +23,20 @@ build_nsls2_guest_main() {
     source ~/.bashrc
     set -euo pipefail
     cd "$_build_nsls2_guest_d"
+    source ./env
     cd SRW/cpp/gcc
     make -j4 lib
     cd ../py
     make -j4 python
     cd ../..
     install -m 644 env/work/srw_python/{{srwl,uti}*.py,srwlpy*.so} \
-        "$(python -c 'from distutils.sysconfig import get_python_lib as x; print(x())')"
-    pip uninstall -y pykern >& /dev/null || true
-    cd ../pykern
-    pip install .
-    cd ../sirepo
-    pip uninstall -y sirepo >& /dev/null || true
-    # pip install -r requirements.txt
-    pip install .
+            "$(python -c 'from distutils.sysconfig import get_python_lib as x; print(x())')"
+    local d
+    for d in pykern sirepo; do
+        pip uninstall -y "$d" >& /dev/null || true
+        cd ../"$d"
+        pip install .
+    done
     sirepo srw create_predefined
     cd /
     rm -rf "$_build_nsls2_guest_d"
@@ -51,7 +51,11 @@ build_nsls2_host_main() {
     mkdir "$d"
     cp -a "$s" "$d"
     cd "$d"
-    cp -a ~/src/radiasoft/pykern pykern
+    cat <<EOF >> env
+export http_proxy=${http_proxy:-}
+export https_proxy=${https_proxy:-}
+EOF
+    cp -a ../../../pykern .
     mkdir sirepo
     cp -a ../../{LICENSE,README.md,requirements.txt,setup.py,sirepo,.git} sirepo
     (git --git-dir=$HOME/src/radiasoft/sirepo/.git describe --all --tags --long --always --dirty; date) > sirepo/VERSION.txt

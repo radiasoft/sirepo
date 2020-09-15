@@ -179,9 +179,7 @@ def _epoch_animation(frame_args):
             points=v[:, i].tolist(),
             label=header[i],
         ) for i in (1, 2)],
-    ).update(PKDict(
-        x_label=header[0],
-    ))
+    ).pkupdate(x_label=header[0])
 
 
 def _extract_column(run_dir, sim_in, idx):
@@ -237,10 +235,10 @@ def _generate_elegant_simulation(data):
     res, v = template_common.generate_parameters_file(data)
     from sirepo.template import elegant
     v.rpn_variables = elegant.generate_variables(data)
-    data.models.simulation.update(PKDict(
+    data.models.simulation.update(
         backtracking='0',
         simulationMode='serial',
-    ))
+    )
     return elegant._generate_full_simulation(data, v)
 
 
@@ -252,13 +250,13 @@ def _generate_parameters_file(data):
     res += 'from __future__ import absolute_import, division, print_function\n'
     infile = _SIM_DATA.rcscon_filename(data, 'files', 'inputs')
     outfile = _SIM_DATA.rcscon_filename(data, 'files', 'outputs')
-    v.update(PKDict(
+    v.pkupdate(
         inputsFileName=infile,
         outputsFileName=outfile,
         layerImplementationNames=_layer_implementation_list(data),
         neuralNetLayers=data.models.neuralNet.layers,
         inputDim=data.models.files.inputsCount,
-    ).update(_OUTPUT_FILE))
+    ).pkupdate(_OUTPUT_FILE)
     if 'mlModelGraph' in report:
         res += template_common.render_jinja(SIM_TYPE, v, 'build-model.py')
         res += template_common.render_jinja(SIM_TYPE, v, 'graph.py')

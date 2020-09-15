@@ -104,14 +104,14 @@ class SlotProxy(PKDict):
     def __init__(self, **kwargs):
         super().__init__(_value=None, **kwargs)
 
-    async def alloc(self, status):
+    async def alloc(self, situation):
         if self._value is not None:
             return
         try:
             self._value = self._q.get_nowait()
         except tornado.queues.QueueEmpty:
-            pkdlog('{} status={}', self._op, status)
-            with self._op.set_job_status(status):
+            pkdlog('{} situation={}', self._op, situation)
+            with self._op.set_job_situation(situation):
                 self._value = await self._q.get()
             raise Awaited()
 
@@ -339,18 +339,20 @@ class _ComputeJob(PKDict):
             pkdlog('{} error={} stack={}', req, e, pkdexc())
             return sirepo.http_reply.gen_tornado_exception(e)
 
-    def set_status(self, op, status, exception=None):
+    def set_situation(self, op, situation, exception=None):
         if op.opName != job.OP_RUN:
             return
         s = self.db.jobStatusMessage
         p = 'Exception: '
-        if status is not None:
-            # POSIT: no other status begins with exception
+        if situation is not None:
+            # POSIT: no other situation begins with exception
             assert not s or not s.startswith(p), \
-                f'Trying to overwrite existing jobStatusMessage="{s}" with status="{status}"'
+                f'Trying to overwrite existing jobStatusMessage="{s}" with situation="{situation}"'
         if exception is not None:
-            status = f'{p}{exception}, while {s}'
-        self.__db_update(jobStatusMessage=status)
+            if not str(exception):
+                exception = repr(exception)
+            situation = f'{p}{exception}, while {s}'
+        self.__db_update(jobStatusMessage=situation)
 
     @classmethod
     def __create(cls, req):
@@ -597,24 +599,24 @@ class _ComputeJob(PKDict):
             return r
         candidates = _ops_to_cancel()
         c = None
-        o = []
+        o = set()
         # No matter what happens the job is canceled
         self.__db_update(status=job.CANCELED)
         self._canceled_serial = self.db.computeJobSerial
         try:
             for i in range(_MAX_RETRIES):
                 try:
-                    if _ops_to_cancel().intersection(candidates):
+                    o = _ops_to_cancel().intersection(candidates)
+                    if o:
                         #TODO(robnagler) cancel run_op, not just by jid, which is insufficient (hash)
                         if not c:
                             c = self._create_op(job.OP_CANCEL, req)
                         await c.prepare_send()
-                        o = _ops_to_cancel().intersection(candidates)
                     elif c:
                         c.destroy()
                         c = None
                     pkdlog('{} cancel={}', self, o)
-                    for x in filter(lambda e: e != c, o):
+                    for x in o:
                         x.destroy(cancel=True)
                     if timed_out_op:
                         self.db.canceledAfterSecs = timed_out_op.max_run_secs
@@ -727,7 +729,7 @@ class _ComputeJob(PKDict):
             o.destroy(cancel=False)
             if isinstance(e, sirepo.util.SRException) and \
                e.sr_args.params.get('isGeneral'):
-                self.__db_restore(d)
+               self.__db_restore(d)
             else:
                 _set_error(c, o.internal_error)
             raise
@@ -798,7 +800,7 @@ class _ComputeJob(PKDict):
         op.task = asyncio.current_task()
         op.pkdel('run_callback')
         try:
-            with op.set_job_status('Running'):
+            with op.set_job_situation('Entered __create._run'):
                 while True:
                     try:
                         r = await op.reply_get()
@@ -982,14 +984,14 @@ class _Op(PKDict):
         self.driver.send(self)
 
     @contextlib.contextmanager
-    def set_job_status(self, status):
-        self.computeJob.set_status(self, status)
+    def set_job_situation(self, situation):
+        self.computeJob.set_situation(self, situation)
         try:
             yield
-            self.computeJob.set_status(self, None)
+            self.computeJob.set_situation(self, None)
         except Exception as e:
-            pkdlog('{} status={} stack={}', self, status, pkdexc())
-            self.computeJob.set_status(self, None, exception=e)
+            pkdlog('{} situation={} stack={}', self, situation, pkdexc())
+            self.computeJob.set_situation(self, None, exception=e)
             raise
 
     def _get_max_run_secs(self):

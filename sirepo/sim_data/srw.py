@@ -143,12 +143,12 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls.update_model_defaults(dm.multiElectronAnimation, 'multiElectronAnimation')
         e = dm.electronBeam
         if not has_electron_beam_position:
-            dm.electronBeamPosition.update(dict(
+            dm.electronBeamPosition.update(
                 horizontalPosition=e.horizontalPosition,
                 verticalPosition=e.verticalPosition,
                 driftCalculationMethod=e.get('driftCalculationMethod', 'auto'),
                 drift=e.get('drift', 0),
-            ))
+            )
         if 'horizontalPosition' in e:
             for f in 'horizontalPosition', 'verticalPosition', 'driftCalculationMethod', 'drift':
                 if f in e:
@@ -388,7 +388,12 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'mirrorReport.grazingAngle',
                 'mirrorReport.heightAmplification',
             ]
-        res = cls._non_analysis_fields(data, r) + [
+        res = []
+        if r == 'beamline3DReport':
+            res.append('beamline')
+        else:
+            res.append(cls._non_analysis_fields(data, r))
+        res += [
             'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
             'simulation.sourceType', 'tabulatedUndulator', 'undulator',
             'arbitraryMagField',
@@ -423,10 +428,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                     break
             if beamline[-1]['id'] == wid:
                 res.append('postPropagation')
-        #TODO(pjm): any changes to the beamline will recompute the beamline3DReport
-        #           instead, need to determine which model fields affect the orientation
-        if r == 'beamline3DReport':
-            res.append('beamline')
         return res
 
     @classmethod

@@ -2282,7 +2282,63 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
             var LABEL_FONT = 'normal ' + LABEL_FONT_HEIGHT + 'px Arial';
             var MAX_CONDENSED_LENGTH = 3;
             var MIN_CONDENSED_LENGTH = 0.7;
-            var beamline, fsRenderer, labelCanvas, labels, orientationMarker, pngCanvas;
+            var beamline, fsRenderer, labelCanvas, labels, orientationMarker, pngCanvas, positionInfo;
+            var itemDisplayDefaults = {
+                aperture: {
+                    color: color('#666666'),
+                    height: 1,
+                    width: 0.4,
+                },
+                crl: {
+                    color: color('#3962af'),
+                    height: 0.5,
+                    size: 0.5,
+                    width: 0.5,
+                },
+                crystal: {
+                    color: color('#9269ff'),
+                    opacity: 0.1,
+                },
+                default: {
+                    color: color('#000000'),
+                    height: 0.8,
+                    size: 0.1,
+                    width: 0.8,
+                },
+                fiber: {
+                    color: color('#999999'),
+                    height: 0.15,
+                    size: 0.5,
+                    width: 0.15,
+                },
+                grating: {
+                    color: color('#ff6992'),
+                },
+                lens: {
+                    color: color('#ffff99'),
+                    height: 0.5,
+                    opacity: 0.3,
+                    width: 0.5,
+                },
+                mirror: {
+                    color: color('#39af62'),
+                    height: 0.1,
+                    opacity: 0.4,
+                    width: 0.1,
+                },
+                obstacle: {
+                    color: color('#000000'),
+                    height: 0.15,
+                    size: 0.15,
+                    width: 0.15,
+                },
+                watch: {
+                    color: color('#ffff99'),
+                    height: 0.5,
+                    size: 0.25,
+                    width: 0.5,
+                },
+            };
             $scope.dimensions = ['x', 'y', 'z'];
             $scope.viewDirection = null;
             $scope.selectedDimension = null;
@@ -2321,84 +2377,46 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
             }
 
             function addBeamline() {
-                if (! beamline.length) {
-                    return;
-                }
-                // x, y, z
-                var pos = [0, 0, 0];
-                // x, y, z
-                var angle = [0, 0, 0];
-                var rotationMatrix = vtk.Common.Core.vtkMatrixBuilder.buildFromRadian();
-                var points = beamline[0].type == 'drift' ? pos.slice() : [];
+                var points = options.includeSource == '1'
+                    ? []
+                    : [0, 0, beamline[0].center[2] - 1];
                 var labelSize = maxTextDimensions(beamline);
+                var prevItem = null;
                 beamline.forEach(function(item) {
-                    if (item.type == 'drift') {
-                        var length = item.length;
-                        var p1 = [0, 0, length];
-                        rotationMatrix.apply(p1);
-                        pos[0] += p1[0];
-                        pos[1] += p1[1];
-                        pos[2] += p1[2];
-                        return;
-                    }
-                    var center = pos.slice();
-                    if (points.length) {
-                        var last = points.length - 3;
-                        if (center[0] == points[last]
-                            && center[1] == points[last + 1]
-                            && center[2] == points[last + 2]) {
-                            // skip duplicate, avoids tubeFilter coincident point errors.
-                            // only label the first element at one position
-                            item.name = '';
-                        }
-                        else {
-                            $.merge(points, center);
-                        }
+                    if (prevItem && appState.deepEquals(item.center, prevItem.center)) {
+                        // skip duplicate, avoids tubeFilter coincident point errors.
+                        // only label the first element at one position
+                        item.name = '';
                     }
                     else {
-                        $.merge(points, center);
+                        $.merge(points, item.center);
                     }
-                    var rotate = [degrees(angle[0]), degrees(angle[1]), degrees(angle[2])];
-                    if (item.xAngle) {
-                        center[1] += item.height / 2 * (item.xAngle < 0 ? -1 : 1);
-                        angle[0] += item.xAngle;
-                        rotationMatrix.rotateX(item.xAngle);
-                        rotate[0] += degrees(item.xAngle / 2);
-                    }
-                    if (item.yAngle) {
-                        center[0] += item.width / 2 * (item.yAngle < 0 ? -1 : 1);
-                        angle[1] -= item.yAngle;
-                        rotationMatrix.rotateY(-item.yAngle);
-                        rotate[1] += degrees(-item.yAngle / 2);
-                    }
-                    if (item.zAngle) {
-                        angle[2] += item.zAngle;
-                    }
-                    addBeamlineItem(item, center, rotate, labelSize);
+                    addBeamlineItem(item, labelSize);
+                    prevItem = item;
                 });
                 return points;
             }
 
-            function addBeamlineItem(item, center, rotate, labelSize) {
-                addBox(item, center, rotate);
+            function addBeamlineItem(item, labelSize) {
+                addBox(item);
                 if (item.type == 'aperture') {
-                    addBox(item, center, rotate, {
+                    addBox(item, {
                         xLength: item.height,
                         yLength: item.width,
                     });
                 }
                 if (options().showLabels == '1') {
-                    addLabel(item, labelSize, center);
+                    addLabel(item, labelSize);
                 }
             }
 
-            function addBox(item, center, rotate, props) {
+            function addBox(item, props) {
                 props = $.extend({
                     xLength: item.width,
                     yLength: item.height,
                     zLength: item.size,
-                    center: center,
-                    rotations: rotate,
+                    center: item.center,
+                    rotations: item.rotate,
                 }, props || {});
                 addActor(
                     vtk.Filters.Sources.vtkCubeSource.newInstance(props),
@@ -2410,7 +2428,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                     });
             }
 
-            function addLabel(item, labelSize, center) {
+            function addLabel(item, labelSize) {
                 if (! item.name || ! labelSize.width) {
                     return;
                 }
@@ -2418,7 +2436,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                     xResolution: 1,
                     yResolution: 1,
                 });
-                var actor = addActor(
+                addActor(
                     plane,
                     {
                         color: color('#ffffff'),
@@ -2431,7 +2449,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                     }));
                 labels.push({
                     plane: plane,
-                    elementCenter: center,
+                    elementCenter: item.center,
                     labelSize: labelSize,
                 });
             }
@@ -2448,7 +2466,6 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
 
             function buildBeamline() {
                 beamline = [];
-                var pos = 0;
                 if (options().includeSource == "1") {
                     //TODO(pjm): use undulator center position and length
                     beamline.push({
@@ -2457,167 +2474,44 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                         size: srwService.isGaussianBeam() ? 0.1 : 2.5,
                         height: srwService.isGaussianBeam() ? 0.2 : 1,
                         width: srwService.isGaussianBeam() ? 0.2 : 1,
+                        center: [0, 0, 0],
+                        rotate: [0, 0, 0],
                     });
                 }
-                else {
-                    if (appState.applicationState().beamline.length) {
-                        pos = appState.applicationState().beamline[0].position - 1;
-                    }
-                }
-                var prevItem;
+                var infoIdx = 0;
+                var prev = {
+                    point: [0, 0, 0],
+                    trimmed: [0, 0, 0],
+                };
                 appState.applicationState().beamline.forEach(function(item) {
-                    if (pos < item.position) {
-                        var length = item.position - pos;
-                        if (options().condenseBeamline == '1') {
-                            if (length > MAX_CONDENSED_LENGTH) {
-                                length = MAX_CONDENSED_LENGTH;
-                            }
-                            else if (length < MIN_CONDENSED_LENGTH) {
-                                length = MIN_CONDENSED_LENGTH;
-                            }
-                        }
-                        beamline.push({
-                            type: 'drift',
-                            length: length,
-                        });
-                        pos = item.position;
-                    }
                     if (item.isDisabled) {
                         return;
                     }
-                    item = appState.clone(item);
-                    item.name = item.title;
-                    if (item.type == 'aperture') {
-                        $.extend(item, {
-                            height: 1,
-                            width: 0.4,
-                            size: 0.1,
-                            color: color('#666666'),
-                        });
+                    var posVectors = positionInfo[infoIdx];
+                    var point = posVectors.slice(0, 3);
+                    if (options().condenseBeamline == '1') {
+                        trimPoint(point, prev);
+                        prev = {
+                            point: posVectors.slice(0, 3),
+                            trimmed: point,
+                        };
                     }
-                    else if (item.type == 'mirror') {
-                        item.opacity = 0.4;
-                        //TODO(pjm): unit conversion
-                        item.grazingAngle *= 1e-3;
-                        if (item.orientation == 'x') {
-                            $.extend(item, {
-                                height: mirrorSize(item.verticalTransverseSize * 1e-3),
-                                width: 0.1,
-                                size: mirrorSize(item.horizontalTransverseSize * 1e-3),
-                                yAngle: item.grazingAngle,
-                            });
-                        }
-                        else {
-                            $.extend(item, {
-                                height: 0.1,
-                                width: mirrorSize(item.horizontalTransverseSize * 1e-3),
-                                size: mirrorSize(item.verticalTransverseSize * 1e-3),
-                                xAngle: item.grazingAngle,
-                            });
-                        }
-                    }
-                    else if (item.type.search(/mirror|grating|crystal/i) >= 0) {
-                        item.grazingAngle *= 1e-3;
-                        item.opacity = 0.4;
-                        if (item.type == 'crystal') {
-                            $.extend(item, {
-                                opacity: 0.1,
-                                color: color('#9269ff'),
-                                normalVectorX: item.nvx,
-                                normalVectorY: item.nvy,
-                            });
-                            if (prevItem && prevItem.type == 'crystal' && item.position == prevItem.position) {
-                                // add a small drift between crystals if necessary
-                                item.name = '';
-                                beamline.push({
-                                    type: 'drift',
-                                    length: 0.2,
-                                });
-                            }
-                        }
-                        else if (item.type == 'grating') {
-                            item.color = color('#ff6992');
-                        }
-                        if (Math.abs(item.normalVectorX) > Math.abs(item.normalVectorY)) {
-                            // horizontal mirror
-                            $.extend(item, {
-                                height: mirrorSize(item.sagittalSize || 0),
-                                width: 0.1,
-                                size: mirrorSize(item.tangentialSize || 0),
-                                yAngle: Math.abs(item.grazingAngle),
-                            });
-                            if (item.normalVectorX < 0) {
-                                item.yAngle = - Math.abs(item.yAngle);
-                            }
-                        }
-                        else {
-                            // vertical mirror
-                            $.extend(item, {
-                                height: 0.1,
-                                width: mirrorSize(item.sagittalSize || 0),
-                                size: mirrorSize(item.tangentialSize || 0),
-                                xAngle: Math.abs(item.grazingAngle),
-                            });
-                            if (item.normalVectorY > 0) {
-                                item.xAngle = - Math.abs(item.xAngle);
-                            }
-                        }
-                    }
-                    else if (item.type == 'lens') {
-                        $.extend(item, {
-                            opacity: 0.3,
-                            size: 0.1,
-                            width: 0.5,
-                            height: 0.5,
-                            color: color('#ffff99'),
-                        });
-                    }
-                    else if (item.type == 'zonePlate') {
-                        $.extend(item, {
-                            size: 0.1,
-                            width: 0.8,
-                            height: 0.8,
-                            color: color('#000000'),
-                        });
-                    }
-                    else if (item.type == 'crl') {
-                        $.extend(item, {
-                            //TODO(pjm): how to size a crl?
-                            width: 0.5,
-                            height: 0.5,
-                            size: 0.5,
-                            color: color('#3962af'),
-                        });
-                    }
-                    else if (item.type == 'fiber') {
-                        $.extend(item, {
-                            size: 0.5,
-                            width: 0.15,
-                            height: 0.15,
-                            color: color('#999999'),
-                        });
-                    }
-                    else if (item.type == 'obstacle') {
-                        $.extend(item, {
-                            size: 0.15,
-                            width: 0.15,
-                            height: 0.15,
-                            color: color('#000000'),
-                        });
-                    }
-                    else if (item.type == 'watch') {
-                        $.extend(item, {
-                            width: 0.5,
-                            height: 0.5,
-                            size: 0.25,
-                            color: color('#ffff99'),
-                        });
-                    }
-                    else {
-                        return;
-                    }
+                    item = $.extend(appState.clone(item), {
+                        name: item.title,
+                        center: point,
+                        rotate: [
+                            // uses the normal vector to determine x/y rotation
+                            -degrees(Math.atan(posVectors[10] / posVectors[11])),
+                            degrees(Math.atan(posVectors[9] / posVectors[11])),
+                            //TODO(pjm): sagittal vector to determine z rotation?
+                            //degrees(Math.atan(posVectors[6] / posVectors[8])),
+                            0,
+                        ],
+                    });
+                    // skip height profile except for flat mirrors
+                    infoIdx += (item.type != 'mirror' && item.heightProfileFile) ? 2 : 1;
+                    setItemProps(item);
                     beamline.push(item);
-                    prevItem = item;
                 });
             }
 
@@ -2627,6 +2521,10 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
 
             function degrees(radians) {
                 return radians * 180 / Math.PI;
+            }
+
+            function isReflector(itemType) {
+                return itemType.search(/mirror|grating|crystal/i) >= 0;
             }
 
             function itemText(item) {
@@ -2726,7 +2624,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
             }
 
             function mirrorSize(size) {
-                return Math.max(Math.min(size, 1), 0.5);
+                return Math.max(Math.min(size || 0, 1), 0.5);
             }
 
             function options() {
@@ -2737,28 +2635,74 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                 return degrees * Math.PI / 180;
             }
 
-            function refresh(colInfo) {
-                //TODO(pjm): use colInfo from beamline_orient.dat to set orientation
-                removeActors();
-                buildBeamline();
-                labels = [];
-                $scope.selectedDimension = null;
-                $scope.viewDirection = {
-                    x: 1,
-                    y: 1,
-                    z: 1,
-                };
-                addBeam(addBeamline());
-                addOrientationMarker();
-                $scope.setCamera($scope.dimensions[0]);
-                pngCanvas.copyCanvas();
-            }
-
             function removeActors() {
                 var renderer = fsRenderer.getRenderer();
                 renderer.getActors().forEach(function(actor) {
                     renderer.removeActor(actor);
                 });
+            }
+
+            function setItemProps(item) {
+                $.extend(item, itemDisplayDefaults.default);
+                if (isReflector(item.type)) {
+                    $.extend(item, itemDisplayDefaults.mirror);
+                }
+                $.extend(item, itemDisplayDefaults[item.type] || {});
+                if (item.type == 'mirror') {
+                    if (item.orientation == 'x') {
+                        $.extend(item, {
+                            height: mirrorSize(item.verticalTransverseSize * 1e-3),
+                            size: mirrorSize(item.horizontalTransverseSize * 1e-3),
+                        });
+                    }
+                    else {
+                        $.extend(item, {
+                            width: mirrorSize(item.horizontalTransverseSize * 1e-3),
+                            size: mirrorSize(item.verticalTransverseSize * 1e-3),
+                        });
+                    }
+                }
+                else if (isReflector(item.type)) {
+                    if (item.type == 'crystal') {
+                        $.extend(item, {
+                            normalVectorX: item.nvx,
+                            normalVectorY: item.nvy,
+                        });
+                    }
+                    if (Math.abs(item.normalVectorX) > Math.abs(item.normalVectorY)) {
+                        // horizontal mirror
+                        $.extend(item, {
+                            height: mirrorSize(item.sagittalSize),
+                            width: mirrorSize(item.tangentialSize),
+                        });
+                    }
+                    else {
+                        // vertical mirror
+                        $.extend(item, {
+                            height: mirrorSize(item.tangentialSize),
+                            width: mirrorSize(item.sagittalSize),
+                        });
+                    }
+                }
+            }
+
+            function trimPoint(point, prev) {
+                var d = Math.sqrt(
+                    Math.pow(point[0] - prev.point[0], 2)
+                        + Math.pow(point[1] - prev.point[1], 2)
+                        + Math.pow(point[2] - prev.point[2], 2));
+                var scale = 1;
+                if (d > MAX_CONDENSED_LENGTH) {
+                    scale = MAX_CONDENSED_LENGTH / d;
+                }
+                else if (d > 0 && d < MIN_CONDENSED_LENGTH) {
+                    scale = MIN_CONDENSED_LENGTH / d;
+                }
+                if (scale) {
+                    for (var i = 0; i <= 2; i++) {
+                        point[i] = prev.trimmed[i] + (point[i] - prev.point[i]) * scale;
+                    }
+                }
             }
 
             function updateOrientation() {
@@ -2791,7 +2735,22 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
             };
 
             $scope.load = function(json) {
-                refresh(json.cols);
+                positionInfo = json.cols;
+                removeActors();
+                buildBeamline();
+                labels = [];
+                $scope.selectedDimension = null;
+                $scope.viewDirection = {
+                    x: 1,
+                    y: 1,
+                    z: 1,
+                };
+                if (beamline.length) {
+                    addBeam(addBeamline());
+                }
+                addOrientationMarker();
+                $scope.setCamera($scope.dimensions[0]);
+                pngCanvas.copyCanvas();
             };
 
             $scope.resize = function() {};

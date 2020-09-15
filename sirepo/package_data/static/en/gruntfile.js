@@ -16,8 +16,7 @@ module.exports = function(grunt) {
     sass: {
       dest: {
         options: {
-          style: 'expanded',
-          sourcemap: 'file'
+          style: 'expanded'
         },
         files: {
           './css/landing.css' : './css/landing.scss',

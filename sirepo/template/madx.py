@@ -261,18 +261,19 @@ def _calc_bunch_parameters(bunch, beam, variables):
     try:
         field = bunch.beamDefinition
         cv = _code_var(variables)
-        v, err = cv.eval_var(beam[field])
-        assert not err
         energy = template_common.ParticleEnergy.compute_energy(
             SIM_TYPE,
             beam.particle,
             PKDict({
-                'mass': beam.mass,
-                'charge': beam.charge,
-                field: v,
+                'mass': cv.eval_var_with_assert(beam.mass),
+                'charge': cv.eval_var_with_assert(beam.charge),
+                field: cv.eval_var_with_assert(beam[field]),
             }),
         )
         for f in energy:
+            # don't overwrite mass or charge
+            if f in ('mass', 'charge'):
+                continue
             if f in beam and f != field:
                 beam[f] = energy[f]
     except AssertionError:
@@ -324,13 +325,17 @@ def _extract_report_elementAnimation(data, run_dir, filename):
     if re.search('twiss', filename):
         return _extract_report_twissReport(data, run_dir, filename)
     m = data.models[data.report]
-    t = madx_parser.parse_tfs_file(run_dir.join(filename))
+    t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=m.frameIndex)
+    info = madx_parser.parse_tfs_page_info(run_dir.join(filename))[m.frameIndex]
     return template_common.heatmap(
         [to_floats(t[m.x]), to_floats(t[m.y1])],
         m,
         PKDict(
             x_label=_field_label(m.x),
             y_label=_field_label(m.y1),
+            title='{}-{} at {}m, {} turn {}'.format(
+                m.x, m.y1, info.s, info.name, info.turn,
+            ),
         ),
     )
 
@@ -341,40 +346,39 @@ def _extract_report_matchSummaryAnimation(data, run_dir, filename):
     )
 
 
-# def _extract_report_twissEllipseReport(data, run_dir):
-#     #TODO(pjm): use bunch twiss values, not command_twiss values
-#     m = _first_twiss_command(data)
-#     beam = _first_beam_command(data)
-#     r_model = data.models[data.report]
-#     dim = r_model.dim
-#     n_pts = 200
-#     theta = np.arange(0, 2. * np.pi * (n_pts / (n_pts - 1)), 2. * np.pi / n_pts)
-#     #TODO(pjm): get code_var value for alf, bet, d
-#     a = m[f'alf{dim}'] or 0
-#     b = m[f'bet{dim}'] or 0
-#     assert b > 0, f'TWISS parameter "bet{dim}" must be > 0'
-#     g = (1. + a * a) / b
-#     e = (beam[f'e{dim}'] or 1)
-#     phi = _twiss_ellipse_rotation(a, b)
-#     th = theta - phi
-#     mj = math.sqrt(e * b)
-#     mn = 1.0 / mj
-#     r = np.power(
-#         mn * np.cos(th) * np.cos(th) + mj * np.sin(th) * np.sin(th),
-#         -0.5
-#     )
-#     x = r * np.cos(theta)
-#     y = r * np.sin(theta)
-#     return template_common.parameter_plot(
-#         x.tolist(),
-#         [PKDict(field=dim, points=y.tolist(), label=f'{dim}\' [rad]')],
-#         {},
-#         PKDict(
-#             title=f'a{dim} = {a} b{dim} = {b} g{dim} = {g}',
-#             y_label='',
-#             x_label=f'{dim} [m]'
-#         )
-#     )
+def _extract_report_twissEllipseReport(data, run_dir):
+    #TODO(pjm): use bunch twiss values, not command_twiss values
+    beam = _first_beam_command(data)
+    r_model = data.models[data.report]
+    dim = r_model.dim
+    n_pts = 100
+    theta = np.arange(0, 2. * np.pi * (n_pts / (n_pts - 1)), 2. * np.pi / n_pts)
+    #TODO(pjm): get code_var value for alf, bet, d
+    a = float(data.models.bunch[f'alf{dim}']) or 0
+    b = float(data.models.bunch[f'bet{dim}']) or 0
+    assert b > 0, f'TWISS parameter "bet{dim}" must be > 0'
+    g = (1. + a * a) / b
+    e = (beam[f'e{dim}'] or 1)
+    phi = _twiss_ellipse_rotation(a, b)
+
+    # major, minor axes of ellipse
+    mj = np.sqrt(e * b)
+    mn = np.sqrt(e * g)
+
+    # apply rotation
+    x = mj * np.cos(theta) * np.sin(phi) + mn * np.sin(theta) * np.cos(phi)
+    y = mj * np.cos(theta) * np.cos(phi) - mn * np.sin(theta) * np.sin(phi)
+
+    return template_common.parameter_plot(
+        x.tolist(),
+        [PKDict(field=dim, points=y.tolist(), label=f'{dim}\' [rad]')],
+        {},
+        PKDict(
+            title=f'a{dim} = {a} b{dim} = {b} g{dim} = {g}',
+            y_label='',
+            x_label=f'{dim} [m]'
+        )
+    )
 
 
 def extract_report_twissReport(data, run_dir):
@@ -401,12 +405,13 @@ def _extract_report_twissReport(data, run_dir, filename=_TWISS_OUTPUT_FILE):
             x_label=_field_label(x),
         )
     )
-    res.initialTwissParameters = PKDict(
-        betx=t.betx[0],
-        bety=t.bety[0],
-        alfx=t.alfx[0],
-        alfy=t.alfx[0],
-    )
+    if 'betx' in t:
+        res.initialTwissParameters = PKDict(
+            betx=t.betx[0],
+            bety=t.bety[0],
+            alfx=t.alfx[0],
+            alfy=t.alfx[0],
+        )
     return res
 
 
@@ -418,16 +423,23 @@ def _field_label(field):
 
 def _file_info(filename, run_dir, file_id):
     path = str(run_dir.join(filename))
-    cols = madx_parser.parse_tfs_file(path, header_only=True)
+    plottable = []
+    tfs = madx_parser.parse_tfs_file(path)
+    for f in tfs:
+        if f in _ALPHA_COLUMNS:
+            continue
+        v = to_floats(tfs[f])
+        if np.any(v):
+            plottable.append(f)
     count = 1
-    if 'turn' in cols:
-        t = madx_parser.parse_tfs_file(path)
-        count = max(to_floats(t.turn))
+    if 'turn' in tfs:
+        info = madx_parser.parse_tfs_page_info(path)
+        count = len(info)
     return PKDict(
         modelKey='elementAnimation{}'.format(file_id),
         filename=filename,
         isHistogram='twiss' not in filename,
-        plottableColumns=[col for col in filter(lambda x: x not in _ALPHA_COLUMNS, cols)],
+        plottableColumns=plottable,
         pageCount=count,
     )
 
@@ -454,23 +466,24 @@ def _first_beam_command(data):
 def _fixup_madx(madx):
     # move imported beam over default-data.json beam
     # remove duplicate twiss
-    # remove "use" commands
+    # remove "call" and "use" commands
     beam_idx = None
-    found_twiss = False
+    first_twiss = True
     res = []
     for cmd in madx.models.commands:
-        if cmd._type == 'use':
+        if cmd._type == 'call' or cmd._type == 'use':
             continue
         if cmd._type == 'beam':
             if beam_idx is None:
                 beam_idx = madx.models.commands.index(cmd)
             else:
                 res[beam_idx] = cmd
+                _update_beam_and_bunch(cmd, madx.models.bunch)
                 continue
         elif cmd._type == 'twiss':
-            if found_twiss:
+            if first_twiss:
+                first_twiss = False
                 continue
-            found_twiss = True
         res.append(cmd)
     madx.models.commands = res
 
@@ -622,6 +635,22 @@ def _twiss_ellipse_rotation(alpha, beta):
     return 0.5 * math.atan(
         2. * alpha * beta / (1 + alpha * alpha - beta * beta)
     )
+
+
+def _update_beam_and_bunch(beam, bunch):
+    if 'particle' in beam:
+        beam.particle = beam.particle.lower()
+        found = False
+        for pt in _SCHEMA.enum.ParticleType:
+            if pt[0] == beam.particle:
+                found = True
+                break
+        if not found:
+            beam.particle = 'other'
+    for bd in _SCHEMA.enum.BeamDefinition:
+        if bd[0] in beam and beam[bd[0]]:
+            bunch.beamDefinition = bd[0]
+            break
 
 
 def _update_beam_energy(data):

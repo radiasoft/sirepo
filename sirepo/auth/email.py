@@ -15,11 +15,11 @@ from sirepo import auth
 from sirepo import auth_db
 from sirepo import http_reply
 from sirepo import http_request
+from sirepo import smtp
 from sirepo import srtime
 from sirepo import uri_router
 import datetime
 import flask
-import flask_mail
 import hashlib
 import pyisemail
 import sirepo.template
@@ -41,12 +41,6 @@ UserModel = None
 
 #: module handle
 this_module = pkinspect.this_module()
-
-#: SIREPO_EMAIL_AUTH_SMTP_SERVER=dev avoids SMTP entirely
-_DEV_SMTP_SERVER = 'dev'
-
-#: How to send mail (flask_mail.Mail instance)
-_smtp = None
 
 #: how long before token expires
 _EXPIRES_MINUTES = 8 * 60
@@ -124,15 +118,6 @@ def avatar_uri(model, size):
 
 
 def init_apis(*args, **kwargs):
-    global cfg
-    cfg = pkconfig.init(
-        #TODO(robnagler) validate email
-        from_email=pkconfig.Required(str, 'From email address'),
-        from_name=pkconfig.Required(str, 'From display name'),
-        smtp_password=pkconfig.Required(str, 'SMTP auth password'),
-        smtp_server=pkconfig.Required(str, 'SMTP TLS server'),
-        smtp_user=pkconfig.Required(str, 'SMTP auth user'),
-    )
     auth_db.init_model(_init_model)
 
 def _init_model(base):
@@ -175,29 +160,12 @@ def _parse_email(data):
         'invalid post data: email={}'.format(data.email)
     return res
 
-
 def _send_login_email(user, uri):
-    global _smtp
-    if not _smtp:
-        if not (pkconfig.channel_in('dev') and cfg.smtp_server == _DEV_SMTP_SERVER):
-            a = sirepo.util.flask_app()
-            a.config.update(
-                MAIL_USE_TLS=True,
-                MAIL_PORT=587,
-                MAIL_SERVER=cfg.smtp_server,
-                MAIL_USERNAME=cfg.smtp_user,
-                MAIL_PASSWORD=cfg.smtp_password,
-            )
-            _smtp = flask_mail.Mail(a)
-        else:
-            pkdlog('{}', uri)
-            return http_reply.gen_json_ok({'uri': uri})
     login_text = u'sign in to' if user.user_name else \
         u'confirm your email and finish creating'
-    msg = flask_mail.Message(
+    r = smtp.send(
+        recipient=user.unverified_email,
         subject='Sign in to Sirepo',
-        sender=(cfg.from_name, cfg.from_email),
-        recipients=[user.unverified_email],
         body=u'''
 Click the link below to {} your Sirepo account.
 
@@ -206,7 +174,9 @@ This link will expire in {} hours and can only be used once.
 {}
 '''.format(login_text, _EXPIRES_MINUTES / 60, uri)
     )
-    _smtp.send(msg)
+    if not r:
+        pkdlog('{}', uri)
+        return http_reply.gen_json_ok({'uri': uri})
     return http_reply.gen_json_ok()
 
 

@@ -45,12 +45,6 @@ _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\
 #: routes that will require a reload
 _RELOAD_JS_ROUTES = None
 
-def as_attachment(resp, content_type, filename):
-    resp.mimetype = content_type
-    resp.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
-    return resp
-
-
 def gen_exception(exc):
     """Generate from an Exception
 
@@ -85,6 +79,10 @@ def gen_file_as_attachment(content_or_path, filename=None, content_type=None):
     if filename is None:
         # dies if content_or_path is not a path
         filename = content_or_path.basename
+    filename = re.sub(r'[^\w\.]+', '-', filename).strip('-')
+    if re.search(r'^\.\w+$', filename):
+        # the safe filename has no basename, use "download" instead
+        filename = 'download' + filename
     if content_type is None:
         content_type, _ = mimetypes.guess_type(filename)
         if content_type is None:
@@ -93,7 +91,7 @@ def gen_file_as_attachment(content_or_path, filename=None, content_type=None):
         elif content_type == 'text/x-python':
             content_type = 'text/plain'
     return headers_for_no_cache(
-        as_attachment(f(), content_type, filename))
+        _as_attachment(f(), content_type, filename))
 
 
 def gen_json(value, pretty=False, response_kwargs=None):
@@ -268,6 +266,12 @@ def render_html(path):
         ),
         path=path,
     )
+
+
+def _as_attachment(resp, content_type, filename):
+    resp.mimetype = content_type
+    resp.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
+    return resp
 
 
 def _gen_exception_error(exc):

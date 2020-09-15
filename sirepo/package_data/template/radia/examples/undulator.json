@@ -1,5 +1,9 @@
 {
     "models": {
+         "fieldPaths": {
+            "path": "line",
+            "paths": []
+        },
         "geometry": {
             "name": "Undulator",
             "beamAxis": "y",
@@ -41,6 +45,13 @@
                     "type": ""
                 }
             ]
+        },
+        "magnetDisplay": {
+            "bgColor": "#ffffff",
+            "fieldPoints": [],
+            "fieldType": "M",
+            "notes": "",
+            "viewType": "objects"
         },
         "simFolder": {},
         "simulation": {

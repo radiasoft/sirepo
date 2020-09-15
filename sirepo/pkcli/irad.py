@@ -185,14 +185,14 @@ def _extract_dcm_info(files, info, frame):
         )
         if 'PatientPosition' in frame:
             # ct
-            info.update(PKDict(
+            info.update(
                 PatientPosition=frame.PatientPosition,
                 # WindowCenter=float(frame.WindowCenter),
                 # WindowWidth=float(frame.WindowWidth),
                 RescaleIntercept=float(frame.RescaleIntercept),
                 RescaleSlope=float(frame.RescaleSlope),
                 Count=len(files.ctmap),
-            ))
+            )
         else:
             # rtdose
             info.SliceThickness=float(frame.GridFrameOffsetVector[1]) - float(frame.GridFrameOffsetVector[0])

@@ -144,6 +144,9 @@ class LatticeParser(object):
     def _eval_var(self, code_var, value):
         return code_var.eval_var_with_assert(value)
 
+    def __format_command(self, name):
+        return f'command_{name}'
+
     def _format_length(self, length):
         res = '{:.8E}'.format(length)
         res = re.sub(r'(\.\d+?)(0+)E', r'\1e', res)
@@ -193,6 +196,14 @@ class LatticeParser(object):
         self.data.models.simulation.activeBeamlineId = \
             self.data.models.simulation.visualizationBeamlineId = beamline_id
 
+    def __model_name(self, cmd):
+        res = cmd
+        while res not in self.schema.model:
+            parent = self.elements_by_name[res]
+            assert parent and parent.type
+            res = parent.type
+        return res
+
     def __parse_beamline(self, label, values):
         assert label
         values[-1] = re.sub(r'\s*\)$', '', values[-1])
@@ -223,7 +234,7 @@ class LatticeParser(object):
         self.data.models.beamlines.append(res)
 
     def __parse_element(self, cmd, label, values):
-        res = self.__parse_fields(values, PKDict(
+        res = self.__parse_fields(self.__model_name(cmd), values, PKDict(
             name=label,
             _id=self.parser.next_id(),
         ))
@@ -261,21 +272,32 @@ class LatticeParser(object):
             self.elements_by_name[label.upper()] = res
         return res
 
-    def __parse_fields(self, values, res):
-        #TODO(pjm): only add fields which are in the schema
+    def __parse_fields(self, cmd, values, res):
+        model_schema = self.schema.model.get(cmd)
+        prev_field = None
         for value in values[1:]:
             m = re.match(r'^\s*([\w.]+)\s*:?=\s*(.+?)\s*$', value)
             if m:
                 f, v = m.group(1, 2)
                 f = f.lower()
+                # skip non-schema fields, with the exception of positional fields "at" and "elemedge"
+                if model_schema and f not in model_schema and f not in ('at', 'elemedge'):
+                    continue
                 if f != 'name':
                     # some commands may have a "name" field
                     assert f not in res, 'field already defined: {}, values: {}'.format(f, values)
                 res[f] = self.__remove_quotes(v)
+                prev_field = f
                 continue
+            # no assignment, maybe a boolean value
             m = re.match(r'^\s*(!|-)?\s*([\w.]+)\s*$', value)
             assert m, 'failed to parse field assignment: {}'.format(value)
             v, f = m.group(1, 2)
+            if model_schema and f not in model_schema:
+                # special case for "column" field, may contain multiple comma separated values
+                if prev_field == 'column':
+                    res[prev_field] += f', {f}'
+                continue
             res[f.lower()] = '0' if v else '1'
         return res
 
@@ -328,18 +350,18 @@ class LatticeParser(object):
                 type=cmd,
                 _id=self.parser.next_id(),
             )
-            self.__parse_fields(values, self.container)
+            self.__parse_fields(self.__format_command(cmd), values, self.container)
             self.container['items'] = []
             if cmd == 'sequence':
                 self.data.models.sequences.append(self.container)
                 return
-        if 'command_{}'.format(cmd) in self.schema.model:
+        if self.__format_command(cmd) in self.schema.model:
             res = PKDict(
                 _type=cmd,
                 _id=self.parser.next_id(),
                 name=label,
             )
-            self.__parse_fields(values, res)
+            self.__parse_fields(self.__format_command(cmd), values, res)
             self.sim_data.update_model_defaults(res, LatticeUtil.model_name_for_data(res))
             self.data.models.commands.append(res)
         elif cmd == 'line':

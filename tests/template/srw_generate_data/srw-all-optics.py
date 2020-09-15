@@ -437,7 +437,7 @@ def set_optics(v=None):
             )
             el.append(crystal)
             pp.append(v.op_Crystal2_pp)
-	    mirror_file = v.op_Crystal2_hfn
+            mirror_file = v.op_Crystal2_hfn
             assert os.path.isfile(mirror_file), \
                 'Missing input file {}, required by Crystal2 beamline element'.format(mirror_file)
             el.append(srwlib.srwl_opt_setup_surf_height_1d(

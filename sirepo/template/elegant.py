@@ -528,7 +528,7 @@ def _file_info(filename, run_dir, file_id):
             return PKDict(
                 isAuxFile=True,
                 filename=filename,
-                id=fild_id,
+                id=file_id,
                 lastUpdateTime=int(os.path.getmtime(str(file_path))),
             )
         return None

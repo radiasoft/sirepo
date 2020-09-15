@@ -25,12 +25,6 @@ import werkzeug.exceptions
 #: route for sirepo.srunit
 srunit_uri = None
 
-#: optional parameter that consumes rest of parameters
-_PATH_INFO_CHAR = '*'
-
-#: route parsing
-_PARAM_RE = re.compile(r'^([\?\*]?)<(.+?)>$')
-
 #: prefix for api functions
 _FUNC_PREFIX = 'api_'
 
@@ -116,7 +110,7 @@ def init(app, simulation_db):
 
     for n in _REQUIRED_MODULES + tuple(sorted(feature_config.cfg().api_modules)):
         register_api_module(importlib.import_module('sirepo.' + n))
-    _init_uris(app, simulation_db)
+    _init_uris(app, simulation_db, feature_config.cfg().sim_types)
 
     sirepo.http_request.init(
         simulation_db=simulation_db,
@@ -229,7 +223,7 @@ def _dispatch_empty():
     return _dispatch(None)
 
 
-def _init_uris(app, simulation_db):
+def _init_uris(app, simulation_db, sim_types):
     global _default_route, _empty_route, srunit_uri, _api_to_route, _uri_to_route
 
     assert not _default_route, \
@@ -257,8 +251,23 @@ def _init_uris(app, simulation_db):
     assert _default_route, \
         'missing default route'
     _empty_route = _uri_to_route.en
+    _validate_root_redirect_uris(_uri_to_route, simulation_db)
     app.add_url_rule('/<path:path>', '_dispatch', _dispatch, methods=('GET', 'POST'))
     app.add_url_rule('/', '_dispatch_empty', _dispatch_empty, methods=('GET', 'POST'))
+
+# TODO(e-carlin): sort
+def _validate_root_redirect_uris(uri_to_route, simulation_db):
+    from sirepo import feature_config
+
+    u = set(uri_to_route.keys())
+    t = feature_config.cfg().sim_types
+    r = set(simulation_db.SCHEMA_COMMON.rootRedirectUri.keys())
+    i = u & r | u & t | r & t
+    assert not i, f'rootRedirectUri, sim_types, and routes have overlapping uris={i}'
+    for x in r:
+        assert re.search(r'^[a-z]+$', x), \
+            f'rootRedirectUri={x} must consist of letters only'
+
 
 
 def _split_uri(uri):
@@ -280,7 +289,7 @@ def _split_uri(uri):
     for p in parts:
         assert not in_path_info, \
             'path_info parameter={} must be last: next={}'.format(rp.name, p)
-        m = _PARAM_RE.search(p)
+        m = re.search(f"^{sirepo.uri.PARAM_RE.format('(.+?)')}$", p)
         if not m:
             assert first is None, \
                 'too many non-parameter components of uri={}'.format(uri)
@@ -290,7 +299,7 @@ def _split_uri(uri):
         params.append(rp)
         rp.is_optional = bool(m.group(1))
         if rp.is_optional:
-            rp.is_path_info = m.group(1) == _PATH_INFO_CHAR
+            rp.is_path_info = m.group(1) == sirepo.uri.PATH_INFO_CHAR
             in_path_info = rp.is_path_info
         else:
             rp.is_path_info = False
