@@ -21,10 +21,18 @@ import sirepo.sim_data
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 _OUTPUT_FILE = PKDict(
+    classificationOutputColEncodingFile='classification-output-col-encoding.json',
+    dtClassifierClassificationFile='dt-classifier-classification.json',
+    dtClassifierConfusionFile='dt-classifier-confusion.json',
     fitCSVFile='fit.csv',
     knnClassificationFile='classification.json',
     knnConfusionFile='confusion.json',
     knnErrorFile='error.npy',
+    linearSvcConfusionFile='linear-svc-confusion.json',
+    linearSvcErrorFile='linear-svc-error.npy',
+    logisticRegressionClassificationFile='logistic-regression-classification.json',
+    logisticRegressionConfusionFile='logistic-regression-confusion.json',
+    logisticRegressionErrorFile='logistic-regression-error.npy',
     predictFile='predict.npy',
     scaledFile='scaled.npy',
     testFile='test.npy',
@@ -32,23 +40,23 @@ _OUTPUT_FILE = PKDict(
     validateFile='validate.npy',
 )
 
-
 def background_percent_complete(report, run_dir, is_running):
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     res = PKDict(
         percentComplete=0,
         frameCount=0,
     )
     if report == 'classificationAnimation' and not is_running:
         return PKDict(
-            percentComplete=100,
+            framesForClassifier=data.models.classificationAnimation.classifier,
             frameCount=1,
+            percentComplete=100,
         )
     fit_csv_file = run_dir.join(_OUTPUT_FILE.fitCSVFile)
     if fit_csv_file.exists():
         line = _read_last_csv_line(fit_csv_file)
         m = re.search(r'^(\d+)', line)
         if m and int(m.group(1)) > 0:
-            data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
             max_frame = data.models.neuralNet.epochs
             res.frameCount = int(m.group(1)) + 1
             res.percentComplete = float(res.frameCount) * 100 / max_frame
@@ -90,22 +98,143 @@ def save_sequential_report_data(run_dir, sim_in):
 
 
 def sim_frame(frame_args):
-    r = frame_args.frameReport
-    if r == 'epochAnimation':
-        return _epoch_animation(frame_args)
-    elif r == 'knnClassificationMetricsAnimation':
-        return _knn_classification_metrics_animation(frame_args)
-    elif r == 'knnErrorRateAnimation':
-        return _knn_error_rate_animation(frame_args)
-    elif r == 'knnConfusionMatrixAnimation':
-        return _knn_confusion_matrix_animation(frame_args)
     return _fit_animation(frame_args)
+
+
+def sim_frame_dtClassifierClassificationMetricsAnimation(frame_args):
+    return _classification_metrics_report(
+        frame_args,
+        _OUTPUT_FILE.dtClassifierClassificationFile,
+    )
+
+
+def sim_frame_dtClassifierConfusionMatrixAnimation(frame_args):
+    return _confusion_matrix_to_heatmap_report(
+        frame_args,
+        _OUTPUT_FILE.dtClassifierConfusionFile,
+        'Decision Tree Confusion Matrix',
+    )
+
+
+def sim_frame_epochAnimation(frame_args):
+    #TODO(pjm): improve heading text
+    header = ['epoch', 'loss', 'val_loss']
+    path = str(frame_args.run_dir.join(_OUTPUT_FILE.fitCSVFile))
+    v = np.genfromtxt(path, delimiter=',', skip_header=1)
+    if len(v.shape) == 1:
+        v.shape = (v.shape[0], 1)
+    return _report_info(
+        v[:, 0],
+        [PKDict(
+            points=v[:, i].tolist(),
+            label=header[i],
+        ) for i in (1, 2)],
+    ).pkupdate(PKDict(
+        x_label=header[0],
+    ))
+
+def sim_frame_knnClassificationMetricsAnimation(frame_args):
+    return _classification_metrics_report(
+        frame_args,
+        _OUTPUT_FILE.knnClassificationFile,
+    )
+
+
+def sim_frame_knnConfusionMatrixAnimation(frame_args):
+    return _confusion_matrix_to_heatmap_report(
+        frame_args,
+        _OUTPUT_FILE.knnConfusionFile,
+        'K={k}',
+    )
+
+def sim_frame_knnErrorRateAnimation(frame_args):
+    return _error_rate_report(
+        frame_args,
+        _OUTPUT_FILE.knnErrorFile,
+        'K Value',
+    )
+
+
+def sim_frame_linearSvcConfusionMatrixAnimation(frame_args):
+    return _confusion_matrix_to_heatmap_report(
+        frame_args,
+        _OUTPUT_FILE.linearSvcConfusionFile,
+        'tolerance={tol_svc_best}',
+    )
+
+
+def sim_frame_linearSvcErrorRateAnimation(frame_args):
+    v = np.load(str(frame_args.run_dir.join(_OUTPUT_FILE.linearSvcErrorFile)))
+    return _report_info(
+        v[:, 0],
+        [PKDict(
+            points=v[:, 1].tolist(),
+            label='Mean Error',
+        )],
+    ).update(PKDict(
+        x_label='Tolerance',
+    ))
+
+
+def sim_frame_logisticRegressionConfusionMatrixAnimation(frame_args):
+    return _confusion_matrix_to_heatmap_report(
+        frame_args,
+        _OUTPUT_FILE.logisticRegressionConfusionFile,
+        'C={c}',
+    )
+
+
+def sim_frame_logisticRegressionClassificationMetricsAnimation(frame_args):
+    return _classification_metrics_report(
+        frame_args,
+        _OUTPUT_FILE.logisticRegressionClassificationFile,
+    )
+
+
+def sim_frame_logisticRegressionErrorRateAnimation(frame_args):
+    return _error_rate_report(
+        frame_args,
+        _OUTPUT_FILE.logisticRegressionErrorFile,
+        'C',
+    )
 
 
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
+    )
+
+
+def _classification_metrics_report(frame_args, filename):
+    def _get_lables():
+        l = []
+        for k in d:
+            if not isinstance(d[k], PKDict):
+                continue
+            for x in d[k]:
+                if x not in l:
+                    l.append(x)
+        return l
+
+    def _get_matrix():
+        r = []
+        for k in d:
+            if not isinstance(d[k], PKDict):
+                continue
+            try:
+                x = [e[k]]
+            except KeyError:
+                x = [k]
+            x.extend(d[k].values())
+            r.append(x)
+        return r
+
+    e = _get_classification_output_col_encoding(frame_args)
+    d = pkjson.load_any(frame_args.run_dir.join(filename))
+    return PKDict(
+        labels=_get_lables(),
+        matrix=_get_matrix(),
     )
 
 
@@ -133,7 +262,7 @@ def _compute_csv_info(path):
         )
     # csv file may or may not have column names
     # if any value in the first row is numeric, assume no headers
-    if len(list(filter(lambda x: template_common.NUMERIC_RE.search(x), row))):
+    if list(filter(lambda x: template_common.NUMERIC_RE.search(x), row)):
         row = ['column {}'.format(i + 1) for i in range(len(row))]
         res.hasHeaderRow = False
     res.header = row
@@ -146,21 +275,39 @@ def _compute_numpy_info(path):
     assert False, 'not implemented yet'
 
 
-def _epoch_animation(frame_args):
-    #TODO(pjm): improve heading text
-    header = ['epoch', 'loss', 'val_loss']
-    path = str(frame_args.run_dir.join(_OUTPUT_FILE.fitCSVFile))
-    v = np.genfromtxt(path, delimiter=',', skip_header=1)
-    if len(v.shape) == 1:
-        v.shape = (v.shape[0], 1)
+def _confusion_matrix_to_heatmap_report(frame_args, filename, title):
+    r = pkjson.load_any(frame_args.run_dir.join(filename))
+    a = None
+    for y, _ in enumerate(r.matrix):
+        for x, v in enumerate(r.matrix[y]):
+            t = np.repeat([[x, y]], v, axis=0)
+            a = t if a is None else np.vstack([t, a])
+
+
+    return template_common.heatmap(
+        a,
+        PKDict(histogramBins=len(r.matrix)),
+        plot_fields=PKDict(
+            labels=list(
+                _get_classification_output_col_encoding(frame_args).values(),
+            ),
+            title=title.format(**r),
+            x_label='Predicted',
+            y_label='True',
+        ),
+    )
+
+
+def _error_rate_report(frame_args, filename, x_label):
+    v = np.load(str(frame_args.run_dir.join(filename)))
     return _report_info(
         v[:, 0],
         [PKDict(
-            points=v[:, i].tolist(),
-            label=header[i],
-        ) for i in (1, 2)],
-    ).pkupdate(PKDict(
-        x_label=header[0],
+            points=v[:, 1].tolist(),
+            label='Mean Error',
+        )],
+    ).update(PKDict(
+        x_label=x_label,
     ))
 
 
@@ -184,8 +331,9 @@ def _extract_partition_report(run_dir, sim_in):
     d = PKDict(
         train=_read_file_column(run_dir, 'trainFile', idx),
         test=_read_file_column(run_dir, 'testFile', idx),
-        validate=_read_file_column(run_dir, 'validateFile', idx),
     )
+    if sim_in.models.dataFile.appMode == 'regression':
+        d.validate = _read_file_column(run_dir, 'validateFile', idx)
     r = []
     for name in d:
         _update_range(r, d[name])
@@ -263,11 +411,65 @@ def _generate_parameters_file(data):
     if 'partitionColumnReport' in report:
         res += template_common.render_jinja(SIM_TYPE, v, 'save-partition.py')
         return res
-    if report == 'classificationAnimation':
-        return res + template_common.render_jinja(SIM_TYPE, v, 'knn.py')
+    if data.models.dataFile.appMode == 'classification':
+        res += template_common.render_jinja(SIM_TYPE, v, 'classification-base.py')
+        d = PKDict(
+            decisionTree='decision-tree',
+            knn='knn',
+            linearSvc='linear-svc',
+            logisticRegression='logistic-regression',
+        )
+        return res + template_common.render_jinja(
+            SIM_TYPE,
+            v,
+            f'{d[data.models.classificationAnimation.classifier]}.py',
+        )
     res += template_common.render_jinja(SIM_TYPE, v, 'build-model.py')
     res += template_common.render_jinja(SIM_TYPE, v, 'train.py')
     return res
+
+
+def _get_classification_output_col_encoding(frame_args):
+    """Create _OUTPUT_FILE.classificationOutputColEncodingFile if not found.
+
+    This file is a "new" addition so "older" runs may not have it.
+    """
+    def _create_file():
+        from sklearn.preprocessing import LabelEncoder
+
+        # POSIT: Matches logic in package_data.template.ml.scale.py.jinja.read_data_and_encode_output_column()
+        data = simulation_db.read_json(frame_args.run_dir.join(template_common.INPUT_BASE_NAME))
+        v = np.genfromtxt(
+            str(simulation_db.simulation_lib_dir(SIM_TYPE).join(
+                _filename(data.models.dataFile.file),
+            )),
+            delimiter=',',
+            skip_header=data.models.columnInfo.hasHeaderRow,
+            dtype=None,
+            encoding='utf-8',
+        )
+        o = data.models.columnInfo.inputOutput.index('output')
+        c = v[f'f{o}']
+        e = LabelEncoder().fit(c)
+        res = PKDict(
+            zip(
+                e.transform(e.classes_).astype(np.float).tolist(),
+                e.classes_,
+            ),
+        )
+        pkjson.dump_pretty(
+            res,
+            filename=_OUTPUT_FILE.classificationOutputColEncodingFile,
+        )
+        return res
+    try:
+        return simulation_db.read_json(
+            frame_args.run_dir.join(_OUTPUT_FILE.classificationOutputColEncodingFile),
+        )
+    except Exception as e:
+        if pkio.exception_is_not_found(e):
+            return _create_file()
+        raise e
 
 
 def _histogram_plot(values, vrange):
@@ -282,56 +484,6 @@ def _histogram_plot(values, vrange):
     x.insert(0, x[0])
     y.insert(0, 0)
     return x, y
-
-
-def _knn_classification_metrics_animation(frame_args):
-    def _get_lables():
-        l = []
-        for k in d:
-            if not isinstance(d[k], PKDict):
-                continue
-            for x in d[k]:
-                if x not in l:
-                    l.append(x)
-        return l
-
-    def _get_matrix():
-        r = []
-        for k in d:
-            k = str(k)
-            if not isinstance(d[k], PKDict):
-                continue
-            x = [k]
-            x.extend(list(d[k].values()))
-            r.append(x)
-        return r
-
-    d = pkjson.load_any(frame_args.run_dir.join(_OUTPUT_FILE.knnClassificationFile))
-    return PKDict(
-        labels=_get_lables(),
-        matrix=_get_matrix(),
-    )
-
-
-def _knn_confusion_matrix_animation(frame_args):
-    r = pkjson.load_any(frame_args.run_dir.join(_OUTPUT_FILE.knnConfusionFile))
-    r.title = f'K={r.k}'
-    for i, l in enumerate(r.labels):
-        r.matrix[i].insert(0, l)
-    return r
-
-
-def _knn_error_rate_animation(frame_args):
-    v = np.load(str(frame_args.run_dir.join(_OUTPUT_FILE.knnErrorFile)))
-    return _report_info(
-        v[:, 0],
-        [PKDict(
-            points=v[:, 1].tolist(),
-            label='Mean Error',
-        )],
-    ).update(PKDict(
-        x_label='K Value',
-    ))
 
 
 def _layer_implementation_list(data):
@@ -384,7 +536,7 @@ def _report_info(x, plots, title=''):
 def _update_range(vrange, values):
     minv = min(values)
     maxv = max(values)
-    if not len(vrange):
+    if not vrange:
         vrange.append(minv)
         vrange.append(maxv)
         return

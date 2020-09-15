@@ -8,6 +8,47 @@ from sklearn.preprocessing import {{ dataFile_inputsScaler }}
 from sklearn.preprocessing import {{ dataFile_outputsScaler }}
 {% endif %}
 
+def read_data(path, **kwargs):
+    return np.genfromtxt(
+        path,
+        delimiter=',',
+        skip_header={{ 1 if columnInfo_hasHeaderRow else 0 }},
+        **kwargs
+    )
+
+
+{% if dataFile_appMode == 'classification' %}
+def read_data_and_encode_output_column(path, column_types):
+    from sklearn.preprocessing import LabelEncoder
+
+    def _encode_output_column():
+        v[f'f{o}'] = e.transform(c)
+        t = v.dtype.descr
+        t[-1] = (t[-1][0], _DATA_TYPE)
+        return np.array(v.astype(t).tolist())
+
+    def save_encoding_file():
+        from pykern import pkjson
+        from pykern.pkcollections import PKDict
+
+        pkjson.dump_pretty(
+            PKDict(
+                zip(
+                    e.transform(e.classes_).astype(_DATA_TYPE).tolist(),
+                    e.classes_,
+                ),
+            ),
+            filename='{{ classificationOutputColEncodingFile }}',
+        )
+
+    _DATA_TYPE = np.float
+    v = read_data(path, dtype=None, encoding='utf=8')
+    o = column_types.index('output')
+    c = v[f'f{o}']
+    e = LabelEncoder().fit(c)
+    save_encoding_file()
+    return _encode_output_column()
+{% endif %}
 
 def scale_columns(values, column_types, col_type, scaler):
     columns = list(filter(lambda idx: column_types[idx] == col_type, range(len(column_types))))
@@ -17,7 +58,11 @@ def scale_columns(values, column_types, col_type, scaler):
 
 
 def scale_file(path, column_types, inputs_scaler, outputs_scaler):
-    v = np.genfromtxt(path, delimiter=',', skip_header={{ 1 if columnInfo_hasHeaderRow else 0 }})
+    {% if dataFile_appMode == 'classification' %}
+    v = read_data_and_encode_output_column(path, column_types)
+    {% else %}
+    v = read_data(path)
+    {% endif %}
     in_idx = scale_columns(v, column_types, 'input', inputs_scaler)
     out_idx = scale_columns(v, column_types, 'output', outputs_scaler)
     os.remove(path)
@@ -29,5 +74,9 @@ scaled, in_idx, out_idx = scale_file(
     '{{ dataFile }}',
     {{ columnTypes }},
     {{ dataFile_inputsScaler }},
+{% if dataFile_appMode == 'classification' %}
+    None,
+{% else %}
     {{ dataFile_outputsScaler }},
+{% endif %}
 )

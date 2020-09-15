@@ -508,7 +508,7 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     v.shadowOutputFile = _SHADOW_OUTPUT_FILE
 
     if r == 'initialIntensityReport':
-        v.distanceFromSource = beamline[0].position if len(beamline) else template_common.DEFAULT_INTENSITY_DISTANCE
+        v.distanceFromSource = beamline[0].position if beamline else template_common.DEFAULT_INTENSITY_DISTANCE
     elif _SIM_DATA.is_watchpoint(r):
         v.beamlineOptics = _generate_beamline_optics(data.models, _SIM_DATA.watchpoint_id(r))
     else:

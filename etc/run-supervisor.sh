@@ -30,7 +30,7 @@ radia_run redhat-docker
         export SIREPO_JOB_DRIVER_MODULES=local:sbatch
         export SIREPO_JOB_DRIVER_SBATCH_HOST=cori.nersc.gov
         export SIREPO_JOB_DRIVER_SBATCH_SHIFTER_IMAGE=radiasoft/sirepo:sbatch
-        export SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=/global/homes/${nersc_user::1}/$nersc_user/.pyenv/versions/py3/bin/sirepo
+        export SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=/global/homes/${nersc_user::1}/$nersc_user/.pyenv/versions/$(pyenv version-name)/bin/sirepo
         export SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/global/cscratch1/sd/{sbatch_user}/sirepo-dev'
         export SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS=15
         export SIREPO_JOB_DRIVER_SBATCH_SUPERVISOR_URI=http://$nersc_proxy:8001
@@ -52,7 +52,7 @@ radia_run slurm-dev
         else
             export SIREPO_JOB_DRIVER_SBATCH_CORES=4
         fi
-        export SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=$HOME/.pyenv/versions/py3/bin/sirepo
+        export SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=$(pyenv which sirepo)
         export SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/var/tmp/{sbatch_user}/sirepo'
         export SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS=5
         export SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Vagrant Cluster'
@@ -74,4 +74,4 @@ EOF
         exit 1
     fi
 fi
-PYENV_VERSION=py3 pyenv exec sirepo job_supervisor
+sirepo job_supervisor

@@ -405,7 +405,7 @@ def _extract_report_twissReport(data, run_dir, filename=_TWISS_OUTPUT_FILE):
             x_label=_field_label(x),
         )
     )
-    if 'betx' in t:
+    if 'betx' in t and 'bety' in t and 'alfx' in t and 'alfy' in t:
         res.initialTwissParameters = PKDict(
             betx=t.betx[0],
             bety=t.bety[0],
@@ -566,7 +566,7 @@ def _output_info(run_dir):
     if os.path.isfile(str(info_file)):
         try:
             res = simulation_db.read_json(info_file)
-            if len(res) == 0 or res[0].get('_version', '') == _OUTPUT_INFO_VERSION:
+            if not res or res[0].get('_version', '') == _OUTPUT_INFO_VERSION:
                 return res
         except ValueError as e:
             pass
@@ -585,7 +585,7 @@ def _output_info(run_dir):
             plottableColumns=[],
             pageCount=0,
         ))
-    if len(res):
+    if res:
         res[0]['_version'] = _OUTPUT_INFO_VERSION
     simulation_db.write_json(info_file, res)
     return res
@@ -599,7 +599,7 @@ def _parse_madx_log(run_dir):
     with pkio.open_text(str(path)) as f:
         for line in f:
             if re.search(r'^\++ (error|warning):', line, re.IGNORECASE):
-                line = re.sub('^\++ ', '', line)
+                line = re.sub(r'^\++ ', '', line)
                 res += line + "\n"
     return res
 
@@ -622,7 +622,7 @@ def _parse_match_summary(run_dir, filename):
                 # MAD-X formats the outpus incorrectly when piped to a file
                 # need to look after the END MATCH for node names
                 #Global constraint:         dq1          4     0.00000000E+00    -3.04197881E-12     9.25363506E-24
-                if len(line) > 28 and re.search('^\w.*?\:', line) and line[26] == ' ' and line[27] != ' ':
+                if len(line) > 28 and re.search(r'^\w.*?\:', line) and line[26] == ' ' and line[27] != ' ':
                     node_names += line
     if node_names:
         res = re.sub(r'(Node_Name .*?\n\-+\n)', r'\1' + node_names, res)

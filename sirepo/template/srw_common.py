@@ -39,11 +39,11 @@ def process_beam_parameters(ebeam):
         if field_name in s['model']['electronBeam'].keys():
             label, field_type = s['model']['electronBeam'][field_name]
             if field_type == 'Float':
-                if re.search('\[m(m|rad)\]', label):
+                if re.search(r'\[m(m|rad)\]', label):
                     value *= _invert_value(1e3)
-                elif re.search('\[\xb5(m|rad)\]', label):  # mu
+                elif re.search(r'\[\xb5(m|rad)\]', label):  # mu
                     value *= _invert_value(1e6)
-                elif re.search('\[n(m|rad)\]', label):
+                elif re.search(r'\[n(m|rad)\]', label):
                     value *= _invert_value(1e9)
         return value
 

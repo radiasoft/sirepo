@@ -49,6 +49,7 @@ def audit_proprietary_lib_files(uid):
         uid: user to audit
     """
     import py
+    import pykern.pkconfig
     import pykern.pkio
     import sirepo.auth
     import sirepo.feature_config
@@ -62,9 +63,13 @@ def audit_proprietary_lib_files(uid):
             uid,
             sirepo.auth.role_for_sim_type(t),
         )
-        for f in pykern.pkio.sorted_glob(
-            sirepo.srdb.proprietary_code_dir(t).join('*'),
-        ):
+        d = sirepo.srdb.proprietary_code_dir(t)
+        assert d.exists(), \
+            f'{d} proprietary_code_dir must exist' \
+            + ('; run: sirepo setup_dev' if pykern.pkconfig.channel_in('dev') else '')
+
+        for f in pykern.pkio.sorted_glob(d.join('*')):
+
 #TODO(robnagler) ensure no collision on names with uploaded files
 # (restrict suffixes in user uploads)
             p = sirepo.simulation_db.simulation_lib_dir(t, uid=uid).join(f.basename)
@@ -72,6 +77,10 @@ def audit_proprietary_lib_files(uid):
                 pykern.pkio.unchecked_remove(p)
                 continue
             assert f.check(file=True), f'{f} not found'
+            if not p.dirpath().exists():
+#TODO(robnagler) breaks if running in flask
+                with sirepo.auth.set_user(uid):
+                    sirepo.simulation_db.verify_app_directory(t)
             try:
                 p.mksymlinkto(f, absolute=False)
             except py.error.EEXIST:

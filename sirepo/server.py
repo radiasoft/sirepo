@@ -19,6 +19,7 @@ from sirepo import srschema
 from sirepo import uri_router
 import flask
 import importlib
+import os
 import re
 import sirepo.sim_data
 import sirepo.srdb
@@ -355,6 +356,18 @@ def api_homePage(path_info=None):
 
 
 @api_perm.require_user
+def api_exportJupyterNotebook(simulation_type, simulation_id, model=None, title=None):
+    t = sirepo.template.import_module(simulation_type)
+    assert hasattr(t, 'export_jupyter_notebook'), 'Jupyter export unavailable'
+    d = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
+    return http_reply.gen_file_as_attachment(
+        t.export_jupyter_notebook(d),
+        f"{d.models.simulation.name}{'-' + srschema.parse_name(title) if title else ''}.ipynb",
+        content_type='application/json'
+    )
+
+
+@api_perm.require_user
 def api_newSimulation():
     req = http_request.parse_post(template=True, folder=True, name=True)
     d = simulation_db.default_data(req.type)
@@ -409,7 +422,7 @@ def api_root(path_info):
     u = sirepo.uri.unchecked_root_redirect(path_info)
     if u:
         return http_reply.gen_redirect(u)
-    sirepo.util.raise_not_found(f'uknown path={path_info}')
+    sirepo.util.raise_not_found(f'unknown path={path_info}')
 
 
 @api_perm.require_user
@@ -608,9 +621,9 @@ def init(uwsgi=None, use_reloader=False):
         static_folder=None,
         template_folder=str(simulation_db.STATIC_FOLDER),
     )
-    _app.config.update(
-        PROPAGATE_EXCEPTIONS=True,
-    )
+    _app.config['PROPAGATE_EXCEPTIONS'] = True
+    if cfg.flask_secret_key:
+        _app.config['SECRET_KEY'] = cfg.flask_secret_key
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
     uri_router.init(_app, simulation_db)
@@ -696,8 +709,15 @@ def static_dir(dir_name):
     return str(simulation_db.STATIC_FOLDER.join(dir_name))
 
 
+def _cfg_flask_secret_key(value):
+    import base64
+
+    return base64.urlsafe_b64decode(value)
+
+
 cfg = pkconfig.init(
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
     db_dir=pkconfig.ReplacedBy('sirepo.srdb.root'),
+    flask_secret_key=(None, _cfg_flask_secret_key, 'only necessary of auth.github configured'),
     google_tag_manager_id=(None, str, 'enable google analytics with this id'),
 )

@@ -356,6 +356,16 @@
     }
 
     /* plot styles */
+    .sr-plot .axis text.sr-svg-result {
+      fill: #8a8a8a;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .sr-plot text.sr-svg-label {
+      font-size: 13px;
+    }
+
     .sr-plot .axis text {
       font-size: 12px;
     }

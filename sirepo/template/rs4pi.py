@@ -779,7 +779,7 @@ def _summarize_rt_structure(simulation, plan, frame_ids):
         for contour in roi_contour.ContourSequence:
             if contour.ContourGeometricType != 'CLOSED_PLANAR':
                 continue
-            if len(contour.ContourData):
+            if contour.ContourData:
                 # the z index is the key
                 ct_id = _frame_id(contour.ContourData[2])
                 if ct_id not in frame_ids:

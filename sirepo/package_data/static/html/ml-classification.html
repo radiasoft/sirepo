@@ -8,14 +8,54 @@
         <div data-sim-status-panel="classification.simState"></div>
       </div>
     </div>
-    <div class="col-md-6" data-ng-if="classification.hasFrames()">
-      <div data-report-panel="parameter" data-model-name="knnErrorRateAnimation"></div>
-    </div>
-    <div class="col-md-6" data-ng-if="classification.hasFrames()">
-      <div data-report-panel="classificationMetrics" data-model-name="knnClassificationMetricsAnimation">
-    </div>
-    <div class="col-md-6" data-ng-if="classification.hasFrames()">
-      <div data-report-panel="confusionMatrix" data-model-name="knnConfusionMatrixAnimation"></div>
+    <div class="clearfix"></div>
+    <div data-ng-if="classification.hasFrames()">
+      <div data-ng-if='classification.framesForClassifier === "knn"'>
+        <div class="col-md-6">
+          <div data-report-panel="parameter" data-model-name="knnErrorRateAnimation"></div>
+        </div>
+        <div class="col-md-6">
+          <div data-report-panel="classificationMetrics" data-model-name="knnClassificationMetricsAnimation"></div>
+        </div>
+        <div class="col-md-6">
+          <div data-report-panel="heatmap" data-model-name="knnConfusionMatrixAnimation">
+            <div data-heatmap-modifications=""></div>
+          </div>
+        </div>
+      </div>
+      <div data-ng-if='classification.framesForClassifier === "decisionTree"'>
+        <div class="col-md-6">
+          <div data-report-panel="heatmap" data-model-name="dtClassifierConfusionMatrixAnimation">
+            <div data-heatmap-modifications=""></div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div data-report-panel="classificationMetrics" data-model-name="dtClassifierClassificationMetricsAnimation"></div>
+        </div>
+      </div>
+      <div data-ng-if='classification.framesForClassifier === "linearSvc"'>
+        <div class="col-md-6">
+          <div data-report-panel="heatmap" data-model-name="linearSvcConfusionMatrixAnimation">
+            <div data-heatmap-modifications=""></div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div data-report-panel="parameter" data-model-name="linearSvcErrorRateAnimation"></div>
+        </div>
+      </div>
+      <div data-ng-if='classification.framesForClassifier === "logisticRegression"'>
+        <div class="col-md-6">
+          <div data-report-panel="parameter" data-model-name="logisticRegressionErrorRateAnimation"></div>
+        </div>
+        <div class="col-md-6">
+          <div data-report-panel="classificationMetrics" data-model-name="logisticRegressionClassificationMetricsAnimation"></div>
+        </div>
+        <div class="col-md-6">
+          <div data-report-panel="heatmap" data-model-name="logisticRegressionConfusionMatrixAnimation">
+            <div data-heatmap-modifications=""></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
