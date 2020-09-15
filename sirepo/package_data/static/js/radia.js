@@ -226,15 +226,16 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
 SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, vtkPlotting, $scope) {
     var self = this;
 
-    var editorFields = [
+    const editorFields = [
          'geomObject.magnetization',
          'geomObject.symmetryType',
          'geomObject.doDivide',
     ];
-    var groupModels = [
+    const groupModels = [
         'geomGroup',
         'geomUndulatorGroup'
     ];
+    const maxShapesForLevel = 2048;
     var watchedModels = [
         'geomObject',
         'geomGroup',
@@ -446,8 +447,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             self.shapes.push(baseShape);
         }
 
-        let xformShapes = [baseShape];
-        //xformShapes.push(...getVirtualShapes(baseShape));
         let txArr = [];
         // probably better to create a transform and let svg do this work
         o.transforms.forEach(function (xform) {
@@ -457,20 +456,26 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 addSymmetryPlane(baseShape, xform);
             }
             // each successive transform must be applied to all previous shapes
-            //srdbg('applt to', xformShapes.slice(0));
-            xformShapes.forEach(function (xShape) {
-                //let members = (self.getObject(xShape.id) || {}).members || [];
-                //srdbg(`xform.${xform.id} shape.${xShape.id} <- ${baseShapeId(xShape.id)}`);
+            //srdbg('include virts', getVirtualShapes(baseShape));
+            [baseShape, ...getVirtualShapes(baseShape)].forEach(function (xShape) {
+                // these transforms do not copy the object
+                if (xform.model === 'rotate') {
+                    txArr.push(rotateFn(xform, 1));
+                    return;
+                }
+                if (xform.model === 'translate') {
+                    txArr.push(offsetFn(xform, 1));
+                    return;
+                }
+
                 let members = getMembers(self.getObject(xShape.id));
-                let clones = getClones(self.getObject(baseShapeId(xShape.id)));
-                //if (clones.length) {
-                //    srdbg('clones', clones);
-                //}
                 let linkTx;
+                let cloneTx = txArr.slice(0);
+                const ctx = composeFn(cloneTx);
                 if (xform.model === 'cloneTransform') {
                     for (let i = 1; i <= xform.numCopies; ++i) {
-                        let cloneTx = txArr.slice(0);
-                        const ctx = composeFn(cloneTx);
+                        //let cloneTx = txArr.slice(0);
+                        //const ctx = composeFn(cloneTx);
                         for (let j = 0; j < xform.transforms.length; ++j) {
                             let cloneXform = xform.transforms[j];
                             if (cloneXform.model === 'translateClone') {
@@ -480,55 +485,48 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                                 cloneTx.push(rotateFn(cloneXform, i));
                             }
                         }
-                        xformShapes.push(addTxShape(baseShape, xform, ctx));
-                        // transform members if any
+                        let c = addTxShape(xShape, xform, ctx);
+                        //srdbg(xShape.id, 'added clone', c.id);
                         for (let m of members) {
-                            xformShapes.push(addTxShape(self.getShape(m.id), xform, ctx));
+                            let v = getVirtualShapes(self.getShape(m.id));
+                            let c = addTxShape(self.getShape(m.id), xform, ctx);
+                            //srdbg(self.getShape(m.id).id, 'added member clone', c.id);
+                            for (let s of v) {
+                                addTxShape(s, xform, ctx);
+                            }
                         }
                     }
                 }
-                if (xform.model === 'rotate') {
-                    txArr.push(rotateFn(xform, 1));
-                    // transform members if any
-                    //for (let id of members) {
-                    for (let m of members) {
-                        let s = self.getShape(m.id);
-                        rotateFn(xform, 1)(s, s);
-                    }
-                }
                 if (xform.model === 'symmetryTransform') {
-                    //srdbg(xShape.id, 'add sym', xform.symmetryType);
+                    //return;
                     linkTx = mirrorFn(xform);
-                    //xformShapes.push(addTxShape(baseShape, xform, linkTx));
-                    xformShapes.push(addTxShape(xShape, xform, linkTx));
+                    addTxShape(xShape, xform, linkTx);
 
                     // transform members if any
                     for (let m of members) {
-                        let s = self.getShape(m.id);
-                        //srdbg(xShape.id, 'apply symm', xform.symmetryType, 'to', s.id);
-                        xformShapes.push(addTxShape(s, xform, linkTx));
-                    }
-
-                    for (let s of clones) {
-                        //srdbg(`${s.id} virts?`, getVirtualShapes(s));
-                        //srdbg(xShape.id, 'apply symm', xform.symmetryType, 'to', s.id);
-                        //srdbg(`xform.${xform.id} clone ${s.id} of shape.${xShape.id} <- ${baseShapeId(xShape.id)}`);
-                        xformShapes.push(addTxShape(s, xform, linkTx));
-                    }
-
-
-                }
-                if (xform.model === 'translate') {
-                    txArr.push(offsetFn(xform, 1));
-                    // transform members if any
-                    for (let m of members) {
-                        let s = self.getShape(m.id);
-                        offsetFn(xform, 1)(s, s);
+                        //let s = self.getShape(m.id);
+                        let v = getVirtualShapes(self.getShape(m.id));
+                        addTxShape(self.getShape(m.id), xform, linkTx);
+                        //srdbg(self.getShape(m.id).id, 'added member symm clone', c.id);
+                        //srdbg(self.getShape(m.id).id, 'check virts', v);
+                        for (let s of v) {
+                            addTxShape(s, xform, linkTx);
+                            //srdbg(s.id, 'added virt member symm clone', xform.symmetryPlane, c.id);
+                        }
                     }
                 }
+
+
             });
         });
+
+        // apply non-copying transforms to the object and its members (if any)
         composeFn(txArr)(baseShape, baseShape);
+        for (let m of getMembers(o)) {
+            let s = self.getShape(m.id);
+            composeFn(txArr)(s, s);
+        }
+
         if (o.groupId !== '') {
             let gShape = self.getShape(o.groupId);
             if (! gShape) {
@@ -590,6 +588,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function addTxShape(sourceShape, xform, link) {
+        //srdbg('add tx for', sourceShape.id);
         let nextShape = txShape(sourceShape, xform);
         sourceShape.addLink(nextShape, link);
         self.shapes.push(nextShape);
@@ -599,9 +598,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function transformShapesForObject(o) {
         let baseShape = self.getShape(o.id);
-        let xformShapes = [baseShape];
-        xformShapes.push(...getVirtualShapes(baseShape));
-        xformShapes.forEach(function (s) {
+        //let xformShapes = [baseShape];
+        //xformShapes.push(...getVirtualShapes(baseShape));
+        [baseShape, ...getVirtualShapes(baseShape)].forEach(function (s) {
             s.runLinks();
         });
     }
@@ -691,10 +690,18 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function getVirtualShapes(baseShape) {
-        return self.shapes.filter(function (s) {
-            return Math.floor(s.id / 65536) - 1 === baseShape.id;
-            //return baseShapeId(s.id) === baseShape.id;
+        //return self.shapes.filter(function (s) {
+        //    return Math.floor(s.id / maxShapesForLevel) - 1 === baseShape.id;
+        //});
+        let v = self.shapes.filter(function (s) {
+            return Math.floor(s.id / maxShapesForLevel) - 1 === baseShape.id;
         });
+        let v2 = [];
+        for (let s of v) {
+            v2.push(...getVirtualShapes(s));
+        }
+        v.push(...v2);
+        return v;
     }
 
     // indexOf does not work right...explicitly match by id here
@@ -832,12 +839,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     function virtualShapeId(shape) {
         //return baseShapeId(shape.id + 1) + getVirtualShapes(shape).length;
         //srdbg(`id.${shape.id}, ${getVirtualShapes(shape).length} -> vid.${65536 * (shape.id + 1) + getVirtualShapes(shape).length}`);
-        return 65536 * (shape.id + 1) + getVirtualShapes(shape).length;
+        return maxShapesForLevel * (shape.id + 1) + getVirtualShapes(shape).length;
     }
 
     function baseShapeId(id) {
         //return id < 65536 ? id : Math.floor(id / 65536) - 1;
-        return id < 65536 ? id : baseShapeId(Math.floor(id / 65536) - 1);
+        return id < maxShapesForLevel ? id : baseShapeId(Math.floor(id / maxShapesForLevel) - 1);
     }
 
     appState.whenModelsLoaded($scope, function() {

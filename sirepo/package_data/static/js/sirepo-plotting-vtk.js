@@ -1072,10 +1072,13 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 // need to split the shapes up by type or the data will get mismatched
                 let layouts = {};
                 LAYOUT_SHAPES.forEach(function (l) {
-                    //TODO(mvk): sort by in/out of screen, draggable
+                    //TODO(mvk): sort by in/out of screen
                     layouts[l] = shapes.filter(function (s) {
                         return s.layoutShape === l;
-                    });
+                    })
+                        .sort(function (s1, s2) {
+                            return s1.draggable - s2.draggable;
+                        });
                 });
 
                 for (let l in layouts) {
