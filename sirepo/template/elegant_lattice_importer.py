@@ -19,7 +19,12 @@ import sirepo.sim_data
 import subprocess
 
 
-_IGNORE_FIELD = ['rootname', 'search_path', 'semaphore_file']
+_IGNORE_FIELD = [
+    'mpi_io_write_buffer_size',
+    'rootname',
+    'search_path',
+    'semaphore_file',
+]
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals('elegant')
 
