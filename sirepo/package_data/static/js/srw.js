@@ -2504,6 +2504,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                             trimmed: point,
                         };
                     }
+                    // algorithm from https://www.learnopencv.com/rotation-matrix-to-euler-angles/
                     var sy = Math.sqrt(Math.pow(pos.orient[0][0], 2) + Math.pow(pos.orient[1][0], 2));
                     var xrot, yrot, zrot;
                     if (Math.abs(sy) < 1e-6) {
