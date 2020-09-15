@@ -364,6 +364,7 @@
             "name": ["Name", "String", "Rotate"]
         },
         "rotateClone": {
+            "id": ["_", "String", ""],
             "angle": ["Angle (deg)", "Float", "0.0"],
             "axis": ["Axis", "FloatStringArray", "0.0, 0.0, 1.0", "", "x, y, z"],
             "center": ["Center", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
@@ -389,7 +390,7 @@
             "_super": ["_", "model", "transform"],
             "name": ["Name", "String", "Symmetry"],
             "symmetryPlane": ["Symmetry Plane", "FloatStringArray", "1.0, 0.0, 0.0", "", "x, y, z"],
-            "symmetryPoint": ["Point in Symmetry Plane", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
+            "symmetryPoint": ["Symmetry Point", "FloatStringArray", "0.0, 0.0, 0.0", "", "x, y, z"],
             "symmetryType": ["Symmetry", "SymmetryType", "parallel"]
         },
         "transform": {
@@ -402,6 +403,7 @@
             "name": ["Name", "String", "Translate"]
         },
         "translateClone": {
+            "id": ["_", "String", ""],
             "distance": ["Direction", "FloatStringArray", "10.0, 0.0, 0.0", "", "x, y, z"],
             "name": ["Name", "String", "Translate"]
         }

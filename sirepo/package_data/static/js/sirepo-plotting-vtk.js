@@ -1260,7 +1260,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             function selectObject(d) {
                 // allow using shift to select more than one (for alignment etc.)
                 if (! selectedObject || selectedObject.id !== d.id ) {
-                    srdbg('SEL', d);
                     selectedObject = d;
                 }
                 else {
