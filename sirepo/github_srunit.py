@@ -22,7 +22,7 @@ class MockOAuthClient(object):
                 login=user_name,
             ),
         )
-        monkeypatch.setattr(github, '_oauth_client', self)
+        monkeypatch.setattr(github, '_client', self)
 
     def __call__(self, *args, **kwargs):
         return self
