@@ -1050,7 +1050,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function shapeSelectionId(shape, includeHash) {
-                return (includeHash ? '#' : '') + 'shape-' + shape.elev.name + '-' + shape.id;
+                return `${(includeHash ? '#' : '')}${shape.id}`;
             }
 
             function d3DragStartShape(shape) {
@@ -1072,10 +1072,13 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 // need to split the shapes up by type or the data will get mismatched
                 let layouts = {};
                 LAYOUT_SHAPES.forEach(function (l) {
-                    //TODO(mvk): sort by in/out of screen
+                    const norm = 'xyz'.replace(new RegExp('[' + elevation.coordPlane + ']', 'g'), '');
                     layouts[l] = shapes.filter(function (s) {
                         return s.layoutShape === l;
                     })
+                        .sort(function (s1, s2) {
+                            return (s2.center[norm] - s2.size[norm] / 2) - (s1.center[norm] - s1.size[norm] / 2);
+                        })
                         .sort(function (s1, s2) {
                             return s1.draggable - s2.draggable;
                         });
@@ -1091,9 +1094,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     })
                         .on('dblclick', editObject)
                         .on('dblclick.zoom', null)
-                        .on('click', function (d, e) {
-                            selectObject(d, e);
-                        });
+                        .on('click', selectObject);
                     ds.call(updateShapeAttributes);
                     ds.call(dragShape);
 
@@ -1377,6 +1378,9 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     })
                     .attr('id', function (d) {
                         return shapeSelectionId(d);
+                    })
+                    .attr('href', function (d) {
+                        return d.href ? `#${d.href}` : '';
                     })
                     .attr('x', function(d) {
                         return shapeOrigin(d, 'x') - (d.outlineOffset || 0);

@@ -241,7 +241,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         'geomGroup',
         'geomUndulatorGroup'
     ];
-    const maxShapesForLevel = 2048;
     var watchedModels = [
         'geomObject',
         'geomGroup',
@@ -676,7 +675,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     // may have to flatten
     function getVirtualShapes(baseShape, excludedIds = []) {
         let v = self.shapes.filter(function (s) {
-            return excludedIds.indexOf(s.id) < 0 && Math.floor(s.id / maxShapesForLevel) - 1 === baseShape.id;
+            return excludedIds.indexOf(s.id) < 0 && hasBaseShape(s, baseShape);
         });
         let v2 = [];
         for (let s of v) {
@@ -818,14 +817,19 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function virtualShapeId(shape) {
-        //return baseShapeId(shape.id + 1) + getVirtualShapes(shape).length;
-        //srdbg(`id.${shape.id}, ${getVirtualShapes(shape).length} -> vid.${65536 * (shape.id + 1) + getVirtualShapes(shape).length}`);
-        return maxShapesForLevel * (shape.id + 1) + getVirtualShapes(shape).length;
+        return `${shape.id}.${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`;
     }
 
     function baseShapeId(id) {
-        //return id < 65536 ? id : Math.floor(id / 65536) - 1;
-        return id < maxShapesForLevel ? id : baseShapeId(Math.floor(id / maxShapesForLevel) - 1);
+        return `${id}`.split('.')[0];
+    }
+
+    function hasBaseShape(shape, baseShape) {
+        // base shape is not its own base
+        if (shape.id === baseShape.id) {
+            return false;
+        }
+        return baseShapeId(shape.id) === `${baseShape.id}`;
     }
 
     appState.whenModelsLoaded($scope, function() {
