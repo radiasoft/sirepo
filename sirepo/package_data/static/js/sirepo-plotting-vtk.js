@@ -1073,9 +1073,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 let layouts = {};
                 LAYOUT_SHAPES.forEach(function (l) {
                     const norm = 'xyz'.replace(new RegExp('[' + elevation.coordPlane + ']', 'g'), '');
-                    layouts[l] = shapes.filter(function (s) {
-                        return s.layoutShape === l;
-                    })
+                    layouts[l] = shapes
+                        .filter(function (s) {
+                            return s.layoutShape === l;
+                        })
                         .sort(function (s1, s2) {
                             return (s2.center[norm] - s2.size[norm] / 2) - (s1.center[norm] - s1.size[norm] / 2);
                         })
@@ -1085,19 +1086,30 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 });
 
                 for (let l in layouts) {
+                    let bs = layouts[l].filter(function (s) {
+                        return `${s.id}`.split('.').length === 1;
+                    });
+                    let bdef = d3.select('.plot-viewport defs').selectAll(l)
+                        .data(bs);
+                    bdef.exit().remove();
+                    bdef.enter()
+                        .append(function (d) {
+                            return document.createElementNS('http://www.w3.org/2000/svg', d.layoutShape);
+                        });
+
                     let ds = d3.select('.plot-viewport').selectAll(`${l}.vtk-object-layout-shape`)
                         .data(layouts[l]);
                     ds.exit().remove();
                     // function must return a DOM object in the SVG namespace
-                    ds.enter().append(function (d) {
-                        return document.createElementNS('http://www.w3.org/2000/svg', d.layoutShape);
-                    })
+                    ds.enter()
+                        .append(function (d) {
+                            return document.createElementNS('http://www.w3.org/2000/svg', d.layoutShape);
+                        })
                         .on('dblclick', editObject)
                         .on('dblclick.zoom', null)
                         .on('click', selectObject);
                     ds.call(updateShapeAttributes);
                     ds.call(dragShape);
-
                 }
             }
 /*
