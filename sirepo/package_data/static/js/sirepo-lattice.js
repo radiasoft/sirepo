@@ -25,6 +25,7 @@ SIREPO.app.config(function() {
 
 SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, utilities, validationService, $rootScope) {
     var self = {};
+    var COMMAND_PREFIX = 'command_';
     self.activeBeamlineId = null;
     self.deleteVarWarning = '';
     self.includeCommandNames = false;
@@ -78,11 +79,6 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         // remove invalid characters
         m.name = m.name.replace(SIREPO.lattice.invalidElementName || /[\s#*'",]/g, '');
         return;
-    }
-
-    function isElementModel(name) {
-        var schema = SIREPO.APP_SCHEMA.model[name];
-        return schema && 'name' in schema && name == name.toUpperCase();
     }
 
     function showDeleteWarning(type, element, beamlines) {
@@ -146,6 +142,8 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         });
     }
 
+    self.COMMAND_PREFIX = COMMAND_PREFIX;
+
     self.addToBeamline = function(item) {
         self.getActiveBeamline().items.push(item.id || item._id);
         appState.saveChanges('beamlines');
@@ -172,6 +170,10 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         }
         var key = bunch.x + '-' + bunch.y;
         return (plotTitle[key] || (bunch.x + ' / ' + bunch.y)) + ' Phase Space';
+    };
+
+    self.commandModelName = function(type) {
+        return COMMAND_PREFIX + type;
     };
 
     self.createElement = function(type) {
@@ -337,6 +339,15 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         };
     };
 
+    self.isCommandModelName = function(name) {
+        return name.indexOf(COMMAND_PREFIX) === 0;
+    };
+
+    self.isElementModelName = function(name) {
+        var schema = SIREPO.APP_SCHEMA.model[name];
+        return schema && 'name' in schema && name == name.toUpperCase();
+    };
+
     self.isReversed = function(beamlineId) {
         return beamlineId < 0;
     };
@@ -421,7 +432,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
                 updateModels('beamline', 'id', 'beamlines', sortBeamlines);
                 self.editBeamline({ id: id });
             }
-            if (isElementModel(name)) {
+            if (self.isElementModelName(name)) {
                 fixModelName(name);
                 updateModels(name, '_id', 'elements', sortElements);
             }
@@ -432,7 +443,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
                 appState.removeModel(name);
                 appState.cancelChanges('beamlines');
             }
-            else if (isElementModel(name)) {
+            else if (self.isElementModelName(name)) {
                 appState.removeModel(name);
                 appState.cancelChanges('elements');
             }
@@ -2501,7 +2512,7 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                               '<tr>',
                                 '<td>',
                                   '<div class="row"><div class="col-sm-12">',
-                                    '<input class="form-control" data-ng-model="newVar.name" data-ng-keydown="nameKeyDown($event)" />',
+                                    '<input class="form-control" data-var-name="" data-ng-model="newVar.name" />',
                                   '</div></div>',
                                 '</td>',
                                 '<td>',
@@ -2599,12 +2610,6 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                     && $scope.newVar.value !== '';
             };
 
-            $scope.nameKeyDown = function($event) {
-                if ($event.key.match(/\s|\-/)) {
-                    $event.preventDefault();
-                }
-            };
-
             $scope.saveChanges = function() {
                 $('#sr-variables').modal('hide');
                 if ($scope.hasNewVar()) {
@@ -2616,6 +2621,48 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
 
             initNewVar();
         },
+    };
+});
+
+SIREPO.app.directive('varName', function(latticeService) {
+    return {
+        restrict: 'A',
+        require: 'ngModel',
+        scope: {},
+        link: function(scope, element, attrs, ngModel) {
+            var latticeNames;
+
+            function isElementOrCommandName(value) {
+                if (! latticeNames) {
+                    latticeNames = {};
+                    for (var m in SIREPO.APP_SCHEMA.model) {
+                        if (latticeService.isElementModelName(m)) {
+                            latticeNames[m.toLowerCase()] = true;
+                        }
+                        else if (latticeService.isCommandModelName(m)) {
+                            latticeNames[m.replace(latticeService.COMMAND_PREFIX, '').toLowerCase()] = true;
+                        }
+                    }
+                }
+                return latticeNames[value.toLowerCase()];
+            }
+
+            ngModel.$parsers.push(function(value) {
+                if (ngModel.$isEmpty(value))  {
+                    return null;
+                }
+                if (! value.match(/^[A-Z][A-Z0-9_.]*$/i)) {
+                    return undefined;
+                }
+                if ((SIREPO.APP_SCHEMA.constants.latticeKeywords || []).includes(value.toLowerCase())) {
+                    return undefined;
+                }
+                if (isElementOrCommandName(value)) {
+                    return undefined;
+                }
+                return value;
+            });
+        }
     };
 });
 

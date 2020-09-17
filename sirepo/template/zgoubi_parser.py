@@ -43,7 +43,7 @@ def parse_file(zgoubi_text, max_id=0):
     # very specific fixup for old zgoubi data files which split MULTIPOL components
     # across multiple lines
     zgoubi_text = re.sub(
-        r'\n[ ]*(\'MULTIPOL\'.*?\n.*?\n.*?)\n[ ]*([0-9.-e]+)[ ]*\n',
+        "\n[ ]*('MULTIPOL'.*?\n.*?\n.*?)\n[ ]*([0-9.-e]+)[ ]*\n",
         r'\n\1 \2\n',
         zgoubi_text,
     )
@@ -137,9 +137,9 @@ def _parse_command_line(element, line, line_def):
     for k in line_def.split(' '):
         if k[0] == '*':
             k = k[1:]
-            if not len(line):
+            if not line:
                 break
-        assert len(line), 'Element "{} {}": missing "{}" value for line def: {}'.format(
+        assert line, 'Element "{} {}": missing "{}" value for line def: {}'.format(
             element.type, element.get('name', ''), k, line_def)
         element[k] = line.pop(0)
     return element
@@ -300,7 +300,7 @@ def _zgoubi_changref(command):
                     transformType=command[1][i * 2],
                     transformValue=v,
                 ))
-        if not len(res.subElements):
+        if not res.subElements:
             return None
         return res
     return _parse_command(command, [
@@ -310,7 +310,7 @@ def _zgoubi_changref(command):
 
 def _zgoubi_collima(command):
     iform = command[2][0]
-    m = re.match('^(1|2)(\.(1|2))?$', iform)
+    m = re.match(r'^(1|2)(\.(1|2))?$', iform)
     if m:
         res = _parse_command(command, [
             'IA',

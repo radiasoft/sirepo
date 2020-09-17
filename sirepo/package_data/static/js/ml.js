@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.PLOTTING_COLOR_MAP = 'blues';
     SIREPO.SINGLE_FRAME_ANIMATION = ['epochAnimation'];
     SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
     SIREPO.appReportTypes = [
@@ -28,9 +29,16 @@ SIREPO.app.factory('mlService', function(appState) {
 
     self.computeModel = function(analysisModel) {
         if ([
+            'dtClassifierClassificationMetricsAnimation',
+            'dtClassifierConfusionMatrixAnimation',
             'knnClassificationMetricsAnimation',
             'knnConfusionMatrixAnimation',
-            'knnErrorRateAnimation'
+            'knnErrorRateAnimation',
+            'linearSvcErrorRateAnimation',
+            'linearSvcConfusionMatrixAnimation',
+            'logisticRegressionClassificationMetricsAnimation',
+            'logisticRegressionConfusionMatrixAnimation',
+            'logisticRegressionErrorRateAnimation'
         ].includes(analysisModel)) {
             return 'classificationAnimation';
         }
@@ -122,7 +130,7 @@ SIREPO.app.directive('appHeader', function(appState, mlService) {
     };
 });
 
-SIREPO.app.controller('DataController', function (appState, mlService, panelState, requestSender, $scope) {
+SIREPO.app.controller('DataController', function (appState, panelState, requestSender, $scope) {
     var self = this;
 
     function computeColumnInfo() {
@@ -159,15 +167,23 @@ SIREPO.app.controller('DataController', function (appState, mlService, panelStat
         }
     }
 
-    function processAppMode() {
+    function dataFileChanged() {
+        computeColumnInfo();
         const dataFile = appState.models.dataFile;
-        ['inputs', 'outputs'].forEach(t => {
-            panelState.showField(
-                'dataFile',
-                `${t}Scaler`,
-                ['regression', 'classification'].includes(dataFile.appMode)
-            );
-        });
+        const partition = appState.models.partition;
+        if (dataFile.appMode == 'regression'
+            && partition.training + partition.testing >= 100) {
+            ['training', 'testing', 'validation'].forEach(function(f) {
+                delete partition[f];
+            });
+            appState.setModelDefaults(partition, 'partition');
+        }
+        else if (dataFile.appMode == 'classification') {
+            if (partition.training + partition.testing < 100) {
+                partition.testing = 100 - partition.training;
+            }
+        }
+        appState.saveQuietly('partition');
     }
 
     self.hasDataFile = function() {
@@ -175,25 +191,56 @@ SIREPO.app.controller('DataController', function (appState, mlService, panelStat
     };
 
     appState.whenModelsLoaded($scope, function() {
-        $scope.$on('dataFile.changed', computeColumnInfo);
-        appState.watchModelFields($scope, ['dataFile.appMode'], processAppMode);
-        processAppMode();
+        $scope.$on('dataFile.changed', dataFileChanged);
+        //TODO(pjm): enable when analysis tab is completed
+        panelState.showEnum('dataFile', 'appMode', 'analysis', false);
     });
 });
 
-SIREPO.app.controller('ClassificationController', function(frameCache, persistentSimulation, $scope) {
+SIREPO.app.controller('ClassificationController', function(appState, frameCache, panelState, persistentSimulation, $scope) {
     let self = this;
-    self.simScope = $scope;
     let errorMessage = '';
+    self.framesForClassifier = null;
     self.simComputeModel = 'classificationAnimation'; // TODO(e-carlin): try ending in compute and see what happens
+    self.simScope = $scope;
 
-    self.hasFrames = frameCache.hasFrames;
+    function showClassifierSettings() {
+        ['min', 'max'].forEach((f) => panelState.showField(
+            'knnClassification',
+            `k${f}`,
+            appState.models.classificationAnimation.classifier === 'knn'
+        ));
+        ['linearSvc', 'logisticRegression'].forEach((c) => {
+            [
+                'toleranceMax',
+                'toleranceMin',
+                'totalNumValues'
+            ].forEach((f) => panelState.showField(
+                `${c}Classification`,
+                f,
+                appState.models.classificationAnimation.classifier === c
+            ));
+        });
+    }
+
+    self.hasFrames = function() {
+        if (appState.isLoaded()
+            && self.framesForClassifier == appState.applicationState().classificationAnimation.classifier) {
+            return frameCache.hasFrames();
+        }
+        return false;
+    };
 
     self.simHandleStatus = function (data) {
         errorMessage = data.error;
+        self.framesForClassifier = data.framesForClassifier;
         if (data.frameCount) {
             frameCache.setFrameCount(data.frameCount);
         }
+    };
+
+    self.simCompletionState = function(statusText) {
+        return '';
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
@@ -201,6 +248,15 @@ SIREPO.app.controller('ClassificationController', function(frameCache, persisten
     self.simState.errorMessage = function() {
         return errorMessage;
     };
+
+    appState.whenModelsLoaded($scope, function() {
+        showClassifierSettings();
+        appState.watchModelFields(
+            $scope,
+            ['classificationAnimation.classifier'],
+            showClassifierSettings
+        );
+    });
 });
 
 SIREPO.app.controller('RegressionController', function (appState, frameCache, mlService, panelState, persistentSimulation, $scope) {
@@ -464,8 +520,8 @@ SIREPO.app.directive('heatmapModifications', function() {
                 for (let i = 0 ; i < data.z_matrix.length; i++) {
                     for (let j = 0; j < data.z_matrix[i].length; j++) {
                         commonAttributes('.x', data.z_matrix[i][j], CLASS_RESULT)
-                            .attr('x', elementPosition(i, 'width'))
-                            .attr('y', elementPosition(j, 'height'));
+                            .attr('x', elementPosition(j, 'width'))
+                            .attr('y', elementPosition(i, 'height'));
 
                     }
                 }
@@ -522,7 +578,7 @@ SIREPO.app.directive('heatmapModifications', function() {
     };
 });
 
-SIREPO.app.controller('PartitionController', function (appState, mlService, panelState, $scope) {
+SIREPO.app.controller('PartitionController', function (appState, mlService, $scope) {
     var self = this;
     self.reports = [];
 
@@ -540,38 +596,16 @@ SIREPO.app.controller('PartitionController', function (appState, mlService, pane
         });
     }
 
-    function updatePartitionMethod() {
-        var partition = appState.models.partition;
-        ['training', 'testing', 'validation'].forEach(function(f) {
-            panelState.showField('partition', f, partition.method == 'random');
-        });
-    }
-
-    function updatePercents() {
-        var partition = appState.models.partition;
-        if (partition.training && partition.testing) {
-            var validation = 100 - (partition.training + partition.testing);
-            if (validation > 0) {
-                partition.validation = validation.toFixed(2);
-            }
-        }
-        panelState.enableField('partition', 'validation', false);
-    }
-
     $scope.showPartitionSelection = function() {
         if (appState.isLoaded()) {
-            return appState.applicationState().partition.method == 'selection';
+            if (appState.applicationState().dataFile.appMode == 'regression') {
+                return appState.applicationState().partition.method == 'selection';
+            }
         }
         return false;
     };
 
-    appState.whenModelsLoaded($scope, function() {
-        appState.watchModelFields($scope, ['partition.training', 'partition.testing'], updatePercents);
-        appState.watchModelFields($scope, ['partition.method'], updatePartitionMethod);
-        updatePercents();
-        updatePartitionMethod();
-        loadReports();
-    });
+    appState.whenModelsLoaded($scope, loadReports);
 });
 
 SIREPO.app.directive('neuralNetLayersForm', function(appState, panelState) {
@@ -913,6 +947,7 @@ SIREPO.app.directive('tablePanel', function(plotting) {
             '</div>',
         ].join(''),
         controller: function($scope, $sce) {
+            plotting.setTextOnlyReport($scope);
             $scope.row = (row) => {
                 const r = [...row];
                 let x = '<th>' + r.shift() + '</th>' + r.map(function (e) {
@@ -921,19 +956,20 @@ SIREPO.app.directive('tablePanel', function(plotting) {
                 return $sce.trustAsHtml(x);
             };
 
-            //TODO(pjm): these should be no-op in sirepo-plotting, for text reports
-            var noOp = () => {};
-            $scope.clearData = noOp;
-            $scope.destroy = noOp;
-            $scope.init = noOp;
-            $scope.resize = noOp;
             $scope.load = (json) => {
                 $scope.tableHeaders = ['', ...json.labels];
-                const r = [];
+                $scope.tableRows = [];
                 for (let i = 0; i < json.matrix.length; i++) {
-                    r.push([...json.matrix[i]]);
+                    const r = [];
+                    for (let j = 0; j < json.matrix[i].length; j++) {
+                        let v = json.matrix[i][j];
+                        if (! Number.isNaN(Number(v)) && ! Number.isInteger(Number(v))) {
+                            v = Number(v).toFixed(4);
+                        }
+                        r.push(v);
+                    }
+                    $scope.tableRows.push(r);
                 }
-                $scope.tableRows = r;
                 $scope.title = json.title;
             };
             $scope.$on('framesCleared', function() {
@@ -944,4 +980,68 @@ SIREPO.app.directive('tablePanel', function(plotting) {
             plotting.linkPlot(scope, element);
         },
     };
+});
+
+SIREPO.viewLogic('partitionView', function(appState, panelState, $scope) {
+
+    function updatePartitionMethod() {
+        var appMode = appState.models.dataFile.appMode;
+        panelState.showField('partition', 'method', appMode == 'regression');
+        var partition = appState.models.partition;
+        ['training', 'testing'].forEach(function(f) {
+            panelState.showField(
+                'partition',
+                f,
+                appMode == 'classification' || partition.method == 'random');
+        });
+        panelState.showField(
+            'partition',
+            'validation',
+            appMode == 'regression' && partition.method == 'random');
+    }
+
+    function updatePercents() {
+        var appMode = appState.models.dataFile.appMode;
+        var partition = appState.models.partition;
+        if (appMode == 'classification') {
+            if (partition.training) {
+                partition.testing = 100 - partition.training;
+            }
+            panelState.enableField('partition', 'testing', false);
+        }
+        else if (partition.training && partition.testing) {
+            var validation = 100 - (partition.training + partition.testing);
+            if (validation > 0) {
+                partition.validation = parseFloat(validation.toFixed(2));
+            }
+        }
+        panelState.enableField('partition', 'validation', false);
+    }
+
+    $scope.whenSelected = function() {
+        updatePercents();
+        updatePartitionMethod();
+    };
+    $scope.watchFields = [
+        ['partition.training', 'partition.testing'], updatePercents,
+        ['partition.method'], updatePartitionMethod,
+    ];
+});
+
+SIREPO.viewLogic('dataFileView', function(appState, panelState, $scope) {
+
+    function processAppMode() {
+        const appMode = appState.models.dataFile.appMode;
+        panelState.showField(
+            'dataFile', 'inputsScaler',
+            ['regression', 'classification'].includes(appMode));
+        panelState.showField(
+            'dataFile', 'outputsScaler',
+            appMode == 'regression');
+    }
+
+    $scope.whenSelected = processAppMode;
+    $scope.watchFields = [
+        ['dataFile.appMode'], processAppMode,
+    ];
 });

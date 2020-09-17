@@ -85,7 +85,7 @@ def _run_dvh(data, cfg_dir):
         if dvh_report['dvhVolume'] == 'relative':
             if dvh_report['dvhType'] == 'differential':
                 counts = counts[::-1].cumsum()[::-1]
-            if len(counts) and counts.max() > 0:
+            if counts.any() and counts.max() > 0:
                 counts = 100 * counts / counts.max()
             if dvh_report['dvhType'] == 'differential':
                 counts = np.append(abs(np.diff(counts) * -1), [0])

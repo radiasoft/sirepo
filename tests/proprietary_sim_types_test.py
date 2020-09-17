@@ -20,7 +20,9 @@ def setup_module(module):
 def test_myapp(auth_fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdlog, pkdexc, pkdp
+    import sirepo.pkcli.setup_dev
 
+    sirepo.pkcli.setup_dev.default_command()
     fc = auth_fc
     # POSIT: Guests get all roles
     fc.sr_get('authGuestLogin', {'simulation_type': fc.sr_sim_type})

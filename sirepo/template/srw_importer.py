@@ -590,7 +590,7 @@ def _parsed_dict(v, op):
         if v.ebm_nms == 'Day1':
             v.ebm_nms = 'Day 1'
         full_beam_name = '{}{}'.format(v.ebm_nm, v.ebm_nms)
-        if not len(full_beam_name):
+        if not full_beam_name:
             full_beam_name = 'Electron Beam'
         electronBeam = pkcollections.Dict()
         for b in predefined_beams:

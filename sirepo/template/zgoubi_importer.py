@@ -37,12 +37,12 @@ def import_file(text, unit_test_mode=False):
     title = re.sub(r'\s+', ' ', title)
     title = re.sub(r'^\s+|\s+$', '', title)
     data.models.simulation.name = title if title else 'zgoubi'
-    if len(unhandled_elements):
+    if unhandled_elements:
         data.models.simulation.warnings = 'Unsupported Zgoubi elements: {}'.format(', '.join(unhandled_elements))
     info = _validate_and_dedup_elements(data, elements)
     _validate_element_names(data, info)
     LatticeUtil(data, _SCHEMA).sort_elements_and_beamlines()
-    if 'missingFiles' in info and len(info.missingFiles):
+    if 'missingFiles' in info and info.missingFiles:
         data.error = 'Missing data files'
         data.missingFiles = info.missingFiles
     _update_report_parameters(data)
@@ -363,7 +363,7 @@ def _tosca_length(tosca, lines):
                 col2.append(zgoubi_parser.parse_float(values[2]))
             except ValueError:
                 pass
-    if not len(col2):
+    if not col2:
         return None, 'missing column 2 data in file: {}'.format(tosca.magnetFile)
     # scaled by unit conversion XN
     return (max(col2) - min(col2)) / 100.0 * tosca.XN, None
@@ -509,7 +509,7 @@ def _validate_model(model_type, model, missing_files):
         model.name = ''
     MODEL_UNITS.scale_from_native(model_type, model)
     for f in list(model.keys()):
-        if isinstance(model[f], list) and len(model[f]) and 'type' in model[f][0]:
+        if isinstance(model[f], list) and model[f] and 'type' in model[f][0]:
             for sub_model in model[f]:
                 _validate_model(sub_model.type, sub_model, missing_files)
             continue

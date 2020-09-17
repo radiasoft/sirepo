@@ -401,7 +401,7 @@ SIREPO.app.directive('confirmationModal', function() {
     };
 });
 
-SIREPO.app.directive('copyConfirmation', function(appState, fileManager) {
+SIREPO.app.directive('copyConfirmation', function(appState, fileManager, stringsService) {
     return {
         restrict: 'A',
         scope: {
@@ -410,7 +410,7 @@ SIREPO.app.directive('copyConfirmation', function(appState, fileManager) {
             disabled: '<',
         },
         template: [
-            '<div data-confirmation-modal="" data-id="sr-copy-confirmation" data-title="Copy Simulation" data-ok-text="Create Copy" data-ok-clicked="copy()">',
+            '<div data-confirmation-modal="" data-id="sr-copy-confirmation" data-title="Copy {{ ::stringsService.formatKey(\'simulationDataType\') }}" data-ok-text="Create Copy" data-ok-clicked="copy()">',
               '<form class="form-horizontal" autocomplete="off">',
                 '<div class="form-group">',
                 '<label class="col-sm-3 control-label">New Name</label>',
@@ -429,6 +429,7 @@ SIREPO.app.directive('copyConfirmation', function(appState, fileManager) {
             '</div>',
         ].join(''),
         controller: function($scope) {
+            $scope.stringsService = stringsService;
             $scope.showFolders = function () {
                 return fileManager.getUserFolderPaths().length > 1;
             };
@@ -1460,8 +1461,9 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
         template: [
             '<div class="col-sm-12" ng-bind-html="message()"><br><br></div>',
         ].join(''),
-        controller: function($scope, $sce, appState) {
+        controller: function(appState, stringsService, $sce, $scope) {
 
+            //TODO(pjm): move into stringsService
             function format(template, args) {
                 return template.replace(
                     /{(\w*)}/g,
@@ -1477,15 +1479,22 @@ SIREPO.app.directive('simulationStoppedStatus', function(authState) {
             $scope.message = function() {
                 if ($scope.simState.isStatePurged()) {
                     return $sce.trustAsHtml([
-                        '<div>Simulation data purged on ' + appState.formatDate($scope.simState.getDbUpdateTime()) + '.</div>',
-                        '<div>Upgrade to ' + authState.upgradePlanLink() + ' for persistent data storage.</div>',
+                        `<div>Data purged on ${appState.formatDate($scope.simState.getDbUpdateTime())}.</div>`,
+                        `<div>Upgrade to ${authState.upgradePlanLink()} for persistent data storage.</div>`,
                     ].join(''));
                 }
 
-                var s = SIREPO.APP_SCHEMA.strings;
-                var f = $scope.simState.getFrameCount();
+                const s = SIREPO.APP_SCHEMA.strings;
+                const f = $scope.simState.getFrameCount();
                 var c = f > 0 ? s.completionState : '';
-                var a = {state: $scope.simState.stateAsText(), frameCount: f};
+                if ($scope.simState.controller.simCompletionState) {
+                    c = $scope.simState.controller.simCompletionState(c);
+                }
+                const a = {
+                    frameCount: f,
+                    typeOfSimulation: stringsService.formatKey('typeOfSimulation'),
+                    state: $scope.simState.stateAsText()
+                };
                 return  $sce.trustAsHtml(
                     '<div>' +
                     format(s.simulationState + c, a) +
@@ -1972,7 +1981,6 @@ SIREPO.app.directive('appHeaderLeft', function(appState, authState, panelState) 
         restrict: 'A',
         scope: {
             nav: '=appHeaderLeft',
-            simulationsLinkText: '@',
         },
         template: [
             '<ul class="nav navbar-nav" data-ng-if=":: authState.isLoggedIn">',
@@ -1983,11 +1991,10 @@ SIREPO.app.directive('appHeaderLeft', function(appState, authState, panelState) 
                 '<a href data-ng-click="showSimulationLink()" class="glyphicon glyphicon-link"></a>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, stringsService) {
             $scope.authState = authState;
-            if (! $scope.simulationsLinkText) {
-                $scope.simulationsLinkText = 'Simulations';
-            }
+            $scope.simulationsLinkText = stringsService.formatKey('simulationDataTypePlural');
+
             $scope.showTitle = function() {
                 return appState.isLoaded();
             };
@@ -2040,7 +2047,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                     '</li>',
                 '</ul>',
                 '<ul class="nav navbar-nav" data-ng-show="nav.isActive(\'simulations\')">',
-                    '<li class="sr-new-simulation-item"><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> New Simulation</a></li>',
+                    '<li class="sr-new-simulation-item"><a href data-ng-click="showSimulationModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> {{ newSimulationLabel() }}</a></li>',
                     '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
                     '<li data-ng-transclude="appHeaderRightSimListSlot"></li>',
                 '</ul>',
@@ -2063,16 +2070,20 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
            scope.nav.hasDocumentationUrl = scope.hasDocumentationUrl;
            scope.nav.openDocumentation = scope.openDocumentation;
            scope.nav.modeIsDefault = scope.modeIsDefault;
+           scope.nav.newSimulationLabel = scope.newSimulationLabel;
            scope.nav.showSimulationModal = scope.showSimulationModal;
            scope.nav.showImportModal = scope.showImportModal;
 
            scope.fileManager = fileManager;
         },
-        controller: function($scope) {
+        controller: function($scope, stringsService) {
             $scope.authState = authState;
 
             $scope.modeIsDefault = function () {
                 return appDataService.isApplicationMode('default');
+            };
+            $scope.newSimulationLabel = function () {
+                return stringsService.newSimulationLabel();
             };
             $scope.isLoaded = function() {
                 if ($scope.nav.isActive('simulations')) {
@@ -2233,7 +2244,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
     };
 });
 
-SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileManager, panelState, requestSender, $compile, $window, $timeout) {
+SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileManager, panelState, requestSender, stringsService, $compile, $timeout, $window) {
 
     return {
         restrict: 'A',
@@ -2253,13 +2264,14 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                     '<li><a href data-ng-if="nav.modeIsDefault()" data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
                     '<li><a href data-ng-click="exportArchive(\'zip\')"><span class="glyphicon glyphicon-cloud-download"></span> Export as ZIP</a></li>',
                     '<li><a href data-ng-click="pythonSource()"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Python Source</a></li>',
+                    '<li data-ng-if="::canExportJupyter()"><a href data-ng-click="exportJupyterNotebook()"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as Jupyter Notebook</a></li>',
                     '<li data-ng-if="::canExportMadx()" ><a href data-ng-click="pythonSource(\'madx\')"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as MAD-X lattice</a></li>',
                     '<li data-ng-if="canCopy()"><a href data-ng-click="copyItem()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>',
                     '<li data-ng-if="isExample()"><a href data-target="#reset-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-repeat"></span> Discard Changes to Example</a></li>',
                     '<li data-ng-if="! isExample()"><a href data-target="#delete-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-trash"></span> Delete</a></li>',
                     '<li data-ng-if="hasRelatedSimulations()" class="divider"></li>',
                     '<li data-ng-if="hasRelatedSimulations()" class="sr-dropdown-submenu">',
-                      '<a href><span class="glyphicon glyphicon-menu-left"></span> Related Simulations</a>',
+                      '<a href><span class="glyphicon glyphicon-menu-left"></span> Related {{ ::stringsService.formatKey(\'simulationDataTypePlural\') }}</a>',
                       '<ul class="dropdown-menu">',
                         '<li data-ng-repeat="item in relatedSimulations"><a href data-ng-click="openRelatedSimulation(item)">{{ item.name }}</a></li>',
                       '</ul>',
@@ -2269,7 +2281,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
               '</ul>',
         ].join(''),
         controller: function($scope) {
-
+            $scope.stringsService = stringsService;
             var currentSimulationId = null;
 
             // We don't add this modal unless we need it
@@ -2285,6 +2297,14 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
 
             $scope.canExportMadx = function() {
                 return SIREPO.appMadxExport;
+            };
+
+            $scope.canExportJupyter = function() {
+                return SIREPO.appJupyterExport;
+            };
+
+            $scope.exportJupyterNotebook = function(modelName) {
+                panelState.exportJupyterNotebook($scope.simulationId(), modelName);
             };
 
             $scope.simulationId = function () {
@@ -2592,9 +2612,12 @@ SIREPO.app.directive('commonFooter', function() {
         template: [
             '<div data-delete-simulation-modal="nav"></div>',
             '<div data-reset-simulation-modal="nav"></div>',
-            '<div data-modal-editor="" view-name="simulation"></div>',
+            '<div data-modal-editor="" view-name="simulation" modal-title="simulationModalTitle"></div>',
             '<div data-sbatch-login-modal=""></div>',
         ].join(''),
+        controller: function($scope, appState, stringsService) {
+            $scope.simulationModalTitle = stringsService.formatKey('simulationDataType');
+        }
     };
 });
 
@@ -3336,7 +3359,7 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                 '<div class="col-sm-12 text-right {{textClass()}}" data-ng-show="connectionStatusMessage()">{{ connectionStatusMessage() }}</div>',
             '</div>',
         ].join(''),
-        controller: function($scope, authState, sbatchLoginStatusService) {
+        controller: function($scope, authState, sbatchLoginStatusService, stringsService) {
             $scope.sbatchQueueFieldIsDirty = false;
             function trimHoursAndCores() {
                 var m = appState.models[$scope.simState.model];
@@ -3364,7 +3387,7 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                 var s = 'connected to ' +
                     authState.jobRunModeMap[appState.models[$scope.simState.model].jobRunMode];
                 if (sbatchLoginStatusService.loggedIn) {
-                    s += '. To start press "' + $scope.simState.startButtonLabel() + '"';
+                    s += `. To start press "${stringsService.startButtonLabel()}"`;
                 }
                 else {
                     s = 'not ' + s;
@@ -3452,7 +3475,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             '<div data-ng-if="errorMessage()"><div class="text-danger"><strong>{{ ::appName }} Error:</strong></div><pre>{{ errorMessage() }}</pre></div>',
             '<div data-ng-if="alertMessage()"><div class="text-warning"><strong>{{ ::appName }} Alert:</strong></div><pre>{{ alertMessage() }}</pre></div>',
         ].join(''),
-        controller: function($scope, appState, authState) {
+        controller: function($scope, appState, authState, stringsService) {
             $scope.appName = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName;
 
             function callSimState(method) {
@@ -3472,8 +3495,8 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             };
 
             $scope.initMessage = function() {
-                return callSimState('initMessage')
-                    || 'Running Simulation';
+                const s = SIREPO.APP_SCHEMA.strings;
+                return s.initMessage || `Running ${stringsService.ucfirst(s.typeOfSimulation)}`;
             };
 
             $scope.runningMessage = function() {
@@ -3492,11 +3515,11 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             };
 
             $scope.startButtonLabel = function() {
-                return callSimState('startButtonLabel');
+                return stringsService.startButtonLabel();
             };
 
             $scope.stopButtonLabel = function() {
-                return callSimState('stopButtonLabel') || 'End Simulation';
+                return stringsService.stopButtonLabel();
             };
         },
     };

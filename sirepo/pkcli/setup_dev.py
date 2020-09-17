@@ -33,19 +33,27 @@ def _proprietary_codes():
     Args:
       uri (str): where to get RPM (file:// or http://)
     """
-    import urllib.request
     import sirepo.feature_config
-    import sirepo.srdb
     import sirepo.sim_data
+    import sirepo.srdb
+    import urllib.error
+    import urllib.request
 
     for s in sirepo.feature_config.cfg().proprietary_sim_types:
-        d = sirepo.srdb.proprietary_code_dir(s)
-        if d.exists():
-            continue
-        urllib.request.urlretrieve(
-            # POSIT: download/installers/rpm-code/dev-build.sh
-            f'{cfg.proprietary_code_uri}/rscode-{s}-dev.rpm',
-            pkio.mkdir_parent(d).join(
-                sirepo.sim_data.get_class(s).proprietary_code_rpm(),
-            ),
+        r = pkio.mkdir_parent(
+            sirepo.srdb.proprietary_code_dir(s),
+        ).join(
+            sirepo.sim_data.get_class(s).proprietary_code_rpm(),
         )
+        # POSIT: download/installers/rpm-code/dev-build.sh
+        u = f'{cfg.proprietary_code_uri}/rscode-{s}-dev.rpm'
+        try:
+            urllib.request.urlretrieve(u, r)
+        except urllib.error.URLError as e:
+            if not isinstance(e.reason, FileNotFoundError):
+                raise
+            pkdlog('uri={} not found; mocking empty rpm={}', u, r)
+            pkio.write_text(
+                r,
+                'mocked by sirepo.pkcli.setup_dev',
+            )

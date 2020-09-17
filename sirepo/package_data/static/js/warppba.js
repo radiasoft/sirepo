@@ -68,10 +68,6 @@ SIREPO.app.controller('WarpPBADynamicsController', function(appState, frameCache
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
-
-    self.simState.initMessage = function() {
-        return 'Initializing Laser Pulse and Plasma';
-    };
 });
 
 SIREPO.app.controller('WarpPBASourceController', function(appState, frameCache, warpPBAService, $scope) {

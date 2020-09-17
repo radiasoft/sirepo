@@ -92,6 +92,8 @@ class LatticeIterator(ElementIterator):
 
 
 class LatticeParser(object):
+    COMMAND_PREFIX = 'command_'
+
     def __init__(self, sim_data):
         self.sim_data = sim_data
         self.schema = sim_data.schema()
@@ -146,8 +148,10 @@ class LatticeParser(object):
     def _eval_var(self, code_var, value):
         return code_var.eval_var_with_assert(value)
 
-    def __format_command(self, name):
-        return f'command_{name}'
+
+    @classmethod
+    def _format_command(cls, name):
+        return f'{cls.COMMAND_PREFIX}{name}'
 
     def _format_length(self, length):
         res = '{:.8E}'.format(length)
@@ -193,7 +197,7 @@ class LatticeParser(object):
         beamline_id = None
         if name:
             beamline_id = self.elements_by_name[name].id
-        elif len(self.data.models.beamlines):
+        elif self.data.models.beamlines:
             beamline_id = self.data.models.beamlines[-1].id
         self.data.models.simulation.activeBeamlineId = \
             self.data.models.simulation.visualizationBeamlineId = beamline_id
@@ -245,6 +249,9 @@ class LatticeParser(object):
             assert 'at' in res, 'sequence element missing "at": {}'.format(values)
             at = res.at
             del res['at']
+            assert label, 'unlabeled element: {}'.format(values)
+            assert label.upper() not in self.elements_by_name, \
+                'duplicate element in sequence: {}'.format(label)
             if cmd not in self.schema.model:
                 parent = self.elements_by_name[cmd]
                 assert parent
@@ -252,7 +259,6 @@ class LatticeParser(object):
                 if len(res) == 3:
                     self.container['items'].append([parent._id, at])
                     return
-            assert label, 'unlabeled element: {}'.format(values)
             self.container['items'].append([res._id, at])
         assert 'at' not in res
         # copy in superclass values
@@ -263,16 +269,15 @@ class LatticeParser(object):
             res.type = parent.type
             cmd = parent.type
         self.sim_data.update_model_defaults(res, res.type)
-        self.data.models.elements.append(res)
         if not label:
             label = values[0].upper()
             assert label in self.elements_by_name, 'no element for label: {}: {}'.format(label, values)
             self.elements_by_name[label].update(res)
-        elif label.upper() in self.elements_by_name:
-            pkdlog('duplicate label: {}', values)
         else:
+            assert label.upper() not in self.elements_by_name, \
+                'duplicate element labeled: {}'.format(label)
             self.elements_by_name[label.upper()] = res
-        return res
+        self.data.models.elements.append(res)
 
     def __parse_fields(self, cmd, values, res):
         model_schema = self.schema.model.get(cmd)
@@ -352,18 +357,18 @@ class LatticeParser(object):
                 type=cmd,
                 _id=self.parser.next_id(),
             )
-            self.__parse_fields(self.__format_command(cmd), values, self.container)
+            self.__parse_fields(self._format_command(cmd), values, self.container)
             self.container['items'] = []
             if cmd == 'sequence':
                 self.data.models.sequences.append(self.container)
                 return
-        if self.__format_command(cmd) in self.schema.model:
+        if self._format_command(cmd) in self.schema.model:
             res = PKDict(
                 _type=cmd,
                 _id=self.parser.next_id(),
                 name=label,
             )
-            self.__parse_fields(self.__format_command(cmd), values, res)
+            self.__parse_fields(self._format_command(cmd), values, res)
             self.sim_data.update_model_defaults(res, LatticeUtil.model_name_for_data(res))
             self.data.models.commands.append(res)
         elif cmd == 'line':
@@ -379,7 +384,7 @@ class LatticeParser(object):
                 pkdlog('unknown cmd: {}', values)
 
     def __parse_values(self, values):
-        if not len(values):
+        if not values:
             return
         if len(values) == 1 and '=' in values[0] and not re.search(r'\Wline\s*=\s*\(', values[0].lower()):
             # a variable assignment
@@ -405,7 +410,7 @@ class LatticeParser(object):
     def __split_values(self, item):
         # split items into values by commas
         values = []
-        while item and len(item):
+        while item:
             item = item.strip()
             m = re.match(
                 r'^\s*((?:[\w.\']+\s*:?=\s*)?(?:(?:".*?")|(?:\'.*?\')|(?:\{.*?\})|(?:\w+\(.*?\))))(?:,(.*))?$',
@@ -480,7 +485,8 @@ class LatticeUtil(object):
     def model_name_for_data(cls, model):
         """Returns the model's schema name.
         """
-        return 'command_{}'.format(model._type) if cls.is_command(model) else model.type
+        return LatticeParser._format_command(model._type) if cls.is_command(model) \
+            else model.type
 
     def render_lattice(self, fields, quote_name=False, want_semicolon=False, want_name=True, want_var_assign=False):
         """Render lattice elements.
@@ -499,8 +505,10 @@ class LatticeUtil(object):
                 res += '{},'.format(el_type)
             for f in el[1]:
                 var_assign = ''
-                if want_var_assign and CodeVar.is_var_value(f[1]):
-                    var_assign = ':'
+                if want_var_assign:
+                    s = self.schema.model[el_type]
+                    if f[0] in s and s[f[0]][1] == 'RPNValue' and CodeVar.is_var_value(f[1]):
+                        var_assign = ':'
                 res += '{}{}={},'.format(f[0], var_assign, f[1])
             res = res[:-1]
             if want_semicolon:
@@ -558,7 +566,7 @@ class LatticeUtil(object):
                 #TODO(pjm): some old elegant sims have overlap in element and command ids
                 if cmd._id not in res:
                     res[cmd._id] = cmd
-        max_id = max(res.keys()) if len(res) else 0
+        max_id = max(res.keys()) if res else 0
         return res, max_id
 
     def __render_beamline(self, quote_name=False, want_semicolon=False, want_var_assign=False):

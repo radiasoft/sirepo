@@ -19,39 +19,32 @@ import sirepo.sim_data
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals('elegant')
 
 
-def _init_types():
-    res = PKDict()
-    for name in _SCHEMA['model']:
-        if name.startswith('command_'):
-            name = re.sub(r'^command_', '', name)
-            res[name] = True
-    return res
-
-
-_ELEGANT_TYPES = _init_types()
+p = lattice.LatticeParser.COMMAND_PREFIX
+_TYPES = set([n[len(p):] for n in _SCHEMA['model'] if n.startswith(p)])
+del p
 
 
 def import_file(text):
     commands = elegant_command_parser.parse_file(text)
-    if not len(commands):
+    if not commands:
         raise IOError('no commands found in file')
     _verify_lattice_name(commands)
     rpn_variables = PKDict()
     # iterate commands, validate values and set defaults from schema
     for cmd in commands:
         cmd_type = cmd['_type']
-        if not cmd_type in _ELEGANT_TYPES:
+        if not cmd_type in _TYPES:
             raise IOError('unknown command: {}'.format(cmd_type))
         elegant_lattice_importer.validate_fields(cmd, PKDict())
         # convert macro variables into rpnVariables
-        model_name = lattice.LatticeUtil.model_name_for_data(cmd)
+        n = lattice.LatticeUtil.model_name_for_data(cmd)
         for field in cmd:
-            el_schema = _SCHEMA.model[model_name].get(field)
+            el_schema = _SCHEMA.model[n].get(field)
             if el_schema and el_schema[1] == 'RPNValue':
-                m = re.search('^<(\w+)>$', str(cmd[field]))
+                m = re.search(r'^<(\w+)>$', str(cmd[field]))
                 if m:
                     cmd[field] = m.group(1)
-                    rpn_variables[cmd[field]] = _SIM_DATA.model_defaults(model_name).get(field, 0)
+                    rpn_variables[cmd[field]] = _SIM_DATA.model_defaults(n).get(field, 0)
 
     data = simulation_db.default_data(SIM_TYPE)
     #TODO(pjm) javascript needs to set bunch, bunchSource, bunchFile values from commands

@@ -271,7 +271,7 @@ def validate_file(file_type, path):
     assert file_type == 'ring-lattice'
     for line in pkio.read_text(str(path)).split("\n"):
         # mad-x twiss column header starts with '*'
-        match = re.search('^\*\s+(.*?)\s*$', line)
+        match = re.search(r'^\*\s+(.*?)\s*$', line)
         if match:
             columns = re.split(r'\s+', match.group(1))
             is_ok = True
@@ -338,7 +338,7 @@ def _compute_range_across_files(run_dir, data):
         res.update(res2)
     #TODO(pjm): particleAnimation dp/p collides with beamEvolutionAnimation dp/p
     ion_files = _ion_files(run_dir)
-    if len(ion_files):
+    if ion_files:
         res2 = PKDict()
         for v in _SCHEMA.enum.ParticleColumn:
             res2[_map_field_name(v[0])] = []
@@ -358,7 +358,7 @@ def _compute_sdds_range(res, sdds_index=0):
     column_names = sdds.sddsdata.GetColumnNames(sdds_index)
     for field in res:
         values = sdds.sddsdata.GetColumn(sdds_index, column_names.index(field))
-        if len(res[field]):
+        if res[field]:
             res[field][0] = _safe_sdds_value(min(min(values), res[field][0]))
             res[field][1] = _safe_sdds_value(max(max(values), res[field][1]))
         else:

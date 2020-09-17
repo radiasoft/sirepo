@@ -41,12 +41,13 @@ def _do(fc, file_ext, parse):
     from pykern import pkio, pkcompat
     from pykern import pkunit
     from pykern import pkcollections
-    from pykern.pkdebug import pkdp
+    from pykern.pkdebug import pkdp, pkdlog
     from pykern.pkunit import pkeq, pkfail, pkok, pkre
     import re
 
     for suffix in (('',) if file_ext == 'py' else ('', ' 2', ' 3')):
         for f in pkio.sorted_glob(pkunit.data_dir().join('*.' + file_ext)):
+            pkdlog('file={}', f)
             json = pkcompat.from_bytes(parse(f))
             sim_type = re.search(r'^([a-z]+)_', f.basename).group(1)
             fc.sr_get_root(sim_type)
@@ -67,4 +68,6 @@ def _do(fc, file_ext, parse):
                 sim_name = f.purebasename
             else:
                 sim_name = pkcollections.json_load_any(json).models.simulation.name
+            assert 'models' in res, \
+                f'file={f} res={res}'
             pkeq(sim_name + suffix, res.models.simulation.name)

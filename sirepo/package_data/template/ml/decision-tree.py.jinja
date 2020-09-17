@@ -1,0 +1,21 @@
+
+from pykern import pkjson
+from pykern.pkcollections import PKDict
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+
+classifier_dt = DecisionTreeClassifier()
+classifier_dt.fit(train[:, in_idx], np.ravel(train[:, out_idx]))
+y_pred_dt = classifier_dt.predict(test[:, in_idx])
+pkjson.dump_pretty(
+    classification_report(test[:, out_idx], y_pred_dt, output_dict=True),
+    filename='{{ dtClassifierClassificationFile }}',
+)
+l = np.unique(y_pred_dt).tolist()
+pkjson.dump_pretty(
+    PKDict(
+    labels=l,
+    matrix=confusion_matrix(test[:, out_idx], y_pred_dt, labels=l).tolist(),
+    ),
+    filename='{{ dtClassifierConfusionFile }}',
+)

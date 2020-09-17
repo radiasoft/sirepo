@@ -264,6 +264,9 @@
         },
         "simulationStatus": {}
     },
+    "strings": {
+        "initMessage": "Initializing Laser Pulse and Plasma"
+    },
     "view": {
         "beamAnimation": {
             "title": "Electron Beam Animation",

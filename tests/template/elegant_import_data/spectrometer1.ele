@@ -1,7 +1,7 @@
 ! Design a simple spectrometer---M. Borland (ANL)
 
 &run_setup
-        lattice = lattice.lte
+        lattice = spectrometer1.ele.lte
         p_central_mev = 100
         use_beamline = bl
         final = %s.fin

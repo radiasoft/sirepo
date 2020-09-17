@@ -13,7 +13,8 @@ import ast
 import math
 import re
 
-class CodeVar(object):
+
+class CodeVar():
 
     _INFIX_TO_RPN = PKDict({
         ast.Add: '+',
@@ -35,7 +36,9 @@ class CodeVar(object):
     def compute_cache(self, data, schema):
         if 'models' not in data:
             return None
-        cache = lattice.LatticeUtil(data, schema).iterate_models(CodeVarIterator(self)).result
+        cache = lattice.LatticeUtil(data, schema).iterate_models(
+            CodeVarIterator(self),
+        ).result
         for name, value in self.variables.items():
             v, err = self.eval_var(value)
             if not err:
@@ -84,8 +87,15 @@ class CodeVar(object):
             return True
         if args.method == 'validate_rpn_delete':
             model_data = simulation_db.read_json(
-                simulation_db.sim_data_file(args.simulationType, args.simulationId))
-            args.error = self.validate_var_delete(args.name, model_data, schema)
+                simulation_db.sim_data_file(
+                    args.simulationType,
+                    args.simulationId,
+                ))
+            args.error = self.validate_var_delete(
+                args.name,
+                model_data,
+                schema,
+            )
             return True
         return False
 
@@ -103,7 +113,11 @@ class CodeVar(object):
                         # avoid circular dependencies
                         return depends
                     visited[v] = True
-                    self.get_expr_dependencies(self.postfix_variables[v], depends, visited)
+                    self.get_expr_dependencies(
+                        self.postfix_variables[v],
+                        depends,
+                        visited,
+                    )
                     depends.append(v)
         return depends
 
@@ -112,7 +126,9 @@ class CodeVar(object):
         visited = PKDict()
         variables = self.postfix_variables if postfix else self.variables
         for name in sorted(variables):
-            for dependency in self.get_expr_dependencies(self.postfix_variables[name]):
+            for dependency in self.get_expr_dependencies(
+                self.postfix_variables[name],
+            ):
                 res += variable_formatter(dependency, variables, visited)
             res += variable_formatter(name, variables, visited)
         return res
@@ -131,11 +147,19 @@ class CodeVar(object):
             for v in str(value).split(' '):
                 if v == name:
                     in_use.append(k)
-        if len(in_use):
-            return '"{}" is in use in variable(s): {}'.format(name, ', '.join(in_use))
-        in_use = lattice.LatticeUtil(data, schema).iterate_models(CodeVarDeleteIterator(self, name)).result
-        if len(in_use):
-            return '"{}" is in use in element(s): {}'.format(name, ', '.join(in_use))
+        if in_use:
+            return '"{}" is in use in variable(s): {}'.format(
+                name,
+                ', '.join(in_use),
+            )
+        in_use = lattice.LatticeUtil(data, schema).iterate_models(
+            CodeVarDeleteIterator(self, name),
+        ).result
+        if in_use:
+            return '"{}" is in use in element(s): {}'.format(
+                name,
+                ', '.join(in_use),
+            )
         return None
 
     @classmethod
@@ -150,7 +174,7 @@ class CodeVar(object):
 
     @classmethod
     def is_var_value(cls, value):
-        if (value):
+        if value:
             # is it a single value in numeric format?
             if template_common.NUMERIC_RE.search(str(value)):
                 return False
@@ -166,7 +190,7 @@ class CodeVar(object):
         def _do(n):
             # http://greentreesnakes.readthedocs.io/en/latest/nodes.html
             if isinstance(n, ast.Str):
-                assert not re.search('^[^\'"]*$', n.s), \
+                assert not re.search(r'^[^\'"]*$', n.s), \
                     '{}: invalid string'.format(n.s)
                 return ['"{}"'.format(n.s)]
             elif isinstance(n, ast.Name):
@@ -187,7 +211,8 @@ class CodeVar(object):
             elif isinstance(n, ast.UnaryOp):
                 return _do(n.operand) + _do(n.op)
             elif isinstance(n, ast.IfExp):
-                return _do(n.test) + ['?'] + _do(n.body) + [':'] + _do(n.orelse) + ['$']
+                return _do(n.test) + ['?'] + _do(n.body) + [':'] \
+                    + _do(n.orelse) + ['$']
             # convert an attribute-like value, ex. l.MQ, into a string "l.MQ"
             elif isinstance(n, ast.Attribute):
                 return ['{}.{}'.format(_do(n.value)[0], n.attr)]
@@ -244,16 +269,19 @@ class CodeVarDeleteIterator(lattice.ModelIterator):
         self.name = name
 
     def field(self, model, field_schema, field):
-        if field_schema[1] == 'RPNValue' and self.code_var.is_var_value(model[field]):
+        if field_schema[1] == 'RPNValue' \
+           and self.code_var.is_var_value(model[field]):
             for v in str(model[field]).split(' '):
                 if v == self.name:
                     if lattice.LatticeUtil.is_command(model):
                         self.result.append('{}.{}'.format(model._type, field))
                     else:
-                        self.result.append('{} {}.{}'.format(model.type, model.name, field))
+                        self.result.append(
+                            '{} {}.{}'.format(model.type, model.name, field),
+                        )
 
 
-class PurePythonEval(object):
+class PurePythonEval():
 
     _OPS = PKDict({
         '+': lambda a, b: a + b,
@@ -280,7 +308,11 @@ class PurePythonEval(object):
     def eval_var(self, expr, depends, variables):
         variables = variables.copy()
         for d in depends:
-            v, err = PurePythonEval.__eval_python_stack(self, variables[d], variables)
+            v, err = PurePythonEval.__eval_python_stack(
+                self,
+                variables[d],
+                variables,
+            )
             if err:
                 return None, err
             variables[d] = v
@@ -299,7 +331,9 @@ class PurePythonEval(object):
             elif v in PurePythonEval._KEYWORDS:
                 try:
                     op = PurePythonEval._OPS[v]
-                    args = reversed([float(stack.pop()) for _ in range(op.__code__.co_argcount)])
+                    args = reversed(
+                        [float(stack.pop()) for _ in range(op.__code__.co_argcount)],
+                    )
                     stack.append(op(*args))
                 except IndexError:
                     return None, 'too few items on stack'

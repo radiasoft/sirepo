@@ -306,7 +306,7 @@ def _particle_selection_args(args):
             if min == 0 and max == 0:
                 continue
             res[field] = [min, max]
-    return res if len(res.keys()) else None
+    return res if res.keys() else None
 
 
 def _read_field_circ(filename):

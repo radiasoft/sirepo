@@ -409,7 +409,8 @@
         }
     },
     "strings": {
-        "completionState": ""
+        "completionState": "",
+        "typeOfSimulation": "solve"
     },
     "view": {
         "circlePath": {

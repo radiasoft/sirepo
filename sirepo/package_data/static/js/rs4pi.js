@@ -285,31 +285,36 @@ SIREPO.app.directive('appHeader', function(appState, fileManager, panelState, rs
         },
         template: [
             '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav" data-simulations-link-text="Studies"></div>',
+            '<div data-app-header-left="nav"></div>',
             '<ul class="nav navbar-nav navbar-right" data-login-menu=""></ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
               '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-equalizer"></span> Structure</a></li>',
               '<li data-ng-show="rs4piService.hasDoseFrames()" data-ng-class="{active: nav.isActive(\'dose\')}"><a href data-ng-click="nav.openSection(\'dose\')"><span class="glyphicon glyphicon-dashboard"></span> Dose</a></li>',
             '</ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
-              '<li><a href data-ng-click="importDicomModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> Import DICOM</a></li>',
+              '<li><a href data-ng-click="importDicomModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> {{ newSimulationLabel() }}</a></li>',
               '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
             '</ul>',
 
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, stringsService) {
             $scope.rs4piService = rs4piService;
-            $scope.isLoaded = function() {
-                return appState.isLoaded();
-            };
-            $scope.showNewFolderModal = function() {
-                appState.models.simFolder.parent = fileManager.defaultCreationFolderPath();
-                panelState.showModalEditor('simFolder');
-            };
             $scope.importDicomModal = function() {
                 $('#dicom-import').modal('show');
             };
 
+            $scope.isLoaded = function() {
+                return appState.isLoaded();
+            };
+
+            $scope.newSimulationLabel = function() {
+                return stringsService.newSimulationLabel();
+            };
+
+            $scope.showNewFolderModal = function() {
+                appState.models.simFolder.parent = fileManager.defaultCreationFolderPath();
+                panelState.showModalEditor('simFolder');
+            };
         },
     };
 });
