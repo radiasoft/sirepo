@@ -24,6 +24,9 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">',
           '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
         '</div>',
+        '<div data-ng-switch-when="HMFile" data-ng-class="fieldClass">',
+          '<input id="radia-h-m-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
+        '</div>',
     ].join('');
     SIREPO.appPanelHeadingButtons = [
         '<div style="display: inline-block">',
@@ -179,6 +182,10 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
             });
     };
 
+    self.upload = function(inputFile) {
+        upload(inputFile);
+    };
+
     function findPath(path) {
         for(var i = 0; i < (appState.models.fieldPaths.paths || []).length; ++i) {
             var p = appState.models.fieldPaths.paths[i];
@@ -202,7 +209,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         return parseInt('' + v);
     }
 
-    function upload(inputFile) {
+    function upload(inputFile, type=SIREPO.APP_SCHEMA.constants.pathPtsFileType) {
         fileUpload.uploadFileToUrl(
             inputFile,
             {},
@@ -211,10 +218,9 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
                 {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<file_type>': SIREPO.APP_SCHEMA.constants.pathPtsFileType,
+                    '<file_type>': type,
                 }),
             function(d) {
-                //srdbg('UPLOAD DONE', d);
             }, function (err) {
                 throw new Error(inputFile + ': Error during upload ' + err);
             });
@@ -468,10 +474,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
                 let xo = self.getObject(xShape.id);
                 let linkTx;
-                let cloneTx = txArr.slice(0);
-                const ctx = composeFn(cloneTx);
                 if (xform.model === 'cloneTransform') {
+                    let clones = [];
                     for (let i = 1; i <= xform.numCopies; ++i) {
+                        let cloneTx = txArr.slice(0);
+                        linkTx = composeFn(cloneTx);
                         for (let j = 0; j < xform.transforms.length; ++j) {
                             let cloneXform = xform.transforms[j];
                             if (cloneXform.model === 'translateClone') {
@@ -481,8 +488,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                                 cloneTx.push(rotateFn(cloneXform, i));
                             }
                         }
-                        addTxShape(xShape, xform, ctx);
-                        transformMembers(xo, xform, ctx);
+                        addTxShape(xShape, xform, linkTx);
+                        clones.push(...transformMembers(xo, xform, linkTx, clones));
                     }
                 }
                 if (xform.model === 'symmetryTransform') {
@@ -490,8 +497,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     addTxShape(xShape, xform, linkTx);
                     transformMembers(xo, xform, linkTx);
                 }
-
-
             });
         });
 
@@ -515,15 +520,23 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         //srdbg('objs', self.getObjects());
     }
 
-    function transformMembers(o, xform, txFunction) {
+    function transformMembers(o, xform, txFunction, excludedIds=[]) {
+        if (! o) {
+            return;
+        }
+        let txm = [];
         for (let m of getMembers(o)) {
             let shape = self.getShape(m.id);
-            let v = getVirtualShapes(shape);
-            addTxShape(shape, xform, txFunction);
+            let v = getVirtualShapes(shape).filter(function (s) {
+                return excludedIds.indexOf(s.id) < 0;
+            });
+            txm.push(addTxShape(shape, xform, txFunction).id);
             for (let s of v) {
-                addTxShape(s, xform, txFunction);
+                txm.push(addTxShape(s, xform, txFunction).id);
             }
         }
+        //srdbg('txm', txm);
+        return txm;
     }
 
     // recursive dive through all subgroups
@@ -710,7 +723,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function offsetFn(xform, i) {
         return function(shape1, shape2) {
-            var d = radiaService.stringToFloatArray(xform.distance, SIREPO.APP_SCHEMA.constants.objectScale);
+            const d = radiaService.stringToFloatArray(xform.distance, SIREPO.APP_SCHEMA.constants.objectScale);
             shape2.setCenter(
                 shape1.getCenterCoords().map(function (c, j) {
                     return c + i * d[j];
@@ -730,7 +743,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             var angle = Math.PI * parseFloat(xform.angle) / 180.0;
             var a = i * angle;
             var m = geometry.rotationMatrix(ctr, axis, a);
-            //srdbg('rot', shapeCtr4, geometry.vectorMult(m, shapeCtr4));
             shape2.setCenter(geometry.vectorMult(m, shapeCtr4));
             shape2.rotationAngle = -180.0 * a / Math.PI;
             return shape2;
@@ -837,6 +849,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 else {
                     self.selectedObject = null;
                 }
+            }
+            if (o.materialFile) {
+                o.hmFileName = o.materialFile.name;
+                radiaService.upload(o.materialFile, SIREPO.APP_SCHEMA.constants.hmFileType);
             }
             appState.saveChanges('geometry', function (d) {
                 //srdbg('geometry ch', self.selectedObject);

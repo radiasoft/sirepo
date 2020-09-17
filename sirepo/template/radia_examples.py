@@ -159,7 +159,7 @@ def undulator_example():
     # -- general parameters
 
     # number of full magnetic periods
-    n_periods = 1  #2
+    n_periods = 2
 
     # period (mm)
     period = 46
