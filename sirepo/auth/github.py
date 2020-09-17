@@ -7,6 +7,7 @@ GitHub is written Github and github (no underscore or dash) for ease of use.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
@@ -14,12 +15,13 @@ from sirepo import api_perm
 from sirepo import auth
 from sirepo import auth_db
 from sirepo import cookie
+from sirepo import http_reply
 from sirepo import http_request
 from sirepo import uri_router
 from sirepo import util
-import authlib.integrations.flask_client
+import authlib.integrations.base_client
+import authlib.integrations.requests_client
 import flask
-import flask.sessions
 import sqlalchemy
 
 
@@ -42,10 +44,6 @@ _COOKIE_NONCE = 'sragn'
 _COOKIE_SIM_TYPE = 'srags'
 
 
-#: cached for _oauth_client
-_app = None
-
-
 @api_perm.allow_cookieless_set_user
 def api_authGithubAuthorized():
     """Handle a callback from a successful OAUTH request.
@@ -53,18 +51,9 @@ def api_authGithubAuthorized():
     Tracks oauth users in a database.
     """
     # clear temporary cookie values first
-    expect = cookie.unchecked_remove(_COOKIE_NONCE) or '<missing-nonce>'
+    oc = _client(cookie.unchecked_remove(_COOKIE_NONCE))
     t = cookie.unchecked_remove(_COOKIE_SIM_TYPE)
-    oc = _oauth_client()
     if not oc.authorize_access_token():
-        util.raise_forbidden('missing oauth response')
-    got = flask.request.args.get('state', '<missing-state>')
-    if expect != got:
-        pkdlog(
-            'mismatch oauth state: expected {} != got {}',
-            expect,
-            got,
-        )
         auth.login_fail_redirect(t, this_module, 'oauth-state', reload_js=True)
         raise AssertionError('auth.login_fail_redirect returned unexpectedly')
     d = oc.get('user').json()
@@ -91,7 +80,7 @@ def api_authGithubLogin(simulation_type):
         # must be executed in an app and request context so can't
         # initialize earlier.
         cfg.callback_uri = uri_router.uri_for_api('authGithubAuthorized')
-    return _oauth_client().authorize_redirect(redirect_uri=cfg.callback_uri, state=s)
+    return _client(s).authorize_redirect(redirect_uri=cfg.callback_uri, state=s)
 
 
 @api_perm.allow_cookieless_set_user
@@ -108,6 +97,19 @@ def avatar_uri(model, size):
 
 
 def init_apis(*args, **kwargs):
+
+    def _init_model(base):
+        """Creates User class bound to dynamic `db` variable"""
+        global AuthGithubUser, UserModel
+
+        class AuthGithubUser(base):
+            __tablename__ = 'auth_github_user_t'
+            oauth_id = sqlalchemy.Column(sqlalchemy.String(100), primary_key=True)
+            user_name = sqlalchemy.Column(sqlalchemy.String(100), unique=True, nullable=False)
+            uid = sqlalchemy.Column(sqlalchemy.String(8), unique=True)
+
+        UserModel = AuthGithubUser
+
     global cfg
     cfg = pkconfig.init(
         key=pkconfig.Required(str, 'Github key'),
@@ -117,53 +119,46 @@ def init_apis(*args, **kwargs):
     auth_db.init_model(_init_model)
 
 
-class _FlaskSession(dict, flask.sessions.SessionMixin):
-    pass
+class _Client(authlib.integrations.base_client.RemoteApp):
+
+    def __init__(self, state):
+        super().__init__(
+            framework=PKDict(oauth2_client_cls=authlib.integrations.requests_client.OAuth2Session),
+            name='github',
+            access_token_params=None,
+            access_token_url='https://github.com/login/oauth/access_token',
+            api_base_url='https://api.github.com/',
+            authorize_params=None,
+            authorize_url='https://github.com/login/oauth/authorize',
+            client_id=cfg.key,
+            client_kwargs={'scope': 'user:email'},
+            client_secret=cfg.secret,
+        )
+        self.__state = state
+
+    def authorize_access_token(self):
+        assert flask.request.method == 'GET'
+        a = self.__state
+        assert a
+        b = flask.request.args.get('state')
+        if a != b:
+            pkdlog('mismatch oauth state: expected {} != got {}', a, b)
+            return None
+        t = self.fetch_access_token(code=flask.request.args['code'], state=b)
+        self.token = t
+        return t
+
+    def authorize_redirect(self, redirect_uri=None, **kwargs):
+        return http_reply.gen_redirect(
+            self.create_authorization_url(redirect_uri, **kwargs)['url'],
+        )
+
+    def request(self, method, url, token=None, **kwargs):
+        if token is None and not kwargs.get('withhold_token'):
+            token = self.token
+        return super().request(method, url, token=token, **kwargs)
 
 
-class _FlaskSessionInterface(flask.sessions.SessionInterface):
-
-    """Emphemeral session for oauthlib.client state
-
-    Without this class, Flask creates a NullSession which can't
-    be written to. Flask assumes the session needs to be persisted
-    to cookie or a db, which isn't true in our case.
-    """
-    def open_session(*args, **kwargs):
-        return _FlaskSession()
-
-    def save_session(*args, **kwargs):
-        pass
-
-
-def _init_model(base):
-    """Creates User class bound to dynamic `db` variable"""
-    global AuthGithubUser, UserModel
-
-    class AuthGithubUser(base):
-        __tablename__ = 'auth_github_user_t'
-        oauth_id = sqlalchemy.Column(sqlalchemy.String(100), primary_key=True)
-        user_name = sqlalchemy.Column(sqlalchemy.String(100), unique=True, nullable=False)
-        uid = sqlalchemy.Column(sqlalchemy.String(8), unique=True)
-
-    UserModel = AuthGithubUser
-
-
-def _oauth_client():
-    global _app
-    if not _app:
-        _app = util.flask_app()
-        _app.session_interface = _FlaskSessionInterface()
-    r = authlib.integrations.flask_client.OAuth(_app)
-    r.register(
-        access_token_params=None,
-        access_token_url='https://github.com/login/oauth/access_token',
-        api_base_url='https://api.github.com/',
-        authorize_params=None,
-        authorize_url='https://github.com/login/oauth/authorize',
-        client_id=cfg.key,
-        client_kwargs={'scope': 'user:email'},
-        client_secret=cfg.secret,
-        name='github',
-    )
-    return r.create_client('github')
+def _client(state):
+    """Makes it easier to mock, see github_srunit.py"""
+    return _Client(state)

@@ -622,8 +622,6 @@ def init(uwsgi=None, use_reloader=False):
         template_folder=str(simulation_db.STATIC_FOLDER),
     )
     _app.config['PROPAGATE_EXCEPTIONS'] = True
-    if cfg.flask_secret_key:
-        _app.config['SECRET_KEY'] = cfg.flask_secret_key
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
     uri_router.init(_app, simulation_db)
@@ -709,15 +707,8 @@ def static_dir(dir_name):
     return str(simulation_db.STATIC_FOLDER.join(dir_name))
 
 
-def _cfg_flask_secret_key(value):
-    import base64
-
-    return base64.urlsafe_b64decode(value)
-
-
 cfg = pkconfig.init(
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
     db_dir=pkconfig.ReplacedBy('sirepo.srdb.root'),
-    flask_secret_key=(None, _cfg_flask_secret_key, 'only necessary of auth.github configured'),
     google_tag_manager_id=(None, str, 'enable google analytics with this id'),
 )
