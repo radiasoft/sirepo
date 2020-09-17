@@ -454,14 +454,15 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }
 
         let txArr = [];
+        let plIds = [];
         // probably better to create a transform and let svg do this work
         o.transforms.forEach(function (xform) {
             // draw the shapes for symmetry planes once
             if (xform.model === 'symmetryTransform') {
-                addSymmetryPlane(baseShape, xform);
+                plIds.push(...addSymmetryPlane(baseShape, xform));
             }
             // each successive transform must be applied to all previous shapes
-            [baseShape, ...getVirtualShapes(baseShape)].forEach(function (xShape) {
+            [baseShape, ...getVirtualShapes(baseShape, plIds)].forEach(function (xShape) {
                 // these transforms do not copy the object
                 if (xform.model === 'rotate') {
                     txArr.push(rotateFn(xform, 1));
@@ -517,7 +518,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             baseShape.addLink(gShape, fit);
         }
         //srdbg('shapes', self.shapes);
-        //srdbg('objs', self.getObjects());
+        //srdbg(o.id, 'num shapes', self.shapes.length);
     }
 
     function transformMembers(o, xform, txFunction, excludedIds=[]) {
@@ -527,15 +528,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         let txm = [];
         for (let m of getMembers(o)) {
             let shape = self.getShape(m.id);
-            let v = getVirtualShapes(shape).filter(function (s) {
-                return excludedIds.indexOf(s.id) < 0;
-            });
+            let v = getVirtualShapes(shape, excludedIds);
             txm.push(addTxShape(shape, xform, txFunction).id);
             for (let s of v) {
                 txm.push(addTxShape(s, xform, txFunction).id);
             }
         }
-        //srdbg('txm', txm);
         return txm;
     }
 
@@ -554,6 +552,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function addSymmetryPlane(baseShape, xform) {
+        let plIds = [];
         for (let p in vtkPlotting.COORDINATE_PLANES) {
             const cpl = geometry.plane(vtkPlotting.COORDINATE_PLANES[p], geometry.point());
             const spl = geometry.plane(
@@ -571,7 +570,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             );
             pl.coordPlane = p;
             self.shapes.push(pl);
+            plIds.push(pl.id);
         }
+        return plIds;
     }
 
     function addTxShape(sourceShape, xform, link) {
@@ -672,13 +673,14 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         });
     }
 
-    function getVirtualShapes(baseShape) {
+    // may have to flatten
+    function getVirtualShapes(baseShape, excludedIds = []) {
         let v = self.shapes.filter(function (s) {
-            return Math.floor(s.id / maxShapesForLevel) - 1 === baseShape.id;
+            return excludedIds.indexOf(s.id) < 0 && Math.floor(s.id / maxShapesForLevel) - 1 === baseShape.id;
         });
         let v2 = [];
         for (let s of v) {
-            v2.push(...getVirtualShapes(s));
+            v2.push(...getVirtualShapes(s, excludedIds));
         }
         v.push(...v2);
         return v;
