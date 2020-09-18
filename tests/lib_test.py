@@ -24,6 +24,8 @@ def test_elegant():
             d2.pkdel(k)
         pkunit.file_eq(s.join('out.json'), d2)
         w = pkunit.work_dir().join(s.basename)
-        d.write_files(w)
+        r = d.write_files(w)
+        #TODO(robnagler) may not exist in all cases
+        pkunit.pkeq('run_setup.acceptance.sdds', r.output_files[0])
         for o in pkio.sorted_glob(pkunit.data_dir().join(s.basename, '*.out')):
             pkunit.file_eq(o, actual_path=w.join(o.basename).new(ext=''))
