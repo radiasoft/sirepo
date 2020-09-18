@@ -56,6 +56,10 @@ build_as_run_user() {
     cd ..
 }
 
+build_clean_as_root() {
+    build_yum remove fedora-workstation-repositories google-chrome-stable
+}
+
 sirepo_boot_init() {
     mkdir -p "$(dirname "$sirepo_boot")"
     build_replace_vars radia-run.sh "$sirepo_boot"
