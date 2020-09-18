@@ -423,7 +423,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         );
         if (isGroup) {
             shape.outlineOffset = 5.0;
-            shape.strokeWidth = 0.5;
+            shape.strokeWidth = 0.75;
             shape.draggable = false;
         }
         return shape;
