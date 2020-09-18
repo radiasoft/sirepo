@@ -392,7 +392,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         if r == 'beamline3DReport':
             res.append('beamline')
         else:
-            res.append(cls._non_analysis_fields(data, r))
+            res += cls._non_analysis_fields(data, r)
         res += [
             'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
             'simulation.sourceType', 'tabulatedUndulator', 'undulator',
