@@ -159,7 +159,7 @@ class LibAdapter:
         pkio.write_text(r.lattice, v.rpn_variables + v.lattice)
         for f in LatticeUtil(data, _SCHEMA).iterate_models(lattice.InputFileIterator(_SIM_DATA)).result:
             f = _SIM_DATA.lib_file_name_without_type(f)
-            source_path.new(basename=f).copy(dest_dir.join(f), mode=True)
+            dest_dir.join(f).mksymlinkto(source_path.new(basename=f), absolute=False)
         return r
 
     def _lattice_path(self, dest_dir, data):
