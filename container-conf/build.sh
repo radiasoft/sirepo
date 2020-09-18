@@ -21,7 +21,7 @@ build_as_root() {
         https://download.docker.com/linux/fedora/docker-ce.repo
     build_yum install fedora-workstation-repositories
     build_yum config-manager --set-enabled google-chrome
-    build_yum install google-chrome-stable docker-ce
+    build_yum install google-chrome-stable docker-ce-cli
     mkdir "$sirepo_db_dir"
     chown "$build_run_user:" "$sirepo_db_dir"
 }
