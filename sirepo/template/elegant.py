@@ -126,7 +126,7 @@ class LibAdapter:
         for i in d.models.commands:
             _verify_files(i, lattice.LatticeUtil.model_name_for_data(i), i._type, 'command')
         r.lattice = l
-        return d
+        return self._convert(d)
 
     def write_files(self, data, source_path, dest_dir):
         """writes files for the simulation
@@ -165,6 +165,32 @@ class LibAdapter:
         f = g.filename_map
         r.output_files = [f[k] for k in f.keys_in_order]
         return r
+
+    def _convert(self, data):
+
+        r = generate_variables(data)
+
+        def _model(model, schema):
+            for k, x in schema.items():
+                t = x[1]
+                v = model[k] if k in model else x[2]
+                if t == 'RPNValue':
+                    t = 'Float'
+                    if code_variable.CodeVar.is_var_value(v):
+                        model[k] = _code_var(r).eval_var_with_assert(v)
+                        continue
+                if t == 'Float':
+                    model[k] = float(v) if v else 0.
+                elif t == 'Integer':
+                    model[k] = int(v) if v else 0
+
+        s = _SCHEMA.model
+        for k, v in data.models.items():
+            if k in s:
+                _model(v, s[k])
+        for x in ('elements', 'commands'):
+            for m in data.models[x]:
+                _model(m, s[LatticeUtil.model_name_for_data(m)])
 
     def _lattice_path(self, dest_dir, data):
         return dest_dir.join(self._run_setup(data).lattice)
@@ -776,7 +802,6 @@ class _Generate:
             if 'distribution_type' in m and 'halogaussian' in m.distribution_type:
                 m.distribution_type = m.distribution_type.replace('halogaussian', 'halo(gaussian)')
 
-        # ensure enums match, convert ints/floats, apply scaling
         enum_info = template_common.validate_models(self.data, _SCHEMA)
         _fix(self.data.models.bunch)
         for t in ['elements', 'commands']:
