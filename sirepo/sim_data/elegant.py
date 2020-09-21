@@ -37,9 +37,9 @@ class SimData(sirepo.sim_data.SimDataBase):
         if 'centroid' not in dm.bunch:
             b = dm.bunch
             for f in 'emit_x', 'emit_y', 'emit_z':
-                if b[f] and not isinstance(b[f], basestring):
+                if b[f] and not isinstance(b[f], str):
                     b[f] /= 1e9
-            if b.sigma_s and not isinstance(b.sigma_s, basestring):
+            if b.sigma_s and not isinstance(b.sigma_s, str):
                 b.sigma_s /= 1e6
             c = cls.__find_first_bunch_command(data)
             # first_bunch_command may not exist if the elegant sim has no bunched_beam command
