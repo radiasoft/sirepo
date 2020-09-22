@@ -1217,7 +1217,12 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
                     hideModal();
                 }
             });
-            $scope.$on('cancelChanges', hideModal);
+            $scope.$on('cancelChanges', function (e, name){
+                // too blunt? May need parent/child concept?
+                if (name === $scope.modelKey) {
+                    hideModal();
+                }
+            });
         },
         link: function(scope, element) {
             $(element).on('shown.bs.modal', function() {
@@ -1228,7 +1233,7 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
                     });
                 }
             });
-            $(element).on('hidden.bs.modal', function() {
+            $(element).on('hidden.bs.modal', function(o) {
                 // ensure that a dismissed modal doesn't keep changes
                 // ok processing will have already saved data before the modal is hidden
                 var viewInfo = appState.viewInfo(scope.viewName);

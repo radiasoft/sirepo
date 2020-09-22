@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.appDefaultSimulationValues.simulation.beamAxis = 'z';
     SIREPO.SINGLE_FRAME_ANIMATION = ['solver'];
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
@@ -23,6 +24,9 @@ SIREPO.app.config(function() {
         '</div>',
         '<div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">',
           '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
+        '</div>',
+        '<div data-ng-switch-when="HMFile" data-ng-class="fieldClass">',
+          '<input id="radia-h-m-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
         '</div>',
     ].join('');
     SIREPO.appPanelHeadingButtons = [
@@ -179,6 +183,10 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
             });
     };
 
+    self.upload = function(inputFile) {
+        upload(inputFile);
+    };
+
     function findPath(path) {
         for(var i = 0; i < (appState.models.fieldPaths.paths || []).length; ++i) {
             var p = appState.models.fieldPaths.paths[i];
@@ -202,7 +210,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
         return parseInt('' + v);
     }
 
-    function upload(inputFile) {
+    function upload(inputFile, type=SIREPO.APP_SCHEMA.constants.pathPtsFileType) {
         fileUpload.uploadFileToUrl(
             inputFile,
             {},
@@ -211,10 +219,9 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
                 {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<file_type>': SIREPO.APP_SCHEMA.constants.pathPtsFileType,
+                    '<file_type>': type,
                 }),
             function(d) {
-                //srdbg('UPLOAD DONE', d);
             }, function (err) {
                 throw new Error(inputFile + ': Error during upload ' + err);
             });
@@ -226,12 +233,12 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, panelState, re
 SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, vtkPlotting, $scope) {
     var self = this;
 
-    var editorFields = [
+    const editorFields = [
          'geomObject.magnetization',
          'geomObject.symmetryType',
          'geomObject.doDivide',
     ];
-    var groupModels = [
+    const groupModels = [
         'geomGroup',
         'geomUndulatorGroup'
     ];
@@ -255,7 +262,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.selectedObject = null;
     self.shapes = [];
     self.toolbarSections = SIREPO.APP_SCHEMA.constants.toolbarItems.filter(function (item) {
-        return item.name.indexOf('Transforms') < 0;
+        return item.name !== 'In Progress' && item.name.indexOf('Transforms') < 0;
     });
 
 
@@ -274,15 +281,15 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.deleteObject = function(o) {
-        var oIdx = appState.models.geometry.objects.indexOf(o);
+        const oIdx = appState.models.geometry.objects.indexOf(o);
         if (oIdx < 0) {
             return;
         }
+        deleteShapesForObject(o);
         for (var i in (o.members || [])) {
             self.getObject(o.members[i]).groupId = '';
         }
         appState.models.geometry.objects.splice(oIdx, 1);
-        self.shapes.splice(oIdx, 1);
         appState.saveChanges('geometry');
     };
 
@@ -312,12 +319,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.getShape = function(id) {
-        for (var i in self.shapes) {
-            if (self.shapes[i].id === id) {
-                return self.shapes[i];
-            }
-        }
-        return null;
+        return self.shapes.filter(function (s) {
+            return s.id === id;
+        })[0];
     };
 
     self.getShapes = function() {
@@ -330,6 +334,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.isEditable = function() {
         return true;
+    };
+
+    self.nextId = function() {
+        return appState.maxId(appState.models.geometry.objects, 'id') + 1;
     };
 
     self.objectBounds = function() {
@@ -363,7 +371,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             return;
         }
         appState.saveChanges('geomObject', function (d) {
-            loadShapes();
+            transformShapesForObjects();
             self.selectedObject = null;
             radiaService.setSelectedObject(null);
             if (callback) {
@@ -416,42 +424,64 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         );
         if (isGroup) {
             shape.outlineOffset = 5.0;
+            shape.strokeWidth = 0.75;
             shape.draggable = false;
         }
         return shape;
     };
 
     function addObject(o) {
-        o.id  = self.nextId();  // appState.models.geometry.objects.length;
+        o.id  = self.nextId();
         o.mapId = getMapId(o);
         appState.models.geometry.objects.push(o);
-        addShapesForObject(o);
+        // for groups, set the group id of all members
+        //var n = 0;
+        (o.members || []).forEach(function (oId) {
+            self.getObject(oId).groupId = o.id;
+        //    ++n;
+        });
+        //if (n > 0) {
+        //    let z = groupBounds(o.members);
+        //    o.size = '0,0,0';
+        //}
     }
 
     function addShapesForObject(o) {
-        var baseShape = self.getShape(o.id);
-        var gShape = null;
+        let baseShape = self.getShape(o.id);
         if (! baseShape) {
             baseShape = self.shapeForObject(o);
             self.shapes.push(baseShape);
         }
-        var xformShapes = [];
-        if (o.transforms.length > 0) {
-            xformShapes.push(baseShape);
-        }
-        var txArr = [];
+
+        let txArr = [];
+        let plIds = [];
         // probably better to create a transform and let svg do this work
         o.transforms.forEach(function (xform) {
+            // draw the shapes for symmetry planes once
+            if (xform.model === 'symmetryTransform') {
+                plIds.push(...addSymmetryPlane(baseShape, xform));
+            }
             // each successive transform must be applied to all previous shapes
-            xformShapes.forEach(function (xShape) {
-                var nextShape;
-                var linkTx;
+            [baseShape, ...getVirtualShapes(baseShape, plIds)].forEach(function (xShape) {
+                // these transforms do not copy the object
+                if (xform.model === 'rotate') {
+                    txArr.push(rotateFn(xform, 1));
+                    return;
+                }
+                if (xform.model === 'translate') {
+                    txArr.push(offsetFn(xform, 1));
+                    return;
+                }
+
+                let xo = self.getObject(xShape.id);
+                let linkTx;
                 if (xform.model === 'cloneTransform') {
-                    for (var i = 1; i <= xform.numCopies; ++i) {
-                        //var cloneTx = [];
-                        var cloneTx = txArr.slice(0);
-                        for (var j = 0; j < xform.transforms.length; ++j) {
-                            var cloneXform = xform.transforms[j];
+                    let clones = [];
+                    for (let i = 1; i <= xform.numCopies; ++i) {
+                        let cloneTx = txArr.slice(0);
+                        linkTx = composeFn(cloneTx);
+                        for (let j = 0; j < xform.transforms.length; ++j) {
+                            let cloneXform = xform.transforms[j];
                             if (cloneXform.model === 'translateClone') {
                                 cloneTx.push(offsetFn(cloneXform, i));
                             }
@@ -459,103 +489,111 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                                 cloneTx.push(rotateFn(cloneXform, i));
                             }
                         }
-                        nextShape = txShape(baseShape);
-                        var ctx = composeFn(cloneTx);
-                        ctx(baseShape, nextShape);
-                        baseShape.addLink(nextShape, ctx);
-                        self.shapes.push(nextShape);
-                        xformShapes.push(nextShape);
+                        addTxShape(xShape, xform, linkTx);
+                        clones.push(...transformMembers(xo, xform, linkTx, clones));
                     }
-                    return;
                 }
-                if (xform.model === 'rotate') {
-                    txArr.push(rotateFn(xform, 1));
-                    //txArr.push(rotateFn(xform, 1)(xShape, xShape));
-                    return;
-                }
-                if (xform.model === 'symmetryTransform' && xform.symmetryType !== 'none') {
-                    nextShape = txShape(baseShape);
+                if (xform.model === 'symmetryTransform') {
                     linkTx = mirrorFn(xform);
-                    xShape.addLink(nextShape, linkTx);
-                    linkTx(xShape, nextShape);
-                    self.shapes.push(nextShape);
-
-                    // line representing the symmetry plane intersecting 3 coordinate planes
-                    for (var p in vtkPlotting.COORDINATE_PLANES) {
-                        var cpl = geometry.plane(vtkPlotting.COORDINATE_PLANES[p], geometry.point());
-                        var spl = geometry.plane(
-                             radiaService.stringToFloatArray(xform.symmetryPlane),
-                            geometry.pointFromArr( radiaService.stringToFloatArray(
-                                xform.symmetryPoint,
-                                SIREPO.APP_SCHEMA.constants.objectScale)
-                            ));
-                        if (cpl.equals(spl)) {
-                            continue;
-                        }
-                        var l = spl.intersection(cpl);
-                        if (l) {
-                            var pl = vtkPlotting.plotLine(
-                                virtualShapeId(baseShape), baseShape.name, l,
-                                baseShape.color, 1.0, 'dashed', "8,8,4,8"
-                            );
-                            pl.coordPlane = p;
-                            self.shapes.push(pl);
-                        }
-                    }
-                    xformShapes.push(nextShape);
-                    return;
-                }
-                if (xform.model === 'translate') {
-                    txArr.push(offsetFn(xform, 1));
-                    return;
+                    addTxShape(xShape, xform, linkTx);
+                    transformMembers(xo, xform, linkTx);
                 }
             });
         });
+
+        // apply non-copying transforms to the object and its members (if any)
         composeFn(txArr)(baseShape, baseShape);
+        for (let m of getMembers(o)) {
+            let s = self.getShape(m.id);
+            composeFn(txArr)(s, s);
+        }
 
         if (o.groupId !== '') {
-            gShape = self.getShape(o.groupId);
+            let gShape = self.getShape(o.groupId);
             if (! gShape) {
                 gShape = self.shapeForObject(self.getObject(o.groupId));
                 self.shapes.push(gShape);
             }
-            //baseShape.addLink(gShape, fit);
             fit(baseShape, gShape);
             baseShape.addLink(gShape, fit);
         }
+        //srdbg('shapes', self.shapes);
+        //srdbg(o.id, 'num shapes', self.shapes.length);
     }
 
-    self.nextId = function() {
-        return appState.maxId(appState.models.geometry.objects, 'id') + 1;
-    };
-
-    function txShape(shape) {
-        var sh = vtkPlotting.plotShape(
-            virtualShapeId(shape),
-            shape.name,
-            SIREPO.ZERO_ARR,
-            shape.getSizeCoords(),
-            shape.color, 0.1, shape.fillStyle, shape.strokeStyle, shape.dashes,
-            shape.layoutShape
-        );
-        sh.draggable = false;
-        return sh;
+    function transformMembers(o, xform, txFunction, excludedIds=[]) {
+        if (! o) {
+            return;
+        }
+        let txm = [];
+        for (let m of getMembers(o)) {
+            let shape = self.getShape(m.id);
+            let v = getVirtualShapes(shape, excludedIds);
+            txm.push(addTxShape(shape, xform, txFunction).id);
+            for (let s of v) {
+                txm.push(addTxShape(s, xform, txFunction).id);
+            }
+        }
+        return txm;
     }
 
-    function virtualShapeId(shape) {
-        return 65536 * (shape.id + 1) + self.shapes.length;
-    }
-
-    // used to the client-created object to a server-created Radia id
-    function getMapId(o) {
-        return o.name + '.' + o.id;
-    }
-
-    function loadShapes() {
-        self.shapes = [];
-        appState.models.geometry.objects.forEach(function (o) {
-            addShapesForObject(o);
+    // recursive dive through all subgroups
+    function getMembers(o) {
+        if (! o) {
+            return [];
+        }
+        let members = (o.members || []).map(function (id) {
+            return self.getObject(id);
         });
+        for (let m of members) {
+            members.push(...getMembers(m));
+        }
+        return members;
+    }
+
+    function addSymmetryPlane(baseShape, xform) {
+        let plIds = [];
+        for (let p in vtkPlotting.COORDINATE_PLANES) {
+            const cpl = geometry.plane(vtkPlotting.COORDINATE_PLANES[p], geometry.point());
+            const spl = geometry.plane(
+                radiaService.stringToFloatArray(xform.symmetryPlane),
+                geometry.pointFromArr( radiaService.stringToFloatArray(
+                    xform.symmetryPoint,
+                    SIREPO.APP_SCHEMA.constants.objectScale)
+                ));
+            if (cpl.equals(spl) || ! spl.intersection(cpl)) {
+                continue;
+            }
+            var pl = vtkPlotting.plotLine(
+                virtualShapeId(baseShape), baseShape.name, spl.intersection(cpl),
+                baseShape.color, 1.0, 'dashed', "8,8,4,8"
+            );
+            pl.coordPlane = p;
+            self.shapes.push(pl);
+            plIds.push(pl.id);
+        }
+        return plIds;
+    }
+
+    function addTxShape(sourceShape, xform, link) {
+        let nextShape = txShape(sourceShape, xform);
+        sourceShape.addLink(nextShape, link);
+        self.shapes.push(nextShape);
+        link(sourceShape, nextShape);
+        return nextShape;
+    }
+
+    function transformShapesForObject(o) {
+        let baseShape = self.getShape(o.id);
+        [baseShape, ...getVirtualShapes(baseShape)].forEach(function (s) {
+            s.runLinks();
+        });
+    }
+
+    function transformShapesForObjects() {
+        for (let o of self.getObjects()) {
+            transformShapesForObject(o);
+        }
     }
 
     function composeFn(fnArr) {
@@ -568,30 +606,101 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         };
     }
 
+    function deleteShapesForObject(o) {
+        for (let s of getTransformedShapes(o)) {
+            self.shapes.splice(indexOfShape(s), 1);
+        }
+        let shape = self.shapeForObject(o);
+        for (let s of getVirtualShapes(shape)) {
+            self.shapes.splice(indexOfShape(s), 1);
+        }
+        self.shapes.splice(indexOfShape(shape), 1);
+    }
+
     // shape - in group; linkedShape: group
-    // NOT PICKING UP "VIRTUAL" SHAPES
-    // NOT SHRINKING PAST ORIGINAL SIZE
     function fit(shape, groupShape) {
-        var o = self.getObject(shape.id);
-        var groupId = o.groupId;
+        const o = self.getObject(shape.id);
+        const groupId = o.groupId;
         if (groupId === '' || groupId !== groupShape.id) {
             groupShape.center = shape.center.join(',');
             groupShape.size = shape.size.join(',');
             return groupShape;
         }
-        var mShapes = self.getObject(groupShape.id).members.map(function (mId) {
+        let mShapes = self.getObject(groupShape.id).members.map(function (mId) {
             return self.getShape(mId);
         }).filter(function (s) {
             return ! ! s;
         });
-        // may be a duplicate, doesn't matter
-        mShapes.push(shape);
-        var newBounds = shapesBounds(mShapes);
-        for (var dim in newBounds) {
+        const newBounds = shapesBounds(mShapes);
+        for (let dim in newBounds) {
             groupShape.size[dim] = Math.abs(newBounds[dim][1] - newBounds[dim][0]);
             groupShape.center[dim] = newBounds[dim][0] + groupShape.size[dim] / 2;
         }
         return groupShape;
+    }
+
+    // used to the client-created object to a server-created Radia id
+    function getMapId(o) {
+        return o.name + '.' + o.id;
+    }
+
+    function groupBounds(objs) {
+        let b = [
+            [Number.MAX_VALUE, -Number.MAX_VALUE],
+            [Number.MAX_VALUE, -Number.MAX_VALUE],
+            [Number.MAX_VALUE, -Number.MAX_VALUE]
+        ];
+        b.forEach(function (c, i) {
+            (objs || appState.models.geometry.objects || []).forEach(function (o) {
+                var ctr =  radiaService.stringToFloatArray(o.center || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
+                var sz =  radiaService.stringToFloatArray(o.size || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
+                c[0] = Math.min(c[0], ctr[i] - sz[i] / 2);
+                c[1] = Math.max(c[1], ctr[i] + sz[i] / 2);
+            });
+        });
+        return b;
+    }
+
+    function getTransformedShapes(o) {
+        let xfIds = o.transforms.map(function (tx) {
+            return tx.id;
+        });
+        if (! xfIds.length) {
+            return [];
+        }
+        return self.shapes.filter(function (s) {
+            return xfIds.indexOf(s.txId) >= 0;
+        });
+    }
+
+    // may have to flatten
+    function getVirtualShapes(baseShape, excludedIds = []) {
+        let v = self.shapes.filter(function (s) {
+            return excludedIds.indexOf(s.id) < 0 && hasBaseShape(s, baseShape);
+        });
+        let v2 = [];
+        for (let s of v) {
+            v2.push(...getVirtualShapes(s, excludedIds));
+        }
+        v.push(...v2);
+        return v;
+    }
+
+    // indexOf does not work right...explicitly match by id here
+    function indexOfShape(shape) {
+        for (let i = 0; i < self.shapes.length; ++i) {
+            if (self.shapes[i].id === shape.id) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    function loadShapes() {
+        self.shapes = [];
+        appState.models.geometry.objects.forEach(function (o) {
+            addShapesForObject(o);
+        });
     }
 
     function mirrorFn(xform) {
@@ -605,13 +714,18 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 [shape1.center.x, shape1.center.y, shape1.center.z]
                 )).coords()
             );
+            shape2.setSize(shape1.getSizeCoords());
             return shape2;
         };
     }
 
+    function newObjectName(o) {
+        return appState.uniqueName(appState.models.geometry.objects, 'name', o.name + ' {}');
+    }
+
     function offsetFn(xform, i) {
         return function(shape1, shape2) {
-            var d = radiaService.stringToFloatArray(xform.distance, SIREPO.APP_SCHEMA.constants.objectScale);
+            const d = radiaService.stringToFloatArray(xform.distance, SIREPO.APP_SCHEMA.constants.objectScale);
             shape2.setCenter(
                 shape1.getCenterCoords().map(function (c, j) {
                     return c + i * d[j];
@@ -637,42 +751,37 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         };
     }
 
-    function newObjectName(o) {
-        return appState.uniqueName(appState.models.geometry.objects, 'name', o.name + ' {}');
-    }
-
-    function groupBounds(objs) {
-        var b = [
-            [Number.MAX_VALUE, -Number.MAX_VALUE],
-            [Number.MAX_VALUE, -Number.MAX_VALUE],
-            [Number.MAX_VALUE, -Number.MAX_VALUE]
-        ];
-        b.forEach(function (c, i) {
-            (objs || appState.models.geometry.objects || []).forEach(function (o) {
-                var ctr =  radiaService.stringToFloatArray(o.center || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
-                var sz =  radiaService.stringToFloatArray(o.size || SIREPO.ZERO_STR, SIREPO.APP_SCHEMA.constants.objectScale);
-                c[0] = Math.min(c[0], ctr[i] - sz[i] / 2);
-                c[1] = Math.max(c[1], ctr[i] + sz[i] / 2);
-            });
-        });
-        return b;
-    }
-
     function shapesBounds(shapes) {
-        var b = {
+        let b = {
             x: [Number.MAX_VALUE, -Number.MAX_VALUE],
             y: [Number.MAX_VALUE, -Number.MAX_VALUE],
             z: [Number.MAX_VALUE, -Number.MAX_VALUE]
         };
         shapes.forEach(function (s) {
-            for (var dim in b) {
+            let vs = getVirtualShapes(s);
+            let sr = shapesBounds(vs);
+            for (let dim in b) {
                 b[dim] = [
-                    Math.min(b[dim][0], s.center[dim] - s.size[dim] / 2),
-                    Math.max(b[dim][1], s.center[dim] + s.size[dim] / 2)
+                    Math.min(b[dim][0], s.center[dim] - s.size[dim] / 2, sr[dim][0]),
+                    Math.max(b[dim][1], s.center[dim] + s.size[dim] / 2, sr[dim][1])
                 ];
             }
         });
         return b;
+    }
+
+    function txShape(shape, tx) {
+        var sh = vtkPlotting.plotShape(
+            virtualShapeId(shape),
+            shape.name,
+            SIREPO.ZERO_ARR,
+            shape.getSizeCoords(),
+            shape.color, 0.1, shape.fillStyle, shape.strokeStyle, shape.dashes,
+            shape.layoutShape
+        );
+        sh.draggable = false;
+        sh.txId = tx.id;
+        return sh;
     }
 
     function updateObjectEditor() {
@@ -685,27 +794,43 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             'division',
             o.doDivide == '1'
         );
-        panelState.showField(
-            'geomObject',
-            'symmetryPlane',
-            o.symmetryType != 'none'
-        );
-        panelState.showField(
-            'geomObject',
-            'symmetryPoint',
-            o.symmetryType != 'none'
-        );
+        //panelState.showField(
+        //    'geomObject',
+        //    'symmetryPlane',
+        //    //o.symmetryType != 'none'
+        //);
+        //panelState.showField(
+        //    'geomObject',
+        //    'symmetryPoint',
+        //    //o.symmetryType != 'none'
+        //);
         var mag = (o.magnetization || SIREPO.ZERO_STR).split(/\s*,\s*/).map(function (m) {
             return parseFloat(m);
         });
-        panelState.showField(
-            'geomObject',
-            'material',
-            true  //Math.hypot(mag[0], mag[1], mag[2]) > 0
-        );
+        //panelState.showField(
+        //    'geomObject',
+        //    'material',
+        //    true  //Math.hypot(mag[0], mag[1], mag[2]) > 0
+        //);
     }
 
     function updateToolEditor(toolItem) {
+    }
+
+    function virtualShapeId(shape) {
+        return `${shape.id}-${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`;
+    }
+
+    function baseShapeId(id) {
+        return `${id}`.split('-')[0];
+    }
+
+    function hasBaseShape(shape, baseShape) {
+        // base shape is not its own base
+        if (shape.id === baseShape.id) {
+            return false;
+        }
+        return baseShapeId(shape.id) === `${baseShape.id}`;
     }
 
     appState.whenModelsLoaded($scope, function() {
@@ -724,11 +849,25 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             }
             var o = self.selectedObject;
             if (o.id !== 0 && (angular.isUndefined(o.id) || o.id === '')) {
-                addObject(o);
+                // catch unrelated saved objects
+                if (o.model === modelName || panelState.getBaseModelKey(o.model) === modelName) {
+                    addObject(o);
+                }
+                else {
+                    self.selectedObject = null;
+                }
+            }
+            if (o.materialFile) {
+                o.hmFileName = o.materialFile.name;
+                radiaService.upload(o.materialFile, SIREPO.APP_SCHEMA.constants.hmFileType);
             }
             appState.saveChanges('geometry', function (d) {
+                //srdbg('geometry ch', self.selectedObject);
+                if (self.selectedObject) {
+                    loadShapes();
+                }
                 //self.selectedObject = null;
-                loadShapes();
+                //loadShapes();
             });
         });
         $scope.$on('geomObject.editor.show', function(e, o) {
@@ -1166,7 +1305,6 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
             };
 
             $scope.copyPath = function(path) {
-                //srdbg('CPY', path);
             };
 
            $scope.deletePath = function(path, index) {
@@ -1233,16 +1371,15 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
             }
 
             $scope.addObject = function(oId) {
-                var o = $scope.getObject(oId);
+                let o = $scope.getObject(oId);
                 o.groupId = $scope.model.id;
                 $scope.field.push(o.id);
             };
 
             $scope.getIds = function() {
-                var i = $scope.objects.map(function (o) {
+                return $scope.objects.map(function (o) {
                     return o.id;
                 });
-                return i;
             };
 
             $scope.getObject = function(oId) {
@@ -1250,12 +1387,15 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
             };
 
             $scope.hasNoGroup = function(oId) {
-                var o = $scope.getObject(oId);
+                if ($scope.field.indexOf(oId) >= 0) {
+                    return false;
+                }
+                let o = $scope.getObject(oId);
                 return oId !== $scope.model.id && (! o.groupId || o.groupId === '');
             };
 
             $scope.removeObject = function(oId) {
-                var o = $scope.getObject(oId);
+                let o = $scope.getObject(oId);
                 o.groupId = '';
                 var oIdx = $scope.field.indexOf(oId);
                 if (oIdx < 0) {
@@ -1283,7 +1423,6 @@ SIREPO.app.directive('numberList', function() {
             '</div>'
         ].join(''),
         controller: function($scope) {
-            //srdbg('num list', $scope);
             // NOTE: does not appear to like 'model.field' format
             $scope.values = null;
             $scope.numberType = $scope.type.toLowerCase();
@@ -1321,7 +1460,7 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
             '<div class="sr-object-table">',
               '<p class="lead text-center"><small><em>drag and drop {{ itemClass.toLowerCase() }}s or use arrows to reorder the list</em></small></p>',
               '<table class="table table-hover" style="width: 100%; table-layout: fixed">',
-                '<tr data-ng-repeat="item in items">',
+                '<tr data-ng-repeat="item in loadItems()">',
                   '<td data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)" data-ng-drag-start="selectItem($data)">',
                     '<div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == items.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editItem(item)">Edit</button> <button data-ng-click="toggleExpand(item)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{\'glyphicon-chevron-up\': isExpanded(item), \'glyphicon-chevron-down\': ! isExpanded(item)}"></span></button> <button data-ng-click="deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>',
                     '<div class="sr-command-icon-holder" data-ng-drag="true" data-ng-drag-data="item">',
@@ -1361,16 +1500,13 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                     $scope.toolbarItems.push(c);
                 });
             });
+
             watchedModels = $scope.toolbarItems.map(function (item) {
                 return item.model;
             });
 
             function itemIndex(data) {
                 return $scope.items.indexOf(data);
-            }
-
-            function loadItems() {
-                $scope.items = $scope.field;
             }
 
             $scope.addItem = function(item) {
@@ -1442,6 +1578,11 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                 return expanded[itemIndex(item)];
             };
 
+            $scope.loadItems = function() {
+                $scope.items = $scope.field;
+                return $scope.items;
+            };
+
             $scope.moveItem = function(direction, item) {
                 var d = direction == 0 ? 0 : (direction > 0 ? 1 : -1);
                 var currentIndex = itemIndex(item);
@@ -1483,22 +1624,20 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
 
             appState.whenModelsLoaded($scope, function() {
 
-                $scope.$on('modelChanged', function(e, name) {
-                    if (watchedModels.indexOf(name) < 0) {
+                $scope.$on('modelChanged', function(e, modelName) {
+                    if (watchedModels.indexOf(modelName) < 0) {
                         return;
                     }
                     $scope.selectedItem = null;
                     if (! isEditing) {
                         //($scope.$id, 'add', name, 'to', $scope.modelName, $scope.fieldName, $scope.field);
-                        $scope.field.push(appState.models[name]);
+                        appState.models[modelName].id = nextId();
+                        $scope.field.push(appState.models[modelName]);
                         isEditing = true;
                     }
-                    //appState.saveChanges($scope.modelName, function () {
-                        //loadItems();
-                        appState.saveChanges('geometry', function () {
-                            loadItems();
-                        });
-                    //});
+                    appState.saveChanges('geometry', function () {
+                        $scope.loadItems();
+                    });
                 });
 
                 $scope.$on('cancelChanges', function(e, name) {
@@ -1521,8 +1660,12 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                     //srdbg('watch saw', $scope.items);
                 });
 
-                loadItems();
+                $scope.loadItems();
             });
+
+            function nextId() {
+                return appState.maxId($scope.field, 'id') + 1;
+            }
 
             $scope.$emit('drop.target.enabled', false);
         },
@@ -1803,6 +1946,14 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 return info;
             }
 
+            function vectorScaleFactor(bounds) {
+                return 0.035 * Math.max(
+                    Math.abs(bounds[1] - bounds[0]),
+                    Math.abs(bounds[3] - bounds[2]),
+                    Math.abs(bounds[5] - bounds[4])
+                );
+            }
+
             function buildScene() {
                 //srdbg('buildScene', sceneData.data);
                 var name = sceneData.name;
@@ -1851,7 +2002,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             mapper.setOrientationArray(ORIENTATION_ARRAY);
 
                             // this scales by a constant - the default is to use scalar data
-                            mapper.setScaleFactor(8.0);
+                            mapper.setScaleFactor(vectorScaleFactor(sceneData.bounds));
                             mapper.setScaleModeToScaleByConstant();
                             mapper.setColorModeToDefault();
                             bundle = cm.buildActorBundle();
@@ -2421,14 +2572,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setScaling() {
-                var b = renderer.computeVisiblePropBounds();
-                var s = [Math.abs(b[1] - b[0]), Math.abs(b[3] - b[2]), Math.abs(b[5] - b[4])];
-                //var mx = Math.max(...s);
-                var mx = Math.max(s[0], s[1], s[2]);
-                //srdbg('prop bnds', b, mx, mx / 8.0, 0.035 * mx);
                 getActorsOfType(radiaVtkUtils.GEOM_TYPE_VECTS).forEach(function (actor) {
                     var mapper = actor.getMapper();
-                    mapper.setScaleFactor(0.035 * mx);
+                    mapper.setScaleFactor(vectorScaleFactor(renderer.computeVisiblePropBounds()));
                     var vs = appState.models.fieldDisplay.scaling;
                     if (vs === 'uniform') {
                         mapper.setScaleModeToScaleByConstant();
