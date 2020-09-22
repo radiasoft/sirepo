@@ -170,19 +170,36 @@ class LibAdapter:
 
         r = generate_variables(data)
 
+
         def _model(model, schema):
+            t = None
+
+            def _rpn(rpn_type, py_type):
+                nonlocal t
+                if (
+                    t != rpn_type or
+                    not code_variable.CodeVar.is_var_value(v)
+                ):
+                    return False
+                model[k] = _code_var(r).eval_var_with_assert(v)
+                return True
+
             for k, x in schema.items():
                 t = x[1]
                 v = model[k] if k in model else x[2]
-                if t == 'RPNValue':
-                    t = 'Float'
-                    if code_variable.CodeVar.is_var_value(v):
-                        model[k] = _code_var(r).eval_var_with_assert(v)
-                        continue
+                if _rpn('RPNValue', 'Float'):
+#TODO(robnagler) can't do this
+#                or _rpn('RPNBoolean', 'Boolean'):
+# because generation fails with:
+# True: invalid enum "Boolean" value for field "includeLattice"
+                    continue
                 if t == 'Float':
                     model[k] = float(v) if v else 0.
                 elif t == 'Integer':
                     model[k] = int(v) if v else 0
+#TODO(robnagler) see above
+#                elif t == 'Boolean':
+#                    model[k] = bool(v) if v else 0
 
         s = _SCHEMA.model
         for k, v in data.models.items():
@@ -191,6 +208,7 @@ class LibAdapter:
         for x in ('elements', 'commands'):
             for m in data.models[x]:
                 _model(m, s[LatticeUtil.model_name_for_data(m)])
+        return data
 
     def _lattice_path(self, dest_dir, data):
         return dest_dir.join(self._run_setup(data).lattice)
