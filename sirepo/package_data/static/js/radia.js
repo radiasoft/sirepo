@@ -818,11 +818,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function virtualShapeId(shape) {
-        return `${shape.id}.${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`;
+        return `${shape.id}-${Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)}`;
     }
 
     function baseShapeId(id) {
-        return `${id}`.split('.')[0];
+        return `${id}`.split('-')[0];
     }
 
     function hasBaseShape(shape, baseShape) {

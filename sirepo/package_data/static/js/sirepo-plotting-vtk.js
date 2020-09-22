@@ -1050,7 +1050,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             }
 
             function shapeSelectionId(shape, includeHash) {
-                return `${(includeHash ? '#' : '')}${shape.id}`;
+                return `${(includeHash ? '#' : '')}shape-${shape.id}`;
             }
 
             function d3DragStartShape(shape) {
@@ -1087,7 +1087,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
                 for (let l in layouts) {
                     let bs = layouts[l].filter(function (s) {
-                        return `${s.id}`.split('.').length === 1;
+                        return `${s.id}`.split('-').length === 1;
                     });
                     let bdef = d3.select('.plot-viewport defs').selectAll(l)
                         .data(bs);
