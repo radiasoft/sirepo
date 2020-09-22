@@ -2740,6 +2740,7 @@ SIREPO.app.directive('impactDensityPlot', function(errorService, plotting, plot2
             $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
                     aspectRatio: 4.0 / 7,
+                    el: $element,
                     margin: {top: 50, right: 80, bottom: 50, left: 70},
                     zoomContainer: '.plot-viewport',
                     wantColorbar: true,
@@ -2993,6 +2994,7 @@ SIREPO.app.directive('optimizerPathPlot', function(appState, plotting, plot2dSer
             $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
                     aspectRatio: 4.0 / 7,
+                    el: $element,
                     margin: {top: 20, right: 80, bottom: 50, left: 70},
                     zoomContainer: '.plot-viewport',
                     wantColorbar: true,

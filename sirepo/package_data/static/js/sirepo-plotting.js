@@ -990,7 +990,17 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
                 .y(function(d) {
                     return $scope.axes.y.scale(scaleFunction ? scaleFunction(d[1]) : d[1]);
                 });
-            resetZoom();
+            //TODO(mvk): the image loads but does not show up
+            $scope.watermarkUrl = function() {
+                return '/static/svg/radiasoft-logo.svg';
+            };
+            $scope.watermarkLoaded = function() {
+                //let wm = $($scope.el).find('svg.radia-watermark-icon');
+                //let vb = $($scope.el).find('svg.radia-watermark-icon').prop('viewBox').baseVal;
+                //vb.x = 100;
+                //vb.y = 100;
+            };
+           resetZoom();
         }
 
         function refresh() {
@@ -1022,6 +1032,11 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
             $scope.select($scope.zoomContainer)
                 .classed('mouse-zoom', isFullSize)
                 .classed('mouse-move-ew', ! isFullSize);
+
+            let wm = $($scope.el).find('svg.radia-watermark-icon');
+            wm.attr('x', 0);
+            wm.attr('y', $scope.height + $scope.margin.top + 20);
+
             resetZoom();
             $scope.select($scope.zoomContainer).call(zoom);
             $.each($scope.axes, function(dim, axis) {
@@ -2253,7 +2268,7 @@ SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dServi
             modelName: '@',
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
-        controller: function($scope) {
+        controller: function($scope, $element) {
             var points;
             $scope.focusPoints = [];
 
@@ -2263,6 +2278,7 @@ SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dServi
 
             $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
+                    el: $element,
                     margin: {top: 50, right: 10, bottom: 50, left: 75},
                 });
                 $scope.focusPoints.push(
@@ -2572,6 +2588,9 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                     axes.x.grid.tickSize(- $scope.canvasSize.height - $scope.bottomPanelHeight + $scope.margin.bottom); // tickLine == gridline
                     axes.y.grid.tickSize(- $scope.canvasSize.width - $scope.rightPanelWidth + $scope.margin.right); // tickLine == gridline
                 }
+                let wm = $($scope.el).find('svg.radia-watermark-icon');
+                wm.attr('x', 0);
+                wm.attr('y', $scope.canvasSize.height + $scope.margin.top + 20);
                 resetZoom();
                 select('.mouse-rect-xy').call(xyZoom);
                 select('.mouse-rect-x').call(axes.x.zoom);
@@ -3334,6 +3353,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
             $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
+                    el: $element,
                     margin: {top: 50, right: 23, bottom: 50, left: 75}
                 });
                 // override graphLine to work with multiple point sets
@@ -3652,6 +3672,7 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
 
             $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
+                    el: $element,
                     margin: {top: 50, right: 23, bottom: 50, left: 75},
                 });
             };
