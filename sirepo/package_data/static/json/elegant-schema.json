@@ -955,8 +955,8 @@
             "source_position": ["Source Position", "LinkElementsSourcePosition", "before", ""],
             "mode": ["Mode", "LinkElementsMode", "dynamic", ""],
             "equation": ["Equation", "OptionalString", "", "An rpn equation for the new item value in terms of the item values for the source. The prior value of the item is on the top of the stack. To refer to the source parameter values, use the name of the parameters. To refer to the initial source parameter values, append \"0\" to the parameter name. These names must appear in capital letters."],
-            "minimum": ["Minimum", "RPNValue", "-DBL_MAX", "Minimum and maximum values that will be assigned to the target parameter."],
-            "maximum": ["Maximum", "RPNValue", "DBL_MAX", ""],
+            "minimum": ["Minimum", "RPNValue", "-1.79E308", "Minimum and maximum values that will be assigned to the target parameter."],
+            "maximum": ["Maximum", "RPNValue", "1.79E308", ""],
             "exclude_self": ["Exclude Self", "RPNBoolean", "1", "If nonzero, self-links are blocked. It is not recommended to change this."]
         },
         "command_load_parameters": {
@@ -1052,7 +1052,7 @@
             "skip_elements": ["Skip Elements", "Integer", 0, "Number of elements to skip before starting to compute momentum apertures."],
             "process_elements": ["Process Elements", "Integer", 2147483647, "Number of elements for which to compute momentum aperture."],
             "s_start": ["S Start", "RPNValue", "0.0", "Limiting s coordinates of the elements from which tracking will start. The default values will exclude no elements."],
-            "s_end": ["S End", "RPNValue", "DBL_MAX", ""],
+            "s_end": ["S End", "RPNValue", "1.79e308", ""],
             "include_name_pattern": ["Include Name Pattern", "OptionalStringUpper", "", "If given, tracking will start only at the entrance to elements that match the given wildcard pattern."],
             "include_type_pattern": ["Include Type Pattern", "OptionalStringUpper", "", "If given, tracking will start only at the entrance to elements whose type matches the given wildcard pattern."],
             "fiducialize": ["Fiducialize", "RPNBoolean", "0", "If given, an initially on-energy particle is tracked before the momentum aperture search begins, in order to fiducialize the reference momentum. This is useful if there are synchrotron radiation losses or energy gain due to cavities in the system."],
