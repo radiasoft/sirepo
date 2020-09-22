@@ -1213,13 +1213,13 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
                 $scope.modalTitle = viewInfo.title;
             }
             $scope.$on('modelChanged', function (e, name) {
-                if (name == $scope.modelName) {
+                if (name == $scope.modelKey) {
                     hideModal();
                 }
             });
             $scope.$on('cancelChanges', function (e, name){
                 // too blunt? May need parent/child concept?
-                if (name === $scope.modelName) {
+                if (name === $scope.modelKey) {
                     hideModal();
                 }
             });
