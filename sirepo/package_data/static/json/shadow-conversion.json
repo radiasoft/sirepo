@@ -1,0 +1,14 @@
+{
+    "srw": {
+        "grating": {
+            "title": {
+                "field": "title",
+                "conversion": ""
+            },
+            "position": {
+                "field": "position",
+                "conversion": ""
+            }
+        }
+    }
+}
