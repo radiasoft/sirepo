@@ -11,7 +11,7 @@
   final = "run_setup.final.sdds",
   lattice = "PClinac_TESSA_LSC.lte",
   magnets = "run_setup.magnets.sdds",
-  p_central = 85,
+  p_central = 85.0,
   parameters = "run_setup.parameters.sdds",
   sigma = "run_setup.sigma.sdds",
   use_beamline = "LTOMATCH",
@@ -49,13 +49,17 @@
   allow_missing_elements = 1,
   item = "TOTAL",
   name = "Q",
+  s_end = -1.0,
+  s_start = -1.0,
   type = "charge",
-  value = 300e-12,
+  value = 3e-10,
 &end
 
 &alter_elements
   item = "PHASE",
   name = "L2CELL*",
+  s_end = -1.0,
+  s_start = -1.0,
   type = "RF*",
   value = 57.55,
 &end
@@ -63,6 +67,8 @@
 &alter_elements
   item = "PHASE",
   name = "L4CELL*",
+  s_end = -1.0,
+  s_start = -1.0,
   type = "RF*",
   value = 95.0,
 &end
@@ -70,6 +76,8 @@
 &alter_elements
   item = "PHASE",
   name = "L5CELL*",
+  s_end = -1.0,
+  s_start = -1.0,
   type = "RF*",
   value = 95.0,
 &end
@@ -78,6 +86,8 @@
   item = "VOLT",
   multiplicative = 1,
   name = "L4CELL*",
+  s_end = -1.0,
+  s_start = -1.0,
   type = "RF*",
   value = 1.07,
 &end
@@ -86,6 +96,8 @@
   item = "VOLT",
   multiplicative = 1,
   name = "L5CELL*",
+  s_end = -1.0,
+  s_start = -1.0,
   type = "RF*",
   value = 1.07,
 &end
@@ -93,15 +105,19 @@
 &alter_elements
   item = "LSC",
   name = "*",
+  s_end = -1.0,
+  s_start = -1.0,
   type = "RF*",
-  value = 1,
+  value = 1.0,
 &end
 
 &alter_elements
   item = "N_KICKS",
   name = "*",
+  s_end = -1.0,
+  s_start = -1.0,
   type = "RF*",
-  value = 5,
+  value = 5.0,
 &end
 
 &twiss_output
@@ -110,24 +126,28 @@
   beta_x = 4.034896311524342,
   beta_y = 4.199343696609461,
   filename = "twiss_output.filename.sdds",
+  higher_order_chromaticity_range = 0.0004,
   matched = 0,
 &end
 
 &run_control
   n_indices = 1,
+  n_steps = 1.0,
 &end
 
 &link_elements
   equation = "PHASE",
   item = "PHASE",
+  maximum = 1.79e+308,
+  minimum = -1.79e+308,
   source = "L2CELL2",
   target = "L2CELL*",
 &end
 
 &vary_element
-  final = 65,
+  final = 65.0,
   index_limit = 20,
-  initial = 60,
+  initial = 60.0,
   item = "PHASE",
   name = "L2CELL2",
 &end

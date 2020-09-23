@@ -167,51 +167,33 @@ class LibAdapter:
         return r
 
     def _convert(self, data):
-
-        s = _SCHEMA.model
-        c = _code_var(data.models.rpnVariables)
-        for x in  data.models.rpnVariables:
-            x.value = c.eval_var_with_assert(x.value)
+        cv = _code_var(data.models.rpnVariables)
 
         def _model(model, name):
-            schema = s[name]
-            t = None
-
-            def _rpn(rpn_type, py_type):
-                nonlocal t
-                if (
-                    t != rpn_type or
-                    not code_variable.CodeVar.is_var_value(v)
-                ):
-                    return False
-                model[k] = c.eval_var_with_assert(v)
-                return True
+            schema = _SCHEMA.model[name]
 
             k = x = v = None
             try:
                 for k, x in schema.items():
                     t = x[1]
                     v = model[k] if k in model else x[2]
-                    if _rpn('RPNValue', 'Float'):
-#TODO(robnagler) can't do this
-#                or _rpn('RPNBoolean', 'Boolean'):
-# because generation fails with:
-# True: invalid enum "Boolean" value for field "includeLattice"
-                        continue
+                    if t == 'RPNValue':
+                        t = 'Float'
+                        if code_variable.CodeVar.is_var_value(v):
+                            model[k] = cv.eval_var_with_assert(v)
+                            continue
                     if t == 'Float':
                         model[k] = float(v) if v else 0.
                     elif t == 'Integer':
                         model[k] = int(v) if v else 0
-#TODO(robnagler) see above
-#                elif t == 'Boolean':
-#                    model[k] = bool(v) if v else 0
             except Exception as e:
-                # easier debugging
                 pkdlog('model={} field={} decl={} value={} exception={}', name, k, x, v, e)
                 raise
 
+        for x in  data.models.rpnVariables:
+            x.value = cv.eval_var_with_assert(x.value)
         for k, v in data.models.items():
-            if k in s:
+            if k in _SCHEMA.model:
                 _model(v, k)
         for x in ('elements', 'commands'):
             for m in data.models[x]:
