@@ -36,7 +36,7 @@
             "ph1": 9998,
             "ph2": 10002,
             "pol_angle": 0,
-            "pol_deg": 1,
+            "pol_deg": 0,
             "sigdix": 8.84999972e-2,
             "sigdiz": 7.1999998e-3,
             "sigmax": 57,
@@ -72,8 +72,8 @@
             "distanceFromSource": 0,
             "histogramBins": 100,
             "weight": "22",
-            "x": "2",
-            "y": "1"
+            "x": "1",
+            "y": "3"
         },
         "initialIntensityReport": {
             "histogramBins": 100,
@@ -83,11 +83,7 @@
         },
         "simulation": {
             "folder": "/",
-            "isExample": false,
             "name": "shadow example",
-            "outOfSessionSimulationId": "",
-            "simulationId": "gLicZdXs",
-            "simulationSerial": 1487981155340231,
             "sourceType": "bendingMagnet",
             "npoint": 5000,
             "istar1": 567656

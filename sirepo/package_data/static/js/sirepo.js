@@ -1535,7 +1535,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if (reportTitle) {
             args['<title>'] = reportTitle;
         }
-        requestSender.newWindow('exportJupyterNotebook', args, true);
+        requestSender.newWindow('exportJupyterNotebook', args);
     };
 
     self.modalId = function(name) {
@@ -1553,7 +1553,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if (reportTitle) {
             args['<title>'] = reportTitle;
         }
-        requestSender.newWindow('pythonSource', args, true);
+        requestSender.newWindow('pythonSource', args);
     };
 
     self.requestData = function(name, callback, forceRun) {
@@ -1928,6 +1928,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
 
     self.getAuxiliaryData = function(name) {
         return auxillaryData[name];
+    };
+
+    self.newLocalWindow = function(routeName, params, app) {
+        $window.open(self.formatUrlLocal(routeName, params, app), '_blank');
     };
 
     self.newWindow = function(routeName, params) {
@@ -3586,9 +3590,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
                 '<simulation_id>': item.simulationId,
                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                 '<filename>': item.name + '.' + extension,
-            },
-            true
-        );
+            });
     };
 
     self.renameItem = function(item) {

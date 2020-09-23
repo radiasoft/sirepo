@@ -19,12 +19,12 @@
                 "sirepo-command.js",
                 "sirepo-lattice.js"
             ],
-             "css": [
-                 "elegant.css",
-                 "command.css",
-                 "lattice.css"
+            "css": [
+                "elegant.css",
+                "command.css",
+                "lattice.css"
             ]
-       }
+        }
     },
     "enum": {
         "BunchInputSource": [
@@ -414,30 +414,30 @@
     },
     "localRoutes": {
         "source": {
-          "config": {
-            "controller": "ElegantSourceController as source",
-            "templateUrl": "/static/html/elegant-source.html"
-          }
+            "config": {
+                "controller": "ElegantSourceController as source",
+                "templateUrl": "/static/html/elegant-source.html"
+            }
         },
         "lattice": {
             "route": "/lattice/:simulationId",
             "config": {
-            "controller": "LatticeController as lattice",
-            "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
-          }
+                "controller": "LatticeController as lattice",
+                "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
+            }
         },
         "control": {
             "route": "/control/:simulationId",
             "config": {
-              "controller": "CommandController as control",
-              "template": "<div data-command-tab=\"\" data-controller=\"control\"></div>"
+                "controller": "CommandController as control",
+                "template": "<div data-command-tab=\"\" data-controller=\"control\"></div>"
             }
         },
         "visualization": {
             "route": "/visualization/:simulationId",
             "config": {
-              "controller": "VisualizationController as visualization",
-              "templateUrl": "/static/html/elegant-visualization.html"
+                "controller": "VisualizationController as visualization",
+                "templateUrl": "/static/html/elegant-visualization.html"
             }
         }
     },
@@ -1499,7 +1499,7 @@
             "strength": ["STRENGTH", "RPNValue", "1", "factor by which to multiply field"],
             "accuracy": ["ACCURACY", "RPNValue", "0.0", "integration accuracy"],
             "method": ["METHOD", "BmxyzMethod", "", "integration method"],
-	    "filename": ["FILENAME", "InputFile", "", "name of file containing columns (x, y, z) and either (Bx, By, Bz) or (Fx, Fy, Fz)"],
+            "filename": ["FILENAME", "InputFile", "", "name of file containing columns (x, y, z) and either (Bx, By, Bz) or (Fx, Fy, Fz)"],
             "synch_rad": ["SYNCH RAD", "RPNBoolean", "0", "include classical, single-particle synchrotron radiation?"],
             "check_fields": ["CHECK FIELDS", "RPNBoolean", "0", "check fields by computing divB and curlB errors?"],
             "particle_output_file": ["PARTICLE OUTPUT FILE", "OutputFile", "", "name of file for phase-space output inside element. Use for debugging only in serial version."],
@@ -1519,7 +1519,7 @@
             "angle": ["ANGLE [RAD]", "RPNValue", "0.0", "Nominal bending angle. Will be refined to match geometry specified by input/output and vertex coordinates"],
             "fse": ["FSE", "RPNValue", "0.0", "fractional strength error"],
             "accuracy": ["ACCURACY", "RPNValue", "0.0", "integration accuracy"],
-	        "filename": ["FILENAME", "InputFile", "", "name of file containing columns (x, y, z, Bx, By, Bz)"],
+            "filename": ["FILENAME", "InputFile", "", "name of file containing columns (x, y, z, Bx, By, Bz)"],
             "xvertex": ["XVERTEX [M]", "RPNValue", "0.0", "x coordinate of vertex point"],
             "zvertex": ["ZVERTEX [M]", "RPNValue", "0.0", "z coordinate of vertex point"],
             "xentry": ["XENTRY [M]", "RPNValue", "0.0", "x coordinate of nominal entry point"],
@@ -3474,7 +3474,7 @@
             "dx": ["DX [M]", "RPNValue", "0.0", "horizontal misalignment"],
             "dy": ["DY [M]", "RPNValue", "0.0", "vertical misalignment"],
             "insert_from": ["INSERT FROM", "SpeedbumpInsertFrom", "", "direction from which inserted"],
-	    "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
+            "group": ["GROUP", "OptionalString", "", "Optionally used to assign an element to a group, with a user-defined name. Group names will appear in the parameter output file in the column ElementGroup"]
         },
         "SREFFECTS": {
             "name": ["Name", "ValidatedString"],
@@ -4047,12 +4047,12 @@
             "title": "Bunch Report",
             "advanced": [
                 [
-                    ["Horizontal",
-                        ["x"]
-                    ],
-                    ["Vertical",
-                        ["y"]
-                    ]
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
                 ],
                 "histogramBins",
                 "colorMap",
@@ -5451,7 +5451,7 @@
                 "strength",
                 "accuracy",
                 "method",
-	        "filename",
+                "filename",
                 "synch_rad",
                 "check_fields",
                 "particle_output_file",
@@ -5481,7 +5481,7 @@
                 "angle",
                 "fse",
                 "accuracy",
-	        "filename",
+                "filename",
                 "xvertex",
                 "zvertex",
                 "xentry",
@@ -7851,7 +7851,7 @@
                 "dx",
                 "dy",
                 "insert_from",
-	        "group"
+                "group"
             ]
         },
 

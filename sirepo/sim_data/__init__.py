@@ -646,7 +646,7 @@ class SimDataBase(object):
         s = set(data.models.get(model, {}).keys()) - cls.ANALYSIS_ONLY_FIELDS
         if not s:
             return [model]
-        return ['{}.{}'.format(model, x) for x in s]
+        return sorted(['{}.{}'.format(model, x) for x in s])
 
     @classmethod
     def _organize_example(cls, data):
