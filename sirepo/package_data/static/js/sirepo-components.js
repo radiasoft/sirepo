@@ -2239,7 +2239,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
     };
 });
 
-SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileManager, panelState, requestSender, stringsService, $compile, $timeout, $window) {
+SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileManager, panelState, requestSender, stringsService, $compile, $timeout) {
 
     return {
         restrict: 'A',
@@ -2395,11 +2395,11 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
             };
 
             $scope.exportArchive = function(extension) {
-                $window.open(requestSender.formatUrl('exportArchive', {
+                requestSender.newWindow('exportArchive', {
                     '<simulation_id>': $scope.simulationId(),
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                     '<filename>':  $scope.nav.simulationName() + '.' + extension,
-                }), '_blank');
+                });
             };
 
             $scope.$on('simulationUnloaded', function() {
