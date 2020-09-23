@@ -16,14 +16,6 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        if (
-            float(data.fixup_old_version) < 20170703.000001
-            and 'geometricSource' in dm
-        ):
-            g = data.models.geometricSource
-            x = g.cone_max
-            g.cone_max = g.cone_min
-            g.cone_min = x
         cls._init_models(dm, (
             'initialIntensityReport',
             'plotXYReport',
