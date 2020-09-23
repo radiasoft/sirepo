@@ -21,6 +21,7 @@ import contextlib
 import datetime
 import importlib
 import sirepo.feature_config
+import sirepo.jupyterhub
 import sirepo.template
 import sirepo.uri
 import werkzeug.exceptions
@@ -111,9 +112,11 @@ def api_authLogout(simulation_type=None):
         except AssertionError:
             pass
     if _is_logged_in():
-        cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         if sirepo.feature_config.cfg().jupyterhub:
-            cookie.delete_jupyterhub()
+            # Must be before setting _STATE_LOGGED_OUT so we can get the
+            # user name of the logged in user
+            cookie.delete_jupyterhub(sirepo.jupyterhub.get_user_name())
+        cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         _set_log_user()
     return http_reply.gen_redirect_for_app_root(req and req.type)
 
@@ -478,20 +481,17 @@ def user_dir_not_found(user_dir, uid):
     )
 
 
-def user_if_logged_in(method=None):
-    """Verify user is logged in and optionally that the  method matches
+def user_if_logged_in(method):
+    """Verify user is logged in and  method matches
 
     Args:
-        method (str, optional): method must be logged in as
-    Returns:
-        uid (str): the uid of the user if logged in otherwsie None
+        method (str): method must be logged in as
     """
     if not _is_logged_in():
         return None
-    if method:
-        m = cookie.unchecked_get_value(_COOKIE_METHOD)
-        if m != method:
-            return None
+    m = cookie.unchecked_get_value(_COOKIE_METHOD)
+    if m != method:
+        return None
     return _get_user()
 
 

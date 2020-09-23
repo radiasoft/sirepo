@@ -64,12 +64,17 @@ def http():
 
 def jupyterhub():
     assert pkconfig.channel_in('dev')
+    # TODO(e-carlin): setting os.environ doesn't work so manually need to set it here?
+    import sirepo.feature_config
+    sirepo.feature_config.cfg().jupyterhub = True
     try:
         import jupyterhub
     except ImportError:
         raise ImportError('jupyterhub not installed. run `pip install jupyterhub`')
     import sirepo.jupyterhub
+    import sirepo.server
 
+    sirepo.server.init()
     f = _run_dir().join('jupyterhub').ensure(dir=True).join('conf.py')
     pkjinja.render_resource(
         'jupyterhub_conf.py',
@@ -101,8 +106,14 @@ def nginx_proxy(jupyterhub=False):
         f = run_dir.join('default.conf')
         c = PKDict(_cfg()).pkupdate(run_dir=str(d))
         if jupyterhub:
+            import sirepo.feature_config
             import sirepo.jupyterhub
-            c.pkupdate(jupyterhub_root=sirepo.jupyterhub.cfg.root)
+            import sirepo.server
+
+            # TODO(e-carlin): same hack as jupyterhub() have to set the config.
+            sirepo.feature_config.cfg().jupyterhub = True
+            sirepo.server.init()
+            c.pkupdate(jupyterhub_root=sirepo.jupyterhub.cfg.uri_root)
         pkjinja.render_resource(
             'nginx_proxy.conf',
             c,

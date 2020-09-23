@@ -21,6 +21,7 @@ import flask
 import importlib
 import os
 import re
+import sirepo.jupyterhub
 import sirepo.sim_data
 import sirepo.srdb
 import sirepo.template
@@ -625,6 +626,8 @@ def init(uwsgi=None, use_reloader=False):
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
     uri_router.init(_app, simulation_db)
+    if feature_config.cfg().jupyterhub:
+        sirepo.jupyterhub.init()
     return _app
 
 
