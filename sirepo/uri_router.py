@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import sim_api
 import flask
 import importlib
 import inspect
@@ -20,6 +19,7 @@ import sirepo.auth
 import sirepo.cookie
 import sirepo.http_reply
 import sirepo.http_request
+import sirepo.sim_api
 import sirepo.uri
 import sirepo.util
 import werkzeug.exceptions
@@ -260,10 +260,8 @@ def _init_uris(app, simulation_db, sim_types):
 
 
 def _register_sim_api_modules():
-    from sirepo import feature_config
-
     for _, n, ispkg in pkgutil.iter_modules(
-            [os.path.dirname(sim_api.__file__)],
+            [os.path.dirname(sirepo.sim_api.__file__)],
     ):
         if ispkg:
             continue
