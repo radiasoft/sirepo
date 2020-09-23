@@ -265,8 +265,8 @@ def _register_sim_api_modules():
     ):
         if ispkg:
             continue
-        assert sirepo.template.is_sim_type(n), \
-            f'unknown sim_type={n}'
+        if not sirepo.template.is_sim_type(n):
+            pkdc(f'not adding apis for unknown sim_type={n}')
         register_api_module(importlib.import_module(f'sirepo.sim_api.{n}'))
 
 
