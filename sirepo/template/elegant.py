@@ -126,7 +126,7 @@ class LibAdapter:
         for i in d.models.commands:
             _verify_files(i, lattice.LatticeUtil.model_name_for_data(i), i._type, 'command')
         r.lattice = l
-        return d
+        return self._convert(d)
 
     def write_files(self, data, source_path, dest_dir):
         """writes files for the simulation
@@ -165,6 +165,58 @@ class LibAdapter:
         f = g.filename_map
         r.output_files = [f[k] for k in f.keys_in_order]
         return r
+
+    def _convert(self, data):
+
+        s = _SCHEMA.model
+        c = _code_var(data.models.rpnVariables)
+        for x in  data.models.rpnVariables:
+            x.value = c.eval_var_with_assert(x.value)
+
+        def _model(model, name):
+            schema = s[name]
+            t = None
+
+            def _rpn(rpn_type, py_type):
+                nonlocal t
+                if (
+                    t != rpn_type or
+                    not code_variable.CodeVar.is_var_value(v)
+                ):
+                    return False
+                model[k] = c.eval_var_with_assert(v)
+                return True
+
+            k = x = v = None
+            try:
+                for k, x in schema.items():
+                    t = x[1]
+                    v = model[k] if k in model else x[2]
+                    if _rpn('RPNValue', 'Float'):
+#TODO(robnagler) can't do this
+#                or _rpn('RPNBoolean', 'Boolean'):
+# because generation fails with:
+# True: invalid enum "Boolean" value for field "includeLattice"
+                        continue
+                    if t == 'Float':
+                        model[k] = float(v) if v else 0.
+                    elif t == 'Integer':
+                        model[k] = int(v) if v else 0
+#TODO(robnagler) see above
+#                elif t == 'Boolean':
+#                    model[k] = bool(v) if v else 0
+            except Exception as e:
+                # easier debugging
+                pkdlog('model={} field={} decl={} value={} exception={}', name, k, x, v, e)
+                raise
+
+        for k, v in data.models.items():
+            if k in s:
+                _model(v, k)
+        for x in ('elements', 'commands'):
+            for m in data.models[x]:
+                _model(m, LatticeUtil.model_name_for_data(m))
+        return data
 
     def _lattice_path(self, dest_dir, data):
         return dest_dir.join(self._run_setup(data).lattice)
@@ -776,7 +828,6 @@ class _Generate:
             if 'distribution_type' in m and 'halogaussian' in m.distribution_type:
                 m.distribution_type = m.distribution_type.replace('halogaussian', 'halo(gaussian)')
 
-        # ensure enums match, convert ints/floats, apply scaling
         enum_info = template_common.validate_models(self.data, _SCHEMA)
         _fix(self.data.models.bunch)
         for t in ['elements', 'commands']:

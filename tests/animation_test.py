@@ -50,7 +50,7 @@ def test_jspec(fc):
                 expect_y_range=r'2.15e-06',
             ),
             coolingRatesAnimation=PKDict(
-                expect_y_range=r'-0.0[1-9]\d*, (0.00|0)\b',
+                expect_y_range=r'-[\d\.]+, (0.00|0)\b',
             ),
         ),
         timeout=20,
