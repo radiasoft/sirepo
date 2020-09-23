@@ -153,10 +153,10 @@
             ["1", "RMS Waist"],
             ["2", "RMS Divergence"]
         ],
-	"GeometryType": [
-	    ["1", "Bragg Reflection"],
-	    ["2", "Bragg Transmission"]
-	],
+        "GeometryType": [
+            ["1", "Bragg Reflection"],
+            ["2", "Bragg Transmission"]
+        ],
         "GridShape" : [
             ["0", "Circular Grids"],
             ["1", "Rectangular Grids"],
@@ -368,7 +368,7 @@
                 "sirepo-beamline.js"
             ],
             "css": [
-                 "srw.css"
+                "srw.css"
             ]
         }
     },
@@ -395,7 +395,7 @@
         }
     },
     "model": {
-        "_INTENSITY_REPORT_3D": {
+        "_INTENSITY_REPORT": {
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
@@ -477,7 +477,7 @@
             "k": ["k", "MillerIndicesRange", "1"],
             "l": ["l", "MillerIndicesRange", "1"],
             "energy": ["Photon energy [eV] to orient crystal for", "Float", 9000],
-	        "useCase": ["Use case", "GeometryType", "1"],
+            "useCase": ["Use case", "GeometryType", "1"],
             "diffractionAngle": ["Diffraction plane (roll) angle [rad]", "DiffractionPlaneAngle", "0"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 0.0],
             "asymmetryAngle": ["Asymmetry angle [rad]", "Float", 0.0],
@@ -649,7 +649,7 @@
             "outframevx": ["Horizontal", "Float", 1.0],
             "outframevy": ["Vertical", "Float", 0],
             "energyAvg": ["Photon energy [eV] to orient grating for", "Float", 1000],
-	        "cff": ["Cff Parameter (cos(beta)/cos(alpha))", "Float", 1.75],
+            "cff": ["Cff Parameter (cos(beta)/cos(alpha))", "Float", 1.75],
             "rollAngle": ["Roll Angle [rad]", "Float", 0],
             "diffractionOrder": ["Diffraction Order", "Float", 1],
             "grooveDensity0": ["a₀ [lines/mm]", "Float", 350.0],
@@ -665,7 +665,7 @@
             "heightAmplification": ["Height Amplification Coefficient", "Float", 0.001]
         },
         "initialIntensityReport": {
-            "_super": ["_", "model", "_INTENSITY_REPORT_3D"],
+            "_super": ["_", "model", "_INTENSITY_REPORT"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "copyCharacteristic": ["Use Characteristic Across Reports", "Boolean", "0"],
@@ -732,7 +732,7 @@
             "notes": ["Notes", "Text", ""]
         },
         "multiElectronAnimation": {
-            "_super": ["_", "model", "_INTENSITY_REPORT_3D"],
+            "_super": ["_", "model", "_INTENSITY_REPORT"],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "sbatchCores": ["Cores", "Integer", 128],
             "sbatchHours": ["Hours", "Float", 0.4],
@@ -762,7 +762,7 @@
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "powerDensityReport": {
-            "_super": ["_", "model", "_INTENSITY_REPORT_3D"],
+            "_super": ["_", "model", "_INTENSITY_REPORT"],
             "distanceFromSource": ["Distance From Source [m]", "Float"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
@@ -860,7 +860,7 @@
         "simulationStatus": {
         },
         "sourceIntensityReport": {
-            "_super": ["_", "model", "_INTENSITY_REPORT_3D"],
+            "_super": ["_", "model", "_INTENSITY_REPORT"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "distanceFromSource": ["Distance From Source [m]", "Float"],
             "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
@@ -868,8 +868,8 @@
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
-	    "initialPosition": ["Initial Longitudinal Position for SR Calculation (effective if smaller than final position)", "Float", 0.0],
-	    "finalPosition": ["Final Longitudinal Position for SR Calculation (effective if larger than initial position)", "Float", 0.0],
+            "initialPosition": ["Initial Longitudinal Position for SR Calculation (effective if smaller than final position)", "Float", 0.0],
+            "finalPosition": ["Final Longitudinal Position for SR Calculation (effective if larger than initial position)", "Float", 0.0],
             "photonEnergy": ["Photon Energy [eV]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "precision": ["Relative Precision", "Float", 0.01],
@@ -962,7 +962,7 @@
             "position": ["Position along Optical Path [m]", "Float"]
         },
         "watchpointReport": {
-            "_super": ["_", "model", "_INTENSITY_REPORT_3D"],
+            "_super": ["_", "model", "_INTENSITY_REPORT"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "fieldUnits": ["Intensity Units", "FieldUnits", "1"]
@@ -988,7 +988,7 @@
         "completionState": ""
     },
     "view": {
-        "_INTENSITY_REPORT_3D": {
+        "_INTENSITY_REPORT": {
             "basic": [],
             "advanced": [
                 ["Scale", [
@@ -998,10 +998,10 @@
                     "minIntensityLimit",
                     "maxIntensityLimit"
                 ]],
-		["Rotation", [
-		    "rotateAngle",
-		    "rotateReshape"
-		]],
+                ["Rotation", [
+                    "rotateAngle",
+                    "rotateReshape"
+                ]],
                 ["Other", [
                     "colorMap",
                     "aspectRatio"
@@ -1010,7 +1010,7 @@
         },
         "arbitraryMagField": {
             "title": "Arbitrary Magnetic Field",
-	    "basic": [],
+            "basic": [],
             "advanced": [
                 "longitudinalPosition",
                 "magneticFile",
@@ -1400,7 +1400,7 @@
         },
         "gaussianBeam": {
             "title": "Coherent Gaussian Beam",
-	    "basic": [],
+            "basic": [],
             "advanced": [
                 "photonEnergy",
                 "energyPerPulse",
@@ -1477,7 +1477,7 @@
             ]
         },
         "initialIntensityReport": {
-            "_super": ["_", "view", "_INTENSITY_REPORT_3D"],
+            "_super": ["_", "view", "_INTENSITY_REPORT"],
             "title": "Initial Intensity",
             "basic": [],
             "advanced": [
@@ -1595,15 +1595,15 @@
         },
         "multipole": {
             "title": "Dipole",
-	    "basic": [],
+            "basic": [],
             "advanced": [
                 "field",
                 "length",
-		"distribution"
+                "distribution"
             ]
         },
         "multiElectronAnimation": {
-            "_super": ["_", "view", "_INTENSITY_REPORT_3D"],
+            "_super": ["_", "view", "_INTENSITY_REPORT"],
             "title": "Partially Coherent Intensity",
             "basic": [],
             "advanced": [
@@ -1616,12 +1616,12 @@
                     "photonEnergyBandWidth",
                     "calcCoherence",
                     [
-                       ["Horizontal", [
-                           "horizontalPosition"
-                       ]],
-                       ["Vertical", [
-                           "verticalPosition"
-                       ]]
+                        ["Horizontal", [
+                            "horizontalPosition"
+                        ]],
+                        ["Vertical", [
+                            "verticalPosition"
+                        ]]
                     ],
                     "notes"
                 ]]
@@ -1647,7 +1647,7 @@
             ]
         },
         "powerDensityReport": {
-            "_super": ["_", "view", "_INTENSITY_REPORT_3D"],
+            "_super": ["_", "view", "_INTENSITY_REPORT"],
             "title": "Power Density",
             "basic": [],
             "advanced": [
@@ -1732,7 +1732,7 @@
                 ["Physical Properties", [
                     "resolution",
                     "thickness",
-		    "transmissionImage",
+                    "transmissionImage",
                     "dens",
                     [
                         ["Horizontal", [
@@ -1754,7 +1754,7 @@
                     "attenuationLength"
                 ]],
                 ["Image Preview", [
-		    "outputImageFormat"
+                    "outputImageFormat"
                 ]]
             ]
         },
@@ -1792,7 +1792,7 @@
             "advanced": []
         },
         "sourceIntensityReport": {
-            "_super": ["_", "view", "_INTENSITY_REPORT_3D"],
+            "_super": ["_", "view", "_INTENSITY_REPORT"],
             "title": "Intensity",
             "basic": [],
             "advanced": [
@@ -1872,13 +1872,13 @@
         "tabulatedUndulator": {
             "title": "Undulator (Idealized or Tabulated)",
             "helpVideoURL": "https://vimeo.com/410318423/632634aa5d",
-	    "basic": [
-	        "undulatorSelector"
-	        ],
+            "basic": [
+                "undulatorSelector"
+            ],
             "advanced": [
                 "undulatorSelector",
                 "name",
-		"undulatorType",
+                "undulatorType",
                 "gap",
                 "phase",
                 "undulator.period",
@@ -1910,12 +1910,12 @@
                     "title",
                     "position",
                     [
-                       ["Horizontal", [
-                           "horizontalPosition"
-                       ]],
-                       ["Vertical", [
-                           "verticalPosition"
-                       ]]
+                        ["Horizontal", [
+                            "horizontalPosition"
+                        ]],
+                        ["Vertical", [
+                            "verticalPosition"
+                        ]]
                     ]
                 ]],
                 ["Geometry", [
@@ -1976,7 +1976,7 @@
         "undulator": {
             "title": "Idealized Undulator",
             "helpVideoURL": "https://vimeo.com/410318423/632634aa5d",
-	    "basic": [],
+            "basic": [],
             "advanced": [
                 "period",
                 "length",
@@ -2007,7 +2007,7 @@
             ]
         },
         "watchpointReport": {
-            "_super": ["_", "view", "_INTENSITY_REPORT_3D"],
+            "_super": ["_", "view", "_INTENSITY_REPORT"],
             "title": "Watchpoint",
             "basic": [],
             "advanced": [
