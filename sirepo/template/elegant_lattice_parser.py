@@ -107,14 +107,19 @@ def _parse_line(parser, line, models):
     # ignore end of line ';'
     line = re.sub(r';\s*$', '', line)
     parser.set_line(line)
-    name = parser.parse_value(r'[:\s,=)*]')
+    name = ''
+    while parser.peek_char() == ':':
+        # need to strip leading ':' and add to name, used as value break below
+        parser.assert_char(':')
+        name += ':'
+    name += parser.parse_value(r'[:\s,=)*]')
     if re.search(r'^\%', name):
         # rpn value
         line = re.sub(r'\s*%\s*', '', line)
         line = re.sub(r'\s+', ' ', line)
         _save_rpn_variables(line, models['rpnVariables'])
         return True
-    if not name or not re.search(r'[0-9A-Z]', name[0], re.IGNORECASE):
+    if not name or not re.search(r'[:0-9A-Z]', name[0], re.IGNORECASE):
         if name and name.upper() == '#INCLUDE':
             parser.raise_error('#INCLUDE files not supported')
         return True
