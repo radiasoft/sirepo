@@ -17,6 +17,7 @@ from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template.template_common import ParticleEnergy
 from sirepo.template.lattice import LatticeUtil
+from sirepo.template.madx_converter import MadxConverter
 import h5py
 import numpy as np
 import re
@@ -87,6 +88,126 @@ class OpalOutputFileIterator(lattice.ModelIterator):
         else:
             self.model_index[self.model_name] = 1
 
+class OpalMadxConverter(MadxConverter):
+    _FIELD_MAP = [
+        ['DRIFT',
+            ['DRIFT', 'l'],
+        ],
+        ['SBEND',
+            ['SBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'gap=hgap', 'psi=tilt'],
+        ],
+        ['RBEND',
+            ['RBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'hgap', 'psi=tilt'],
+        ],
+        ['QUADRUPOLE',
+            ['QUADRUPOLE', 'l', 'k1', 'k1s', 'psi=tilt'],
+        ],
+        ['SEXTUPOLE',
+            ['SEXTUPOLE', 'l', 'k2', 'k2s', 'psi=tilt'],
+        ],
+        ['OCTUPOLE',
+            ['OCTUPOLE', 'l', 'k3', 'k3s', 'psi=tilt'],
+        ],
+        ['SOLENOID',
+         #TODO(pjm): compute dks from ksi?
+            ['SOLENOID', 'l', 'ks'],
+        ],
+        ['MULTIPOLE',
+         #TODO(pjm): compute kn, ks from knl, ksl?
+            ['MULTIPOLE', 'psi=tilt'],
+        ],
+        ['HKICKER',
+            ['HKICKER', 'l', 'kick', 'psi=tilt'],
+        ],
+        ['VKICKER',
+            ['VKICKER', 'l', 'kick', 'psi=tilt'],
+        ],
+        ['KICKER',
+            ['KICKER', 'l', 'hkick', 'vkick', 'psi=tilt'],
+        ],
+        ['MARKER',
+            ['MARKER'],
+        ],
+        ['PLACEHOLDER',
+            ['DRIFT', 'l'],
+        ],
+        ['INSTRUMENT',
+            ['DRIFT', 'l'],
+        ],
+        ['ECOLLIMATOR',
+            ['ECOLLIMATOR', 'l', 'xsize', 'ysize'],
+        ],
+        ['RCOLLIMATOR',
+            ['RCOLLIMATOR', 'l', 'xsize', 'ysize'],
+        ],
+        ['COLLIMATOR apertype=ELLIPSE',
+            ['ECOLLIMATOR', 'l', 'xsize', 'ysize'],
+        ],
+        ['COLLIMATOR apertype=RECTANGLE',
+            ['RCOLLIMATOR', 'l', 'xsize', 'ysize'],
+        ],
+        ['RFCAVITY',
+            ['RFCAVITY', 'l', 'volt', 'lag', 'harmon', 'freq'],
+        ],
+        ['HMONITOR',
+            ['MONITOR', 'l'],
+        ],
+        ['VMONITOR',
+            ['MONITOR', 'l'],
+        ],
+        ['MONITOR',
+            ['MONITOR', 'l'],
+        ],
+    ]
+
+    def __init__(self):
+        super().__init__(SIM_TYPE, self._FIELD_MAP)
+
+    def to_madx(self, data):
+        madx = super().to_madx(data)
+        mb = LatticeUtil.find_first_command(madx, 'beam')
+        ob = LatticeUtil.find_first_command(data, 'beam')
+        for f in ob:
+            if f in mb:
+                mb[f] = ob[f]
+        od = LatticeUtil.find_first_command(data, 'distribution')
+        #TODO(pjm): save dist in vars
+        return madx
+
+    def from_madx(self, madx):
+        data = super().from_madx(madx)
+        mb = LatticeUtil.find_first_command(madx, 'beam')
+        LatticeUtil.find_first_command(data, 'beam').particle = mb.particle.upper()
+        #TODO(pjm): values may be vars
+        energy = ParticleEnergy.compute_energy('madx', mb.particle, mb.copy())
+        LatticeUtil.find_first_command(data, 'beam').pc = energy.pc
+        LatticeUtil.find_first_command(data, 'track').line = data.models.simulation.visualizationBeamlineId
+        return data
+
+    def _fixup_element(self, element_in, element_out):
+        super()._fixup_element(element_in, element_out)
+
+        # if self.from_class.sim_type()  == SIM_TYPE:
+        #     pass
+        # else:
+        #     if element_in.type == 'SBEND':
+        #         #pkdp(f'sbend: {element_in}')
+        #         #TODO(pjm): eval code vars
+        #         # d1 = 2 * element_in.l / element_in.angle;
+        #         # element_out.l = d1 * Math.sin(length / d1)
+        # QUADRUPOLE k1
+        # SBEND l
+        # if el.type == 'SBEND' or el.type == 'RBEND':
+        #     # mad-x is GeV (total energy), designenergy is MeV (kinetic energy)
+        #     el.designenergy = round(
+        #         (energy.energy - ParticleEnergy.PARTICLE[particle].mass) * 1e3,
+        #         6,
+        #     )
+        #     # this is different than the opal default of "2 * sin(angle / 2) / length"
+        #     # but matches elegant and synergia
+        #     el.k0 = cv.eval_var_with_assert(el.angle) / cv.eval_var_with_assert(el.l)
+        #     el.gap = 2 * cv.eval_var_with_assert(el.hgap)
+
 
 def background_percent_complete(report, run_dir, is_running):
     res = PKDict(
@@ -140,11 +261,8 @@ def import_file(req, unit_test_mode=False, **kwargs):
                 missingFiles=missing_files,
             )
     elif re.search(r'\.madx$', req.filename, re.IGNORECASE):
-        from sirepo.template import madx_converter, madx_parser
-        madx = madx_parser.parse_file(text)
-        data = madx_converter.from_madx(SIM_TYPE, madx)
+        data = OpalMadxConverter().from_madx_text(text)
         data.models.simulation.name = re.sub(r'\.madx$', '', req.filename, flags=re.IGNORECASE)
-        _fixup_madx(madx, data)
     else:
         raise IOError('invalid file extension, expecting .in or .madx')
     return data
@@ -187,7 +305,7 @@ def prepare_sequential_output_file(run_dir, data):
 
 def python_source_for_model(data, model):
     if model == 'madx':
-        return _export_madx(data)
+        return OpalMadxConverter().to_madx_text(data)
     return _generate_parameters_file(data)
 
 
@@ -358,14 +476,6 @@ def _column_data(col, col_names, rows):
     return res
 
 
-def _export_madx(data):
-    from sirepo.template import madx, madx_converter
-    return madx.python_source_for_model(
-        madx_converter.to_madx(SIM_TYPE, data),
-        None,
-    )
-
-
 def _field_units(units, field):
     if units == '1':
         units = ''
@@ -398,33 +508,6 @@ def _find_run_method(commands):
         if command._type == 'track' and command.run_method:
             return command.run_method
     return 'THIN'
-
-
-def _fixup_madx(madx, data):
-    import sirepo.template.madx
-    cv = sirepo.template.madx.madx_code_var(madx.models.rpnVariables)
-    import pykern.pkjson
-    beam = LatticeUtil.find_first_command(madx, 'beam')
-    assert beam, 'MAD-X file missing BEAM command'
-    if beam.energy == 1 and (beam.pc != 0 or beam.gamma != 0 or beam.beta != 0 or beam.brho != 0):
-        # unset the default mad-x value if other energy fields are set
-        beam.energy = 0
-    particle = beam.particle.lower()
-    LatticeUtil.find_first_command(data, 'beam').particle = particle.upper()
-    energy = ParticleEnergy.compute_energy('madx', particle, beam.copy())
-    LatticeUtil.find_first_command(data, 'beam').pc = energy.pc
-    LatticeUtil.find_first_command(data, 'track').line = data.models.simulation.visualizationBeamlineId
-    for el in data.models.elements:
-        if el.type == 'SBEND' or el.type == 'RBEND':
-            # mad-x is GeV (total energy), designenergy is MeV (kinetic energy)
-            el.designenergy = round(
-                (energy.energy - ParticleEnergy.PARTICLE[particle].mass) * 1e3,
-                6,
-            )
-            # this is different than the opal default of "2 * sin(angle / 2) / length"
-            # but matches elegant and synergia
-            el.k0 = cv.eval_var_with_assert(el.angle) / cv.eval_var_with_assert(el.l)
-            el.gap = 2 * cv.eval_var_with_assert(el.hgap)
 
 
 def _fix_opal_float(value):

@@ -5,305 +5,145 @@ u"""Convert codes to/from MAD-X.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkio, pkcollections, pkresource
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
-from sirepo.template import code_variable
-from sirepo.template.template_common import ParticleEnergy
+from sirepo.template import madx_parser
 from sirepo.template.lattice import LatticeUtil
 import copy
-import math
 import sirepo.sim_data
 
-_MADX_SIM_DATA = sirepo.sim_data.get_class('madx')
-_MADX_SCHEMA = _MADX_SIM_DATA.schema()
+class MadxConverter():
 
-_MADX_VARIABLES = PKDict(
-    twopi='pi * 2',
-    raddeg='180 / pi',
-    degrad='pi / 180',
-)
+    _MADX_VARIABLES = PKDict(
+        twopi='pi * 2',
+        raddeg='180 / pi',
+        degrad='pi / 180',
+    )
 
-_FIELD_MAP = PKDict(
-    elegant=[
-        #TODO(pjm): what is short MAD-X name, ex DRIFT or DRIF
-        ['DRIFT',
-            ['DRIF', 'l'],
-            ['CSRDRIFT', 'l'],
-            ['EDRIFT', 'l'],
-            ['LSCDRIFT', 'l'],
-        ],
-        ['SBEND',
-            ['CSBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'tilt', 'hgap', 'fint'],
-            ['SBEN', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'tilt', 'hgap', 'fint'],
-            ['CSRCSBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'tilt', 'hgap', 'fint'],
-            ['KSBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'tilt', 'hgap', 'fint'],
-            ['NIBEND', 'l', 'angle', 'e1', 'e2', 'tilt', 'hgap', 'fint'],
-        ],
-        ['RBEND',
-            ['RBEN', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'tilt', 'hgap', 'fint'],
-            ['TUBEND', 'l', 'angle'],
-        ],
-        ['QUADRUPOLE',
-            ['QUAD', 'l', 'k1', 'tilt'],
-            ['KQUAD', 'l', 'k1', 'tilt'],
-        ],
-        ['SEXTUPOLE',
-            ['SEXT', 'l', 'k2', 'tilt'],
-            ['KSEXT', 'l', 'k2', 'tilt'],
-        ],
-        ['OCTUPOLE',
-            ['OCTU', 'l', 'k3', 'tilt'],
-            ['KOCT', 'l', 'k3', 'tilt'],
-        ],
-        ['SOLENOID',
-            ['SOLE', 'l', 'ks'],
-        ],
-        ['MULTIPOLE',
-         #TODO(pjm): compute knl and order from first knl value in madx
-            ['MULT', 'tilt'],
-        ],
-        ['HKICKER',
-            ['HKICK', 'l', 'kick', 'tilt'],
-            ['EHKICK', 'l', 'kick', 'tilt'],
-        ],
-        ['VKICKER',
-            ['VKICK', 'l', 'kick', 'tilt'],
-            ['EVKICK', 'l', 'kick', 'tilt'],
-        ],
-        ['KICKER',
-            ['KICKER', 'l', 'hkick', 'vkick', 'tilt'],
-            ['EKICKER', 'l', 'hkick', 'vkick', 'tilt'],
-        ],
-        ['MARKER',
-            ['MARK'],
-        ],
-        ['PLACEHOLDER',
-            ['DRIF', 'l'],
-        ],
-        ['INSTRUMENT',
-            ['DRIF', 'l'],
-        ],
-        ['ECOLLIMATOR',
-            ['ECOL', 'l', 'x_max=xsize', 'y_max=ysize'],
-        ],
-        ['RCOLLIMATOR',
-            ['RCOL', 'l', 'x_max=xsize', 'y_max=ysize'],
-        ],
-        ['COLLIMATOR apertype=ELLIPSE',
-            ['ECOL', 'l', 'x_max=xsize', 'y_max=ysize'],
-        ],
-        ['COLLIMATOR apertype=RECTANGLE',
-            ['RCOL', 'l', 'x_max=xsize', 'y_max=ysize'],
-        ],
-        ['RFCAVITY',
-            ['RFCA', 'l', 'volt', 'freq'],
-            ['MODRF', 'l', 'volt', 'freq'],
-            ['RAMPRF', 'l', 'volt', 'freq'],
-            ['RFCW', 'l', 'volt', 'freq'],
-        ],
-        ['TWCAVITY',
-            ['RFDF', 'l', 'voltage=volt', 'frequency=freq'],
-        ],
-        ['HMONITOR',
-            ['HMON', 'l'],
-        ],
-        ['VMONITOR',
-            ['VMON', 'l'],
-        ],
-        ['MONITOR',
-            ['MONI', 'l'],
-            ['WATCH'],
-        ],
-        ['SROTATION',
-            ['SROT', 'tilt=angle'],
-        ],
-    ],
-    opal=[
-        ['DRIFT',
-            ['DRIFT', 'l'],
-        ],
-        ['SBEND',
-            ['SBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'hgap', 'psi=tilt'],
-        ],
-        ['RBEND',
-            ['RBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'hgap', 'psi=tilt'],
-        ],
-        ['QUADRUPOLE',
-            ['QUADRUPOLE', 'l', 'k1', 'k1s', 'psi=tilt'],
-        ],
-        ['SEXTUPOLE',
-            ['SEXTUPOLE', 'l', 'k2', 'k2s', 'psi=tilt'],
-        ],
-        ['OCTUPOLE',
-            ['OCTUPOLE', 'l', 'k3', 'k3s', 'psi=tilt'],
-        ],
-        ['SOLENOID',
-         #TODO(pjm): compute dks from ksi?
-            ['SOLENOID', 'l', 'ks'],
-        ],
-        ['MULTIPOLE',
-         #TODO(pjm): compute kn, ks from knl, ksl?
-            ['MULTIPOLE', 'psi=tilt'],
-        ],
-        ['HKICKER',
-            ['HKICKER', 'l', 'kick', 'psi=tilt'],
-        ],
-        ['VKICKER',
-            ['VKICKER', 'l', 'kick', 'psi=tilt'],
-        ],
-        ['KICKER',
-            ['KICKER', 'l', 'hkick', 'vkick', 'psi=tilt'],
-        ],
-        ['MARKER',
-            ['MARKER'],
-        ],
-        ['PLACEHOLDER',
-            ['DRIFT', 'l'],
-        ],
-        ['INSTRUMENT',
-            ['DRIFT', 'l'],
-        ],
-        ['ECOLLIMATOR',
-            ['ECOLLIMATOR', 'l', 'xsize', 'ysize'],
-        ],
-        ['RCOLLIMATOR',
-            ['RCOLLIMATOR', 'l', 'xsize', 'ysize'],
-        ],
-        ['COLLIMATOR apertype=ELLIPSE',
-            ['ECOLLIMATOR', 'l', 'xsize', 'ysize'],
-        ],
-        ['COLLIMATOR apertype=RECTANGLE',
-            ['RCOLLIMATOR', 'l', 'xsize', 'ysize'],
-        ],
-        ['RFCAVITY',
-            ['RFCAVITY', 'l', 'volt', 'lag', 'harmon', 'freq'],
-        ],
-        ['HMONITOR',
-            ['MONITOR', 'l'],
-        ],
-        ['VMONITOR',
-            ['MONITOR', 'l'],
-        ],
-        ['MONITOR',
-            ['MONITOR', 'l'],
-        ],
-    ],
-)
+    def __init__(self, sim_type, field_map, downcase_variables=False):
+        self.sim_type = sim_type
+        self.downcase_variables = downcase_variables
+        self.full_field_map = self._build_field_map(field_map)
 
+    def from_madx(self, data):
+        from sirepo.template import madx
+        self.to_class = sirepo.sim_data.get_class(self.sim_type)
+        self.from_class = sirepo.sim_data.get_class(madx.SIM_TYPE)
+        self.field_map = self.full_field_map.from_madx
+        self.drift_type = 'DRIFT'
+        return self._convert(data)
 
-def from_madx(to_sim_type, mad_data):
-    return _convert(to_sim_type, mad_data, 'from')
+    def from_madx_text(self, text):
+        return self.from_madx(madx_parser.parse_file(text, self.downcase_variables))
 
+    def to_madx(self, data):
+        from sirepo.template import madx
+        self.to_class = sirepo.sim_data.get_class(madx.SIM_TYPE)
+        self.from_class = sirepo.sim_data.get_class(self.sim_type)
+        self.field_map = self.full_field_map.to_madx
+        self.drift_type = self.full_field_map.from_madx.DRIFT[0]
+        return self._convert(data)
 
-def to_madx(from_sim_type, data):
-    return _convert(from_sim_type, data, 'to')
+    def to_madx_text(self, data):
+        from sirepo.template import madx
+        return madx.python_source_for_model(self.to_madx(data), None)
 
-
-def _convert(name, data, direction):
-    if name == 'madx':
-        return data
-    assert name in _FIELD_MAP
-    if direction == 'from':
-        field_map = _FIELD_MAP[name].from_madx
-        from_class = sirepo.sim_data.get_class('madx')
-        to_class = sirepo.sim_data.get_class(name)
-        drift_type = 'DRIFT'
-    else:
-        assert direction == 'to'
-        field_map = _FIELD_MAP[name].to_madx
-        from_class = sirepo.sim_data.get_class(name)
-        to_class = sirepo.sim_data.get_class('madx')
-        drift_type = _FIELD_MAP[name].from_madx.DRIFT[0]
-
-    res = simulation_db.default_data(to_class.sim_type())
-    for bl in data.models.beamlines:
-        res.models.beamlines.append(PKDict(
-            name=bl.name,
-            items=bl['items'],
-            id=bl.id,
-        ))
-    max_id = 0
-
-    for el in data.models.elements:
-        if el.type not in field_map:
-            #TODO(pjm): convert to a sim appropriate drift rather than skipping
-            pkdlog('Unhandled element type: {}', el.type)
-            el.type = drift_type
-            if 'l' not in el:
-                el.l = 0
-        fields = field_map[el.type]
-        values = to_class.model_defaults(fields[0])
-        values.name = el.name
-        values.type = fields[0]
-        values._id = el._id
-        max_id = max(max_id, el._id)
-        for idx in range(1, len(fields)):
-            f1 = f2 = fields[idx]
-            if '=' in fields[idx]:
-                f1, f2 = fields[idx].split('=')
-                if direction == 'to' and to_class.sim_type() == 'madx':
-                    f2, f1 = f1, f2
-            values[f1] = el[f2]
-        # add any non-default values not in map to a comment
-        comment = ''
-        defaults = from_class.model_defaults(el.type)
-        for f in el:
-            if f not in fields and f in defaults and str(el[f]) != str(defaults[f]):
-                v = el[f]
-                if ' ' in str(v):
-                    v = '"{}"'.format(v)
-                comment += '{}={} '.format(f, v)
-        if comment:
-            values._comment = '{}: {} {}'.format(from_class.sim_type(), el.type, comment.strip())
-        res.models.elements.append(values)
-    res.models.rpnVariables = _rpn_variables(to_class, data)
-    for f in ('name', 'visualizationBeamlineId', 'activeBeamlineId'):
-        if f in data.models.simulation:
-            res.models.simulation[f] = data.models.simulation[f]
-    if direction == 'to' and to_class.sim_type() == 'madx':
-        res.report = 'twissReport'
-    # elements may be out of order if element type was changed
-    LatticeUtil(
-        res,
-        sirepo.sim_data.get_class(to_class.sim_type()).schema(),
-    ).sort_elements_and_beamlines()
-    return res
-
-
-def _build_field_map(info):
-    # builds a to/from madx fields map for each sim type
-    res = PKDict()
-    for sim in info.keys():
-        res[sim] = PKDict(
+    def _build_field_map(self, field_map):
+        res = PKDict(
             from_madx=PKDict(),
             to_madx=PKDict(),
         )
-        for el in info[sim]:
+        for el in field_map:
             madx_name = el[0]
-            res[sim].from_madx[madx_name] = el[1]
+            res.from_madx[madx_name] = el[1]
             for idx in range(1, len(el)):
                 fields = copy.copy(el[idx])
                 name = fields[0]
-                if name not in res[sim].to_madx:
+                if name not in res.to_madx:
                     fields[0] = madx_name
-                    res[sim].to_madx[name] = fields
-    return res
+                    res.to_madx[name] = fields
+        return res
 
+    def _convert(self, data):
+        self.result = simulation_db.default_data(self.to_class.sim_type())
+        self._copy_beamlines(data)
+        self._copy_elements(data)
+        self._copy_code_variables(data)
+        LatticeUtil(
+            self.result,
+            self.to_class.schema(),
+        ).sort_elements_and_beamlines()
+        return self.result
 
-def _rpn_variables(to_class, data):
-    res = data.models.rpnVariables
-    if to_class.sim_type() in ('madx', 'opal'):
-        return list(filter(lambda x: x.name not in _MADX_VARIABLES, res))
-    names = set([v.name for v in res])
-    for name in _MADX_VARIABLES:
-        if name not in names:
-            res.append(PKDict(
-                name=name,
-                value=_MADX_VARIABLES[name],
+    def _copy_beamlines(self, data):
+        for bl in data.models.beamlines:
+            self.result.models.beamlines.append(PKDict(
+                name=bl.name,
+                items=bl['items'],
+                id=bl.id,
             ))
-    return res
+        for f in ('name', 'visualizationBeamlineId', 'activeBeamlineId'):
+            if f in data.models.simulation:
+                self.result.models.simulation[f] = data.models.simulation[f]
 
+    def _copy_code_variables(self, data):
+        res = data.models.rpnVariables
+        if self.to_class.sim_type() in ('madx', 'opal'):
+            res = list(filter(lambda x: x.name not in self._MADX_VARIABLES, res))
+        else:
+            names = set([v.name for v in res])
+            for name in self._MADX_VARIABLES:
+                if name not in names:
+                    res.append(PKDict(
+                        name=name,
+                        value=self._MADX_VARIABLES[name],
+                    ))
+        self.result.models.rpnVariables = res
 
-_FIELD_MAP = _build_field_map(_FIELD_MAP)
+    def _copy_elements(self, data):
+        for el in data.models.elements:
+            if el.type not in self.field_map:
+                pkdlog('Unhandled element type: {}', el.type)
+                el.type = self.drift_type
+                if 'l' not in el:
+                    el.l = 0
+            fields = self.field_map[el.type]
+            values = PKDict(
+                name=el.name,
+                type=fields[0],
+                _id=el._id,
+            )
+            for idx in range(1, len(fields)):
+                f1 = f2 = fields[idx]
+                if '=' in fields[idx]:
+                    f1, f2 = fields[idx].split('=')
+                    if self.to_class.sim_type()  == 'madx':
+                        f2, f1 = f1, f2
+                values[f1] = el[f2]
+            self._fixup_element(el, values)
+            self.to_class.update_model_defaults(values, values.type)
+            self.result.models.elements.append(values)
+
+    def _find_var(self, data, name):
+        name = self._var_name(name)
+        for v in data.models.rpnVariables:
+            if v.name == name:
+                return v
+        return None
+
+    def _fixup_element(self, element_in, element_out):
+        pass
+
+    def _replace_var(self, data, name, value):
+        v = self._find_var(data, name)
+        if v:
+            v.value = value
+        else:
+            data.models.rpnVariables.append(PKDict(
+                name=self._var_name(name),
+                value=value,
+            ))
+
+    def _var_name(self, name):
+        return f'sr_{name}'

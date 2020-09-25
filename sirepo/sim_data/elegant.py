@@ -57,6 +57,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def elegant_max_id(cls, data):
+        #TODO(pjm): move into lattice.LatticeUtil
         max_id = 1
         for model_type in 'elements', 'beamlines', 'commands':
             if model_type not in data.models:

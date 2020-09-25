@@ -58,6 +58,7 @@ class ElementIterator(ModelIterator):
         self.fields = []
 
     def __is_default(self, model, field_schema, field):
+        from sirepo.template.code_variable import CodeVar
         if len(field_schema) < 3:
             return True
         default_value = field_schema[2]
@@ -65,6 +66,9 @@ class ElementIterator(ModelIterator):
         if value is not None and default_value is not None:
             if value == default_value:
                 return True
+            if field_schema[1] == 'RPNValue':
+                if value and not CodeVar.is_var_value(value):
+                    return float(value) == default_value
             return str(value) == str(default_value)
         if value is not None:
             return False
@@ -226,12 +230,13 @@ class LatticeParser(object):
             if v[0] == '-':
                 reverse = True
                 v = v[1:]
-            el = self.elements_by_name[v.upper()]
-            assert el, 'line: {} element not found: {}'.format(label, v)
+            el = self.elements_by_name.get(v.upper())
+            assert el, 'line: {}, element not found: {}'.format(label, v)
             el_id = el._id if '_id' in el else el.id
             for _ in range(count):
                 res['items'].append(-el_id if reverse else el_id)
-        assert label.upper() not in self.elements_by_name
+        assert label.upper() not in self.elements_by_name, \
+            'duplicate beamline: {}'.format(label)
         self.elements_by_name[label.upper()] = res
         self.data.models.beamlines.append(res)
 

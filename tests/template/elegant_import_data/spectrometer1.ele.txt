@@ -10,8 +10,6 @@
 &end
 
 &twiss_output
-  alpha_x = 0,
-  alpha_y = 0,
   matched = 0,
   output_at_each_step = 1,
 &end
@@ -25,7 +23,6 @@
   n_passes = 3,
   n_restarts = 2,
   output_sparsing_factor = 100,
-  target = 0,
   tolerance = 1e-12,
   verbose = 0,
 &end
@@ -44,7 +41,6 @@
 
 &optimization_variable
   item = "L",
-  lower_limit = 0,
   name = "D0",
   step_size = 1e-3,
   upper_limit = 5.0,
@@ -76,7 +72,6 @@
 
 &optimization_variable
   item = "K1",
-  lower_limit = 0,
   name = "Q1",
   step_size = 1e-3,
   upper_limit = 2.5,
@@ -110,8 +105,6 @@
 &end
 
 &twiss_output
-  alpha_x = 0,
-  alpha_y = 0,
   filename = "twiss_output2.filename.sdds",
 &end
 
@@ -121,8 +114,6 @@
 &bunched_beam
   alpha_x = "(beam_alpha_x)",
   alpha_y = "(beam_alpha_y)",
-  beta_x = 1,
-  beta_y = 1,
   distribution_cutoff[0] = 3, 3, 3,
   emit_nx = 1e-6,
   emit_ny = 1e-6,

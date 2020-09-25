@@ -840,9 +840,6 @@
             "pc": ["PC [GeV/c]", "RPNValue", 0, "Particle momentum"],
             "gamma": ["GAMMA", "RPNValue", 0, "ENERGY / MASS"],
             "bcurrent": ["BCURRENT", "RPNValue", 0, "Beam current in A (all bunches)"],
-            "ex": ["EX", "RPNValue", 0, "Horizontal emittance"],
-            "ey": ["EY", "RPNValue", 0, "Vertical emittance"],
-            "et": ["ET", "RPNValue", 0, "Longitudinal emittance"],
             "bfreq": ["BFREQ", "RPNValue", 0, "Beam frequency in MHz (all bunches)"],
             "npart": ["NPART [bunch]", "RPNValue", 0, "Number of particles"],
             "nslice": ["NSLICE [bunch]", "RPNValue", 0, "Number of slices"]
@@ -2171,10 +2168,7 @@
                     "charge",
                     "gamma",
                     "energy",
-                    "pc",
-                    "ex",
-                    "ey",
-                    "et"
+                    "pc"
                 ]],
                 ["Other", [
                     "bfreq",

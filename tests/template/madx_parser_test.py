@@ -45,7 +45,6 @@ def test_parse_madx_file():
     for name in ('particle_track', ):
         actual = madx_parser.parse_file(pkio.read_text(
             pkunit.data_dir().join(f'{name}.madx')))
-        madx._fixup_madx(actual)
         del actual['version']
         expect = pkjson.load_any(pkunit.data_dir().join(f'{name}.json'))
         pkeq(expect, actual)

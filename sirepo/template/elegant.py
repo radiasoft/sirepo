@@ -19,6 +19,7 @@ from sirepo.template import lattice
 from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
+from sirepo.template.madx_converter import MadxConverter
 import copy
 import glob
 import math
@@ -115,6 +116,175 @@ class OutputFileIterator(lattice.ModelIterator):
             self.model_index[self.model_name] += 1
         else:
             self.model_index[self.model_name] = 1
+
+
+class ElegantMadxConverter(MadxConverter):
+    _BEAM_VARS = ['beta_x', 'beta_y', 'alpha_x', 'alpha_y', 'n_particles_per_bunch'];
+    _FIELD_MAP = [
+        ['DRIFT',
+            ['DRIF', 'l'],
+            ['CSRDRIFT', 'l'],
+            ['EDRIFT', 'l'],
+            ['LSCDRIFT', 'l'],
+        ],
+        ['SBEND',
+            ['CSBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'tilt', 'hgap', 'fint'],
+            ['SBEN', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'tilt', 'hgap', 'fint'],
+            ['CSRCSBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'tilt', 'hgap', 'fint'],
+            ['KSBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'tilt', 'hgap', 'fint'],
+            ['NIBEND', 'l', 'angle', 'e1', 'e2', 'tilt', 'hgap', 'fint'],
+        ],
+        ['RBEND',
+            ['RBEN', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'tilt', 'hgap', 'fint'],
+            ['TUBEND', 'l', 'angle'],
+        ],
+        ['QUADRUPOLE',
+            ['QUAD', 'l', 'k1', 'tilt'],
+            ['KQUAD', 'l', 'k1', 'tilt'],
+        ],
+        ['SEXTUPOLE',
+            ['SEXT', 'l', 'k2', 'tilt'],
+            ['KSEXT', 'l', 'k2', 'tilt'],
+        ],
+        ['OCTUPOLE',
+            ['OCTU', 'l', 'k3', 'tilt'],
+            ['KOCT', 'l', 'k3', 'tilt'],
+        ],
+        ['SOLENOID',
+            ['SOLE', 'l', 'ks'],
+        ],
+        ['MULTIPOLE',
+         #TODO(pjm): compute knl and order from first knl value in madx
+            ['MULT', 'tilt'],
+        ],
+        ['HKICKER',
+            ['HKICK', 'l', 'kick', 'tilt'],
+            ['EHKICK', 'l', 'kick', 'tilt'],
+        ],
+        ['VKICKER',
+            ['VKICK', 'l', 'kick', 'tilt'],
+            ['EVKICK', 'l', 'kick', 'tilt'],
+        ],
+        ['KICKER',
+            ['KICKER', 'l', 'hkick', 'vkick', 'tilt'],
+            ['EKICKER', 'l', 'hkick', 'vkick', 'tilt'],
+        ],
+        ['MARKER',
+            ['MARK'],
+        ],
+        ['PLACEHOLDER',
+            ['DRIF', 'l'],
+        ],
+        ['INSTRUMENT',
+            ['DRIF', 'l'],
+        ],
+        ['ECOLLIMATOR',
+            ['ECOL', 'l', 'x_max=xsize', 'y_max=ysize'],
+        ],
+        ['RCOLLIMATOR',
+            ['RCOL', 'l', 'x_max=xsize', 'y_max=ysize'],
+        ],
+        ['COLLIMATOR apertype=ELLIPSE',
+            ['ECOL', 'l', 'x_max=xsize', 'y_max=ysize'],
+        ],
+        ['COLLIMATOR apertype=RECTANGLE',
+            ['RCOL', 'l', 'x_max=xsize', 'y_max=ysize'],
+        ],
+        ['RFCAVITY',
+            ['RFCA', 'l', 'volt', 'freq'],
+            ['MODRF', 'l', 'volt', 'freq'],
+            ['RAMPRF', 'l', 'volt', 'freq'],
+            ['RFCW', 'l', 'volt', 'freq'],
+        ],
+        ['TWCAVITY',
+            ['RFDF', 'l', 'voltage=volt', 'frequency=freq'],
+        ],
+        ['HMONITOR',
+            ['HMON', 'l'],
+        ],
+        ['VMONITOR',
+            ['VMON', 'l'],
+        ],
+        ['MONITOR',
+            ['MONI', 'l'],
+            ['WATCH'],
+        ],
+        ['SROTATION',
+            ['SROT', 'tilt=angle'],
+        ],
+    ]
+
+    def __init__(self):
+        super().__init__(SIM_TYPE, self._FIELD_MAP, downcase_variables=True)
+
+    def from_madx(self, madx):
+        data = super().from_madx(madx)
+        eb = LatticeUtil.find_first_command(data, 'bunched_beam')
+        mb = LatticeUtil.find_first_command(madx, 'beam')
+        for f in self._BEAM_VARS:
+            v = self._find_var(madx, f)
+            if v:
+                eb[f] = v.value
+        if mb.particle != 'electron':
+            particle = None
+            if mb.particle == 'negmuon':
+                particle = 'muon'
+            elif mb.particle == 'proton':
+                particle = 'proton'
+            else:
+                particle = 'positron'
+            cp = LatticeUtil.find_first_command(data, 'change_particle')
+            if cp:
+                cp.particle = particle
+            else:
+                data.models.commands.insert(0, PKDict(
+                    _id=_SIM_DATA.elegant_max_id(data),
+                    _type='change_particle',
+                    name=particle,
+                ))
+        #TODO(pjm): set bunch_beam energy and emittance from madx beam
+        return data
+
+    def to_madx(self, data):
+        madx = super().to_madx(data)
+        cv = _code_var(data.models.rpnVariables)
+        def _var(v):
+            return cv.eval_var_with_assert(v)
+        eb = LatticeUtil.find_first_command(data, 'bunched_beam')
+        ers = LatticeUtil.find_first_command(data, 'run_setup')
+        if not eb or not ers:
+            return
+        mb = LatticeUtil.find_first_command(madx, 'beam')
+        #TODO(pjm): assuming electron for now, should check for change_particle command
+        mb.particle = 'electron'
+        mb.energy = 0
+        madx.models.bunch.beamDefinition = 'pc'
+        if _var(ers.p_central_mev):
+            mb.pc = _var(ers.p_central_mev)
+        else:
+            mb.pc = _var(ers.p_central) * _SCHEMA.constants.ELEGANT_ME_EV
+        beta_gamma = mb.pc / _SCHEMA.constants.ELEGANT_ME_EV
+        # MeV/c --> GeV/c
+        mb.pc *= 1e-3
+        for f in ('x', 'y'):
+            emit = _var(eb[f'emit_{f}'])
+            if not emit:
+                emit = _var(eb[f'emit_n{f}']) / beta_gamma
+            mb[f'e{f}'] = emit
+        et = _var(eb.emit_z)
+        if not et:
+            if eb.alpha_z:
+                s56 = - eb.sigma_dp * eb.sigma_s * eb.alpha_z / math.sqrt(1 + math.pow(eb.alpha_z, 2))
+            else:
+                s56 = _var(eb.sigma_dp) * _var(eb.sigma_s) * _var(eb.dp_s_coupling)
+            et = math.sqrt(math.pow(_var(eb.sigma_dp) * _var(eb.sigma_s), 2) - math.pow(s56, 2))
+        mb.et = et
+        for f in self._BEAM_VARS:
+            self._replace_var(madx, f, eb[f])
+        return madx
+
+    def _fixup_element(self, element_in, element_out):
+        super()._fixup_element(element_in, element_out)
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -228,10 +398,7 @@ def import_file(req, test_data=None, **kwargs):
         if input_data:
             _map_commands_to_lattice(data)
     elif re.search(r'\.madx$', req.filename, re.IGNORECASE):
-        from sirepo.template import madx_converter, madx_parser
-        data = madx_converter.from_madx(
-            SIM_TYPE,
-            madx_parser.parse_file(text, downcase_variables=True))
+        data = ElegantMadxConverter().from_madx_text(text)
     else:
         raise IOError('invalid file extension, expecting .ele or .lte')
     data.models.simulation.name = re.sub(r'\.(lte|ele|madx)$', '', req.filename, flags=re.IGNORECASE)
@@ -263,7 +430,7 @@ def prepare_sequential_output_file(run_dir, data):
 
 def python_source_for_model(data, model):
     if model == 'madx':
-        return _export_madx(data)
+        return ElegantMadxConverter().to_madx_text(data)
     return generate_parameters_file(data, is_parallel=True) + '''
 with open('elegant.lte', 'w') as f:
     f.write(lattice_file)
@@ -454,14 +621,6 @@ def _correct_halo_gaussian_distribution_type(m):
     # the halo(gaussian) value will get validated/escaped to halogaussian, change it back
     if 'distribution_type' in m and 'halogaussian' in m.distribution_type:
         m.distribution_type = m.distribution_type.replace('halogaussian', 'halo(gaussian)')
-
-
-def _export_madx(data):
-    from sirepo.template import madx, madx_converter
-    return madx.python_source_for_model(
-        madx_converter.to_madx(SIM_TYPE, data),
-        None,
-    )
 
 
 def _extract_report_data(xFilename, frame_args, page_count=0):

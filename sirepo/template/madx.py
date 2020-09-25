@@ -182,7 +182,6 @@ def import_file(req, **kwargs):
     assert re.search(r'\.madx$', req.filename, re.IGNORECASE), \
         'invalid file extension, expecting .madx'
     data = madx_parser.parse_file(text, downcase_variables=True)
-    _fixup_madx(data)
     # TODO(e-carlin): need to clean this up. copied from elegant
     data.models.simulation.name = re.sub(
         r'\.madx$',
@@ -463,31 +462,6 @@ def _first_beam_command(data):
     return m
 
 
-def _fixup_madx(madx):
-    # move imported beam over default-data.json beam
-    # remove duplicate twiss
-    # remove "call" and "use" commands
-    beam_idx = None
-    first_twiss = True
-    res = []
-    for cmd in madx.models.commands:
-        if cmd._type == 'call' or cmd._type == 'use':
-            continue
-        if cmd._type == 'beam':
-            if beam_idx is None:
-                beam_idx = madx.models.commands.index(cmd)
-            else:
-                res[beam_idx] = cmd
-                _update_beam_and_bunch(cmd, madx.models.bunch)
-                continue
-        elif cmd._type == 'twiss':
-            if first_twiss:
-                first_twiss = False
-                continue
-        res.append(cmd)
-    madx.models.commands = res
-
-
 def _format_field_value(state, model, field, el_type):
     v = model[field]
     if el_type == 'Boolean' or el_type == 'OptionalBoolean':
@@ -496,8 +470,14 @@ def _format_field_value(state, model, field, el_type):
         v = state.id_map[int(v)].name
     elif el_type == 'OutputFile':
         v = '"{}"'.format(state.filename_map[LatticeUtil.file_id(model._id, state.field_index)].filename)
+    elif el_type == 'RPNValue':
+        v = _format_rpn_value(v)
     return [field, v]
 
+
+def _format_rpn_value(value):
+    return code_variable.PurePythonEval.postfix_to_infix(value
+    )
 
 def _generate_commands(filename_map, util):
     _update_beam_energy(util.data)
@@ -547,7 +527,7 @@ def _generate_parameters_file(data):
 def _generate_variable(name, variables, visited):
     res = ''
     if name not in visited:
-        res += 'REAL {} = {};\n'.format(name, variables[name])
+        res += 'REAL {} = {};\n'.format(name, _format_rpn_value(variables[name]))
         visited[name] = True
     return res
 
@@ -639,22 +619,6 @@ def _twiss_ellipse_rotation(alpha, beta):
     return 0.5 * math.atan(
         2. * alpha * beta / (1 + alpha * alpha - beta * beta)
     )
-
-
-def _update_beam_and_bunch(beam, bunch):
-    if 'particle' in beam:
-        beam.particle = beam.particle.lower()
-        found = False
-        for pt in _SCHEMA.enum.ParticleType:
-            if pt[0] == beam.particle:
-                found = True
-                break
-        if not found:
-            beam.particle = 'other'
-    for bd in _SCHEMA.enum.BeamDefinition:
-        if bd[0] in beam and beam[bd[0]]:
-            bunch.beamDefinition = bd[0]
-            break
 
 
 def _update_beam_energy(data):

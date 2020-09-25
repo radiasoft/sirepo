@@ -14,22 +14,20 @@ import pytest
 def test_from_elegant_to_madx_and_back():
     from pykern import pkio
     from pykern.pkunit import pkeq
-    from sirepo.template import elegant, madx, madx_converter, madx_parser
+    from sirepo.template import elegant
+    from sirepo.template.elegant import ElegantMadxConverter
 
     with pkunit.save_chdir_work() as d:
         for name in ('SPEAR3', 'Compact Storage Ring', 'Los Alamos Proton Storage Ring'):
             data = _example_data(name)
-            mad = madx_parser.parse_file(elegant.python_source_for_model(data, 'madx'))
-            madx._fixup_madx(mad)
+            actual = ElegantMadxConverter().to_madx_text(data)
             outfile = name.lower().replace(' ', '-') + '.madx'
-            actual = madx.python_source_for_model(mad, None)
             pkio.write_text(outfile, actual)
             e = pkunit.data_dir().join(outfile)
             expect = pkio.read_text(e)
             pkeq(expect, actual, 'diff {} {}', e, d.join(outfile))
 
-            data = madx_parser.parse_file(actual)
-            lattice = madx_converter.from_madx(elegant.SIM_TYPE, data)
+            lattice = ElegantMadxConverter().from_madx_text(actual)
             outfile = name.lower().replace(' ', '-') + '.lte'
             actual = elegant.python_source_for_model(lattice, None)
             pkio.write_text(outfile, actual)

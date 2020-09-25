@@ -26,7 +26,6 @@ class SimData(sirepo.sim_data.SimDataBase):
             for m in dm[container]:
                 cls.update_model_defaults(m, LatticeUtil.model_name_for_data(m))
 
-
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         res = []
