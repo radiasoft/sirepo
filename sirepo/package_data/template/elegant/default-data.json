@@ -33,7 +33,7 @@
             "randomize_order": "0, 0, 0",
             "sigma_dp": 0.001,
             "sigma_s": 0.00065,
-            "symmetrize": "1",
+            "symmetrize": "0",
             "time_start": "0.0"
         },
         "bunchFile": {
@@ -180,7 +180,7 @@
                 "save_initial_coordinates": "1",
                 "sigma_dp": 0.001,
                 "sigma_s": 0.00065,
-                "symmetrize": "1",
+                "symmetrize": "0",
                 "time_start": "0.0",
                 "use_moments_output_values": "0",
                 "use_twiss_command_values": "0"
