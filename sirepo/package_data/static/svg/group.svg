@@ -1,13 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg class="sr-beamline-item-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" width="42" height="42" viewBox="0, 0, 42, 42">
-  <g id="Layer_1" transform="translate(-280.98, -93.843)">
+<svg class="sr-beamline-item-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" width="34" height="34" viewBox="0, 0, 34, 34">
+  <g id="Layer_1" transform="translate(-186.579, -61.112)">
     <g id="Add_Group">
-      <path d="M289.957,98.843 L314.002,98.843 C316.199,98.843 317.98,100.92 317.98,103.483 L317.98,126.202 C317.98,128.765 316.199,130.843 314.002,130.843 L289.957,130.843 C287.761,130.843 285.98,128.765 285.98,126.202 L285.98,103.483 C285.98,100.92 287.761,98.843 289.957,98.843 z" fill-opacity="0" stroke="#8FC640" stroke-width="2" stroke-dasharray="6,4" id="Container"/>
-      <path d="M301.98,126.843 C295.352,126.843 289.98,121.47 289.98,114.843 C289.98,108.215 295.352,102.843 301.98,102.843 C308.607,102.843 313.98,108.215 313.98,114.843 C313.98,121.47 308.607,126.843 301.98,126.843 z" fill="#97B6D5"/>
-      <text transform="matrix(1, 0, 0, 1, 301.98, 113.843)">
-        <tspan x="-7.2" y="8" font-family="HelveticaNeue-Bold" font-size="24" fill="#FFFFFF">+</tspan>
-      </text>
+      <path d="M191.557,62.112 L215.601,62.112 C217.798,62.112 219.579,64.19 219.579,66.753 L219.579,89.471 C219.579,92.034 217.798,94.112 215.601,94.112 L191.557,94.112 C189.36,94.112 187.579,92.034 187.579,89.471 L187.579,66.753 C187.579,64.19 189.36,62.112 191.557,62.112 z" fill-opacity="0" stroke="#8FC640" stroke-width="1" stroke-dasharray="3,2" id="Container"/>
+      <g id="Cube_Source">
+        <path d="M191.559,68.039 L200.378,68.039 L200.378,78.471 L191.559,78.471 L191.559,68.039 z" fill="#97B6D5" id="Front"/>
+        <path d="M195.968,64.643 L203.317,64.643 L200.378,68.121 L191.559,68.121 L195.968,64.643 z" fill="#526374" id="Top"/>
+        <path d="M200.378,78.471 L200.378,68.039 L203.317,64.643 L203.317,73.255 L200.378,78.471 z" fill="#526374" id="Side"/>
+      </g>
+      <g id="Triangle">
+        <path d="M216.798,82.012 L216.798,84.632 L199.887,84.632 L199.887,82.012 L216.798,82.012 z" fill="#526374"/>
+        <path d="M199.887,84.632 L208.343,91.934 L216.798,84.632 z" fill="#97B6D5"/>
+      </g>
     </g>
   </g>
 </svg>

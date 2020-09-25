@@ -22,4 +22,4 @@ case ${1:-} in
         ;;
 esac
 echo "${SIREPO_SIMULATION_DB_SBATCH_DISPLAY:-without sbatch}"
-PYENV_VERSION=py3 pyenv exec sirepo service flask
+sirepo service flask

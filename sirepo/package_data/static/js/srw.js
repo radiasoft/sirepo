@@ -737,7 +737,7 @@ SIREPO.app.controller('SourceController', function (appState, panelState, srwSer
     });
 });
 
-SIREPO.app.directive('appFooter', function(appState, srwService) {
+SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) {
     return {
         restrict: 'A',
         scope: {
@@ -746,7 +746,46 @@ SIREPO.app.directive('appFooter', function(appState, srwService) {
         template: [
             '<div data-common-footer="nav"></div>',
             '<div data-import-python=""></div>',
+            '<div data-confirmation-modal="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-ok-text="Create" data-ok-clicked="openShadowSimulation()">Create a new Shadow simulation using this simulation\'s beamline?</div>',
         ].join(''),
+        controller: function($scope) {
+
+            function createNewSim(data) {
+                requestSender.sendRequest(
+                    'newSimulation',
+                    function(shadowData) {
+                        var sim = shadowData.models.simulation;
+                        ['simulationId', 'simulationSerial'].forEach(function(f) {
+                            data.models.simulation[f] = sim[f];
+                        });
+                        requestSender.sendRequest(
+                            'saveSimulationData',
+                            openNewSim,
+                            data);
+                    },
+                    newSimData(data));
+            }
+
+            function newSimData(data) {
+                var res = appState.clone(data.models.simulation);
+                res.simulationType = data.simulationType;
+                return res;
+            }
+
+            function openNewSim(data) {
+                requestSender.newLocalWindow(
+                    'beamline', {
+                        simulationId: data.models.simulation.simulationId,
+                    }, data.simulationType);
+            }
+
+            $scope.openShadowSimulation = function() {
+                srwService.computeOnServer(
+                    'create_shadow_simulation',
+                    appState.models,
+                    createNewSim);
+            };
+        },
     };
 });
 
@@ -1394,7 +1433,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
             '</div>',
           '</app-header-right-sim-loaded>',
           '<app-settings>',
-            //  '<div>App-specific setting item</div>',
+            '<div data-ng-if="showOpenShadow()"><a href data-ng-click="openShadowConfirm()"><span class="glyphicon glyphicon-upload"></span> Open as a New Shadow Simulation</a></div>',
           '</app-settings>',
           '<app-header-right-sim-list>',
             '<ul class="nav navbar-nav sr-navbar-right">',
@@ -1425,7 +1464,6 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
                     '</ul>',
                 ].join('')
                 : '',
-
         ].join('');
     }
 
@@ -1466,8 +1504,18 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
                 return SIREPO.APP_SCHEMA.feature_config.app_url;
             };
 
+            $scope.openShadowConfirm = function() {
+                $('#sr-shadow-dialog').modal('show');
+            };
+
             $scope.showImportModal = function() {
                 $('#srw-simulation-import').modal('show');
+            };
+
+            $scope.showOpenShadow = function() {
+                return SIREPO.APP_SCHEMA.feature_config.show_open_shadow
+                    && $scope.nav.isActive('beamline')
+                    && srwService.isGaussianBeam();
             };
         },
     };
@@ -2140,7 +2188,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                   '</div>',
                 '</div>',
                 '<div class="col-sm-6 pull-right" data-ng-show="! isFluxWithApproximateMethod()">',
-                  '<button class="btn btn-default" data-ng-click="cancelPersistentSimulation()">End Simulation</button>',
+                  '<button class="btn btn-default" data-ng-click="cancelPersistentSimulation()">{{ stopButtonLabel() }}</button>',
                 '</div>',
               '</div>',
               '<div data-ng-show="simState.isStopped() && ! isFluxWithApproximateMethod()">',
@@ -2157,12 +2205,12 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                   '</div>',
                 '</div>',
                 '<div class="col-sm-6 pull-right">',
-                  '<button class="btn btn-default" data-ng-click="startSimulation()">Start New Simulation</button>',
+                  '<button class="btn btn-default" data-ng-click="startSimulation()">{{ startButtonLabel() }}</button>',
                 '</div>',
               '</div>',
             '</form>',
         ].join(''),
-        controller: function($scope, appState, authState) {
+        controller: function($scope, appState, authState, stringsService) {
             var clientFields = ['colorMap', 'aspectRatio', 'plotScale'];
             var serverFields = ['intensityPlotsWidth', 'rotateAngle', 'rotateReshape'];
             var oldModel = null;
@@ -2225,6 +2273,14 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     && appState.isLoaded() && appState.models.fluxAnimation.method == -1;
             };
 
+            $scope.startButtonLabel = function() {
+                return stringsService.startButtonLabel();
+            };
+
+            $scope.stopButtonLabel = function() {
+                return stringsService.stopButtonLabel();
+            };
+
             $scope.startSimulation = function() {
                 // The available jobRunModes can change. Default to parallel if
                 // the current jobRunMode doesn't exist
@@ -2282,7 +2338,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
             var LABEL_FONT = 'normal ' + LABEL_FONT_HEIGHT + 'px Arial';
             var MAX_CONDENSED_LENGTH = 3;
             var MIN_CONDENSED_LENGTH = 0.7;
-            var beamline, fsRenderer, labelCanvas, labels, orientationMarker, pngCanvas, positionInfo;
+            var beamline, fsRenderer, labelCanvas, labels, orientationMarker, pngCanvas;
             var itemDisplayDefaults = {
                 aperture: {
                     color: color('#666666'),
@@ -2464,7 +2520,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                 orientationMarker.setEnabled(true);
             }
 
-            function buildBeamline() {
+            function buildBeamline(positionInfo) {
                 beamline = [];
                 if (options().includeSource == "1") {
                     //TODO(pjm): use undulator center position and length
@@ -2487,29 +2543,37 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                     if (item.isDisabled) {
                         return;
                     }
-                    var posVectors = positionInfo[infoIdx];
-                    var point = posVectors.slice(0, 3);
+                    var pos = positionInfo[infoIdx];
+                    var point = pos.point.slice();
                     if (options().condenseBeamline == '1') {
                         trimPoint(point, prev);
                         prev = {
-                            point: posVectors.slice(0, 3),
+                            point: pos.point,
                             trimmed: point,
                         };
+                    }
+                    // algorithm from https://www.learnopencv.com/rotation-matrix-to-euler-angles/
+                    var sy = Math.sqrt(Math.pow(pos.orient[0][0], 2) + Math.pow(pos.orient[1][0], 2));
+                    var xrot, yrot, zrot;
+                    if (Math.abs(sy) < 1e-6) {
+                        xrot = Math.atan2(-pos.orient[1][2], pos.orient[1][1]);
+                        yrot = Math.atan2(-pos.orient[2][0], sy);
+                        zrot = 0;
+                    }
+                    else {
+                        xrot = Math.atan2(pos.orient[2][1], pos.orient[2][2]);
+                        yrot = Math.atan2(-pos.orient[2][0], sy);
+                        zrot = Math.atan2(pos.orient[1][0], pos.orient[0][0]);
                     }
                     item = $.extend(appState.clone(item), {
                         name: item.title,
                         center: point,
                         rotate: [
-                            // uses the normal vector to determine x/y rotation
-                            -degrees(Math.atan(posVectors[10] / posVectors[11])),
-                            degrees(Math.atan(posVectors[9] / posVectors[11])),
-                            //TODO(pjm): sagittal vector to determine z rotation?
-                            //degrees(Math.atan(posVectors[6] / posVectors[8])),
-                            0,
+                            -degrees(xrot), degrees(yrot), -degrees(zrot),
                         ],
                     });
-                    // skip height profile except for flat mirrors
-                    infoIdx += (item.type != 'mirror' && item.heightProfileFile) ? 2 : 1;
+                    // skip height profile
+                    infoIdx += item.heightProfileFile ? 2 : 1;
                     setItemProps(item);
                     beamline.push(item);
                 });
@@ -2652,13 +2716,13 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                     if (item.orientation == 'x') {
                         $.extend(item, {
                             height: mirrorSize(item.verticalTransverseSize * 1e-3),
-                            size: mirrorSize(item.horizontalTransverseSize * 1e-3),
+                            width: mirrorSize(item.horizontalTransverseSize * 1e-3),
                         });
                     }
                     else {
                         $.extend(item, {
-                            width: mirrorSize(item.horizontalTransverseSize * 1e-3),
-                            size: mirrorSize(item.verticalTransverseSize * 1e-3),
+                            height: mirrorSize(item.horizontalTransverseSize * 1e-3),
+                            width: mirrorSize(item.verticalTransverseSize * 1e-3),
                         });
                     }
                 }
@@ -2733,9 +2797,11 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
             };
 
             $scope.load = function(json) {
-                positionInfo = json.cols;
                 removeActors();
-                buildBeamline();
+                if (! json.elements) {
+                    return;
+                }
+                buildBeamline(json.elements);
                 labels = [];
                 $scope.selectedDimension = null;
                 $scope.viewDirection = {
@@ -2746,7 +2812,9 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                 if (beamline.length) {
                     addBeam(addBeamline());
                 }
-                addOrientationMarker();
+                if (! orientationMarker) {
+                    addOrientationMarker();
+                }
                 $scope.setCamera($scope.dimensions[0]);
                 pngCanvas.copyCanvas();
             };

@@ -114,7 +114,7 @@ def _compute_dvh(roi_numbers, rtstruct, rtdose):
         calcdvh = dvhcalc.calculate_dvh(s, rtdose, None, True, None)
         counts = np.append(calcdvh.histogram, 0.0)
         counts = counts[::-1].cumsum()[::-1]
-        if len(counts) and counts.max() > 0:
+        if counts.any() and counts.max() > 0:
             counts = 100 * counts / counts.max()
         max_x = max(max_x, counts.size)
         min_y = np.min(counts)

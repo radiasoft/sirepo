@@ -19,7 +19,12 @@ import sirepo.sim_data
 import subprocess
 
 
-_IGNORE_FIELD = ['rootname', 'search_path', 'semaphore_file']
+_IGNORE_FIELD = [
+    'mpi_io_write_buffer_size',
+    'rootname',
+    'search_path',
+    'semaphore_file',
+]
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals('elegant')
 
@@ -49,7 +54,7 @@ class ElegantRPNEval(object):
         out = elegant_common.subprocess_output(['rpnl', '{} {}'.format(var_list, expr)])
         if out is None:
             return None, 'invalid'
-        if len(out):
+        if out:
             return float(out.strip()), None
         return None, 'empty'
 
@@ -139,7 +144,7 @@ def _field_type_for_field(el, field):
 
 
 def _strip_file_prefix(value, model, field):
-    return re.sub('^{}-{}\.'.format(model, field), '', value)
+    return re.sub(r'^{}-{}\.'.format(model, field), '', value)
 
 
 def _validate_beamline(bl, name_to_id, element_names):
@@ -212,7 +217,7 @@ def _validate_field(el, field, rpn_cache, code_var):
 def _validate_input_file(el, field):
     # <filename>=<x>+<y>
     fullname= ntpath.basename(el[field])
-    m = re.search('^(.*?)\=(.*?)\+(.*)$', fullname)
+    m = re.search(r'^(.*?)\=(.*?)\+(.*)$', fullname)
     if m:
         el[field] = m.group(1)
         el[field + 'X'] = m.group(2)
@@ -224,10 +229,10 @@ def _validate_input_file(el, field):
 def _validate_rpn_field(el, field, rpn_cache, code_var):
     if '_type' in el:
         # command model
-        m = re.search('\((.*?)\)$', el[field])
+        m = re.search(r'\((.*?)\)$', el[field])
         if m:
             el[field] = m.group(1)
-        m = re.search('\{\s*rpnl\s+(.*)\}$', el[field])
+        m = re.search(r'\{\s*rpnl\s+(.*)\}$', el[field])
         if m:
             el[field] = m.group(1)
         return
@@ -256,7 +261,7 @@ def _validate_script(el):
 
 
 def _validate_string_array_field(el, field):
-    m = re.search('(.*?)\[(\d+)\]$', field)
+    m = re.search(r'(.*?)\[(\d+)\]$', field)
     if not m:
         return
     value = el[field]
@@ -266,15 +271,15 @@ def _validate_string_array_field(el, field):
     if not field in el:
         model_name = lattice.LatticeUtil.model_name_for_data(el)
         el[field] = _SCHEMA['model'][model_name][field][2]
-    value_array = re.split('\s*,\s*', el[field])
-    m = re.search('^(\d+)\*(.*)$', value)
+    value_array = re.split(r'\s*,\s*', el[field])
+    m = re.search(r'^(\d+)\*(.*)$', value)
     if m:
         count = int(m.group(1))
         val = m.group(2)
         for i in range(count):
             value_array[index + i] = val
     else:
-        values = re.split('\s*,\s*', value)
+        values = re.split(r'\s*,\s*', value)
         for v in values:
             value_array[index] = v
             index += 1

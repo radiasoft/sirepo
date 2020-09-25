@@ -13,6 +13,7 @@ _PROD_FOSS_CODES = frozenset((
     'elegant',
     'jspec',
     'madx',
+    'ml',
     'opal',
     'shadow',
     'srw',
@@ -26,7 +27,6 @@ _PROD_FOSS_CODES = frozenset((
 #: Codes on dev, alpha, and beta
 _NON_PROD_FOSS_CODES = frozenset((
     'irad',
-    'ml',
     'myapp',
     'radia',
     'rcscon',
@@ -101,6 +101,7 @@ def _init():
             beamline3d=b('Show 3D beamline plot'),
             hide_guest_warning=b('Hide the guest warning in the UI', dev=True),
             mask_in_toolbar=b('Show the mask element in toolbar'),
+            show_open_shadow=(False, bool, 'Show "Open as a New Shadow Simulation" menu item'),
         ),
         warpvnd=dict(
             allow_3d_mode=(True, bool, 'Include 3D features in the Warp VND UI'),

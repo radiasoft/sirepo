@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.appJupyterExport = true;
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="MiniFloat" class="col-sm-7">',
           '<input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',

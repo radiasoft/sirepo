@@ -255,7 +255,7 @@ def import_file(req, unit_test_mode=False, **kwargs):
         for infile in input_files:
             if not _SIM_DATA.lib_file_exists(infile.lib_filename):
                 missing_files.append(infile)
-        if len(missing_files):
+        if missing_files:
             return PKDict(
                 error='Missing data files',
                 missingFiles=missing_files,
@@ -324,19 +324,12 @@ def save_sequential_report_data(data, run_dir):
 
 
 def sim_frame(frame_args):
-    r = frame_args.frameReport
-    if r == 'bunchAnimation':
-        return sim_frame_bunchAnimation(frame_args)
-    if r == 'plotAnimation':
-        return sim_frame_plotAnimation(frame_args)
-    if r == 'plot2Animation':
-        return sim_frame_plot2Animation(frame_args)
     # elementAnimations
     return _bunch_plot(
         frame_args,
         frame_args.run_dir,
         frame_args.frameIndex,
-        _file_name_for_element_animation(frame_args.run_dir, r)
+        _file_name_for_element_animation(frame_args),
     )
 
 
@@ -496,11 +489,12 @@ def _field_units(units, field):
     field.units = units
 
 
-def _file_name_for_element_animation(run_dir, name):
-    for info in _output_info(run_dir):
-        if info.modelKey == name:
+def _file_name_for_element_animation(frame_args):
+    r = frame_args.frameReport
+    for info in _output_info(frame_args.run_dir):
+        if info.modelKey == r:
             return info.filename
-    assert False, 'no output file for: {}'.format(name)
+    raise AssertionError(f'no output file for frameReport={r}')
 
 
 def _find_run_method(commands):
@@ -532,16 +526,16 @@ def _format_field_value(state, model, field, el_type):
     elif re.search(r'List$', el_type):
         value = state.id_map[int(value)].name
     elif re.search(r'String', el_type):
-        if len(str(value)):
+        if str(value):
             if not re.search(r'^\s*\{.*\}$', value):
                 value = '"{}"'.format(value)
     elif LatticeUtil.is_command(model):
-        if el_type != 'RPNValue' and len(str(value)):
+        if el_type != 'RPNValue' and str(value):
             value = '"{}"'.format(value)
     elif not LatticeUtil.is_command(model):
         if model.type in _ELEMENTS_WITH_TYPE_FIELD and '_type' in field:
             return ['type', value]
-    if len(str(value)):
+    if str(value):
         return [field, value]
     return None
 

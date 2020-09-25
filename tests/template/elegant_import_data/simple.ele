@@ -3,7 +3,7 @@
 
 
 &run_setup
-  lattice = "elegant.lte",
+  lattice = "simple.ele.lte",
   p_central = 85,
   use_beamline = "bl",
 &end

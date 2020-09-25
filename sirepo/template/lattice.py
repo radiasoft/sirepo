@@ -96,6 +96,8 @@ class LatticeIterator(ElementIterator):
 
 
 class LatticeParser(object):
+    COMMAND_PREFIX = 'command_'
+
     def __init__(self, sim_data):
         self.sim_data = sim_data
         self.schema = sim_data.schema()
@@ -150,8 +152,10 @@ class LatticeParser(object):
     def _eval_var(self, code_var, value):
         return code_var.eval_var_with_assert(value)
 
-    def __format_command(self, name):
-        return f'command_{name}'
+
+    @classmethod
+    def _format_command(cls, name):
+        return f'{cls.COMMAND_PREFIX}{name}'
 
     def _format_length(self, length):
         res = '{:.8E}'.format(length)
@@ -197,7 +201,7 @@ class LatticeParser(object):
         beamline_id = None
         if name:
             beamline_id = self.elements_by_name[name].id
-        elif len(self.data.models.beamlines):
+        elif self.data.models.beamlines:
             beamline_id = self.data.models.beamlines[-1].id
         self.data.models.simulation.activeBeamlineId = \
             self.data.models.simulation.visualizationBeamlineId = beamline_id
@@ -358,18 +362,18 @@ class LatticeParser(object):
                 type=cmd,
                 _id=self.parser.next_id(),
             )
-            self.__parse_fields(self.__format_command(cmd), values, self.container)
+            self.__parse_fields(self._format_command(cmd), values, self.container)
             self.container['items'] = []
             if cmd == 'sequence':
                 self.data.models.sequences.append(self.container)
                 return
-        if self.__format_command(cmd) in self.schema.model:
+        if self._format_command(cmd) in self.schema.model:
             res = PKDict(
                 _type=cmd,
                 _id=self.parser.next_id(),
                 name=label,
             )
-            self.__parse_fields(self.__format_command(cmd), values, res)
+            self.__parse_fields(self._format_command(cmd), values, res)
             self.sim_data.update_model_defaults(res, LatticeUtil.model_name_for_data(res))
             self.data.models.commands.append(res)
         elif cmd == 'line':
@@ -385,7 +389,7 @@ class LatticeParser(object):
                 pkdlog('unknown cmd: {}', values)
 
     def __parse_values(self, values):
-        if not len(values):
+        if not values:
             return
         if len(values) == 1 and '=' in values[0] and not re.search(r'\Wline\s*=\s*\(', values[0].lower()):
             # a variable assignment
@@ -411,7 +415,7 @@ class LatticeParser(object):
     def __split_values(self, item):
         # split items into values by commas
         values = []
-        while item and len(item):
+        while item:
             item = item.strip()
             m = re.match(
                 r'^\s*((?:[\w.\']+\s*:?=\s*)?(?:(?:".*?")|(?:\'.*?\')|(?:\{.*?\})|(?:\w+\(.*?\))))(?:,(.*))?$',
@@ -486,7 +490,8 @@ class LatticeUtil(object):
     def model_name_for_data(cls, model):
         """Returns the model's schema name.
         """
-        return 'command_{}'.format(model._type) if cls.is_command(model) else model.type
+        return LatticeParser._format_command(model._type) if cls.is_command(model) \
+            else model.type
 
     def render_lattice(self, fields, quote_name=False, want_semicolon=False, want_name=True, want_var_assign=False):
         """Render lattice elements.
@@ -566,7 +571,7 @@ class LatticeUtil(object):
                 #TODO(pjm): some old elegant sims have overlap in element and command ids
                 if cmd._id not in res:
                     res[cmd._id] = cmd
-        max_id = max(res.keys()) if len(res) else 0
+        max_id = max(res.keys()) if res else 0
         return res, max_id
 
     def __render_beamline(self, quote_name=False, want_semicolon=False, want_var_assign=False):

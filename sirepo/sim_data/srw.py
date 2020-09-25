@@ -392,7 +392,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         if r == 'beamline3DReport':
             res.append('beamline')
         else:
-            res.append(cls._non_analysis_fields(data, r))
+            res += cls._non_analysis_fields(data, r)
         res += [
             'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
             'simulation.sourceType', 'tabulatedUndulator', 'undulator',
@@ -414,7 +414,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             ])
         if r == 'initialIntensityReport':
             beamline = data['models']['beamline']
-            res.append([beamline[0]['position'] if len(beamline) else 0])
+            res.append([beamline[0]['position'] if beamline else 0])
         if watchpoint:
             wid = cls.watchpoint_id(r)
             beamline = data['models']['beamline']

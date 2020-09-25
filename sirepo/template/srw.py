@@ -342,6 +342,9 @@ def get_application_data(data, **kwargs):
         return PKDict({
             'modelList': res
         })
+    if data.method == 'create_shadow_simulation':
+        from sirepo.template.srw_shadow_converter import SRWShadowConverter
+        return SRWShadowConverter().srw_to_shadow(data)
     if data['method'] == 'delete_user_models':
         return _delete_user_models(data['electron_beam'], data['tabulated_undulator'])
     if data['method'] == 'compute_grazing_orientation':
@@ -1039,11 +1042,25 @@ def _delete_user_models(electron_beam, tabulated_undulator):
 
 def _extract_beamline_orientation(filename):
     cols = np.array(uti_io.read_ascii_data_cols(filename, '\t', _i_col_start=1, _n_line_skip=1))
-    return {
-        #TODO(pjm): x_range is needed for sirepo-plotting.js, need a better valid-data check
-        'x_range': [],
-        'cols': list(reversed(np.rot90(cols).tolist())),
-    }
+    rows = list(reversed(np.rot90(cols).tolist()))
+    rows = np.reshape(rows, (len(rows), 4, 3))
+    res = []
+    for row in rows:
+        # the vtk client renders x axis flipped, so update x position and rotation
+        p = row[0].tolist()
+        p[0] = -p[0]
+        orient = row[1:].tolist()
+        orient[1][0] = -orient[1][0]
+        orient[1][1] = -orient[1][1]
+        orient[1][2] = -orient[1][2]
+        res.append(PKDict(
+            point=p,
+            orient=orient,
+        ))
+    return PKDict(
+        x_range=[],
+        elements=res,
+    )
 
 
 def _extract_brilliance_report(model, data):
@@ -1058,7 +1075,7 @@ def _extract_brilliance_report(model, data):
     if 'brightnessComponent' in model and model['brightnessComponent'] == 'spectral-detuning':
         scale_adjustment = 1.0
     for f in data:
-        m = re.search('^f(\d+)', f)
+        m = re.search(r'^f(\d+)', f)
         if m:
             x_points.append((np.array(data[f]['data']) * scale_adjustment).tolist())
             points.append(data['e{}'.format(m.group(1))]['data'])
@@ -1101,7 +1118,7 @@ def _extract_trajectory_report(model, data):
                 points=points,
                 label=available_axes[model[f]],
                 #TODO(pjm): refactor with template_common.compute_plot_color_and_range()
-                color='#ff7f0e' if len(plots) else '#1f77b4',
+                color='#ff7f0e' if plots else '#1f77b4',
             ))
     return PKDict(
         title='Electron Trajectory',
@@ -1202,7 +1219,7 @@ def _generate_beamline_optics(report, data, last_id):
         item.drift_propagation = pp[1]
         item.name = name
         if not is_disabled:
-            if item.type == 'watch' and not len(items):
+            if item.type == 'watch' and not items:
                 # first item is a watch, insert a 0 length drift in front
                 items.append(PKDict(
                     name='zero_drift',
@@ -1474,7 +1491,7 @@ def _generate_srw_main(data, plot_reports):
 
 def _get_first_element_position(data):
     beamline = data['models']['beamline']
-    if len(beamline):
+    if beamline:
         return beamline[0]['position']
     if 'distanceFromSource' in data['models']['simulation']:
         return data['models']['simulation']['distanceFromSource']

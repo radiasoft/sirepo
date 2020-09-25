@@ -1,0 +1,44 @@
+
+from pykern import pkjson
+from pykern.pkcollections import PKDict
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+
+c_vals_lr = np.linspace(
+    {{ logisticRegressionClassification_toleranceMin }},
+    {{ logisticRegressionClassification_toleranceMax }},
+    {{ logisticRegressionClassification_totalNumValues }},
+)
+
+error = []
+
+for i in c_vals_lr:
+    classifier = LogisticRegression(tol = 1e-3, C=i, solver = 'newton-cg')
+    classifier.fit(train[:, in_idx], np.ravel(train[:, out_idx]))
+    error.append([
+        i,
+        np.mean(classifier.predict(test[:, in_idx]) != test[:, out_idx])
+    ])
+
+c_best = {{ logisticRegressionClassification_toleranceMin }} + np.argmin(np.array(error)[:,1])
+
+# repeat LR prediction with best C value
+lr_best = LogisticRegression(tol = 1e-3, C=c_best, solver = 'newton-cg')
+lr_best.fit(train[:, in_idx], np.ravel(train[:, out_idx]))
+y_pred_lr_best = lr_best.predict(test[:, in_idx])
+
+l = np.unique(y_pred_lr_best).tolist()
+pkjson.dump_pretty(
+    PKDict(
+    c=c_best,
+    labels=l,
+    matrix=confusion_matrix(test[:, out_idx], y_pred_lr_best, labels=l).tolist(),
+    ),
+    filename='{{ logisticRegressionConfusionFile }}',
+)
+pkjson.dump_pretty(
+    classification_report(test[:, out_idx], y_pred_lr_best, output_dict=True),
+    filename='{{ logisticRegressionClassificationFile }}',
+)
+np.save('{{ logisticRegressionErrorFile }}', error)

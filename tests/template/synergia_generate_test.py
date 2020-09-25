@@ -18,10 +18,12 @@ def test_generate_python():
             e = pkio.read_text(f)
             m = re.search(r'^#\s*(.*\S)\s*$', e, flags=re.MULTILINE)
             assert m
-            name = m.group(1)
-            a = synergia._generate_parameters_file(_example_data(name))
-            pkio.write_text(f.basename, a)
-            pkunit.pkeq(e, a, 'diff {} {}', f, d.join(f.basename))
+            pkunit.file_eq(
+                f,
+                synergia._generate_parameters_file(
+                    _example_data(m.group(1)),
+                ),
+            )
 
 
 def _example_data(name):

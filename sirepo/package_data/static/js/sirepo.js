@@ -576,6 +576,14 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return self.models.simulation && self.models.simulation.simulationId ? true: false;
     };
 
+    // angular-independent isObject()
+    self.isObject = function(x) {
+        if (x === null) {
+            return false;
+        }
+        return ( (typeof x === 'function') || (typeof x === 'object') );
+    };
+
     self.isReportModelName = function(name) {
         //TODO(pjm): need better name for this, a model which doesn't affect other models
         return  name.indexOf('Report') >= 0 || self.isAnimationModelName(name) || name.indexOf('Status') >= 0;
@@ -740,21 +748,20 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
 
     self.setModelDefaults = function(model, modelName) {
         // set model defaults from schema
-        var schema = SIREPO.APP_SCHEMA.model[modelName];
-        var fields = Object.keys(schema);
-        for (var i = 0; i < fields.length; i++) {
-            var f = fields[i];
+        const schema = SIREPO.APP_SCHEMA.model[modelName];
+        const fields = Object.keys(schema);
+        for (let i = 0; i < fields.length; i++) {
+            let f = fields[i];
+            let defaultVal = schema[f][2];
             if (! model[f]) {
-                if (schema[f][2] !== undefined) {
-                    model[f] = schema[f][2];
+                if (defaultVal !== undefined) {
+                    // for cases where the default value is an object, we must
+                    // clone it or the schema itself will change as the model changes
+                    model[f] = self.isObject(defaultVal) ? self.clone(defaultVal) : defaultVal;
                 }
             }
         }
         return model;
-    };
-
-    self.ucfirst = function(s) {
-        return s.charAt(0).toUpperCase() + s.slice(1);
     };
 
     self.uniqueName = function(items, idField, template) {
@@ -912,6 +919,30 @@ SIREPO.app.factory('notificationService', function(cookieService, $sce) {
 
     return self;
 });
+
+SIREPO.app.factory('stringsService', function() {
+    function ucfirst(str) {
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    const strings = SIREPO.APP_SCHEMA.strings;
+    return {
+        formatKey: (name) => {
+            return ucfirst(strings[name]);
+        },
+        newSimulationLabel: () => {
+            return strings.newSimulationLabel || `New ${ucfirst(strings.simulationDataType)}`;
+        },
+        startButtonLabel: () => {
+            return `Start New ${ucfirst(strings.typeOfSimulation)}`;
+        },
+        stopButtonLabel: () => {
+            return `End ${ucfirst(strings.typeOfSimulation)}`;
+        },
+        ucfirst: ucfirst
+    };
+});
+
 
 // manages validators for ngModels and provides other validation services
 SIREPO.app.service('validationService', function(utilities) {
@@ -1196,14 +1227,14 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     return self;
 });
 
-SIREPO.app.factory('authService', function(appState, authState, requestSender) {
+SIREPO.app.factory('authService', function(authState, requestSender, stringsService) {
     var self = {};
 
     function label(method) {
         if ('guest' == method) {
             return 'as Guest';
         }
-        return 'with ' + appState.ucfirst(method);
+        return 'with ' + stringsService.ucfirst(method);
     }
 
     self.methods = authState.visibleMethods.map(
@@ -1493,6 +1524,20 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return queueItems[name] && queueItems[name].qState == 'processing' ? true : false;
     };
 
+    self.exportJupyterNotebook = function(simulationId, modelName, reportTitle) {
+        var args = {
+            '<simulation_id>': simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+        };
+        if (modelName) {
+            args['<model>'] = modelName;
+        }
+        if (reportTitle) {
+            args['<title>'] = reportTitle;
+        }
+        requestSender.newWindow('exportJupyterNotebook', args);
+    };
+
     self.modalId = function(name) {
         return 'sr-' + name + '-editor';
     };
@@ -1508,7 +1553,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if (reportTitle) {
             args['<title>'] = reportTitle;
         }
-        requestSender.newWindow('pythonSource', args, true);
+        requestSender.newWindow('pythonSource', args);
     };
 
     self.requestData = function(name, callback, forceRun) {
@@ -1883,6 +1928,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
 
     self.getAuxiliaryData = function(name) {
         return auxillaryData[name];
+    };
+
+    self.newLocalWindow = function(routeName, params, app) {
+        $window.open(self.formatUrlLocal(routeName, params, app), '_blank');
     };
 
     self.newWindow = function(routeName, params) {
@@ -2369,7 +2418,7 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
 });
 
 
-SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, authState, frameCache, $interval) {
+SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, authState, frameCache, stringsService, $interval) {
     var self = {};
     const ELAPSED_TIME_INTERVAL_SECS = 1;
 
@@ -2582,10 +2631,6 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
                 appState.models[state.model].jobRunMode ? 1 : 0;
         };
 
-        state.startButtonLabel = function() {
-            return 'Start New Simulation';
-        };
-
         state.stateAsText = function() {
             if (state.isStateError()) {
                 var e = state.getError();
@@ -2593,7 +2638,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
                     return 'Error: ' + e.split(/[\n\r]+/)[0];
                 }
             }
-            return appState.ucfirst(simulationStatus().state);
+            return stringsService.ucfirst(simulationStatus().state);
         };
 
         state.resetSimulation();
@@ -3259,9 +3304,9 @@ SIREPO.app.controller('LoginConfirmController', function (authState, requestSend
     return;
 });
 
-SIREPO.app.controller('LoginFailController', function (appState, requestSender, $route, $sce) {
+SIREPO.app.controller('LoginFailController', function (requestSender, stringsService, $route, $sce) {
     var self = this;
-    var t = $sce.getTrustedHtml(appState.ucfirst($route.current.params.method || ''));
+    var t = $sce.getTrustedHtml(stringsService.ucfirst($route.current.params.method || ''));
     var r = $route.current.params.reason || '';
     var login_text = function(text) {
         return '<a href="' + requestSender.formatUrlLocal('login')
@@ -3315,16 +3360,22 @@ SIREPO.app.controller('ServerUpgradedController', function (errorService, reques
     requestSender.globalRedirectRoot();
 });
 
-SIREPO.app.controller('SimulationsController', function (appState, cookieService, errorService, fileManager, notificationService, panelState, requestSender, $location, $rootScope, $sce, $scope) {
+SIREPO.app.controller('SimulationsController', function (appState, cookieService, errorService, fileManager, notificationService, panelState, requestSender, stringsService, $location, $rootScope, $sce, $scope) {
     var self = this;
 
     $rootScope.$broadcast('simulationUnloaded');
     var n = appState.clone(SIREPO.APP_SCHEMA.notifications.getStarted);
+    const s = SIREPO.APP_SCHEMA.strings;
     n.content = [
         '<div class="text-center"><strong>Welcome to Sirepo - ',
         $sce.getTrustedHtml(SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName),
         '!</strong></div>',
-        'Below are some example simulations and folders containing simulations. Click on the simulation to open and view simulation results. You can create a new simulation by selecting the New Simulation link above.',
+        `Below are some example ${s.simulationDataTypePlural}` +
+            ` and folders containing ${s.simulationDataTypePlural}.` +
+            ` Click on the ${s.simulationDataType}` +
+            ` to open and view the ${s.simulationDataType} results.` +
+            ` You can create a new ${s.simulationDataType}` +
+            ` by selecting the "${stringsService.newSimulationLabel()}" link above.`
     ].join('');
     notificationService.addNotification(n);
 
@@ -3539,9 +3590,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
                 '<simulation_id>': item.simulationId,
                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                 '<filename>': item.name + '.' + extension,
-            },
-            true
-        );
+            });
     };
 
     self.renameItem = function(item) {

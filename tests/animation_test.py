@@ -11,6 +11,16 @@ import pytest
 
 def test_elegant(fc):
     fc.sr_animation_run(
+        'bunchComp - fourDipoleCSR',
+        'animation',
+        PKDict({
+            'elementAnimation13-5': PKDict(
+                expect_x_range='3.9.*, 3.9.*, 200',
+            ),
+        }),
+        timeout=30,
+    )
+    fc.sr_animation_run(
         'Compact Storage Ring',
         'animation',
         PKDict({
@@ -26,7 +36,7 @@ def test_elegant(fc):
             'elementAnimation20-3': PKDict(
                 expect_x_range='^.0.0, 46.0',
             ),
-        })
+        }),
     )
 
 
@@ -40,7 +50,7 @@ def test_jspec(fc):
                 expect_y_range=r'2.15e-06',
             ),
             coolingRatesAnimation=PKDict(
-                expect_y_range=r'-0.0[1-9]\d*, (0.00|0)\b',
+                expect_y_range=r'-[\d\.]+, (0.00|0)\b',
             ),
         ),
         timeout=20,

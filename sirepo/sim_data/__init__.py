@@ -114,7 +114,7 @@ class SimDataBase(object):
 
     WATCHPOINT_REPORT = 'watchpointReport'
 
-    WATCHPOINT_REPORT_RE = re.compile('^{}(\d+)$'.format(WATCHPOINT_REPORT))
+    WATCHPOINT_REPORT_RE = re.compile(r'^{}(\d+)$'.format(WATCHPOINT_REPORT))
 
     @classmethod
     def compute_job_hash(cls, data):
@@ -511,7 +511,7 @@ class SimDataBase(object):
     @classmethod
     def _assert_server_side(cls):
         assert not cfg.lib_file_uri, \
-            'method may only be called on server'
+            f'method={pkinspect.caller()} may only be called on server'
 
     @classmethod
     def _compute_model(cls, analysis_model, resp):
@@ -646,7 +646,7 @@ class SimDataBase(object):
         s = set(data.models.get(model, {}).keys()) - cls.ANALYSIS_ONLY_FIELDS
         if not s:
             return [model]
-        return ['{}.{}'.format(model, x) for x in s]
+        return sorted(['{}.{}'.format(model, x) for x in s])
 
     @classmethod
     def _organize_example(cls, data):

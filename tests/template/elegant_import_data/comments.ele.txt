@@ -1,9 +1,13 @@
 
+&global_settings
+  mpi_io_write_buffer_size = 1048576,
+&end
+
 &run_setup
   semaphore_file = run_setup.semaphore,
-  lattice = "elegant.lte",
+  lattice = "comments.ele.lte",
   output = "run_setup.output.sdds",
-  p_central_mev = 1001,
+  p_central_mev = 1001.0,
 &end
 
 &run_control

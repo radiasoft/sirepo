@@ -1,10 +1,14 @@
 
+&global_settings
+  mpi_io_write_buffer_size = 1048576,
+&end
+
 &run_setup
   semaphore_file = run_setup.semaphore,
   default_order = 1,
   final = "run_setup.final.sdds",
-  lattice = "elegant.lte",
-  p_central_mev = 100,
+  lattice = "spectrometer1.ele.lte",
+  p_central_mev = 100.0,
   parameters = "run_setup.parameters.sdds",
   use_beamline = "BL",
 &end
@@ -42,7 +46,7 @@
 &optimization_variable
   item = "L",
   name = "D0",
-  step_size = 1e-3,
+  step_size = 0.001,
   upper_limit = 5.0,
 &end
 
@@ -50,7 +54,7 @@
   item = "L",
   lower_limit = 0.1,
   name = "D1",
-  step_size = 1e-3,
+  step_size = 0.001,
   upper_limit = 5.0,
 &end
 
@@ -58,7 +62,7 @@
   item = "L",
   lower_limit = 0.1,
   name = "D2",
-  step_size = 1e-3,
+  step_size = 0.001,
   upper_limit = 5.0,
 &end
 
@@ -66,14 +70,14 @@
   item = "L",
   lower_limit = 0.1,
   name = "D3",
-  step_size = 1e-3,
+  step_size = 0.001,
   upper_limit = 5.0,
 &end
 
 &optimization_variable
   item = "K1",
   name = "Q1",
-  step_size = 1e-3,
+  step_size = 0.001,
   upper_limit = 2.5,
 &end
 
@@ -81,7 +85,7 @@
   item = "K1",
   lower_limit = -2.5,
   name = "Q2",
-  step_size = 1e-3,
+  step_size = 0.001,
 &end
 
 &bunched_beam
@@ -96,10 +100,10 @@
 
 &run_setup
   semaphore_file = run_setup.semaphore,
-  lattice = "save_lattice.filename.lte",
+  lattice = "save_lattice",
   magnets = "run_setup2.magnets.sdds",
   output = "run_setup2.output.sdds",
-  p_central_mev = 100,
+  p_central_mev = 100.0,
   sigma = "run_setup2.sigma.sdds",
   use_beamline = "BL",
 &end
@@ -112,14 +116,12 @@
 &end
 
 &bunched_beam
-  alpha_x = "(beam_alpha_x)",
-  alpha_y = "(beam_alpha_y)",
   distribution_cutoff[0] = 3, 3, 3,
-  emit_nx = 1e-6,
-  emit_ny = 1e-6,
+  emit_nx = 1e-06,
+  emit_ny = 1e-06,
   enforce_rms_values[0] = 1, 1, 1,
   n_particles_per_bunch = 100000,
-  sigma_dp = 1e-3,
+  sigma_dp = 0.001,
 &end
 
 &track

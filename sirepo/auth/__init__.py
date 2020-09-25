@@ -674,7 +674,7 @@ def _method_user_model(module, uid):
 
 def _parse_display_name(value):
     res = value.strip()
-    assert len(res), \
+    assert res, \
         'invalid post data: displayName={}'.format(value)
     return res
 

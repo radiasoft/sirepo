@@ -1,8 +1,12 @@
 
+&global_settings
+  mpi_io_write_buffer_size = 1048576,
+&end
+
 &run_setup
   semaphore_file = run_setup.semaphore,
-  lattice = "elegant.lte",
-  p_central = 85,
+  lattice = "simple.ele.lte",
+  p_central = 85.0,
   use_beamline = "bl",
 &end
 
@@ -15,9 +19,9 @@
 &end
 
 &load_parameters
-  filename = "command_load_parameters-filename.tessamatch1.paramOpt",
+  filename = "tessamatch1.paramOpt",
 &end
 
 &load_parameters
-  filename = "command_load_parameters-filename.tessamatch1.paramOpt",
+  filename = "tessamatch1.paramOpt",
 &end

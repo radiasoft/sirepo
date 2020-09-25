@@ -56,12 +56,11 @@ def _generate_source(fc, sim, name):
             simulation_type=sim.simulationType,
         ),
     ).data)
-    n = re.sub(
-        r'[^\w\-\.]',
-        '',
-        re.sub(r'\s', '-', '{}.py'.format(name.lower())),
+    pkunit.file_eq(
+        re.sub(
+            r'[^\w\-\.]',
+            '',
+            re.sub(r'\s', '-', '{}.py'.format(name.lower())),
+        ),
+        d,
     )
-    e = pkunit.data_dir().join(n)
-    a = pkunit.work_dir().join(n)
-    pkio.write_text(a, d)
-    pkunit.pkeq(pkio.read_text(e), d, 'diff {} {}', e, a)
