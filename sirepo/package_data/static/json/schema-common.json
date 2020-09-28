@@ -212,6 +212,12 @@
                     "sirepo-geometry.js"
                 ]
             },
+            "panels": [
+                {
+                    "name":  "plot2d",
+                    "template":  "plot2d.html"
+                }
+            ],
             "libURLs": [
                 "/auth-state"
             ]

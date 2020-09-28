@@ -52,6 +52,8 @@ SIREPO.beamlineItemLogic = function(name, init) {
     });
 };
 
+SIREPO.PANELS = {};
+
 SIREPO.viewLogic = function(name, init) {
     SIREPO.app.directive(name, function(appState) {
         return {
@@ -91,9 +93,21 @@ SIREPO.viewLogic = function(name, init) {
 angular.element(document).ready(function() {
 
     function loadDynamicModule(src) {
+        if (src.name) {
+            return loadTemplate(src);
+        }
         return src.match(/\.css$/)
             ? addTag(src, 'link', 'head', 'href', {'rel': 'stylesheet'})
             : addTag(src, 'script', 'body', 'src', {'type': 'text/javascript', 'async': true});
+    }
+
+    function loadTemplate(src) {
+        let d = $.Deferred();
+        $.get(`/static/html/${src.template}${SIREPO.SOURCE_CACHE_KEY}`, function (str) {
+            SIREPO.PANELS[src.name] = str;
+            d.resolve();
+        });
+        return d.promise();
     }
 
     function addTag(src, name, parent, uri, attrs) {
@@ -114,6 +128,7 @@ angular.element(document).ready(function() {
             mods = mods.concat(SIREPO.APP_SCHEMA.dynamicModules[type] || []);
         }
         mods = mods.concat(SIREPO.APP_SCHEMA.dynamicFiles.libURLs || []);
+        mods = mods.concat(SIREPO.APP_SCHEMA.dynamicFiles.panels || []);
         return $.map(mods, loadDynamicModule);
     }
 
@@ -238,6 +253,12 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
         }
         controller.showWarning = true;
         controller.warningText = 'Server reported an error, please contact support@radiasoft.net.';
+    };
+
+    self.isPremiumUser = function() {
+        const plan = self.paymentPlanName();
+        return plan === SIREPO.APP_SCHEMA.constants.paymentPlans.enterprise ||
+                plan === SIREPO.APP_SCHEMA.constants.paymentPlans.premium;
     };
 
     self.paymentPlanName = function() {

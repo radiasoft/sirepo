@@ -18,6 +18,11 @@
           </g>
           <path class="line line-amr-grid"></path>
         </g>
+        <g data-ng-if="::showWatermark()">
+          <a href="/en/plans.html">
+            <image class="radia-watermark-icon" href="/static/svg/radiasoft-logo.svg" data-ng-on-load="watermarkLoaded()"></image>
+          </a>
+        </g>
       </svg></div>
       <div data-animation-buttons=""></div>
     </div>

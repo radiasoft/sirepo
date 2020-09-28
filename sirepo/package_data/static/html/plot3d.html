@@ -68,6 +68,12 @@
           <rect class="mouse-rect-y mouse-zoom" data-interactive-overlay="" data-report-id="reportId" data-focus-points="[focusPointY]" ng-attr-x="{{ canvasSize.width }}" ng-attr-width="{{ rightPanelWidth }}" ng-attr-height="{{ canvasSize.height }}" style="pointer-events: all; fill: none;"></rect>
           <rect class="mouse-rect-x mouse-zoom" data-interactive-overlay="" data-report-id="reportId" data-focus-points="[focusPointX]" ng-attr-y="{{ canvasSize.height }}" ng-attr-width="{{ canvasSize.width }}" ng-attr-height="{{ bottomPanelHeight }}" style="pointer-events: all; fill: none;"></rect>
         </g>
+        <g data-ng-if="::showWatermark()">
+          <a href="/en/plans.html">
+            <image class="radia-watermark-icon" href="/static/svg/radiasoft-logo.svg" data-ng-on-load="watermarkLoaded()"></image>
+          </a>
+        </g>
+
       </svg></div>
       <div data-animation-buttons=""></div>
     </div>

@@ -7,7 +7,9 @@ SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 SIREPO.SCREEN_DIMS = ['x', 'y'];
 SIREPO.SCREEN_INFO = {x: { direction: 1 },  y: { direction: -1 }};
 
-SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope) {
+const directivePlot2d = 'plot2d';
+
+SIREPO.app.factory('plotting', function(appState, authState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope) {
 
     var INITIAL_HEIGHT = 400;
     var MAX_PLOTS = 11;
@@ -21,6 +23,11 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         // String.repeat() not available in all browsers
         contrast: colorsFromString('000000' + Array(255).join('ffffff')),
     };
+    const WATERMARK = [
+        '<a href="/en/plans.html">',
+            '<image class="radia-watermark-icon" href="/static/svg/radiasoft-logo.svg"></image>',
+          '</a>',
+    ].join('');
 
     // polyfill for MSIE without Math.log2 and Math.log10
     Math.log2 = Math.log2 || function(x) {
@@ -270,6 +277,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
 
     var self = {
         COLOR_MAP: COLOR_MAP,
+        WATERMARK: WATERMARK,
 
         addConvergencePoints: function(select, parentClass, pointsList, points) {
             var i;
@@ -772,6 +780,12 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             plotScope.resize = noOp;
         },
 
+        setWatermarkPosition: function (jqueryElement, x, y) {
+            let wm = jqueryElement.find('image.radia-watermark-icon');
+            wm.attr('x', x);
+            wm.attr('y', y);
+        },
+
         setupSelector: setupSelector,
 
         tickFontSize: function(node) {
@@ -959,7 +973,9 @@ SIREPO.app.directive('colorPicker', function(appState, panelState) {
     };
 });
 
-SIREPO.app.service('plot2dService', function(appState, layoutService, panelState, plotting, utilities) {
+SIREPO.app.service('plot2dService', function(appState, authState, layoutService, panelState, plotting, utilities) {
+
+    const self = this;
 
     this.init2dPlot = function($scope, attrs) {
         var colorbar, scaleFunction, zoom;
@@ -990,16 +1006,9 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
                 .y(function(d) {
                     return $scope.axes.y.scale(scaleFunction ? scaleFunction(d[1]) : d[1]);
                 });
-            //TODO(mvk): the image loads but does not show up
-            $scope.watermarkUrl = function() {
-                return '/static/svg/radiasoft-logo.svg';
-            };
-            $scope.watermarkLoaded = function() {
-                //let wm = $($scope.el).find('svg.radia-watermark-icon');
-                //let vb = $($scope.el).find('svg.radia-watermark-icon').prop('viewBox').baseVal;
-                //vb.x = 100;
-                //vb.y = 100;
-            };
+            //$scope.showWatermark = function() {
+            //    return ! authState.isPremiumUser();
+            //};
            resetZoom();
         }
 
@@ -1033,9 +1042,7 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
                 .classed('mouse-zoom', isFullSize)
                 .classed('mouse-move-ew', ! isFullSize);
 
-            let wm = $($scope.el).find('svg.radia-watermark-icon');
-            wm.attr('x', 0);
-            wm.attr('y', $scope.height + $scope.margin.top + 20);
+            plotting.setWatermarkPosition($($scope.el), 0, $scope.height + $scope.margin.top + 16);
 
             resetZoom();
             $scope.select($scope.zoomContainer).call(zoom);
@@ -2260,14 +2267,25 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
     };
 });
 
-SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dService) {
+SIREPO.app.directive(directivePlot2d, function(authState, focusPointService, plotting, plot2dService) {
+
+    function getTemplate() {
+        let t = SIREPO.TEMPLATES[directivePlot2d];
+        // we can't use jquery.append() because it turns <image> into <img>
+        // which svg ignores
+        //if (authState.isPremiumUser()) {
+
+            //$(element).find('g.radia-watermark-group').append(plotting.WATERMARK);
+        //}
+    }
+
     return {
         restrict: 'A',
         scope: {
             reportId: '<',
             modelName: '@',
         },
-        templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
+        template: SIREPO.PANELS[directivePlot2d],
         controller: function($scope, $element) {
             var points;
             $scope.focusPoints = [];
@@ -2329,12 +2347,23 @@ SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dServi
             };
         },
         link: function link(scope, element) {
+            //if (authState.isPremiumUser()) {
+            //svg class="sr-plot"
+            //srdbg('svg', $('svg.sr-plot'));
+            // we can't use jquery.append() because it turns <image> into <img>
+            // which svg ignores
+            document.getElementById(scope.reportId)
+                .getElementsByClassName('radia-watermark-group')[0]
+                .insertAdjacentHTML('beforeend', plotting.WATERMARK);
+
+            //    $('svg.sr-plot').find('g.radia-watermark-group').append(plotting.WATERMARK);
+            //}
             plotting.linkPlot(scope, element);
         },
     };
 });
 
-SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutService, plotting, utilities) {
+SIREPO.app.directive('plot3d', function(authState, appState, focusPointService, layoutService, plotting, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -2342,7 +2371,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
             modelName: '@',
         },
         templateUrl: '/static/html/plot3d.html' + SIREPO.SOURCE_CACHE_KEY,
-        controller: function($scope) {
+        controller: function($scope, $element) {
             var MIN_PIXEL_RESOLUTION = 10;
             $scope.margin = {
                 top: 50,
@@ -2588,9 +2617,11 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                     axes.x.grid.tickSize(- $scope.canvasSize.height - $scope.bottomPanelHeight + $scope.margin.bottom); // tickLine == gridline
                     axes.y.grid.tickSize(- $scope.canvasSize.width - $scope.rightPanelWidth + $scope.margin.right); // tickLine == gridline
                 }
-                let wm = $($scope.el).find('svg.radia-watermark-icon');
-                wm.attr('x', 0);
-                wm.attr('y', $scope.canvasSize.height + $scope.margin.top + 20);
+
+                plotting.setWatermarkPosition(
+                    $($element), 0, $scope.canvasSize.height + $scope.margin.top + $scope.bottomPanelHeight
+                );
+
                 resetZoom();
                 select('.mouse-rect-xy').call(xyZoom);
                 select('.mouse-rect-x').call(axes.x.zoom);
@@ -2805,6 +2836,10 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 resizefocusPointText();
             };
 
+            $scope.showWatermark = function() {
+                return ! authState.isPremiumUser();
+            };
+
             $scope.$on(SIREPO.PLOTTING_LINE_CSV_EVENT, function(evt, axisName) {
                 var title = $($scope.element).closest('.panel-body')
                         .parent().parent().find('.sr-panel-heading').text();
@@ -2848,14 +2883,14 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
     };
 });
 
-SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, utilities) {
+SIREPO.app.directive('heatmap', function(authState, appState, layoutService, plotting, utilities) {
     return {
         restrict: 'A',
         scope: {
             modelName: '@',
         },
         templateUrl: '/static/html/heatplot.html' + SIREPO.SOURCE_CACHE_KEY,
-        controller: function($scope) {
+        controller: function($scope, $element) {
             // will be set to the correct size in resize()
             $scope.canvasSize = {
                 width: 0,
@@ -2936,6 +2971,11 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 }
                 plotting.drawImage(axes.x.scale, axes.y.scale, $scope.canvasSize.width, $scope.canvasSize.height, axes.x.values, axes.y.values, canvas, cacheCanvas, ! SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL);
                 select('.line-amr-grid').attr('d', amrLine);
+
+                plotting.setWatermarkPosition(
+                    $($element), 0, $scope.canvasSize.height + $scope.margin.top + 16
+                );
+
                 resetZoom();
                 select('.mouse-rect').call(zoom);
                 $scope.canvasSize.isPlaying = $scope.isPlaying;
@@ -3069,6 +3109,10 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     return;
                 }
                 refresh();
+            };
+
+            $scope.showWatermark = function() {
+                return ! authState.isPremiumUser();
             };
         },
         link: function link(scope, element) {
