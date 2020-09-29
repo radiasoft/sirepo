@@ -54,7 +54,7 @@ class Authenticator(jupyterhub.auth.Authenticator):
                 handler.redirect(f'/jupyterhublogin#/{r}')
                 raise tornado.web.Finish()
             raise
-        return _get_or_create_user()
+        return _get_or_create_user(check_path=False)
 
     async def refresh_user(self, user, handler=None):
         assert handler, \
@@ -73,9 +73,11 @@ class Authenticator(jupyterhub.auth.Authenticator):
         return True
 
 
-def get_user_name():
+def get_user_name(check_path=True):
     with sirepo.auth_db.thread_lock:
-        u = JupyterhubUser.search_by(uid=sirepo.auth.logged_in_user())
+        u = JupyterhubUser.search_by(
+            uid=sirepo.auth.logged_in_user(check_path=check_path),
+        )
         if u:
             return u.user_name
     return None
@@ -121,22 +123,24 @@ def migrate_rs_data(rs_user_name):
         j.rs_migration_done = True
         j.save()
 
-def _get_or_create_user():
-    n = get_user_name()
+def _get_or_create_user(check_path=True):
+    n = get_user_name(check_path=check_path)
     if n:
         # Existing JupyterhubUser
         return n
     # Create new JupyterhubUser
     u = sirepo.auth.email.AuthEmailUser.search_by(
-        uid=sirepo.auth.logged_in_user(),
+        uid=sirepo.auth.logged_in_user(check_path=check_path),
     )
     # TODO(e-carlin): if we are logged in but delete the run dir
     # (happens in dev, maybe in prod if we delete a logged in user)
-    # then this assert will fail. Maybe we should just log the user
-    # out and go to the home page which is what seems to be done when
-    # a similar scenario happens in non-jupyter apps
-    assert u and u.user_name, \
-        f'must be existing AuthEmailUser to create JupyterhubUser u={u}'
+    # then this assert will raise.
+    # It would be ideal to log the user out and redirect to / as done
+    # in non-jupyter apps but since we are outside of the flask context
+    # accessing the sirepo cookie and redirecting is challenging.
+    # Return None will display 403 for user which is fine for now.
+    if not u or not u.user_name:
+        return None
     p = u.user_name.split('@')
     n = '@'.join(p[:-1])
     # TODO(e-carlin): we need to make the username safe (docker acceptable volume mount chars, no ../../ etc)
