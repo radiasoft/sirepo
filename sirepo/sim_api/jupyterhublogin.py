@@ -18,17 +18,9 @@ import sirepo.uri_router
 
 @sirepo.api_perm.require_user
 def api_dismissJupyterhubDataMovePrompt():
-    # TODO(e-carlin): maybe use cookie for this instead?
-    with sirepo.auth_db.thread_lock:
-        # TODO(e-carlin): _get_or_create_user maybe should return the sql model?
-        # TODO(e-carlin): make public if this is what I decide to use
-        # Need to create user because may not exist
-        sirepo.jupyterhub._get_or_create_user()
-        u = sirepo.jupyterhub.JupyterhubUser.search_by(
-            uid=sirepo.auth.logged_in_user(),
-        )
-        u.rs_migration_prompt_dimsissed = sirepo.http_request.parse_json().dismiss
-        u.save()
+    sirepo.jupyterhub.set_rs_migration_prompt_dismissed(
+        sirepo.http_request.parse_json().dismiss
+    )
     return sirepo.http_reply.gen_json_ok()
 
 
