@@ -30,7 +30,7 @@ import sqlalchemy
 AUTH_METHOD = 'github'
 
 #: User can see it
-AUTH_METHOD_VISIBLE = True
+AUTH_METHOD_VISIBLE = None
 
 #: Used by auth_db
 AuthGithubUser = None
@@ -116,13 +116,28 @@ def init_apis(*args, **kwargs):
 
         UserModel = AuthGithubUser
 
-    global cfg
+    global cfg, AUTH_METHOD_VISIBLE
     cfg = pkconfig.init(
-        key=pkconfig.Required(str, 'Github key'),
-        secret=pkconfig.Required(str, 'Github secret'),
         callback_uri=(None, str, 'Github callback URI (defaults to api_authGithubAuthorized)'),
+        key=pkconfig.Required(str, 'Github key'),
+        method_visible=(
+            True,
+            _cfg_method_visible,
+            'whether or not github auth method is visible to users when enabled',
+        ),
+        secret=pkconfig.Required(str, 'Github secret'),
     )
+    AUTH_METHOD_VISIBLE = cfg.method_visible
     auth_db.init_model(_init_model)
+
+
+def _cfg_method_visible(is_visible):
+    import sirepo.feature_config
+
+    if sirepo.feature_config.cfg().jupyterhub:
+        assert not is_visible, \
+            'cannot enable github and jupyterhub'
+    return is_visible
 
 
 class _Client(authlib.integrations.base_client.RemoteApp):
