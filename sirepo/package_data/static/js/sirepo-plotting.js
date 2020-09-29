@@ -9,6 +9,10 @@ SIREPO.SCREEN_INFO = {x: { direction: 1 },  y: { direction: -1 }};
 
 const directivePlot2d = 'plot2d';
 
+angular.element(document).ready(function() {
+    srdbg('PLOTTING ANG READY');
+});
+
 SIREPO.app.factory('plotting', function(appState, authState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope) {
 
     var INITIAL_HEIGHT = 400;
@@ -26,7 +30,7 @@ SIREPO.app.factory('plotting', function(appState, authState, frameCache, panelSt
     const WATERMARK = [
         '<a href="/en/plans.html">',
             '<image class="radia-watermark-icon" href="/static/svg/radiasoft-logo.svg"></image>',
-          '</a>',
+        '</a>',
     ].join('');
 
     // polyfill for MSIE without Math.log2 and Math.log10
@@ -2269,98 +2273,86 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
 
 SIREPO.app.directive(directivePlot2d, function(authState, focusPointService, plotting, plot2dService) {
 
-    function getTemplate() {
-        let t = SIREPO.TEMPLATES[directivePlot2d];
+    let res = SIREPO.PANELS[directivePlot2d];
+    res.scope = {
+        reportId: '<',
+        modelName: '@',
+    };
+    res.controller = function($scope, $element) {
+        let points;
+        $scope.focusPoints = [];
+
+        $scope.formatFocusPointData = function(fp) {
+            return focusPointService.formatFocusPointData(fp);
+        };
+
+        $scope.init = function() {
+            plot2dService.init2dPlot($scope, {
+                el: $element,
+                margin: {top: 50, right: 10, bottom: 50, left: 75},
+            });
+            $scope.focusPoints.push(
+                focusPointService.setupFocusPoint($scope.axes.x, $scope.axes.y, false));
+        };
+
+        $scope.load = function(json) {
+            var xPoints = json.x_points
+                ? json.x_points
+                : plotting.linearlySpacedArray(json.x_range[0], json.x_range[1], json.points.length);
+            var xdom = [json.x_range[0], json.x_range[1]];
+            if (!($scope.axes.x.domain && $scope.axes.x.domain[0] == xdom[0] && $scope.axes.x.domain[1] == xdom[1])) {
+                $scope.axes.x.domain = xdom;
+                points = [];
+                $scope.axes.x.scale.domain(xdom);
+            }
+            if (!SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS) {
+                points = [];
+            }
+            var ymin = d3.min(json.points);
+            var scaleFunction = plotting.scaleFunction($scope.modelName);
+            if (ymin > 0 && ! scaleFunction) {
+                ymin = 0;
+            }
+            $scope.axes.y.domain = plotting.ensureDomain([ymin, d3.max(json.points)], scaleFunction);
+            $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
+            var p = d3.zip(xPoints, json.points);
+            plotting.addConvergencePoints($scope.select, '.plot-viewport', points, p);
+
+            $scope.focusPoints.forEach(function(fp) {
+                focusPointService.loadFocusPoint(fp, p, true, $scope);
+                fp.config.xLabel = json.x_label;
+                fp.config.yLabel = json.y_label;
+            });
+
+            $scope.updatePlot(json);
+        };
+
+        $scope.recalculateYDomain = function() {
+            plotting.recalculateDomainFromPoints($scope.modelName, $scope.axes.y.scale, points[0], $scope.axes.x.scale.domain());
+        };
+
+        $scope.refresh = function() {
+            plotting.refreshConvergencePoints($scope.select, '.plot-viewport', $scope.graphLine);
+            for (var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
+                focusPointService.refreshFocusPoint($scope.focusPoints[fpIndex], $scope);
+            }
+        };
+    };
+
+    res.link = function(scope, element) {
         // we can't use jquery.append() because it turns <image> into <img>
         // which svg ignores
-        //if (authState.isPremiumUser()) {
-
-            //$(element).find('g.radia-watermark-group').append(plotting.WATERMARK);
-        //}
-    }
-
-    return {
-        restrict: 'A',
-        scope: {
-            reportId: '<',
-            modelName: '@',
-        },
-        template: SIREPO.PANELS[directivePlot2d],
-        controller: function($scope, $element) {
-            var points;
-            $scope.focusPoints = [];
-
-            $scope.formatFocusPointData = function(fp) {
-                return focusPointService.formatFocusPointData(fp);
-            };
-
-            $scope.init = function() {
-                plot2dService.init2dPlot($scope, {
-                    el: $element,
-                    margin: {top: 50, right: 10, bottom: 50, left: 75},
-                });
-                $scope.focusPoints.push(
-                    focusPointService.setupFocusPoint($scope.axes.x, $scope.axes.y, false));
-            };
-
-            $scope.load = function(json) {
-                var xPoints = json.x_points
-                    ? json.x_points
-                    : plotting.linearlySpacedArray(json.x_range[0], json.x_range[1], json.points.length);
-                var xdom = [json.x_range[0], json.x_range[1]];
-                if (!($scope.axes.x.domain && $scope.axes.x.domain[0] == xdom[0] && $scope.axes.x.domain[1] == xdom[1])) {
-                    $scope.axes.x.domain = xdom;
-                    points = [];
-                    $scope.axes.x.scale.domain(xdom);
-                }
-                if (!SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS) {
-                    points = [];
-                }
-                var ymin = d3.min(json.points);
-                var scaleFunction = plotting.scaleFunction($scope.modelName);
-                if (ymin > 0 && ! scaleFunction) {
-                    ymin = 0;
-                }
-                $scope.axes.y.domain = plotting.ensureDomain([ymin, d3.max(json.points)], scaleFunction);
-                $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
-                var p = d3.zip(xPoints, json.points);
-                plotting.addConvergencePoints($scope.select, '.plot-viewport', points, p);
-
-                $scope.focusPoints.forEach(function(fp) {
-                    focusPointService.loadFocusPoint(fp, p, true, $scope);
-                    fp.config.xLabel = json.x_label;
-                    fp.config.yLabel = json.y_label;
-                });
-
-                $scope.updatePlot(json);
-            };
-
-            $scope.recalculateYDomain = function() {
-                plotting.recalculateDomainFromPoints($scope.modelName, $scope.axes.y.scale, points[0], $scope.axes.x.scale.domain());
-            };
-
-            $scope.refresh = function() {
-                plotting.refreshConvergencePoints($scope.select, '.plot-viewport', $scope.graphLine);
-                for (var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
-                    focusPointService.refreshFocusPoint($scope.focusPoints[fpIndex], $scope);
-                }
-            };
-        },
-        link: function link(scope, element) {
-            //if (authState.isPremiumUser()) {
-            //svg class="sr-plot"
-            //srdbg('svg', $('svg.sr-plot'));
-            // we can't use jquery.append() because it turns <image> into <img>
-            // which svg ignores
+        if (! authState.isPremiumUser()) {
             document.getElementById(scope.reportId)
                 .getElementsByClassName('radia-watermark-group')[0]
-                .insertAdjacentHTML('beforeend', plotting.WATERMARK);
-
+                .insertAdjacentHTML('beforeend', SIREPO.BLOCKS.watermark);
             //    $('svg.sr-plot').find('g.radia-watermark-group').append(plotting.WATERMARK);
             //}
-            plotting.linkPlot(scope, element);
-        },
+        }
+        plotting.linkPlot(scope, element);
     };
+
+    return res;
 });
 
 SIREPO.app.directive('plot3d', function(authState, appState, focusPointService, layoutService, plotting, utilities) {

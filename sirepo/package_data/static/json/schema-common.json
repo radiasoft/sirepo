@@ -212,12 +212,6 @@
                     "sirepo-geometry.js"
                 ]
             },
-            "panels": [
-                {
-                    "name":  "plot2d",
-                    "template":  "plot2d.html"
-                }
-            ],
             "libURLs": [
                 "/auth-state"
             ]
@@ -270,6 +264,13 @@
                 ["fixed", "Fixed"]
             ]
         },
+        "blocks": [
+            {
+                "name": "watermark",
+                "src": "radiasoft-logo.svg",
+                "type": "svg"
+            }
+        ],
         "localRoutes": {
             "admJobs": {
                 "route": "/adm-jobs",
@@ -416,6 +417,28 @@
                 "delay": 1
             }
         },
+        "panels": [
+            {
+                "name":  "heatmap",
+                "src":  "heatplot.html"
+            },
+            {
+                "name":  "parameterPlot",
+                "src":  "plot2d.html"
+            },
+            {
+                "name":  "particle",
+                "src":  "plot2d.html"
+            },
+            {
+                "name":  "plot2d",
+                "src": "plot2d.html"
+            },
+            {
+                "name":  "plot3d",
+                "src":  "plot3d.html"
+            }
+        ],
         "staticFiles": {
             "externalLibs": {
                 "js": [

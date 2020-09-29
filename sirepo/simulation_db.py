@@ -267,9 +267,10 @@ def get_schema(sim_type):
     schema.simulationType = t
     _SCHEMA_CACHE[t] = schema
 
-    #TODO(mvk): improve merging common and local schema
     _merge_dicts(schema.common.dynamicFiles, schema.dynamicFiles)
     schema.dynamicModules = _files_in_schema(schema.dynamicFiles)
+
+    _set_block_paths(schema)
 
     for item in [
             'appModes',
@@ -834,6 +835,15 @@ def _create_lib_and_examples(simulation_type):
     pkio.mkdir_parent(simulation_lib_dir(simulation_type))
     for s in examples(simulation_type):
         save_new_example(s)
+
+
+def _set_block_paths(schema):
+    for t in ('blocks', 'panels'):
+        if t not in schema:
+            schema[t] = []
+        schema[t].extend(schema.common[t])
+        for b in schema[t]:
+            b.path = _pkg_relative_path_static(b.type if 'type' in b else 'html', b.src)
 
 
 def _files_in_schema(schema):

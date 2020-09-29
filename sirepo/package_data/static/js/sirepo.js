@@ -52,6 +52,7 @@ SIREPO.beamlineItemLogic = function(name, init) {
     });
 };
 
+SIREPO.BLOCKS = {};
 SIREPO.PANELS = {};
 
 SIREPO.viewLogic = function(name, init) {
@@ -93,21 +94,44 @@ SIREPO.viewLogic = function(name, init) {
 angular.element(document).ready(function() {
 
     function loadDynamicModule(src) {
-        if (src.name) {
-            return loadTemplate(src);
-        }
         return src.match(/\.css$/)
             ? addTag(src, 'link', 'head', 'href', {'rel': 'stylesheet'})
             : addTag(src, 'script', 'body', 'src', {'type': 'text/javascript', 'async': true});
     }
 
-    function loadTemplate(src) {
+    // may have to use full ajax call
+    function loadFromPath(path, type, callback, errCallback) {
         let d = $.Deferred();
-        $.get(`/static/html/${src.template}${SIREPO.SOURCE_CACHE_KEY}`, function (str) {
-            SIREPO.PANELS[src.name] = str;
+        $.get(`${path}${SIREPO.SOURCE_CACHE_KEY}`, function (str) {
+            callback(str);
             d.resolve();
-        });
+        }, type)
+            .fail(function (res) {
+                if (errCallback) {
+                    errCallback(res);
+                }
+            });
         return d.promise();
+    }
+
+    function loadBlock(b) {
+        return loadFromPath(b.path, b.type, function (str) {
+            SIREPO.BLOCKS[b.name] = str;
+        }, function(res) {
+            // I don't get it
+            SIREPO.BLOCKS[b.name] = res.responseText;
+        });
+    }
+
+    // build directive return objects from panels and their templates
+    function loadPanel(p) {
+        return loadFromPath(p.path, null, function (str) {
+            SIREPO.PANELS[p.name] = {
+                restrict: 'A',
+                scope: {},
+                template: str,
+            };
+        });
     }
 
     function addTag(src, name, parent, uri, attrs) {
@@ -128,8 +152,16 @@ angular.element(document).ready(function() {
             mods = mods.concat(SIREPO.APP_SCHEMA.dynamicModules[type] || []);
         }
         mods = mods.concat(SIREPO.APP_SCHEMA.dynamicFiles.libURLs || []);
-        mods = mods.concat(SIREPO.APP_SCHEMA.dynamicFiles.panels || []);
+        mods = mods.concat();
         return $.map(mods, loadDynamicModule);
+    }
+
+    function loadBlocks() {
+        return $.map(SIREPO.APP_SCHEMA.blocks || [], loadBlock);
+    }
+
+    function loadPanels() {
+        return $.map(SIREPO.APP_SCHEMA.panels || [], loadPanel);
     }
 
     $.ajax({
@@ -139,7 +171,7 @@ angular.element(document).ready(function() {
         },
         success: function(result) {
             SIREPO.APP_SCHEMA = result;
-            $.when.apply($, loadDynamicModules()).then(
+            $.when.apply($, loadDynamicModules(), loadBlocks(), loadPanels()).then(
                 function() {
                     angular.bootstrap(document, ['SirepoApp']);
                 }
@@ -256,7 +288,7 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
     };
 
     self.isPremiumUser = function() {
-        const plan = self.paymentPlanName();
+        const plan = 'ZZZ';  //self.paymentPlanName();
         return plan === SIREPO.APP_SCHEMA.constants.paymentPlans.enterprise ||
                 plan === SIREPO.APP_SCHEMA.constants.paymentPlans.premium;
     };
