@@ -136,18 +136,6 @@ def complete_registration(name=None):
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
 
 
-def display_name(uid=None, auth_method=None):
-    if not uid:
-        uid =  cookie.unchecked_get_value(_COOKIE_USER)
-    if not auth_method:
-        auth_method = cookie.unchecked_get_value(_COOKIE_METHOD)
-    if auth_method == METHOD_GUEST:
-      return _GUEST_USER_DISPLAY_NAME
-    r = auth_db.UserRegistration.search_by(uid=uid)
-    if r:
-        return r.display_name
-
-
 def get_all_roles():
     return [
         role_for_sim_type(t) for t in sirepo.feature_config.cfg().proprietary_sim_types
@@ -220,15 +208,7 @@ def logged_in_user(check_path=True):
     return u
 
 
-def login(
-        module,
-        uid=None,
-        model=None,
-        sim_type=None,
-        display_name=None,
-        is_mock=False,
-        want_redirect=False,
-):
+def login(module, uid=None, model=None, sim_type=None, display_name=None, is_mock=False, want_redirect=False):
     """Login the user
 
     Raises an exception if successful, except in the case of methods
@@ -482,7 +462,7 @@ def user_dir_not_found(user_dir, uid):
 
 
 def user_if_logged_in(method):
-    """Verify user is logged in and  method matches
+    """Verify user is logged in and method matches
 
     Args:
         method (str): method must be logged in as
@@ -592,11 +572,15 @@ def _auth_state():
     if v.isLoggedIn:
         if v.method == METHOD_GUEST:
             # currently only method to expire login
+            v.displayName = _GUEST_USER_DISPLAY_NAME
             v.isGuestUser = True
             v.isLoginExpired = _METHOD_MODULES[METHOD_GUEST].is_login_expired()
             v.needCompleteRegistration = False
             v.visibleMethods = non_guest_methods
-        v.displayName = display_name(u, v.method)
+        else:
+            r = auth_db.UserRegistration.search_by(uid=u)
+            if r:
+                v.displayName = r.display_name
         v.roles = auth_db.UserRole.get_roles(u)
         _plan(v)
         _method_auth_state(v, u)
