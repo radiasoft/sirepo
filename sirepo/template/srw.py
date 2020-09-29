@@ -342,6 +342,9 @@ def get_application_data(data, **kwargs):
         return PKDict({
             'modelList': res
         })
+    if data.method == 'create_shadow_simulation':
+        from sirepo.template.srw_shadow_converter import SRWShadowConverter
+        return SRWShadowConverter().srw_to_shadow(data)
     if data['method'] == 'delete_user_models':
         return _delete_user_models(data['electron_beam'], data['tabulated_undulator'])
     if data['method'] == 'compute_grazing_orientation':

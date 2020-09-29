@@ -552,7 +552,7 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
 def _generate_screen(item):
     return "\n" + 'oe.set_empty().set_screens()' \
         + _field_value('oe', 'i_slit[0]', '1') \
-        + _field_value('oe', 'k_slit[0]', 0 if item.type == 'aperture' else 1) \
+        + _field_value('oe', 'i_stop[0]', 0 if item.type == 'aperture' else 1) \
         + _item_field(item, ['horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'])
 
 

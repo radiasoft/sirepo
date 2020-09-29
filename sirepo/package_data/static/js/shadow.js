@@ -221,8 +221,11 @@ SIREPO.beamlineItemLogic('mirrorView', function(panelState, shadowService, $scop
                 'mlayerBilayerNumber', 'mlayerBilayerThickness', 'mlayerGammaRatio',
                 'mlayerEvenRoughness', 'mlayerOddRoughness',
             ], (item.f_reflec == '1' || item.f_reflec == '2') && item.f_refl == '2',
-            'mlayerSubstrateMaterial', (item.f_reflec == '1' || item.f_reflec == '2') && item.f_refl == '2',
         ]);
+        panelState.showRow(
+            item.type,
+            'mlayerSubstrateMaterial',
+            (item.f_reflec == '1' || item.f_reflec == '2') && item.f_refl == '2');
     }
 
     shadowService.initGeometryView(

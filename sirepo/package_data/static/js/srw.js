@@ -737,7 +737,7 @@ SIREPO.app.controller('SourceController', function (appState, panelState, srwSer
     });
 });
 
-SIREPO.app.directive('appFooter', function(appState, srwService) {
+SIREPO.app.directive('appFooter', function(appState, requestSender, srwService) {
     return {
         restrict: 'A',
         scope: {
@@ -746,7 +746,46 @@ SIREPO.app.directive('appFooter', function(appState, srwService) {
         template: [
             '<div data-common-footer="nav"></div>',
             '<div data-import-python=""></div>',
+            '<div data-confirmation-modal="" data-id="sr-shadow-dialog" data-title="Open as a New Shadow Simulation" data-ok-text="Create" data-ok-clicked="openShadowSimulation()">Create a new Shadow simulation using this simulation\'s beamline?</div>',
         ].join(''),
+        controller: function($scope) {
+
+            function createNewSim(data) {
+                requestSender.sendRequest(
+                    'newSimulation',
+                    function(shadowData) {
+                        var sim = shadowData.models.simulation;
+                        ['simulationId', 'simulationSerial'].forEach(function(f) {
+                            data.models.simulation[f] = sim[f];
+                        });
+                        requestSender.sendRequest(
+                            'saveSimulationData',
+                            openNewSim,
+                            data);
+                    },
+                    newSimData(data));
+            }
+
+            function newSimData(data) {
+                var res = appState.clone(data.models.simulation);
+                res.simulationType = data.simulationType;
+                return res;
+            }
+
+            function openNewSim(data) {
+                requestSender.newLocalWindow(
+                    'beamline', {
+                        simulationId: data.models.simulation.simulationId,
+                    }, data.simulationType);
+            }
+
+            $scope.openShadowSimulation = function() {
+                srwService.computeOnServer(
+                    'create_shadow_simulation',
+                    appState.models,
+                    createNewSim);
+            };
+        },
     };
 });
 
@@ -1394,7 +1433,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
             '</div>',
           '</app-header-right-sim-loaded>',
           '<app-settings>',
-            //  '<div>App-specific setting item</div>',
+            '<div data-ng-if="showOpenShadow()"><a href data-ng-click="openShadowConfirm()"><span class="glyphicon glyphicon-upload"></span> Open as a New Shadow Simulation</a></div>',
           '</app-settings>',
           '<app-header-right-sim-list>',
             '<ul class="nav navbar-nav sr-navbar-right">',
@@ -1425,7 +1464,6 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
                     '</ul>',
                 ].join('')
                 : '',
-
         ].join('');
     }
 
@@ -1466,8 +1504,18 @@ SIREPO.app.directive('appHeader', function(appState, panelState, srwService) {
                 return SIREPO.APP_SCHEMA.feature_config.app_url;
             };
 
+            $scope.openShadowConfirm = function() {
+                $('#sr-shadow-dialog').modal('show');
+            };
+
             $scope.showImportModal = function() {
                 $('#srw-simulation-import').modal('show');
+            };
+
+            $scope.showOpenShadow = function() {
+                return SIREPO.APP_SCHEMA.feature_config.show_open_shadow
+                    && $scope.nav.isActive('beamline')
+                    && srwService.isGaussianBeam();
             };
         },
     };

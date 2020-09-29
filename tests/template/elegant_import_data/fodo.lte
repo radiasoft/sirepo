@@ -4,5 +4,5 @@
  QF: QUAD, L=0.25,K1=2; ! and some comments
  QD: QUAD, L=0.25,K1=-2
 
-FODO_Beamline: line=(QF,L,QD,QD,L,QF)
-FODO_Beamline_x10: line=(10*FODO_Beamline)
+::FODO_Beamline: line=(QF,L,QD,QD,L,QF)
+FODO_Beamline_x10: line=(10*::FODO_Beamline)

@@ -174,6 +174,7 @@ def geom_to_data(g_id, name=None, divide=True):
         if n_verts > n_s_verts:
             d_arr = [d]
         pd.data = d_arr
+    pd.bounds = radia.ObjGeoLim(g_id)
     return pd
 
 
@@ -264,7 +265,11 @@ def vector_field_to_data(g_id, name, pv_arr, units):
     v_data.vectors.range = [v_min, v_max]
     v_data.vectors.units = units
 
-    return PKDict(name=name + '.Field', id=g_id, data=[v_data])
+    return PKDict(
+        name=name + '.Field',
+        id=g_id, data=[v_data],
+        bounds=radia.ObjGeoLim(g_id)
+    )
 
 
 def _geom_bnds(g_id):
