@@ -8,17 +8,19 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkio
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdexc
+from pykern.pkdebug import pkdp, pkdexc, pkdlog
 import importlib
 import jupyterhub.auth
 import os
 import py.error
 import random
+import shutil
 import sirepo.auth
 import sirepo.auth.email
 import sirepo.auth_db
 import sirepo.cookie
 import sirepo.server
+import sirepo.srdb
 import sirepo.util
 import sqlalchemy
 import string
@@ -80,7 +82,6 @@ def get_user_name():
 
 
 def init():
-    import sirepo.srdb
     global cfg
 
     if cfg:
@@ -89,11 +90,12 @@ def init():
         db_root=(
             pkio.py_path(sirepo.srdb.root()).join('jupyterhub'),
             pkio.py_path,
-            'the root path of jupyterhub',
+            'the path of jupyterhub user db (ex /srv/jupyterhub)',
         ),
-        uri_root=('jupyter', str, 'the root path of jupyterhub'),
+        uri_root=('jupyter', str, 'the root uri of jupyterhub'),
     )
     sirepo.auth_db.init_model(_init_model)
+
 
 def migrate_rs_data(rs_user_name):
     u = _get_or_create_user()
@@ -103,6 +105,19 @@ def migrate_rs_data(rs_user_name):
             uid=sirepo.auth.logged_in_user()
         )
         assert j, f'no JupyterhubUser with uid={u.uid}'
+        s = cfg.db_root.join(rs_user_name)
+        d = cfg.db_root.join(j.user_name)
+        pkio.unchecked_remove(d)
+        try:
+            shutil.move(s, d)
+        except FileNotFoundError:
+            pkdlog(
+                'Tried to migrate existing rs jupyter directory={} but not found. Ignoring.',
+                s,
+            )
+        # TODO(e-carlin): Maybe don't set it to True in the case where source
+        # dir wasn't found? They may have given the wrong github creds and want
+        # to try migrating again.
         j.rs_migration_done = True
         j.save()
 
