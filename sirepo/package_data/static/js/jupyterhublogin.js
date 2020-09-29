@@ -3,8 +3,32 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.controller('JupyterloginController', function(requestSender) {
-    requestSender.sendRequest('redirectJupyterHub');
+SIREPO.app.controller('JupyterhubloginController', function(authState, requestSender, $sce,  $scope) {
+    if (
+            ! authState.isLoggedIn ||
+            authState.rsMigrationDone ||
+            authState.rsMigrationPromptDimsissed
+    ) {
+        requestSender.sendRequest('redirectJupyterHub');
+        return;
+    }
+    const self = this;
+    self.dismissChecked = false;
+
+    self.dismissRsMigrationPrompt = function(v) {
+        requestSender.sendRequest('dismissJupyterhubDataMovePrompt', null, {dismiss: self.dismissChecked});
+    }
+
+    self.migrate = function(doMigration) {
+        if (! doMigration) {
+            requestSender.sendRequest('redirectJupyterHub');
+            return;
+        }
+        requestSender.globalRedirect(
+            'migrateRsJupyterhubData',
+            {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
+        );
+    }
 });
 
 SIREPO.app.directive('appHeader', function(jupyterhubloginService) {
@@ -15,7 +39,6 @@ SIREPO.app.directive('appHeader', function(jupyterhubloginService) {
 	},
         template: [
             '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav"></div>',
 	].join('')
     };

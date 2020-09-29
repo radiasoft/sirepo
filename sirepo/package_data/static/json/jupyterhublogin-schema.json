@@ -13,8 +13,8 @@
         "jupyterhublogin": {
             "route": "/jupyterhublogin",
             "config": {
-                "controller": "JupyterloginController as jupyterlogin",
-                "template": "<div></div>"
+                "controller": "JupyterhubloginController as jupyterhublogin",
+                "templateUrl": "/static/html/jupyterhublogin.html"
             }
         }
     }

@@ -95,6 +95,16 @@ def init():
     )
     sirepo.auth_db.init_model(_init_model)
 
+def migrate_rs_data(rs_user_name):
+    u = _get_or_create_user()
+    # TODO(e-carlin): actually move the data
+    with sirepo.auth_db.thread_lock:
+        j = JupyterhubUser.search_by(
+            uid=sirepo.auth.logged_in_user()
+        )
+        assert j, f'no JupyterhubUser with uid={u.uid}'
+        j.rs_migration_done = True
+        j.save()
 
 def _get_or_create_user():
     n = get_user_name()
@@ -143,5 +153,7 @@ def _init_model(base):
 
     class JupyterhubUser(base):
         __tablename__ = 'jupyterhub_user_t'
+        rs_migration_done = sqlalchemy.Column(sqlalchemy.Boolean())
+        rs_migration_prompt_dimsissed = sqlalchemy.Column(sqlalchemy.Boolean())
         uid = sqlalchemy.Column(sqlalchemy.String(8), primary_key=True)
         user_name = sqlalchemy.Column(sqlalchemy.String(100), nullable=False)

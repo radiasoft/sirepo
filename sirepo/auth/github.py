@@ -15,8 +15,10 @@ from sirepo import api_perm
 from sirepo import auth
 from sirepo import auth_db
 from sirepo import cookie
+from sirepo import feature_config
 from sirepo import http_reply
 from sirepo import http_request
+from sirepo import jupyterhub
 from sirepo import uri_router
 from sirepo import util
 import authlib.integrations.base_client
@@ -65,6 +67,10 @@ def api_authGithubAuthorized():
         else:
             u = AuthGithubUser(oauth_id=d['id'], user_name=d['login'])
         u.save()
+        if feature_config.cfg().jupyterhub:
+            jupyterhub.migrate_rs_data(u.user_name)
+            # TODO(e-carlin): why does 'jupyterHub' not work? It works in sim_api/jupyterhublogin
+            return http_reply.gen_redirect('jupyter')
         auth.login(this_module, model=u, sim_type=t, want_redirect=True)
         raise AssertionError('auth.login returned unexpectedly')
 
