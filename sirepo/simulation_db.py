@@ -838,12 +838,11 @@ def _create_lib_and_examples(simulation_type):
 
 
 def _set_block_paths(schema):
-    for t in ('blocks', 'panels'):
-        if t not in schema:
-            schema[t] = []
-        schema[t].extend(schema.common[t])
-        for b in schema[t]:
-            b.path = _pkg_relative_path_static(b.type if 'type' in b else 'html', b.src)
+    if 'blocks' not in schema:
+        schema.blocks = []
+    schema.blocks.extend(schema.common.blocks)
+    for b in schema.blocks:
+        b.path = _pkg_relative_path_static(b.fileType, b.src)
 
 
 def _files_in_schema(schema):

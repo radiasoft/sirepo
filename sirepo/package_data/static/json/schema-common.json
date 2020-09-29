@@ -266,9 +266,40 @@
         },
         "blocks": [
             {
+                "blockType": "default",
+                "fileType": "svg",
                 "name": "watermark",
-                "src": "radiasoft-logo.svg",
-                "type": "svg"
+                "src": "radiasoft-logo.svg"
+            },
+            {
+                "blockType": "panel",
+                "fileType": "html",
+                "name":  "heatmap",
+                "src":  "heatplot.html"
+            },
+            {
+                "blockType": "panel",
+                "fileType": "html",
+                "name":  "parameterPlot",
+                "src":  "plot2d.html"
+            },
+            {
+                "blockType": "panel",
+                "fileType": "html",
+                "name":  "particle",
+                "src":  "plot2d.html"
+            },
+            {
+                "blockType": "panel",
+                "fileType": "html",
+                "name":  "plot2d",
+                "src": "plot2d.html"
+            },
+            {
+                "blockType": "panel",
+                "fileType": "html",
+                "name":  "plot3d",
+                "src":  "plot3d.html"
             }
         ],
         "localRoutes": {
@@ -417,28 +448,6 @@
                 "delay": 1
             }
         },
-        "panels": [
-            {
-                "name":  "heatmap",
-                "src":  "heatplot.html"
-            },
-            {
-                "name":  "parameterPlot",
-                "src":  "plot2d.html"
-            },
-            {
-                "name":  "particle",
-                "src":  "plot2d.html"
-            },
-            {
-                "name":  "plot2d",
-                "src": "plot2d.html"
-            },
-            {
-                "name":  "plot3d",
-                "src":  "plot3d.html"
-            }
-        ],
         "staticFiles": {
             "externalLibs": {
                 "js": [

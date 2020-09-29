@@ -10,7 +10,7 @@ SIREPO.SCREEN_INFO = {x: { direction: 1 },  y: { direction: -1 }};
 const directivePlot2d = 'plot2d';
 
 angular.element(document).ready(function() {
-    srdbg('PLOTTING ANG READY');
+    //srdbg('PLOTTING ANG READY');
 });
 
 SIREPO.app.factory('plotting', function(appState, authState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope) {
@@ -27,11 +27,6 @@ SIREPO.app.factory('plotting', function(appState, authState, frameCache, panelSt
         // String.repeat() not available in all browsers
         contrast: colorsFromString('000000' + Array(255).join('ffffff')),
     };
-    const WATERMARK = [
-        '<a href="/en/plans.html">',
-            '<image class="radia-watermark-icon" href="/static/svg/radiasoft-logo.svg"></image>',
-        '</a>',
-    ].join('');
 
     // polyfill for MSIE without Math.log2 and Math.log10
     Math.log2 = Math.log2 || function(x) {
@@ -281,7 +276,6 @@ SIREPO.app.factory('plotting', function(appState, authState, frameCache, panelSt
 
     var self = {
         COLOR_MAP: COLOR_MAP,
-        WATERMARK: WATERMARK,
 
         addConvergencePoints: function(select, parentClass, pointsList, points) {
             var i;
@@ -785,7 +779,7 @@ SIREPO.app.factory('plotting', function(appState, authState, frameCache, panelSt
         },
 
         setWatermarkPosition: function (jqueryElement, x, y) {
-            let wm = jqueryElement.find('image.radia-watermark-icon');
+            let wm = jqueryElement.find('svg.radia-watermark-icon');
             wm.attr('x', x);
             wm.attr('y', y);
         },
@@ -1010,9 +1004,6 @@ SIREPO.app.service('plot2dService', function(appState, authState, layoutService,
                 .y(function(d) {
                     return $scope.axes.y.scale(scaleFunction ? scaleFunction(d[1]) : d[1]);
                 });
-            //$scope.showWatermark = function() {
-            //    return ! authState.isPremiumUser();
-            //};
            resetZoom();
         }
 
@@ -2346,8 +2337,7 @@ SIREPO.app.directive(directivePlot2d, function(authState, focusPointService, plo
             document.getElementById(scope.reportId)
                 .getElementsByClassName('radia-watermark-group')[0]
                 .insertAdjacentHTML('beforeend', SIREPO.BLOCKS.watermark);
-            //    $('svg.sr-plot').find('g.radia-watermark-group').append(plotting.WATERMARK);
-            //}
+            //$('svg.sr-plot').find('g.radia-watermark-group').append(SIREPO.BLOCKS.watermark);
         }
         plotting.linkPlot(scope, element);
     };
@@ -2828,10 +2818,6 @@ SIREPO.app.directive('plot3d', function(authState, appState, focusPointService, 
                 resizefocusPointText();
             };
 
-            $scope.showWatermark = function() {
-                return ! authState.isPremiumUser();
-            };
-
             $scope.$on(SIREPO.PLOTTING_LINE_CSV_EVENT, function(evt, axisName) {
                 var title = $($scope.element).closest('.panel-body')
                         .parent().parent().find('.sr-panel-heading').text();
@@ -3101,10 +3087,6 @@ SIREPO.app.directive('heatmap', function(authState, appState, layoutService, plo
                     return;
                 }
                 refresh();
-            };
-
-            $scope.showWatermark = function() {
-                return ! authState.isPremiumUser();
             };
         },
         link: function link(scope, element) {

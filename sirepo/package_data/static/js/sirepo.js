@@ -99,39 +99,56 @@ angular.element(document).ready(function() {
             : addTag(src, 'script', 'body', 'src', {'type': 'text/javascript', 'async': true});
     }
 
-    // may have to use full ajax call
-    function loadFromPath(path, type, callback, errCallback) {
+    function loadFromPath(path, type, callback, errCallback, finallyCallback) {
         let d = $.Deferred();
-        $.get(`${path}${SIREPO.SOURCE_CACHE_KEY}`, function (str) {
-            callback(str);
-            d.resolve();
+        $.get(`${path}${SIREPO.SOURCE_CACHE_KEY}`, function (res) {
+            callback(res);
         }, type)
             .fail(function (res) {
                 if (errCallback) {
                     errCallback(res);
                 }
+            })
+            .always(function (res) {
+                if (finallyCallback) {
+                    finallyCallback(res);
+                }
+                d.resolve();
             });
         return d.promise();
     }
 
     function loadBlock(b) {
-        return loadFromPath(b.path, b.type, function (str) {
-            SIREPO.BLOCKS[b.name] = str;
+        let val = null;
+        let status = 500;
+        return loadFromPath(b.path, b.fileType, function (res) {
+            val = res;
+            status = 200;
         }, function(res) {
-            // I don't get it
-            SIREPO.BLOCKS[b.name] = res.responseText;
+            // turns out "svg" (etc.) is not a valid AJAX type, so we'll get an error.
+            // However we can get a successful read anyway; if so assign the response text
+            status = res.status;
+            val = res.responseText;
+        }, function (res) {
+            if (status === 200) {
+                SIREPO.BLOCKS[b.name] = val;
+                if (b.blockType === 'panel') {
+                    buildPanel(b.name, val);
+                }
+                return;
+            }
+            throw new Error(`${status}: Failed to load block ${b.name}`);
         });
     }
 
-    // build directive return objects from panels and their templates
-    function loadPanel(p) {
-        return loadFromPath(p.path, null, function (str) {
-            SIREPO.PANELS[p.name] = {
-                restrict: 'A',
-                scope: {},
-                template: str,
-            };
-        });
+    // "panel" is a minmal directive return value for now, but can be any encapsulation of
+    // markup
+    function buildPanel(name, val) {
+        SIREPO.PANELS[name] = {
+            restrict: 'A',
+            scope: {},
+            template: val,
+        };
     }
 
     function addTag(src, name, parent, uri, attrs) {
@@ -160,10 +177,6 @@ angular.element(document).ready(function() {
         return $.map(SIREPO.APP_SCHEMA.blocks || [], loadBlock);
     }
 
-    function loadPanels() {
-        return $.map(SIREPO.APP_SCHEMA.panels || [], loadPanel);
-    }
-
     $.ajax({
         url: '/simulation-schema' + SIREPO.SOURCE_CACHE_KEY,
         data: {
@@ -171,7 +184,7 @@ angular.element(document).ready(function() {
         },
         success: function(result) {
             SIREPO.APP_SCHEMA = result;
-            $.when.apply($, loadDynamicModules(), loadBlocks(), loadPanels()).then(
+            $.when.apply($, loadDynamicModules(), loadBlocks()).then(
                 function() {
                     angular.bootstrap(document, ['SirepoApp']);
                 }
