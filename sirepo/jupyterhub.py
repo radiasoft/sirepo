@@ -101,7 +101,6 @@ def init():
 
 def migrate_rs_data(rs_user_name):
     u = _get_or_create_user()
-    # TODO(e-carlin): actually move the data
     with sirepo.auth_db.thread_lock:
         j = JupyterhubUser.search_by(
             uid=sirepo.auth.logged_in_user()
@@ -124,6 +123,14 @@ def migrate_rs_data(rs_user_name):
         j.save()
 
 def _get_or_create_user(check_path=True):
+    def _make_user_name_safe(s):
+        _SAFE_CHARS = string.ascii_letters + '-' + '_'
+        res = ''
+        for c in s:
+            if c not in _SAFE_CHARS:
+                c = '_'
+            res += c
+        return res
     n = get_user_name(check_path=check_path)
     if n:
         # Existing JupyterhubUser
@@ -143,9 +150,13 @@ def _get_or_create_user(check_path=True):
         return None
     p = u.user_name.split('@')
     n = '@'.join(p[:-1])
-    # TODO(e-carlin): we need to make the username safe (docker acceptable volume mount chars, no ../../ etc)
-    # jupyterhub uses minrk/escapism
     for i in range(5):
+        # TODO(e-carlin): discuss _make_user_name_safe with rn. Username
+        # will be used in paths so things like ../ must be escaped. In
+        # addition they will be used in cookie names so I believe only
+        # ascii_letters, '-' and '_' are valid. Also consider docker volumes.
+        # we use pyisemail in sirepo.auth so maybe that is enough
+        n = _make_user_name_safe(n)
         try:
             cfg.db_root.join(n).mkdir()
             break

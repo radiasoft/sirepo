@@ -146,8 +146,6 @@ class _State(dict):
         if self.jupyterhub_user_name:
             import sirepo.jupyterhub
 
-            # TODO(e-carlin): what are valid cookie chars? Are our names valid?
-            # how does jupyterhub escape cookie chars?
             for c in (
                     ('jupyterhub-hub-login', 'hub'),
                     (
