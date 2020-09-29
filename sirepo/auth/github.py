@@ -123,7 +123,7 @@ def init_apis(*args, **kwargs):
         method_visible=(
             True,
             _cfg_method_visible,
-            'whether or not github auth method is visible to users when enabled',
+            'github auth method is visible to users when it is an enabled method',
         ),
         secret=pkconfig.Required(str, 'Github secret'),
     )
@@ -136,7 +136,7 @@ def _cfg_method_visible(is_visible):
 
     if sirepo.feature_config.cfg().jupyterhub:
         assert not is_visible, \
-            'cannot enable github and jupyterhub'
+            'cannot make github visible and enable jupyterhub'
     return is_visible
 
 

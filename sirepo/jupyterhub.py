@@ -105,6 +105,7 @@ def migrate_rs_data(rs_user_name):
         j = JupyterhubUser.search_by(
             uid=sirepo.auth.logged_in_user()
         )
+        # TODO(e-carlin): u.uid doesn't work _get_or_create_user should return user model
         assert j, f'no JupyterhubUser with uid={u.uid}'
         s = cfg.db_root.join(rs_user_name)
         d = cfg.db_root.join(j.user_name)
