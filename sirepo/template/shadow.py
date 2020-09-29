@@ -12,11 +12,11 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
-from sirepo.template.template_common import ModelConverterBase, ModelUnits
+from sirepo.template.template_common import ModelUnits
 import sirepo.sim_data
 import re
 
-_SIM_DATA, SIM_TYPE, _SCHEMA, _CONV_MAP = sirepo.sim_data.template_globals()
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 _SHADOW_OUTPUT_FILE = 'shadow-output.dat'
 
@@ -61,30 +61,9 @@ _MODEL_UNITS = ModelUnits(PKDict({
 _WIGGLER_TRAJECTOR_FILENAME = 'xshwig.sha'
 
 
-class ModelConverter(ModelConverterBase):
-
-    def __init__(self):
-        super().__init__(SIM_TYPE, _CONV_MAP)
-
-# I don't like this
-    def convert_field(self, model_name, field, val):
-        if model_name == 'grating':
-            pass
-
-
-_conv = ModelConverter()
-
-
-def convert(data, to_sim, model_name):
-    pkdp((f'CONVERT {to_sim}.{model_name}: {_SCHEMA.model[model_name]} -> ',
-         f'{_conv.convert(to_sim, model_name, data)}'))
-    return _conv.convert(to_sim, model_name, data)
-
-
 def get_application_data(data, **kwargs):
     if data['method'] == 'compute_harmonic_photon_energy':
         return _compute_harmonic_photon_energy(data)
-
 
 def get_data_file(run_dir, model, frame, **kwargs):
     return _SHADOW_OUTPUT_FILE
@@ -102,7 +81,6 @@ def post_execution_processing(
 
 
 def python_source_for_model(data, model):
-    convert(data, 'srw', 'grating')
     beamline = data.models.beamline
     watch_id = None
     for b in beamline:

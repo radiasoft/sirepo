@@ -11,7 +11,6 @@ from pykern import pkjinja
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 from sirepo.template import code_variable
-from sirepo import simulation_db
 import math
 import numpy
 import pykern.pkrunpy
@@ -46,29 +45,6 @@ RUN_LOG = 'run.log'
 _HISTOGRAM_BINS_MAX = 500
 
 _PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
-
-
-class ModelConverterBase():
-
-    def __init__(self, from_sim, conv_map):
-        super().__init__()
-
-        self._map = conv_map
-        self._from_sim = from_sim
-
-    # data is "from"
-    def convert(self, to_sim, model_name, data):
-        to_model = sirepo.sim_data.get_class(to_sim).model_defaults(model_name)
-        from_model = data.models[model_name]
-        m = self._map[to_sim][model_name]
-        for from_f in m:
-            to_f = m[from_f]
-            to_model[to_f] = self.convert_field(model_name, from_f, from_model[from_f])
-        return to_model
-
-    # override to convert units etc.
-    def convert_field(self, model_name, field, val):
-        return val
 
 
 class ModelUnits():

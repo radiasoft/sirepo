@@ -83,7 +83,7 @@ def template_globals(sim_type=None):
         (class, str, object): SimData class, simulation type, and schema
     """
     c = get_class(sim_type or pkinspect.module_basename(pkinspect.caller_module()))
-    return c, c.sim_type(), c.schema(), c.conversion_map()
+    return c, c.sim_type(), c.schema()
 
 
 def parse_frame_id(frame_id):
@@ -164,13 +164,6 @@ class SimDataBase(object):
                 ),
             ).encode())
         return res.hexdigest()
-
-    @classmethod
-    def conversion_map(cls):
-        from sirepo import simulation_db
-
-        return cls._memoize(simulation_db.get_conversion_map(cls.sim_type()))
-
 
     @classmethod
     def compute_model(cls, model_or_data):

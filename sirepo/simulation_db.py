@@ -52,9 +52,6 @@ RESOURCE_FOLDER = pkio.py_path(pkresource.filename(''))
 #: Where server files and static files are found
 STATIC_FOLDER = RESOURCE_FOLDER.join('static')
 
-#: Mapping of models in one app to another
-MODEL_CONVERSION_FILE = 'conversion-map' + JSON_SUFFIX
-
 #: where users live under db_dir
 USER_ROOT_DIR = 'user'
 
@@ -242,19 +239,6 @@ def fixup_old_data(data, force=False):
     except Exception as e:
         pkdlog('exception={} data={} stack={}', e, data, pkdexc())
         raise
-
-
-def get_conversion_map(sim_type):
-    """Get the file containing mappings of models between simulations
-
-    Returns:
-        dict: Conversion map
-    """
-    t = sirepo.template.assert_sim_type(sim_type) if sim_type is not None \
-        else list(feature_config.cfg().sim_types)[0]
-    return read_json(
-        STATIC_FOLDER.join(f'json/{t}-conversion')
-    )
 
 
 def get_schema(sim_type):
