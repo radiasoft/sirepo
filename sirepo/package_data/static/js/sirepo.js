@@ -642,6 +642,14 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return self.models.simulation && self.models.simulation.simulationId ? true: false;
     };
 
+    // angular-independent isObject()
+    self.isObject = function(x) {
+        if (x === null) {
+            return false;
+        }
+        return ( (typeof x === 'function') || (typeof x === 'object') );
+    };
+
     self.isReportModelName = function(name) {
         //TODO(pjm): need better name for this, a model which doesn't affect other models
         return  name.indexOf('Report') >= 0 || self.isAnimationModelName(name) || name.indexOf('Status') >= 0;
@@ -806,13 +814,16 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
 
     self.setModelDefaults = function(model, modelName) {
         // set model defaults from schema
-        var schema = SIREPO.APP_SCHEMA.model[modelName];
-        var fields = Object.keys(schema);
-        for (var i = 0; i < fields.length; i++) {
-            var f = fields[i];
+        const schema = SIREPO.APP_SCHEMA.model[modelName];
+        const fields = Object.keys(schema);
+        for (let i = 0; i < fields.length; i++) {
+            let f = fields[i];
+            let defaultVal = schema[f][2];
             if (! model[f]) {
-                if (schema[f][2] !== undefined) {
-                    model[f] = schema[f][2];
+                if (defaultVal !== undefined) {
+                    // for cases where the default value is an object, we must
+                    // clone it or the schema itself will change as the model changes
+                    model[f] = self.isObject(defaultVal) ? self.clone(defaultVal) : defaultVal;
                 }
             }
         }
@@ -1590,7 +1601,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if (reportTitle) {
             args['<title>'] = reportTitle;
         }
-        requestSender.newWindow('exportJupyterNotebook', args, true);
+        requestSender.newWindow('exportJupyterNotebook', args);
     };
 
     self.modalId = function(name) {
@@ -1608,7 +1619,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if (reportTitle) {
             args['<title>'] = reportTitle;
         }
-        requestSender.newWindow('pythonSource', args, true);
+        requestSender.newWindow('pythonSource', args);
     };
 
     self.requestData = function(name, callback, forceRun) {
@@ -1983,6 +1994,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
 
     self.getAuxiliaryData = function(name) {
         return auxillaryData[name];
+    };
+
+    self.newLocalWindow = function(routeName, params, app) {
+        $window.open(self.formatUrlLocal(routeName, params, app), '_blank');
     };
 
     self.newWindow = function(routeName, params) {
@@ -3641,9 +3656,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
                 '<simulation_id>': item.simulationId,
                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                 '<filename>': item.name + '.' + extension,
-            },
-            true
-        );
+            });
     };
 
     self.renameItem = function(item) {

@@ -46,7 +46,6 @@ def _add_object(o):
     if o.model in _GROUP_MODELS:
         grp = []
         for obj_id in o.members:
-            #obj = {{ objects }}[obj_id]
             obj = [mobj for mobj in {{ objects }} if mobj['id'] == obj_id][0]
             m = PKDict(obj)
             if m.mapId not in id_map:

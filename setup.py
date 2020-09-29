@@ -19,6 +19,8 @@ pykern.pksetup.setup(
         'asyncssh',
         'cryptography>=2.8',
         'futures',
+        # for virtualenv
+        'importlib-metadata<2,>=0.12',
         'numconv',
         'numpy',
         'pyIsEmail',
