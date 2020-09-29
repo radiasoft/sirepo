@@ -141,7 +141,7 @@ angular.element(document).ready(function() {
         });
     }
 
-    // "panel" is a minmal directive return value for now, but can be any encapsulation of
+    // a "panel" is a minmal directive return value for now, but can be any encapsulation of
     // markup
     function buildPanel(name, val) {
         SIREPO.PANELS[name] = {
@@ -301,7 +301,7 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
     };
 
     self.isPremiumUser = function() {
-        const plan = 'ZZZ';  //self.paymentPlanName();
+        const plan = self.paymentPlanName();
         return plan === SIREPO.APP_SCHEMA.constants.paymentPlans.enterprise ||
                 plan === SIREPO.APP_SCHEMA.constants.paymentPlans.premium;
     };
