@@ -9,12 +9,8 @@
             "paths": [
                 {
                     "_super": "fieldPath",
-                    "beginX": -60,
-                    "beginY": 0,
-                    "beginZ": 10,
-                    "endX": 60,
-                    "endY": 0,
-                    "endZ": 10,
+                    "begin": "-60,0,10",
+                    "end": "60,0,10",
                     "id": 0,
                     "name": "X Axis Offset",
                     "numPoints": 21,
