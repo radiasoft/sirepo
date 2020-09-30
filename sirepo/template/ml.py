@@ -171,7 +171,7 @@ def sim_frame_linearSvcErrorRateAnimation(frame_args):
             points=v[:, 1].tolist(),
             label='Mean Error',
         )],
-    ).update(PKDict(
+    ).pkupdate(PKDict(
         x_label='Tolerance',
     ))
 
@@ -306,7 +306,7 @@ def _error_rate_report(frame_args, filename, x_label):
             points=v[:, 1].tolist(),
             label='Mean Error',
         )],
-    ).update(PKDict(
+    ).pkupdate(PKDict(
         x_label=x_label,
     ))
 
