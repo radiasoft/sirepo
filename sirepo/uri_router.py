@@ -94,6 +94,8 @@ def call_api(func_or_name, kwargs=None, data=None):
         # this is ok to call (even if s is None)
         sirepo.http_request.set_sim_type(s)
     sirepo.cookie.save_to_cookie(r)
+    # TODO(e-carlin): cookie will register with it
+    # events.emit(events.END_API_CALL, r)
     return r
 
 

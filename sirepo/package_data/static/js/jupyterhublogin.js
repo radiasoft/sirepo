@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.controller('JupyterhubloginController', function(authState, requestSender, $sce,  $scope) {
+    // TODO(e-carlin): globalRedirect vs sendRequest that returns a redirect
     if (
             ! authState.isLoggedIn ||
             authState.rsMigrationDone ||

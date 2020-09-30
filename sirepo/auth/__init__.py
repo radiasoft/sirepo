@@ -112,6 +112,9 @@ def api_authLogout(simulation_type=None):
         except AssertionError:
             pass
     if _is_logged_in():
+        # TODO(e-carlin): Do not check for jupyterhub
+        # Just emit logout event and jupyterhub will be registered
+        # In sim_api/jupyterhub register if we are in feat_conf.sim_types
         if sirepo.feature_config.cfg().jupyterhub:
             # Must be before setting _STATE_LOGGED_OUT so we can get the
             # user name of the logged in user

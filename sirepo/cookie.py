@@ -63,6 +63,7 @@ def save_to_cookie(resp):
     _state().save_to_cookie(resp)
 
 
+# TODO(e-carlin): merge with set for utils
 def set_cookie_for_jupyterhub(cookie_header):
     """A cookie for authentication with jupyterhub"""
     flask.g = PKDict()

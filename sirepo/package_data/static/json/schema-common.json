@@ -109,7 +109,6 @@
         "copySimulation": "/copy-simulation",
         "deleteFile": "/delete-file",
         "deleteSimulation": "/delete-simulation",
-        "dismissJupyterhubDataMovePrompt": "/dismiss-jupyterhub-data-move-prompt",
         "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model>/<frame>/?<suffix>",
         "downloadFile": "/download-file/<simulation_type>/<simulation_id>/<filename>",
         "errorLogging": "/error-logging",

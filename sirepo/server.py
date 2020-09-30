@@ -21,6 +21,7 @@ import flask
 import importlib
 import os
 import re
+import sirepo.events
 import sirepo.jupyterhub
 import sirepo.sim_data
 import sirepo.srdb
@@ -616,6 +617,8 @@ def init(uwsgi=None, use_reloader=False):
         _google_tag_manager = f'''<script>
     (function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}})(window,document,'script','dataLayer','{cfg.google_tag_manager_id}');
     </script>'''
+# TODO(e-carlin): should this be done here or elsewhere?
+    sirepo.events.init()
     #: Flask app instance, must be bound globally
     _app = flask.Flask(
         __name__,
@@ -626,8 +629,6 @@ def init(uwsgi=None, use_reloader=False):
     _app.sirepo_uwsgi = uwsgi
     _app.sirepo_use_reloader = use_reloader
     uri_router.init(_app, simulation_db)
-    if feature_config.cfg().jupyterhub:
-        sirepo.jupyterhub.init()
     return _app
 
 
