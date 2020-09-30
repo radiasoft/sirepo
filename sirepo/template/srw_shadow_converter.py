@@ -80,6 +80,45 @@ class SRWShadowConverter():
         res.update(attrs)
         return res
 
+    def __grating_to_shadow(self, item, current_rotation, shadow):
+        angle = 90 - (abs(item.grazingAngle) * 180 / math.pi / 1e3)
+        if item.autocomputeVectors == 'horizontal':
+            offset = item.horizontalOffset
+            if current_rotation == 90 or current_rotation == 270:
+                rotate = 0
+            else:
+                rotate = 90
+        elif item.autocomputeVectors == 'vertical':
+            offset = item.verticalOffset
+            if current_rotation == 0 or current_rotation == 180:
+                rotate = 0
+            else:
+                rotate = 90
+        else:
+            #TODO(pjm): determine rotation for vectors
+            rotate = 0
+            offset = 0
+        shadow.beamline.append(self.__copy_item(item, PKDict(
+            type='grating',
+            fmirr='2',
+            t_incidence=angle,
+            alpha=rotate,
+            f_ruling='5',
+            fhit_c='1',
+            fshape='1',
+            halfWidthX1=item.tangentialSize * 1e3 / 2,
+            halfWidthX2=item.tangentialSize * 1e3 / 2,
+            halfLengthY1=item.sagittalSize * 1e3 / 2,
+            halfLengthY2=item.sagittalSize * 1e3 / 2,
+            f_default='0',
+            ssour=item.firstFocusLength,
+            simag=item.focalLength,
+            theta=angle,
+            offz=offset,
+        )))
+        #TODO(pjm): set vars: offx, offy, x_rot, y_rot, z_rot, cil_ang
+        return rotate
+
     def __mirror_to_shadow(self, item, current_rotation, shadow):
         angle = 90 - (abs(item.grazingAngle) * 180 / math.pi / 1e3)
         if item.autocomputeVectors == 'horizontal':
