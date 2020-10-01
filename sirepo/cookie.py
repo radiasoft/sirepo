@@ -60,18 +60,10 @@ def save_to_cookie(resp):
     _state().save_to_cookie(resp)
 
 
-# TODO(e-carlin): merge with set for utils
-def set_cookie_for_jupyterhub(cookie_header):
-    """A cookie for authentication with jupyterhub"""
-    flask.g = PKDict()
-    _State(cookie_header)
-    set_sentinel()
-
-
-def set_cookie_for_utils():
+def set_cookie_for_utils(cookie_header=''):
     """A mock cookie for utilities"""
     flask.g = PKDict()
-    _State('')
+    _State(cookie_header)
     set_sentinel()
 
 def set_sentinel(values=None):

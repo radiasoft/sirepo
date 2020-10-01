@@ -7,7 +7,7 @@ u"""Jupyterhub login
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdexc, pkdlog
+from pykern.pkdebug import pkdp
 import jupyterhub.auth
 import sirepo.auth
 import sirepo.cookie
@@ -30,7 +30,7 @@ class Authenticator(jupyterhub.auth.Authenticator):
         c = handler.get_cookie(sirepo.cookie.cfg.http_name)
         if not c:
             c = ''
-        sirepo.cookie.set_cookie_for_jupyterhub(f'{sirepo.cookie.cfg.http_name}={c}')
+        sirepo.cookie.set_cookie_for_utils(f'{sirepo.cookie.cfg.http_name}={c}')
         try:
             sirepo.auth.require_user()
         except sirepo.util.SRException as e:
@@ -52,7 +52,7 @@ class Authenticator(jupyterhub.auth.Authenticator):
         c = handler.get_cookie(sirepo.cookie.cfg.http_name)
         if not c:
             return False
-        sirepo.cookie.set_cookie_for_jupyterhub(
+        sirepo.cookie.set_cookie_for_utils(
             f'{sirepo.cookie.cfg.http_name}={c}'
         )
 
