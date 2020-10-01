@@ -5,7 +5,6 @@ u"""User state management via an HTTP cookie
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern.pkcollections import PKDict

@@ -18,7 +18,6 @@ import sirepo.auth_db
 import sirepo.events
 import sirepo.http_reply
 import sirepo.http_request
-import sirepo.jupyterhub
 import sirepo.srdb
 import sirepo.uri_router
 import sirepo.util
