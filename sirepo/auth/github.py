@@ -60,7 +60,7 @@ def api_authGithubAuthorized():
         auth.login_fail_redirect(t, this_module, 'oauth-state', reload_js=True)
         raise AssertionError('auth.login_fail_redirect returned unexpectedly')
     d = oc.get('user').json()
-    events.emit(events.GITHUB_AUTHORIZED, kwargs=PKDict(user_name=d['login']))
+    events.emit(events.Type.GITHUB_AUTHORIZED, kwargs=PKDict(user_name=d['login']))
     with auth_db.thread_lock:
         u = AuthGithubUser.search_by(oauth_id=d['id'])
         if u:

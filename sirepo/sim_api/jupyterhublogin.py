@@ -8,12 +8,12 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
+import flask
 import py.error
-import re
 import random
+import re
 import sirepo.api_perm
 import sirepo.auth
-import sirepo.auth_db
 import sirepo.auth_db
 import sirepo.events
 import sirepo.http_reply
@@ -22,8 +22,8 @@ import sirepo.jupyterhub
 import sirepo.srdb
 import sirepo.uri_router
 import sirepo.util
-import string
 import sqlalchemy
+import string
 
 cfg = None
 
@@ -44,14 +44,6 @@ def api_redirectJupyterHub():
     _create_user()
     return sirepo.http_reply.gen_redirect('jupyterHub')
 
-def _event_logout():
-   flask.g.jupyterhub_logout = True
-
-def _event_end_api(resp):
-   # if flask.g.jupyterhub_logout:
-   #     resp.delete_cookie(...jupyterhub)
-    # TODO(e-carlin): remove jupyter cookies
-    pass
 
 def logged_in_user_name():
     with sirepo.auth_db.thread_lock:
@@ -83,31 +75,12 @@ def init_apis(*args, **kwargs):
         uri_root=('jupyter', str, 'the root uri of jupyterhub'),
     )
     sirepo.auth_db.init_model(_init_model)
-    sirepo.events.register(
-        sirepo.events.GITHUB_AUTHORIZED,
-        _handle_github_authorized,
-    )
+    sirepo.events.register({
+        sirepo.events.Type.AUTH_LOGOUT: _event_auth_logout,
+        sirepo.events.Type.END_API_CALL: _event_end_api_call,
+        sirepo.events.Type.GITHUB_AUTHORIZED: _event_github_authorized,
+    })
 
-# TODO(e-carlin): sort
-def _handle_github_authorized(kwargs):
-    with sirepo.auth_db.thread_lock:
-        s = cfg.src_db_root.join(kwargs.user_name)
-        u = logged_in_user_name()
-        assert u, 'need logged in JupyterhubUser'
-        d = cfg.dst_db_root.join(u)
-        try:
-            # TODO(e-carlin): use rename not move since on same partition py_path.rename (maybe os.rename)
-            s.rename(d)
-        except py.error.ENOTDIR:
-            # TODO(e-carlin): Maybe raise an error letting the user know
-            # They may have given the wrong github creds
-            pkdlog(
-                'Tried to migrate existing rs jupyter directory={} but not found. Ignoring.',
-                s,
-            )
-            pkio.mkdir_parent(d)
-    # TODO(e-carlin): /jupyter /juptyerHub ???
-    raise sirepo.util.Redirect('jupyter')
 
 def _create_user():
     def __user_name(logged_in_user_name):
@@ -144,6 +117,45 @@ def _create_user():
             user_name=__user_name(u.user_name),
         ).save()
         return
+
+
+def _event_auth_logout():
+    flask.g.jupyterhub_logout_user_name = logged_in_user_name()
+
+
+def _event_end_api_call(kwargs):
+    u = flask.g.get('jupyterhub_logout_user_name', None)
+    if not u:
+       return
+    for c in (
+            ('jupyterhub-hub-login', 'hub'),
+            (f'jupyterhub-user-{u}', f'user/{u}'),
+    ):
+        kwargs.resp.delete_cookie(
+            c[0],
+            # Trailing slash is required in paths
+            path=f'/{cfg.uri_root}/{c[1]}/',
+        )
+
+
+def _event_github_authorized(kwargs):
+    with sirepo.auth_db.thread_lock:
+        s = cfg.src_db_root.join(kwargs.user_name)
+        u = logged_in_user_name()
+        assert u, 'need logged in JupyterhubUser'
+        d = cfg.dst_db_root.join(u)
+        try:
+            s.rename(d)
+        except py.error.ENOTDIR:
+            # TODO(e-carlin): Maybe raise an error letting the user know
+            # They may have given the wrong github creds
+            pkdlog(
+                'Tried to migrate existing rs jupyter directory={} but not found. Ignoring.',
+                s,
+            )
+            pkio.mkdir_parent(d)
+    # TODO(e-carlin): /jupyter /juptyerHub ???
+    raise sirepo.util.Redirect('jupyter')
 
 
 def _init_model(base):

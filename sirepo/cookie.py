@@ -29,9 +29,6 @@ _COOKIE_SENTINEL_VALUE = 'z'
 
 _SERIALIZER_SEP = ' '
 
-def delete_jupyterhub(user_name):
-    _state().jupyterhub_user_name = user_name
-
 
 def get_value(key):
     return _state()[key]
@@ -118,7 +115,6 @@ class _State(dict):
     def __init__(self, header):
         super(_State, self).__init__()
         self.crypto = None
-        self.jupyterhub_user_name = None
         self.incoming_serialized = ''
         flask.g.sirepo_cookie = self
         self._from_cookie_header(header)
@@ -144,18 +140,6 @@ class _State(dict):
             #TODO(pjm): enabling this causes self-extracting simulations to break
             #samesite='Strict',
         )
-        if self.jupyterhub_user_name:
-            import sirepo.jupyterhub
-
-            for c in (
-                    ('jupyterhub-hub-login', 'hub'),
-                    (
-                        f'jupyterhub-user-{self.jupyterhub_user_name}',
-                        f'user/{self.jupyterhub_user_name}',
-                    ),
-            ):
-                # Trailing slash is required in paths
-                resp.delete_cookie(c[0], path=f'/{sirepo.jupyterhub.cfg.uri_root}/{c[1]}/')
 
     def _crypto(self):
         if not self.crypto:

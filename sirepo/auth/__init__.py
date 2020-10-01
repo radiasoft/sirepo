@@ -13,6 +13,7 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import auth_db
 from sirepo import cookie
+from sirepo import events
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import job
@@ -112,13 +113,9 @@ def api_authLogout(simulation_type=None):
         except AssertionError:
             pass
     if _is_logged_in():
-        # TODO(e-carlin): Do not check for jupyterhub
-        # Just emit logout event and jupyterhub will be registered
-        # In sim_api/jupyterhub register if we are in feat_conf.sim_types
-        if sirepo.feature_config.cfg().jupyterhub:
-            # Must be before setting _STATE_LOGGED_OUT so we can get the
-            # user name of the logged in user
-            cookie.delete_jupyterhub(sirepo.jupyterhub.get_user_name())
+        # Emit before setting _STATE_LOGGED_OUT so any handlers
+        # can access the logged in user
+        events.emit(events.Type.AUTH_LOGOUT)
         cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         _set_log_user()
     return http_reply.gen_redirect_for_app_root(req and req.type)

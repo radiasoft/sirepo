@@ -5,7 +5,7 @@ u"""Handles dispatching of uris to server.api_* functions
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
+from pykern.pkcollections import PKDict
 from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import flask
@@ -17,6 +17,7 @@ import re
 import sirepo.api_auth
 import sirepo.auth
 import sirepo.cookie
+import sirepo.events
 import sirepo.http_reply
 import sirepo.http_request
 import sirepo.sim_api
@@ -50,7 +51,7 @@ _api_to_route = None
 _api_modules = []
 
 #: functions which implement APIs
-_api_funcs = pkcollections.Dict()
+_api_funcs = PKDict()
 
 
 def call_api(func_or_name, kwargs=None, data=None):
@@ -94,8 +95,7 @@ def call_api(func_or_name, kwargs=None, data=None):
         # this is ok to call (even if s is None)
         sirepo.http_request.set_sim_type(s)
     sirepo.cookie.save_to_cookie(r)
-    # TODO(e-carlin): cookie will register with it
-    # events.emit(events.END_API_CALL, r)
+    sirepo.events.emit(sirepo.events.Type.END_API_CALL, kwargs=PKDict(resp=r))
     return r
 
 
@@ -204,7 +204,7 @@ def _dispatch(path):
         except KeyError:
             # sim_types (applications)
             route = _default_route
-        kwargs = pkcollections.Dict()
+        kwargs = PKDict()
         for p in route.params:
             if not parts:
                 if not p.is_optional:
@@ -233,8 +233,8 @@ def _init_uris(app, simulation_db, sim_types):
 
     assert not _default_route, \
         '_init_uris called twice'
-    _uri_to_route = pkcollections.Dict()
-    _api_to_route = pkcollections.Dict()
+    _uri_to_route = PKDict()
+    _api_to_route = PKDict()
     for k, v in simulation_db.SCHEMA_COMMON.route.items():
         r = _split_uri(v)
         try:
@@ -284,7 +284,7 @@ def _split_uri(uri):
     parts = uri.split('/')
     assert '' == parts.pop(0)
     params = []
-    res = pkcollections.Dict(params=params)
+    res = PKDict(params=params)
     in_optional = None
     in_path_info = None
     first = None
@@ -297,7 +297,7 @@ def _split_uri(uri):
                 'too many non-parameter components of uri={}'.format(uri)
             first = p
             continue
-        rp = pkcollections.Dict()
+        rp = PKDict()
         params.append(rp)
         rp.is_optional = bool(m.group(1))
         if rp.is_optional:

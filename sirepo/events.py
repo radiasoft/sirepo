@@ -5,23 +5,35 @@ u"""Sirepo events
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern.pkcollections import PKDict
+import enum
 
-GITHUB_AUTHORIZED = 'github_authorized'
+class _AutoName(enum.Enum):
+    def _generate_next_value_(name, *args):
+        return name
 
-_EVENTS = (GITHUB_AUTHORIZED, )
+
+class Type(_AutoName):
+    AUTH_LOGOUT = enum.auto()
+    END_API_CALL = enum.auto()
+    GITHUB_AUTHORIZED = enum.auto()
+
 
 _HANDLERS = PKDict()
 
 
-def emit(event, kwargs):
+def emit(event, kwargs=None):
     for h in _HANDLERS[event]:
-        h(kwargs)
+        if kwargs:
+            h(kwargs)
+        else:
+            h()
 
 
 def init():
-    for e in _EVENTS:
-        _HANDLERS[e] = []
+    for t in Type:
+        _HANDLERS[t] = []
 
 
-def register(event, handler):
-    _HANDLERS[event].append(handler)
+def register(registrants):
+    for r in registrants:
+        _HANDLERS[r].append(registrants[r])
