@@ -120,22 +120,13 @@ def init_apis(*args, **kwargs):
         key=pkconfig.Required(str, 'Github key'),
         method_visible=(
             True,
-            _cfg_method_visible,
+            bool,
             'github auth method is visible to users when it is an enabled method',
         ),
         secret=pkconfig.Required(str, 'Github secret'),
     )
     AUTH_METHOD_VISIBLE = cfg.method_visible
     auth_db.init_model(_init_model)
-
-
-def _cfg_method_visible(is_visible):
-    import sirepo.feature_config
-
-    if sirepo.feature_config.cfg().jupyterhub:
-        assert not is_visible, \
-            'cannot make github visible and enable jupyterhub'
-    return is_visible
 
 
 class _Client(authlib.integrations.base_client.RemoteApp):

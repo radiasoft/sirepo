@@ -158,7 +158,6 @@ def _event_github_authorized(kwargs):
                 s,
             )
             pkio.mkdir_parent(d)
-    # TODO(e-carlin): /jupyter /juptyerHub ???
     raise sirepo.util.Redirect('jupyter')
 
 

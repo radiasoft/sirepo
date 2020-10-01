@@ -64,9 +64,6 @@ def http():
 
 def jupyterhub():
     assert pkconfig.channel_in('dev')
-    # TODO(e-carlin): setting os.environ doesn't work so manually need to set it here?
-    import sirepo.feature_config
-    sirepo.feature_config.cfg().jupyterhub = True
     try:
         import jupyterhub
     except ImportError:
@@ -89,7 +86,6 @@ def jupyterhub():
            ['jupyterhub', '-f', str(f)],
         ],
         env=PKDict(os.environ).pkupdate(
-            SIREPO_FEATURE_CONFIG_JUPYTERHUB='1',
             SIREPO_AUTH_METHODS='github:email',
             SIREPO_AUTH_GITHUB_METHOD_VISIBLE='',
         ),
@@ -107,12 +103,9 @@ def nginx_proxy(jupyterhub=False):
         f = run_dir.join('default.conf')
         c = PKDict(_cfg()).pkupdate(run_dir=str(d))
         if jupyterhub:
-            import sirepo.feature_config
             import sirepo.sim_api.jupyterhublogin
             import sirepo.server
 
-            # TODO(e-carlin): same hack as jupyterhub() have to set the config.
-            sirepo.feature_config.cfg().jupyterhub = True
             sirepo.server.init()
             c.pkupdate(
                 jupyterhub_root=sirepo.sim_api.jupyterhublogin.cfg.uri_root,
