@@ -96,6 +96,7 @@ def _init():
         proprietary_sim_types=(set(), set, 'codes that require authorization'),
         #TODO(robnagler) make this a sim_type config like srw and warpvnd
         rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
+        rs_jupyter_migrate=(False, bool, 'give user option to migrate data from jupyter.radiasoft.org'),
         sim_types=(set(), set, 'simulation types (codes) to be imported'),
         srw=dict(
             app_url=('/en/xray-beamlines.html', str, 'URL for SRW link'),

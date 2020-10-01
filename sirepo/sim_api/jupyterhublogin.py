@@ -32,7 +32,8 @@ JupyterhubUser = None
 
 @sirepo.api_perm.require_user
 def api_migrateRsJupyterhubData():
-    _create_user()
+    assert sirepo.feature_config.cfg().rs_jupyter_migrate, \
+        'API forbidden'
     d = PKDict(**sirepo.http_request.parse_json())
     if not d.doMigration:
         return sirepo.http_reply.gen_redirect('jupyterHub')
@@ -44,7 +45,8 @@ def api_migrateRsJupyterhubData():
 
 @sirepo.api_perm.require_user
 def api_redirectJupyterHub():
-    if logged_in_user_name():
+    is_new_user = _create_user()
+    if not sirepo.feature_config.cfg().rs_jupyter_migrate or not is_new_user:
         return sirepo.http_reply.gen_redirect('jupyterHub')
     return sirepo.http_reply.gen_json_ok()
 
@@ -102,7 +104,7 @@ def _create_user():
 
     with sirepo.auth_db.thread_lock:
         if logged_in_user_name():
-            return
+            return False
         # TODO(e-carlin): sirepo.auth.logged_in_user_name()
         u = sirepo.auth.email.AuthEmailUser.search_by(
             uid=sirepo.auth.logged_in_user(check_path=False),
@@ -120,7 +122,7 @@ def _create_user():
             uid=u.uid,
             user_name=__user_name(u.user_name),
         ).save()
-        return
+        return True
 
 
 def _event_auth_logout():
