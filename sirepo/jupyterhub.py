@@ -24,6 +24,9 @@ class Authenticator(jupyterhub.auth.Authenticator):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # TODO(e-carlin): maybe should set SIREPO_AUTH_LOGGED_IN_USER
+        # if not set user_dir_not_found could do operations to db
+        # that require locking
         sirepo.server.init()
 
     async def authenticate(self, handler, data):
@@ -39,7 +42,7 @@ class Authenticator(jupyterhub.auth.Authenticator):
                 handler.redirect(f'/jupyterhublogin#/{r}')
                 raise tornado.web.Finish()
             raise
-        u = sirepo.sim_api.jupyterhublogin.logged_in_user_name()
+        u = sirepo.sim_api.jupyterhublogin.logged_in_user_name(check_path=False)
         if not u:
             handler.redirect(f'/jupyterhublogin')
             raise tornado.web.Finish()

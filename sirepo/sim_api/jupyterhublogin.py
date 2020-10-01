@@ -50,10 +50,10 @@ def api_redirectJupyterHub():
     return sirepo.http_reply.gen_json_ok()
 
 
-def logged_in_user_name():
+def logged_in_user_name(check_path=True):
     with sirepo.auth_db.thread_lock:
         u = JupyterhubUser.search_by(
-            uid=sirepo.auth.logged_in_user(check_path=False),
+            uid=sirepo.auth.logged_in_user(check_path=check_path),
         )
         if u:
             return u.user_name
@@ -106,16 +106,8 @@ def _create_user():
             return False
         # TODO(e-carlin): sirepo.auth.logged_in_user_name()
         u = sirepo.auth.email.AuthEmailUser.search_by(
-            uid=sirepo.auth.logged_in_user(check_path=False),
+            uid=sirepo.auth.logged_in_user(),
         )
-# TODO(e-carlin): Is below still True ??
-# TODO(e-carlin): if we are logged in but delete the run dir
-# (happens in dev, maybe in prod if we delete a logged in user)
-# then this assert will raise.
-# It would be ideal to log the user out and redirect to / as done
-# in non-jupyter apps but since we are outside of the flask context
-# accessing the sirepo cookie and redirecting is challenging.
-# Return None will display 403 for user which is fine for now.
         assert u, 'must have existing logged in user to create JupyterhubUser'
         JupyterhubUser(
             uid=u.uid,
