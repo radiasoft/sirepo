@@ -22,7 +22,6 @@ import contextlib
 import datetime
 import importlib
 import sirepo.feature_config
-import sirepo.jupyterhub
 import sirepo.template
 import sirepo.uri
 import werkzeug.exceptions
