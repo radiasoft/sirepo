@@ -71,14 +71,14 @@ def jupyterhub():
         import jupyterhub
     except ImportError:
         raise ImportError('jupyterhub not installed. run `pip install jupyterhub`')
-    import sirepo.jupyterhub
+    import sirepo.sim_api.jupyterhublogin
     import sirepo.server
 
     sirepo.server.init()
     f = _run_dir().join('jupyterhub').ensure(dir=True).join('conf.py')
     pkjinja.render_resource(
         'jupyterhub_conf.py',
-        PKDict(_cfg()).pkupdate(**sirepo.jupyterhub.cfg),
+        PKDict(_cfg()).pkupdate(**sirepo.sim_api.jupyterhublogin.cfg),
         output=f,
     )
     _start_processes(
@@ -89,8 +89,9 @@ def jupyterhub():
            ['jupyterhub', '-f', str(f)],
         ],
         env=PKDict(os.environ).pkupdate(
-            SIREPO_AUTH_METHODS='email',
             SIREPO_FEATURE_CONFIG_JUPYTERHUB='1',
+            SIREPO_AUTH_METHODS='github:email',
+            SIREPO_AUTH_GITHUB_METHOD_VISIBLE='',
         ),
     )
 
@@ -107,13 +108,15 @@ def nginx_proxy(jupyterhub=False):
         c = PKDict(_cfg()).pkupdate(run_dir=str(d))
         if jupyterhub:
             import sirepo.feature_config
-            import sirepo.jupyterhub
+            import sirepo.sim_api.jupyterhublogin
             import sirepo.server
 
             # TODO(e-carlin): same hack as jupyterhub() have to set the config.
             sirepo.feature_config.cfg().jupyterhub = True
             sirepo.server.init()
-            c.pkupdate(jupyterhub_root=sirepo.jupyterhub.cfg.uri_root)
+            c.pkupdate(
+                jupyterhub_root=sirepo.sim_api.jupyterhublogin.cfg.uri_root,
+            )
         pkjinja.render_resource(
             'nginx_proxy.conf',
             c,

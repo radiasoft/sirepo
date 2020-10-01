@@ -1,4 +1,8 @@
-<div class="container-fluid">
+<div data-ng-if="jupyterhublogin.isLoading" class="sr-page-load" style="display: block">
+    <img class="sr-page-load-image" src="/static/img/sirepo_animated.gif" />
+    <div class="sr-page-load-text">Loading</div>
+</div>
+<div data-ng-if="! jupyterhublogin.isLoading" class="container-fluid">
   <div class="row">
     <div class="row text-center">
       <p>Do you have an existing jupyter.radiasoft.org account that you would like to migrate to Sirepo?</p>

@@ -4,31 +4,18 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.controller('JupyterhubloginController', function(authState, requestSender, $sce,  $scope) {
-    // TODO(e-carlin): globalRedirect vs sendRequest that returns a redirect
-    if (
-            ! authState.isLoggedIn ||
-            authState.rsMigrationDone ||
-            authState.rsMigrationPromptDimsissed
-    ) {
-        requestSender.sendRequest('redirectJupyterHub');
-        return;
-    }
     const self = this;
-    self.dismissChecked = false;
-
-    self.dismissRsMigrationPrompt = function(v) {
-        requestSender.sendRequest('dismissJupyterhubDataMovePrompt', null, {dismiss: self.dismissChecked});
-    }
-
+    self.isLoading = true;
+    requestSender.sendRequest(
+        'redirectJupyterHub',
+        () => {self.isLoading = false;}
+    );
     self.migrate = function(doMigration) {
-        if (! doMigration) {
-            requestSender.sendRequest('redirectJupyterHub');
-            return;
-        }
-        requestSender.globalRedirect(
+        requestSender.sendRequest(
             'migrateRsJupyterhubData',
-            {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
-        );
+            null,
+            {doMigration: doMigration}
+        )
     }
 });
 

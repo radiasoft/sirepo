@@ -31,18 +31,22 @@ JupyterhubUser = None
 
 
 @sirepo.api_perm.require_user
-def api_migrateRsJupyterhubData(simulation_type):
+def api_migrateRsJupyterhubData():
     _create_user()
+    d = PKDict(**sirepo.http_request.parse_json())
+    if not d.doMigration:
+        return sirepo.http_reply.gen_redirect('jupyterHub')
     return sirepo.uri_router.call_api(
             'authGithubLogin',
-            kwargs=PKDict(simulation_type=simulation_type),
+            kwargs=PKDict(simulation_type='jupyterhublogin'),
         )
 
 
 @sirepo.api_perm.require_user
 def api_redirectJupyterHub():
-    _create_user()
-    return sirepo.http_reply.gen_redirect('jupyterHub')
+    if logged_in_user_name():
+        return sirepo.http_reply.gen_redirect('jupyterHub')
+    return sirepo.http_reply.gen_json_ok()
 
 
 def logged_in_user_name():
