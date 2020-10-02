@@ -7,17 +7,6 @@ u"""Sirepo events
 from pykern.pkcollections import PKDict
 import enum
 
-class _AutoName(enum.Enum):
-    def _generate_next_value_(name, *args):
-        return name
-
-
-class Type(_AutoName):
-    AUTH_LOGOUT = enum.auto()
-    END_API_CALL = enum.auto()
-    GITHUB_AUTHORIZED = enum.auto()
-
-
 _HANDLERS = PKDict()
 
 
@@ -37,3 +26,14 @@ def init():
 def register(registrants):
     for r in registrants:
         _HANDLERS[r].append(registrants[r])
+
+
+class _AutoName(enum.Enum):
+    def _generate_next_value_(name, *args):
+        return name
+
+
+class Type(_AutoName):
+    AUTH_LOGOUT = enum.auto()
+    END_API_CALL = enum.auto()
+    GITHUB_AUTHORIZED = enum.auto()
