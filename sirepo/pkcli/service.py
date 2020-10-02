@@ -85,10 +85,7 @@ def jupyterhub():
            ['sirepo', 'job_supervisor'],
            ['jupyterhub', '-f', str(f)],
         ],
-        env=PKDict(os.environ).pkupdate(
-            SIREPO_AUTH_METHODS='github:email',
-            SIREPO_AUTH_GITHUB_METHOD_VISIBLE='',
-        ),
+        env=PKDict(os.environ).pkupdate(SIREPO_AUTH_METHODS='email'),
     )
 
 
