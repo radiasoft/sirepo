@@ -15,8 +15,8 @@ SIREPO.app.controller('JupyterhubloginController', function(authState, requestSe
             'migrateRsJupyterhubData',
             null,
             {doMigration: doMigration}
-        )
-    }
+        );
+    };
 });
 
 SIREPO.app.directive('appHeader', function(jupyterhubloginService) {
