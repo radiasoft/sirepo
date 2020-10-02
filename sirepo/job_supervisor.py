@@ -493,6 +493,7 @@ class _ComputeJob(PKDict):
                 h.insert(l, ['Name', 'String'])
             else:
                 h.insert(l, ['User id', 'String'])
+                h.insert(l, ['Display name', 'String'])
                 h.extend([
                     ['Queued', 'Time'],
                     ['Driver details', 'String'],
@@ -520,6 +521,12 @@ class _ComputeJob(PKDict):
                     d.insert(l, i.db.simName)
                 else:
                     d.insert(l, i.db.uid)
+                    d.insert(
+                        l,
+                        sirepo.auth_db.UserRegistration.search_by(
+                            uid=i.db.uid,
+                        ).display_name,
+                    )
                     d.extend([
                         _get_queued_time(i.db),
                         ' | '.join(sorted(i.db.driverDetails.values())),
