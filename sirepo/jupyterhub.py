@@ -56,7 +56,6 @@ class Authenticator(jupyterhub.auth.Authenticator):
         sirepo.cookie.set_cookie_for_utils(
             f'{sirepo.cookie.cfg.http_name}={c}'
         )
-
         try:
             sirepo.auth.require_user()
         except sirepo.util.SRException:
