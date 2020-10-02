@@ -270,8 +270,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         var copy = appState.clone(o);
         copy.name = newObjectName(copy);
         addObject(copy);
+        self.editObject(copy);
     };
-
 
     self.editTool = function(tool) {
         if (tool.isInactive) {
@@ -440,7 +440,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             self.getObject(oId).groupId = o.id;
         //    ++n;
         });
-        self.editObject(o);
         //if (n > 0) {
         //    let z = groupBounds(o.members);
         //    o.size = '0,0,0';
