@@ -48,7 +48,6 @@ class Authenticator(jupyterhub.auth.Authenticator):
         return u
 
     async def refresh_user(self, user, handler=None):
-        # TODO(e-carlin): this doesn't seem to work, more logging
         assert handler, \
             'Need the handler to get the cookie'
         c = handler.get_cookie(sirepo.cookie.cfg.http_name)
