@@ -10,7 +10,6 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo.pkcli import admin
 import pykern.pkcli
 import sirepo.auth
-import sirepo.auth.email
 import sirepo.auth_db
 import sirepo.server
 
@@ -70,13 +69,16 @@ def _parse_args(uid_or_email, roles):
 
     # POSIT: Uid's are from the base62 charset so an '@' implies an email.
     if '@' in uid_or_email:
-        u = sirepo.auth.email.AuthEmailUser.search_by(user_name=uid_or_email)
+        m = sirepo.auth.get_module('email')
+        assert m, \
+            f'uid_or_email={uid_or_email} contains "@" but email not configured'
+        u = m.user_by_user_name(uid_or_email)
     else:
-        u = sirepo.auth_db.UserRegistration.search_by(uid=uid_or_email)
+        u = sirepo.auth.registered_user(uid_or_email)
     if not u:
         pykern.pkcli.command_error('uid_or_email={} not found', uid_or_email)
     if roles:
         a = sirepo.auth.get_all_roles()
         assert set(roles).issubset(a), \
             'roles={} not a subset valid all_roles={}'.format(roles, a)
-    return u.uid
+    return u

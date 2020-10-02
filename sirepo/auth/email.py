@@ -116,6 +116,12 @@ def avatar_uri(model, size):
         size,
     )
 
+def user_by_user_name(user_name):
+    with auth_db.thread_lock:
+       u = AuthEmailUser.search_by(user_name=user_name)
+       if u:
+           return u.uid
+       return None
 
 def init_apis(*args, **kwargs):
     auth_db.init_model(_init_model)
