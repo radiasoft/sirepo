@@ -2078,7 +2078,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
                 1
             );
         }
-        // srdbg('req url/data', url, data);
         var req = data
             ? $http.post(url, data, t)
             : $http.get(url, t);
