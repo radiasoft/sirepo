@@ -31,7 +31,7 @@ JupyterhubUser = None
 
 @sirepo.api_perm.require_user
 def api_migrateRsJupyterhubData():
-    assert sirepo.feature_config.cfg().rs_jupyter_migrate, \
+    assert cfg.rs_jupyter_migrate, \
         'API forbidden'
     d = PKDict(**sirepo.http_request.parse_json())
     if not d.doMigration:
@@ -45,7 +45,7 @@ def api_migrateRsJupyterhubData():
 @sirepo.api_perm.require_user
 def api_redirectJupyterHub():
     is_new_user = _create_user()
-    if not sirepo.feature_config.cfg().rs_jupyter_migrate or not is_new_user:
+    if not cfg.rs_jupyter_migrate or not is_new_user:
         return sirepo.http_reply.gen_redirect('jupyterHub')
     return sirepo.http_reply.gen_json_ok()
 
@@ -65,6 +65,7 @@ def init_apis(*args, **kwargs):
             pkio.py_path,
             'existing jupyter user db (ex /srv/jupyterhub)',
         ),
+        rs_jupyter_migrate=(False, bool, 'give user option to migrate data from jupyter.radiasoft.org'),
         src_db_root=(
             pkio.py_path('/dev/null'),
             pkio.py_path,
@@ -128,6 +129,8 @@ def _event_end_api_call(kwargs):
 
 
 def _event_github_authorized(kwargs):
+    if not cfg.rs_jupyter_migrate:
+        return
     with sirepo.auth_db.thread_lock:
         s = cfg.src_db_root.join(kwargs.user_name)
         u = logged_in_user_name()
