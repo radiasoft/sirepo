@@ -42,6 +42,8 @@ class Authenticator(jupyterhub.auth.Authenticator):
                 handler.redirect(f'/jupyterhublogin#/{r}')
                 raise tornado.web.Finish()
             raise
+        # Do not check path. If not found will result in updates to db
+        # which we can not lock.
         u = sirepo.sim_api.jupyterhublogin.logged_in_user_name(check_path=False)
         if not u:
             handler.redirect(f'/jupyterhublogin')

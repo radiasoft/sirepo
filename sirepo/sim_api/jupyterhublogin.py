@@ -51,13 +51,7 @@ def api_redirectJupyterHub():
 
 
 def logged_in_user_name(check_path=True):
-    with sirepo.auth_db.thread_lock:
-        u = JupyterhubUser.search_by(
-            uid=sirepo.auth.logged_in_user(check_path=check_path),
-        )
-        if u:
-            return u.user_name
-        return None
+    return _user_name(sirepo.auth.logged_in_user(check_path=check_path))
 
 
 def init_apis(*args, **kwargs):
@@ -116,8 +110,8 @@ def _create_user():
         return True
 
 
-def _event_auth_logout():
-    flask.g.jupyterhub_logout_user_name = logged_in_user_name()
+def _event_auth_logout(kwargs):
+    flask.g.jupyterhub_logout_user_name = _user_name(kwargs.uid)
 
 
 def _event_end_api_call(kwargs):
@@ -165,3 +159,11 @@ def _init_model(base):
             nullable=False,
             unique=True,
         )
+
+
+def _user_name(uid):
+    with sirepo.auth_db.thread_lock:
+        u = JupyterhubUser.search_by(uid=uid)
+        if u:
+            return u.user_name
+        return None
