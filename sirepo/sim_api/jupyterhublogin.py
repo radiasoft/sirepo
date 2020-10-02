@@ -55,7 +55,6 @@ def logged_in_user_name(check_path=True):
 
 
 def init_apis(*args, **kwargs):
-    # TODO(e-carlin): register a logout api with events
     global cfg
 
     if cfg:
@@ -98,14 +97,13 @@ def _create_user():
     with sirepo.auth_db.thread_lock:
         if logged_in_user_name():
             return False
-        # TODO(e-carlin): sirepo.auth.logged_in_user_name()
-        u = sirepo.auth.email.AuthEmailUser.search_by(
-            uid=sirepo.auth.logged_in_user(),
-        )
-        assert u, 'must have existing logged in user to create JupyterhubUser'
+        i = sirepo.auth.logged_in_user()
+        u = sirepo.auth.logged_in_user_name()
+        assert i and u, \
+            f'Must have logged in user with user_name. uid={i} user_name={u}'
         JupyterhubUser(
-            uid=u.uid,
-            user_name=__user_name(u.user_name),
+            uid=i,
+            user_name=__user_name(u),
         ).save()
         return True
 
