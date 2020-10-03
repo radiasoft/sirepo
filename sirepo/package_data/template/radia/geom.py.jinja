@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 import h5py
+import os
 import re
 from pykern.pkcollections import PKDict
 from sirepo.template import radia_tk
@@ -64,6 +65,11 @@ def _add_object(o):
 id_map = PKDict()
 {% if isExample %}
 g_id = radia_examples.build('{{ geomName }}')
+{% elif dmpImportFile %}
+if not os.path.isfile('{{ dmpFile }}'):
+    with open('{{ dmpImportFile }}', 'rb') as f:
+        b = f.read()
+        g_id = radia_tk.load_bin(b)
 {% else %}
 for obj in {{ objects }}:
     o = PKDict(obj)

@@ -174,6 +174,9 @@ def get_application_data(data, **kwargs):
 def new_simulation(data, new_simulation_data):
     data.models.simulation.beamAxis = new_simulation_data.beamAxis
     data.models.geometry.name = new_simulation_data.name
+    if new_simulation_data.dmpImportFile:
+        data.models.simulation.dmpImportFile = new_simulation_data.dmpImportFile
+
 
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
@@ -360,6 +363,10 @@ def _generate_parameters_file(data):
     g = data.models.geometry
 
     v['dmpFile'] = _dmp_file(sim_id)
+    if 'dmpImportFile' in data.models.simulation:
+        v['dmpImportFile'] = simulation_db.simulation_lib_dir(SIM_TYPE).join(
+            f'radia-dmp.{data.models.simulation.dmpImportFile}'
+        )
     v['isExample'] = data.models.simulation.get('isExample', False)
     v['objects'] = g.get('objects', [])
     v['geomName'] = g.name

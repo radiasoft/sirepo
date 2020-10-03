@@ -937,6 +937,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: [
             '<div data-common-footer="nav"></div>',
+            '<div data-dmp-import-dialog="" data-title="Dump File" data-description="Import Radia dump file"></div>',
         ].join(''),
     };
 });
@@ -962,11 +963,124 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               '</app-settings>',
               '<app-header-right-sim-list>',
                 '<ul class="nav navbar-nav sr-navbar-right">',
-                  '<li><a href data-ng-click=""><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+                  '<li><a href data-ng-click="showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
                 '</ul>',
               '</app-header-right-sim-list>',
             '</div>',
         ].join(''),
+        controller: function($scope) {
+            $scope.showImportModal = function() {
+                $('#simulation-import').modal('show');
+            };
+        }
+    };
+});
+
+SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUpload, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            description: '@',
+            title: '@',
+        },
+        template: [
+            '<div class="modal fade" id="simulation-import" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog modal-lg">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-info">',
+                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<div data-help-button="{{ title }}"></div>',
+                    '<span class="lead modal-title text-info">{{ title }}</span>',
+                  '</div>',
+                  '<div class="modal-body">',
+                    '<div class="container-fluid">',
+                        '<form>',
+                        '<div data-file-chooser="" data-input-file="inputFile" data-url="fileURL" data-title="title" data-description="description" data-require="true"></div>',
+                          '<div class="col-sm-6 pull-right">',
+                            '<button data-ng-click="importDmpFile(inputFile)" class="btn btn-primary" data-ng-class="{\'disabled\': isMissingImportFile() }">Import File</button>',
+                            ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
+                          '</div>',
+                        '</form>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.inputFile = null;
+            $scope.fileURL = null;
+            $scope.isMissingImportFile = function() {
+                return ! $scope.inputFile;
+            };
+            $scope.fileUploadError = '';
+            $scope.isUploading = false;
+            $scope.title = $scope.title || 'Import Dump File';
+            $scope.description = $scope.description || 'Select File';
+
+            $scope.importDmpFile = function(inputFile) {
+                if (! inputFile) {
+                    return;
+                }
+                newSimFromDmp(inputFile);
+            };
+
+            function upload(inputFile, data) {
+                var simId = data.models.simulation.simulationId;
+                fileUpload.uploadFileToUrl(
+                    inputFile,
+                    $scope.isConfirming
+                        ? {
+                            confirm: $scope.isConfirming,
+                        }
+                        : null,
+                    requestSender.formatUrl(
+                        'uploadFile',
+                        {
+                            '<simulation_id>': simId,
+                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                            '<file_type>': 'radia-dmp',
+                        }),
+                    function(d) {
+                        $('#simulation-import').modal('hide');
+                        $scope.inputFile = null;
+                        URL.revokeObjectURL($scope.fileURL);
+                        $scope.fileURL = null;
+                        requestSender.localRedirectHome(simId);
+                    }, function (err) {
+                        throw new Error(inputFile + ': Error during upload ' + err);
+                    });
+            }
+
+            function newSimFromDmp(inputFile) {
+                var url = $scope.fileURL;
+                var model = appState.setModelDefaults(appState.models.simulation, 'simulation');
+                model.name = inputFile.name.substring(0, inputFile.name.indexOf('.'));
+                model.folder = fileManager.getActiveFolderPath();
+                model.dmpImportFile = inputFile.name;
+                appState.newSimulation(
+                    model,
+                    function (data) {
+                        $scope.isUploading = false;
+                        upload(inputFile, data);
+                    },
+                    function (err) {
+                        throw new Error(inputFile + ': Error creating simulation ' + err);
+                    }
+                );
+            }
+
+        },
+        link: function(scope, element) {
+            $(element).on('show.bs.modal', function() {
+                $('#file-import').val(null);
+                scope.fileUploadError = '';
+                scope.isUploading = false;
+            });
+            scope.$on('$destroy', function() {
+                $(element).off();
+            });
+        },
     };
 });
 
@@ -2645,6 +2759,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     viewType: appState.models.magnetDisplay.viewType,
                     simulationId: appState.models.simulation.simulationId,
                 };
+                if (appState.models.simulation.dmpImportFile) {
+                    inData.dmpImportFile = appState.models.simulation.dmpImportFile;
+                }
                 if ($scope.isViewTypeFields()) {
                     inData.fieldType = appState.models.magnetDisplay.fieldType;
                     inData.method = 'get_field';
