@@ -95,16 +95,12 @@ def _create_user():
             n += random.choice(string.ascii_lowercase)
         return n
 
+    if logged_in_user_name():
+        return False
     with sirepo.auth_db.thread_lock:
-        if logged_in_user_name():
-            return False
-        i = sirepo.auth.logged_in_user()
-        u = sirepo.auth.logged_in_user_name()
-        assert i and u, \
-            f'Must have logged in user with user_name. uid={i} user_name={u}'
         JupyterhubUser(
-            uid=i,
-            user_name=__user_name(u),
+            uid=sirepo.auth.logged_in_user(),
+            user_name=__user_name(sirepo.auth.user_name()),
         ).save()
         return True
 

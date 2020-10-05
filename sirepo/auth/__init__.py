@@ -208,20 +208,6 @@ def logged_in_user(check_path=True):
     return u
 
 
-def logged_in_user_name():
-    u = _get_user()
-    if not _is_logged_in():
-        return None
-    m = cookie.unchecked_get_value(_COOKIE_METHOD)
-    assert u, \
-        'no user in cookie: state={} method={}'.format(
-            cookie.unchecked_get_value(_COOKIE_STATE),
-            m,
-        )
-    with auth_db.thread_lock:
-       return _METHOD_MODULES[m].UserModel.search_by(uid=u).user_name
-
-
 def login(module, uid=None, model=None, sim_type=None, display_name=None, is_mock=False, want_redirect=False):
     """Login the user
 
@@ -487,6 +473,13 @@ def user_if_logged_in(method):
     if m != method:
         return None
     return _get_user()
+
+
+def user_name():
+    with auth_db.thread_lock:
+       return _METHOD_MODULES[cookie.unchecked_get_value(
+           _COOKIE_METHOD,
+       )].UserModel.search_by(uid=logged_in_user()).user_name
 
 
 def user_registration(uid):
