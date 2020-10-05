@@ -7,11 +7,11 @@
         }
     },
     "appDefaults": {
-        "route": "migrate"
+        "route": "migrateJupyter"
     },
     "localRoutes": {
-        "migrate": {
-            "route": "/migrate",
+        "migrateJupyter": {
+            "route": "/migrate-jupyter",
             "config": {
                 "controller": "JupyterhubloginController as jupyterhublogin",
                 "templateUrl": "/static/html/jupyterhublogin.html"
