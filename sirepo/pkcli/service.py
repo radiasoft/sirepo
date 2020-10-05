@@ -67,7 +67,7 @@ def jupyterhub():
     try:
         import jupyterhub
     except ImportError:
-        raise ImportError('jupyterhub not installed. run `pip install jupyterhub`')
+        raise AssertionError('jupyterhub not installed. run `pip install jupyterhub`')
     import sirepo.sim_api.jupyterhublogin
     import sirepo.server
 
