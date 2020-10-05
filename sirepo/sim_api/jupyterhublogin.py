@@ -50,8 +50,8 @@ def api_redirectJupyterHub():
     return sirepo.http_reply.gen_json_ok()
 
 
-def logged_in_user_name(check_path=True):
-    return _user_name(sirepo.auth.logged_in_user(check_path=check_path))
+def logged_in_user_name(have_simulation_db=True):
+    return _user_name(sirepo.auth.logged_in_user(check_path=have_simulation_db))
 
 
 def init_apis(*args, **kwargs):
