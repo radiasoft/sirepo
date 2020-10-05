@@ -127,3 +127,7 @@ def init_apis(*args, **kwargs):
             'Shared secret between Sirepo and BlueSky server',
         ),
     )
+
+
+def user_name():
+    return 'bluesky'

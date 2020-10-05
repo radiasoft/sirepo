@@ -479,7 +479,7 @@ def user_name():
     with auth_db.thread_lock:
        return _METHOD_MODULES[cookie.unchecked_get_value(
            _COOKIE_METHOD,
-       )].UserModel.search_by(uid=logged_in_user()).user_name
+       )].user_name()
 
 
 def user_registration(uid):
