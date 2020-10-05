@@ -19,6 +19,8 @@ import tornado.web
 class Authenticator(jupyterhub.auth.Authenticator):
     # Do not prompt with jupyterhub login page. self.authenticate()
     # will handle login using Sirepo functionality
+    # See the jupyterhub docs for more info:
+    # https://jupyterhub.readthedocs.io/en/stable/api/auth.html
     auto_login = True
     refresh_pre_spawn = True
 
