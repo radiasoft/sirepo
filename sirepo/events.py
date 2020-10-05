@@ -22,8 +22,9 @@ def init():
 
 
 def register(registrants):
-    for r in registrants:
-        _HANDLERS[r].append(registrants[r])
+    for k, v in registrants.items():
+        if v not in _HANDLERS[k]:
+            _HANDLERS[k].append(v)
 
 
 @aenum.unique
