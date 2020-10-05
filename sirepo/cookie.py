@@ -62,6 +62,8 @@ def save_to_cookie(resp):
 def set_cookie_for_utils(cookie_header=''):
     """A mock cookie for utilities"""
     flask.g = PKDict()
+    if cookie_header:
+        cookie_header = f'{cfg.http_name}={cookie_header}'
     _State(cookie_header)
     set_sentinel()
 

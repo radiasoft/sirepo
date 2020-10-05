@@ -29,10 +29,7 @@ class Authenticator(jupyterhub.auth.Authenticator):
         sirepo.server.init()
 
     async def authenticate(self, handler, data):
-        c = handler.get_cookie(sirepo.cookie.cfg.http_name)
-        if not c:
-            c = ''
-        sirepo.cookie.set_cookie_for_utils(f'{sirepo.cookie.cfg.http_name}={c}')
+        _set_cookie(handler)
         try:
             sirepo.auth.require_user()
         except sirepo.util.SRException as e:
@@ -50,16 +47,15 @@ class Authenticator(jupyterhub.auth.Authenticator):
         return u
 
     async def refresh_user(self, user, handler=None):
-        assert handler, \
-            'Need the handler to get the cookie'
-        c = handler.get_cookie(sirepo.cookie.cfg.http_name)
-        if not c:
-            return False
-        sirepo.cookie.set_cookie_for_utils(
-            f'{sirepo.cookie.cfg.http_name}={c}'
-        )
+        _set_cookie(handler)
         try:
             sirepo.auth.require_user()
         except sirepo.util.SRException:
             return False
         return True
+
+
+def _set_cookie(handler):
+    sirepo.cookie.set_cookie_for_utils(
+        handler.get_cookie(sirepo.cookie.cfg.http_name),
+    )
