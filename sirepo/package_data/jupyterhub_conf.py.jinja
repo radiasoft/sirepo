@@ -1,12 +1,12 @@
 import jupyterhub.spawner
 import sirepo.jupyterhub
 
-c.Application.log_level = 'DEBUG'
+c.Application.log_level = '{{ "DEBUG" if jupyterhub_debug else "WARN" }}'
 c.ConfigurableHTTPProxy.api_url = 'http://127.0.0.1:8111'
-c.ConfigurableHTTPProxy.debug = True
+c.ConfigurableHTTPProxy.debug = {{ jupyterhub_debug }}
 c.JupyterHub.authenticator_class = sirepo.jupyterhub.Authenticator
 c.JupyterHub.base_url = '/{{ uri_root }}'
 c.JupyterHub.ip = '127.0.0.1'
 c.JupyterHub.port = {{ jupyterhub_port }}
 c.JupyterHub.spawner_class = jupyterhub.spawner.SimpleLocalProcessSpawner
-c.Spawner.debug = True
+c.Spawner.debug = {{ jupyterhub_debug }}

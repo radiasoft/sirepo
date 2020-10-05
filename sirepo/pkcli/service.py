@@ -141,6 +141,11 @@ def _cfg():
         __cfg = pkconfig.init(
             ip=('0.0.0.0', _cfg_ip, 'what IP address to open'),
             jupyterhub_port=(8005, _cfg_port, 'port on which jupyterhub listens'),
+            jupyterhub_debug=(
+                True,
+                bool,
+                'turn on debugging for jupyterhub (hub, spawner, ConfigurableHTTPProxy)',
+            ),
             nginx_proxy_port=(8080, _cfg_port, 'port on which nginx_proxy listens'),
             port=(8000, _cfg_port, 'port on which uwsgi or http listens'),
             processes=(1, _cfg_int(1, 16), 'how many uwsgi processes to start'),
