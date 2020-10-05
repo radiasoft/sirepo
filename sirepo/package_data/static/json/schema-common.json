@@ -126,7 +126,7 @@
         "exportJupyterNotebook": "/export-jupyter-notebook/<simulation_type>/<simulation_id>/?<model>/?<title>",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
-        "migrateRsJupyterhubData": "/migrate-rs-jupyterhub-data",
+        "migrateJupyterhub": "/migrate-jupyterhub",
         "newSimulation": "/new-simulation",
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
         "ownJobs": "/own-jobs",

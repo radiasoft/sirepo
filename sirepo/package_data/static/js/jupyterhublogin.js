@@ -12,7 +12,7 @@ SIREPO.app.controller('JupyterhubloginController', function(authState, requestSe
     );
     self.migrate = function(doMigration) {
         requestSender.sendRequest(
-            'migrateRsJupyterhubData',
+            'migrateJupyterhub',
             null,
             {doMigration: doMigration}
         );

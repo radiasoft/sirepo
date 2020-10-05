@@ -30,7 +30,7 @@ JupyterhubUser = None
 
 
 @sirepo.api_perm.require_user
-def api_migrateRsJupyterhubData():
+def api_migrateJupyterhub():
     assert cfg.rs_jupyter_migrate, \
         'API forbidden'
     d = PKDict(**sirepo.http_request.parse_json())
