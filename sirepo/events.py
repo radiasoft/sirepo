@@ -5,22 +5,20 @@ u"""Sirepo events
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern.pkcollections import PKDict
-import enum
+from pykern.pkdebug import pkdp
+import aenum
 
 _HANDLERS = PKDict()
 
 
-def emit(event, kwargs=None):
+def emit(event, kwargs):
     for h in _HANDLERS[event]:
-        if kwargs:
-            h(kwargs)
-        else:
-            h()
+        h(kwargs or PKDict())
 
 
 def init():
-    for t in Type:
-        _HANDLERS[t] = []
+    for k in _Kind:
+        _HANDLERS[k.value] = []
 
 
 def register(registrants):
@@ -28,12 +26,8 @@ def register(registrants):
         _HANDLERS[r].append(registrants[r])
 
 
-class _AutoName(enum.Enum):
-    def _generate_next_value_(name, *args):
-        return name
-
-
-class Type(_AutoName):
-    AUTH_LOGOUT = enum.auto()
-    END_API_CALL = enum.auto()
-    GITHUB_AUTHORIZED = enum.auto()
+@aenum.unique
+class _Kind(aenum.Enum):
+    AUTH_LOGOUT = 'auth_logout'
+    END_API_CALL = 'end_api_call'
+    GITHUB_AUTHORIZED = 'github_authorized'

@@ -112,10 +112,7 @@ def api_authLogout(simulation_type=None):
         except AssertionError:
             pass
     if _is_logged_in():
-        events.emit(
-            events.Type.AUTH_LOGOUT,
-            kwargs=PKDict(uid=_get_user()),
-        )
+        events.emit('auth_logout', PKDict(uid=_get_user()))
         cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         _set_log_user()
     return http_reply.gen_redirect_for_app_root(req and req.type)

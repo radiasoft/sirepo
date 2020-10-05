@@ -75,9 +75,9 @@ def init_apis(*args, **kwargs):
     )
     sirepo.auth_db.init_model(_init_model)
     sirepo.events.register({
-        sirepo.events.Type.AUTH_LOGOUT: _event_auth_logout,
-        sirepo.events.Type.END_API_CALL: _event_end_api_call,
-        sirepo.events.Type.GITHUB_AUTHORIZED: _event_github_authorized,
+        'auth_logout': _event_auth_logout,
+        'end_api_call': _event_end_api_call,
+        'github_authorized': _event_github_authorized,
     })
 
 

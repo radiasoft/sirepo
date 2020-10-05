@@ -95,7 +95,7 @@ def call_api(func_or_name, kwargs=None, data=None):
         # this is ok to call (even if s is None)
         sirepo.http_request.set_sim_type(s)
     sirepo.cookie.save_to_cookie(r)
-    sirepo.events.emit(sirepo.events.Type.END_API_CALL, kwargs=PKDict(resp=r))
+    sirepo.events.emit('end_api_call', PKDict(resp=r))
     return r
 
 
