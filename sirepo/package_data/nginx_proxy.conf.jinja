@@ -10,6 +10,7 @@ events {
 }
 
 http {
+    client_max_body_size 200m;
     client_body_temp_path {{ run_dir }}/client_body_temp;
     proxy_temp_path {{ run_dir }}/proxy_temp;
     fastcgi_temp_path {{ run_dir }}/fastcgi_temp;
@@ -26,6 +27,21 @@ http {
     types_hash_max_size 2048;
     include /etc/nginx/mime.types;
     default_type application/octet-stream;
+    proxy_http_version 1.1;
+    proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+    proxy_read_timeout 600s;
+    proxy_send_timeout 600s;
+    proxy_connect_timeout 600s;
+    proxy_redirect off;
+    proxy_set_header Host $host:$server_port;
+    proxy_set_header Proxy "";
+    proxy_set_header Via $remote_addr;
+    proxy_set_header X-Real-Ip $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_cache_bypass $http_upgrade;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
 
     server {
         listen {{ ip }}:{{ nginx_proxy_port }};
@@ -36,26 +52,10 @@ http {
         }
         location /{{ jupyterhub_root }}/ {
             proxy_pass http://127.0.0.1:{{ jupyterhub_port }};
-            proxy_http_version 1.1;
-            proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
-            proxy_read_timeout 600s;
-            proxy_send_timeout 600s;
-            proxy_connect_timeout 600s;
-            proxy_redirect off;
-            proxy_set_header Host $host:$server_port;
-            proxy_set_header Proxy "";
-            proxy_set_header Via $remote_addr;
-            proxy_set_header X-Real-Ip $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-            proxy_cache_bypass $http_upgrade;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
         }
         {% endif %}
         location / {
             include /etc/nginx/uwsgi_params;
-            client_max_body_size 50m;
             uwsgi_read_timeout 300s;
             uwsgi_send_timeout 300s;
             uwsgi_pass 127.0.0.1:{{ port }};
