@@ -15,6 +15,8 @@ import sirepo.server
 import sirepo.util
 import tornado.web
 
+_JUPYTERHUBLOGIN_ROUTE = '/jupyterhublogin'
+
 
 class Authenticator(jupyterhub.auth.Authenticator):
     # Do not prompt with jupyterhub login page. self.authenticate()
@@ -36,13 +38,13 @@ class Authenticator(jupyterhub.auth.Authenticator):
             r = e.sr_args.get('routeName')
             if r not in ('login', 'loginFail'):
                 raise
-            handler.redirect(f'/jupyterhublogin#/{r}')
+            handler.redirect(f'{_JUPYTERHUBLOGIN_ROUTE}#/{r}')
             raise tornado.web.Finish()
         u = sirepo.sim_api.jupyterhublogin.logged_in_user_name(
             have_simulation_db=False,
         )
         if not u:
-            handler.redirect(f'/jupyterhublogin')
+            handler.redirect(f'{_JUPYTERHUBLOGIN_ROUTE}')
             raise tornado.web.Finish()
         return u
 
