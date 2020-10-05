@@ -34,10 +34,10 @@ class Authenticator(jupyterhub.auth.Authenticator):
             sirepo.auth.require_user()
         except sirepo.util.SRException as e:
             r = e.sr_args.get('routeName')
-            if r:
-                handler.redirect(f'/jupyterhublogin#/{r}')
-                raise tornado.web.Finish()
-            raise
+            if r not in ('login', 'loginFail'):
+                raise
+            handler.redirect(f'/jupyterhublogin#/{r}')
+            raise tornado.web.Finish()
         # Do not check path. If not found will result in updates to db
         # which we can not lock.
         u = sirepo.sim_api.jupyterhublogin.logged_in_user_name(check_path=False)
