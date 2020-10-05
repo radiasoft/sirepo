@@ -30,9 +30,6 @@ import sqlalchemy
 
 AUTH_METHOD = 'github'
 
-#: User can see it
-AUTH_METHOD_VISIBLE = None
-
 #: Used by auth_db
 AuthGithubUser = None
 
