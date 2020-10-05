@@ -3,7 +3,6 @@ import sirepo.jupyterhub
 
 c.Application.log_level = 'DEBUG'
 c.ConfigurableHTTPProxy.api_url = 'http://127.0.0.1:8111'
-c.ConfigurableHTTPProxy.auth_token = 'brucespringsteen'
 c.ConfigurableHTTPProxy.debug = True
 c.JupyterHub.authenticator_class = sirepo.jupyterhub.Authenticator
 c.JupyterHub.base_url = '/{{ uri_root }}'
