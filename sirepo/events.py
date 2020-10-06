@@ -16,15 +16,15 @@ def emit(event, kwargs):
         h(kwargs or PKDict())
 
 
-def init():
-    for k in _Kind:
-        _HANDLERS[k.value] = []
-
-
 def register(registrants):
     for k, v in registrants.items():
         if v not in _HANDLERS[k]:
             _HANDLERS[k].append(v)
+
+
+def _init():
+    for k in _Kind:
+        _HANDLERS[k.value] = []
 
 
 @aenum.unique
@@ -32,3 +32,5 @@ class _Kind(aenum.Enum):
     AUTH_LOGOUT = 'auth_logout'
     END_API_CALL = 'end_api_call'
     GITHUB_AUTHORIZED = 'github_authorized'
+
+_init()

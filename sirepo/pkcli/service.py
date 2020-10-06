@@ -111,7 +111,7 @@ def jupyterhub():
     import sirepo.server
 
     sirepo.server.init()
-    with pkio.save_chdir(_run_dir().join('jupyterhub')) as d:
+    with pkio.save_chdir(_run_dir().join('jupyterhub').ensure(dir=True)) as d:
         f = d.join('conf.py')
         pkjinja.render_resource(
             'jupyterhub_conf.py',
