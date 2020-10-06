@@ -15,6 +15,7 @@ _PROD_FOSS_CODES = frozenset((
     'madx',
     'ml',
     'opal',
+    'radia',
     'shadow',
     'srw',
     'synergia',
@@ -28,7 +29,6 @@ _PROD_FOSS_CODES = frozenset((
 _NON_PROD_FOSS_CODES = frozenset((
     'irad',
     'myapp',
-    'radia',
     'rcscon',
     'rs4pi',
 ))
