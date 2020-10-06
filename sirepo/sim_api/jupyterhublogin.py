@@ -51,7 +51,7 @@ def api_redirectJupyterHub():
     return sirepo.http_reply.gen_json_ok()
 
 
-def logged_in_user_name(have_simulation_db=True):
+def jupyterhub_user_name(have_simulation_db=True):
     return _user_name(sirepo.auth.logged_in_user(check_path=have_simulation_db))
 
 
@@ -96,7 +96,7 @@ def _create_user():
             n += random.choice(string.ascii_lowercase)
         return n
 
-    if logged_in_user_name():
+    if jupyterhub_user_name():
         return False
     with sirepo.auth_db.thread_lock:
         JupyterhubUser(
@@ -130,7 +130,7 @@ def _event_github_authorized(kwargs):
         return
     with sirepo.auth_db.thread_lock:
         s = cfg.src_db_root.join(kwargs.user_name)
-        u = logged_in_user_name()
+        u = jupyterhub_user_name()
         assert u, 'need logged in JupyterhubUser'
         d = cfg.dst_db_root.join(u)
         try:

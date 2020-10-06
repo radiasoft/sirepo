@@ -40,7 +40,7 @@ class Authenticator(jupyterhub.auth.Authenticator):
                 raise
             handler.redirect(f'{_JUPYTERHUBLOGIN_ROUTE}#/{r}')
             raise tornado.web.Finish()
-        u = sirepo.sim_api.jupyterhublogin.logged_in_user_name(
+        u = sirepo.sim_api.jupyterhublogin.jupyterhub_user_name(
             have_simulation_db=False,
         )
         if not u:
