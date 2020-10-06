@@ -38,9 +38,9 @@ def api_migrateJupyterhub():
     if not d.doMigration:
         return sirepo.http_reply.gen_redirect('jupyterHub')
     return sirepo.uri_router.call_api(
-            'authGithubLogin',
-            kwargs=PKDict(simulation_type='jupyterhublogin'),
-        )
+        'authGithubLogin',
+        kwargs=PKDict(simulation_type='jupyterhublogin'),
+    )
 
 
 @sirepo.api_perm.require_user
