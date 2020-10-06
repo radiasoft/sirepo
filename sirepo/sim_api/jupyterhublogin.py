@@ -26,6 +26,7 @@ import string
 
 cfg = None
 
+#: Used by auth_db. Sirepo record of each jupyterhub user.
 JupyterhubUser = None
 
 
