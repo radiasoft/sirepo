@@ -135,8 +135,6 @@ def _event_github_authorized(kwargs):
         try:
             s.rename(d)
         except py.error.ENOTDIR:
-            # TODO(e-carlin): Maybe raise an error letting the user know
-            # They may have given the wrong github creds
             pkdlog(
                 'Tried to migrate existing rs jupyter directory={} but not found. Ignoring.',
                 s,
