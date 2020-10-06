@@ -34,7 +34,7 @@ JupyterhubUser = None
 def api_migrateJupyterhub():
     if not cfg.rs_jupyter_migrate:
         sirepo.util.raise_forbidden('migrate not enabled')
-    d = PKDict(**sirepo.http_request.parse_json())
+    d = sirepo.http_request.parse_json()
     if not d.doMigration:
         return sirepo.http_reply.gen_redirect('jupyterHub')
     return sirepo.uri_router.call_api(
