@@ -62,13 +62,13 @@ def init_apis(*args, **kwargs):
         dst_db_root=(
             pkio.py_path(sirepo.srdb.root()).join('jupyterhub'),
             pkio.py_path,
-            'existing jupyter user db (ex /srv/jupyterhub)',
+            'new jupyter user db',
         ),
         rs_jupyter_migrate=(False, bool, 'give user option to migrate data from jupyter.radiasoft.org'),
         src_db_root=(
-            pkio.py_path('/dev/null'),
+            pkio.py_path('/var/empty'),
             pkio.py_path,
-            'new jupyter user db',
+            'existing jupyter user db (ex /srv/jupyterhub)',
         ),
         uri_root=('jupyter', str, 'the root uri of jupyterhub'),
     )
@@ -133,7 +133,7 @@ def _event_github_authorized(kwargs):
         d = cfg.dst_db_root.join(u)
         try:
             s.rename(d)
-        except py.error.ENOTDIR:
+        except (py.error.ENOTDIR, py.error.ENOENT):
             pkdlog(
                 'Tried to migrate existing rs jupyter directory={} but not found. Ignoring.',
                 s,
