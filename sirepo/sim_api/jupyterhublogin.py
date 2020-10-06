@@ -58,8 +58,6 @@ def jupyterhub_user_name(have_simulation_db=True):
 def init_apis(*args, **kwargs):
     global cfg
 
-    if cfg:
-        return
     cfg = pkconfig.init(
         dst_db_root=(
             pkio.py_path(sirepo.srdb.root()).join('jupyterhub'),
