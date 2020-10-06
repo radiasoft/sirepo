@@ -87,10 +87,10 @@ def _create_user():
             '_',
             logged_in_user_name.split('@')[0],
         )
-        u = JupyterhubUser.search_by(
-            user_name=n,
-        )
+        u = JupyterhubUser.search_by(user_name=n)
         if u:
+            # The username already exists. Add a random letter to try and create
+            # a unique user name.
             n += random.choice(string.ascii_lowercase)
         return n
 
