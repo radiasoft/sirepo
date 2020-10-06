@@ -85,6 +85,9 @@ def _create_user():
         n = re.sub(
             '\W+',
             '_',
+            # Get the local part of the email. Or in the case of another auth
+            # method (ex github) it won't have an '@' so it will just be their
+            # user name, handle, etc.
             logged_in_user_name.split('@')[0],
         )
         u = JupyterhubUser.search_by(user_name=n)
