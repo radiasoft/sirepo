@@ -53,17 +53,56 @@ def http():
 
     Used for development only.
     """
+    @contextlib.contextmanager
+    def _handle_signals(signums):
+        o = [(x, signal.getsignal(x)) for x in signums]
+        try:
+            [signal.signal(x[0], _kill) for x in o]
+            yield
+        finally:
+            [signal.signal(x[0], x[1]) for x in o]
+
+    def _kill(*args):
+        for p in processes:
+            try:
+                p.terminate()
+                p.wait(1)
+            except (ProcessLookupError, ChildProcessError):
+                continue
+            except subprocess.TimeoutExpired:
+                p.kill()
+
+    def _start(service):
+        c = ['pyenv', 'exec', 'sirepo']
+        c.extend(service)
+        processes.append(subprocess.Popen(
+            c,
+            cwd=str(_run_dir()),
+            env=e,
+        ))
+
     e = PKDict(os.environ)
     e.SIREPO_JOB_DRIVER_MODULES = 'local'
-    _start_processes(
-        [['sirepo'] + c for c in [
-            ['service', 'flask'], ['job_supervisor'],
-        ]],
-        e,
-    )
+    processes = []
+    with pkio.save_chdir(_run_dir()), \
+        _handle_signals((signal.SIGINT, signal.SIGTERM)):
+        try:
+            _start(['job_supervisor'])
+            # Avoid race condition on creating auth db
+            time.sleep(.3)
+            _start(['service', 'flask'])
+            p, _ = os.wait()
+        except ChildProcessError:
+            pass
+        finally:
+            _kill()
 
 def jupyterhub():
+    import sirepo.feature_config
+
     assert pkconfig.channel_in('dev')
+    assert 'jupyterhublogin' in sirepo.feature_config.cfg().sim_types, \
+        'you must set SIREPO_FEATURE_CONFIG_SIM_TYPES to contain the code "jupyterhublogin"'
     try:
         import jupyterhub
     except ImportError:
@@ -72,34 +111,29 @@ def jupyterhub():
     import sirepo.server
 
     sirepo.server.init()
-    f = _run_dir().join('jupyterhub').ensure(dir=True).join('conf.py')
-    pkjinja.render_resource(
-        'jupyterhub_conf.py',
-        PKDict(_cfg()).pkupdate(**sirepo.sim_api.jupyterhublogin.cfg),
-        output=f,
-    )
-    _start_processes(
-       [
-           ['sirepo', 'service', 'nginx_proxy', '--jupyterhub'],
-           ['sirepo', 'service', 'uwsgi'],
-           ['sirepo', 'job_supervisor'],
-           ['jupyterhub', '-f', str(f)],
-        ],
-        env=PKDict(os.environ).pkupdate(SIREPO_AUTH_METHODS='email'),
-    )
+    with pkio.save_chdir(_run_dir().join('jupyterhub')) as d:
+        f = d.join('conf.py')
+        pkjinja.render_resource(
+            'jupyterhub_conf.py',
+            PKDict(_cfg()).pkupdate(**sirepo.sim_api.jupyterhublogin.cfg),
+            output=f,
+        )
+        pksubprocess.check_call_with_signals(('jupyterhub', '-f', str(f)))
 
 
-def nginx_proxy(jupyterhub=False):
+def nginx_proxy():
     """Starts nginx in container.
 
     Used for development only.
     """
+    import sirepo.feature_config
+
     assert pkconfig.channel_in('dev')
     run_dir = _run_dir().join('nginx_proxy').ensure(dir=True)
     with pkio.save_chdir(run_dir) as d:
         f = run_dir.join('default.conf')
         c = PKDict(_cfg()).pkupdate(run_dir=str(d))
-        if jupyterhub:
+        if 'jupyterhublogin' in sirepo.feature_config.cfg().sim_types:
             import sirepo.sim_api.jupyterhublogin
             import sirepo.server
 
@@ -107,11 +141,7 @@ def nginx_proxy(jupyterhub=False):
             c.pkupdate(
                 jupyterhub_root=sirepo.sim_api.jupyterhublogin.cfg.uri_root,
             )
-        pkjinja.render_resource(
-            'nginx_proxy.conf',
-            c,
-            output=f,
-        )
+        pkjinja.render_resource('nginx_proxy.conf', c, output=f)
         cmd = [
             'nginx',
             '-c',
@@ -206,45 +236,3 @@ def _run_dir():
     if not isinstance(_cfg().run_dir, type(py.path.local())):
         _cfg().run_dir = pkio.mkdir_parent(_cfg().run_dir) if _cfg().run_dir else sirepo.srdb.root()
     return _cfg().run_dir
-
-
-def _start_processes(cmds, env=None):
-    @contextlib.contextmanager
-    def _handle_signals(signums):
-        o = [(x, signal.getsignal(x)) for x in signums]
-        try:
-            [signal.signal(x[0], _kill) for x in o]
-            yield
-        finally:
-            [signal.signal(x[0], x[1]) for x in o]
-
-    def _kill(*args):
-        for p in processes:
-            try:
-                p.terminate()
-                p.wait(1)
-            except (ProcessLookupError, ChildProcessError):
-                continue
-            except subprocess.TimeoutExpired:
-                p.kill()
-
-    def _start(cmd):
-        processes.append(subprocess.Popen(
-            cmd,
-            cwd=str(_run_dir()),
-            env=env,
-        ))
-    env = env if env else os.environ
-    processes = []
-    with pkio.save_chdir(_run_dir()), \
-        _handle_signals((signal.SIGINT, signal.SIGTERM)):
-        try:
-            for c in cmds:
-                # Avoid race condition on creating auth db
-                time.sleep(.3)
-                _start(['pyenv', 'exec'] + c)
-            p, _ = os.wait()
-        except ChildProcessError:
-            pass
-        finally:
-            _kill()
