@@ -170,7 +170,7 @@ def _cfg():
     if not __cfg:
         __cfg = pkconfig.init(
             ip=('0.0.0.0', _cfg_ip, 'what IP address to open'),
-            jupyterhub_port=(8005, _cfg_port, 'port on which jupyterhub listens'),
+            jupyterhub_port=(8002, _cfg_port, 'port on which jupyterhub listens'),
             jupyterhub_debug=(
                 True,
                 bool,
