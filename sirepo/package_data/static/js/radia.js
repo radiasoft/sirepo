@@ -970,7 +970,6 @@ SIREPO.app.directive('appHeader', function(appState, requestSender) {
         ].join(''),
         controller: function($scope) {
             $scope.exportDmp = function() {
-                srdbg('DMP');
                 requestSender.newWindow('exportArchive', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
