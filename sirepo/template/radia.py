@@ -369,7 +369,7 @@ def _generate_obj_data(g_id, name):
 def _generate_parameters_file(data):
     report = data.get('report', '')
     res, v = template_common.generate_parameters_file(data)
-    sim_id = data.simulationId
+    sim_id = data.get('simulationId', data.models.simulation.simulationId)
     g = data.models.geometry
 
     v['dmpFile'] = _dmp_file(sim_id)
