@@ -6,9 +6,6 @@
     },
     "constants": {
         "defaultGeomColor": "#ffffff",
-        "inProgressText": "Solving",
-        "objectScale": 0.001,
-        "pathPtsFileType": "path-pts",
         "detailFields": {
             "fieldPath": {
                 "circlePath": ["ctrX", "ctrY", "ctrZ", "radius", "theta", "phi"],
@@ -27,6 +24,13 @@
                 "rotateClone": ["name", "angle", "axis", "center"]
             }
         },
+        "geomTypeLines": "lines",
+        "geomTypePolys": "polygons",
+        "geomTypeVectors": "vectors",
+        "inProgressText": "Solving",
+        "objectScale": 0.001,
+        "pathPtsFileType": "path-pts",
+        "radiaDmpFileType": "radia-dmp",
         "toolbarItems": [
             {
                 "canDrag": true,
@@ -123,7 +127,9 @@
                 ],
                 "name": "Transforms (clone)"
             }
-        ]
+        ],
+        "viewTypeFields": "fields",
+        "viewTypeObjects": "objects"
     },
     "dynamicFiles": {
         "externalLibs": {
@@ -567,6 +573,22 @@
                 "numSegments",
                 "currentDensity",
                 "fieldCalc",
+                "color"
+            ]],
+                ["Transforms", [
+                    "transforms"
+                ]]
+            ]
+        },
+        "radiaObject": {
+            "title": "Object",
+            "basic": [
+                "name",
+                "color"
+            ],
+            "advanced": [
+                ["Main", [
+                "name",
                 "color"
             ]],
                 ["Transforms", [

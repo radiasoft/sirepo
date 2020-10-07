@@ -639,7 +639,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return groupShape;
     }
 
-    // used to the client-created object to a server-created Radia id
+    // used to map the client-created object to a server-created Radia id
     function getMapId(o) {
         return o.name + '.' + o.id;
     }
@@ -1039,7 +1039,7 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                         {
                             '<simulation_id>': simId,
                             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                            '<file_type>': 'radia-dmp',
+                            '<file_type>': SIREPO.APP_SCHEMA.constants.radiaDmpFileType,
                         }),
                     function(d) {
                         $('#simulation-import').modal('hide');
@@ -1948,11 +1948,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             $scope.mode = null;
 
             $scope.isViewTypeFields = function () {
-                return (appState.models.magnetDisplay || {}).viewType === VIEW_TYPE_FIELDS;
+                return (appState.models.magnetDisplay || {}).viewType === SIREPO.APP_SCHEMA.constants.viewTypeFields;
             };
 
             $scope.isViewTypeObjects = function () {
-                return (appState.models.magnetDisplay || {}).viewType === VIEW_TYPE_OBJECTS;
+                return (appState.models.magnetDisplay || {}).viewType === SIREPO.APP_SCHEMA.constants.viewTypeObjects;
             };
 
             var LINEAR_SCALE_ARRAY = 'linear';
@@ -1960,12 +1960,12 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             var ORIENTATION_ARRAY = 'orientation';
             var FIELD_ATTR_ARRAYS = [LINEAR_SCALE_ARRAY, LOG_SCALE_ARRAY, ORIENTATION_ARRAY];
 
-            var PICKABLE_TYPES = [radiaVtkUtils.GEOM_TYPE_POLYS, radiaVtkUtils.GEOM_TYPE_VECTS];
+            var PICKABLE_TYPES = [
+                SIREPO.APP_SCHEMA.constants.geomTypePolys,
+                SIREPO.APP_SCHEMA.constants.geomTypeVectors
+            ];
 
             var SCALAR_ARRAY = 'scalars';
-
-            var VIEW_TYPE_FIELDS = 'fields';
-            var VIEW_TYPE_OBJECTS = 'objects';
 
             var actorInfo = {};
             var alphaDelegate = null;
@@ -2032,7 +2032,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             // stash the actor and associated info to avoid recalculation
             function addActor(id, group, actor, type, pickable) {
-                //srdbg('addActor', 'id', id, 'grp', group, 'type', type, 'pcik', pickable);
+                //srdbg('addActor', 'id', id, 'grp', group, 'type', type, 'pick', pickable);
                 var pData = actor.getMapper().getInputData();
                 var info = {
                     actor: actor,
@@ -2069,7 +2069,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function buildScene() {
-                //srdbg('buildScene', sceneData.data);
+                //srdbg('buildScene', sceneData);
+                // scene -> multiple data -> multiple actors
                 var name = sceneData.name;
                 var data = sceneData.data;
 
@@ -2077,6 +2078,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 var didModifyGeom = false;
                 for (var i = 0; i < data.length; ++i) {
 
+                    // ***NEED BETTER ID, KNOWN ON BOTH SIDES***
                     var gname = name + '.' + i;
                     var sceneDatum = data[i];
 
@@ -2088,9 +2090,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         if (! d || ! d.vertices || ! d.vertices.length) {
                             continue;
                         }
-                        var isPoly = t === radiaVtkUtils.GEOM_TYPE_POLYS;
+                        var isPoly = t === SIREPO.APP_SCHEMA.constants.geomTypePolys;
                         //var gObj = radiaService.getObject(id) || {};
                         var gObj = radiaService.getObject(i) || {};
+                        //srdbg('gobj', gObj);
                         var gColor = gObj.color ? vtk.Common.Core.vtkMath.hex2float(gObj.color) : null;
                         // use colors from Radia for groups
                         if (gObj.members) {
@@ -2126,17 +2129,18 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         bundle.actor.getProperty().setLighting(isPoly);
                         var info = addActor(id, gname, bundle.actor, t, PICKABLE_TYPES.indexOf(t) >= 0);
                         gColor = getColor(info);
-                        //srdbg('add obj', gObj, isPoly);
                         if (isPoly && $.isEmptyObject(gObj)) {
-                            gObj = appState.setModelDefaults(gObj, 'geomObject');
+                            //srdbg('add poly obj', gObj);
+                            gObj = appState.setModelDefaults(gObj, 'radiaObject');
                             gObj.name = id;
                             gObj.id = id;
                             if (gColor) {
+                                // **IF GROUP COLOR USE IF NOT USE OBJECT COLOR**
                                 gObj.color = vtk.Common.Core.vtkMath.floatRGB2HexCode(vtkUtils.rgbToFloat(gColor));
                             }
-
-                            // temporary handling of examples until they are "builaable"
-                            if (appState.models.simulation.isExample) {
+                            // temporary handling of examples until they are "buildaable"
+                            // ***KEEPS ADDING OVER AND OVER***
+                            if (appState.models.simulation.isExample || appState.models.simulation.dmpImportFile) {
                                 if (! appState.models.geometry.objects) {
                                     appState.models.geometry.objects = [];
                                 }
@@ -2152,8 +2156,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             didModifyGeom = true;
                         }
                         if (
-                            t === radiaVtkUtils.GEOM_TYPE_LINES &&
-                            appState.models.magnetDisplay.viewType == VIEW_TYPE_FIELDS
+                            t === SIREPO.APP_SCHEMA.constants.geomTypeLines &&
+                            appState.models.magnetDisplay.viewType == SIREPO.APP_SCHEMA.constants.viewTypeFields
                         ) {
                             setEdgeColor(info, [216, 216, 216]);
                         }
@@ -2417,10 +2421,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 //srdbg('Picked cid', cid);
 
                 var picker;
-                if (appState.models.magnetDisplay.viewType === VIEW_TYPE_OBJECTS && cid >= 0) {
+                if (appState.models.magnetDisplay.viewType === SIREPO.APP_SCHEMA.constants.viewTypeObjects && cid >= 0) {
                     picker = cPicker;
                 }
-                else if (appState.models.magnetDisplay.viewType === VIEW_TYPE_FIELDS && pid >= 0) {
+                else if (appState.models.magnetDisplay.viewType === SIREPO.APP_SCHEMA.constants.viewTypeFields && pid >= 0) {
                     picker = ptPicker;
                 }
                 if (! picker) {
@@ -2449,7 +2453,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
                 // TODO(mvk): attach pick functions to actor info?
                 // vectors
-                if (info.type === radiaVtkUtils.GEOM_TYPE_VECTS) {
+                if (info.type === SIREPO.APP_SCHEMA.constants.geomTypeVectors) {
                     var n = pts.getNumberOfComponents();
                     var coords = pts.getData().slice(n * pid, n * (pid + 1));
                     var f = actor.getMapper().getInputConnection(0).filter;
@@ -2501,12 +2505,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
 
                 // objects
-                else if (info.type === radiaVtkUtils.GEOM_TYPE_POLYS) {
+                else if (info.type === SIREPO.APP_SCHEMA.constants.geomTypePolys) {
                     var j = info.colorIndices[cid];
                     selectedColor = info.scalars.getData().slice(j, j + 3);  // 4 to get alpha
                    //srdbg(info.name, 'poly tup', cid, selectedColor);
 
                     var g = getGeomObj(info.id);
+                    //srdbg(info.id, 'selected', g);
                     if (selectedObj === g) {
                         selectedObj = null;
                     }
@@ -2586,10 +2591,10 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 if (radiaVtkUtils.GEOM_OBJ_TYPES.indexOf(type) < 0) {
                     return 0;
                 }
-                if (type === radiaVtkUtils.GEOM_TYPE_LINES) {
+                if (type === SIREPO.APP_SCHEMA.constants.geomTypeLines) {
                     return numDataColors(polyData.getLines().getData());
                 }
-                if (type === radiaVtkUtils.GEOM_TYPE_POLYS) {
+                if (type === SIREPO.APP_SCHEMA.constants.geomTypePolys) {
                     return numDataColors(polyData.getPolys().getData());
                 }
             }
@@ -2619,7 +2624,12 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                         info.actor.getProperty().setOpacity(alpha);
                         continue;
                     }
-                    setColor(info, radiaVtkUtils.GEOM_TYPE_POLYS, null, Math.floor(255 * alpha));
+                    setColor(
+                        info,
+                        SIREPO.APP_SCHEMA.constants.geomTypePolys,
+                        null,
+                        Math.floor(255 * alpha)
+                    );
                 }
                 renderWindow.render();
             }
@@ -2659,7 +2669,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setColorMap() {
-                getActorsOfType(radiaVtkUtils.GEOM_TYPE_VECTS).forEach(function (actor) {
+                getActorsOfType(SIREPO.APP_SCHEMA.constants.geomTypeVectors).forEach(function (actor) {
                     actor.getMapper().getInputConnection(0).filter
                         .setFormula(getVectFormula(
                             sceneData.data[0].vectors,
@@ -2682,11 +2692,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
                 //info.actor.getProperty().setEdgeColor(...color);
                 info.actor.getProperty().setEdgeColor(color[0], color[1], color[2]);
-                setColor(info, radiaVtkUtils.GEOM_TYPE_LINES, color);
+                setColor(info, SIREPO.APP_SCHEMA.constants.geomTypeLines, color);
             }
 
             function setScaling() {
-                getActorsOfType(radiaVtkUtils.GEOM_TYPE_VECTS).forEach(function (actor) {
+                getActorsOfType(SIREPO.APP_SCHEMA.constants.geomTypeVectors).forEach(function (actor) {
                     var mapper = actor.getMapper();
                     mapper.setScaleFactor(vectorScaleFactor(renderer.computeVisiblePropBounds()));
                     var vs = appState.models.fieldDisplay.scaling;
@@ -2847,14 +2857,13 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 var c = vtk.Common.Core.vtkMath.hex2float(h);
                 setColor(
                     selectedInfo,
-                    radiaVtkUtils.GEOM_TYPE_POLYS,
+                    SIREPO.APP_SCHEMA.constants.geomTypePolys,
                     vtkUtils.floatToRGB(c)
                 );
                 setAlpha();
             });
 
             $scope.$on('magnetDisplay.changed', function (e, d) {
-                //srdbg('MDC', e, d);
                 // does not seem the best way...
                 var interval = null;
                 interval = $interval(function() {
@@ -2891,11 +2900,15 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
 
     var self = {};
 
-    self.GEOM_TYPE_LINES = 'lines';
-    self.GEOM_TYPE_POLYS = 'polygons';
-    self.GEOM_TYPE_VECTS = 'vectors';
-    self.GEOM_OBJ_TYPES = [self.GEOM_TYPE_LINES, self.GEOM_TYPE_POLYS];
-    self.GEOM_TYPES = [self.GEOM_TYPE_LINES, self.GEOM_TYPE_POLYS, self.GEOM_TYPE_VECTS];
+    self.GEOM_OBJ_TYPES = [
+        SIREPO.APP_SCHEMA.constants.geomTypeLines,
+        SIREPO.APP_SCHEMA.constants.geomTypePolys,
+    ];
+    self.GEOM_TYPES = [
+        SIREPO.APP_SCHEMA.constants.geomTypeLines,
+        SIREPO.APP_SCHEMA.constants.geomTypePolys,
+        SIREPO.APP_SCHEMA.constants.geomTypeVectors,
+    ];
 
     self.objBounds = function(json) {
         var mins = [Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE];
