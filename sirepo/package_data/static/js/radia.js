@@ -942,7 +942,7 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState, panelState) {
+SIREPO.app.directive('appHeader', function(appState, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -959,7 +959,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
                 '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
-                //  '<div>App-specific setting item</div>',
+                    '<li><a href data-ng-click="exportDmp()"><span class="glyphicon glyphicon-cloud-download"></span> Export Radia Dump</a></li>',
               '</app-settings>',
               '<app-header-right-sim-list>',
                 '<ul class="nav navbar-nav sr-navbar-right">',
@@ -969,6 +969,14 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             '</div>',
         ].join(''),
         controller: function($scope) {
+            $scope.exportDmp = function() {
+                srdbg('DMP');
+                requestSender.newWindow('exportArchive', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<filename>':  $scope.nav.simulationName() + '.dat',
+                });
+            };
             $scope.showImportModal = function() {
                 $('#simulation-import').modal('show');
             };

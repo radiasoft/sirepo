@@ -68,6 +68,15 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
+def create_archive(sim):
+    if sim.filename.endswith('dat'):
+        return sirepo.http_reply.gen_file_as_attachment(
+            _dmp_file(sim.id),
+            content_type='application/octet-stream',
+            filename=sim.filename,
+        )
+
+
 def extract_report_data(run_dir, sim_in):
     assert sim_in.report in _REPORTS, 'unknown report: {}'.format(sim_in.report)
     if 'reset' in sim_in.report:
