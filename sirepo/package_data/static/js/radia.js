@@ -11,10 +11,10 @@ SIREPO.app.config(function() {
           '<div data-color-picker="" data-form="form" data-color="model.color" data-model-name="modelName" data-model="model" data-field="field" data-default-color="defaultColor"></div>',
         '</div>',
         '<div data-ng-switch-when="FloatStringArray" class="col-sm-7">',
-            '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
+            '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Float" data-count=""></div>',
         '</div>',
         '<div data-ng-switch-when="IntStringArray" class="col-sm-7">',
-            '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count=""></div>',
+            '<div data-number-list="" data-model="model" data-field="model[field]" data-info="info" data-type="Integer" data-count=""></div>',
         '</div>',
         '<div data-ng-switch-when="Group" class="col-sm-12">',
           '<div data-group-editor="" data-field="model[field]" data-model="model"></div>',
@@ -270,8 +270,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         var copy = appState.clone(o);
         copy.name = newObjectName(copy);
         addObject(copy);
+        self.editObject(copy);
     };
-
 
     self.editTool = function(tool) {
         if (tool.isInactive) {
@@ -954,7 +954,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
                 '<div data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-magnet"></span> Design</a></li>',
+                  '<li data-ng-if="! isExampleLoaded()" class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-magnet"></span> Design</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
                 '</div>',
               '</app-header-right-sim-loaded>',
@@ -971,6 +971,9 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
         controller: function($scope) {
             $scope.showImportModal = function() {
                 $('#simulation-import').modal('show');
+            };
+            $scope.isExampleLoaded = function() {
+                return (appState.models.simulation || {}).isExample;
             };
         }
     };
@@ -1219,10 +1222,19 @@ SIREPO.app.directive('fieldPathPicker', function(appState, panelState, radiaServ
                         radiaService.addOrModifyPath(t);
                     });
                 });
+
+                let el = $('#sr-fieldpaths-editor');
+                el.on('hidden.bs.modal', function() {
+                    appState.cancelChanges(radiaService.pathTypeModel($scope.getPathType()));
+                    $scope.$apply();
+                });
+
                 $scope.$on('cancelChanges', function(e, name) {
-                    if ($scope.pathTypeModels.indexOf(name) >= 0) {
-                        radiaService.showPathPicker(false);
+                    if ($scope.pathTypeModels.indexOf(name) < 0) {
+                        return;
                     }
+                    appState.removeModel(name);
+                    radiaService.showPathPicker(false);
                 });
                 $scope.$watch('model.path', function (m) {
                     var o = $($element).find('.modal').css('opacity');
@@ -1412,6 +1424,10 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
             '</table>',
         ].join(''),
         controller: function($scope) {
+            const watchedModels = SIREPO.APP_SCHEMA.enum.PathType.map(function (e) {
+                return e[SIREPO.ENUM_INDEX_VALUE];
+            });
+
             $scope.svc = radiaService;
 
             $scope.hasPaths = function() {
@@ -1419,6 +1435,13 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
             };
 
             $scope.copyPath = function(path) {
+                let copy = appState.clone(path);
+                copy.name = newPathName(copy);
+                copy.id = nextId();
+                $scope.paths.push(copy);
+                appState.saveChanges(['fieldPaths', radiaService.pathTypeModel(copy.type)], function () {
+                    $scope.editPath(copy);
+                });
             };
 
            $scope.deletePath = function(path, index) {
@@ -1443,6 +1466,14 @@ SIREPO.app.directive('fieldPathTable', function(appState, panelState, radiaServi
                });
                return res;
            };
+
+           function newPathName(path) {
+               return appState.uniqueName(appState.models.fieldPaths, 'name', path.name + ' {}');
+           }
+
+           function nextId() {
+               return appState.maxId(appState.models.fieldPaths.paths, 'id');
+           }
 
            appState.whenModelsLoaded($scope, function() {
                $scope.paths = appState.models.fieldPaths.paths;
@@ -1526,28 +1557,35 @@ SIREPO.app.directive('numberList', function() {
         restrict: 'A',
         scope: {
             field: '=',
+            model: '=',
             info: '<',
             type: '@',
             count: '@',
         },
         template: [
             '<div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >',
-            '<label style="margin-right: 1ex">{{ valueLabels[$index] || \'Plane \' + $index }}</label>',
-            '<input class="form-control sr-list-value" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-min="min" data-max="max" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
+                '<label style="margin-right: 1ex">{{ valueLabels[$index] || \'Plane \' + $index }}</label>',
+                '<input class="form-control sr-list-value" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-min="min" data-max="max" data-ng-change="didChange()" class="form-control" style="text-align: right" required />',
             '</div>'
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, $element) {
+
+            let lastModel = null;
             // NOTE: does not appear to like 'model.field' format
             $scope.values = null;
             $scope.numberType = $scope.type.toLowerCase();
             $scope.min = $scope.numberType === 'int' ? Number.MIN_SAFE_INTEGER : -Number.MAX_VALUE;
             $scope.max = $scope.numberType === 'int' ? Number.MAX_SAFE_INTEGER : Number.MAX_VALUE;
-            //TODO(pjm): share implementation with enumList
             $scope.valueLabels = ($scope.info[4] || '').split(/\s*,\s*/);
             $scope.didChange = function() {
                 $scope.field = $scope.values.join(', ');
             };
             $scope.parseValues = function() {
+                // values were sticking around when the model changed
+                if (! lastModel || lastModel !== $scope.model) {
+                    lastModel = $scope.model;
+                    $scope.values = null;
+                }
                 if ($scope.field && ! $scope.values) {
                     $scope.values = $scope.field.split(/\s*,\s*/);
                 }
@@ -1744,7 +1782,6 @@ SIREPO.app.directive('transformTable', function(appState, panelState, radiaServi
                     }
                     $scope.selectedItem = null;
                     if (! isEditing) {
-                        //($scope.$id, 'add', name, 'to', $scope.modelName, $scope.fieldName, $scope.field);
                         appState.models[modelName].id = nextId();
                         $scope.field.push(appState.models[modelName]);
                         isEditing = true;
