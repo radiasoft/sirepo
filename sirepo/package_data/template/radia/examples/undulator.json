@@ -1,8 +1,22 @@
 {
     "models": {
+        "fieldDisplay": {
+            "colorMap": "viridis",
+            "scaling": "linear"
+        },
          "fieldPaths": {
             "path": "line",
-            "paths": []
+            "paths": [
+                {
+                    "_super": "fieldPath",
+                    "begin": "0, -125, 0",
+                    "end": "0, 125, 0",
+                    "id": 0,
+                    "name": "Y Axis",
+                    "numPoints": 251,
+                    "type": "line"
+                }
+            ]
         },
         "geometry": {
             "name": "Undulator",
@@ -49,7 +63,7 @@
         "magnetDisplay": {
             "bgColor": "#ffffff",
             "fieldPoints": [],
-            "fieldType": "M",
+            "fieldType": "B",
             "notes": "",
             "viewType": "objects"
         },
