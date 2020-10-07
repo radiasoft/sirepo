@@ -954,7 +954,7 @@ SIREPO.app.directive('appHeader', function(appState, requestSender) {
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
                 '<div data-sim-sections="">',
-                  '<li data-ng-if="! isExampleLoaded()" class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-magnet"></span> Design</a></li>',
+                  '<li data-ng-if="! isImported()" class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-magnet"></span> Design</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
                 '</div>',
               '</app-header-right-sim-loaded>',
@@ -980,8 +980,9 @@ SIREPO.app.directive('appHeader', function(appState, requestSender) {
             $scope.showImportModal = function() {
                 $('#simulation-import').modal('show');
             };
-            $scope.isExampleLoaded = function() {
-                return (appState.models.simulation || {}).isExample;
+            $scope.isImported = function() {
+                return (appState.models.simulation || {}).isExample ||
+                    (appState.models.simulation || {}).dmpImportFile;
             };
         }
     };
@@ -2076,8 +2077,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             });
 
             // stash the actor and associated info to avoid recalculation
-            function addActor(id, group, actor, type, pickable) {
-                //srdbg('addActor', 'id', id, 'grp', group, 'type', type, 'pick', pickable);
+            function addActor(id, group, actor, geomType, pickable) {
+                //srdbg('addActor', 'id', id, 'grp', group, 'geomType', type, 'pick', pickable);
                 var pData = actor.getMapper().getInputData();
                 var info = {
                     actor: actor,
@@ -2086,11 +2087,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     id: id,
                     pData: pData,
                     scalars: pData.getCellData().getScalars(),
-                    type: type,
+                    type: geomType,
                 };
 
                 if (info.scalars) {
-                    info.colorIndices = utilities.indexArray(numColors(pData, type))
+                    info.colorIndices = utilities.indexArray(numColors(pData, geomType))
                         .map(function (i) {
                             return 4 * i;
                         });
@@ -2581,7 +2582,8 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             getData: function () {
                                 return selectedObj;
                             },
-                            modelKey: 'geomObject',
+                            // just color etc here?
+                            modelKey: 'radiaObject',
                         } : null,
                     };
                 }

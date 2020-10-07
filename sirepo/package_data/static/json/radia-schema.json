@@ -587,13 +587,8 @@
                 "color"
             ],
             "advanced": [
-                ["Main", [
                 "name",
                 "color"
-            ]],
-                ["Transforms", [
-                    "transforms"
-                ]]
             ]
         },
         "rotate": {
