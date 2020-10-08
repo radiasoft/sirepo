@@ -125,11 +125,6 @@ def init_apis(*args, **kwargs):
     auth_db.init_model(_init_model)
 
 
-def user_name():
-    with auth_db.thread_lock:
-        return AuthGithubUser.search_by(uid=auth.logged_in_user()).user_name
-
-
 class _Client(authlib.integrations.base_client.RemoteApp):
 
     def __init__(self, state):

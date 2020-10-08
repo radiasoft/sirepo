@@ -473,9 +473,15 @@ def user_if_logged_in(method):
 
 
 def user_name():
-    return _METHOD_MODULES[cookie.unchecked_get_value(
-        _COOKIE_METHOD,
-    )].user_name()
+    u = getattr(
+        _METHOD_MODULES[cookie.unchecked_get_value(
+            _COOKIE_METHOD,
+        )],
+        'UserModel',
+    )
+    if u:
+        with auth_db.thread_lock:
+            return  u.search_by(uid=logged_in_user()).user_name
 
 
 def user_registration(uid):

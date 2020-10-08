@@ -82,6 +82,7 @@ def init_apis(*args, **kwargs):
 
 def _create_user():
     def __user_name(logged_in_user_name):
+        assert logged_in_user_name, 'must supply a name'
         n = re.sub(
             '\W+',
             '_',

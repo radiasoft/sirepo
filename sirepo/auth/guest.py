@@ -86,10 +86,6 @@ def is_login_expired(res=None):
     return False
 
 
-def user_name():
-    return 'guest'
-
-
 def validate_login():
     """If expiry is configured, check timestamp
 

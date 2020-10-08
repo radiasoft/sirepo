@@ -25,10 +25,6 @@ def require_user():
     return None
 
 
-def user_name():
-    return 'basic'
-
-
 def _cfg_uid(value):
     from sirepo import simulation_db
     if value and value == 'dev-no-validate' and pkconfig.channel_in_internal_test():
