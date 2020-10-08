@@ -53,6 +53,9 @@ class Authenticator(jupyterhub.auth.Authenticator):
         try:
             sirepo.auth.require_user()
         except sirepo.util.SRException:
+            # Returning False is what the jupyterhub API expects and jupyterhub
+            # will handle re-authenticating the user.
+            # https://jupyterhub.readthedocs.io/en/stable/api/auth.html#jupyterhub.auth.Authenticator.refresh_user
             return False
         return True
 
