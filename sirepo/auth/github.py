@@ -15,7 +15,6 @@ from sirepo import api_perm
 from sirepo import auth
 from sirepo import auth_db
 from sirepo import cookie
-from sirepo import events
 from sirepo import feature_config
 from sirepo import http_reply
 from sirepo import http_request
@@ -24,6 +23,7 @@ from sirepo import util
 import authlib.integrations.base_client
 import authlib.integrations.requests_client
 import flask
+import sirepo.events
 import sqlalchemy
 
 
@@ -56,7 +56,7 @@ def api_authGithubAuthorized():
         auth.login_fail_redirect(t, this_module, 'oauth-state', reload_js=True)
         raise AssertionError('auth.login_fail_redirect returned unexpectedly')
     d = oc.get('user').json()
-    events.emit('github_authorized', PKDict(user_name=d['login']))
+    sirepo.events.emit('github_authorized', PKDict(user_name=d['login']))
     with auth_db.thread_lock:
         u = AuthGithubUser.search_by(oauth_id=d['id'])
         if u:
