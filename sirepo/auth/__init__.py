@@ -473,10 +473,9 @@ def user_if_logged_in(method):
 
 
 def user_name():
-    with auth_db.thread_lock:
-       return _METHOD_MODULES[cookie.unchecked_get_value(
-           _COOKIE_METHOD,
-       )].user_name()
+    return _METHOD_MODULES[cookie.unchecked_get_value(
+        _COOKIE_METHOD,
+    )].user_name()
 
 
 def user_registration(uid):
