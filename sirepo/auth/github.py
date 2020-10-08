@@ -19,7 +19,6 @@ from sirepo import events
 from sirepo import feature_config
 from sirepo import http_reply
 from sirepo import http_request
-from sirepo import jupyterhub
 from sirepo import uri_router
 from sirepo import util
 import authlib.integrations.base_client
