@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
-u"""Sirepo events
+u"""Sirepo event registration and emittance.
+
+This module handles registering callbacks for events and calling the callbacks
+when the event occurs.
+
+For example, when a user logs out the AUTH_LOGOUT event is emitted. Other
+areas of the code can register a callback for this event (ex to clear jupyterhub
+cookies so the user is logged out of jupyterhub too).
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
