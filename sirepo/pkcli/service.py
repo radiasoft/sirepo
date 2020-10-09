@@ -101,8 +101,7 @@ def jupyterhub():
     import sirepo.feature_config
 
     assert pkconfig.channel_in('dev')
-    assert 'jupyterhublogin' in sirepo.feature_config.cfg().sim_types, \
-        'you must set SIREPO_FEATURE_CONFIG_SIM_TYPES to contain the code "jupyterhublogin"'
+    assert 'jupyterhublogin' in sirepo.feature_config.cfg().other_sim_types
     try:
         import jupyterhub
     except ImportError:
