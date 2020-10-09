@@ -49,6 +49,8 @@ def api_migrateJupyterhub():
 def api_redirectJupyterHub():
     is_new_user = _create_user()
     if not cfg.rs_jupyter_migrate or not is_new_user:
+        if is_new_user:
+            pkio.mkdir_parent(_user_dir())
         return sirepo.http_reply.gen_redirect('jupyterHub')
     return sirepo.http_reply.gen_json_ok()
 
@@ -138,9 +140,7 @@ def _event_github_authorized(kwargs):
         return
     with sirepo.auth_db.thread_lock:
         s = cfg.src_db_root.join(kwargs.user_name)
-        u = jupyterhub_user_name()
-        assert u, 'need logged in JupyterhubUser'
-        d = _user_dir(u)
+        d = _user_dir()
         try:
             s.rename(d)
         except (py.error.ENOTDIR, py.error.ENOENT):
@@ -172,5 +172,6 @@ def _init_model(base):
             unique=True,
         )
 
-def _user_dir(username):
-    return cfg.dst_db_root.join(username)
+
+def _user_dir():
+    return cfg.dst_db_root.join(jupyterhub_user_name())
