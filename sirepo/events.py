@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
-u"""Sirepo event registration and emittance.
+u"""Reigster callbacks for events and call callbacks when events are emitted.
 
-This module handles registering callbacks for events and calling the callbacks
-when the event occurs.
+Using events allows disparate areas of the code base to perform some task on
+an event without muddling the code that triggered the event. In addition events
+can be registered by configuration. This allows areas of the code to
+register/emit events when they are configured on and doesn't require if
+statements throughout the code.
 
 For example, when a user logs out the AUTH_LOGOUT event is emitted. Other
 areas of the code can register a callback for this event (ex to clear jupyterhub
