@@ -161,9 +161,9 @@ def _init_model(base):
 
     class JupyterhubUser(base):
         __tablename__ = 'jupyterhub_user_t'
-        uid = sqlalchemy.Column(sqlalchemy.String(8), primary_key=True)
+        uid = sqlalchemy.Column(base.STRING_ID, primary_key=True)
         user_name = sqlalchemy.Column(
-            sqlalchemy.String(100),
+            base.STRING_NAME,
             nullable=False,
             unique=True,
         )

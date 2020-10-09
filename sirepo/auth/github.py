@@ -104,9 +104,9 @@ def init_apis(*args, **kwargs):
 
         class AuthGithubUser(base):
             __tablename__ = 'auth_github_user_t'
-            oauth_id = sqlalchemy.Column(sqlalchemy.String(100), primary_key=True)
-            user_name = sqlalchemy.Column(sqlalchemy.String(100), unique=True, nullable=False)
-            uid = sqlalchemy.Column(sqlalchemy.String(8), unique=True)
+            oauth_id = sqlalchemy.Column(base.STRING_NAME, primary_key=True)
+            user_name = sqlalchemy.Column(base.STRING_NAME, unique=True, nullable=False)
+            uid = sqlalchemy.Column(base.STRING_ID, unique=True)
 
         UserModel = AuthGithubUser
 
