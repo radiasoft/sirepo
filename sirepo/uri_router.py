@@ -5,18 +5,22 @@ u"""Handles dispatching of uris to server.api_* functions
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkinspect
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import flask
 import importlib
 import inspect
+import os
+import pkgutil
 import re
 import sirepo.api_auth
 import sirepo.auth
 import sirepo.cookie
+import sirepo.events
 import sirepo.http_reply
 import sirepo.http_request
+import sirepo.sim_api
 import sirepo.uri
 import sirepo.util
 import werkzeug.exceptions
@@ -47,7 +51,7 @@ _api_to_route = None
 _api_modules = []
 
 #: functions which implement APIs
-_api_funcs = pkcollections.Dict()
+_api_funcs = PKDict()
 
 
 def call_api(func_or_name, kwargs=None, data=None):
@@ -91,6 +95,7 @@ def call_api(func_or_name, kwargs=None, data=None):
         # this is ok to call (even if s is None)
         sirepo.http_request.set_sim_type(s)
     sirepo.cookie.save_to_cookie(r)
+    sirepo.events.emit('end_api_call', PKDict(resp=r))
     return r
 
 
@@ -110,6 +115,7 @@ def init(app, simulation_db):
 
     for n in _REQUIRED_MODULES + tuple(sorted(feature_config.cfg().api_modules)):
         register_api_module(importlib.import_module('sirepo.' + n))
+    _register_sim_api_modules()
     _init_uris(app, simulation_db, feature_config.cfg().sim_types)
 
     sirepo.http_request.init(
@@ -124,7 +130,6 @@ def init(app, simulation_db):
         simulation_db=simulation_db,
         uri_router=pkinspect.this_module(),
     )
-
 
 def register_api_module(module=None):
     """Add caller_module to the list of modules which implements apis.
@@ -199,7 +204,7 @@ def _dispatch(path):
         except KeyError:
             # sim_types (applications)
             route = _default_route
-        kwargs = pkcollections.Dict()
+        kwargs = PKDict()
         for p in route.params:
             if not parts:
                 if not p.is_optional:
@@ -228,8 +233,8 @@ def _init_uris(app, simulation_db, sim_types):
 
     assert not _default_route, \
         '_init_uris called twice'
-    _uri_to_route = pkcollections.Dict()
-    _api_to_route = pkcollections.Dict()
+    _uri_to_route = PKDict()
+    _api_to_route = PKDict()
     for k, v in simulation_db.SCHEMA_COMMON.route.items():
         r = _split_uri(v)
         try:
@@ -255,19 +260,16 @@ def _init_uris(app, simulation_db, sim_types):
     app.add_url_rule('/<path:path>', '_dispatch', _dispatch, methods=('GET', 'POST'))
     app.add_url_rule('/', '_dispatch_empty', _dispatch_empty, methods=('GET', 'POST'))
 
-# TODO(e-carlin): sort
-def _validate_root_redirect_uris(uri_to_route, simulation_db):
-    from sirepo import feature_config
 
-    u = set(uri_to_route.keys())
-    t = feature_config.cfg().sim_types
-    r = set(simulation_db.SCHEMA_COMMON.rootRedirectUri.keys())
-    i = u & r | u & t | r & t
-    assert not i, f'rootRedirectUri, sim_types, and routes have overlapping uris={i}'
-    for x in r:
-        assert re.search(r'^[a-z]+$', x), \
-            f'rootRedirectUri={x} must consist of letters only'
-
+def _register_sim_api_modules():
+    for _, n, ispkg in pkgutil.iter_modules(
+            [os.path.dirname(sirepo.sim_api.__file__)],
+    ):
+        if ispkg:
+            continue
+        if not sirepo.template.is_sim_type(n):
+            pkdc(f'not adding apis for unknown sim_type={n}')
+        register_api_module(importlib.import_module(f'sirepo.sim_api.{n}'))
 
 
 def _split_uri(uri):
@@ -282,7 +284,7 @@ def _split_uri(uri):
     parts = uri.split('/')
     assert '' == parts.pop(0)
     params = []
-    res = pkcollections.Dict(params=params)
+    res = PKDict(params=params)
     in_optional = None
     in_path_info = None
     first = None
@@ -295,7 +297,7 @@ def _split_uri(uri):
                 'too many non-parameter components of uri={}'.format(uri)
             first = p
             continue
-        rp = pkcollections.Dict()
+        rp = PKDict()
         params.append(rp)
         rp.is_optional = bool(m.group(1))
         if rp.is_optional:
@@ -314,3 +316,16 @@ def _split_uri(uri):
                 )
     res.base_uri = first or ''
     return res
+
+
+def _validate_root_redirect_uris(uri_to_route, simulation_db):
+    from sirepo import feature_config
+
+    u = set(uri_to_route.keys())
+    t = feature_config.cfg().sim_types
+    r = set(simulation_db.SCHEMA_COMMON.rootRedirectUri.keys())
+    i = u & r | u & t | r & t
+    assert not i, f'rootRedirectUri, sim_types, and routes have overlapping uris={i}'
+    for x in r:
+        assert re.search(r'^[a-z]+$', x), \
+            f'rootRedirectUri={x} must consist of letters only'

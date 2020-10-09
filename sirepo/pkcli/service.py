@@ -97,6 +97,28 @@ def http():
         finally:
             _kill()
 
+def jupyterhub():
+    import sirepo.feature_config
+
+    assert pkconfig.channel_in('dev')
+    assert 'jupyterhublogin' in sirepo.feature_config.cfg().sim_types, \
+        'you must set SIREPO_FEATURE_CONFIG_SIM_TYPES to contain the code "jupyterhublogin"'
+    try:
+        import jupyterhub
+    except ImportError:
+        raise AssertionError('jupyterhub not installed. run `pip install jupyterhub`')
+    import sirepo.sim_api.jupyterhublogin
+    import sirepo.server
+
+    sirepo.server.init()
+    with pkio.save_chdir(_run_dir().join('jupyterhub').ensure(dir=True)) as d:
+        f = d.join('conf.py')
+        pkjinja.render_resource(
+            'jupyterhub_conf.py',
+            PKDict(_cfg()).pkupdate(**sirepo.sim_api.jupyterhublogin.cfg),
+            output=f,
+        )
+        pksubprocess.check_call_with_signals(('jupyterhub', '-f', str(f)))
 
 
 def nginx_proxy():
@@ -104,15 +126,22 @@ def nginx_proxy():
 
     Used for development only.
     """
+    import sirepo.feature_config
+
     assert pkconfig.channel_in('dev')
     run_dir = _run_dir().join('nginx_proxy').ensure(dir=True)
     with pkio.save_chdir(run_dir) as d:
         f = run_dir.join('default.conf')
-        pkjinja.render_resource(
-            'nginx_proxy.conf',
-            PKDict(_cfg()).pkupdate(run_dir=str(d)),
-            output=f,
-        )
+        c = PKDict(_cfg()).pkupdate(run_dir=str(d))
+        if 'jupyterhublogin' in sirepo.feature_config.cfg().sim_types:
+            import sirepo.sim_api.jupyterhublogin
+            import sirepo.server
+
+            sirepo.server.init()
+            c.pkupdate(
+                jupyterhub_root=sirepo.sim_api.jupyterhublogin.cfg.uri_root,
+            )
+        pkjinja.render_resource('nginx_proxy.conf', c, output=f)
         cmd = [
             'nginx',
             '-c',
@@ -141,8 +170,14 @@ def _cfg():
     if not __cfg:
         __cfg = pkconfig.init(
             ip=('0.0.0.0', _cfg_ip, 'what IP address to open'),
-            nginx_proxy_port=(8080, _cfg_int(5001, 32767), 'port on which nginx_proxy listens'),
-            port=(8000, _cfg_int(5001, 32767), 'port on which uwsgi or http listens'),
+            jupyterhub_port=(8002, _cfg_port, 'port on which jupyterhub listens'),
+            jupyterhub_debug=(
+                True,
+                bool,
+                'turn on debugging for jupyterhub (hub, spawner, ConfigurableHTTPProxy)',
+            ),
+            nginx_proxy_port=(8080, _cfg_port, 'port on which nginx_proxy listens'),
+            port=(8000, _cfg_port, 'port on which uwsgi or http listens'),
             processes=(1, _cfg_int(1, 16), 'how many uwsgi processes to start'),
             run_dir=(None, str, 'where to run the program (defaults db_dir)'),
             # uwsgi got hung up with 1024 threads on a 4 core VM with 4GB
@@ -188,6 +223,10 @@ def _cfg_ip(value):
         return value
     except socket.error:
         pkcli.command_error('{}: ip is not a valid IPv4 address', value)
+
+
+def _cfg_port(value):
+    return _cfg_int(5001, 32767)(value)
 
 
 def _run_dir():

@@ -120,6 +120,7 @@ def avatar_uri(model, size):
 def init_apis(*args, **kwargs):
     auth_db.init_model(_init_model)
 
+
 def _init_model(base):
     """Creates AuthEmailUser bound to dynamic `db` variable"""
     global AuthEmailUser, UserModel

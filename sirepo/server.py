@@ -21,6 +21,7 @@ import flask
 import importlib
 import os
 import re
+import sirepo.events
 import sirepo.sim_data
 import sirepo.srdb
 import sirepo.template
