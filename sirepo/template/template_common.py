@@ -47,6 +47,29 @@ _HISTOGRAM_BINS_MAX = 500
 _PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
 
 
+class DataRequester():
+    """Fetch data from the template either for download or to use on the client
+
+
+    """
+
+    def __init__(self):
+        """
+        Args:
+            xxx (xxx):
+           XXX
+        """
+
+    def export(self, filename, sim_id, sim_type):
+        """Export to file"""
+        pass
+
+    def fetch(self, sim_id, sim_type):
+        """Return data"""
+        return PKDict()
+
+
+
 class ModelUnits():
     """Convert model fields from native to sirepo format, or from sirepo to native format.
 
