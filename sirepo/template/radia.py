@@ -75,6 +75,7 @@ def create_archive(sim):
             content_type='application/octet-stream',
             filename=sim.filename,
         )
+    return False
 
 
 def extract_report_data(run_dir, sim_in):
