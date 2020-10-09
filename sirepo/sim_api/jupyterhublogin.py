@@ -29,6 +29,8 @@ cfg = None
 #: Used by auth_db. Sirepo record of each jupyterhub user.
 JupyterhubUser = None
 
+_HUB_USER_SEP = '_'
+
 
 @sirepo.api_perm.require_user
 def api_migrateJupyterhub():
@@ -85,7 +87,7 @@ def _create_user():
         assert logged_in_user_name, 'must supply a name'
         n = re.sub(
             '\W+',
-            '_',
+            _HUB_USER_SEP,
             # Get the local part of the email. Or in the case of another auth
             # method (ex github) it won't have an '@' so it will just be their
             # user name, handle, etc.
@@ -95,7 +97,7 @@ def _create_user():
         if u:
             # The username already exists. Add a random letter to try and create
             # a unique user name.
-            n += random.choice(string.ascii_lowercase)
+            n += _HUB_USER_SEP + random.choice(string.ascii_lowercase)
         return n
 
     if jupyterhub_user_name():
