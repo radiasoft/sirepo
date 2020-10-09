@@ -18,29 +18,33 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 import aenum
 
-_HANDLERS = PKDict()
+#: Map of events to handlers. Note: this is the list of all possible events.
+_MAP = PKDict(
+     auth_logout=[],
+     end_api_call=[],
+     github_authorized=[],
+)
 
 
 def emit(event, kwargs):
-    for h in _HANDLERS[event]:
+    """Call the handlers for `event` with `kwargs`
+
+    Handlers will be called in registration order (FIFO).
+
+    Args:
+        event (str): one of the names in `_MAP`
+        kwargs (PKDict): optional arguments to pass to event
+    """
+    for h in _MAP[event]:
         h(kwargs or PKDict())
 
 
 def register(registrants):
+    """Register callback(s) for event(s)
+
+    Args:
+        registrants (PKDict): Key is the event and value is the callback
+    """
     for k, v in registrants.items():
-        if v not in _HANDLERS[k]:
-            _HANDLERS[k].append(v)
-
-
-def _init():
-    for k in _Kind:
-        _HANDLERS[k.value] = []
-
-
-@aenum.unique
-class _Kind(aenum.Enum):
-    AUTH_LOGOUT = 'auth_logout'
-    END_API_CALL = 'end_api_call'
-    GITHUB_AUTHORIZED = 'github_authorized'
-
-_init()
+        if v not in _MAP[k]:
+            _MAP[k].append(v)
