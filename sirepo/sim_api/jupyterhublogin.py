@@ -52,7 +52,7 @@ def api_redirectJupyterHub():
 
 
 def jupyterhub_user_name(have_simulation_db=True):
-    return _user_name(sirepo.auth.logged_in_user(check_path=have_simulation_db))
+    return _hub_user(sirepo.auth.logged_in_user(check_path=have_simulation_db))
 
 
 def init_apis(*args, **kwargs):
@@ -109,7 +109,7 @@ def _create_user():
 
 
 def _event_auth_logout(kwargs):
-    flask.g.jupyterhub_logout_user_name = _user_name(kwargs.uid)
+    flask.g.jupyterhub_logout_user_name = _hub_user(kwargs.uid)
 
 
 def _event_end_api_call(kwargs):
@@ -146,6 +146,14 @@ def _event_github_authorized(kwargs):
     raise sirepo.util.Redirect('jupyter')
 
 
+def _hub_user(uid):
+    with sirepo.auth_db.thread_lock:
+        u = JupyterhubUser.search_by(uid=uid)
+        if u:
+            return u.user_name
+        return None
+
+
 def _init_model(base):
     global JupyterhubUser
 
@@ -157,11 +165,3 @@ def _init_model(base):
             nullable=False,
             unique=True,
         )
-
-
-def _user_name(uid):
-    with sirepo.auth_db.thread_lock:
-        u = JupyterhubUser.search_by(uid=uid)
-        if u:
-            return u.user_name
-        return None
