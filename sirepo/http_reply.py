@@ -106,8 +106,6 @@ def gen_json(value, pretty=False, response_kwargs=None):
         flask.Response: reply object
     """
     app = flask.current_app
-
-
     if not response_kwargs:
         response_kwargs = PKDict()
     return app.response_class(
