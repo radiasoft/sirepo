@@ -10,8 +10,10 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import madx_parser
 from sirepo.template.lattice import LatticeUtil
+from sirepo.template.template_common import ParticleEnergy
 import copy
 import sirepo.sim_data
+import sirepo.template
 
 class MadxConverter():
 
@@ -28,19 +30,17 @@ class MadxConverter():
 
     def from_madx(self, data):
         from sirepo.template import madx
-        self.to_class = sirepo.sim_data.get_class(self.sim_type)
-        self.from_class = sirepo.sim_data.get_class(madx.SIM_TYPE)
+        self.__init_direction(data, madx.SIM_TYPE, self.sim_type)
         self.field_map = self.full_field_map.from_madx
         self.drift_type = 'DRIFT'
-        return self._convert(data)
+        return self._convert(self.__normalize_madx_beam(data))
 
     def from_madx_text(self, text):
         return self.from_madx(madx_parser.parse_file(text, self.downcase_variables))
 
     def to_madx(self, data):
         from sirepo.template import madx
-        self.to_class = sirepo.sim_data.get_class(madx.SIM_TYPE)
-        self.from_class = sirepo.sim_data.get_class(self.sim_type)
+        self.__init_direction(data, self.sim_type, madx.SIM_TYPE)
         self.field_map = self.full_field_map.to_madx
         self.drift_type = self.full_field_map.from_madx.DRIFT[0]
         return self._convert(data)
@@ -134,6 +134,30 @@ class MadxConverter():
 
     def _fixup_element(self, element_in, element_out):
         pass
+
+    def __init_direction(self, data, from_class, to_class):
+        self.from_class = sirepo.sim_data.get_class(from_class)
+        self.to_class = sirepo.sim_data.get_class(to_class)
+        self.vars = sirepo.template.import_module(
+            self.from_class.sim_type()).code_var(
+                data.models.rpnVariables)
+
+    def __normalize_madx_beam(self, data):
+        # ensure particle, mass, charge, pc, ex and ey are set
+        self.beam = LatticeUtil.find_first_command(data, 'beam')
+        self.particle_energy = ParticleEnergy.compute_energy(
+            self.from_class.sim_type(),
+            self.beam.particle,
+            self.beam.copy(),
+        )
+        self.beam.mass = ParticleEnergy.get_mass(self.from_class.sim_type(), self.beam.particle, self.beam)
+        self.beam.charge = ParticleEnergy.get_charge(self.from_class.sim_type(), self.beam.particle, self.beam)
+        beta_gamma = self.particle_energy.beta * self.particle_energy.gamma
+        for dim in ('x', 'y'):
+            if self.beam[f'e{dim}'] == self.from_class.schema().model.command_beam[f'e{dim}'][2] \
+               and self.beam[f'e{dim}n']:
+                self.beam[f'e{dim}'] = self.vars.eval_var_with_assert(self.beam[f'e{dim}n']) / beta_gamma
+        return data
 
     def _replace_var(self, data, name, value):
         v = self._find_var(data, name)

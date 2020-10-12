@@ -239,8 +239,8 @@ class LatticeParser(object):
             el_id = el._id if '_id' in el else el.id
             for _ in range(count):
                 res['items'].append(-el_id if reverse else el_id)
-        assert label.upper() not in self.elements_by_name, \
-            'duplicate beamline: {}'.format(label)
+        # assert label.upper() not in self.elements_by_name, \
+        #     'duplicate beamline: {}'.format(label)
         self.elements_by_name[label.upper()] = res
         self.data.models.beamlines.append(res)
 
@@ -254,9 +254,12 @@ class LatticeParser(object):
             assert 'at' in res, 'sequence element missing "at": {}'.format(values)
             at = res.at
             del res['at']
-            assert label, 'unlabeled element: {}'.format(values)
-            assert label.upper() not in self.elements_by_name, \
-                'duplicate element in sequence: {}'.format(label)
+            #assert label, 'unlabeled element: {}'.format(values)
+            if not label:
+                label = cmd
+            else:
+                assert label.upper() not in self.elements_by_name, \
+                    'duplicate element in sequence: {}'.format(label)
             if cmd not in self.schema.model:
                 parent = self.elements_by_name[cmd]
                 assert parent
@@ -279,8 +282,8 @@ class LatticeParser(object):
             assert label in self.elements_by_name, 'no element for label: {}: {}'.format(label, values)
             self.elements_by_name[label].update(res)
         else:
-            assert label.upper() not in self.elements_by_name, \
-                'duplicate element labeled: {}'.format(label)
+            # assert label.upper() not in self.elements_by_name, \
+            #     'duplicate element labeled: {}'.format(label)
             self.elements_by_name[label.upper()] = res
         self.data.models.elements.append(res)
 
@@ -391,10 +394,12 @@ class LatticeParser(object):
     def __parse_values(self, values):
         if not values:
             return
-        if len(values) == 1 and '=' in values[0] and not re.search(r'\Wline\s*=\s*\(', values[0].lower()):
+        if (re.search(r'^\s*REAL\s', values[0], re.IGNORECASE) or len(values) == 1) \
+           and '=' in values[0] and not re.search(r'\Wline\s*\:?=\s*\(', values[0].lower()):
             # a variable assignment
-            m = re.match(r'.*?([\w.\']+)\s*:?=\s*(.*)$', values[0])
-            assert m, 'invalid variable assignment: {}'.format(values)
+            val = ', '.join(values)
+            m = re.match(r'.*?([\w.\']+)\s*:?=\s*(.*)$', val)
+            assert m, 'invalid variable assignment: {}'.format(val)
             name = m.group(1)
             v = m.group(2)
             if name not in self.data.models.rpnVariables:

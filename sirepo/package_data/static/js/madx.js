@@ -547,7 +547,7 @@ SIREPO.viewLogic('bunchView', function(appState, commandService, madxService, pa
             panelState.enableField('command_beam', f, beam.particle == 'other');
         });
         if (beam.particle != 'other') {
-            var info = SIREPO.APP_SCHEMA.constants.particleInfo[beam.particle];
+            var info = SIREPO.APP_SCHEMA.constants.particleMassAndCharge[beam.particle];
             beam.mass = info[0];
             beam.charge = info[1];
         }

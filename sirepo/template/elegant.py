@@ -168,7 +168,7 @@ class LibAdapter:
         return r
 
     def _convert(self, data):
-        cv = _code_var(data.models.rpnVariables)
+        cv = code_var(data.models.rpnVariables)
 
         def _model(model, name):
             schema = _SCHEMA.model[name]
@@ -180,7 +180,7 @@ class LibAdapter:
                     v = model[k] if k in model else x[2]
                     if t == 'RPNValue':
                         t = 'Float'
-                        if code_variable.CodeVar.is_var_value(v):
+                        if cv.is_var_value(v):
                             model[k] = cv.eval_var_with_assert(v)
                             continue
                     if t == 'Float':
@@ -249,7 +249,15 @@ class OutputFileIterator(lattice.ModelIterator):
 
 
 class ElegantMadxConverter(MadxConverter):
-    _BEAM_VARS = ['beta_x', 'beta_y', 'alpha_x', 'alpha_y', 'n_particles_per_bunch'];
+    _BEAM_VARS = ['beta_x', 'beta_y', 'alpha_x', 'alpha_y', 'n_particles_per_bunch', 'dp_s_coupling'];
+    _PARTICLE_MAP = PKDict(
+        electron='electron',
+        positron='positron',
+        proton='proton',
+        muon='negmuon',
+        negmuon='muon',
+        custom='other',
+    )
     _FIELD_MAP = [
         ['DRIFT',
             ['DRIF', 'l'],
@@ -355,66 +363,107 @@ class ElegantMadxConverter(MadxConverter):
             v = self._find_var(madx, f)
             if v:
                 eb[f] = v.value
+        ers = LatticeUtil.find_first_command(data, 'run_setup')
+        ers.p_central_mev = mb.pc * 1e3
+        eb.emit_x = mb.ex
+        eb.emit_y = mb.ey
+        eb.sigma_s = mb.sigt
+        eb.sigma_dp = mb.sige
+
         if mb.particle != 'electron':
-            particle = None
-            if mb.particle == 'negmuon':
-                particle = 'muon'
-            elif mb.particle == 'proton':
-                particle = 'proton'
-            else:
-                particle = 'positron'
-            cp = LatticeUtil.find_first_command(data, 'change_particle')
-            if cp:
-                cp.particle = particle
-            else:
-                data.models.commands.insert(0, PKDict(
-                    _id=_SIM_DATA.elegant_max_id(data),
-                    _type='change_particle',
-                    name=particle,
-                ))
-        #TODO(pjm): set bunch_beam energy and emittance from madx beam
+            data.models.commands.insert(0, PKDict(
+                _id=_SIM_DATA.elegant_max_id(data),
+                _type='change_particle',
+                name=self._PARTICLE_MAP.get(mb.particle, 'custom'),
+                #TODO(pjm): custom particle should set mass_ratio and charge_ratio
+            ))
         return data
 
     def to_madx(self, data):
         madx = super().to_madx(data)
-        cv = _code_var(data.models.rpnVariables)
-        def _var(v):
-            return cv.eval_var_with_assert(v)
         eb = LatticeUtil.find_first_command(data, 'bunched_beam')
-        ers = LatticeUtil.find_first_command(data, 'run_setup')
-        if not eb or not ers:
+        if not eb:
             return
+        self.__normalize_elegant_beam(data, eb)
         mb = LatticeUtil.find_first_command(madx, 'beam')
-        #TODO(pjm): assuming electron for now, should check for change_particle command
-        mb.particle = 'electron'
+        particle = LatticeUtil.find_first_command(data, 'change_particle')
+        if particle:
+            mb.particle = self._PARTICLE_MAP.get(particle.name, 'other')
+            #TODO(pjm): other particle should set mass and charge
+        else:
+            mb.particle = 'electron'
         mb.energy = 0
         madx.models.bunch.beamDefinition = 'pc'
-        if _var(ers.p_central_mev):
-            mb.pc = _var(ers.p_central_mev)
-        else:
-            mb.pc = _var(ers.p_central) * _SCHEMA.constants.ELEGANT_ME_EV
-        beta_gamma = mb.pc / _SCHEMA.constants.ELEGANT_ME_EV
-        # MeV/c --> GeV/c
-        mb.pc *= 1e-3
-        for f in ('x', 'y'):
-            emit = _var(eb[f'emit_{f}'])
-            if not emit:
-                emit = _var(eb[f'emit_n{f}']) / beta_gamma
-            mb[f'e{f}'] = emit
-        et = _var(eb.emit_z)
-        if not et:
-            if eb.alpha_z:
-                s56 = - eb.sigma_dp * eb.sigma_s * eb.alpha_z / math.sqrt(1 + math.pow(eb.alpha_z, 2))
-            else:
-                s56 = _var(eb.sigma_dp) * _var(eb.sigma_s) * _var(eb.dp_s_coupling)
-            et = math.sqrt(math.pow(_var(eb.sigma_dp) * _var(eb.sigma_s), 2) - math.pow(s56, 2))
-        mb.et = et
+        mb.pc = eb.p_central_mev * 1e-3
+        mb.sigt = eb.sigma_s
+        mb.sige = eb.sigma_dp
         for f in self._BEAM_VARS:
             self._replace_var(madx, f, eb[f])
+        for dim in ('x', 'y'):
+            mb[f'e{dim}'] = eb[f'emit_{dim}']
+            self._replace_var(
+                madx, f'gamma_{dim}',
+                '(1 + pow({}, 2)) / {}'.format(
+                    self._var_name(f'alpha_{dim}'),
+                    self._var_name(f'beta_{dim}'),
+                ),
+            )
         return madx
+
+    field_scale = PKDict(
+        RFCAVITY=PKDict(
+            freq='1e6',
+            volt='1e6',
+        ),
+        TWCAVITY=PKDict(
+            freq='1e6',
+            volt='1e6',
+        ),
+    )
 
     def _fixup_element(self, element_in, element_out):
         super()._fixup_element(element_in, element_out)
+        if self.from_class.sim_type() == SIM_TYPE:
+            el = element_out
+            op = '/'
+        else:
+            el = element_in
+            op = '*'
+        scale = self.field_scale.get(el.type)
+        if scale:
+            for f in scale:
+                element_out[f] = f'{element_out[f]} {op} {scale[f]}'
+
+    def __normalize_elegant_beam(self, data, beam):
+        # ensure p_central_mev, emit_x, emit_y, sigma_s, sigma_dp and dp_s_coupling are set
+        # convert from other values if missing
+        def _var(v):
+            return self.vars.eval_var_with_assert(v)
+        ers = LatticeUtil.find_first_command(data, 'run_setup')
+        if not ers:
+            return
+        if not _var(ers.p_central_mev):
+            #TODO(pjm): use particle mass, don't assume electron
+            ers.p_central_mev = _var(ers.p_central) * _SCHEMA.constants.ELEGANT_ME_EV
+        beam.p_central_mev = _var(ers.p_central_mev)
+        beta_gamma = beam.p_central_mev / _SCHEMA.constants.ELEGANT_ME_EV
+        for f in ('x', 'y'):
+            emit = _var(beam[f'emit_{f}'])
+            if not emit:
+                # convert from normalized emittance
+                emit = beam[f'emit_{f}'] = _var(beam[f'emit_n{f}']) / beta_gamma
+        if str(data.models.bunch.longitudinalMethod) == '2':
+            # convert alpha_z --> dp_s_coupling
+            beam.dp_s_coupling = - _var(beam.alpha_z) / math.sqrt(1 + pow(_var(beam.alpha_z), 2))
+        elif str(data.models.bunch.longitudinalMethod) == '3':
+            # convert emit_z, beta_z, alpha_z --> sigma_s, sigma_dp, dp_s_coupling
+            beam.sigma_s = math.sqrt(_var(beam.emit_z * _var(beam.beta_z)))
+            gamma_z = (1 + _var(beam.alpha_z) ** 2) / _var(beam.beta_z)
+            beam.sigma_dp = math.sqrt(_var(beam.emit_z) * gamma_z)
+            beam.dp_s_coupling = - _var(beam.alpha_z) / math.sqrt(1 + pow(_var(beam.alpha_z), 2))
+        if _var(beam.momentum_chirp):
+            beam.sigma_dp = math.sqrt(_var(beam.sigma_dp) ** 2 + (_var(beam.sigma_s) * _var(beam.momentum_chirp)) ** 2)
+            #TODO(pjm): determine conversion from momentum_chirp to db_s_coupling
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -440,7 +489,7 @@ def background_percent_complete(report, run_dir, is_running):
             if cmd and cmd.n_steps:
                 n_steps = 0
                 if code_variable.CodeVar.is_var_value(cmd.n_steps):
-                    n_steps = _code_var(data.models.rpnVariables).eval_var(cmd.n_steps)[0]
+                    n_steps = code_var(data.models.rpnVariables).eval_var(cmd.n_steps)[0]
                 else:
                     n_steps = int(cmd.n_steps)
                 if n_steps and n_steps > 0:
@@ -480,6 +529,10 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
+def code_var(variables):
+    return elegant_lattice_importer.elegant_code_var(variables)
+
+
 def copy_related_files(data, source_path, target_path):
     # copy results and log for the long-running simulations
     for m in ('animation',):
@@ -505,7 +558,7 @@ def generate_variables(data):
         visited[name] = True
         return f'% {_format_rpn_value(variables[name])} sto {name}\n'
 
-    return _code_var(data.models.rpnVariables).generate_variables(_gen, postfix=True)
+    return code_var(data.models.rpnVariables).generate_variables(_gen, postfix=True)
 
 
 def get_application_data(data, **kwargs):
@@ -515,7 +568,7 @@ def get_application_data(data, **kwargs):
                 _SIM_DATA.lib_file_abspath(data.input_file),
             )
         return data
-    if _code_var(data.variables).get_application_data(data, _SCHEMA):
+    if code_var(data.variables).get_application_data(data, _SCHEMA):
         return data
 
 
@@ -602,7 +655,7 @@ def parse_input_text(path, text=None, input_data=None):
 
 
 def prepare_for_client(data):
-    _code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
+    code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
     return data
 
 
@@ -989,10 +1042,6 @@ def _build_filename_map(data):
 
 def _build_filename_map_from_util(util):
     return util.iterate_models(OutputFileIterator()).result
-
-
-def _code_var(variables):
-    return elegant_lattice_importer.elegant_code_var(variables)
 
 
 def _extract_report_data(xFilename, frame_args, page_count=0):

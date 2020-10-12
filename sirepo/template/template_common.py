@@ -134,35 +134,21 @@ class ParticleEnergy():
         madx=['energy', 'pc', 'gamma', 'beta', 'brho'],
     )
 
-    PARTICLE = PKDict(
+    # defaults unless constants.particleMassAndCharge is set in the schema
+    PARTICLE_MASS_AND_CHARGE = PKDict(
         # mass [GeV]
-        antiproton=PKDict(
-            mass=0.938272046,
-            charge=-1,
-        ),
-        electron=PKDict(
-            mass=5.10998928e-4,
-            charge=-1,
-        ),
-        muon=PKDict(
-            mass=0.1056583755,
-            charge=-1.0,
-        ),
-        positron=PKDict(
-            mass=5.10998928e-4,
-            charge=1,
-        ),
-        proton=PKDict(
-            mass=0.938272046,
-            charge=1,
-        ),
+        antiproton=[0.938272046, -1],
+        electron=[5.10998928e-4,-1],
+        muon=[0.1056583755, -1],
+        positron=[5.10998928e-4, 1],
+        proton=[0.938272046, 1],
     )
 
     @classmethod
     def compute_energy(cls, sim_type, particle, energy):
-        p = cls.PARTICLE[particle] if particle in cls.PARTICLE else PKDict(
-            mass=energy.mass,
-            charge=energy.charge
+        p = PKDict(
+            mass=cls.get_mass(sim_type, particle, energy),
+            charge=cls.get_charge(sim_type, particle, energy),
         )
         for f in cls.ENERGY_PRIORITY[sim_type]:
             if f in energy and energy[f] != 0:
@@ -172,6 +158,24 @@ class ParticleEnergy():
                 energy[f] = v
                 return energy
         assert False, 'missing energy field: {}'.format(energy)
+
+    @classmethod
+    def get_charge(cls, sim_type, particle, beam):
+        return cls.__particle_info(sim_type, particle, beam)[1]
+
+    @classmethod
+    def get_mass(cls, sim_type, particle, beam):
+        return cls.__particle_info(sim_type, particle, beam)[0]
+
+    @classmethod
+    def __particle_info(cls, sim_type, particle, beam):
+        mass_and_charge = sirepo.sim_data.get_class(sim_type).schema().constants.get(
+            'particleMassAndCharge',
+            cls.PARTICLE_MASS_AND_CHARGE,
+        )
+        if particle in mass_and_charge:
+            return mass_and_charge[particle]
+        return [beam.mass, beam.charge]
 
     @classmethod
     def __set_from_beta(cls, particle, energy):

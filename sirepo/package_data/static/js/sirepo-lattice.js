@@ -1208,7 +1208,9 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         }
                         var width = Math.abs(length);
                         var radius = length / 2;
-                        if (item.type.indexOf('SBEN') >= 0 && angle != 0 && length != 0) {
+                        if (item.type.indexOf('SBEN') >= 0 && angle != 0 && length != 0
+                            // OPAL SBAND is a special case, length == chord length
+                            && SIREPO.APP_SCHEMA.simulationType != 'opal') {
                             // compute the chord length from the arclength
                             var d1 = 2 * length / angle;
                             length = d1 * Math.sin(length / d1);

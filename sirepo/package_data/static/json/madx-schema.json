@@ -48,7 +48,7 @@
             "pi", "twopi", "raddeg", "degrad", "e", "emass", "pmass",
             "nmass", "mumass", "clight", "qelect", "hbar", "erad", "prad"
         ],
-        "particleInfo": {
+        "particleMassAndCharge": {
             "positron": [0.510998928e-03, 1],
             "electron": [0.510998928e-03, -1],
             "proton": [0.938272046, 1],
@@ -692,7 +692,7 @@
         "CRABCAVITY": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L [m]", "RPNValue", 0.0, "The length of the cavity"],
-            "volt": ["VOLT [mV]", "RPNValue", 0.0, "The peak RF voltage"],
+            "volt": ["VOLT [MV]", "RPNValue", 0.0, "The peak RF voltage"],
             "lag": ["LAG [2$\\pi$]", "RPNValue", 0.0, "The initial phase lag."],
             "freq": ["FREQ [MHz]", "RPNValue", 0.0, "The frequency."],
             "rv1": ["RV1", "Integer", 0, "Number of initial turns with zero voltage."],
@@ -731,7 +731,7 @@
         "HACDIPOLE": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L [m]", "RPNValue", 0.0, "The length of the device."],
-            "volt": ["VOLT [mV]", "RPNValue", 0.0, "The amplitude of the kick."],
+            "volt": ["VOLT [MV]", "RPNValue", 0.0, "The amplitude of the kick."],
             "freq": ["FREQ [2$\\pi$]", "RPNValue", 0.0, "Tune of the oscillation."],
             "lag": ["LAG [2$\\pi$]", "RPNValue", 0.0, "The phase lag."],
             "ramp1": ["RAMP1", "Integer", 0, "Starting turn of amplitude ramp-up."],
@@ -1086,14 +1086,14 @@
         "RFCAVITY": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L [m]", "RPNValue", 0.0, "The length of the cavity"],
-            "volt": ["VOLT [mV]", "RPNValue", 0.0, "The peak RF voltage"],
+            "volt": ["VOLT [MV]", "RPNValue", 0.0, "The peak RF voltage"],
             "lag": ["LAG [2$\\pi$]", "RPNValue", 0.0, "The initial phase lag."],
             "freq": ["FREQ [MHz]", "RPNValue", 0.0, "The frequency."],
             "harmon": ["HARMON", "Integer", 0, "The harmonic number."]
         },
         "RFMULTIPOLE": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
-            "volt": ["VOLT [mV]", "RPNValue", 0.0, "The peak RF voltage."],
+            "volt": ["VOLT [MV]", "RPNValue", 0.0, "The peak RF voltage."],
             "lag": ["LAG [2$\\pi$]", "RPNValue", 0.0, "The phase lag."],
             "harmon": ["HARMON", "Integer", 0, "The harmonic number."],
             "freq": ["FREQ [MHz]", "RPNValue", 0.0, "The frequency."],
@@ -1146,7 +1146,7 @@
         "TWCAVITY": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L [m]", "RPNValue", 0.0, "The length of the cavity"],
-            "volt": ["VOLT [mV]", "RPNValue", 0.0, "The peak RF voltage"],
+            "volt": ["VOLT [MV]", "RPNValue", 0.0, "The peak RF voltage"],
             "lag": ["LAG [2$\\pi$]", "RPNValue", 0.0, "The initial phase lag."],
             "freq": ["FREQ [MHz]", "RPNValue", 0.0, "The frequency."],
             "psi": ["PSI", "RPNValue", 0.0],
@@ -1155,7 +1155,7 @@
         "VACDIPOLE": {
             "_super": ["_", "model", "_APERTURE_ELEMENT"],
             "l": ["L [m]", "RPNValue", 0.0, "The length of the device."],
-            "volt": ["VOLT [mV]", "RPNValue", 0.0, "The amplitude of the kick."],
+            "volt": ["VOLT [MV]", "RPNValue", 0.0, "The amplitude of the kick."],
             "lag": ["LAG [2$\\pi$]", "RPNValue", 0.0, "The initial phase lag."],
             "freq": ["FREQ [MHz]", "RPNValue", 0.0, "The frequency."],
             "ramp1": ["RAMP1", "Integer", 0, "Starting turn of amplitude ramp-up."],

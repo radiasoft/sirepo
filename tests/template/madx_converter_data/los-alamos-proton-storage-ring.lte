@@ -8,6 +8,9 @@ lattice_file = """
 % -0.94425989 sto sr_alpha_y
 % 6.069332 sto sr_beta_x
 % 6.6338782 sto sr_beta_y
+% -0.0 sto sr_dp_s_coupling
+% 1 sr_alpha_x 2 pow + sr_beta_x / sto sr_gamma_x
+% 1 sr_alpha_y 2 pow + sr_beta_y / sto sr_gamma_y
 % 1000.0 sto sr_n_particles_per_bunch
 % pi 2 * sto twopi
 
@@ -35,12 +38,16 @@ elegant_file = """
   mpi_io_write_buffer_size = 1048576,
 &end
 
+&change_particle
+  name = "proton",
+&end
+
 &run_setup
   semaphore_file = run_setup.semaphore,
   centroid = "run_setup.centroid.sdds",
   lattice = "elegant.lte",
   output = "run_setup.output.sdds",
-  p_central_mev = 1001,
+  p_central_mev = 797.0,
   parameters = "run_setup.parameters.sdds",
   print_statistics = 1,
   sigma = "run_setup.sigma.sdds",
@@ -64,8 +71,8 @@ elegant_file = """
   enforce_rms_values[0] = 1, 1, 1,
   n_particles_per_bunch = 1000,
   one_random_bunch = 0,
-  sigma_dp = 0.001,
-  sigma_s = 0.00065,
+  sigma_dp = 1.4142135623730952e-07,
+  sigma_s = 1.4142135623730952e-07,
 &end
 
 &track

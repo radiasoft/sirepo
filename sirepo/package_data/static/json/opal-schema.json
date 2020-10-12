@@ -6,7 +6,21 @@
             "cmass", "umass", "mmass", "dmass", "xemass", "clight", "opalversion",
             "rank", "real", "const", "vector", "constraint", "objective", "true", "false",
             "string", "bool", "constant"
-        ]
+        ],
+        "clight": 299792458.0e-9,
+        "particleMassAndCharge": {
+            "ELECTRON": [0.51099895000e-03, -1.0],
+            "PROTON": [0.93827208816, 1.0],
+            "POSITRON": [0.51099895000e-03, 1.0],
+            "ANTIPROTON": [0.93827208816, -1.0],
+            "CARBON": [11.17792922904, 12.0],
+            "HMINUS": [0.9392907080572553, -1.0],
+            "URANIUM": [221.7429041669396, 35.0],
+            "MUON": [0.1056583755, -1.0],
+            "DEUTERON": [1.8756129425808112, 1.0],
+            "XENON": [115.50526870008, 20.0],
+            "H2P": [1.8770537657865418, 1.0]
+        }
     },
     "appModes": {
         "default": {

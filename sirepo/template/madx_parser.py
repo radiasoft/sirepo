@@ -33,8 +33,9 @@ class MadXParser(lattice.LatticeParser):
 
     def parse_file(self, lattice_text, downcase_variables=False):
         from sirepo.template import madx
+        lattice_text = re.sub(r',\s*,', ',', lattice_text)
         res = super().parse_file(lattice_text)
-        cv = madx.madx_code_var(self.data.models.rpnVariables)
+        cv = madx.code_var(self.data.models.rpnVariables)
         self._code_variables_to_float(cv)
         self.__convert_sequences_to_beamlines(cv)
         self._set_default_beamline('use', 'sequence', 'period')

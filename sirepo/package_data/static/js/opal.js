@@ -148,7 +148,7 @@ SIREPO.app.controller('CommandController', function(commandService, panelState) 
 // OPAL-cycle
 // SBEND3D, CCOLLIMATOR, SEPTUM, PROBE, STRIPPER,
 
-SIREPO.app.controller('LatticeController', function(appState, commandService, latticeService, $scope) {
+SIREPO.app.controller('LatticeController', function(appState, commandService, latticeService, rpnService, $scope) {
     var self = this;
     self.latticeService = latticeService;
     self.advancedNames = [
@@ -161,33 +161,21 @@ SIREPO.app.controller('LatticeController', function(appState, commandService, la
     self.basicNames = [
         'DRIFT', 'ECOLLIMATOR', 'KICKER', 'MARKER', 'QUADRUPOLE', 'SBEND', 'SEXTUPOLE',
     ];
-    var m_e = 0.51099895000e-03;
-    var m_p = 0.93827208816;
-    var amu = 0.93149410242;
-    var clight = 299792458.0e-9;
-    var particleInfo = {
-        // mass, charge
-        ELECTRON: [m_e, -1.0],
-        PROTON: [m_p, 1.0],
-        POSITRON: [m_e, 1.0],
-        ANTIPROTON: [m_p, -1.0],
-        CARBON: [12 * amu, 12.0],
-        HMINUS: [1.00837 * amu, -1.0],
-        URANIUM: [238.050787 * amu, 35.0],
-        MUON: [0.1056583755, -1.0],
-        DEUTERON: [2.013553212745 * amu, 1.0],
-        XENON: [124 * amu, 20.0],
-        H2P: [2.01510 * amu, 1.0]
-    };
+    var constants = SIREPO.APP_SCHEMA.constants;
 
     function bendAngle(particle, bend) {
-        var mass = particleInfo[particle][0];
-        var charge = particleInfo[particle][1];
-        var gamma = bend.designenergy * 1e-3 / mass + 1;
+        var p = constants.particleMassAndCharge[particle];
+        var mass = p[0];
+        var charge = p[1];
+        var gamma = rpnService.getRpnValue(bend.designenergy) * 1e-3 / mass + 1;
         var betaGamma = Math.sqrt(Math.pow(gamma, 2) - 1);
-        var fieldAmp = charge * Math.abs(Math.sqrt(Math.pow(bend.k0, 2) + Math.pow(bend.k0s, 2)) / charge);
-        var radius = Math.abs((betaGamma * mass) / (clight * fieldAmp));
-        return 2 * Math.asin(bend.l / (2 * radius));
+        var fieldAmp = charge * Math.abs(
+            Math.sqrt(
+                Math.pow(rpnService.getRpnValue(bend.k0), 2)
+                    + Math.pow(rpnService.getRpnValue(bend.k0s), 2))
+                / charge);
+        var radius = Math.abs((betaGamma * mass) / (constants.clight * fieldAmp));
+        return 2 * Math.asin(rpnService.getRpnValue(bend.l) / (2 * radius));
     }
 
     function updateElementAttributes(item) {
@@ -196,6 +184,11 @@ SIREPO.app.controller('LatticeController', function(appState, commandService, la
                 var particle = commandService.findFirstCommand('beam').particle;
                 item.angle = bendAngle(particle, item);
             }
+        }
+        if (item.type == 'SBEND') {
+            item.travelLength = latticeService.arcLength(
+                rpnService.getRpnValue(item.angle),
+                rpnService.getRpnValue(item.l));
         }
     }
 

@@ -8,6 +8,9 @@ lattice_file = """
 % 1.0 sto sr_alpha_y
 % 10.0 sto sr_beta_x
 % 10.0 sto sr_beta_y
+% 0.0 sto sr_dp_s_coupling
+% 1 sr_alpha_x 2 pow + sr_beta_x / sto sr_gamma_x
+% 1 sr_alpha_y 2 pow + sr_beta_y / sto sr_gamma_y
 % 10000.0 sto sr_n_particles_per_bunch
 % pi 2 * sto twopi
 
@@ -86,7 +89,7 @@ elegant_file = """
   centroid = "run_setup.centroid.sdds",
   lattice = "elegant.lte",
   output = "run_setup.output.sdds",
-  p_central_mev = 1001,
+  p_central_mev = 3000.0,
   parameters = "run_setup.parameters.sdds",
   print_statistics = 1,
   sigma = "run_setup.sigma.sdds",

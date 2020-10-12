@@ -46,8 +46,6 @@ _FIELD_UNITS = PKDict(
     s='m',
     x='m',
     y='m',
-    px='rad',
-    py='rad',
 )
 
 _PI = 4 * math.atan(1)
@@ -130,6 +128,14 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
+def code_var(variables):
+    return code_variable.CodeVar(
+        variables,
+        code_variable.PurePythonEval(_MADX_CONSTANTS),
+        case_insensitive=True,
+    )
+
+
 def extract_parameter_report(data, run_dir, filename=_TWISS_OUTPUT_FILE):
     t = madx_parser.parse_tfs_file(run_dir.join(filename))
     plots = []
@@ -163,7 +169,7 @@ def extract_parameter_report(data, run_dir, filename=_TWISS_OUTPUT_FILE):
 def get_application_data(data, **kwargs):
     if data.method == 'calculate_bunch_parameters':
         return _calc_bunch_parameters(data.bunch, data.command_beam, data.variables)
-    if _code_var(data.variables).get_application_data(data, _SCHEMA, ignore_array_values=True):
+    if code_var(data.variables).get_application_data(data, _SCHEMA, ignore_array_values=True):
         return data
 
 
@@ -192,10 +198,6 @@ def import_file(req, **kwargs):
     return data
 
 
-def madx_code_var(variables):
-    return _code_var(variables)
-
-
 def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
     if success_exit:
         return None
@@ -203,7 +205,7 @@ def post_execution_processing(success_exit=True, run_dir=None, **kwargs):
 
 
 def prepare_for_client(data):
-    _code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
+    code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
     return data
 
 
@@ -289,7 +291,7 @@ def _build_filename_map_from_util(util):
 def _calc_bunch_parameters(bunch, beam, variables):
     try:
         field = bunch.beamDefinition
-        cv = _code_var(variables)
+        cv = code_var(variables)
         energy = template_common.ParticleEnergy.compute_energy(
             SIM_TYPE,
             beam.particle,
@@ -308,14 +310,6 @@ def _calc_bunch_parameters(bunch, beam, variables):
     except AssertionError:
         pass
     return PKDict(command_beam=beam)
-
-
-def _code_var(variables):
-    return code_variable.CodeVar(
-        variables,
-        code_variable.PurePythonEval(_MADX_CONSTANTS),
-        case_insensitive=True,
-    )
 
 
 def _extract_report_bunchReport(data, run_dir):
@@ -508,10 +502,9 @@ def _generate_parameters_file(data):
     util = LatticeUtil(data, _SCHEMA)
     filename_map = _build_filename_map_from_util(util)
     report = data.get('report', '')
-    code_var = _code_var(data.models.rpnVariables)
     v.twissOutputFilename = _TWISS_OUTPUT_FILE
     v.lattice = _generate_lattice(filename_map, util)
-    v.variables = code_var.generate_variables(_generate_variable)
+    v.variables = code_var(data.models.rpnVariables).generate_variables(_generate_variable)
     v.useBeamline = util.select_beamline().name
     if report == 'twissReport' or _is_report('bunchReport', report):
         v.twissOutputFilename = _TWISS_OUTPUT_FILE

@@ -15,10 +15,10 @@ from sirepo.template import code_variable
 from sirepo.template import lattice
 from sirepo.template import sdds_util
 from sirepo.template import template_common
-from sirepo.template.template_common import ParticleEnergy
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
 import h5py
+import math
 import numpy as np
 import re
 import sirepo.sim_data
@@ -149,6 +149,9 @@ class OpalMadxConverter(MadxConverter):
         ['RFCAVITY',
             ['RFCAVITY', 'l', 'volt', 'lag', 'harmon', 'freq'],
         ],
+        ['TWCAVITY',
+            ['TRAVELINGWAVE', 'l', 'volt', 'lag', 'freq', 'dlag=delta_lag'],
+        ],
         ['HMONITOR',
             ['MONITOR', 'l'],
         ],
@@ -177,36 +180,68 @@ class OpalMadxConverter(MadxConverter):
     def from_madx(self, madx):
         data = super().from_madx(madx)
         mb = LatticeUtil.find_first_command(madx, 'beam')
+        LatticeUtil.find_first_command(data, 'option').version = 20000
         LatticeUtil.find_first_command(data, 'beam').particle = mb.particle.upper()
-        #TODO(pjm): values may be vars
-        energy = ParticleEnergy.compute_energy('madx', mb.particle, mb.copy())
-        LatticeUtil.find_first_command(data, 'beam').pc = energy.pc
+        LatticeUtil.find_first_command(data, 'beam').pc = self.particle_energy.pc
         LatticeUtil.find_first_command(data, 'track').line = data.models.simulation.visualizationBeamlineId
+        self.__fixup_distribution(madx, data)
         return data
 
     def _fixup_element(self, element_in, element_out):
         super()._fixup_element(element_in, element_out)
 
-        # if self.from_class.sim_type()  == SIM_TYPE:
-        #     pass
-        # else:
-        #     if element_in.type == 'SBEND':
-        #         #pkdp(f'sbend: {element_in}')
-        #         #TODO(pjm): eval code vars
-        #         # d1 = 2 * element_in.l / element_in.angle;
-        #         # element_out.l = d1 * Math.sin(length / d1)
-        # QUADRUPOLE k1
-        # SBEND l
-        # if el.type == 'SBEND' or el.type == 'RBEND':
-        #     # mad-x is GeV (total energy), designenergy is MeV (kinetic energy)
-        #     el.designenergy = round(
-        #         (energy.energy - ParticleEnergy.PARTICLE[particle].mass) * 1e3,
-        #         6,
-        #     )
-        #     # this is different than the opal default of "2 * sin(angle / 2) / length"
-        #     # but matches elegant and synergia
-        #     el.k0 = cv.eval_var_with_assert(el.angle) / cv.eval_var_with_assert(el.l)
-        #     el.gap = 2 * cv.eval_var_with_assert(el.hgap)
+        if self.from_class.sim_type()  == SIM_TYPE:
+            pass
+        else:
+            if element_in.type == 'SBEND':
+                angle = self.__val(element_in.angle)
+                if angle != 0:
+                    length = self.__val(element_in.l)
+                    d1 = 2 * length / angle;
+                    element_out.l = d1 * math.sin(length / d1)
+            if element_in.type in ('SBEND', 'RBEND'):
+                # kenetic energy in MeV
+                element_out.designenergy = round(
+                    (self.particle_energy.energy - self.beam.mass) * 1e3,
+                    6,
+                )
+                element_out.gap = 2 * self.__val(element_in.hgap)
+                element_out.fmapfn = 'hard_edge_profile.txt'
+            if element_in.type == 'QUADRUPOLE':
+                k1 = self.__val(element_out.k1)
+                if self.beam.charge < 0:
+                    k1 *= -1
+                element_out.k1 = '{} * {}'.format(k1, self._var_name('brho'))
+
+    def __fixup_distribution(self, madx, data):
+        mb = LatticeUtil.find_first_command(madx, 'beam')
+        dist = LatticeUtil.find_first_command(data, 'distribution')
+        beta_gamma = self.particle_energy.beta * self.particle_energy.gamma
+        self._replace_var(data, 'brho', self.particle_energy.brho)
+        self._replace_var(data, 'gamma', self.particle_energy.gamma)
+        self._replace_var(data, 'beta', 'sqrt(1 - (1 / pow({}, 2)))'.format(self._var_name('gamma')))
+        for dim in ('x', 'y'):
+            self._replace_var(data, f'emit_{dim}', mb[f'e{dim}'])
+            beta = self._find_var(madx, f'beta_{dim}')
+            if beta:
+                dist[f'sigma{dim}'] = 'sqrt({} * {})'.format(
+                    self._var_name(f'emit_{dim}'), self._var_name(f'beta_{dim}'))
+                dist[f'sigmap{dim}'] = 'sqrt({} * {}) * {} * {}'.format(
+                    self._var_name(f'emit_{dim}'), self._var_name(f'gamma_{dim}'),
+                    self._var_name('beta'), self._var_name('gamma'))
+                dist[f'corr{dim}'] = '-{}/sqrt(1 + pow({}, 2))'.format(
+                    self._var_name(f'alpha_{dim}'), self._var_name(f'alpha_{dim}'))
+        if self._find_var(madx, 'dp_s_coupling'):
+            dist.corrz = self._var_name('dp_s_coupling')
+        ob = LatticeUtil.find_first_command(data, 'beam')
+        ob.bcurrent = mb.bcurrent
+        if self._find_var(madx, 'n_particles_per_bunch'):
+            ob.npart = self._var_name('n_particles_per_bunch')
+        dist.sigmaz = self.__val(mb.sigt)
+        dist.sigmapz = '{} * {} * {}'.format(mb.sige, self._var_name('beta'), self._var_name('gamma'))
+
+    def __val(self, var_value):
+        return self.vars.eval_var_with_assert(var_value)
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -227,10 +262,18 @@ def background_percent_complete(report, run_dir, is_running):
     return res
 
 
+def code_var(variables):
+    return code_variable.CodeVar(
+        variables,
+        code_variable.PurePythonEval(_OPAL_CONSTANTS),
+        case_insensitive=True,
+    )
+
+
 def get_application_data(data, **kwargs):
     if data.method == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_frames)
-    if _code_var(data.variables).get_application_data(data, _SCHEMA, ignore_array_values=True):
+    if code_var(data.variables).get_application_data(data, _SCHEMA, ignore_array_values=True):
         return data
 
 
@@ -268,10 +311,6 @@ def import_file(req, unit_test_mode=False, **kwargs):
     return data
 
 
-def opal_code_var(variables):
-    return _code_var(variables)
-
-
 def post_execution_processing(
         success_exit=True,
         is_parallel=True,
@@ -286,7 +325,7 @@ def post_execution_processing(
 
 
 def prepare_for_client(data):
-    _code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
+    code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
     return data
 
 
@@ -431,14 +470,6 @@ def _bunch_plot(report, run_dir, idx, filename=_OPAL_H5_FILE):
         y_label=res.y.label,
         title=title,
     ))
-
-
-def _code_var(variables):
-    return code_variable.CodeVar(
-        variables,
-        code_variable.PurePythonEval(_OPAL_CONSTANTS),
-        case_insensitive=True,
-    )
 
 
 def _compute_range_across_frames(run_dir, data):
@@ -620,6 +651,10 @@ def _generate_beamline(util, code_var, count_by_name, beamline_id, edge, names):
             else:
                 res += '{}: {},elemedge={};\n'.format(name, item.name, edge)
                 names.append(name)
+                if item.type == 'SBEND' and run_method == 'THICK':
+                    # use arclength for SBEND with THICK tracker (only?)
+                    angle = code_var.eval_var_with_assert(item.angle)
+                    length = angle * length / (2 * math.sin(angle / 2))
             edge += length
         else:
             # beamline
@@ -631,7 +666,7 @@ def _generate_beamline(util, code_var, count_by_name, beamline_id, edge, names):
 def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     util = LatticeUtil(data, _SCHEMA)
-    code_var = _code_var(data.models.rpnVariables)
+    cv = code_var(data.models.rpnVariables)
     report = data.get('report', '')
 
     if 'bunchReport' in report:
@@ -644,6 +679,7 @@ def _generate_parameters_file(data):
         # for emitted distributions
         distribution.nbin = 0
         distribution.emissionsteps = 1
+        distribution.offsetz = 0
         data.models.commands = [
             LatticeUtil.find_first_command(data, 'option'),
             beam,
@@ -651,10 +687,10 @@ def _generate_parameters_file(data):
         ]
     else:
         beamline_id = LatticeUtil.find_first_command(util.data, 'track').line or util.select_beamline().id
-        v.lattice = _generate_lattice(util, code_var, beamline_id)
+        v.lattice = _generate_lattice(util, cv, beamline_id)
         v.use_beamline = util.select_beamline().name
     v.update(dict(
-        variables=code_var.generate_variables(_generate_variable),
+        variables=cv.generate_variables(_generate_variable),
         header_commands=_generate_commands(util, True),
         commands=_generate_commands(util, False),
     ))
