@@ -8,6 +8,175 @@ SIREPO.http_timeout = 0;
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
+const _FRAME_ID_SEP = '*';
+
+class AppService {
+
+}
+
+class Frame {
+
+    constructor(report) {
+        this.report = report;
+    }
+
+    getId(appState, index) {
+        let c = appState.appService.computeModel(this.report);
+        let s = appState.models.simulationStatus[c];
+        if (! s) {
+            throw new Error(`computeModel=${c} missing simulationStatus`);
+        }
+        let v = [
+            // POSIT: same as sirepo.sim_data._FRAME_ID_KEYS
+            index,
+            this.report,
+            appState.models.simulation.simulationId,
+            SIREPO.APP_SCHEMA.simulationType,
+            s.computeJobHash,
+            s.computeJobSerial,
+        ];
+        let m = appState.models;
+        m = m[this.report in m ? this.report : c];
+        let f = SIREPO.APP_SCHEMA.frameIdFields;
+        f = f[this.report in f ? this.report : c];
+        if (! f) {
+            throw new Error(`frameReport=${this.report} missing from schema frameIdFields`);
+        }
+        // POSIT: same as sirepo.sim_data._FRAME_ID_SEP
+        return v.concat(
+            f.map(function (a) {return m[a];})
+        ).join(_FRAME_ID_SEP);
+    }
+
+}
+
+class FrameCache {
+
+    constructor(appState, panelState, requestSender) {
+        this.appState = appState;
+        this.modelToCurrentFrame = {};
+        this.panelState = panelState;
+        this.requestSender = requestSender;
+    }
+
+    getFrameId(frameReport) {
+        return this.getCurrentFrame(frameReport).getId();
+    }
+
+    getCurrentFrame(modelName) {
+        return this.modelToCurrentFrame[modelName] || 0;
+    }
+
+    getFrame(modelName, index, isPlaying, callback) {
+        if (! this.appState.isLoaded()) {
+            return;
+        }
+        function onError(modelName) {
+            this.panelState.setError(modelName, 'Report not generated');
+        }
+        var isHidden = this.panelState.isHidden(modelName);
+        var frameRequestTime = new Date().getTime();
+        var delay = isPlaying && ! isHidden
+            ? 1000 / parseInt(this.appState.models[modelName].framesPerSecond)
+            : 0;
+        var requestFunction = function() {
+            this.requestSender.sendRequest(
+                {
+                    'routeName': 'simulationFrame',
+                    '<frame_id>': this.frameId(modelName, index),
+                },
+                function(data) {
+                    if ('state' in data && data.state === 'missing') {
+                        onError(modelName);
+                        return;
+                    }
+                    var endTime = new Date().getTime();
+                    var elapsed = endTime - frameRequestTime;
+                    if (elapsed < delay) {
+                        /*
+                        $interval(
+                            function() {
+                                callback(index, data);
+                            },
+                            delay - elapsed,
+                            1
+                        );
+
+                         */
+                    }
+                    else {
+                        callback(index, data);
+                    }
+                },
+                null,
+                // error handling
+                //TODO(pjm): need error wrapping on server similar to runStatus route
+                function(data) {
+                    onError(modelName);
+                }
+            );
+        };
+        if (isHidden) {
+            this.panelState.addPendingRequest(modelName, requestFunction);
+        }
+        else {
+            requestFunction();
+        }
+    }
+
+    hasFrames(modelName) {
+        if (modelName) {
+            return this.getFrameCount(modelName) > 0;
+        }
+        return this.getFrameCount() > 0;
+    }
+
+    isLoaded() {
+        return this.appState.isLoaded();
+    }
+
+    getFrameCount(modelKey) {
+        if (modelKey in this.frameCountByModelKey) {
+            var s = this.appState.models.simulationStatus[this.appState.appService.computeModel(modelKey)];
+            if (! (s && s.computeJobHash)
+            ) {
+                // cannot request frames without computeJobHash
+                return 0;
+            }
+            return this.frameCountByModelKey[modelKey];
+        }
+        return this.masterFrameCount;
+    }
+
+    setCurrentFrame(modelName, currentFrame) {
+        this.modelToCurrentFrame[modelName] = currentFrame;
+    }
+
+    setFrameCount(frameCount, modelKey) {
+        if (modelKey) {
+            this.frameCountByModelKey[modelKey] = frameCount;
+            return;
+        }
+        if (frameCount == this.masterFrameCount) {
+            return;
+        }
+        if (frameCount === 0) {
+            this.masterFrameCount = frameCount;
+            this.frameCountByModelKey = {};
+            //$rootScope.$broadcast('framesCleared');
+        }
+        else if (frameCount > 0) {
+            var oldFrameCount = this.masterFrameCount;
+            this.masterFrameCount = frameCount;
+            //$rootScope.$broadcast('framesLoaded', oldFrameCount);
+        }
+        else {
+            this.masterFrameCount = frameCount;
+        }
+    }
+
+}
+
 SIREPO.beamlineItemLogic = function(name, init) {
     SIREPO.app.directive(name, function(beamlineService) {
 

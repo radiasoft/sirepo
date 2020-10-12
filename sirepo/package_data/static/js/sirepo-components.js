@@ -1767,14 +1767,17 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
 
             $scope.dataFileURL = function(suffix) {
                 if (appState.isLoaded()) {
+                    const frameIndex = appState.isAnimationModelName($scope.modelKey)
+                            ? frameCache.getCurrentFrame($scope.modelKey)
+                            // any value is fine (ignored)
+                            : -1;
                     var params = {
                         '<simulation_id>': appState.models.simulation.simulationId,
                         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         '<model>': $scope.modelKey,
-                        '<frame>': appState.isAnimationModelName($scope.modelKey)
-                            ? frameCache.getCurrentFrame($scope.modelKey)
-                            // any value is fine (ignored)
-                            : -1,
+                        '<frame>': frameIndex,
+                        '<frame_id>': 0,
+                        //'<frame_id>': frameCache.frameId($scope.modelKey, frameIndex),
                     };
                     if (suffix) {
                         params['<suffix>'] = suffix;

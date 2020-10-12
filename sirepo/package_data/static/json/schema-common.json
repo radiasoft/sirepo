@@ -105,7 +105,7 @@
         "copySimulation": "/copy-simulation",
         "deleteFile": "/delete-file",
         "deleteSimulation": "/delete-simulation",
-        "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model>/<frame>/?<suffix>",
+        "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model>/<frame>/<frame_id>/?<suffix>",
         "downloadFile": "/download-file/<simulation_type>/<simulation_id>/<filename>",
         "errorLogging": "/error-logging",
         "exportArchive": "/export-archive/<simulation_type>/<simulation_id>/<filename>",
