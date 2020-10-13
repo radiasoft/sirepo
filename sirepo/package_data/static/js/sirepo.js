@@ -349,17 +349,21 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     $compileProvider.cssClassDirectivesEnabled(false);
     SIREPO.appFieldEditors = '';
 
+    let defaultRoute = null;
     function addRoute(routeName) {
         var routeInfo = SIREPO.APP_SCHEMA.localRoutes[routeName];
         if (! routeInfo.config) {
             // the route isn't configured for the current app
             return;
         }
+        const cfg = routeInfo.config;
         localRoutes[routeName] = routeInfo.route;
-        var cfg = routeInfo.config;
-        cfg.templateUrl += SIREPO.SOURCE_CACHE_KEY;
+        if (cfg.templateUrl) {
+            cfg.templateUrl += SIREPO.SOURCE_CACHE_KEY;
+        }
         $routeProvider.when(routeInfo.route, cfg);
-        if (routeInfo.isDefault) {
+        if (routeName === SIREPO.APP_SCHEMA.appDefaults.route) {
+            defaultRoute = routeName;
             if (routeInfo.route.indexOf(':') >= 0) {
                 throw new Error('default route must not have params: ' + routeInfo.route);
             }
@@ -370,6 +374,9 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
 
     for (var routeName in SIREPO.APP_SCHEMA.localRoutes) {
         addRoute(routeName);
+    }
+    if (! defaultRoute) {
+        throw new Error('at least one route must be the default route');
     }
 });
 
@@ -2243,7 +2250,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, $http,
                 1
             );
         }
-        //srdbg('req url/data', url, data);
         var req = data
             ? $http.post(url, data, t)
             : $http.get(url, t);

@@ -103,6 +103,8 @@ def init():
 
     @sqlalchemy.ext.declarative.as_declarative()
     class UserDbBase(object):
+        STRING_ID = sqlalchemy.String(8)
+        STRING_NAME =  sqlalchemy.String(100)
         _session = _session
 
         def __init__(self, **kwargs):
@@ -153,14 +155,14 @@ def init():
 
     class UserRegistration(UserDbBase):
         __tablename__ = 'user_registration_t'
-        uid = sqlalchemy.Column(sqlalchemy.String(8), primary_key=True)
+        uid = sqlalchemy.Column(UserDbBase.STRING_ID, primary_key=True)
         created = sqlalchemy.Column(sqlalchemy.DateTime(), nullable=False)
-        display_name = sqlalchemy.Column(sqlalchemy.String(100))
+        display_name = sqlalchemy.Column(UserDbBase.STRING_NAME)
 
     class UserRole(UserDbBase):
         __tablename__ = 'user_role_t'
-        uid = sqlalchemy.Column(sqlalchemy.String(8), primary_key=True)
-        role = sqlalchemy.Column(sqlalchemy.String(100), primary_key=True)
+        uid = sqlalchemy.Column(UserDbBase.STRING_ID, primary_key=True)
+        role = sqlalchemy.Column(UserDbBase.STRING_NAME, primary_key=True)
 
         @classmethod
         def add_roles(cls, uid, roles):

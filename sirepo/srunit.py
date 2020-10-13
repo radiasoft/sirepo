@@ -135,14 +135,20 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
 
 class UwsgiClient(PKDict):
 
+    def __init__(self, env, *args, **kwargs):
+        import sirepo.pkcli.service
+
+        c = sirepo.pkcli.service._cfg()
+        for k in ('nginx_proxy_port', 'ip'):
+            self[f'_{k}'] = env.get(f'SIREPO_PKCLI_SERVICE_{k.upper()}') or c[k]
+
     def sr_post(self, route_or_uri, data, headers=None):
         from pykern import pkjson
-        from sirepo.pkcli import service
         import requests
 
         r = requests.post(
             (
-                f'http://{service._cfg().ip}:{service._cfg().nginx_proxy_port}'
+                f'http://{self._ip}:{self._nginx_proxy_port}'
                     + f'{self._server_route(route_or_uri)}'
             ),
             json=data,

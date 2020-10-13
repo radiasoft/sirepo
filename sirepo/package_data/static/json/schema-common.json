@@ -24,6 +24,10 @@
             "longName": "JSPEC",
             "shortName": "JSPEC"
         },
+        "jupyterhublogin": {
+            "longName": "JupyterHub Login",
+            "shortName": "JupyterHub"
+        },
         "madx": {
             "longName": "MAD-X",
             "shortName": "MAD-X"
@@ -118,9 +122,12 @@
         "importArchive": "/import-archive",
         "importFile": "/import-file/<simulation_type>",
         "jobSupervisorPing": "/job-supervisor-ping",
+        "redirectJupyterHub": "/redirect-jupyterhub",
+        "jupyterHub": "/jupyter",
         "exportJupyterNotebook": "/export-jupyter-notebook/<simulation_type>/<simulation_id>/?<model>/?<title>",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
+        "migrateJupyterhub": "/migrate-jupyterhub",
         "newSimulation": "/new-simulation",
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
         "ownJobs": "/own-jobs",
@@ -143,6 +150,9 @@
         "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
     },
     "common": {
+        "appDefaults": {
+            "route": "simulations"
+        },
         "appModes": {
            "default": {
                 "localRoute": "source",
@@ -370,8 +380,7 @@
                 "config": {
                   "controller": "SimulationsController as simulations",
                   "templateUrl": "/static/html/simulations.html"
-                },
-                "isDefault": true
+                }
             },
             "simulationsFolder": {
                 "route": "/simulations/:folderPath?",

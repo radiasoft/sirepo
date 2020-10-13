@@ -120,6 +120,7 @@ def avatar_uri(model, size):
 def init_apis(*args, **kwargs):
     auth_db.init_model(_init_model)
 
+
 def _init_model(base):
     """Creates AuthEmailUser bound to dynamic `db` variable"""
     global AuthEmailUser, UserModel
@@ -133,7 +134,7 @@ def _init_model(base):
         EMAIL_SIZE = 255
         __tablename__ = 'auth_email_user_t'
         unverified_email = sqlalchemy.Column(sqlalchemy.String(EMAIL_SIZE), primary_key=True)
-        uid = sqlalchemy.Column(sqlalchemy.String(8), unique=True)
+        uid = sqlalchemy.Column(base.STRING_ID, unique=True)
         user_name = sqlalchemy.Column(sqlalchemy.String(EMAIL_SIZE), unique=True)
         token = sqlalchemy.Column(sqlalchemy.String(sirepo.util.TOKEN_SIZE), unique=True)
         expires = sqlalchemy.Column(sqlalchemy.DateTime())

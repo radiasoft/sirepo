@@ -23,6 +23,9 @@ $.ajax = function() {};
 SIREPO.APP_SCHEMA = {
     "version": "20160912.000000",
     "simulationType": "srw",
+    "appDefaults": {
+        "route": "login"
+    },
     "appInfo": {
         "srw": {
             "shortName": "SRW",

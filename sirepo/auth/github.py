@@ -7,14 +7,15 @@ GitHub is written Github and github (no underscore or dash) for ease of use.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern.pkcollections import PKDict
 from pykern import pkconfig
 from pykern import pkinspect
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import auth
 from sirepo import auth_db
 from sirepo import cookie
+from sirepo import feature_config
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import uri_router
@@ -22,13 +23,11 @@ from sirepo import util
 import authlib.integrations.base_client
 import authlib.integrations.requests_client
 import flask
+import sirepo.events
 import sqlalchemy
 
 
 AUTH_METHOD = 'github'
-
-#: User can see it
-AUTH_METHOD_VISIBLE = True
 
 #: Used by auth_db
 AuthGithubUser = None
@@ -57,6 +56,7 @@ def api_authGithubAuthorized():
         auth.login_fail_redirect(t, this_module, 'oauth-state', reload_js=True)
         raise AssertionError('auth.login_fail_redirect returned unexpectedly')
     d = oc.get('user').json()
+    sirepo.events.emit('github_authorized', PKDict(user_name=d['login']))
     with auth_db.thread_lock:
         u = AuthGithubUser.search_by(oauth_id=d['id'])
         if u:
@@ -104,18 +104,24 @@ def init_apis(*args, **kwargs):
 
         class AuthGithubUser(base):
             __tablename__ = 'auth_github_user_t'
-            oauth_id = sqlalchemy.Column(sqlalchemy.String(100), primary_key=True)
-            user_name = sqlalchemy.Column(sqlalchemy.String(100), unique=True, nullable=False)
-            uid = sqlalchemy.Column(sqlalchemy.String(8), unique=True)
+            oauth_id = sqlalchemy.Column(base.STRING_NAME, primary_key=True)
+            user_name = sqlalchemy.Column(base.STRING_NAME, unique=True, nullable=False)
+            uid = sqlalchemy.Column(base.STRING_ID, unique=True)
 
         UserModel = AuthGithubUser
 
-    global cfg
+    global cfg, AUTH_METHOD_VISIBLE
     cfg = pkconfig.init(
-        key=pkconfig.Required(str, 'Github key'),
-        secret=pkconfig.Required(str, 'Github secret'),
         callback_uri=(None, str, 'Github callback URI (defaults to api_authGithubAuthorized)'),
+        key=pkconfig.Required(str, 'Github key'),
+        method_visible=(
+            True,
+            bool,
+            'github auth method is visible to users when it is an enabled method',
+        ),
+        secret=pkconfig.Required(str, 'Github secret'),
     )
+    AUTH_METHOD_VISIBLE = cfg.method_visible
     auth_db.init_model(_init_model)
 
 
