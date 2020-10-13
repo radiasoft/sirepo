@@ -14,6 +14,8 @@ class AppService {
 
 }
 
+// here are a couple of placeholder classes that may define and handle frames outside the
+// constraints of the angular factory
 class Frame {
 
     constructor(report) {
@@ -68,11 +70,12 @@ class FrameCache {
     }
 
     getFrame(modelName, index, isPlaying, callback) {
+        let fc = this;
         if (! this.appState.isLoaded()) {
             return;
         }
         function onError(modelName) {
-            this.panelState.setError(modelName, 'Report not generated');
+            fc.panelState.setError(modelName, 'Report not generated');
         }
         var isHidden = this.panelState.isHidden(modelName);
         var frameRequestTime = new Date().getTime();

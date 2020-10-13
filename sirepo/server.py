@@ -268,6 +268,31 @@ def api_getApplicationData(filename=None):
         return http_reply.gen_json(res)
 
 
+@api_perm.require_user
+def api_export(simulation_type, simulation_id, filename):
+    """Export data to a file, type determined by file extension
+
+    Args:
+        filename (str): name of the file attachment
+
+    Returns:
+        response: file
+    """
+    from sirepo import exporter
+    #TODO(mvk): should be a POST but needs some work on the client side
+    req = http_request.parse_params(
+        template=True,
+        filename=filename,
+        id=simulation_id,
+        type=simulation_type,
+    )
+    # class-based templates should obviate the need for this sort of clumsiness
+    # but here it is for now
+    ex = req.template.EXPORTER if hasattr(req.template, 'EXPORTER') \
+        else exporter.ExporterBase()
+    return ex.export(req)
+
+
 @api_perm.allow_cookieless_require_user
 def api_importArchive():
     """

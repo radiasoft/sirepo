@@ -969,8 +969,10 @@ SIREPO.app.directive('appHeader', function(appState, requestSender) {
             '</div>',
         ].join(''),
         controller: function($scope) {
+            //TODO(mvk): exports should be POSTs, but window.open uses GETs. We have to submit a
+            // form, either as part of the html or ad-hoc
             $scope.exportDmp = function() {
-                requestSender.newWindow('exportArchive', {
+                requestSender.newWindow('export', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                     '<filename>':  $scope.nav.simulationName() + '.dat',

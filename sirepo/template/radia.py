@@ -14,6 +14,7 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from scipy.spatial.transform import Rotation
+from sirepo import exporter
 from sirepo import simulation_db
 from sirepo.template import template_common
 from sirepo.template import radia_tk
@@ -27,11 +28,59 @@ import sirepo.sim_data
 import sirepo.util
 import time
 
+class DataRequester(template_common.DataRequesterBase):
+    """Fetch data from the template either for download or to use on the client
+
+
+    """
+
+    def __init__(self):
+        """
+        Args:
+            xxx (xxx):
+           XXX
+        """
+        self.appExporter = Exporter()
+
+    def export(self, sim):
+        """Export to file"""
+        return self.exporter.export(sim)
+
+    def fetch(self, sim_id, sim_type):
+        """Return data"""
+        return PKDict()
+
+
+class Exporter(exporter.ExporterBase):
+    """Export to file
+
+
+    """
+
+    def __init__(self):
+        """
+        Args:
+            xxx (xxx):
+           XXX
+        """
+
+    def export(self, sim):
+        """Export to file"""
+        if sim.filename.endswith('dat'):
+            return sirepo.http_reply.gen_file_as_attachment(
+                _dmp_file(sim.id),
+                content_type='application/octet-stream',
+                filename=sim.filename,
+            )
+        return super().export(sim)
+
+
 _BEAM_AXIS_ROTATIONS = PKDict(
     x=Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
     y=Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
     z=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 )
+
 _DMP_FILE = 'geom.dat'
 _FIELD_MAP_COLS = ['x', 'y', 'z', 'Bx', 'By', 'Bz']
 _FIELD_MAP_UNITS = ['m', 'm', 'm', 'T', 'T', 'T']
@@ -43,6 +92,8 @@ _REPORTS = ['geometry', 'reset']
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
 
+#DATA_REQUESTER = DataRequester()
+EXPORTER = Exporter()
 GEOM_PYTHON_FILE = 'geom.py'
 MPI_SUMMARY_FILE = 'mpi-info.json'
 VIEW_TYPES = [_SCHEMA.constants.viewTypeObjects, _SCHEMA.constants.viewTypeFields]

@@ -22,6 +22,27 @@ import sirepo.util
 import zipfile
 
 
+class ExporterBase():
+    """Export to file
+
+    Subclasses should override export() to customize zip and html exports, or add
+    other types of export.  Right now this just calls the existing create_archive
+    method
+
+    """
+
+    def __init__(self):
+        """
+        Args:
+            xxx (xxx):
+           XXX
+        """
+
+    def export(self, sim):
+        """Export to file"""
+        return create_archive(sim)
+
+
 def create_archive(sim):
     """Zip up the json file and its dependencies
 
