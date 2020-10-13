@@ -59,8 +59,7 @@ class DataRequesterBase():
     def __init__(self):
         """
         Args:
-            xxx (xxx):
-            XXX
+            TBD
         """
         self.appExporter = sirepo.exporter.ExporterBase()
 
