@@ -93,3 +93,7 @@
     stroke-width: 0;
     filter: drop-shadow(2px 2px 2px #999);
 }
+
+.vtk-load-indicator img {
+    display: none;
+}

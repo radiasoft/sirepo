@@ -2199,6 +2199,12 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                         $scope.selection = d;
                     });
                 });
+                $scope.$on('vtk.showLoader', function (e, d) {
+                    $($element).find('.vtk-load-indicator img').css('display', 'block');
+                });
+                $scope.$on('vtk.hideLoader', function (e, d) {
+                    $($element).find('.vtk-load-indicator img').css('display', 'none');
+                });
                 $scope.init();
             });
 
