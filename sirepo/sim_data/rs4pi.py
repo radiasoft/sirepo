@@ -31,7 +31,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        dm.setdefault(
+        dm.pksetdefault(
             'dicomEditorState', PKDict(),
             'doseCalculation', PKDict(selectedPTV='', selectedOARs=[]),
             'dicomDose', PKDict(frameCount=0),

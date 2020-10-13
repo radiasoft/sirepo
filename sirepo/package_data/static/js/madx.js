@@ -102,9 +102,6 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
             beam,
             appState.models[commandService.commandModelName('beam')]
         );
-        $.merge(['ex', 'ey'], madxService.twissFields).forEach(function(f) {
-            beam[f] = appState.models.bunch[f];
-        });
         appState.saveQuietly('commands');
     }
 
@@ -159,7 +156,8 @@ SIREPO.app.controller('CommandController', function(appState, commandService, la
     var self = this;
     self.activeTab = 'basic';
     self.basicNames = [
-        'beam', 'beta0', 'constraint', 'ealign', 'endmatch', 'global', 'jacobian', 'lmdif', 'makethin', 'match', 'migrad', 'option',
+        'beam', 'beta0', 'constraint', 'ealign', 'emit', 'endmatch', 'global', 'jacobian', 'lmdif',
+        'makethin', 'match', 'migrad', 'option',
         'ptc_create_layout', 'ptc_create_universe', 'ptc_end',
         'ptc_normal', 'ptc_observe', 'ptc_select', 'ptc_setswitch', 'ptc_start',
         'ptc_track', 'ptc_track_end', 'ptc_trackline', 'resbeam', 'savebeta', 'select', 'set', 'show',
@@ -541,6 +539,14 @@ SIREPO.viewLogic('bunchView', function(appState, commandService, madxService, pa
             });
     }
 
+    function updateLongitudinalMethod() {
+        var method = appState.models.bunch.longitudinalMethod;
+        panelState.showFields('command_beam', [
+            'et', method == '1',
+            ['sigt','sige'], method == '2',
+        ]);
+    }
+
     function updateParticle() {
         var beam = appState.models.command_beam;
         ['mass', 'charge'].forEach(function(f) {
@@ -582,11 +588,13 @@ SIREPO.viewLogic('bunchView', function(appState, commandService, madxService, pa
     $scope.whenSelected = function() {
         updateParticle();
         updateTwissFields();
+        updateLongitudinalMethod();
     };
 
     $scope.watchFields = [
         ['command_beam.particle'], updateParticle,
         ['bunch.matchTwissParameters'], updateTwissFields,
+        ['bunch.longitudinalMethod'], updateLongitudinalMethod,
         $.merge(['bunch.beamDefinition'], energyFields.map(function(f) { return 'command_beam.' + f; })),
             calculateBunchParameters,
     ];

@@ -115,6 +115,39 @@ class LatticeParser(object):
         self.__parse_lines(lines)
         return self.data
 
+    def _add_variables_for_lattice_references(self):
+        # iterate all values, adding "x->y" lattice referenes as variables "x.y"
+        from sirepo.template.code_variable import CodeVar
+
+        def _fix_value(value, names):
+            value = re.sub(r'\-\>', '.', value)
+            expr = CodeVar.infix_to_postfix(value.lower())
+            for v in expr.split(' '):
+                if CodeVar.is_var_value(v):
+                    m = re.match(r'^(.*?)\.(.*)', v)
+                    if m:
+                        names[v] = [m.group(1), m.group(2)]
+            return value
+
+        names = {}
+        for v in self.data.models.rpnVariables:
+            if CodeVar.is_var_value(v.value):
+                v.value = _fix_value(v.value, names)
+        for el in self.data.models.elements:
+            for f in el:
+                v = el[f]
+                if CodeVar.is_var_value(v):
+                    el[f] = _fix_value(v, names)
+        for name in names:
+            for el in self.data.models.elements:
+                if el.name.lower() == names[name][0]:
+                    f = names[name][1]
+                    if f in el:
+                        self.data.models.rpnVariables.append(PKDict(
+                            name=name,
+                            value=el[f],
+                        ))
+
     def _code_variables_to_float(self, code_var):
         for v in self.data.models.rpnVariables:
             if not code_var.is_var_value(v.value):
@@ -239,8 +272,8 @@ class LatticeParser(object):
             el_id = el._id if '_id' in el else el.id
             for _ in range(count):
                 res['items'].append(-el_id if reverse else el_id)
-        # assert label.upper() not in self.elements_by_name, \
-        #     'duplicate beamline: {}'.format(label)
+        assert label.upper() not in self.elements_by_name, \
+            'duplicate beamline: {}'.format(label)
         self.elements_by_name[label.upper()] = res
         self.data.models.beamlines.append(res)
 

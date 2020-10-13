@@ -42,12 +42,15 @@ def test_parse_madx_file():
     from pykern.pkunit import pkeq
     from sirepo.template import madx, madx_parser
 
-    for name in ('particle_track', ):
-        actual = madx_parser.parse_file(pkio.read_text(
-            pkunit.data_dir().join(f'{name}.madx')))
-        del actual['version']
-        expect = pkjson.load_any(pkunit.data_dir().join(f'{name}.json'))
-        pkeq(expect, actual)
+    with pkunit.save_chdir_work():
+        for name in ('particle_track', 'alba'):
+            actual = madx_parser.parse_file(pkio.read_text(
+                pkunit.data_dir().join(f'{name}.madx')))
+            del actual['version']
+            outfile = f'{name}.json'
+            pkjson.dump_pretty(actual, outfile)
+            expect = pkjson.load_any(pkunit.data_dir().join(outfile))
+            pkeq(expect, actual)
 
 
 def test_parse_madx_file_downcase():

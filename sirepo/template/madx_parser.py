@@ -17,7 +17,7 @@ class MadXParser(lattice.LatticeParser):
     def __init__(self):
         self.ignore_commands = set([
             'aperture', 'assign', 'call', 'coguess',
-            'correct', 'create', 'ealign', 'efcomp', 'emit',
+            'correct', 'create', 'ealign', 'efcomp',
             'endedit', 'eoption', 'esave', 'exec', 'exit', 'fill',
             'install',
             'plot', 'print', 'quit',
@@ -35,6 +35,7 @@ class MadXParser(lattice.LatticeParser):
         from sirepo.template import madx
         lattice_text = re.sub(r',\s*,', ',', lattice_text)
         res = super().parse_file(lattice_text)
+        self._add_variables_for_lattice_references()
         cv = madx.code_var(self.data.models.rpnVariables)
         self._code_variables_to_float(cv)
         self.__convert_sequences_to_beamlines(cv)
@@ -48,7 +49,7 @@ class MadXParser(lattice.LatticeParser):
         util = lattice.LatticeUtil(self.data, self.schema)
         name_to_id = PKDict()
         for id in util.id_map:
-            name = util.id_map[id].name
+            name = util.id_map[id].get('name')
             if not name:
                 continue
             name = name.upper()
@@ -69,6 +70,8 @@ class MadXParser(lattice.LatticeParser):
                             el[f] = el[f].lower()
                             if 'Boolean' in el_schema[1]:
                                 if el[f] == '1' or el[f] == '0':
+                                    pass
+                                elif el_schema[1] == 'OptionalBoolean' and el[f] == '':
                                     pass
                                 elif el[f].lower() == 'true':
                                     el[f] = '1'
@@ -226,8 +229,10 @@ def _update_beam_and_bunch(beam, data):
         if bd[0] in beam and beam[bd[0]]:
             bunch.beamDefinition = bd[0]
             break
-    bunch.ex = beam.ex
-    bunch.ey = beam.ey
     for v in data.models.rpnVariables:
         if v.name in _TWISS_VARS:
             bunch[_TWISS_VARS[v.name]] = v.value
+    beam_info = schema.model.command_beam
+    if beam.et == beam_info.et[2] and \
+       (beam.sigt != beam_info.sigt[2] or beam.sige != beam_info.sige[2]):
+        bunch.longitudinalMethod = '2'

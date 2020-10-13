@@ -20,6 +20,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             (
                 'bunch',
                 'simulation',
+                'twissReport',
             ),
         )
         for container in ('commands', 'elements'):

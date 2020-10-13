@@ -621,3 +621,8 @@ def _update_beam_energy(data):
         for e in _SCHEMA.enum.BeamDefinition:
             if bunch.beamDefinition != e[0]:
                 beam[e[0]] = 0
+    if bunch.longitudinalMethod == '1':
+        beam.sigt = _SCHEMA.model.command_beam.sigt[2]
+        beam.sige = _SCHEMA.model.command_beam.sige[2]
+    if bunch.longitudinalMethod == '2':
+        beam.et = _SCHEMA.model.command_beam.et[2]

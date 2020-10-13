@@ -38,7 +38,7 @@ class OpalParser(lattice.LatticeParser):
         from sirepo.template import opal
         res = super().parse_file(lattice_text)
         self.__fix_pow_variables()
-        self.__add_variables_for_lattice_references()
+        self._add_variables_for_lattice_references()
         cv = opal.code_var(self.data.models.rpnVariables)
         self._code_variables_to_float(cv)
         self.__remove_bend_default_fmap()
@@ -53,37 +53,6 @@ class OpalParser(lattice.LatticeParser):
         self.__combine_options()
         self.__dedup_elements()
         return res, input_files
-
-    def __add_variables_for_lattice_references(self):
-        # iterate all values, adding "x->y" lattice referenes as variables "x.y"
-
-        def _fix_value(value, names):
-            expr = CodeVar.infix_to_postfix(value.lower())
-            for v in expr.split(' '):
-                m = re.match(r'^(.*?)\-\>(.*)', v)
-                if m:
-                    v = re.sub(r'\-\>', '.', v)
-                    names[v] = [m.group(1), m.group(2)]
-            return re.sub(r'\-\>', '.', value)
-
-        names = {}
-        for v in self.data.models.rpnVariables:
-            if CodeVar.is_var_value(v.value):
-                v.value = _fix_value(v.value, names)
-        for el in self.data.models.elements:
-            for f in el:
-                v = el[f]
-                if CodeVar.is_var_value(v):
-                    el[f] = _fix_value(v, names)
-        for name in names:
-            for el in self.data.models.elements:
-                if el.name.lower() == names[name][0]:
-                    f = names[name][1]
-                    if f in el:
-                        self.data.models.rpnVariables.append(PKDict(
-                            name=name,
-                            value=el[f],
-                        ))
 
     def __add_drifts_to_beamlines(self, code_var):
         drifts = self._compute_drifts(code_var)

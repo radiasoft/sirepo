@@ -329,13 +329,13 @@ class ElegantMadxConverter(MadxConverter):
             ['RCOL', 'l', 'x_max=xsize', 'y_max=ysize'],
         ],
         ['RFCAVITY',
-            ['RFCA', 'l', 'volt', 'freq'],
-            ['MODRF', 'l', 'volt', 'freq'],
-            ['RAMPRF', 'l', 'volt', 'freq'],
-            ['RFCW', 'l', 'volt', 'freq'],
+            ['RFCA', 'l', 'volt', 'freq', 'phase=lag'],
+            ['MODRF', 'l', 'volt', 'freq', 'phase=lag'],
+            ['RAMPRF', 'l', 'volt', 'freq', 'phase=lag'],
+            ['RFCW', 'l', 'volt', 'freq', 'phase=lag'],
         ],
         ['TWCAVITY',
-            ['RFDF', 'l', 'voltage=volt', 'frequency=freq'],
+            ['RFDF', 'l', 'voltage=volt', 'frequency=freq', 'phase=lag'],
         ],
         ['HMONITOR',
             ['HMON', 'l'],
@@ -351,6 +351,17 @@ class ElegantMadxConverter(MadxConverter):
             ['SROT', 'tilt=angle'],
         ],
     ]
+    _FIELD_SCALE = PKDict(
+        RFCAVITY=PKDict(
+            freq='1e6',
+            volt='1e6',
+        ),
+        TWCAVITY=PKDict(
+            freq='1e6',
+            volt='1e6',
+        ),
+    )
+
 
     def __init__(self):
         super().__init__(SIM_TYPE, self._FIELD_MAP, downcase_variables=True)
@@ -364,7 +375,7 @@ class ElegantMadxConverter(MadxConverter):
             if v:
                 eb[f] = v.value
         ers = LatticeUtil.find_first_command(data, 'run_setup')
-        ers.p_central_mev = mb.pc * 1e3
+        ers.p_central_mev = self.particle_energy.pc * 1e3
         eb.emit_x = mb.ex
         eb.emit_y = mb.ey
         eb.sigma_s = mb.sigt
@@ -410,17 +421,6 @@ class ElegantMadxConverter(MadxConverter):
             )
         return madx
 
-    field_scale = PKDict(
-        RFCAVITY=PKDict(
-            freq='1e6',
-            volt='1e6',
-        ),
-        TWCAVITY=PKDict(
-            freq='1e6',
-            volt='1e6',
-        ),
-    )
-
     def _fixup_element(self, element_in, element_out):
         super()._fixup_element(element_in, element_out)
         if self.from_class.sim_type() == SIM_TYPE:
@@ -429,7 +429,7 @@ class ElegantMadxConverter(MadxConverter):
         else:
             el = element_in
             op = '*'
-        scale = self.field_scale.get(el.type)
+        scale = self._FIELD_SCALE.get(el.type)
         if scale:
             for f in scale:
                 element_out[f] = f'{element_out[f]} {op} {scale[f]}'

@@ -476,7 +476,7 @@
             "alpha_y": ["Vertical Alpha", "RPNValue", 0, ""],
             "eta_y": ["Vertical Eta", "RPNValue", 0, ""],
             "etap_y": ["Vertical Etap", "RPNValue", 0, ""],
-            "longitudinalMethod": ["Longitudinal Method", "LongitudinalBunchMethod"],
+            "longitudinalMethod": ["Longitudinal Method", "LongitudinalBunchMethod", "1"],
             "emit_z": ["Longitudinal Geometric Emittance [m]", "RPNValue", 0, "Provide another way to specify the longitudinal phase space, either separately from or in combination with sigma_dp, sigma_s, and dp_s_coupling. Basically, which values elegant uses depends on what one sets to nonzero values. If one sets emit_z, then sigma_dp, sigma_s, and dp_s_coupling are ignored. If one doesn't set emit_z, then elegant uses sigma_dp and sigma_s; it additionally uses alpha_z if it is nonzero, otherwise it uses dp_s_coupling. For reference, the relationship between them is C = Σ₅₆ / √Σ₅₅Σ₆₆}} = -α / √1+α^2}. Note that to impart a chirp that results in compression for R₅₆<0 (e.g., a normal four-dipole chicane), one must have αz<0 or C>0.", 0],
             "beta_z": ["Longitudinal Beta [m]", "RPNValue", 0, "", 0],
             "alpha_z": ["Longitudinal Alpha", "RPNValue", 0, ""],
@@ -489,7 +489,7 @@
             "randomize_order": ["Randomize Order", "RandomizeStringArray", "0, 0, 0", "Allows randomizing the order of assigned coordinates for the pairs (x, x'), (y, y'), and (t,p). 0 means no randomization; 1 means randomize (x, x', y, y', t, p) values independently, which destroys any x-x', y-y', and t-p correlations; 2 means randomize (x, x'), (y, y'), and (t, p) in pair-wise fashion. This is used with Halton sequences to remove banding. It is suggested that that the user employ sddsanalyzebeam to verify that the beam properties when randomization is used.", "X, Y, Z"]
         },
         "bunchFile": {
-            "sourceFile": ["Beam File", "InputFile", "1"]
+            "sourceFile": ["Beam File", "InputFile", ""]
         },
         "bunchReport": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],

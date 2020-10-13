@@ -91,7 +91,6 @@ elegant_file = """
   output = "run_setup.output.sdds",
   p_central_mev = 3000.0,
   parameters = "run_setup.parameters.sdds",
-  print_statistics = 1,
   sigma = "run_setup.sigma.sdds",
 &end
 
@@ -112,7 +111,6 @@ elegant_file = """
   emit_y = 4.6e-08,
   enforce_rms_values[0] = 1, 1, 1,
   n_particles_per_bunch = 10000,
-  one_random_bunch = 0,
   sigma_dp = 0.001,
   sigma_s = 0.00065,
 &end
