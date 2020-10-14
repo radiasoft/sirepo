@@ -1997,6 +1997,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
 
             function setBgColor(hexColor) {
                 renderer.setBackground(vtk.Common.Core.vtkMath.hex2float(hexColor));
+                renderWindow.render();
             }
 
             function setCam(pos, vu) {
@@ -2200,9 +2201,11 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     });
                 });
                 $scope.$on('vtk.showLoader', function (e, d) {
+                    setBgColor('#dddddd');
                     $($element).find('.vtk-load-indicator img').css('display', 'block');
                 });
                 $scope.$on('vtk.hideLoader', function (e, d) {
+                    setBgColor('#ffffff');
                     $($element).find('.vtk-load-indicator img').css('display', 'none');
                 });
                 $scope.init();
