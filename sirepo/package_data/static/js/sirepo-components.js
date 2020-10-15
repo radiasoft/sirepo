@@ -316,18 +316,26 @@ SIREPO.app.directive('canceledDueToTimeoutAlert', function(authState) {
             simState: '=canceledDueToTimeoutAlert',
         },
         template: [
-            '<div data-ng-if="simState.getCanceledAfterSecs()" class="alert alert-warning" role="alert">',
+            '<div data-ng-if="showAlert()" class="alert alert-warning" role="alert">',
               '<h4 class="alert-heading"><b>Canceled: Maximum runtime exceeded</b></h4>',
               '<p>Your runtime limit is {{getTime()}}. To increase your maximum runtime, please upgrade to ' + authState.upgradePlanLink() + '.</p>',
             '</div>',
         ].join(''),
         controller: function($scope, appState) {
             $scope.authState = authState;
+            let hideAlert = false;
+
+            $scope.$on('sbatchLoginDone', function() {
+                hideAlert = true;
+            });
 
             $scope.getTime = function() {
                 return appState.formatTime($scope.simState.getCanceledAfterSecs());
             };
 
+            $scope.showAlert = function() {
+                return $scope.simState.getCanceledAfterSecs() && ! hideAlert;
+            };
         },
     };
 });
@@ -3296,6 +3304,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                     errorResponse = data.error;
                 }
                 sbatchLoginStatusService.loggedIn = data.loginSuccess ? true: false;
+                $rootScope.$broadcast('sbatchLoginDone');
                 el.modal('hide');
             }
 
