@@ -25,9 +25,12 @@ SIREPO.app.config(function() {
         '<div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">',
           '<input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
         '</div>',
-        '<div data-ng-switch-when="HMFile" data-ng-class="fieldClass">',
-          '<input id="radia-h-m-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
-        '</div>',
+        //'<div data-ng-switch-when="HMFile" data-ng-class="HMFile">',
+        //  '<input id="radia-h-m-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt"/>',
+        //'</div>',
+        //'<div data-ng-switch-when="HMFile" class="fieldClass">',
+        //  '<div data-file-field="field" data-model="model" data-file-type="h-m" data-empty-selection-text="No File Selected"></div>',
+        //'</div>',
     ].join('');
     SIREPO.appPanelHeadingButtons = [
         '<div style="display: inline-block">',
@@ -234,9 +237,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     var self = this;
 
     const editorFields = [
-         'geomObject.magnetization',
-         'geomObject.symmetryType',
-         'geomObject.doDivide',
+        'geomObject.magnetization',
+        'geomObject.material',
+        'geomObject.symmetryType',
+        'geomObject.doDivide',
     ];
     const groupModels = [
         'geomGroup',
@@ -794,6 +798,18 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             'division',
             o.doDivide == '1'
         );
+        panelState.showField(
+            'geomObject',
+            'materialFile',
+            o.material === 'custom'
+        );
+        //srdbg('mf', o.materialFile);
+        //let form = panelState.getForm('geomObject', 'materialFile');
+        //if (o.material === 'custom') {
+        //    if (! o.materialFile) {
+        //        form.$valid = false;
+        //    }
+        //}
         //panelState.showField(
         //    'geomObject',
         //    'symmetryPlane',

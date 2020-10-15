@@ -40,7 +40,7 @@ def _add_object(o):
         sz = _split_comma_field(o.size, 'float')
         m = _split_comma_field(o.magnetization, 'float')
         div = _split_comma_field(o.division, 'int') if o.doDivide != '0' else None
-        g_id = radia_tk.build_box(ctr, sz, o.material, m, div)
+        g_id = radia_tk.build_box(ctr, sz, o.material, m, div, h_m_curve=o.h_m_curve)
         if o.color:
             radia_tk.apply_color(g_id, _hex_to_rgb(o.color))
     if o.model in _GROUP_MODELS:
