@@ -394,7 +394,7 @@ class ElegantMadxConverter(MadxConverter):
         madx = super().to_madx(data)
         eb = LatticeUtil.find_first_command(data, 'bunched_beam')
         if not eb:
-            return
+            return madx
         self.__normalize_elegant_beam(data, eb)
         mb = LatticeUtil.find_first_command(madx, 'beam')
         particle = LatticeUtil.find_first_command(data, 'change_particle')
