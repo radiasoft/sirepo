@@ -71,6 +71,12 @@ class SRWShadowConverter():
             elif item.type == 'grating':
                 r = self.__grating_to_shadow(item, current_rotation, shadow)
                 current_rotation = (current_rotation + r) % 360
+            elif item.type == 'lens':
+                shadow.beamline.append(self.__copy_item(item, PKDict(
+                    type='lens',
+                    focal_x=item.horizontalFocalLength,
+                    focal_z=item.verticalFocalLength,
+                )))
 
     def __copy_item(self, item, attrs):
         res = PKDict(
