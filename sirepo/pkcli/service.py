@@ -98,7 +98,6 @@ def http():
             _kill()
 
 def jupyterhub():
-    import sirepo.feature_config
     import sirepo.template
 
     assert pkconfig.channel_in('dev')
