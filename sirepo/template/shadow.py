@@ -6,15 +6,13 @@ u"""Shadow execution template.
 """
 
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
-from sirepo import simulation_db
 from sirepo.template import template_common
 from sirepo.template.template_common import ModelUnits
-import sirepo.sim_data
 import re
+import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
@@ -26,8 +24,9 @@ _CENTIMETER_FIELDS = {
     'crystal': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', 'axmaj', 'axmin', 'ell_the', 'thickness', 'r_johansson', 'offx', 'offy', 'offz'],
     'electronBeam': ['sigmax', 'sigmaz', 'epsi_x', 'epsi_z', 'epsi_dx', 'epsi_dz'],
     'geometricSource': ['wxsou', 'wzsou', 'sigmax', 'sigmaz', 'wysou', 'sigmay'],
-    'grating': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', 'axmaj', 'axmin', 'ell_the', 'rulingDensity', 'rulingDensityCenter', 'rulingDensityPolynomial', 'holo_r1', 'holo_r2', 'dist_fan', 'rul_a1', 'rul_a2', 'rul_a3', 'rul_a4', 'hunt_h', 'hunt_l', 'offx', 'offy', 'offz'],
+    'grating': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', 'axmaj', 'axmin', 'ell_the', 'rulingDensityCenter', 'holo_r1', 'holo_r2', 'dist_fan', 'hunt_h', 'hunt_l', 'offx', 'offy', 'offz'],
     'histogramReport': ['distanceFromSource'],
+    'lens': ['position', 'focal_x', 'focal_z'],
     'mirror': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', 'axmaj', 'axmin', 'ell_the', 'prereflDensity', 'mlayerSubstrateDensity', 'mlayerEvenSublayerDensity', 'mlayerOddSublayerDensity', 'offx', 'offy', 'offz'],
     'obstacle': ['position', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
     'plotXYReport': ['distanceFromSource'],
@@ -35,30 +34,42 @@ _CENTIMETER_FIELDS = {
     'watch': ['position'],
 }
 
-_FIELD_ALIAS = {
-    'externalOutlineMajorAxis': 'rwidx2',
-    'externalOutlineMinorAxis': 'rlen2',
-    'halfLengthY1': 'rlen1',
-    'halfLengthY2': 'rlen2',
-    'halfWidthX1': 'rwidx1',
-    'halfWidthX2': 'rwidx2',
-    'horizontalOffset': 'cx_slit[0]',
-    'horizontalSize': 'rx_slit[0]',
-    'internalOutlineMajorAxis': 'rwidx1',
-    'internalOutlineMinorAxis': 'rlen1',
-    'rulingDensity': 'ruling',
-    'rulingDensityCenter': 'ruling',
-    'rulingDensityPolynomial': 'ruling',
-    'singleEnergyValue': 'ph1',
-    'verticalOffset': 'cz_slit[0]',
-    'verticalSize': 'rz_slit[0]',
-}
+_FIELD_ALIAS = PKDict(
+    externalOutlineMajorAxis='rwidx2',
+    externalOutlineMinorAxis='rlen2',
+    halfLengthY1='rlen1',
+    halfLengthY2='rlen2',
+    halfWidthX1='rwidx1',
+    halfWidthX2='rwidx2',
+    horizontalOffset='cx_slit[0]',
+    horizontalSize='rx_slit[0]',
+    internalOutlineMajorAxis='rwidx1',
+    internalOutlineMinorAxis='rlen1',
+    rulingDensity='ruling',
+    rulingDensityCenter='ruling',
+    rulingDensityPolynomial='ruling',
+    singleEnergyValue='ph1',
+    verticalOffset='cz_slit[0]',
+    verticalSize='rz_slit[0]',
+)
+
+_LOWERCASE_FIELDS = set(['focal_x', 'focal_z'])
 
 _MODEL_UNITS = ModelUnits(PKDict({
     x: PKDict({ y: 'cm_to_m' for y in _CENTIMETER_FIELDS[x]}) for x in _CENTIMETER_FIELDS.keys()
 }))
+_MODEL_UNITS.unit_def.grating.pkupdate(PKDict({
+    x: 'mm_to_cm' for x in [
+        'rulingDensity',
+        'rulingDensityPolynomial',
+        'rul_a1',
+        'rul_a2',
+        'rul_a3',
+        'rul_a4',
+    ]
+}))
 
-_WIGGLER_TRAJECTOR_FILENAME = 'xshwig.sha'
+_WIGGLER_TRAJECTORY_FILENAME = 'xshwig.sha'
 
 
 def get_application_data(data, **kwargs):
@@ -153,7 +164,11 @@ def _eq(item, field, *values):
 
 
 def _field_value(name, field, value):
-    return "\n{}.{} = {}".format(name, field.upper(), value)
+    return "\n{}.{} = {}".format(
+        name,
+        field if field in _LOWERCASE_FIELDS else field.upper(),
+        value,
+    )
 
 
 def _fields(name, item, fields):
@@ -185,6 +200,7 @@ def _generate_beamline_optics(models, last_id):
     count = 0
     for i in range(len(beamline)):
         item = beamline[i]
+        trace_method = 'traceOE'
         if _is_disabled(item):
             continue
         count += 1
@@ -196,22 +212,27 @@ def _generate_beamline_optics(models, last_id):
                 continue
             image_distance = next_item.position - item.position
             break
-        theta_recalc_required = item.type in ('crystal', 'grating') and item.f_default == '1' and item.f_central == '1'
+        theta_recalc_required = item.type in ('crystal', 'grating') \
+            and item.f_default == '1' and item.f_central == '1' \
+            and item.fmirr != '5'
         if item.type == 'crl':
             count, res = _generate_crl(item, source_distance, count, res)
         else:
             res += '\n\noe = Shadow.OE()' + _field_value('oe', 'dummy', '1.0')
             if item.type == 'aperture' or item.type == 'obstacle':
                 res += _generate_screen(item)
-            elif item.type == 'mirror':
-                res += _generate_element(item, source_distance, image_distance)
-                res += _generate_mirror(item)
             elif item.type == 'crystal':
                 res += _generate_element(item, source_distance, image_distance)
                 res += _generate_crystal(item)
             elif item.type == 'grating':
                 res += _generate_element(item, source_distance, image_distance)
                 res += _generate_grating(item)
+            elif item.type == 'lens':
+                trace_method = 'traceIdealLensOE'
+                res += _item_field(item, ['focal_x', 'focal_z'])
+            elif item.type == 'mirror':
+                res += _generate_element(item, source_distance, image_distance)
+                res += _generate_mirror(item)
             elif item.type == 'watch':
                 res += "\n" + 'oe.set_empty()'
                 if last_id and last_id == int(item.id):
@@ -233,7 +254,7 @@ oe.THETA = calc_oe.T_INCIDENCE * 180.0 / math.pi
             res += _field_value('oe', 'fwrite', '3') \
                    + _field_value('oe', 't_image', 0.0) \
                    + _field_value('oe', 't_source', source_distance) \
-                   + "\n" + 'beam.traceOE(oe, {})'.format(count)
+                   + "\n" + 'beam.{}(oe, {})'.format(trace_method, count)
         if last_element:
             break
         prev_position = item.position
@@ -271,7 +292,7 @@ def _generate_crl_lens(item, is_first, is_last, count, source):
 
     def _half(is_obj, **values):
         is_ima = not is_obj
-        values = pkcollections.Dict(values)
+        values = PKDict(values)
         # "10" is "conic", but it's only valid if useCCC, which
         # are the external coefficients. The "shape" values are still
         # valid
@@ -309,7 +330,7 @@ def _generate_crl_lens(item, is_first, is_last, count, source):
 oe = Shadow.OE(){}
 beam.traceOE(oe, {})'''.format(_fields('oe', values, fields), count + is_obj)
 
-    common = pkcollections.Dict(
+    common = PKDict(
         dummy=1.0,
         fwrite=3,
     )
@@ -360,7 +381,6 @@ def _generate_crystal(item):
     elif item.f_mosaic == '1':
         res += _item_field(item, ['spread_mos', 'thickness', 'mosaic_seed'])
     bragg_filename = 'crystal-bragg-{}.txt'.format(item.id)
-    # def bragg(interactive=True, DESCRIPTOR="Si",H_MILLER_INDEX=1,K_MILLER_INDEX=1,L_MILLER_INDEX=1,TEMPERATURE_FACTOR=1.0,E_MIN=5000.0,E_MAX=15000.0,E_STEP=100.0,SHADOW_FILE="bragg.dat"):
     res += "\n" + "bragg(interactive=False, DESCRIPTOR='{}', H_MILLER_INDEX={}, K_MILLER_INDEX={}, L_MILLER_INDEX={}, TEMPERATURE_FACTOR={}, E_MIN={}, E_MAX={}, E_STEP={}, SHADOW_FILE='{}')".format(
         item.braggMaterial,
         item.braggMillerH,
@@ -499,7 +519,7 @@ def _generate_mirror(item):
 
 
 def _generate_parameters_file(data, run_dir=None, is_parallel=False):
-    _validate_data(data, simulation_db.get_schema(SIM_TYPE))
+    _validate_data(data, _SCHEMA)
     _scale_units(data)
     v = template_common.flatten_data(data.models, PKDict())
     r = data.report
@@ -520,7 +540,7 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
         v.geometricSourceSettings = _generate_geometric_source(data)
     elif v.simulation_sourceType == 'wiggler':
         v.wigglerSettings = _generate_wiggler(data)
-        v.wigglerTrajectoryFilename = _WIGGLER_TRAJECTOR_FILENAME
+        v.wigglerTrajectoryFilename = _WIGGLER_TRAJECTORY_FILENAME
         v.wigglerTrajectoryInput = ''
         if data.models.wiggler.b_from in ('1', '2'):
             v.wigglerTrajectoryInput = _SIM_DATA.shadow_wiggler_file(data.models.wiggler.trajFile)
@@ -547,7 +567,7 @@ def _generate_wiggler(data):
           + _field_value('source', 'vdiv2', 1.0) \
           + _field_value('source', 'f_color', 0) \
           + _field_value('source', 'f_phot', 0) \
-          + _field_value('source', 'file_traj', "b'{}'".format(_WIGGLER_TRAJECTOR_FILENAME))
+          + _field_value('source', 'file_traj', "b'{}'".format(_WIGGLER_TRAJECTORY_FILENAME))
 
 
 def _item_field(item, fields):
