@@ -405,6 +405,7 @@ class ElegantMadxConverter(MadxConverter):
             mb.particle = 'electron'
         mb.energy = 0
         madx.models.bunch.beamDefinition = 'pc'
+        madx.models.bunch.longitudinalMethod = '2'
         mb.pc = eb.p_central_mev * 1e-3
         mb.sigt = eb.sigma_s
         mb.sige = eb.sigma_dp
