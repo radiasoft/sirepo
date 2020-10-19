@@ -15,9 +15,10 @@ from sirepo.template import code_variable
 from sirepo.template import lattice
 from sirepo.template import sdds_util
 from sirepo.template import template_common
-from sirepo.template.template_common import ParticleEnergy
 from sirepo.template.lattice import LatticeUtil
+from sirepo.template.madx_converter import MadxConverter
 import h5py
+import math
 import numpy as np
 import re
 import sirepo.sim_data
@@ -37,7 +38,6 @@ _OPAL_H5_FILE = 'opal.h5'
 _OPAL_SDDS_FILE = 'opal.stat'
 _ELEMENTS_WITH_TYPE_FIELD = ('CYCLOTRON', 'MONITOR','RFCAVITY')
 _HEADER_COMMANDS = ('option', 'filter', 'geometry', 'particlematterinteraction', 'wake')
-_TWISS_FILE_NAME = 'twiss.out'
 #TODO(pjm): parse from opal files into schema
 _OPAL_PI = 3.14159265358979323846
 _OPAL_CONSTANTS = PKDict(
@@ -88,6 +88,161 @@ class OpalOutputFileIterator(lattice.ModelIterator):
         else:
             self.model_index[self.model_name] = 1
 
+class OpalMadxConverter(MadxConverter):
+    _FIELD_MAP = [
+        ['DRIFT',
+            ['DRIFT', 'l'],
+        ],
+        ['SBEND',
+            ['SBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'gap=hgap', 'psi=tilt'],
+        ],
+        ['RBEND',
+            ['RBEND', 'l', 'angle', 'k1', 'k2', 'e1', 'e2', 'h1', 'h2', 'hgap', 'psi=tilt'],
+        ],
+        ['QUADRUPOLE',
+            ['QUADRUPOLE', 'l', 'k1', 'k1s', 'psi=tilt'],
+        ],
+        ['SEXTUPOLE',
+            ['SEXTUPOLE', 'l', 'k2', 'k2s', 'psi=tilt'],
+        ],
+        ['OCTUPOLE',
+            ['OCTUPOLE', 'l', 'k3', 'k3s', 'psi=tilt'],
+        ],
+        ['SOLENOID',
+         #TODO(pjm): compute dks from ksi?
+            ['SOLENOID', 'l', 'ks'],
+        ],
+        ['MULTIPOLE',
+         #TODO(pjm): compute kn, ks from knl, ksl?
+            ['MULTIPOLE', 'psi=tilt'],
+        ],
+        ['HKICKER',
+            ['HKICKER', 'l', 'kick', 'psi=tilt'],
+        ],
+        ['VKICKER',
+            ['VKICKER', 'l', 'kick', 'psi=tilt'],
+        ],
+        ['KICKER',
+            ['KICKER', 'l', 'hkick', 'vkick', 'psi=tilt'],
+        ],
+        ['MARKER',
+            ['MARKER'],
+        ],
+        ['PLACEHOLDER',
+            ['DRIFT', 'l'],
+        ],
+        ['INSTRUMENT',
+            ['DRIFT', 'l'],
+        ],
+        ['ECOLLIMATOR',
+            ['ECOLLIMATOR', 'l', 'xsize', 'ysize'],
+        ],
+        ['RCOLLIMATOR',
+            ['RCOLLIMATOR', 'l', 'xsize', 'ysize'],
+        ],
+        ['COLLIMATOR apertype=ELLIPSE',
+            ['ECOLLIMATOR', 'l', 'xsize', 'ysize'],
+        ],
+        ['COLLIMATOR apertype=RECTANGLE',
+            ['RCOLLIMATOR', 'l', 'xsize', 'ysize'],
+        ],
+        ['RFCAVITY',
+            ['RFCAVITY', 'l', 'volt', 'lag', 'harmon', 'freq'],
+        ],
+        ['TWCAVITY',
+            ['TRAVELINGWAVE', 'l', 'volt', 'lag', 'freq', 'dlag=delta_lag'],
+        ],
+        ['HMONITOR',
+            ['MONITOR', 'l'],
+        ],
+        ['VMONITOR',
+            ['MONITOR', 'l'],
+        ],
+        ['MONITOR',
+            ['MONITOR', 'l'],
+        ],
+    ]
+
+    def __init__(self):
+        super().__init__(SIM_TYPE, self._FIELD_MAP)
+
+    def to_madx(self, data):
+        madx = super().to_madx(data)
+        mb = LatticeUtil.find_first_command(madx, 'beam')
+        ob = LatticeUtil.find_first_command(data, 'beam')
+        for f in ob:
+            if f in mb:
+                mb[f] = ob[f]
+        od = LatticeUtil.find_first_command(data, 'distribution')
+        #TODO(pjm): save dist in vars
+        return madx
+
+    def from_madx(self, madx):
+        data = super().from_madx(madx)
+        mb = LatticeUtil.find_first_command(madx, 'beam')
+        LatticeUtil.find_first_command(data, 'option').version = 20000
+        LatticeUtil.find_first_command(data, 'beam').particle = mb.particle.upper()
+        LatticeUtil.find_first_command(data, 'beam').pc = self.particle_energy.pc
+        LatticeUtil.find_first_command(data, 'track').line = data.models.simulation.visualizationBeamlineId
+        self.__fixup_distribution(madx, data)
+        return data
+
+    def _fixup_element(self, element_in, element_out):
+        super()._fixup_element(element_in, element_out)
+
+        if self.from_class.sim_type()  == SIM_TYPE:
+            pass
+        else:
+            if element_in.type == 'SBEND':
+                angle = self.__val(element_in.angle)
+                if angle != 0:
+                    length = self.__val(element_in.l)
+                    d1 = 2 * length / angle;
+                    element_out.l = d1 * math.sin(length / d1)
+            if element_in.type in ('SBEND', 'RBEND'):
+                # kenetic energy in MeV
+                element_out.designenergy = round(
+                    (self.particle_energy.energy - self.beam.mass) * 1e3,
+                    6,
+                )
+                element_out.gap = 2 * self.__val(element_in.hgap)
+                element_out.fmapfn = 'hard_edge_profile.txt'
+            if element_in.type == 'QUADRUPOLE':
+                k1 = self.__val(element_out.k1)
+                if self.beam.charge < 0:
+                    k1 *= -1
+                element_out.k1 = '{} * {}'.format(k1, self._var_name('brho'))
+
+    def __fixup_distribution(self, madx, data):
+        mb = LatticeUtil.find_first_command(madx, 'beam')
+        dist = LatticeUtil.find_first_command(data, 'distribution')
+        beta_gamma = self.particle_energy.beta * self.particle_energy.gamma
+        self._replace_var(data, 'brho', self.particle_energy.brho)
+        self._replace_var(data, 'gamma', self.particle_energy.gamma)
+        self._replace_var(data, 'beta', 'sqrt(1 - (1 / pow({}, 2)))'.format(self._var_name('gamma')))
+        for dim in ('x', 'y'):
+            self._replace_var(data, f'emit_{dim}', mb[f'e{dim}'])
+            beta = self._find_var(madx, f'beta_{dim}')
+            if beta:
+                dist[f'sigma{dim}'] = 'sqrt({} * {})'.format(
+                    self._var_name(f'emit_{dim}'), self._var_name(f'beta_{dim}'))
+                dist[f'sigmap{dim}'] = 'sqrt({} * {}) * {} * {}'.format(
+                    self._var_name(f'emit_{dim}'), self._var_name(f'gamma_{dim}'),
+                    self._var_name('beta'), self._var_name('gamma'))
+                dist[f'corr{dim}'] = '-{}/sqrt(1 + pow({}, 2))'.format(
+                    self._var_name(f'alpha_{dim}'), self._var_name(f'alpha_{dim}'))
+        if self._find_var(madx, 'dp_s_coupling'):
+            dist.corrz = self._var_name('dp_s_coupling')
+        ob = LatticeUtil.find_first_command(data, 'beam')
+        ob.bcurrent = mb.bcurrent
+        if self._find_var(madx, 'n_particles_per_bunch'):
+            ob.npart = self._var_name('n_particles_per_bunch')
+        dist.sigmaz = self.__val(mb.sigt)
+        dist.sigmapz = '{} * {} * {}'.format(mb.sige, self._var_name('beta'), self._var_name('gamma'))
+
+    def __val(self, var_value):
+        return self.vars.eval_var_with_assert(var_value)
+
 
 def background_percent_complete(report, run_dir, is_running):
     res = PKDict(
@@ -107,10 +262,18 @@ def background_percent_complete(report, run_dir, is_running):
     return res
 
 
+def code_var(variables):
+    return code_variable.CodeVar(
+        variables,
+        code_variable.PurePythonEval(_OPAL_CONSTANTS),
+        case_insensitive=True,
+    )
+
+
 def get_application_data(data, **kwargs):
     if data.method == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_frames)
-    if _code_var(data.variables).get_application_data(data, _SCHEMA, ignore_array_values=True):
+    if code_var(data.variables).get_application_data(data, _SCHEMA, ignore_array_values=True):
         return data
 
 
@@ -141,18 +304,11 @@ def import_file(req, unit_test_mode=False, **kwargs):
                 missingFiles=missing_files,
             )
     elif re.search(r'\.madx$', req.filename, re.IGNORECASE):
-        from sirepo.template import madx_converter, madx_parser
-        madx = madx_parser.parse_file(text)
-        data = madx_converter.from_madx(SIM_TYPE, madx)
+        data = OpalMadxConverter().from_madx_text(text)
         data.models.simulation.name = re.sub(r'\.madx$', '', req.filename, flags=re.IGNORECASE)
-        _fixup_madx(madx, data)
     else:
         raise IOError('invalid file extension, expecting .in or .madx')
     return data
-
-
-def opal_code_var(variables):
-    return _code_var(variables)
 
 
 def post_execution_processing(
@@ -165,20 +321,17 @@ def post_execution_processing(
         return None
     if is_parallel:
         return _parse_opal_log(run_dir)
-    e = _parse_opal_log(run_dir)
-    if re.search(r'Singular matrix', e):
-        e = 'Twiss values could not be computed: Singular matrix'
-    return e
+    return _parse_opal_log(run_dir)
 
 
 def prepare_for_client(data):
-    _code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
+    code_var(data.models.rpnVariables).compute_cache(data, _SCHEMA)
     return data
 
 
 def prepare_sequential_output_file(run_dir, data):
     report = data['report']
-    if 'bunchReport' in report or 'twissReport' in report:
+    if 'bunchReport' in report:
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
@@ -191,36 +344,14 @@ def prepare_sequential_output_file(run_dir, data):
 
 def python_source_for_model(data, model):
     if model == 'madx':
-        return _export_madx(data)
+        return OpalMadxConverter().to_madx_text(data)
     return _generate_parameters_file(data)
 
 
 def save_sequential_report_data(data, run_dir):
     report = data.models[data.report]
     res = None
-    if data.report == 'twissReport':
-        report['x'] = 's'
-        col_names, rows = _read_data_file(run_dir.join(_TWISS_FILE_NAME))
-        x = _column_data(report.x, col_names, rows)
-        y_range = None
-        plots = []
-        for f in ('y1', 'y2', 'y3'):
-            if report[f] == 'none':
-                continue
-            plots.append({
-                'points': _column_data(report[f], col_names, rows),
-                'label': '{} {}'.format(report[f], _units(report[f])),
-            })
-        res = PKDict(
-            title='',
-            x_range=[min(x), max(x)],
-            y_label='',
-            x_label='{} {}'.format(report.x, _units(report.x)),
-            x_points=x,
-            plots=plots,
-            y_range=template_common.compute_plot_color_and_range(plots),
-        )
-    elif 'bunchReport' in data.report:
+    if 'bunchReport' in data.report:
         res = _bunch_plot(report, run_dir, 0)
         res.title = ''
     else:
@@ -341,14 +472,6 @@ def _bunch_plot(report, run_dir, idx, filename=_OPAL_H5_FILE):
     ))
 
 
-def _code_var(variables):
-    return code_variable.CodeVar(
-        variables,
-        code_variable.PurePythonEval(_OPAL_CONSTANTS),
-        case_insensitive=True,
-    )
-
-
 def _compute_range_across_frames(run_dir, data):
     def _walk_file(h5file, key, step, res):
         if key:
@@ -375,14 +498,6 @@ def _column_data(col, col_names, rows):
     for row in rows:
         res.append(float(row[idx]))
     return res
-
-
-def _export_madx(data):
-    from sirepo.template import madx, madx_converter
-    return madx.python_source_for_model(
-        madx_converter.to_madx(SIM_TYPE, data),
-        None,
-    )
 
 
 def _field_units(units, field):
@@ -418,33 +533,6 @@ def _find_run_method(commands):
         if command._type == 'track' and command.run_method:
             return command.run_method
     return 'THIN'
-
-
-def _fixup_madx(madx, data):
-    import sirepo.template.madx
-    cv = sirepo.template.madx.madx_code_var(madx.models.rpnVariables)
-    import pykern.pkjson
-    beam = LatticeUtil.find_first_command(madx, 'beam')
-    assert beam, 'MAD-X file missing BEAM command'
-    if beam.energy == 1 and (beam.pc != 0 or beam.gamma != 0 or beam.beta != 0 or beam.brho != 0):
-        # unset the default mad-x value if other energy fields are set
-        beam.energy = 0
-    particle = beam.particle.lower()
-    LatticeUtil.find_first_command(data, 'beam').particle = particle.upper()
-    energy = ParticleEnergy.compute_energy('madx', particle, beam.copy())
-    LatticeUtil.find_first_command(data, 'beam').pc = energy.pc
-    LatticeUtil.find_first_command(data, 'track').line = data.models.simulation.visualizationBeamlineId
-    for el in data.models.elements:
-        if el.type == 'SBEND' or el.type == 'RBEND':
-            # mad-x is GeV (total energy), designenergy is MeV (kinetic energy)
-            el.designenergy = round(
-                (energy.energy - ParticleEnergy.PARTICLE[particle].mass) * 1e3,
-                6,
-            )
-            # this is different than the opal default of "2 * sin(angle / 2) / length"
-            # but matches elegant and synergia
-            el.k0 = cv.eval_var_with_assert(el.angle) / cv.eval_var_with_assert(el.l)
-            el.gap = 2 * cv.eval_var_with_assert(el.hgap)
 
 
 def _fix_opal_float(value):
@@ -563,6 +651,10 @@ def _generate_beamline(util, code_var, count_by_name, beamline_id, edge, names):
             else:
                 res += '{}: {},elemedge={};\n'.format(name, item.name, edge)
                 names.append(name)
+                if item.type == 'SBEND' and run_method == 'THICK':
+                    # use arclength for SBEND with THICK tracker (only?)
+                    angle = code_var.eval_var_with_assert(item.angle)
+                    length = angle * length / (2 * math.sin(angle / 2))
             edge += length
         else:
             # beamline
@@ -574,7 +666,7 @@ def _generate_beamline(util, code_var, count_by_name, beamline_id, edge, names):
 def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     util = LatticeUtil(data, _SCHEMA)
-    code_var = _code_var(data.models.rpnVariables)
+    cv = code_var(data.models.rpnVariables)
     report = data.get('report', '')
 
     if 'bunchReport' in report:
@@ -587,28 +679,23 @@ def _generate_parameters_file(data):
         # for emitted distributions
         distribution.nbin = 0
         distribution.emissionsteps = 1
+        distribution.offsetz = 0
         data.models.commands = [
             LatticeUtil.find_first_command(data, 'option'),
             beam,
             distribution,
         ]
     else:
-        if report == 'twissReport':
-            beamline_id = util.select_beamline().id
-        else:
-            beamline_id = LatticeUtil.find_first_command(util.data, 'track').line or util.select_beamline().id
-        v.lattice = _generate_lattice(util, code_var, beamline_id)
+        beamline_id = LatticeUtil.find_first_command(util.data, 'track').line or util.select_beamline().id
+        v.lattice = _generate_lattice(util, cv, beamline_id)
         v.use_beamline = util.select_beamline().name
     v.update(dict(
-        variables=code_var.generate_variables(_generate_variable),
+        variables=cv.generate_variables(_generate_variable),
         header_commands=_generate_commands(util, True),
         commands=_generate_commands(util, False),
     ))
     if 'bunchReport' in report:
         return template_common.render_jinja(SIM_TYPE, v, 'bunch.in')
-    if report == 'twissReport':
-        v.twiss_file_name = _TWISS_FILE_NAME
-        return template_common.render_jinja(SIM_TYPE, v, 'twiss.in')
     return template_common.render_jinja(SIM_TYPE, v, 'parameters.in')
 
 
@@ -703,12 +790,6 @@ def _read_frame_count(run_dir):
     except IOError:
         pass
     return 0
-
-
-def _units(twiss_field):
-    if twiss_field in ('betx', 'bety', 'dx'):
-        return '[m]'
-    return ''
 
 
 def _units_from_hdf5(h5file, field):

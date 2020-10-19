@@ -318,6 +318,34 @@ class PurePythonEval():
             variables[d] = v
         return self.__eval_python_stack(expr, variables)
 
+    @classmethod
+    def postfix_to_infix(cls, expr):
+        if not CodeVar.is_var_value(expr):
+            return expr
+
+        def __strip_parens(v):
+            return re.sub(r'^\((.*)\)$', r'\1', v)
+
+        values = str(expr).split(' ')
+        stack = []
+        for v in values:
+            if v in PurePythonEval._KEYWORDS:
+                try:
+                    op = PurePythonEval._OPS[v]
+                    args = list(reversed([stack.pop() for _ in range(op.__code__.co_argcount)]))
+                    if v == 'chs':
+                        stack.append('-{}'.format(args[0]))
+                    elif re.search(r'\w', v):
+                        stack.append('{}({})'.format(v, ','.join([__strip_parens(arg) for arg in args])))
+                    else:
+                        stack.append('({} {} {})'.format(args[0], v, args[1]))
+                except IndexError:
+                    # not parseable, return original expression
+                    return expr
+            else:
+                stack.append(v)
+        return __strip_parens(stack[-1])
+
     def __eval_python_stack(self, expr, variables):
         if not CodeVar.is_var_value(expr):
             return expr, None

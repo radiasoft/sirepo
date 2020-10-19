@@ -49,8 +49,6 @@
   allow_missing_elements = 1,
   item = "TOTAL",
   name = "Q",
-  s_end = -1.0,
-  s_start = -1.0,
   type = "charge",
   value = 3e-10,
 &end
@@ -58,8 +56,6 @@
 &alter_elements
   item = "PHASE",
   name = "L2CELL*",
-  s_end = -1.0,
-  s_start = -1.0,
   type = "RF*",
   value = 57.55,
 &end
@@ -67,8 +63,6 @@
 &alter_elements
   item = "PHASE",
   name = "L4CELL*",
-  s_end = -1.0,
-  s_start = -1.0,
   type = "RF*",
   value = 95.0,
 &end
@@ -76,8 +70,6 @@
 &alter_elements
   item = "PHASE",
   name = "L5CELL*",
-  s_end = -1.0,
-  s_start = -1.0,
   type = "RF*",
   value = 95.0,
 &end
@@ -86,8 +78,6 @@
   item = "VOLT",
   multiplicative = 1,
   name = "L4CELL*",
-  s_end = -1.0,
-  s_start = -1.0,
   type = "RF*",
   value = 1.07,
 &end
@@ -96,8 +86,6 @@
   item = "VOLT",
   multiplicative = 1,
   name = "L5CELL*",
-  s_end = -1.0,
-  s_start = -1.0,
   type = "RF*",
   value = 1.07,
 &end
@@ -105,8 +93,6 @@
 &alter_elements
   item = "LSC",
   name = "*",
-  s_end = -1.0,
-  s_start = -1.0,
   type = "RF*",
   value = 1.0,
 &end
@@ -114,8 +100,6 @@
 &alter_elements
   item = "N_KICKS",
   name = "*",
-  s_end = -1.0,
-  s_start = -1.0,
   type = "RF*",
   value = 5.0,
 &end
@@ -126,13 +110,11 @@
   beta_x = 4.034896311524342,
   beta_y = 4.199343696609461,
   filename = "twiss_output.filename.sdds",
-  higher_order_chromaticity_range = 0.0004,
   matched = 0,
 &end
 
 &run_control
   n_indices = 1,
-  n_steps = 1.0,
 &end
 
 &link_elements

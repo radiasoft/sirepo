@@ -1,5 +1,13 @@
 title, "Compact Storage Ring";
 
+REAL sr_alpha_x = 1;
+REAL sr_alpha_y = 1;
+REAL sr_beta_x = 10;
+REAL sr_beta_y = 10;
+REAL sr_dp_s_coupling = 0.0;
+REAL sr_gamma_x = (1 + pow(sr_alpha_x, 2)) / sr_beta_x;
+REAL sr_gamma_y = (1 + pow(sr_alpha_y, 2)) / sr_beta_y;
+REAL sr_n_particles_per_bunch = 5000;
 
 L0: DRIFT,l=1.43;
 L1: DRIFT,l=0.25;
@@ -21,7 +29,7 @@ QUARTER: LINE=(M0,L0,Q1,M1,L2,Q2,M2,L2,Q3,M3,L2,BM,L2,SD,L1,Q4,M4,L1,SF,L2,BM,L2
 CSR: LINE=(QUARTER,QUARTER,QUARTER,QUARTER);
 
 
-beam;
+beam,ex=4.6e-08,ey=4.6e-08,particle=electron,pc=1.0010000000000001,sigt=0.00065;
 use,sequence=CSR;
 twiss,file="twiss.file.tfs";
 

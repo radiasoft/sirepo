@@ -1967,7 +1967,7 @@
 "S9B:P5": MONI
 "RC": RECIRC
 "RECIRC": RECIRC
-"RF": RFCA,freq=351.9302758448876e6,l=0,phase=180,volt=2.25E6
+"RF": RFCA,freq=351.9302758448876e6,phase=180,volt=2.25E6
 "S36BSCRAPER": SCRAPER,insert_from="-y",position=-0.02
 "S36TSCRAPER": SCRAPER,insert_from="+y",position=0.02
 "S38BSCRAPER": SCRAPER,insert_from="-y",position=-0.02

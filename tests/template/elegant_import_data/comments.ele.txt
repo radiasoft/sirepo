@@ -11,14 +11,10 @@
 &end
 
 &run_control
-  n_steps = 1.0,
 &end
 
 &twiss_output
-  beta_x = 1.0,
-  beta_y = 1.0,
   filename = "twiss_output.filename.sdds",
-  higher_order_chromaticity_range = 0.0004,
 &end
 
 &bunched_beam

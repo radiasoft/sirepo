@@ -135,5 +135,19 @@ def test_infix_to_postfix():
     from sirepo.template.code_variable import CodeVar, PurePythonEval
     code_var = CodeVar([], PurePythonEval(PKDict()))
     pkeq(code_var.infix_to_postfix('x + y * 2'), 'x y 2 * +')
-    pkeq(code_var.infix_to_postfix('-(x)'), 'x chs')
+    pkeq(code_var.infix_to_postfix('-(((x)))'), 'x chs')
     pkeq(code_var.infix_to_postfix('-(x + +x)'), 'x x + chs')
+    # leave alone if already in postfix format
+    pkeq(code_var.infix_to_postfix('x x + chs'), 'x x + chs')
+
+
+def test_postfix_to_infix():
+    from pykern.pkcollections import PKDict
+    from pykern.pkunit import pkeq
+    from sirepo.template.code_variable import PurePythonEval
+    ppe = PurePythonEval()
+    pkeq(ppe.postfix_to_infix('x y 2 * +'), 'x + (y * 2)')
+    pkeq(ppe.postfix_to_infix('x x + chs'), '-(x + x)')
+    pkeq(ppe.postfix_to_infix('30 360 / 2 * pi *'), '((30 / 360) * 2) * pi')
+    # leave alone if already in infix format
+    pkeq(ppe.postfix_to_infix('x + (y * 2)'), 'x + (y * 2)')

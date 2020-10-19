@@ -2564,11 +2564,11 @@
             }
         ],
         "bunch": {
-            "alpha_x": 1.0,
-            "alpha_y": 1.0,
+            "alpha_x": 0.0,
+            "alpha_y": 0.0,
             "alpha_z": 0.0,
-            "beta_x": 10.0,
-            "beta_y": 10.0,
+            "beta_x": 1.0,
+            "beta_y": 1.0,
             "beta_z": 0.0,
             "centroid": "0, 0, 0, 0, 0, 0",
             "distribution_cutoff": "3, 3, 3",
@@ -2596,7 +2596,7 @@
             "randomize_order": "0, 0, 0",
             "sigma_dp": 0.001,
             "sigma_s": 0.00065,
-            "symmetrize": "1",
+            "symmetrize": "0",
             "time_start": 0.0
         },
         "bunchFile": {
