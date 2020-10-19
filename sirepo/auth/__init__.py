@@ -330,14 +330,6 @@ def process_request(unit_test=None):
     _set_log_user()
 
 
-def registered_user(uid):
-    with auth_db.thread_lock:
-        u = auth_db.UserRegistration.search_by(uid=uid)
-        if u:
-            return u.uid
-        return None
-
-
 def require_auth_basic():
     m = _METHOD_MODULES['basic']
     _validate_method(m)
@@ -441,6 +433,14 @@ def set_user(uid):
         yield
     finally:
         reset_state()
+
+
+def unchecked_get_user(uid):
+    with auth_db.thread_lock:
+        u = auth_db.UserRegistration.search_by(uid=uid)
+        if u:
+            return u.uid
+        return None
 
 
 def user_dir_not_found(user_dir, uid):

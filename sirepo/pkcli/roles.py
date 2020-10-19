@@ -74,7 +74,7 @@ def _parse_args(uid_or_email, roles):
             f'uid_or_email={uid_or_email} contains "@" but email not configured'
         u = m.user_by_user_name(uid_or_email)
     else:
-        u = sirepo.auth.registered_user(uid_or_email)
+        u = sirepo.auth.unchecked_get_user(uid_or_email)
     if not u:
         pykern.pkcli.command_error('uid_or_email={} not found', uid_or_email)
     if roles:
