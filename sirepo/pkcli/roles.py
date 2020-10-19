@@ -72,7 +72,7 @@ def _parse_args(uid_or_email, roles):
         m = sirepo.auth.get_module('email')
         assert m, \
             f'uid_or_email={uid_or_email} contains "@" but email not configured'
-        u = m.user_by_user_name(uid_or_email)
+        u = m.unchecked_user_by_user_name(uid_or_email)
     else:
         u = sirepo.auth.unchecked_get_user(uid_or_email)
     if not u:
