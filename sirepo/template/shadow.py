@@ -24,7 +24,7 @@ _CENTIMETER_FIELDS = {
     'crystal': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', 'axmaj', 'axmin', 'ell_the', 'thickness', 'r_johansson', 'offx', 'offy', 'offz'],
     'electronBeam': ['sigmax', 'sigmaz', 'epsi_x', 'epsi_z', 'epsi_dx', 'epsi_dz'],
     'geometricSource': ['wxsou', 'wzsou', 'sigmax', 'sigmaz', 'wysou', 'sigmay'],
-    'grating': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', 'axmaj', 'axmin', 'ell_the', 'rulingDensity', 'rulingDensityCenter', 'rulingDensityPolynomial', 'holo_r1', 'holo_r2', 'dist_fan', 'rul_a1', 'rul_a2', 'rul_a3', 'rul_a4', 'hunt_h', 'hunt_l', 'offx', 'offy', 'offz'],
+    'grating': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', 'axmaj', 'axmin', 'ell_the', 'rulingDensityCenter', 'holo_r1', 'holo_r2', 'dist_fan', 'hunt_h', 'hunt_l', 'offx', 'offy', 'offz'],
     'histogramReport': ['distanceFromSource'],
     'lens': ['position', 'focal_x', 'focal_z'],
     'mirror': ['position', 'halfWidthX1', 'halfWidthX2', 'halfLengthY1', 'halfLengthY2', 'externalOutlineMajorAxis', 'externalOutlineMinorAxis', 'internalOutlineMajorAxis', 'internalOutlineMinorAxis', 'ssour', 'simag', 'rmirr', 'r_maj', 'r_min', 'param', 'axmaj', 'axmin', 'ell_the', 'prereflDensity', 'mlayerSubstrateDensity', 'mlayerEvenSublayerDensity', 'mlayerOddSublayerDensity', 'offx', 'offy', 'offz'],
@@ -57,6 +57,16 @@ _LOWERCASE_FIELDS = set(['focal_x', 'focal_z'])
 
 _MODEL_UNITS = ModelUnits(PKDict({
     x: PKDict({ y: 'cm_to_m' for y in _CENTIMETER_FIELDS[x]}) for x in _CENTIMETER_FIELDS.keys()
+}))
+_MODEL_UNITS.unit_def.grating.pkupdate(PKDict({
+    x: 'mm_to_cm' for x in [
+        'rulingDensity',
+        'rulingDensityPolynomial',
+        'rul_a1',
+        'rul_a2',
+        'rul_a3',
+        'rul_a4',
+    ]
 }))
 
 _WIGGLER_TRAJECTORY_FILENAME = 'xshwig.sha'
@@ -203,7 +213,8 @@ def _generate_beamline_optics(models, last_id):
             image_distance = next_item.position - item.position
             break
         theta_recalc_required = item.type in ('crystal', 'grating') \
-            and item.f_default == '1' and item.f_central == '1'
+            and item.f_default == '1' and item.f_central == '1' \
+            and item.fmirr != '5'
         if item.type == 'crl':
             count, res = _generate_crl(item, source_distance, count, res)
         else:

@@ -80,16 +80,6 @@ oe.F_BRAGG_A = 0
 oe.F_JOHANSSON = 0
 bragg(interactive=False, DESCRIPTOR='Si', H_MILLER_INDEX=1, K_MILLER_INDEX=1, L_MILLER_INDEX=1, TEMPERATURE_FACTOR=1.0, E_MIN=5000.0, E_MAX=55000.0, E_STEP=100.0, SHADOW_FILE='crystal-bragg-4.txt')
 oe.FILE_REFL = b'crystal-bragg-4.txt'
-# use shadow to calculate THETA from the default position
-# but do not advance the original beam to the image depth
-calc_beam = beam.duplicate()
-calc_oe = oe.duplicate()
-calc_oe.F_DEFAULT = 1
-calc_oe.T_SOURCE = calc_oe.SSOUR
-calc_oe.T_IMAGE = calc_oe.SIMAG
-calc_beam.traceOE(calc_oe, 1)
-oe.THETA = calc_oe.T_INCIDENCE * 180.0 / math.pi
-
 oe.FWRITE = 3
 oe.T_IMAGE = 0.0
 oe.T_SOURCE = 500.0

@@ -77,6 +77,7 @@ class ModelUnits():
     # handler for common units, native --> sirepo scale
     _COMMON_HANDLERS = PKDict(
         cm_to_m=1e-2,
+        mm_to_cm=1e-1,
         mrad_to_rad=1e-3,
         deg_to_rad=math.pi / 180,
     )
@@ -495,7 +496,7 @@ def validate_model(model_data, model_schema, enum_info):
             if not value:
                 value = 0
             v = float(value)
-            if re.search(r'\[m(m|rad)]', label) or re.search(r'\[Lines/mm', label):
+            if re.search(r'\[m(m|rad)]', label):
                 v /= 1000
             elif re.search(r'\[n(m|rad)]', label) or re.search(r'\[nm/pixel\]', label):
                 v /= 1e09
