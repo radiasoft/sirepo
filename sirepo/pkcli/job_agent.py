@@ -744,7 +744,7 @@ exec srun {s} /bin/bash bash.stdin
             )
             return
         self._status = r.group()
-        if self._status == 'PENDING':
+        if self._status in ('PENDING', 'CONFIGURING'):
             return
         else:
             if not self._start_ready.is_set():
