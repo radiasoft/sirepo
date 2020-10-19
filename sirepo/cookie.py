@@ -5,10 +5,9 @@ u"""User state management via an HTTP cookie
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-
-from pykern import pkcollections
 from pykern import pkcompat
 from pykern import pkconfig
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import base64
 import cryptography.fernet
@@ -28,6 +27,7 @@ _COOKIE_SENTINEL = 'srk'
 _COOKIE_SENTINEL_VALUE = 'z'
 
 _SERIALIZER_SEP = ' '
+
 
 def get_value(key):
     return _state()[key]
@@ -59,12 +59,13 @@ def save_to_cookie(resp):
     _state().save_to_cookie(resp)
 
 
-def set_cookie_for_utils():
+def set_cookie_for_utils(cookie_header=''):
     """A mock cookie for utilities"""
-    flask.g = pkcollections.Dict()
-    _State('')
+    flask.g = PKDict()
+    if cookie_header:
+        cookie_header = f'{cfg.http_name}={cookie_header}'
+    _State(cookie_header)
     set_sentinel()
-
 
 def set_sentinel(values=None):
     """Bypasses the state where the cookie has not come back from the client.
@@ -106,8 +107,8 @@ class _State(dict):
 
     def __init__(self, header):
         super(_State, self).__init__()
-        self.incoming_serialized = ''
         self.crypto = None
+        self.incoming_serialized = ''
         flask.g.sirepo_cookie = self
         self._from_cookie_header(header)
 

@@ -312,7 +312,7 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
     from pykern import pkunit
     from pykern import pkio
     # different port than default so can run tests when supervisor running
-    p = '8002'
+    p = '8101'
     cfg.pkupdate(
         PYKERN_PKDEBUG_WANT_PID_TIME='1',
         SIREPO_PKCLI_JOB_SUPERVISOR_IP=i,
@@ -320,7 +320,8 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
         SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join('db'))),
     )
     if uwsgi:
-        cfg.SIREPO_PKCLI_SERVICE_PORT = '8003'
+        cfg.SIREPO_PKCLI_SERVICE_PORT = '8102'
+        cfg.SIREPO_PKCLI_SERVICE_NGINX_PROXY_PORT = '8180'
     for x in 'DRIVER_LOCAL', 'DRIVER_DOCKER', 'API', 'DRIVER_SBATCH':
         cfg['SIREPO_JOB_{}_SUPERVISOR_URI'.format(x)] = 'http://{}:{}'.format(i, p)
     if sbatch_module:
@@ -330,7 +331,7 @@ def _subprocess_setup(request, cfg=None, uwsgi=False):
     import sirepo.srunit
     c = None
     if uwsgi:
-        c = sirepo.srunit.UwsgiClient()
+        c = sirepo.srunit.UwsgiClient(env)
     else:
         c = sirepo.srunit.flask_client(
             cfg=cfg,

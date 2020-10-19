@@ -31,7 +31,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        dm.setdefault(
+        dm.pksetdefault(
             'dicomEditorState', PKDict(),
             'doseCalculation', PKDict(selectedPTV='', selectedOARs=[]),
             'dicomDose', PKDict(frameCount=0),
@@ -50,7 +50,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         if 'roiNumbers' not in x and x.get('roiNumber', None):
             x.roiNumbers = [x.roiNumber]
             del x['roiNumber']
-        dm.dicomAnimation4.setdefault('doseTransparency', 56)
+        dm.dicomAnimation4.pksetdefault('doseTransparency', 56)
 
 
     @classmethod

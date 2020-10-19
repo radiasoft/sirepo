@@ -68,6 +68,9 @@ class SRWShadowConverter():
             elif item.type == 'ellipsoidMirror':
                 r = self.__mirror_to_shadow(item, current_rotation, shadow)
                 current_rotation = (current_rotation + r) % 360
+            elif item.type == 'grating':
+                r = self.__grating_to_shadow(item, current_rotation, shadow)
+                current_rotation = (current_rotation + r) % 360
 
     def __copy_item(self, item, attrs):
         res = PKDict(
@@ -79,6 +82,38 @@ class SRWShadowConverter():
             res.isDisabled = item.isDisabled
         res.update(attrs)
         return res
+
+    def __grating_to_shadow(self, item, current_rotation, shadow):
+        # Not sure whether this should be subtracted from 90
+        angle = 90 - (abs(item.grazingAngle) * 180 / math.pi / 1e3)
+        rotate = 0
+        offset = 0
+        shadow.beamline.append(self.__copy_item(item, PKDict(
+            type='grating',
+            fmirr='5',
+            t_incidence=angle,
+            alpha=rotate,
+            f_ruling='5',
+            rulingDensityPolynomial=item.grooveDensity0,
+            rul_a1=item.grooveDensity1,
+            rul_a2=item.grooveDensity2,
+            rul_a3=item.grooveDensity3,
+            rul_a4=item.grooveDensity3,
+            fhit_c='1',
+            fshape='1',
+            halfWidthX1=item.tangentialSize * 1e3 / 2,
+            halfWidthX2=item.tangentialSize * 1e3 / 2,
+            halfLengthY1=item.sagittalSize * 1e3 / 2,
+            halfLengthY2=item.sagittalSize * 1e3 / 2,
+            f_default='0',
+            theta=angle,
+            t_reflection=angle,
+            f_central='0',
+            order=item.diffractionOrder,
+            f_rul_abs='0',
+            f_mono='0',
+        )))
+        return rotate
 
     def __mirror_to_shadow(self, item, current_rotation, shadow):
         angle = 90 - (abs(item.grazingAngle) * 180 / math.pi / 1e3)

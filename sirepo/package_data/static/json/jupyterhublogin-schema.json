@@ -1,0 +1,21 @@
+{
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": [
+                "jupyterhublogin.js"
+            ]
+        }
+    },
+    "appDefaults": {
+        "route": "migrateJupyter"
+    },
+    "localRoutes": {
+        "migrateJupyter": {
+            "route": "/migrate-jupyter",
+            "config": {
+                "controller": "JupyterhubloginController as jupyterhublogin",
+                "templateUrl": "/static/html/jupyterhublogin.html"
+            }
+        }
+    }
+}

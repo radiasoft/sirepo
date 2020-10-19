@@ -15,6 +15,7 @@ _PROD_FOSS_CODES = frozenset((
     'madx',
     'ml',
     'opal',
+    'radia',
     'shadow',
     'srw',
     'synergia',
@@ -28,7 +29,6 @@ _PROD_FOSS_CODES = frozenset((
 _NON_PROD_FOSS_CODES = frozenset((
     'irad',
     'myapp',
-    'radia',
     'rcscon',
     'rs4pi',
 ))
@@ -40,8 +40,11 @@ _FOSS_CODES = _PROD_FOSS_CODES.union(_NON_PROD_FOSS_CODES)
 #: codes for which we require dynamically loaded binaries
 _PROPRIETARY_CODES = frozenset(('flash',))
 
+#: Codes that can be enabled through cfg but aren't "normally" enabled
+_CONFIGURABLE_CODES = frozenset(('jupyterhublogin',))
+
 #: all executable codes
-VALID_CODES = _FOSS_CODES.union(_PROPRIETARY_CODES)
+VALID_CODES = _FOSS_CODES.union(_PROPRIETARY_CODES, _CONFIGURABLE_CODES)
 
 
 #: Configuration
