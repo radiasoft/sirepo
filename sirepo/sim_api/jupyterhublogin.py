@@ -47,10 +47,8 @@ def api_migrateJupyterhub():
 
 @sirepo.api_perm.require_user
 def api_redirectJupyterHub():
-    is_new_user = _create_user()
+    is_new_user = _create_user_if_not_found()
     if not cfg.rs_jupyter_migrate or not is_new_user:
-        if is_new_user:
-            pkio.mkdir_parent(_user_dir())
         return sirepo.http_reply.gen_redirect('jupyterHub')
     return sirepo.http_reply.gen_json_ok()
 
@@ -85,7 +83,7 @@ def init_apis(*args, **kwargs):
     })
 
 
-def _create_user():
+def _create_user_if_not_found():
     def __user_name(logged_in_user_name):
         assert logged_in_user_name, 'must supply a name'
         n = re.sub(
@@ -113,7 +111,8 @@ def _create_user():
             uid=sirepo.auth.logged_in_user(),
             user_name=__user_name(sirepo.auth.user_name()),
         ).save()
-        return True
+    pkio.mkdir_parent(_user_dir())
+    return True
 
 
 def _event_auth_logout(kwargs):
