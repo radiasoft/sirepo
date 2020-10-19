@@ -99,9 +99,10 @@ def http():
 
 def jupyterhub():
     import sirepo.feature_config
+    import sirepo.template
 
     assert pkconfig.channel_in('dev')
-    assert 'jupyterhublogin' in sirepo.feature_config.cfg().other_sim_types
+    sirepo.template.assert_sim_type('jupyterhublogin')
     try:
         import jupyterhub
     except ImportError:
