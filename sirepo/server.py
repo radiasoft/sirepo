@@ -270,11 +270,12 @@ def api_getApplicationData(filename=None):
 
 
 @api_perm.require_user
-def api_export(simulation_type, simulation_id, filename):
-    """Export data to a file, type determined by file extension
+def api_exportFile(simulation_type, simulation_id, filename, file_type):
+    """Export data to a file of the specified type
 
     Args:
         filename (str): name of the file attachment
+        file_type (str): file type (e.g. 'zip')
 
     Returns:
         response: file
@@ -284,6 +285,7 @@ def api_export(simulation_type, simulation_id, filename):
     req = http_request.parse_params(
         template=True,
         filename=filename,
+        file_type=file_type,
         id=simulation_id,
         type=simulation_type,
     )

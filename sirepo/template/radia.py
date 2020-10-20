@@ -66,11 +66,11 @@ class Exporter(exporter.ExporterBase):
 
     def export(self, sim):
         """Export to file"""
-        if sim.filename.endswith('dat'):
+        if sim.file_type == 'dmp':
             return sirepo.http_reply.gen_file_as_attachment(
                 _dmp_file(sim.id),
                 content_type='application/octet-stream',
-                filename=sim.filename,
+                filename=f'{sim.filename}.{sim.file_type}',
             )
         return super().export(sim)
 

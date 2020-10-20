@@ -117,7 +117,7 @@
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "findByNameWithAuth": "/find-by-name-auth/<simulation_type>/<application_mode>/<simulation_name>",
         "getApplicationData": "/get-application-data/?<filename>",
-        "export": "/export/<simulation_type>/<simulation_id>/<filename>",
+        "exportFile": "/export/<simulation_type>/<simulation_id>/<filename>/<file_type>",
         "homePage": "/en/*<path_info>",
         "importArchive": "/import-archive",
         "importFile": "/import-file/<simulation_type>",
