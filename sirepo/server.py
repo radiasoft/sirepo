@@ -157,6 +157,7 @@ def api_errorLogging():
 @api_perm.require_user
 def api_exportArchive(simulation_type, simulation_id, filename):
     req = http_request.parse_params(
+        template=True,
         filename=filename,
         id=simulation_id,
         type=simulation_type,
