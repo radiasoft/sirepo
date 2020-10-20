@@ -61,11 +61,10 @@ class DataRequesterBase():
         Args:
             TBD
         """
-        self.appExporter = sirepo.exporter.ExporterBase
 
     def export(self, sim):
         """Export to file"""
-        self.appExporter.export(sim)
+        sirepo.exporter.ExporterBase.export(sim)
 
     def fetch(self, sim):
         """Return data"""

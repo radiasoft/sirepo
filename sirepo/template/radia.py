@@ -40,11 +40,10 @@ class DataRequester(template_common.DataRequesterBase):
             xxx (xxx):
            XXX
         """
-        self.appExporter = Exporter
 
     def export(self, sim):
         """Export to file"""
-        return self.appExporter.export(sim)
+        return Exporter.export(sim)
 
     def fetch(self, sim_id, sim_type):
         """Return data"""
