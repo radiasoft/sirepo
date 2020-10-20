@@ -13,7 +13,7 @@ from pykern.pkcollections import PKDict
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
-from scipy.spatial.transform import Rotation
+from scipy.spatial import transform
 from sirepo import simulation_db
 from sirepo.template import template_common
 from sirepo.template import radia_tk
@@ -77,9 +77,9 @@ class Exporter(sirepo.exporter.ExporterBase):
 
 
 _BEAM_AXIS_ROTATIONS = PKDict(
-    x=Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
-    y=Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
-    z=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    x=transform.Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
+    y=transform.Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
+    z=transform.Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 )
 
 _DMP_FILE = 'geom.dat'
