@@ -1,0 +1,22 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6 col-xl-6">
+      <div data-report-panel="lattice" data-model-name="beamlineReport" data-panel-title="Beamline"></div>
+    </div>
+    <div class="col-md-6 col-xl-6">
+      <div data-simple-panel="simulationStatus">
+        <div data-sim-status-panel="controls.simState"></div>
+      </div>
+    </div>
+    <div class="clearfix"></div>
+    <div data-ng-repeat="col in controls.editorColumns track by $index">
+      <div class="col-sm-6 col-md-3">
+        <div class="row">
+          <div class="col-sm-12" data-ng-repeat="item in col track by $index">
+            <div data-basic-editor-panel="" data-view-name="{{ item.viewName }}" data-model-data="item" data-panel-title="{{ item.title }}"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

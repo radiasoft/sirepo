@@ -7,6 +7,11 @@ u"""List of features available
 from __future__ import absolute_import, division, print_function
 # defer all imports so *_CODES is available to testing functions
 
+#: Codes that depend on other codes. [x][0] depends on [x][1]
+_DEPENDENT_CODES = [
+    ['jspec', 'elegant'],
+    ['controls', 'madx'],
+]
 
 #: Codes on prod
 _PROD_FOSS_CODES = frozenset((
@@ -27,6 +32,7 @@ _PROD_FOSS_CODES = frozenset((
 
 #: Codes on dev, alpha, and beta
 _NON_PROD_FOSS_CODES = frozenset((
+    'controls',
     'irad',
     'myapp',
     'rcscon',
@@ -118,11 +124,9 @@ def _init():
         )
     )
     s.update(_cfg.proprietary_sim_types, _cfg.other_sim_types)
-    # jspec imports elegant, but elegant won't work if it is not a valid
-    # sim_type so need to include here. Need a better model of
-    # dependencies between codes.
-    if 'jspec' in s and 'elegant' not in s:
-        s.add('elegant')
+    for v in _DEPENDENT_CODES:
+        if v[0] in s:
+            s.add(v[1])
     x = s.difference(VALID_CODES)
     assert not x, \
         'sim_type(s) invalid={} expected={}'.format(x, VALID_CODES)

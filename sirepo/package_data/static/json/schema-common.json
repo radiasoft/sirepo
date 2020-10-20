@@ -4,6 +4,10 @@
             "longName": "MyApp",
             "shortName": "MyApp"
         },
+        "controls": {
+            "longName": "Controls",
+            "shortName": "Controls"
+        },
         "elegant": {
             "longName": "elegant",
             "shortName": "elegant"
