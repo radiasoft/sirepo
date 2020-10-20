@@ -42,7 +42,7 @@ class DataRequester(template_common.DataRequesterBase):
 
     def export(self, sim):
         """Export to file"""
-        return Exporter.export(sim)
+        return Exporter.handle_request(sim)
 
     def fetch(self, sim_id, sim_type):
         """Return data"""
@@ -62,7 +62,7 @@ class Exporter(sirepo.exporter.ExporterBase):
         """
 
     @classmethod
-    def export(cls, sim):
+    def handle_request(cls, sim):
         """Export to file"""
         if sim.file_type == 'dmp':
             return sirepo.http_reply.gen_file_as_attachment(
@@ -70,7 +70,7 @@ class Exporter(sirepo.exporter.ExporterBase):
                 content_type='application/octet-stream',
                 filename=f'{sim.filename}.{sim.file_type}',
             )
-        return super().export(sim)
+        return super().handle_request(sim)
 
 
 _BEAM_AXIS_ROTATIONS = PKDict(
@@ -114,16 +114,6 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=1,
         solution=_read_solution(data.simulationId),  #output_info,
     )
-
-
-def create_archive(sim):
-    if sim.filename.endswith('dat'):
-        return sirepo.http_reply.gen_file_as_attachment(
-            _dmp_file(sim.id),
-            content_type='application/octet-stream',
-            filename=sim.filename,
-        )
-    return False
 
 
 def extract_report_data(run_dir, sim_in):

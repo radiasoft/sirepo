@@ -192,7 +192,7 @@ def api_exportFile(simulation_type, simulation_id, filename, file_type):
     # but here it is for now
     return(getattr(
         req.template, 'Exporter', None) or sirepo.exporter.ExporterBase
-    ).export(req)
+    ).handle_request(req)
 
 
 @api_perm.allow_visitor

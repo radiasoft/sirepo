@@ -62,14 +62,10 @@ class DataRequesterBase():
             TBD
         """
 
-    def export(self, sim):
-        """Export to file"""
-        sirepo.exporter.ExporterBase.export(sim)
-
     def fetch(self, sim):
         """Return data"""
         if sim.filename:
-            return self.export(sim)
+            return sirepo.exporter.ExporterBase.handle_request(sim)
         # This to return json data of whatever stripe
         return PKDict()
 

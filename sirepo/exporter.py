@@ -38,7 +38,7 @@ class ExporterBase():
         """
 
     @classmethod
-    def export(cls, sim):
+    def handle_request(cls, sim):
         """Export to file"""
         return create_archive(sim)
 
