@@ -37,8 +37,7 @@ class DataRequester(template_common.DataRequesterBase):
     def __init__(self):
         """
         Args:
-            xxx (xxx):
-           XXX
+            TBD
         """
 
     def export(self, sim):
@@ -59,8 +58,7 @@ class Exporter(sirepo.exporter.ExporterBase):
     def __init__(self):
         """
         Args:
-            xxx (xxx):
-           XXX
+            TBD
         """
 
     @classmethod
@@ -134,7 +132,7 @@ def extract_report_data(run_dir, sim_in):
         template_common.write_sequential_result({}, run_dir=run_dir)
     if 'geometry' in sim_in.report:
         v_type = sim_in.models.magnetDisplay.viewType
-        f_type = sim_in.models.magnetDisplay.fieldType if v_type ==\
+        f_type = sim_in.models.magnetDisplay.fieldType if v_type == \
             _SCHEMA.constants.viewTypeFields else None
         template_common.write_sequential_result(
             _read_data(sim_in.simulationId, v_type, f_type),
