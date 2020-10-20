@@ -22,6 +22,27 @@ import sirepo.util
 import zipfile
 
 
+class ExporterBase():
+    """Export to file
+
+    Subclasses should override export() to customize zip and html exports, or add
+    other types of export.  Right now this just calls the existing create_archive
+    method
+
+    """
+
+    def __init__(self):
+        """
+        Args:
+            TBD
+        """
+
+    @classmethod
+    def handle_request(cls, sim):
+        """Export to file"""
+        return create_archive(sim)
+
+
 def create_archive(sim):
     """Zip up the json file and its dependencies
 
@@ -31,6 +52,10 @@ def create_archive(sim):
     Returns:
         py.path.Local: zip file name
     """
+    if hasattr(sim.template, 'create_archive'):
+        res = sim.template.create_archive(sim)
+        if res:
+            return res
     if not pkio.has_file_extension(sim.filename, ('zip', 'html')):
         raise sirepo.util.NotFound(
             'unknown file type={}; expecting html or zip'.format(sim.filename)

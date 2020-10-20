@@ -13,7 +13,7 @@ from pykern.pkcollections import PKDict
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
-from scipy.spatial.transform import Rotation
+from scipy.spatial import transform
 from sirepo import simulation_db
 from sirepo.template import template_common
 from sirepo.template import radia_tk
@@ -23,15 +23,62 @@ import math
 import numpy
 import re
 import sdds
+import sirepo.exporter
 import sirepo.sim_data
 import sirepo.util
 import time
 
+class DataRequester(template_common.DataRequesterBase):
+    """Fetch data from the template either for download or to use on the client
+
+
+    """
+
+    def __init__(self):
+        """
+        Args:
+            TBD
+        """
+
+    def export(self, sim):
+        """Export to file"""
+        return Exporter.handle_request(sim)
+
+    def fetch(self, sim_id, sim_type):
+        """Return data"""
+        return PKDict()
+
+
+class Exporter(sirepo.exporter.ExporterBase):
+    """Export to file
+
+
+    """
+
+    def __init__(self):
+        """
+        Args:
+            TBD
+        """
+
+    @classmethod
+    def handle_request(cls, sim):
+        """Export to file"""
+        if sim.file_type == 'dmp':
+            return sirepo.http_reply.gen_file_as_attachment(
+                _dmp_file(sim.id),
+                content_type='application/octet-stream',
+                filename=f'{sim.filename}.{sim.file_type}',
+            )
+        return super().handle_request(sim)
+
+
 _BEAM_AXIS_ROTATIONS = PKDict(
-    x=Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
-    y=Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
-    z=Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    x=transform.Rotation.from_matrix([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
+    y=transform.Rotation.from_matrix([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
+    z=transform.Rotation.from_matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 )
+
 _DMP_FILE = 'geom.dat'
 _FIELD_MAP_COLS = ['x', 'y', 'z', 'Bx', 'By', 'Bz']
 _FIELD_MAP_UNITS = ['m', 'm', 'm', 'T', 'T', 'T']
@@ -43,11 +90,10 @@ _REPORTS = ['geometry', 'reset']
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
 
+#DATA_REQUESTER = DataRequester()
 GEOM_PYTHON_FILE = 'geom.py'
 MPI_SUMMARY_FILE = 'mpi-info.json'
-VIEW_TYPE_OBJ = 'objects'
-VIEW_TYPE_FIELD = 'fields'
-VIEW_TYPES = [VIEW_TYPE_OBJ, VIEW_TYPE_FIELD]
+VIEW_TYPES = [_SCHEMA.constants.viewTypeObjects, _SCHEMA.constants.viewTypeFields]
 
 # cfg contains sdds instance
 _cfg = PKDict(sdds=None)
@@ -76,8 +122,8 @@ def extract_report_data(run_dir, sim_in):
         template_common.write_sequential_result({}, run_dir=run_dir)
     if 'geometry' in sim_in.report:
         v_type = sim_in.models.magnetDisplay.viewType
-        f_type = sim_in.models.magnetDisplay.fieldType if v_type == VIEW_TYPE_FIELD\
-            else None
+        f_type = sim_in.models.magnetDisplay.fieldType if v_type == \
+            _SCHEMA.constants.viewTypeFields else None
         template_common.write_sequential_result(
             _read_data(sim_in.simulationId, v_type, f_type),
             run_dir=run_dir,
@@ -114,7 +160,7 @@ def get_application_data(data, **kwargs):
             #except KeyError:
             #    res = None
             #if res:
-            #    v = [d.vectors.vertices for d in res.data if 'vectors' in d]
+            #    v = [d.vectors.vertices for d in res.data if _SCHEMA.constants.geomTypeVectors in d]
             #    old_pts = [p for a in v for p in a]
             #    new_pts = _build_field_points(data.fieldPaths)
             #    if len(old_pts) == len(new_pts) and numpy.allclose(new_pts, old_pts):
@@ -128,9 +174,9 @@ def get_application_data(data, **kwargs):
         # moved addition of lines from client
         tmp_f_type = data.fieldType
         data.fieldType = None
-        data.geomTypes = ['lines']
+        data.geomTypes = [_SCHEMA.constants.geomTypeLines]
         data.method = 'get_geom'
-        data.viewType = VIEW_TYPE_OBJ
+        data.viewType = _SCHEMA.constants.viewTypeObjects
         new_res = get_application_data(data)
         res.data += new_res.data
         data.fieldType = tmp_f_type
@@ -139,8 +185,11 @@ def get_application_data(data, **kwargs):
     if data.method == 'get_field_integrals':
         return _generate_field_integrals(g_id, data.fieldPaths)
     if data.method == 'get_geom':
-        g_types = data.get('geomTypes', ['lines', 'polygons'])
-        g_types.extend(['center', 'size'])
+        g_types = data.get(
+            'geomTypes',
+            [_SCHEMA.constants.geomTypeLines, _SCHEMA.constants.geomTypePolys]
+        )
+        g_types.extend(['center', 'name', 'size'])
         res = _read_or_generate(g_id, data)
         rd = res.data if 'data' in res else []
         res.data = [{k: d[k] for k in d.keys() if k in g_types} for d in rd]
@@ -174,6 +223,9 @@ def get_application_data(data, **kwargs):
 def new_simulation(data, new_simulation_data):
     data.models.simulation.beamAxis = new_simulation_data.beamAxis
     data.models.geometry.name = new_simulation_data.name
+    if new_simulation_data.dmpImportFile:
+        data.models.simulation.dmpImportFile = new_simulation_data.dmpImportFile
+
 
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
@@ -335,9 +387,9 @@ def _generate_field_integrals(g_id, f_paths):
 def _generate_data(g_id, in_data, add_lines=True):
     try:
         o = _generate_obj_data(g_id, in_data.name)
-        if in_data.viewType == VIEW_TYPE_OBJ:
+        if in_data.viewType == _SCHEMA.constants.viewTypeObjects:
             return o
-        elif in_data.viewType == VIEW_TYPE_FIELD:
+        elif in_data.viewType == _SCHEMA.constants.viewTypeFields:
             g = _generate_field_data(
                 g_id, in_data.name, in_data.fieldType, in_data.get('fieldPaths', None)
             )
@@ -350,16 +402,20 @@ def _generate_data(g_id, in_data, add_lines=True):
 
 
 def _generate_obj_data(g_id, name):
-    return radia_tk.geom_to_data(g_id, name=name)
+    return radia_tk.geom_to_data(g_id, name=name, g_type=_SCHEMA.constants.viewTypeObjects)
 
 
 def _generate_parameters_file(data):
     report = data.get('report', '')
     res, v = template_common.generate_parameters_file(data)
-    sim_id = data.simulationId
+    sim_id = data.get('simulationId', data.models.simulation.simulationId)
     g = data.models.geometry
 
     v['dmpFile'] = _dmp_file(sim_id)
+    if 'dmpImportFile' in data.models.simulation:
+        v['dmpImportFile'] = simulation_db.simulation_lib_dir(SIM_TYPE).join(
+            f'{_SCHEMA.constants.radiaDmpFileType}.{data.models.simulation.dmpImportFile}'
+        )
     v['isExample'] = data.models.simulation.get('isExample', False)
     v['objects'] = g.get('objects', [])
     v['geomName'] = g.name
@@ -370,7 +426,7 @@ def _generate_parameters_file(data):
         raise ValueError('Invalid view {} ({})'.format(v_type, VIEW_TYPES))
     v['viewType'] = v_type
     v['dataFile'] = _geom_file(sim_id)
-    if v_type == VIEW_TYPE_FIELD:
+    if v_type == _SCHEMA.constants.viewTypeFields:
         f_type = disp.fieldType
         if f_type not in radia_tk.FIELD_TYPES:
             raise ValueError(
@@ -388,8 +444,8 @@ def _generate_parameters_file(data):
         radia_tk.reset()
         data.report = 'geometry'
         return _generate_parameters_file(data)
-    v['h5ObjPath'] = _geom_h5_path(VIEW_TYPE_OBJ)
-    v['h5FieldPath'] = _geom_h5_path(VIEW_TYPE_FIELD, f_type)
+    v['h5ObjPath'] = _geom_h5_path(_SCHEMA.constants.viewTypeObjects)
+    v['h5FieldPath'] = _geom_h5_path(_SCHEMA.constants.viewTypeFields, f_type)
 
     return template_common.render_jinja(
         SIM_TYPE,

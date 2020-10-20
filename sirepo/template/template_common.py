@@ -47,6 +47,30 @@ _HISTOGRAM_BINS_MAX = 500
 _PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
 
 
+class DataRequesterBase():
+    """Fetch data from the template either for download or to use on the client
+
+    Currently a skeletal placeholder that wraps an Exporter for downloads.  The idea is
+    to handle all data requests here, as opposed to simulation run requests.
+    getApplicationData, downloadDataFile, createArhive, etc. are all the same thing
+
+    """
+
+    def __init__(self):
+        """
+        Args:
+            TBD
+        """
+
+    def fetch(self, sim):
+        """Return data"""
+        if sim.filename:
+            return sirepo.exporter.ExporterBase.handle_request(sim)
+        # This to return json data of whatever stripe
+        return PKDict()
+
+
+
 class ModelUnits():
     """Convert model fields from native to sirepo format, or from sirepo to native format.
 
